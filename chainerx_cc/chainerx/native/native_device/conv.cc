@@ -147,7 +147,7 @@ public:
         Array col = TensorDot(w, x, {0}, {1}, out_dtype);  // shape: out_channel, k_1, ..., k_n, batch_size, out_1, ..., out_n
         col = RollAxis(col, x.ndim() - 1);  // batch axis is rolled to the top
 
-        Array actual_out = native_internal::Col2Im(col, stride, pad, dilation, group, out_size);  // shape: batch_size, out_channel, out_size...
+        Array actual_out = native_internal::Col2Im(col, stride, pad, dilation, out_size);  // shape: batch_size, out_channel, out_size...
 
         // Add bias, if given.
         if (b.has_value()) {

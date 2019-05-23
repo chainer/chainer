@@ -137,7 +137,6 @@ public:
                 stride,
                 pad,
                 {1, 1},
-                1,
                 {x.shape().begin() + 2, x.shape().end()});
 
         std::unique_ptr<MaxPoolGradGradState> grad_grad_state =
@@ -333,7 +332,7 @@ public:
         switch (pad_mode) {
             case AveragePoolPadMode::kZero: {
                 Array gcol = gout.Reshape(reshape_to).BroadcastTo(gcol_shape);
-                actual_gx = native_internal::Col2Im(gcol, stride, pad, {1, 1}, 1, {x.shape().begin() + 2, x.shape().end()});
+                actual_gx = native_internal::Col2Im(gcol, stride, pad, {1, 1}, {x.shape().begin() + 2, x.shape().end()});
                 int64_t width_zero = std::accumulate(kernel_size.begin(), kernel_size.end(), int64_t{1}, std::multiplies<>());
                 actual_gx /= width_zero;
                 break;
@@ -341,7 +340,7 @@ public:
             case AveragePoolPadMode::kIgnore: {
                 const Array& width_ignore = native_state.width_ignore().value();
                 Array gcol = (gout / width_ignore).Reshape(reshape_to).BroadcastTo(gcol_shape);
-                actual_gx = native_internal::Col2Im(gcol, stride, pad, {1, 1}, 1, {x.shape().begin() + 2, x.shape().end()});
+                actual_gx = native_internal::Col2Im(gcol, stride, pad, {1, 1}, {x.shape().begin() + 2, x.shape().end()});
                 break;
             }
             default:
