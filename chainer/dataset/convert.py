@@ -213,12 +213,9 @@ def concat_examples(batch, device=None, padding=None):
 
     # batch from TabularDataset.fetch
     if isinstance(batch, tuple):
-        return tuple(
-            to_device(device, _as_array(array)) for array in batch)
+        return tuple(to_device(device, _as_array(array)) for array in batch)
     elif isinstance(batch, dict):
-        return {
-            key: to_device(device, _as_array(batch[key], None))
-            for key in batch}
+        return {key: to_device(device, _as_array(batch[key])) for key in batch}
 
     first_elem = batch[0]
 
