@@ -21,16 +21,16 @@
 #include "chainerx/kernels/pooling.h"
 #include "chainerx/routines/math.h"
 #include "chainerx/routines/routines_util.h"
-#include "chainerx/stack_vector.h"
+#include "chainerx/dims.h"
 
 namespace chainerx {
 namespace {
 
 void CheckPoolInputs(
         const Array& x,
-        const StackVector<int64_t, kMaxNdim>& kernel_size,
-        const StackVector<int64_t, kMaxNdim>& stride,
-        const StackVector<int64_t, kMaxNdim>& pad) {
+        const Dims& kernel_size,
+        const Dims& stride,
+        const Dims& pad) {
     int8_t ndim = x.ndim() - 2;  // Number of spatial dimensions.
     if (static_cast<int8_t>(kernel_size.size()) != ndim) {
         throw DimensionError{"Wrong numbers of kernel size dimensions ", kernel_size.size(), " for input with ", x.ndim(), " dimensions."};
@@ -56,9 +56,9 @@ void CheckPoolInputs(
 
 Array MaxPool(
         const Array& x,
-        const StackVector<int64_t, kMaxNdim>& kernel_size,
-        const StackVector<int64_t, kMaxNdim>& stride,
-        const StackVector<int64_t, kMaxNdim>& pad,
+        const Dims& kernel_size,
+        const Dims& stride,
+        const Dims& pad,
         bool cover_all) {
     CheckPoolInputs(x, kernel_size, stride, pad);
 
@@ -115,9 +115,9 @@ Array MaxPool(
             bctx1.input_grad() = std::move(gx);
         }
 
-        StackVector<int64_t, kMaxNdim> kernel_size;
-        StackVector<int64_t, kMaxNdim> stride;
-        StackVector<int64_t, kMaxNdim> pad;
+        Dims kernel_size;
+        Dims stride;
+        Dims pad;
         bool cover_all;
         std::shared_ptr<MaxPoolGradState> state;
     };
@@ -134,9 +134,9 @@ Array MaxPool(
 
 Array AveragePool(
         const Array& x,
-        const StackVector<int64_t, kMaxNdim>& kernel_size,
-        const StackVector<int64_t, kMaxNdim>& stride,
-        const StackVector<int64_t, kMaxNdim>& pad,
+        const Dims& kernel_size,
+        const Dims& stride,
+        const Dims& pad,
         AveragePoolPadMode pad_mode) {
     if (GetKind(x.dtype()) != DtypeKind::kFloat) {
         throw DtypeError("cannot apply average pooling to ", x.dtype(), " array (floatXX array is expected)");

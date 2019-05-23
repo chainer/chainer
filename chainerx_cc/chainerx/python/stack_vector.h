@@ -7,7 +7,7 @@
 
 #include "chainerx/constant.h"
 #include "chainerx/error.h"
-#include "chainerx/stack_vector.h"
+#include "chainerx/dims.h"
 
 namespace chainerx {
 namespace python {

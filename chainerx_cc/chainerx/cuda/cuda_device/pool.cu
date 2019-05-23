@@ -85,9 +85,9 @@ __global__ void MaxPoolDoubleBackwardKernel(
 Array Pool(
         cudnnPoolingMode_t cudnn_pooling_mode,
         const Array& x,
-        StackVector<int64_t, kMaxNdim> kernel_size,
-        StackVector<int64_t, kMaxNdim> stride,
-        StackVector<int64_t, kMaxNdim> pad,
+        Dims kernel_size,
+        Dims stride,
+        Dims pad,
         bool cover_all,
         const nonstd::optional<Array>& out) {
     CHAINERX_ASSERT(kernel_size.size() == static_cast<size_t>(x.ndim() - 2));
@@ -144,9 +144,9 @@ Array PoolGrad(
         const Array& x,
         const Array& out,
         const Array& gout,
-        StackVector<int64_t, kMaxNdim> kernel_size,
-        StackVector<int64_t, kMaxNdim> stride,
-        StackVector<int64_t, kMaxNdim> pad,
+        Dims kernel_size,
+        Dims stride,
+        Dims pad,
         const nonstd::optional<Array>& gx) {
     CHAINERX_ASSERT(out.shape() == gout.shape());
     CHAINERX_ASSERT(kernel_size.size() == static_cast<size_t>(x.ndim() - 2));
@@ -203,9 +203,9 @@ Array MaxPoolGradGrad(
         const Array& x,
         const Array& out,
         const Array& ggx,
-        StackVector<int64_t, kMaxNdim> kernel_size,
-        StackVector<int64_t, kMaxNdim> stride,
-        StackVector<int64_t, kMaxNdim> pad,
+        Dims kernel_size,
+        Dims stride,
+        Dims pad,
         const nonstd::optional<Array>& ggout) {
     CHAINERX_ASSERT(x.shape() == ggx.shape());
     CHAINERX_ASSERT(kernel_size.size() == static_cast<size_t>(x.ndim() - 2));
@@ -263,9 +263,9 @@ class CudaMaxPoolKernel : public MaxPoolKernel {
 public:
     std::tuple<Array, std::unique_ptr<MaxPoolGradState>> Call(
             const Array& x,
-            StackVector<int64_t, kMaxNdim> kernel_size,
-            StackVector<int64_t, kMaxNdim> stride,
-            StackVector<int64_t, kMaxNdim> pad,
+            Dims kernel_size,
+            Dims stride,
+            Dims pad,
             bool cover_all,
             bool return_state,
             const nonstd::optional<Array>& out) override {
@@ -285,9 +285,9 @@ class CudaMaxPoolGradKernel : public MaxPoolGradKernel {
 public:
     std::tuple<Array, std::unique_ptr<MaxPoolGradGradState>> Call(
             const Array& gout,
-            StackVector<int64_t, kMaxNdim> kernel_size,
-            StackVector<int64_t, kMaxNdim> stride,
-            StackVector<int64_t, kMaxNdim> pad,
+            Dims kernel_size,
+            Dims stride,
+            Dims pad,
             const std::shared_ptr<MaxPoolGradState>& state,
             bool return_state,
             const nonstd::optional<Array>& gx) override {
@@ -312,9 +312,9 @@ class CudaMaxPoolGradGradKernel : public MaxPoolGradGradKernel {
 public:
     Array Call(
             const Array& ggx,
-            StackVector<int64_t, kMaxNdim> kernel_size,
-            StackVector<int64_t, kMaxNdim> stride,
-            StackVector<int64_t, kMaxNdim> pad,
+            Dims kernel_size,
+            Dims stride,
+            Dims pad,
             bool /*cover_all*/,
             const std::shared_ptr<MaxPoolGradGradState>& state,
             const nonstd::optional<Array>& ggout) override {
@@ -346,9 +346,9 @@ class CudaAveragePoolKernel : public AveragePoolKernel {
 public:
     std::tuple<Array, std::unique_ptr<AveragePoolGradState>> Call(
             const Array& x,
-            StackVector<int64_t, kMaxNdim> kernel_size,
-            StackVector<int64_t, kMaxNdim> stride,
-            StackVector<int64_t, kMaxNdim> pad,
+            Dims kernel_size,
+            Dims stride,
+            Dims pad,
             AveragePoolPadMode pad_mode,
             bool return_state,
             const nonstd::optional<Array>& out) override {
@@ -368,9 +368,9 @@ class CudaAveragePoolGradKernel : public AveragePoolGradKernel {
 public:
     Array Call(
             const Array& gout,
-            StackVector<int64_t, kMaxNdim> kernel_size,
-            StackVector<int64_t, kMaxNdim> stride,
-            StackVector<int64_t, kMaxNdim> pad,
+            Dims kernel_size,
+            Dims stride,
+            Dims pad,
             AveragePoolPadMode pad_mode,
             const std::shared_ptr<AveragePoolGradState>& state,
             const nonstd::optional<Array>& gx) override {

@@ -4,11 +4,11 @@
 #include <nonstd/optional.hpp>
 
 #include "chainerx/array.h"
+#include "chainerx/dims.h"
 #include "chainerx/dtype.h"
 #include "chainerx/error.h"
 #include "chainerx/float16.h"
 #include "chainerx/macro.h"
-#include "chainerx/stack_vector.h"
 
 namespace chainerx {
 namespace cuda {
@@ -92,9 +92,9 @@ class CudnnConvolutionDescriptor {
 public:
     explicit CudnnConvolutionDescriptor(
             Dtype dtype,
-            const StackVector<int64_t, kMaxNdim>& pad,
-            const StackVector<int64_t, kMaxNdim>& stride,
-            const nonstd::optional<StackVector<int64_t, kMaxNdim>>& dilation,
+            const Dims& pad,
+            const Dims& stride,
+            const nonstd::optional<Dims>& dilation,
             int groups);
 
     ~CudnnConvolutionDescriptor();
@@ -118,9 +118,9 @@ public:
     explicit CudnnPoolingDescriptor(
             cudnnPoolingMode_t mode,
             cudnnNanPropagation_t max_pooling_nan_opt,
-            const StackVector<int64_t, kMaxNdim>& kernel_size,
-            const StackVector<int64_t, kMaxNdim>& pad,
-            const StackVector<int64_t, kMaxNdim>& stride);
+            const Dims& kernel_size,
+            const Dims& pad,
+            const Dims& stride);
 
     ~CudnnPoolingDescriptor();
 

@@ -17,6 +17,7 @@
 #include "chainerx/cuda/cuda_set_device_scope.h"
 #include "chainerx/cuda/cudnn.h"
 #include "chainerx/device.h"
+#include "chainerx/dims.h"
 #include "chainerx/dtype.h"
 #include "chainerx/error.h"
 #include "chainerx/hash_combine.h"
@@ -25,7 +26,6 @@
 #include "chainerx/routines/connection.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/shape.h"
-#include "chainerx/stack_vector.h"
 
 namespace chainerx {
 namespace cuda {
@@ -130,8 +130,8 @@ std::tuple<cudnnConvolutionFwdAlgo_t, size_t, cudnnMathType_t> CudaConv::FindCon
         const CudnnTensorDescriptor& y_desc,
         const Array& y,
         size_t max_workspace_size,
-        const StackVector<int64_t, kMaxNdim>& pad,
-        const StackVector<int64_t, kMaxNdim>& stride) {
+        const Dims& pad,
+        const Dims& stride) {
     auto key = AlgoCacheKey{x.shape(), w.shape(), y.shape(), pad, stride, x.dtype(), max_workspace_size};
     auto& algo_cache_map = fwd_algo_cache_map_;
     {
@@ -179,8 +179,8 @@ std::tuple<cudnnConvolutionBwdDataAlgo_t, size_t, cudnnMathType_t> CudaConv::Fin
         const CudnnTensorDescriptor& y_desc,
         const Array& y,
         size_t max_workspace_size,
-        const StackVector<int64_t, kMaxNdim>& pad,
-        const StackVector<int64_t, kMaxNdim>& stride) {
+        const Dims& pad,
+        const Dims& stride) {
     auto key = AlgoCacheKey{x.shape(), w.shape(), y.shape(), pad, stride, x.dtype(), max_workspace_size};
     auto& algo_cache_map = bwd_data_algo_cache_map_;
     {
@@ -228,8 +228,8 @@ std::tuple<cudnnConvolutionBwdFilterAlgo_t, size_t, cudnnMathType_t> CudaConv::F
         const CudnnFilterDescriptor& gw_desc,
         const Array& gw,
         size_t max_workspace_size,
-        const StackVector<int64_t, kMaxNdim>& pad,
-        const StackVector<int64_t, kMaxNdim>& stride) {
+        const Dims& pad,
+        const Dims& stride) {
     auto key = AlgoCacheKey{x.shape(), gw.shape(), gy.shape(), pad, stride, x.dtype(), max_workspace_size};
     auto& algo_cache_map = bwd_filter_algo_cache_map_;
     {
@@ -272,8 +272,8 @@ Array CudaConv::Conv(
         const Array& x,
         const Array& w,
         const nonstd::optional<Array>& b,
-        const StackVector<int64_t, kMaxNdim>& stride,
-        const StackVector<int64_t, kMaxNdim>& pad,
+        const Dims& stride,
+        const Dims& pad,
         bool cover_all,
         Dtype out_dtype) {
     if (cover_all) {
@@ -375,9 +375,9 @@ Array CudaConv::ConvTranspose(
         const Array& x,
         const Array& w,
         const nonstd::optional<Array>& b,
-        const StackVector<int64_t, kMaxNdim>& stride,
-        const StackVector<int64_t, kMaxNdim>& pad,
-        const StackVector<int64_t, kMaxNdim>& out_size,
+        const Dims& stride,
+        const Dims& pad,
+        const Dims& out_size,
         Dtype out_dtype) {
     int8_t ndim = x.ndim() - 2;  // Number of spatial dimensions
 
@@ -483,8 +483,8 @@ Array CudaConv::ConvGradWeight(
         const Shape& w_shape,
         const Array& x,
         const Array& gy,
-        const StackVector<int64_t, kMaxNdim>& stride,
-        const StackVector<int64_t, kMaxNdim>& pad,
+        const Dims& stride,
+        const Dims& pad,
         bool cover_all) {
     if (cover_all) {
         throw ChainerxError{"CUDA convolution does not support cover_all"};

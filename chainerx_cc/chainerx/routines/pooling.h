@@ -4,15 +4,15 @@
 
 #include "chainerx/array.h"
 #include "chainerx/constant.h"
-#include "chainerx/stack_vector.h"
+#include "chainerx/dims.h"
 
 namespace chainerx {
 
 Array MaxPool(
         const Array& x,
-        const StackVector<int64_t, kMaxNdim>& kernel_size,
-        const StackVector<int64_t, kMaxNdim>& stride,
-        const StackVector<int64_t, kMaxNdim>& pad,
+        const Dims& kernel_size,
+        const Dims& stride,
+        const Dims& pad,
         bool cover_all = true);
 
 enum class AveragePoolPadMode {
@@ -22,9 +22,9 @@ enum class AveragePoolPadMode {
 
 Array AveragePool(
         const Array& x,
-        const StackVector<int64_t, kMaxNdim>& kernel_size,
-        const StackVector<int64_t, kMaxNdim>& stride,
-        const StackVector<int64_t, kMaxNdim>& pad,
+        const Dims& kernel_size,
+        const Dims& stride,
+        const Dims& pad,
         AveragePoolPadMode pad_mode = AveragePoolPadMode::kIgnore);
 
 }  // namespace chainerx
