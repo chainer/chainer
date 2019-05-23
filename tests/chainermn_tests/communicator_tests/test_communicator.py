@@ -12,6 +12,7 @@ import chainer.testing
 import chainer.testing.attr
 import chainermn
 from chainermn.communicators import _communication_utility
+from chainermn.communicators import _memory_utility
 from chainermn.communicators.flat_communicator \
     import FlatCommunicator
 from chainermn.communicators.hierarchical_communicator \
@@ -27,6 +28,7 @@ from chainermn.communicators.single_node_communicator \
 from chainermn.communicators.two_dimensional_communicator \
     import TwoDimensionalCommunicator
 from chainermn import nccl
+import cupy
 
 
 class ExampleModel(chainer.Chain):
@@ -822,6 +824,48 @@ class TestDifferentDtype(unittest.TestCase):
         self.teardown()
 
 
+
+
+
+class TestBcastDeadlock(unittest.TestCase):
+    def setup(self, gpu):
+        if gpu:
+            self.communicator = chainermn.create_communicator('flat')
+            self.device = self.communicator.intra_rank
+            chainer.cuda.get_device_from_id(self.device).use()
+        else:
+            self.device = -1
+
+        if self.communicator.size < 2:
+            pytest.skip('This test is for at least two processes')
+
+    def teardown(self):
+        pass
+
+    @chainer.testing.attr.gpu
+    def test_bcast_gpu_large_buffer_deadlock(self):
+        """This is a regression test of Open MPI's issue
+        https://github.com/open-mpi/ompi/issues/3972
+        """
+        self.setup(True)
+        buf_size = 10000
+        mpi_comm = self.communicator.mpi_comm
+
+        if self.communicator.rank == 0:
+            array = cupy.arange(buf_size, dtype=np.float32)
+        else:
+            array = cupy.empty(buf_size, dtype=np.float32)
+
+        ptr = _memory_utility.array_to_buffer_object(array)
+
+        # This Bcast() cause deadlock if the underlying MPI has the bug.
+        mpi_comm.Bcast(ptr, root=0)
+        mpi_comm.barrier()
+        assert True
+
+        self.teardown()
+
+
 class TestNonContiguousArray(unittest.TestCase):
 
     def setup(self, gpu):
@@ -952,3 +996,4 @@ def test_deprecation_single():
 
     with chainer.testing.assert_warns(DeprecationWarning):
         chainermn.create_communicator('single_node')
+
