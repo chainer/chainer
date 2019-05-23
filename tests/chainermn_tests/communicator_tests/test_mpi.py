@@ -12,7 +12,6 @@ import chainer.testing
 import chainer.testing.attr
 import chainermn
 from chainermn.communicators import _memory_utility
-import cupy
 
 class _TimeoutThread(threading.Thread):
     def __init__(self, queue, rank):
@@ -80,9 +79,11 @@ class TestBcastDeadlock(unittest.TestCase):
         mpi_comm = self.communicator.mpi_comm
 
         if self.communicator.rank == 0:
-            array = cupy.arange(buf_size, dtype=np.float32)
+            array = np.arange(buf_size, dtype=np.float32)
         else:
-            array = cupy.empty(buf_size, dtype=np.float32)
+            array = np.empty(buf_size, dtype=np.float32)
+
+        array = chainer.cuda.to_gpu(array, device=self.device)
 
         ptr = _memory_utility.array_to_buffer_object(array)
 
