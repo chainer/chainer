@@ -14,3 +14,4 @@ from chainer.optimizers.rmsprop import RMSprop  # NOQA
 from chainer.optimizers.rmsprop_graves import RMSpropGraves  # NOQA
 from chainer.optimizers.sgd import SGD  # NOQA
 from chainer.optimizers.smorms3 import SMORMS3  # NOQA
+from chainer.optimizers.data_parallel import DataParallelOptimizer  # NOQA

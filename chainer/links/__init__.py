@@ -62,3 +62,5 @@ from chainer.links.normalization.decorrelated_batch_normalization import Decorre
 from chainer.links.normalization.group_normalization import GroupNormalization  # NOQA
 from chainer.links.normalization.layer_normalization import LayerNormalization  # NOQA
 from chainer.links.theano.theano_function import TheanoFunction  # NOQA
+from chainer.links.model.data_parallel import DataParallel  #NOQA
+

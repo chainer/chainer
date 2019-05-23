@@ -4,3 +4,5 @@ from chainer.optimizer_hooks.gradient_lars import GradientLARS  # NOQA
 from chainer.optimizer_hooks.gradient_noise import GradientNoise  # NOQA
 from chainer.optimizer_hooks.lasso import Lasso  # NOQA
 from chainer.optimizer_hooks.weight_decay import WeightDecay  # NOQA
+from chainer.optimizer_hooks.data_parallel import DataParallelOptimizerCumulateGradientsHook  # NOQA
+from chainer.optimizer_hooks.data_parallel import DataParallelOptimizerUpdateModelParameters  # NOQA
