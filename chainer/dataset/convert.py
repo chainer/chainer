@@ -214,10 +214,10 @@ def concat_examples(batch, device=None, padding=None):
     # batch from TabularDataset.fetch
     if isinstance(batch, tuple):
         return tuple(
-            to_device(device, _concat_arrays(array, None)) for array in batch)
+            to_device(device, _as_array(array)) for array in batch)
     elif isinstance(batch, dict):
         return {
-            key: to_device(device, _concat_arrays(batch[key], None))
+            key: to_device(device, _as_array(batch[key], None))
             for key in batch}
 
     first_elem = batch[0]
@@ -246,6 +246,15 @@ def concat_examples(batch, device=None, padding=None):
 
     else:
         return to_device(device, _concat_arrays(batch, padding))
+
+
+def _as_array(array):
+    if isinstance(array, chainer.get_array_types()):
+        return array
+
+    device = backend.get_device_from_array(array[0])
+    with chainer.using_device(device):
+        return device.xp.stack(array)
 
 
 def _concat_arrays(arrays, padding):
