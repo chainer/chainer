@@ -72,7 +72,7 @@ class BatchRenormalization(BatchNormalization):
                 avg_mean = self._prev_avg_mean
                 avg_var = self._prev_avg_var
                 update_statistics = False
-            else:
+            elif chainer.config._will_recompute:
                 self._prev_avg_mean = avg_mean.copy()
                 self._prev_avg_var = avg_var.copy()
 
