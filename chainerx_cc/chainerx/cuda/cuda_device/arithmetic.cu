@@ -11,6 +11,7 @@
 #include "chainerx/cuda/elementwise.cuh"
 #include "chainerx/cuda/float16.cuh"
 #include "chainerx/cuda/kernel_regist.h"
+#include "chainerx/cuda/numeric.cuh"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
 #include "chainerx/kernels/math.h"
@@ -229,6 +230,56 @@ public:
 };
 
 CHAINERX_CUDA_REGISTER_KERNEL(DivideSAKernel, CudaDivideSAKernel);
+
+CHAINERX_CUDA_REGISTER_ELTWISE_DTYPE_BINARY_KERNEL(PowerKernel, { out = cuda::Power(x1, x2); }, VisitNumericDtype);
+
+template <typename T>
+struct PowerASImpl {
+    using CudaType = cuda_internal::DataType<T>;
+    __device__ void operator()(int64_t /*i*/, CudaType x1, CudaType& out) { out = cuda::Power(x1, x2); }
+    CudaType x2;
+};
+
+class CudaPowerASKernel : public PowerASKernel {
+public:
+    void Call(const Array& x1, Scalar x2, const Array& out) {
+        Device& device = x1.device();
+        device.CheckDevicesCompatible(x1, out);
+        const Array& x1_cast = x1.dtype() == out.dtype() ? x1 : x1.AsType(out.dtype());
+        CudaSetDeviceScope scope{device.index()};
+        VisitNumericDtype(out.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            using CudaType = cuda_internal::DataType<T>;
+            Elementwise<const T, T>(PowerASImpl<T>{static_cast<CudaType>(x2)}, x1_cast, out);
+        });
+    }
+};
+
+CHAINERX_CUDA_REGISTER_KERNEL(PowerASKernel, CudaPowerASKernel);
+
+template <typename T>
+struct PowerSAImpl {
+    using CudaType = cuda_internal::DataType<T>;
+    __device__ void operator()(int64_t /*i*/, CudaType x2, CudaType& out) { out = cuda::Power(x1, x2); }
+    CudaType x1;
+};
+
+class CudaPowerSAKernel : public PowerSAKernel {
+public:
+    void Call(Scalar x1, const Array& x2, const Array& out) {
+        Device& device = x2.device();
+        device.CheckDevicesCompatible(x2, out);
+        const Array& x2_cast = x2.dtype() == out.dtype() ? x2 : x2.AsType(out.dtype());
+        CudaSetDeviceScope scope{device.index()};
+        VisitNumericDtype(out.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            using CudaType = cuda_internal::DataType<T>;
+            Elementwise<const T, T>(PowerSAImpl<T>{static_cast<CudaType>(x1)}, x2_cast, out);
+        });
+    }
+};
+
+CHAINERX_CUDA_REGISTER_KERNEL(PowerSAKernel, CudaPowerSAKernel);
 
 }  // namespace
 }  // namespace cuda
