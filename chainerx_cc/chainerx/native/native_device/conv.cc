@@ -58,28 +58,59 @@ public:
         // Convert to colum representation of shape (batch_size, channel, k_1, k_2, ..., k_n, out_1, out_2, ..., out_n).
         Array col = native_internal::Im2Col(x, kernel_size, stride, pad, dilation, cover_all, 0);
 
-        // Compute the tensor dot product of col and w, reducing (channel, k_1, k_2, ..., k_n).
-        Axes axes;
-        axes.resize(ndim + 1);
-        std::iota(axes.begin(), axes.end(), 1);
-        Array y = TensorDot(col, w, axes, axes, out_dtype);  // (batch_size, out_1, out_2, ..., out_n, out_channel)
+        if (group > 1) {
+            // Run grouped convolution.
+            int64_t const G = group;
+            int64_t const N = col.shape()[0], iC = col.shape()[1];
+            int64_t const oC = w.shape()[0];
+            int64_t const iCg = iC; // G
+            int64_t const oCg = oC; // G
+            std::vector<int64_t> const o_size(x.shape().end() - ndim, x.shape().end());
 
-        // Add bias, if given.
-        if (b.has_value()) {
-            // TODO(niboshi): Remove AsType when += supports dtype promotion.
-            y += b->AsType(y.dtype(), false);
+            Array nx = RollAxis(col, 0, ndim + 2);
+            int64_t const mul_len = iCg * std::accumulate(kernel_size.begin(), kernel_size.end(), 1, std::multiplies<int64_t>());
+            nx = nx.Reshape({G, mul_len, N * std::accumulate(o_size.begin(), o_size.end(), 1, std::multiplies<int64_t>())});
+            Array W = w.Reshape({G, oCg, mul_len});
+
+            // (G, oCg, N*o_size) = (G, oCg, iCg*k_size) @ (G, iCg*k_size, N*o_size)
+            Axes axes;
+            axes.resize(ndim + 1);
+            std::iota(axes.begin(), axes.end(), 1);
+            Array y = TensorDot(W, nx, axes, axes, nx.dtype());
+            Shape new_shape({oC, N});
+            new_shape.insert(new_shape.begin(), o_size.begin(), o_size.end());
+            y = y.Reshape(new_shape);
+            y = RollAxis(y, 1);
+
+            if (b.has_value()) {
+                y += *b;
+            }
+
+            return y;
+        } else {
+            // Compute the tensor dot product of col and w, reducing (channel, k_1, k_2, ..., k_n).
+            Axes axes;
+            axes.resize(ndim + 1);
+            std::iota(axes.begin(), axes.end(), 1);
+            Array y = TensorDot(col, w, axes, axes, out_dtype);  // (batch_size, out_1, out_2, ..., out_n, out_channel)
+
+            // Add bias, if given.
+            if (b.has_value()) {
+                // TODO(niboshi): Remove AsType when += supports dtype promotion.
+                y += b->AsType(y.dtype(), false);
+            }
+
+            // Move the out channel axis to the second
+            Axes roll_axes;
+            roll_axes.resize(y.ndim());
+            roll_axes[0] = 0;
+            roll_axes[1] = ndim + 1;
+            std::iota(roll_axes.begin() + 2, roll_axes.end(), 1);
+            Array actual_out = y.Transpose(roll_axes);
+
+            CHAINERX_ASSERT(actual_out.dtype() == out_dtype);
+            return actual_out;
         }
-
-        // Move the out channel axis to the second
-        Axes roll_axes;
-        roll_axes.resize(y.ndim());
-        roll_axes[0] = 0;
-        roll_axes[1] = ndim + 1;
-        std::iota(roll_axes.begin() + 2, roll_axes.end(), 1);
-        Array actual_out = y.Transpose(roll_axes);
-
-        CHAINERX_ASSERT(actual_out.dtype() == out_dtype);
-        return actual_out;
     }
 };
 
@@ -144,23 +175,72 @@ public:
             throw NotImplementedError{"Passing out as an argument is not yet supported."};
         }
 
-        Array col = TensorDot(w, x, {0}, {1}, out_dtype);  // shape: out_channel, k_1, ..., k_n, batch_size, out_1, ..., out_n
-        col = RollAxis(col, x.ndim() - 1);  // batch axis is rolled to the top
-
-        Array actual_out = native_internal::Col2Im(col, stride, pad, dilation, out_size);  // shape: batch_size, out_channel, out_size...
-
-        // Add bias, if given.
-        if (b.has_value()) {
-            std::vector<ArrayIndex> slice{NewAxis{}, Slice{}};
-            for (size_t i = 0; i < out_size.size(); ++i) {
-                slice.emplace_back(NewAxis{});
+        if (group > 1) {
+            // G: group count
+            // N: batch size
+            // xC: input channels
+            // yC: output channels
+            int const G = group;
+            int64_t const N = x.shape()[0], xC = x.shape()[1];
+            std::vector<int64_t> const x_size(x.shape().begin() + 2, x.shape().end());
+            int64_t const yCg = w.shape()[1];
+            int64_t const yC = yCg * G;
+            int64_t const xCg = xC; // G
+            std::vector<int64_t> k_size(w.shape().begin() + 2, w.shape().end());
+            int64_t const dims = k_size.size();
+            if (xC % G != 0) {
+                // raise TypeError('The number of groups must be '
+                //                 'a divisor of that of input channels')
             }
-            // TODO(niboshi): Remove AsType when += supports dtype promotion.
-            actual_out += b->At(slice).AsType(out_dtype);
-        }
 
-        CHAINERX_ASSERT(actual_out.dtype() == out_dtype);
-        return actual_out;
+            Array nx = RollAxis(x, 1); // (xC, N, x_size...);
+            nx = nx.Reshape({G, xCg, N * std::accumulate(x_size.begin(), x_size.end(), 1, std::multiplies<int64_t>())});
+
+            Array W = w.Reshape({G, xCg, yCg * std::accumulate(k_size.begin(), k_size.end(), 1, std::multiplies<int64_t>())});
+            W = W.Transpose({0, 2, 1}); // (G, yCg*k_size, xCg);
+
+            // (G, yCg*k_size, N*x_size) = (G, yCg*k_size, xCg) @ (G, xCg, N*x_size);
+            Array col = TensorDot(W, x, {0}, {1}, x.dtype());
+
+            Shape col_shape;
+            col_shape.push_back(yC);
+            col_shape.insert(col_shape.end(), k_size.begin(), k_size.end());
+            col_shape.push_back(N);
+            col_shape.insert(col_shape.end(), x_size.begin(), x_size.end());
+            col = col.Reshape(col_shape);
+            col = RollAxis(col, dims + 1); // (N, yC, k_size..., x_size...);
+
+            Array y = native_internal::Col2Im(col, stride, pad, dilation, out_size);
+
+            if (b.has_value()) {
+                Shape s;
+                s.push_back(1);
+                s.push_back(yC);
+                for (auto i = 0; i < dims; ++i) {
+                    s.push_back(1);
+                }
+                y += b->Reshape(s);
+            }
+            return y;
+        } else {
+            Array col = TensorDot(w, x, {0}, {1}, out_dtype);  // shape: out_channel, k_1, ..., k_n, batch_size, out_1, ..., out_n
+            col = RollAxis(col, x.ndim() - 1);  // batch axis is rolled to the top
+
+            Array actual_out = native_internal::Col2Im(col, stride, pad, dilation, out_size);  // shape: batch_size, out_channel, out_size...
+
+            // Add bias, if given.
+            if (b.has_value()) {
+                std::vector<ArrayIndex> slice{NewAxis{}, Slice{}};
+                for (size_t i = 0; i < out_size.size(); ++i) {
+                    slice.emplace_back(NewAxis{});
+                }
+                // TODO(niboshi): Remove AsType when += supports dtype promotion.
+                actual_out += b->At(slice).AsType(out_dtype);
+            }
+
+            CHAINERX_ASSERT(actual_out.dtype() == out_dtype);
+            return actual_out;
+        }
     }
 };
 
