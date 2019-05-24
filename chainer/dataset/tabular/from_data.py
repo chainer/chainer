@@ -12,15 +12,15 @@ def from_data(*args, **kwargs):
             key = '_{}'.format(id(data))
 
         if isinstance(data, chainer.get_array_types()):
-            datasets.append(_FromArray(key, data, tuple))
+            datasets.append(_Array(key, data, tuple))
         else:
-            datasets.append(_FromList(key, data, tuple))
+            datasets.append(_List(key, data, tuple))
 
     for key, data in kwargs.items():
         if isinstance(data, chainer.get_array_types()):
-            datasets.append(_FromArray(key, data, dict))
+            datasets.append(_Array(key, data, dict))
         else:
-            datasets.append(_FromList(key, data, dict))
+            datasets.append(_List(key, data, dict))
 
     if len(datasets) == 0:
         raise ValueError('At least one data must be passed')
@@ -28,7 +28,7 @@ def from_data(*args, **kwargs):
     return datasets[0].join(*datasets[1:])
 
 
-class _FromArray(tabular_dataset.TabularDataset):
+class _Array(tabular_dataset.TabularDataset):
 
     def __init__(self, key, data, mode):
         self._key = key
@@ -56,7 +56,7 @@ class _FromArray(tabular_dataset.TabularDataset):
             return (self._data[indices],) * len(key_indices)
 
 
-class _FromList(tabular_dataset.TabularDataset):
+class _List(tabular_dataset.TabularDataset):
 
     def __init__(self, key, data, mode):
         self._key = key
