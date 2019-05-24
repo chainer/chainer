@@ -337,7 +337,7 @@ class DataParallel(chainer.link.Chain):
         """
         return _gather(predictions, target_device, dim)
 
-    def __getattr__(self, name):
+    def __getattribute__(self, name):
         """
         Forward every call to attributes to root module's attributes,
         if attribute is not present here.
@@ -354,9 +354,9 @@ class DataParallel(chainer.link.Chain):
                 attribute not present here and not found in root-module
         """
         if hasattr(self, name):
-            return super(DataParallel, self).__getattr__(name)
+            return super(DataParallel, self).__getattribute__(name)
 
-        return self.modules[0].__getattr__(name)
+        return getattr(self.modules[0], name)
 
     def zerograds(self):
         for module in self.modules:
