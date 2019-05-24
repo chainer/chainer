@@ -42,10 +42,14 @@ class _FromArray(tabular_dataset.TabularDataset):
     def keys(self):
         return self._key,
 
+    @property
     def mode(self):
         return self._mode
 
     def get_examples(self, indices, key_indices):
+        if key_indices is None:
+            key_indices = 0,
+
         if indices is None:
             return (self._data,) * len(key_indices)
         else:
@@ -66,10 +70,14 @@ class _FromList(tabular_dataset.TabularDataset):
     def keys(self):
         return self._key,
 
+    @property
     def mode(self):
         return self._mode
 
     def get_examples(self, indices, key_indices):
+        if key_indices is None:
+            key_indices = 0,
+
         if indices is None:
             return (self._data,) * len(key_indices)
         elif isinstance(indices, slice):
