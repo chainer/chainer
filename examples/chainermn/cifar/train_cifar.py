@@ -54,24 +54,26 @@ def main():
     # Set up a neural network to train.
     # Classifier reports softmax cross entropy loss and accuracy at every
     # iteration, which will be used by the PrintReport extension below.
-    if comm.rank == 0:
-        if args.dataset == 'cifar10':
-            print('Using CIFAR10 dataset.')
-            class_labels = 10
-            train, test = get_cifar10()
-        elif args.dataset == 'cifar100':
-            print('Using CIFAR100 dataset.')
-            class_labels = 100
-            train, test = get_cifar100()
-        else:
-            raise RuntimeError('Invalid dataset choice.')
-    train = chainermn.scatter_dataset(train, comm, shuffle=True)
-    test = chainermn.scatter_dataset(test, comm, shuffle=True)
 
-    model = L.Classifier(models.VGG.VGG(class_labels))
+    dataset_info = {
+        'cifar10': {'num_class_labels': 10, load_func: get_cifar10},
+        'cifar100': {'num_class_labels': 100, load_func: get_cifar100},
+    }
+
+    if args.dataset not in dataset_info:
+        raise RuntimeError('Invalid dataset choice.')
+
+    num_class_labels = dataset_info[args.dataset]['num_class_labels']
+
+    if comm.rank == 0:
+        train, test = dataset_info[args.dataset]['load_func']()
+    else:
+        train, test = None, None
+
+    model = L.Classifier(models.VGG.VGG(num_class_labels))
     if device >= 0:
         # Make a specified GPU current
-        chainer.cuda.get_device_from_id(device).use()
+        chainer.backends.cuda.get_device_from_id(device).use()
         model.to_gpu()  # Copy the model to the GPU
 
     optimizer = chainermn.create_multi_node_optimizer(
@@ -79,7 +81,11 @@ def main():
     optimizer.setup(model)
     optimizer.add_hook(chainer.optimizer_hooks.WeightDecay(5e-4))
 
-    train_iter = chainer.iterators.SerialIterator(train, args.batchsize)
+    train = chainermn.scatter_dataset(train, comm, shuffle=True)
+    test = chainermn.scatter_dataset(test, comm, shuffle=True)
+
+    train_iter = chainer.iterators.SerialIterator(train, args.batchsize,
+                                                  shuffle=False)
     test_iter = chainer.iterators.SerialIterator(test, args.batchsize,
                                                  repeat=False, shuffle=False)
 
