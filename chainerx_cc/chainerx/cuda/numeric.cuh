@@ -45,9 +45,9 @@ __device__ inline cuda::Float16 Arccosh(cuda::Float16 x) { return cuda::Float16{
 
 __device__ inline double Log1p(double x) { return std::log1p(x); }
 
-__device__ inline float Log1p(float x) { return std::log1p(x); }
+__device__ inline float Log1p(float x) { return std::log1pf(x); }
 
-__device__ inline cuda::Float16 Log1p(cuda::Float16 x) { return cuda::Float16{std::log1p(static_cast<float>(x))}; }
+__device__ inline cuda::Float16 Log1p(cuda::Float16 x) { return cuda::Float16{std::log1pf(static_cast<float>(x))}; }
 
 template <typename T>
 __device__ inline T Sign(T x) {
