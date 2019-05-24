@@ -3,7 +3,7 @@ import six
 from chainer.dataset.tabular import tabular_dataset
 
 
-class Join(tabular_dataset.TabularDataset):
+class _Join(tabular_dataset.TabularDataset):
 
     def __init__(self, *datasets):
         keys = set(datasets[0].keys)
