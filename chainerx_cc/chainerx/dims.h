@@ -8,7 +8,7 @@
 
 namespace chainerx {
 
-typedef StackVector<int64_t, kMaxNdim> Dims;
+using Dims = StackVector<int64_t, kMaxNdim>;
 
 // Formatter to print Dims containing integral elements as e.g. '[]' or '[1, 2, 3]'.
 class DimsFormatter {
