@@ -50,7 +50,8 @@ def preprocess_mnist(raw, withlabel, ndim, scale, image_dtype, label_dtype,
 
     if withlabel:
         labels = raw['y'].astype(label_dtype)
-        return tabular.from_array('image', images).join(
-            tabular.from_array('label', labels))
+        return tabular.from_data(
+            ('image', images),
+            ('label', labels))
     else:
         return images
