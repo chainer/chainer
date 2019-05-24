@@ -171,7 +171,7 @@ class TabularDataset(dataset_mixin.DatasetMixin):
         Returns:
             A transfromed dataset.
         """
-        return chainer.dataset.tabular.transform.Transform(
+        return chainer.dataset.tabular._transform._Transform(
             self, keys, transform)
 
     def transform_batch(self, keys, transform_batch):
@@ -187,7 +187,7 @@ class TabularDataset(dataset_mixin.DatasetMixin):
         Returns:
             A transfromed dataset.
         """
-        return chainer.dataset.tabular.transform.TransformBatch(
+        return chainer.dataset.tabular._transform._TransformBatch(
             self, keys, transform_batch)
 
     def get_example(self, i):

@@ -3,7 +3,7 @@ import six
 from chainer.dataset.tabular import tabular_dataset
 
 
-class Transform(tabular_dataset.TabularDataset):
+class _Transform(tabular_dataset.TabularDataset):
 
     def __init__(self, dataset, keys, transform):
         if keys is not None and not isinstance(keys, tuple):
@@ -56,7 +56,7 @@ class Transform(tabular_dataset.TabularDataset):
         return out_examples
 
 
-class TransformBatch(tabular_dataset.TabularDataset):
+class _TransformBatch(tabular_dataset.TabularDataset):
 
     def __init__(self, dataset, keys, transform_batch):
         if keys is not None and not isinstance(keys, tuple):
