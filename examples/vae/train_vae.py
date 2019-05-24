@@ -74,7 +74,7 @@ def main():
     optimizer = chainer.optimizers.Adam()
     optimizer.setup(avg_elbo_loss)
 
-    # Initialize
+    # If initial parameters are given, initialize the model with them.
     if args.initmodel is not None:
         chainer.serializers.load_npz(args.initmodel, avg_elbo_loss)
 
@@ -99,6 +99,7 @@ def main():
     updater = training.updaters.StandardUpdater(
         train_iter, optimizer, device=device, loss_func=avg_elbo_loss)
 
+    # Set up the trainer and extensions.
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.out)
     trainer.extend(extensions.Evaluator(
         test_iter, avg_elbo_loss, device=device))
@@ -112,6 +113,7 @@ def main():
          'main/reconstr', 'main/kl_penalty', 'elapsed_time']))
     trainer.extend(extensions.ProgressBar())
 
+    # If snapshot file is given, resume the training.
     if args.resume is not None:
         chainer.serializers.load_npz(args.resume, trainer)
 
