@@ -1,5 +1,6 @@
 #include "chainerx/routines/math.h"
 
+#include <cmath>
 #include <cstdint>
 #include <numeric>
 #include <utility>
@@ -466,96 +467,6 @@ Array Sum(const Array& a, const OptionalAxes& axis, bool keepdims) {
     return out;
 }
 
-Array AMax(const Array& a, const OptionalAxes& axis, bool keepdims) {
-    Axes sorted_axis = internal::GetSortedAxesOrAll(axis, a.ndim());
-    Array out = internal::EmptyReduced(a.shape(), a.dtype(), sorted_axis, keepdims, a.device());
-
-    for (int8_t i : sorted_axis) {
-        if (a.shape()[i] == 0) {
-            throw DimensionError{"cannot compute the maximum along zero-sized axis"};
-        }
-    }
-
-    {
-        NoBackpropModeScope scope{};
-        a.device().backend().CallKernel<AMaxKernel>(a, sorted_axis, out);
-    }
-
-    BackwardBuilder bb{"amax", a, out};
-    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-        // a and out are used only for restoring the mask. We don't need graph nodes.
-        bt.Define([sorted_axis, a = a.AsGradStopped(), out = out.AsGradStopped(), keepdims](BackwardContext& bctx) {
-            const Array& gout = *bctx.output_grad();
-            CHAINERX_ASSERT(std::is_sorted(sorted_axis.begin(), sorted_axis.end()));
-
-            Array reshaped_gout{};
-            Array reshaped_out{};
-            if (keepdims) {
-                reshaped_gout = gout;
-                reshaped_out = out;
-            } else {
-                // Add broadcastable dimensions to out and gout
-                // for each one that was reduced in the forward operation
-                Shape shape = internal::ReduceShape(a.shape(), sorted_axis, true);
-                reshaped_gout = gout.Reshape(shape);
-                reshaped_out = out.Reshape(shape);
-            }
-
-            // Compute the gradient
-            // TODO(sonots): Use `where` if it becomes available.
-            Array cond = (a == reshaped_out).AsType(gout.dtype(), false);
-            bctx.input_grad() = reshaped_gout * cond;
-        });
-    }
-    bb.Finalize();
-    return out;
-}
-
-Array AMin(const Array& a, const OptionalAxes& axis, bool keepdims) {
-    Axes sorted_axis = internal::GetSortedAxesOrAll(axis, a.ndim());
-    Array out = internal::EmptyReduced(a.shape(), a.dtype(), sorted_axis, keepdims, a.device());
-
-    for (int8_t i : sorted_axis) {
-        if (a.shape()[i] == 0) {
-            throw DimensionError{"cannot compute the minimum along zero-sized axis"};
-        }
-    }
-
-    {
-        NoBackpropModeScope scope{};
-        a.device().backend().CallKernel<AMinKernel>(a, sorted_axis, out);
-    }
-
-    BackwardBuilder bb{"amin", a, out};
-    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-        // a and out are used only for restoring the mask. We don't need graph nodes.
-        bt.Define([sorted_axis, a = a.AsGradStopped(), out = out.AsGradStopped(), keepdims](BackwardContext& bctx) {
-            const Array& gout = *bctx.output_grad();
-            CHAINERX_ASSERT(std::is_sorted(sorted_axis.begin(), sorted_axis.end()));
-
-            Array reshaped_gout{};
-            Array reshaped_out{};
-            if (keepdims) {
-                reshaped_gout = gout;
-                reshaped_out = out;
-            } else {
-                // Add broadcastable dimensions to out and gout
-                // for each one that was reduced in the forward operation
-                Shape shape = internal::ReduceShape(a.shape(), sorted_axis, true);
-                reshaped_gout = gout.Reshape(shape);
-                reshaped_out = out.Reshape(shape);
-            }
-
-            // Compute the gradient
-            // TODO(sonots): Use `where` if it becomes available.
-            Array cond = (a == reshaped_out).AsType(gout.dtype(), false);
-            bctx.input_grad() = reshaped_gout * cond;
-        });
-    }
-    bb.Finalize();
-    return out;
-}
-
 namespace {
 
 // Calculates: x1 < x2 ? pos : neg
@@ -823,6 +734,72 @@ Array Sqrt(const Array& x) {
 
     return out;
 }
+
+void PowerImpl(const Array& x1, const Array& x2, const Array& out) {
+    {
+        NoBackpropModeScope scope{};
+        x1.device().backend().CallKernel<PowerKernel>(x1, x2, out);
+    }
+
+    BackwardBuilder bb{"power", {x1, x2}, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([x1_tok = bb.RetainInput(0), x2_tok = bb.RetainInput(1)](BackwardContext& bctx) {
+            const Array& x1 = bctx.GetRetainedInput(x1_tok);
+            const Array& x2 = bctx.GetRetainedInput(x2_tok);
+            const Array& gin = *bctx.output_grad() * x2 * Power(x1, x2 - Scalar{1, GetKind(x2.dtype())});
+            bctx.input_grad() = x1.dtype() != gin.dtype() ? gin.AsType(x1.dtype()) : gin;
+        });
+    }
+    if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
+        bt.Define([x1_tok = bb.RetainInput(0), out_tok = bb.RetainOutput(0), x2_dtype = x2.dtype()](BackwardContext& bctx) {
+            const Array& x1 = bctx.GetRetainedInput(x1_tok);
+            const Array& out = bctx.GetRetainedOutput(out_tok);
+            const Array& gin = *bctx.output_grad() * out * Log(x1);
+            bctx.input_grad() = x2_dtype != gin.dtype() ? gin.AsType(x2_dtype) : gin;
+        });
+    }
+    bb.Finalize();
+}
+
+void PowerASImpl(const Array& x1, Scalar x2, const Array& out) {
+    {
+        NoBackpropModeScope scope{};
+        x1.device().backend().CallKernel<PowerASKernel>(x1, x2, out);
+    }
+
+    BackwardBuilder bb{"power_array_scalar", x1, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([x1_tok = bb.RetainInput(0), x2](BackwardContext& bctx) {
+            const Array& x1 = bctx.GetRetainedInput(x1_tok);
+            const Array& gin = *bctx.output_grad() * x2 * Power(x1, x2 - Scalar{1, x2.kind()});
+            bctx.input_grad() = x1.dtype() != gin.dtype() ? gin.AsType(x1.dtype()) : gin;
+        });
+    }
+    bb.Finalize();
+}
+
+void PowerSAImpl(Scalar x1, const Array& x2, const Array& out) {
+    {
+        NoBackpropModeScope scope{};
+        x2.device().backend().CallKernel<PowerSAKernel>(x1, x2, out);
+    }
+
+    BackwardBuilder bb{"power_scalar_array", x2, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([out_tok = bb.RetainOutput(0), x1, x2_dtype = x2.dtype()](BackwardContext& bctx) {
+            const Array& out = bctx.GetRetainedOutput(out_tok);
+            const Array& gin = *bctx.output_grad() * out * std::log(static_cast<double>(x1));
+            bctx.input_grad() = x2_dtype != gin.dtype() ? gin.AsType(x2_dtype) : gin;
+        });
+    }
+    bb.Finalize();
+}
+
+Array Power(const Array& x1, const Array& x2) { return internal::BroadcastBinary(&PowerImpl, x1, x2, GetArithmeticResultDtype(x1, x2)); }
+
+Array Power(const Array& x1, Scalar x2) { return internal::Binary(&PowerASImpl, x1, x2, GetArithmeticResultDtype(x1, x2)); }
+
+Array Power(Scalar x1, const Array& x2) { return internal::Binary(&PowerSAImpl, x1, x2, GetArithmeticResultDtype(x1, x2)); }
 
 Array Absolute(const Array& x) {
     Array x_flip_1 = IfGreaterElse(x, 0.0, 0.0, -x);

@@ -8,5 +8,6 @@ The model assumes the resolution of an input image is 32x32.
 If you want to use another image resolution, you need to change the network architecture in net.py.
 
 Below is an example learning result using cifar-10 dataset after 200 epoch.
-![example result](https://raw.githubusercontent.com/chainer/chainer/master/examples/dcgan/example_image.png)
+
+![example result](example_image.png)
 
