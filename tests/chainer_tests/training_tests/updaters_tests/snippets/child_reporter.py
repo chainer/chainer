@@ -55,7 +55,7 @@ if __name__ == '__main__':
                 numpy.int32(0)) for i in range(100)]
 
     batch_size = 5
-    devices = tuple([int(x) for x in sys.argv[1].split(',')])
+    devices = tuple([chainer.get_device(d) for d in sys.argv[1].split(',')])
     iters = [chainer.iterators.SerialIterator(i, batch_size) for i in
              chainer.datasets.split_dataset_n_random(
                  dataset, len(devices))]

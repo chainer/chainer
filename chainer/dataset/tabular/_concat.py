@@ -3,7 +3,7 @@ import six
 from chainer.dataset.tabular import tabular_dataset
 
 
-class Concat(tabular_dataset.TabularDataset):
+class _Concat(tabular_dataset.TabularDataset):
 
     def __init__(self, *datasets):
         for dataset in datasets[1:]:
