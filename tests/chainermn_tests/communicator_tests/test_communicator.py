@@ -363,7 +363,9 @@ def check_allreduce_grad_empty_half(communicator, model):
                 v += i + 2
         v /= communicator.size
         chainer.testing.assert_allclose(model.c.b.grad,
-                                        v * np.ones((5, )))
+                                        v * np.ones((5, )),
+                                        rtol=1e-3,
+                                        atol=1e-4)
 
 
 def check_send_recv(param, use_gpu):
