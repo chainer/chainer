@@ -11,8 +11,8 @@ def observe_value(observation_key, target_func):
     Returns:
         The extension function.
 
-    This extension is triggered every 1 epoch by default.
-    To change this, specify ``trigger`` argument to
+    This extension is triggered each epoch by default.
+    To change this, use the ``trigger`` argument with the
     :meth:`Trainer.extend() <chainer.training.Trainer.extend>` method.
 
     """
@@ -34,8 +34,8 @@ def observe_lr(optimizer_name='main', observation_key='lr'):
     Returns:
         The extension function.
 
-    This extension is triggered every 1 epoch by default.
-    To change this, specify ``trigger`` argument to
+    This extension is triggered each epoch by default.
+    To change this, use the ``trigger`` argument with the
     :meth:`Trainer.extend() <chainer.training.Trainer.extend>` method.
 
     """
