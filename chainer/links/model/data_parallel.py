@@ -140,8 +140,11 @@ def _scatter(inputs, target_devices: list, dim):
                                                    inputs.items()))))
 
         # try to convert inputs to chainer variable first and afterwards apply
-        # __scatter_map again
-        return _scatter_map(chainer.as_variable(inputs))
+        # _scatter_map again
+        try:
+            return _scatter_map(chainer.as_variable(inputs))
+        except TypeError:
+            return [inputs for targets in target_devices]
 
     # After scatter_map is called, a scatter_map cell will exist. This cell
     # has a reference to the actual function scatter_map, which has references
@@ -336,27 +339,6 @@ class DataParallel(chainer.link.Chain):
 
         """
         return _gather(predictions, target_device, dim)
-
-    def __getattribute__(self, name):
-        """
-        Forward every call to attributes to root module's attributes,
-        if attribute is not present here.
-
-        Args
-            name (str):
-                the attribute name
-
-        Returns
-            Any: the returned attribute
-
-        Raises
-            AttributeError:
-                attribute not present here and not found in root-module
-        """
-        if hasattr(self, name):
-            return super(DataParallel, self).__getattribute__(name)
-
-        return getattr(self.modules[0], name)
 
     def zerograds(self):
         for module in self.modules:
