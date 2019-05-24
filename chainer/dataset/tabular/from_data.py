@@ -3,6 +3,23 @@ from chainer.dataset.tabular import tabular_dataset
 
 
 def from_data(*args, **kwargs):
+    """Create a :class:`~chainer.dataset.TabularDataset` from lists/arrays.
+
+    Args:
+        args (list or array or tuple): Data of a column.
+            If this argument is an array or a list,
+            it is treated as :obj:`data`.
+            In this case, the key is generated automatically.
+            Do not rely on the key.
+            If this argument is a tuple, it is treated as :obj:`(key, data)`.
+        kwargs (list or array): Data of a column.
+            The order of columns is determined automatically.
+            Do not rely on the order.
+    Return:
+        A :class:`~chainer.dataset.TabularDataset`.
+        If :obj:`args` is specifed, :attr:`mode` is :class:`tuple`.
+        Otherwise, :attr:`mode` is :class:`dict`.
+    """
     datasets = []
 
     for data in args:
