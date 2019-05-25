@@ -31,7 +31,7 @@ class TestFromData(unittest.TestCase):
         self.assertIsInstance(output[2], list)
         self.assertIsInstance(output[3], np.ndarray)
 
-    def test_from_data_args(self):
+    def test_from_data_args_only(self):
         dataset = tabular.from_data(
             ('a', np.arange(10)),
             [3, 1, 4, 5, 9, 2, 6, 8, 7, 0])
@@ -47,7 +47,7 @@ class TestFromData(unittest.TestCase):
         self.assertIsInstance(output[0], np.ndarray)
         self.assertIsInstance(output[1], list)
 
-    def test_from_data_kwargs(self):
+    def test_from_data_kwargs_only(self):
         dataset = tabular.from_data(
             c=[2, 7, 1, 8, 4, 5, 9, 0, 3, 6],
             d=-np.arange(10))
