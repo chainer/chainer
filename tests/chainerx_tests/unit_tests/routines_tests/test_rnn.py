@@ -51,7 +51,7 @@ class TestNStepLstm(op_utils.ChainerOpTest):
         bs_dtype = self.in_dtypes[3]
 
         h = array_utils.uniform(h_shape, h_dtype)
-        c = h.copy()  # array_utils.uniform(c_shape, c_dtype)
+        c = array_utils.uniform(h_shape, h_dtype)
         in_size = self.input_size
         out_size = self.hidden_size
         xs = [array_utils.uniform((self.batches[b], in_size), ws_dtype)

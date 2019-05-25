@@ -64,6 +64,12 @@ lstm_dtypes_invalid = dtype_utils._permutate_dtype_mapping([
 ])
 
 
+def _create_lstm_args(xp, device, c_shape, x_shape, float_dtype):
+    c = array_utils.create_dummy_ndarray(xp, c_shape, float_dtype[0])
+    x = array_utils.create_dummy_ndarray(xp, x_shape, float_dtype[1])
+    return c, x
+
+
 def _create_conv_args(
         xp, device, x_shape, w_shape, b_shape, stride, pad, cover_all,
         float_dtype):
@@ -78,47 +84,6 @@ def _create_conv_args(
     return x, w, b, stride, pad, cover_all
 
 
-<<<<<<< HEAD
-def _create_lstm_args(xp, device, c_shape, x_shape, float_dtype):
-    c = array_utils.create_dummy_ndarray(xp, c_shape, float_dtype[0])
-    x = array_utils.create_dummy_ndarray(xp, x_shape, float_dtype[1])
-    return c, x
-
-
-@op_utils.op_test(['native:0', 'cuda:0'])
-@chainer.testing.parameterize(*(
-    # without bias
-    chainer.testing.product([
-        chainer.testing.from_pytest_parameterize(
-            'x_shape,w_shape,b_shape,stride,pad', [
-                ((1, 3), (5, 3), None, 1, 0),
-                ((1, 3, 4), (5, 3, 2), None, 3, 2),
-                ((2, 3, 4, 4), (2, 3, 3, 3), None, 2, (2, 0)),
-                ((2, 3, 2, 6, 3), (2, 3, 1, 3, 2), None, (1, 2, 3), (2, 0, 1)),
-            ]),
-        chainer.testing.from_pytest_parameterize(
-            'in_dtypes,out_dtype', dtype_utils.result_dtypes_two_arrays)
-    ]) +
-    # with bias
-    chainer.testing.product([
-        chainer.testing.from_pytest_parameterize(
-            'x_shape,w_shape,b_shape,stride,pad', [
-                ((1, 3), (5, 3), (5,), 1, 0),
-                ((2, 3, 4), (5, 3, 1), (5,), 1, 0),
-                ((1, 3, 4), (5, 3, 2), (5,), 3, 2),
-                ((2, 3, 4, 4), (2, 3, 3, 3), (2,), 1, 0),
-                ((1, 3, 4, 4), (2, 3, 3, 3), (2,), (1, 2), 1),
-                ((1, 3, 4, 4), (2, 3, 3, 3), (2,), 2, (2, 0)),
-                ((1, 3, 2, 6, 3), (2, 3, 1, 3, 2), (2,), 2, (2, 0, 1)),
-                ((1, 3, 2, 6, 3), (2, 3, 1, 3, 2), (2,), (1, 2, 3), (2, 0, 1)),
-            ]),
-        chainer.testing.from_pytest_parameterize(
-            'in_dtypes,out_dtype', dtype_utils.result_dtypes_three_arrays)
-    ])
-))
-@chainer.testing.parameterize_pytest('cover_all', [True, False])
-class TestConv(op_utils.ChainerOpTest):
-=======
 def _convert_to_nhwc_layout(array):
     # Converts a contiguous array to NHWC data layout.
     assert isinstance(array, numpy.ndarray)
@@ -132,7 +97,6 @@ def _convert_to_nhwc_layout(array):
 
 
 class _ConvTestBase(object):
->>>>>>> 393b89783f89684a214ea1cca79fae7f98de0bcd
 
     def setup(self):
         if len(self.in_dtypes) == 3:
