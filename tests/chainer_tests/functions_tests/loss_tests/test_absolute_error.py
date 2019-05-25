@@ -1,13 +1,11 @@
-import unittest
-
 import numpy
 
 import chainer
 from chainer.backends import cuda
 from chainer import functions
-from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
+from chainer import utils
 
 
 @testing.parameterize(*testing.product_dict(
@@ -26,66 +24,44 @@ from chainer.testing import attr
      {'shape': (1, 1)},
      ]
 ))
-class TestAbsoluteError(unittest.TestCase):
+@testing.inject_backend_tests(
+    None,
+    # CPU
+    [{}]
+    # GPU
+    + testing.product({
+        'use_cuda': [True],
+    })
+    # ChainerX
+    + testing.product({
+        'use_chainerx': [True],
+        'chainerx_device': ['native:0', 'cuda:0'],
+    })
+)
+class TestAbsoluteError(testing.FunctionTestCase):
 
     def setUp(self):
-        self.x0 = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        if self.dtype == numpy.float16:
+            self.check_forward_options.update({'atol': 1e-3, 'rtol': 1e-3})
+            self.check_backward_options.update({'atol': 5e-2, 'rtol': 5e-2})
+            self.check_double_backward_options.update(
+                {'atol': 5e-2, 'rtol': 5e-2})
+
+    def generate_inputs(self):
+        x0 = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
         # Add sufficient margin to prevent computational error
         diff = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
         diff[abs(diff) < 0.02] = 0.5
-        self.x1 = numpy.asarray(self.x0 + diff)
-        self.gy = numpy.random.random(self.shape).astype(self.dtype)
-        self.ggx0 = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
-        self.ggx1 = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        x1 = numpy.asarray(x0 + diff)
+        return (x0, x1)
 
-    def check_forward(self, x0_data, x1_data):
-        x0 = chainer.Variable(x0_data)
-        x1 = chainer.Variable(x1_data)
-        loss = functions.absolute_error(x0, x1)
-        loss_value = cuda.to_cpu(loss.data)
-        assert loss_value.dtype == self.dtype
-        assert loss_value.shape == x0_data.shape
+    def forward_expected(self, inputs):
+        x0, x1 = inputs
+        return utils.force_array(numpy.abs(x0 - x1), self.dtype),
 
-        for i in numpy.ndindex(self.x0.shape):
-            # Compute expected value
-            loss_expect = abs(self.x0[i] - self.x1[i])
-            assert round(loss_value[i] - loss_expect, 5) == 0
-
-    def test_forward_cpu(self):
-        self.check_forward(self.x0, self.x1)
-
-    @attr.gpu
-    def test_forward_gpu(self):
-        self.check_forward(cuda.to_gpu(self.x0), cuda.to_gpu(self.x1))
-
-    def check_backward(self, x0_data, x1_data, y_grad):
-        gradient_check.check_backward(
-            functions.absolute_error,
-            (x0_data, x1_data), y_grad, dtype='d')
-
-    def test_backward_cpu(self):
-        self.check_backward(self.x0, self.x1, self.gy)
-
-    @attr.gpu
-    def test_backward_gpu(self):
-        self.check_backward(
-            cuda.to_gpu(self.x0), cuda.to_gpu(self.x1), cuda.to_gpu(self.gy))
-
-    def check_double_backward(self, x0_data, x1_data, y_grad,
-                              gx0_grad, gx1_grad):
-        gradient_check.check_double_backward(
-            functions.absolute_error, (x0_data, x1_data), y_grad,
-            (gx0_grad, gx1_grad), eps=1e-2, **self.double_backward_options)
-
-    def test_double_backward_cpu(self):
-        self.check_double_backward(
-            self.x0, self.x1, self.gy, self.ggx0, self.ggx1)
-
-    @attr.gpu
-    def test_double_backward_gpu(self):
-        self.check_double_backward(
-            cuda.to_gpu(self.x0), cuda.to_gpu(self.x1), cuda.to_gpu(self.gy),
-            cuda.to_gpu(self.ggx0), cuda.to_gpu(self.ggx1))
+    def forward(self, inputs, device):
+        x0, x1 = inputs
+        return functions.absolute_error(x0, x1),
 
     # test for #4669
     @attr.multi_gpu(2)
