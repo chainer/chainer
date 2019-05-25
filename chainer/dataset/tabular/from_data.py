@@ -1,5 +1,5 @@
 import chainer
-from chainer.dataset.tabular import tabular_dataset
+from chainer.dataset.tabular import _wrappers
 
 
 def from_data(*args, **kwargs):
@@ -32,15 +32,15 @@ def from_data(*args, **kwargs):
             key = '_{}'.format(id(data))
 
         if isinstance(data, chainer.get_array_types()):
-            datasets.append(_Array(key, data))
+            datasets.append(_wrappers._Array(key, data))
         elif isinstance(data, list):
-            datasets.append(_List(key, data))
+            datasets.append(_wrappers._List(key, data))
 
     for key, data in kwargs.items():
         if isinstance(data, chainer.get_array_types()):
-            datasets.append(_Array(key, data))
+            datasets.append(_wrappers._Array(key, data))
         elif isinstance(data, list):
-            datasets.append(_List(key, data))
+            datasets.append(_wrappers._List(key, data))
 
     if len(datasets) == 1:
         return datasets[0]
@@ -52,60 +52,3 @@ def from_data(*args, **kwargs):
         return datasets[0].join(*datasets[1:]).as_dict()
     else:
         raise ValueError('At least one data must be passed')
-
-
-class _Array(tabular_dataset.TabularDataset):
-
-    def __init__(self, key, data):
-        self._key = key
-        self._data = data
-
-    def __len__(self):
-        return len(self._data)
-
-    @property
-    def keys(self):
-        return self._key,
-
-    @property
-    def mode(self):
-        return None
-
-    def get_examples(self, indices, key_indices):
-        if key_indices is None:
-            key_indices = 0,
-
-        if indices is None:
-            return (self._data,) * len(key_indices)
-        else:
-            return (self._data[indices],) * len(key_indices)
-
-
-class _List(tabular_dataset.TabularDataset):
-
-    def __init__(self, key, data):
-        self._key = key
-        self._data = data
-
-    def __len__(self):
-        return len(self._data)
-
-    @property
-    def keys(self):
-        return self._key,
-
-    @property
-    def mode(self):
-        return None
-
-    def get_examples(self, indices, key_indices):
-        if key_indices is None:
-            key_indices = 0,
-
-        if indices is None:
-            return (self._data,) * len(key_indices)
-        elif isinstance(indices, slice):
-            return (self._data[indices],) * len(key_indices)
-        else:
-            return ([self._data[index] for index in indices],) \
-                * len(key_indices)
