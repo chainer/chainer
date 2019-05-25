@@ -1,0 +1,2 @@
+VAL_INTERVAL = (1, 'iteration')
+LOG_INTERVAL = (1, 'iteration')

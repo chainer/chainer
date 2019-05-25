@@ -29,6 +29,12 @@ import resnet50
 import resnext50
 
 
+VAL_INTERVAL = (100000, 'iteration')
+LOG_INTERVAL = (1000, 'iteration')
+
+# ..1
+
+
 class PreprocessedDataset(chainer.dataset.DatasetMixin):
 
     def __init__(self, path, root, mean, crop_size, random=True):
@@ -117,8 +123,6 @@ def main():
                         help='Root directory path of image files')
     parser.add_argument('--val_batchsize', '-b', type=int, default=250,
                         help='Validation minibatch size')
-    parser.add_argument('--test', action='store_true')
-    parser.set_defaults(test=False)
     parser.add_argument('--dali', action='store_true')
     parser.set_defaults(dali=False)
     group = parser.add_argument_group('deprecated arguments')
@@ -193,8 +197,8 @@ def main():
         train_iter, optimizer, converter=converter, device=device)
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), args.out)
 
-    val_interval = (1 if args.test else 100000), 'iteration'
-    log_interval = (1 if args.test else 1000), 'iteration'
+    val_interval = VAL_INTERVAL
+    log_interval = LOG_INTERVAL
 
     trainer.extend(extensions.Evaluator(val_iter, model, converter=converter,
                                         device=device), trigger=val_interval)
