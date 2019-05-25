@@ -166,11 +166,13 @@ class TestBernoulliLogProb(unittest.TestCase):
     def test_backward_where_logit_has_infinite_values(self):
         self.logit += numpy.inf
         with numpy.errstate(invalid='ignore'):
-            log_prob = distributions.bernoulli._bernoulli_log_prob(self.logit, self.x)
+            log_prob = distributions.bernoulli._bernoulli_log_prob(
+                self.logit, self.x)
 
         log_prob.backward()
 
-        assert True # just confirm that the backward method runs without raising error.
+        # just confirm that the backward method runs without raising error.
+        assert True
 
 
 testing.run_module(__name__, __file__)
