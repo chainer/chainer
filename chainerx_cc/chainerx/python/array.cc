@@ -7,6 +7,7 @@
 #include <tuple>
 #include <utility>
 #include <vector>
+#include <memory>
 
 #include <pybind11/operators.h>
 #include <nonstd/optional.hpp>
@@ -62,6 +63,14 @@ py::tuple ToTuple(const std::vector<Array>& ary) {
         ret[i] = GetArrayBody(ary[i]);
     }
     return ret;
+}
+
+py::tuple ToSequence(const std::vector<std::vector<Array>>& ary) {
+  py::tuple ret{ary.size()};
+  for (uint i = 0; i < ary.size(); i++) {
+    ret[i] = ary[i];
+  }
+  return ret;
 }
 
 ArrayBodyPtr MakeArrayFromNumpyArray(py::array array, Device& device) {

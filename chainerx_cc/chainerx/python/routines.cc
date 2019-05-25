@@ -28,6 +28,7 @@
 #include "chainerx/routines/pooling.h"
 #include "chainerx/routines/sorting.h"
 #include "chainerx/routines/statistics.h"
+#include "chainerx/routines/n_step_rnn.h"
 #include "chainerx/scalar.h"
 #include "chainerx/stack_vector.h"
 
@@ -40,6 +41,7 @@
 #include "chainerx/python/shape.h"
 #include "chainerx/python/stack_vector.h"
 #include "chainerx/python/strides.h"
+
 
 namespace chainerx {
 namespace python {
@@ -882,7 +884,7 @@ void InitChainerxConnection(pybind11::module& m) {
           py::arg("w"),
           py::arg("b") = nullptr,
           py::arg("n_batch_axes") = 1);
-    m.def("lstm",[](const ArrayBodyPtr& c, const ArrayBodyPtr& x) {
+    m.def("lstm", [](const ArrayBodyPtr& c, const ArrayBodyPtr& x) {
       return ToTuple(lstm(Array{c}, Array{x}));
     },
     py::arg("c"),
@@ -976,6 +978,32 @@ void InitChainerxPooling(pybind11::module& m) {
           py::arg("pad") = 0,
           py::arg("pad_mode") = "ignore");
 }
+void InitChainerxRNN(pybind11::module& m) {
+  m.def("n_step_lstm", [](int64_t n_layers, ArrayBodyPtr& hx, ArrayBodyPtr& cx, std::vector<std::vector<ArrayBodyPtr>> weights,
+    std::vector<std::vector<ArrayBodyPtr>> biases, std::vector<ArrayBodyPtr> inputs) {
+      std::vector<std::vector<Array>> ws;
+      std::vector<std::vector<Array>> bs;
+      std::vector<Array> xs;
+      for (uint i = 0; i < weights.size(); i++) {
+        std::vector<Array> temp_ws;
+        std::vector<Array> temp_bs;
+        for (uint j = 0; j < weights[i].size(); j++) {
+          temp_ws.push_back(Array{weights[i][j]});
+          temp_bs.push_back(Array{biases[i][j]});
+        }
+        ws.push_back(temp_ws);
+        bs.push_back(temp_bs);
+      }
+      for (uint i = 0; i < inputs.size(); i++) {
+        xs.push_back(Array{inputs[i]});
+      }
+      std::vector<std::vector<Array>> out = n_step_lstm(n_layers, Array{hx}, Array{cx}, ws, bs, xs);
+      std::vector<py::tuple> ret;
+      ret.push_back(ToTuple(out[0]));
+      ret.push_back(ToTuple(out[1]));
+      return ret;
+  });
+}
 
 }  // namespace
 
@@ -991,6 +1019,7 @@ void InitChainerxRoutines(pybind11::module& m) {
     InitChainerxConnection(m);
     InitChainerxNormalization(m);
     InitChainerxPooling(m);
+    InitChainerxRNN(m);
 }
 
 }  // namespace python_internal
