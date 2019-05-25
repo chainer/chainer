@@ -12,11 +12,8 @@ add_library(chainerx_routines STATIC
     pooling.cc
     sorting.cc
     statistics.cc
-<<<<<<< HEAD
     n_step_rnn.cc
-=======
     trigonometric.cc
->>>>>>> 393b89783f89684a214ea1cca79fae7f98de0bcd
     type_util.cc
 )
 
@@ -35,11 +32,8 @@ install(FILES
     routines_util.h
     sorting.h
     statistics.h
-<<<<<<< HEAD
     n_step_rnn.h
-=======
     trigonometric.h
->>>>>>> 393b89783f89684a214ea1cca79fae7f98de0bcd
     type_util.h
     DESTINATION include/chainerx/routines
     )
