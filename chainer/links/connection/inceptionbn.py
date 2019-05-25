@@ -17,7 +17,7 @@ class InceptionBN(link.Chain):
     path is replaced by two consecutive 3x3 convolution applications, and the
     pooling method is configurable.
 
-    See: `Batch Normalization: Accelerating Deep Network Training by Reducing \
+    See: `Batch Normalization: Accelerating Deep Network Training by Reducing
     Internal Covariate Shift <https://arxiv.org/abs/1502.03167>`_.
 
     Args:

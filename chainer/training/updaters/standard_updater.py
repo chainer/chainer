@@ -80,7 +80,7 @@ class StandardUpdater(_updater.Updater):
 
         if device is not None:
             for optimizer in six.itervalues(self._optimizers):
-                if isinstance(device, cuda.GpuDevice):
+                if device.xp is cuda.cupy:
                     # Do not transfer between different cupy devices.
                     # TODO(niboshi): Reconsider this behavior
                     optimizer.target.to_gpu(device.device.id)

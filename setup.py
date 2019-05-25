@@ -127,6 +127,7 @@ setup_kwargs = dict(
     packages=['chainer',
               'chainer.backends',
               'chainer.dataset',
+              'chainer.dataset.tabular',
               'chainer.datasets',
               'chainer.distributions',
               'chainer.exporters',

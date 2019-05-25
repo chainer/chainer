@@ -30,8 +30,9 @@ def _contains_nan(x):
 
     """
     if x.dtype.kind in ('f', 'c'):
-        with cuda.get_device_from_array(x):
-            return get_array_module(x).isnan(x).any()
+        device = get_device_from_array(x)
+        with chainer.using_device(device):
+            return device.xp.isnan(x).any()
     else:
         return False
 
@@ -49,7 +50,9 @@ def copyto(dst, src):
             Source array.
 
     """
-    if isinstance(dst, numpy.ndarray):
+    if isinstance(dst, chainerx.ndarray):
+        dst[...] = _chainerx._array_to_chainerx(src, dst.device)
+    elif isinstance(dst, numpy.ndarray):
         numpy.copyto(dst, _cpu._to_cpu(src))
     elif isinstance(dst, intel64.mdarray):
         intel64.ideep.basic_copyto(
@@ -241,7 +244,7 @@ def get_device_from_array(*arrays):
             is returned.
 
     Returns:
-        chainer.Device: Device instance.
+        chainer.backend.Device: Device instance.
     """
     for array in arrays:
         device = GpuDevice.from_array(array)

@@ -35,6 +35,7 @@
 #include "chainerx/macro.h"
 #include "chainerx/native/native_backend.h"
 #include "chainerx/op_node.h"
+#include "chainerx/routines/binary.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/indexing.h"
 #include "chainerx/routines/linalg.h"
@@ -324,7 +325,7 @@ Array Array::ToDevice(Device& dst_device) const {
         out = AsGradStopped(CopyKind::kView);
     } else {
         // Make a contiguous copy to transfer it to the destination device.
-        Array src_contig = internal::AsContiguous(AsGradStopped(CopyKind::kView));
+        Array src_contig = AsContiguous(AsGradStopped(CopyKind::kView));
 
         std::shared_ptr<void> dst_data;
         if (src_device.backend().SupportsTransfer(src_device, dst_device)) {
