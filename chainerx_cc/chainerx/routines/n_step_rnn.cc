@@ -22,13 +22,13 @@
 #include "chainerx/kernels/linalg.h"
 #include "chainerx/kernels/math.h"
 #include "chainerx/macro.h"
+#include "chainerx/routines/connection.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/linalg.h"
-#include "chainerx/routines/math.h"
 #include "chainerx/routines/manipulation.h"
+#include "chainerx/routines/math.h"
 #include "chainerx/routines/type_util.h"
 #include "chainerx/stack_vector.h"
-#include "chainerx/routines/connection.h"
 
 namespace chainerx {
 
@@ -37,7 +37,7 @@ Array _stack_weight(const std::vector<Array>& ws) {
     StackVector<int64_t, kMaxNdim> shape_vec;
     shape_vec.push_back(w.shape()[0] * w.shape()[1]);
 
-    for (int64_t  i = 2; i < w.ndim(); i++) {
+    for (int64_t i = 2; i < w.ndim(); i++) {
         shape_vec.push_back(w.shape()[i]);
     }
 
@@ -47,8 +47,8 @@ Array _stack_weight(const std::vector<Array>& ws) {
     return w;
 }
 
-std::vector<Array> _lstm(const Array& x, const Array& h, const nonstd::optional<Array>& c, const std::vector<Array>& ws,
-    const std::vector<Array>& bs) {
+std::vector<Array> _lstm(
+        const Array& x, const Array& h, const nonstd::optional<Array>& c, const std::vector<Array>& ws, const std::vector<Array>& bs) {
     std::vector<Array> ws_0_4{ws[2], ws[0], ws[1], ws[3]};
     Array xw = _stack_weight(ws_0_4);
     std::vector<Array> ws_5_8{ws[6], ws[4], ws[5], ws[7]};
@@ -65,13 +65,17 @@ std::vector<Array> _lstm(const Array& x, const Array& h, const nonstd::optional<
     return lstm_out;
 }
 
-template<typename Impl>
-std::vector<std::vector<Array>> _one_directional_loop(Impl&& impl, std::vector<Array>& xs, Array h, nonstd::optional<Array> c,
-    const std::vector<Array>& ws, const std::vector<Array>& b) {
+template <typename Impl>
+std::vector<std::vector<Array>> _one_directional_loop(
+        Impl&& impl,
+        std::vector<Array>& xs,
+        Array h,
+        nonstd::optional<Array> c,
+        const std::vector<Array>& ws,
+        const std::vector<Array>& b)  {
     Shape h_shape{h.shape()[1], h.shape()[2]};
     h = Reshape(h, h_shape);
-    if (c.has_value())
-    {
+    if (c.has_value()) {
         *c = Reshape(*c, h_shape);
     }
     std::vector<Array> h_list;
@@ -79,7 +83,8 @@ std::vector<std::vector<Array>> _one_directional_loop(Impl&& impl, std::vector<A
         Array x_t = xs[i];
 
         if (x_t.shape()[0] > h.shape()[0]) {
-            throw DimensionError{"The batch size of x must be equal to or less than the size of state" , x_t.shape(), ' ', h.shape()};
+            throw DimensionError{"The batch size of x must be equal to or less than the size of state", x_t.shape(), ' ', h.shape();
+         }
         }
         std::vector<int64_t> indices_h;
         indices_h.push_back(x_t.shape()[0]);
@@ -93,9 +98,9 @@ std::vector<std::vector<Array>> _one_directional_loop(Impl&& impl, std::vector<A
             indices_c.push_back(x_t.shape()[0]);
             indices_c.push_back(c->shape()[0]);
             c_split = Split(*c, indices_c, 0);
-            h_c = impl(xs[i], h_split[0], c_split[0] , ws, b);
-        }else {
-            h_c = impl(xs[i], h_split[0] , nonstd::nullopt, ws, b);
+            h_c = impl(xs[i], h_split[0], c_split[0], ws, b);
+        } else {
+            h_c = impl(xs[i], h_split[0], nonstd::nullopt, ws, b);
         }
 
         h_list.push_back(h_c[1]);
@@ -117,15 +122,21 @@ std::vector<std::vector<Array>> _one_directional_loop(Impl&& impl, std::vector<A
 }
 
 template <typename Impl>
-std::vector<std::vector<Array>> n_step_rnn_impl(Impl&& impl, int64_t n_layers, Array hx, nonstd::optional<Array> cx,
-    const std::vector<std::vector<Array>>& ws, const std::vector<std::vector<Array>>& bs, std::vector<Array>& xs,
-    const int8_t use_bidirection) {
-    int8_t direction = use_bidirection? 2 : 1;
+std::vector<std::vector<Array>> n_step_rnn_impl(
+        Impl&& impl,
+        int64_t n_layers,
+        Array hx,
+        nonstd::optional<Array> cx,
+        const std::vector<std::vector<Array>>& ws,
+        const std::vector<std::vector<Array>>& bs,
+        std::vector<Array>& xs,
+        const int8_t use_bidirection) {
+    int8_t direction = use_bidirection ? 2 : 1;
     std::vector<Array> hx_list = Split(hx, hx.shape()[0], 0);
     std::vector<Array> cx_list;
     if (cx.has_value()) {
         cx_list = Split(*cx, cx->shape()[0], 0);
-    }else {
+    } else {
         for (int64_t i = 0; i < hx.shape()[0]; i++) {
             cx_list.push_back((Array)NULL);
         }
@@ -137,8 +148,8 @@ std::vector<std::vector<Array>> n_step_rnn_impl(Impl&& impl, int64_t n_layers, A
     for (int64_t layer = 0; layer < n_layers; layer++) {
         xs = xs_next;
         idx = direction * layer;
-        std::vector<std::vector<Array>> one_directional_out_fw = _one_directional_loop(impl, xs, hx_list[idx], cx_list[idx],
-            ws[idx], bs[idx]);
+        std::vector<std::vector<Array>> one_directional_out_fw =
+                _one_directional_loop(impl, xs, hx_list[idx], cx_list[idx], ws[idx], bs[idx]);
         hy.push_back(one_directional_out_fw[0][0]);
         cy.push_back(one_directional_out_fw[0][1]);
         std::vector<Array> h_forward = one_directional_out_fw[1];
@@ -146,8 +157,8 @@ std::vector<std::vector<Array>> n_step_rnn_impl(Impl&& impl, int64_t n_layers, A
             idx = direction * layer + 1;
             xs = xs_next;
             std::reverse(xs.begin(), xs.end());
-            std::vector<std::vector<Array>> one_directional_out_bw = _one_directional_loop(impl, xs, hx_list[idx],
-                cx_list[idx], ws[idx], bs[idx]);
+            std::vector<std::vector<Array>> one_directional_out_bw =
+                    _one_directional_loop(impl, xs, hx_list[idx], cx_list[idx], ws[idx], bs[idx]);
             std::reverse(one_directional_out_bw[1].begin(), one_directional_out_bw[1].end());
             std::vector<Array> h_backward = one_directional_out_bw[1];
             xs_next.clear();
@@ -159,7 +170,7 @@ std::vector<std::vector<Array>> n_step_rnn_impl(Impl&& impl, int64_t n_layers, A
             }
             hy.push_back(one_directional_out_bw[0][0]);
             cy.push_back(one_directional_out_bw[0][1]);
-        }else {
+        } else {
             xs_next = h_forward;
         }
     }
@@ -168,7 +179,7 @@ std::vector<std::vector<Array>> n_step_rnn_impl(Impl&& impl, int64_t n_layers, A
     Array c;
     if (cx.has_value()) {
         c = Stack(cy, 0);
-    }else {
+    } else {
         c = (Array)NULL;
     }
     std::vector<Array> state;
@@ -180,8 +191,13 @@ std::vector<std::vector<Array>> n_step_rnn_impl(Impl&& impl, int64_t n_layers, A
     return rnn_out;
 }
 
-std::vector<std::vector<Array>> n_step_lstm(int64_t n_layers, Array hx, Array cx, const std::vector<std::vector<Array>>& ws,
-        const std::vector<std::vector<Array>>& bs, std::vector<Array>& xs) {
+std::vector<std::vector<Array>> n_step_lstm(
+        int64_t n_layers,
+        Array hx,
+        Array cx,
+        const std::vector<std::vector<Array>>& ws,
+        const std::vector<std::vector<Array>>& bs,
+        std::vector<Array>& xs) {
     return n_step_rnn_impl(&_lstm, n_layers, hx, nonstd::optional<Array>{cx}, ws, bs, xs, 0);
 }
 }  // namespace chainerx

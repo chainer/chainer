@@ -2,11 +2,11 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <tuple>
 #include <utility>
 #include <vector>
-#include <memory>
 
 
 #include <nonstd/optional.hpp>
@@ -15,7 +15,6 @@
 #include <pybind11/pybind11.h>
 
 #include "chainerx/array_body.h"
-
 
 namespace chainerx {
 namespace python {
@@ -36,7 +35,6 @@ ArrayBodyPtr MakeArray(pybind11::handle object, const nonstd::optional<Dtype>& d
 
 pybind11::tuple ToTuple(const std::vector<Array>& ary);
 
-pybind11::tuple ToSequence(const std::vector<std::vector<Array>>& ary);
 // Makes an array from a NumPy array. Shape, dtype, strides will be kept.
 ArrayBodyPtr MakeArrayFromNumpyArray(pybind11::array array, Device& device);
 

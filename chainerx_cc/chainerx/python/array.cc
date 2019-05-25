@@ -3,11 +3,11 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <tuple>
 #include <utility>
 #include <vector>
-#include <memory>
 
 #include <pybind11/operators.h>
 #include <nonstd/optional.hpp>
@@ -50,27 +50,19 @@ namespace python {
 namespace python_internal {
 namespace {
 
-using internal::MoveArrayBody;
 using internal::GetArrayBody;
+using internal::MoveArrayBody;
 
 }  // namespace
 
 namespace py = pybind11;
 
 py::tuple ToTuple(const std::vector<Array>& ary) {
-    py::tuple ret{ary.size()};
-    for (uint i = 0; i < ary.size(); ++i) {
-        ret[i] = GetArrayBody(ary[i]);
+     py::tuple ret{ary.size()};
+    for (uint i = 0; i < ary.size(); i++) {
+        ret[i] = ary[i];
     }
     return ret;
-}
-
-py::tuple ToSequence(const std::vector<std::vector<Array>>& ary) {
-  py::tuple ret{ary.size()};
-  for (uint i = 0; i < ary.size(); i++) {
-    ret[i] = ary[i];
-  }
-  return ret;
 }
 
 ArrayBodyPtr MakeArrayFromNumpyArray(py::array array, Device& device) {
@@ -132,8 +124,6 @@ py::object MakeCupyArrayFromArray(const py::module& m, py::handle self) {
 }
 
 }  // namespace
-
-
 
 ArrayBodyPtr MakeArray(py::handle object, py::handle dtype, bool copy, py::handle device) {
     nonstd::optional<Dtype> dtype_ = dtype.is_none() ? nonstd::nullopt : nonstd::optional<Dtype>(GetDtype(dtype));

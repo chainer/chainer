@@ -23,17 +23,15 @@
 #include "chainerx/kernels/math.h"
 #include "chainerx/macro.h"
 #include "chainerx/routines/creation.h"
-#include "chainerx/routines/linalg.h"
-#include "chainerx/routines/math.h"
-#include "chainerx/routines/manipulation.h"
 #include "chainerx/routines/hyperbolic.h"
+#include "chainerx/routines/math.h"
+#include "chainerx/routines/linalg.h"
+#include "chainerx/routines/manipulation.h"
 #include "chainerx/routines/type_util.h"
 #include "chainerx/stack_vector.h"
 
 namespace chainerx {
 namespace internal {
-
-
 
 int64_t GetConvOutDim(int64_t in_dim, int64_t kernel_size, int64_t stride, int64_t pad, bool cover_all) {
     CHAINERX_ASSERT(stride > 0);
@@ -365,7 +363,7 @@ Array Linear(const Array& x, const Array& w, const nonstd::optional<Array>& b, u
         }
         if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
             bt.Define([w_dtype = w.dtype(), x_matrix_tok = bb.RetainInput(0)](BackwardContext& bctx) {
-               const Array& x_matrix = bctx.GetRetainedInput(x_matrix_tok);
+                const Array& x_matrix = bctx.GetRetainedInput(x_matrix_tok);
                 const Array& gout = *bctx.output_grad();
                 bctx.input_grad() = Dot(gout.Transpose(), x_matrix, w_dtype);
             });
@@ -384,7 +382,7 @@ Array Linear(const Array& x, const Array& w, const nonstd::optional<Array>& b, u
     return out_matrix.Reshape(out_shape);
 }
 
-std::vector<Array> lstm(const Array &c, const Array &x) {
+std::vector<Array> lstm(const Array& c, const Array& x) {
     if (x.shape()[0] > c.shape()[0]) {
         throw DimensionError{"The batch size of x must be equal to or less than the size of c"};
     }
@@ -398,23 +396,22 @@ std::vector<Array> lstm(const Array &c, const Array &x) {
         throw DtypeError{"Datatypes of c and x should be equal got", c.dtype(), "and ", x.dtype()};
     }
 
-
-    Array x1 = x.Reshape(Shape{x.shape()[0], x.shape()[1]/4, 4});
+    Array x1 = x.Reshape(Shape{x.shape()[0], x.shape()[1] / 4, 4});
 
     std::vector<Array> x_split = Split(x1, 4, 2);
-    x_split[0] = Tanh(x_split[0].Reshape(Shape{x.shape()[0], x.shape()[1]/4}));
-    x_split[1] = Sigmoid(x_split[1].Reshape(Shape{x.shape()[0], x.shape()[1]/4}));
-    x_split[2] = Sigmoid(x_split[2].Reshape(Shape{x.shape()[0], x.shape()[1]/4}));
-    x_split[3] = Sigmoid(x_split[3].Reshape(Shape{x.shape()[0], x.shape()[1]/4}));
+    x_split[0] = Tanh(x_split[0].Reshape(Shape{x.shape()[0], x.shape()[1] / 4}));
+    x_split[1] = Sigmoid(x_split[1].Reshape(Shape{x.shape()[0], x.shape()[1] / 4}));
+    x_split[2] = Sigmoid(x_split[2].Reshape(Shape{x.shape()[0], x.shape()[1] / 4}));
+    x_split[3] = Sigmoid(x_split[3].Reshape(Shape{x.shape()[0], x.shape()[1] / 4}));
     if (x.shape()[0] < c.shape()[0]) {
         Dtype dtype = x.dtype();
 
         Shape out_shape{c.shape()[0] - x.shape()[0], x_split[0].shape()[1]};
         Array z[4];
-        for (int i = 0; i < 4 ; i++) {
+        for (int i = 0; i < 4; i++) {
             if (i == 2) {
                 z[i] = Ones(out_shape, dtype, x.device());
-            }else {
+            } else {
                 z[i] = Zeros(out_shape, dtype, x.device());
             }
             std::vector<Array> v;
@@ -425,7 +422,7 @@ std::vector<Array> lstm(const Array &c, const Array &x) {
     }
     Array new_c = x_split[0] * x_split[1] + x_split[2] * c;
     Array h = x_split[3] * Tanh(new_c);
-    std::vector<Array>  out;
+    std::vector<Array> out;
     std::vector<int64_t> indices;
     indices.push_back(x.shape()[0]);
     indices.push_back(h.shape()[0]);
