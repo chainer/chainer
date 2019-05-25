@@ -172,9 +172,11 @@ nobias=False, initialW=None, initial_bias=None, *, dilate=1, groups=1)
         out_channels, in_channels, kw, kh = W.shape
         if b is not None:
             if out_channels != b.size:
-                raise ValueError('`out_channels` does not match the size of `b`')
+                raise ValueError(
+                    '`out_channels` does not match the size of `b`')
 
-        link = cls(in_channels, out_channels, (kw, kh), stride, pad, nobias, **kwargs)
+        link = cls(
+            in_channels, out_channels, (kw, kh), stride, pad, nobias, **kwargs)
         return link
 
     def forward(self, x):

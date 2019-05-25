@@ -392,7 +392,8 @@ class Link(device_resident.DeviceResident):
 
     @classmethod
     def from_params(cls, W, b=None, **kwargs):
-        raise NotImplementedError('This link does not implement `from_params`.')
+        raise NotImplementedError(
+            'This link does not implement `from_params`.')
 
     def copy(self, mode='share'):
         # type: (str) -> 'Link'
