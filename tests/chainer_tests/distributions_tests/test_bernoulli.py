@@ -163,5 +163,14 @@ class TestBernoulliLogProb(unittest.TestCase):
             cuda.to_gpu(self.logit), cuda.to_gpu(self.x),
             cuda.to_gpu(self.gy), cuda.to_gpu(self.ggx))
 
+    def test_backward_where_logit_has_infinite_values(self):
+        self.logit += numpy.inf
+        with numpy.errstate(invalid='ignore'):
+            log_prob = distributions.bernoulli._bernoulli_log_prob(self.logit, self.x)
+
+        log_prob.backward()
+
+        assert True # just confirm that the backward method runs without raising error.
+
 
 testing.run_module(__name__, __file__)
