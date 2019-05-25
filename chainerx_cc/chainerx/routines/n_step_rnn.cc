@@ -72,7 +72,7 @@ std::vector<std::vector<Array>> _one_directional_loop(
         Array h,
         nonstd::optional<Array> c,
         const std::vector<Array>& ws,
-        const std::vector<Array>& b)  {
+        const std::vector<Array>& b) {
     Shape h_shape{h.shape()[1], h.shape()[2]};
     h = Reshape(h, h_shape);
     if (c.has_value()) {
@@ -83,8 +83,8 @@ std::vector<std::vector<Array>> _one_directional_loop(
         Array x_t = xs[i];
 
         if (x_t.shape()[0] > h.shape()[0]) {
-            throw DimensionError{"The batch size of x must be equal to or less than the size of state", x_t.shape(), ' ', h.shape();
-         }
+            throw DimensionError{"The batch size of x must be equal to or less than the size of state", x_t.shape(), ' ', h.shape()
+        };
         }
         std::vector<int64_t> indices_h;
         indices_h.push_back(x_t.shape()[0]);

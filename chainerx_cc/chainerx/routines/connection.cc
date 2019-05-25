@@ -24,9 +24,9 @@
 #include "chainerx/macro.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/hyperbolic.h"
-#include "chainerx/routines/math.h"
 #include "chainerx/routines/linalg.h"
 #include "chainerx/routines/manipulation.h"
+#include "chainerx/routines/math.h"
 #include "chainerx/routines/type_util.h"
 #include "chainerx/stack_vector.h"
 

@@ -8,7 +8,6 @@
 #include <utility>
 #include <vector>
 
-
 #include <nonstd/optional.hpp>
 
 #include <pybind11/numpy.h>

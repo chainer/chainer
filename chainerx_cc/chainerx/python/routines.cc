@@ -1008,7 +1008,7 @@ void InitChainerxPooling(pybind11::module& m) {
           py::arg("pad_mode") = "ignore");
 }
 void InitChainerxRNN(pybind11::module& m) {
-  m.def("n_step_lstm",
+    m.def("n_step_lstm",
           [](int64_t n_layers,
              ArrayBodyPtr& hx,
              ArrayBodyPtr& cx,
