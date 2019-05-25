@@ -60,7 +60,7 @@ namespace py = pybind11;
 py::tuple ToTuple(const std::vector<Array>& ary) {
     py::tuple ret{ary.size()};
     for (uint i = 0; i < ary.size(); i++) {
-        ret[i] = ary[i];
+        ret[i] = GetArrayBody(ary[i]);
     }
     return ret;
 }
