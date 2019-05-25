@@ -364,7 +364,6 @@ Array Linear(const Array& x, const Array& w, const nonstd::optional<Array>& b, u
         }
         if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
             bt.Define([w_dtype = w.dtype(), x_matrix_tok = bb.RetainInput(0)](BackwardContext& bctx) {
-    
                const Array& x_matrix = bctx.GetRetainedInput(x_matrix_tok);
                 const Array& gout = *bctx.output_grad();
                 bctx.input_grad() = Dot(gout.Transpose(), x_matrix, w_dtype);
@@ -385,7 +384,6 @@ Array Linear(const Array& x, const Array& w, const nonstd::optional<Array>& b, u
 }
 
 std::vector<Array> lstm(const Array &c, const Array &x) {
-    
     if (x.shape()[0] > c.shape()[0]) {
         throw DimensionError{"The batch size of x must be equal to or less than the size of c"};
     }
@@ -395,7 +393,7 @@ std::vector<Array> lstm(const Array &c, const Array &x) {
     if (GetKind(c.dtype()) != DtypeKind::kFloat) {
         throw DtypeError{"Expected data type float"};
     }
-    if(c.dtype() != x.dtype()) {
+    if (c.dtype() != x.dtype()) {
         throw DtypeError{"Datatypes of c and x should be equal got", c.dtype(), "and ", x.dtype()};
     }
 
@@ -407,15 +405,14 @@ std::vector<Array> lstm(const Array &c, const Array &x) {
     x_split[1] = Sigmoid(x_split[1].Reshape(Shape{x.shape()[0], x.shape()[1]/4}));
     x_split[2] = Sigmoid(x_split[2].Reshape(Shape{x.shape()[0], x.shape()[1]/4}));
     x_split[3] = Sigmoid(x_split[3].Reshape(Shape{x.shape()[0], x.shape()[1]/4}));
-    if(x.shape()[0] < c.shape()[0]) {
+    if (x.shape()[0] < c.shape()[0]) {
         Dtype dtype = x.dtype();
 
         Shape out_shape{c.shape()[0] - x.shape()[0], x_split[0].shape()[1]};
         Array z[4];
-        for(int i = 0; i < 4 ; i++) {
+        for (int i = 0; i < 4 ; i++) {
             if (i == 2) {
                 z[i] = Ones(out_shape, dtype, x.device());
-
             }else {
                 z[i] = Zeros(out_shape, dtype, x.device());
             }
