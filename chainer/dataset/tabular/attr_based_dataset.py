@@ -25,6 +25,10 @@ class AttrBasedDataset(tabular_dataset.TabularDataset):
                 elif callable(value):
                     datasets.append(_Index(len(self)).transform(key, value))
             self._dataset = datasets[0].join(*datasets[1:])
+
+            if not len(self._dataset) == len(self):
+                raise ValueError(
+                    'The length of lists/arrays must be same as __len__')
         return self._dataset
 
     def __len__(self):
