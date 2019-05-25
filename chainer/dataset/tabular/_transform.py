@@ -81,11 +81,18 @@ class _TransformBatch(tabular_dataset.TabularDataset):
         return self._mode
 
     def get_examples(self, indices, key_indices):
+        if indices is None:
+            len_ = len(self)
+        elif isinstance(indices, slice):
+            start, stop, step = indices.indices(len(self))
+            len_ = len(six.moves.range(start, stop, step))
+        else:
+            len_ = len(indices)
+
         if key_indices is None:
             key_indices = six.moves.range(len(self._keys))
 
         in_examples = self._dataset.get_examples(indices, None)
-        print(in_examples)
 
         if self._dataset.mode is tuple:
             self._mode = tuple
@@ -99,9 +106,15 @@ class _TransformBatch(tabular_dataset.TabularDataset):
             out_examples = out_examples,
         if isinstance(out_examples, tuple):
             self._mode = tuple
+            if not all(len(col) == len_ for col in out_examples):
+                raise ValueError(
+                    'transform_batch must not change the length of data')
             return tuple(out_examples[key_index]
                          for key_index in key_indices)
         elif isinstance(out_examples, dict):
             self._mode = dict
+            if not all(len(col) == len_ for col in out_examples.values()):
+                raise ValueError(
+                    'transform_batch must not change the length of data')
             return tuple(out_examples[self._keys[key_index]]
                          for key_index in key_indices)
