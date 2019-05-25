@@ -193,6 +193,10 @@ def main():
 
     val_interval = (100000, 'iteration')
     log_interval = (1000, 'iteration')
+    # BEGIN ADDITIONAL TEST CODE
+    val_interval = (1, 'iteration')
+    log_interval = (1, 'iteration')
+    # END ADDITIONAL TEST CODE
 
     trainer.extend(extensions.Evaluator(val_iter, model, converter=converter,
                                         device=device), trigger=val_interval)
