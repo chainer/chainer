@@ -23,7 +23,7 @@ except AttributeError:
         _get_time = time.time
 
 
-class _ExtensionEntry(object):
+class ExtensionEntry(object):
 
     def __init__(self, extension, priority, trigger):
         self.extension = extension
@@ -180,6 +180,11 @@ class Trainer(object):
             raise RuntimeError('training has not been started yet')
         return _get_time() - self._start_at + self._snapshot_elapsed_time
 
+    @property
+    def extensions(self):
+        """Returns a dictionary of extensions."""
+        return self._extensions
+
     def extend(self, extension, name=None, trigger=None, priority=None,
                **kwargs):
         """Registers an extension to the trainer.
@@ -252,7 +257,7 @@ class Trainer(object):
             modified_name = '%s_%d' % (name, ordinal)
 
         extension.name = modified_name
-        self._extensions[modified_name] = _ExtensionEntry(
+        self._extensions[modified_name] = ExtensionEntry(
             extension, priority, trigger)
 
     def get_extension(self, name):
@@ -270,6 +275,14 @@ class Trainer(object):
             return extensions[name].extension
         else:
             raise ValueError('extension %s not found' % name)
+
+    def remove_extension(self, name):
+        """Removes an extension from the trainer.
+        """
+        extensions = self._extensions
+        if name not in extensions:
+            raise KeyError('Extension not registered: {}'.format(name))
+        del extensions[name]
 
     def run(self, show_loop_exception_msg=True):
         """Executes the training loop.
