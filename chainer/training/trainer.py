@@ -138,6 +138,8 @@ class Trainer(object):
 
     """
 
+    __sorted_extensions = None
+
     def __init__(self, updater, stop_trigger=None, out='result',
                  extensions=None):
         self.updater = updater
@@ -154,6 +156,7 @@ class Trainer(object):
                 name, optimizer.target.namedlinks(skipself=True))
         self.reporter = reporter
 
+        self._prepare_done = False
         self._done = False
         self._extensions = collections.OrderedDict()
 
@@ -164,6 +167,17 @@ class Trainer(object):
         updater.connect_trainer(self)
         for ext in extensions:
             self.extend(ext)
+
+    def __del__(self):
+        # Being conservative by requiring users to call do_postprocess method
+        # manually instead of automatically call it here, if they chose to
+        # control the training by theirselves (by using do_prepare, do_step,
+        # etc.)
+        # Relying on __del__ may lead to unexpected resource leak.
+        if self._prepare_done and not self._done:
+            raise RuntimeError(
+                'Training has been initiated but not finalized. '
+                'Trainer.do_postprocess() has not been called.')
 
     @property
     def elapsed_time(self):
@@ -254,6 +268,18 @@ class Trainer(object):
         extension.name = modified_name
         self._extensions[modified_name] = _ExtensionEntry(
             extension, priority, trigger)
+        self.__sorted_extensions = None
+
+    @property
+    def _sorted_extensions(self):
+        if self.__sorted_extensions is None:
+            extensions = self._extensions
+            extension_order = sorted(
+                extensions.keys(),
+                key=lambda name: extensions[name].priority, reverse=True)
+            self.__sorted_extensions = tuple([
+                (name, extensions[name]) for name in extension_order])
+        return self.__sorted_extensions
 
     def get_extension(self, name):
         """Returns the extension of a given name.
@@ -280,44 +306,13 @@ class Trainer(object):
         Note that this method cannot run multiple times for one trainer object.
 
         """
-        if self._done:
-            raise RuntimeError('cannot run training loop multiple times')
 
-        try:
-            os.makedirs(self.out)
-        except OSError:
-            pass
-
-        # sort extensions by priorities
-        extension_order = sorted(
-            self._extensions.keys(),
-            key=lambda name: self._extensions[name].priority, reverse=True)
-        extensions = [(name, self._extensions[name])
-                      for name in extension_order]
-
-        self._start_at = _get_time()
-
-        # invoke initializer of each extension
-        for _, entry in extensions:
-            initializer = getattr(entry.extension, 'initialize', None)
-            finished = getattr(entry.trigger, 'finished', False)
-            if initializer and not finished:
-                initializer(self)
-
-        update = self.updater.update
-        reporter = self.reporter
-        stop_trigger = self.stop_trigger
-
+        self.do_prepare()
         # main training loop
         try:
-            while not stop_trigger(self):
-                self.observation = {}
-                with reporter.scope(self.observation):
-                    update()
-                    for name, entry in extensions:
-                        if entry.trigger(self):
-                            entry.extension(self)
+            self.do_steps()
         except Exception as e:
+            extensions = self._sorted_extensions
             if show_loop_exception_msg:
                 # Show the exception here, as it will appear as if chainer
                 # hanged in case any finalize method below deadlocks.
@@ -348,11 +343,107 @@ class Trainer(object):
                         traceback.print_tb(sys.exc_info()[2])
             six.reraise(*exc_info)
         finally:
-            for _, entry in extensions:
-                finalize = getattr(entry.extension, 'finalize', None)
-                if finalize:
-                    finalize()
-            self.updater.finalize()
+            self.do_postprocess()
+
+    def do_prepare(self):
+        """Initiates the training.
+
+        If this method is called manually, you should also call
+        meth:`Trainer.do_postprocess` after the training.
+
+        This method can only be called once.
+        """
+        if self._done:
+            raise RuntimeError('Training has been finalized.')
+        if self._prepare_done:
+            raise RuntimeError('Training has already been initiated.')
+
+        try:
+            os.makedirs(self.out)
+        except OSError:
+            pass
+
+        extensions = self._sorted_extensions
+
+        self._start_at = _get_time()
+
+        # invoke initializer of each extension
+        for _, entry in extensions:
+            initializer = getattr(entry.extension, 'initialize', None)
+            finished = getattr(entry.trigger, 'finished', False)
+            if initializer and not finished:
+                initializer(self)
+
+        self._prepare_done = True
+
+    def do_step(self):
+        """Runs a single iteration of the training.
+
+        :meth:`Trainer.do_prepare` must be called in advance.
+        """
+        if not self._prepare_done:
+            raise RuntimeError('Training has not been initiated.')
+        if self._done:
+            raise RuntimeError('Training has been finalized.')
+
+        reporter = self.reporter
+        updater = self.updater
+        extensions = self._sorted_extensions
+
+        if self.stop_trigger(self):
+            raise StopIteration
+
+        self.observation = {}
+        with reporter.scope(self.observation):
+            updater.update()
+            for name, entry in extensions:
+                if entry.trigger(self):
+                    entry.extension(self)
+
+    def do_steps(self, **kwargs):
+        """Runs training iterations.
+
+        Args:
+            triggers: Stop criteria.
+
+        Iterations proceed until either the stop trigger or any of the
+        specified triggers return ``True``.
+
+        :meth:`Trainer.do_prepare` must be called in advance.
+        """
+        triggers = kwargs.pop('triggers', ())
+        if not self._prepare_done:
+            raise RuntimeError('Training has not been initiated.')
+        if self._done:
+            raise RuntimeError('Training has been finalized.')
+        triggers = tuple([
+            trigger_module.get_trigger(trigger) for trigger in triggers])
+
+        while True:
+            try:
+                # Check for specified triggers.
+                # The stop trigger is checked inside do_stop().
+                fired = [trigger(self) for trigger in triggers]
+                if any(fired):
+                    break
+                self.do_step()
+            except StopIteration:
+                break
+
+    def do_postprocess(self):
+        """Runs the postprocessing of the training.
+
+        :meth:`Trainer.do_prepare` must be called in advance.
+        """
+        if not self._prepare_done:
+            raise RuntimeError('Training has not been initiated.')
+
+        extensions = self._sorted_extensions
+        for _, entry in extensions:
+            finalize = getattr(entry.extension, 'finalize', None)
+            if finalize:
+                finalize()
+        self.updater.finalize()
 
         self._final_elapsed_time = self.elapsed_time
         self._done = True
