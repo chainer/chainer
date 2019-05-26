@@ -199,4 +199,14 @@ std::vector<std::vector<Array>> n_step_lstm(
         std::vector<Array>& xs) {
     return n_step_rnn_impl(&_lstm, n_layers, hx, nonstd::optional<Array>{cx}, ws, bs, xs, 0);
 }
+
+std::vector<std::vector<Array>> n_step_bilstm(
+    int64_t n_layers,
+        Array hx,
+        Array cx,
+        const std::vector<std::vector<Array>>& ws,
+        const std::vector<std::vector<Array>>& bs,
+        std::vector<Array>& xs) {
+    return n_step_rnn_impl(&_lstm, n_layers, hx, nonstd::optional<Array>{cx}, ws, bs, xs, 1);
+}
 }  // namespace chainerx
