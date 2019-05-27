@@ -24,6 +24,8 @@ container_workspace_dir=/workspace
 container_repo_dir=/repo
 container_work_dir="$container_workspace_dir"/work
 container_conda_dir="$container_workspace_dir"/conda
+num_gpus="$(nvidia-smi -L | wc -l)"
+visible_devices="$(seq 0 $((${num_gpus} - 1)) | shuf | paste -s -d ',')"
 
 
 # Temporary docker build context
@@ -58,6 +60,7 @@ nvidia-docker run \
      --user "$UID" \
      --volume "$host_repo_dir":"$container_repo_dir" \
      --rm \
+     -e CUDA_VISIBLE_DEVICES="$visible_devices" \
      -e CHAINERX_JENKINS_BRANCH="$ghprbSourceBranch" \
      -e CHAINERX_JENKINS_WORK_DIR="$container_work_dir" \
      -e CHAINERX_JENKINS_REPO_DIR="$container_repo_dir" \
