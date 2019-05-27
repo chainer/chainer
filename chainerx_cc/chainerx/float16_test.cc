@@ -246,8 +246,8 @@ TEST(NativeFloat16Test, FloatComparison) {
 
             CHECK_COMPARISION_OPERATOR(==);
             CHECK_COMPARISION_OPERATOR(!=);
-            CHECK_COMPARISION_OPERATOR(<);
-            CHECK_COMPARISION_OPERATOR(>);
+            CHECK_COMPARISION_OPERATOR(<);  // NOLINT(whitespace/operators)
+            CHECK_COMPARISION_OPERATOR(>);  // NOLINT(whitespace/operators)
             CHECK_COMPARISION_OPERATOR(<=);
             CHECK_COMPARISION_OPERATOR(>=);
 
