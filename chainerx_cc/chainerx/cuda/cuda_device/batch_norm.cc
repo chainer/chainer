@@ -70,7 +70,7 @@ public:
 
     ~CudnnBNTensorDescriptor() {
         if (desc_ != nullptr) {
-            CheckCudnnError(cudnnDestroyTensorDescriptor(desc_));
+            cudnnDestroyTensorDescriptor(desc_);
         }
     }
 

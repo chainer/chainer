@@ -228,8 +228,8 @@ void AddAtImpl(Device& device, const Array& a, const Array& indices, int8_t axis
 }
 
 class CudaTakeOp : public TakeOp {
-protected:
-    void Impl(const Array& a, const Array& indices, int8_t axis, const Array& out) override {
+public:
+    void Call(const Array& a, const Array& indices, int8_t axis, const Array& out) override {
         Device& device = a.device();
         CHAINERX_ASSERT(GetKind(indices.dtype()) == DtypeKind::kInt || GetKind(indices.dtype()) == DtypeKind::kUInt);
         device.CheckDevicesCompatible(a, indices, out);
@@ -248,8 +248,8 @@ protected:
 CHAINERX_REGISTER_OP_CUDA(TakeOp, CudaTakeOp);
 
 class CudaAddAtOp : public AddAtOp {
-protected:
-    void Impl(const Array& a, const Array& indices, int8_t axis, const Array& b, const Array& out) override {
+public:
+    void Call(const Array& a, const Array& indices, int8_t axis, const Array& b, const Array& out) override {
         Device& device = a.device();
         CHAINERX_ASSERT(GetKind(indices.dtype()) == DtypeKind::kInt || GetKind(indices.dtype()) == DtypeKind::kUInt);
         device.CheckDevicesCompatible(a, indices, out);

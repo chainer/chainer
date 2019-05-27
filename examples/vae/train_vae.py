@@ -15,9 +15,9 @@ import net
 
 def main():
     parser = argparse.ArgumentParser(description='Chainer example: VAE')
-    parser.add_argument('--initmodel', '-m', default='',
+    parser.add_argument('--initmodel', '-m', type=str,
                         help='Initialize the model from given file')
-    parser.add_argument('--resume', '-r', default='',
+    parser.add_argument('--resume', '-r', type=str,
                         help='Resume the optimization from snapshot')
     parser.add_argument('--gpu', '-g', default=-1, type=int,
                         help='GPU ID (negative value indicates CPU)')
@@ -64,7 +64,7 @@ def main():
     optimizer.setup(avg_elbo_loss)
 
     # Initialize
-    if args.initmodel:
+    if args.initmodel is not None:
         chainer.serializers.load_npz(args.initmodel, avg_elbo_loss)
 
     # Load the MNIST dataset
@@ -100,7 +100,7 @@ def main():
          'main/reconstr', 'main/kl_penalty', 'elapsed_time']))
     trainer.extend(extensions.ProgressBar())
 
-    if args.resume:
+    if args.resume is not None:
         chainer.serializers.load_npz(args.resume, trainer)
 
     # Run the training

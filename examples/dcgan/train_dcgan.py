@@ -24,7 +24,7 @@ def main():
                         help='Directory of image files.  Default is cifar-10.')
     parser.add_argument('--out', '-o', default='result',
                         help='Directory to output the result')
-    parser.add_argument('--resume', '-r', default='',
+    parser.add_argument('--resume', '-r', type=str,
                         help='Resume the training from snapshot')
     parser.add_argument('--n_hidden', '-n', type=int, default=100,
                         help='Number of hidden units (z)')
@@ -108,7 +108,7 @@ def main():
             10, 10, args.seed, args.out),
         trigger=snapshot_interval)
 
-    if args.resume:
+    if args.resume is not None:
         # Resume from a snapshot
         chainer.serializers.load_npz(args.resume, trainer)
 

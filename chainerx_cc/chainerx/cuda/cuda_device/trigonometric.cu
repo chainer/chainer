@@ -28,8 +28,8 @@ struct SinImpl {
 };
 
 class CudaSinOp : public SinOp {
-protected:
-    void Impl(const Array& x, const Array& out) override {
+public:
+    void Call(const Array& x, const Array& out) override {
         Device& device = x.device();
         device.CheckDevicesCompatible(x, out);
         CudaSetDeviceScope scope{device.index()};
@@ -50,8 +50,8 @@ struct CosImpl {
 };
 
 class CudaCosOp : public CosOp {
-protected:
-    void Impl(const Array& x, const Array& out) override {
+public:
+    void Call(const Array& x, const Array& out) override {
         Device& device = x.device();
         device.CheckDevicesCompatible(x, out);
         CudaSetDeviceScope scope{device.index()};
@@ -72,8 +72,8 @@ struct TanImpl {
 };
 
 class CudaTanOp : public TanOp {
-protected:
-    void Impl(const Array& x, const Array& out) override {
+public:
+    void Call(const Array& x, const Array& out) override {
         Device& device = x.device();
         device.CheckDevicesCompatible(x, out);
         CudaSetDeviceScope scope{device.index()};
@@ -94,8 +94,8 @@ struct ArcsinImpl {
 };
 
 class CudaArcsinOp : public ArcsinOp {
-protected:
-    void Impl(const Array& x, const Array& out) override {
+public:
+    void Call(const Array& x, const Array& out) override {
         Device& device = x.device();
         device.CheckDevicesCompatible(x, out);
         CudaSetDeviceScope scope{device.index()};
@@ -116,8 +116,8 @@ struct ArccosImpl {
 };
 
 class CudaArccosOp : public ArccosOp {
-protected:
-    void Impl(const Array& x, const Array& out) override {
+public:
+    void Call(const Array& x, const Array& out) override {
         Device& device = x.device();
         device.CheckDevicesCompatible(x, out);
         CudaSetDeviceScope scope{device.index()};
@@ -138,8 +138,8 @@ struct ArctanImpl {
 };
 
 class CudaArctanOp : public ArctanOp {
-protected:
-    void Impl(const Array& x, const Array& out) override {
+public:
+    void Call(const Array& x, const Array& out) override {
         Device& device = x.device();
         device.CheckDevicesCompatible(x, out);
         CudaSetDeviceScope scope{device.index()};
