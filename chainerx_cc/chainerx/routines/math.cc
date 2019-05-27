@@ -591,9 +591,7 @@ Array Minimum(const Array& x1, const Array& x2) {
     return internal::BroadcastBinary(&MinimumImpl, x1, x2, dtype);  // x1 > x2 ? x2 : x1
 }
 
-Array Clip(const Array& a, Scalar min, Scalar max) {
-    return IfLessElse(a, min, min, IfGreaterElse(a, max, max, a));
-}
+Array Clip(const Array& a, Scalar min, Scalar max) { return IfLessElse(a, min, min, IfGreaterElse(a, max, max, a)); }
 
 Array Clip(const Array& a, const Array& a_min, Scalar max) {
     Dtype dtype = GetArithmeticResultDtype(a, a_min);
