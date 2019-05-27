@@ -274,7 +274,7 @@ def spatial_transformer_sampler(x, grid, **kwargs):
     - :math:`h_O` and :math:`w_O` are the height and width of the output
       image.
 
-    See detail in the following paper: `Spatial Transformer Networks \
+    See detail in the following paper: `Spatial Transformer Networks
     <https://arxiv.org/abs/1506.02025>`_.
 
     .. note::

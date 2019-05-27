@@ -1,3 +1,4 @@
+import pickle
 import sys
 import unittest
 import warnings
@@ -394,6 +395,15 @@ class TestSameTypes(unittest.TestCase):
         y = numpy.array([1])
         z = cuda.cupy.array([2])
         self.assertFalse(T.same_types(x, y, z))
+
+
+class TestInvalidType(unittest.TestCase):
+    def test_pickle(self):
+        exc = T.InvalidType('foo', 'bar', 'baz')
+        new = pickle.loads(pickle.dumps(exc))
+        self.assertEqual(exc.args, new.args)
+        self.assertEqual(exc.expect, new.expect)
+        self.assertEqual(exc.actual, new.actual)
 
 
 testing.run_module(__name__, __file__)

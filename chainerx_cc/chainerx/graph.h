@@ -17,6 +17,8 @@ class Context;
 
 class BackpropId {
 public:
+    ~BackpropId() = default;
+
     BackpropId(const BackpropId&) = default;
     BackpropId(BackpropId&&) = default;
     BackpropId& operator=(const BackpropId&) = default;

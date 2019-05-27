@@ -102,7 +102,8 @@ def send(x, communicator, rank, tag=0):
     to the parent nodes.
 
     Args:
-        x (Variable): Variable holding a matrix which you would like to send.
+        x (~chainer.Variable): Variable holding a matrix which you would like
+            to send.
         communicator (chainer.communicators.CommunicatorBase):
             ChainerMN communicator.
         rank (int): Target process specifier.

@@ -120,7 +120,7 @@ def crf1d(cost, xs, ys, reduce='mean'):
         b_alpha, b_cost = broadcast.broadcast(alpha[..., None], cost)
         alpha = logsumexp.logsumexp(b_alpha + b_cost, axis=1) + x
 
-    if len(alphas) > 0:
+    if alphas:
         alphas.append(alpha)
         alpha = concat.concat(alphas[::-1], axis=0)
 
@@ -138,7 +138,7 @@ def crf1d(cost, xs, ys, reduce='mean'):
         score += (select_item.select_item(x, y) + reshape.reshape(
             embed_id.embed_id(y_prev * n_label + y, cost), (batch,)))
 
-    if len(scores) > 0:
+    if scores:
         scores.append(score)
         score = concat.concat(scores[::-1], axis=0)
 

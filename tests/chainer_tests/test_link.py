@@ -530,7 +530,8 @@ class TestLink(LinkTestBase, unittest.TestCase):
             l.x = chainer.Parameter(shape=(2, 3),
                                     initializer=initializers.NaN('d'))
             l.y = chainer.Parameter(shape=2)
-            l.u = chainer.Parameter(shape=(2, 3))
+            l.u = chainer.Parameter(shape=(2, 3),
+                                    initializer=initializers.NaN('d'))
             l.v = chainer.Parameter()
         l.x.grad.fill(1)
         l.y.grad.fill(2)
@@ -2357,15 +2358,18 @@ class TestLinkOverrideToDeviceMethods(unittest.TestCase):
 
             elif method_name == 'to_cpu':
                 def to_cpu(self):
+                    super(ChildLink, self).to_cpu()
                     self.to_method_called += 1
 
             elif method_name == 'to_gpu':
                 def to_gpu(self, device=None):
                     assert isinstance(device, (cuda.Device, int))
+                    super(ChildLink, self).to_gpu(device)
                     self.to_method_called += 1
 
             elif method_name == 'to_intel64':
                 def to_intel64(self):
+                    super(ChildLink, self).to_intel64()
                     self.to_method_called += 1
 
             else:
@@ -2461,6 +2465,46 @@ class TestLinkOverrideToDeviceMethods(unittest.TestCase):
         l = cls()
         l.to_intel64()
         assert l.child.to_method_called == 1
+
+
+@testing.backend.inject_backend_tests(
+    None,
+    [
+        # CPU
+        {},
+        # CUDA
+        {'use_cuda': True, 'cuda_device': 0},
+        {'use_cuda': True, 'cuda_device': 1},
+        # ChainerX
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
+    ])
+class TestSerialize(unittest.TestCase):
+    def setUp(self):
+        self.array = numpy.array([1, 2, 3], dtype=numpy.float32)
+        self.serializer = mock.MagicMock(return_value=self.array)
+
+        link = chainer.Link()
+        with link.init_scope():
+            link.x = chainer.Parameter()
+            link.y = chainer.Parameter()
+        link.add_persistent('z', None)
+        self.link = link
+
+    def test_serialize_numpy(self, backend_config):
+        array = self.array
+        link = self.link
+        serializer = self.serializer
+
+        link.to_device(backend_config.device)
+        link.serialize(serializer)
+
+        self.assertEqual(serializer.call_count, 3)
+        cpu_device = chainer.backend.CpuDevice()
+        numpy.testing.assert_array_equal(cpu_device.send(link.x.array), array)
+        numpy.testing.assert_array_equal(cpu_device.send(link.y.array), array)
+        numpy.testing.assert_array_equal(cpu_device.send(link.z), array)
 
 
 testing.run_module(__name__, __file__)

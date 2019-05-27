@@ -1,14 +1,19 @@
+import copy
+import os
 import unittest
 
 import numpy
 import pytest
 
 import chainer
-from chainer.backends import cuda
+from chainer.backends import _cpu
 from chainer.link_hooks.spectral_normalization import SpectralNormalization
 import chainer.links as L
+from chainer import serializers
 from chainer import testing
 from chainer.testing import attr
+from chainer.testing.backend import BackendConfig
+from chainer import utils
 
 
 class TestExceptions(unittest.TestCase):
@@ -62,31 +67,23 @@ class BaseTest(object):
                 layer(self.x)
         return layer, hook
 
-    def check_weight_is_parameter(self, gpu):
+    def check_weight_is_parameter(self, backend_config):
         layer, hook = self._init_layer()
-        if gpu:
-            layer = layer.to_gpu()
+        layer.to_device(backend_config.device)
         source_weight = getattr(layer, hook.weight_name)
-        x = cuda.to_gpu(self.x) if gpu else self.x
+        x = backend_config.get_array(self.x)
         layer(x)
         assert getattr(layer, hook.weight_name) is source_weight
 
-    def test_weight_is_parameter_cpu(self):
+    def test_weight_is_parameter(self, backend_config):
         if not self.lazy_init:
-            self.check_weight_is_parameter(False)
+            self.check_weight_is_parameter(backend_config)
 
-    @attr.gpu
-    def test_weight_is_parameter_gpu(self):
-        if not self.lazy_init:
-            self.check_weight_is_parameter(True)
-
-    def check_in_recomputing(self, gpu):
+    def check_in_recomputing(self, backend_config):
         layer, hook = self.layer, self.hook
         layer.add_hook(hook)
-        if gpu:
-            layer = layer.to_gpu()
-        xp = cuda.cupy if gpu else numpy
-        x = xp.asarray(self.x)
+        layer.to_device(backend_config.device)
+        x = backend_config.get_array(self.x)
 
         y1 = layer(x).array
         u1 = getattr(layer, hook.vector_name).copy()
@@ -96,77 +93,60 @@ class BaseTest(object):
         u2 = getattr(layer, hook.vector_name)
         v2 = hook.v
 
-        xp.testing.assert_array_equal(u1, u2)
-        xp.testing.assert_array_equal(v1, v2)
+        u1, u2 = _cpu._to_cpu(u1), _cpu._to_cpu(u2)
+        v1, v2 = _cpu._to_cpu(v1), _cpu._to_cpu(v2)
+        numpy.testing.assert_array_equal(u1, u2)
+        numpy.testing.assert_array_equal(v1, v2)
         testing.assert_allclose(y1, y2)
 
-    def test_in_recomputing_cpu(self):
+    def test_in_recomputing(self, backend_config):
         if not self.lazy_init:
-            self.check_in_recomputing(False)
+            self.check_in_recomputing(backend_config)
 
-    @attr.gpu
-    def test_in_recomputing_gpu(self):
-        if not self.lazy_init:
-            self.check_in_recomputing(True)
-
-    def check_deleted(self, gpu):
+    def check_deleted(self, backend_config):
         layer, hook = self.layer, self.hook
         layer.add_hook(hook)
-        if gpu:
-            layer = layer.to_gpu()
-        x = cuda.to_gpu(self.x) if gpu else self.x
+        layer.to_device(backend_config.device)
+        x = backend_config.get_array(self.x)
 
-        y1 = layer(x).array
-        with chainer.using_config('train', False):
-            y2 = layer(x).array
-        layer.delete_hook(hook.name)
-        assert not hasattr(layer, hook.vector_name)
-        y3 = layer(x).array
-        if gpu:
-            y1, y2, y3 = cuda.to_cpu(y1), cuda.to_cpu(y2), cuda.to_cpu(y3)
+        with chainer.using_device(backend_config.device):
+            y1 = layer(x).array
+            with chainer.using_config('train', False):
+                y2 = layer(x).array
+            layer.delete_hook(hook.name)
+            assert not hasattr(layer, hook.vector_name)
+            y3 = layer(x).array
+        y1, y2, y3 = _cpu._to_cpu(y1), _cpu._to_cpu(y2), _cpu._to_cpu(y3)
         assert not numpy.array_equal(y1, y3)
         assert not numpy.array_equal(y2, y3)
 
-    def test_deleted_cpu(self):
-        self.check_deleted(False)
+    def test_deleted(self, backend_config):
+        self.check_deleted(backend_config)
 
-    @attr.gpu
-    def test_deleted_gpu(self):
-        self.check_deleted(True)
-
-    def check_u_updated_in_train(self, gpu):
+    def check_u_updated_in_train(self, backend_config):
         layer, hook = self.layer, self.hook
         layer.add_hook(hook)
-        if gpu:
-            layer = layer.to_gpu()
-        x = cuda.to_gpu(self.x) if gpu else self.x
+        layer.to_device(backend_config.device)
+        x = backend_config.get_array(self.x)
 
         y1 = layer(x).array
         u1 = getattr(layer, hook.vector_name).copy()
         y2 = layer(x).array
         u2 = getattr(layer, hook.vector_name)
-        if gpu:
-            y1, y2 = cuda.to_cpu(y1), cuda.to_cpu(y2)
-            u1, u2 = cuda.to_cpu(u1), cuda.to_cpu(u2)
+        y1, y2 = _cpu._to_cpu(y1), _cpu._to_cpu(y2)
+        u1, u2 = _cpu._to_cpu(u1), _cpu._to_cpu(u2)
         assert not numpy.array_equal(u1, u2)
         assert not numpy.array_equal(y1, y2)
 
-    def test_u_updated_in_train_cpu(self):
+    def test_u_updated_in_train(self, backend_config):
         if not self.lazy_init:
-            self.check_u_updated_in_train(False)
+            self.check_u_updated_in_train(backend_config)
 
-    @attr.gpu
-    def test_u_updated_in_train_gpu(self):
-        if not self.lazy_init:
-            self.check_u_updated_in_train(True)
-
-    def check_u_not_updated_in_test(self, gpu):
+    def check_u_not_updated_in_test(self, backend_config):
         layer, hook = self.layer, self.hook
         layer.add_hook(hook)
-        if gpu:
-            layer = layer.to_gpu()
-        xp = cuda.cupy if gpu else numpy
-        x = xp.asarray(self.x)
+        layer.to_device(backend_config.device)
+        x = backend_config.get_array(self.x)
 
         with chainer.using_config('train', False):
             y1 = layer(x).array
@@ -176,23 +156,119 @@ class BaseTest(object):
             u2 = getattr(layer, hook.vector_name)
             v2 = hook.v.copy()
 
-        xp.testing.assert_array_equal(u1, u2)
-        xp.testing.assert_array_equal(v1, v2)
+        u1, u2 = _cpu._to_cpu(u1), _cpu._to_cpu(u2)
+        v1, v2 = _cpu._to_cpu(v1), _cpu._to_cpu(v2)
+        numpy.testing.assert_array_equal(u1, u2)
+        numpy.testing.assert_array_equal(v1, v2)
         testing.assert_allclose(y1, y2)
 
-    def test_u_not_updated_in_test_cpu(self):
+    def test_u_not_updated_in_test(self, backend_config):
         if not self.lazy_init:
-            self.check_u_not_updated_in_test(False)
+            self.check_u_not_updated_in_test(backend_config)
 
-    @attr.gpu
-    def test_u_not_updated_in_test_gpu(self):
+    def check_multi_devices_forward(self, device_0, device_1):
+        layer, hook = self.layer, self.hook
+        layer.add_hook(hook)
+        layer.to_device(device_1)
+        x = device_1.send(self.x)
+
+        msg = None
+        with chainer.using_device(device_0):
+            try:
+                layer(x)
+            except Exception as e:
+                msg = e
+        assert msg is None
+
+    @attr.chainerx
+    @attr.multi_gpu(2)
+    def test_forward_chx_on_multi_devices(self):
         if not self.lazy_init:
-            self.check_u_not_updated_in_test(True)
+            device_0 = BackendConfig(
+                {'use_chainerx': True, 'chainerx_device': 'cuda:0'}).device
+            device_1 = BackendConfig(
+                {'use_chainerx': True, 'chainerx_device': 'cuda:1'}).device
+            self.check_multi_devices_forward(device_0, device_1)
+
+    @attr.multi_gpu(2)
+    def test_forward_multi_gpus(self):
+        if not self.lazy_init:
+            device_0 = BackendConfig(
+                {'use_cuda': True, 'cuda_device': 0}).device
+            device_1 = BackendConfig(
+                {'use_cuda': True, 'cuda_device': 1}).device
+            self.check_multi_devices_forward(device_0, device_1)
+
+    def check_serialization(self, backend_config):
+        with utils.tempdir() as root:
+            filename = os.path.join(root, 'tmp.npz')
+
+            layer1 = self.layer.copy('copy')
+            hook1 = copy.deepcopy(self.hook)
+            layer1.add_hook(hook1)
+
+            layer1.to_device(backend_config.device)
+            x = backend_config.get_array(self.x)
+            with backend_config:
+                layer1(x)
+                with chainer.using_config('train', False):
+                    y1 = layer1(x)
+            serializers.save_npz(filename, layer1)
+
+            layer2 = self.layer.copy('copy')
+            hook2 = copy.deepcopy(self.hook)
+            layer2.add_hook(hook2)
+
+            # Test loading is nice.
+            msg = None
+            try:
+                serializers.load_npz(filename, layer2)
+            except Exception as e:
+                msg = e
+            assert msg is None
+
+            with chainer.using_config('train', False):
+                y2 = layer2(self.x.copy())
+
+            # Test attributes are the same.
+            orig_weight = _cpu._to_cpu(
+                getattr(layer1, hook1.weight_name).array)
+            orig_vector = _cpu._to_cpu(getattr(layer1, hook1.vector_name))
+            numpy.testing.assert_array_equal(
+                orig_weight, getattr(layer2, hook2.weight_name).array)
+            numpy.testing.assert_array_equal(
+                orig_vector, getattr(layer2, hook2.vector_name))
+            testing.assert_allclose(y1.array, y2.array)
+
+    def test_serialization(self, backend_config):
+        if not self.lazy_init:
+            self.check_serialization(backend_config)
+
+
+_inject_backend_tests = testing.inject_backend_tests(
+    ['test_weight_is_parameter', 'test_in_recomputing', 'test_deleted',
+     'test_u_updated_in_train', 'test_u_not_updated_in_test',
+     'test_serialization'],
+    # CPU tests
+    testing.product({
+        'use_ideep': ['always', 'never'],
+    })
+    # GPU tests
+    + testing.product({
+        'use_cuda': [True],
+    })
+    # ChainerX tests
+    + testing.product({
+        'use_chainerx': [True],
+        'chainerx_device': ['native:0', 'cuda:0'],
+    })
+)
 
 
 @testing.parameterize(*testing.product({
     'use_gamma': [True, False],
 }))
+@_inject_backend_tests
 class TestEmbedID(unittest.TestCase, BaseTest):
 
     def setUp(self):
@@ -225,6 +301,7 @@ class TestEmbedID(unittest.TestCase, BaseTest):
     'lazy_init': [True, False],
     'use_gamma': [True, False],
 }))
+@_inject_backend_tests
 class TestLinear(unittest.TestCase, BaseTest):
 
     def setUp(self):
@@ -242,6 +319,7 @@ class TestLinear(unittest.TestCase, BaseTest):
     'lazy_init': [True, False],
     'link': [L.Convolution1D, L.Deconvolution1D],
 }))
+@_inject_backend_tests
 class TestConvolution1D(unittest.TestCase, BaseTest):
 
     def setUp(self):
@@ -261,6 +339,7 @@ class TestConvolution1D(unittest.TestCase, BaseTest):
     'lazy_init': [True, False],
     'link': [L.Convolution2D, L.Deconvolution2D],
 }))
+@_inject_backend_tests
 class TestConvolution2D(unittest.TestCase, BaseTest):
 
     def setUp(self):
@@ -280,6 +359,7 @@ class TestConvolution2D(unittest.TestCase, BaseTest):
     'lazy_init': [True, False],
     'link': [L.Convolution3D, L.Deconvolution3D],
 }))
+@_inject_backend_tests
 class TestConvolution3D(unittest.TestCase, BaseTest):
 
     def setUp(self):

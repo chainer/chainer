@@ -32,7 +32,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-_released_version = '6.0.0rc1'
+_released_version = '7.0.0a1'
 _tag_name = 'v' + _released_version
 
 _is_released = False
@@ -94,7 +94,7 @@ _optional_dependencies = [
             'cupy-cuda80',
             'cupy',
         ],
-        'specifier': '==6.0.0rc1',
+        'specifier': '==7.0.0a1',
         'help': 'https://docs-cupy.chainer.org/en/latest/install.html',
     },
     {

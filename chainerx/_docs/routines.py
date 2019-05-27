@@ -447,6 +447,28 @@ Note:
 .. seealso:: :func:`numpy.take`
 """)
 
+    _docs.set_doc(
+        chainerx.where,
+        """where(condition, x, y)
+Return elements chosen from ``x`` or ``y`` depending on condition.
+
+Args:
+    condition (~chainerx.ndarray): Where True, yield ``x``, otherwise
+    yield ``y``.
+    x (~chainerx.ndarray): Values from which to choose.
+    y (~chainerx.ndarray): Values from which to choose.
+
+Returns:
+    :func:`~chainerx.ndarray`: An array with elements
+    from ``x`` where condition is True, and elements from ``y`` elsewhere.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``x`` and ``y``.
+
+.. seealso:: :func:`numpy.where`
+""")
+
 
 def _docs_linalg():
     _docs.set_doc(
@@ -479,6 +501,52 @@ Note:
 
 def _docs_logic():
     _docs.set_doc(
+        chainerx.all,
+        """all(x)
+Test whether all array elements along a given axis evaluate to True.
+
+Args:
+    x (~chainerx.ndarray): Input array.
+    axis (None or int or tuple of ints):
+        Axis or axes along which AND reduction is performed.
+        The flattened array is used by default.
+    keepdims (bool):
+        If this is set to ``True``, the reduced axes are left in the result
+        as dimensions with size one.
+
+Returns:
+    :class:`~chainerx.ndarray`: Output array of type bool.
+
+Note:
+    During backpropagation, this function does not propagate gradients.
+
+.. seealso:: :data:`numpy.all`
+""")
+
+    _docs.set_doc(
+        chainerx.any,
+        """any(x)
+Test whether any array element along a given axis evaluate to True.
+
+Args:
+    x (~chainerx.ndarray): Input array.
+    axis (None or int or tuple of ints):
+        Axis or axes along which OR reduction is performed.
+        The flattened array is used by default.
+    keepdims (bool):
+        If this is set to ``True``, the reduced axes are left in the result
+        as dimensions with size one.
+
+Returns:
+    :class:`~chainerx.ndarray`: Output array of type bool.
+
+Note:
+    During backpropagation, this function does not propagate gradients.
+
+.. seealso:: :data:`numpy.any`
+""")
+
+    _docs.set_doc(
         chainerx.logical_not,
         """logical_not(x)
 Returns an array of NOT x element-wise.
@@ -494,6 +562,60 @@ Note:
 
 .. seealso:: :data:`numpy.logical_not`
 """)
+
+    _docs.set_doc(
+        chainerx.logical_and,
+        """logical_and(x1, x2)
+Returns an array of x1 AND x2 element-wise.
+
+Args:
+    x1 (~chainerx.ndarray): Input array.
+    x2 (~chainerx.ndarray): Input array.
+
+Returns:
+    :class:`~chainerx.ndarray`: Output array of type bool.
+
+Note:
+    During backpropagation, this function does not propagate gradients.
+
+.. seealso:: :data:`numpy.logical_and`
+    """)
+
+    _docs.set_doc(
+        chainerx.logical_or,
+        """logical_or(x1, x2)
+Returns an array of x1 OR x2 element-wise.
+
+Args:
+    x1 (~chainerx.ndarray): Input array.
+    x2 (~chainerx.ndarray): Input array.
+
+Returns:
+    :class:`~chainerx.ndarray`: Output array of type bool.
+
+Note:
+    During backpropagation, this function does not propagate gradients.
+
+.. seealso:: :data:`numpy.logical_or`
+    """)
+
+    _docs.set_doc(
+        chainerx.logical_xor,
+        """logical_xor(x1, x2)
+Returns an array of x1 XOR x2 element-wise.
+
+Args:
+    x1 (~chainerx.ndarray): Input array.
+    x2 (~chainerx.ndarray): Input array.
+
+Returns:
+    :class:`~chainerx.ndarray`: Output array of type bool.
+
+Note:
+    During backpropagation, this function does not propagate gradients.
+
+.. seealso:: :data:`numpy.logical_xor`
+    """)
 
     _docs.set_doc(
         chainerx.greater,
@@ -731,6 +853,63 @@ Note:
 """)
 
     _docs.set_doc(
+        chainerx.hstack,
+        """stack(arrays)
+Stack arrays in sequence horizontally (column wise).
+
+Args:
+    arrays (sequence of :class:`~chainerx.ndarray`\\ s): Arrays to be stacked.
+
+Returns:
+    ~chainerx.ndarray: Stacked array.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input arrays in ``arrays``.
+
+.. seealso:: :func:`numpy.hstack`
+""")
+
+    _docs.set_doc(
+        chainerx.vstack,
+        """stack(arrays)
+Stack arrays in sequence vertically (row wise).
+
+Args:
+    arrays (sequence of :class:`~chainerx.ndarray`\\ s): Arrays to be stacked.
+
+Returns:
+    ~chainerx.ndarray: Stacked array.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input arrays in ``arrays``.
+
+.. seealso:: :func:`numpy.vstack`
+""")
+
+    _docs.set_doc(
+        chainerx.atleast_2d,
+        """atleast_2d(a)
+View inputs as arrays with at least two dimensions.
+
+Args:
+    a (~chainerx.ndarray): Array.
+
+Returns:
+    ~chainerx.ndarray: An array with a.ndim >= 2.
+    Copies are avoided where possible, and views with
+    two or more dimensions are returned.
+
+Note:
+    * Arrays that already have two or more dimensions are preserved.
+    * During backpropagation, this function propagates the gradient of the
+      output array to the input arrays in ``a``.
+
+.. seealso:: :func:`numpy.vstack`
+""")
+
+    _docs.set_doc(
         chainerx.split,
         """split(ary, indices_or_sections, axis=0)
 Splits an array into multiple sub arrays along a given axis.
@@ -753,6 +932,117 @@ Note:
     output arrays to the input array ``ary``.
 
 .. seealso:: :func:`numpy.split`
+""")
+
+    _docs.set_doc(
+        chainerx.swapaxes,
+        """swapaxes(a, axis1, axis2)
+Interchange two axes of an array.
+
+Args:
+    a (~chainerx.ndarray): Array to swapaxes.
+    axis1 (int): First Axis
+    axis2 (int): Second Axis
+
+Returns:
+    ~chainerx.ndarray: Swaped array.
+
+Note:
+    * Output array is a view of the input array.
+    * During backpropagation, this function propagates the gradients of the
+      output arrays to the input array ``a``.
+
+
+.. seealso:: :func:`numpy.swapaxes`
+""")
+
+    _docs.set_doc(
+        chainerx.expand_dims,
+        """expand_dims(a, axis)
+Expand the shape of an array.
+
+Args:
+    a (~chainerx.ndarray): Input Array.
+    axis (int): Position in the expanded axes where the new axis is placed.
+
+Returns:
+    ~chainerx.ndarray: Output array.
+
+Note:
+    * Output array may or may not be a view of the input array.
+    * During backpropagation, this function propagates the gradients of the
+      output arrays to the input array ``a``.
+
+
+.. seealso:: :func:`numpy.expand_dims`
+""")
+
+    _docs.set_doc(
+        chainerx.flip,
+        """flip(m, axis)
+Reverse the order of elements in an array along the given axis.
+
+Args:
+    m (~chainerx.ndarray): Input Array.
+    axis (int or tuple of ints): Axis or axes along which to flip over.
+    The default, axis=None, will flip over all of the axes of the input array.
+    If axis is negative it counts from the last to the first axis.
+    If axis is a tuple of ints, flipping is performed on all of the
+    axes specified in the tuple.
+
+Returns:
+    ~chainerx.ndarray: A view of m with the entries of axis reversed.
+    Since a view is returned, this operation is done in constant time.
+
+Note:
+    * Output array is a view of the input array.
+    * During backpropagation, this function propagates the gradients of the
+      output arrays to the input array ``m``.
+
+
+.. seealso:: :func:`numpy.flip`
+""")
+
+    _docs.set_doc(
+        chainerx.fliplr,
+        """fliplr(m)
+Flip array in the left/right direction.
+
+Args:
+    m (~chainerx.ndarray): Input Array.
+
+Returns:
+    ~chainerx.ndarray: A view of m with the columns reversed.
+    Since a view is returned, this operation is done in constant time.
+
+Note:
+    * Output array is a view of the input array.
+    * During backpropagation, this function propagates the gradients of the
+      output arrays to the input array ``m``.
+
+
+.. seealso:: :func:`numpy.fliplr`
+""")
+
+    _docs.set_doc(
+        chainerx.flipud,
+        """flipud(m)
+Flip array in the up/down direction.
+
+Args:
+    m (~chainerx.ndarray): Input Array.
+
+Returns:
+    ~chainerx.ndarray: A view of m with the rows reversed.
+    Since a view is returned, this operation is done in constant time.
+
+Note:
+    * Output array is a view of the input array.
+    * During backpropagation, this function propagates the gradients of the
+      output arrays to the input array ``m``.
+
+
+.. seealso:: :func:`numpy.flipud`
 """)
 
 
@@ -936,6 +1226,24 @@ Note:
 """)
 
     _docs.set_doc(
+        chainerx.log10,
+        """log10(x)
+Base 10 logarithm, element-wise.
+
+Args:
+    x (~chainerx.ndarray): Input array.
+
+Returns:
+    :class:`~chainerx.ndarray`: Returned array: :math:`y = \\log_{10} x`.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``x``.
+
+.. seealso:: :data:`numpy.log10`
+""")
+
+    _docs.set_doc(
         chainerx.logsumexp,
         """logsumexp(x, axis=None, keepdims=False)
 The log of the sum of exponentials of input array.
@@ -979,6 +1287,25 @@ Note:
 """)
 
     _docs.set_doc(
+        chainerx.square,
+        """square(x)
+Returns the element-wise square of the input.
+
+Args:
+    x (~chainerx.ndarray or scalar): Input data
+
+Returns:
+    ~chainerx.ndarray: Returned array: :math:`y = x * x`.
+    A scalar is returned if ``x`` is a scalar.
+
+Note:
+    During backpropagation, this function propagates the gradient
+    of the output array to the input array ``x``.
+
+.. seealso:: :data:`numpy.square`
+""")
+
+    _docs.set_doc(
         chainerx.sqrt,
         """sqrt(x)
 Non-negative square-root, element-wise
@@ -997,9 +1324,45 @@ Note:
 """)
 
     _docs.set_doc(
+        chainerx.sinh,
+        """sinh(x)
+Hyperbolic Sine, element-wise
+
+Args:
+    x (~chainerx.ndarray): Input array.
+
+Returns:
+    :class:`~chainerx.ndarray`: Returned array: :math:`y = \\sinh x`.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``x``.
+
+.. seealso:: :data:`numpy.sinh`
+""")
+
+    _docs.set_doc(
+        chainerx.cosh,
+        """cosh(x)
+Hyperbolic Cosine, element-wise
+
+Args:
+    x (~chainerx.ndarray): Input array.
+
+Returns:
+    :class:`~chainerx.ndarray`: Returned array: :math:`y = \\cosh x`.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``x``.
+
+.. seealso:: :data:`numpy.cosh`
+""")
+
+    _docs.set_doc(
         chainerx.tanh,
         """tanh(x)
-Hyperbolic tangent, element-wise
+Element-wise hyperbolic tangent function.
 
 Args:
     x (~chainerx.ndarray): Input array.
@@ -1012,6 +1375,25 @@ Note:
     output array to the input array ``x``.
 
 .. seealso:: :data:`numpy.tanh`
+""")
+
+    _docs.set_doc(
+        chainerx.sigmoid,
+        """sigmoid(x)
+Element-wise sigmoid logistic function.
+
+Args:
+    x (~chainerx.ndarray): Input array.
+
+Returns:
+    :class:`~chainerx.ndarray`: Returned array:
+    :math:`f(x) = (1 + \\exp(-x))^{-1}`.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``x``.
+
+.. seealso:: :func:`chainer.functions.sigmoid`
 """)
 
     _docs.set_doc(
@@ -1051,6 +1433,20 @@ Note:
 """)
 
     _docs.set_doc(
+        chainerx.ceil,
+        """ceil(x)
+Return the ceiling of the input, element-wise..
+
+Args:
+    x (~chainerx.ndarray): Input array.
+
+Returns:
+    :class:`~chainerx.ndarray`: The ceiling of each element in array.
+
+.. seealso:: :data:`numpy.ceil`
+""")
+
+    _docs.set_doc(
         chainerx.tan,
         """tan(x)
 Tangent, element-wise
@@ -1066,6 +1462,18 @@ Note:
     output array to the input array ``x``.
 
 .. seealso:: :data:`numpy.tan`
+""")
+
+    _docs.set_doc(
+        chainerx.relu,
+        """Rectified Linear Unit function.
+Args:
+    x (~chainerx.ndarray): Input array.
+Returns:
+    :class:`~chainerx.ndarray`: Returned array: :math:`y = \\max (0, x)`.
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``x``.
 """)
 
     _docs.set_doc(
@@ -1123,6 +1531,101 @@ Note:
 """)
 
     _docs.set_doc(
+        chainerx.arctan2,
+        """arctan2(x1, x2)
+Element-wise arc tangent of :math:`\\frac{x_1}{x_2}` choosing the quadrant
+correctly.
+
+Args:
+    x1 (~chainerx.ndarray): Input array.
+    x2 (~chainerx.ndarray): Input array.
+
+Returns:
+    :class:`~chainerx.ndarray`: Returns an array where each element
+    represents :math:`\\theta` in the range :math:`[-\\pi, \\pi]`, such
+    that :math:`x_1 = r \\sin(\\theta)` and :math:`x_2 = r \\cos(\\theta)`
+    for some :math:`r > 0`.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``x1`` and/or ``x2``.
+
+.. seealso:: :data:`numpy.arctan2`
+""")
+
+    _docs.set_doc(
+        chainerx.arcsinh,
+        """arcsinh(x)
+Inverse hyperbolic sine, element-wise
+
+Args:
+    x (~chainerx.ndarray): Input array.
+
+Returns:
+    :class:`~chainerx.ndarray`: Returned array: :math:`y = \\arcsinh x`.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``x``.
+
+.. seealso:: :data:`numpy.arcsinh`
+""")
+
+    _docs.set_doc(
+        chainerx.arccosh,
+        """arccosh(x)
+Inverse hypberbolic inverse cosine, element-wise
+
+Args:
+    x (~chainerx.ndarray): Input array.
+
+Returns:
+    :class:`~chainerx.ndarray`: Returned array: :math:`y = \\arccosh x`.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``x``.
+
+.. seealso:: :data:`numpy.arccosh`
+""")
+
+    _docs.set_doc(
+        chainerx.fabs,
+        """fabs(x)
+Compute the absolute values element-wise.
+Args:
+    x (~chainerx.ndarray): Input array.
+Returns:
+    :class:`~chainerx.ndarray`: The absolute values of x, the returned values
+    are always floats.
+.. seealso:: :data:`numpy.fabs`
+""")
+
+    _docs.set_doc(
+        chainerx.sign,
+        """sign(x)
+Returns an element-wise indication of the sign of a number.
+The sign function returns :math:`-1 if x < 0, 0 if x==0, 1 if x > 0`.
+``nan`` is returned for ``nan`` inputs.
+Args:
+    x (~chainerx.ndarray): Input array.
+Returns:
+    :class:`~chainerx.ndarray`: The sign of x.
+.. seealso:: :data:`numpy.sign`
+""")
+
+    _docs.set_doc(
+        chainerx.floor,
+        """floor(x)
+Return the floor of the input, element-wise.
+Args:
+    x (~chainerx.ndarray): Input array.
+Returns:
+    :class:`~chainerx.ndarray`: The floor of each element in array.
+.. seealso:: :data:`numpy.floor`
+""")
+
+    _docs.set_doc(
         chainerx.isnan,
         """isnan(x)
 Test element-wise for NaN and return result as a boolean array.
@@ -1137,6 +1640,24 @@ Note:
     During backpropagation, this function does not propagate gradients.
 
 .. seealso:: :data:`numpy.isnan`
+""")
+
+    _docs.set_doc(
+        chainerx.isfinite,
+        """isfinite(x)
+Test element-wise for finiteness (not infinity or not Not a Number).
+
+Args:
+    x (~chainerx.ndarray): Input array.
+
+Returns:
+    :class:`~chainerx.ndarray`: True where x is not positive infinity,
+    negative infinity, or NaN; false otherwise.
+
+Note:
+    During backpropagation, this function does not propagate gradients.
+
+.. seealso:: :data:`numpy.isfinite`
 """)
 
     _docs.set_doc(
@@ -1157,6 +1678,60 @@ Note:
 .. seealso:: :data:`numpy.isinf`
 """)
 
+    _docs.set_doc(
+        chainerx.bitwise_and,
+        """bitwise_and(x1, x2)
+Compute the bit-wise AND of two arrays element-wise.
+
+Args:
+    x1 (~chainerx.ndarray or scalar): Input array of integers.
+    x2 (~chainerx.ndarray or scalar): Input array of integers.
+
+Returns:
+    :class:`~chainerx.ndarray`: Returned array: :math:`y = x_1 \& x_2`
+
+Note:
+    During backpropagation, this function does not propagate gradients.
+
+.. seealso:: :data:`numpy.bitwise_and`
+""")  # NOQA
+
+    _docs.set_doc(
+        chainerx.bitwise_or,
+        """bitwise_or(x1, x2)
+Compute the bit-wise OR of two arrays element-wise.
+
+Args:
+    x1 (~chainerx.ndarray or scalar): Input array of integers.
+    x2 (~chainerx.ndarray or scalar): Input array of integers.
+
+Returns:
+    :class:`~chainerx.ndarray`: Returned array: :math:`y = x_1 | x_2`
+
+Note:
+    During backpropagation, this function does not propagate gradients.
+
+.. seealso:: :data:`numpy.bitwise_or`
+""")
+
+    _docs.set_doc(
+        chainerx.bitwise_xor,
+        """bitwise_xor(x1, x2)
+Compute the bit-wise XOR of two arrays element-wise.
+
+Args:
+    x1 (~chainerx.ndarray or scalar): Input array of integers.
+    x2 (~chainerx.ndarray or scalar): Input array of integers.
+
+Returns:
+    :class:`~chainerx.ndarray`: Returned array: :math:`y = x_1 \oplus x_2`
+
+Note:
+    During backpropagation, this function does not propagate gradients.
+
+.. seealso:: :data:`numpy.bitwise_xor`
+""")  # NOQA
+
 
 def _docs_sorting():
     _docs.set_doc(
@@ -1174,6 +1749,23 @@ Returns:
     axis if specified.
 
 .. seealso:: :func:`numpy.argmax`
+""")
+
+    _docs.set_doc(
+        chainerx.argmin,
+        """argmin(a, axis=None)
+Returns the indices of the minimum along an axis.
+
+Args:
+    a (~chainerx.ndarray): Array to take the indices of the minimum of.
+    axis (None or int): Along which axis to compute the minimum. The flattened
+        array is used by default.
+
+Returns:
+    :class:`~chainerx.ndarray`: The indices of the minimum of ``a``, along the
+    axis if specified.
+
+.. seealso:: :func:`numpy.argmin`
 """)
 
 
@@ -1203,6 +1795,79 @@ Note:
     output array to the input array ``a``.
 
 .. seealso:: :func:`numpy.amax`
+""")
+
+    _docs.set_doc(
+        chainerx.amin,
+        """amin(a, axis=None, keepdims=False)
+Returns the minimum of an array or the minimum along an axis.
+
+Note:
+    When at least one element is NaN, the corresponding min value will be NaN.
+
+Args:
+    a (~chainerx.ndarray): Array to take the minimum.
+    axis (None or int or tuple of ints): Along which axis to take the minimum.
+        The flattened array is used by default.
+        If this is a tuple of ints, the minimum is selected over multiple
+        axes, instead of a single axis or all the axes.
+    keepdims (bool): If ``True``, the axis is remained as an axis of size one.
+
+Returns:
+    :class:`~chainerx.ndarray`: The minimum of ``a``, along the axis if
+    specified.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``a``.
+
+.. seealso:: :func:`numpy.amin`
+""")
+
+    _docs.set_doc(
+        chainerx.mean,
+        """mean(a, axis=None, keepdims=False)
+Compute the arithmetic mean along the specified axis.
+
+Returns the average of the array elements. The average is taken over the
+flattened array by default, otherwise over the specified axis.
+
+Args:
+    a (~chainerx.ndarray): Array to take the mean of.
+    axis (None or int or tuple of ints): Along which axis or axes to compute
+    the mean. The flattened array is used by default.
+    keepdims (bool): If this is set to True, the axes which are reduced are
+    left in the result as dimensions with size one. With this option,
+    the result will broadcast correctly against the input array.
+
+Returns:
+    :class:`~chainerx.ndarray`: The mean of ``a``, along the axis or axes if
+    specified.
+
+.. seealso:: :func:`numpy.mean`
+""")
+
+    _docs.set_doc(
+        chainerx.var,
+        """var(a, axis=None, keepdims=False)
+Compute the arithmetic var along the specified axis.
+
+Returns the var of the array elements. The var is taken over the flattened
+array by default, otherwise over the specified axis.
+
+Args:
+    a (~chainerx.ndarray): Array to take the var of.
+    axis (None or int or tuple of ints): Along which axis or axes to compute
+    the var. The flattened array is used by default.
+    keepdims (bool): If this is set to True, the axes which are reduced are
+    left in the result as dimensions with size one. With this option,
+    the result will broadcast correctly against the input array.
+
+Returns:
+    :class:`~chainerx.ndarray`: The var of ``a``, along the axis or axes if
+    specified.
+
+.. seealso:: :func:`numpy.var`
 """)
 
 
@@ -1248,7 +1913,7 @@ following equations:
 
 If ``cover_all`` option is ``True``, the filter will cover the all
 spatial locations. So, if the last stride of filter does not cover the
-end of spatial locations, an addtional stride will be applied to the end
+end of spatial locations, an additional stride will be applied to the end
 part of spatial locations. In this case, the output size is determined by
 the following equations:
 
