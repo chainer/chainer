@@ -2,8 +2,8 @@ import chainer.variable
 import chainer.link
 
 
-def _apply_scatter(inputs: chainer.variable.Variable, target_devices: list,
-                   dim: int = 0):
+def _apply_scatter(inputs, target_devices,
+                   dim=0):
     """
     Scatters inputs to target devices; Slicing will be done against a given
     dimension
@@ -93,7 +93,7 @@ def _apply_gather(target_device, dim, *outputs):
     return chainer.functions.concat(outputs, dim)
 
 
-def _scatter(inputs, target_devices: list, dim):
+def _scatter(inputs, target_devices, dim):
     """
     Scatters all inputs across given target_devices
 
@@ -205,7 +205,7 @@ class DataParallel(chainer.link.Chain):
     training by splitting the batches
     """
 
-    def __init__(self, module: chainer.link.Chain, devices: list,
+    def __init__(self, module, devices,
                  batch_dim=0):
         """
         Args
@@ -284,7 +284,7 @@ class DataParallel(chainer.link.Chain):
         return self.modules[0].params(include_uninit)
 
     @staticmethod
-    def _scatter(inputs, kwargs, target_devices: list, dim=0):
+    def _scatter(inputs, kwargs, target_devices, dim=0):
         """
         Scatters all inputs (args and kwargs) to target devices and splits
         along given dimension
