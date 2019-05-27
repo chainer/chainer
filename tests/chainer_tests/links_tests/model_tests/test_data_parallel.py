@@ -8,7 +8,7 @@ import chainer.functions
 
 class TestDataParallel(unittest.TestCase):
 
-    def setUp(self) -> None:
+    def setUp(self):
 
         # creating a really simple model to test dataparallel behavior
         class SimpleModel(chainer.link.Chain):
