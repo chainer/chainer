@@ -36,8 +36,6 @@ if _available:
 
     from chainerx.manipulation.shape import ravel  # NOQA
 
-    from chainerx.math.misc import clip  # NOQA
-
     from chainerx import random  # NOQA
 
     _global_context = _core.Context()

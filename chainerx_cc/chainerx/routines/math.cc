@@ -591,6 +591,28 @@ Array Minimum(const Array& x1, const Array& x2) {
     return internal::BroadcastBinary(&MinimumImpl, x1, x2, dtype);  // x1 > x2 ? x2 : x1
 }
 
+Array Clip(const Array& a, Scalar min, Scalar max) {
+    return IfLessElse(a, min, min, IfGreaterElse(a, max, max, a));
+}
+
+Array Clip(const Array& a, const Array& a_min, Scalar max) {
+    Dtype dtype = GetArithmeticResultDtype(a, a_min);
+    return internal::BroadcastBinary(&MaximumImpl, IfGreaterElse(a, max, max, a), a_min, dtype);
+}
+
+Array Clip(const Array& a, Scalar min, const Array& a_max) {
+    Dtype dtype = GetArithmeticResultDtype(a, a_max);
+    Array ret = internal::BroadcastBinary(&MinimumImpl, a, a_max, dtype);
+    return IfLessElse(ret, min, min, ret);
+}
+
+Array Clip(const Array& a, const Array& a_min, const Array& a_max) {
+    Dtype dtype = GetArithmeticResultDtype(a, a_max);
+    Array max_clamped = internal::BroadcastBinary(&MinimumImpl, a, a_max, dtype);
+    dtype = GetArithmeticResultDtype(max_clamped, a_max);
+    return internal::BroadcastBinary(&MaximumImpl, a_min, max_clamped, dtype);
+}
+
 Array Exp(const Array& x) {
     Dtype dtype = internal::GetMathResultDtype(x.dtype());
     Array out = Empty(x.shape(), dtype, x.device());

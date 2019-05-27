@@ -675,6 +675,32 @@ void InitChainerxMath(pybind11::module& m) {
           [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return MoveArrayBody(Minimum(Array{x1}, Array{x2})); },
           py::arg("x1"),
           py::arg("x2"));
+    m.def("clip",
+          [](const ArrayBodyPtr& a, Scalar a_min, Scalar a_max) { return MoveArrayBody(Clip(Array{a}, a_min, a_max)); },
+          py::arg("a"),
+          py::arg("a_min"),
+          py::arg("a_max"));
+    m.def("clip",
+          [](const ArrayBodyPtr& a, const ArrayBodyPtr& a_min, Scalar a_max) {
+              return MoveArrayBody(Clip(Array{a}, Array{a_min}, a_max));
+          },
+          py::arg("a"),
+          py::arg("a_min"),
+          py::arg("a_max"));
+    m.def("clip",
+          [](const ArrayBodyPtr& a, Scalar a_min, const ArrayBodyPtr& a_max) {
+              return MoveArrayBody(Clip(Array{a}, a_min, Array{a_max}));
+          },
+          py::arg("a"),
+          py::arg("a_min"),
+          py::arg("a_max"));
+    m.def("clip",
+          [](const ArrayBodyPtr& a, const ArrayBodyPtr& a_min, const ArrayBodyPtr& a_max) {
+              return MoveArrayBody(Clip(Array{a}, Array{a_min}, Array{a_max}));
+          },
+          py::arg("a"),
+          py::arg("a_min"),
+          py::arg("a_max"));
     m.def("exp", [](const ArrayBodyPtr& x) { return MoveArrayBody(Exp(Array{x})); }, py::arg("x"));
     m.def("log", [](const ArrayBodyPtr& x) { return MoveArrayBody(Log(Array{x})); }, py::arg("x"));
     m.def("log10", [](const ArrayBodyPtr& x) { return MoveArrayBody(Log10(Array{x})); }, py::arg("x"));

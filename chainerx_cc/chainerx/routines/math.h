@@ -85,6 +85,11 @@ Array Minimum(const Array& x1, Scalar x2);
 Array Minimum(Scalar x1, const Array& x2);
 Array Minimum(const Array& x1, const Array& x2);
 
+Array Clip(const Array& x1, Scalar min, Scalar max);
+Array Clip(const Array& x1, const Array& a_min, Scalar max);
+Array Clip(const Array& x1, Scalar min, const Array& a_max);
+Array Clip(const Array& x1, const Array& min, const Array& max);
+
 Array Exp(const Array& x);
 Array Log(const Array& x);
 Array Log10(const Array& x);
