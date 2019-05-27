@@ -26,9 +26,10 @@ class TestDataParallel(unittest.TestCase):
         self.model = chainer.links.DataParallel(SimpleModel(),
                                                 devices=["@numpy", "@numpy"])
 
-        self.optimizer = chainer.optimizers.DataParallelOptimizer.from_optimizer_class(
-            chainer.optimizers.Adam
-        )
+        self.optimizer = \
+            chainer.optimizers.DataParallelOptimizer.from_optimizer_class(
+                chainer.optimizers.Adam
+            )
         self.optimizer.setup(self.model)
 
     def test_update(self):
