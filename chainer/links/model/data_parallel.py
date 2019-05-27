@@ -177,7 +177,10 @@ def _gather(outputs, target_device, dim=0):
             outputs (Any): the outputs to gather
 
         Returns
-            Any: the concatenated outputs (same type as outputs[0] before concat)
+            Any:
+                the concatenated outputs
+                (same type as outputs[0] before concat)
+
         """
         out = outputs[0]
         if isinstance(out, chainer.variable.Variable):
@@ -295,7 +298,8 @@ class DataParallel(chainer.link.Chain):
             kwargs (dict):
                 keyword arguments
             target_devices (list of str or ~chainer.backend.Device):
-                list of target device (either string or ~chainer.backend.Device)
+                list of target device
+                (either string or ~chainer.backend.Device)
             dim (int):
                 the dimension, which should be used for splitting the batch
 

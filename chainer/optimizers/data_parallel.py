@@ -68,10 +68,12 @@ class DataParallelOptimizer(optimizer.Optimizer):
         self._optimizer.setup(link)
 
         self._optimizer.add_hook(
-            chainer.optimizer_hooks.DataParallelOptimizerCumulateGradientsHook()
+            chainer.optimizer_hooks.DataParallelOptimizerCumulateGradientsHook(
+            )
         )
         self._optimizer.add_hook(
-            chainer.optimizer_hooks.DataParallelOptimizerUpdateModelParameters()
+            chainer.optimizer_hooks.DataParallelOptimizerUpdateModelParameters(
+            )
         )
 
     # forward all functions and attributes to internal optimizer via properties
