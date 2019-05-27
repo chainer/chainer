@@ -3,6 +3,7 @@ import unittest
 import packaging.version
 
 import chainer
+from chainer import testing
 
 
 class TestVersion(unittest.TestCase):
