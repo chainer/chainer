@@ -12,7 +12,7 @@ class DataParallelOptimizerCumulateGradientsHook(object):
     call_for_each_param = False
     timing = 'pre'
 
-    def __call__(self, optimizer: chainer.Optimizer):
+    def __call__(self, optimizer):
         """
         Summing up all parameters if the target is an instance of
         ~chainer.links.model.DataParallel
@@ -38,7 +38,7 @@ class DataParallelOptimizerUpdateModelParameters(object):
     call_for_each_param = False
     timing = "post"
 
-    def __call__(self, optimizer: chainer.Optimizer):
+    def __call__(self, optimizer):
         """
         Copying all parameters across the model replicas after optimizer update
 
