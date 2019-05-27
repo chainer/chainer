@@ -47,13 +47,6 @@ class Dropout(function_node.FunctionNode):
                 and x[0].flags.c_contiguous
                 and self.mask is None):
             self._use_cudnn = True
-
-            if hasattr(self, 'states'):
-                # if we already have a dropout mask,
-                # the forward operation is equal to backward.
-                return cuda.get_cudnn_dropout_states().backward(
-                    None, x[0], self.dropout_ratio, self.states),
-
             self.states, y = cuda.get_cudnn_dropout_states().forward(
                 None, x[0], self.dropout_ratio)
             return y,
