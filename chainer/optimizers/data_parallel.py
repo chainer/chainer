@@ -13,21 +13,21 @@ class DataParallelOptimizer(optimizer.Optimizer):
     pre-update hook)
     """
 
-    def __init__(self, optimizer):
+    def __init__(self, optim):
         """
 
         Args
-            optimizer (~chainer.Optimizer):
+            optim (~chainer.Optimizer):
                 the optimizer to wrap
 
         """
-        if isinstance(optimizer, optimizer.Optimizer):
-            self._optimizer = optimizer
+        if isinstance(optim, optimizer.Optimizer):
+            self._optimizer = optim
 
         else:
             raise RuntimeError("Invalid optimizer class given: Expected "
                                "instance of chainer.Optimizer, but got %s"
-                               % optimizer.__class__.__name__)
+                               % optim.__class__.__name__)
 
     @classmethod
     def from_optimizer_class(cls, optim_cls, *args, **kwargs):

@@ -262,7 +262,7 @@ class DataParallel(chainer.link.Chain):
         predictions = []
         for _args, _kwargs, _module in zip(scattered_args, scattered_kwargs,
                                            self.modules):
-            predictions.append(_module(*_args, *_kwargs))
+            predictions.append(_module(*_args, **_kwargs))
 
         predictions = self._gather(predictions, self.dim,
                                    self._output_device)
