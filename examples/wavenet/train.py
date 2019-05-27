@@ -2,11 +2,6 @@ import argparse
 import os
 import pathlib
 
-try:
-    import matplotlib
-    matplotlib.use('Agg')
-except ImportError:
-    pass
 import chainer
 from chainer.training import extensions
 import chainerx
@@ -15,6 +10,9 @@ from net import EncoderDecoderModel
 from net import UpsampleNet
 from net import WaveNet
 from utils import Preprocess
+
+import matplotlib
+matplotlib.use('Agg')
 
 
 parser = argparse.ArgumentParser(description='Chainer example: WaveNet')
