@@ -1,8 +1,8 @@
-import chainer
+from chainer import optimizer
 import chainer.optimizer_hooks
 
 
-class DataParallelOptimizer(chainer.Optimizer):
+class DataParallelOptimizer(optimizer.Optimizer):
     """
     An Optimizer-Wrapper to enable DataParallel. Basically this forwards
     all functions to the interal optimizer, but registers the additional
@@ -21,7 +21,7 @@ class DataParallelOptimizer(chainer.Optimizer):
                 the optimizer to wrap
 
         """
-        if isinstance(optimizer, chainer.optimizer.Optimizer):
+        if isinstance(optimizer, optimizer.Optimizer):
             self._optimizer = optimizer
 
         else:
@@ -47,7 +47,7 @@ class DataParallelOptimizer(chainer.Optimizer):
 
         """
         if optim_cls is not None and issubclass(optim_cls,
-                                                chainer.Optimizer):
+                                                optimizer.Optimizer):
             _optim = optim_cls(*args, **kwargs)
         else:
             raise RuntimeError("Invalid optimizer class given: Expected "
