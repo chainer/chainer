@@ -587,10 +587,8 @@ void InitChainerxManipulation(pybind11::module& m) {
           py::arg("indices_or_sections"),
           py::arg("axis") = 0);
     m.def("moveaxis",
-          [](const ArrayBodyPtr& a,
-             const nonstd::optional<std::vector<int8_t>>& source,
-             const nonstd::optional<std::vector<int8_t>>& destination) {
-              return MoveArrayBody(Moveaxis(Array{a}, ToAxes(source), ToAxes(destination)));
+          [](const ArrayBodyPtr& a, const std::vector<int8_t>& source, const std::vector<int8_t>& destination) {
+              return MoveArrayBody(Moveaxis(Array{a}, Axes{source.begin(), source.end()}, Axes{destination.begin(), destination.end()}));
           },
           py::arg("a"),
           py::arg("source") = nullptr,

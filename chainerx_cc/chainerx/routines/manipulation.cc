@@ -764,43 +764,36 @@ Array VStack(const std::vector<Array>& arrays) {
     return Concatenate(reshaped_arrays, 0);
 }
 
-Array Moveaxis(const Array& a, const OptionalAxes& src, const OptionalAxes& dst) {
-    Axes real_src;
-    Axes real_dst;
-    if (src.has_value()) {
-        real_src = internal::GetNormalizedAxes(*src, a.ndim());
-    }
-    if (dst.has_value()) {
-        real_dst = internal::GetNormalizedAxes(*dst, a.ndim());
-    }
-
-    if (real_src.size() != real_dst.size()) {
+Array Moveaxis(const Array& a, const Axes& source, const Axes& destination) {
+    if (source.size() != destination.size()) {
         throw DimensionError{"Invalid Source or Destination Axes"};
     }
 
-    if (real_src.size() == 0) {
+    if (source.size() == 0) {
         return a;
     }
 
-    Axes order;
-    std::set<int8_t> src_set(real_src.begin(), real_src.end());
-    for (int8_t i = 0; i < a.ndim(); ++i) {
-        if (src_set.find(i) == src_set.end()) {
-            order.emplace_back(i);
-        }
+    Axes order, source_axes, destination_axes;
+    order.resize(a.ndim());
+    source_axes.resize(a.ndim());
+    destination_axes.resize(a.ndim());
+
+    std::iota(source_axes.begin(), source_axes.end(), 0);
+    std::iota(destination_axes.begin(), destination_axes.end(), 0);
+
+    for (uint8_t i = 0; i < source.ndim(); ++i) {
+        order[destination[i]] = source[i];
+        source_axes[source[i]] = -1;
+        destination_axes[destination[i]] = -1;
     }
 
-    std::vector<std::pair<int8_t, int8_t>> dst_src_pairs;
-    for (int8_t i = 0; i < real_dst.ndim(); i++) {
-        dst_src_pairs.emplace_back(std::make_pair(real_dst[i], real_src[i]));
-    }
+    source_axes.erase(std::remove(source_axes.begin(), source_axes.end(), -1), source_axes.end());
+    destination_axes.erase(std::remove(destination_axes.begin(), destination_axes.end(), -1), destination_axes.end());
+    CHAINERX_ASSERT(static_cast<int8_t>(source_axes.size()) == a.ndim() - source.ndim());
+    CHAINERX_ASSERT(static_cast<int8_t>(destination_axes.size()) == a.ndim() - destination.ndim());
 
-    std::sort(dst_src_pairs.begin(), dst_src_pairs.end(), [](std::pair<int8_t, int8_t> a, std::pair<int8_t, int8_t> b) {
-        return a.first < b.first;
-    });
-
-    for (uint8_t i = 0; i < dst_src_pairs.size(); i++) {
-        order.insert(order.begin() + dst_src_pairs[i].first, dst_src_pairs[i].second);
+    for (int8_t i = 0; i < a.ndim() - source.ndim(); ++i) {
+        order[destination_axes[i]] = source_axes[i];
     }
 
     return a.Transpose(order);
