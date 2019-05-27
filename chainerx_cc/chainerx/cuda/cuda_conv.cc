@@ -131,8 +131,10 @@ std::tuple<cudnnConvolutionFwdAlgo_t, size_t, cudnnMathType_t> CudaConv::FindCon
         const Array& y,
         size_t max_workspace_size,
         const StackVector<int64_t, kMaxNdim>& pad,
-        const StackVector<int64_t, kMaxNdim>& stride) {
-    auto key = AlgoCacheKey{x.shape(), w.shape(), y.shape(), pad, stride, x.dtype(), max_workspace_size};
+        const StackVector<int64_t, kMaxNdim>& stride,
+        const StackVector<int64_t, kMaxNdim>& dilation,
+        int groups) {
+    auto key = AlgoCacheKey{x.shape(), w.shape(), y.shape(), pad, stride, dilation, groups, x.dtype(), max_workspace_size};
     auto& algo_cache_map = fwd_algo_cache_map_;
     {
         std::lock_guard<std::mutex> lock{fwd_algo_cache_mutex_};

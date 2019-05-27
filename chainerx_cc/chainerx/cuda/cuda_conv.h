@@ -77,7 +77,9 @@ private:
             const Array& y,
             size_t max_workspace_size,
             const StackVector<int64_t, kMaxNdim>& pad,
-            const StackVector<int64_t, kMaxNdim>& stride);
+            const StackVector<int64_t, kMaxNdim>& stride,
+            const StackVector<int64_t, kMaxNdim>& dilation,
+            int groups);
     std::tuple<cudnnConvolutionBwdDataAlgo_t, size_t, cudnnMathType_t> FindConvolutionBackwardDataAlgorithm(
             CudnnHandle& handle,
             const CudnnFilterDescriptor& filter_desc,
@@ -109,6 +111,8 @@ private:
         Shape y_shape;
         StackVector<int64_t, kMaxNdim> pad;
         StackVector<int64_t, kMaxNdim> stride;
+        StackVector<int64_t, kMaxNdim> dilation;
+        int groups;
         Dtype dtype;
         size_t max_workspace_size;
 
