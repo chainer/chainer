@@ -186,4 +186,36 @@ class TestDropoutMask(unittest.TestCase):
         self._check()
 
 
+@testing.parameterize(*testing.product({
+    'use_cudnn': ['never', 'always'],
+    'dropout': [0, 0.5],
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
+}))
+@attr.cudnn
+class TestDropoutCudnnCall(unittest.TestCase):
+
+    def setUp(self):
+        self.x = cuda.cupy.random.uniform(-1, 1, (2, 3)).astype(self.dtype)
+        self.gy = cuda.cupy.random.uniform(-1, 1, (2, 3)).astype(self.dtype)
+
+    def forward(self):
+        return functions.dropout(self.x, self.dropout)
+
+    def test_call_cudnn_forward(self):
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            with testing.patch(
+                    'chainer.backends.cuda.get_cudnn_dropout_states') as func:
+                self.forward()
+                assert func.called == (self.use_cudnn == 'always')
+
+    def test_call_cudnn_backward(self):
+        with chainer.using_config('use_cudnn', self.use_cudnn):
+            y = self.forward()
+            y.grad = self.gy
+            with testing.patch(
+                    'chainer.backends.cuda.get_cudnn_dropout_states') as func:
+                y.backward()
+                assert func.called == (self.use_cudnn == 'always')
+
+
 testing.run_module(__name__, __file__)
