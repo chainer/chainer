@@ -40,7 +40,7 @@ void Im2ColImpl(
 
     CHAINERX_ASSERT(kKernelNdim == static_cast<int8_t>(kernel_size.size()));
     CHAINERX_ASSERT(kKernelNdim == static_cast<int8_t>(stride.size()));
-    // CHAINERX_ASSERT(kKernelNdim == static_cast<int8_t>(dilation.size()));
+    CHAINERX_ASSERT(kKernelNdim == static_cast<int8_t>(dilation.size()));
     CHAINERX_ASSERT(kKernelNdim == static_cast<int8_t>(out_dims.size()));
     CHAINERX_ASSERT(kInNdim == x.ndim());
     CHAINERX_ASSERT(kOutNdim == out.ndim());
@@ -68,7 +68,7 @@ void Im2ColImpl(
 
             for (it_out_dims.Restart(); it_out_dims; ++it_out_dims) {
                 for (int i = 0; i < kKernelNdim; ++i) {
-                    img_index.index()[i] = it_out_dims.index()[i] * stride[i] + it_kernel.index()[i];
+                    img_index.index()[i] = it_out_dims.index()[i] * stride[i] + it_kernel.index()[i] * dilation[i];
                 }
                 it_x.CopyIndex(img_index, 2);
                 it_out.CopyIndex(it_out_dims, 2 + kKernelNdim);
