@@ -201,7 +201,7 @@ std::vector<std::vector<Array>> n_step_lstm(
 }
 
 std::vector<std::vector<Array>> n_step_bilstm(
-    int64_t n_layers,
+        int64_t n_layers,
         Array hx,
         Array cx,
         const std::vector<std::vector<Array>>& ws,
