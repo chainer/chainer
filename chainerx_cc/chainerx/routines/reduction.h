@@ -19,4 +19,4 @@ Array LogSoftmax(const Array& x, const OptionalAxes& axis = nonstd::nullopt);
 
 Array Softmax(const Array& x, const OptionalAxes& axis = nonstd::nullopt);
 
-}
+}  // namespace chainerx
