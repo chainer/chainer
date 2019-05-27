@@ -16,6 +16,11 @@ class AbsoluteError(function_node.FunctionNode):
             in_types[0].shape == in_types[1].shape
         )
 
+    def forward_chainerx(self, inputs):
+        x0, x1 = inputs
+        self.diff = x0 - x1
+        return abs(self.diff),
+
     def forward(self, inputs):
         x0, x1 = inputs
         self.diff = x0 - x1
