@@ -1,3 +1,5 @@
+_released_version = '7.0.0a1'
+
 # This file includes a derived copy of a part of numpy,
 # which is under license bellow.
 #
@@ -32,9 +34,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-_released_version = '7.0.0a1'
 _tag_name = 'v' + _released_version
-
 _is_released = False
 
 
