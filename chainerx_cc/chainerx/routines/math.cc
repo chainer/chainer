@@ -626,7 +626,7 @@ Array Expm1(const Array& x) {
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
         bt.Define([out_tok = bb.RetainOutput(0)](BackwardContext& bctx) {
             const Array& out = bctx.GetRetainedOutput(out_tok);
-            bctx.input_grad() = *bctx.output_grad() * out;
+            bctx.input_grad() = *bctx.output_grad() * (out + 1);
         });
     }
     bb.Finalize();

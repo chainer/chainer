@@ -101,17 +101,17 @@ public:
 };
 
 class Expm1Kernel : public Kernel {
-    public:
-        static const char* name() { return "Expm1"; }
+public:
+    static const char* name() { return "Expm1"; }
 
-        virtual void Call(const Array& x, const Array& out) = 0;
+    virtual void Call(const Array& x, const Array& out) = 0;
 };
 
 class Exp2Kernel : public Kernel {
-    public:
-        static const char* name() { return "Exp2"; }
+public:
+    static const char* name() { return "Exp2"; }
 
-        virtual void Call(const Array& x, const Array& out) = 0;
+    virtual void Call(const Array& x, const Array& out) = 0;
 };
 
 class LogKernel : public Kernel {
