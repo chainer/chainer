@@ -568,6 +568,48 @@ Array Exp(const Array& x) {
     return out;
 }
 
+Array Expm1(const Array& x) {
+    Dtype dtype = internal::GetMathResultDtype(x.dtype());
+    Array out = Empty(x.shape(), dtype, x.device());
+
+    {
+        NoBackpropModeScope scope{};
+        x.device().backend().CallKernel<Expm1Kernel>(x, out);
+    }
+
+    BackwardBuilder bb{"expm1", x, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([out_tok = bb.RetainOutput(0)](BackwardContext& bctx) {
+            const Array& out = bctx.GetRetainedOutput(out_tok);
+            bctx.input_grad() = *bctx.output_grad() * (out + 1);
+        });
+    }
+    bb.Finalize();
+
+    return out;
+}
+
+Array Exp2(const Array& x) {
+    Dtype dtype = internal::GetMathResultDtype(x.dtype());
+    Array out = Empty(x.shape(), dtype, x.device());
+
+    {
+        NoBackpropModeScope scope{};
+        x.device().backend().CallKernel<Exp2Kernel>(x, out);
+    }
+
+    BackwardBuilder bb{"exp2", x, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([out_tok = bb.RetainOutput(0)](BackwardContext& bctx) {
+            const Array& out = bctx.GetRetainedOutput(out_tok);
+            bctx.input_grad() = *bctx.output_grad() * out * std::log(2.0);
+        });
+    }
+    bb.Finalize();
+
+    return out;
+}
+
 Array Log(const Array& x) {
     Dtype dtype = internal::GetMathResultDtype(x.dtype());
     Array out = Empty(x.shape(), dtype, x.device());
