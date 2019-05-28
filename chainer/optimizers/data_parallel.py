@@ -11,16 +11,14 @@ class DataParallelOptimizer(optimizer.Optimizer):
     post-update hook and
     ~chainer.optimizer_hooks.ParallelOptimizerCumulateGradientsHook as a
     pre-update hook)
+
+    Args
+        optim (~chainer.Optimizer):
+            the optimizer to wrap
     """
 
     def __init__(self, optim):
-        """
 
-        Args
-            optim (~chainer.Optimizer):
-                the optimizer to wrap
-
-        """
         if isinstance(optim, optimizer.Optimizer):
             self._optimizer = optim
 

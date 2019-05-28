@@ -23,7 +23,7 @@ class DataParallelOptimizerCumulateGradientsHook(object):
                 summed across the replications
 
         """
-        if isinstance(optimizer.target, chainer.links.model.DataParallel):
+        if isinstance(optimizer.target, chainer.links.DataParallel):
             for module in optimizer.target.modules[1:]:
                 optimizer.target.modules[0].addgrads(module)
 
@@ -48,6 +48,6 @@ class DataParallelOptimizerUpdateModelParameters(object):
                 updated across the replications
 
         """
-        if isinstance(optimizer.target, chainer.links.model.DataParallel):
+        if isinstance(optimizer.target, chainer.links.DataParallel):
             for module in optimizer.target.modules[1:]:
                 module.copyparams(optimizer.target.modules[0])

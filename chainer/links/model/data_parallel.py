@@ -206,24 +206,23 @@ class DataParallel(chainer.link.Chain):
     """
     A Wrapper around a ~chainer.Chain instance to implement parallel
     training by splitting the batches
+
+    Args
+        module (~chainer.Chain):
+            the module to wrap (will be replicated on all devices)
+        devices (list of str or ~chainer.backend.Device):
+            a list containing the devices to use (either as strings or as
+            ~chainer.backend.Device). The first device will be used as
+            output device. Make sure, your labels are also on this device
+            for loss calculation!
+        batch_dim (int):
+            the index of the batchdimension (usually 0, but can become
+            e.g. 1 in NLP tasks)
     """
 
     def __init__(self, module, devices,
                  batch_dim=0):
-        """
-        Args
-            module (~chainer.Chain):
-                the module to wrap (will be replicated on all devices)
-            devices (list of str or ~chainer.backend.Device):
-                a list containing the devices to use (either as strings or as
-                ~chainer.backend.Device). The first device will be used as
-                output device. Make sure, your labels are also on this device
-                for loss calculation!
-            batch_dim (int):
-                the index of the batchdimension (usually 0, but can become
-                e.g. 1 in NLP tasks)
 
-        """
         super(DataParallel, self).__init__()
 
         modules = [module.copy() for _ in devices]
