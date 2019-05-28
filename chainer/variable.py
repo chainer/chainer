@@ -912,8 +912,15 @@ class Variable(object):
 
         self.array = d
 
-    def _set_chainerx_grad(self, g):
-        # Assigns chainerx.ndarray.grad
+    def _set_chainerx_grad(self, g, from_grad_var):
+        # Assigns chainerx.ndarray.grad.
+        #
+        # If the main array is connected to the graph, in order to enable
+        # double-backprop, the grad will also be backprop-required
+        # (a view is created not to affect the given grad).
+        # If the given grad is from a grad_var, this operation is skipped,
+        # as the status of the given grad reflects the necessity of
+        # double-backprop.
         assert self.xp is chainerx
         if not self._requires_grad and g is not None:
             raise RuntimeError(
@@ -927,13 +934,15 @@ class Variable(object):
         elif arr.is_backprop_required():
             # If g is grad-stopped, require grad on it.
             # Make a view in order not to affect the input.
-            if g is not None and not g.is_backprop_required():
+            if (g is not None
+                    and not from_grad_var
+                    and not g.is_backprop_required()):
                 g = g.view().require_grad()
             arr.set_grad(g)
 
     def _set_grad_without_check(self, g):
         if self._has_chainerx_array:
-            self._set_chainerx_grad(g)
+            self._set_chainerx_grad(g, False)
             self._grad_var = None
             return
 
@@ -990,7 +999,9 @@ class Variable(object):
 
     def _set_grad_var_without_check(self, gv):
         if self._has_chainerx_array:
-            self._set_chainerx_grad(None if gv is None else gv._data[0])
+            self._set_chainerx_grad(
+                None if gv is None else gv._data[0],
+                True)
             self._grad_var = gv
             return
 
