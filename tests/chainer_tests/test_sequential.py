@@ -641,8 +641,6 @@ class TestSequentialSerialization(unittest.TestCase):
         seq1 = fn_create(0)
 
         y1 = seq1(x)
-        if len(seq1) == 0:
-            y1, = y1
 
         bytes = self.serialize(seq1)
         seq2 = fn_create(1)
@@ -651,8 +649,6 @@ class TestSequentialSerialization(unittest.TestCase):
         assert len(seq1) == len(seq2)
 
         y2 = seq2(x)
-        if len(seq2) == 0:
-            y2, = y2
 
         assert y1.dtype == y2.dtype
         numpy.testing.assert_array_equal(y1.array, y2.array)
