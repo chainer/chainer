@@ -860,6 +860,8 @@ void InitChainerxConnection(pybind11::module& m) {
              const nonstd::optional<ArrayBodyPtr>& b,
              py::handle stride,
              py::handle pad,
+             py::handle dilation,
+             int group,
              bool cover_all) {
               // Create an Array from x to compute the image dimensions and the expected number of stride and padding elements.
               Array x_array{x};
@@ -870,6 +872,8 @@ void InitChainerxConnection(pybind11::module& m) {
                            b.has_value() ? nonstd::optional<Array>{Array{*b}} : nonstd::nullopt,
                            ToStackVector<int64_t>(stride, ndim),
                            ToStackVector<int64_t>(pad, ndim),
+                           ToStackVector<int64_t>(dilation, ndim),
+                           group,
                            cover_all));
           },
           py::arg("x"),
@@ -877,6 +881,8 @@ void InitChainerxConnection(pybind11::module& m) {
           py::arg("b") = nullptr,
           py::arg("stride") = 1,
           py::arg("pad") = 0,
+          py::arg("dilation") = 1,
+          py::arg("group") = 1,
           py::arg("cover_all") = false);
     m.def("conv_transpose",
           [](const ArrayBodyPtr& x,
@@ -884,6 +890,8 @@ void InitChainerxConnection(pybind11::module& m) {
              const nonstd::optional<ArrayBodyPtr>& b,
              py::handle stride,
              py::handle pad,
+             py::handle dilation,
+             int group,
              const nonstd::optional<py::tuple>& outsize) {
               // Create an Array from x to compute the image dimensions and the expected number of stride and padding elements.
               Array x_array{x};
@@ -894,6 +902,8 @@ void InitChainerxConnection(pybind11::module& m) {
                       b.has_value() ? nonstd::optional<Array>{Array{*b}} : nonstd::nullopt,
                       ToStackVector<int64_t>(stride, ndim),
                       ToStackVector<int64_t>(pad, ndim),
+                      ToStackVector<int64_t>(dilation, ndim),
+                      group,
                       outsize.has_value() ? nonstd::optional<StackVector<int64_t, kMaxNdim>>{ToStackVector<int64_t>(*outsize, ndim)}
                                           : nonstd::nullopt));
           },
@@ -902,6 +912,8 @@ void InitChainerxConnection(pybind11::module& m) {
           py::arg("b") = nullptr,
           py::arg("stride") = 1,
           py::arg("pad") = 0,
+          py::arg("dilation") = 1,
+          py::arg("group") = 1,
           py::arg("outsize") = nullptr);
     m.def("linear",
           [](const ArrayBodyPtr& x, const ArrayBodyPtr& w, const nonstd::optional<ArrayBodyPtr>& b, int8_t n_batch_axes) {

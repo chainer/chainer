@@ -91,7 +91,9 @@ private:
             const Array& y,
             size_t max_workspace_size,
             const StackVector<int64_t, kMaxNdim>& pad,
-            const StackVector<int64_t, kMaxNdim>& stride);
+            const StackVector<int64_t, kMaxNdim>& stride,
+            const StackVector<int64_t, kMaxNdim>& dilation,
+            int groups);
     std::tuple<cudnnConvolutionBwdFilterAlgo_t, size_t, cudnnMathType_t> FindConvolutionBackwardFilterAlgorithm(
             CudnnHandle& handle,
             const CudnnTensorDescriptor& x_desc,
@@ -103,7 +105,9 @@ private:
             const Array& gw,
             size_t max_workspace_size,
             const StackVector<int64_t, kMaxNdim>& pad,
-            const StackVector<int64_t, kMaxNdim>& stride);
+            const StackVector<int64_t, kMaxNdim>& stride,
+            const StackVector<int64_t, kMaxNdim>& dilation,
+            int groups);
 
     struct AlgoCacheKey {
         Shape x_shape;

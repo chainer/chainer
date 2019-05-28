@@ -26,7 +26,7 @@ namespace native_internal {
 namespace {
 
 template <typename T, int8_t kKernelNdim>
-void Col2ImImpl(const Array& col, const Array& out, const StackVector<int64_t, kMaxNdim>& stride, const Indexer<2>& batch_channel_indexer) {
+void Col2ImImpl(const Array& col, const Array& out, const StackVector<int64_t, kMaxNdim>& stride, const StackVector<int64_t, kMaxNdim>& dilation, const Indexer<2>& batch_channel_indexer) {
     static constexpr int8_t kColNdim = 2 + 2 * kKernelNdim;
     static constexpr int8_t kOutNdim = 2 + kKernelNdim;
 
@@ -58,7 +58,7 @@ void Col2ImImpl(const Array& col, const Array& out, const StackVector<int64_t, k
 
             for (it_in_image_dims.Restart(); it_in_image_dims; ++it_in_image_dims) {
                 for (int8_t i = 0; i < kKernelNdim; ++i) {
-                    out_image_index.index()[i] = it_in_image_dims.index()[i] * stride[i] + it_kernel.index()[i];
+                    out_image_index.index()[i] = it_in_image_dims.index()[i] * stride[i] + it_kernel.index()[i] * dilation[i];
                 }
                 it_col.CopyIndex(it_in_image_dims, 2 + kKernelNdim);
                 it_out.CopyIndex(out_image_index, 2);
@@ -76,6 +76,7 @@ Array Col2Im(
         const Array& col,
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
+        const StackVector<int64_t, kMaxNdim>& dilation,
         const StackVector<int64_t, kMaxNdim>& out_size) {
     int64_t batch_size = col.shape()[0];
     int64_t channels = col.shape()[1];
@@ -97,19 +98,19 @@ Array Col2Im(
         static_assert(4 * 2 + 2 == kMaxNdim, "4 is the maximum kernel ndim whose col ndim does not exceed kMaxNdim");
         switch (ndim) {
             case 0:
-                Col2ImImpl<T, 0>(col, padded_out, stride, batch_channel_indexer);
+                Col2ImImpl<T, 0>(col, padded_out, stride, dilation, batch_channel_indexer);
                 break;
             case 1:
-                Col2ImImpl<T, 1>(col, padded_out, stride, batch_channel_indexer);
+                Col2ImImpl<T, 1>(col, padded_out, stride, dilation, batch_channel_indexer);
                 break;
             case 2:
-                Col2ImImpl<T, 2>(col, padded_out, stride, batch_channel_indexer);
+                Col2ImImpl<T, 2>(col, padded_out, stride, dilation, batch_channel_indexer);
                 break;
             case 3:
-                Col2ImImpl<T, 3>(col, padded_out, stride, batch_channel_indexer);
+                Col2ImImpl<T, 3>(col, padded_out, stride, dilation, batch_channel_indexer);
                 break;
             case 4:
-                Col2ImImpl<T, 4>(col, padded_out, stride, batch_channel_indexer);
+                Col2ImImpl<T, 4>(col, padded_out, stride, dilation, batch_channel_indexer);
                 break;
             default:
                 CHAINERX_NEVER_REACH();  // Never col.ndim() > kMaxNdim

@@ -144,14 +144,54 @@ public:
         // Im2Col
         Array col = native_internal::Im2Col(x, kernel_size, stride, pad, dilation, cover_all, 0);
 
-        // TensorDot
-        Axes out_axes{0};
-        Axes col_axes{0};
-        for (int8_t i = 0; i < ndim; ++i) {
-            out_axes.emplace_back(int64_t{2 + i});
-            col_axes.emplace_back(int64_t{2 + ndim + i});
+        if (group > 1) {
+            int64_t G = group;
+            int64_t N = x.shape()[0], iC = x.shape()[1];
+            int64_t oC = gy.shape()[1];
+            Shape o_size(gy.shape().begin() + 2, gy.shape().end());
+            int64_t o_size_prod = std::accumulate(o_size.begin(), o_size.end(), 1, std::multiplies<int64_t>());
+            int64_t iCg = iC; // G
+            int64_t oCg = oC; // G
+
+            // Do not check iCg and oCg because this class is rarely used alone
+
+            // (N, iC, k_size..., o_size...)
+            chainerx::Array nx = native_internal::Im2Col(x, kernel_size, stride, pad, dilation, cover_all);
+
+            nx = RollAxis(nx, 0, ndim + 2);  // (iC, k_size..., N, o_size...)
+            int64_t mul_len = iCg * std::accumulate(kernel_size.begin(), kernel_size.end(), 1, std::multiplies<int64_t>());
+            nx = nx.Reshape({G, mul_len, N * o_size_prod});
+            nx = nx.Transpose({0, 2, 1}); // (G, N*o_size, iCg*k_size)
+
+            chainerx::Array ngy = gy;
+            ngy = RollAxis(ngy, 1); // (oC, N, o_size...)
+            ngy = gy.Reshape({G, oCg, N * o_size_prod});
+
+            // (G, oCg, iCg*k_size) = (G, oCg, N*o_size) @ (G, N*o_size, iCg*k_size)
+            Axes out_axes{0};
+            Axes col_axes{0};
+            for (int8_t i = 0; i < ndim; ++i) {
+                out_axes.emplace_back(int64_t{2 + i});
+                col_axes.emplace_back(int64_t{2 + ndim + i});
+            }
+            chainerx::Array gW = TensorDot(ngy, nx, out_axes, col_axes, w_dtype);
+            Shape gw_nsize;
+            gw_nsize.push_back(oC);
+            gw_nsize.push_back(iCg);
+            gw_nsize.insert(gw_nsize.end(), kernel_size.begin(), kernel_size.end());
+            gW = gW.Reshape(gw_nsize);
+
+            return gW;
+        } else {
+            // TensorDot
+            Axes out_axes{0};
+            Axes col_axes{0};
+            for (int8_t i = 0; i < ndim; ++i) {
+                out_axes.emplace_back(int64_t{2 + i});
+                col_axes.emplace_back(int64_t{2 + ndim + i});
+            }
+            return TensorDot(gy, col, out_axes, col_axes, w_dtype);
         }
-        return TensorDot(gy, col, out_axes, col_axes, w_dtype);
     }
 };
 
