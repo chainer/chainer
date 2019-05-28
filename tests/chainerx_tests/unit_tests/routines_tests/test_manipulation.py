@@ -1154,6 +1154,28 @@ class TestAtLeast2d(op_utils.NumpyOpTest):
         'dst': list(itertools.permutations(range(3), 1)),
         'dtype': chainerx.testing.dtypes.all_dtypes
     })
+    # negative axis
+    + chainer.testing.product({'arr_shape': [
+        (1, 2, 3)
+    ],
+        'src': list(itertools.permutations(range(0, -3, -1), 3)),
+        'dst': list(itertools.permutations(range(0, -3, -1), 3)),
+        'dtype': chainerx.testing.dtypes.all_dtypes
+    }) + chainer.testing.product({'arr_shape': [
+        (1, 2, 3)
+    ],
+        'src': list(itertools.permutations(range(0, -3, -1), 2)),
+        'dst': list(itertools.permutations(range(0, -3, -1), 2)),
+        'dtype': chainerx.testing.dtypes.all_dtypes
+    })
+    + chainer.testing.product({'arr_shape': [
+        (1, 2, 3)
+    ],
+        'src': list(itertools.permutations(range(0, -3, -1), 1)),
+        'dst': list(itertools.permutations(range(0, -3, -1), 1)),
+        'dtype': chainerx.testing.dtypes.all_dtypes
+    })
+    # empty
     + chainer.testing.product({'arr_shape': [
         (1, 2, 3)
     ],

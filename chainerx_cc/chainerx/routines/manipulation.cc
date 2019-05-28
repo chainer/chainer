@@ -773,6 +773,9 @@ Array Moveaxis(const Array& a, const Axes& source, const Axes& destination) {
         return a;
     }
 
+    const Axes& normalized_source = internal::GetNormalizedAxes(source, a.ndim());
+    const Axes& normalized_destination = internal::GetNormalizedAxes(destination, a.ndim());
+
     Axes order, source_axes, destination_axes;
     order.resize(a.ndim());
     source_axes.resize(a.ndim());
@@ -781,19 +784,21 @@ Array Moveaxis(const Array& a, const Axes& source, const Axes& destination) {
     std::iota(source_axes.begin(), source_axes.end(), 0);
     std::iota(destination_axes.begin(), destination_axes.end(), 0);
 
-    for (uint8_t i = 0; i < source.ndim(); ++i) {
-        order[destination[i]] = source[i];
-        source_axes[source[i]] = -1;
-        destination_axes[destination[i]] = -1;
+    for (int8_t i = 0; i < source.ndim(); ++i) {
+        order[normalized_destination[i]] = normalized_source[i];
+        source_axes[normalized_source[i]] = -1;
+        destination_axes[normalized_destination[i]] = -1;
     }
 
-    source_axes.erase(std::remove(source_axes.begin(), source_axes.end(), -1), source_axes.end());
-    destination_axes.erase(std::remove(destination_axes.begin(), destination_axes.end(), -1), destination_axes.end());
-    CHAINERX_ASSERT(static_cast<int8_t>(source_axes.size()) == a.ndim() - source.ndim());
-    CHAINERX_ASSERT(static_cast<int8_t>(destination_axes.size()) == a.ndim() - destination.ndim());
+    Axes::iterator source_iter = std::remove(source_axes.begin(), source_axes.end(), -1);
+    Axes::iterator destination_iter = std::remove(destination_axes.begin(), destination_axes.end(), -1);
+    CHAINERX_ASSERT(static_cast<int8_t>(source_iter - source_axes.begin()) == a.ndim() - source.ndim());
+    CHAINERX_ASSERT(static_cast<int8_t>(destination_iter - destination_axes.begin()) == a.ndim() - destination.ndim());
 
-    for (int8_t i = 0; i < a.ndim() - source.ndim(); ++i) {
-        order[destination_axes[i]] = source_axes[i];
+    for (std::pair<Axes::iterator, Axes::iterator> i(source_axes.begin(), destination_axes.begin());
+         i.first != source_iter /* && i.second != destination_iter */;
+         ++i.first, ++i.second) {
+        order[*i.second] = *i.first;
     }
 
     return a.Transpose(order);
