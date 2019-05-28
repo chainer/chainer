@@ -1193,8 +1193,8 @@ class Variable(object):
         else:
             self._data = [new_arr]
             if grad_var is not None:
-                grad_var.to_device(device)
-                # _grad has been invalidated by grad_var.to_device().
+                grad_var._to_device(device, allow_unchaining=allow_unchaining)
+                # _grad has been invalidated by the line above.
                 self._grad = grad_var.array
 
         # ensure that the node tracks the device migration
