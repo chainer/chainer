@@ -38,7 +38,7 @@ class TestDataParallel(unittest.TestCase):
         input_tensor = np.random.rand(10, 3).astype(np.float32)
         label_tensor = np.random.rand(10, 2).astype(np.float)
 
-        model_copy = self.model.copy()
+        model_copy = self.model.copy(mode="copy")
 
         preds = self.model(input_tensor)
 
