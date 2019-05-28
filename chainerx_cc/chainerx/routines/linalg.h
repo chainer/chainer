@@ -9,6 +9,6 @@ namespace chainerx {
 
 Array Dot(const Array& a, const Array& b, nonstd::optional<Dtype> out_dtype = nonstd::nullopt);
 
-Array Cholesky(const Array& a, nonstd::optional<Dtype> out_dtype = nonstd::nullopt);
+Array Cholesky(const Array& a);
 
 }  // namespace chainerx

@@ -98,4 +98,16 @@ Array Dot(const Array& a, const Array& b, nonstd::optional<Dtype> out_dtype) {
     return out_matrix.Reshape(out_shape);
 }
 
+Array Cholesky(const Array& a) {
+    Dtype dtype = internal::GetMathResultDtype(a.dtype());
+    Array out = Empty(a.shape(), dtype, a.device());
+
+    {
+        NoBackpropModeScope scope{};
+        a.device().backend().CallKernel<CholeskyKernel>(a, out);
+    }
+
+    return out;
+}
+
 }  // namespace chainerx
