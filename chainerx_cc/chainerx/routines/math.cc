@@ -610,6 +610,27 @@ Array Log10(const Array& x) {
     return out;
 }
 
+Array Log1p(const Array& x) {
+    Dtype dtype = internal::GetMathResultDtype(x.dtype());
+    Array out = Empty(x.shape(), dtype, x.device());
+
+    {
+        NoBackpropModeScope scope{};
+        x.device().backend().CallKernel<Log1pKernel>(x, out);
+    }
+
+    BackwardBuilder bb{"log1p", x, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([x_tok = bb.RetainInput(0)](BackwardContext& bctx) {
+            const Array& x = bctx.GetRetainedInput(x_tok);
+            bctx.input_grad() = *bctx.output_grad() / (1.0 + x);
+        });
+    }
+    bb.Finalize();
+
+    return out;
+}
+
 Array Sigmoid(const Array& x) {
     Dtype dtype = internal::GetMathResultDtype(x.dtype());
     const Array& x_cast = x.dtype() == dtype ? x : x.AsType(dtype);

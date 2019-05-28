@@ -233,6 +233,7 @@ else:
     raise TypeError('incorrect dtype name in CHAINER_DTYPE: "{}". '
                     'Only float16/32/64 are allowed.'.format(_chainer_dtype))
 global_config.in_recomputing = False
+global_config._will_recompute = False
 
 
 def is_debug():

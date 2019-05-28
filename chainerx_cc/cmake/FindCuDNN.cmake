@@ -28,10 +28,19 @@ else()
     PATH_SUFFIXES cuda/include include)
 endif()
 
-if(DEFINED ENV{USE_STATIC_CUDNN})
+if(DEFINED ENV{CUDNN_LIB_DIR})
+  set(CUDNN_LIB_DIR $ENV{CUDNN_LIB_DIR})
+endif()
+
+if(DEFINED ENV{CUDNN_LIBNAME})
+  # libname from envvar
+  set(CUDNN_LIBNAME $ENV{CUDNN_LIBNAME})
+elseif(DEFINED ENV{USE_STATIC_CUDNN})
+  # Static library
   MESSAGE(STATUS "USE_STATIC_CUDNN detected. Linking against static CUDNN library")
   set(CUDNN_LIBNAME "libcudnn_static.a")
 else()
+  # Dynamic library
   set(CUDNN_LIBNAME "cudnn")
 endif()
 
