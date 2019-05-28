@@ -1313,21 +1313,24 @@ def test_sum_invalid(is_module, xp, shape, axis, keepdims, dtype):
     # Special shapes
     chainer.testing.product({
         'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
-        'in_dtypes,scalar_type,out_dtype': _in_out_dtypes_arithmetic_scalar,
+        'in_dtypes,scalar_type,out_dtype': (
+            dtype_utils.result_comparable_dtypes_array_scalar),
         'input': ['random'],
         'scalar_value': [1],
         'is_scalar_rhs': [False],
     })
     # Differentiable cases
     + chainer.testing.product({
-        'in_dtypes,scalar_type,out_dtype': _in_out_dtypes_arithmetic_scalar,
+        'in_dtypes,scalar_type,out_dtype': (
+            dtype_utils.result_comparable_dtypes_array_scalar),
         'input': [numpy.array([1, 3, 3, 4])],
         'scalar_value': [0, 2, 5],
         'is_scalar_rhs': [False, True],
     })
     # Non-differentiable cases
     + chainer.testing.product({
-        'in_dtypes,scalar_type,out_dtype': _in_out_dtypes_arithmetic_scalar,
+        'in_dtypes,scalar_type,out_dtype': (
+            dtype_utils.result_comparable_dtypes_array_scalar),
         'input': [numpy.array([1, 3, 3, 4])],
         'scalar_value': [1, 3, 4],
         'is_scalar_rhs': [False, True],
@@ -1337,7 +1340,7 @@ def test_sum_invalid(is_module, xp, shape, axis, keepdims, dtype):
     # Special float values
     + chainer.testing.product({
         'in_dtypes,scalar_type,out_dtype': (
-            _in_out_dtypes_float_arithmetic_scalar),
+            dtype_utils.result_float_dtypes_array_scalar),
         # TODO(imanishi): Add test for NaN.
         'input': [numpy.array([0, float('inf'), -float('inf')])],
         'scalar_value': [-1, 0, 1, float('inf'), -float('inf')],
@@ -1362,21 +1365,24 @@ class TestMinimumScalar(math_utils.MathScalarTestBase, op_utils.NumpyOpTest):
     # Special shapes
     chainer.testing.product({
         'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
-        'in_dtypes,scalar_type,out_dtype': _in_out_dtypes_arithmetic_scalar,
+        'in_dtypes,scalar_type,out_dtype': (
+            dtype_utils.result_comparable_dtypes_array_scalar),
         'input': ['random'],
         'scalar_value': [0, 1],
         'is_scalar_rhs': [False],
     })
     # Differentiable cases
     + chainer.testing.product({
-        'in_dtypes,scalar_type,out_dtype': _in_out_dtypes_arithmetic_scalar,
+        'in_dtypes,scalar_type,out_dtype': (
+            dtype_utils.result_comparable_dtypes_array_scalar),
         'input': [numpy.array([1, 3, 3, 4])],
         'scalar_value': [0, 2, 5],
         'is_scalar_rhs': [False, True],
     })
     # Non-differentiable cases
     + chainer.testing.product({
-        'in_dtypes,scalar_type,out_dtype': _in_out_dtypes_arithmetic_scalar,
+        'in_dtypes,scalar_type,out_dtype': (
+            dtype_utils.result_comparable_dtypes_array_scalar),
         'input': [numpy.array([1, 3, 3, 4])],
         'scalar_value': [1, 3, 4],
         'is_scalar_rhs': [False, True],
@@ -1386,7 +1392,7 @@ class TestMinimumScalar(math_utils.MathScalarTestBase, op_utils.NumpyOpTest):
     # Special float values
     + chainer.testing.product({
         'in_dtypes,scalar_type,out_dtype': (
-            _in_out_dtypes_float_arithmetic_scalar),
+            dtype_utils.result_float_dtypes_array_scalar),
         # TODO(imanishi): Add test for NaN.
         'input': [numpy.array([0, float('inf'), -float('inf')])],
         'scalar_value': [-1, 0, 1, float('inf'), -float('inf')],
