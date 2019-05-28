@@ -234,7 +234,8 @@ class TestWhere(op_utils.NumpyOpTest):
 
         if x_dtype == 'float16' or y_dtype == 'float16':
             self.check_backward_options.update({'rtol': 3e-3, 'atol': 3e-3})
-            self.check_double_backward_options.update({'rtol': 3e-3, 'atol': 3e-3})
+            self.check_double_backward_options.update({
+                'rtol': 3e-3, 'atol': 3e-3})
 
     def generate_inputs(self):
         (x_dtype, y_dtype) = self.in_dtypes
