@@ -39,8 +39,8 @@ public:
             const nonstd::optional<Array>& b,
             const StackVector<int64_t, kMaxNdim>& stride,
             const StackVector<int64_t, kMaxNdim>& pad,
-            const StackVector<int64_t, kMaxNdim>& dilation,
-            int group,
+            const StackVector<int64_t, kMaxNdim>& dilate,
+            int groups,
             bool cover_all,
             Dtype out_dtype,
             const nonstd::optional<Array>& out) override {
@@ -56,11 +56,11 @@ public:
         std::copy_n(w.shape().begin() + 2, ndim, std::back_inserter(kernel_size));
 
         // Convert to colum representation of shape (batch_size, channel, k_1, k_2, ..., k_n, out_1, out_2, ..., out_n).
-        Array col = native_internal::Im2Col(x, kernel_size, stride, pad, dilation, cover_all, 0);
+        Array col = native_internal::Im2Col(x, kernel_size, stride, pad, dilate, cover_all, 0);
 
-        if (group > 1) {
+        if (groups > 1) {
             // Run grouped convolution.
-            int64_t const G = group;
+            int64_t const G = groups;
             int64_t const N = col.shape()[0], iC = col.shape()[1];
             int64_t const oC = w.shape()[0];
             int64_t const iCg = iC; // G
@@ -125,8 +125,8 @@ public:
             const Array& gy,
             const StackVector<int64_t, kMaxNdim>& stride,
             const StackVector<int64_t, kMaxNdim>& pad,
-            const StackVector<int64_t, kMaxNdim>& dilation,
-            int group,
+            const StackVector<int64_t, kMaxNdim>& dilate,
+            int groups,
             bool cover_all,
             const nonstd::optional<Array>& out) override {
         CHAINERX_ASSERT(x.ndim() == w_shape.ndim());
@@ -142,10 +142,10 @@ public:
         StackVector<int64_t, kMaxNdim> kernel_size{w_shape.begin() + 2, w_shape.end()};
 
         // Im2Col
-        Array col = native_internal::Im2Col(x, kernel_size, stride, pad, dilation, cover_all, 0);
+        Array col = native_internal::Im2Col(x, kernel_size, stride, pad, dilate, cover_all, 0);
 
-        if (group > 1) {
-            int64_t G = group;
+        if (groups > 1) {
+            int64_t G = groups;
             int64_t N = x.shape()[0], iC = x.shape()[1];
             int64_t oC = gy.shape()[1];
             Shape o_size(gy.shape().begin() + 2, gy.shape().end());
@@ -156,7 +156,7 @@ public:
             // Do not check iCg and oCg because this class is rarely used alone
 
             // (N, iC, k_size..., o_size...)
-            chainerx::Array nx = native_internal::Im2Col(x, kernel_size, stride, pad, dilation, cover_all);
+            chainerx::Array nx = native_internal::Im2Col(x, kernel_size, stride, pad, dilate, cover_all);
 
             nx = RollAxis(nx, 0, ndim + 2);  // (iC, k_size..., N, o_size...)
             int64_t mul_len = iCg * std::accumulate(kernel_size.begin(), kernel_size.end(), 1, std::multiplies<int64_t>());
@@ -205,8 +205,8 @@ public:
             const nonstd::optional<Array>& b,
             const StackVector<int64_t, kMaxNdim>& stride,
             const StackVector<int64_t, kMaxNdim>& pad,
-            const StackVector<int64_t, kMaxNdim>& dilation,
-            int group,
+            const StackVector<int64_t, kMaxNdim>& dilate,
+            int groups,
             const StackVector<int64_t, kMaxNdim>& out_size,
             Dtype out_dtype,
             const nonstd::optional<Array>& out) override {
@@ -215,12 +215,12 @@ public:
             throw NotImplementedError{"Passing out as an argument is not yet supported."};
         }
 
-        if (group > 1) {
+        if (groups > 1) {
             // G: group count
             // N: batch size
             // xC: input channels
             // yC: output channels
-            int const G = group;
+            int const G = groups;
             int64_t const N = x.shape()[0], xC = x.shape()[1];
             std::vector<int64_t> const x_size(x.shape().begin() + 2, x.shape().end());
             int64_t const yCg = w.shape()[1];
@@ -250,7 +250,7 @@ public:
             col = col.Reshape(col_shape);
             col = RollAxis(col, dims + 1); // (N, yC, k_size..., x_size...);
 
-            Array y = native_internal::Col2Im(col, stride, pad, dilation, out_size);
+            Array y = native_internal::Col2Im(col, stride, pad, dilate, out_size);
 
             if (b.has_value()) {
                 Shape s;
@@ -266,7 +266,7 @@ public:
             Array col = TensorDot(w, x, {0}, {1}, out_dtype);  // shape: out_channel, k_1, ..., k_n, batch_size, out_1, ..., out_n
             col = RollAxis(col, x.ndim() - 1);  // batch axis is rolled to the top
 
-            Array actual_out = native_internal::Col2Im(col, stride, pad, dilation, out_size);  // shape: batch_size, out_channel, out_size...
+            Array actual_out = native_internal::Col2Im(col, stride, pad, dilate, out_size);  // shape: batch_size, out_channel, out_size...
 
             // Add bias, if given.
             if (b.has_value()) {

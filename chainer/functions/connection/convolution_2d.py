@@ -98,6 +98,7 @@ class Convolution2DFunction(function_node.FunctionNode):
 
         return chainerx.conv(
             *inputs, stride=(self.sy, self.sx), pad=(self.ph, self.pw),
+            dilate=(self.dy, self.dx), groups=self.groups,
             cover_all=self.cover_all),
 
     def forward_cpu(self, inputs):

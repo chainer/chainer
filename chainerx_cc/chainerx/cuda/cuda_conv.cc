@@ -132,9 +132,9 @@ std::tuple<cudnnConvolutionFwdAlgo_t, size_t, cudnnMathType_t> CudaConv::FindCon
         size_t max_workspace_size,
         const StackVector<int64_t, kMaxNdim>& pad,
         const StackVector<int64_t, kMaxNdim>& stride,
-        const StackVector<int64_t, kMaxNdim>& dilation,
+        const StackVector<int64_t, kMaxNdim>& dilate,
         int groups) {
-    auto key = AlgoCacheKey{x.shape(), w.shape(), y.shape(), pad, stride, dilation, groups, x.dtype(), max_workspace_size};
+    auto key = AlgoCacheKey{x.shape(), w.shape(), y.shape(), pad, stride, dilate, groups, x.dtype(), max_workspace_size};
     auto& algo_cache_map = fwd_algo_cache_map_;
     {
         std::lock_guard<std::mutex> lock{fwd_algo_cache_mutex_};
@@ -183,9 +183,9 @@ std::tuple<cudnnConvolutionBwdDataAlgo_t, size_t, cudnnMathType_t> CudaConv::Fin
         size_t max_workspace_size,
         const StackVector<int64_t, kMaxNdim>& pad,
         const StackVector<int64_t, kMaxNdim>& stride,
-        const StackVector<int64_t, kMaxNdim>& dilation,
+        const StackVector<int64_t, kMaxNdim>& dilate,
         int groups) {
-    auto key = AlgoCacheKey{x.shape(), w.shape(), y.shape(), pad, stride, dilation, groups, x.dtype(), max_workspace_size};
+    auto key = AlgoCacheKey{x.shape(), w.shape(), y.shape(), pad, stride, dilate, groups, x.dtype(), max_workspace_size};
     auto& algo_cache_map = bwd_data_algo_cache_map_;
     {
         std::lock_guard<std::mutex> lock{bwd_data_algo_cache_mutex_};
@@ -234,9 +234,9 @@ std::tuple<cudnnConvolutionBwdFilterAlgo_t, size_t, cudnnMathType_t> CudaConv::F
         size_t max_workspace_size,
         const StackVector<int64_t, kMaxNdim>& pad,
         const StackVector<int64_t, kMaxNdim>& stride,
-        const StackVector<int64_t, kMaxNdim>& dilation,
+        const StackVector<int64_t, kMaxNdim>& dilate,
         int groups) {
-    auto key = AlgoCacheKey{x.shape(), gw.shape(), gy.shape(), pad, stride, dilation, groups, x.dtype(), max_workspace_size};
+    auto key = AlgoCacheKey{x.shape(), gw.shape(), gy.shape(), pad, stride, dilate, groups, x.dtype(), max_workspace_size};
     auto& algo_cache_map = bwd_filter_algo_cache_map_;
     {
         std::lock_guard<std::mutex> lock{bwd_filter_algo_cache_mutex_};
@@ -280,8 +280,8 @@ Array CudaConv::Conv(
         const nonstd::optional<Array>& b,
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
-        const StackVector<int64_t, kMaxNdim>& dilation,
-        int group,
+        const StackVector<int64_t, kMaxNdim>& dilate,
+        int groups,
         bool cover_all,
         Dtype out_dtype) {
     if (cover_all) {
@@ -329,7 +329,7 @@ Array CudaConv::Conv(
     CudnnTensorDescriptor x_desc{x_cont};
     CudnnTensorDescriptor y_desc{y};
     CudnnFilterDescriptor filter_desc{w_cont};
-    CudnnConvolutionDescriptor conv_desc{dtypes.conv_dtype, pad, stride, dilation, group};
+    CudnnConvolutionDescriptor conv_desc{dtypes.conv_dtype, pad, stride, dilate, groups};
 
     size_t max_workspace_size = backend.GetCudnnMaxWorkspaceSize();
 
@@ -342,7 +342,7 @@ Array CudaConv::Conv(
 
     // auto tune
     std::tuple<cudnnConvolutionFwdAlgo_t, size_t, cudnnMathType_t> algo_perf = FindConvolutionForwardAlgorithm(
-            handle, x_desc, x_cont, filter_desc, w_cont, conv_desc, y_desc, y, max_workspace_size, pad, stride, dilation, group);
+            handle, x_desc, x_cont, filter_desc, w_cont, conv_desc, y_desc, y, max_workspace_size, pad, stride, dilate, groups);
 
     cudnnConvolutionFwdAlgo_t algo = std::get<0>(algo_perf);
     size_t workspace_size = std::max(max_workspace_size, std::get<1>(algo_perf));
@@ -385,8 +385,8 @@ Array CudaConv::ConvTranspose(
         const nonstd::optional<Array>& b,
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
-        const StackVector<int64_t, kMaxNdim>& dilation,
-        int group,
+        const StackVector<int64_t, kMaxNdim>& dilate,
+        int groups,
         const StackVector<int64_t, kMaxNdim>& out_size,
         Dtype out_dtype) {
     int8_t ndim = x.ndim() - 2;  // Number of spatial dimensions
@@ -438,7 +438,7 @@ Array CudaConv::ConvTranspose(
     CudnnTensorDescriptor x_desc{x_cont};
     CudnnTensorDescriptor y_desc{y};
     CudnnFilterDescriptor filter_desc{w_cont};
-    CudnnConvolutionDescriptor conv_desc{dtypes.conv_dtype, pad, stride, dilation, group};
+    CudnnConvolutionDescriptor conv_desc{dtypes.conv_dtype, pad, stride, dilate, groups};
 
     size_t max_workspace_size = backend.GetCudnnMaxWorkspaceSize();
 
@@ -451,7 +451,7 @@ Array CudaConv::ConvTranspose(
 
     // auto tune
     std::tuple<cudnnConvolutionBwdDataAlgo_t, size_t, cudnnMathType_t> algo_perf = FindConvolutionBackwardDataAlgorithm(
-            handle, filter_desc, w_cont, x_desc, x_cont, conv_desc, y_desc, y, max_workspace_size, pad, stride, dilation, group);
+            handle, filter_desc, w_cont, x_desc, x_cont, conv_desc, y_desc, y, max_workspace_size, pad, stride, dilate, groups);
 
     cudnnConvolutionBwdDataAlgo_t algo = std::get<0>(algo_perf);
     size_t workspace_size = std::max(max_workspace_size, std::get<1>(algo_perf));
@@ -495,8 +495,8 @@ Array CudaConv::ConvGradWeight(
         const Array& gy,
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
-        const StackVector<int64_t, kMaxNdim>& dilation,
-        int group,
+        const StackVector<int64_t, kMaxNdim>& dilate,
+        int groups,
         bool cover_all) {
     if (cover_all) {
         throw ChainerxError{"CUDA convolution does not support cover_all"};
@@ -543,7 +543,7 @@ Array CudaConv::ConvGradWeight(
     CudnnTensorDescriptor x_desc{x_cont};
     CudnnTensorDescriptor gy_desc{gy_cont};
     CudnnFilterDescriptor gw_desc{gw};
-    CudnnConvolutionDescriptor conv_desc{dtypes.conv_dtype, pad, stride, dilation, group};
+    CudnnConvolutionDescriptor conv_desc{dtypes.conv_dtype, pad, stride, dilate, groups};
 
     size_t max_workspace_size = backend.GetCudnnMaxWorkspaceSize();
 
@@ -556,7 +556,7 @@ Array CudaConv::ConvGradWeight(
 
     // auto tune
     std::tuple<cudnnConvolutionBwdFilterAlgo_t, size_t, cudnnMathType_t> algo_perf = FindConvolutionBackwardFilterAlgorithm(
-            handle, x_desc, x_cont, gy_desc, gy_cont, conv_desc, gw_desc, gw, max_workspace_size, pad, stride, dilation, group);
+            handle, x_desc, x_cont, gy_desc, gy_cont, conv_desc, gw_desc, gw, max_workspace_size, pad, stride, dilate, groups);
 
     cudnnConvolutionBwdFilterAlgo_t algo = std::get<0>(algo_perf);
     size_t workspace_size = std::max(max_workspace_size, std::get<1>(algo_perf));

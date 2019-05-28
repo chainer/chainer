@@ -282,9 +282,11 @@ class Deconvolution2DFunction(function_node.FunctionNode):
         stride = (self.sy, self.sx)
         pad = (self.ph, self.pw)
         outsize = None if self.outh is None else (self.outh, self.outw)
+        dilate = (self.dy, self.dx)
+        groups = self.groups
 
         return chainerx.conv_transpose(
-            *inputs, stride=stride, pad=pad, outsize=outsize),
+            *inputs, stride=stride, pad=pad, dilate=dilate, groups=groups, outsize=outsize),
 
     def backward(self, indexes, grad_outputs):
         x, W = self.get_retained_inputs()

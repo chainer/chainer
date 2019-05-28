@@ -58,6 +58,7 @@ class ConvolutionND(function_node.FunctionNode):
 
         return chainerx.conv(
             *inputs, stride=self.stride, pad=self.pad,
+            dilate=self.dilate, groups=self.groups,
             cover_all=self.cover_all),
 
     def _use_cudnn(self, x, W):

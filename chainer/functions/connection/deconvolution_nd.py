@@ -178,8 +178,10 @@ class DeconvolutionND(function_node.FunctionNode):
 
         stride = self.stride
         pad = self.pad
+        dilate = self.dilate
+        groups = self.groups
 
-        return chainerx.conv_transpose(*inputs, stride=stride, pad=pad),
+        return chainerx.conv_transpose(*inputs, stride=stride, pad=pad, dilate=dilate, groups=groups),
 
     def forward(self, inputs):
         self.retain_inputs((0, 1))  # only retain x and W

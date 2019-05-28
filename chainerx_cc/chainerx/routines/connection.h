@@ -33,8 +33,8 @@ Array Conv(
         const nonstd::optional<Array>& b,
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
-        const StackVector<int64_t, kMaxNdim>& dilation,
-        int group,
+        const StackVector<int64_t, kMaxNdim>& dilate,
+        int groups,
         bool cover_all = false,
         nonstd::optional<Dtype> out_dtype = nonstd::nullopt);
 
@@ -44,8 +44,8 @@ Array ConvTranspose(
         const nonstd::optional<Array>& b,
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
-        const StackVector<int64_t, kMaxNdim>& dilation,
-        int group,
+        const StackVector<int64_t, kMaxNdim>& dilate,
+        int groups,
         const nonstd::optional<StackVector<int64_t, kMaxNdim>>& out_size = nonstd::nullopt,
         nonstd::optional<Dtype> out_dtype = nonstd::nullopt);
 
