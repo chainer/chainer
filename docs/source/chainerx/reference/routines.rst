@@ -95,7 +95,7 @@ Linear algebra
 
    chainerx.dot
 
-   chainerx.cholesky
+   chainerx.linalg.cholesky
 
 Logic functions
 ---------------

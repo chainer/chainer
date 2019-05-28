@@ -499,7 +499,7 @@ Note:
 """)
 
     _docs.set_doc(
-        chainerx.cholesky,
+        chainerx.linalg.cholesky,
         """cholesky(a)
 Returns the Cholesky decomposition for the square matrix ``a``.
 
