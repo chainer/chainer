@@ -1,6 +1,4 @@
 import os
-import re
-import string
 
 import chainer
 from chainer.serializers import npz
@@ -9,68 +7,72 @@ from chainer.training.extensions import snapshot_writers
 from chainer.utils import argument
 
 
-def _find_snapshot_files(fmt, path, lister):
-    # TODO(kuenishi): Currently positive integers are only
-    # supported. Do support other forrmat specs like strings and
-    # floats
+def _find_snapshot_files(fmt, path, lister, get_ts):
+    # Only prefix and suffix match
 
-    formatter = string.Formatter()
-    regexp = ['^']
-    for token in formatter.parse(fmt):
-        (literal_text, field_name, format_spec, conversion) = token
-        regexp.append(re.escape(literal_text))
-        if field_name is not None and format_spec is not None:
-            regexp.append(r'(\d+)')
+    prefix = fmt.split('{')[0]
+    suffix = fmt.split('}')[-1]
 
-    regexp.append('$')
-    regexp = re.compile(''.join(regexp))
+    matched_files = (file for file in lister(path)
+                     if file.startswith(prefix) and file.endswith(suffix))
 
-    matched_files = []
-    for file in lister(path):
-        m = regexp.match(file)
-        if m is None:
-            continue
-        nums = [int(num) for num in m.groups()]
-        matched_files.append((nums, file))
+    def _prepend_mtime(f):
+        t = get_ts(path, f)
+        return (t, f)
 
-    matched_files.sort()
-    return matched_files
+    return sorted(_prepend_mtime(file) for file in matched_files)
 
 
-def find_latest_snapshot(fmt, path, lister=os.listdir):
+def find_latest_snapshot(fmt, path, lister=os.listdir, get_ts=None):
     """Finds the latest snapshots in a directory
 
     Args:
         fmt (str): format string to match with file names of
-            existing snapshots. Files what matches this format
-            are recognized as snapshot files by the writer.
+            existing snapshots, where prefix and suffix are
+            only examined. Also, files' staleness is judged
+            by timestamps. The default is metime.
         path (str): a directory path to search for snapshot files.
         lister (callable): A function to find files from directory
             path.
+        get_ts (callable): A function to get timestamp from path
+            and filename.
 
     """
-    snapshot_files = _find_snapshot_files(fmt, path, lister)
+    if get_ts is None:
+        # TODO(kuenishi): expose get_ts as official optional argument
+        def get_ts(path, f):
+            return os.stat(os.path.join(path, f)).st_mtime
+
+    snapshot_files = _find_snapshot_files(fmt, path, lister, get_ts)
 
     if len(snapshot_files) > 0:
         _, filename = snapshot_files[-1]
         return filename
 
 
-def find_stale_snapshots(fmt, path, num_retain, lister=os.listdir):
+def find_stale_snapshots(fmt, path, num_retain,
+                         lister=os.listdir, get_ts=None):
     """Finds stale snapshots in a directory
 
     Args:
         fmt (str): format string to match with file names of
-            existing snapshots. Files what matches this format
-            are recognized as snapshot files by the writer.
+            existing snapshots, where prefix and suffix are
+            only examined. Also, files' staleness is judged
+            by timestamps. The default is metime.
         path (str): a directory path to search for snapshot files.
         num_retain (int): Number of snapshot files to retain
             through the cleanup. Must be positive integer.
         lister (callable): A function to find files from directory
             path.
+        get_ts (callable): A function to get timestamp from path
+            and filename.
 
     """
-    snapshot_files = _find_snapshot_files(fmt, path, lister)
+    if get_ts is None:
+        def get_ts(path, f):
+            return os.stat(os.path.join(path, f)).st_mtime
+
+    snapshot_files = _find_snapshot_files(fmt, path, lister, get_ts)
     num_remove = len(snapshot_files) - num_retain
     if num_remove > 0:
         for _, filename in snapshot_files[:num_remove]:
