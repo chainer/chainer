@@ -42,18 +42,11 @@ class DummyIterator(dataset.Iterator):
         self.iterator = iter(return_values)
         self.finalized = False
         self.return_values = return_values
-        self.current_position = 0
-        self.epoch_size = len(return_values)
-
-    @property
-    def epoch_detail(self):
-        return 1. * self.current_position / self.epoch_size
 
     def reset(self):
         self.iterator = iter(self.return_values)
 
     def __next__(self):
-        self.current_position += 1
         return next(self.iterator)
 
     def finalize(self):
