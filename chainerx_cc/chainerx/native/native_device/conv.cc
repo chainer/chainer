@@ -63,8 +63,8 @@ public:
             int64_t const G = groups;
             int64_t const N = col.shape()[0], iC = col.shape()[1];
             int64_t const oC = w.shape()[0];
-            int64_t const iCg = iC; // G
-            int64_t const oCg = oC; // G
+            int64_t const iCg = iC / G;
+            int64_t const oCg = oC / G;
             std::vector<int64_t> const o_size(x.shape().end() - ndim, x.shape().end());
 
             Array nx = RollAxis(col, 0, ndim + 2);
@@ -150,8 +150,8 @@ public:
             int64_t oC = gy.shape()[1];
             Shape o_size(gy.shape().begin() + 2, gy.shape().end());
             int64_t o_size_prod = std::accumulate(o_size.begin(), o_size.end(), 1, std::multiplies<int64_t>());
-            int64_t iCg = iC; // G
-            int64_t oCg = oC; // G
+            int64_t iCg = iC / G;
+            int64_t oCg = oC / G;
 
             // Do not check iCg and oCg because this class is rarely used alone
 
@@ -225,7 +225,7 @@ public:
             std::vector<int64_t> const x_size(x.shape().begin() + 2, x.shape().end());
             int64_t const yCg = w.shape()[1];
             int64_t const yC = yCg * G;
-            int64_t const xCg = xC; // G
+            int64_t const xCg = xC / G;
             std::vector<int64_t> k_size(w.shape().begin() + 2, w.shape().end());
             int64_t const dims = k_size.size();
             if (xC % G != 0) {
