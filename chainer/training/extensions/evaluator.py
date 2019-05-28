@@ -269,7 +269,19 @@ device=None, eval_hook=None, eval_func=None, *, progress_bar=False):
 
 class _IteratorProgressBar(util.ProgressBar):
 
-    iterator = None
+    _iterator = None
+
+    @property
+    def iterator(self):
+        return self._iterator
+
+    @iterator.setter
+    def iterator(self, iterator):
+        if not (hasattr(value, 'current_position') and
+                hasattr(value, 'epoch_detail')):
+            raise TypeError('iterator must have following attributes: '
+                            'current_position, epoch_detail')
+        self._iterator = iterator
 
     def get_lines(self):
         iteration = self.iterator.current_position
