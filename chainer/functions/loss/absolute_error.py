@@ -2,6 +2,7 @@ from chainer import backend
 from chainer import function_node
 from chainer import utils
 from chainer.utils import type_check
+import chainerx
 
 
 class AbsoluteError(function_node.FunctionNode):
@@ -19,7 +20,7 @@ class AbsoluteError(function_node.FunctionNode):
     def forward_chainerx(self, inputs):
         x0, x1 = inputs
         self.diff = x0 - x1
-        return abs(self.diff),
+        return chainerx.abs(self.diff),
 
     def forward(self, inputs):
         x0, x1 = inputs
