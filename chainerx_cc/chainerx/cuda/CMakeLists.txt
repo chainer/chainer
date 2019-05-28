@@ -23,7 +23,6 @@ CUDA_ADD_LIBRARY(chainerx_cuda STATIC
     cuda.cc
     cuda_conv.cc
     cuda_device.cc
-    cuda_device/activation.cu
     cuda_device/arithmetic.cu
     cuda_device/batch_norm.cc
     cuda_device/binary.cu
