@@ -171,7 +171,7 @@ public:
 
             chainerx::Array ngy = gy;
             ngy = RollAxis(ngy, 1); // (oC, N, o_size...)
-            ngy = gy.Reshape({G, oCg, N * o_size_prod});
+            ngy = ngy.Reshape({G, oCg, N * o_size_prod});
 
             // (G, oCg, iCg*k_size) = (G, oCg, N*o_size) @ (G, N*o_size, iCg*k_size)
             Axes out_axes{0};
@@ -246,7 +246,7 @@ public:
             W = W.Transpose({0, 2, 1}); // (G, yCg*k_size, xCg);
 
             // (G, yCg*k_size, N*x_size) = (G, yCg*k_size, xCg) @ (G, xCg, N*x_size);
-            Array col = TensorDot(W, x, {0}, {1}, x.dtype());
+            Array col = TensorDot(W, nx, {0}, {1}, out_dtype);
 
             Shape col_shape;
             col_shape.push_back(yC);
