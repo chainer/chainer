@@ -23,6 +23,7 @@
 #include "chainerx/routines/logic.h"
 #include "chainerx/routines/manipulation.h"
 #include "chainerx/routines/routines_util.h"
+#include "chainerx/routines/statistics.h"
 #include "chainerx/routines/type_util.h"
 #include "chainerx/scalar.h"
 #include "chainerx/shape.h"
