@@ -16,4 +16,11 @@ public:
     virtual void Call(const Array& a, const Array& b, const Array& out) = 0;
 };
 
+class CholeskyKernel : public Kernel {
+public:
+    static const char* name() { return "Cholesky"; }
+
+    virtual void Call(const Array& a, const Array& out) = 0;
+};
+
 }  // namespace chainerx

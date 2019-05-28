@@ -498,6 +498,20 @@ Note:
 .. seealso:: :func:`numpy.dot`
 """)
 
+    _docs.set_doc(
+        chainerx.cholesky,
+        """cholesky(a)
+Returns the Cholesky decomposition for the square matrix ``a``.
+
+Args:
+    a (~chainerx.ndarray): Hermitian (symmetric if all elements are real), positive-definite input matrix.
+
+Returns:
+    :class:`~chainerx.ndarray`: Output array. Cholesky factor of ``a``.
+
+.. seealso:: :func:`numpy.linalg.cholesky`
+""")
+
 
 def _docs_logic():
     _docs.set_doc(
