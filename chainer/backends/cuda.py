@@ -213,6 +213,9 @@ class GpuDevice(_backend.Device):
 
     @staticmethod
     def from_device_id(device_id):
+        """Returns a :class:`~chainer.backend.GpuDevice` corresponding \
+to the CUDA device ID.
+        """
         check_cuda_available()
 
         if not (isinstance(device_id, _integer_types) and device_id >= 0):
