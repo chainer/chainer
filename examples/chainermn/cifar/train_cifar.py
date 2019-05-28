@@ -56,8 +56,8 @@ def main():
     # iteration, which will be used by the PrintReport extension below.
 
     dataset_info = {
-        'cifar10': {'num_class_labels': 10, load_func: get_cifar10},
-        'cifar100': {'num_class_labels': 100, load_func: get_cifar100},
+        'cifar10': {'num_class_labels': 10, 'load_func': get_cifar10},
+        'cifar100': {'num_class_labels': 100, 'load_func': get_cifar100},
     }
 
     if args.dataset not in dataset_info:
@@ -70,19 +70,19 @@ def main():
     else:
         train, test = None, None
 
+    train = chainermn.scatter_dataset(train, comm, shuffle=True)
+    test = chainermn.scatter_dataset(test, comm, shuffle=True)
+
     model = L.Classifier(models.VGG.VGG(num_class_labels))
     if device >= 0:
         # Make a specified GPU current
-        chainer.backends.cuda.get_device_from_id(device).use()
+        chainer.cuda.get_device_from_id(device).use()
         model.to_gpu()  # Copy the model to the GPU
 
     optimizer = chainermn.create_multi_node_optimizer(
         chainer.optimizers.MomentumSGD(args.learnrate), comm)
     optimizer.setup(model)
     optimizer.add_hook(chainer.optimizer_hooks.WeightDecay(5e-4))
-
-    train = chainermn.scatter_dataset(train, comm, shuffle=True)
-    test = chainermn.scatter_dataset(test, comm, shuffle=True)
 
     train_iter = chainer.iterators.SerialIterator(train, args.batchsize,
                                                   shuffle=False)
