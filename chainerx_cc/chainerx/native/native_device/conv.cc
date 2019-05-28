@@ -83,7 +83,13 @@ public:
             y = RollAxis(y, 1);
 
             if (b.has_value()) {
-                y += *b;
+                Shape bias_shape;
+                bias_shape.push_back(1);
+                bias_shape.push_back(b->GetTotalSize());
+                for (int8_t i = 0 ; i < ndim; ++i) {
+                    bias_shape.push_back(1);
+                }
+                y += b->Reshape(bias_shape);
             }
 
             return y;
