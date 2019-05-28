@@ -42,6 +42,7 @@
 #include "chainerx/routines/logic.h"
 #include "chainerx/routines/manipulation.h"
 #include "chainerx/routines/math.h"
+#include "chainerx/routines/reduction.h"
 #include "chainerx/routines/routines_util.h"
 #include "chainerx/routines/sorting.h"
 #include "chainerx/routines/statistics.h"
