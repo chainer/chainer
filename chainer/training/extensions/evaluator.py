@@ -94,7 +94,7 @@ device=None, eval_hook=None, eval_func=None, *, progress_bar=False):
 
     def __init__(self, iterator, target, converter=convert.concat_examples,
                  device=None, eval_hook=None, eval_func=None, **kwargs):
-        progress_bar = argument.parse_kwargs(kwargs, ('progress_bar', False))
+        progress_bar, = argument.parse_kwargs(kwargs, ('progress_bar', False))
 
         if device is not None:
             device = backend.get_device(device)
