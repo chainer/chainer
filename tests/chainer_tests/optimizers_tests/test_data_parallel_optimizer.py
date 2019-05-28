@@ -52,7 +52,8 @@ class TestDataParallel(unittest.TestCase):
         for orig_param, updated_param in zip(model_copy.params(),
                                              self.model.params()):
 
-            self.assertFalse(np.array_equal(orig_param, updated_param))
+            self.assertFalse(np.array_equal(orig_param.array,
+                                            updated_param.array))
 
         # check if all grads were cleared
         self.model.cleargrads()
