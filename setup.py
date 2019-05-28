@@ -38,6 +38,7 @@ requirements = {
     'stylecheck': [
         'autopep8>=1.4.1,<1.5',
         'flake8>=3.7,<3.8',
+        'flake8-import-order==0.18.1',
         'pycodestyle>=2.5,<2.6',
     ],
     'test': [
@@ -191,6 +192,14 @@ if os.getenv('READTHEDOCS', None) == 'True':
     build_chainerx = True
 
 chainerx_build_helper.config_setup_kwargs(setup_kwargs, build_chainerx)
+
+
+# add "chainer" style to flake8
+setup_kwargs.setdefault('entry_points', {}).update({
+    'flake8_import_order.styles': [
+        'chainer = importorder:Hacking',
+    ],
+})
 
 
 setup(**setup_kwargs)
