@@ -9,6 +9,7 @@
 
 #include "chainerx/macro.h"
 #include "chainerx/python/common.h"
+#include "chainerx/python/py_cached_objects.h"
 
 namespace chainerx {
 namespace python {
@@ -111,32 +112,32 @@ Dtype GetDtype(py::handle handle) {
     }
 
     // From NumPy dtype class
-    auto numpy_module = py::module::import("numpy");
-    if (handle.is(numpy_module.attr("bool_"))) {
+    auto numpy = GetCachedNumpyModule();
+    if (handle.is(numpy.attr("bool_"))) {
         return Dtype::kBool;
     }
-    if (handle.is(numpy_module.attr("int8"))) {
+    if (handle.is(numpy.attr("int8"))) {
         return Dtype::kInt8;
     }
-    if (handle.is(numpy_module.attr("int16"))) {
+    if (handle.is(numpy.attr("int16"))) {
         return Dtype::kInt16;
     }
-    if (handle.is(numpy_module.attr("int32"))) {
+    if (handle.is(numpy.attr("int32"))) {
         return Dtype::kInt32;
     }
-    if (handle.is(numpy_module.attr("int64"))) {
+    if (handle.is(numpy.attr("int64"))) {
         return Dtype::kInt64;
     }
-    if (handle.is(numpy_module.attr("uint8"))) {
+    if (handle.is(numpy.attr("uint8"))) {
         return Dtype::kUInt8;
     }
-    if (handle.is(numpy_module.attr("float16"))) {
+    if (handle.is(numpy.attr("float16"))) {
         return Dtype::kFloat16;
     }
-    if (handle.is(numpy_module.attr("float32"))) {
+    if (handle.is(numpy.attr("float32"))) {
         return Dtype::kFloat32;
     }
-    if (handle.is(numpy_module.attr("float64"))) {
+    if (handle.is(numpy.attr("float64"))) {
         return Dtype::kFloat64;
     }
 

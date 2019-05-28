@@ -376,7 +376,7 @@ class _RetrieveAsCaffeModel(object):
                 f.write(net.SerializeToString())
             if self.debug:
                 import google.protobuf.text_format
-                with open(self.caffemodel + ".txt", 'w') as f:
+                with open(self.caffemodel + '.txt', 'w') as f:
                     f.write(google.protobuf.text_format.MessageToString(net))
 
 

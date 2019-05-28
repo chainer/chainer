@@ -124,7 +124,7 @@ class TestSimpleChain(unittest.TestCase):
             y_static1.backward()
 
             schedule_manager = self.chain.schedule_manager
-            print("sched 1: ", schedule_manager)
+            print('sched 1: ', schedule_manager)
             y_static = self.chain.static_call(self.x)
         chainer.testing.assert_allclose(y_dyn.data, y_static.data)
 

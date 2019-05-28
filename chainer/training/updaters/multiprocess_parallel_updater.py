@@ -3,6 +3,7 @@ import warnings
 
 import six
 
+import chainer
 from chainer.backends import cuda
 from chainer.dataset import convert
 from chainer import reporter
@@ -35,20 +36,21 @@ class _Worker(multiprocessing.Process):
         self.comm = nccl.NcclCommunicator(self.n_devices, comm_id,
                                           self.proc_id)
 
-        self.model.to_gpu(self.device)
+        self.model.to_device(self.device)
         self.reporter = reporter.Reporter()
         self.reporter.add_observer('main', self.model)
         self.reporter.add_observers('main',
                                     self.model.namedlinks(skipself=True))
 
     def run(self):
-        dev = cuda.Device(self.device)
-        dev.use()
+        self.device.use()
+
         self.setup()
+
         while True:
             job, data = self.pipe.recv()
             if job == 'finalize':
-                dev.synchronize()
+                self.device.device.synchronize()
                 break
             if job == 'update':
                 # For reducing memory
@@ -178,11 +180,12 @@ class MultiprocessParallelUpdater(standard_updater.StandardUpdater):
             raise ValueError(
                 'devices argument should be either dict, list or tuple,'
                 ' but {} was given.'.format(type(devices)))
+
         if devices is None or any(device is None for device in devices):
-            raise ValueError('must specify GPU devices')
+            raise ValueError('GPU devices must be specified.')
 
         self._master = optimizer.target
-        self._devices = devices
+        self._devices = [chainer.get_device(device) for device in devices]
         self._mpu_iterators = iterators
         self._initialized = False
 
@@ -211,19 +214,19 @@ class MultiprocessParallelUpdater(standard_updater.StandardUpdater):
             self._workers.append(worker)
             self._pipes.append(pipe)
 
-        with cuda.Device(self._devices[0]):
-            self._master.to_gpu(self._devices[0])
+        with chainer.using_device(self._devices[0]):
+            self._master.to_device(self._devices[0])
             if len(self._devices) > 1:
                 comm_id = nccl.get_unique_id()
-                self._send_message(("set comm_id", comm_id))
-                self.comm = nccl.NcclCommunicator(len(self._devices),
-                                                  comm_id, 0)
+                self._send_message(('set comm_id', comm_id))
+                self.comm = nccl.NcclCommunicator(
+                    len(self._devices), comm_id, 0)
 
     def update_core(self):
         self.setup_workers()
 
         self._send_message(('update', None))
-        with cuda.Device(self._devices[0]):
+        with chainer.using_device(self._devices[0]):
             # For reducing memory
             self._master.cleargrads()
 
@@ -366,7 +369,7 @@ def gather_grads(link):
     """
     if link.xp is numpy:
         raise RuntimeError('gather_grads works only on GPU.')
-    return _gather(link, "grad")
+    return _gather(link, 'grad')
 
 
 def gather_params(link):
@@ -379,7 +382,7 @@ def gather_params(link):
     """
     if link.xp is numpy:
         raise RuntimeError('Link.gather_params works only on GPU.')
-    return _gather(link, "data")
+    return _gather(link, 'data')
 
 
 def _memcpy_scatter():
@@ -459,7 +462,7 @@ def scatter_grads(link, array):
         link (chainer.link.Link): Target link object.
         array (cupy.ndarray): gathered array created by gather_grads()
     """
-    return _scatter(link, array, "grad")
+    return _scatter(link, array, 'grad')
 
 
 def scatter_params(link, array):
@@ -469,7 +472,7 @@ def scatter_params(link, array):
         link (chainer.link.Link): Target link object.
         array (cupy.ndarray): gathered array created by gather_params()
     """
-    return _scatter(link, array, "data")
+    return _scatter(link, array, 'data')
 
 
 def _get_nccl_data_type(dtype):

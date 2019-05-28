@@ -215,7 +215,7 @@ Array BackwardContext::GetRetainedOutput(const RetainedOutputToken& token) {
         }
 
         // If the weak ptr to old output array node was dead, replenish it with the fabricated one.
-        if (output_array_node == nullptr && array_body->HasArrayNode(op_node_->backprop_id())) {
+        if (output_array_node == nullptr) {
             output_array_nodes_[output_index] = array_body->GetArrayNode(op_node_->backprop_id());
         }
 

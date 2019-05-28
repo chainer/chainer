@@ -15,8 +15,8 @@ class Triplet(function_node.FunctionNode):
 
         if reduce not in ('mean', 'no'):
             raise ValueError(
-                "only 'mean' and 'no' are valid for 'reduce', but '%s' is "
-                'given' % reduce)
+                'only \'mean\' and \'no\' are valid for \'reduce\', but '
+                '\'%s\' is given' % reduce)
         self.reduce = reduce
 
     def check_type_forward(self, in_types):
@@ -124,8 +124,8 @@ def triplet(anchor, positive, negative, margin=0.2, reduce='mean'):
             If it is ``'mean'``, the output variable holds a scalar value.
 
     .. note::
-        This cost can be used to train triplet networks. See `Learning \
-        Fine-grained Image Similarity with Deep Ranking \
+        This cost can be used to train triplet networks. See `Learning
+        Fine-grained Image Similarity with Deep Ranking
         <https://arxiv.org/abs/1404.4661>`_ for details.
 
     .. admonition:: Example

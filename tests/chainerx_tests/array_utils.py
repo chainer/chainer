@@ -10,6 +10,36 @@ def total_size(shape):
     return functools.reduce(operator.mul, shape, 1)
 
 
+def uniform(shape, dtype, low=None, high=None):
+    kind = numpy.dtype(dtype).kind
+    if kind == 'f':
+        return (numpy.random.uniform(
+            -1 if low is None else low, 1 if high is None else high, shape)
+            .astype(dtype, copy=False))
+    if kind == 'u':
+        return numpy.random.randint(
+            0 if low is None else low, 4 if high is None else high,
+            size=shape, dtype=dtype)
+    if kind == 'i':
+        return numpy.random.randint(
+            -2 if low is None else low, 3 if high is None else high,
+            size=shape, dtype=dtype)
+    if kind == 'b':
+        return numpy.random.randint(
+            0 if low is None else low, 2 if high is None else high,
+            size=shape, dtype=dtype)
+    assert False, dtype
+
+
+def shaped_arange(shape, dtype):
+    size = total_size(shape)
+    a = numpy.arange(1, size + 1).reshape(shape)
+    dtype = numpy.dtype(dtype)
+    if dtype == numpy.bool_:
+        return a % 2 == 0
+    return a.astype(dtype, copy=False)
+
+
 # TODO(beam2d): Think better way to make multiple different arrays
 def create_dummy_ndarray(
         xp, shape, dtype, device=None, pattern=1, padding=True, start=None):

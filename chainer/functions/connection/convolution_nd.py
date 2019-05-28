@@ -7,17 +7,11 @@ from chainer.backends import cuda
 from chainer import configuration
 from chainer import function_node
 from chainer.functions.connection import convolution_2d
+from chainer import utils
 from chainer.utils import conv
 from chainer.utils import conv_nd
 from chainer.utils import type_check
 import chainerx
-
-
-def _prod(shape):
-    prod = 1
-    for d in shape:
-        prod *= d
-    return prod
 
 
 class ConvolutionND(function_node.FunctionNode):
@@ -49,7 +43,7 @@ class ConvolutionND(function_node.FunctionNode):
         if type_check.eval(n_in) == 3:
             b_type = in_types[2]
             type_check.expect(
-                b_type.dtype == x_type.dtype,
+                b_type.dtype.kind == 'f',
                 b_type.ndim == 1,
                 b_type.shape[0] == w_type.shape[0],
             )
@@ -118,8 +112,8 @@ class ConvolutionND(function_node.FunctionNode):
         o_size = x.shape[-dims:]
 
         x = xp.rollaxis(x, 0, dims + 2)  # (iC, k_size..., N, o_size...)
-        mul_len = iCg * _prod(k_size)
-        x = x.reshape(G, mul_len, N * _prod(o_size))
+        mul_len = iCg * utils.size_of_shape(k_size)
+        x = x.reshape(G, mul_len, N * utils.size_of_shape(o_size))
 
         W = W.reshape(G, oCg, mul_len)
 
@@ -212,6 +206,8 @@ class ConvolutionND(function_node.FunctionNode):
         if 2 in indexes:
             axis = (0,) + tuple(moves.range(2, gy.ndim))
             gb = chainer.functions.sum(gy, axis=axis)
+            if gb.dtype != self.inputs[2].dtype:
+                gb = chainer.functions.cast(gb, self.inputs[2].dtype)
             ret.append(gb)
 
         return ret
@@ -267,7 +263,7 @@ class ConvolutionNDGradW(function_node.FunctionNode):
         N, iC = x.shape[:2]
         oC = gy.shape[1]
         o_size = gy.shape[2:]
-        o_size_prod = _prod(o_size)
+        o_size_prod = utils.size_of_shape(o_size)
         k_size = self.ksize
         dims = len(o_size)
         iCg = iC // G
@@ -280,7 +276,7 @@ class ConvolutionNDGradW(function_node.FunctionNode):
                               cover_all=self.cover_all, dilate=self.dilate)
 
         x = xp.rollaxis(x, 0, dims + 2)  # (iC, k_size..., N, o_size...)
-        mul_len = iCg * _prod(k_size)
+        mul_len = iCg * utils.size_of_shape(k_size)
         x = x.reshape(G, mul_len, N * o_size_prod)
         x = x.transpose(0, 2, 1)  # (G, N*o_size, iCg*k_size)
 
@@ -403,7 +399,7 @@ def convolution_nd(x, W, b=None, stride=1, pad=0, cover_all=False,
 
     If ``cover_all`` option is ``True``, the filter will cover the all
     spatial locations. So, if the last stride of filter does not cover the
-    end of spatial locations, an addtional stride will be applied to the end
+    end of spatial locations, an additional stride will be applied to the end
     part of spatial locations. In this case, the output size is determined by
     the following equations:
 

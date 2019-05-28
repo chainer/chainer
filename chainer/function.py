@@ -1,8 +1,10 @@
+from __future__ import absolute_import
 import warnings
 import weakref
 
 import six
 
+import chainer
 from chainer import backend
 from chainer.backends import cuda
 from chainer import configuration
@@ -194,11 +196,12 @@ class FunctionAdapter(function_node.FunctionNode):
         is_chainerx_fallback_mode = self._is_chainerx_fallback_mode
         if is_chainerx_fallback_mode:
             # Convert input and output gradients to numpy/cupy
-            in_data = backend.from_chainerx(in_data)
-            grad_out_data = backend.from_chainerx(grad_out_data)
+            in_data = backend.from_chx(in_data)
+            grad_out_data = backend.from_chx(grad_out_data)
 
         # Call Function.backward
-        with cuda.get_device_from_array(*(in_data + grad_out_data)):
+        with chainer.using_device(
+                backend.get_device_from_array(*(in_data + grad_out_data))):
             if is_chainerx_fallback_mode:
                 # Enable attribute fallback
                 with function_node._chainerx_attribute_fallback(
@@ -214,7 +217,7 @@ class FunctionAdapter(function_node.FunctionNode):
 
         # Convert input gradients back to ChainerX
         if is_chainerx_fallback_mode:
-            gxs = backend.to_chainerx(gxs)
+            gxs = backend.to_chx(gxs)
 
         ret = []
         for i in target_input_indexes:
@@ -365,7 +368,7 @@ class Function(object):
 
         """
         if self.node._is_chainerx_fallback_mode:
-            return backend.from_chainerx(self.node.output_data)
+            return backend.from_chx(self.node.output_data)
         return self.node.output_data
 
     @property
@@ -589,7 +592,7 @@ class Function(object):
         :attr:`output_data`.
 
         .. note::
-           It is STRONGLY RECOMMENDED to use this method if the function
+           It is STRONGLY RECOMMENDED that you use this method if the function
            requires some or all output arrays in backprop. The function can
            also use output arrays just by keeping references to them directly,
            whereas it might influence on the performance of later function

@@ -100,11 +100,11 @@ class TestGRU(unittest.TestCase):
 
         def f():
             return _gru(self.link, h_data, x_data),
-        gx, = gradient_check.numerical_grad(f, (x.data,), (y.grad,))
+        gx, = gradient_check.numerical_grad(f, (x.data,), (y_grad,))
         testing.assert_allclose(gx, x.grad, atol=1e-3)
 
         if isinstance(self.link, links.StatelessGRU):
-            gh, = gradient_check.numerical_grad(f, (h.data,), (y.grad,))
+            gh, = gradient_check.numerical_grad(f, (h.data,), (y_grad,))
             testing.assert_allclose(gh, h.grad, atol=1e-3)
 
     def test_backward_cpu(self):

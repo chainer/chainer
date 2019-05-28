@@ -1,3 +1,5 @@
+// TODO(niboshi): Write Python test and delete this file.
+
 #include "chainerx/routines/statistics.h"
 
 #include <cmath>
@@ -135,7 +137,7 @@ TEST_P(StatisticsTest, MeanBackward) {
             },
             {(*testing::BuildArray({2, 3, 4, 3}).WithLinearData<T>().WithPadding(1)).RequireGrad()},
             {testing::BuildArray({2, 4}).WithLinearData<T>(-0.1, 0.1)},
-            {Full({2, 3, 4, 3}, 1e-3)});
+            {Full({2, 3, 4, 3}, 1e-3, Dtype::kFloat64)});
 }
 
 TEST_P(StatisticsTest, MeanDoubleBackward_Keepdims) {
@@ -149,7 +151,7 @@ TEST_P(StatisticsTest, MeanDoubleBackward_Keepdims) {
             {(*testing::BuildArray({2, 3, 4, 3}).WithLinearData<T>().WithPadding(1)).RequireGrad()},
             {(*testing::BuildArray({2, 1, 4, 1}).WithLinearData<T>(-0.1, 0.1)).RequireGrad()},
             {testing::BuildArray({2, 3, 4, 3}).WithLinearData<T>()},
-            {Full({2, 3, 4, 3}, 1e-3), Full({2, 1, 4, 1}, 1e-3)});
+            {Full({2, 3, 4, 3}, 1e-3, Dtype::kFloat64), Full({2, 1, 4, 1}, 1e-3, Dtype::kFloat64)});
 }
 
 TEST_P(StatisticsTest, MeanDoubleBackward_NoKeepdims) {
@@ -163,7 +165,7 @@ TEST_P(StatisticsTest, MeanDoubleBackward_NoKeepdims) {
             {(*testing::BuildArray({2, 3, 4, 3}).WithLinearData<T>().WithPadding(1)).RequireGrad()},
             {(*testing::BuildArray({2, 4}).WithLinearData<T>(-0.1, 0.1)).RequireGrad()},
             {testing::BuildArray({2, 3, 4, 3}).WithLinearData<T>()},
-            {Full({2, 3, 4, 3}, 1e-3), Full({2, 4}, 1e-3)});
+            {Full({2, 3, 4, 3}, 1e-3, Dtype::kFloat64), Full({2, 4}, 1e-3, Dtype::kFloat64)});
 }
 
 TEST_THREAD_SAFE_P(StatisticsTest, Var) {
@@ -264,7 +266,7 @@ TEST_P(StatisticsTest, VarBackward) {
             },
             {(*testing::BuildArray({2, 3, 4, 3}).WithLinearData<T>().WithPadding(1)).RequireGrad()},
             {testing::BuildArray({2, 4}).WithLinearData<T>(-0.1, 0.1)},
-            {Full({2, 3, 4, 3}, 1e-3)});
+            {Full({2, 3, 4, 3}, 1e-3, Dtype::kFloat64)});
 }
 
 TEST_P(StatisticsTest, VarDoubleBackward_Keepdims) {
@@ -277,7 +279,7 @@ TEST_P(StatisticsTest, VarDoubleBackward_Keepdims) {
             {(*testing::BuildArray({2, 3, 4, 3}).WithLinearData<T>().WithPadding(1)).RequireGrad()},
             {(*testing::BuildArray({2, 1, 4, 1}).WithLinearData<T>(-0.1, 0.1)).RequireGrad()},
             {testing::BuildArray({2, 3, 4, 3}).WithLinearData<T>()},
-            {Full({2, 3, 4, 3}, 1e-3), Full({2, 1, 4, 1}, 1e-3)});
+            {Full({2, 3, 4, 3}, 1e-3, Dtype::kFloat64), Full({2, 1, 4, 1}, 1e-3, Dtype::kFloat64)});
 }
 
 TEST_P(StatisticsTest, VarDoubleBackward_NoKeepdims) {
@@ -290,7 +292,7 @@ TEST_P(StatisticsTest, VarDoubleBackward_NoKeepdims) {
             {(*testing::BuildArray({2, 3, 4, 3}).WithLinearData<T>().WithPadding(1)).RequireGrad()},
             {(*testing::BuildArray({2, 4}).WithLinearData<T>(-0.1, 0.1)).RequireGrad()},
             {testing::BuildArray({2, 3, 4, 3}).WithLinearData<T>()},
-            {Full({2, 3, 4, 3}, 1e-3), Full({2, 4}, 1e-3)});
+            {Full({2, 3, 4, 3}, 1e-3, Dtype::kFloat64), Full({2, 4}, 1e-3, Dtype::kFloat64)});
 }
 
 INSTANTIATE_TEST_CASE_P(

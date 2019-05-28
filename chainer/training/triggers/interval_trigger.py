@@ -23,8 +23,11 @@ class IntervalTrigger(object):
     """
 
     def __init__(self, period, unit):
+        if unit not in ('epoch', 'iteration'):
+            raise ValueError(
+                'Trigger unit must be either \'epoch\' or \'iteration\'.')
+
         self.period = period
-        assert unit == 'epoch' or unit == 'iteration'
         self.unit = unit
 
         self._previous_iteration = 0

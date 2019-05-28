@@ -96,7 +96,7 @@ class _CheckpointStats(object):
 
         durations = [t['d'] for t in self.timings]
         average = sum(durations) / count
-        fmt_str = "Snapshot duration stats (sec): avg={:f}, min={:f}, max={:f}"
+        fmt_str = 'Snapshot duration stats (sec): avg={:f}, min={:f}, max={:f}'
         return fmt_str.format(average, min(durations), max(durations))
 
 
@@ -213,7 +213,7 @@ class _MultiNodeCheckpointer(extension.Extension):
                 iters0 = iters0[-self.cp_interval:]
 
             else:
-                raise RuntimeError("Can't gather checkpoint file names")
+                raise RuntimeError('Can\'t gather checkpoint file names')
 
         iters0 = self.comm.bcast_obj(iters0)
         files = self._filenames(iters0)
@@ -281,7 +281,7 @@ class _MultiNodeCheckpointer(extension.Extension):
 
         # Get set of common snapshot numbers (=iteration number)
         iters = [i for name, rank, i in self._parse_filenames(self.files)]
-        if len(iters) > 0:
+        if iters:
             # Adopt latest snapshot from iteration number
             i = max(iters)
 

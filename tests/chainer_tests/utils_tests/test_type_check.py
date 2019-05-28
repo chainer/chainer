@@ -1,3 +1,4 @@
+import pickle
 import sys
 import unittest
 import warnings
@@ -68,7 +69,7 @@ class TestGetItem(unittest.TestCase):
 
     def test_str(self):
         self.assertEqual('x[1]', str(self.v1))
-        self.assertEqual("y['a']", str(self.v2))
+        self.assertEqual('y[\'a\']', str(self.v2))
 
         x = self.x
         self.assertEqual('x[:]', str(x[:]))
@@ -370,8 +371,8 @@ class TestSameTypes(unittest.TestCase):
         x = numpy.array([0])
         y = numpy.array([[1], [2]])
         with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            z = numpy.matrix("3,4; 5,6")
+            warnings.simplefilter('ignore')
+            z = numpy.matrix('3,4; 5,6')
         self.assertTrue(T.same_types(x, y, z))
 
     @attr.gpu
@@ -394,6 +395,15 @@ class TestSameTypes(unittest.TestCase):
         y = numpy.array([1])
         z = cuda.cupy.array([2])
         self.assertFalse(T.same_types(x, y, z))
+
+
+class TestInvalidType(unittest.TestCase):
+    def test_pickle(self):
+        exc = T.InvalidType('foo', 'bar', 'baz')
+        new = pickle.loads(pickle.dumps(exc))
+        self.assertEqual(exc.args, new.args)
+        self.assertEqual(exc.expect, new.expect)
+        self.assertEqual(exc.actual, new.actual)
 
 
 testing.run_module(__name__, __file__)
