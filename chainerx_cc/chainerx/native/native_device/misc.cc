@@ -17,42 +17,17 @@ namespace chainerx {
 namespace native {
 namespace {
 
+CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(SqrtKernel, { out = chainerx::Sqrt(x); });
+
+CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(SquareKernel, { out = x * x; });
+
 CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(FabsKernel, { out = chainerx::Fabs(x); });
 
 CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_UNARY_KERNEL(SignKernel, { out = chainerx::Sign(x); }, VisitNumericDtype);
 
-class NativeSquareKernel : public SquareKernel {
-public:
-    void Call(const Array& x, const Array& out) override {
-        x.device().CheckDevicesCompatible(x, out);
-        VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
-            using T = typename decltype(pt)::type;
-            struct Impl {
-                void operator()(int64_t /*i*/, T x, T& out) { out = x * x; }
-            };
-            Elementwise<const T, T>(Impl{}, x, out);
-        });
-    }
-};
+CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(CeilKernel, { out = chainerx::Ceil(x); });
 
-CHAINERX_NATIVE_REGISTER_KERNEL(SquareKernel, NativeSquareKernel);
-
-class NativeSqrtKernel : public SqrtKernel {
-public:
-    void Call(const Array& x, const Array& out) override {
-        x.device().CheckDevicesCompatible(x, out);
-        const Array& x_cast = x.dtype() == out.dtype() ? x : x.AsType(out.dtype());
-        VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
-            using T = typename decltype(pt)::type;
-            struct Impl {
-                void operator()(int64_t /*i*/, T x, T& out) { out = chainerx::Sqrt(x); }
-            };
-            Elementwise<const T, T>(Impl{}, x_cast, out);
-        });
-    }
-};
-
-CHAINERX_NATIVE_REGISTER_KERNEL(SqrtKernel, NativeSqrtKernel);
+CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(FloorKernel, { out = chainerx::Floor(x); });
 
 class NativeIsNanKernel : public IsNanKernel {
 public:
@@ -101,42 +76,6 @@ public:
 };
 
 CHAINERX_NATIVE_REGISTER_KERNEL(IsFiniteKernel, NativeIsFiniteKernel);
-
-class NativeCeilKernel : public CeilKernel {
-public:
-    void Call(const Array& x, const Array& out) override {
-        Device& device = x.device();
-        device.CheckDevicesCompatible(x, out);
-        const Array& x_cast = x.dtype() == out.dtype() ? x : x.AsType(out.dtype());
-        VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
-            using T = typename decltype(pt)::type;
-            struct Impl {
-                void operator()(int64_t /*i*/, T x, T& out) { out = chainerx::Ceil(x); }
-            };
-            Elementwise<const T, T>(Impl{}, x_cast, out);
-        });
-    }
-};
-
-CHAINERX_NATIVE_REGISTER_KERNEL(CeilKernel, NativeCeilKernel);
-
-class NativeFloorKernel : public FloorKernel {
-public:
-    void Call(const Array& x, const Array& out) override {
-        Device& device = x.device();
-        device.CheckDevicesCompatible(x, out);
-        const Array& x_cast = x.dtype() == out.dtype() ? x : x.AsType(out.dtype());
-        VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
-            using T = typename decltype(pt)::type;
-            struct Impl {
-                void operator()(int64_t /*i*/, T x, T& out) { out = chainerx::Floor(x); }
-            };
-            Elementwise<const T, T>(Impl{}, x_cast, out);
-        });
-    }
-};
-
-CHAINERX_NATIVE_REGISTER_KERNEL(FloorKernel, NativeFloorKernel);
 
 class NativeIfLessElseASSAKernel : public IfLessElseASSAKernel {
 public:

@@ -21,52 +21,17 @@ namespace chainerx {
 namespace cuda {
 namespace {
 
-template <typename T>
-struct SquareImpl {
-    using CudaType = cuda_internal::DataType<T>;
-    __device__ void operator()(int64_t /*i*/, CudaType x, CudaType& out) { out = x * x; }
-};
+CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(SqrtKernel, { out = cuda::Sqrt(x); });
 
-class CudaSquareKernel : public SquareKernel {
-public:
-    void Call(const Array& x, const Array& out) override {
-        Device& device = x.device();
-        device.CheckDevicesCompatible(x, out);
-        CudaSetDeviceScope scope{device.index()};
-        VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
-            using T = typename decltype(pt)::type;
-            Elementwise<const T, T>(SquareImpl<T>{}, x, out);
-        });
-    }
-};
-
-CHAINERX_CUDA_REGISTER_KERNEL(SquareKernel, CudaSquareKernel);
-
-template <typename T>
-struct SqrtImpl {
-    using CudaType = cuda_internal::DataType<T>;
-    __device__ void operator()(int64_t /*i*/, CudaType x, CudaType& out) { out = cuda::Sqrt(x); }
-};
-
-class CudaSqrtKernel : public SqrtKernel {
-public:
-    void Call(const Array& x, const Array& out) override {
-        Device& device = x.device();
-        device.CheckDevicesCompatible(x, out);
-        const Array& x_cast = x.dtype() == out.dtype() ? x : x.AsType(out.dtype());
-        CudaSetDeviceScope scope{device.index()};
-        VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
-            using T = typename decltype(pt)::type;
-            Elementwise<const T, T>(SqrtImpl<T>{}, x_cast, out);
-        });
-    }
-};
-
-CHAINERX_CUDA_REGISTER_KERNEL(SqrtKernel, CudaSqrtKernel);
+CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(SquareKernel, { out = x * x; });
 
 CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(FabsKernel, { out = cuda::Fabs(x); });
 
 CHAINERX_CUDA_REGISTER_ELTWISE_DTYPE_UNARY_KERNEL(SignKernel, { out = cuda::Sign(x); }, VisitNumericDtype);
+
+CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(CeilKernel, { out = cuda::Ceil(x); });
+
+CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(FloorKernel, { out = cuda::Floor(x); });
 
 template <typename T>
 struct IsNanImpl {
@@ -130,50 +95,6 @@ public:
 };
 
 CHAINERX_CUDA_REGISTER_KERNEL(IsFiniteKernel, CudaIsFiniteKernel);
-
-template <typename T>
-struct CeilImpl {
-    using CudaType = cuda_internal::DataType<T>;
-    __device__ void operator()(int64_t /*i*/, CudaType x, CudaType& out) { out = cuda::Ceil(x); }
-};
-
-class CudaCeilKernel : public CeilKernel {
-public:
-    void Call(const Array& x, const Array& out) override {
-        Device& device = x.device();
-        device.CheckDevicesCompatible(x, out);
-        CudaSetDeviceScope scope{device.index()};
-        const Array& x_cast = x.dtype() == out.dtype() ? x : x.AsType(out.dtype());
-        VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
-            using T = typename decltype(pt)::type;
-            Elementwise<const T, T>(CeilImpl<T>{}, x_cast, out);
-        });
-    }
-};
-
-CHAINERX_CUDA_REGISTER_KERNEL(CeilKernel, CudaCeilKernel);
-
-template <typename T>
-struct FloorImpl {
-    using CudaType = cuda_internal::DataType<T>;
-    __device__ void operator()(int64_t /*i*/, CudaType x, CudaType& out) { out = cuda::Floor(x); }
-};
-
-class CudaFloorKernel : public FloorKernel {
-public:
-    void Call(const Array& x, const Array& out) override {
-        Device& device = x.device();
-        device.CheckDevicesCompatible(x, out);
-        CudaSetDeviceScope scope{device.index()};
-        const Array& x_cast = x.dtype() == out.dtype() ? x : x.AsType(out.dtype());
-        VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
-            using T = typename decltype(pt)::type;
-            Elementwise<const T, T>(FloorImpl<T>{}, x_cast, out);
-        });
-    }
-};
-
-CHAINERX_CUDA_REGISTER_KERNEL(FloorKernel, CudaFloorKernel);
 
 template <typename In, typename Out>
 struct IfLessElseASSAImpl {
