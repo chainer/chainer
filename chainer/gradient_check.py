@@ -33,10 +33,9 @@ def _copy_arrays(xs):
 
 
 def _ones_like(arr):
-    device = cuda.get_device_from_array(arr)
-    xp = backend.get_array_module(arr)
-    with device:
-        return xp.ones_like(arr)
+    device = backend.get_device_from_array(arr)
+    with chainer.using_device(device):
+        return device.xp.ones_like(arr)
 
 
 def _make_outputs_props_in_error_message(outputs, grad_outputs):

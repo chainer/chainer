@@ -9,8 +9,8 @@ import warnings
 import numpy
 import six
 
+import chainer
 from chainer import backend
-from chainer.backends import cuda
 from chainer import configuration
 from chainer import serializer as serializer_module
 from chainer import variable
@@ -251,13 +251,6 @@ def report_scope(observation):
     current.observation = old
 
 
-def _get_device(x):
-    if numpy.isscalar(x):
-        return cuda.DummyDevice
-    else:
-        return cuda.get_device_from_array(x)
-
-
 class Summary(object):
 
     """Online summarization of a sequence of scalars.
@@ -287,7 +280,7 @@ class Summary(object):
             # connected to the backprop graph.
             value = value.as_grad_stopped()
 
-        with _get_device(value):
+        with chainer.using_device(backend.get_device_from_array(value)):
             self._x += weight * value
             self._x2 += weight * value * value
             self._n += weight
@@ -295,7 +288,7 @@ class Summary(object):
     def compute_mean(self):
         """Computes the mean."""
         x, n = self._x, self._n
-        with _get_device(x):
+        with chainer.using_device(backend.get_device_from_array(x)):
             return x / n
 
     def make_statistics(self):
@@ -307,7 +300,7 @@ class Summary(object):
         """
         x, n = self._x, self._n
         xp = backend.get_array_module(x)
-        with _get_device(x):
+        with chainer.using_device(backend.get_device_from_array(x)):
             mean = x / n
             var = self._x2 / n - mean * mean
             std = xp.sqrt(var)

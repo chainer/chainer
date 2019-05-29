@@ -142,6 +142,133 @@ class TestUnpooling2D(unittest.TestCase):
             'never')
 
 
+@testing.parameterize(*testing.product_dict(
+    [
+        {'insize': (2, 1), 'outsize': (4, 2), 'ksize': 2, 'pad': 0},
+        {'insize': (4, 5), 'outsize': (4, 6), 'ksize': 2, 'pad': 2},
+    ],
+    [
+        {'dtype': numpy.float16},
+        {'dtype': numpy.float32},
+        {'dtype': numpy.float64},
+    ],
+))
+class TestIntegerScaleUnpooling2D(unittest.TestCase):
+
+    def setUp(self):
+        self.N = 2
+        self.n_channels = 3
+        inh, inw = self.insize
+        self.x = numpy.arange(
+            self.N * self.n_channels * inh * inw,
+            dtype=self.dtype).reshape(self.N, self.n_channels, inh, inw)
+        numpy.random.shuffle(self.x)
+        self.x = 2 * self.x / self.x.size - 1
+
+        outh, outw = self.outsize or self.expected_outsize
+        self.gy = numpy.random.uniform(
+            -1, 1, (self.N, self.n_channels, outh, outw)).astype(self.dtype)
+        self.check_backward_options = {'atol': 1e-4, 'rtol': 1e-3}
+        self.check_double_backward_options = {}
+        if self.dtype == numpy.float16:
+            self.check_backward_options = {'atol': 2e-3, 'rtol': 2e-2}
+            self.check_double_backward_options = {'atol': 3e-3, 'rtol': 3e-2}
+        self.ggx = numpy.random.uniform(
+            -1, 1, self.x.shape).astype(self.dtype)
+
+    def check_forward(self, x_data):
+        x = chainer.Variable(x_data)
+        y = functions.unpooling_2d(
+            x, self.ksize, outsize=self.outsize, pad=self.pad)
+        self.assertEqual(y.data.dtype, self.dtype)
+        y_data = cuda.to_cpu(y.data)
+
+        self.assertEqual(self.gy.shape, y_data.shape)
+        for i in six.moves.range(self.N):
+            for c in six.moves.range(self.n_channels):
+                outsize = self.outsize or self.expected_outsize
+                assert y_data.shape[2:] == outsize
+                if outsize == (4, 2):
+                    expect = numpy.array([
+                        [self.x[i, c, 0, 0], self.x[i, c, 0, 0]],
+                        [self.x[i, c, 0, 0], self.x[i, c, 0, 0]],
+                        [self.x[i, c, 1, 0], self.x[i, c, 1, 0]],
+                        [self.x[i, c, 1, 0], self.x[i, c, 1, 0]],
+                    ])
+                elif outsize == (4, 6):
+                    expect = numpy.array([
+                        [self.x[i, c, 1, 1], self.x[i, c, 1, 1],
+                         self.x[i, c, 1, 2], self.x[i, c, 1, 2],
+                         self.x[i, c, 1, 3], self.x[i, c, 1, 3]],
+                        [self.x[i, c, 1, 1], self.x[i, c, 1, 1],
+                         self.x[i, c, 1, 2], self.x[i, c, 1, 2],
+                         self.x[i, c, 1, 3], self.x[i, c, 1, 3]],
+                        [self.x[i, c, 2, 1], self.x[i, c, 2, 1],
+                         self.x[i, c, 2, 2], self.x[i, c, 2, 2],
+                         self.x[i, c, 2, 3], self.x[i, c, 2, 3]],
+                        [self.x[i, c, 2, 1], self.x[i, c, 2, 1],
+                         self.x[i, c, 2, 2], self.x[i, c, 2, 2],
+                         self.x[i, c, 2, 3], self.x[i, c, 2, 3]],
+                    ])
+                else:
+                    raise ValueError('Unsupported outsize: {}'.format(outsize))
+                testing.assert_allclose(expect, y_data[i, c])
+
+    def test_forward_cpu(self):
+        self.check_forward(self.x)
+
+    @attr.gpu
+    def test_forward_gpu(self):
+        self.check_forward(cuda.to_gpu(self.x))
+
+    def check_backward(self, x_data, y_grad):
+        def f(x):
+            return functions.unpooling_2d(x, self.ksize, outsize=self.outsize,
+                                          pad=self.pad)
+        gradient_check.check_backward(
+            f, x_data, y_grad, dtype=numpy.float64,
+            **self.check_backward_options)
+
+    def test_backward_cpu(self):
+        self.check_backward(self.x, self.gy)
+
+    @attr.gpu
+    def test_backward_gpu(self):
+        self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
+
+    def check_double_backward(self, x_data, y_grad, x_grad_grad,
+                              use_cudnn='always'):
+        def f(x):
+            return functions.unpooling_2d(x, self.ksize, outsize=self.outsize,
+                                          pad=self.pad)
+        with chainer.using_config('use_cudnn', use_cudnn):
+            gradient_check.check_double_backward(
+                f, x_data, y_grad, x_grad_grad, dtype=numpy.float64,
+                **self.check_double_backward_options)
+
+    def test_double_backward_cpu(self):
+        self.check_double_backward(
+            self.x, self.gy, self.ggx, 'never')
+
+    @attr.gpu
+    def test_double_backward_gpu(self):
+        self.check_double_backward(
+            cuda.to_gpu(self.x), cuda.to_gpu(self.gy), cuda.to_gpu(self.ggx))
+
+    @attr.gpu
+    def test_double_backward_gpu_non_contiguous(self):
+        self.check_double_backward(
+            cuda.cupy.asfortranarray(cuda.to_gpu(self.x)),
+            cuda.cupy.asfortranarray(cuda.to_gpu(self.gy)),
+            cuda.cupy.asfortranarray(cuda.to_gpu(self.ggx)))
+
+    @attr.gpu
+    def test_double_backward_gpu_no_cudnn(self):
+        self.check_double_backward(
+            cuda.to_gpu(self.x), cuda.to_gpu(self.gy), cuda.to_gpu(self.ggx),
+            'never')
+
+
 @testing.parameterize(*testing.product({
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'h': [5],

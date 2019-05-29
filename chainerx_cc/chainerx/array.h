@@ -147,6 +147,9 @@ public:
     // Returns the indices of the maximum values along the given axis.
     Array ArgMax(const OptionalAxes& axis = nonstd::nullopt) const;
 
+    // Returns the indices of the minimum values along the given axis.
+    Array ArgMin(const OptionalAxes& axis = nonstd::nullopt) const;
+
     // Returns a sum of the array.
     // If `axis` is set, it will be summed over the specified axes.
     // Otherwise, it will be summed over all the existing axes.
@@ -309,7 +312,7 @@ private:
 Array operator+(Scalar lhs, const Array& rhs);
 Array operator-(Scalar lhs, const Array& rhs);
 Array operator*(Scalar lhs, const Array& rhs);
-// TODO(hvy): Implement Scalar / Array using e.g. multiplication with reciprocal.
+Array operator/(Scalar lhs, const Array& rhs);
 
 namespace internal {
 

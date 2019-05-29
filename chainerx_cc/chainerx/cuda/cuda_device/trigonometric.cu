@@ -13,7 +13,7 @@
 #include "chainerx/cuda/numeric.cuh"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
-#include "chainerx/kernels/math.h"
+#include "chainerx/kernels/trigonometric.h"
 #include "chainerx/numeric.h"
 #include "chainerx/scalar.h"
 
@@ -34,14 +34,6 @@ CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(ArccosKernel, { out = cuda::Ar
 CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(ArctanKernel, { out = cuda::Arctan(x); });
 
 CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_BINARY_KERNEL(Arctan2Kernel, { out = cuda::Arctan2(x1, x2); });
-
-CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(SinhKernel, { out = cuda::Sinh(x); });
-
-CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(CoshKernel, { out = cuda::Cosh(x); });
-
-CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(ArcsinhKernel, { out = cuda::Arcsinh(x); });
-
-CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(ArccoshKernel, { out = cuda::Arccosh(x); });
 
 }  // namespace
 }  // namespace cuda

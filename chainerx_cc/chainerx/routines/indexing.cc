@@ -22,6 +22,7 @@
 #include "chainerx/macro.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/math.h"
+#include "chainerx/routines/type_util.h"
 #include "chainerx/shape.h"
 #include "chainerx/slice.h"
 #include "chainerx/strides.h"
@@ -191,6 +192,39 @@ Array Take(const Array& a, const Array& indices, int8_t axis) {
             // TODO(hvy): Reduce memory allocation for computing the input gradient, i.e. do not allocate a zero-filled array in addition to
             // the output of `AddAt`.
             bctx.input_grad() = AddAt(Zeros(a_shape, gout.dtype(), gout.device()), indices, axis_norm, gout);
+        });
+    }
+    bb.Finalize();
+
+    return out;
+}
+
+Array Where(const Array& condition, const Array& x, const Array& y) {
+    Dtype out_dtype = ResultType(x, y);
+    Shape out_shape = internal::BroadcastShapes(condition.shape(), internal::BroadcastShapes(x.shape(), y.shape()));
+    Array out = Empty(out_shape, out_dtype, x.device());
+    const Array& x_b = x.BroadcastTo(out_shape);
+    const Array& y_b = y.BroadcastTo(out_shape);
+    const Array& condition_b = condition.BroadcastTo(out_shape);
+
+    {
+        NoBackpropModeScope scope;
+        x.device().backend().CallKernel<WhereKernel>(condition_b, x_b, y_b, out);
+    }
+
+    BackwardBuilder bb{"where", {x_b, y_b}, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([condition, dtype = x.dtype()](BackwardContext& bctx) {
+            const Array& gout = *bctx.output_grad();
+            // TODO(kshitij12345): Use Scalar-Array kernel when implemented.
+            bctx.input_grad() = Where(condition, gout, ZerosLike(gout)).AsType(dtype);
+        });
+    }
+    if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
+        bt.Define([condition, dtype = y.dtype()](BackwardContext& bctx) {
+            const Array& gout = *bctx.output_grad();
+            // TODO(kshitij12345): Use Scalar-Array kernel when implemented.
+            bctx.input_grad() = Where(condition, ZerosLike(gout), gout).AsType(dtype);
         });
     }
     bb.Finalize();

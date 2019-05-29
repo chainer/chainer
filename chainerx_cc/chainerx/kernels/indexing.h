@@ -22,4 +22,11 @@ public:
     virtual void Call(const Array& a, const Array& indices, int8_t axis, const Array& out) = 0;
 };
 
+class WhereKernel : public Kernel {
+public:
+    static const char* name() { return "Where"; }
+
+    virtual void Call(const Array& condition, const Array& x, const Array& y, const Array& out) = 0;
+};
+
 }  // namespace chainerx

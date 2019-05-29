@@ -24,8 +24,8 @@
 #include "chainerx/float16.h"
 #include "chainerx/kernels/creation.h"
 #include "chainerx/kernels/linalg.h"
-#include "chainerx/kernels/math.h"
 #include "chainerx/kernels/misc.h"
+#include "chainerx/kernels/reduction.h"
 #include "chainerx/macro.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/math.h"
@@ -59,7 +59,7 @@ struct GemmInputLayout {
         // Force row-major contiguous
         ld = a.shape()[1];
         trans = CUBLAS_OP_N;  // transposed
-        return internal::AsContiguous(a);
+        return AsContiguous(a);
     }
 };
 

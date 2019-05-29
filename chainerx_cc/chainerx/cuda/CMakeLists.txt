@@ -26,17 +26,20 @@ CUDA_ADD_LIBRARY(chainerx_cuda STATIC
     cuda_device/activation.cu
     cuda_device/arithmetic.cu
     cuda_device/batch_norm.cc
+    cuda_device/binary.cu
     cuda_device/conv.cc
     cuda_device/copy.cu
     cuda_device/comparison.cu
     cuda_device/dot.cu
     cuda_device/exp_log.cu
     cuda_device/fill.cu
+    cuda_device/hyperbolic.cu
     cuda_device/indexing.cu
     cuda_device/memory.cc
     cuda_device/misc.cu
     cuda_device/pool.cu
     cuda_device/reduction.cu
+    cuda_device/statistics.cu
     cuda_device/trigonometric.cu
     cuda_backend.cc
     cuda_runtime.cc
