@@ -244,7 +244,7 @@ TEST(NativeFloat16Test, FloatComparison) {
         EXPECT_EQ(static_cast<double>(x) op static_cast<double>(y), x op y); \
         /* NOLINTNEXTLINE(misc-macro-parentheses) */                         \
         EXPECT_EQ(static_cast<double>(y) op static_cast<double>(x), y op x); \
-    };
+    }
 
             CHECK_COMPARISION_OPERATOR(==);
             CHECK_COMPARISION_OPERATOR(!=);
