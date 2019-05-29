@@ -2746,7 +2746,7 @@ class TestVariableDoubleBackwardOneElementScalar(unittest.TestCase):
 class TestAsVariable(unittest.TestCase):
 
     def test_to_variable_from_array(self, backend_config):
-        x = backend_config.get_array(np.empty(1, np.float32))
+        x = backend_config.get_array(np.random.randn(1).astype(np.float32))
         y = chainer.as_variable(x)
         assert isinstance(y, chainer.Variable)
         assert y.requires_grad is False
@@ -2763,7 +2763,7 @@ class TestAsVariable(unittest.TestCase):
             assert y.array is x
 
     def check_to_variable_from_variable(self, backend_config, requires_grad):
-        x_arr = backend_config.get_array(np.empty(1, np.float32))
+        x_arr = backend_config.get_array(np.random.randn(1).astype(np.float32))
         x = chainer.Variable(x_arr, requires_grad=requires_grad)
         y = chainer.as_variable(x)
         assert y is x
@@ -2778,12 +2778,12 @@ class TestAsVariable(unittest.TestCase):
 class TestAsArray(unittest.TestCase):
 
     def test_to_array_from_array(self, backend_config):
-        x = backend_config.get_array(np.empty(1, np.float32))
+        x = backend_config.get_array(np.random.randn(1).astype(np.float32))
         y = chainer.as_array(x)
         assert y is x
 
     def check_to_array_from_variable(self, backend_config, requires_grad):
-        x_arr = backend_config.get_array(np.empty(1, np.float32))
+        x_arr = backend_config.get_array(np.random.randn(1).astype(np.float32))
         x = chainer.Variable(x_arr, requires_grad=requires_grad)
         y = chainer.as_array(x)
         assert y is x.array
