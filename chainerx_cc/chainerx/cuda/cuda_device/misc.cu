@@ -25,7 +25,7 @@ CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(SqrtKernel, { out = cuda::Sqrt
 
 CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(SquareKernel, { out = x * x; });
 
-CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(FabsKernel, { out = cuda::Fabs(x); });
+CHAINERX_CUDA_REGISTER_ELTWISE_DTYPE_UNARY_KERNEL(AbsKernel, { out = cuda::Abs(x); }, VisitNumericDtype);
 
 CHAINERX_CUDA_REGISTER_ELTWISE_DTYPE_UNARY_KERNEL(SignKernel, { out = cuda::Sign(x); }, VisitNumericDtype);
 
