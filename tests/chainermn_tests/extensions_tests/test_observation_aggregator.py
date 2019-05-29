@@ -50,7 +50,7 @@ class TestObservationAggregator(unittest.TestCase):
             trigger=(2, 'iteration'), priority=extension.PRIORITY_READER)
         def aggregated_rank_checker(trainer):
             actual = trainer.observation['rank-aggregated']
-            expected = (comm.size - 1) / 2
+            expected = (comm.size - 1) / 2.0
             chainer.testing.assert_allclose(actual,
                                             expected)
 
