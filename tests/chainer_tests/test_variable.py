@@ -1413,13 +1413,14 @@ _set_data_backend_params = [
 @testing.backend.inject_backend_tests(None, _set_data_backend_params)
 class TestVariableSetData(unittest.TestCase):
 
-    def _gen_array(self, xp, shape, requires_grad):
+    def _gen_array(self, device, shape, requires_grad):
         if shape is None:
             a = None
         else:
-            a = xp.random.uniform(-1, 1, shape).astype(np.float32)
+            a = device.send_array(
+                np.random.uniform(-1, 1, shape).astype(np.float32))
 
-        if a is not None and xp is chainerx and requires_grad:
+        if a is not None and device.xp is chainerx and requires_grad:
             return a.require_grad()
         else:
             return a
@@ -1432,8 +1433,8 @@ class TestVariableSetData(unittest.TestCase):
         requires_grad_x = self.requires_grads[0]
         requires_grad_y = self.requires_grads[1]
 
-        x = self._gen_array(xp_x, self.x_shape, requires_grad_x)
-        y = self._gen_array(xp_y, self.x_shape, requires_grad_y)
+        x = self._gen_array(device_x, self.x_shape, requires_grad_x)
+        y = self._gen_array(device_y, self.x_shape, requires_grad_y)
 
         v = chainer.Variable(x, requires_grad=requires_grad_x)
 
