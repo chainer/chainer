@@ -105,3 +105,16 @@ class Device(object):
         """Makes the device current in the current thread.
          """
         pass
+
+    def is_compatible_array(self, array):
+        """Checks if the specified array is compatible with the device.
+
+        Args:
+            array: Array of NumPy, CuPy, or ChainerX.
+
+        Returns:
+            `True` if the array is compatible with the device. Otherwise
+            return `False`.
+        """
+        raise NotImplementedError(
+            'Device implementation must override this property.')

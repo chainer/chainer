@@ -258,6 +258,9 @@ to the CUDA device ID.
     def use(self):
         self.device.use()
 
+    def is_compatible_array(self, array):
+        return isinstance(array, ndarray)
+
 
 # ------------------------------------------------------------------------------
 # Global states
