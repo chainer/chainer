@@ -2762,12 +2762,16 @@ class TestAsVariable(unittest.TestCase):
             # non-chainerx
             assert y.array is x
 
-    def test_to_variable_from_variable(self, backend_config):
+    def check_to_variable_from_variable(self, backend_config, requires_grad):
         x_arr = backend_config.get_array(np.empty(1, np.float32))
-        x = chainer.Variable(x_arr)
+        x = chainer.Variable(x_arr, requires_grad=requires_grad)
         y = chainer.as_variable(x)
         assert y is x
-        assert y.requires_grad is True
+        assert y.requires_grad is requires_grad
+
+    def test_to_variable_from_variable(self, backend_config):
+        self.check_to_variable_from_variable(backend_config, True)
+        self.check_to_variable_from_variable(backend_config, False)
 
 
 @testing.backend.inject_backend_tests(None, _backend_params)
@@ -2778,11 +2782,15 @@ class TestAsArray(unittest.TestCase):
         y = chainer.as_array(x)
         assert y is x
 
-    def test_to_array_from_variable(self, backend_config):
+    def check_to_array_from_variable(self, backend_config, requires_grad):
         x_arr = backend_config.get_array(np.empty(1, np.float32))
-        x = chainer.Variable(x_arr)
+        x = chainer.Variable(x_arr, requires_grad=requires_grad)
         y = chainer.as_array(x)
         assert y is x.array
+
+    def test_to_array_from_variable(self, backend_config):
+        self.check_to_array_from_variable(backend_config, True)
+        self.check_to_array_from_variable(backend_config, False)
 
 
 @testing.parameterize(*testing.product({
