@@ -122,6 +122,6 @@ Array Linspace(
         const nonstd::optional<Dtype>& dtype = nonstd::nullopt,
         Device& device = GetDefaultDevice());
 
-std::vector<Array> Meshgrid(const std::vector<Array>& arrays, const nonstd::optional<std::string>& indexing);
+std::vector<Array> Meshgrid(const std::vector<Array>& arrays, const std::string& indexing);
 
 }  // namespace chainerx

@@ -419,14 +419,14 @@ Note:
 
     _docs.set_doc(
         chainerx.meshgrid,
-        """meshgrid(arrays, indexing="xy")
-Return coordinate matrices from coordinate vectors.
+        """meshgrid(xi, indexing='xy')
+Returns coordinate matrices from coordinate vectors.
 
 Make N-D coordinate arrays for vectorized evaluations of N-D scalar/vector
 fields over N-D grids, given one-dimensional coordinate arrays x1, x2,…, xn.
 
 Args:
-    arrays (sequence of :class:`~chainerx.ndarray`\\ s): 1-D arrays
+    xi (sequence of :class:`~chainerx.ndarray`\\ s): 1-D arrays
         representing the coordinates of a grid.
     indexing (str): {‘xy’, ‘ij’}, optional
         Cartesian (‘xy’, default) or matrix (‘ij’) indexing of output.

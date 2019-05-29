@@ -1,7 +1,7 @@
 from io import StringIO
 import sys
 import tempfile
-from random import randint
+import random
 
 import chainer
 import numpy
@@ -1186,7 +1186,6 @@ class TestMeshgrid(op_utils.NumpyOpTest):
     check_numpy_strides_compliance = False
 
     def setup(self, dtype):
-        # TODO(kshitij12345) : Remove when #6621 is in.
         if numpy.dtype(dtype).kind != 'f':
             self.skip_backward_test = True
             self.skip_double_backward_test = True
@@ -1198,15 +1197,11 @@ class TestMeshgrid(op_utils.NumpyOpTest):
     def generate_inputs(self):
         arrs = ()
         for _ in range(self.input_arrs):
-            arrs += (numpy.linspace(randint(-10, 0), randint(1, 10),
-                                    randint(3, 7)).astype(self.dtype),)
+            arrs += (numpy.linspace(random.randint(-10, 0),
+                                    random.randint(1, 10),
+                                    random.randint(3, 7)).astype(self.dtype),)
 
         return arrs
 
     def forward_xp(self, inputs, xp):
-        if xp is numpy:
-            outs = xp.meshgrid(*inputs, indexing=self.indexing)
-        elif xp is chainerx:
-            outs = xp.meshgrid(list(inputs), indexing=self.indexing)
-
-        return tuple(outs)
+        return tuple(xp.meshgrid(*inputs, indexing=self.indexing))
