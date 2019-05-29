@@ -861,7 +861,7 @@ class Variable(object):
         # type: (tp.Optional[types.NdArray]) -> None
 
         old_device = self.device
-        if not old_device.is_compatible_array(d):
+        if d is not None and not old_device.is_compatible_array(d):
             new_device = backend.get_device_from_array(d)
             raise ValueError(
                 "The specified array is incompatible. Variable is configured "
