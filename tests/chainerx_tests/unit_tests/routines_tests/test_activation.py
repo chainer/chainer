@@ -73,6 +73,109 @@ _in_out_dtypes_math_functions = _in_out_float_dtypes_math_functions + [
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
+class TestClippedRelu(op_utils.OpTest):
+
+    z = 0.75
+
+    def setup(self, shape, float_dtype):
+        self.dtype = float_dtype
+        self.shape = shape
+
+        if float_dtype == 'float16':
+            self.check_forward_options.update({'atol': 1e-4, 'rtol': 1e-3})
+            self.check_backward_options.update({'atol': 1e-2, 'rtol': 5e-2})
+            self.check_double_backward_options.update(
+                {'atol': 1e-2, 'rtol': 5e-2})
+
+    def generate_inputs(self):
+        dtype = self.dtype
+        shape = self.shape
+        x = array_utils.create_dummy_ndarray(numpy, shape, dtype)
+        return x,
+
+    def forward_chainerx(self, inputs):
+        x, = inputs
+        y = chainerx.clipped_relu(x, self.z)
+        return y,
+
+    def forward_expected(self, inputs):
+        x, = inputs
+        y = numpy.asarray(x.clip(0, self.z)).astype(x.dtype)
+        return y,
+
+
+class TestCrelu(op_utils.OpTest):
+    
+    axis = 1
+
+    def setup(self, shape, float_dtype):
+        self.shape = shape
+        self.dtype = float_dtype
+
+        if float_dtype == 'float16':
+            self.check_forward_options.update({'atol': 1e-4, 'rtol': 1e-3})
+            self.check_backward_options.update({'atol': 1e-2, 'rtol': 5e-2})
+            self.check_double_backward_options.update(
+                {'atol': 1e-2, 'rtol': 5e-2})
+
+    def generate_inputs(self):
+        shape = self.shape
+        dtype = self.dtype
+        x = array_utils.create_dummy_ndarray(numpy, shape, dtype)
+        return x,
+
+    def forward_chainerx(self, inputs):
+        x, = inputs
+        y = chainerx.crelu(x, self.axis)
+        return y,
+
+    def forward_expected(self, inputs):
+        x, = inputs
+        expected_former = numpy.maximum(0, x)
+        expected_latter = numpy.maximum(0, -x)
+        expected = numpy.concatenate(
+            (expected_former, expected_latter), axis=self.axis)
+        y = numpy.asarray(expected).astype(x.dtype)
+        return y,
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+class TestElu(op_utils.OpTest):
+
+    alpha = 2.0
+
+    def setup(self, shape, float_dtype):
+        self.shape = shape
+        self.dtype = float_dtype
+
+        if float_dtype == 'float16':
+            self.check_forward_options.update({'atol': 1e-4, 'rtol': 1e-3})
+            self.check_backward_options.update({'atol': 1e-2, 'rtol': 5e-2})
+            self.check_double_backward_options.update(
+                {'atol': 1e-2, 'rtol': 5e-2})
+
+    def generate_inputs(self):
+        shape = self.shape
+        dtype = self.dtype
+        x = array_utils.create_dummy_ndarray(numpy, shape, dtype)
+        return x,
+
+    def forward_chainerx(self, inputs):
+        x, = inputs
+        y = chainerx.elu(x, self.alpha)
+        return y,
+
+    def forward_expected(self, inputs):
+        x, = inputs
+        expected = x.astype(numpy.float64, copy=True)
+        for i in numpy.ndindex(x.shape):
+            if x[i] < 0:
+                expected[i] = self.alpha * numpy.expm1(expected[i])
+        y = numpy.asarray(expected).astype(x.dtype)
+        return y,
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
     # Special shapes
     chainer.testing.product({
