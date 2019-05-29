@@ -860,17 +860,22 @@ class Variable(object):
     def array(self, d):
         # type: (tp.Optional[types.NdArray]) -> None
 
-        # TODO(okapies): The following lines invoke get_device_from_array()
-        #  twice which generates larger overhead.
         old_device = self.device
-        new_device = backend.get_device_from_array(d)
-        if not old_device == new_device:
+        if not isinstance(d, old_device.supported_array_types):
+            new_device = backend.get_device_from_array(d)
             raise ValueError(
-                "The specified array is invalid. Variable is configured "
-                "against {} but it is on {}.".format(old_device, new_device))
+                "The specified array is incompatible. Variable is configured "
+                "against {} but it is on {}.".format(old_device,
+                    type(new_device)))
 
         if self._has_chainerx_array:
             d_old = self._data[0]
+            if not d_old.device == d.device:  # d must be chainerx.ndarray
+                new_device = backend.get_device_from_array(d)
+                raise ValueError(
+                    "The specified array is incompatible. Variable is "
+                    "configured against {} but it is on {}.".format(
+                        old_device, new_device))
             if (d_old is not None
                     and (d_old.is_backprop_required()
                          or d.is_backprop_required())):
