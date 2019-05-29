@@ -1,0 +1,16 @@
+configs {
+  key: "experimental"
+  value {
+    requirement {
+      cpu: 8
+      memory: 16
+      gpu: 1
+      image: "windows"
+    }
+    time_limit {
+      seconds: 6000
+    }
+    command:
+        ".chainerci\\run_test.bat 10_0 37"
+  }
+}
