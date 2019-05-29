@@ -199,7 +199,7 @@ class TestDropoutCudnnCall(unittest.TestCase):
         self.gy = cuda.cupy.random.uniform(-1, 1, (2, 3)).astype(self.dtype)
 
     def forward(self):
-        return functions.dropout(self.x, self.dropout)
+        return functions.dropout(chainer.Variable(self.x), self.dropout)
 
     def test_call_cudnn_forward(self):
         with chainer.using_config('use_cudnn', self.use_cudnn):
