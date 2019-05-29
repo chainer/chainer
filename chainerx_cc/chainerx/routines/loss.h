@@ -10,12 +10,12 @@
 
 namespace chainerx {
 
-Array MeanAbsoluteError(const Array& x0, const Array& x1);
+Array MeanAbsoluteError(const Array& x1, const Array& x2);
 
-Array MeanSquaredError(const Array& x0, const Array& x1);
+Array MeanSquaredError(const Array& x1, const Array& x2);
 
-Array GaussianKLDivergence(const Array& mu, const Array& ln_var, const std::string& reduce);
+Array GaussianKLDivergence(const Array& mu, const Array& ln_var);
 
-Array HuberLoss(const Array& x, const Array& t, Scalar delta, const std::string& reduce);
+Array HuberLoss(const Array& x1, const Array& x2, Scalar delta, const std::string& reduce);
 
 }  // namespace chainerx

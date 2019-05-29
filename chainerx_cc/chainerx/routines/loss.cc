@@ -31,27 +31,14 @@
 
 namespace chainerx {
 
-Array MeanAbsoluteError(const Array& x0, const Array& x1) { return Fabs(x0 - x1).Mean(); }
+Array MeanAbsoluteError(const Array& x1, const Array& x2) { return Fabs(x1 - x2).Mean(); }
 
-Array MeanSquaredError(const Array& x0, const Array& x1) { return SquaredDifference(x0, x1).Mean(); }
+Array MeanSquaredError(const Array& x1, const Array& x2) { return SquaredDifference(x1, x2).Mean(); }
 
-Array GaussianKLDivergence(const Array& mu, const Array& ln_var, const std::string& reduce) {
-    const Array& var = Exp(ln_var);
-    const Array& mean_square = Square(mu);
+Array GaussianKLDivergence(const Array& mu, const Array& ln_var) { return (Square(mu) + Exp(ln_var) - ln_var - 1) * 0.5; }
 
-    Array loss = (mean_square + var - ln_var - 1) * 0.5;
-
-    if (reduce == "sum") {
-        return loss.Sum();
-    } else if (reduce == "mean") {
-        return loss.Mean();
-    } else {
-        return loss;
-    }
-}
-
-Array HuberLoss(const Array& x, const Array& t, Scalar delta, const std::string& reduce) {
-    Array a = x - t;
+Array HuberLoss(const Array& x1, const Array& x2, Scalar delta, const std::string& reduce) {
+    Array a = x1 - x2;
     Array abs_a = Fabs(a);
     Array delta_a = EmptyLike(a);
     delta_a.Fill(delta);

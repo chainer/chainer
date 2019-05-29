@@ -1005,32 +1005,28 @@ void InitChainerxPooling(pybind11::module& m) {
 
 void InitChainerxLoss(pybind11::module& m) {
     m.def("mean_absolute_error",
-          [](const ArrayBodyPtr& x0, const ArrayBodyPtr& x1) { return MoveArrayBody(MeanAbsoluteError(Array{x0}, Array{x1})); },
-          py::arg("x0"),
-          py::arg("x1"));
+          [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return MoveArrayBody(MeanAbsoluteError(Array{x1}, Array{x2})); },
+          py::arg("x1"),
+          py::arg("x2"));
     m.def("mean_squared_error",
-          [](const ArrayBodyPtr& x0, const ArrayBodyPtr& x1) { return MoveArrayBody(MeanSquaredError(Array{x0}, Array{x1})); },
-          py::arg("x0"),
-          py::arg("x1"));
+          [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return MoveArrayBody(MeanSquaredError(Array{x1}, Array{x2})); },
+          py::arg("x1"),
+          py::arg("x2"));
     m.def("gaussian_kl_divergence",
-          [](const ArrayBodyPtr& mean, const ArrayBodyPtr& ln_var, const std::string& reduce) {
-              if (!(reduce == "no" || reduce == "mean" || reduce == "sum")) {
-                  throw py::value_error{"reduce must be either of 'no', 'mean', 'sum'"};
-              }
-              return MoveArrayBody(GaussianKLDivergence(Array{mean}, Array{ln_var}, reduce));
+          [](const ArrayBodyPtr& mean, const ArrayBodyPtr& ln_var) {
+              return MoveArrayBody(GaussianKLDivergence(Array{mean}, Array{ln_var}));
           },
           py::arg("mean"),
-          py::arg("ln_var"),
-          py::arg("reduce") = "sum");
+          py::arg("ln_var"));
     m.def("huber_loss",
-          [](const ArrayBodyPtr& x, const ArrayBodyPtr& t, Scalar delta, const std::string& reduce) {
+          [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2, Scalar delta, const std::string& reduce) {
               if (!(reduce == "no" || reduce == "sum_along_second_axis")) {
                   throw py::value_error{"reduce must be either of 'no' or 'sum_along_second_axis'"};
               }
-              return MoveArrayBody(HuberLoss(Array{x}, Array{t}, delta, reduce));
+              return MoveArrayBody(HuberLoss(Array{x1}, Array{x2}, delta, reduce));
           },
-          py::arg("x"),
-          py::arg("t"),
+          py::arg("x1"),
+          py::arg("x2"),
           py::arg("delta"),
           py::arg("reduce") = "sum_along_second_axis");
 }

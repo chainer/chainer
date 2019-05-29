@@ -54,8 +54,8 @@ class LossBase(op_utils.ChainerOpTest):
 class TestMSE(LossBase):
 
     def forward_xp(self, inputs, xp):
-        x0, x1 = inputs
-        return xp.mean_squared_error(x0, x1),
+        x1, x2 = inputs
+        return xp.mean_squared_error(x1, x2),
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
@@ -75,8 +75,8 @@ class TestMSE(LossBase):
 class TestMAE(LossBase):
 
     def forward_xp(self, inputs, xp):
-        x0, x1 = inputs
-        return xp.mean_absolute_error(x0, x1),
+        x1, x2 = inputs
+        return xp.mean_absolute_error(x1, x2),
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
@@ -90,16 +90,18 @@ class TestMAE(LossBase):
                 (4, 1, 2, 4)
             ]),
         chainer.testing.from_pytest_parameterize(
-            'in_dtypes,out_dtype', _in_out_loss_dtypes),
-        chainer.testing.from_pytest_parameterize(
-            'reduce', ['sum', 'mean', 'no'])
+            'in_dtypes,out_dtype', _in_out_loss_dtypes)
     ])
 ))
 class TestGaussianKLDivergence(LossBase):
 
     def forward_xp(self, inputs, xp):
         mean, ln_var = inputs
-        return xp.gaussian_kl_divergence(mean, ln_var, reduce=self.reduce),
+        if xp is chainerx:
+            out = xp.gaussian_kl_divergence(mean, ln_var)
+        else:
+            out = xp.gaussian_kl_divergence(mean, ln_var, reduce='no')
+        return out,
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
