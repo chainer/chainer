@@ -169,10 +169,8 @@ class TestBernoulliLogProb(unittest.TestCase):
             log_prob = distributions.bernoulli._bernoulli_log_prob(
                 self.logit, self.x)
 
-        log_prob.backward()
-
         # just confirm that the backward method runs without raising error.
-        assert True
+        log_prob.backward()
 
 
 testing.run_module(__name__, __file__)
