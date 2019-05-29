@@ -9,7 +9,6 @@
 #include <nonstd/optional.hpp>
 
 #include "chainerx/array.h"
-#include "chainerx/axes.h"
 #include "chainerx/backprop_mode.h"
 #include "chainerx/backward_builder.h"
 #include "chainerx/backward_context.h"
@@ -424,50 +423,6 @@ Array Divide(Scalar x1, const Array& x2) { return TrueDivide(x1, x2); }
 
 Array Reciprocal(const Array& x) { return Scalar{1, GetKind(x.dtype())} / x; }
 
-Array Sum(const Array& a, const OptionalAxes& axis, bool keepdims) {
-    Axes sorted_axis = internal::GetSortedAxesOrAll(axis, a.ndim());
-
-    // Decide the output dtype for integral input dtype.
-    Dtype out_dtype{};
-    switch (GetKind(a.dtype())) {
-        case DtypeKind::kBool:
-        case DtypeKind::kInt:  // fallthrough
-            out_dtype = Dtype::kInt64;
-            break;
-        case DtypeKind::kUInt:
-            out_dtype = Dtype::kInt64;  // TODO(niboshi): This should be kUInt64
-            break;
-        default:
-            out_dtype = a.dtype();
-    }
-
-    Array out = internal::EmptyReduced(a.shape(), out_dtype, sorted_axis, keepdims, a.device());
-    {
-        NoBackpropModeScope scope{};
-        a.device().backend().CallKernel<SumKernel>(a, sorted_axis, out);
-    }
-
-    BackwardBuilder bb{"sum", a, out};
-    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-        bt.Define([sorted_axis, in_shape = a.shape(), keepdims](BackwardContext& bctx) {
-            const Array& gout = *bctx.output_grad();
-            CHAINERX_ASSERT(std::is_sorted(sorted_axis.begin(), sorted_axis.end()));
-
-            if (!(in_shape.ndim() == 0 || sorted_axis.empty() || keepdims)) {
-                Shape out_shape_broadcastable = gout.shape();
-                for (auto axis : sorted_axis) {
-                    out_shape_broadcastable.insert(out_shape_broadcastable.begin() + axis, 1);
-                }
-                bctx.input_grad() = gout.Reshape(out_shape_broadcastable).BroadcastTo(in_shape);
-            } else {
-                bctx.input_grad() = gout.BroadcastTo(in_shape);
-            }
-        });
-    }
-    bb.Finalize();
-    return out;
-}
-
 namespace {
 
 // Calculates: x1 < x2 ? pos : neg
@@ -613,6 +568,48 @@ Array Exp(const Array& x) {
     return out;
 }
 
+Array Expm1(const Array& x) {
+    Dtype dtype = internal::GetMathResultDtype(x.dtype());
+    Array out = Empty(x.shape(), dtype, x.device());
+
+    {
+        NoBackpropModeScope scope{};
+        x.device().backend().CallKernel<Expm1Kernel>(x, out);
+    }
+
+    BackwardBuilder bb{"expm1", x, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([out_tok = bb.RetainOutput(0)](BackwardContext& bctx) {
+            const Array& out = bctx.GetRetainedOutput(out_tok);
+            bctx.input_grad() = *bctx.output_grad() * (out + 1);
+        });
+    }
+    bb.Finalize();
+
+    return out;
+}
+
+Array Exp2(const Array& x) {
+    Dtype dtype = internal::GetMathResultDtype(x.dtype());
+    Array out = Empty(x.shape(), dtype, x.device());
+
+    {
+        NoBackpropModeScope scope{};
+        x.device().backend().CallKernel<Exp2Kernel>(x, out);
+    }
+
+    BackwardBuilder bb{"exp2", x, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([out_tok = bb.RetainOutput(0)](BackwardContext& bctx) {
+            const Array& out = bctx.GetRetainedOutput(out_tok);
+            bctx.input_grad() = *bctx.output_grad() * out * std::log(2.0);
+        });
+    }
+    bb.Finalize();
+
+    return out;
+}
+
 Array Log(const Array& x) {
     Dtype dtype = internal::GetMathResultDtype(x.dtype());
     Array out = Empty(x.shape(), dtype, x.device());
@@ -655,19 +652,25 @@ Array Log10(const Array& x) {
     return out;
 }
 
-Array LogSumExp(const Array& x, const OptionalAxes& axis, bool keepdims) {
+Array Log1p(const Array& x) {
     Dtype dtype = internal::GetMathResultDtype(x.dtype());
-    const Array& x_cast = x.dtype() == dtype ? x : x.AsType(dtype);
-    Axes sorted_axis = internal::GetSortedAxesOrAll(axis, x.ndim());
-    Array xmax = AMax(x_cast, sorted_axis, true);
-    Array logs = Log(Sum(Exp(x_cast - xmax), sorted_axis, keepdims));
-    return (keepdims ? xmax : Squeeze(xmax, axis)) + logs;
-}
+    Array out = Empty(x.shape(), dtype, x.device());
 
-Array LogSoftmax(const Array& x, const OptionalAxes& axis) {
-    Dtype dtype = internal::GetMathResultDtype(x.dtype());
-    const Array& x_cast = x.dtype() == dtype ? x : x.AsType(dtype);
-    return x_cast - LogSumExp(x_cast, axis.has_value() ? axis : OptionalAxes{1}, true);
+    {
+        NoBackpropModeScope scope{};
+        x.device().backend().CallKernel<Log1pKernel>(x, out);
+    }
+
+    BackwardBuilder bb{"log1p", x, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([x_tok = bb.RetainInput(0)](BackwardContext& bctx) {
+            const Array& x = bctx.GetRetainedInput(x_tok);
+            bctx.input_grad() = *bctx.output_grad() / (1.0 + x);
+        });
+    }
+    bb.Finalize();
+
+    return out;
 }
 
 Array Sigmoid(const Array& x) {
@@ -680,16 +683,6 @@ Array Relu(const Array& x) {
     Dtype dtype = internal::GetMathResultDtype(x.dtype());
     const Array& x_cast = x.dtype() == dtype ? x : x.AsType(dtype);
     return Maximum(0, x_cast);
-}
-
-Array Softmax(const Array& x, const OptionalAxes& axis) {
-    Dtype dtype = internal::GetMathResultDtype(x.dtype());
-    const Array& x_cast = x.dtype() == dtype ? x : x.AsType(dtype);
-    Axes sorted_axis = internal::GetSortedAxesOrAll(axis.has_value() ? axis : OptionalAxes{1}, x.ndim());
-    Array xmax = AMax(x_cast, sorted_axis, true);
-    Array exps = Exp(x_cast - xmax);
-    Array sums = Sum(exps, sorted_axis, true);
-    return exps * Reciprocal(sums);
 }
 
 Array Square(const Array& x) {

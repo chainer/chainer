@@ -16,6 +16,7 @@
 #include "chainerx/kernels/indexing.h"
 #include "chainerx/kernels/math.h"
 #include "chainerx/kernels/pooling.h"
+#include "chainerx/kernels/reduction.h"
 #include "chainerx/macro.h"
 #include "chainerx/native/col2im.h"
 #include "chainerx/native/elementwise.h"
