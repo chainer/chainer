@@ -25,7 +25,7 @@ from chainer import utils
      ]
 ))
 @testing.inject_backend_tests(
-    None,
+    ['test_forward', 'test_backward', 'test_double_backward'],
     # CPU
     [{}]
     # GPU
