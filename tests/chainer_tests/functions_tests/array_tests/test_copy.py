@@ -94,11 +94,6 @@ class CopyTestBase(object):
 
         y_var = functions.copy(x_var, dst_device)
 
-        # TODO(niboshi): Remove this workround after Variable.grad.setter is
-        # fixed so that it calls gy.require_grad() internally.
-        if dst_backend_config.xp is chainerx:
-            gy.require_grad()
-
         y_var.grad = gy
 
         gy_var = y_var.grad_var
