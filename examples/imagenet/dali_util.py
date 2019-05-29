@@ -13,7 +13,9 @@ except ImportError:
 
 
 import chainer
+from chainer.backends import _chainerx
 from chainer.backends import cuda
+from chainer.dataset import convert
 import ctypes
 
 
@@ -23,12 +25,22 @@ def _pair(x):
     return x, x
 
 
+def _get_device_id(device):
+    if isinstance(device, _chainerx.ChainerxDevice):
+        device = device.fallback_device
+    if isinstance(device, cuda.GpuDevice):
+        return device.device.id
+    raise RuntimeError('GPU device is required to use DALI (device: {}).'
+                       ''.format(device))
+
+
 class DaliPipelineTrain(pipeline.Pipeline):
 
     def __init__(self, file_list, file_root, crop_size,
-                 batch_size, num_threads, device_id,
+                 batch_size, num_threads, device,
                  random_shuffle=True, seed=-1, mean=None, std=None,
                  num_samples=None):
+        device_id = _get_device_id(device)
         super(DaliPipelineTrain, self).__init__(batch_size, num_threads,
                                                 device_id, seed=seed)
         crop_size = _pair(crop_size)
@@ -80,9 +92,10 @@ class DaliPipelineTrain(pipeline.Pipeline):
 class DaliPipelineVal(pipeline.Pipeline):
 
     def __init__(self, file_list, file_root, crop_size,
-                 batch_size, num_threads, device_id,
+                 batch_size, num_threads, device,
                  random_shuffle=False, seed=-1, mean=None, std=None,
                  num_samples=None):
+        device_id = _get_device_id(device)
         super(DaliPipelineVal, self).__init__(batch_size, num_threads,
                                               device_id, seed=seed)
         crop_size = _pair(crop_size)
@@ -121,13 +134,15 @@ class DaliConverter(object):
         perturbation = perturbation[:3, :crop_size, :crop_size].astype(
             chainer.get_dtype())
         self.perturbation = perturbation.reshape(1, 3, crop_size, crop_size)
+        setattr(self, '__is_decorated_converter', True)
 
-    def __call__(self, inputs, device=None):
+    def __call__(self, inputs, device):
         """Convert DALI arrays to Numpy/CuPy arrays"""
 
+        device_id = _get_device_id(device)
         xp = cuda.get_array_module(self.perturbation)
         if xp is not cuda.cupy:
-            self.perturbation = cuda.to_gpu(self.perturbation, device)
+            self.perturbation = cuda.to_gpu(self.perturbation, device_id)
 
         outputs = []
         for i in range(len(inputs)):
@@ -136,8 +151,7 @@ class DaliConverter(object):
                 x = np.array(x)
                 if x.ndim == 2 and x.shape[1] == 1:
                     x = x.squeeze(axis=1)
-                if device is not None and device >= 0:
-                    x = cuda.to_gpu(x, device)
+                x = cuda.to_gpu(x, device_id)
             elif (isinstance(x, dali.backend_impl.TensorGPU)):
                 x_cupy = cuda.cupy.empty(shape=x.shape(), dtype=x.dtype())
                 # Synchronization is necessary here to avoid data corruption
@@ -149,16 +163,17 @@ class DaliConverter(object):
                 x = x_cupy.astype(chainer.get_dtype())
                 if self.perturbation is not None:
                     x = x - self.perturbation
-                if device is not None and device < 0:
-                    x = cuda.to_cpu(x)
             else:
                 raise ValueError('Unexpected object')
             outputs.append(x)
         return tuple(outputs)
 
 
-def dali_converter(inputs, device=None):
+@convert.converter()
+def dali_converter(inputs, device):
     """Convert DALI arrays to Numpy/CuPy arrays"""
+
+    device_id = _get_device_id(device)
 
     outputs = []
     for i in range(len(inputs)):
@@ -167,8 +182,7 @@ def dali_converter(inputs, device=None):
             x = np.array(x)
             if x.ndim == 2 and x.shape[1] == 1:
                 x = x.squeeze(axis=1)
-            if device is not None and device >= 0:
-                x = cuda.to_gpu(x, device)
+            x = cuda.to_gpu(x, device_id)
         elif (isinstance(x, dali.backend_impl.TensorGPU)):
             x_cupy = cuda.cupy.empty(shape=x.shape(), dtype=x.dtype())
             # Synchronization is necessary here to avoid data corruption
@@ -178,8 +192,6 @@ def dali_converter(inputs, device=None):
             x.copy_to_external(ctypes.c_void_p(x_cupy.data.ptr))
             cuda.cupy.cuda.runtime.deviceSynchronize()
             x = x_cupy.astype(chainer.get_dtype())
-            if device is not None and device < 0:
-                x = cuda.to_cpu(x)
         else:
             raise ValueError('Unexpected object')
         outputs.append(x)
