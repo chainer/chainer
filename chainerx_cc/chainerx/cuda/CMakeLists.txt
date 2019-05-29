@@ -1,5 +1,6 @@
 install(FILES
     cublas.h
+    cusolver.h
     cuda.h
     cuda_backend.h
     cuda_conv.h
@@ -20,6 +21,7 @@ install(FILES
 
 CUDA_ADD_LIBRARY(chainerx_cuda STATIC
     cublas.cc
+    cusolver.cc
     cuda.cc
     cuda_conv.cc
     cuda_device.cc
@@ -48,7 +50,7 @@ CUDA_ADD_LIBRARY(chainerx_cuda STATIC
 
 CUDA_ADD_CUBLAS_TO_TARGET(chainerx_cuda)
 
-target_link_libraries(chainerx_cuda ${CUDNN_LIBRARIES})
+target_link_libraries(chainerx_cuda ${CUDNN_LIBRARIES} ${CUDA_cusolver_LIBRARY})
 
 if(${CHAINERX_BUILD_TEST})
     add_executable(chainerx_cuda_test
