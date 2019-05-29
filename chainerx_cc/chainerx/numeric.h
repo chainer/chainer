@@ -1,5 +1,6 @@
 #pragma once
 #include <cmath>
+#include <type_traits>
 
 #include "chainerx/array.h"
 #include "chainerx/scalar.h"
@@ -60,14 +61,19 @@ CHAINERX_DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(Arcsin, std::asin)
 CHAINERX_DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(Arccos, std::acos)
 CHAINERX_DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(Arctan, std::atan)
 CHAINERX_DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(Exp, std::exp)
+CHAINERX_DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(Expm1, std::expm1)
+CHAINERX_DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(Exp2, std::exp2)
 CHAINERX_DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(Log, std::log)
 CHAINERX_DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(Log10, std::log10)
+CHAINERX_DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(Log1p, std::log1p)
 CHAINERX_DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(Sqrt, std::sqrt)
 CHAINERX_DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(Fabs, std::fabs)
 
+namespace numeric_detail {
+
 template <typename T>
-inline T Power(T x1, T x2) {
-    static_assert(std::is_integral<T>::value, "Non-specialized template Power expects only integral arguments.");
+inline T NonNegativePower(T x1, T x2) {
+    static_assert(std::is_integral<T>::value, "NonNegativePower is only defined for non-negative integrals.");
     T out{1};
 
     while (x2 > 0) {
@@ -81,8 +87,32 @@ inline T Power(T x1, T x2) {
     return out;
 }
 
+}  // namespace numeric_detail
+
+template <typename T>
+inline auto Power(T x1, T x2) -> std::enable_if_t<std::is_integral<T>::value && std::is_signed<T>::value, T> {
+    if (x2 < 0) {
+        switch (x1) {
+            case -1:
+                return x2 & 1 ? -1 : 1;
+            case 1:
+                return 1;
+            default:
+                return 0;
+        }
+    }
+    return numeric_detail::NonNegativePower(x1, x2);
+}
+
+template <typename T>
+inline auto Power(T x1, T x2) -> std::enable_if_t<std::is_integral<T>::value && std::is_unsigned<T>::value, T> {
+    return numeric_detail::NonNegativePower(x1, x2);
+}
+
+template <typename T>
+inline auto Power(T x1, T x2) -> std::enable_if_t<!std::is_integral<T>::value, T>;
 template <>
-inline chainerx::Float16 Power<chainerx::Float16>(chainerx::Float16 x1, chainerx::Float16 x2) {
+inline chainerx::Float16 Power(chainerx::Float16 x1, chainerx::Float16 x2) {
     return chainerx::Float16{std::pow(static_cast<float>(x1), static_cast<float>(x2))};
 }
 template <>

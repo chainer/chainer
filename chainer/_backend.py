@@ -33,6 +33,13 @@ _dummy_context = _DummyContext()
 # TODO(niboshi): Write more detailed description about interface/usage.
 class Device(object):
     """A base class of unified devices.
+
+    Chainer has the following concrete implementations:
+
+    - :class:`chainer.backend.CpuDevice`
+    - :class:`chainer.backend.GpuDevice`
+    - :class:`chainer.backend.Intel64Device`
+    - :class:`chainer.backend.ChainerxDevice`
     """
 
     @property

@@ -62,19 +62,24 @@ class BatchRenormalization(BatchNormalization):
 
             avg_mean = self.avg_mean
             avg_var = self.avg_var
+            update_statistics = True
 
             if chainer.config.in_recomputing:
                 # Do not update statistics when extra forward computation is
                 # called.
                 if finetune:
                     self.N -= 1  # Revert the count
-                avg_mean = self.xp.zeros_like(self.avg_mean)
-                avg_var = self.xp.zeros_like(self.avg_var)
+                avg_mean = self._prev_avg_mean
+                avg_var = self._prev_avg_var
+                update_statistics = False
+            elif chainer.config._will_recompute:
+                self._prev_avg_mean = avg_mean.copy()
+                self._prev_avg_var = avg_var.copy()
 
             ret = batch_renormalization.batch_renormalization(
                 x, gamma, beta, self.rmax, self.dmax,
                 self.eps, avg_mean, avg_var, decay,
-                update_statistics=True)
+                update_statistics=update_statistics)
         else:
             # Use running average statistics or fine-tuned statistics.
             mean = self.avg_mean

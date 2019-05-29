@@ -1,4 +1,5 @@
 cupy
 chainer
-librosa
+matplotlib
+qlibrosa
 tqdm

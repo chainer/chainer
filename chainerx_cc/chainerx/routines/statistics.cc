@@ -9,6 +9,7 @@
 #include "chainerx/backward_context.h"
 #include "chainerx/dtype.h"
 #include "chainerx/kernels/math.h"
+#include "chainerx/kernels/reduction.h"
 #include "chainerx/kernels/statistics.h"
 #include "chainerx/macro.h"
 #include "chainerx/routines/creation.h"
