@@ -1,15 +1,20 @@
 import six
 
+import chainer
 from chainer import backend
-from chainer.backends import cuda
 from chainer.dataset import convert
 from chainer.dataset import iterator as iterator_module
 from chainer.training import _updater
+from chainer.utils import argument
 
 
 class StandardUpdater(_updater.Updater):
 
-    """Standard implementation of Updater.
+    """StandardUpdater(\
+iterator, optimizer, converter=convert.concat_examples, model_device=None, \
+loss_func=None, loss_scale=None, auto_new_epoch=True, *, input_device=None)
+
+    Standard implementation of Updater.
 
     This is the standard implementation of :class:`~chainer.training.Updater`.
     It accepts one or more training datasets and one or more optimizers.
@@ -32,8 +37,10 @@ class StandardUpdater(_updater.Updater):
             extracted by the main iterator and the ``device`` option are passed
             to this function. :func:`chainer.dataset.concat_examples` is used
             by default.
-        device: Device to which the training data is sent. Negative value
-            indicates the host memory (CPU).
+        model_device (device specifier):
+            Device to which the model parameters is sent.
+            If omitted, the device of the model will stay unchanged.
+            Also see the note below.
         loss_func: Loss function. The target link of the main optimizer is used
             by default.
         loss_scale (float): Loss scaling factor. Loss scaling is a usefull
@@ -48,12 +55,19 @@ class StandardUpdater(_updater.Updater):
             :meth:`~chainer.Optimizer.new_epoch` of the main optimizer is
             automatically called when the ``is_new_epoch`` attribute of the
             main iterator is ``True``.
+        input_device (device specifier):
+            Device to which the training data is sent.
+            If ``input_device`` is omitted and ``model_device`` is given,
+            ``input_device`` will match the ``model_device``.
+            If both omitted, the device of the input will stay unchanged.
+            Also see the note below.
 
     Attributes:
         converter: Converter function.
         loss_func: Loss function. If it is ``None``, the target link of the
                    main optimizer is used instead.
-        device: Device to which the training data is sent.
+        model_device: Device to which the model is sent.
+        input_device: Device to which the training data is sent.
         iteration: Current number of completed updates.
         auto_new_epoch: If ``True``, :meth:`~chainer.Optimizer.new_epoch` is
             automatically called by :meth:`update_core`. In this case, the
@@ -62,13 +76,51 @@ class StandardUpdater(_updater.Updater):
             overridden, the implementation should correctly call
             :meth:`~chainer.Optimizer.new_epoch` of each optimizer.
 
+    .. note::
+
+        From v7, ``model_device`` and ``input_device`` have replaced ``device``
+        argument.
+        For backward compatibility, the ``device`` keyword argument is also
+        accepted. This argument cannot be given along with ``model_device`` or
+        ``input_device`` arguments at the same time. Specifying ``device``
+        argument is identical to giving both ``model_device`` and
+        ``input_device`` arguments with that value.
+
     """
 
     def __init__(self, iterator, optimizer, converter=convert.concat_examples,
                  device=None, loss_func=None, loss_scale=None,
-                 auto_new_epoch=True):
+                 auto_new_epoch=True, **kwargs):
+        # `device` argument is for backward compatibility.
+        # If it's given (either positional or keyword), and the device(s) are
+        # GpuDevice, StandardUpdater skips GPU-to-GPU transfer for the model.
+
+        device_compat_mode = False
+
+        model_device, input_device = argument.parse_kwargs(
+            kwargs, ('model_device', None), ('input_device', None))
+
         if device is not None:
-            device = backend.get_device(device)
+            if not (model_device is None and input_device is None):
+                raise KeyError(
+                    'device argument of StandardUpdater cannot be specified '
+                    'along with model_device/input_device arguments.')
+            # `device` argument is given.
+            device_compat_mode = True
+
+        # model_device falls back to device
+        if model_device is None:
+            model_device = device
+
+        # input_device falls back to model_device
+        if input_device is None:
+            input_device = model_device
+
+        if model_device is not None:
+            model_device = chainer.get_device(model_device)
+
+        if input_device is not None:
+            input_device = chainer.get_device(input_device)
 
         if isinstance(iterator, iterator_module.Iterator):
             iterator = {'main': iterator}
@@ -78,19 +130,22 @@ class StandardUpdater(_updater.Updater):
             optimizer = {'main': optimizer}
         self._optimizers = optimizer
 
-        if device is not None:
+        # Transfer the model
+        if model_device is not None:
             for optimizer in six.itervalues(self._optimizers):
-                if device.xp is cuda.cupy:
+                if (device_compat_mode
+                        and isinstance(model_device, backend.GpuDevice)):
+                    # Compatibility mode.
                     # Do not transfer between different cupy devices.
-                    # TODO(niboshi): Reconsider this behavior
-                    optimizer.target.to_gpu(device.device.id)
+                    optimizer.target.to_gpu(model_device.device.id)
                 else:
-                    optimizer.target.to_device(device)
+                    optimizer.target.to_device(model_device)
 
         self.converter = converter
         self.loss_func = loss_func
-        self.device = device
         self.iteration = 0
+        self._model_device = model_device
+        self._input_device = input_device
 
         self.loss_scale = loss_scale
         if loss_scale is not None:
@@ -101,6 +156,19 @@ class StandardUpdater(_updater.Updater):
         if auto_new_epoch:
             for o in six.itervalues(self._optimizers):
                 o.use_auto_new_epoch = True
+
+    @property
+    def model_device(self):
+        return self._model_device
+
+    @property
+    def input_device(self):
+        return self._input_device
+
+    @property
+    def device(self):
+        # For backward compatibility
+        return self.model_device
 
     @property
     def epoch(self):
@@ -178,7 +246,8 @@ class StandardUpdater(_updater.Updater):
     def update_core(self):
         iterator = self._iterators['main']
         batch = iterator.next()
-        in_arrays = convert._call_converter(self.converter, batch, self.device)
+        in_arrays = convert._call_converter(
+            self.converter, batch, self.input_device)
 
         optimizer = self._optimizers['main']
         loss_func = self.loss_func or optimizer.target
