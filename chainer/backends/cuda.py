@@ -259,7 +259,7 @@ to the CUDA device ID.
         self.device.use()
 
     def is_compatible_array(self, array):
-        return isinstance(array, ndarray)
+        return isinstance(array, ndarray) and self.device == array.device
 
 
 # ------------------------------------------------------------------------------
