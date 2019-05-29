@@ -42,7 +42,13 @@ Array LogicalNot(const Array& x);
 
 Array LogicalAnd(const Array& x1, const Array& x2);
 
+// TODO(imanishi): Add python binding
+Array LogicalAnd(const Array& x1, Scalar x2);
+
 Array LogicalOr(const Array& x1, const Array& x2);
+
+// TODO(imanishi): Add python binding
+Array LogicalOr(const Array& x1, Scalar x2);
 
 Array LogicalXor(const Array& x1, const Array& x2);
 

@@ -99,7 +99,7 @@ def parameterize(*params):
 
 
 def _values_to_dicts(names, values):
-    assert isinstance(names, str)
+    assert isinstance(names, six.string_types)
     assert isinstance(values, (tuple, list))
 
     def safe_zip(ns, vs):
