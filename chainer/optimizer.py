@@ -280,6 +280,8 @@ class UpdateRule(object):
 
         """
         grad_array = param.grad
+        if grad_array is None:
+            return
         backend_name = param.array.device.backend.name
         if backend_name not in ('native', 'cuda'):
             raise RuntimeError(
@@ -308,9 +310,7 @@ class UpdateRule(object):
         temp_param = variable.Variable._init_unchecked(
             param._chainerx_fallback_array, is_chainerx_array=False)
 
-        if grad_array is not None:
-            temp_param._set_grad_without_check(
-                backend.from_chx(grad_array))
+        temp_param._set_grad_without_check(backend.from_chx(grad_array))
 
         # Update
         self.update_core(temp_param)
