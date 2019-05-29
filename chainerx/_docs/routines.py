@@ -1244,6 +1244,24 @@ Note:
 """)
 
     _docs.set_doc(
+        chainerx.log1p,
+        """log1p(x)
+Natural logarithm of one plus the input, element-wise.
+
+Args:
+    x (~chainerx.ndarray): Input array.
+
+Returns:
+    :class:`~chainerx.ndarray`: Returned array: :math:`y = \\log(1 + x)`.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``x``.
+
+.. seealso:: :data:`numpy.log1p`
+""")
+
+    _docs.set_doc(
         chainerx.logsumexp,
         """logsumexp(x, axis=None, keepdims=False)
 The log of the sum of exponentials of input array.

@@ -165,6 +165,17 @@ class TestEmptyBatchInitialize(unittest.TestCase):
         assert y.shape == (0, 4)
 
 
+class TestNBatchAxesInitialize(unittest.TestCase):
+
+    def setUp(self):
+        self.link = links.Linear(4)
+        self.x = numpy.random.uniform(-1, 1, (2, 5, 3)).astype(numpy.float32)
+
+    def test_init_n_batch_axes(self):
+        y = self.link(chainer.Variable(self.x), n_batch_axes=2)
+        assert y.shape == (2, 5, 4)
+
+
 class TestInvalidLinear(unittest.TestCase):
 
     def setUp(self):
