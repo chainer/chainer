@@ -144,6 +144,16 @@ class TestDropout(unittest.TestCase):
     'specify_mask': [True, False],
     'train': [True, False],
 }))
+@testing.inject_backend_tests(
+    ['test_forward'],
+    testing.product({
+        'use_ideep': ['never', 'always'],
+    })
+    + testing.product({
+        'use_cuda': [True],
+        'use_cudnn': ['never', 'always'],
+    })
+)
 class TestDropoutMask(unittest.TestCase):
 
     def setUp(self):
@@ -151,11 +161,12 @@ class TestDropoutMask(unittest.TestCase):
         self.mask = (numpy.random.uniform(-1, 1, (2, 3)) > 0).astype(
             numpy.float32)
 
-    def _check(self):
+    def _check(self, backend_config):
         mask = self.mask if self.specify_mask else None
-        with chainer.using_config('train', self.train):
+        x, mask = backend_config.get_array((self.x, mask))
+        with chainer.using_config('train', self.train), backend_config:
             out, out_mask = functions.dropout(
-                self.x, 0.5, mask=mask, return_mask=True)
+                x, 0.5, mask=mask, return_mask=True)
 
         if self.train:
             assert isinstance(out_mask, type(out.array))
@@ -167,23 +178,11 @@ class TestDropoutMask(unittest.TestCase):
             assert out_mask is None
 
         with chainer.using_config('train', self.train):
-            out2 = functions.dropout(self.x, 0.5, mask=out_mask)
+            out2 = functions.dropout(self.x, 0.5, mask=cuda.to_cpu(out_mask))
         testing.assert_allclose(out.array, out2.array)
 
-    def test_cpu(self):
-        with chainer.using_config('use_ideep', 'never'):
-            self._check()
-
-    @attr.ideep
-    def test_cpu_ideep(self):
-        with chainer.using_config('use_ideep', 'always'):
-            self._check()
-
-    @attr.gpu
-    def test_gpu(self):
-        self.x = cuda.to_gpu(self.x)
-        self.mask = cuda.to_gpu(self.mask)
-        self._check()
+    def test_forward(self, backend_config):
+        self._check(backend_config)
 
 
 @testing.parameterize(*testing.product({
