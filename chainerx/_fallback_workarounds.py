@@ -94,45 +94,14 @@ def _to_chx(array):
 
 def _populate_module_functions():
 
-    def _isfinite(arr):
+    def _fix(arr):
         xp, dev, arr = _from_chx(arr)
         with dev:
-            ret = xp.isfinite(arr)
+            ret = xp.fix(arr)
+            ret = xp.asarray(ret)
         return _to_chx(ret)
 
-    chainerx.isfinite = _isfinite
-
-    def _hstack(arrs):
-        assert len(arrs) > 0
-        arrs2 = []
-        for a in arrs:
-            xp, dev, a2 = _from_chx(a)
-            arrs2.append(a2)
-        with dev:
-            ret = xp.hstack(arrs2)
-        return _to_chx(ret)
-
-    chainerx.hstack = _hstack
-
-    def _vstack(arrs):
-        assert len(arrs) > 0
-        arrs2 = []
-        for a in arrs:
-            xp, dev, a2 = _from_chx(a)
-            arrs2.append(a2)
-        with dev:
-            ret = xp.vstack(arrs2)
-        return _to_chx(ret)
-
-    chainerx.vstack = _vstack
-
-    def _sign(arr):
-        xp, dev, arr = _from_chx(arr)
-        with dev:
-            ret = xp.sign(arr)
-        return _to_chx(ret)
-
-    chainerx.sign = _sign
+    chainerx.fix = _fix
 
 
 def _populate_ndarray():
@@ -150,7 +119,10 @@ def _populate_ndarray():
         is_backprop_required = arr.is_backprop_required()
 
         xp, dev, arr = _from_chx(arr, check_backprop=False)
-        _, _, key = _from_chx(key, check_backprop=False)
+        if isinstance(key, tuple):
+            key = tuple([_from_chx(k, check_backprop=False)[2] for k in key])
+        else:
+            _, _, key = _from_chx(key, check_backprop=False)
 
         with dev:
             ret = arr[key]
@@ -185,6 +157,14 @@ def _populate_ndarray():
 
     ndarray.__setitem__ = __setitem__
     ndarray.__getitem__ = __getitem__
+
+    def tolist(arr):
+        _, dev, arr = _from_chx(arr)
+        with dev:
+            ret = arr.tolist()
+        return ret
+
+    ndarray.tolist = tolist
 
 
 def populate():

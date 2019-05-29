@@ -1,4 +1,4 @@
-from chainer import backend
+import chainer
 from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import optimizer
@@ -46,9 +46,8 @@ class CorrectedMomentumSGDRule(optimizer.UpdateRule):
             self.hyperparam.momentum = momentum
 
     def init_state(self, param):
-        xp = backend.get_array_module(param.data)
-        with cuda.get_device_from_array(param.data):
-            self.state['v'] = xp.zeros_like(param.data)
+        with chainer.using_device(param.device):
+            self.state['v'] = param.device.xp.zeros_like(param.data)
 
         # For iDeep
         if isinstance(param.data, intel64.mdarray):
@@ -88,7 +87,7 @@ class CorrectedMomentumSGD(optimizer.GradientMethod):
     """Momentum SGD optimizer.
 
     This implements momentum correction discussed in the third section of
-    `Accurate, Large Minibatch SGD: Training ImageNet in 1 Hour \
+    `Accurate, Large Minibatch SGD: Training ImageNet in 1 Hour
     <https://arxiv.org/abs/1706.02677>`_.
 
     :class:`~chainer.optimizers.MomentumSGD` implements the equation (10) of

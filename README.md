@@ -11,8 +11,9 @@
 [**Website**](https://chainer.org/)
 | [**Docs**](https://docs.chainer.org/en/stable/)
 | [**Install Guide**](https://docs.chainer.org/en/stable/install.html)
-| [**Tutorial**](https://docs.chainer.org/en/stable/guides/)
+| **Tutorials** ([ja](https://tutorials.chainer.org/ja/))
 | **Examples** ([Official](https://github.com/chainer/chainer/tree/master/examples), [External](https://github.com/chainer-community/awesome-chainer))
+| [**Concepts**](https://docs.chainer.org/en/stable/guides/)
 | [**ChainerX**](#chainerx)
 
 **Forum** ([en](https://groups.google.com/forum/#!forum/chainer), [ja](https://groups.google.com/forum/#!forum/chainer-jp))
@@ -64,7 +65,7 @@ If you want to file an issue or send a pull request, [please follow the contribu
 
 ## ChainerX
 
-See this [separate user guide](chainerx.md) for how to build and run Chainer with ChainerX.
+See the [ChainerX documentation](https://docs.chainer.org/en/stable/chainerx/index.html).
 
 
 ## License

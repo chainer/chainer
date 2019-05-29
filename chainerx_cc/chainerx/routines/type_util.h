@@ -26,6 +26,13 @@ inline Dtype GetDefaultDtype(DtypeKind kind) {
     }
 }
 
+inline Dtype GetMathResultDtype(Dtype dtype) {
+    if (GetKind(dtype) == DtypeKind::kFloat) {
+        return dtype;
+    }
+    return Dtype::kFloat32;  // TODO(niboshi): Default dtype
+}
+
 }  // namespace internal
 
 namespace type_util_detail {
@@ -84,7 +91,7 @@ Dtype ResultType(Arg arg, Args... args) {
 template <typename Container>
 Dtype ResultType(Container args) {
     type_util_detail::ResultTypeResolver resolver{};
-    if (args.size() == 0U) {
+    if (args.empty()) {
         throw ChainerxError{"At least one argument is required."};
     }
     for (const Array& arg : args) {

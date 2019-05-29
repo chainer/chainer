@@ -138,7 +138,7 @@ The following code shows the typical pattern for performing the forward computat
 
 
 
-It should not be necessary to modify the `backward()` implementation. As of Chainer v3 when double-backward (i.e., grad of grad) support was added, the ``backward()`` method of :class:`FunctionNode` actually calls the `forward()` method of other `FunctionNode`s, and so it is only necessary that the `forward()` functions be wrapped.
+It should not be necessary to modify the `backward()` implementation. As of Chainer v3 when double-backward (i.e., grad of grad) support was added, the ``backward()`` method of :class:`~chainer.FunctionNode` actually calls the `forward()` method of other `FunctionNode`s, and so it is only necessary that the `forward()` functions be wrapped.
 
 For an example of how to add support to an existing function, see the ``Linear`` function.
 

@@ -728,9 +728,9 @@ class GradientMethod(Optimizer):
     This class also provides :attr:`hyperparam`, which is the hyperparameter
     used as the default configuration of each update rule. All built-in
     gradient method implementations also provide proxy properties that act
-    as aliases to the attributes of :attr:`hyperparam`. It is recommended to
-    provide such an alias to each attribute. It can be done by only adding one
-    line for each attribute using :class:`HyperparameterProxy`.
+    as aliases to the attributes of :attr:`hyperparam`. It is recommended that
+    you provide such an alias to each attribute. It can be done by only adding
+    one line for each attribute using :class:`HyperparameterProxy`.
 
     Attributes:
         hyperparam (Hyperparameter): The hyperparameter of the gradient

@@ -70,10 +70,10 @@ class Link(device_resident.DeviceResident):
 
     .. note::
        Whereas arbitrary serializable objects can be registered as persistent
-       values, it is strongly recommended to just register values that should
-       be treated as results of learning. A typical example of persistent
-       values is ones computed during training and required for testing, e.g.
-       running statistics for batch normalization.
+       values, it is strongly recommended that you just register values that
+       should be treated as results of learning. A typical example of
+       persistent values is ones computed during training and required for
+       testing, e.g. running statistics for batch normalization.
 
     Parameters and persistent values are referred by their names. They can be
     accessed as attributes of the links. Link class itself manages the lists
@@ -658,10 +658,7 @@ class Link(device_resident.DeviceResident):
             if param.data is None and data is not None:
                 # Initialize the parameter here
                 param.initialize(data.shape)
-                if isinstance(param.data, numpy.ndarray):
-                    numpy.copyto(param.data, data)
-                else:
-                    param.data.set(numpy.asarray(data))  # type: ignore
+                param.data[:] = param.device.send(data)
         for name in self._persistent:
             d[name] = serializer(name, d[name])
 

@@ -35,6 +35,7 @@
 #include "chainerx/macro.h"
 #include "chainerx/native/native_backend.h"
 #include "chainerx/op_node.h"
+#include "chainerx/routines/binary.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/indexing.h"
 #include "chainerx/routines/linalg.h"
@@ -138,6 +139,36 @@ Array& Array::operator/=(Scalar rhs) {
     return *this;
 }
 
+Array& Array::operator&=(const Array& rhs) {
+    internal::IBitwiseAnd(*this, rhs);
+    return *this;
+}
+
+Array& Array::operator&=(Scalar rhs) {
+    internal::IBitwiseAnd(*this, rhs);
+    return *this;
+}
+
+Array& Array::operator|=(const Array& rhs) {
+    internal::IBitwiseOr(*this, rhs);
+    return *this;
+}
+
+Array& Array::operator|=(Scalar rhs) {
+    internal::IBitwiseOr(*this, rhs);
+    return *this;
+}
+
+Array& Array::operator^=(const Array& rhs) {
+    internal::IBitwiseXor(*this, rhs);
+    return *this;
+}
+
+Array& Array::operator^=(Scalar rhs) {
+    internal::IBitwiseXor(*this, rhs);
+    return *this;
+}
+
 const Array& Array::operator+=(const Array& rhs) const {
     internal::IAdd(*this, rhs);
     return *this;
@@ -178,6 +209,36 @@ const Array& Array::operator/=(Scalar rhs) const {
     return *this;
 }
 
+const Array& Array::operator&=(const Array& rhs) const {
+    internal::IBitwiseAnd(*this, rhs);
+    return *this;
+}
+
+const Array& Array::operator&=(Scalar rhs) const {
+    internal::IBitwiseAnd(*this, rhs);
+    return *this;
+}
+
+const Array& Array::operator|=(const Array& rhs) const {
+    internal::IBitwiseOr(*this, rhs);
+    return *this;
+}
+
+const Array& Array::operator|=(Scalar rhs) const {
+    internal::IBitwiseOr(*this, rhs);
+    return *this;
+}
+
+const Array& Array::operator^=(const Array& rhs) const {
+    internal::IBitwiseXor(*this, rhs);
+    return *this;
+}
+
+const Array& Array::operator^=(Scalar rhs) const {
+    internal::IBitwiseXor(*this, rhs);
+    return *this;
+}
+
 Array Array::operator+(const Array& rhs) const { return chainerx::Add(*this, rhs); }
 
 Array Array::operator+(Scalar rhs) const { return chainerx::Add(*this, rhs); }
@@ -194,6 +255,18 @@ Array Array::operator/(const Array& rhs) const { return chainerx::Divide(*this, 
 
 Array Array::operator/(Scalar rhs) const { return chainerx::Divide(*this, rhs); }
 
+Array Array::operator&(const Array& rhs) const { return chainerx::BitwiseAnd(*this, rhs); }
+
+Array Array::operator&(Scalar rhs) const { return chainerx::BitwiseAnd(*this, rhs); }
+
+Array Array::operator|(const Array& rhs) const { return chainerx::BitwiseOr(*this, rhs); }
+
+Array Array::operator|(Scalar rhs) const { return chainerx::BitwiseOr(*this, rhs); }
+
+Array Array::operator^(const Array& rhs) const { return chainerx::BitwiseXor(*this, rhs); }
+
+Array Array::operator^(Scalar rhs) const { return chainerx::BitwiseXor(*this, rhs); }
+
 Array Array::At(const std::vector<ArrayIndex>& indices) const { return internal::At(*this, indices); }
 
 Array Array::Transpose(const OptionalAxes& axes) const { return chainerx::Transpose(*this, axes); }
@@ -202,9 +275,13 @@ Array Array::Reshape(const Shape& newshape) const { return chainerx::Reshape(*th
 
 Array Array::Squeeze(const OptionalAxes& axis) const { return chainerx::Squeeze(*this, axis); }
 
+Array Array::Swapaxes(int8_t axis1, int8_t axis2) const { return chainerx::Swapaxes(*this, axis1, axis2); }
+
 Array Array::BroadcastTo(const Shape& shape) const { return chainerx::BroadcastTo(*this, shape); }
 
 Array Array::ArgMax(const OptionalAxes& axis) const { return chainerx::ArgMax(*this, axis); }
+
+Array Array::ArgMin(const OptionalAxes& axis) const { return chainerx::ArgMin(*this, axis); }
 
 Array Array::Sum(const OptionalAxes& axis, bool keepdims) const { return chainerx::Sum(*this, axis, keepdims); }
 
@@ -248,7 +325,7 @@ Array Array::ToDevice(Device& dst_device) const {
         out = AsGradStopped(CopyKind::kView);
     } else {
         // Make a contiguous copy to transfer it to the destination device.
-        Array src_contig = internal::AsContiguous(AsGradStopped(CopyKind::kView));
+        Array src_contig = AsContiguous(AsGradStopped(CopyKind::kView));
 
         std::shared_ptr<void> dst_data;
         if (src_device.backend().SupportsTransfer(src_device, dst_device)) {
@@ -402,6 +479,7 @@ std::string Array::ToString() const { return ArrayRepr(*this); }
 Array operator+(Scalar lhs, const Array& rhs) { return Add(lhs, rhs); }
 Array operator-(Scalar lhs, const Array& rhs) { return Subtract(lhs, rhs); }
 Array operator*(Scalar lhs, const Array& rhs) { return Multiply(lhs, rhs); }
+Array operator/(Scalar lhs, const Array& rhs) { return Divide(lhs, rhs); }
 
 namespace {
 

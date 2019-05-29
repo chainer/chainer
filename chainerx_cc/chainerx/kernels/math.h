@@ -2,8 +2,6 @@
 
 #include <cstdint>
 
-#include <nonstd/optional.hpp>
-
 #include "chainerx/array.h"
 #include "chainerx/axes.h"
 #include "chainerx/kernel.h"
@@ -67,6 +65,13 @@ public:
     virtual void Call(const Array& x1, Scalar x2, const Array& out) = 0;
 };
 
+class FloorDivideSAKernel : public Kernel {
+public:
+    static const char* name() { return "FloorDivideSA"; }
+
+    virtual void Call(Scalar x1, const Array& x2, const Array& out) = 0;
+};
+
 class DivideKernel : public Kernel {
 public:
     static const char* name() { return "Divide"; }
@@ -81,6 +86,13 @@ public:
     virtual void Call(const Array& x1, Scalar x2, const Array& out) = 0;
 };
 
+class DivideSAKernel : public Kernel {
+public:
+    static const char* name() { return "DivideSA"; }
+
+    virtual void Call(Scalar x1, const Array& x2, const Array& out) = 0;
+};
+
 class ExpKernel : public Kernel {
 public:
     static const char* name() { return "Exp"; }
@@ -91,6 +103,13 @@ public:
 class LogKernel : public Kernel {
 public:
     static const char* name() { return "Log"; }
+
+    virtual void Call(const Array& x, const Array& out) = 0;
+};
+
+class Log10Kernel : public Kernel {
+public:
+    static const char* name() { return "Log10"; }
 
     virtual void Call(const Array& x, const Array& out) = 0;
 };
@@ -109,81 +128,25 @@ public:
     virtual void Call(const Array& x, const Array& out) = 0;
 };
 
-class SinKernel : public Kernel {
+class PowerKernel : public Kernel {
 public:
-    static const char* name() { return "Sin"; }
+    static const char* name() { return "Power"; }
 
-    virtual void Call(const Array& x, const Array& out) = 0;
+    virtual void Call(const Array& x1, const Array& x2, const Array& out) = 0;
 };
 
-class CosKernel : public Kernel {
+class PowerASKernel : public Kernel {
 public:
-    static const char* name() { return "Cos"; }
+    static const char* name() { return "PowerAS"; }
 
-    virtual void Call(const Array& x, const Array& out) = 0;
+    virtual void Call(const Array& x1, Scalar x2, const Array& out) = 0;
 };
 
-class TanKernel : public Kernel {
+class PowerSAKernel : public Kernel {
 public:
-    static const char* name() { return "Tan"; }
+    static const char* name() { return "PowerSA"; }
 
-    virtual void Call(const Array& x, const Array& out) = 0;
-};
-
-class SinhKernel : public Kernel {
-public:
-    static const char* name() { return "Sinh"; }
-
-    virtual void Call(const Array& x, const Array& out) = 0;
-};
-
-class CoshKernel : public Kernel {
-public:
-    static const char* name() { return "Cosh"; }
-
-    virtual void Call(const Array& x, const Array& out) = 0;
-};
-
-class TanhKernel : public Kernel {
-public:
-    static const char* name() { return "Tanh"; }
-
-    virtual void Call(const Array& x, const Array& out) = 0;
-};
-
-class ArcsinKernel : public Kernel {
-public:
-    static const char* name() { return "Arcsin"; }
-
-    virtual void Call(const Array& x, const Array& out) = 0;
-};
-
-class ArccosKernel : public Kernel {
-public:
-    static const char* name() { return "Arccos"; }
-
-    virtual void Call(const Array& x, const Array& out) = 0;
-};
-
-class ArctanKernel : public Kernel {
-public:
-    static const char* name() { return "Arctan"; }
-
-    virtual void Call(const Array& x, const Array& out) = 0;
-};
-
-class ArcsinhKernel : public Kernel {
-public:
-    static const char* name() { return "Archsinh"; }
-
-    virtual void Call(const Array& x, const Array& out) = 0;
-};
-
-class ArccoshKernel : public Kernel {
-public:
-    static const char* name() { return "Arccosh"; }
-
-    virtual void Call(const Array& x, const Array& out) = 0;
+    virtual void Call(Scalar x1, const Array& x2, const Array& out) = 0;
 };
 
 class CeilKernel : public Kernel {
@@ -200,6 +163,20 @@ public:
     virtual void Call(const Array& x, const Array& out) = 0;
 };
 
+class FabsKernel : public Kernel {
+public:
+    static const char* name() { return "Fabs"; }
+
+    virtual void Call(const Array& x, const Array& out) = 0;
+};
+
+class SignKernel : public Kernel {
+public:
+    static const char* name() { return "Sign"; }
+
+    virtual void Call(const Array& x, const Array& out) = 0;
+};
+
 class IsNanKernel : public Kernel {
 public:
     static const char* name() { return "IsNan"; }
@@ -210,6 +187,13 @@ public:
 class IsInfKernel : public Kernel {
 public:
     static const char* name() { return "IsInf"; }
+
+    virtual void Call(const Array& x, const Array& out) = 0;
+};
+
+class IsFiniteKernel : public Kernel {
+public:
+    static const char* name() { return "IsFinite"; }
 
     virtual void Call(const Array& x, const Array& out) = 0;
 };

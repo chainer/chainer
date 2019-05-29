@@ -63,21 +63,21 @@ class PureNcclCommunicator(mpi_communicator_base.MpiCommunicatorBase):
         stream = chainer.cuda.Stream.null
 
         _memory_utility.pack_params(
-            params, 'data', self.gpu_tmp_buffer, data_dtype, stream)
+            params, 'data', self.gpu_tmp_buffer, data_dtype, False, stream)
         self.nccl_comm.bcast(self.gpu_tmp_buffer.ptr(), n_elems,
                              _communication_utility._get_nccl_type_id(
                                  data_dtype),
                              0, stream.ptr)
         _memory_utility.unpack_params(
-            params, 'data', self.gpu_tmp_buffer, data_dtype, stream)
+            params, 'data', self.gpu_tmp_buffer, data_dtype, False, stream)
 
-    def allreduce_grad(self, model):
+    def allreduce_grad(self, model, zero_fill=False):
         stream = chainer.cuda.Stream.null
-        self._allreduce_grad_async(model, stream)
+        self._allreduce_grad_async(model, zero_fill, stream)
 
-    def _allreduce_grad_async(self, model, stream):
+    def _allreduce_grad_async(self, model, zero_fill, stream):
         self._init_comms()
-        params = _memory_utility.extract_params_set_grad(model)
+        params = _memory_utility.extract_params_set_grad(model, zero_fill)
 
         # NOTE: we need to explicitly check `is None` , becuase
         # numpy's dtype object is evaluated to False in numpy <= 1.12.1
@@ -88,14 +88,16 @@ class PureNcclCommunicator(mpi_communicator_base.MpiCommunicatorBase):
 
         assert allreduce_grad_dtype is not None
 
-        n_elems = sum(param.grad.size for param in params)
+        n_elems = _memory_utility.count_grad_elements(params,
+                                                      zero_fill)
         needs_sync = self._prepare_allreduce_pack_buffer(allreduce_grad_dtype,
                                                          n_elems)
         if stream != chainer.cuda.Stream.null and needs_sync:
             chainer.cuda.Stream.null.synchronize()
 
         # pack grads from params -> buffer A
-        self._pack_params_to_buffer(params, allreduce_grad_dtype, stream)
+        self._pack_params_to_buffer(params, allreduce_grad_dtype,
+                                    zero_fill, stream)
 
         # Allreduce from buffer A -> buffer B
         # div by comm_size from buffer B -> buffer A
@@ -104,7 +106,8 @@ class PureNcclCommunicator(mpi_communicator_base.MpiCommunicatorBase):
                                   allreduce_grad_dtype, stream)
 
         # unpack params from buffer A -> params
-        self._unpack_params_from_buffer(params, allreduce_grad_dtype, stream)
+        self._unpack_params_from_buffer(params, allreduce_grad_dtype,
+                                        zero_fill, stream)
 
     def _prepare_allreduce_pack_buffer(self, allreduce_grad_dtype, n_elems):
         allreduce_grad_n_bytes = allreduce_grad_dtype.itemsize * n_elems
@@ -119,9 +122,10 @@ class PureNcclCommunicator(mpi_communicator_base.MpiCommunicatorBase):
 
         return needs_sync
 
-    def _pack_params_to_buffer(self, params, allreduce_grad_dtype, stream):
+    def _pack_params_to_buffer(self, params, allreduce_grad_dtype,
+                               zero_fill, stream):
         if self.batched_copy:
-            params_data = _ParamsData(params, 'grad')
+            params_data = _ParamsData(params, 'grad', zero_fill)
             _batched_pack_params(params_data, self.gpu_buffer_a,
                                  allreduce_grad_dtype)
             self.params_data = params_data
@@ -131,23 +135,24 @@ class PureNcclCommunicator(mpi_communicator_base.MpiCommunicatorBase):
                 params, 'grad',
                 self.gpu_buffer_a,
                 transfer_dtype=allreduce_grad_dtype,
+                zero_fill=zero_fill,
                 stream=stream)
 
     def _unpack_params_from_buffer(self, params,
-                                   allreduce_grad_dtype, stream):
+                                   allreduce_grad_dtype, zero_fill, stream):
         if self.batched_copy:
             if self.params_data is not None:
                 params_data = self.params_data
                 self.params_data = None
             else:
-                params_data = _ParamsData(params, 'grad')
+                params_data = _ParamsData(params, 'grad', zero_fill)
             _batched_unpack_params(params_data, self.gpu_buffer_a,
                                    allreduce_grad_dtype)
             return
         else:
             _memory_utility.unpack_params(
                 params, 'grad', self.gpu_buffer_a,
-                allreduce_grad_dtype, stream)
+                allreduce_grad_dtype, zero_fill, stream)
 
     def multi_node_mean_nccl(self, gpu_buffer_a, gpu_buffer_b,
                              n_elems, dtype, stream=None):
@@ -197,7 +202,7 @@ def _get_param_grad_dtype(param):
 
 
 class _ParamsData(object):
-    def __init__(self, params, attr_name):
+    def __init__(self, params, attr_name, zero_fill):
         n_params = len(params)
         params_dptr = np.empty(n_params, dtype=np.int64)
         params_dtype = np.empty(n_params, dtype=np.int32)
@@ -205,6 +210,9 @@ class _ParamsData(object):
         params_size_csum[0] = 0
         for i, param in enumerate(params):
             v = getattr(param, attr_name)
+            if attr_name == 'grad' and v is None and zero_fill:
+                v = param.xp.zeros_like(param.data)
+                setattr(param, attr_name, v)
             params_dptr[i] = v.data.ptr
             if v.dtype not in [np.float16, np.float32]:
                 raise ValueError('dtype must be float16 or float32.')

@@ -94,7 +94,7 @@ void ExpectDataEqual(Container&& expected_data, const Array& actual) {
     for (auto it = indexer.It(0); it; ++it) {
         T actual_value = actual_iarray[it];
         int64_t i = it.raw_index();
-        EXPECT_EQ(expected_data[i], actual_value) << "where i is " << i;
+        EXPECT_EQ(expected_data[i], actual_value) << "where i is " << i;  // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
     }
 }
 

@@ -7,7 +7,7 @@ import six
 
 import chainer
 from chainer import _backprop_utils
-from chainer.backends import cuda
+from chainer import backend
 from chainer.utils import argument
 import chainerx
 
@@ -206,7 +206,8 @@ def _backprop_to_all(outputs, retain_grad, loss_scale):
         else:
             hooks = base_hooks
 
-        with cuda.get_device_from_array(*(in_data + out_grad_array)):
+        with chainer.using_device(
+                backend.get_device_from_array(*(in_data + out_grad_array))):
             for hook in hooks:
                 hook.backward_preprocess(
                     func, tuple(in_data), tuple(out_grad_array))

@@ -60,8 +60,8 @@ def r2_score(pred, true, sample_weight=None, multioutput='uniform_average'):
                 score of multiple output. If 'raw_average', this function
                 return a set of R^2 score of multiple output.
     Returns:
-        Variable: A Variable holding a scalar array of the R^2 score if
-        'multioutput' is 'uniform_average' or a vector of R^2 scores if
+        ~chainer.Variable: A Variable holding a scalar array of the R^2 score
+        if 'multioutput' is 'uniform_average' or a vector of R^2 scores if
         'multioutput' is 'raw_values'.
 
     .. note:: This function is non-differentiable.

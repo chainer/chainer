@@ -17,8 +17,10 @@
 #include "chainerx/dtype.h"
 #include "chainerx/error.h"
 #include "chainerx/macro.h"
+#include "chainerx/routines/binary.h"
 #include "chainerx/routines/connection.h"
 #include "chainerx/routines/creation.h"
+#include "chainerx/routines/hyperbolic.h"
 #include "chainerx/routines/indexing.h"
 #include "chainerx/routines/linalg.h"
 #include "chainerx/routines/logic.h"
@@ -28,6 +30,7 @@
 #include "chainerx/routines/pooling.h"
 #include "chainerx/routines/sorting.h"
 #include "chainerx/routines/statistics.h"
+#include "chainerx/routines/trigonometric.h"
 #include "chainerx/scalar.h"
 #include "chainerx/stack_vector.h"
 
@@ -300,6 +303,13 @@ void InitChainerxIndexing(pybind11::module& m) {
           py::arg("a"),
           py::arg("indices"),
           py::arg("axis"));
+    m.def("where",
+          [](const ArrayBodyPtr& condition, const ArrayBodyPtr& x, const ArrayBodyPtr& y) {
+              return MoveArrayBody(Where(Array{condition}, Array{x}, Array{y}));
+          },
+          py::arg("condition"),
+          py::arg("x"),
+          py::arg("y"));
 }
 
 void InitChainerxLinalg(pybind11::module& m) {
@@ -345,6 +355,10 @@ void InitChainerxLogic(pybind11::module& m) {
           py::arg("x1"),
           py::arg("x2"));
     m.def("logical_not", [](const ArrayBodyPtr& x) { return MoveArrayBody(LogicalNot(Array{x})); }, py::arg("x"));
+    m.def("logical_xor",
+          [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return MoveArrayBody(LogicalXor(Array{x1}, Array{x2})); },
+          py::arg("x1"),
+          py::arg("x2"));
     m.def("all",
           [](const ArrayBodyPtr& a, int8_t axis, bool keepdims) { return MoveArrayBody(All(Array{a}, Axes{axis}, keepdims)); },
           py::arg("a"),
@@ -383,6 +397,18 @@ void InitChainerxManipulation(pybind11::module& m) {
           [](const ArrayBodyPtr& a, int8_t axes) { return MoveArrayBody(Transpose(Array{a}, {axes})); },
           py::arg("a"),
           py::arg("axes") = nullptr);
+    m.def("flip",
+          [](const ArrayBodyPtr& m, const nonstd::optional<std::vector<int8_t>>& axes) {
+              return MoveArrayBody(Flip(Array{m}, ToAxes(axes)));
+          },
+          py::arg("m"),
+          py::arg("axes") = nullptr);
+    m.def("flip",
+          [](const ArrayBodyPtr& m, int8_t axes) { return MoveArrayBody(Flip(Array{m}, {axes})); },
+          py::arg("m"),
+          py::arg("axes") = nullptr);
+    m.def("fliplr", [](const ArrayBodyPtr& m) { return MoveArrayBody(Fliplr(Array{m})); }, py::arg("m"));
+    m.def("flipud", [](const ArrayBodyPtr& m) { return MoveArrayBody(Flipud(Array{m})); }, py::arg("m"));
     m.def("rollaxis",
           [](const ArrayBodyPtr& a, int8_t axis, int8_t start) { return MoveArrayBody(RollAxis(Array{a}, axis, start)); },
           py::arg("a"),
@@ -416,6 +442,15 @@ void InitChainerxManipulation(pybind11::module& m) {
           [](const ArrayBodyPtr& a, int8_t axis) { return MoveArrayBody(Squeeze(Array{a}, Axes{axis})); },
           py::arg("a"),
           py::arg("axis"));
+    m.def("expand_dims",
+          [](const ArrayBodyPtr& a, int8_t axis) { return MoveArrayBody(ExpandDims(Array{a}, axis)); },
+          py::arg("a"),
+          py::arg("axis"));
+    m.def("swapaxes",
+          [](const ArrayBodyPtr& a, int8_t axis1, int8_t axis2) { return MoveArrayBody(Swapaxes(Array{a}, axis1, axis2)); },
+          py::arg("a"),
+          py::arg("axis1"),
+          py::arg("axis2"));
     m.def("broadcast_to",
           [](const ArrayBodyPtr& array, py::tuple shape) { return MoveArrayBody(Array{array}.BroadcastTo(ToShape(shape))); },
           py::arg("array"),
@@ -442,6 +477,27 @@ void InitChainerxManipulation(pybind11::module& m) {
           },
           py::arg("arrays"),
           py::arg("axis") = 0);
+    m.def("atleast_2d", [](const ArrayBodyPtr& a) { return MoveArrayBody(AtLeast2D(Array{a})); }, py::arg("a"));
+    m.def("hstack",
+          [](py::sequence arrays) {
+              std::vector<Array> xs;
+              xs.reserve(arrays.size());
+              std::transform(arrays.begin(), arrays.end(), std::back_inserter(xs), [](const auto& item) {
+                  return Array{py::cast<ArrayBodyPtr>(item)};
+              });
+              return MoveArrayBody(HStack(xs));
+          },
+          py::arg("arrays"));
+    m.def("vstack",
+          [](py::sequence arrays) {
+              std::vector<Array> xs;
+              xs.reserve(arrays.size());
+              std::transform(arrays.begin(), arrays.end(), std::back_inserter(xs), [](const auto& item) {
+                  return Array{py::cast<ArrayBodyPtr>(item)};
+              });
+              return MoveArrayBody(VStack(xs));
+          },
+          py::arg("arrays"));
     m.def("split",
           [](const ArrayBodyPtr& ary, py::handle indices_or_sections, int8_t axis) {
               // TODO(niboshi): Perhaps we would want more general approach to handle multi-type arguments like indices_or_sections to
@@ -621,6 +677,7 @@ void InitChainerxMath(pybind11::module& m) {
           py::arg("x2"));
     m.def("exp", [](const ArrayBodyPtr& x) { return MoveArrayBody(Exp(Array{x})); }, py::arg("x"));
     m.def("log", [](const ArrayBodyPtr& x) { return MoveArrayBody(Log(Array{x})); }, py::arg("x"));
+    m.def("log10", [](const ArrayBodyPtr& x) { return MoveArrayBody(Log10(Array{x})); }, py::arg("x"));
     m.def("logsumexp",
           [](const ArrayBodyPtr& x, int8_t axis, bool keepdims) { return MoveArrayBody(LogSumExp(Array{x}, Axes{axis}, keepdims)); },
           py::arg("x"),
@@ -645,12 +702,28 @@ void InitChainerxMath(pybind11::module& m) {
           py::arg("axis") = nullptr);
     m.def("sigmoid", [](const ArrayBodyPtr& x) { return MoveArrayBody(Sigmoid(Array{x})); }, py::arg("x"));
     m.def("relu", [](const ArrayBodyPtr& x) { return MoveArrayBody(Relu(Array{x})); }, py::arg("x"));
+    m.def("softmax",
+          [](const ArrayBodyPtr& x, int8_t axis) { return MoveArrayBody(Softmax(Array{x}, Axes{axis})); },
+          py::arg("x"),
+          py::arg("axis"));
+    m.def("softmax",
+          [](const ArrayBodyPtr& x, const nonstd::optional<std::vector<int8_t>>& axis) {
+              return MoveArrayBody(Softmax(Array{x}, ToAxes(axis)));
+          },
+          py::arg("x"),
+          py::arg("axis") = nullptr);
     m.def("square", [](const ArrayBodyPtr& x) { return MoveArrayBody(Square(Array{x})); }, py::arg("x"));
     m.def("squared_difference",
           [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return MoveArrayBody(SquaredDifference(Array{x1}, Array{x2})); },
           py::arg("x1"),
           py::arg("x2"));
     m.def("sqrt", [](const ArrayBodyPtr& x) { return MoveArrayBody(Sqrt(Array{x})); }, py::arg("x"));
+    m.def("power",
+          [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return MoveArrayBody(Power(Array{x1}, Array{x2})); },
+          py::arg("x1"),
+          py::arg("x2"));
+    m.def("power", [](const ArrayBodyPtr& x1, Scalar x2) { return MoveArrayBody(Power(Array{x1}, x2)); }, py::arg("x1"), py::arg("x2"));
+    m.def("power", [](Scalar x1, const ArrayBodyPtr& x2) { return MoveArrayBody(Power(x1, Array{x2})); }, py::arg("x1"), py::arg("x2"));
     m.def("sinh", [](const ArrayBodyPtr& x) { return MoveArrayBody(Sinh(Array{x})); }, py::arg("x"));
     m.def("cosh", [](const ArrayBodyPtr& x) { return MoveArrayBody(Cosh(Array{x})); }, py::arg("x"));
     m.def("tanh", [](const ArrayBodyPtr& x) { return MoveArrayBody(Tanh(Array{x})); }, py::arg("x"));
@@ -658,20 +731,69 @@ void InitChainerxMath(pybind11::module& m) {
     m.def("arccosh", [](const ArrayBodyPtr& x) { return MoveArrayBody(Arccosh(Array{x})); }, py::arg("x"));
     m.def("sin", [](const ArrayBodyPtr& x) { return MoveArrayBody(Sin(Array{x})); }, py::arg("x"));
     m.def("cos", [](const ArrayBodyPtr& x) { return MoveArrayBody(Cos(Array{x})); }, py::arg("x"));
+    m.def("abs", [](const ArrayBodyPtr& x) { return MoveArrayBody(Absolute(Array{x})); }, py::arg("x"));
+    m.attr("absolute") = m.attr("abs");
     m.def("tan", [](const ArrayBodyPtr& x) { return MoveArrayBody(Tan(Array{x})); }, py::arg("x"));
     m.def("arcsin", [](const ArrayBodyPtr& x) { return MoveArrayBody(Arcsin(Array{x})); }, py::arg("x"));
     m.def("arccos", [](const ArrayBodyPtr& x) { return MoveArrayBody(Arccos(Array{x})); }, py::arg("x"));
     m.def("arctan", [](const ArrayBodyPtr& x) { return MoveArrayBody(Arctan(Array{x})); }, py::arg("x"));
+    m.def("arctan2",
+          [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return MoveArrayBody(Arctan2(Array{x1}, Array{x2})); },
+          py::arg("x1"),
+          py::arg("x2"));
+    m.def("fabs", [](const ArrayBodyPtr& x) { return MoveArrayBody(Fabs(Array{x})); }, py::arg("x"));
+    m.def("sign", [](const ArrayBodyPtr& x) { return MoveArrayBody(Sign(Array{x})); }, py::arg("x"));
     m.def("ceil", [](const ArrayBodyPtr& x) { return MoveArrayBody(Ceil(Array{x})); }, py::arg("x"));
     m.def("floor", [](const ArrayBodyPtr& x) { return MoveArrayBody(Floor(Array{x})); }, py::arg("x"));
     m.def("isnan", [](const ArrayBodyPtr& x) { return MoveArrayBody(IsNan(Array{x})); }, py::arg("x"));
     m.def("isinf", [](const ArrayBodyPtr& x) { return MoveArrayBody(IsInf(Array{x})); }, py::arg("x"));
+    m.def("isfinite", [](const ArrayBodyPtr& x) { return MoveArrayBody(IsFinite(Array{x})); }, py::arg("x"));
+    m.def("bitwise_and",
+          [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return MoveArrayBody(BitwiseAnd(Array{x1}, Array{x2})); },
+          py::arg("x1"),
+          py::arg("x2"));
+    m.def("bitwise_and",
+          [](const ArrayBodyPtr& x1, Scalar x2) { return MoveArrayBody(BitwiseAnd(Array{x1}, x2)); },
+          py::arg("x1"),
+          py::arg("x2"));
+    m.def("bitwise_and",
+          [](Scalar x1, const ArrayBodyPtr& x2) { return MoveArrayBody(BitwiseAnd(x1, Array{x2})); },
+          py::arg("x1"),
+          py::arg("x2"));
+    m.def("bitwise_or",
+          [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return MoveArrayBody(BitwiseOr(Array{x1}, Array{x2})); },
+          py::arg("x1"),
+          py::arg("x2"));
+    m.def("bitwise_or",
+          [](const ArrayBodyPtr& x1, Scalar x2) { return MoveArrayBody(BitwiseOr(Array{x1}, x2)); },
+          py::arg("x1"),
+          py::arg("x2"));
+    m.def("bitwise_or",
+          [](Scalar x1, const ArrayBodyPtr& x2) { return MoveArrayBody(BitwiseOr(x1, Array{x2})); },
+          py::arg("x1"),
+          py::arg("x2"));
+    m.def("bitwise_xor",
+          [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return MoveArrayBody(BitwiseXor(Array{x1}, Array{x2})); },
+          py::arg("x1"),
+          py::arg("x2"));
+    m.def("bitwise_xor",
+          [](const ArrayBodyPtr& x1, Scalar x2) { return MoveArrayBody(BitwiseXor(Array{x1}, x2)); },
+          py::arg("x1"),
+          py::arg("x2"));
+    m.def("bitwise_xor",
+          [](Scalar x1, const ArrayBodyPtr& x2) { return MoveArrayBody(BitwiseXor(x1, Array{x2})); },
+          py::arg("x1"),
+          py::arg("x2"));
 }
 
 void InitChainerxSorting(pybind11::module& m) {
     // sorting routines
     m.def("argmax",
           [](const ArrayBodyPtr& a, const nonstd::optional<int8_t>& axis) { return MoveArrayBody(ArgMax(Array{a}, ToAxes(axis))); },
+          py::arg("a"),
+          py::arg("axis") = nullptr);
+    m.def("argmin",
+          [](const ArrayBodyPtr& a, const nonstd::optional<int8_t>& axis) { return MoveArrayBody(ArgMin(Array{a}, ToAxes(axis))); },
           py::arg("a"),
           py::arg("axis") = nullptr);
 }
