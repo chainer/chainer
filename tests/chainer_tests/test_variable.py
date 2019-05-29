@@ -1438,7 +1438,9 @@ class TestVariableSetData(unittest.TestCase):
         v = chainer.Variable(x, requires_grad=requires_grad_x)
 
         should_fail = (
-            (not device_x == device_y) or
+            (
+                not device_x == device_y
+                and not device_x == intel64.Intel64Device) or
             (xp_x is chainerx and (requires_grad_x or requires_grad_y)))
 
         if should_fail:
