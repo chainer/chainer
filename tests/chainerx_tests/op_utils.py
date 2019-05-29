@@ -99,7 +99,7 @@ class OpTest(chainer.testing.function_link.FunctionTestBase):
         if self.skip_double_backward_test:
             return
 
-        super(OpTest, self).run_test_backward(backend_config)
+        super(OpTest, self).run_test_double_backward(backend_config)
 
 
 class ChainerOpTest(OpTest):
