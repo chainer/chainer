@@ -72,8 +72,6 @@ from chainer.variable import Parameter  # NOQA
 from chainer.variable import Variable  # NOQA
 
 
-import chainer as _chainer
-
 from chainer import _environment_check
 
 
@@ -89,23 +87,18 @@ del chainer
 
 # Aliases for backward compatibility
 from chainer.backends import cuda  # NOQA
-sys.modules['chainer.cuda'] = _chainer.backends.cuda
+sys.modules['chainer.cuda'] = backends.cuda
 
-_chainer.should_use_cudnn = _chainer.backends.cuda.should_use_cudnn
-_chainer.should_use_cudnn_tensor_core = \
-    _chainer.backends.cuda.should_use_cudnn_tensor_core
-_chainer.function.FunctionHook = _chainer.FunctionHook
-_chainer.training.trigger.IntervalTrigger = \
-    _chainer.training.triggers.IntervalTrigger
-_chainer.training.trigger.get_trigger = _chainer.training.util.get_trigger
-_chainer.training.trigger._never_fire_trigger = \
-    _chainer.training.util._never_fire_trigger
-_chainer.training.updater.ParallelUpdater = \
-    _chainer.training.updaters.ParallelUpdater
-_chainer.training.updater.StandardUpdater = \
-    _chainer.training.updaters.StandardUpdater
-_chainer.training.extensions.dump_graph = \
-    _chainer.training.extensions.computational_graph.DumpGraph
+should_use_cudnn = backends.cuda.should_use_cudnn
+should_use_cudnn_tensor_core = backends.cuda.should_use_cudnn_tensor_core
+function.FunctionHook = FunctionHook  # NOQA
+training.trigger.IntervalTrigger = training.triggers.IntervalTrigger
+training.trigger.get_trigger = training.util.get_trigger
+training.trigger._never_fire_trigger = training.util._never_fire_trigger
+training.updater.ParallelUpdater = training.updaters.ParallelUpdater
+training.updater.StandardUpdater = training.updaters.StandardUpdater
+training.extensions.dump_graph = \
+    training.extensions.computational_graph.DumpGraph
 
 
 # Check environment conditions
