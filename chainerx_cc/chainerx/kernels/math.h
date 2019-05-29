@@ -3,7 +3,6 @@
 #include <cstdint>
 
 #include "chainerx/array.h"
-#include "chainerx/axes.h"
 #include "chainerx/kernel.h"
 #include "chainerx/scalar.h"
 
@@ -100,6 +99,20 @@ public:
     virtual void Call(const Array& x, const Array& out) = 0;
 };
 
+class Expm1Kernel : public Kernel {
+public:
+    static const char* name() { return "Expm1"; }
+
+    virtual void Call(const Array& x, const Array& out) = 0;
+};
+
+class Exp2Kernel : public Kernel {
+public:
+    static const char* name() { return "Exp2"; }
+
+    virtual void Call(const Array& x, const Array& out) = 0;
+};
+
 class LogKernel : public Kernel {
 public:
     static const char* name() { return "Log"; }
@@ -110,6 +123,13 @@ public:
 class Log10Kernel : public Kernel {
 public:
     static const char* name() { return "Log10"; }
+
+    virtual void Call(const Array& x, const Array& out) = 0;
+};
+
+class Log1pKernel : public Kernel {
+public:
+    static const char* name() { return "Log1p"; }
 
     virtual void Call(const Array& x, const Array& out) = 0;
 };
@@ -196,20 +216,6 @@ public:
     static const char* name() { return "IsFinite"; }
 
     virtual void Call(const Array& x, const Array& out) = 0;
-};
-
-// Calculate the sum of an array.
-// It will be summed over the specified axes.
-// `axis` must be normalized so that
-// - it has only positive values,
-// - it is sorted, and
-// - it has no duplicated values.
-// Otherwise, the behavior is undefined.
-class SumKernel : public Kernel {
-public:
-    static const char* name() { return "Sum"; }
-
-    virtual void Call(const Array& a, const Axes& axis, const Array& out) = 0;
 };
 
 // Compares x1 and x2 and assign either pos or neg according to the result.
