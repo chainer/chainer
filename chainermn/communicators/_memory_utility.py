@@ -4,6 +4,7 @@ import mpi4py.MPI
 import numpy as np
 
 import chainer.backends
+from chainermn.communicators import _communication_utility
 try:
     import cupy as cp
     _cupy_avail = True
@@ -168,3 +169,206 @@ def get_device_memory_pointer(array):
             array.data.ptr,
             ctypes.POINTER(ctypes.c_ubyte * array.nbytes)
         ).contents
+
+
+def prepare_multi_node_mean_pack_buffer(allreduce_grad_dtype, n_elems,
+                                        gpu_buffer_a, gpu_buffer_b):
+    allreduce_grad_n_bytes = allreduce_grad_dtype.itemsize * n_elems
+    needs_sync = False
+
+    if gpu_buffer_a.size != allreduce_grad_n_bytes:
+        gpu_buffer_a.assign(allreduce_grad_n_bytes)
+        needs_sync = True
+    if gpu_buffer_b.size != allreduce_grad_n_bytes:
+        gpu_buffer_b.assign(allreduce_grad_n_bytes)
+        needs_sync = True
+
+    return needs_sync
+
+
+def pack_params_to_buffer(params, extracted_params_gpu, gpu_buffer, allreduce_grad_dtype,
+                          zero_fill, stream):
+    if extracted_params_gpu is not None:
+        extracted_params_gpu.set(params, 'grad', zero_fill)
+        batched_pack_params(extracted_params_gpu, gpu_buffer,
+                             allreduce_grad_dtype)
+    else:
+        pack_params(
+            params, 'grad',
+            gpu_buffer,
+            transfer_dtype=allreduce_grad_dtype,
+            zero_fill=zero_fill,
+            stream=stream)
+
+def unpack_params_from_buffer(params, extracted_params_gpu, gpu_buffer,
+                                   allreduce_grad_dtype, zero_fill, stream):
+    if extracted_params_gpu is not None:
+        batched_unpack_params(extracted_params_gpu, gpu_buffer,
+                               allreduce_grad_dtype)
+    else:
+        unpack_params(
+            params, 'grad', gpu_buffer,
+            allreduce_grad_dtype, zero_fill, stream)
+
+
+class ExtractedParamAttrsGpu(object):
+    def __init__(self):
+        pass
+
+    def set(self, params, attr_name, zero_fill):
+        n_params = len(params)
+        params_dptr = np.empty(n_params, dtype=np.int64)
+        params_dtype = np.empty(n_params, dtype=np.int32)
+        params_size_csum = np.empty(n_params + 1, dtype=np.int32)
+        params_size_csum[0] = 0
+        for i, param in enumerate(params):
+            v = getattr(param, attr_name)
+            if attr_name == 'grad' and v is None and zero_fill:
+                v = param.xp.zeros_like(param.data)
+                setattr(param, attr_name, v)
+            params_dptr[i] = v.data.ptr
+            if v.dtype not in [np.float16, np.float32]:
+                raise ValueError('dtype must be float16 or float32.')
+            params_dtype[i] = _communication_utility._get_nccl_type_id(v.dtype)
+            params_size_csum[i + 1] = params_size_csum[i] + v.size
+        self.n_params = n_params
+        self.n_elems = params_size_csum[n_params]
+        self.size_csum = chainer.cuda.cupy.asarray(params_size_csum)
+        self.dtype = chainer.cuda.cupy.asarray(params_dtype)
+        self.dptr = chainer.cuda.cupy.asarray(params_dptr)
+
+
+def batched_pack_params(params_data, buffer, dtype):
+    n_params = params_data.n_params
+    n_elems = params_data.n_elems
+    params_dptr = params_data.dptr
+    params_dtype = params_data.dtype
+    params_size_csum = params_data.size_csum
+    buf_dtype = _communication_utility._get_nccl_type_id(dtype)
+    n_threads = 128
+    n_blocks = (n_elems + n_threads - 1) // n_threads
+    _cupy_batched_pack_params()(
+        (n_blocks, ), (n_threads, ),
+        (buffer.memory.ptr, buf_dtype, n_elems,
+         params_dptr, params_dtype, params_size_csum, n_params))
+
+
+def batched_unpack_params(params_data, buffer, dtype):
+    n_params = params_data.n_params
+    n_elems = params_data.n_elems
+    params_dptr = params_data.dptr
+    params_dtype = params_data.dtype
+    params_size_csum = params_data.size_csum
+    buf_dtype = _communication_utility._get_nccl_type_id(dtype)
+    n_threads = 128
+    n_blocks = (n_elems + n_threads - 1) // n_threads
+    _cupy_batched_unpack_params()(
+        (n_blocks, ), (n_threads, ),
+        (buffer.memory.ptr, buf_dtype, n_elems,
+         params_dptr, params_dtype, params_size_csum, n_params))
+
+
+def _cupy_batched_pack_params():
+    return chainer.cuda.cupy.RawKernel(r'''
+#include <cupy/carray.cuh>
+#define NCCL_FLOAT16  6
+#define NCCL_FLOAT32  7
+    extern "C" __global__
+    void cupy_batched_pack_params(
+            void *dst0, int dst_dtype, int n_elems,
+            unsigned long *params_dptr, int *params_dtype,
+            int *params_size_csum, int n_params) {
+        int tid = threadIdx.x + blockIdx.x * blockDim.x;
+        if (tid >= n_elems) return;
+        int j_min = 0;
+        int j_max = n_params - 1;
+        int j;
+        while (1) {
+            j = (j_min + j_max) / 2;
+            if (tid < params_size_csum[j]) {
+                j_max = j - 1;
+                continue;
+            }
+            if (tid >= params_size_csum[j+1]){
+                j_min = j + 1;
+                continue;
+            }
+            break;
+        }
+        assert(tid >= params_size_csum[j]);
+        assert(tid < params_size_csum[j+1]);
+        int src_dtype = params_dtype[j];
+        int src_idx = tid - params_size_csum[j];
+        if (dst_dtype == NCCL_FLOAT16) {
+            half* dst = (half*) dst0;
+            if (src_dtype == NCCL_FLOAT16) {
+                dst[tid] = (half) (((half*) (params_dptr[j]))[src_idx]);
+            }
+            else if (src_dtype == NCCL_FLOAT32) {
+                dst[tid] = (half) (((float*) (params_dptr[j]))[src_idx]);
+            }
+        }
+        else if (dst_dtype == NCCL_FLOAT32) {
+            float* dst = (float*) dst0;
+            if (src_dtype == NCCL_FLOAT16) {
+                dst[tid] = (float) (((half*) (params_dptr[j]))[src_idx]);
+            }
+            else if (src_dtype == NCCL_FLOAT32) {
+                dst[tid] = (float) (((float*) (params_dptr[j]))[src_idx]);
+            }
+       }
+    }
+    ''', 'cupy_batched_pack_params')
+
+
+def _cupy_batched_unpack_params():
+    return chainer.cuda.cupy.RawKernel(r'''
+#include <cupy/carray.cuh>
+#define NCCL_FLOAT16  6
+#define NCCL_FLOAT32  7
+    extern "C" __global__
+    void cupy_batched_unpack_params(
+            void *src0, int src_dtype, int n_elems,
+            unsigned long *params_dptr, int *params_dtype,
+            int *params_size_csum, int n_params) {
+        int tid = threadIdx.x + blockIdx.x * blockDim.x;
+        if (tid >= n_elems) return;
+        int j_min = 0;
+        int j_max = n_params - 1;
+        int j;
+        while (1) {
+            j = (j_min + j_max) / 2;
+            if (tid < params_size_csum[j]) {
+                j_max = j - 1;
+                continue;
+            }
+            if (tid >= params_size_csum[j+1]){
+                j_min = j + 1;
+                continue;
+            }
+            break;
+        }
+        assert(tid >= params_size_csum[j]);
+        assert(tid < params_size_csum[j+1]);
+        int dst_dtype = params_dtype[j];
+        int dst_idx = tid - params_size_csum[j];
+        if (src_dtype == NCCL_FLOAT16) {
+            half* src = (half*) src0;
+            if (dst_dtype == NCCL_FLOAT16) {
+                ((half*) (params_dptr[j]))[dst_idx] = (half) src[tid];
+            }
+            else if (dst_dtype == NCCL_FLOAT32) {
+                ((float*) (params_dptr[j]))[dst_idx] = (float) src[tid];
+            }
+        }
+        else if (src_dtype == NCCL_FLOAT32) {
+            float* src = (float*) src0;
+            if (dst_dtype == NCCL_FLOAT16) {
+                ((half*) (params_dptr[j]))[dst_idx] = (half) src[tid];
+            }
+            else if (dst_dtype == NCCL_FLOAT32) {
+                ((float*) (params_dptr[j]))[dst_idx] = (float) src[tid];
+            }
+       }
+    }''', 'cupy_batched_unpack_params')
+

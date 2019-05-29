@@ -508,21 +508,6 @@ class MpiCommunicatorBase(communicator_base.CommunicatorBase):
 
         return dbuf.reshape(shape)
 
-    # Objects
-    def send_obj(self, obj, dest, tag=0):
-        self.mpi_comm.send(obj, dest=dest, tag=tag)
-
-    def recv_obj(self, source, status=None, tag=mpi4py.MPI.ANY_TAG):
-        return self.mpi_comm.recv(source=source, status=status, tag=tag)
-
-    def bcast_obj(self, obj, max_buf_len=256 * 1024 * 1024, root=0):
-        return chunked_bcast_obj(obj, self.mpi_comm,
-                                 max_buf_len=max_buf_len,
-                                 root=root)
-
-    def gather_obj(self, obj, root=0):
-        return self.mpi_comm.gather(obj, root=root)
-
     def scatter(self, xs, root=0):
         """A primitive of inter-process scatter communication.
 
@@ -615,6 +600,21 @@ class MpiCommunicatorBase(communicator_base.CommunicatorBase):
                 root)
             return rbuf.reshape(shape)
 
+    # Objects
+    def send_obj(self, obj, dest, tag=0):
+        self.mpi_comm.send(obj, dest=dest, tag=tag)
+
+    def recv_obj(self, source, status=None, tag=mpi4py.MPI.ANY_TAG):
+        return self.mpi_comm.recv(source=source, status=status, tag=tag)
+
+    def bcast_obj(self, obj, max_buf_len=256 * 1024 * 1024, root=0):
+        return chunked_bcast_obj(obj, self.mpi_comm,
+                                 max_buf_len=max_buf_len,
+                                 root=root)
+
+    def gather_obj(self, obj, root=0):
+        return self.mpi_comm.gather(obj, root=root)
+
     def allreduce_obj(self, obj):
         # Summation by default
         return self.mpi_comm.allreduce(obj)
@@ -659,7 +659,7 @@ class MpiCommunicatorBase(communicator_base.CommunicatorBase):
             raise ValueError('Parameters diverged after allreduce.')
 
     def multi_node_mean(self, array_a, array_b):
-        # The name is allreduce but actually a mean
+        # Performs allreduce and division by size, i.e. mean.
         # Sigma(a, all-procs)/n -> b or
         # Sigma(b, all-procs)/n -> b if array_a is None
         if chainer.is_debug():

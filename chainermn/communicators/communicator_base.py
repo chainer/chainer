@@ -208,6 +208,25 @@ class CommunicatorBase(six.with_metaclass(ABCMeta)):
         '''
         raise NotImplementedError()
 
+    @abstractmethod
+    def scatter(self, data, root=0):
+        '''Scatter operation among processes
+
+        Args:
+            data (ndarray, or scaler): for root process this is ignored. For
+                For non-root processes, the data to send to root process.
+            root (int): rank of the process who receives the data.
+
+        Args:
+            data (tuple of numpy/cupy array): Arrays to be scattered.
+            root (int): Rank of root process.
+
+        Returns:
+            Received arrays.
+
+        '''
+        raise NotImplementedError()
+
     # on objects
     @abstractmethod
     def send_obj(self, obj, dest, tag):

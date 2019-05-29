@@ -45,7 +45,10 @@ class PureNcclCommunicator(mpi_communicator_base.MpiCommunicatorBase):
         self.batched_copy = batched_copy
         self.grad_dtype_to_allreduce_dtype_kernel = None
         self.allreduce_dtype_to_grad_dtype_kernel = None
-        self.params_data = None
+        if batched_copy:
+            self.params_data = _memory_utility.ExtractedParamAttrsGpu()
+        else:
+            self.params_data = None
 
     def _init_comms(self):
         if self.nccl_comm is not None:
@@ -90,13 +93,14 @@ class PureNcclCommunicator(mpi_communicator_base.MpiCommunicatorBase):
 
         n_elems = _memory_utility.count_grad_elements(params,
                                                       zero_fill)
-        needs_sync = self._prepare_allreduce_pack_buffer(allreduce_grad_dtype,
-                                                         n_elems)
+        needs_sync = _memory_utility.prepare_allreduce_pack_buffer(
+            allreduce_grad_dtype, n_elems, self.gpu_buffer_a,
+            self.gpu_buffer_b)
         if stream != chainer.cuda.Stream.null and needs_sync:
             chainer.cuda.Stream.null.synchronize()
 
         # pack grads from params -> buffer A
-        self._pack_params_to_buffer(params, allreduce_grad_dtype,
+        _memory_utility.pack_params_to_buffer(params, allreduce_grad_dtype,
                                     zero_fill, stream)
 
         # Allreduce from buffer A -> buffer B
@@ -106,7 +110,7 @@ class PureNcclCommunicator(mpi_communicator_base.MpiCommunicatorBase):
                                   allreduce_grad_dtype, stream)
 
         # unpack params from buffer A -> params
-        self._unpack_params_from_buffer(params, allreduce_grad_dtype,
+        _memory_utility.unpack_params_from_buffer(params, allreduce_grad_dtype,
                                         zero_fill, stream)
 
     def _prepare_allreduce_pack_buffer(self, allreduce_grad_dtype, n_elems):
@@ -146,19 +150,18 @@ class PureNcclCommunicator(mpi_communicator_base.MpiCommunicatorBase):
                 self.params_data = None
             else:
                 params_data = _ParamsData(params, 'grad', zero_fill)
-            _batched_unpack_params(params_data, self.gpu_buffer_a,
+            _batched_unpack_params(params_data, self.gpu_buffer_b,
                                    allreduce_grad_dtype)
             return
         else:
             _memory_utility.unpack_params(
-                params, 'grad', self.gpu_buffer_a,
+                params, 'grad', self.gpu_buffer_b,
                 allreduce_grad_dtype, zero_fill, stream)
 
     def multi_node_mean_nccl(self, gpu_buffer_a, gpu_buffer_b,
                              n_elems, dtype, stream=None):
         # Performs allreduce and division by size, i.e. mean.
-        # gpu_buffer_a = Sigma(gpu_buffer_a, all-procs) / self.size
-        # b is just used as buffer
+        # # Sigma(gpu_buffer_a, all-procs)/n -> gpu_buffer_b
         if chainer.is_debug():
             stream.synchronize()
             array_a = gpu_buffer_a.array(n_elems, dtype=dtype)
@@ -173,12 +176,11 @@ class PureNcclCommunicator(mpi_communicator_base.MpiCommunicatorBase):
                                  gpu_buffer_b.ptr(), n_elems,
                                  type_id, nccl.NCCL_SUM, stream.ptr)
         div_by_size = chainer.cuda.cupy.ElementwiseKernel(
+            '',
             '{} x'.format(dtype.name),
-            '{} y'.format(dtype.name),
-            'y = x*(1.0/{})'.format(self.size), 'div_by_size')
+            'x *= (1.0/{})'.format(self.size), 'div_by_size')
         div_by_size(
             gpu_buffer_b.array(n_elems, dtype=dtype),
-            gpu_buffer_a.array(n_elems, dtype=dtype),
             stream=stream)
 
         if chainer.is_debug():
