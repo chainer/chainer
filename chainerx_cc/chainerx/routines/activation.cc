@@ -25,7 +25,6 @@
 #include "chainerx/shape.h"
 
 namespace chainerx {
-
 Array ClippedRelu(const Array& x, Scalar z) {
     return Minimum(Maximum(0, x), z);
 }
@@ -37,6 +36,10 @@ Array Crelu(const Array& x, nonstd::optional<int8_t> axis) {
 }
 
 Array Elu(const Array& x, Scalar alpha) {
+    Array zero = ZerosLike(x, x.device());
+    Array out = ZerosLike(x, x.device());
+    IfGreaterElseImpl(x, zero, x, alpha * (Exp(x) - 1), out);
+    return out;
 }
 
 Array Sigmoid(const Array& x) {
