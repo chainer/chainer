@@ -2,6 +2,7 @@ install(FILES
     binary.h
     connection.h
     creation.h
+    explog.h
     hyperbolic.h
     indexing.h
     linalg.h
