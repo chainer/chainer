@@ -29,4 +29,25 @@ public:
     virtual void Call(const Array& condition, const Array& x, const Array& y, const Array& out) = 0;
 };
 
+class WhereASKernel : public Kernel {
+public:
+    static const char* name() { return "WhereAS"; }
+
+    virtual void Call(const Array& condition, const Array& x, Scalar y, const Array& out) = 0;
+};
+
+class WhereSAKernel : public Kernel {
+public:
+    static const char* name() { return "WhereSA"; }
+
+    virtual void Call(const Array& condition, Scalar x, const Array& y, const Array& out) = 0;
+};
+
+class WhereSSKernel : public Kernel {
+public:
+    static const char* name() { return "WhereSS"; }
+
+    virtual void Call(const Array& condition, Scalar x, Scalar y, const Array& out) = 0;
+};
+
 }  // namespace chainerx
