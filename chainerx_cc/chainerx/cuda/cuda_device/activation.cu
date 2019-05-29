@@ -41,10 +41,10 @@ public:
         const Array& x1_cast = x1.dtype() == x_dtype ? x1 : x1.AsType(x_dtype);
         const Array& neg_cast = neg.dtype() == out.dtype() ? neg : neg.AsType(out.dtype());
         CudaSetDeviceScope scope{device.index()};
-        VisitDtype(x_dtype, [&](auto x_pt) {
+        VisitNumericDtype(x_dtype, [&](auto x_pt) {
             using In = typename decltype(x_pt)::type;
             using InCudaType = cuda_internal::DataType<In>;
-            VisitDtype(out.dtype(), [&](auto pt) {
+            VisitNumericDtype(out.dtype(), [&](auto pt) {
                 using Out = typename decltype(pt)::type;
                 using OutCudaType = cuda_internal::DataType<Out>;
                 Elementwise<const In, const Out, Out>(
@@ -74,10 +74,10 @@ public:
         const Array& x1_cast = x1.dtype() == x_dtype ? x1 : x1.AsType(x_dtype);
         const Array& neg_cast = neg.dtype() == out.dtype() ? neg : neg.AsType(out.dtype());
         CudaSetDeviceScope scope{device.index()};
-        VisitDtype(x_dtype, [&](auto x_pt) {
+        VisitNumericDtype(x_dtype, [&](auto x_pt) {
             using In = typename decltype(x_pt)::type;
             using InCudaType = cuda_internal::DataType<In>;
-            VisitDtype(out.dtype(), [&](auto pt) {
+            VisitNumericDtype(out.dtype(), [&](auto pt) {
                 using Out = typename decltype(pt)::type;
                 using OutCudaType = cuda_internal::DataType<Out>;
                 Elementwise<const In, const Out, Out>(
@@ -109,9 +109,9 @@ public:
         const Array& pos_cast = pos.dtype() == out.dtype() ? pos : pos.AsType(out.dtype());
         const Array& neg_cast = neg.dtype() == out.dtype() ? neg : neg.AsType(out.dtype());
         CudaSetDeviceScope scope{device.index()};
-        VisitDtype(x_dtype, [&](auto x_pt) {
+        VisitNumericDtype(x_dtype, [&](auto x_pt) {
             using In = typename decltype(x_pt)::type;
-            VisitDtype(out.dtype(), [&](auto pt) {
+            VisitNumericDtype(out.dtype(), [&](auto pt) {
                 using Out = typename decltype(pt)::type;
                 Elementwise<const In, const In, const Out, const Out, Out>(
                         IfGreaterElseAAAAImpl<In, Out>{}, x1_cast, x2_cast, pos_cast, neg_cast, out);
@@ -127,22 +127,6 @@ struct TanhImpl {
     using CudaType = cuda_internal::DataType<T>;
     __device__ void operator()(int64_t /*i*/, CudaType x, CudaType& out) { out = cuda::Tanh(x); }
 };
-
-class CudaTanhKernel : public TanhKernel {
-public:
-    void Call(const Array& x, const Array& out) override {
-        Device& device = x.device();
-        device.CheckDevicesCompatible(x, out);
-        CudaSetDeviceScope scope{device.index()};
-        const Array& x_cast = x.dtype() == out.dtype() ? x : x.AsType(out.dtype());
-        VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
-            using T = typename decltype(pt)::type;
-            Elementwise<const T, T>(TanhImpl<T>{}, x_cast, out);
-        });
-    }
-};
-
-CHAINERX_CUDA_REGISTER_KERNEL(TanhKernel, CudaTanhKernel);
 
 }  // namespace
 }  // namespace cuda

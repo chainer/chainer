@@ -121,15 +121,15 @@ public:
         CudaDevice& device = dynamic_cast<CudaDevice&>(x.device());
         CudaSetDeviceScope scope{device.index()};
 
-        Array x_cont = internal::AsContiguous(x);
+        Array x_cont = AsContiguous(x);
         cuda_internal::CudnnTensorDescriptor x_desc{x_cont};
 
         cudnnBatchNormMode_t mode = GetBatchNormMode(axis);
         cuda_internal::CudnnTensorDescriptor gamma_beta_mean_var_desc = DeriveBatchNormTensorDescriptor(x_desc, mode);
         Dtype gamma_beta_mean_var_dtype = gamma_beta_mean_var_desc.GetDtype();
 
-        Array gamma_casted_cont = internal::AsContiguous(gamma, gamma_beta_mean_var_dtype);
-        Array beta_casted_cont = internal::AsContiguous(beta, gamma_beta_mean_var_dtype);
+        Array gamma_casted_cont = AsContiguous(gamma, gamma_beta_mean_var_dtype);
+        Array beta_casted_cont = AsContiguous(beta, gamma_beta_mean_var_dtype);
 
         CHAINERX_ASSERT(running_mean.IsContiguous());
         CHAINERX_ASSERT(running_var.IsContiguous());
@@ -237,7 +237,7 @@ public:
         CudaDevice& device = dynamic_cast<CudaDevice&>(x.device());
         CudaSetDeviceScope scope{device.index()};
 
-        Array gout_cont = internal::AsContiguous(gout);
+        Array gout_cont = AsContiguous(gout);
         Array actual_gx = EmptyLike(x, device);
         cuda_internal::CudnnTensorDescriptor x_desc{x_cont};
 
@@ -250,7 +250,7 @@ public:
         Dtype gamma_beta_mean_var_dtype = gamma_beta_mean_var_desc.GetDtype();
         Shape gamma_beta_mean_var_shape = internal::ReduceShape(x_cont.shape(), axis, true);
 
-        Array gamma_casted_cont = internal::AsContiguous(gamma, gamma_beta_mean_var_dtype);
+        Array gamma_casted_cont = AsContiguous(gamma, gamma_beta_mean_var_dtype);
         Array actual_ggamma = Empty(gamma_beta_mean_var_shape, gamma_beta_mean_var_dtype, device);
         Array actual_gbeta = Empty(gamma_beta_mean_var_shape, gamma_beta_mean_var_dtype, device);
 
@@ -338,7 +338,7 @@ public:
         CudaDevice& device = dynamic_cast<CudaDevice&>(x.device());
         CudaSetDeviceScope scope{device.index()};
 
-        Array x_cont = internal::AsContiguous(x);
+        Array x_cont = AsContiguous(x);
         cuda_internal::CudnnTensorDescriptor x_desc{x_cont};
 
         cudnnBatchNormMode_t mode = GetBatchNormMode(axis);
@@ -346,10 +346,10 @@ public:
         cuda_internal::CudnnTensorDescriptor gamma_beta_mean_var_desc = DeriveBatchNormTensorDescriptor(x_desc, mode);
         Dtype gamma_beta_mean_var_dtype = gamma_beta_mean_var_desc.GetDtype();
 
-        Array gamma_casted_cont = internal::AsContiguous(gamma, gamma_beta_mean_var_dtype);
-        Array beta_casted_cont = internal::AsContiguous(beta, gamma_beta_mean_var_dtype);
-        Array mean_casted_cont = internal::AsContiguous(mean, gamma_beta_mean_var_dtype);
-        Array var_casted_cont = internal::AsContiguous(var, gamma_beta_mean_var_dtype);
+        Array gamma_casted_cont = AsContiguous(gamma, gamma_beta_mean_var_dtype);
+        Array beta_casted_cont = AsContiguous(beta, gamma_beta_mean_var_dtype);
+        Array mean_casted_cont = AsContiguous(mean, gamma_beta_mean_var_dtype);
+        Array var_casted_cont = AsContiguous(var, gamma_beta_mean_var_dtype);
 
         Dtype dtype = x_cont.dtype();
 

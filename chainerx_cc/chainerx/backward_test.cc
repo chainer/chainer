@@ -334,15 +334,29 @@ TEST_F(BackpropTest, BackwardWithComplicatedRanks) {
     });
 }
 
-TEST_F(BackpropTest, TryBackwardFromArrayWithoutNode) {
+TEST_F(BackpropTest, BackwardFromArrayWithoutNode) {
     auto xs = MakeFullArrays({1}, {2.0f, 3.0f});
     auto y1 = xs[0] * xs[1];  // without graph
-    EXPECT_THROW(Backward(y1), ChainerxError);
+    Backward(y1);
+
+    EXPECT_THROW(xs[0].GetGrad(), ChainerxError);
+    EXPECT_THROW(xs[1].GetGrad(), ChainerxError);
+}
+
+TEST_F(BackpropTest, BackwardFromArrayWithAndWithoutNode) {
+    auto xs = MakeFullArrays({1}, {2.0f, 3.0f});
+    auto y1 = xs[0] * xs[1];  // without graph
     for (auto& x : xs) {
         x.RequireGrad();
     }
     auto y2 = xs[0] * xs[1];  // with graph
-    EXPECT_THROW(Backward({y1, y2}), ChainerxError);
+    Backward({y1, y2});
+
+    // xs have grads from y1
+    ASSERT_TRUE(xs[0].GetGrad().has_value());
+    ASSERT_TRUE(xs[1].GetGrad().has_value());
+    EXPECT_ARRAY_EQ(xs[1], *xs[0].GetGrad());
+    EXPECT_ARRAY_EQ(xs[0], *xs[1].GetGrad());
 }
 
 TEST_F(BackpropTest, BackwardSoleArrayNode) {
@@ -605,7 +619,12 @@ TEST_F(BackpropTest, MultipleGraphsNonExisting) {
     x2.RequireGrad(backprop_id_1);
 
     Array y1 = x1 * x2;
-    EXPECT_THROW(Backward(y1, backprop_id_2), ChainerxError);
+    Backward(y1, backprop_id_2);
+
+    EXPECT_TRUE(testing::IsBackpropIdsEqual({backprop_id_1}, x1));
+    EXPECT_TRUE(testing::IsBackpropIdsEqual({backprop_id_1}, x2));
+    EXPECT_FALSE(x1.GetGrad(backprop_id_1).has_value());
+    EXPECT_FALSE(x2.GetGrad(backprop_id_1).has_value());
 }
 
 TEST_F(BackpropTest, MultipleGraphsReuseWithDefaultGraph) {
@@ -1012,7 +1031,9 @@ TEST_F(BackpropTest, GradWithSingleArrayNodeNoRequiresGrad) {
 
     Array x1 = Full({1}, 2.0f);
 
-    EXPECT_THROW(Grad({x1}, {x1}, backprop_id_1), ChainerxError);
+    std::vector<nonstd::optional<Array>> grads = Grad({x1}, {x1}, backprop_id_1);
+    ASSERT_EQ(1U, grads.size());
+    ASSERT_FALSE(grads[0].has_value());
 }
 
 TEST_F(BackpropTest, GradOnlyRequiresGrad) {

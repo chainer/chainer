@@ -9,7 +9,7 @@ Chainer provides many :class:`~chainer.Link` implementations in the
 .. note::
    Some of the links are originally defined in the :mod:`chainer.functions`
    namespace. They are still left in the namespace for backward compatibility,
-   though it is strongly recommended to use them via the :mod:`chainer.links`
+   though it is strongly recommended that you use them via the :mod:`chainer.links`
    package.
 
 

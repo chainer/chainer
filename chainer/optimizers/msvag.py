@@ -2,7 +2,7 @@ from __future__ import division
 
 import numpy
 
-from chainer import backend
+import chainer
 from chainer.backends import cuda
 from chainer import optimizer
 from chainer import types
@@ -33,13 +33,13 @@ class MSVAGRule(optimizer.UpdateRule):
 
     """Update rule of the M-SVAG optimization algorithm.
 
-    See: `Dissecting Adam: The Sign, Magnitude and Variance of Stochastic \
-          Gradients <https://arxiv.org/abs/1705.07774>`_
+    See: `Dissecting Adam: The Sign, Magnitude and Variance of Stochastic
+    Gradients <https://arxiv.org/abs/1705.07774>`_
 
     Modified for proper weight decay.
 
-    See: `Fixing Weight Decay Regularization in Adam \
-          <https://openreview.net/forum?id=rk6qdGgCZ>`_
+    See: `Fixing Weight Decay Regularization in Adam
+    <https://openreview.net/forum?id=rk6qdGgCZ>`_
 
     See :class:`~chainer.optimizers.MSVAG` for the default values
     of the hyperparameters.
@@ -72,8 +72,8 @@ class MSVAGRule(optimizer.UpdateRule):
         self.beta_power = self.hyperparam.beta
 
     def init_state(self, param):
-        xp = backend.get_array_module(param.data)
-        with cuda.get_device_from_array(param.data):
+        with chainer.using_device(param.device):
+            xp = param.device.xp
             self.state['m'] = xp.zeros_like(param.data)
             self.state['v'] = xp.zeros_like(param.data)
 
@@ -153,8 +153,8 @@ class MSVAG(optimizer.GradientMethod):
 
     """M-SVAG optimizer.
 
-    See: `Dissecting Adam: The Sign, Magnitude and Variance of Stochastic \
-          Gradients <https://arxiv.org/abs/1705.07774>`_
+    See: `Dissecting Adam: The Sign, Magnitude and Variance of Stochastic
+    Gradients <https://arxiv.org/abs/1705.07774>`_
 
     Modified for proper weight decay (also called AdamW).
     AdamW introduces the additional parameters ``eta``
@@ -162,8 +162,8 @@ class MSVAG(optimizer.GradientMethod):
     learning rate, and decouple the weight decay rate from ``alpha``,
     as shown in the below paper.
 
-    See: `Fixing Weight Decay Regularization in Adam \
-          <https://openreview.net/forum?id=rk6qdGgCZ>`_
+    See: `Fixing Weight Decay Regularization in Adam
+    <https://openreview.net/forum?id=rk6qdGgCZ>`_
 
     Args:
         lr (float): Learning rate.

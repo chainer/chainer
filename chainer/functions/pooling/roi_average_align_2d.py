@@ -35,22 +35,24 @@ def _get_bounds(p, limit):
     if p < -1 or p > limit:
         # out of range, so it is empty
         return None, None, None
-    if p <= 0:
-        p = 0
+
     low = int(numpy.floor(p))
-    if low >= limit - 1:
-        high = low = limit - 1
-        p = float(low)
-    else:
-        high = low + 1
+    if low == limit:
+        low = low - 1
+    high = low + 1
+
+    if low <= -1:
+        p = 0
+    elif high >= limit:
+        p = limit - 1
     return p, low, high
 
 
 def _get_bilinear_interp_params(y, x, y_low, x_low, y_high, x_high):
     ly = y - y_low
     lx = x - x_low
-    hy = 1. - ly
-    hx = 1. - lx
+    hy = y_high - y
+    hx = x_high - x
     w1 = hy * hx
     w2 = hy * lx
     w3 = ly * hx
@@ -66,15 +68,15 @@ bool get_bounds(
         // empty
         return false;
     }
-    if (p <= 0) {
-        p = 0;
+    low = (int)floor(p);
+    if (low == limit) {
+        low = low - 1;
     }
-    low = (int)p;
-    if (low >= limit - 1) {
-        high = low = limit - 1;
-        p = (T)low;
-    } else {
-        high = low + 1;
+    high = low + 1;
+    if (low <= -1) {
+        p = (T) 0.0;
+    } else if (high >= limit) {
+        p = (T) (limit - 1);
     }
     return true;
 }
@@ -85,8 +87,8 @@ void get_bilinear_interp_params(
     T &w1, T &w2, T &w3, T &w4) {
     T ly = y - y_low;
     T lx = x - x_low;
-    T hy = 1. - ly;
-    T hx = 1. - lx;
+    T hy = y_high - y;
+    T hx = x_high - x;
     w1 = hy * hx;
     w2 = hy * lx;
     w3 = ly * hx;
@@ -200,12 +202,21 @@ class ROIAverageAlign2D(function.Function):
                     w1, w2, w3, w4 = _get_bilinear_interp_params(
                         y, x, y_low, x_low, y_high, x_high)
 
-                    v1 = bottom_data[roi_batch_ind, c, y_low, x_low]
-                    v2 = bottom_data[roi_batch_ind, c, y_low, x_high]
-                    v3 = bottom_data[roi_batch_ind, c, y_high, x_low]
-                    v4 = bottom_data[roi_batch_ind, c, y_high, x_high]
+                    if w1 > 0 and y_low >= 0 and x_low >= 0:
+                        v1 = bottom_data[roi_batch_ind, c, y_low, x_low]
+                        output_val += w1 * v1
 
-                    output_val += w1 * v1 + w2 * v2 + w3 * v3 + w4 * v4
+                    if w2 > 0 and y_low >= 0 and x_high <= width - 1:
+                        v2 = bottom_data[roi_batch_ind, c, y_low, x_high]
+                        output_val += w2 * v2
+
+                    if w3 > 0 and y_high <= height - 1 and x_low >= 0:
+                        v3 = bottom_data[roi_batch_ind, c, y_high, x_low]
+                        output_val += w3 * v3
+
+                    if w4 > 0 and y_high <= height - 1 and x_high <= width - 1:
+                        v4 = bottom_data[roi_batch_ind, c, y_high, x_high]
+                        output_val += w4 * v4
 
                     # }}
 
@@ -296,16 +307,27 @@ class ROIAverageAlign2D(function.Function):
                     get_bilinear_interp_params(
                         y, x, y_low, x_low, y_high, x_high, w1, w2, w3, w4);
 
-                    T v1 = bottom_data[bottom_data_offset +
-                                       y_low * width + x_low];
-                    T v2 = bottom_data[bottom_data_offset +
-                                       y_low * width + x_high];
-                    T v3 = bottom_data[bottom_data_offset +
-                                       y_high * width + x_low];
-                    T v4 = bottom_data[bottom_data_offset +
-                                       y_high * width + x_high];
-
-                    output_val += (w1 * v1 + w2 * v2 + w3 * v3 + w4 * v4);
+                    if (w1 > 0 && y_low >= 0 && x_low >= 0) {
+                        T v1 = bottom_data[
+                            bottom_data_offset + y_low * width + x_low];
+                        output_val += w1 * v1;
+                    }
+                    if (w2 > 0 && y_low >= 0 && x_high <= width - 1) {
+                        T v2 = bottom_data[
+                            bottom_data_offset + y_low * width + x_high];
+                        output_val += w2 * v2;
+                    }
+                    if (w3 > 0 && y_high <= height - 1 && x_low >= 0) {
+                        T v3 = bottom_data[
+                            bottom_data_offset + y_high * width + x_low];
+                        output_val += w3 * v3;
+                    }
+                    if (w4 > 0 && y_high <= height - 1 &&
+                            x_high <= width - 1) {
+                        T v4 = bottom_data[
+                            bottom_data_offset + y_high * width + x_high];
+                        output_val += w4 * v4;
+                    }
 
                     // }}
                 }
@@ -379,16 +401,20 @@ class ROIAverageAlign2D(function.Function):
                     w1, w2, w3, w4 = _get_bilinear_interp_params(
                         y, x, y_low, x_low, y_high, x_high)
 
-                    g1 = top_diff_this_bin * w1 / count
-                    g2 = top_diff_this_bin * w2 / count
-                    g3 = top_diff_this_bin * w3 / count
-                    g4 = top_diff_this_bin * w4 / count
-
-                    if (x_low >= 0 and x_high >= 0 and
-                            y_low >= 0 and y_high >= 0):
+                    if w1 > 0 and y_low >= 0 and x_low >= 0:
+                        g1 = top_diff_this_bin * w1 / count
                         bottom_diff[roi_batch_ind, c, y_low, x_low] += g1
+
+                    if w2 > 0 and y_low >= 0 and x_high <= width - 1:
+                        g2 = top_diff_this_bin * w2 / count
                         bottom_diff[roi_batch_ind, c, y_low, x_high] += g2
+
+                    if w3 > 0 and y_high <= height - 1 and x_low >= 0:
+                        g3 = top_diff_this_bin * w3 / count
                         bottom_diff[roi_batch_ind, c, y_high, x_low] += g3
+
+                    if w4 > 0 and y_high <= height - 1 and x_high <= width - 1:
+                        g4 = top_diff_this_bin * w4 / count
                         bottom_diff[roi_batch_ind, c, y_high, x_high] += g4
 
                     # }}
@@ -479,21 +505,26 @@ class ROIAverageAlign2D(function.Function):
                     get_bilinear_interp_params(
                         y, x, y_low, x_low, y_high, x_high, w1, w2, w3, w4);
 
-                    T g1 = top_diff_this_bin * w1 / count;
-                    T g2 = top_diff_this_bin * w2 / count;
-                    T g3 = top_diff_this_bin * w3 / count;
-                    T g4 = top_diff_this_bin * w4 / count;
-
-                    if (x_low >= 0 && x_high >= 0 &&
-                            y_low >= 0 && y_high >= 0) {
-                        atomicAdd(&bottom_diff[bottom_diff_offset +
-                                               y_low * width + x_low], g1);
-                        atomicAdd(&bottom_diff[bottom_diff_offset +
-                                               y_low * width + x_high], g2);
-                        atomicAdd(&bottom_diff[bottom_diff_offset +
-                                               y_high * width + x_low], g3);
-                        atomicAdd(&bottom_diff[bottom_diff_offset +
-                                               y_high * width + x_high], g4);
+                    if (w1 > 0 && y_low >= 0 && x_low >= 0) {
+                        T g1 = top_diff_this_bin * w1 / count;
+                        atomicAdd(&bottom_diff[
+                            bottom_diff_offset + y_low * width + x_low], g1);
+                    }
+                    if (w2 > 0 && y_low >= 0 && x_high <= width - 1) {
+                        T g2 = top_diff_this_bin * w2 / count;
+                        atomicAdd(&bottom_diff[
+                            bottom_diff_offset + y_low * width + x_high], g2);
+                    }
+                    if (w3 > 0 && y_high <= height - 1 && x_low >= 0) {
+                        T g3 = top_diff_this_bin * w3 / count;
+                        atomicAdd(&bottom_diff[
+                            bottom_diff_offset + y_high * width + x_low], g3);
+                    }
+                    if (w4 > 0 && y_high <= height - 1 &&
+                            x_high <= width - 1) {
+                        T g4 = top_diff_this_bin * w4 / count;
+                        atomicAdd(&bottom_diff[
+                            bottom_diff_offset + y_high * width + x_high], g4);
                     }
 
                     // }}

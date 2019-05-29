@@ -11,9 +11,7 @@ from chainerx_tests import op_utils
 
 
 _expected_numeric_dtypes_comparison = [
-    (t1, t2)
-    for (t1, t2), _ in dtype_utils.result_dtypes_two_arrays
-    if all([numpy.dtype(t) != 'bool_' for t in (t1, t2)])
+    (t1, t2) for (t1, t2), _ in dtype_utils.result_numeric_dtypes_two_arrays
 ]
 
 
@@ -24,8 +22,8 @@ _expected_float_dtypes_comparison = [
 ]
 
 
-_expected_all_dtypes_comparison = _expected_numeric_dtypes_comparison + [
-    ('bool_', 'bool_'),
+_expected_all_dtypes_comparison = [
+    (t1, t2) for (t1, t2), _ in dtype_utils.result_comparable_dtypes_two_arrays
 ]
 
 
@@ -226,11 +224,15 @@ def logical_or(xp, a, b):
     return xp.logical_or(a, b)
 
 
+def logical_xor(xp, a, b):
+    return xp.logical_xor(a, b)
+
+
 _binary_logical_params = \
     chainer.testing.product({
         'dtypes': _expected_all_dtypes_comparison,
         'func': [
-            logical_and, logical_or
+            logical_and, logical_or, logical_xor
         ],
         'inputs': [
             ([], []),
@@ -240,7 +242,7 @@ _binary_logical_params = \
     }) + chainer.testing.product({
         'dtypes': _expected_numeric_dtypes_comparison,
         'func': [
-            logical_and, logical_or
+            logical_and, logical_or, logical_xor
         ],
         'inputs': [
             ([0], [0]),

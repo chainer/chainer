@@ -6,7 +6,7 @@
 #include "chainerx/axes.h"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
-#include "chainerx/kernels/math.h"
+#include "chainerx/kernels/reduction.h"
 #include "chainerx/kernels/sorting.h"
 #include "chainerx/macro.h"
 #include "chainerx/native/kernel_regist.h"
@@ -51,6 +51,37 @@ public:
 
 CHAINERX_NATIVE_REGISTER_KERNEL(ArgMaxKernel, NativeArgMaxKernel);
 
+class NativeArgMinKernel : public ArgMinKernel {
+public:
+    void Call(const Array& a, const Axes& axis, const Array& out) override {
+        CHAINERX_ASSERT(std::all_of(axis.begin(), axis.end(), [&a](int8_t i) { return a.shape()[i] > 0; }));
+        CHAINERX_ASSERT(internal::IsValidReductionShape(a.shape(), axis, out.shape(), false));
+        a.device().CheckDevicesCompatible(a, out);
+
+        VisitDtype(a.dtype(), [&a, &axis, &out](auto pt) {
+            using T = typename decltype(pt)::type;
+            struct Impl {
+                struct MinAndArgMin {
+                    T min;
+                    int64_t argmin;
+                };
+
+                MinAndArgMin Identity() { return {T{}, -1}; }
+                MinAndArgMin MapIn(T in, int64_t index) { return {in, index}; }
+                void Reduce(MinAndArgMin next, MinAndArgMin& accum) {
+                    if (accum.argmin < 0 || accum.min > next.min) {
+                        accum = next;
+                    }
+                }
+                int64_t MapOut(MinAndArgMin accum) { return accum.argmin; }
+            };
+            Reduce<T, int64_t>(a, axis, out, Impl{});
+        });
+    }
+};
+
+CHAINERX_NATIVE_REGISTER_KERNEL(ArgMinKernel, NativeArgMinKernel);
+
 class NativeSumKernel : public SumKernel {
 public:
     void Call(const Array& a, const Axes& axis, const Array& out) override {
@@ -75,56 +106,6 @@ public:
 };
 
 CHAINERX_NATIVE_REGISTER_KERNEL(SumKernel, NativeSumKernel);
-
-class NativeAMaxKernel : public AMaxKernel {
-public:
-    void Call(const Array& a, const Axes& axis, const Array& out) override {
-        CHAINERX_ASSERT(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
-        a.device().CheckDevicesCompatible(a, out);
-
-        VisitDtype(a.dtype(), [&a, &axis, &out](auto pt) {
-            using T = typename decltype(pt)::type;
-            struct Impl {
-                T Identity() { return NumericLimits<T>::LowestOrInf(); }
-                T MapIn(T in, int64_t /*index*/) { return in; }
-                void Reduce(T next, T& accum) {
-                    if (chainerx::IsNan(next) || accum < next) {
-                        accum = next;
-                    }
-                }
-                T MapOut(T accum) { return accum; }
-            };
-            Reduce<T, T>(a, axis, out, Impl{});
-        });
-    }
-};
-
-CHAINERX_NATIVE_REGISTER_KERNEL(AMaxKernel, NativeAMaxKernel);
-
-class NativeAMinKernel : public AMinKernel {
-public:
-    void Call(const Array& a, const Axes& axis, const Array& out) override {
-        CHAINERX_ASSERT(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
-        a.device().CheckDevicesCompatible(a, out);
-
-        VisitDtype(a.dtype(), [&a, &axis, &out](auto pt) {
-            using T = typename decltype(pt)::type;
-            struct Impl {
-                T Identity() { return NumericLimits<T>::MaxOrInf(); }
-                T MapIn(T in, int64_t /*index*/) { return in; }
-                void Reduce(T next, T& accum) {
-                    if (chainerx::IsNan(next) || accum > next) {
-                        accum = next;
-                    }
-                }
-                T MapOut(T accum) { return accum; }
-            };
-            Reduce<T, T>(a, axis, out, Impl{});
-        });
-    }
-};
-
-CHAINERX_NATIVE_REGISTER_KERNEL(AMinKernel, NativeAMinKernel);
 
 }  // namespace
 }  // namespace native
