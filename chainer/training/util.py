@@ -28,6 +28,8 @@ def get_trigger(trigger):
         object made from ``trigger``.
 
     """
+    # training.triggers depends on training.util. Importing this at
+    # module-level would cause cyclic import in Python 2.
     from chainer.training.triggers import interval_trigger
 
     if callable(trigger):
