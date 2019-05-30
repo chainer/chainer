@@ -14,14 +14,16 @@ def observation_aggregator(comm, original_key, aggregated_key=None,
          aggregated_key (str): Name of the key after the summarization.
          If not specified, it is set to `original_key` to overwrite it.
          aggregator (function): Function to compute summarization from
-         individual values. If not specified, `numpy.average` is used.
+         individual values. If not specified, the average function is used.
     """
 
     if aggregated_key is None:
         aggregated_key = original_key
 
     if aggregator is None:
-        aggregator = np.average
+        def _average(xs):
+            return sum(xs) / len(xs)
+        aggregator = _average
 
     @extension.make_extension(
         trigger=(1, 'iteration'), priority=extension.PRIORITY_EDITOR)
