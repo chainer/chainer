@@ -36,6 +36,11 @@ class NonCudaAwareCommunicator(mpi_communicator_base.MpiCommunicatorBase):
         self.cpu_buffer_a = _memory_utility.HostPinnedMemory()
         self.cpu_buffer_b = _memory_utility.HostPinnedMemory()
 
+    def finalize(self):
+        chainer.cuda.Stream.null.synchronize()
+        self.nccl_comm.destroy()
+        self.nccl_comm = None
+
     def _init_comms(self):
         if self.inter_mpi_comm is not None:
             assert self.intra_nccl_comm is not None

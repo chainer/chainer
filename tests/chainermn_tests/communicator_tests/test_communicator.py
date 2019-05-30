@@ -391,7 +391,7 @@ def check_multi_node_mean_grad_mixed_dtype(param, model, use_gpu):
 
     if comm_class is PureNcclCommunicator:
         communicator = comm_class(
-            mpi_comm, multi_node_mean_grad_dtype=param.multi_node_mean_grad_dtype,
+            mpi_comm, allreduce_grad_dtype=param.allreduce_grad_dtype,
             batched_copy=param.batched_copy)
     else:
         communicator = comm_class(mpi_comm)
@@ -400,7 +400,7 @@ def check_multi_node_mean_grad_mixed_dtype(param, model, use_gpu):
 
     # answer type: see the document of `create_communicator`
     global_dtype = param.global_dtype
-    allreduce_dtype = param.multi_node_mean_grad_dtype
+    allreduce_dtype = param.allreduce_grad_dtype
 
     # assert test configuration.
     assert chainer.get_dtype() == global_dtype
@@ -525,9 +525,9 @@ class TestPureNcclCommunicator(unittest.TestCase):
         self.mpi_comm = mpi4py.MPI.COMM_WORLD
 
     @chainer.testing.attr.gpu
-    def test_invalid_multi_node_mean_grad_dtype(self):
+    def test_invalid_allreduce_grad_dtype(self):
         with self.assertRaises(ValueError):
-            PureNcclCommunicator(self.mpi_comm, multi_node_mean_grad_dtype=np.int32)
+            PureNcclCommunicator(self.mpi_comm, allreduce_grad_dtype=np.int32)
 
 
 class TestDifferentDtype(unittest.TestCase):
