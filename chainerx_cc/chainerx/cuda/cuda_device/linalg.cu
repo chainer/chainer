@@ -35,6 +35,10 @@
 namespace chainerx {
 namespace cuda {
 
+// Macros to construct cusolverDn method names.
+#define DN_SOLVER_FN(method, type_prefix) cusolverDn##type_prefix##method
+#define DN_BUFSIZE_FN(method, type_prefix) cusolverDn##type_prefix##method##_bufferSize
+
 class CudaCholeskyKernel : public CholeskyKernel {
 public:
     void Call(const Array& a, const Array& out) override {
@@ -51,39 +55,56 @@ public:
         bool is_out_contiguous = out.IsContiguous();
         Array out_contiguous = is_out_contiguous ? out : AsContiguous(out);
 
-        cuda_internal::DeviceInternals& device_internals = cuda_internal::GetDeviceInternals(static_cast<CudaDevice&>(device));
+        auto cholesky_impl = [&](auto pt, auto bufsize_func, auto solver_func) {
+            CHAINERX_ASSERT(a.dtype() == out_contiguous.dtype());
 
-        // compute workspace size and prepare workspace
-        double* out_ptr = static_cast<double*>(internal::GetRawOffsetData(out_contiguous));
-        int work_size = 0;
-        const int N = a.shape()[0];
-        device_internals.cusolver_handle().Call(
-            cusolverDnDpotrf_bufferSize,
-            CUBLAS_FILL_MODE_UPPER,
-            N,
-            out_ptr,
-            N,
-            &work_size);
+            using T = typename decltype(pt)::type;
 
-        // POTRF execution
-        double *work_space;
-        CheckCudaError(cudaMalloc(&work_space, work_size * sizeof(double)));
-        int *devInfo;
-        CheckCudaError(cudaMalloc(&devInfo, sizeof(int)));
-        device_internals.cusolver_handle().Call(
-            cusolverDnDpotrf,
-            CUBLAS_FILL_MODE_UPPER,
-            N,
-            out_ptr,
-            N,
-            work_space,
-            work_size,
-            devInfo);
+            // Note that cuSOLVER uses Fortran order.
+            // To compute a lower triangular matrix L = cholesky(A), we use cuSOLVER to compute an upper triangular matrix U = cholesky(A).
+            cublasFillMode_t uplo = CUBLAS_FILL_MODE_UPPER;
 
-        int devInfo_h = 0;
-        CheckCudaError(cudaMemcpy(&devInfo_h, devInfo, sizeof(int), cudaMemcpyDeviceToHost));
-        if (devInfo_h != 0) {
-            std::cout << "Unsuccessful potrf execution\n\n" << "devInfo = " << devInfo_h << "\n\n";
+            cuda_internal::DeviceInternals& device_internals = cuda_internal::GetDeviceInternals(static_cast<CudaDevice&>(device));
+
+            // compute workspace size and prepare workspace
+            T* out_ptr = static_cast<T*>(internal::GetRawOffsetData(out_contiguous));
+            int work_size = 0;
+            const int N = a.shape()[0];
+            device_internals.cusolver_handle().Call(
+                bufsize_func,
+                uplo,
+                N,
+                out_ptr,
+                N,
+                &work_size);
+
+            // POTRF execution
+            T* work_space;
+            CheckCudaError(cudaMalloc(&work_space, work_size * sizeof(T)));
+            int *devInfo;
+            CheckCudaError(cudaMalloc(&devInfo, sizeof(int)));
+            device_internals.cusolver_handle().Call(
+                solver_func,
+                uplo,
+                N,
+                out_ptr,
+                N,
+                work_space,
+                work_size,
+                devInfo);
+
+            int devInfo_h = 0;
+            CheckCudaError(cudaMemcpy(&devInfo_h, devInfo, sizeof(int), cudaMemcpyDeviceToHost));
+            if (devInfo_h != 0) {
+                std::cout << "Unsuccessful potrf execution\n\n" << "devInfo = " << devInfo_h << "\n\n";
+            }
+        };
+
+        if (a.dtype() == Dtype::kFloat32) {
+            cholesky_impl(PrimitiveType<float>{}, DN_BUFSIZE_FN(potrf, S), DN_SOLVER_FN(potrf, S));
+        } else {
+            CHAINERX_ASSERT(a.dtype() == Dtype::kFloat64);
+            cholesky_impl(PrimitiveType<double>{}, DN_BUFSIZE_FN(potrf, D), DN_SOLVER_FN(potrf, D));
         }
 
         if (!is_out_contiguous) {
