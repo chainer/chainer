@@ -1,4 +1,3 @@
-import numpy as np
 from chainer.training import extension
 
 
@@ -22,7 +21,7 @@ def observation_aggregator(comm, original_key, aggregated_key=None,
 
     if aggregator is None:
         def _average(xs):
-            return sum(xs) / len(xs)
+            return sum(xs) / float(len(xs))
         aggregator = _average
 
     @extension.make_extension(
