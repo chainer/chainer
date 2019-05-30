@@ -717,8 +717,11 @@ void InitChainerxMath(pybind11::module& m) {
           py::arg("a_min"),
           py::arg("a_max"));
     m.def("clip",
-          [](const ArrayBodyPtr& a, const ArrayBodyPtr& a_min, const ArrayBodyPtr& a_max) {
-              return MoveArrayBody(Clip(Array{a}, Array{a_min}, Array{a_max}));
+          [](const ArrayBodyPtr& a, const ArrayBodyPtr* a_min, const ArrayBodyPtr* a_max) {
+              if (!a_min && !a_max) {
+                  throw py::value_error("must set either max or min");
+              }
+              return MoveArrayBody(Clip(Array{a}, Array{*a_min}, Array{*a_max}));
           },
           py::arg("a"),
           py::arg("a_min"),

@@ -104,6 +104,9 @@ class TestClipInvalidInterval(unittest.TestCase):
         with self.assertRaises(ValueError):
             functions.clip(self.x, 1.0, -1.0)
 
+    def test_max_min_none(self):
+        with self.assertRaises(ValueError):
+            functions.clip(self.x, None, None)
 
 @testing.parameterize(*testing.product({
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
