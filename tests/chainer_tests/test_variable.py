@@ -1460,7 +1460,6 @@ class TestVariableSetData(unittest.TestCase):
         device_x = backend_config1.device
         device_y = backend_config2.device
         xp_x = device_x.xp
-        xp_y = device_y.xp
         requires_grad_x = self.requires_grads[0]
         requires_grad_y = self.requires_grads[1]
 
