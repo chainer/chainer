@@ -3,7 +3,7 @@ configs {
   value {
     requirement {
       cpu: 8
-      memory: 16
+      memory: 32
       gpu: 1
       image: "windows"
     }
