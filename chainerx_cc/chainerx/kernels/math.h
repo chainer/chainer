@@ -134,20 +134,6 @@ public:
     virtual void Call(const Array& x, const Array& out) = 0;
 };
 
-class SquareKernel : public Kernel {
-public:
-    static const char* name() { return "Square"; }
-
-    virtual void Call(const Array& x, const Array& out) = 0;
-};
-
-class SqrtKernel : public Kernel {
-public:
-    static const char* name() { return "Sqrt"; }
-
-    virtual void Call(const Array& x, const Array& out) = 0;
-};
-
 class PowerKernel : public Kernel {
 public:
     static const char* name() { return "Power"; }
@@ -183,20 +169,6 @@ public:
     virtual void Call(const Array& x, const Array& out) = 0;
 };
 
-class FabsKernel : public Kernel {
-public:
-    static const char* name() { return "Fabs"; }
-
-    virtual void Call(const Array& x, const Array& out) = 0;
-};
-
-class SignKernel : public Kernel {
-public:
-    static const char* name() { return "Sign"; }
-
-    virtual void Call(const Array& x, const Array& out) = 0;
-};
-
 class IsNanKernel : public Kernel {
 public:
     static const char* name() { return "IsNan"; }
@@ -216,31 +188,6 @@ public:
     static const char* name() { return "IsFinite"; }
 
     virtual void Call(const Array& x, const Array& out) = 0;
-};
-
-// Compares x1 and x2 and assign either pos or neg according to the result.
-// Formally, it calculates: out = x1 < x2 ? pos : neg
-class IfLessElseASSAKernel : public Kernel {
-public:
-    static const char* name() { return "IfLessElseASSA"; }
-
-    virtual void Call(const Array& x1, Scalar x2, Scalar pos, const Array& neg, const Array& out) = 0;
-};
-
-// Compares x1 and x2 and assign either pos or neg according to the result.
-// Formally, it calculates: out = x1 > x2 ? pos : neg
-class IfGreaterElseASSAKernel : public Kernel {
-public:
-    static const char* name() { return "IfGreaterElseASSA"; }
-
-    virtual void Call(const Array& x1, Scalar x2, Scalar pos, const Array& neg, const Array& out) = 0;
-};
-
-class IfGreaterElseAAAAKernel : public Kernel {
-public:
-    static const char* name() { return "IfGreaterElseAAAA"; }
-
-    virtual void Call(const Array& x1, const Array& x2, const Array& pos, const Array& neg, const Array& out) = 0;
 };
 
 }  // namespace chainerx
