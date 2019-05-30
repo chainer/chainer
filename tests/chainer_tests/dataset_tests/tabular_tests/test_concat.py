@@ -1,4 +1,4 @@
-from operator import xor
+import operator
 import unittest
 
 import numpy as np
@@ -50,7 +50,7 @@ class TestConcat(unittest.TestCase):
             self.assertIsNone(key_indices)
 
         dataset_b = dummy_dataset.DummyDataset(
-            len_=5, mode=self.mode_b,
+            size=5, mode=self.mode_b,
             return_array=self.return_array, callback=callback_b)
 
         view = dataset_a.concat(dataset_b)
@@ -67,7 +67,7 @@ class TestConcat(unittest.TestCase):
 
         for out, d in six.moves.zip_longest(output, data):
             np.testing.assert_equal(out, d)
-            if self.return_array and xor(
+            if self.return_array and operator.xor(
                     hasattr(self, 'expected_indices_a'),
                     hasattr(self, 'expected_indices_b')):
                 self.assertIsInstance(out, np.ndarray)

@@ -7,14 +7,14 @@ from chainer import testing
 class DummyDataset(chainer.dataset.TabularDataset):
 
     def __init__(
-            self, len_=10, keys=('a', 'b', 'c'), mode=tuple,
+            self, size=10, keys=('a', 'b', 'c'), mode=tuple,
             return_array=False, callback=None):
         self._keys = keys
         self._mode = mode
         self._return_array = return_array
         self._callback = callback
 
-        self.data = np.random.uniform(size=(len(keys), len_))
+        self.data = np.random.uniform(size=(len(keys), size))
 
     def __len__(self):
         return self.data.shape[1]

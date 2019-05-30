@@ -71,7 +71,7 @@ class TestJoinInvalid(unittest.TestCase):
 
     def test_join_length(self):
         dataset_a = dummy_dataset.DummyDataset()
-        dataset_b = dummy_dataset.DummyDataset(len_=5, keys=('d', 'e'))
+        dataset_b = dummy_dataset.DummyDataset(size=5, keys=('d', 'e'))
 
         with self.assertRaises(ValueError):
             dataset_a.join(dataset_b)
