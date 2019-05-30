@@ -267,3 +267,66 @@ def test_where_invalid_shapes(xp, cond_shape, x_shape, y_shape):
     y = array_utils.create_dummy_ndarray(xp, y_shape, 'float32')
     c = array_utils.create_dummy_ndarray(xp, cond_shape, 'float32')
     return xp.where(c, x, y)
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    # Special shapes
+    chainer.testing.product({
+        'cond_shape,shape': math_utils.shapes_combination_inplace_binary,
+        'cond_dtype': ['bool_'],
+        'in_dtypes,scalar_type,out_dtype': (
+            dtype_utils.result_dtypes_array_scalar),
+        'is_scalar_rhs': [True, False],
+    })
+    # Dtype combinations
+    + chainer.testing.product({
+        'cond_shape,shape': [((2, 3), (2, 3))],
+        'cond_dtype': chainerx.testing.all_dtypes,
+        'in_dtypes,scalar_type,out_dtype': (
+            dtype_utils.result_dtypes_array_scalar),
+        'is_scalar_rhs': [True, False],
+    })
+))
+class TestWhereScalar(math_utils.MathScalarTestBase, op_utils.NumpyOpTest):
+
+    check_numpy_strides_compliance = False
+    input = 'random'
+    scalar_value = 3
+
+    def generate_inputs(self):
+        self.condition = _random_condition(self.cond_shape, self.cond_dtype)
+        return super().generate_inputs()
+
+    def func_scalar(self, xp, a, scalar):
+        condition = xp.array(self.condition)
+        if self.is_scalar_rhs:
+            return xp.where(condition, a, scalar)
+        else:
+            return xp.where(condition, scalar, a)
+
+
+_in_out_dtypes_where_scalar = [
+    ((bool, bool), 'bool_'),
+    ((bool, int), 'int32'),
+    ((bool, float), 'float32'),
+    ((int, bool), 'int32'),
+    ((int, int), 'int32'),
+    ((int, float), 'float32'),
+    ((float, bool), 'float32'),
+    ((float, int), 'float32'),
+    ((float, float), 'float32'),
+]
+
+
+@chainerx.testing.numpy_chainerx_array_equal()
+@pytest.mark.parametrize('cond_shape', [(2, 3)])
+@pytest.mark.parametrize('cond_dtype', chainerx.testing.all_dtypes)
+@pytest.mark.parametrize('in_types,out_dtype', _in_out_dtypes_where_scalar)
+def test_where_scalar_scalar(xp, cond_shape, cond_dtype, in_types, out_dtype):
+    cond = xp.array(_random_condition(cond_shape, cond_dtype))
+    x_type, y_type = in_types
+    x = x_type(0)
+    y = y_type(2)
+    out = xp.where(cond, x, y)
+    return dtype_utils.cast_if_numpy_array(xp, out, out_dtype)
