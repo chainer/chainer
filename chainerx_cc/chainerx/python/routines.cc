@@ -677,7 +677,7 @@ void InitChainerxMath(pybind11::module& m) {
           py::arg("x1"),
           py::arg("x2"));
     m.def("clip",
-          [](const ArrayBodyPtr& a, Scalar a_min, Scalar* a_max) {
+          [](const ArrayBodyPtr& a, Scalar a_min, const nonstd::optional<Scalar>& a_max) {
               if (!a_max) {
                   return MoveArrayBody(Maximum(Array{a}, a_min));
               }
@@ -687,7 +687,7 @@ void InitChainerxMath(pybind11::module& m) {
           py::arg("a_min"),
           py::arg("a_max"));
     m.def("clip",
-          [](const ArrayBodyPtr& a, Scalar* a_min, Scalar a_max) {
+          [](const ArrayBodyPtr& a, const nonstd::optional<Scalar>& a_min, Scalar a_max) {
               if (!a_min) {
                   return MoveArrayBody(Minimum(Array{a}, a_max));
               }
@@ -697,7 +697,7 @@ void InitChainerxMath(pybind11::module& m) {
           py::arg("a_min"),
           py::arg("a_max"));
     m.def("clip",
-          [](const ArrayBodyPtr& a, const ArrayBodyPtr& a_min, Scalar* a_max) {
+          [](const ArrayBodyPtr& a, const ArrayBodyPtr& a_min, const nonstd::optional<Scalar>& a_max) {
               if (!a_max) {
                   return MoveArrayBody(Maximum(Array{a}, Array{a_min}));
               }
@@ -707,7 +707,7 @@ void InitChainerxMath(pybind11::module& m) {
           py::arg("a_min"),
           py::arg("a_max"));
     m.def("clip",
-          [](const ArrayBodyPtr& a, Scalar* a_min, const ArrayBodyPtr a_max) {
+          [](const ArrayBodyPtr& a, const nonstd::optional<Scalar>& a_min, const ArrayBodyPtr& a_max) {
               if (!a_min) {
                   return MoveArrayBody(Minimum(Array{a}, Array{a_max}));
               }
@@ -717,7 +717,7 @@ void InitChainerxMath(pybind11::module& m) {
           py::arg("a_min"),
           py::arg("a_max"));
     m.def("clip",
-          [](const ArrayBodyPtr& a, const ArrayBodyPtr* a_min, const ArrayBodyPtr* a_max) {
+          [](const ArrayBodyPtr& a, const nonstd::optional<ArrayBodyPtr>& a_min, const nonstd::optional<ArrayBodyPtr>& a_max) {
               if (!a_min && !a_max) {
                   throw py::value_error("must set either max or min");
               }
