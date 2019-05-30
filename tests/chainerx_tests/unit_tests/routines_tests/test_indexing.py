@@ -3,11 +3,11 @@ import unittest
 import numpy
 import pytest
 
-from chainerx_tests import array_utils
 import chainer.testing
 import chainerx
 import chainerx.testing
 
+from chainerx_tests import array_utils
 from chainerx_tests import dtype_utils
 from chainerx_tests import op_utils
 
