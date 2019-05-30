@@ -93,7 +93,7 @@ class PureNcclCommunicator(mpi_communicator_base.MpiCommunicatorBase):
 
         n_elems = _memory_utility.count_grad_elements(params,
                                                       zero_fill)
-        needs_sync = _memory_utility.prepare_allreduce_pack_buffer(
+        needs_sync = _memory_utility.prepare_multi_node_mean_pack_buffer(
             allreduce_grad_dtype, n_elems, self.gpu_buffer_a,
             self.gpu_buffer_b)
         if stream != chainer.cuda.Stream.null and needs_sync:
