@@ -1,6 +1,7 @@
 from abc import ABCMeta
 from abc import abstractmethod
 import six
+import warnings
 
 
 class CommunicatorBase(six.with_metaclass(ABCMeta)):
@@ -334,9 +335,13 @@ class CommunicatorBase(six.with_metaclass(ABCMeta)):
         self.bcast_data(model)
 
     @abstractmethod
-    def allreduce_grad(self, model):
-        '''Works as same as ``allreduce_obj`` but for Chainer model gradients
-
-        .. note:: this only supports `SUM` same as ``allreduce_obj``.
+    def multi_node_mean_grad(self, model, zero_fill=False):
+        '''mean Chainer model gradients
         '''
         raise NotImplementedError()
+
+    def allreduce_grad(self, model, zero_fill=False):
+        warnings.warn('allreduce_grad() is deprecated.',
+                      DeprecationWarning)
+        self.multi_node_mean_grad(model, zero_fill)
+

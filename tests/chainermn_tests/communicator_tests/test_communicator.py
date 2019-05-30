@@ -284,7 +284,7 @@ def check_bcast_data(communicator, model):
     chainer.testing.assert_allclose(model.c.b.data, 2 * np.ones((5, )))
 
 
-def check_allreduce_grad(communicator, model):
+def check_multi_node_mean_grad(communicator, model):
     # We need to repeat twice for regressions on lazy initialization of
     # sub communicators.
 
@@ -293,7 +293,7 @@ def check_allreduce_grad(communicator, model):
         model.b.W.grad[:] = communicator.rank + 1
         model.c.b.grad[:] = communicator.rank + 2
 
-        communicator.allreduce_grad(model)
+        communicator.multi_node_mean_grad(model)
         base = (communicator.size - 1.0) / 2
 
         chainer.testing.assert_allclose(model.a.W.grad,
@@ -304,7 +304,7 @@ def check_allreduce_grad(communicator, model):
                                         (base + 2) * np.ones((5, )))
 
 
-def check_allreduce_grad_empty(communicator, model):
+def check_multi_node_mean_grad_empty(communicator, model):
     # We need to repeat twice for regressions on lazy initialization of
     # sub communicators.
     for _ in range(2):
@@ -312,7 +312,7 @@ def check_allreduce_grad_empty(communicator, model):
         model.b.W.grad[:] = communicator.rank + 1
         model.c.b.grad = None
 
-        communicator.allreduce_grad(model)
+        communicator.multi_node_mean_grad(model)
         base = (communicator.size - 1.0) / 2
 
         chainer.testing.assert_allclose(model.a.W.grad,
@@ -321,7 +321,7 @@ def check_allreduce_grad_empty(communicator, model):
                                         (base + 1) * np.ones((4, 3)))
 
 
-def check_allreduce_grad_empty_half(communicator, model):
+def check_multi_node_mean_grad_empty_half(communicator, model):
     # We need to repeat twice for regressions on lazy initialization of
     # sub communicators.
 
@@ -337,7 +337,7 @@ def check_allreduce_grad_empty_half(communicator, model):
         else:
             model.c.b.grad = None
 
-        communicator.allreduce_grad(model, zero_fill=True)
+        communicator.multi_node_mean_grad(model, zero_fill=True)
         base = (communicator.size - 1.0) / 2
 
         chainer.testing.assert_allclose(model.a.W.grad,
@@ -378,8 +378,8 @@ def check_send_recv(param, use_gpu):
     destroy_communicator(communicator)
 
 
-def check_allreduce_grad_mixed_dtype(param, model, use_gpu):
-    # Checks the actual allreduce communication is performed
+def check_multi_node_mean_grad_mixed_dtype(param, model, use_gpu):
+    # Checks the actual multi_node_mean_grad communication is performed
     # in the correct data type (FP16 or FP32)
     comm_class = param.communicator_class
 
@@ -391,7 +391,7 @@ def check_allreduce_grad_mixed_dtype(param, model, use_gpu):
 
     if comm_class is PureNcclCommunicator:
         communicator = comm_class(
-            mpi_comm, allreduce_grad_dtype=param.allreduce_grad_dtype,
+            mpi_comm, multi_node_mean_grad_dtype=param.multi_node_mean_grad_dtype,
             batched_copy=param.batched_copy)
     else:
         communicator = comm_class(mpi_comm)
@@ -400,7 +400,7 @@ def check_allreduce_grad_mixed_dtype(param, model, use_gpu):
 
     # answer type: see the document of `create_communicator`
     global_dtype = param.global_dtype
-    allreduce_dtype = param.allreduce_grad_dtype
+    allreduce_dtype = param.multi_node_mean_grad_dtype
 
     # assert test configuration.
     assert chainer.get_dtype() == global_dtype
@@ -430,7 +430,7 @@ def check_allreduce_grad_mixed_dtype(param, model, use_gpu):
             answer_dtype = _communication_utility._get_nccl_type_id(
                 answer_dtype)
 
-            communicator.allreduce_grad(model)
+            communicator.multi_node_mean_grad(model)
 
             # dtype that was used in the actual communication,
             # which is nccl_comm.allReduce
@@ -442,7 +442,7 @@ def check_allreduce_grad_mixed_dtype(param, model, use_gpu):
         # all communication should happen in FP32 as of now, so
         # here we just check the results are correct for
         # 16-32 mixed models.
-        communicator.allreduce_grad(model)
+        communicator.multi_node_mean_grad(model)
 
     base = (communicator.size - 1.0) / 2
     chainer.testing.assert_allclose(model.a.W.grad,
@@ -466,18 +466,18 @@ def check_collective_communication(param, use_gpu):
     model = ExampleModel(param.model_dtype)
     if use_gpu:
         model.to_gpu()
-    check_allreduce_grad(communicator, model)
+    check_multi_node_mean_grad(communicator, model)
 
     model = ExampleModel(param.model_dtype)
     if use_gpu:
         model.to_gpu()
-    check_allreduce_grad_empty(communicator, model)
+    check_multi_node_mean_grad_empty(communicator, model)
     model = ExampleModel(param.model_dtype)
     if use_gpu:
         model.to_gpu()
-    check_allreduce_grad_empty_half(communicator, model)
+    check_multi_node_mean_grad_empty_half(communicator, model)
 
-    # Check allreduce debug mode
+    # Check multi_node_mean_grad debug mode
     model = ExampleModel()
     if use_gpu:
         model.to_gpu()
@@ -486,7 +486,7 @@ def check_collective_communication(param, use_gpu):
     # must detect it.
     chainer.set_debug(True)
     with pytest.raises(ValueError, match=r'.* diverged .*'):
-        check_allreduce_grad(communicator, model)
+        check_multi_node_mean_grad(communicator, model)
     chainer.set_debug(False)
 
     # barrier() requires before destructor of PureNcclCommunicator
@@ -514,7 +514,7 @@ def test_communicator_gpu(param):
 def test_mixed_dtype_communicator_gpu(param):
     model = ExampleMixedModel()
     with chainer.using_config('dtype', param.global_dtype):
-        check_allreduce_grad_mixed_dtype(param, model, True)
+        check_multi_node_mean_grad_mixed_dtype(param, model, True)
 
 
 class TestPureNcclCommunicator(unittest.TestCase):
@@ -525,9 +525,9 @@ class TestPureNcclCommunicator(unittest.TestCase):
         self.mpi_comm = mpi4py.MPI.COMM_WORLD
 
     @chainer.testing.attr.gpu
-    def test_invalid_allreduce_grad_dtype(self):
+    def test_invalid_multi_node_mean_grad_dtype(self):
         with self.assertRaises(ValueError):
-            PureNcclCommunicator(self.mpi_comm, allreduce_grad_dtype=np.int32)
+            PureNcclCommunicator(self.mpi_comm, multi_node_mean_grad_dtype=np.int32)
 
 
 class TestDifferentDtype(unittest.TestCase):

@@ -51,7 +51,7 @@ class TwoDimensionalCommunicator(mpi_communicator_base.MpiCommunicatorBase):
         self.intra_nccl_comm = _communication_utility.init_nccl_comm(
             intra_mpi_comm)
 
-    def allreduce_grad(self, model, zero_fill=False):
+    def multi_node_mean_grad(self, model, zero_fill=False):
         self._init_comms()
         stream = chainer.cuda.Stream.null
 

@@ -71,7 +71,7 @@ class SingleNodeCommunicator(mpi_communicator_base.MpiCommunicatorBase):
         _memory_utility.unpack_params(params, 'data', self.gpu_buffer_a, dtype,
                                       False)
 
-    def allreduce_grad(self, model, zero_fill=False):
+    def multi_node_mean_grad(self, model, zero_fill=False):
         self._init_comms()
         stream = chainer.cuda.Stream.null
         params = _memory_utility.extract_params_set_grad(model, zero_fill)

@@ -102,7 +102,7 @@ class MpiCommunicatorBase(communicator_base.CommunicatorBase):
     :class:`CommunicatorBase`. This communicator assumes MPI4py and
     all ChainerMN processes are invoked by ``mpirun`` (``mpiexec``)
     command. Although this lacks several important methods such as
-    ``allreduce_grad`` to be impelmented with speficic algorithm. See
+    ``multi_node_mean_grad`` to be impelmented with speficic algorithm. See
     hierarcical communicator or pure_nccl communicator for example.
 
     '''
