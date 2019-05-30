@@ -1,4 +1,5 @@
 import flake8_import_order
+import flake8_import_order.styles
 
 
 def _fullpath(modules, names):
