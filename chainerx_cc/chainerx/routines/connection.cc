@@ -137,7 +137,7 @@ Array Conv(
         bool cover_all,
         nonstd::optional<Dtype> out_dtype) {
     ConvCheckNdim(x, w, stride, pad);
-    if (w.shape()[1] != x.shape()[1]) {
+    if ((w.shape()[1] * groups) != x.shape()[1]) {
         throw DimensionError{"Mismatched number of input channels in input ", x.shape(), " and weights ", w.shape(), "."};
     }
     if (b.has_value() && (b->ndim() != 1 || b->shape()[0] != w.shape()[0])) {
