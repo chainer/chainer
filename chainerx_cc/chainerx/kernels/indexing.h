@@ -29,23 +29,23 @@ public:
     virtual void Call(const Array& condition, const Array& x, const Array& y, const Array& out) = 0;
 };
 
-class WhereASKernel : public Kernel {
+class WhereAASKernel : public Kernel {
 public:
-    static const char* name() { return "WhereAS"; }
+    static const char* name() { return "WhereAAS"; }
 
     virtual void Call(const Array& condition, const Array& x, Scalar y, const Array& out) = 0;
 };
 
-class WhereSAKernel : public Kernel {
+class WhereASAKernel : public Kernel {
 public:
-    static const char* name() { return "WhereSA"; }
+    static const char* name() { return "WhereASA"; }
 
     virtual void Call(const Array& condition, Scalar x, const Array& y, const Array& out) = 0;
 };
 
-class WhereSSKernel : public Kernel {
+class WhereASSKernel : public Kernel {
 public:
-    static const char* name() { return "WhereSS"; }
+    static const char* name() { return "WhereASS"; }
 
     virtual void Call(const Array& condition, Scalar x, Scalar y, const Array& out) = 0;
 };

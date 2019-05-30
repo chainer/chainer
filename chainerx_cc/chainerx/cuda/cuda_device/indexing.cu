@@ -295,13 +295,13 @@ public:
 CHAINERX_CUDA_REGISTER_KERNEL(WhereKernel, CudaWhereKernel);
 
 template <typename T>
-struct WhereASImpl {
+struct WhereAASImpl {
     using CudaType = cuda_internal::DataType<T>;
     CudaType y;
     __device__ void operator()(int64_t /*i*/, bool condition, CudaType x, CudaType& out) { out = condition ? x : y; }
 };
 
-class CudaWhereASKernel : public WhereASKernel {
+class CudaWhereAASKernel : public WhereAASKernel {
 public:
     void Call(const Array& condition, const Array& x, Scalar y, const Array& out) override {
         Device& device = condition.device();
@@ -315,21 +315,21 @@ public:
         VisitDtype(out.dtype(), [&](auto x_pt) {
             using T = typename decltype(x_pt)::type;
             using CudaType = cuda_internal::DataType<T>;
-            Elementwise<const bool, const T, T>(WhereASImpl<T>{static_cast<CudaType>(y)}, condition_cast, x_cast, out);
+            Elementwise<const bool, const T, T>(WhereAASImpl<T>{static_cast<CudaType>(y)}, condition_cast, x_cast, out);
         });
     }
 };
 
-CHAINERX_CUDA_REGISTER_KERNEL(WhereASKernel, CudaWhereASKernel);
+CHAINERX_CUDA_REGISTER_KERNEL(WhereAASKernel, CudaWhereAASKernel);
 
 template <typename T>
-struct WhereSAImpl {
+struct WhereASAImpl {
     using CudaType = cuda_internal::DataType<T>;
     CudaType x;
     __device__ void operator()(int64_t /*i*/, bool condition, CudaType y, CudaType& out) { out = condition ? x : y; }
 };
 
-class CudaWhereSAKernel : public WhereSAKernel {
+class CudaWhereASAKernel : public WhereASAKernel {
 public:
     void Call(const Array& condition, Scalar x, const Array& y, const Array& out) override {
         Device& device = condition.device();
@@ -343,22 +343,22 @@ public:
         VisitDtype(out.dtype(), [&](auto x_pt) {
             using T = typename decltype(x_pt)::type;
             using CudaType = cuda_internal::DataType<T>;
-            Elementwise<const bool, const T, T>(WhereSAImpl<T>{static_cast<CudaType>(x)}, condition_cast, y_cast, out);
+            Elementwise<const bool, const T, T>(WhereASAImpl<T>{static_cast<CudaType>(x)}, condition_cast, y_cast, out);
         });
     }
 };
 
-CHAINERX_CUDA_REGISTER_KERNEL(WhereSAKernel, CudaWhereSAKernel);
+CHAINERX_CUDA_REGISTER_KERNEL(WhereASAKernel, CudaWhereASAKernel);
 
 template <typename T>
-struct WhereSSImpl {
+struct WhereASSImpl {
     using CudaType = cuda_internal::DataType<T>;
     CudaType x;
     CudaType y;
     __device__ void operator()(int64_t /*i*/, bool condition, CudaType& out) { out = condition ? x : y; }
 };
 
-class CudaWhereSSKernel : public WhereSSKernel {
+class CudaWhereASSKernel : public WhereASSKernel {
 public:
     void Call(const Array& condition, Scalar x, Scalar y, const Array& out) override {
         Device& device = condition.device();
@@ -369,12 +369,12 @@ public:
         VisitDtype(out.dtype(), [&](auto x_pt) {
             using T = typename decltype(x_pt)::type;
             using CudaType = cuda_internal::DataType<T>;
-            Elementwise<const bool, T>(WhereSSImpl<T>{static_cast<CudaType>(x), static_cast<CudaType>(y)}, condition_cast, out);
+            Elementwise<const bool, T>(WhereASSImpl<T>{static_cast<CudaType>(x), static_cast<CudaType>(y)}, condition_cast, out);
         });
     }
 };
 
-CHAINERX_CUDA_REGISTER_KERNEL(WhereSSKernel, CudaWhereSSKernel);
+CHAINERX_CUDA_REGISTER_KERNEL(WhereASSKernel, CudaWhereASSKernel);
 
 }  // namespace
 }  // namespace cuda

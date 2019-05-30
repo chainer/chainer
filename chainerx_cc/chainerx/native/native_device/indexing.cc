@@ -181,7 +181,7 @@ public:
 
 CHAINERX_NATIVE_REGISTER_KERNEL(WhereKernel, NativeWhereKernel);
 
-class NativeWhereASKernel : public WhereASKernel {
+class NativeWhereAASKernel : public WhereAASKernel {
 public:
     void Call(const Array& condition, const Array& x, Scalar y, const Array& out) override {
         Device& device = condition.device();
@@ -202,9 +202,9 @@ public:
     }
 };
 
-CHAINERX_NATIVE_REGISTER_KERNEL(WhereASKernel, NativeWhereASKernel);
+CHAINERX_NATIVE_REGISTER_KERNEL(WhereAASKernel, NativeWhereAASKernel);
 
-class NativeWhereSAKernel : public WhereSAKernel {
+class NativeWhereASAKernel : public WhereASAKernel {
 public:
     void Call(const Array& condition, Scalar x, const Array& y, const Array& out) override {
         Device& device = condition.device();
@@ -225,9 +225,9 @@ public:
     }
 };
 
-CHAINERX_NATIVE_REGISTER_KERNEL(WhereSAKernel, NativeWhereSAKernel);
+CHAINERX_NATIVE_REGISTER_KERNEL(WhereASAKernel, NativeWhereASAKernel);
 
-class NativeWhereSSKernel : public WhereSSKernel {
+class NativeWhereASSKernel : public WhereASSKernel {
 public:
     void Call(const Array& condition, Scalar x, Scalar y, const Array& out) override {
         Device& device = condition.device();
@@ -246,7 +246,7 @@ public:
     }
 };
 
-CHAINERX_NATIVE_REGISTER_KERNEL(WhereSSKernel, NativeWhereSSKernel);
+CHAINERX_NATIVE_REGISTER_KERNEL(WhereASSKernel, NativeWhereASSKernel);
 
 }  // namespace
 }  // namespace native

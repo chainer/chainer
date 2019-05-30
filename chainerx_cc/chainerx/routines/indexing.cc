@@ -241,7 +241,7 @@ Array Where(const Array& condition, const Array& x, Scalar y) {
 
     {
         NoBackpropModeScope scope;
-        condition.device().backend().CallKernel<WhereASKernel>(condition_b, x_b, y, out);
+        condition.device().backend().CallKernel<WhereAASKernel>(condition_b, x_b, y, out);
     }
 
     BackwardBuilder bb{"where_array_scalar", {x_b}, out};
@@ -266,7 +266,7 @@ Array Where(const Array& condition, Scalar x, const Array& y) {
 
     {
         NoBackpropModeScope scope;
-        condition.device().backend().CallKernel<WhereSAKernel>(condition_b, x, y_b, out);
+        condition.device().backend().CallKernel<WhereASAKernel>(condition_b, x, y_b, out);
     }
 
     BackwardBuilder bb{"where_scalar_array", {y_b}, out};
@@ -287,7 +287,7 @@ Array Where(const Array& condition, Scalar x, Scalar y) {
     Array out = Empty(condition.shape(), out_dtype, condition.device());
     {
         NoBackpropModeScope scope;
-        condition.device().backend().CallKernel<WhereSSKernel>(condition, x, y, out);
+        condition.device().backend().CallKernel<WhereASSKernel>(condition, x, y, out);
     }
     return out;
 }
