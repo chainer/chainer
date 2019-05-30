@@ -50,9 +50,10 @@ class PureNcclCommunicator(mpi_communicator_base.MpiCommunicatorBase):
             self.params_data = None
 
     def finalize(self):
-        chainer.cuda.Stream.null.synchronize()
-        self.nccl_comm.destroy()
-        self.nccl_comm = None
+        if self.nccl_comm is not None:
+            chainer.cuda.Stream.null.synchronize()
+            self.nccl_comm.destroy()
+            self.nccl_comm = None
 
     def _init_comms(self):
         if self.nccl_comm is not None:

@@ -35,9 +35,10 @@ class SingleNodeCommunicator(mpi_communicator_base.MpiCommunicatorBase):
         self.gpu_buffer_b = _memory_utility.DeviceMemory()
 
     def finalize(self):
-        chainer.cuda.Stream.null.synchronize()
-        self.intra_nccl_comm.destroy()
-        self.intra_nccl_comm = None
+        if self.intra_nccl_comm is not None:
+            chainer.cuda.Stream.null.synchronize()
+            self.intra_nccl_comm.destroy()
+            self.intra_nccl_comm = None
 
     def _init_comms(self):
         if self.intra_nccl_comm is not None:
