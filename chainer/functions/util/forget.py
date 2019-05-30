@@ -36,7 +36,8 @@ class Forget(function_node.FunctionNode):
 
     def forward(self, inputs):
         self.retain_inputs(tuple(range(len(inputs))))
-        with function.no_backprop_mode():
+        with function.no_backprop_mode(),\
+                chainer.using_config('_will_recompute', True):
             xs = [variable.Variable(x) for x in inputs]
             outs = _call_func(self.func, xs)
         return tuple(out.data for out in outs)

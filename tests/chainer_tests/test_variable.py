@@ -757,7 +757,12 @@ class TestVariableCopydata(unittest.TestCase):
 
 
 @testing.backend.inject_backend_tests(None, _backend_params)
-@testing.parameterize(*testing.product({'shape': [(10,), (0,), ()]}))
+@testing.parameterize(*testing.product(
+    {
+        'shape': [(10,), (0,), ()],
+        'requires_grad': [True, False],
+    }
+))
 class TestVariableGrad(unittest.TestCase):
 
     def test_grad(self, backend_config):
@@ -765,22 +770,48 @@ class TestVariableGrad(unittest.TestCase):
             np.random.uniform(-1, 1, self.shape).astype(np.float32))
         g = backend_config.get_array(
             np.random.uniform(0.1, 10, self.shape).astype(np.float32))
-        v = chainer.Variable(x)
-        v.grad = g
-        backend_config.xp.testing.assert_array_equal(v.grad, g)
+        v = chainer.Variable(x, requires_grad=self.requires_grad)
+        expected_error = (
+            backend_config.xp is chainerx
+            and not self.requires_grad)
 
-    def test_grad_var(self, backend_config):
+        if expected_error:
+            with pytest.raises(Exception):
+                v.grad = g
+        else:
+            v.grad = g
+
+            assert v.grad_var.requires_grad is True
+            assert v.grad is not None
+            assert v.requires_grad == self.requires_grad
+            backend_config.xp.testing.assert_array_equal(v.grad, g)
+
+    def check_grad_var(self, backend_config, grad_var_requires_grad):
         x = backend_config.get_array(
             np.random.uniform(-1, 1, self.shape).astype(np.float32))
         g = backend_config.get_array(
             np.random.uniform(0.1, 10, self.shape).astype(np.float32))
-        v = chainer.Variable(x)
-        gv = chainer.Variable(g)
-        v.grad_var = gv
-        backend_config.xp.testing.assert_array_equal(v.grad, g)
+        v = chainer.Variable(x, requires_grad=self.requires_grad)
+        gv = chainer.Variable(g, requires_grad=grad_var_requires_grad)
+        expected_error = (
+            backend_config.xp is chainerx
+            and not self.requires_grad)
 
-        # Same instance should be returned each time.
-        assert v.grad_var is gv
+        if expected_error:
+            with pytest.raises(Exception):
+                v.grad_var = gv
+        else:
+            v.grad_var = gv
+
+            assert v.requires_grad == self.requires_grad
+            backend_config.xp.testing.assert_array_equal(v.grad, g)
+
+            # Same instance should be returned each time.
+            assert v.grad_var is gv
+
+    def test_grad_var(self, backend_config):
+        self.check_grad_var(backend_config, True)
+        self.check_grad_var(backend_config, False)
 
 
 @testing.backend.inject_backend_tests(None, _backend_params)
@@ -2777,26 +2808,55 @@ class TestVariableDoubleBackwardOneElementScalar(unittest.TestCase):
             chainer.grad([x.grad_var], [y.grad_var])
 
 
+@testing.backend.inject_backend_tests(None, _backend_params)
 class TestAsVariable(unittest.TestCase):
 
-    def check_to_variable_from_array(self, x):
+    def test_to_variable_from_array(self, backend_config):
+        x = backend_config.get_array(np.random.randn(1).astype(np.float32))
         y = chainer.as_variable(x)
         assert isinstance(y, chainer.Variable)
-        assert y.data is x
-        assert not y.requires_grad
+        assert y.requires_grad is False
 
-    def test_to_variable_from_numpy(self):
-        self.check_to_variable_from_array(np.empty(1, np.float32))
+        if backend_config.xp is chainerx:
+            # chainerx
+            assert y.array.shape == x.shape
+            assert y.array.device == x.device
+            assert y.array.strides == x.strides
+            assert not y.array.is_backprop_required()
+            chainerx.testing.assert_array_equal(y.array, x)
+        else:
+            # non-chainerx
+            assert y.array is x
 
-    @attr.gpu
-    def test_to_variable_from_cupy(self):
-        self.check_to_variable_from_array(cuda.cupy.empty(1, np.float32))
-
-    def test_to_variable_from_variable(self):
-        x = chainer.Variable(np.array(1, np.float32))
+    def check_to_variable_from_variable(self, backend_config, requires_grad):
+        x_arr = backend_config.get_array(np.random.randn(1).astype(np.float32))
+        x = chainer.Variable(x_arr, requires_grad=requires_grad)
         y = chainer.as_variable(x)
-        assert x is y
-        assert y.requires_grad
+        assert y is x
+        assert y.requires_grad is requires_grad
+
+    def test_to_variable_from_variable(self, backend_config):
+        self.check_to_variable_from_variable(backend_config, True)
+        self.check_to_variable_from_variable(backend_config, False)
+
+
+@testing.backend.inject_backend_tests(None, _backend_params)
+class TestAsArray(unittest.TestCase):
+
+    def test_to_array_from_array(self, backend_config):
+        x = backend_config.get_array(np.random.randn(1).astype(np.float32))
+        y = chainer.as_array(x)
+        assert y is x
+
+    def check_to_array_from_variable(self, backend_config, requires_grad):
+        x_arr = backend_config.get_array(np.random.randn(1).astype(np.float32))
+        x = chainer.Variable(x_arr, requires_grad=requires_grad)
+        y = chainer.as_array(x)
+        assert y is x.array
+
+    def test_to_array_from_variable(self, backend_config):
+        self.check_to_array_from_variable(backend_config, True)
+        self.check_to_array_from_variable(backend_config, False)
 
 
 @testing.parameterize(*testing.product({
