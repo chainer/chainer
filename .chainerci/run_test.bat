@@ -33,4 +33,4 @@ pip install -e .[test] -vvv
 pip install scipy
 
 set CHAINER_TEST_GPU_LIMIT=1
-xpytest --python python -m "not slow and not ideep" --thread 8 tests/chainer_tests/**/test_*.py
+xpytest --python python -m "not slow and not ideep" --thread 8 --hint .chainerci/hint.pbtxt tests/chainer_tests/**/test_*.py
