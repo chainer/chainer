@@ -860,15 +860,17 @@ class Variable(object):
     def array(self, d):
         # type: (tp.Optional[types.NdArray]) -> None
 
-        old_device = self.device
-        if d is not None and not old_device.is_compatible_array(d):
-            new_device = backend.get_device_from_array(d)
-            raise ValueError(
-                "The specified array is incompatible. Variable is configured "
-                "against {} but it is on {}.".format(old_device, new_device))
+        d_old = self._data[0]
+        if d_old is not None and d is not None:
+            old_device = self.device
+            if not old_device.is_compatible_array(d):
+                new_device = backend.get_device_from_array(d)
+                raise ValueError(
+                    "The specified array is incompatible. Variable is "
+                    "configured against {} but it is on {}.".format(
+                        old_device, new_device))
 
         if self._has_chainerx_array:
-            d_old = self._data[0]
             if (d_old is not None
                     and (d_old.is_backprop_required()
                          or d.is_backprop_required())):
