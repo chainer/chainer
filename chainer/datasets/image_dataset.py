@@ -1,4 +1,8 @@
+import bisect
+import io
 import os
+import threading
+import zipfile
 
 import numpy
 try:
@@ -7,11 +11,7 @@ try:
 except ImportError as e:
     available = False
     _import_error = e
-import bisect
-import io
 import six
-import threading
-import zipfile
 
 import chainer
 from chainer.dataset import dataset_mixin

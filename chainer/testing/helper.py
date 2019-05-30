@@ -1,9 +1,9 @@
 import contextlib
-import pkg_resources
 import sys
 import unittest
 import warnings
 
+import pkg_resources
 try:
     import mock
     _mock_error = None
