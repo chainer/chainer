@@ -193,6 +193,9 @@ class UpdateRule(object):
 
         self.t += 1
 
+        if param.array is None:
+            return
+
         if self._use_fp32_update and param.dtype == numpy.float16:
             if self._fp32_param is None:
                 self._fp32_param = variable.Variable(
