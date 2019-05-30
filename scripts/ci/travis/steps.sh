@@ -124,9 +124,11 @@ step_chainer_install_from_sdist() {
 
     # Install from sdist
     local envs=(
-        MAKEFLAGS=-j"$DEFAULT_JOBS"
         CHAINERX_BUILD_TYPE=Debug
     )
+    if [ -z "$MAKEFLAGS" ] ; then
+        envs+=(MAKEFLAGS=-j"$DEFAULT_JOBS")
+    fi
 
     if [[ $SKIP_CHAINERX != 1 ]]; then
         envs+=(CHAINER_BUILD_CHAINERX=1)

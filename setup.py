@@ -187,7 +187,8 @@ setup_kwargs = dict(
 
 build_chainerx = 0 != int(os.getenv('CHAINER_BUILD_CHAINERX', '0'))
 if os.getenv('READTHEDOCS', None) == 'True':
-    os.environ['MAKEFLAGS'] = '-j2'
+    if 'MAKEFLAGS' not in os.environ:
+        os.environ['MAKEFLAGS'] = '-j2'
     build_chainerx = True
 
 chainerx_build_helper.config_setup_kwargs(setup_kwargs, build_chainerx)
