@@ -271,7 +271,8 @@ class _IteratorProgressBar(util.ProgressBar):
     def __init__(self, iterator, bar_length=None, out=None):
         if not (hasattr(iterator, 'current_position') and
                 hasattr(iterator, 'epoch_detail')):
-            raise TypeError('iterator must have following attributes: '
+            raise TypeError('Iterator must have the following attributes '
+                            'to enable a progress bar: '
                             'current_position, epoch_detail')
         self._iterator = iterator
 
