@@ -1201,12 +1201,13 @@ Args:
     a (~chainerx.ndarray):
         Array containing elements to clip.
     a_min (~chainerx.ndarray or scalar or ~None):
-        Maximum value. If ~None, clipping is not performed on lower interval edge.
-        Not more than one of a_min and a_max may be None.
+        Maximum value. If ~None, clipping is not performed on lower interval
+        edge. Not more than one of a_min and a_max may be None.
     a_max (~chainerx.ndarray or scalar or ~None):
-        Minimum value. If ~None, clipping is not performed on upper interval edge.
-        Not more than one of a_min and a_max may be None. If a_min or a_max are array_like,
-        then the three arrays will be broadcasted to match their shapes.
+        Minimum value. If ~None, clipping is not performed on upper interval
+        edge. Not more than one of a_min and a_max may be None. If a_min or
+        a_max are array_like, then the three arrays will be broadcasted to
+        match their shapes.
 
 Returns:
     ~chainerx.ndarray: An array with the elements of ``a``, but where
