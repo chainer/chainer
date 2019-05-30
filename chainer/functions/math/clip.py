@@ -10,6 +10,9 @@ class Clip(function_node.FunctionNode):
     """Clips (limits) elements of input variable."""
 
     def __init__(self, x_min, x_max):
+        if (x_min is None) and (x_max is None):
+            raise ValueError('must set either max or min')
+
         # x_min must be less than x_max.
         if (x_min is not None) and (x_max is not None) and (x_min >= x_max):
             raise ValueError('x_min must be less than x_max.')
@@ -38,6 +41,9 @@ class Clip(function_node.FunctionNode):
 class ClipGrad(function_node.FunctionNode):
 
     def __init__(self, x, x_min, x_max):
+        if (x_min is None) and (x_max is None):
+            raise ValueError('must set either max or min')
+
         self.cond = True
         if x_min is not None:
             self.cond *= (x_min <= x)

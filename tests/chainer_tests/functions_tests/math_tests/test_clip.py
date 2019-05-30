@@ -107,6 +107,10 @@ class TestClipInvalidInterval(unittest.TestCase):
     def test_max_min_none(self):
         with self.assertRaises(ValueError):
             functions.clip(self.x, None, None)
+        with self.assertRaises(ValueError):
+            Clip(self.x, None, None)
+        with self.assertRaises(ValueError):
+            ClipGrad(self.x, None, None)
 
 
 @testing.parameterize(*testing.product({
