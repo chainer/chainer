@@ -37,6 +37,11 @@ class CommunicatorBase(six.with_metaclass(ABCMeta)):
     def __init__(self):
         pass
 
+    def finalize(self):
+        """Finalizes the communicator.
+        """
+        pass
+
     @property
     def rank(self):
         '''Rank (process id in the cluster) of this process in integer.'''

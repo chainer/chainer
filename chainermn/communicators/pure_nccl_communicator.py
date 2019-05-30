@@ -29,7 +29,6 @@ class PureNcclCommunicator(mpi_communicator_base.MpiCommunicatorBase):
         # after users set the devices to use.
         self.nccl_comm = None
 
-        self.gpu_tmp_buffer = _memory_utility.DeviceMemory()
         self.gpu_buffer_a = _memory_utility.DeviceMemory()
         self.gpu_buffer_b = _memory_utility.DeviceMemory()
 
@@ -50,6 +49,11 @@ class PureNcclCommunicator(mpi_communicator_base.MpiCommunicatorBase):
         else:
             self.params_data = None
 
+    def finalize(self):
+        chainer.cuda.Stream.null.synchronize()
+        self.nccl_comm.destroy()
+        self.nccl_comm = None
+
     def _init_comms(self):
         if self.nccl_comm is not None:
             return
@@ -60,19 +64,19 @@ class PureNcclCommunicator(mpi_communicator_base.MpiCommunicatorBase):
         params = _memory_utility.extract_params_set_data(model)
         data_dtype = chainer.get_dtype()
         n_elems = sum(param.data.size for param in params)
-        data_grad_n_bytes = data_dtype.itemsize * n_elems
-        if self.gpu_tmp_buffer.size != data_grad_n_bytes:
-            self.gpu_tmp_buffer.assign(data_grad_n_bytes)
+        data_n_bytes = data_dtype.itemsize * n_elems
+        if self.gpu_buffer_a.size != data_n_bytes:
+            self.gpu_buffer_a.assign(data_n_bytes)
         stream = chainer.cuda.Stream.null
 
         _memory_utility.pack_params(
-            params, 'data', self.gpu_tmp_buffer, data_dtype, False, stream)
-        self.nccl_comm.bcast(self.gpu_tmp_buffer.ptr(), n_elems,
+            params, 'data', self.gpu_buffer_a, data_dtype, False, stream)
+        self.nccl_comm.bcast(self.gpu_buffer_a.ptr(), n_elems,
                              _communication_utility._get_nccl_type_id(
                                  data_dtype),
                              0, stream.ptr)
         _memory_utility.unpack_params(
-            params, 'data', self.gpu_tmp_buffer, data_dtype, False, stream)
+            params, 'data', self.gpu_buffer_a, data_dtype, False, stream)
 
     def allreduce_grad(self, model, zero_fill=False):
         stream = chainer.cuda.Stream.null

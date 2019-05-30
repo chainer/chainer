@@ -240,19 +240,7 @@ def create_communicator(param, use_gpu):
 
 
 def destroy_communicator(comm):
-    """Destroy internal NCCL communicator.
-
-    When too many NCCL communicator are alive, NCCL produces
-    unhandled CUDA error. To avoid this, we need to make sure to
-    destory NCCL communicator after every use.
-    """
-    if hasattr(comm, 'nccl_comm') and comm.nccl_comm is not None:
-        comm.nccl_comm.destroy()
-        comm.nccl_comm = None
-    if hasattr(comm, 'intra_nccl_cojmm') and comm.intra_nccl_comm is not None:
-        comm.intra_nccl_comm.destroy()
-        comm.intra_nccl_comm = None
-
+    comm.finalize()
 
 def check_send_and_recv(communicator, *shape):
     if communicator.size < 2:

@@ -13,6 +13,9 @@ class TestCommunicationUtility(unittest.TestCase):
         self.mpi_comm = mpi4py.MPI.COMM_WORLD
         self.communicator = NaiveCommunicator(self.mpi_comm)
 
+    def tearDown(self):
+        self.communicator.finalize()
+
     def test_chunked_bcast_objs(self):
         # success
         for (s, l) in [(10, 1), (1024, 7), (355678, 2378), (234, INT_MAX - 1)]:
