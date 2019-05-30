@@ -35,10 +35,6 @@
 namespace chainerx {
 namespace cuda {
 
-// Macros to construct cusolverDn method names.
-#define DN_SOLVER_FN(method, type_prefix) cusolverDn##type_prefix##method
-#define DN_BUFSIZE_FN(method, type_prefix) cusolverDn##type_prefix##method##_bufferSize
-
 class CudaCholeskyKernel : public CholeskyKernel {
 public:
     void Call(const Array& a, const Array& out) override {
@@ -101,10 +97,10 @@ public:
         };
 
         if (a.dtype() == Dtype::kFloat32) {
-            cholesky_impl(PrimitiveType<float>{}, DN_BUFSIZE_FN(potrf, S), DN_SOLVER_FN(potrf, S));
+            cholesky_impl(PrimitiveType<float>{}, cusolverDnSpotrf_bufferSize, cusolverDnSpotrf);
         } else {
             CHAINERX_ASSERT(a.dtype() == Dtype::kFloat64);
-            cholesky_impl(PrimitiveType<double>{}, DN_BUFSIZE_FN(potrf, D), DN_SOLVER_FN(potrf, D));
+            cholesky_impl(PrimitiveType<double>{}, cusolverDnDpotrf_bufferSize, cusolverDnDpotrf);
         }
 
         if (!is_out_contiguous) {
