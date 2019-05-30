@@ -425,10 +425,20 @@ Array Reciprocal(const Array& x) { return Scalar{1, GetKind(x.dtype())} / x; }
 
 namespace {
 
+void CheckComparisonDtypes(DtypeKind kind1, DtypeKind kind2) {
+    if ((kind1 == DtypeKind::kBool) != (kind2 == DtypeKind::kBool)) {
+        throw DtypeError{"Comparison of bool and non-bool dtypes is not supported."};
+    }
+}
+
+void CheckComparisonDtypes(const Array& x1, const Array& x2) { return CheckComparisonDtypes(GetKind(x1.dtype()), GetKind(x2.dtype())); }
+
+void CheckComparisonDtypes(const Array& x1, Scalar x2) { return CheckComparisonDtypes(GetKind(x1.dtype()), x2.kind()); }
+
 // Calculates: x1 < x2 ? pos : neg
 // Can only differentiate with respect to neg.
 Array IfLessElse(const Array& x1, Scalar x2, Scalar pos, const Array& neg) {
-    CheckArithmeticDtypes(GetKind(x1.dtype()), x2.kind(), false);
+    CheckComparisonDtypes(x1, x2);
     Array out = Empty(x1.shape(), ResultType(pos, neg), x1.device());
     // TODO(niboshi): Create mask array and reuse in backprop.
 
@@ -456,7 +466,7 @@ namespace {
 // Calculates: x1 > x2 ? pos : neg
 // Can only differentiate with respect to neg.
 Array IfGreaterElse(const Array& x1, Scalar x2, Scalar pos, const Array& neg) {
-    CheckArithmeticDtypes(GetKind(x1.dtype()), x2.kind(), false);
+    CheckComparisonDtypes(x1, x2);
     Array out = Empty(x1.shape(), ResultType(pos, neg), x1.device());
     // TODO(niboshi): Create mask array and reuse in backprop.
 
@@ -482,6 +492,7 @@ Array IfGreaterElse(const Array& x1, Scalar x2, Scalar pos, const Array& neg) {
 namespace {
 
 void IfGreaterElseImpl(const Array& x1, const Array& x2, const Array& pos, const Array& neg, const Array& out) {
+    CheckComparisonDtypes(x1, x2);
     CheckEqual(x1.shape(), x2.shape());
     {
         NoBackpropModeScope scope{};
@@ -524,6 +535,9 @@ void MaximumImpl(const Array& x1, const Array& x2, const Array& out) { IfGreater
 }  // namespace
 
 Array Maximum(const Array& x1, Scalar x2) {
+    if (x1.dtype() == Dtype::kBool && x2.kind() == DtypeKind::kBool) {
+        return LogicalOr(x1, x2);
+    }
     // TODO(niboshi): IfLessElse redundantly casts x1 twice.
     return IfLessElse(x1, x2, x2, x1);  // x1 < x2 ? x2 : x1
 }
@@ -531,11 +545,17 @@ Array Maximum(const Array& x1, Scalar x2) {
 Array Maximum(Scalar x1, const Array& x2) { return Maximum(x2, x1); }
 
 Array Maximum(const Array& x1, const Array& x2) {
-    Dtype dtype = GetArithmeticResultDtype(x1, x2);
+    if (x1.dtype() == Dtype::kBool && x2.dtype() == Dtype::kBool) {
+        return LogicalOr(x1, x2);
+    }
+    Dtype dtype = ResultType(x1, x2);
     return internal::BroadcastBinary(&MaximumImpl, x1, x2, dtype);  // x1 > x2 ? x1 : x2
 }
 
 Array Minimum(const Array& x1, Scalar x2) {
+    if (x1.dtype() == Dtype::kBool && x2.kind() == DtypeKind::kBool) {
+        return LogicalAnd(x1, x2);
+    }
     // TODO(niboshi): IfGreaterElse redundantly casts x1 twice.
     return IfGreaterElse(x1, x2, x2, x1);  // x1 > x2 ? x2 : x1
 }
@@ -543,7 +563,10 @@ Array Minimum(const Array& x1, Scalar x2) {
 Array Minimum(Scalar x1, const Array& x2) { return Minimum(x2, x1); }
 
 Array Minimum(const Array& x1, const Array& x2) {
-    Dtype dtype = GetArithmeticResultDtype(x1, x2);
+    if (x1.dtype() == Dtype::kBool && x2.dtype() == Dtype::kBool) {
+        return LogicalAnd(x1, x2);
+    }
+    Dtype dtype = ResultType(x1, x2);
     return internal::BroadcastBinary(&MinimumImpl, x1, x2, dtype);  // x1 > x2 ? x2 : x1
 }
 

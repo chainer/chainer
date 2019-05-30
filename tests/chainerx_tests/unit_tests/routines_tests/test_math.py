@@ -1191,21 +1191,24 @@ class TestITrueDivideScalar(
     # Special shapes
     chainer.testing.product({
         'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
-        'in_dtypes,scalar_type,out_dtype': _in_out_dtypes_arithmetic_scalar,
+        'in_dtypes,scalar_type,out_dtype': (
+            dtype_utils.result_comparable_dtypes_array_scalar),
         'input': ['random'],
         'scalar_value': [1],
         'is_scalar_rhs': [False],
     })
     # Differentiable cases
     + chainer.testing.product({
-        'in_dtypes,scalar_type,out_dtype': _in_out_dtypes_arithmetic_scalar,
+        'in_dtypes,scalar_type,out_dtype': (
+            dtype_utils.result_comparable_dtypes_array_scalar),
         'input': [numpy.array([1, 3, 3, 4])],
         'scalar_value': [0, 2, 5],
         'is_scalar_rhs': [False, True],
     })
     # Non-differentiable cases
     + chainer.testing.product({
-        'in_dtypes,scalar_type,out_dtype': _in_out_dtypes_arithmetic_scalar,
+        'in_dtypes,scalar_type,out_dtype': (
+            dtype_utils.result_comparable_dtypes_array_scalar),
         'input': [numpy.array([1, 3, 3, 4])],
         'scalar_value': [1, 3, 4],
         'is_scalar_rhs': [False, True],
@@ -1215,7 +1218,7 @@ class TestITrueDivideScalar(
     # Special float values
     + chainer.testing.product({
         'in_dtypes,scalar_type,out_dtype': (
-            _in_out_dtypes_float_arithmetic_scalar),
+            dtype_utils.result_float_dtypes_array_scalar),
         # TODO(imanishi): Add test for NaN.
         'input': [numpy.array([0, float('inf'), -float('inf')])],
         'scalar_value': [-1, 0, 1, float('inf'), -float('inf')],
@@ -1240,21 +1243,24 @@ class TestMinimumScalar(math_utils.MathScalarTestBase, op_utils.NumpyOpTest):
     # Special shapes
     chainer.testing.product({
         'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
-        'in_dtypes,scalar_type,out_dtype': _in_out_dtypes_arithmetic_scalar,
+        'in_dtypes,scalar_type,out_dtype': (
+            dtype_utils.result_comparable_dtypes_array_scalar),
         'input': ['random'],
         'scalar_value': [0, 1],
         'is_scalar_rhs': [False],
     })
     # Differentiable cases
     + chainer.testing.product({
-        'in_dtypes,scalar_type,out_dtype': _in_out_dtypes_arithmetic_scalar,
+        'in_dtypes,scalar_type,out_dtype': (
+            dtype_utils.result_comparable_dtypes_array_scalar),
         'input': [numpy.array([1, 3, 3, 4])],
         'scalar_value': [0, 2, 5],
         'is_scalar_rhs': [False, True],
     })
     # Non-differentiable cases
     + chainer.testing.product({
-        'in_dtypes,scalar_type,out_dtype': _in_out_dtypes_arithmetic_scalar,
+        'in_dtypes,scalar_type,out_dtype': (
+            dtype_utils.result_comparable_dtypes_array_scalar),
         'input': [numpy.array([1, 3, 3, 4])],
         'scalar_value': [1, 3, 4],
         'is_scalar_rhs': [False, True],
@@ -1264,7 +1270,7 @@ class TestMinimumScalar(math_utils.MathScalarTestBase, op_utils.NumpyOpTest):
     # Special float values
     + chainer.testing.product({
         'in_dtypes,scalar_type,out_dtype': (
-            _in_out_dtypes_float_arithmetic_scalar),
+            dtype_utils.result_float_dtypes_array_scalar),
         # TODO(imanishi): Add test for NaN.
         'input': [numpy.array([0, float('inf'), -float('inf')])],
         'scalar_value': [-1, 0, 1, float('inf'), -float('inf')],
@@ -1956,14 +1962,15 @@ def test_isfinite(xp, device, input, dtype):
         'in_shapes': math_utils.shapes_combination_binary,
         'in_dtypes,out_dtype': (
             dtype_utils.make_same_in_out_dtypes(
-                2, chainerx.testing.numeric_dtypes)),
+                2, chainerx.testing.all_dtypes)),
         'input_lhs': ['random'],
         'input_rhs': ['random'],
+        'is_module': [False],
     })
     # Dtype combinations
     + chainer.testing.product({
         'in_shapes': [((2, 3), (2, 3))],
-        'in_dtypes,out_dtype': _in_out_dtypes_arithmetic,
+        'in_dtypes,out_dtype': dtype_utils.result_comparable_dtypes_two_arrays,
         'input_lhs': ['random'],
         'input_rhs': ['random'],
         'is_module': [False],
@@ -1973,7 +1980,7 @@ def test_isfinite(xp, device, input, dtype):
         'in_shapes': [((2, 3), (2, 3))],
         'in_dtypes,out_dtype': (
             dtype_utils.make_same_in_out_dtypes(
-                2, chainerx.testing.numeric_dtypes)),
+                2, chainerx.testing.all_dtypes)),
         'input_lhs': ['random'],
         'input_rhs': ['random'],
         'is_module': [True, False],
@@ -1989,14 +1996,15 @@ class TestMaximum(math_utils.BinaryMathTestBase, op_utils.NumpyOpTest):
 
 
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-@pytest.mark.parametrize('dtypes', _in_out_dtypes_arithmetic_invalid)
-def test_maximum_invalid_dtypes(device, dtypes):
-    (in_dtype1, in_dtype2), _ = dtypes
+@pytest.mark.parametrize('dtype', chainerx.testing.numeric_dtypes)
+def test_maximum_invalid_dtypes(device, dtype):
     shape = (3, 2)
-    a = chainerx.array(array_utils.uniform(shape, in_dtype1))
-    b = chainerx.array(array_utils.uniform(shape, in_dtype2))
+    bool_array = chainerx.array(array_utils.uniform(shape, 'bool_'))
+    numeric_array = chainerx.array(array_utils.uniform(shape, dtype))
     with pytest.raises(chainerx.DtypeError):
-        chainerx.maximum(a, b)
+        chainerx.maximum(bool_array, numeric_array)
+    with pytest.raises(chainerx.DtypeError):
+        chainerx.maximum(numeric_array, bool_array)
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
@@ -2011,12 +2019,23 @@ def test_maximum_invalid_dtypes(device, dtypes):
         'input_rhs': ['random'],
         'is_module': [False],
     })
+    # Dtype combinations
+    + chainer.testing.product({
+        'in_shapes': [((2, 3), (2, 3))],
+        'in_dtypes,out_dtype': dtype_utils.result_comparable_dtypes_two_arrays,
+        'input_lhs': ['random'],
+        'input_rhs': ['random'],
+        'is_module': [False],
+    })
     # is_module
     + chainer.testing.product({
         'in_shapes': [((2, 3), (2, 3))],
-        'in_dtypes,out_dtype': _in_out_dtypes_arithmetic,
+        'in_dtypes,out_dtype': (
+            dtype_utils.make_same_in_out_dtypes(
+                2, chainerx.testing.all_dtypes)),
         'input_lhs': ['random'],
         'input_rhs': ['random'],
+        'is_module': [True, False],
     })
     # TODO(aksub99): Add tests for inf and NaN.
 ))
@@ -2029,11 +2048,12 @@ class TestMinimum(math_utils.BinaryMathTestBase, op_utils.NumpyOpTest):
 
 
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-@pytest.mark.parametrize('dtypes', _in_out_dtypes_arithmetic_invalid)
-def test_minimum_invalid_dtypes(device, dtypes):
-    (in_dtype1, in_dtype2), _ = dtypes
+@pytest.mark.parametrize('dtype', chainerx.testing.numeric_dtypes)
+def test_minimum_invalid_dtypes(device, dtype):
     shape = (3, 2)
-    a = chainerx.array(array_utils.uniform(shape, in_dtype1))
-    b = chainerx.array(array_utils.uniform(shape, in_dtype2))
+    bool_array = chainerx.array(array_utils.uniform(shape, 'bool_'))
+    numeric_array = chainerx.array(array_utils.uniform(shape, dtype))
     with pytest.raises(chainerx.DtypeError):
-        chainerx.minimum(a, b)
+        chainerx.minimum(bool_array, numeric_array)
+    with pytest.raises(chainerx.DtypeError):
+        chainerx.minimum(numeric_array, bool_array)
