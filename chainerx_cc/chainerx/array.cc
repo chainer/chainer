@@ -241,6 +241,26 @@ const Array& Array::operator^=(Scalar rhs) const {
     return *this;
 }
 
+const Array& Array::operator<<=(const Array& rhs) const {
+    internal::ILeftShift(*this, rhs);
+    return *this;
+}
+
+const Array& Array::operator<<=(Scalar rhs) const {
+    internal::ILeftShift(*this, rhs);
+    return *this;
+}
+
+const Array& Array::operator>>=(const Array& rhs) const {
+    internal::IRightShift(*this, rhs);
+    return *this;
+}
+
+const Array& Array::operator>>=(Scalar rhs) const {
+    internal::IRightShift(*this, rhs);
+    return *this;
+}
+
 Array Array::operator+(const Array& rhs) const { return chainerx::Add(*this, rhs); }
 
 Array Array::operator+(Scalar rhs) const { return chainerx::Add(*this, rhs); }
@@ -268,6 +288,14 @@ Array Array::operator|(Scalar rhs) const { return chainerx::BitwiseOr(*this, rhs
 Array Array::operator^(const Array& rhs) const { return chainerx::BitwiseXor(*this, rhs); }
 
 Array Array::operator^(Scalar rhs) const { return chainerx::BitwiseXor(*this, rhs); }
+
+Array Array::operator<<(const Array& rhs) const { return chainerx::LeftShift(*this, rhs); }
+
+Array Array::operator<<(Scalar rhs) const { return chainerx::LeftShift(*this, rhs); }
+
+Array Array::operator>>(const Array& rhs) const { return chainerx::RightShift(*this, rhs); }
+
+Array Array::operator>>(Scalar rhs) const { return chainerx::RightShift(*this, rhs); }
 
 Array Array::At(const std::vector<ArrayIndex>& indices) const { return internal::At(*this, indices); }
 

@@ -84,6 +84,26 @@ void IBitwiseXor(const Array& x1, Scalar x2) {
     internal::BinaryInplace(BitwiseASImpl<BitwiseXorASKernel>, x1, x2);
 }
 
+void ILeftShift(const Array& x1, const Array& x2) {
+    CheckInplaceBitwiseDtypes(x1, x2);
+    internal::BroadcastBinaryInplace(BitwiseImpl<LeftShiftKernel>, x1, x2);
+}
+
+void ILeftShift(const Array& x1, Scalar x2) {
+    CheckInplaceBitwiseDtypes(x1, x2);
+    internal::BinaryInplace(BitwiseASImpl<LeftShiftASKernel>, x1, x2);
+}
+
+void IRightShift(const Array& x1, const Array& x2) {
+    CheckInplaceBitwiseDtypes(x1, x2);
+    internal::BroadcastBinaryInplace(BitwiseImpl<RightShiftKernel>, x1, x2);
+}
+
+void IRightShift(const Array& x1, Scalar x2) {
+    CheckInplaceBitwiseDtypes(x1, x2);
+    internal::BinaryInplace(BitwiseASImpl<RightShiftASKernel>, x1, x2);
+}
+
 }  // namespace internal
 
 Array BitwiseAnd(const Array& x1, const Array& x2) {
@@ -121,5 +141,29 @@ Array BitwiseXor(const Array& x1, Scalar x2) {
 }
 
 Array BitwiseXor(Scalar x1, const Array& x2) { return BitwiseXor(x2, x1); }
+
+Array LeftShift(const Array& x1, const Array& x2) {
+    CheckBitwiseDtypes(x1, x2);
+    return internal::BroadcastBinary(BitwiseImpl<LeftShiftKernel>, x1, x2, ResultType(x1, x2));
+}
+
+Array LeftShift(const Array& x1, Scalar x2) {
+    CheckBitwiseDtypes(x1, x2);
+    return internal::Binary(BitwiseASImpl<LeftShiftASKernel>, x1, x2, ResultType(x1, x2));
+}
+
+Array LeftShift(Scalar x1, const Array& x2) { return LeftShift(x2, x1); }
+
+Array RightShift(const Array& x1, const Array& x2) {
+    CheckBitwiseDtypes(x1, x2);
+    return internal::BroadcastBinary(BitwiseImpl<RightShiftKernel>, x1, x2, ResultType(x1, x2));
+}
+
+Array RightShift(const Array& x1, Scalar x2) {
+    CheckBitwiseDtypes(x1, x2);
+    return internal::Binary(BitwiseASImpl<RightShiftASKernel>, x1, x2, ResultType(x1, x2));
+}
+
+Array RightShift(Scalar x1, const Array& x2) { return RightShift(x2, x1); }
 
 }  // namespace chainerx

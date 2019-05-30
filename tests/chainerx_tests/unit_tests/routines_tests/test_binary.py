@@ -245,6 +245,25 @@ class TestBitwiseXor(math_utils.BinaryMathTestBase, op_utils.NumpyOpTest):
         else:
             return a ^ b
 
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*_params_bitwise)
+class TestLeftShift(math_utils.BinaryMathTestBase, op_utils.NumpyOpTest):
+
+    def func(self, xp, a, b):
+        if self.is_module:
+            return xp.left_shift(a, b)
+        else:
+            return a << b
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*_params_bitwise)
+class TestRightShift(math_utils.BinaryMathTestBase, op_utils.NumpyOpTest):
+
+    def func(self, xp, a, b):
+        if self.is_module:
+            return xp.right_shift(a, b)
+        else:
+            return a >> b
 
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*_inplace_params_bitwise)
@@ -271,6 +290,24 @@ class TestIBitwiseXor(
 
     def func(self, xp, a, b):
         a ^= b
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*_inplace_params_bitwise)
+class TestILeftShift(
+        math_utils.InplaceBinaryMathTestBase, op_utils.NumpyOpTest):
+
+    def func(self, xp, a, b):
+        a <<= b
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*_inplace_params_bitwise)
+class TestIRightShift(
+        math_utils.InplaceBinaryMathTestBase, op_utils.NumpyOpTest):
+
+    def func(self, xp, a, b):
+        a >>= b
 
 
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
@@ -304,6 +341,28 @@ def test_ixor_invalid_dtypes(device, dtypes):
     b = chainerx.array(array_utils.uniform(shape, in_dtype2))
     with pytest.raises(chainerx.DtypeError):
         a ^= b
+
+
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('dtypes', _in_out_dtypes_inplace_bitwise_invalid)
+def test_ileftshift_invalid_dtypes(device, dtypes):
+    (in_dtype1, in_dtype2), _ = dtypes
+    shape = (2, 3)
+    a = chainerx.array(array_utils.uniform(shape, in_dtype1))
+    b = chainerx.array(array_utils.uniform(shape, in_dtype2))
+    with pytest.raises(chainerx.DtypeError):
+        a <<= b
+
+
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('dtypes', _in_out_dtypes_inplace_bitwise_invalid)
+def test_irightshift_invalid_dtypes(device, dtypes):
+    (in_dtype1, in_dtype2), _ = dtypes
+    shape = (2, 3)
+    a = chainerx.array(array_utils.uniform(shape, in_dtype1))
+    b = chainerx.array(array_utils.uniform(shape, in_dtype2))
+    with pytest.raises(chainerx.DtypeError):
+        a >>= b
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
@@ -361,6 +420,42 @@ class TestBitwiseXorScalar(
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*_scalar_params_bitwise)
+class TestLeftShiftScalar(
+        math_utils.MathScalarTestBase, op_utils.NumpyOpTest):
+
+    def func_scalar(self, xp, a, scalar):
+        if self.is_module:
+            if self.is_scalar_rhs:
+                return a << scalar
+            else:
+                return scalar << a
+        else:
+            if self.is_scalar_rhs:
+                return xp.left_shift(a, scalar)
+            else:
+                return xp.left_shift(scalar, a)
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*_scalar_params_bitwise)
+class TestRightShiftScalar(
+        math_utils.MathScalarTestBase, op_utils.NumpyOpTest):
+
+    def func_scalar(self, xp, a, scalar):
+        if self.is_module:
+            if self.is_scalar_rhs:
+                return a >> scalar
+            else:
+                return scalar >> a
+        else:
+            if self.is_scalar_rhs:
+                return xp.right_shift(a, scalar)
+            else:
+                return xp.right_shift(scalar, a)
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*_inplace_scalar_params_bitwise)
 class TestIBitwiseAndScalar(
         math_utils.InplaceMathScalarTestBase, op_utils.NumpyOpTest):
@@ -385,3 +480,21 @@ class TestIBitwiseXorScalar(
 
     def func_scalar(self, xp, a, scalar):
         a ^= scalar
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*_inplace_scalar_params_bitwise)
+class TestILeftShiftScalar(
+        math_utils.InplaceMathScalarTestBase, op_utils.NumpyOpTest):
+
+    def func_scalar(self, xp, a, scalar):
+        a <<= scalar
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*_inplace_scalar_params_bitwise)
+class TestIRightShiftScalar(
+        math_utils.InplaceMathScalarTestBase, op_utils.NumpyOpTest):
+
+    def func_scalar(self, xp, a, scalar):
+        a >>= scalar
