@@ -347,7 +347,7 @@ Array Linspace(
     return out;
 }
 
-std::vector<Array> Meshgrid(const std::vector<Array>& arrays, const std::string& indexing) {
+std::vector<Array> Meshgrid(const std::vector<Array>& arrays, MeshgridIndexingMode mode) {
     Shape shape;
     Shape broadcast_shape;
     std::vector<Shape> arr_reshapes;
@@ -383,7 +383,7 @@ std::vector<Array> Meshgrid(const std::vector<Array>& arrays, const std::string&
     }
 
     // Referred from numpy documentation and source.
-    if (indexing == "xy") {
+    if (mode == MeshgridIndexingMode::xy) {
         std::swap(arr_reshapes[0][0], arr_reshapes[0][1]);
         std::swap(arr_reshapes[1][0], arr_reshapes[1][1]);
         std::swap(broadcast_shape[0], broadcast_shape[1]);

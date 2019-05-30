@@ -277,17 +277,25 @@ void InitChainerxCreation(pybind11::module& m) {
           py::arg("device") = nullptr);
     m.def("meshgrid", [](py::args xi, py::kwargs kwargs) {
         std::vector<Array> xs;
-        std::string indexing("xy");
+        MeshgridIndexingMode mode{MeshgridIndexingMode::xy};
         xs.reserve(xi.size());
         std::transform(xi.begin(), xi.end(), std::back_inserter(xs), [](const auto& item) { return Array{py::cast<ArrayBodyPtr>(item)}; });
-        if (kwargs) {
+        if (kwargs.size()) {
             if (kwargs.size() != 1 || !kwargs.contains("indexing")) {
                 throw ChainerxError{"Only 'indexing' is a valid keyword argument"};
             }
             py::str index = kwargs["indexing"];
-            indexing = index;
+            std::string indexing = index;
+
+            if (indexing == "xy") {
+                mode = MeshgridIndexingMode::xy;
+            } else if (indexing == "ij") {
+                mode = MeshgridIndexingMode::ij;
+            } else {
+                throw ChainerxError{"Indexing can only be 'xy' or 'ij'."};
+            }
         }
-        return MoveArrayBodies(Meshgrid(xs, indexing));
+        return MoveArrayBodies(Meshgrid(xs, mode));
     });
 }
 

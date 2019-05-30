@@ -1205,3 +1205,19 @@ class TestMeshgrid(op_utils.NumpyOpTest):
 
     def forward_xp(self, inputs, xp):
         return tuple(xp.meshgrid(*inputs, indexing=self.indexing))
+
+
+@chainerx.testing.numpy_chainerx_array_equal(
+    accept_error=(
+        chainerx.ChainerxError, ValueError))
+def test_meshgrid_invalid_kwarg_value(xp):
+    a = array_utils.create_dummy_ndarray(xp, (10,), 'float32')
+    return xp.meshgrid(a, a, indexing='xz')
+
+
+@chainerx.testing.numpy_chainerx_array_equal(
+    accept_error=(
+        chainerx.ChainerxError, TypeError))
+def test_meshgrid_invalid_kwarg(xp):
+    a = array_utils.create_dummy_ndarray(xp, (10,), 'float32')
+    return xp.meshgrid(a, a, indexing='xy', invalid_arg=0)

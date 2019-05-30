@@ -122,6 +122,11 @@ Array Linspace(
         const nonstd::optional<Dtype>& dtype = nonstd::nullopt,
         Device& device = GetDefaultDevice());
 
-std::vector<Array> Meshgrid(const std::vector<Array>& arrays, const std::string& indexing);
+enum class MeshgridIndexingMode {
+    xy = 1,
+    ij,
+};
+
+std::vector<Array> Meshgrid(const std::vector<Array>& arrays, MeshgridIndexingMode mode);
 
 }  // namespace chainerx
