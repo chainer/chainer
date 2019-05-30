@@ -197,7 +197,7 @@ chainerx_build_helper.config_setup_kwargs(setup_kwargs, build_chainerx)
 # add "chainer" style to flake8
 setup_kwargs.setdefault('entry_points', {}).update({
     'flake8_import_order.styles': [
-        'chainer = importorder:Hacking',
+        'chainer = chainer.testing.importorder:Hacking',
     ],
 })
 
