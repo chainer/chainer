@@ -8,7 +8,6 @@ from chainer import functions
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
-from chainer.functions.math.clip import (Clip, ClipGrad)
 
 
 @testing.parameterize(*testing.product({
@@ -108,10 +107,6 @@ class TestClipInvalidInterval(unittest.TestCase):
     def test_max_min_none(self):
         with self.assertRaises(ValueError):
             functions.clip(self.x, None, None)
-        with self.assertRaises(ValueError):
-            Clip(None, None)
-        with self.assertRaises(ValueError):
-            ClipGrad(self.x, None, None)
 
 
 @testing.parameterize(*testing.product({
