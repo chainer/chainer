@@ -277,7 +277,7 @@ void InitChainerxCreation(pybind11::module& m) {
           py::arg("device") = nullptr);
     m.def("meshgrid", [](py::args xi, py::kwargs kwargs) {
         std::vector<Array> xs;
-        MeshgridIndexingMode mode{MeshgridIndexingMode::xy};
+        MeshgridIndexingMode mode{MeshgridIndexingMode::kCartesian};
         xs.reserve(xi.size());
         std::transform(xi.begin(), xi.end(), std::back_inserter(xs), [](const auto& item) { return Array{py::cast<ArrayBodyPtr>(item)}; });
         if (kwargs.size()) {
@@ -288,9 +288,9 @@ void InitChainerxCreation(pybind11::module& m) {
             std::string indexing = index;
 
             if (indexing == "xy") {
-                mode = MeshgridIndexingMode::xy;
+                mode = MeshgridIndexingMode::kCartesian;
             } else if (indexing == "ij") {
-                mode = MeshgridIndexingMode::ij;
+                mode = MeshgridIndexingMode::kMatrix;
             } else {
                 throw ChainerxError{"Indexing can only be 'xy' or 'ij'."};
             }

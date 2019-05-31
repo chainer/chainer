@@ -3,7 +3,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
-#include <string>
 #include <vector>
 
 #include <nonstd/optional.hpp>
@@ -122,10 +121,7 @@ Array Linspace(
         const nonstd::optional<Dtype>& dtype = nonstd::nullopt,
         Device& device = GetDefaultDevice());
 
-enum class MeshgridIndexingMode {
-    xy = 1,
-    ij,
-};
+enum class MeshgridIndexingMode { kCartesian, kMatrix };
 
 std::vector<Array> Meshgrid(const std::vector<Array>& arrays, MeshgridIndexingMode mode);
 

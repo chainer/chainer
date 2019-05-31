@@ -350,9 +350,10 @@ Array Linspace(
 std::vector<Array> Meshgrid(const std::vector<Array>& arrays, MeshgridIndexingMode mode) {
     Shape shape;
     Shape broadcast_shape;
-    std::vector<Shape> arr_reshapes;
+    std::vector<Shape> broadcasted_array_shapes;
     std::vector<Array> grid_arrays;
     grid_arrays.reserve(arrays.size());
+    broadcasted_array_shapes.reserve(arrays.size());
 
     // Algo
     //
@@ -377,22 +378,22 @@ std::vector<Array> Meshgrid(const std::vector<Array>& arrays, MeshgridIndexingMo
 
     // Shape for each array based on number of arrays.
     for (size_t i = 0; i < arrays.size(); ++i) {
-        Shape temp_shape(shape.begin(), shape.end());
+        Shape temp_shape{shape.begin(), shape.end()};
         temp_shape[i] = arrays[i].GetTotalSize();
-        arr_reshapes.push_back(temp_shape);
+        broadcasted_array_shapes.emplace_back(temp_shape);
     }
 
     // Referred from numpy documentation and source.
-    if (mode == MeshgridIndexingMode::xy) {
-        std::swap(arr_reshapes[0][0], arr_reshapes[0][1]);
-        std::swap(arr_reshapes[1][0], arr_reshapes[1][1]);
+    if (mode == MeshgridIndexingMode::kCartesian) {
+        std::swap(broadcasted_array_shapes[0][0], broadcasted_array_shapes[0][1]);
+        std::swap(broadcasted_array_shapes[1][0], broadcasted_array_shapes[1][1]);
         std::swap(broadcast_shape[0], broadcast_shape[1]);
     }
 
     std::vector<Array> reshaped_arrays;
     reshaped_arrays.reserve(arrays.size());
     for (size_t i = 0; i < arrays.size(); ++i) {
-        reshaped_arrays.emplace_back(arrays[i].Reshape(arr_reshapes[i]));
+        reshaped_arrays.emplace_back(arrays[i].Reshape(broadcasted_array_shapes[i]));
     }
 
     // Step 2
