@@ -2,6 +2,7 @@ from chainer import configuration
 from chainer.functions.connection import convolution_2d
 from chainer import initializers
 from chainer import link
+from chainer import utils
 from chainer.utils import argument
 from chainer import variable
 
@@ -111,8 +112,8 @@ nobias=False, initialW=None, initial_bias=None, *, dilate=1, groups=1)
                  nobias=False, initialW=None, initial_bias=None, **kwargs):
         super(Convolution2D, self).__init__()
 
-        dilate, groups = argument.parse_kwargs(
-            kwargs, ('dilate', 1), ('groups', 1),
+        dilate, groups, tensor_layout = argument.parse_kwargs(
+            kwargs, ('dilate', 1), ('groups', 1), ('tensor_layout', None),
             deterministic='deterministic argument is not supported anymore. '
             'Use chainer.using_config(\'cudnn_deterministic\', value) '
             'context where value is either `True` or `False`.')
@@ -127,12 +128,13 @@ nobias=False, initialW=None, initial_bias=None, *, dilate=1, groups=1)
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.groups = int(groups)
+        self.tensor_layout = tensor_layout
 
         with self.init_scope():
             W_initializer = initializers._get_initializer(initialW)
             self.W = variable.Parameter(W_initializer)
-            # if in_channels is not None:
-            #     self._initialize_params(in_channels)
+            if in_channels is not None and tensor_layout is not None:
+                self._initialize_params(in_channels)
 
             if nobias:
                 self.b = None
@@ -166,10 +168,8 @@ nobias=False, initialW=None, initial_bias=None, *, dilate=1, groups=1)
             raise ValueError('the number of input channels must be'
                              ' divisible by the number of groups')
         in_channels = int(in_channels / self.groups)
-        if configuration.config.tensor_layout == 'NHWC':
-            W_shape = (self.out_channels, kh, kw, in_channels)
-        else:
-            W_shape = (self.out_channels, in_channels, kh, kw)
+        W_shape = utils.my_shape((self.out_channels, in_channels, kh, kw),
+                                 self.tensor_layout)
         self.W.initialize(W_shape)
 
     def forward(self, x):
@@ -183,14 +183,13 @@ nobias=False, initialW=None, initial_bias=None, *, dilate=1, groups=1)
 
         """
         if self.W.array is None:
-            if configuration.config.tensor_layout == 'NHWC':
-                channels = x.shape[3]
-            else:
-                channels = x.shape[1]
+            if self.tensor_layout is None:
+                self.tensor_layout = configuration.config.tensor_layout
+            channels = utils.nchw_shape(x.shape, self.tensor_layout)[1]
             self._initialize_params(channels)
         return convolution_2d.convolution_2d(
             x, self.W, self.b, self.stride, self.pad, dilate=self.dilate,
-            groups=self.groups)
+            groups=self.groups, tensor_layout=self.tensor_layout)
 
 
 def _pair(x):

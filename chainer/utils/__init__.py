@@ -21,6 +21,9 @@ from chainer.utils.nondeterministic import nondeterministic  # NOQA
 from chainer.utils.sparse import CooMatrix  # NOQA
 from chainer.utils.sparse import get_order  # NOQA
 from chainer.utils.sparse import to_coo  # NOQA
+from chainer.utils.tensor_layout import get_cudnn_tensor_layout  # NOQA
+from chainer.utils.tensor_layout import nchw_shape  # NOQA
+from chainer.utils.tensor_layout import my_shape  # NOQA
 
 # The following alias has been moved to chainer/__init__.py in order to break
 # circular imports in Python 2.

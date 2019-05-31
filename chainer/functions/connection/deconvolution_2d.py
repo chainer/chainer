@@ -7,6 +7,7 @@ from chainer import configuration
 from chainer import function_node
 import chainer.functions
 from chainer.functions.connection import convolution_2d
+from chainer import utils
 from chainer.utils import argument
 from chainer.utils import conv
 from chainer.utils import type_check
@@ -50,22 +51,18 @@ class Deconvolution2DFunction(function_node.FunctionNode):
         type_check.expect(2 <= n_in, n_in <= 3)
         x_type, w_type = in_types[:2]
 
+        if self.tensor_layout == 'NHWC':
+            ih, iw, ic = 1, 2, 3
+        else:
+            ic, ih, iw = 1, 2, 3
+
         type_check.expect(
             x_type.dtype.kind == 'f',
             w_type.dtype.kind == 'f',
             x_type.ndim == 4,
             w_type.ndim == 4,
+            x_type.shape[ic] == w_type.shape[0] * self.groups,
         )
-        if self.tensor_layout == 'NHWC':
-            type_check.expect(
-                x_type.shape[3] == w_type.shape[0] * self.groups,
-            )
-            ih, iw = 1, 2
-        else:
-            type_check.expect(
-                x_type.shape[1] == w_type.shape[0] * self.groups,
-            )
-            ih, iw = 2, 3
 
         if self.outh is not None:
             lower_bound = conv.get_conv_outsize(
@@ -99,12 +96,8 @@ class Deconvolution2DFunction(function_node.FunctionNode):
 
     def _calc_out_size(self, x, W):
         """Calculates and stores `outh` and `outw`."""
-        if self.tensor_layout == 'NHWC':
-            _, kh, kw, _ = W.shape
-            _, in_h, in_w, _ = x.shape
-        else:
-            _, _, kh, kw = W.shape
-            _, _, in_h, in_w = x.shape
+        kh, kw = utils.nchw_shape(W.shape, self.tensor_layout)[2:]
+        in_h, in_w = utils.nchw_shape(x.shape, self.tensor_layout)[2:]
         # - k, m, n: shape of out_channel
         # - b: number of inputs
         # - h, w: height and width of kernels
@@ -268,26 +261,23 @@ class Deconvolution2DFunction(function_node.FunctionNode):
     def _forward_cudnn(self, x, W, b):
         n = len(x)
 
-        if self.tensor_layout == 'NHWC':
-            cudnn_tensor_layout = cuda.cuda.cudnn.CUDNN_TENSOR_NHWC
-            yC = W.shape[3] * self.groups
-            y = cuda.cupy.empty((n, self.outh, self.outw, yC), dtype=x.dtype)
-        else:
-            cudnn_tensor_layout = cuda.cuda.cudnn.CUDNN_TENSOR_NCHW
-            yC = W.shape[1] * self.groups
-            y = cuda.cupy.empty((n, yC, self.outh, self.outw), dtype=x.dtype)
+        yC = utils.nchw_shape(W.shape, self.tensor_layout)[1] * self.groups
+        y_shape = utils.my_shape((n, yC, self.outh, self.outw),
+                                 self.tensor_layout)
+        y = cuda.cupy.empty(y_shape, dtype=x.dtype)
+
         pad = (self.ph, self.pw)
         stride = (self.sy, self.sx)
         dilation = (self.dy, self.dx)
         deterministic = configuration.config.cudnn_deterministic
         auto_tune = configuration.config.autotune
         tensor_core = configuration.config.use_cudnn_tensor_core
+        cudnn_tensor_layout = utils.get_cudnn_tensor_layout(self.tensor_layout)
         cuda.cudnn.convolution_backward_data(
             W, x, b, y, pad, stride, dilation, self.groups,
             deterministic=deterministic, auto_tune=auto_tune,
             tensor_core=tensor_core,
-            d_layout=cudnn_tensor_layout,
-            w_layout=cudnn_tensor_layout)
+            d_layout=cudnn_tensor_layout, w_layout=cudnn_tensor_layout)
 
         return y,
 
@@ -334,20 +324,17 @@ class Deconvolution2DFunction(function_node.FunctionNode):
             ret.append(gW)
         if 2 in indexes:
             if self.tensor_layout == 'NHWC':
-                gb = chainer.functions.sum(gy, axis=(0, 1, 2))
+                sum_axis = (0, 1, 2)
             else:
-                gb = chainer.functions.sum(gy, axis=(0, 2, 3))
+                sum_axis = (0, 2, 3)
+            gb = chainer.functions.sum(gy, axis=sum_axis)
             ret.append(gb)
 
         return ret
 
     def _set_cover_all(self, x, W):
-        if self.tensor_layout == 'NHWC':
-            _, in_h, in_w, _ = x.shape
-            _, kh, kw, _ = W.shape
-        else:
-            _, _, in_h, in_w = x.shape
-            _, _, kh, kw = W.shape
+        in_h, in_w = utils.nchw_shape(x.shape, self.tensor_layout)[2:]
+        kh, kw = utils.nchw_shape(W.shape, self.tensor_layout)[2:]
         self.cover_all = (
             in_h != conv.get_conv_outsize(self.outh, kh, self.sy,
                                           self.ph, d=self.dy) or
