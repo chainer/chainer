@@ -790,15 +790,16 @@ Array Moveaxis(const Array& a, const Axes& source, const Axes& destination) {
         destination_axes[normalized_destination[i]] = -1;
     }
 
-    Axes::iterator source_iter = std::remove(source_axes.begin(), source_axes.end(), -1);
-    Axes::iterator destination_iter = std::remove(destination_axes.begin(), destination_axes.end(), -1);
-    CHAINERX_ASSERT(static_cast<int8_t>(source_iter - source_axes.begin()) == a.ndim() - source.ndim());
-    CHAINERX_ASSERT(static_cast<int8_t>(destination_iter - destination_axes.begin()) == a.ndim() - destination.ndim());
+    auto source_iter = std::remove(source_axes.begin(), source_axes.end(), -1);
+    auto destination_iter = std::remove(destination_axes.begin(), destination_axes.end(), -1);
 
-    for (std::pair<Axes::iterator, Axes::iterator> i(source_axes.begin(), destination_axes.begin());
-         i.first != source_iter /* && i.second != destination_iter */;
-         ++i.first, ++i.second) {
-        order[*i.second] = *i.first;
+    int8_t rest_dim = a.ndim() - source.ndim();
+    CHAINERX_ASSERT(a.ndim() - destination.ndim() == rest_dim);
+    CHAINERX_ASSERT(static_cast<int8_t>(source_iter - source_axes.begin()) == rest_dim);
+    CHAINERX_ASSERT(static_cast<int8_t>(destination_iter - destination_axes.begin()) == rest_dim);
+
+    for (int8_t i = 0; i < rest_dim; ++i) {
+        order[destination_axes[i]] = source_axes[i];
     }
 
     return a.Transpose(order);
