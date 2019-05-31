@@ -33,7 +33,7 @@ If you can write code to fix an issue, it is encouraged to send a PR.
 
 In that case, confirm the following points before starting to write any code.
 
-- Read the :ref:`coding-guide` and the :ref:`testing-guide`.
+- Read :ref:`coding-guide` and :ref:`testing-guide`.
 - Check the appropriate branch to which you should send a PR, following :ref:`contrib-git-branches`.
   If you are unsure about which branch to target, choose the ``master`` branch.
   The current source tree of the chosen branch is the starting point of your change.
@@ -385,7 +385,7 @@ Feature Backport Pull Requests
 
 In general, new features in the development branch are not backported to the stable versions.
 If such backports can be motivated and are necessary however, they are welcomed.
-In that a case, a backport PR must be sent to the latest ``vN`` branch.
+In such a case, a backport PR must be sent to the latest ``vN`` branch.
 **Note that we do not accept any feature backport PRs to older versions because we are not running quality assurance workflows (e.g. CI) for older versions which means that we cannot ensure that the PR is correctly ported.**
 
 There are some rules on sending backport PRs.
