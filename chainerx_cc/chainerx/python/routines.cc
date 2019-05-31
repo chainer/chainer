@@ -697,28 +697,24 @@ void InitChainerxMath(pybind11::module& m) {
           py::arg("x1"),
           py::arg("x2"));
     m.def("clip",
-          [](const ArrayBodyPtr& a, Scalar a_min, const nonstd::optional<Scalar>& a_max) {
-              if (!a_max) {
-                  return MoveArrayBody(Maximum(Array{a}, a_min));
+          [](const ArrayBodyPtr& a, const nonstd::optional<Scalar>& a_min, const nonstd::optional<Scalar>& a_max) {
+              if (!a_min.has_value() && !a_max.has_value()) {
+                  throw py::value_error("must set either max or min");
               }
-              return MoveArrayBody(Clip(Array{a}, a_min, *a_max));
-          },
-          py::arg("a"),
-          py::arg("a_min"),
-          py::arg("a_max"));
-    m.def("clip",
-          [](const ArrayBodyPtr& a, const nonstd::optional<Scalar>& a_min, Scalar a_max) {
-              if (!a_min) {
-                  return MoveArrayBody(Minimum(Array{a}, a_max));
+              if (!a_max.has_value()) {
+                  return MoveArrayBody(Maximum(Array{a}, *a_min));
               }
-              return MoveArrayBody(Clip(Array{a}, *a_min, a_max));
+              if (!a_min.has_value()) {
+                  return MoveArrayBody(Minimum(Array{a}, *a_max));
+              }
+              return MoveArrayBody(Clip(Array{a}, *a_min, *a_max));
           },
           py::arg("a"),
           py::arg("a_min"),
           py::arg("a_max"));
     m.def("clip",
           [](const ArrayBodyPtr& a, const ArrayBodyPtr& a_min, const nonstd::optional<Scalar>& a_max) {
-              if (!a_max) {
+              if (!a_max.has_value()) {
                   return MoveArrayBody(Maximum(Array{a}, Array{a_min}));
               }
               return MoveArrayBody(Clip(Array{a}, Array{a_min}, *a_max));
@@ -728,7 +724,7 @@ void InitChainerxMath(pybind11::module& m) {
           py::arg("a_max"));
     m.def("clip",
           [](const ArrayBodyPtr& a, const nonstd::optional<Scalar>& a_min, const ArrayBodyPtr& a_max) {
-              if (!a_min) {
+              if (!a_min.has_value()) {
                   return MoveArrayBody(Minimum(Array{a}, Array{a_max}));
               }
               return MoveArrayBody(Clip(Array{a}, *a_min, Array{a_max}));
@@ -737,11 +733,8 @@ void InitChainerxMath(pybind11::module& m) {
           py::arg("a_min"),
           py::arg("a_max"));
     m.def("clip",
-          [](const ArrayBodyPtr& a, const nonstd::optional<ArrayBodyPtr>& a_min, const nonstd::optional<ArrayBodyPtr>& a_max) {
-              if (!a_min && !a_max) {
-                  throw py::value_error("must set either max or min");
-              }
-              return MoveArrayBody(Clip(Array{a}, Array{*a_min}, Array{*a_max}));
+          [](const ArrayBodyPtr& a, const ArrayBodyPtr& a_min, const ArrayBodyPtr& a_max) {
+              return MoveArrayBody(Clip(Array{a}, Array{a_min}, Array{a_max}));
           },
           py::arg("a"),
           py::arg("a_min"),
