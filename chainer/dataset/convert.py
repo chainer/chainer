@@ -7,6 +7,7 @@ import six
 import chainer
 from chainer import backend
 from chainer.backends import cuda
+import chainerx
 
 
 def converter():
@@ -219,8 +220,8 @@ def concat_examples(batch, device=None, padding=None):
             padding = [padding] * len(first_elem)
 
         for i in six.moves.range(len(first_elem)):
-            result.append(_concat_and_transfer_arrays(device,
-                [example[i] for example in batch], padding[i]))
+            result.append(_concat_arrays(
+                [example[i] for example in batch], padding[i], device))
 
         return tuple(result)
 
@@ -230,37 +231,16 @@ def concat_examples(batch, device=None, padding=None):
             padding = {key: padding for key in first_elem}
 
         for key in first_elem:
-            result[key] = _concat_and_transfer_arrays(device,
-                [example[key] for example in batch], padding[key])
+            result[key] = _concat_arrays(
+                [example[key] for example in batch], padding[key], device)
 
         return result
 
     else:
-        return _concat_and_transfer_arrays(device, batch, padding)
+        return _concat_arrays(batch, padding, device)
 
 
-def _concat_and_transfer_arrays(device, arrays, padding):
-    # Convert `arrays` to numpy.ndarray if `arrays` consists of the built-in
-    # types such as int, float or list.
-    if not isinstance(arrays[0], chainer.get_array_types()):
-        arrays = numpy.asarray(arrays)
-
-    if padding is not None:
-        arr_concat = _concat_arrays_with_padding(arrays, padding)
-    elif isinstance(arrays, chainer.get_array_types()):
-        arr_concat = arrays
-    elif device.xp is cuda.cupy and isinstance(arrays, collections.Sequence):
-        arr_concat = arrays
-    else:
-        arr_dev = backend.get_device_from_array(arrays[0])
-        with chainer.using_device(arr_dev):
-            arr_concat = device.xp.concatenate(
-                [array[None] for array in arrays])
-
-    return to_device(device, arr_concat)
-
-
-def _concat_arrays(arrays, padding):
+def _concat_arrays(arrays, padding, device=None):
     # Convert `arrays` to numpy.ndarray if `arrays` consists of the built-in
     # types such as int, float or list.
     if not isinstance(arrays[0], chainer.get_array_types()):
@@ -269,12 +249,21 @@ def _concat_arrays(arrays, padding):
     if padding is not None:
         arr_concat = _concat_arrays_with_padding(arrays, padding)
     else:
-        device = backend.get_device_from_array(arrays[0])
-        with chainer.using_device(device):
-            arr_concat = device.xp.concatenate(
-                [array[None] for array in arrays])
+        src_device = backend.get_device_from_array(arrays[0])
+        if (device is not None
+                and (src_device.xp is numpy
+                     or (src_device == device
+                         and device.xp is not chainerx))):
+            return device.xp.array(arrays)
+        else:
+            with chainer.using_device(src_device):
+                arr_concat = src_device.xp.concatenate(
+                    [array[None] for array in arrays])
 
-    return arr_concat
+    if device is None:
+        return arr_concat
+    else:
+        return to_device(device, arr_concat)
 
 
 def _concat_arrays_with_padding(arrays, padding):
@@ -411,7 +400,7 @@ class ConcatWithAsyncTransfer(object):
                 return result
 
             else:
-                return to_device(device, _concat_arrays(batch, padding))
+                return _concat_arrays(batch, padding, device)
 
 
 class Conveyor(object):
