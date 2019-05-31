@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <iterator>
-#include <string>
+#include <utility>
 #include <vector>
 
 #include "nonstd/optional.hpp"
@@ -202,33 +202,93 @@ Array Take(const Array& a, const Array& indices, int8_t axis) {
 Array Where(const Array& condition, const Array& x, const Array& y) {
     Dtype out_dtype = ResultType(x, y);
     Shape out_shape = internal::BroadcastShapes(condition.shape(), internal::BroadcastShapes(x.shape(), y.shape()));
-    Array out = Empty(out_shape, out_dtype, x.device());
-    const Array& x_b = x.BroadcastTo(out_shape);
-    const Array& y_b = y.BroadcastTo(out_shape);
-    const Array& condition_b = condition.BroadcastTo(out_shape);
+    Array out = Empty(out_shape, out_dtype, condition.device());
+    Array x_b = x.BroadcastTo(out_shape);
+    Array y_b = y.BroadcastTo(out_shape);
+    Array condition_b = condition.BroadcastTo(out_shape);
 
     {
         NoBackpropModeScope scope;
-        x.device().backend().CallKernel<WhereKernel>(condition_b, x_b, y_b, out);
+        condition.device().backend().CallKernel<WhereKernel>(condition_b, x_b, y_b, out);
     }
 
     BackwardBuilder bb{"where", {x_b, y_b}, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-        bt.Define([condition, dtype = x.dtype()](BackwardContext& bctx) {
+        bt.Define([dtype = x.dtype(), condition = condition_b](BackwardContext& bctx) {
             const Array& gout = *bctx.output_grad();
-            // TODO(kshitij12345): Use Scalar-Array kernel when implemented.
-            bctx.input_grad() = Where(condition, gout, ZerosLike(gout)).AsType(dtype);
+            const Array& gx = Where(condition, gout, Scalar{0, GetKind(gout.dtype())});
+            bctx.input_grad() = gx.dtype() == dtype ? gx : gx.AsType(dtype);
         });
     }
     if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
-        bt.Define([condition, dtype = y.dtype()](BackwardContext& bctx) {
+        bt.Define([dtype = y.dtype(), condition = condition_b](BackwardContext& bctx) {
             const Array& gout = *bctx.output_grad();
-            // TODO(kshitij12345): Use Scalar-Array kernel when implemented.
-            bctx.input_grad() = Where(condition, ZerosLike(gout), gout).AsType(dtype);
+            const Array& gy = Where(condition, Scalar{0, GetKind(gout.dtype())}, gout);
+            bctx.input_grad() = gy.dtype() == dtype ? gy : gy.AsType(dtype);
         });
     }
     bb.Finalize();
 
+    return out;
+}
+
+Array Where(const Array& condition, const Array& x, Scalar y) {
+    Dtype out_dtype = ResultType(x, y);
+    Shape out_shape = internal::BroadcastShapes(condition.shape(), x.shape());
+    Array out = Empty(out_shape, out_dtype, condition.device());
+    Array x_b = x.BroadcastTo(out_shape);
+    Array condition_b = condition.BroadcastTo(out_shape);
+
+    {
+        NoBackpropModeScope scope;
+        condition.device().backend().CallKernel<WhereAASKernel>(condition_b, x_b, y, out);
+    }
+
+    BackwardBuilder bb{"where_array_scalar", {x_b}, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([dtype = x.dtype(), condition = std::move(condition_b)](BackwardContext& bctx) {
+            const Array& gout = *bctx.output_grad();
+            const Array& gx = Where(condition, gout, Scalar{0, GetKind(gout.dtype())});
+            bctx.input_grad() = gx.dtype() == dtype ? gx : gx.AsType(dtype);
+        });
+    }
+    bb.Finalize();
+
+    return out;
+}
+
+Array Where(const Array& condition, Scalar x, const Array& y) {
+    Dtype out_dtype = ResultType(x, y);
+    Shape out_shape = internal::BroadcastShapes(condition.shape(), y.shape());
+    Array out = Empty(out_shape, out_dtype, condition.device());
+    Array y_b = y.BroadcastTo(out_shape);
+    Array condition_b = condition.BroadcastTo(out_shape);
+
+    {
+        NoBackpropModeScope scope;
+        condition.device().backend().CallKernel<WhereASAKernel>(condition_b, x, y_b, out);
+    }
+
+    BackwardBuilder bb{"where_scalar_array", {y_b}, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([dtype = y.dtype(), condition = std::move(condition_b)](BackwardContext& bctx) {
+            const Array& gout = *bctx.output_grad();
+            const Array& gy = Where(condition, Scalar{0, GetKind(gout.dtype())}, gout);
+            bctx.input_grad() = gy.dtype() == dtype ? gy : gy.AsType(dtype);
+        });
+    }
+    bb.Finalize();
+
+    return out;
+}
+
+Array Where(const Array& condition, Scalar x, Scalar y) {
+    Dtype out_dtype = ResultType(x, y);
+    Array out = Empty(condition.shape(), out_dtype, condition.device());
+    {
+        NoBackpropModeScope scope;
+        condition.device().backend().CallKernel<WhereASSKernel>(condition, x, y, out);
+    }
     return out;
 }
 
