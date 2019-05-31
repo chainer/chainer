@@ -72,11 +72,7 @@ void Col2ImImpl(const Array& col, const Array& out, const Dims& stride, const In
 
 }  // namespace
 
-Array Col2Im(
-        const Array& col,
-        const Dims& stride,
-        const Dims& pad,
-        const Dims& out_size) {
+Array Col2Im(const Array& col, const Dims& stride, const Dims& pad, const Dims& out_size) {
     int64_t batch_size = col.shape()[0];
     int64_t channels = col.shape()[1];
     auto ndim = static_cast<int8_t>(stride.size());

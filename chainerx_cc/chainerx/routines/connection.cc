@@ -56,13 +56,7 @@ int64_t GetConvTransposeOutDim(int64_t in_dim, int64_t kernel_size, int64_t stri
 namespace {
 
 Array ConvGradWeight(
-        Dtype w_dtype,
-        const Shape& w_shape,
-        const Array& x,
-        const Array& gy,
-        const Dims& stride,
-        const Dims& pad,
-        bool cover_all) {
+        Dtype w_dtype, const Shape& w_shape, const Array& x, const Array& gy, const Dims& stride, const Dims& pad, bool cover_all) {
     CHAINERX_ASSERT(x.ndim() == w_shape.ndim());
     CHAINERX_ASSERT(gy.ndim() == w_shape.ndim());
     CHAINERX_ASSERT(stride.size() == static_cast<size_t>(w_shape.ndim() - 2));
@@ -101,8 +95,7 @@ Array ConvGradWeight(
     return out;
 }
 
-void ConvCheckNdim(
-        const Array& x, const Array& w, const Dims& stride, const Dims& pad) {
+void ConvCheckNdim(const Array& x, const Array& w, const Dims& stride, const Dims& pad) {
     if (w.ndim() != x.ndim()) {
         throw DimensionError{"Mismatched number of dimensions between input ", x.ndim(), " and weights ", w.ndim(), "."};
     }

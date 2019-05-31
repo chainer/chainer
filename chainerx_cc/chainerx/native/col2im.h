@@ -10,11 +10,7 @@ namespace chainerx {
 namespace native {
 namespace native_internal {
 
-Array Col2Im(
-        const Array& col,
-        const Dims& stride,
-        const Dims& pad,
-        const Dims& out_size);
+Array Col2Im(const Array& col, const Dims& stride, const Dims& pad, const Dims& out_size);
 
 }  // namespace native_internal
 }  // namespace native

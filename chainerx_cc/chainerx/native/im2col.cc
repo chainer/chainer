@@ -79,13 +79,7 @@ void Im2ColImpl(
 
 }  // namespace
 
-Array Im2Col(
-        const Array& x,
-        const Dims& kernel_size,
-        const Dims& stride,
-        const Dims& pad,
-        bool cover_all,
-        Scalar pad_value) {
+Array Im2Col(const Array& x, const Dims& kernel_size, const Dims& stride, const Dims& pad, bool cover_all, Scalar pad_value) {
     auto ndim = static_cast<int8_t>(kernel_size.size());  // Number of input image dimensions.
     CHAINERX_ASSERT(ndim == static_cast<int8_t>(stride.size()));
     CHAINERX_ASSERT(ndim == static_cast<int8_t>(pad.size()));

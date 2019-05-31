@@ -61,13 +61,8 @@ Axes GetSwapSpatialDimensionsAxes(size_t n) {
 class NativeMaxPoolKernel : public MaxPoolKernel {
 public:
     std::tuple<Array, std::unique_ptr<MaxPoolGradState>> Call(
-            const Array& x,
-            Dims kernel_size,
-            Dims stride,
-            Dims pad,
-            bool cover_all,
-            bool return_state,
-            const nonstd::optional<Array>& out) override {
+            const Array& x, Dims kernel_size, Dims stride, Dims pad, bool cover_all, bool return_state, const nonstd::optional<Array>& out)
+            override {
         CHAINERX_ASSERT(internal::GetArrayBody(x)->nodes().empty());
 
         // TODO(hvy): Implement and test the `out` argument.
@@ -189,12 +184,7 @@ void Mean(const Array& a, const Axes& axis, const Array& out) {
     device.backend().CallKernel<DivideASKernel>(out, internal::CountItemsAlongAxes(a.shape(), axis), out);
 }
 
-Array GetPadModeIgnorePoolingWidths(
-        const Shape& shape,
-        const Dims& kernel_size,
-        const Dims& stride,
-        const Dims& pad,
-        Dtype dtype) {
+Array GetPadModeIgnorePoolingWidths(const Shape& shape, const Dims& kernel_size, const Dims& stride, const Dims& pad, Dtype dtype) {
     int8_t n = shape.ndim() - 2;
     CHAINERX_ASSERT(n == static_cast<int8_t>(kernel_size.size()));
     CHAINERX_ASSERT(n == static_cast<int8_t>(stride.size()));

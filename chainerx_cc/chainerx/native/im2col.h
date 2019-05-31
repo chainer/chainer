@@ -11,13 +11,7 @@ namespace chainerx {
 namespace native {
 namespace native_internal {
 
-Array Im2Col(
-        const Array& x,
-        const Dims& kernel_size,
-        const Dims& stride,
-        const Dims& pad,
-        bool cover_all,
-        Scalar pad_value = 0);
+Array Im2Col(const Array& x, const Dims& kernel_size, const Dims& stride, const Dims& pad, bool cover_all, Scalar pad_value = 0);
 
 }  // namespace native_internal
 }  // namespace native

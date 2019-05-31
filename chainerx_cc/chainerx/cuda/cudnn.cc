@@ -61,9 +61,7 @@ StackVector<int, kMaxNdim> GetIntStackVector(const T& container, const char* src
 
 StackVector<int, kMaxNdim> GetIntShape(const Shape& shape) { return GetIntStackVector(shape, "shape size"); }
 
-StackVector<int, kMaxNdim> GetIntKernelSize(const Dims& kernel_size) {
-    return GetIntStackVector(kernel_size, "kernel size");
-}
+StackVector<int, kMaxNdim> GetIntKernelSize(const Dims& kernel_size) { return GetIntStackVector(kernel_size, "kernel size"); }
 
 StackVector<int, kMaxNdim> GetIntStride(const Dims& stride) { return GetIntStackVector(stride, "stride"); }
 
@@ -158,11 +156,7 @@ CudnnConvolutionDescriptor::~CudnnConvolutionDescriptor() {
 }
 
 CudnnConvolutionDescriptor::CudnnConvolutionDescriptor(
-        Dtype dtype,
-        const Dims& pad,
-        const Dims& stride,
-        const nonstd::optional<Dims>& dilation,
-        int groups)
+        Dtype dtype, const Dims& pad, const Dims& stride, const nonstd::optional<Dims>& dilation, int groups)
     : CudnnConvolutionDescriptor{} {
     size_t ndim = pad.size();
     CHAINERX_ASSERT(ndim == stride.size());
@@ -211,11 +205,7 @@ CudnnPoolingDescriptor::~CudnnPoolingDescriptor() {
 }
 
 CudnnPoolingDescriptor::CudnnPoolingDescriptor(
-        cudnnPoolingMode_t mode,
-        cudnnNanPropagation_t max_pooling_nan_opt,
-        const Dims& kernel_size,
-        const Dims& pad,
-        const Dims& stride)
+        cudnnPoolingMode_t mode, cudnnNanPropagation_t max_pooling_nan_opt, const Dims& kernel_size, const Dims& pad, const Dims& stride)
     : CudnnPoolingDescriptor{} {
     size_t ndim = kernel_size.size();
     CHAINERX_ASSERT(ndim == pad.size());

@@ -12,8 +12,8 @@
 
 #include "chainerx/axes.h"
 #include "chainerx/constant.h"
-#include "chainerx/error.h"
 #include "chainerx/dims.h"
+#include "chainerx/error.h"
 
 namespace chainerx {
 

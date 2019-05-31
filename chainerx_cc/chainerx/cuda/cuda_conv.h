@@ -13,8 +13,8 @@
 #include "chainerx/array.h"
 #include "chainerx/constant.h"
 #include "chainerx/cuda/cudnn.h"
-#include "chainerx/dtype.h"
 #include "chainerx/dims.h"
+#include "chainerx/dtype.h"
 #include "chainerx/shape.h"
 
 namespace chainerx {

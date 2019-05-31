@@ -4,9 +4,9 @@
 
 #include "chainerx/array.h"
 #include "chainerx/constant.h"
-#include "chainerx/dims.h"
 #include "chainerx/cuda/cuda_conv.h"
 #include "chainerx/cuda/kernel_regist.h"
+#include "chainerx/dims.h"
 #include "chainerx/dtype.h"
 #include "chainerx/error.h"
 #include "chainerx/kernels/connection.h"

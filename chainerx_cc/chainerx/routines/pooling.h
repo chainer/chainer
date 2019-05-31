@@ -8,12 +8,7 @@
 
 namespace chainerx {
 
-Array MaxPool(
-        const Array& x,
-        const Dims& kernel_size,
-        const Dims& stride,
-        const Dims& pad,
-        bool cover_all = true);
+Array MaxPool(const Array& x, const Dims& kernel_size, const Dims& stride, const Dims& pad, bool cover_all = true);
 
 enum class AveragePoolPadMode {
     kZero = 1,

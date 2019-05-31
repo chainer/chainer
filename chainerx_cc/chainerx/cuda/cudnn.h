@@ -91,11 +91,7 @@ private:
 class CudnnConvolutionDescriptor {
 public:
     explicit CudnnConvolutionDescriptor(
-            Dtype dtype,
-            const Dims& pad,
-            const Dims& stride,
-            const nonstd::optional<Dims>& dilation,
-            int groups);
+            Dtype dtype, const Dims& pad, const Dims& stride, const nonstd::optional<Dims>& dilation, int groups);
 
     ~CudnnConvolutionDescriptor();
 

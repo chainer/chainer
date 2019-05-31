@@ -200,13 +200,7 @@ Array PoolGrad(
 }
 
 Array MaxPoolGradGrad(
-        const Array& x,
-        const Array& out,
-        const Array& ggx,
-        Dims kernel_size,
-        Dims stride,
-        Dims pad,
-        const nonstd::optional<Array>& ggout) {
+        const Array& x, const Array& out, const Array& ggx, Dims kernel_size, Dims stride, Dims pad, const nonstd::optional<Array>& ggout) {
     CHAINERX_ASSERT(x.shape() == ggx.shape());
     CHAINERX_ASSERT(kernel_size.size() == static_cast<size_t>(x.ndim() - 2));
     CHAINERX_ASSERT(stride.size() == static_cast<size_t>(x.ndim() - 2));
@@ -262,13 +256,8 @@ Array MaxPoolGradGrad(
 class CudaMaxPoolKernel : public MaxPoolKernel {
 public:
     std::tuple<Array, std::unique_ptr<MaxPoolGradState>> Call(
-            const Array& x,
-            Dims kernel_size,
-            Dims stride,
-            Dims pad,
-            bool cover_all,
-            bool return_state,
-            const nonstd::optional<Array>& out) override {
+            const Array& x, Dims kernel_size, Dims stride, Dims pad, bool cover_all, bool return_state, const nonstd::optional<Array>& out)
+            override {
         CHAINERX_ASSERT(internal::GetArrayBody(x)->nodes().empty());
 
         Array actual_out = Pool(CUDNN_POOLING_MAX, x, kernel_size, stride, pad, cover_all, out);

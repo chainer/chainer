@@ -21,16 +21,11 @@
 #include "chainerx/kernels/pooling.h"
 #include "chainerx/routines/math.h"
 #include "chainerx/routines/routines_util.h"
-#include "chainerx/dims.h"
 
 namespace chainerx {
 namespace {
 
-void CheckPoolInputs(
-        const Array& x,
-        const Dims& kernel_size,
-        const Dims& stride,
-        const Dims& pad) {
+void CheckPoolInputs(const Array& x, const Dims& kernel_size, const Dims& stride, const Dims& pad) {
     int8_t ndim = x.ndim() - 2;  // Number of spatial dimensions.
     if (static_cast<int8_t>(kernel_size.size()) != ndim) {
         throw DimensionError{"Wrong numbers of kernel size dimensions ", kernel_size.size(), " for input with ", x.ndim(), " dimensions."};
@@ -54,12 +49,7 @@ void CheckPoolInputs(
 
 }  // namespace
 
-Array MaxPool(
-        const Array& x,
-        const Dims& kernel_size,
-        const Dims& stride,
-        const Dims& pad,
-        bool cover_all) {
+Array MaxPool(const Array& x, const Dims& kernel_size, const Dims& stride, const Dims& pad, bool cover_all) {
     CheckPoolInputs(x, kernel_size, stride, pad);
 
     Array out{};
@@ -132,12 +122,7 @@ Array MaxPool(
     return out;
 }
 
-Array AveragePool(
-        const Array& x,
-        const Dims& kernel_size,
-        const Dims& stride,
-        const Dims& pad,
-        AveragePoolPadMode pad_mode) {
+Array AveragePool(const Array& x, const Dims& kernel_size, const Dims& stride, const Dims& pad, AveragePoolPadMode pad_mode) {
     if (GetKind(x.dtype()) != DtypeKind::kFloat) {
         throw DtypeError("cannot apply average pooling to ", x.dtype(), " array (floatXX array is expected)");
     }
