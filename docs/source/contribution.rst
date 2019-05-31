@@ -378,7 +378,6 @@ If you want to introduce a new feature in the ``master`` branch to the current s
 See the next section for details.
 
 *Note: a change that can be applied to both branches should be sent to the* ``master`` *branch.*
-*Each release of the stable version is also merged with the development version so that changes are reflected in the next major version.*
 
 Feature Backport Pull Requests
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
