@@ -1,6 +1,7 @@
 import numpy
 
 from chainer.backends import cuda
+from chainer import configuration
 from chainer.functions.connection import deconvolution_2d
 from chainer import initializers
 from chainer import link
@@ -151,8 +152,8 @@ groups=1)
         with self.init_scope():
             W_initializer = initializers._get_initializer(initialW)
             self.W = variable.Parameter(W_initializer)
-            if in_channels is not None:
-                self._initialize_params(in_channels)
+            # if in_channels is not None:
+            #     self._initialize_params(in_channels)
 
             if nobias:
                 self.b = None
@@ -172,12 +173,20 @@ groups=1)
         if in_channels % self.groups != 0:
             raise ValueError('the number of input channels must be'
                              'divisible by the number of groups')
-        W_shape = (in_channels, int(self.out_channels / self.groups), kh, kw)
+        out_channels = int(self.out_channels / self.groups)
+        if configuration.config.tensor_layout == 'NHWC':
+            W_shape = (in_channels, kh, kw, out_channels)
+        else:
+            W_shape = (in_channels, out_channels, kh, kw)
         self.W.initialize(W_shape)
 
     def forward(self, x):
         if self.W.array is None:
-            self._initialize_params(x.shape[1])
+            if configuration.config.tensor_layout == 'NHWC':
+                channels = x.shape[3]
+            else:
+                channels = x.shape[1]
+            self._initialize_params(channels)
         return deconvolution_2d.deconvolution_2d(
             x, self.W, self.b, self.stride, self.pad, self.outsize,
             dilate=self.dilate, groups=self.groups)

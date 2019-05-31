@@ -73,3 +73,13 @@ def transpose(x, axes=None):
 
     """
     return Transpose(axes).apply((x,))[0]
+
+
+def transpose_to_NHWC(x, axes=None):
+    """Change tensor layout from NCHW to NHWC"""
+    return Transpose((0, 2, 3, 1)).apply((x,))[0]
+
+
+def transpose_to_NCHW(x, axes=None):
+    """Change tensor layout from NHWC to NCHW"""
+    return Transpose((0, 3, 1, 2)).apply((x,))[0]

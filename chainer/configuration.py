@@ -30,6 +30,7 @@ class GlobalConfig(object):
     dtype = None  # type: numpy.dtype
     in_recomputing = None  # type: bool
     _will_recompute = None  # type: bool
+    tensor_layout = 'NCHW'  # type: str
 
     """The plain object that represents the global configuration of Chainer."""
 

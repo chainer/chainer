@@ -62,6 +62,8 @@ from chainer.functions.array.stack import stack  # NOQA
 from chainer.functions.array.swapaxes import swapaxes  # NOQA
 from chainer.functions.array.tile import tile  # NOQA
 from chainer.functions.array.transpose import transpose  # NOQA
+from chainer.functions.array.transpose import transpose_to_NHWC  # NOQA
+from chainer.functions.array.transpose import transpose_to_NCHW  # NOQA
 from chainer.functions.array.transpose_sequence import transpose_sequence  # NOQA
 from chainer.functions.array.vstack import vstack  # NOQA
 from chainer.functions.array.where import where  # NOQA

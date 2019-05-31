@@ -1,3 +1,4 @@
+from chainer import configuration
 from chainer.functions.connection import convolution_2d
 from chainer import initializers
 from chainer import link
@@ -130,8 +131,8 @@ nobias=False, initialW=None, initial_bias=None, *, dilate=1, groups=1)
         with self.init_scope():
             W_initializer = initializers._get_initializer(initialW)
             self.W = variable.Parameter(W_initializer)
-            if in_channels is not None:
-                self._initialize_params(in_channels)
+            # if in_channels is not None:
+            #     self._initialize_params(in_channels)
 
             if nobias:
                 self.b = None
@@ -164,7 +165,11 @@ nobias=False, initialW=None, initial_bias=None, *, dilate=1, groups=1)
         if in_channels % self.groups != 0:
             raise ValueError('the number of input channels must be'
                              ' divisible by the number of groups')
-        W_shape = (self.out_channels, int(in_channels / self.groups), kh, kw)
+        in_channels = int(in_channels / self.groups)
+        if configuration.config.tensor_layout == 'NHWC':
+            W_shape = (self.out_channels, kh, kw, in_channels)
+        else:
+            W_shape = (self.out_channels, in_channels, kh, kw)
         self.W.initialize(W_shape)
 
     def forward(self, x):
@@ -178,7 +183,11 @@ nobias=False, initialW=None, initial_bias=None, *, dilate=1, groups=1)
 
         """
         if self.W.array is None:
-            self._initialize_params(x.shape[1])
+            if configuration.config.tensor_layout == 'NHWC':
+                channels = x.shape[3]
+            else:
+                channels = x.shape[1]
+            self._initialize_params(channels)
         return convolution_2d.convolution_2d(
             x, self.W, self.b, self.stride, self.pad, dilate=self.dilate,
             groups=self.groups)

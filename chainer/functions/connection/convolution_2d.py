@@ -37,8 +37,8 @@ class Convolution2DFunction(function_node.FunctionNode):
     _use_ideep = False
 
     def __init__(self, stride=1, pad=0, cover_all=False, **kwargs):
-        dilate, groups = argument.parse_kwargs(
-            kwargs, ('dilate', 1), ('groups', 1),
+        dilate, groups, tensor_layout = argument.parse_kwargs(
+            kwargs, ('dilate', 1), ('groups', 1), ('tensor_layout', 'NCHW'),
             deterministic='deterministic argument is not supported anymore. '
             'Use chainer.using_config(\'cudnn_deterministic\', value) context '
             'where value is either `True` or `False`.',
@@ -52,6 +52,7 @@ class Convolution2DFunction(function_node.FunctionNode):
         self.cover_all = cover_all
         self.dy, self.dx = _pair(dilate)
         self.groups = groups
+        self.tensor_layout = tensor_layout
 
     def check_type_forward(self, in_types):
         n_in = in_types.size()
@@ -64,8 +65,15 @@ class Convolution2DFunction(function_node.FunctionNode):
             w_type.dtype.kind == 'f',
             x_type.ndim == 4,
             w_type.ndim == 4,
-            x_type.shape[1] == w_type.shape[1] * self.groups,
         )
+        if self.tensor_layout == 'NHWC':
+            type_check.expect(
+                x_type.shape[3] == w_type.shape[3] * self.groups,
+            )
+        else:
+            type_check.expect(
+                x_type.shape[1] == w_type.shape[1] * self.groups,
+            )
 
         if type_check.eval(n_in) == 3:
             b_type = in_types[2]
@@ -77,8 +85,12 @@ class Convolution2DFunction(function_node.FunctionNode):
 
     def _get_out_size(self, inputs):
         x, W = inputs[:2]
-        _, _, kh, kw = W.shape
-        _, _, h, w = x.shape
+        if self.tensor_layout == 'NHWC':
+            _, kh, kw, _ = W.shape
+            _, h, w, _ = x.shape
+        else:
+            _, _, kh, kw = W.shape
+            _, _, h, w = x.shape
         out_h = conv.get_conv_outsize(
             h, kh, self.sy, self.ph, cover_all=self.cover_all, d=self.dy)
         if out_h <= 0:
@@ -166,11 +178,19 @@ class Convolution2DFunction(function_node.FunctionNode):
         else:
             x, W, b = inputs
 
-        out_c, _, kh, kw = W.shape
-        n, _, h, w = x.shape
+        if self.tensor_layout == 'NHWC':
+            out_c, kh, kw, _ = W.shape
+            n, h, w, _ = x.shape
+        else:
+            out_c, _, kh, kw = W.shape
+            n, _, h, w = x.shape
 
         out_h, out_w = self._get_out_size(inputs)
-        y = cuda.cupy.empty((n, out_c, out_h, out_w), dtype=x.dtype)
+
+        if self.tensor_layout == 'NHWC':
+            y = cuda.cupy.empty((n, out_h, out_w, out_c), dtype=x.dtype)
+        else:
+            y = cuda.cupy.empty((n, out_c, out_h, out_w), dtype=x.dtype)
 
         use_cudnn = (
             chainer.should_use_cudnn('>=auto')
@@ -241,9 +261,16 @@ class Convolution2DFunction(function_node.FunctionNode):
         dilation = (self.dy, self.dx)
         auto_tune = configuration.config.autotune
         tensor_core = configuration.config.use_cudnn_tensor_core
+        if self.tensor_layout == 'NHWC':
+            cudnn_tensor_layout = cuda.cuda.cudnn.CUDNN_TENSOR_NHWC
+        else:
+            cudnn_tensor_layout = cuda.cuda.cudnn.CUDNN_TENSOR_NCHW
         cuda.cudnn.convolution_forward(
             x, W, b, y, pad, stride, dilation, self.groups,
-            auto_tune=auto_tune, tensor_core=tensor_core)
+            auto_tune=auto_tune, tensor_core=tensor_core,
+            d_layout=cudnn_tensor_layout,
+            w_layout=cudnn_tensor_layout)
+
         return y,
 
     def backward(self, indexes, grad_outputs):
@@ -252,17 +279,23 @@ class Convolution2DFunction(function_node.FunctionNode):
 
         ret = []
         if 0 in indexes:
-            xh, xw = x.shape[2:]
+            if self.tensor_layout == 'NHWC':
+                _, xh, xw, _ = x.shape
+            else:
+                _, _, xh, xw = x.shape
             gx = chainer.functions.deconvolution_2d(
                 gy, W, stride=(self.sy, self.sx), pad=(self.ph, self.pw),
                 outsize=(xh, xw), dilate=(self.dy, self.dx),
-                groups=self.groups)
+                groups=self.groups, tensor_layout=self.tensor_layout)
             ret.append(gx)
         if 1 in indexes:
             gW, = Convolution2DGradW(self).apply((x, gy))
             ret.append(gW)
         if 2 in indexes:
-            gb = chainer.functions.sum(gy, axis=(0, 2, 3))
+            if self.tensor_layout == 'NHWC':
+                gb = chainer.functions.sum(gy, axis=(0, 1, 2))
+            else:
+                gb = chainer.functions.sum(gy, axis=(0, 2, 3))
             ret.append(gb)
 
         return ret
@@ -272,7 +305,10 @@ class Convolution2DGradW(function_node.FunctionNode):
 
     def __init__(self, conv2d):
         W_node = conv2d.inputs[1]
-        self.kh, self.kw = W_node.shape[2:]
+        if conv2d.tensor_layout == 'NHWC':
+            _, self.kh, self.kw, _ = W_node.shape
+        else:
+            _, _, self.kh, self.kw = W_node.shape
         self.sy = conv2d.sy
         self.sx = conv2d.sx
         self.ph = conv2d.ph
@@ -283,6 +319,7 @@ class Convolution2DGradW(function_node.FunctionNode):
         self.W_dtype = W_node.dtype
         self.groups = conv2d.groups
         self._use_ideep = conv2d._use_ideep
+        self.tensor_layout = conv2d.tensor_layout
 
     def forward_cpu(self, inputs):
         self.retain_inputs((0, 1))
@@ -397,13 +434,23 @@ class Convolution2DGradW(function_node.FunctionNode):
         return gW,
 
     def _forward_cudnn(self, x, gy):
-        _, out_c, out_h, out_w = gy.shape
-        n, c, h, w = x.shape
+        if self.tensor_layout == 'NHWC':
+            _, out_h, out_w, out_c = gy.shape
+            n, h, w, c = x.shape
+        else:
+            _, out_c, out_h, out_w = gy.shape
+            n, c, h, w = x.shape
 
         iC = c
         iCg = int(iC / self.groups)
-        gW = cuda.cupy.empty((out_c, iCg, self.kh, self.kw),
-                             dtype=self.W_dtype)
+        if self.tensor_layout == 'NHWC':
+            cudnn_tensor_layout = cuda.cuda.cudnn.CUDNN_TENSOR_NHWC
+            gW = cuda.cupy.empty((out_c, self.kh, self.kw, iCg),
+                                 dtype=self.W_dtype)
+        else:
+            cudnn_tensor_layout = cuda.cuda.cudnn.CUDNN_TENSOR_NCHW
+            gW = cuda.cupy.empty((out_c, iCg, self.kh, self.kw),
+                                 dtype=self.W_dtype)
         pad = (self.ph, self.pw)
         stride = (self.sy, self.sx)
         dilation = (self.dy, self.dx)
@@ -413,7 +460,9 @@ class Convolution2DGradW(function_node.FunctionNode):
         cuda.cudnn.convolution_backward_filter(
             x, gy, gW, pad, stride, dilation, self.groups,
             deterministic=deterministic, auto_tune=auto_tune,
-            tensor_core=tensor_core)
+            tensor_core=tensor_core,
+            d_layout=cudnn_tensor_layout,
+            w_layout=cudnn_tensor_layout)
 
         return gW,
 
@@ -427,7 +476,7 @@ class Convolution2DGradW(function_node.FunctionNode):
             gx = chainer.functions.deconvolution_2d(
                 gy, ggW, stride=(self.sy, self.sx), pad=(self.ph, self.pw),
                 outsize=(xh, xw), dilate=(self.dy, self.dx),
-                groups=self.groups)
+                groups=self.groups, tensor_layout=self.tensor_layout)
             ret.append(gx)
         if 1 in indexes:
             ggy = convolution_2d(
@@ -567,14 +616,16 @@ cover_all=True)
         True
 
     """
-    dilate, groups = argument.parse_kwargs(
-        kwargs, ('dilate', 1), ('groups', 1),
+    dilate, groups, tensor_layout = argument.parse_kwargs(
+        kwargs, ('dilate', 1), ('groups', 1), ('tensor_layout', None),
         deterministic='deterministic argument is not supported anymore. '
         'Use chainer.using_config(\'cudnn_deterministic\', value) '
         'context where value is either `True` or `False`.')
+    if tensor_layout is None:
+        tensor_layout = configuration.config.tensor_layout
 
     fnode = Convolution2DFunction(stride, pad, cover_all, dilate=dilate,
-                                  groups=groups)
+                                  groups=groups, tensor_layout=tensor_layout)
     if b is None:
         args = x, W
     else:

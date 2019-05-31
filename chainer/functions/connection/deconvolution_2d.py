@@ -28,8 +28,8 @@ class Deconvolution2DFunction(function_node.FunctionNode):
     _use_ideep = False
 
     def __init__(self, stride=1, pad=0, outsize=None, **kwargs):
-        dilate, groups = argument.parse_kwargs(
-            kwargs, ('dilate', 1), ('groups', 1),
+        dilate, groups, tensor_layout = argument.parse_kwargs(
+            kwargs, ('dilate', 1), ('groups', 1), ('tensor_layout', 'NCHW'),
             deterministic='deterministic argument is not supported anymore. '
             'Use chainer.using_config(\'cudnn_deterministic\', value) context '
             'where value is either `True` or `False`.',
@@ -43,6 +43,7 @@ class Deconvolution2DFunction(function_node.FunctionNode):
         self.outh, self.outw = (None, None) if outsize is None else outsize
         self.dy, self.dx = _pair(dilate)
         self.groups = groups
+        self.tensor_layout = tensor_layout
 
     def check_type_forward(self, in_types):
         n_in = in_types.size()
@@ -54,29 +55,38 @@ class Deconvolution2DFunction(function_node.FunctionNode):
             w_type.dtype.kind == 'f',
             x_type.ndim == 4,
             w_type.ndim == 4,
-            x_type.shape[1] == w_type.shape[0]
         )
+        if self.tensor_layout == 'NHWC':
+            type_check.expect(
+                x_type.shape[3] == w_type.shape[0] * self.groups,
+            )
+            ih, iw = 1, 2
+        else:
+            type_check.expect(
+                x_type.shape[1] == w_type.shape[0] * self.groups,
+            )
+            ih, iw = 2, 3
 
         if self.outh is not None:
             lower_bound = conv.get_conv_outsize(
-                self.outh, w_type.shape[2], self.sy, self.ph,
+                self.outh, w_type.shape[ih], self.sy, self.ph,
                 d=self.dy)
             upper_bound = conv.get_conv_outsize(
-                self.outh, w_type.shape[2], self.sy, self.ph, cover_all=True,
+                self.outh, w_type.shape[ih], self.sy, self.ph, cover_all=True,
                 d=self.dy)
             type_check.expect(
-                lower_bound <= x_type.shape[2],
-                x_type.shape[2] <= upper_bound)
+                lower_bound <= x_type.shape[ih],
+                x_type.shape[ih] <= upper_bound)
         if self.outw is not None:
             lower_bound = conv.get_conv_outsize(
-                self.outw, w_type.shape[3], self.sx, self.pw,
+                self.outw, w_type.shape[iw], self.sx, self.pw,
                 d=self.dx)
             upper_bound = conv.get_conv_outsize(
-                self.outw, w_type.shape[3], self.sx, self.pw, cover_all=True,
+                self.outw, w_type.shape[iw], self.sx, self.pw, cover_all=True,
                 d=self.dx)
             type_check.expect(
-                lower_bound <= x_type.shape[3],
-                x_type.shape[3] <= upper_bound)
+                lower_bound <= x_type.shape[iw],
+                x_type.shape[iw] <= upper_bound)
 
         if type_check.eval(n_in) == 3:
             b_type = in_types[2]
@@ -89,8 +99,12 @@ class Deconvolution2DFunction(function_node.FunctionNode):
 
     def _calc_out_size(self, x, W):
         """Calculates and stores `outh` and `outw`."""
-        kh, kw = W.shape[2:]
-        _, _, in_h, in_w = x.shape
+        if self.tensor_layout == 'NHWC':
+            _, kh, kw, _ = W.shape
+            _, in_h, in_w, _ = x.shape
+        else:
+            _, _, kh, kw = W.shape
+            _, _, in_h, in_w = x.shape
         # - k, m, n: shape of out_channel
         # - b: number of inputs
         # - h, w: height and width of kernels
@@ -253,9 +267,15 @@ class Deconvolution2DFunction(function_node.FunctionNode):
 
     def _forward_cudnn(self, x, W, b):
         n = len(x)
-        yC = W.shape[1] * self.groups
 
-        y = cuda.cupy.empty((n, yC, self.outh, self.outw), dtype=x.dtype)
+        if self.tensor_layout == 'NHWC':
+            cudnn_tensor_layout = cuda.cuda.cudnn.CUDNN_TENSOR_NHWC
+            yC = W.shape[3] * self.groups
+            y = cuda.cupy.empty((n, self.outh, self.outw, yC), dtype=x.dtype)
+        else:
+            cudnn_tensor_layout = cuda.cuda.cudnn.CUDNN_TENSOR_NCHW
+            yC = W.shape[1] * self.groups
+            y = cuda.cupy.empty((n, yC, self.outh, self.outw), dtype=x.dtype)
         pad = (self.ph, self.pw)
         stride = (self.sy, self.sx)
         dilation = (self.dy, self.dx)
@@ -265,7 +285,9 @@ class Deconvolution2DFunction(function_node.FunctionNode):
         cuda.cudnn.convolution_backward_data(
             W, x, b, y, pad, stride, dilation, self.groups,
             deterministic=deterministic, auto_tune=auto_tune,
-            tensor_core=tensor_core)
+            tensor_core=tensor_core,
+            d_layout=cudnn_tensor_layout,
+            w_layout=cudnn_tensor_layout)
 
         return y,
 
@@ -303,7 +325,7 @@ class Deconvolution2DFunction(function_node.FunctionNode):
             gx = chainer.functions.convolution_2d(
                 gy, W, stride=(self.sy, self.sx), pad=(self.ph, self.pw),
                 cover_all=self.cover_all, dilate=(self.dy, self.dx),
-                groups=self.groups)
+                groups=self.groups, tensor_layout=self.tensor_layout)
             ret.append(gx)
         if 1 in indexes:
             if self.cover_all is None:
@@ -311,14 +333,21 @@ class Deconvolution2DFunction(function_node.FunctionNode):
             gW, = convolution_2d.Convolution2DGradW(self).apply((gy, x))
             ret.append(gW)
         if 2 in indexes:
-            gb = chainer.functions.sum(gy, axis=(0, 2, 3))
+            if self.tensor_layout == 'NHWC':
+                gb = chainer.functions.sum(gy, axis=(0, 1, 2))
+            else:
+                gb = chainer.functions.sum(gy, axis=(0, 2, 3))
             ret.append(gb)
 
         return ret
 
     def _set_cover_all(self, x, W):
-        in_h, in_w = x.shape[2:]
-        kh, kw = W.shape[2:]
+        if self.tensor_layout == 'NHWC':
+            _, in_h, in_w, _ = x.shape
+            _, kh, kw, _ = W.shape
+        else:
+            _, _, in_h, in_w = x.shape
+            _, _, kh, kw = W.shape
         self.cover_all = (
             in_h != conv.get_conv_outsize(self.outh, kh, self.sy,
                                           self.ph, d=self.dy) or
@@ -435,11 +464,13 @@ astype(np.float32)
         'supported anymore. '
         'Use chainer.using_config(\'cudnn_deterministic\', value) '
         'context where value is either `True` or `False`.')
-    dilate, groups = argument.parse_kwargs(kwargs,
-                                           ('dilate', 1), ('groups', 1))
+    dilate, groups, tensor_layout = argument.parse_kwargs(
+        kwargs, ('dilate', 1), ('groups', 1), ('tensor_layout', None))
+    if tensor_layout is None:
+        tensor_layout = configuration.config.tensor_layout
 
     func = Deconvolution2DFunction(stride, pad, outsize, dilate=dilate,
-                                   groups=groups)
+                                   groups=groups, tensor_layout=tensor_layout)
     if b is None:
         args = x, W
     else:
