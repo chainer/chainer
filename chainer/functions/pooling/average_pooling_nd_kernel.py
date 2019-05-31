@@ -31,12 +31,6 @@ class AveragePoolingNDKernelBackward(
         # avg_pool_{N}d_bwd
         return 'avg'
 
-    def in_params(self):
-        # 2D: raw T gy, int32 d_0, int32 d_1, int32 out_0, int32 out_1,
-        #     int32 k_0, int32 k_1, int32 s_0, int32 s_1, int32 p_0,
-        #     int32 p_1, T coeff
-        return ['T coeff']
-
     def before(self):
         return 'T val = 0;'
 
@@ -45,4 +39,4 @@ class AveragePoolingNDKernelBackward(
         return 'val = val + gy[{}];'.format(offset)
 
     def after(self, xs):
-        return 'gx = val * coeff;'
+        return 'gx = val;'

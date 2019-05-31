@@ -31,6 +31,10 @@ cudnnDataType_t GetCudnnDataType(Dtype dtype) {
             return CUDNN_DATA_FLOAT;
         case Dtype::kFloat64:
             return CUDNN_DATA_DOUBLE;
+        case Dtype::kInt8:
+            return CUDNN_DATA_INT8;
+        case Dtype::kInt32:
+            return CUDNN_DATA_INT32;
         default:
             throw DtypeError{"Dtype ", dtype, " is not supported in cuDNN"};
     }
@@ -88,7 +92,7 @@ CudnnTensorDescriptor::CudnnTensorDescriptor() { CheckCudnnError(cudnnCreateTens
 
 CudnnTensorDescriptor::~CudnnTensorDescriptor() {
     if (desc_ != nullptr) {
-        CheckCudnnError(cudnnDestroyTensorDescriptor(desc_));
+        cudnnDestroyTensorDescriptor(desc_);
     }
 }
 
@@ -106,11 +110,29 @@ CudnnTensorDescriptor::CudnnTensorDescriptor(const Array& arr) : CudnnTensorDesc
     }
 }
 
+Dtype CudnnTensorDescriptor::GetDtype() const {
+    cudnnDataType_t cudnn_dtype{};
+    int ndim{};
+
+    CheckCudnnError(cudnnGetTensorNdDescriptor(desc_, 0, &cudnn_dtype, &ndim, nullptr, nullptr));
+
+    switch (cudnn_dtype) {
+        case CUDNN_DATA_HALF:
+            return Dtype::kFloat16;
+        case CUDNN_DATA_FLOAT:
+            return Dtype::kFloat32;
+        case CUDNN_DATA_DOUBLE:
+            return Dtype::kFloat64;
+        default:
+            throw DtypeError{"Unsupported cudnn data type: ", cudnn_dtype};
+    }
+}
+
 CudnnFilterDescriptor::CudnnFilterDescriptor() { CheckCudnnError(cudnnCreateFilterDescriptor(&desc_)); }
 
 CudnnFilterDescriptor::~CudnnFilterDescriptor() {
     if (desc_ != nullptr) {
-        CheckCudnnError(cudnnDestroyFilterDescriptor(desc_));
+        cudnnDestroyFilterDescriptor(desc_);
     }
 }
 
@@ -131,7 +153,7 @@ CudnnConvolutionDescriptor::CudnnConvolutionDescriptor() { CheckCudnnError(cudnn
 
 CudnnConvolutionDescriptor::~CudnnConvolutionDescriptor() {
     if (desc_ != nullptr) {
-        CheckCudnnError(cudnnDestroyConvolutionDescriptor(desc_));
+        cudnnDestroyConvolutionDescriptor(desc_);
     }
 }
 
@@ -184,7 +206,7 @@ CudnnPoolingDescriptor::CudnnPoolingDescriptor() { CheckCudnnError(cudnnCreatePo
 
 CudnnPoolingDescriptor::~CudnnPoolingDescriptor() {
     if (desc_ != nullptr) {
-        CheckCudnnError(cudnnDestroyPoolingDescriptor(desc_));
+        cudnnDestroyPoolingDescriptor(desc_);
     }
 }
 
@@ -222,6 +244,7 @@ CudnnPoolingDescriptor::CudnnPoolingDescriptor(
 
 CudnnHandle::~CudnnHandle() {
     if (handle_ != nullptr) {
+        // TODO(hvy): Reset device upon return similar to CublasHandle?
         cudaSetDevice(device_index_);
         cudnnDestroy(handle_);
     }
@@ -229,6 +252,7 @@ CudnnHandle::~CudnnHandle() {
 
 cudnnHandle_t CudnnHandle::handle() {
     if (handle_ == nullptr) {
+        // TODO(hvy): Use CudaSetDeviceScope similar to CublasHandle?
         CheckCudaError(cudaSetDevice(device_index_));
         CheckCudnnError(cudnnCreate(&handle_));
     }

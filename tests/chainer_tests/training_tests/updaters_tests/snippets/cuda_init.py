@@ -11,7 +11,7 @@ def test():
                 numpy.int32(0)) for i in range(100)]
 
     batch_size = 5
-    devices = (0,)
+    devices = (chainer.get_device('@cupy:0'),)
     iters = [chainer.iterators.SerialIterator(i, batch_size) for i in
              chainer.datasets.split_dataset_n_random(
                  dataset, len(devices))]

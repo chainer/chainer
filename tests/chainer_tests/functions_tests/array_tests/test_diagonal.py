@@ -25,6 +25,11 @@ from chainer import testing
     })
     # GPU tests
     + [{'use_cuda': True}]
+    # ChainerX tests
+    + testing.product({
+        'use_chainerx': [True],
+        'chainerx_device': ['native:0', 'cuda:0', 'cuda:1'],
+    })
 )
 class TestDiagonal(testing.FunctionTestCase):
 

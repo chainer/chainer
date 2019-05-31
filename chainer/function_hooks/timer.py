@@ -35,9 +35,9 @@ class TimerHook(function_hook.FunctionHook):
 
                    FunctionName  ElapsedTime  Occurrence
                  LinearFunction      1.24sec        3900
-                           ReLU     593.05ms        2600
-            SoftmaxCrossEntropy     824.11ms        1300
-                       Accuracy     176.54ms         700
+                           ReLU      0.59sec        2600
+            SoftmaxCrossEntropy      0.82sec        1300
+                       Accuracy      0.18sec         700
 
         where *FunctionName* is the name of function that calls the hook,
         and *ElapsedTime* is the elapsed time the function consumed,

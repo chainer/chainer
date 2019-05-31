@@ -101,11 +101,16 @@ class TestSpatialTransformerSamplerConsistencyWithCuDNN(unittest.TestCase):
     grid_shape = (2, 2, 3, 3)
 
     def setUp(self):
-        self.x = numpy.random.uniform(size=self.in_shape).astype(self.dtype)
-        self.grid = numpy.random.uniform(
+        if self.dtype == numpy.float16:
+            # Use fixed random values to avoid non-differential inputs
+            uniform = numpy.random.RandomState(0).uniform
+        else:
+            uniform = numpy.random.uniform
+
+        self.x = uniform(size=self.in_shape).astype(self.dtype)
+        self.grid = uniform(
             low=-2, high=2, size=self.grid_shape).astype(self.dtype)
-        self.grads = numpy.random.uniform(
-            size=self.out_shape).astype(self.dtype)
+        self.grads = uniform(size=self.out_shape).astype(self.dtype)
 
         if self.dtype == numpy.float16:
             self.assert_options = {'atol': 1e-2}

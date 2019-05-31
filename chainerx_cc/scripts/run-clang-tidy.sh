@@ -68,6 +68,8 @@ else
         -modernize-use-equals-delete  # on TEST, etc.
         -cppcoreguidelines-owning-memory  # on TEST, etc.
         -cppcoreguidelines-avoid-goto  # on EXPECT_THROW
+        -readability-function-size  # Easily raised with macros
+        -google-readability-function-size  # ditto.
     )
 fi
 

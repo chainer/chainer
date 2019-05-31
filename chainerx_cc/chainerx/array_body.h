@@ -34,8 +34,12 @@ public:
         int64_t offset;
     };
 
+    ~ArrayBody() = default;
+
     ArrayBody(const ArrayBody&) = delete;
+    ArrayBody(ArrayBody&&) = default;
     ArrayBody& operator=(const ArrayBody&) = delete;
+    ArrayBody& operator=(ArrayBody&&) = delete;
 
     const Shape& shape() const { return shape_; }
 
@@ -94,8 +98,11 @@ public:
 
     const std::shared_ptr<ArrayNode>& GetArrayNode(const BackpropId& backprop_id) const {
         nonstd::optional<size_t> index = GetNodeIndex(backprop_id);
-        assert(index.has_value());
-        return nodes_[*index];
+        if (index.has_value()) {
+            return nodes_[*index];
+        }
+
+        return kNullArrayNode;
     }
 
     bool HasArrayNode(const BackpropId& backprop_id) const { return GetNodeIndex(backprop_id).has_value(); }
@@ -153,6 +160,10 @@ private:
     static ReturnType GetGradImpl(ThisPtr this_ptr, const BackpropId& backprop_id);
 
     nonstd::optional<size_t> GetNodeIndex(const BackpropId& backprop_id) const;
+
+    // The use of non-POD static storage object here is safe, because destructing a shared_ptr with nullptr does not incur any
+    // destruction order problem.
+    static const std::shared_ptr<ArrayNode> kNullArrayNode;
 
     Shape shape_;
     Strides strides_;

@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <mutex>
+#include <tuple>
 #include <unordered_map>
 #include <utility>
 
@@ -35,7 +36,8 @@ public:
             const nonstd::optional<Array>& b,
             const StackVector<int64_t, kMaxNdim>& stride,
             const StackVector<int64_t, kMaxNdim>& pad,
-            bool cover_all);
+            bool cover_all,
+            Dtype out_dtype);
     Array ConvTranspose(
             CudaDevice& device,
             const Array& x,
@@ -43,7 +45,8 @@ public:
             const nonstd::optional<Array>& b,
             const StackVector<int64_t, kMaxNdim>& stride,
             const StackVector<int64_t, kMaxNdim>& pad,
-            const StackVector<int64_t, kMaxNdim>& out_size);
+            const StackVector<int64_t, kMaxNdim>& out_size,
+            Dtype out_dtype);
     Array ConvGradWeight(
             CudaDevice& device,
             Dtype w_dtype,
@@ -57,7 +60,7 @@ public:
 private:
     void AddBias(CudnnHandle& handle, const CudnnTensorDescriptor& y_desc, const Array& y, const Array& b);
 
-    std::pair<cudnnConvolutionFwdAlgo_t, size_t> FindConvolutionForwardAlgorithm(
+    std::tuple<cudnnConvolutionFwdAlgo_t, size_t, cudnnMathType_t> FindConvolutionForwardAlgorithm(
             CudnnHandle& handle,
             const CudnnTensorDescriptor& x_desc,
             const Array& x,
@@ -69,7 +72,7 @@ private:
             size_t max_workspace_size,
             const StackVector<int64_t, kMaxNdim>& pad,
             const StackVector<int64_t, kMaxNdim>& stride);
-    std::pair<cudnnConvolutionBwdDataAlgo_t, size_t> FindConvolutionBackwardDataAlgorithm(
+    std::tuple<cudnnConvolutionBwdDataAlgo_t, size_t, cudnnMathType_t> FindConvolutionBackwardDataAlgorithm(
             CudnnHandle& handle,
             const CudnnFilterDescriptor& filter_desc,
             const Array& w,
@@ -81,7 +84,7 @@ private:
             size_t max_workspace_size,
             const StackVector<int64_t, kMaxNdim>& pad,
             const StackVector<int64_t, kMaxNdim>& stride);
-    std::pair<cudnnConvolutionBwdFilterAlgo_t, size_t> FindConvolutionBackwardFilterAlgorithm(
+    std::tuple<cudnnConvolutionBwdFilterAlgo_t, size_t, cudnnMathType_t> FindConvolutionBackwardFilterAlgorithm(
             CudnnHandle& handle,
             const CudnnTensorDescriptor& x_desc,
             const Array& x,
@@ -116,9 +119,12 @@ private:
         std::size_t operator()(const AlgoCacheKey& key) const;
     };
 
-    using FwdAlgoCacheMap = std::unordered_map<AlgoCacheKey, std::pair<cudnnConvolutionFwdAlgo_t, size_t>, AlgoCacheKeyHash>;
-    using BwdDataAlgoCacheMap = std::unordered_map<AlgoCacheKey, std::pair<cudnnConvolutionBwdDataAlgo_t, size_t>, AlgoCacheKeyHash>;
-    using BwdFilterAlgoCacheMap = std::unordered_map<AlgoCacheKey, std::pair<cudnnConvolutionBwdFilterAlgo_t, size_t>, AlgoCacheKeyHash>;
+    using FwdAlgoCacheMap =
+            std::unordered_map<AlgoCacheKey, std::tuple<cudnnConvolutionFwdAlgo_t, size_t, cudnnMathType_t>, AlgoCacheKeyHash>;
+    using BwdDataAlgoCacheMap =
+            std::unordered_map<AlgoCacheKey, std::tuple<cudnnConvolutionBwdDataAlgo_t, size_t, cudnnMathType_t>, AlgoCacheKeyHash>;
+    using BwdFilterAlgoCacheMap =
+            std::unordered_map<AlgoCacheKey, std::tuple<cudnnConvolutionBwdFilterAlgo_t, size_t, cudnnMathType_t>, AlgoCacheKeyHash>;
 
     friend class CudaConvTest;  // for unit-tests
 

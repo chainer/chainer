@@ -1,6 +1,8 @@
-import chainer.cuda
 import math
+import numpy as np
+import warnings
 
+import chainer.cuda
 from chainermn.communicators import _communication_utility
 from chainermn.communicators import _memory_utility
 from chainermn.communicators import mpi_communicator_base
@@ -16,6 +18,9 @@ class HierarchicalCommunicator(mpi_communicator_base.MpiCommunicatorBase):
                 'NCCL is not available. '
                 'Please confirm that NCCL is enabled in CuPy.'
             )
+        if nccl.get_version() < 2302:
+            warnings.warn('NCCL 2.2 and older versions are deprecated.',
+                          DeprecationWarning)
 
         # We have to delay the initialization of communicators. This is because
         # NCCL's communicators use the current CUDA devices at the time of
@@ -39,21 +44,32 @@ class HierarchicalCommunicator(mpi_communicator_base.MpiCommunicatorBase):
         self.intra_nccl_comm = _communication_utility.init_nccl_comm(
             intra_mpi_comm)
 
-    def allreduce_grad(self, model):
+    def allreduce_grad(self, model, zero_fill=False):
         self._init_comms()
         stream = chainer.cuda.Stream.null
 
-        params = _memory_utility.extract_params_set_grad(model)
+        params = _memory_utility.extract_params_set_grad(model, zero_fill)
         itemsize = 4
-        n_elems_total = sum(param.grad.size for param in params)
+        n_elems_total = _memory_utility.count_grad_elements(params,
+                                                            zero_fill)
         n_elems_per_node = int(math.ceil(n_elems_total / self.inter_size))
         n_bytes_per_node = n_elems_per_node * itemsize
         n_bytes_buffer = n_bytes_per_node * self.inter_size
 
         self.gpu_buffer_a.assign(n_bytes_buffer)
         self.gpu_buffer_b.assign(n_bytes_buffer)
+
+        allreduce_grad_dtype = np.float32
+
         _memory_utility.pack_params(
-            params, itemsize, 'grad', self.gpu_buffer_a)
+            params, 'grad', self.gpu_buffer_a,
+            allreduce_grad_dtype, zero_fill, stream)
+
+        if chainer.is_debug():
+            stream.synchronize()
+            array_a = self.gpu_buffer_a.array(n_elems_total)
+            array_b = self.gpu_buffer_b.array(n_elems_total)
+            self.check_ready_to_allreduce(array_a, array_b)
 
         # Intra-node reduce
         self.intra_nccl_comm.reduce(
@@ -72,5 +88,10 @@ class HierarchicalCommunicator(mpi_communicator_base.MpiCommunicatorBase):
             self.gpu_buffer_b.ptr(), n_elems_total, nccl.NCCL_FLOAT, 0,
             stream.ptr)
 
+        if chainer.is_debug():
+            stream.synchronize()
+            self.ensure_all_finite(self.gpu_buffer_b.array(n_elems_total))
+
         _memory_utility.unpack_params(
-            params, itemsize, 'grad', self.gpu_buffer_b)
+            params, 'grad', self.gpu_buffer_b, allreduce_grad_dtype, zero_fill,
+            stream)

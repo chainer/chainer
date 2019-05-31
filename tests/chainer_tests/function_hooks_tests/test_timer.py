@@ -195,9 +195,9 @@ class TestTimerPrintReport(unittest.TestCase):
         self.f.apply((chainer.Variable(x),))
         io = six.StringIO()
         self.h.print_report(unit=self.unit, file=io)
-        expect = r'''\AFunctionName  ElapsedTime  Occurrence
- +Exp +[0-9.\-e]+(.s|sec) +[0-9]+$
-'''
+        expect = r'''\AFunctionName +ElapsedTime +Occurrence
+ +Exp +[0-9.\-e]+(.s|sec) +[0-9]+
+\Z'''
         actual = io.getvalue()
         six.assertRegex(self, actual, expect)
 
