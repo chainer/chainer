@@ -1,5 +1,6 @@
 import os
 import sys
+import warnings
 
 
 if sys.version_info[0] < 3:
@@ -13,10 +14,14 @@ else:
 
 
 if _available:
-    from numpy import dtype, bool_, int8, int16, int32, int64, uint8, float32, float64  # NOQA
-    all_dtypes = (bool_, int8, int16, int32, int64, uint8, float32, float64)
+    from numpy import dtype  # NOQA
+    from numpy import (
+        bool_, int8, int16, int32, int64, uint8, float16, float32, float64)  # NOQA
+    all_dtypes = (
+        bool_, int8, int16, int32, int64, uint8, float16, float32, float64)
 
     from chainerx._core import *  # NOQA
+    from chainerx._core import _to_cupy  # NOQA
 
     from builtins import bool, int, float  # NOQA
 
@@ -29,13 +34,9 @@ if _available:
     from chainerx.creation.from_data import fromstring  # NOQA
     from chainerx.creation.from_data import loadtxt  # NOQA
 
-    from chainerx.activation import relu  # NOQA
-    from chainerx.activation import sigmoid  # NOQA
-
     from chainerx.manipulation.shape import ravel  # NOQA
 
     from chainerx.math.misc import clip  # NOQA
-    from chainerx.math.misc import square  # NOQA
 
     from chainerx import random  # NOQA
 
@@ -70,3 +71,9 @@ else:
 
 def is_available():
     return _available
+
+
+if _available and _core._is_debug():
+    # Warn if the ChainerX core binary is built in debug mode
+    warnings.warn(
+        'ChainerX core binary is built in debug mode.', stacklevel=2)

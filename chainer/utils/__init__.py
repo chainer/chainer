@@ -15,10 +15,16 @@ from chainer.utils.conv import get_conv_outsize  # NOQA
 from chainer.utils.conv import get_deconv_outsize  # NOQA
 from chainer.utils.error import _format_array_props  # NOQA
 from chainer.utils.experimental import experimental  # NOQA
+from chainer.utils.meta import enable_final  # NOQA
+from chainer.utils.meta import final  # NOQA
+from chainer.utils.nondeterministic import nondeterministic  # NOQA
 from chainer.utils.sparse import CooMatrix  # NOQA
 from chainer.utils.sparse import get_order  # NOQA
 from chainer.utils.sparse import to_coo  # NOQA
-from chainer.utils.walker_alias import WalkerAlias  # NOQA
+
+# The following alias has been moved to chainer/__init__.py in order to break
+# circular imports in Python 2.
+# from chainer.utils.walker_alias import WalkerAlias
 
 
 # TODO(kmaehashi) remove this when `six.moves.collections_abc` is implemented.

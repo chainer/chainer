@@ -1,13 +1,7 @@
 #include "chainerx/context.h"
 
-#ifndef _WIN32
-// Windows doesn't support it currently
-#include <dlfcn.h>
-#endif  // _WIN32
-
 #include <algorithm>
 #include <atomic>
-#include <cstdlib>
 #include <mutex>
 #include <string>
 #include <utility>
@@ -19,10 +13,12 @@
 #ifdef CHAINERX_ENABLE_CUDA
 #include "chainerx/cuda/cuda_backend.h"
 #endif  // CHAINERX_ENABLE_CUDA
+#include "chainerx/dynamic_lib.h"
 #include "chainerx/error.h"
 #include "chainerx/macro.h"
 #include "chainerx/native/native_backend.h"
 #include "chainerx/thread_local_state.h"
+#include "chainerx/util.h"
 
 namespace chainerx {
 namespace {
@@ -30,16 +26,13 @@ namespace {
 std::atomic<Context*> g_global_default_context{nullptr};
 
 std::string GetChainerxPath() {
-    char* chainerx_path = std::getenv("CHAINERX_PATH");
-    if (chainerx_path != nullptr) {
-        return chainerx_path;
+    if (nonstd::optional<std::string> chainerx_path = GetEnv("CHAINERX_PATH")) {
+        return *chainerx_path;
     }
-
-    char* home_path = std::getenv("HOME");
-    if (home_path == nullptr) {
-        throw ChainerxError{"ChainerX path is not defined. Set either CHAINERX_PATH or HOME."};
+    if (nonstd::optional<std::string> home_path = GetEnv("HOME")) {
+        return *home_path + "/.chainerx";
     }
-    return std::string(home_path) + "/.chainerx";
+    throw ChainerxError{"ChainerX path is not defined. Set either CHAINERX_PATH or HOME."};
 }
 
 }  // namespace
@@ -54,9 +47,11 @@ Context::~Context() {
     // Need to call dtor of all backends before closing shared objects
     backends_.clear();
     for (void* handle : dlopen_handles_) {
-#ifndef _WIN32
-        ::dlclose(handle);
-#endif  // _WIN32
+        try {
+            DlClose(handle);
+        } catch (...) {
+            // dtor should not throw any exception.
+        }
     }
 }
 
@@ -86,14 +81,12 @@ Backend& Context::GetBackend(const std::string& backend_name) {
                 new cuda::CudaBackend{*this}, context_detail::BackendDeleter{[](gsl::owner<Backend*> ptr) { delete ptr; }}};
 #endif  // CHAINERX_ENABLE_CUDA
     } else {
-#ifdef _WIN32
-        throw BackendError{"Backend is not supported in Windows."};
-#else  // _WIN32
-
         // Load .so file
         std::string so_file_path = GetChainerxPath() + "/backends/" + backend_name + ".so";
-        void* handle = ::dlopen(so_file_path.c_str(), RTLD_NOW | RTLD_LOCAL);
-        if (handle == nullptr) {
+        void* handle{nullptr};
+        try {
+            handle = DlOpen(so_file_path);
+        } catch (const ChainerxError&) {
             throw BackendError{"Backend not found: '", backend_name, "'"};
         }
         {
@@ -102,8 +95,8 @@ Backend& Context::GetBackend(const std::string& backend_name) {
         }
 
         // Create backend
-        void* ptr_create_backend = ::dlsym(handle, "CreateBackend");
-        void* ptr_destroy_backend = ::dlsym(handle, "DestroyBackend");
+        void* ptr_create_backend = DlSym(handle, "CreateBackend");
+        void* ptr_destroy_backend = DlSym(handle, "DestroyBackend");
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         auto create_backend = reinterpret_cast<Backend* (*)(Context&)>(ptr_create_backend);
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
@@ -116,16 +109,9 @@ Backend& Context::GetBackend(const std::string& backend_name) {
         }
         backend = std::unique_ptr<Backend, context_detail::BackendDeleter>{create_backend(*this),
                                                                            context_detail::BackendDeleter{destroy_backend}};
-#endif  // _WIN32
     }
 
-    {
-        // In a multi-threaded case, backends_[backend_name] may already exist at this point.
-        // In that case, the backend created above is thrown away.
-        std::lock_guard<std::mutex> lock{mutex_};
-        auto pair = backends_.emplace(backend_name, std::move(backend));
-        return *pair.first->second;
-    }
+    return RegisterBackend(backend_name, std::move(backend)).first;
 }
 
 Device& Context::GetDevice(const DeviceId& device_id) {
@@ -267,6 +253,20 @@ std::vector<BackpropId> Context::GetInnerBackpropIds(const BackpropId& backprop_
         }
     }
     return inner_backprop_ids;
+}
+
+std::pair<Backend&, bool> Context::RegisterBackend(
+        const std::string& backend_name, std::unique_ptr<Backend, context_detail::BackendDeleter> backend) {
+    // In a multi-threaded case, backends_[backend_name] may already exist at this point.
+    // In that case, the backend created in `Context::GetBackend` is thrown away.
+    std::lock_guard<std::mutex> lock{mutex_};
+    auto pair = backends_.emplace(backend_name, std::move(backend));
+    // Initialize the backend only if emplaced.
+    if (!pair.second) {
+        return {*pair.first->second, false};
+    }
+    pair.first->second->Initialize();
+    return {*pair.first->second, true};
 }
 
 template <typename ThisPtr, typename ReturnType>

@@ -18,8 +18,9 @@ def _sigmoid(x):
 
 
 def _peephole(func, c, h, x):
-    xp = backend.get_array_module(x)
-    with cuda.get_device_from_array(x):
+    device = backend.get_device_from_array(x)
+    with chainer.using_device(device):
+        xp = device.xp
         lstm_in = x.dot(func.upward.W.data.T)
         lstm_in += h.dot(func.lateral.W.data.T)
         lstm_in = xp.reshape(lstm_in, (len(lstm_in),
@@ -118,7 +119,7 @@ class TestPeephole(unittest.TestCase):
         def f():
             c, y = _peephole(self.link, c_data, h_data, x_data)
             return y,
-        gx, = gradient_check.numerical_grad(f, (x.data,), (y.grad,))
+        gx, = gradient_check.numerical_grad(f, (x.data,), (y_grad,))
         testing.assert_allclose(gx, x.grad, atol=1e-3)
 
     def test_backward_cpu(self):

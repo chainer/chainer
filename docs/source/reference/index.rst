@@ -1,6 +1,6 @@
-*********
-Reference
-*********
+*************
+API Reference
+*************
 
 .. module:: chainer
 
@@ -17,6 +17,7 @@ Reference
    datasets
    iterators
    serializers
+   backends
    util
    configuration
    debug

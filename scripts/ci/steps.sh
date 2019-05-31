@@ -78,10 +78,6 @@ step_setup_conda_environment() {
     )
 
     pip install -U "${reqs[@]}"
-
-    if python -c "import sys; assert sys.version_info >= (3, 4)"; then
-        pip install -U 'mypy>=0.650'
-    fi
 }
 
 
@@ -186,6 +182,7 @@ step_python_build() {
 
     CHAINER_BUILD_CHAINERX=1 \
     CHAINERX_BUILD_CUDA=ON \
+    CHAINERX_BUILD_TYPE=Debug \
     pip install "$REPO_DIR"[test]
 }
 
@@ -196,42 +193,13 @@ step_python_test_chainerx() {
     # TODO(niboshi): threshold is temporarily lowered from 80 to 50. Restore it after writing tests for testing package.
     COVERAGE_FILE="$WORK_DIR"/coverage-data \
     pytest \
+        -rfEX \
         --showlocals \
         --cov=chainerx \
         --no-cov-on-fail \
         --cov-fail-under=50 \
         --cov-report html:"$WORK_DIR"/coverage-html/python \
         "$REPO_DIR"/tests/chainerx_tests
-}
-
-
-step_python_test_chainerx_nocuda() {
-    source activate testenv
-
-    # Run all non-CUDA tests except doctests
-    # TODO(niboshi): threshold is temporarily lowered from 80 to 50. Restore it after writing tests for testing package.
-
-    COVERAGE_FILE="$WORK_DIR"/coverage-data \
-    pytest \
-        -m='not cuda' \
-        -p no:doctest \
-        --showlocals \
-        --cov=chainerx \
-        --no-cov-on-fail \
-        --cov-fail-under=50 \
-        --cov-report html:"$WORK_DIR"/coverage-html/python \
-        "$REPO_DIR"/tests/chainerx_tests
-
-    # Run all non-CUDA doctests
-    find "$REPO_DIR"/tests/chainerx_tests/acceptance_tests -name '*.rst' -not -name '*_cuda.rst' -print0 | xargs -0 pytest
-}
-
-
-step_python_mypy_check() {
-    source activate testenv
-
-    mypy --version
-    mypy --config-file "$REPO_DIR"/setup.cfg "$REPO_DIR"/chainer
 }
 
 
@@ -243,6 +211,7 @@ step_python_test_chainer() {
     pushd "$temp_dir"
 
     pytest \
+        -rfEX \
         --showlocals \
         -m 'not slow and not ideep' \
         "$REPO_DIR"/tests/chainer_tests

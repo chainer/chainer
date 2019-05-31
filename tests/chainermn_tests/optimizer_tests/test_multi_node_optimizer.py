@@ -31,7 +31,7 @@ class TestMultiNodeOptimizer(unittest.TestCase):
         self.actual_optimizer.create_update_rule = mock.MagicMock
 
     def setup_gpu(self, device=None):
-        self.comm = chainermn.create_communicator('hierarchical')
+        self.comm = chainermn.create_communicator('flat')
         device = self.comm.intra_rank
         chainer.cuda.get_device_from_id(device).use()
         self.target = ExampleModel()
@@ -127,7 +127,7 @@ class TestMultiNodeOptimizerWithDynamicModel(unittest.TestCase):
         self.actual_optimizer.create_update_rule = mock.MagicMock
 
     def setup_gpu(self, device=None):
-        self.comm = chainermn.create_communicator('hierarchical')
+        self.comm = chainermn.create_communicator('flat')
         device = self.comm.intra_rank
         chainer.cuda.get_device_from_id(device).use()
         self.target = DynamicExampleModel()

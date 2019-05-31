@@ -21,6 +21,7 @@ import six
 import chainer
 from chainer.backends import cuda
 from chainer import function
+from chainer import utils
 from chainer.utils import type_check
 
 
@@ -30,92 +31,68 @@ def _pair(x):
     return x, x
 
 
-def _get_bilinear_interp_params(y, x, height, width):
-    if y < -1 or y > height or x < -1 or x > width:
+def _get_bounds(p, limit):
+    if p < -1 or p > limit:
         # out of range, so it is empty
-        return (None,) * 8
+        return None, None, None
 
-    if y <= 0:
-        y = 0
-    if x <= 0:
-        x = 0
+    low = int(numpy.floor(p))
+    if low == limit:
+        low = low - 1
+    high = low + 1
 
-    y_low = int(y)
-    x_low = int(x)
+    if low <= -1:
+        p = 0
+    elif high >= limit:
+        p = limit - 1
+    return p, low, high
 
-    if y_low >= height - 1:
-        y_high = y_low = height - 1
-        y = float(y_low)
-    else:
-        y_high = y_low + 1
 
-    if x_low >= width - 1:
-        x_high = x_low = width - 1
-        x = float(x_low)
-    else:
-        x_high = x_low + 1
-
+def _get_bilinear_interp_params(y, x, y_low, x_low, y_high, x_high):
     ly = y - y_low
     lx = x - x_low
-    hy = 1. - ly
-    hx = 1. - lx
-
+    hy = y_high - y
+    hx = x_high - x
     w1 = hy * hx
     w2 = hy * lx
     w3 = ly * hx
     w4 = ly * lx
-
-    return y_low, x_low, y_high, x_high, w1, w2, w3, w4
+    return w1, w2, w3, w4
 
 
 _GET_BILINEAR_INTERP_KERNEL = '''
 __device__
-bool get_bilinear_interp_params(
-    T x, T y, const int height, const int width,
-    int &y_low, int &x_low, int &y_high, int &x_high,
-    T &w1, T &w2, T &w3, T &w4) {
-    // deal with cases that inverse elements are
-    // out of feature map boundary
-    if (y < -1. || y > height || x < -1. || x > width) {
+bool get_bounds(
+    T &p, const int limit, int &low, int &high) {
+    if (p < -1. || p > limit) {
         // empty
         return false;
     }
-
-    if (y <= 0) {
-        y = 0;
+    low = (int)floor(p);
+    if (low == limit) {
+        low = low - 1;
     }
-    if (x <= 0) {
-        x = 0;
+    high = low + 1;
+    if (low <= -1) {
+        p = (T) 0.0;
+    } else if (high >= limit) {
+        p = (T) (limit - 1);
     }
+    return true;
+}
 
-    y_low = (int)y;
-    x_low = (int)x;
-
-    if (y_low >= height - 1) {
-        y_high = y_low = height - 1;
-        y = (T)y_low;
-    } else {
-        y_high = y_low + 1;
-    }
-
-    if (x_low >= width - 1) {
-        x_high = x_low = width - 1;
-        x = (T)x_low;
-    } else {
-        x_high = x_low + 1;
-    }
-
+__device__
+void get_bilinear_interp_params(
+    T y, T x, int y_low, int x_low, int y_high, int x_high,
+    T &w1, T &w2, T &w3, T &w4) {
     T ly = y - y_low;
     T lx = x - x_low;
-    T hy = 1. - ly;
-    T hx = 1. - lx;
-
+    T hy = y_high - y;
+    T hx = x_high - x;
     w1 = hy * hx;
     w2 = hy * lx;
     w3 = ly * hx;
     w4 = ly * lx;
-
-    return true;
 }
 '''
 
@@ -197,44 +174,51 @@ class ROIAverageAlign2D(function.Function):
             bin_size_w = roi_width / pooled_width
 
             if self.sampling_ratio[0] is None:
-                roi_bin_grid_h = numpy.ceil(roi_height / pooled_height)
+                roi_bin_grid_h = int(numpy.ceil(roi_height / pooled_height))
             else:
                 roi_bin_grid_h = self.sampling_ratio[0]
             if self.sampling_ratio[1] is None:
-                roi_bin_grid_w = numpy.ceil(roi_width / pooled_width)
+                roi_bin_grid_w = int(numpy.ceil(roi_width / pooled_width))
             else:
                 roi_bin_grid_w = self.sampling_ratio[1]
 
             count = roi_bin_grid_h * roi_bin_grid_w
 
             output_val = 0.
-            iy = 0
-            while iy < roi_bin_grid_h:
+            for iy in six.moves.range(roi_bin_grid_h):
                 y = roi_start_h + ph * bin_size_h + \
                     (iy + .5) * bin_size_h / roi_bin_grid_h
-                ix = 0
-                while ix < roi_bin_grid_w:
+                y, y_low, y_high = _get_bounds(y, height)
+                if y is None or y_low is None or y_high is None:
+                    continue
+                for ix in six.moves.range(roi_bin_grid_w):
                     x = roi_start_w + pw * bin_size_w + \
                         (ix + .5) * bin_size_w / roi_bin_grid_w
-
+                    x, x_low, x_high = _get_bounds(x, width)
+                    if x is None or x_low is None or x_high is None:
+                        continue
                     # bilinear interpolation {{
 
-                    y_low, x_low, y_high, x_high, w1, w2, w3, w4 = \
-                        _get_bilinear_interp_params(y, x, height, width)
-                    if y_low is None:
-                        continue
+                    w1, w2, w3, w4 = _get_bilinear_interp_params(
+                        y, x, y_low, x_low, y_high, x_high)
 
-                    v1 = bottom_data[roi_batch_ind, c, y_low, x_low]
-                    v2 = bottom_data[roi_batch_ind, c, y_low, x_high]
-                    v3 = bottom_data[roi_batch_ind, c, y_high, x_low]
-                    v4 = bottom_data[roi_batch_ind, c, y_high, x_high]
+                    if w1 > 0 and y_low >= 0 and x_low >= 0:
+                        v1 = bottom_data[roi_batch_ind, c, y_low, x_low]
+                        output_val += w1 * v1
 
-                    output_val += w1 * v1 + w2 * v2 + w3 * v3 + w4 * v4
+                    if w2 > 0 and y_low >= 0 and x_high <= width - 1:
+                        v2 = bottom_data[roi_batch_ind, c, y_low, x_high]
+                        output_val += w2 * v2
+
+                    if w3 > 0 and y_high <= height - 1 and x_low >= 0:
+                        v3 = bottom_data[roi_batch_ind, c, y_high, x_low]
+                        output_val += w3 * v3
+
+                    if w4 > 0 and y_high <= height - 1 and x_high <= width - 1:
+                        v4 = bottom_data[roi_batch_ind, c, y_high, x_high]
+                        output_val += w4 * v4
 
                     # }}
-
-                    ix += 1
-                iy += 1
 
             output_val /= count
             top_data[n, c, ph, pw] = output_val
@@ -307,33 +291,43 @@ class ROIAverageAlign2D(function.Function):
                 T y = roi_start_h + ph * bin_size_h +
                     static_cast<T>(iy + .5f) * bin_size_h /
                         static_cast<T>(roi_bin_grid_h);  // e.g. 0.5, 1.5
+                int y_low, y_high;
+                bool y_ret = get_bounds(y, height, y_low, y_high);
+                if (!y_ret) continue;
                 for (int ix = 0; ix < roi_bin_grid_w; ix++) {
                     T x = roi_start_w + pw * bin_size_w +
                         static_cast<T>(ix + .5f) * bin_size_w /
                             static_cast<T>(roi_bin_grid_w);
 
-                    // bilinear_interpolation {{
-                    int y_low, x_low, y_high, x_high;
+                    int x_low, x_high;
+                    bool x_ret = get_bounds(x, width, x_low, x_high);
+                    if (!x_ret) continue;
+                    // bilinear_interpolation_gradient {{
                     T w1, w2, w3, w4;
-                    bool ret = get_bilinear_interp_params(
-                        x, y, height, width,
-                        y_low, x_low, y_high, x_high,
-                        w1, w2, w3, w4
-                    );
-                    if (!ret) {
-                        continue;
+                    get_bilinear_interp_params(
+                        y, x, y_low, x_low, y_high, x_high, w1, w2, w3, w4);
+
+                    if (w1 > 0 && y_low >= 0 && x_low >= 0) {
+                        T v1 = bottom_data[
+                            bottom_data_offset + y_low * width + x_low];
+                        output_val += w1 * v1;
                     }
-
-                    T v1 = bottom_data[bottom_data_offset +
-                                       y_low * width + x_low];
-                    T v2 = bottom_data[bottom_data_offset +
-                                       y_low * width + x_high];
-                    T v3 = bottom_data[bottom_data_offset +
-                                       y_high * width + x_low];
-                    T v4 = bottom_data[bottom_data_offset +
-                                       y_high * width + x_high];
-
-                    output_val += (w1 * v1 + w2 * v2 + w3 * v3 + w4 * v4);
+                    if (w2 > 0 && y_low >= 0 && x_high <= width - 1) {
+                        T v2 = bottom_data[
+                            bottom_data_offset + y_low * width + x_high];
+                        output_val += w2 * v2;
+                    }
+                    if (w3 > 0 && y_high <= height - 1 && x_low >= 0) {
+                        T v3 = bottom_data[
+                            bottom_data_offset + y_high * width + x_low];
+                        output_val += w3 * v3;
+                    }
+                    if (w4 > 0 && y_high <= height - 1 &&
+                            x_high <= width - 1) {
+                        T v4 = bottom_data[
+                            bottom_data_offset + y_high * width + x_high];
+                        output_val += w4 * v4;
+                    }
 
                     // }}
                 }
@@ -380,52 +374,55 @@ class ROIAverageAlign2D(function.Function):
             top_diff_this_bin = top_diff[n, c, ph, pw]
 
             if self.sampling_ratio[0] is None:
-                roi_bin_grid_h = numpy.ceil(roi_height / pooled_height)
+                roi_bin_grid_h = int(numpy.ceil(roi_height / pooled_height))
             else:
                 roi_bin_grid_h = self.sampling_ratio[0]
             if self.sampling_ratio[1] is None:
-                roi_bin_grid_w = numpy.ceil(roi_width / pooled_width)
+                roi_bin_grid_w = int(numpy.ceil(roi_width / pooled_width))
             else:
                 roi_bin_grid_w = self.sampling_ratio[1]
 
             count = roi_bin_grid_h * roi_bin_grid_w
 
-            iy = 0
-            while iy < roi_bin_grid_h:
+            for iy in six.moves.range(roi_bin_grid_h):
                 y = roi_start_h + ph * bin_size_h + \
                     (iy + .5) * bin_size_h / roi_bin_grid_h
-                ix = 0
-                while ix < roi_bin_grid_w:
+                y, y_low, y_high = _get_bounds(y, height)
+                if y is None or y_low is None or y_high is None:
+                    continue
+                for ix in six.moves.range(roi_bin_grid_w):
                     x = roi_start_w + pw * bin_size_w + \
                         (ix + .5) * bin_size_w / roi_bin_grid_w
-
+                    x, x_low, x_high = _get_bounds(x, width)
+                    if x is None or x_low is None or x_high is None:
+                        continue
                     # bilinear_interpolation_gradient {{
 
-                    y_low, x_low, y_high, x_high, w1, w2, w3, w4 = \
-                        _get_bilinear_interp_params(y, x, height, width)
-                    if y_low is None:
-                        continue
+                    w1, w2, w3, w4 = _get_bilinear_interp_params(
+                        y, x, y_low, x_low, y_high, x_high)
 
-                    g1 = top_diff_this_bin * w1 / count
-                    g2 = top_diff_this_bin * w2 / count
-                    g3 = top_diff_this_bin * w3 / count
-                    g4 = top_diff_this_bin * w4 / count
-
-                    if (x_low >= 0 and x_high >= 0 and
-                            y_low >= 0 and y_high >= 0):
+                    if w1 > 0 and y_low >= 0 and x_low >= 0:
+                        g1 = top_diff_this_bin * w1 / count
                         bottom_diff[roi_batch_ind, c, y_low, x_low] += g1
+
+                    if w2 > 0 and y_low >= 0 and x_high <= width - 1:
+                        g2 = top_diff_this_bin * w2 / count
                         bottom_diff[roi_batch_ind, c, y_low, x_high] += g2
+
+                    if w3 > 0 and y_high <= height - 1 and x_low >= 0:
+                        g3 = top_diff_this_bin * w3 / count
                         bottom_diff[roi_batch_ind, c, y_high, x_low] += g3
+
+                    if w4 > 0 and y_high <= height - 1 and x_high <= width - 1:
+                        g4 = top_diff_this_bin * w4 / count
                         bottom_diff[roi_batch_ind, c, y_high, x_high] += g4
 
                     # }}
 
-                    ix += 1
-                iy += 1
-
         return bottom_diff, None, None
 
     def backward_gpu(self, inputs, gy):
+        utils.nondeterministic('atomicAdd')
         bottom_rois, bottom_roi_indices = inputs[1:]
         channels, height, width = self._bottom_data_shape[1:]
         bottom_diff = cuda.cupy.zeros(self._bottom_data_shape, gy[0].dtype)
@@ -492,38 +489,42 @@ class ROIAverageAlign2D(function.Function):
                 T y = roi_start_h + ph * bin_size_h +
                     static_cast<T>(iy + .5f) * bin_size_h /
                         static_cast<T>(roi_bin_grid_h);  // e.g. 0.5, 1.5
+                int y_low, y_high;
+                bool y_ret = get_bounds(y, height, y_low, y_high);
+                if (!y_ret) continue;
                 for (int ix = 0; ix < roi_bin_grid_w; ix++) {
                     T x = roi_start_w + pw * bin_size_w +
                         static_cast<T>(ix + .5f) * bin_size_w /
                             static_cast<T>(roi_bin_grid_w);
 
+                    int x_low, x_high;
+                    bool x_ret = get_bounds(x, width, x_low, x_high);
+                    if (!x_ret) continue;
                     // bilinear_interpolation_gradient {{
-                    int y_low, x_low, y_high, x_high;
                     T w1, w2, w3, w4;
-                    bool ret = get_bilinear_interp_params(
-                        x, y, height, width,
-                        y_low, x_low, y_high, x_high,
-                        w1, w2, w3, w4
-                    );
-                    if (!ret) {
-                        continue;
+                    get_bilinear_interp_params(
+                        y, x, y_low, x_low, y_high, x_high, w1, w2, w3, w4);
+
+                    if (w1 > 0 && y_low >= 0 && x_low >= 0) {
+                        T g1 = top_diff_this_bin * w1 / count;
+                        atomicAdd(&bottom_diff[
+                            bottom_diff_offset + y_low * width + x_low], g1);
                     }
-
-                    T g1 = top_diff_this_bin * w1 / count;
-                    T g2 = top_diff_this_bin * w2 / count;
-                    T g3 = top_diff_this_bin * w3 / count;
-                    T g4 = top_diff_this_bin * w4 / count;
-
-                    if (x_low >= 0 && x_high >= 0 &&
-                            y_low >= 0 && y_high >= 0) {
-                        atomicAdd(&bottom_diff[bottom_diff_offset +
-                                               y_low * width + x_low], g1);
-                        atomicAdd(&bottom_diff[bottom_diff_offset +
-                                               y_low * width + x_high], g2);
-                        atomicAdd(&bottom_diff[bottom_diff_offset +
-                                               y_high * width + x_low], g3);
-                        atomicAdd(&bottom_diff[bottom_diff_offset +
-                                               y_high * width + x_high], g4);
+                    if (w2 > 0 && y_low >= 0 && x_high <= width - 1) {
+                        T g2 = top_diff_this_bin * w2 / count;
+                        atomicAdd(&bottom_diff[
+                            bottom_diff_offset + y_low * width + x_high], g2);
+                    }
+                    if (w3 > 0 && y_high <= height - 1 && x_low >= 0) {
+                        T g3 = top_diff_this_bin * w3 / count;
+                        atomicAdd(&bottom_diff[
+                            bottom_diff_offset + y_high * width + x_low], g3);
+                    }
+                    if (w4 > 0 && y_high <= height - 1 &&
+                            x_high <= width - 1) {
+                        T g4 = top_diff_this_bin * w4 / count;
+                        atomicAdd(&bottom_diff[
+                            bottom_diff_offset + y_high * width + x_high], g4);
                     }
 
                     // }}

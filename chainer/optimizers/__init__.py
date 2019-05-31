@@ -2,6 +2,10 @@
 from chainer.optimizers.ada_delta import AdaDelta  # NOQA
 from chainer.optimizers.ada_grad import AdaGrad  # NOQA
 from chainer.optimizers.adam import Adam  # NOQA
+from chainer.optimizers.adam import AdamW  # NOQA
+from chainer.optimizers.adam import AMSGrad  # NOQA
+from chainer.optimizers.adam import AdaBound  # NOQA
+from chainer.optimizers.adam import AMSBound  # NOQA
 from chainer.optimizers.corrected_momentum_sgd import CorrectedMomentumSGD  # NOQA
 from chainer.optimizers.momentum_sgd import MomentumSGD  # NOQA
 from chainer.optimizers.msvag import MSVAG  # NOQA

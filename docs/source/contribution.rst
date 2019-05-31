@@ -23,7 +23,7 @@ You may additionally suggest **how**.
 
 .. warning::
 
-   If you have a question regarding the usage of Chainer, it is recommended to send a post to `StackOverflow <https://stackoverflow.com/>`_ or the `Chainer User Group <https://groups.google.com/forum/#!forum/chainer>`_ instead of the issue tracker.
+   If you have a question regarding the usage of Chainer, it is recommended that you send a post to `StackOverflow <https://stackoverflow.com/>`_ or the `Chainer User Group <https://groups.google.com/forum/#!forum/chainer>`_ instead of the issue tracker.
    The issue tracker is not a place to share knowledge on practices.
 
 How to Send a Pull Request
@@ -53,7 +53,7 @@ Once the tests in all CI environments pass and/or the PR is approved by the revi
 
 .. note::
 
-    If you are planning to add a new feature or modify existing APIs, **it is recommended to open an issue and discuss the design first.**
+    If you are planning to add a new feature or modify existing APIs, **it is recommended that you open an issue and discuss the design first.**
     Following the consequences of the discussions, you can send a PR that is smoothly reviewed in a shorter time.
 
 Issue/Pull Request Labels

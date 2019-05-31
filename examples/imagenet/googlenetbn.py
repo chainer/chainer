@@ -1,8 +1,5 @@
-import numpy as np
-
 import chainer
 import chainer.functions as F
-from chainer import initializers
 import chainer.links as L
 
 
@@ -98,68 +95,3 @@ class GoogLeNetBN(chainer.Chain):
             'accuracy': accuracy,
         }, self)
         return loss
-
-
-class GoogLeNetBNFp16(GoogLeNetBN):
-
-    """New GoogLeNet of BatchNormalization version."""
-
-    insize = 224
-
-    def __init__(self):
-        self.dtype = dtype = np.float16
-        W = initializers.HeNormal(1 / np.sqrt(2), self.dtype)
-        bias = initializers.Zero(self.dtype)
-
-        chainer.Chain.__init__(self)
-        with self.init_scope():
-            self.conv1 = L.Convolution2D(
-                None, 64, 7, stride=2, pad=3, initialW=W, nobias=True)
-            self.norm1 = L.BatchNormalization(64, dtype=dtype)
-            self.conv2 = L.Convolution2D(
-                None, 192, 3, pad=1, initialW=W, nobias=True)
-            self.norm2 = L.BatchNormalization(192, dtype=dtype)
-            self.inc3a = L.InceptionBN(
-                None, 64, 64, 64, 64, 96, 'avg', 32, conv_init=W, dtype=dtype)
-            self.inc3b = L.InceptionBN(
-                None, 64, 64, 96, 64, 96, 'avg', 64, conv_init=W, dtype=dtype)
-            self.inc3c = L.InceptionBN(
-                None, 0, 128, 160, 64, 96, 'max', stride=2,
-                conv_init=W, dtype=dtype)
-            self.inc4a = L.InceptionBN(
-                None, 224, 64, 96, 96, 128, 'avg', 128,
-                conv_init=W, dtype=dtype)
-            self.inc4b = L.InceptionBN(
-                None, 192, 96, 128, 96, 128, 'avg', 128,
-                conv_init=W, dtype=dtype)
-            self.inc4c = L.InceptionBN(
-                None, 128, 128, 160, 128, 160, 'avg', 128,
-                conv_init=W, dtype=dtype)
-            self.inc4d = L.InceptionBN(
-                None, 64, 128, 192, 160, 192, 'avg', 128,
-                conv_init=W, dtype=dtype)
-            self.inc4e = L.InceptionBN(
-                None, 0, 128, 192, 192, 256, 'max',
-                stride=2, conv_init=W, dtype=dtype)
-            self.inc5a = L.InceptionBN(
-                None, 352, 192, 320, 160, 224, 'avg', 128,
-                conv_init=W, dtype=dtype)
-            self.inc5b = L.InceptionBN(
-                None, 352, 192, 320, 192, 224, 'max', 128,
-                conv_init=W, dtype=dtype)
-            self.out = L.Linear(None, 1000, initialW=W, initial_bias=bias)
-
-            self.conva = L.Convolution2D(None, 128, 1, initialW=W, nobias=True)
-            self.norma = L.BatchNormalization(128, dtype=dtype)
-            self.lina = L.Linear(None, 1024, initialW=W, nobias=True)
-            self.norma2 = L.BatchNormalization(1024, dtype=dtype)
-            self.outa = L.Linear(None, 1000, initialW=W, initial_bias=bias)
-
-            self.convb = L.Convolution2D(None, 128, 1, initialW=W, nobias=True)
-            self.normb = L.BatchNormalization(128, dtype=dtype)
-            self.linb = L.Linear(None, 1024, initialW=W, nobias=True)
-            self.normb2 = L.BatchNormalization(1024, dtype=dtype)
-            self.outb = L.Linear(None, 1000, initialW=W, initial_bias=bias)
-
-    def forward(self, x, t):
-        return GoogLeNetBN.forward(self, F.cast(x, self.dtype), t)

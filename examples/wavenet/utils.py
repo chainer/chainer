@@ -3,6 +3,8 @@ import random
 import librosa
 import numpy
 
+import chainer
+
 
 class MuLaw(object):
     def __init__(self, mu=256, int_type=numpy.int32, float_type=numpy.float32):
@@ -26,7 +28,7 @@ class MuLaw(object):
 
 class Preprocess(object):
     def __init__(self, sr, n_fft, hop_length, n_mels, top_db,
-                 length, quantize):
+                 length, quantize, dtype=None):
         self.sr = sr
         self.n_fft = n_fft
         self.hop_length = hop_length
@@ -38,6 +40,7 @@ class Preprocess(object):
             self.length = None
         else:
             self.length = length + 1
+        self.dtype = chainer.get_dtype(dtype)
 
     def __call__(self, path):
         # load data with trimming and normalizing
@@ -77,11 +80,11 @@ class Preprocess(object):
         spectrogram /= 40
         if self.length is not None:
             spectrogram = spectrogram[:, :self.length // self.hop_length]
-        spectrogram = spectrogram.astype(numpy.float32)
+        spectrogram = spectrogram.astype(self.dtype)
 
         # expand dimensions
         one_hot = numpy.identity(
-            self.quantize, dtype=numpy.float32)[quantized]
+            self.quantize, dtype=self.dtype)[quantized]
         one_hot = numpy.expand_dims(one_hot.T, 2)
         spectrogram = numpy.expand_dims(spectrogram, 2)
         quantized = numpy.expand_dims(quantized, 1)

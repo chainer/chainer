@@ -10,6 +10,8 @@ import chainerx
 
 class ChainerxDevice(_backend.Device):
 
+    """Device for ChainerX backend"""
+
     def __init__(self, device):
         # type: (chainerx.Device) -> None
 
@@ -33,6 +35,12 @@ class ChainerxDevice(_backend.Device):
 
     @staticmethod
     def from_fallback_device(device):
+        """Returns a :class:`~chainer.backend.ChainerxDevice` corresponding \
+to the fallback device.
+
+        .. seealso::
+            :data:`~chainer.backend.ChainerxDevice.fallback_device`
+        """
         # TODO(niboshi): Write unit test
         assert isinstance(device, _backend.Device)
         if isinstance(device, _cpu.CpuDevice):
@@ -46,6 +54,17 @@ class ChainerxDevice(_backend.Device):
 
     @property
     def fallback_device(self):
+        """Fallback device.
+
+        A fallback device is either a :class:`~chainer.backend.CpuDevice` or
+        a :class:`~chainer.backend.GpuDevice` which shares the same physical
+        device with the original ChainerX device.
+
+        For example, the fallback device of ``native:0`` ChainerX device is
+        :class:`~chainer.backend.CpuDevice`. The fallback device of ``cuda:1``
+        ChainerX device is :class:`~chainer.backend.GpuDevice` with device ID
+        1.
+        """
         # TODO(niboshi): Write unit test
         backend_name = self.device.backend.name
         if backend_name == 'native':
@@ -65,6 +84,9 @@ class ChainerxDevice(_backend.Device):
         return '<{} {}>'.format(
             self.__class__.__name__, self.device.name)
 
+    def __str__(self):
+        return self.device.name
+
     def create_context(self):
         # Returns a context that sets the default device.
         return chainerx.using_device(self.device)
@@ -81,7 +103,7 @@ class ChainerxDevice(_backend.Device):
         chainerx.set_default_device(self.device)
 
 
-def to_chainerx(array):
+def to_chx(array):
     """Converts an array or arrays to ChainerX.
 
     Destination ChainerX devices are chosen according to the types of input
@@ -90,26 +112,12 @@ def to_chainerx(array):
     return _backend._convert_arrays(array, _array_to_chainerx)
 
 
-def from_chainerx(array):
+def from_chx(array):
     """Converts an array or arrays from ChainerX to NumPy or CuPy ones.
 
     Destination array types are chosen such that no copies occur.
     """
     return _backend._convert_arrays(array, _array_from_chainerx)
-
-
-def _get_device(device_spec):
-    # Called from chainer.backend.get_device
-    if not chainerx.is_available():
-        return None
-    if isinstance(device_spec, chainerx.Device):
-        return ChainerxDevice(device_spec)
-    if isinstance(device_spec, str):
-        return ChainerxDevice(chainerx.get_device(device_spec))
-    if (isinstance(device_spec, tuple) and len(device_spec) >= 1
-            and isinstance(device_spec[0], str)):
-        return ChainerxDevice(chainerx.get_device(*device_spec))
-    return None
 
 
 def _get_chainerx_device(device_spec):

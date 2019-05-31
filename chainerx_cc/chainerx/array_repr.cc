@@ -17,6 +17,7 @@
 #include "chainerx/dtype.h"
 #include "chainerx/indexable_array.h"
 #include "chainerx/indexer.h"
+#include "chainerx/native/data_type.h"
 #include "chainerx/numeric.h"
 #include "chainerx/shape.h"
 
@@ -61,6 +62,8 @@ private:
 
 class FloatFormatter {
 public:
+    void Scan(Float16 value) { Scan(static_cast<double>(value)); }
+
     void Scan(double value) {
         int b_digits = 0;
         if (value < 0) {
@@ -97,6 +100,8 @@ public:
             digits_after_point_ = a_digits;
         }
     }
+
+    void Print(std::ostream& os, Float16 value) { Print(os, static_cast<double>(value)); }
 
     void Print(std::ostream& os, double value) {
         if (digits_after_e_ > 0) {
@@ -150,10 +155,8 @@ public:
 };
 
 template <typename T>
-using Formatter = std::conditional_t<
-        std::is_same<T, bool>::value,
-        BoolFormatter,
-        std::conditional_t<std::is_floating_point<T>::value, FloatFormatter, IntFormatter>>;
+using Formatter = std::
+        conditional_t<std::is_same<T, bool>::value, BoolFormatter, std::conditional_t<IsFloatingPointV<T>, FloatFormatter, IntFormatter>>;
 
 template <int8_t Ndim>
 struct ArrayReprImpl {
@@ -164,7 +167,8 @@ struct ArrayReprImpl {
 
         // Let formatter scan all elements to print.
         VisitElements<T>(native_array, [&formatter](const IndexableArray<const T, Ndim>& iarray, const IndexIterator<Ndim>& it) {
-            formatter.Scan(iarray[it]);
+            T value = native::StorageToDataType<const T>(iarray[it]);
+            formatter.Scan(value);
         });
 
         // Print values using the formatter.
@@ -203,7 +207,8 @@ struct ArrayReprImpl {
                             os << ", ";
                         }
                     }
-                    formatter.Print(os, iarray[it]);
+                    T value = native::StorageToDataType<const T>(iarray[it]);
+                    formatter.Print(os, value);
                     ++cur_line_size;
                 });
 
@@ -252,7 +257,7 @@ std::ostream& operator<<(std::ostream& os, const Array& array) {
     // TODO(hvy): We need to determine the output specification of this function, whether or not to align with Python repr specification,
     // and also whether this functionality should be defined in C++ layer or Python layer.
     // TODO(hvy): Consider using a static dimensionality.
-    VisitDtype(array.dtype(), [&](auto pt) { ArrayReprImpl<kDynamicNdim>{}.operator()<typename decltype(pt)::type>(array, os); });
+    VisitDtype(array.dtype(), [&os, &array](auto pt) { ArrayReprImpl<kDynamicNdim>{}.operator()<typename decltype(pt)::type>(array, os); });
     return os;
 }
 

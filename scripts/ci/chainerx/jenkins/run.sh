@@ -57,7 +57,6 @@ case "${CHAINERX_JENKINS_TEST_TYPE}" in
     'misc')
         run_step setup_conda_environment
         run_step python_style_check
-        run_step python_mypy_check
         run_step clang_format
         run_step cpplint
         run_step cmake
@@ -67,18 +66,18 @@ case "${CHAINERX_JENKINS_TEST_TYPE}" in
     'chainerx-c')
         run_step setup_openblas
         run_step cmake
-        CHAINERX_NVCC_GENERATE_CODE=arch=compute_50,code=sm_50 MAKEFLAGS=-j16 run_step make
+        CHAINERX_NVCC_GENERATE_CODE=arch=compute_60,code=sm_60 MAKEFLAGS=-j16 run_step make
         run_step make_install
         run_step ctest
         ;;
     'chainerx-py3')
         run_step setup_conda_environment
-        CHAINERX_NVCC_GENERATE_CODE=arch=compute_50,code=sm_50 MAKEFLAGS=-j16 run_step python_build
+        CHAINERX_NVCC_GENERATE_CODE=arch=compute_60,code=sm_60 MAKEFLAGS=-j16 run_step python_build
         run_step python_test_chainerx
         ;;
     'chainer-py3')
         run_step setup_conda_environment
-        CHAINERX_NVCC_GENERATE_CODE=arch=compute_50,code=sm_50 MAKEFLAGS=-j16 run_step python_build
+        CHAINERX_NVCC_GENERATE_CODE=arch=compute_60,code=sm_60 MAKEFLAGS=-j16 run_step python_build
         run_step python_test_chainer
         ;;
     *)

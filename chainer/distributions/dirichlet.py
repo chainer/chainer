@@ -68,6 +68,10 @@ class Dirichlet(distribution.Distribution):
         alpha0 = expand_dims.expand_dims(self.alpha0, axis=-1)
         return self.alpha / alpha0
 
+    @property
+    def params(self):
+        return {'alpha': self.alpha}
+
     def sample_n(self, n):
         obo_alpha = self.alpha.data.reshape(-1, self.event_shape[0])
         xp = cuda.get_array_module(self.alpha)

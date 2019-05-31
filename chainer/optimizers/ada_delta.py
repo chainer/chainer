@@ -1,6 +1,6 @@
 import numpy
 
-from chainer import backend
+import chainer
 from chainer.backends import cuda
 from chainer import optimizer
 from chainer import types
@@ -49,8 +49,8 @@ class AdaDeltaRule(optimizer.UpdateRule):
             self.hyperparam.eps = eps
 
     def init_state(self, param):
-        xp = backend.get_array_module(param.data)
-        with cuda.get_device_from_array(param.data):
+        with chainer.using_device(param.device):
+            xp = param.device.xp
             self.state['msg'] = xp.zeros_like(param.data)
             self.state['msdx'] = xp.zeros_like(param.data)
 

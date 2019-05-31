@@ -1,4 +1,4 @@
-from chainer import backend
+import chainer
 from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import optimizer
@@ -47,13 +47,12 @@ class MomentumSGDRule(optimizer.UpdateRule):
             self.hyperparam.momentum = momentum
 
     def init_state(self, param):
-        xp = backend.get_array_module(param.data)
-        with cuda.get_device_from_array(param.data):
+        with chainer.using_device(param.device):
+            xp = param.device.xp
             self.state['v'] = xp.zeros_like(param.data)
 
         # For iDeep
-        if (isinstance(param.data, intel64.mdarray) and
-                intel64.inputs_all_ready((self.state['v'],))):
+        if isinstance(param.data, intel64.mdarray):
             self.state['v'] = intel64.ideep.array(
                 self.state['v'], itype=intel64.ideep.wgt_array)
 
