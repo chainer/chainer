@@ -17,6 +17,8 @@ Array Fabs(const Array& x);
 
 Array Sign(const Array& x);
 
+Array IfGreaterElse(const Array& x1, const Array& x2, const Array& pos, const Array& neg, const Array& out);
+
 Array Maximum(const Array& x1, Scalar x2);
 Array Maximum(Scalar x1, const Array& x2);
 Array Maximum(const Array& x1, const Array& x2);

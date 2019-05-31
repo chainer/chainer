@@ -110,6 +110,11 @@ void IfGreaterElseImpl(const Array& x1, const Array& x2, const Array& pos, const
     }
 }
 
+Array IfGreaterElse(const Array& x1, const Array& x2, const Array& pos, const Array& neg, const Array& out) {
+    IfGreaterElseImpl(x1, x2, pos, neg, out);
+    return out;
+}
+
 void MinimumImpl(const Array& x1, const Array& x2, const Array& out) { IfGreaterElseImpl(x1, x2, x2, x1, out); }
 
 void MaximumImpl(const Array& x1, const Array& x2, const Array& out) { IfGreaterElseImpl(x1, x2, x1, x2, out); }

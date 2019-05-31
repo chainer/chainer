@@ -1,12 +1,9 @@
 #include "chainerx/routines/activation.h"
 
 #include <cmath>
-#include <cstdint>
 #include <numeric>
 #include <utility>
 #include <vector>
-
-#include <nonstd/optional.hpp>
 
 #include "chainerx/array.h"
 #include "chainerx/dtype.h"
@@ -35,7 +32,8 @@ Array LeakyRelu(const Array& x, Scalar slope) {
 
 Array ClippedRelu(const Array& x, Scalar z) { return Minimum(Maximum(0, x), z); }
 
-Array Crelu(const Array& x, nonstd::optional<int8_t> axis) {
+Array Crelu(const Array& x, int8_t axis) {
+// TODO(aksub99): Optimize implementation to use a single memory allocation.
     std::vector<Array> c{x, Negative(x)};
     Array concat = Concatenate(c, axis);
     return Relu(concat);
