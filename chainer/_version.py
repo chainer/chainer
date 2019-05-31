@@ -1,4 +1,5 @@
 _released_version = '7.0.0a1'
+_is_released = False
 
 # This file includes a derived copy of a part of numpy,
 # which is under license bellow.
@@ -35,7 +36,6 @@ _released_version = '7.0.0a1'
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 _tag_name = 'v' + _released_version
-_is_released = False
 
 
 def _local_version():
