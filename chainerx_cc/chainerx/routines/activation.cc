@@ -25,21 +25,20 @@
 #include "chainerx/shape.h"
 
 namespace chainerx {
-Array ClippedRelu(const Array& x, Scalar z) {
-    return Minimum(Maximum(0, x), z);
+
+Array LeakyRelu(const Array& x, Scalar slope) {
+    Dtype dtype = internal::GetMathResultDtype(x.dtype());
+    const Array& x_cast = x.dtype() == dtype ? x : x.AsType(dtype);
+    Array zero = ZerosLike(x_cast, x_cast.device());
+    return Where(x_cast >= zero, x_cast, slope * x_cast);
 }
+
+Array ClippedRelu(const Array& x, Scalar z) { return Minimum(Maximum(0, x), z); }
 
 Array Crelu(const Array& x, nonstd::optional<int8_t> axis) {
     std::vector<Array> c{x, Negative(x)};
     Array concat = Concatenate(c, axis);
     return Relu(concat);
-}
-
-Array Elu(const Array& x, Scalar alpha) {
-    Array zero = ZerosLike(x, x.device());
-    Array out = ZerosLike(x, x.device());
-    IfGreaterElseImpl(x, zero, x, alpha * (Exp(x) - 1), out);
-    return out;
 }
 
 Array Sigmoid(const Array& x) {
@@ -52,13 +51,6 @@ Array Relu(const Array& x) {
     Dtype dtype = internal::GetMathResultDtype(x.dtype());
     const Array& x_cast = x.dtype() == dtype ? x : x.AsType(dtype);
     return Maximum(0, x_cast);
-}
-
-Array LeakyRelu(const Array& x, Scalar slope) {
-    Dtype dtype = internal::GetMathResultDtype(x.dtype());
-    const Array& x_cast = x.dtype() == dtype ? x : x.AsType(dtype);
-    Array zero = ZerosLike(x_cast, x_cast.device());
-    return Where(x_cast >= zero, x_cast, slope * x_cast);
 }
 
 }  // namespace chainerx

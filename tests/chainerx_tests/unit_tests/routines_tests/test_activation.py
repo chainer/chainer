@@ -105,7 +105,7 @@ class TestClippedRelu(op_utils.OpTest):
 
 
 class TestCrelu(op_utils.OpTest):
-    
+
     axis = 1
 
     def setup(self, shape, float_dtype):
