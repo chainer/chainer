@@ -86,7 +86,7 @@ And check your code with::
 
   $ autopep8 --in-place path/to/your/code.py
 
-The ``flake8`` command lets you know which parts of your code that is not following the style guidelines.
+The ``flake8`` command lets you know parts of your code that are not following the style guidelines.
 
 Note that ``flake8`` command is not perfect.
 It does not check some of the style guidelines.
