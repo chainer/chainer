@@ -33,7 +33,7 @@ Array LeakyRelu(const Array& x, Scalar slope) {
 Array ClippedRelu(const Array& x, Scalar z) { return Minimum(Maximum(0, x), z); }
 
 Array Crelu(const Array& x, int8_t axis) {
-// TODO(aksub99): Optimize implementation to use a single memory allocation.
+    // TODO(aksub99): Optimize implementation to use a single memory allocation.
     std::vector<Array> c{x, Negative(x)};
     Array concat = Concatenate(c, axis);
     return Relu(concat);

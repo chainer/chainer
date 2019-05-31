@@ -5,7 +5,7 @@
 
 namespace chainerx {
 
-Array IfGreaterElse(const Array& x1, const Array& x2, const Array& pos, const Array& neg, const Array& out);
+Array IfGreaterElse(const Array& x1, const Array& x2, const Array& pos, const Array& neg);
 
 Array Sqrt(const Array& x);
 
