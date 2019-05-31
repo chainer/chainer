@@ -182,13 +182,6 @@ class PureNcclCommunicator(mpi_communicator_base.MpiCommunicatorBase):
             self.ensure_all_finite(gpu_buffer_a.array(n_elems, dtype=dtype))
 
 
-def _get_converting_kernel(src_dtype, dst_dtype, kernel_name):
-    return chainer.cuda.cupy.ElementwiseKernel(
-        '{} x'.format(src_dtype.name),
-        '{} y'.format(dst_dtype.name),
-        'y = x', kernel_name)
-
-
 def _get_param_data_dtype(param):
     return param.data.dtype
 
