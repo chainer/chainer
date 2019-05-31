@@ -67,6 +67,13 @@ public:
             int64_t const oCg = oC / G;
             std::vector<int64_t> const o_size(x.shape().end() - ndim, x.shape().end());
 
+            if (iC % G != 0) {
+                throw ChainerxError("The number of groups(", G, ") must be a divisor of that of input channels(", iC, ")");
+            }
+            if (oC % G != 0) {
+                throw ChainerxError("The number of groups(", G, ") must be a divisor of that of output channels(", oC, ")");
+            }
+
             Array nx = RollAxis(col, 0, ndim + 2);
             int64_t const mul_len = iCg * std::accumulate(kernel_size.begin(), kernel_size.end(), 1, std::multiplies<int64_t>());
             nx = nx.Reshape({G, mul_len, N * std::accumulate(o_size.begin(), o_size.end(), 1, std::multiplies<int64_t>())});
