@@ -20,7 +20,7 @@ from chainer.utils import argument
 class Evaluator(extension.Extension):
 
     """__init__(self, iterator, target, converter=convert.concat_examples, \
-device=None, eval_hook=None, eval_func=None, *, progress_bar=False):
+device=None, eval_hook=None, eval_func=None, *, progress_bar=False)
 
     Trainer extension to evaluate models on a validation set.
 
