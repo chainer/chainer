@@ -1244,6 +1244,24 @@ Note:
 """)
 
     _docs.set_doc(
+        chainerx.log1p,
+        """log1p(x)
+Natural logarithm of one plus the input, element-wise.
+
+Args:
+    x (~chainerx.ndarray): Input array.
+
+Returns:
+    :class:`~chainerx.ndarray`: Returned array: :math:`y = \\log(1 + x)`.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``x``.
+
+.. seealso:: :data:`numpy.log1p`
+""")
+
+    _docs.set_doc(
         chainerx.logsumexp,
         """logsumexp(x, axis=None, keepdims=False)
 The log of the sum of exponentials of input array.
@@ -1688,13 +1706,13 @@ Args:
     x2 (~chainerx.ndarray or scalar): Input array of integers.
 
 Returns:
-    :class:`~chainerx.ndarray`: Returned array: :math:`y = x_1 \& x_2`
+    :class:`~chainerx.ndarray`: Returned array: :math:`y = x_1 \\& x_2`
 
 Note:
     During backpropagation, this function does not propagate gradients.
 
 .. seealso:: :data:`numpy.bitwise_and`
-""")  # NOQA
+""")
 
     _docs.set_doc(
         chainerx.bitwise_or,
@@ -1724,13 +1742,13 @@ Args:
     x2 (~chainerx.ndarray or scalar): Input array of integers.
 
 Returns:
-    :class:`~chainerx.ndarray`: Returned array: :math:`y = x_1 \oplus x_2`
+    :class:`~chainerx.ndarray`: Returned array: :math:`y = x_1 \\oplus x_2`
 
 Note:
     During backpropagation, this function does not propagate gradients.
 
 .. seealso:: :data:`numpy.bitwise_xor`
-""")  # NOQA
+""")
 
 
 def _docs_sorting():
@@ -2176,7 +2194,8 @@ Note:
 def _docs_normalization():
     _docs.set_doc(
         chainerx.batch_norm,
-        """batch_norm(x, gamma, beta, running_mean, running_var, eps=2e-5, decay=0.9, axis=None)
+        """batch_norm(x, gamma, beta, running_mean, running_var, eps=2e-5, \
+decay=0.9, axis=None)
 Batch normalization function.
 
 It takes the input array ``x`` and two parameter arrays ``gamma`` and
@@ -2209,7 +2228,7 @@ Note:
 
 See: `Batch Normalization: Accelerating Deep Network Training by Reducing\
       Internal Covariate Shift <https://arxiv.org/abs/1502.03167>`_
-""")  # NOQA
+""")
 
     _docs.set_doc(
         chainerx.fixed_batch_norm,

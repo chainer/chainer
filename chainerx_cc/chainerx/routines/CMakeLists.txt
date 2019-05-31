@@ -8,8 +8,10 @@ add_library(chainerx_routines STATIC
     logic.cc
     manipulation.cc
     math.cc
+    misc.cc
     normalization.cc
     pooling.cc
+    reduction.cc
     sorting.cc
     statistics.cc
     trigonometric.cc
@@ -26,8 +28,10 @@ install(FILES
     logic.h
     manipulation.h
     math.h
+    misc.h
     normalization.h
     pooling.h
+    reduction.h
     routines_util.h
     sorting.h
     statistics.h

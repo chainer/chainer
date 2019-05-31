@@ -16,9 +16,15 @@ namespace {
 
 CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(ExpKernel, { out = chainerx::Exp(x); });
 
+CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(Expm1Kernel, { out = chainerx::Expm1(x); });
+
+CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(Exp2Kernel, { out = chainerx::Exp2(x); });
+
 CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(LogKernel, { out = chainerx::Log(x); });
 
 CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(Log10Kernel, { out = chainerx::Log10(x); });
+
+CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(Log1pKernel, { out = chainerx::Log1p(x); });
 
 }  // namespace
 }  // namespace native
