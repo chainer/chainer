@@ -195,7 +195,8 @@ class BatchNormalization(link.Link):
     def __init__(self, size=None, decay=0.9, eps=2e-5, dtype=None,
                  use_gamma=True, use_beta=True,
                  initial_gamma=None, initial_beta=None, axis=None,
-                 initial_avg_mean=None, initial_avg_var=None):
+                 initial_avg_mean=None, initial_avg_var=None,
+                 tensor_layout=None):
         super(BatchNormalization, self).__init__()
 
         if size is None and axis is None:
@@ -212,6 +213,7 @@ class BatchNormalization(link.Link):
         self.axis = axis
         self._highprec_dtype = chainer.get_dtype(
             dtype, map_mixed16=numpy.float32)
+        self.tensor_layout = tensor_layout
 
         with self.init_scope():
             if use_gamma:
@@ -306,6 +308,9 @@ class BatchNormalization(link.Link):
                 beta = self.xp.zeros(
                     self.avg_mean.shape, dtype=self._highprec_dtype)
 
+        if self.tensor_layout is None:
+            self.tensor_layout = configuration.config.tensor_layout
+
         if configuration.config.train:
             if finetune:
                 self.N += 1
@@ -326,13 +331,15 @@ class BatchNormalization(link.Link):
 
             ret = functions.batch_normalization(
                 x, gamma, beta, eps=self.eps, running_mean=avg_mean,
-                running_var=avg_var, decay=decay, axis=self.axis)
+                running_var=avg_var, decay=decay, axis=self.axis,
+                tensor_layout=self.tensor_layout)
         else:
             # Use running average statistics or fine-tuned statistics.
             mean = self.avg_mean
             var = self.avg_var
             ret = functions.fixed_batch_normalization(
-                x, gamma, beta, mean, var, self.eps, axis=self.axis)
+                x, gamma, beta, mean, var, self.eps, axis=self.axis,
+                tensor_layout=self.tensor_layout)
         return ret
 
     def start_finetuning(self):

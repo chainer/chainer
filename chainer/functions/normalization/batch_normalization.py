@@ -8,6 +8,7 @@ from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import configuration
 from chainer import function_node
+from chainer import utils
 from chainer.utils import argument
 from chainer.utils import collections_abc
 from chainer.utils import type_check
@@ -18,17 +19,24 @@ if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
     libcudnn = cuda.libcudnn
     _cudnn_version = cuda.cuda.cudnn.getVersion()
+    memory = cuda.cuda.memory
+
+    _g_one = numpy.array(1, dtype=numpy.float32).ctypes
+    _g_zero = numpy.array(0, dtype=numpy.float32).ctypes
 
 
-def _compute_axis(x_ndim, gamma_ndim=1, axis=None):
+def _compute_axis(x_ndim, gamma_ndim=1, axis=None, tensor_layout='NCHW'):
     if axis is None:
-        axis = (0,) + tuple(range(gamma_ndim + 1, x_ndim))
+        if tensor_layout == 'NHWC' and x_ndim == 4:
+            axis = (0, 1, 2)
+        else:
+            axis = (0,) + tuple(range(gamma_ndim + 1, x_ndim))
     return axis
 
 
 # Computes a complementary set of axis
-def _compute_key_axis(x_ndim, gamma_ndim=1, axis=None):
-    axis = _compute_axis(x_ndim, gamma_ndim, axis)
+def _compute_key_axis(x_ndim, gamma_ndim=1, axis=None, tensor_layout='NCHW'):
+    axis = _compute_axis(x_ndim, gamma_ndim, axis, tensor_layout)
     key_axis = tuple([i for i in range(x_ndim) if i not in axis])
     return key_axis
 
@@ -38,7 +46,8 @@ class BatchNormalization(function_node.FunctionNode):
     mean = None
     inv_std = None
 
-    def __init__(self, eps=2e-5, mean=None, var=None, decay=0.9, axis=None):
+    def __init__(self, eps=2e-5, mean=None, var=None, decay=0.9, axis=None,
+                 tensor_layout='NCHW'):
         self.running_mean = mean
         self.running_var = var
 
@@ -63,6 +72,7 @@ class BatchNormalization(function_node.FunctionNode):
         elif axis is not None:
             raise RuntimeError('axis must be int, tuple of int or None')
         self.axis = axis
+        self.tensor_layout = tensor_layout
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 3)
@@ -75,11 +85,13 @@ class BatchNormalization(function_node.FunctionNode):
         )
         _x_ndim = type_check.eval(x_type.ndim)
         _gamma_ndim = type_check.eval(gamma_type.ndim)
-        _axis = _compute_axis(_x_ndim, _gamma_ndim, self.axis)
+        _axis = _compute_axis(_x_ndim, _gamma_ndim, self.axis,
+                              self.tensor_layout)
         type_check.expect(
             x_type.ndim >= len(_axis),
         )
-        _key_axis = _compute_key_axis(_x_ndim, _gamma_ndim, _axis)
+        _key_axis = _compute_key_axis(_x_ndim, _gamma_ndim, _axis,
+                                      self.tensor_layout)
         type_check.expect(
             gamma_type.ndim == len(_key_axis),
         )
@@ -114,11 +126,13 @@ class BatchNormalization(function_node.FunctionNode):
         return y,
 
     def forward(self, inputs):
-        self.retain_inputs((0, 1))
+        self.retain_inputs((0, 1, 2))
         x, gamma, beta = inputs
 
-        self.axis = _compute_axis(x.ndim, gamma.ndim, self.axis)
-        self.key_axis = _compute_key_axis(x.ndim, gamma.ndim, self.axis)
+        self.axis = _compute_axis(x.ndim, gamma.ndim, self.axis,
+                                  self.tensor_layout)
+        self.key_axis = _compute_key_axis(x.ndim, gamma.ndim, self.axis,
+                                          self.tensor_layout)
 
         if all(x.shape[i] == 1 for i in self.axis):
             if 0 in self.axis:
@@ -151,10 +165,20 @@ class BatchNormalization(function_node.FunctionNode):
         expander = tuple(expander)
         self.expander = expander
 
-        self.mode = _BNMode(x, gamma, self.key_axis)
+        self.mode = _BNMode(x, gamma, self.key_axis,
+                            tensor_layout=self.tensor_layout)
         xp = backend.get_array_module(x)
         self.use_cudnn = self.mode.can_use_cudnn(xp)
         self.use_ideep = self.mode.can_use_ideep()
+
+        self.use_cudnn_ex = False
+        if (self.use_cudnn and
+                x.dtype == numpy.float16 and
+                gamma.dtype == numpy.float32 and
+                self.tensor_layout == 'NHWC' and
+                gamma.shape[0] % 4 == 0 and
+                _cudnn_version >= 7400):
+            self.use_cudnn_ex = True
 
         if self.use_ideep:
             # TODO(niboshi): Refactor iDeep part into a separate method
@@ -198,6 +222,63 @@ class BatchNormalization(function_node.FunctionNode):
                     self.running_var *= self.decay
                     self.running_var += self.var * adjust * (1 - self.decay)
 
+        elif self.use_cudnn_ex:
+            if self.running_mean is None:
+                self.running_mean = xp.zeros_like(gamma)
+                self.running_var = xp.zeros_like(gamma)
+
+            x = cuda.cupy.ascontiguousarray(x)
+            gamma = cuda.cupy.ascontiguousarray(gamma)
+            beta = cuda.cupy.ascontiguousarray(beta)
+
+            handle = cudnn.get_handle()
+            x_desc = cudnn.create_tensor_descriptor(x,
+                                                    libcudnn.CUDNN_TENSOR_NHWC)
+            self.cudnn_bn_mode = libcudnn.CUDNN_BATCHNORM_SPATIAL_PERSISTENT
+            self.act_desc = cudnn.create_activation_descriptor(
+                libcudnn.CUDNN_ACTIVATION_RELU)  # dummy
+            self.cudnn_bn_ops = libcudnn.CUDNN_BATCHNORM_OPS_BN
+            derivedBnDesc = cudnn.create_uninitialized_tensor_descriptor()
+            libcudnn.deriveBNTensorDescriptor(derivedBnDesc.value,
+                                              x_desc.value, self.cudnn_bn_mode)
+            running_mean = self.running_mean
+            running_var = self.running_var
+
+            _alpha = _g_one
+            _beta = _g_zero
+            y = cuda.cupy.empty_like(x)
+            factor = 1 - self.decay
+
+            self.save_mean = xp.empty_like(gamma)
+            self.save_inv_std = xp.empty_like(gamma)
+
+            workspace_size = libcudnn.getBatchNormalizationForwardTrainingExWorkspaceSize(  # NOQA
+                handle, self.cudnn_bn_mode, self.cudnn_bn_ops, x_desc.value,
+                x_desc.value, x_desc.value, derivedBnDesc.value,
+                self.act_desc.value)
+            workspace = memory.alloc(workspace_size)
+
+            self.reservespace_size = libcudnn.getBatchNormalizationTrainingExReserveSpaceSize(  # NOQA
+                handle, self.cudnn_bn_mode, self.cudnn_bn_ops,
+                self.act_desc.value, x_desc.value)
+            self.reservespace = memory.alloc(self.reservespace_size)
+
+            libcudnn.batchNormalizationForwardTrainingEx(
+                handle, self.cudnn_bn_mode, self.cudnn_bn_ops,
+                _alpha.data, _beta.data,
+                x_desc.value, x.data.ptr,
+                x_desc.value, 0,  # null
+                x_desc.value, y.data.ptr,
+                derivedBnDesc.value,
+                gamma.data.ptr, beta.data.ptr,
+                factor,
+                running_mean.data.ptr, running_var.data.ptr,
+                self.eps,
+                self.save_mean.data.ptr, self.save_inv_std.data.ptr,
+                self.act_desc.value,
+                workspace.ptr, workspace_size,
+                self.reservespace.ptr, self.reservespace_size)
+
         elif self.use_cudnn:
             if self.running_mean is not None:
                 mean = self.running_mean
@@ -210,11 +291,14 @@ class BatchNormalization(function_node.FunctionNode):
             # self.mean and self.inv_std are used as buffers to save
             # intermediate results computed during forward pass. These buffers
             # are used to speed-up backward pass.
+            cudnn_tensor_layout = utils.get_cudnn_tensor_layout(
+                self.tensor_layout)
             y, self.mean, self.inv_std = (
                 cudnn.batch_normalization_forward_training(
                     x, gamma, beta, mean, var, None, None,
                     self.eps, self.decay, self.mode.is_for_conv2d,
-                    self.mode.get_cudnn_mode(), chainer.is_debug()))
+                    self.mode.get_cudnn_mode(), chainer.is_debug(),
+                    cudnn_tensor_layout))
         else:
             # Generic CPU and GPU implementation
 
@@ -258,7 +342,7 @@ class BatchNormalization(function_node.FunctionNode):
         return y,
 
     def backward(self, indexes, grad_outputs):
-        x, gamma = self.get_retained_inputs()
+        x, gamma, beta = self.get_retained_inputs()
         gy, = grad_outputs
 
         if self.use_ideep:
@@ -267,30 +351,37 @@ class BatchNormalization(function_node.FunctionNode):
         else:
             var = None
 
-        f = BatchNormalizationGrad(
-            self.eps, self.use_cudnn, self.mode, self.expander, self.axis,
-            self.mean, var, self.inv_std, self.key_axis)
-        return f.apply((x, gamma, gy))
+        f = BatchNormalizationGrad(self, var)
+        return f.apply((x, gamma, beta, gy))
 
 
 class BatchNormalizationGrad(function_node.FunctionNode):
 
-    def __init__(self, eps, use_cudnn, mode, expander, axis, mean, var,
-                 inv_std, key_axis):
-        self.eps = eps
-        self.use_cudnn = use_cudnn
-        self.use_ideep = mode.can_use_ideep()
-        self.mode = mode
-        self.expander = expander
-        self.axis = axis
-        self.mean = mean
+    def __init__(self, bnorm, var):
+        self.eps = bnorm.eps
+        self.use_cudnn = bnorm.use_cudnn
+        self.use_ideep = bnorm.use_ideep
+        self.mode = bnorm.mode
+        self.expander = bnorm.expander
+        self.axis = bnorm.axis
+        self.mean = bnorm.mean
         self.var = var  # Only used in iDeep implementation
-        self.inv_std = inv_std
-        self.key_axis = key_axis
+        self.inv_std = bnorm.inv_std
+        self.key_axis = bnorm.key_axis
+        self.tensor_layout = bnorm.tensor_layout
+        self.use_cudnn_ex = bnorm.use_cudnn_ex
+        if self.use_cudnn_ex:
+            self.act_desc = bnorm.act_desc
+            self.cudnn_bn_mode = bnorm.cudnn_bn_mode
+            self.cudnn_bn_ops = bnorm.cudnn_bn_ops
+            self.save_mean = bnorm.save_mean
+            self.save_inv_std = bnorm.save_inv_std
+            self.reservespace_size = bnorm.reservespace_size
+            self.reservespace = bnorm.reservespace
 
     def forward(self, inputs):
-        self.retain_inputs((0, 1, 2))
-        x, gamma, gy = inputs
+        self.retain_inputs((0, 1, 2, 3))
+        x, gamma, beta, gy = inputs
         expander = self.expander
         xp = backend.get_array_module(x)
 
@@ -316,11 +407,55 @@ class BatchNormalizationGrad(function_node.FunctionNode):
             if expand_dim:
                 gx = numpy.squeeze(gx, axis=(2, 3))
 
+        elif self.use_cudnn_ex:
+
+            x = cuda.cupy.ascontiguousarray(x)
+            gamma = cuda.cupy.ascontiguousarray(gamma)
+            beta = cuda.cupy.ascontiguousarray(beta)
+            gy = cuda.cupy.ascontiguousarray(gy)
+            handle = cudnn.get_handle()
+            x_desc = cudnn.create_tensor_descriptor(x,
+                                                    libcudnn.CUDNN_TENSOR_NHWC)
+            derivedBnDesc = cudnn.create_uninitialized_tensor_descriptor()
+            libcudnn.deriveBNTensorDescriptor(derivedBnDesc.value,
+                                              x_desc.value, self.cudnn_bn_mode)
+
+            one = _g_one
+            zero = _g_zero
+            gx = cuda.cupy.empty_like(x)
+            ggamma = cuda.cupy.empty_like(gamma)
+            gbeta = cuda.cupy.empty_like(gamma)
+
+            workspace_size = libcudnn.getBatchNormalizationBackwardExWorkspaceSize(  # NOQA
+                handle, self.cudnn_bn_mode, self.cudnn_bn_ops, x_desc.value,
+                x_desc.value, x_desc.value, x_desc.value, x_desc.value,
+                derivedBnDesc.value, self.act_desc.value)
+            workspace = memory.alloc(workspace_size)
+
+            libcudnn.batchNormalizationBackwardEx(
+                handle, self.cudnn_bn_mode, self.cudnn_bn_ops,
+                one.data, zero.data, one.data, zero.data,
+                x_desc.value, x.data.ptr,
+                x_desc.value, 0,  # null
+                x_desc.value, gy.data.ptr,
+                x_desc.value, 0,  # null
+                x_desc.value, gx.data.ptr,
+                derivedBnDesc.value,
+                gamma.data.ptr, beta.data.ptr,
+                ggamma.data.ptr, gbeta.data.ptr,
+                self.eps,
+                self.save_mean.data.ptr, self.save_inv_std.data.ptr,
+                self.act_desc.value,
+                workspace.ptr, workspace_size,
+                self.reservespace.ptr, self.reservespace_size)
+
         elif self.use_cudnn:
+            cudnn_tensor_layout = utils.get_cudnn_tensor_layout(
+                self.tensor_layout)
             gx, ggamma, gbeta = cudnn.batch_normalization_backward(
                 x, gamma, gy, self.mean, self.inv_std, self.eps,
                 self.mode.is_for_conv2d, self.mode.get_cudnn_mode(),
-                chainer.is_debug())
+                chainer.is_debug(), cudnn_tensor_layout)
         else:
             # CPU and GPU implementation
             if isinstance(gy, intel64.mdarray):
@@ -350,7 +485,7 @@ class BatchNormalizationGrad(function_node.FunctionNode):
                     ''', 'bn_bwd')(gy, x_hat, gamma[expander],
                                    self.inv_std[expander], ggamma[expander],
                                    gbeta[expander], inv_m)
-        self.retain_inputs((0, 1, 2))
+        self.retain_inputs((0, 1, 2, 3))
         self.retain_outputs((0, 1))
         return gx, ggamma, gbeta
 
@@ -358,7 +493,7 @@ class BatchNormalizationGrad(function_node.FunctionNode):
         F = chainer.functions
         expander = self.expander
 
-        x, gamma, gy = self.get_retained_inputs()
+        x, gamma, beta, gy = self.get_retained_inputs()
         gx1, ggamma1 = self.get_retained_outputs()
         ggx1, gggamma1, ggbeta1 = grad_outputs
         xp = backend.get_array_module(x)
@@ -406,7 +541,7 @@ class FixedBatchNormalization(function_node.FunctionNode):
     inv_std = None
     inv_var = None
 
-    def __init__(self, eps=2e-5, axis=None):
+    def __init__(self, eps=2e-5, axis=None, tensor_layout='NCHW'):
         # Note: cuDNN requires that eps be greater than or equals to
         # CUDNN_BN_MIN_EPSILON. Otherwise, an error will occur.
         # See CUDNN_BN_MIN_EPSILON value in cudnn.h to verify minimum allowable
@@ -427,6 +562,7 @@ class FixedBatchNormalization(function_node.FunctionNode):
         elif axis is not None:
             raise RuntimeError('axis must be int, tuple of int or None')
         self.axis = axis
+        self.tensor_layout = tensor_layout
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 5)
@@ -444,11 +580,13 @@ class FixedBatchNormalization(function_node.FunctionNode):
         )
         _x_ndim = type_check.eval(x_type.ndim)
         _gamma_ndim = type_check.eval(gamma_type.ndim)
-        _axis = _compute_axis(_x_ndim, _gamma_ndim, self.axis)
+        _axis = _compute_axis(_x_ndim, _gamma_ndim, self.axis,
+                              self.tensor_layout)
         type_check.expect(
             x_type.ndim >= len(_axis),
         )
-        _key_axis = _compute_key_axis(_x_ndim, _gamma_ndim, _axis)
+        _key_axis = _compute_key_axis(_x_ndim, _gamma_ndim, _axis,
+                                      self.tensor_layout)
         type_check.expect(
             gamma_type.ndim == len(_key_axis),
         )
@@ -478,8 +616,10 @@ class FixedBatchNormalization(function_node.FunctionNode):
         x, gamma, beta, mean, var = inputs
         xp = backend.get_array_module(x)
 
-        self.axis = _compute_axis(x.ndim, gamma.ndim, self.axis)
-        self.key_axis = _compute_key_axis(x.ndim, gamma.ndim, self.axis)
+        self.axis = _compute_axis(x.ndim, gamma.ndim, self.axis,
+                                  self.tensor_layout)
+        self.key_axis = _compute_key_axis(x.ndim, gamma.ndim, self.axis,
+                                          self.tensor_layout)
 
         # expander inserts singleton dimensions to gamma and beta so that they
         # can be broadcasted with x.
@@ -489,7 +629,8 @@ class FixedBatchNormalization(function_node.FunctionNode):
         expander = tuple(expander)
         self.expander = expander
 
-        mode = _BNMode(x, gamma, self.key_axis, inference=True)
+        mode = _BNMode(x, gamma, self.key_axis, inference=True,
+                       tensor_layout=self.tensor_layout)
         if mode.can_use_ideep():
             # TODO(niboshi): Refactor iDeep part into a separate method
             expand_dim = False
@@ -515,9 +656,12 @@ class FixedBatchNormalization(function_node.FunctionNode):
             self.inv_std = None
 
         elif mode.can_use_cudnn(xp):
+            cudnn_tensor_layout = utils.get_cudnn_tensor_layout(
+                self.tensor_layout)
             y = cudnn.batch_normalization_forward_inference(
                 x, gamma, beta, mean, var, self.eps,
-                mode.is_for_conv2d, mode.get_cudnn_mode())
+                mode.is_for_conv2d, mode.get_cudnn_mode(),
+                cudnn_tensor_layout)
         else:
             # Generic CPU and GPU implementation
             gamma = gamma[expander]
@@ -540,12 +684,14 @@ class FixedBatchNormalization(function_node.FunctionNode):
 
 class FixedBatchNormalizationGrad(function_node.FunctionNode):
 
-    def __init__(self, eps, expander, axis, inv_std, inv_var):
+    def __init__(self, eps, expander, axis, inv_std, inv_var,
+                 tensor_layout='NCHW'):
         self.eps = eps
         self.expander = expander
         self.axis = axis
         self.inv_std = inv_std  # may be None
         self.inv_var = inv_var  # may be None
+        self.tensor_layout = tensor_layout
 
     def forward(self, inputs):
         self.retain_inputs((0, 1, 2, 4))
@@ -630,7 +776,8 @@ class FixedBatchNormalizationGrad(function_node.FunctionNode):
 
 class _BNMode(object):
 
-    def __init__(self, x, gamma, key_axis, inference=False):
+    def __init__(self, x, gamma, key_axis, inference=False,
+                 tensor_layout='NCHW'):
         is_gamma_1d = gamma.ndim == 1
         # cuDNN only supports these tensor dimensions because they are
         # the most commonly used. If there is a need to support other
@@ -638,8 +785,14 @@ class _BNMode(object):
         # into a 2-dim array with channels as second dim and m=<product
         # of all dimensions except the 2nd dimension> as the first
         # dimension.
-        self.is_for_conv2d = is_gamma_1d and x.ndim == 4 and key_axis[0] == 1
-        self.is_for_linear = is_gamma_1d and key_axis[0] == x.ndim - 1
+        if tensor_layout == 'NHWC':
+            axis0 = 3
+        else:
+            axis0 = 1
+        self.is_for_conv2d = (is_gamma_1d and
+                              x.ndim == 4 and key_axis[0] == axis0)
+        self.is_for_linear = (self.is_for_conv2d is False and
+                              is_gamma_1d and key_axis[0] == x.ndim - 1)
         self.cudnn_dim_ok = self.is_for_conv2d or self.is_for_linear
         self.cudnn_dtype_ok = self.is_for_conv2d or (x.dtype != numpy.float16)
         self.ideep_ok = is_gamma_1d and intel64.inputs_all_ready((x,))
@@ -786,17 +939,21 @@ running_var=None, decay=0.9, axis=None)
 
     """
 
-    eps, running_mean, running_var, decay, axis = argument.parse_kwargs(
+    eps, running_mean, running_var, decay, axis, tensor_layout = argument.parse_kwargs(  # NOQA
         kwargs, ('eps', 2e-5), ('running_mean', None),
         ('running_var', None), ('decay', 0.9), ('axis', None),
+        ('tensor_layout', None),
         train='train argument is not supported anymore. '
         'Use chainer.using_config')
+    if tensor_layout is None:
+        tensor_layout = configuration.config.tensor_layout
 
     return BatchNormalization(eps, running_mean, running_var, decay,
-                              axis).apply((x, gamma, beta))[0]
+                              axis, tensor_layout).apply((x, gamma, beta))[0]
 
 
-def fixed_batch_normalization(x, gamma, beta, mean, var, eps=2e-5, axis=None):
+def fixed_batch_normalization(x, gamma, beta, mean, var, eps=2e-5, axis=None,
+                              tensor_layout=None):
     """Batch normalization function with fixed statistics.
 
     This is a variant of batch normalization, where the mean and variance
@@ -829,5 +986,8 @@ def fixed_batch_normalization(x, gamma, beta, mean, var, eps=2e-5, axis=None):
        :class:`~chainer.links.BatchNormalization`
 
     """
-    return FixedBatchNormalization(eps, axis).apply((x, gamma, beta, mean,
-                                                     var))[0]
+    if tensor_layout is None:
+        tensor_layout = configuration.config.tensor_layout
+
+    return FixedBatchNormalization(
+        eps, axis, tensor_layout).apply((x, gamma, beta, mean, var))[0]
