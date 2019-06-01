@@ -535,6 +535,88 @@ void InitChainerxManipulation(pybind11::module& m) {
           py::arg("ary"),
           py::arg("indices_or_sections"),
           py::arg("axis") = 0);
+    m.def("dsplit",
+          [](const ArrayBodyPtr& ary, py::handle indices_or_sections) {
+              auto split_sections = [](const ArrayBodyPtr& ary, int64_t sections) { return MoveArrayBodies(DSplit(Array{ary}, sections)); };
+              auto split_indices = [](const ArrayBodyPtr& ary, const std::vector<int64_t>& indices) {
+                  return MoveArrayBodies(DSplit(Array{ary}, indices));
+              };
+
+              // Converts an python float to sections (int64_t).
+              // Raises ValueError if the value has non-zero fraction.
+              auto pyfloat_to_sections_or_value_error = [](py::handle num) {
+                  CHAINERX_ASSERT(py::isinstance<py::float_>(num));
+                  double num_fp = py::cast<double>(num);
+                  auto num_int = static_cast<int64_t>(num_fp);
+                  if (static_cast<double>(num_int) != num_fp) {
+                      throw py::value_error{"Sections must be an integer."};
+                  }
+                  return num_int;
+              };
+
+              // sections: int
+              if (py::isinstance<py::int_>(indices_or_sections)) {
+                  int64_t sections = py::cast<int64_t>(indices_or_sections);
+                  return split_sections(ary, sections);
+              }
+              // sections: float
+              if (py::isinstance<py::float_>(indices_or_sections)) {
+                  int64_t sections = pyfloat_to_sections_or_value_error(indices_or_sections);
+                  return split_sections(ary, sections);
+              }
+              // numpy.ndarray
+              if (py::isinstance<py::array>(indices_or_sections)) {
+                  py::array np_ios = py::cast<py::array>(indices_or_sections);
+                  if (np_ios.ndim() >= 2) {
+                      throw py::value_error{std::string{"Too many dimensions of indices: "} + std::to_string(np_ios.ndim())};
+                  }
+                  // sections: scalar
+                  if (np_ios.ndim() == 0) {
+                      int64_t sections{};
+                      py::object scalar_np = np_ios.attr("tolist")();
+                      if (py::isinstance<py::int_>(scalar_np)) {
+                          sections = py::cast<int64_t>(scalar_np);
+                      } else if (py::isinstance<py::float_>(scalar_np)) {
+                          sections = pyfloat_to_sections_or_value_error(scalar_np);
+                      } else {
+                          throw py::type_error{"Sections must be an integer."};
+                      }
+                      return split_sections(ary, sections);
+                  }
+
+                  // indices: (0,)-shape
+                  if (np_ios.size() == 0) {
+                      return split_indices(ary, {});
+                  }
+
+                  if (np_ios.dtype().kind() != 'i') {
+                      throw py::type_error{std::string{"Indices must be integers."}};
+                  }
+                  // indices: non-scalar
+                  std::vector<int64_t> indices{};
+                  py::list indices_pylist = np_ios.attr("tolist")();
+                  for (py::handle item : indices_pylist) {
+                      indices.emplace_back(py::cast<int64_t>(item));
+                  }
+
+                  return split_indices(ary, indices);
+              }
+              // indices: sequence
+              if (py::isinstance<py::sequence>(indices_or_sections)) {
+                  std::vector<int64_t> indices{};
+                  try {
+                      indices = py::cast<std::vector<int64_t>>(indices_or_sections);
+                  } catch (const py::cast_error& e) {
+                      throw py::type_error{std::string{"Indices not understood: "} + py::cast<std::string>(py::repr(indices_or_sections))};
+                  }
+
+                  return split_indices(ary, indices);
+              }
+              throw py::type_error{std::string{"indices_or_sections not understood: "} +
+                                   py::cast<std::string>(py::repr(indices_or_sections))};
+          },
+          py::arg("ary"),
+          py::arg("indices_or_sections"));
 }
 
 void InitChainerxMath(pybind11::module& m) {
