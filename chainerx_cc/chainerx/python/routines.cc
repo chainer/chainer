@@ -980,10 +980,10 @@ void InitChainerxPooling(pybind11::module& m) {
 }
 
 void InitChainerxActivation(pybind11::module& m) {
-      m.def("leaky_relu",
-            [](const ArrayBodyPtr& x, Scalar slope) { return MoveArrayBody(LeakyRelu(Array{x}, slope)); },
-            py::arg("x"),
-            py::arg("slope") = 0.2);
+    m.def("leaky_relu",
+          [](const ArrayBodyPtr& x, Scalar slope) { return MoveArrayBody(LeakyRelu(Array{x}, slope)); },
+          py::arg("x"),
+          py::arg("slope") = 0.2);
 }
 
 }  // namespace
