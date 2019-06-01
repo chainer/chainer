@@ -696,6 +696,26 @@ std::vector<Array> Split(const Array& ary, std::vector<int64_t> indices, int8_t 
     return out;
 }
 
+std::vector<Array> DSplit(const Array& ary, int64_t sections) {
+    if (sections < 1) {
+        throw DimensionError("Number of sections must be larger than 0.");
+    }
+
+    if (ary.ndim() < 3) {
+        throw DimensionError("dsplit only works on arrays of 3 or more dimensions.");
+    }
+
+    return Split(ary, sections, 2);
+}
+
+std::vector<Array> DSplit(const Array& ary, std::vector<int64_t> indices) {
+    if (ary.ndim() < 3) {
+        throw DimensionError("dsplit only works on arrays of 3 or more dimensions.");
+    }
+
+    return Split(ary, indices, 2);
+}
+
 Array Swapaxes(const Array& a, int8_t axis1, int8_t axis2) {
     Shape shape = a.shape();
     Strides strides = a.strides();
