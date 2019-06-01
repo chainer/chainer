@@ -116,6 +116,12 @@ void MaximumImpl(const Array& x1, const Array& x2, const Array& out) { IfGreater
 
 }  // namespace
 
+Array IfGreaterElse(const Array& x1, const Array& x2, const Array& pos, const Array& neg) {
+    Array out = ZerosLike(x1, x1.device());
+    IfGreaterElseImpl(x1, x2, pos, neg, out);
+    return out;
+}
+
 Array Sqrt(const Array& x) {
     Dtype dtype = internal::GetMathResultDtype(x.dtype());
     Array out = Empty(x.shape(), dtype, x.device());

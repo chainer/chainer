@@ -34,6 +34,11 @@ Array Relu(const Array& x) {
     Dtype dtype = internal::GetMathResultDtype(x.dtype());
     const Array& x_cast = x.dtype() == dtype ? x : x.AsType(dtype);
     return Maximum(0, x_cast);
+
+Array LeakyRelu(const Array& x, Scalar slope) {
+    Array zero = ZerosLike(x, x.device());
+    return IfGreaterElse(x, zero, x, slope * x);
+
 }
 
 }  // namespace chainerx

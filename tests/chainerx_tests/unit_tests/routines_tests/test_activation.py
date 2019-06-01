@@ -73,6 +73,38 @@ _in_out_dtypes_math_functions = _in_out_float_dtypes_math_functions + [
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
+class TestLeakyRelu(op_utils.OpTest):
+
+    slope = 0.2
+
+    def setup(self, shape, float_dtype):
+        self.dtype = float_dtype
+        self.shape = shape
+
+        if float_dtype == 'float16':
+            self.check_forward_options.update({'atol': 1e-4, 'rtol': 1e-3})
+            self.check_backward_options.update({'atol': 1e-2, 'rtol': 5e-2})
+            self.check_double_backward_options.update(
+                {'atol': 1e-2, 'rtol': 5e-2})
+
+    def generate_inputs(self):
+        dtype = self.dtype
+        shape = self.shape
+        x = array_utils.create_dummy_ndarray(numpy, shape, dtype)
+        return x,
+
+    def forward_chainerx(self, inputs):
+        x, = inputs
+        y = chainerx.leaky_relu(x, self.slope)
+        return y,
+
+    def forward_expected(self, inputs):
+        x, = inputs
+        expected = numpy.where(x >= 0, x, x * self.slope)
+        return expected.astype(self.dtype),
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
     # Special shapes
     chainer.testing.product({
