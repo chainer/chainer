@@ -44,6 +44,12 @@ __device__ inline float Arccosh(float x) { return std::acoshf(x); }
 
 __device__ inline cuda::Float16 Arccosh(cuda::Float16 x) { return cuda::Float16{std::acoshf(static_cast<float>(x))}; }
 
+__device__ inline double Log2(double x) { return std::log2(x); }
+
+__device__ inline float Log2(float x) { return std::log2f(x); }
+
+__device__ inline cuda::Float16 Log2(cuda::Float16 x) { return cuda::Float16{std::log2f(static_cast<float>(x))}; }
+
 __device__ inline double Log1p(double x) { return std::log1p(x); }
 
 __device__ inline float Log1p(float x) { return std::log1pf(x); }
