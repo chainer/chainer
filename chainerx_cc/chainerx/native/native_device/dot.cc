@@ -154,7 +154,7 @@ public:
 
 #ifdef CHAINERX_ENABLE_BLAS
         if (out.dtype() == Dtype::kFloat32 || out.dtype() == Dtype::kFloat64) {
-            Gemm(a.dtype() == out.dtype() ? a : a.AsType(out.dtype()), b.dtype() == out.dtype() ? b : b.AsType(out.dtype()), out);
+            Gemm(a.AsType(out.dtype(), false), b.AsType(out.dtype(), false), out);
             return;
         }
 
