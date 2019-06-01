@@ -75,11 +75,14 @@ class NormalizeL2(function_node.FunctionNode):
         return gx,
 
 
-def normalize(x, eps=1e-5, axis=1):
-    """Normalize input by its L2 norm (a.k.a.\\  Euclidean norm).
+def normalize(x, eps=1e-5, axis=None):
+    """Normalize input by L2 norm (a.k.a.\\  Euclidean norm) over specified \
+axis or axes.
 
-    This function implements L2 normalization on a vector along the given axis.
-    No reduction is done along the normalization axis.
+    This function implements L2 normalization on a sample along the given
+    axis/axes. No reduction is done along the normalization axis.
+    For an :math:`N` dimensional input, the input is reshaped into
+    2 dimension before normalization if `axis` is `None`.
 
     In the case when :obj:`axis=1` and :math:`\\mathbf{x}` is a matrix of
     dimension :math:`(N, K)`, where :math:`N` and :math:`K` denote mini-batch
@@ -98,7 +101,7 @@ def normalize(x, eps=1e-5, axis=1):
 
     Args:
         x (:class:`~chainer.Variable` or :ref:`ndarray`):
-            `N` dimensional output variable. The first
+            multi-dimensional output variable. The first
             dimension is assumed to be the mini-batch dimension.
         eps (float): Epsilon value for numerical stability.
         axis (int or tuple of ints): Axis along which to normalize.
@@ -108,4 +111,6 @@ def normalize(x, eps=1e-5, axis=1):
         as :math:`x`.
 
     """
+    if axis is None:
+        axis = tuple(range(1, x.ndim))
     return NormalizeL2(eps, axis).apply((x,))[0]
