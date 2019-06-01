@@ -838,6 +838,30 @@ Note:
 """)
 
     _docs.set_doc(
+        chainerx.dsplit,
+        """dsplit(ary, indices_or_sections)
+Split array into multiple sub-arrays along the 3rd axis (depth).
+
+Args:
+    ary (~chainerx.ndarray): Array to split.
+    indices_or_sections (int or sequence of ints): A value indicating how to
+        divide the axis. If it is an integer, then is treated as the number of
+        sections, and the axis is evenly divided. Otherwise, the integers
+        indicate indices to split at. Note that a sequence on the device
+        memory is not allowed.
+
+Returns:
+    list of :class:`~chainerx.ndarray`\\ s: A list of sub arrays. Each array \
+is a partial view of the input array.
+
+Note:
+    During backpropagation, this function propagates the gradients of the
+    output arrays to the input array ``ary``.
+
+.. seealso:: :func:`numpy.dsplit`
+""")
+
+    _docs.set_doc(
         chainerx.swapaxes,
         """swapaxes(a, axis1, axis2)
 Interchange two axes of an array.
