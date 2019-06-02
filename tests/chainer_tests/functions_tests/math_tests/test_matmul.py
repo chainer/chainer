@@ -3,10 +3,10 @@ import unittest
 import numpy
 
 import chainer
+from chainer.backend import CpuDevice
 import chainer.functions as F
 from chainer import testing
 from chainer.utils import type_check
-from chainer.backend import CpuDevice
 
 
 @testing.parameterize(*testing.product_dict(

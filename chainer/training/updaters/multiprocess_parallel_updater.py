@@ -1,6 +1,7 @@
 import multiprocessing
 import warnings
 
+import numpy
 import six
 
 import chainer
@@ -15,8 +16,6 @@ try:
     _available = True
 except Exception:
     _available = False
-
-import numpy
 
 
 class _Worker(multiprocessing.Process):

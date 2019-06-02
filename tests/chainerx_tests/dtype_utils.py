@@ -49,6 +49,12 @@ result_numeric_dtypes_two_arrays = _permutate_dtype_mapping([
 ])
 
 
+result_comparable_dtypes_two_arrays = [
+    # Bools.
+    (('bool_', 'bool_'), 'bool_'),
+] + result_numeric_dtypes_two_arrays
+
+
 result_dtypes_two_arrays = _permutate_dtype_mapping([
     # Bools.
     (('bool_', 'bool_'), 'bool_'),
@@ -90,6 +96,65 @@ result_dtypes_three_arrays = _permutate_dtype_mapping([
     (('bool_', 'float16', 'float32'), 'float32'),
     (('bool_', 'bool_', 'float64'), 'float64'),
 ])
+
+
+result_float_dtypes_array_scalar = [
+    (('float16',), float, 'float16'),
+    (('float32',), float, 'float32'),
+    (('float64',), float, 'float64'),
+    (('float16',), numpy.float64, 'float16'),
+    (('float64',), numpy.float16, 'float64'),
+]
+
+
+result_numeric_dtypes_array_scalar = [
+    # Float scalar.
+    (('int8',), float, 'float32'),
+    (('int16',), float, 'float32'),
+    (('int32',), float, 'float32'),
+    (('int64',), float, 'float32'),
+    (('uint8',), float, 'float32'),
+    (('int8',), numpy.float32, 'float32'),
+    (('int64',), numpy.float16, 'float32'),
+    (('uint8',), numpy.float64, 'float32'),
+    # Int scalar.
+    (('int8',), int, 'int8'),
+    (('int16',), int, 'int16'),
+    (('int32',), int, 'int32'),
+    (('int64',), int, 'int64'),
+    (('uint8',), int, 'uint8'),
+    (('float16',), int, 'float16'),
+    (('float32',), int, 'float32'),
+    (('float64',), int, 'float64'),
+    (('int16',), numpy.int16, 'int16'),
+    (('uint8',), numpy.int8, 'uint8'),
+    (('float64',), numpy.int8, 'float64'),
+    (('float16',), numpy.int64, 'float16'),
+] + result_float_dtypes_array_scalar
+
+
+result_comparable_dtypes_array_scalar = [
+    (('bool_',), bool, 'bool_'),
+    (('bool_',), numpy.bool_, 'bool_'),
+] + result_numeric_dtypes_array_scalar
+
+
+result_dtypes_array_scalar = [
+    # Bool scalar.
+    (('bool_',), bool, 'bool_'),
+    (('int8',), bool, 'int8'),
+    (('int16',), bool, 'int16'),
+    (('int32',), bool, 'int32'),
+    (('int64',), bool, 'int64'),
+    (('uint8',), bool, 'uint8'),
+    (('float16',), bool, 'float16'),
+    (('float32',), bool, 'float32'),
+    (('float64',), bool, 'float64'),
+    (('bool_',), numpy.bool_, 'bool_'),
+    (('int16',), numpy.bool_, 'int16'),
+    (('uint8',), numpy.bool_, 'uint8'),
+    (('float32',), numpy.bool_, 'float32'),
+] + result_numeric_dtypes_array_scalar
 
 
 def cast_if_numpy_array(xp, array, chx_expected_dtype):

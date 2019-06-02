@@ -423,13 +423,22 @@ def test_backprop_multiple_graphs_non_existing(method):
 
         y = xs[0] * xs[1]
 
+        if method == 'backward':
+            chainerx.backward(y, backprop_id2)
+            assert xs[0].get_grad(backprop_id1) is None
+            assert xs[1].get_grad(backprop_id1) is None
+        elif method == 'grad':
+            grads = chainerx.grad([y], xs, backprop_id2)
+            assert len(grads) == 2
+            assert grads[0] is None
+            assert grads[1] is None
+        else:
+            assert False
+
         with pytest.raises(chainerx.ChainerxError):
-            if method == 'backward':
-                chainerx.backward(y, backprop_id2)
-            elif method == 'grad':
-                chainerx.grad([y], xs, backprop_id2)
-            else:
-                assert False
+            xs[0].get_grad(backprop_id2)
+        with pytest.raises(chainerx.ChainerxError):
+            xs[1].get_grad(backprop_id2)
 
 
 @parametrize_backprop('method0')

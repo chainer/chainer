@@ -11,9 +11,7 @@ from chainerx_tests import op_utils
 
 
 _expected_numeric_dtypes_comparison = [
-    (t1, t2)
-    for (t1, t2), _ in dtype_utils.result_dtypes_two_arrays
-    if all([numpy.dtype(t) != 'bool_' for t in (t1, t2)])
+    (t1, t2) for (t1, t2), _ in dtype_utils.result_numeric_dtypes_two_arrays
 ]
 
 
@@ -24,8 +22,8 @@ _expected_float_dtypes_comparison = [
 ]
 
 
-_expected_all_dtypes_comparison = _expected_numeric_dtypes_comparison + [
-    ('bool_', 'bool_'),
+_expected_all_dtypes_comparison = [
+    (t1, t2) for (t1, t2), _ in dtype_utils.result_comparable_dtypes_two_arrays
 ]
 
 
