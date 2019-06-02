@@ -92,7 +92,7 @@ public:
             int devInfo_h = 0;
             CheckCudaError(cudaMemcpy(&devInfo_h, devInfo, sizeof(int), cudaMemcpyDeviceToHost));
             if (devInfo_h != 0) {
-                std::cout << "Unsuccessful potrf execution\n\n" << "devInfo = " << devInfo_h << "\n\n";
+                throw ChainerxError{"Unsuccessfull putrf (Cholesky) execution. Info = ", devInfo_h};
             }
         };
 
