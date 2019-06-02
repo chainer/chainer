@@ -41,6 +41,12 @@ from chainer import utils
 class TestAbsoluteError(testing.FunctionTestCase):
 
     def setUp(self):
+        # Declare x0 and x1 here for `test_backward_non_default_gpu`
+        self.x0 = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        # Add sufficient margin to prevent computational error
+        diff = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        diff[abs(diff) < 0.02] = 0.5
+        self.x1 = numpy.asarray(self.x0 + diff)
         if self.dtype == numpy.float16:
             self.check_forward_options.update({'atol': 1e-3, 'rtol': 1e-3})
             self.check_backward_options.update({'atol': 5e-2, 'rtol': 5e-2})
@@ -48,12 +54,7 @@ class TestAbsoluteError(testing.FunctionTestCase):
                 {'atol': 5e-2, 'rtol': 5e-2})
 
     def generate_inputs(self):
-        x0 = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
-        # Add sufficient margin to prevent computational error
-        diff = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
-        diff[abs(diff) < 0.02] = 0.5
-        x1 = numpy.asarray(x0 + diff)
-        return (x0, x1)
+        return (self.x0, self.x1)
 
     def forward_expected(self, inputs):
         x0, x1 = inputs
