@@ -250,14 +250,16 @@ def _concat_arrays(arrays, padding, device=None):
         arr_concat = _concat_arrays_with_padding(arrays, padding)
     else:
         src_device = backend.get_device_from_array(arrays[0])
+        src_xp = src_device.xp
+        dst_xp = device.xp
         if (device is not None
-                and (src_device.xp is numpy
+                and (src_xp is numpy
                      or (src_device == device
-                         and device.xp is not chainerx))):
-            return device.xp.array(arrays)
+                         and dst_xp is not chainerx))):
+            arr_concat = dst_xp.asarray(arrays)
         else:
             with chainer.using_device(src_device):
-                arr_concat = src_device.xp.concatenate(
+                arr_concat = src_xp.concatenate(
                     [array[None] for array in arrays])
 
     if device is None:
