@@ -186,8 +186,8 @@ setup_kwargs = dict(
 
 
 build_chainerx = 0 != int(os.getenv('CHAINER_BUILD_CHAINERX', '0'))
-if os.getenv('READTHEDOCS', None) == 'True' \
-        and os.getenv('READTHEDOCS_PROJECT', None) == 'chainer':
+if (os.getenv('READTHEDOCS', None) == 'True'
+        and os.getenv('READTHEDOCS_PROJECT', None) == 'chainer'):
     os.environ['MAKEFLAGS'] = '-j2'
     build_chainerx = True
 
