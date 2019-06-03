@@ -19,7 +19,7 @@ namespace {
 
 CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(SqrtKernel, { out = chainerx::Sqrt(x); });
 
-CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(SquareKernel, { out = x * x; });
+CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_UNARY_KERNEL(SquareKernel, { out = x * x; }, VisitNumericDtype);
 
 CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(FabsKernel, { out = chainerx::Fabs(x); });
 
