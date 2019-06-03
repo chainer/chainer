@@ -27,7 +27,7 @@
 #include "chainerx/native/native_backend.h"
 #include "chainerx/op_node.h"
 #include "chainerx/routines/creation.h"
-#include "chainerx/routines/math.h"
+#include "chainerx/routines/explog.h"
 #include "chainerx/shape.h"
 #include "chainerx/testing/array.h"
 #include "chainerx/testing/array_check.h"
