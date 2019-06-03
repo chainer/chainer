@@ -64,6 +64,13 @@ public:
     virtual void Call(const Array& x1, Scalar x2, const Array& out) = 0;
 };
 
+class LeftShiftSAKernel : public Kernel {
+public:
+    static const char* name() { return "LeftShiftSA"; }
+
+    virtual void Call(Scalar x1, const Array& x2, const Array& out) = 0;
+};
+
 class RightShiftKernel : public Kernel {
 public:
     static const char* name() { return "RightShift"; }
@@ -76,6 +83,13 @@ public:
     static const char* name() { return "RightShiftAS"; }
 
     virtual void Call(const Array& x1, Scalar x2, const Array& out) = 0;
+};
+
+class RightShiftSAKernel : public Kernel {
+public:
+    static const char* name() { return "RightShiftSA"; }
+
+    virtual void Call(Scalar x1, const Array& x2, const Array& out) = 0;
 };
 
 }  // namespace chainerx

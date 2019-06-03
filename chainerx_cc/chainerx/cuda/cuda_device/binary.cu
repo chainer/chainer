@@ -123,6 +123,30 @@ public:
 
 CHAINERX_CUDA_REGISTER_KERNEL(LeftShiftASKernel, CudaLeftShiftASKernel);
 
+template <typename T>
+struct LeftShiftSAImpl {
+    using CudaType = cuda_internal::DataType<T>;
+    __device__ void operator()(int64_t /*i*/, CudaType x2, CudaType& out) { out = x1 << x2; }
+    CudaType x1;
+};
+
+class CudaLeftShiftSAKernel : public LeftShiftSAKernel {
+public:
+    void Call(Scalar x1, const Array& x2, const Array& out) override {
+        Device& device = x2.device();
+        device.CheckDevicesCompatible(x2, out);
+        const Array& x2_cast = x2.dtype() == out.dtype() ? x2 : x2.AsType(out.dtype());
+        CudaSetDeviceScope scope{device.index()};
+        VisitIntegralDtype(out.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            using CudaType = cuda_internal::DataType<T>;
+            Elementwise<const T, T>(LeftShiftSAImpl<T>{static_cast<CudaType>(x1)}, x2_cast, out);
+        });
+    }
+};
+
+CHAINERX_CUDA_REGISTER_KERNEL(LeftShiftSAKernel, CudaLeftShiftSAKernel);
+
 CHAINERX_CUDA_REGISTER_ELTWISE_DTYPE_BINARY_KERNEL(RightShiftKernel, { out = x1 << x2; }, VisitIntegralDtype);
 
 template <typename T>
@@ -148,6 +172,30 @@ public:
 };
 
 CHAINERX_CUDA_REGISTER_KERNEL(RightShiftASKernel, CudaRightShiftASKernel);
+
+template <typename T>
+struct RightShiftSAImpl {
+    using CudaType = cuda_internal::DataType<T>;
+    __device__ void operator()(int64_t /*i*/, CudaType x2, CudaType& out) { out = x1 << x2; }
+    CudaType x1;
+};
+
+class CudaRightShiftSAKernel : public RightShiftSAKernel {
+public:
+    void Call(Scalar x1, const Array& x2, const Array& out) override {
+        Device& device = x2.device();
+        device.CheckDevicesCompatible(x2, out);
+        const Array& x2_cast = x2.dtype() == out.dtype() ? x2 : x2.AsType(out.dtype());
+        CudaSetDeviceScope scope{device.index()};
+        VisitIntegralDtype(out.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            using CudaType = cuda_internal::DataType<T>;
+            Elementwise<const T, T>(RightShiftSAImpl<T>{static_cast<CudaType>(x1)}, x2_cast, out);
+        });
+    }
+};
+
+CHAINERX_CUDA_REGISTER_KERNEL(RightShiftSAKernel, CudaRightShiftSAKernel);
 
 }  // namespace
 }  // namespace cuda

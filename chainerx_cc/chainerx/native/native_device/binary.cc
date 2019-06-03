@@ -97,6 +97,25 @@ public:
 
 CHAINERX_NATIVE_REGISTER_KERNEL(LeftShiftASKernel, NativeLeftShiftASKernel);
 
+class NativeLeftShiftSAKernel : public LeftShiftSAKernel {
+public:
+    void Call(Scalar x1, const Array& x2, const Array& out) override {
+        Device& device = x2.device();
+        device.CheckDevicesCompatible(x2, out);
+        const Array& x2_cast = x2.dtype() == out.dtype() ? x2 : x2.AsType(out.dtype());
+        VisitIntegralDtype(out.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            struct Impl {
+                void operator()(int64_t /*i*/, T x2, T& out) { out = x1 << x2; }
+                T x1;
+            };
+            Elementwise<const T, T>(Impl{static_cast<T>(x1)}, x2_cast, out);
+        });
+    }
+};
+
+CHAINERX_NATIVE_REGISTER_KERNEL(LeftShiftSAKernel, NativeLeftShiftSAKernel);
+
 CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_BINARY_KERNEL(RightShiftKernel, { out = x1 >> x2; }, VisitIntegralDtype);
 
 class NativeRightShiftASKernel : public RightShiftASKernel {
@@ -117,6 +136,25 @@ public:
 };
 
 CHAINERX_NATIVE_REGISTER_KERNEL(RightShiftASKernel, NativeRightShiftASKernel);
+
+class NativeRightShiftSAKernel : public RightShiftSAKernel {
+public:
+    void Call(Scalar x1, const Array& x2, const Array& out) override {
+        Device& device = x2.device();
+        device.CheckDevicesCompatible(x2, out);
+        const Array& x2_cast = x2.dtype() == out.dtype() ? x2 : x2.AsType(out.dtype());
+        VisitIntegralDtype(out.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            struct Impl {
+                void operator()(int64_t /*i*/, T x2, T& out) { out = x1 << x2; }
+                T x1;
+            };
+            Elementwise<const T, T>(Impl{static_cast<T>(x1)}, x2_cast, out);
+        });
+    }
+};
+
+CHAINERX_NATIVE_REGISTER_KERNEL(RightShiftSAKernel, NativeRightShiftSAKernel);
 
 }  // namespace
 }  // namespace native

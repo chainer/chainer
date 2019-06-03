@@ -50,6 +50,12 @@ void BitwiseASImpl(const Array& x1, Scalar x2, const Array& out) {
     x1.device().backend().CallKernel<Impl>(x1, x2, out);
 }
 
+template <typename Impl>
+void BitwiseSAImpl(Scalar x1, const Array& x2, const Array& out) {
+    NoBackpropModeScope scope{};
+    x2.device().backend().CallKernel<Impl>(x1, x2, out);
+}
+
 }  // namespace
 
 namespace internal {
@@ -152,7 +158,10 @@ Array LeftShift(const Array& x1, Scalar x2) {
     return internal::Binary(BitwiseASImpl<LeftShiftASKernel>, x1, x2, ResultType(x1, x2));
 }
 
-Array LeftShift(Scalar x1, const Array& x2) { return LeftShift(x2, x1); }
+Array LeftShift(Scalar x1, const Array& x2) { 
+    CheckBitwiseDtypes(x2, x1);
+    return internal::Binary(BitwiseSAImpl<LeftShiftSAKernel>, x1, x2, ResultType(x1, x2));
+}
 
 Array RightShift(const Array& x1, const Array& x2) {
     CheckBitwiseDtypes(x1, x2);
@@ -164,6 +173,9 @@ Array RightShift(const Array& x1, Scalar x2) {
     return internal::Binary(BitwiseASImpl<RightShiftASKernel>, x1, x2, ResultType(x1, x2));
 }
 
-Array RightShift(Scalar x1, const Array& x2) { return RightShift(x2, x1); }
+Array RightShift(Scalar x1, const Array& x2) { 
+    CheckBitwiseDtypes(x2, x1);
+    return internal::Binary(BitwiseSAImpl<RightShiftSAKernel>, x1, x2, ResultType(x1, x2));
+}
 
 }  // namespace chainerx
