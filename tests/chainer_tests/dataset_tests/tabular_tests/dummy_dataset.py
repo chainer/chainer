@@ -6,19 +6,22 @@ from chainer import testing
 
 class DummyDataset(chainer.dataset.TabularDataset):
 
-    def __init__(self, mode, return_array=False, callback=None):
+    def __init__(
+            self, size=10, keys=('a', 'b', 'c'), mode=tuple,
+            return_array=False, callback=None):
+        self._keys = keys
         self._mode = mode
         self._return_array = return_array
         self._callback = callback
 
-        self.data = np.random.uniform(size=(3, 10))
+        self.data = np.random.uniform(size=(len(keys), size))
 
     def __len__(self):
         return self.data.shape[1]
 
     @property
     def keys(self):
-        return ('a', 'b', 'c')
+        return self._keys
 
     @property
     def mode(self):
