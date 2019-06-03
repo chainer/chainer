@@ -29,6 +29,8 @@ public:
 
     Strides() = default;
 
+    ~Strides() = default;
+
     // Creates strides for contiguous array.
     Strides(const Shape& shape, Dtype dtype) : Strides{shape, GetItemSize(dtype)} {}
     Strides(const Shape& shape, int64_t item_size);
@@ -94,7 +96,7 @@ public:
     }
 };
 
-std::ostream& operator<<(std::ostream&, const Strides&);
+std::ostream& operator<<(std::ostream& os, const Strides& strides);
 
 void CheckEqual(const Strides& lhs, const Strides& rhs);
 

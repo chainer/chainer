@@ -18,6 +18,8 @@ class TestDataset(unittest.TestCase):
         self.communicator = NaiveCommunicator(self.mpi_comm)
 
     def check_scatter_dataset(self, original_dataset, shuffle=False, root=0):
+        if self.communicator.rank != root:
+            original_dataset = None
         my_dataset = chainermn.scatter_dataset(
             original_dataset, self.communicator,
             shuffle=shuffle, root=root)
@@ -58,7 +60,7 @@ class TestDataset(unittest.TestCase):
 def scatter_large_data(communicator):
     data = []
     if communicator.rank == 0:
-        data = ["test"] * 2000000000
+        data = ['test'] * 2000000000
     data = chainermn.scatter_dataset(data, communicator)
     assert len(data) > 0
 
@@ -70,7 +72,7 @@ def test_scatter_large_dataset_naive():
 
     # This test only runs when comm.size >= 2.
     if communicator.size == 1:
-        pytest.skip("This test is for multinode")
+        pytest.skip('This test is for multinode')
 
     scatter_large_data(communicator)
 
@@ -83,6 +85,6 @@ def test_scatter_large_dataset_flat():
 
     # This test only runs when comm.size >= 2.
     if communicator.size == 1:
-        pytest.skip("This test is for multinode")
+        pytest.skip('This test is for multinode')
 
     scatter_large_data(communicator)

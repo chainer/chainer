@@ -1,10 +1,14 @@
+import unittest
+
 import chainer
 import numpy
 import pytest
 
 import chainerx
+import chainerx.testing
 
 from chainerx_tests import array_utils
+from chainerx_tests import op_utils
 
 
 def _create_batch_norm_ndarray_args(
@@ -67,57 +71,139 @@ _batch_norm_invalid_dimensions_params = [
 ]
 
 
-@pytest.mark.parametrize('x_shape,reduced_shape,axis', _batch_norm_params)
-@pytest.mark.parametrize('eps', [None, 3e-5, 1.2])
-@pytest.mark.parametrize('decay', [None, 0.5])
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_batch_norm(
-        device, x_shape, reduced_shape, eps, decay, axis, float_dtype):
-    def create_args(xp):
-        return _create_batch_norm_ndarray_args(
-            xp, device, x_shape, reduced_shape, reduced_shape, reduced_shape,
-            reduced_shape, float_dtype)
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize_pytest(
+    'x_shape,reduced_shape,axis', _batch_norm_params)
+@chainer.testing.parameterize_pytest(
+    'x_dtype', chainerx.testing.float_dtypes)
+@chainer.testing.parameterize_pytest(
+    'param_dtype', chainerx.testing.float_dtypes)
+@chainer.testing.parameterize_pytest('eps', [2e-5, 5e-1])
+@chainer.testing.parameterize_pytest('decay', [None, 0.5])
+@chainer.testing.parameterize_pytest('contiguous', [None, 'C'])
+class TestBatchNorm(op_utils.ChainerOpTest):
 
-    x_chx, gamma_chx, beta_chx, running_mean_chx, running_var_chx = (
-        create_args(chainerx))
-    x_np, gamma_np, beta_np, running_mean_np, running_var_np = (
-        create_args(numpy))
+    def setup(self):
+        reduced_shape = self.reduced_shape
+        x_dtype = self.x_dtype
+        param_dtype = self.param_dtype
+        eps = self.eps
+        decay = self.decay
+        axis = self.axis
+        contiguous = self.contiguous
 
-    # Save copies of running values before updating to later check that they
-    # are updated.
-    initial_running_mean = running_mean_chx.copy()
-    initial_running_var = running_var_chx.copy()
+        # - Non-contiguous running values which are updated in-place are not
+        # supported by CUDA.
+        # - Non-contiguous gamma and beta is not supported by CUDA.
+        # TODO(hvy): Support non-contiguous gamma and beta with CUDA. Create a
+        # contiguous copy in the cuDNN wrapper.
+        if (chainerx.get_default_device().backend.name == 'cuda'
+                and contiguous is None):
+            raise unittest.SkipTest(
+                'batch_norm with CUDA currently has limited support for '
+                'non-contiguous inputs.')
 
-    optional_args = {}
-    if eps is not None:
-        optional_args['eps'] = eps
-    if decay is not None:
-        optional_args['decay'] = decay
-    if axis is not None:
-        optional_args['axis'] = axis
+        # BatchNorm is unstable for fp16 for both native and CUDA.
+        # TODO(hvy): Fix backward and double backward for fp16.
+        if x_dtype == 'float16' and param_dtype == 'float16':
+            self.skip_backward_test = True
+            self.skip_double_backward_test = True
 
-    y_chx = chainerx.batch_norm(
-        x_chx, gamma_chx, beta_chx, running_mean=running_mean_chx,
-        running_var=running_var_chx, **optional_args)
-    y_np = chainer.functions.batch_normalization(
-        x_np, gamma_np, beta_np, running_mean=running_mean_np,
-        running_var=running_var_np, **optional_args).data
+        self.running_mean = numpy.random.uniform(
+            -1, 1, reduced_shape).astype(param_dtype)
+        self.running_var = numpy.random.uniform(
+            0.1, 1, reduced_shape).astype(param_dtype)
 
-    # Check that the running values are updated.
-    assert not numpy.allclose(chainerx.to_numpy(
-        initial_running_mean), chainerx.to_numpy(running_mean_chx))
-    assert not numpy.allclose(chainerx.to_numpy(
-        initial_running_var), chainerx.to_numpy(running_var_chx))
+        optional_args = {}
+        if eps is not None:
+            optional_args['eps'] = eps
+        if decay is not None:
+            optional_args['decay'] = decay
+        if axis is not None:
+            optional_args['axis'] = axis
+        self.optional_args = optional_args
 
-    chainerx.testing.assert_allclose_ex(
-        y_chx, y_np, rtol=1e-6, atol=1e-5,
-        float16_rtol=1e-2, float16_atol=1e-2)
-    chainerx.testing.assert_allclose_ex(
-        running_mean_chx, running_mean_np,
-        rtol=1e-6, atol=1e-6, float16_rtol=1e-2, float16_atol=1e-2)
-    chainerx.testing.assert_allclose_ex(
-        running_var_chx, running_var_np,
-        rtol=1e-6, atol=1e-6, float16_rtol=1e-2, float16_atol=1e-2)
+        # TODO(hvy): Fix forward, backward and double backward for fp16.
+        if x_dtype == 'float16' or param_dtype == 'float16':
+            self.check_forward_options.update({
+                'rtol': 1e-1, 'atol': 1e-1})
+            self.check_backward_options.update({
+                'rtol': 1e-1, 'atol': 1e-1})
+            self.check_double_backward_options.update({
+                'rtol': 1e-1, 'atol': 1e-1})
+        else:
+            self.check_forward_options.update({
+                'rtol': 1e-6, 'atol': 1e-5})
+            self.check_backward_options.update({
+                'rtol': 5e-3, 'atol': 5e-4})
+            self.check_double_backward_options.update({
+                'rtol': 5e-2, 'atol': 5e-3})
+
+        # Running values that are recorded in forward for similarity checks.
+        self.running_mean_chx = None
+        self.running_var_chx = None
+        self.running_mean_ch = None
+        self.running_var_ch = None
+
+    def generate_inputs(self):
+        x_shape = self.x_shape
+        reduced_shape = self.reduced_shape
+        x_dtype = self.x_dtype
+        param_dtype = self.param_dtype
+
+        x = numpy.random.uniform(-1, 1, x_shape).astype(x_dtype)
+        gamma = numpy.random.uniform(-1, 1, reduced_shape).astype(param_dtype)
+        beta = numpy.random.uniform(-1, 1, reduced_shape).astype(param_dtype)
+
+        return x, gamma, beta,
+
+    def forward_chainerx(self, inputs):
+        x, gamma, beta = inputs
+
+        running_mean = chainerx.array(self.running_mean, copy=True)
+        running_var = chainerx.array(self.running_var, copy=True)
+
+        y = chainerx.batch_norm(
+            x, gamma, beta, running_mean=running_mean, running_var=running_var,
+            **self.optional_args)
+
+        # Record running values for later checks.
+        self.running_mean_chx = running_mean
+        self.running_var_chx = running_var
+
+        return y,
+
+    def forward_chainer(self, inputs):
+        x, gamma, beta = inputs
+
+        running_mean = self.running_mean.copy()
+        running_var = self.running_var.copy()
+
+        y = chainer.functions.batch_normalization(
+            x, gamma, beta, running_mean=running_mean, running_var=running_var,
+            **self.optional_args)
+
+        # Record running values for later checks.
+        self.running_mean_ch = running_mean
+        self.running_var_ch = running_var
+
+        return y,
+
+    def check_forward_outputs(self, outputs, expected_outputs):
+        super().check_forward_outputs(outputs, expected_outputs)
+
+        # Check that running values are updated.
+        if (self.x_dtype == 'float16'
+                or self.param_dtype == 'float16'):
+            check_running_options = {'rtol': 1e-1, 'atol': 1e-1}
+        else:
+            check_running_options = {'rtol': 1e-6, 'atol': 1e-5}
+
+        chainerx.testing.assert_allclose(
+            self.running_mean_chx, self.running_mean_ch,
+            **check_running_options)
+        chainerx.testing.assert_allclose(
+            self.running_var_chx, self.running_var_ch, **check_running_options)
 
 
 @pytest.mark.parametrize(
@@ -138,35 +224,66 @@ def test_batch_norm_invalid_dimensions(
             eps=1e-2, decay=0.9, axis=axis)
 
 
-@pytest.mark.parametrize('x_shape,reduced_shape,axis', _batch_norm_params)
-@pytest.mark.parametrize('eps', [None, 3e-5, 1.2])
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_fixed_batch_norm(
-        device, x_shape, reduced_shape, eps, axis, float_dtype):
-    def create_args(xp):
-        return _create_batch_norm_ndarray_args(
-            xp, device, x_shape, reduced_shape, reduced_shape, reduced_shape,
-            reduced_shape, float_dtype)
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize_pytest(
+    'x_shape,reduced_shape,axis', _batch_norm_params)
+@chainer.testing.parameterize_pytest(
+    'x_dtype', chainerx.testing.float_dtypes)
+@chainer.testing.parameterize_pytest(
+    'param_dtype', chainerx.testing.float_dtypes)
+@chainer.testing.parameterize_pytest('eps', [None, 3e-5, 1.2])
+@chainer.testing.parameterize_pytest('contiguous', [None, 'C'])
+class TestFixedBatchNorm(op_utils.ChainerOpTest):
 
-    x_chx, gamma_chx, beta_chx, mean_chx, var_chx = create_args(chainerx)
-    x_np, gamma_np, beta_np, mean_np, var_np = create_args(numpy)
+    # Backward and double backward for fixed_batch_norm is not supported yet.
+    skip_backward_test = True
+    skip_double_backward_test = True
 
-    optional_args = {}
-    if eps is not None:
-        optional_args['eps'] = eps
-    if axis is not None:
-        optional_args['axis'] = axis
+    def setup(self, float_dtype):
+        x_dtype = self.x_dtype
+        param_dtype = self.param_dtype
+        eps = self.eps
+        axis = self.axis
 
-    y_chx = chainerx.fixed_batch_norm(
-        x_chx, gamma_chx, beta_chx, mean=mean_chx, var=var_chx,
-        **optional_args)
-    y_np = chainer.functions.fixed_batch_normalization(
-        x_np, gamma_np, beta_np, mean=mean_np, var=var_np,
-        **optional_args).data
+        optional_args = {}
+        if eps is not None:
+            optional_args['eps'] = eps
+        if axis is not None:
+            optional_args['axis'] = axis
+        self.optional_args = optional_args
 
-    chainerx.testing.assert_allclose_ex(
-        y_chx, y_np, rtol=1e-6, atol=1e-5,
-        float16_rtol=1e-2, float16_atol=1e-2)
+        if x_dtype == 'float16' or param_dtype == 'float16':
+            self.check_forward_options.update({'rtol': 1e-1, 'atol': 1e-1})
+        else:
+            self.check_forward_options.update({'rtol': 1e-6, 'atol': 1e-5})
+
+    def generate_inputs(self):
+        x_shape = self.x_shape
+        reduced_shape = self.reduced_shape
+        x_dtype = self.x_dtype
+        param_dtype = self.param_dtype
+
+        x = numpy.random.uniform(-1, 1, x_shape).astype(x_dtype)
+        gamma = numpy.random.uniform(-1, 1, reduced_shape).astype(param_dtype)
+        beta = numpy.random.uniform(-1, 1, reduced_shape).astype(param_dtype)
+        mean = numpy.random.uniform(-1, 1, reduced_shape).astype(param_dtype)
+        var = numpy.random.uniform(0.1, 1, reduced_shape).astype(param_dtype)
+
+        return x, gamma, beta, mean, var
+
+    def forward_chainerx(self, inputs):
+        x, gamma, beta, mean, var = inputs
+
+        y = chainerx.fixed_batch_norm(
+            x, gamma, beta, mean=mean, var=var, **self.optional_args)
+        return y,
+
+    def forward_chainer(self, inputs):
+        x, gamma, beta, mean, var = inputs
+
+        y = chainer.functions.fixed_batch_normalization(
+            x, gamma, beta, mean=mean, var=var, **self.optional_args)
+        return y,
 
 
 @pytest.mark.parametrize(

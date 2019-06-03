@@ -2,15 +2,22 @@
 import numpy
 
 import chainer
-from chainer import backend
 import chainer.functions as F
 import chainer.links as L
+import chainerx
 
 
-def add_noise(h, sigma=0.2):
-    xp = backend.get_array_module(h.array)
+def add_noise(device, h, sigma=0.2):
     if chainer.config.train:
-        return h + sigma * xp.random.randn(*h.shape)
+        xp = device.xp
+        # TODO(niboshi): Support random.randn in ChainerX
+        if device.xp is chainerx:
+            fallback_device = device.fallback_device
+            with chainer.using_device(fallback_device):
+                randn = device.send(fallback_device.xp.random.randn(*h.shape))
+        else:
+            randn = xp.random.randn(*h.shape)
+        return h + sigma * randn
     else:
         return h
 
@@ -37,8 +44,9 @@ class Generator(chainer.Chain):
             self.bn3 = L.BatchNormalization(ch // 8)
 
     def make_hidden(self, batchsize):
+        dtype = chainer.get_dtype()
         return numpy.random.uniform(-1, 1, (batchsize, self.n_hidden, 1, 1))\
-            .astype(numpy.float32)
+            .astype(dtype)
 
     def forward(self, z):
         h = F.reshape(F.relu(self.bn0(self.l0(z))),
@@ -72,12 +80,13 @@ class Discriminator(chainer.Chain):
             self.bn3_0 = L.BatchNormalization(ch // 1, use_gamma=False)
 
     def forward(self, x):
-        h = add_noise(x)
-        h = F.leaky_relu(add_noise(self.c0_0(h)))
-        h = F.leaky_relu(add_noise(self.bn0_1(self.c0_1(h))))
-        h = F.leaky_relu(add_noise(self.bn1_0(self.c1_0(h))))
-        h = F.leaky_relu(add_noise(self.bn1_1(self.c1_1(h))))
-        h = F.leaky_relu(add_noise(self.bn2_0(self.c2_0(h))))
-        h = F.leaky_relu(add_noise(self.bn2_1(self.c2_1(h))))
-        h = F.leaky_relu(add_noise(self.bn3_0(self.c3_0(h))))
+        device = self.device
+        h = add_noise(device, x)
+        h = F.leaky_relu(add_noise(device, self.c0_0(h)))
+        h = F.leaky_relu(add_noise(device, self.bn0_1(self.c0_1(h))))
+        h = F.leaky_relu(add_noise(device, self.bn1_0(self.c1_0(h))))
+        h = F.leaky_relu(add_noise(device, self.bn1_1(self.c1_1(h))))
+        h = F.leaky_relu(add_noise(device, self.bn2_0(self.c2_0(h))))
+        h = F.leaky_relu(add_noise(device, self.bn2_1(self.c2_1(h))))
+        h = F.leaky_relu(add_noise(device, self.bn3_0(self.c3_0(h))))
         return self.l4(h)

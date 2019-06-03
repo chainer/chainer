@@ -22,7 +22,7 @@ def arrays_to_chainerx(orig_xp, np_arrays):
         orig_arrays = np_arrays
     elif orig_xp is cuda.cupy:
         orig_arrays = [cuda.to_gpu(a) for a in np_arrays]
-    return [chainer.backend.to_chainerx(a) for a in orig_arrays]
+    return [chainer.backend.to_chx(a) for a in orig_arrays]
 
 
 @testing.parameterize(*testing.product({
@@ -1238,12 +1238,12 @@ class TestVariableConstantArrayOp(unittest.TestCase):
 
     def forward_chainerx(self, op, orig_xp, positive=False):
         if orig_xp is numpy:
-            array_conv = chainer.backend.to_chainerx
+            array_conv = chainer.backend.to_chx
         else:
             assert orig_xp is cuda.cupy
 
             def array_conv(x):
-                return chainer.backend.to_chainerx(cuda.to_gpu(x))
+                return chainer.backend.to_chx(cuda.to_gpu(x))
         self.check_forward(op, array_conv, positive)
 
     @attr.chainerx
@@ -1780,42 +1780,6 @@ class TestMatMulInvalidShape(unittest.TestCase):
         y = chainer.Variable(self.y)
         with pytest.raises(type_check.InvalidType):
             operator.matmul(x, y)
-
-
-class TestNotSupportOperation(unittest.TestCase):
-
-    def setUp(self):
-        self.x = chainer.Variable(numpy.zeros(10))
-        self.y = chainer.Variable(numpy.zeros(10))
-
-    def test_lt(self):
-        with pytest.raises(NotImplementedError):
-            self.x < self.y
-
-    def test_le(self):
-        with pytest.raises(NotImplementedError):
-            self.x <= self.y
-
-    def test_eq(self):
-        with pytest.raises(NotImplementedError):
-            self.x == self.y
-
-    def test_ne(self):
-        with pytest.raises(NotImplementedError):
-            self.x != self.y
-
-    def test_gt(self):
-        with pytest.raises(NotImplementedError):
-            self.x > self.y
-
-    def test_ge(self):
-        with pytest.raises(NotImplementedError):
-            self.x >= self.y
-
-    def test_nonzero(self):
-        with pytest.raises(NotImplementedError):
-            if self.x:
-                pass
 
 
 class ConvertValueToStringTest(unittest.TestCase):

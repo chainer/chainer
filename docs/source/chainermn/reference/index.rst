@@ -12,7 +12,7 @@ Communicators
     :members: rank, intra_rank, inter_rank, inter_size, size,
               alltoall, split, send, recv, bcast, gather, allreduce,
               send_obj, recv_obj, bcast_obj, gather_obj,
-              allreduce_obj, bcast_data, allreduce_grad
+              allreduce_obj, bcast_data, allreduce_grad, allgather
 
 
 Optimizers and Evaluators
@@ -35,6 +35,7 @@ Links
 .. autoclass:: MultiNodeChainList
     :members: add_link
 .. autoclass:: chainermn.links.MultiNodeBatchNormalization
+.. autofunction:: chainermn.links.create_mnbn_model
 
 
 Functions
@@ -54,6 +55,7 @@ Iterators
 ~~~~~~~~~
 
 .. autofunction:: chainermn.iterators.create_multi_node_iterator
+.. autofunction:: chainermn.iterators.create_synchronized_iterator
 
 
 Trainer extensions

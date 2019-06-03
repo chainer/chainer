@@ -1,10 +1,10 @@
+import numpy as np
+import six
+
 from chainer.backends import cuda
 from chainer import function_node
 from chainer.utils import type_check
 
-import numpy as np
-
-from six import moves
 
 index_dtype = {t().itemsize: t for t in np.sctypes['int']}
 
@@ -56,10 +56,10 @@ def _min_index(shape, strides, storage_offset):
         int: The leftest pointer in the array
     """
     sh_st_neg = [sh_st for sh_st in zip(shape, strides) if sh_st[1] < 0]
-    if len(sh_st_neg) == 0:
+    if not sh_st_neg:
         return storage_offset
     else:
-        return storage_offset + moves.reduce(
+        return storage_offset + six.moves.reduce(
             lambda base, sh_st: base + (sh_st[0] - 1) * sh_st[1], sh_st_neg, 0)
 
 
@@ -77,10 +77,10 @@ def _max_index(shape, strides, storage_offset):
         int: The rightest pointer in the array
     """
     sh_st_pos = [sh_st for sh_st in zip(shape, strides) if sh_st[1] > 0]
-    if len(sh_st_pos) == 0:
+    if not sh_st_pos:
         return storage_offset
     else:
-        return storage_offset + moves.reduce(
+        return storage_offset + six.moves.reduce(
             lambda base, sh_st: base + (sh_st[0] - 1) * sh_st[1], sh_st_pos, 0)
 
 
@@ -152,12 +152,12 @@ def _stride_array(array, shape, strides, storage_offset):
     storage_offset, = _step2byte((storage_offset,), array.itemsize)
 
     if min_index < 0:
-        raise ValueError("Out of buffer: too small index was specified")
+        raise ValueError('Out of buffer: too small index was specified')
 
     if isinstance(array, cuda.ndarray):
         pooled_memory = array.data.mem
         if (max_index + 1) * array.itemsize > pooled_memory.size:
-            raise ValueError("Out of buffer: too large index was specified")
+            raise ValueError('Out of buffer: too large index was specified')
 
         memptr = cuda.cupy.cuda.memory.MemoryPointer(pooled_memory,
                                                      storage_offset)
@@ -165,12 +165,12 @@ def _stride_array(array, shape, strides, storage_offset):
     elif isinstance(array, np.ndarray):
         base_array = _get_base_array(array)
         if (max_index + 1) * base_array.itemsize > base_array.nbytes:
-            raise ValueError("Out of buffer: too large index was specified")
+            raise ValueError('Out of buffer: too large index was specified')
 
         return np.ndarray(shape, base_array.dtype, base_array.data,
                           storage_offset, strides)
     else:
-        raise TypeError("Only (np|cp).ndarray is accepted")
+        raise TypeError('Only (np|cp).ndarray is accepted')
 
 
 class TensorGeometry(object):
@@ -185,7 +185,7 @@ class TensorGeometry(object):
         elif isinstance(array, cuda.ndarray):
             offset_bytes = array.data.ptr - array.data.mem.ptr
         else:
-            raise ValueError("only (np|cp).ndarray is supported")
+            raise ValueError('only (np|cp).ndarray is supported')
         self.storage_offset, = _byte2step((offset_bytes,), array.itemsize)
         self.itemsize = array.itemsize
 
@@ -264,23 +264,24 @@ class AsStridedGrad(function_node.FunctionNode):
         if 0 in gy.shape:
             return cuda.get_array_module(gy).zeros(input_geometry.shape)
         else:
-            out_shape = tuple([self.shape[i] for i in moves.range(gy.ndim) if
-                               self.shape[i] != 1 and self.strides[i] != 0])
-            out_strides = tuple([self.strides[i] for i in moves.range(gy.ndim)
-                                 if self.shape[i] != 1
-                                 and self.strides[i] != 0])
+            out_shape = tuple([
+                self.shape[i] for i in six.moves.range(gy.ndim)
+                if self.shape[i] != 1 and self.strides[i] != 0])
+            out_strides = tuple([
+                self.strides[i] for i in six.moves.range(gy.ndim)
+                if self.shape[i] != 1 and self.strides[i] != 0])
             gy = gy.sum(
-                tuple([i for i in moves.range(gy.ndim)
+                tuple([i for i in six.moves.range(gy.ndim)
                        if self.strides[i] == 0]))
             gy = gy.squeeze()
 
         out_storage_offset = self.storage_offset
 
         inp_shape = tuple([input_geometry.shape[i]
-                           for i in moves.range(input_geometry.ndim)
+                           for i in six.moves.range(input_geometry.ndim)
                            if input_geometry.shape[i] != 1])
         inp_strides = tuple([input_geometry.strides[i]
-                             for i in moves.range(input_geometry.ndim)
+                             for i in six.moves.range(input_geometry.ndim)
                              if input_geometry.shape[i] != 1])
         inp_storage_offset = input_geometry.storage_offset
 

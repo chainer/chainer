@@ -22,8 +22,9 @@ def _child_sum_tree_lstm(func, *inputs):
     cs = inputs[:len(inputs) // 2]
     hs = inputs[len(inputs) // 2:-1]
     x = inputs[-1]
-    xp = backend.get_array_module(x)
-    with cuda.get_device_from_array(x):
+    device = backend.get_device_from_array(x)
+    with chainer.using_device(device):
+        xp = device.xp
         W_x = func.W_x.W.data.T
         b_x = func.W_x.b.data
         W_h_aio = func.W_h_aio.W.data.T
@@ -62,8 +63,9 @@ def _nary_tree_lstm(func, *inputs):
     cs = inputs[:len(inputs) // 2]
     hs = inputs[len(inputs) // 2:-1]
     x = inputs[-1]
-    xp = backend.get_array_module(x)
-    with cuda.get_device_from_array(x):
+    device = backend.get_device_from_array(x)
+    with chainer.using_device(device):
+        xp = device.xp
         W_x = func.W_x.W.data.T
         b_x = func.W_x.b.data
         W_h_list = [getattr(func, 'W_h{}'.format(i)).W.data.T

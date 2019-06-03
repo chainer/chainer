@@ -3,6 +3,7 @@
 #include <memory>
 #include <sstream>
 #include <string>
+#include <utility>
 
 #include "chainerx/backend.h"
 #include "chainerx/context.h"

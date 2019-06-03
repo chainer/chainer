@@ -59,7 +59,7 @@ class DummySerializer(chainer.Serializer):
         self.called.append((key, value))
 
 
-class TestUpdater(unittest.TestCase):
+class TestStandardUpdater(unittest.TestCase):
 
     def setUp(self):
         self.target = chainer.Link()
@@ -70,55 +70,53 @@ class TestUpdater(unittest.TestCase):
             self.iterator, self.optimizer)
 
     def test_init_values(self):
-        self.assertIsNone(self.updater.device)
-        self.assertIsNone(self.updater.loss_func)
-        self.assertEqual(self.updater.iteration, 0)
+        assert self.updater.device is None
+        assert self.updater.loss_func is None
+        assert self.updater.iteration == 0
 
     def test_epoch(self):
-        self.assertEqual(self.updater.epoch, 1)
+        assert self.updater.epoch == 1
 
     def test_new_epoch(self):
-        self.assertTrue(self.updater.is_new_epoch)
+        assert self.updater.is_new_epoch is True
 
     def test_get_iterator(self):
-        self.assertIs(self.updater.get_iterator('main'), self.iterator)
+        assert self.updater.get_iterator('main') is self.iterator
 
     def test_get_optimizer(self):
-        self.assertIs(self.updater.get_optimizer('main'), self.optimizer)
+        assert self.updater.get_optimizer('main') is self.optimizer
 
     def test_get_all_optimizers(self):
-        self.assertEqual(self.updater.get_all_optimizers(),
-                         {'main': self.optimizer})
+        assert self.updater.get_all_optimizers() == {'main': self.optimizer}
 
     def test_update(self):
         self.updater.update()
-        self.assertEqual(self.updater.iteration, 1)
-        self.assertEqual(self.optimizer.epoch, 1)
-        self.assertEqual(self.iterator.next_called, 1)
+        assert self.updater.iteration == 1
+        assert self.optimizer.epoch == 1
+        assert self.iterator.next_called == 1
 
     def test_use_auto_new_epoch(self):
-        self.assertTrue(self.optimizer.use_auto_new_epoch)
+        assert self.optimizer.use_auto_new_epoch is True
 
     def test_finalizer(self):
         self.updater.finalize()
-        self.assertEqual(self.iterator.finalize_called, 1)
+        assert self.iterator.finalize_called == 1
 
     def test_serialize(self):
         serializer = DummySerializer()
         self.updater.serialize(serializer)
 
-        self.assertEqual(len(self.iterator.serialize_called), 1)
-        self.assertEqual(self.iterator.serialize_called[0].path,
-                         ['iterator:main'])
+        assert len(self.iterator.serialize_called) == 1
+        assert self.iterator.serialize_called[0].path == ['iterator:main']
 
-        self.assertEqual(len(self.optimizer.serialize_called), 1)
-        self.assertEqual(
-            self.optimizer.serialize_called[0].path, ['optimizer:main'])
+        assert len(self.optimizer.serialize_called) == 1
+        assert self.optimizer.serialize_called[0].path == ['optimizer:main']
 
-        self.assertEqual(serializer.called, [('iteration', 0)])
+        assert serializer.called == [('iteration', 0)]
 
 
-class TestUpdaterUpdateArguments(unittest.TestCase):
+class TestStandardUpdaterDataTypes(unittest.TestCase):
+    """Tests several data types with StandardUpdater"""
 
     def setUp(self):
         self.target = chainer.Link()
@@ -131,19 +129,19 @@ class TestUpdaterUpdateArguments(unittest.TestCase):
 
         updater.update_core()
 
-        self.assertEqual(self.optimizer.update.call_count, 1)
+        assert self.optimizer.update.call_count == 1
         args, kwargs = self.optimizer.update.call_args
-        self.assertEqual(len(args), 3)
+        assert len(args) == 3
         loss, v1, v2 = args
-        self.assertEqual(len(kwargs), 0)
+        assert len(kwargs) == 0
 
-        self.assertIs(loss, self.optimizer.target)
-        self.assertIsInstance(v1, numpy.ndarray)
-        self.assertEqual(v1, 1)
-        self.assertIsInstance(v2, numpy.ndarray)
-        self.assertEqual(v2, 2)
+        assert loss is self.optimizer.target
+        assert isinstance(v1, numpy.ndarray)
+        assert v1 == 1
+        assert isinstance(v2, numpy.ndarray)
+        assert v2 == 2
 
-        self.assertEqual(iterator.next_called, 1)
+        assert iterator.next_called == 1
 
     def test_update_dict(self):
         iterator = DummyIterator([{'x': numpy.array(1), 'y': numpy.array(2)}])
@@ -151,21 +149,21 @@ class TestUpdaterUpdateArguments(unittest.TestCase):
 
         updater.update_core()
 
-        self.assertEqual(self.optimizer.update.call_count, 1)
+        assert self.optimizer.update.call_count == 1
         args, kwargs = self.optimizer.update.call_args
-        self.assertEqual(len(args), 1)
+        assert len(args) == 1
         loss, = args
-        self.assertEqual(set(kwargs.keys()), {'x', 'y'})
+        assert set(kwargs.keys()) == {'x', 'y'}
 
         v1 = kwargs['x']
         v2 = kwargs['y']
-        self.assertIs(loss, self.optimizer.target)
-        self.assertIsInstance(v1, numpy.ndarray)
-        self.assertEqual(v1, 1)
-        self.assertIsInstance(v2, numpy.ndarray)
-        self.assertEqual(v2, 2)
+        assert loss is self.optimizer.target
+        assert isinstance(v1, numpy.ndarray)
+        assert v1 == 1
+        assert isinstance(v2, numpy.ndarray)
+        assert v2 == 2
 
-        self.assertEqual(iterator.next_called, 1)
+        assert iterator.next_called == 1
 
     def test_update_var(self):
         iterator = DummyIterator([numpy.array(1)])
@@ -173,17 +171,17 @@ class TestUpdaterUpdateArguments(unittest.TestCase):
 
         updater.update_core()
 
-        self.assertEqual(self.optimizer.update.call_count, 1)
+        assert self.optimizer.update.call_count == 1
         args, kwargs = self.optimizer.update.call_args
-        self.assertEqual(len(args), 2)
+        assert len(args) == 2
         loss, v1 = args
-        self.assertEqual(len(kwargs), 0)
+        assert len(kwargs) == 0
 
-        self.assertIs(loss, self.optimizer.target)
-        self.assertIsInstance(v1, numpy.ndarray)
-        self.assertEqual(v1, 1)
+        assert loss is self.optimizer.target
+        assert isinstance(v1, numpy.ndarray)
+        assert v1 == 1
 
-        self.assertEqual(iterator.next_called, 1)
+        assert iterator.next_called == 1
 
 
 @testing.parameterize(
@@ -200,7 +198,8 @@ class TestUpdaterUpdateArguments(unittest.TestCase):
 
         # Custom converter is not supported for ChainerX.
     ])
-class TestUpdaterCustomConverter(unittest.TestCase):
+class TestStandardUpdaterCustomConverter(unittest.TestCase):
+    """Tests custom converters of various specs"""
 
     def create_optimizer(self):
         target = chainer.Link()
@@ -250,7 +249,7 @@ class TestUpdaterCustomConverter(unittest.TestCase):
 
         # None
         if device_arg is None:
-            self.assertIs(received_device_arg, None)
+            assert received_device_arg is None
             return
 
         # Normalize input device types
@@ -271,21 +270,20 @@ class TestUpdaterCustomConverter(unittest.TestCase):
         # Check received device
         if is_cpu:
             if new_style:
-                self.assertEqual(received_device_arg, _cpu.CpuDevice())
+                assert received_device_arg == _cpu.CpuDevice()
             else:
-                self.assertEqual(received_device_arg, -1)
+                assert received_device_arg == -1
 
         elif cuda_device_id is not None:
             if new_style:
-                self.assertEqual(
-                    received_device_arg,
-                    cuda.GpuDevice.from_device_id(cuda_device_id))
+                assert (received_device_arg
+                        == cuda.GpuDevice.from_device_id(cuda_device_id))
             else:
-                self.assertIsInstance(received_device_arg, int)
-                self.assertEqual(received_device_arg, cuda_device_id)
+                assert isinstance(received_device_arg, int)
+                assert received_device_arg == cuda_device_id
         else:
-            self.assertTrue(new_style)
-            self.assertIs(received_device_arg, device_arg)
+            assert new_style
+            assert received_device_arg is device_arg
 
     def check_converter_in_arrays(self, device_arg):
         iterator = DummyIterator([(numpy.array(1), numpy.array(2))])
@@ -296,15 +294,15 @@ class TestUpdaterCustomConverter(unittest.TestCase):
         def converter_impl(batch, device):
             self.check_converter_received_device_arg(device, device_arg)
 
-            self.assertIsInstance(batch, list)
-            self.assertEqual(len(batch), 1)
+            assert isinstance(batch, list)
+            assert len(batch) == 1
             samples = batch[0]
-            self.assertIsInstance(samples, tuple)
-            self.assertEqual(len(samples), 2)
-            self.assertIsInstance(samples[0], numpy.ndarray)
-            self.assertIsInstance(samples[1], numpy.ndarray)
-            self.assertEqual(samples[0], 1)
-            self.assertEqual(samples[1], 2)
+            assert isinstance(samples, tuple)
+            assert len(samples) == 2
+            assert isinstance(samples[0], numpy.ndarray)
+            assert isinstance(samples[1], numpy.ndarray)
+            assert samples[0] == 1
+            assert samples[1] == 2
             called[0] += 1
             return samples
 
@@ -313,7 +311,7 @@ class TestUpdaterCustomConverter(unittest.TestCase):
         updater = self.create_updater(
             iterator, optimizer, converter, device_arg)
         updater.update_core()
-        self.assertEqual(called[0], 1)
+        assert called[0] == 1
 
     def check_converter_in_obj(self, device_arg):
         obj1 = object()
@@ -326,10 +324,10 @@ class TestUpdaterCustomConverter(unittest.TestCase):
         def converter_impl(batch, device):
             self.check_converter_received_device_arg(device, device_arg)
 
-            self.assertIsInstance(batch, list)
-            self.assertEqual(len(batch), 2)
-            self.assertIs(batch[0], obj1)
-            self.assertIs(batch[1], obj2)
+            assert isinstance(batch, list)
+            assert len(batch) == 2
+            assert batch[0] is obj1
+            assert batch[1] is obj2
             called[0] += 1
             return obj1, obj2
 
@@ -338,7 +336,7 @@ class TestUpdaterCustomConverter(unittest.TestCase):
         updater = self.create_updater(
             iterator, optimizer, converter, device_arg)
         updater.update_core()
-        self.assertEqual(called[0], 1)
+        assert called[0] == 1
 
     def check_converter_out_tuple(self, device_arg):
         iterator = DummyIterator([object()])
@@ -355,15 +353,15 @@ class TestUpdaterCustomConverter(unittest.TestCase):
             iterator, optimizer, converter, device_arg)
         updater.update_core()
 
-        self.assertEqual(optimizer.update.call_count, 1)
+        assert optimizer.update.call_count == 1
         args, kwargs = optimizer.update.call_args
-        self.assertEqual(len(args), 3)
+        assert len(args) == 3
         loss, v1, v2 = args
-        self.assertEqual(len(kwargs), 0)
+        assert len(kwargs) == 0
 
-        self.assertIs(loss, optimizer.target)
-        self.assertIs(v1, converter_out[0])
-        self.assertIs(v2, converter_out[1])
+        assert loss is optimizer.target
+        assert v1 is converter_out[0]
+        assert v2 is converter_out[1]
 
     def check_converter_out_dict(self, device_arg):
         iterator = DummyIterator([object()])
@@ -380,16 +378,16 @@ class TestUpdaterCustomConverter(unittest.TestCase):
             iterator, optimizer, converter, device_arg)
         updater.update_core()
 
-        self.assertEqual(optimizer.update.call_count, 1)
+        assert optimizer.update.call_count == 1
         args, kwargs = optimizer.update.call_args
-        self.assertEqual(len(args), 1)
+        assert len(args) == 1
         loss, = args
-        self.assertEqual(len(kwargs), 2)
+        assert len(kwargs) == 2
 
-        self.assertIs(loss, optimizer.target)
-        self.assertEqual(sorted(kwargs.keys()), ['x', 'y'])
-        self.assertIs(kwargs['x'], converter_out['x'])
-        self.assertIs(kwargs['y'], converter_out['y'])
+        assert loss is optimizer.target
+        assert sorted(kwargs.keys()) == ['x', 'y']
+        assert kwargs['x'] is converter_out['x']
+        assert kwargs['y'] is converter_out['y']
 
     def check_converter_out_obj(self, device_arg):
         iterator = DummyIterator([object()])
@@ -406,14 +404,14 @@ class TestUpdaterCustomConverter(unittest.TestCase):
             iterator, optimizer, converter, device_arg)
         updater.update_core()
 
-        self.assertEqual(optimizer.update.call_count, 1)
+        assert optimizer.update.call_count == 1
         args, kwargs = optimizer.update.call_args
-        self.assertEqual(len(args), 2)
+        assert len(args) == 2
         loss, v1 = args
-        self.assertEqual(len(kwargs), 0)
+        assert len(kwargs) == 0
 
-        self.assertIs(loss, optimizer.target)
-        self.assertIs(v1, converter_out)
+        assert loss is optimizer.target
+        assert v1 is converter_out
 
 
 testing.run_module(__name__, __file__)

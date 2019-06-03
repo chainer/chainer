@@ -28,17 +28,20 @@ requirements = {
         'typing_extensions',
         'filelock',
         'numpy>=1.9.0',
-        'protobuf>=3.0.0',
+        # protobuf 3.8.0rc1 causes CI errors.
+        # TODO(niboshi): Probably we should always use pip in CIs for
+        # installing chainer. It avoids pre-release dependencies by default.
+        # See also: https://github.com/pypa/setuptools/issues/855
+        'protobuf>=3.0.0,<3.8.0rc1',
         'six>=1.9.0',
     ],
     'stylecheck': [
         'autopep8>=1.4.1,<1.5',
-        'flake8>=3.6,<3.7',
-        'pbr==4.0.4',
-        'pycodestyle>=2.4,<2.5',
+        'flake8>=3.7,<3.8',
+        'pycodestyle>=2.5,<2.6',
     ],
     'test': [
-        'pytest==4.1.1',  # 4.2.0 is slow collecting tests and times out on CI.
+        'pytest<4.2.0',  # 4.2.0 is slow collecting tests and times out on CI.
         'mock',
     ],
     'doctest': [
@@ -124,6 +127,7 @@ setup_kwargs = dict(
     packages=['chainer',
               'chainer.backends',
               'chainer.dataset',
+              'chainer.dataset.tabular',
               'chainer.datasets',
               'chainer.distributions',
               'chainer.exporters',

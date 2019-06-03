@@ -68,11 +68,11 @@ def get_svhn(withlabel=True, scale=1., dtype=None, label_dtype=numpy.int32,
 
 
 def _preprocess_svhn(raw, withlabel, scale, image_dtype, label_dtype):
-    images = raw["x"].transpose(3, 2, 0, 1)
+    images = raw['x'].transpose(3, 2, 0, 1)
     images = images.astype(image_dtype)
     images *= scale / 255.
 
-    labels = raw["y"].astype(label_dtype).flatten()
+    labels = raw['y'].astype(label_dtype).flatten()
     # labels go from 1-10, with the digit "0" having label 10.
     # Set "0" to be label 0 to restore expected ordering
     labels[labels == 10] = 0
@@ -84,18 +84,18 @@ def _preprocess_svhn(raw, withlabel, scale, image_dtype, label_dtype):
 
 
 def _retrieve_svhn_training():
-    url = "http://ufldl.stanford.edu/housenumbers/train_32x32.mat"
-    return _retrieve_svhn("train.npz", url)
+    url = 'http://ufldl.stanford.edu/housenumbers/train_32x32.mat'
+    return _retrieve_svhn('train.npz', url)
 
 
 def _retrieve_svhn_test():
-    url = "http://ufldl.stanford.edu/housenumbers/test_32x32.mat"
-    return _retrieve_svhn("test.npz", url)
+    url = 'http://ufldl.stanford.edu/housenumbers/test_32x32.mat'
+    return _retrieve_svhn('test.npz', url)
 
 
 def _retrieve_svhn_extra():
-    url = "http://ufldl.stanford.edu/housenumbers/extra_32x32.mat"
-    return _retrieve_svhn("extra.npz", url)
+    url = 'http://ufldl.stanford.edu/housenumbers/extra_32x32.mat'
+    return _retrieve_svhn('extra.npz', url)
 
 
 def _retrieve_svhn(name, url):
@@ -108,8 +108,8 @@ def _retrieve_svhn(name, url):
 def _make_npz(path, url):
     _path = download.cached_download(url)
     raw = io.loadmat(_path)
-    images = raw["X"].astype(numpy.uint8)
-    labels = raw["y"].astype(numpy.uint8)
+    images = raw['X'].astype(numpy.uint8)
+    labels = raw['y'].astype(numpy.uint8)
 
     numpy.savez_compressed(path, x=images, y=labels)
     return {'x': images, 'y': labels}

@@ -1,120 +1,135 @@
 import six
-import unittest
 
 import numpy
 
-import chainer
-from chainer import backend
-from chainer.backends import cuda
 from chainer import functions
-from chainer import gradient_check
+import chainer.functions.normalization.group_normalization as gn_module
 from chainer import testing
-from chainer.testing import attr
 
 
-def _simple_group_normalization(x, groups, gamma, beta, xp, eps=1e-5):
+def _simple_group_normalization(x, groups, gamma, beta, eps=1e-5):
     batch_size, channels = x.shape[:2]
     x_reshape = x.reshape(batch_size, groups, channels // groups, -1)
 
-    mu = xp.mean(x_reshape, axis=(2, 3), keepdims=True)
-    sigma = xp.std(x_reshape, axis=(2, 3), keepdims=True)
+    mean = numpy.mean(x_reshape, axis=(2, 3), keepdims=True)
+    var = numpy.var(x_reshape, axis=(2, 3), keepdims=True)
+    std = numpy.sqrt(var + eps, dtype=x.dtype)
 
-    x_reshape = (x_reshape - mu) / (sigma + eps)
-    x = x_reshape.reshape(x.shape)
+    x_hat = (x_reshape - mean) / std
+    x_hat = x_hat.reshape(x.shape)
 
     for i in six.moves.xrange(x.ndim):
         if i != 1:  # except for channel dim
-            gamma = xp.expand_dims(gamma, i)
-            beta = xp.expand_dims(beta, i)
+            gamma = numpy.expand_dims(gamma, i)
+            beta = numpy.expand_dims(beta, i)
 
-    return x * gamma + beta
+    return x_hat * gamma + beta
 
 
 @testing.parameterize(*(testing.product({
     'shape': [(1, 4, 5, 5), (5, 4, 15)],
     'groups': [1, 2, 4],
-    'dtype': [numpy.float32],
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'eps': [1e-5, 1e-1],
 })))
-class TestGroupNormalization(unittest.TestCase):
+@testing.inject_backend_tests(
+    None,
+    # CPU tests
+    [
+        {},
+        {'use_ideep': 'always'},
+    ]
+    # GPU tests
+    + testing.product({
+        'use_cuda': [True],
+        'cuda_device': [0, 1],
+    })
+    # ChainerX tests
+    + [
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
+    ])
+class TestGroupNormalization(testing.FunctionTestCase):
 
     def setUp(self):
+        self.check_forward_options.update({'atol': 1e-4, 'rtol': 1e-3})
+        self.check_backward_options.update({'atol': 1e-3, 'rtol': 1e-2})
+        self.check_double_backward_options.update({'atol': 1e-3, 'rtol': 1e-2})
+        if self.dtype == numpy.float16:
+            self.check_forward_options.update({'atol': 1e-2, 'rtol': 1e-2})
+            self.check_backward_options.update({'atol': 1e-2, 'rtol': 1e-2})
+            self.check_double_backward_options.update(
+                {'atol': 1e-2, 'rtol': 1e-2})
+
+    def generate_inputs(self):
         x = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
         gamma = numpy.random.uniform(-1, 1, self.shape[1]).astype(self.dtype)
         beta = numpy.random.uniform(-1, 1, self.shape[1]).astype(self.dtype)
-        self.args = [x, gamma, beta]
-        self.gy = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
-        self.ggx = [numpy.random.uniform(-1, 1, arg.shape).astype(arg.dtype)
-                    for arg in self.args]
+        return x, gamma, beta
 
-        self.check_forward_options = {'atol': 1e-4, 'rtol': 1e-3}
-        self.check_backward_options = {'atol': 1e-3, 'rtol': 1e-2}
-        self.check_double_backward_options = {'atol': 1e-3, 'rtol': 1e-2}
+    def forward(self, inputs, device):
+        x, gamma, beta = inputs
+        y = functions.group_normalization(x, self.groups, gamma, beta,
+                                          eps=self.eps)
+        return y,
 
-    def check_forward(self, args):
-        xp = backend.get_array_module(*args)
+    def forward_expected(self, inputs):
+        x, gamma, beta = inputs
+        y = _simple_group_normalization(x, self.groups, gamma, beta,
+                                        eps=self.eps)
+        return y,
 
-        def func(*args_):
-            return functions.group_normalization(
-                *[args_[0], self.groups, args_[1], args_[2]])
 
-        y = func(*args)
-        self.assertEqual(y.data.dtype, self.dtype)
+@testing.parameterize(*(testing.product({
+    'shape': [(15, 10)],
+    'dtype': [numpy.float32],
+    'eps': [1e-5, 1e-1],
+})))
+@testing.inject_backend_tests(
+    None,
+    # CPU tests
+    [
+        {},
+        {'use_ideep': 'always'},
+    ]
+    # GPU tests
+    + testing.product({
+        'use_cuda': [True],
+        'cuda_device': [0, 1],
+    })
+    # ChainerX tests
+    + [
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
+    ])
+class TestMulInvStd(testing.FunctionTestCase):
 
-        # Verify that implementation using batch normalization is correct
-        y_simple_gn = _simple_group_normalization(
-            args[0], self.groups, args[1], args[2], xp)
-        testing.assert_allclose(
-            y.data, y_simple_gn, **self.check_forward_options)
+    def generate_inputs(self):
+        x = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        y = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        return x, y
 
-        # Verify that forward isn't be affected by batch size
-        if self.shape[0] > 1:
-            y_one_each = chainer.functions.concat(
-                [func(*[xp.expand_dims(one_x, axis=0), args[1], args[2]])
-                 for one_x in args[0]], axis=0)
-            testing.assert_allclose(
-                y.data, y_one_each.data, **self.check_forward_options)
+    def forward(self, inputs, device):
+        x, y = inputs
 
-    def test_forward_cpu(self):
-        self.check_forward(self.args)
+        mean = functions.mean(x, axis=1)
+        d = x - mean[:, None]
+        var = functions.mean(d * d, axis=1)
+        inv_std = functions.rsqrt(var + self.eps)
 
-    @attr.gpu
-    def test_forward_gpu(self):
-        self.check_forward([cuda.to_gpu(arg) for arg in self.args])
+        dummy_gamma = self.backend_config.xp.ones(
+            self.shape[0], dtype=self.dtype)
 
-    def check_backward(self, args, y_grad):
-        def func(*args_):
-            return functions.group_normalization(
-                *[args_[0], self.groups, args_[1], args_[2]])
+        return gn_module._MulInvStd(
+            self.eps, mean.array, inv_std.array, dummy_gamma).apply((x, y))
 
-        gradient_check.check_backward(
-            func, args, y_grad,
-            eps=1e-2, **self.check_backward_options)
-
-    def test_backward_cpu(self):
-        self.check_backward(self.args, self.gy)
-
-    @attr.gpu
-    def test_backward_gpu(self):
-        self.check_backward(
-            [cuda.to_gpu(arg) for arg in self.args], cuda.to_gpu(self.gy))
-
-    def check_double_backward(self, args, y_grad, x_grad_grad):
-        def func(*args_):
-            return functions.group_normalization(
-                *[args_[0], self.groups, args_[1], args_[2]])
-
-        gradient_check.check_double_backward(
-            func, args, y_grad, x_grad_grad,
-            eps=1e-2, **self.check_double_backward_options)
-
-    def test_double_backward_cpu(self):
-        self.check_double_backward(self.args, self.gy, self.ggx)
-
-    @attr.gpu
-    def test_double_backward_gpu(self):
-        self.check_double_backward(
-            [cuda.to_gpu(arg) for arg in self.args],
-            cuda.to_gpu(self.gy), [cuda.to_gpu(ggx_) for ggx_ in self.ggx])
+    def forward_expected(self, inputs):
+        x, y = inputs
+        inv_std = (numpy.var(x, axis=1) + self.eps) ** -0.5
+        z = inv_std[:, None] * y
+        return z,
 
 
 testing.run_module(__name__, __file__)

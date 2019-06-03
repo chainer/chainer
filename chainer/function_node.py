@@ -5,7 +5,6 @@ import inspect
 import traceback
 import weakref
 
-import numpy
 import six
 
 import chainer
@@ -219,9 +218,9 @@ class FunctionNode(object):
 Chainer's built-in function class object ({}) which is derived from \
 chainer.FunctionNode has been called as if it were a callable. \
 Use FunctionNode.apply() method instead.
-Furthermore, it's not recommended to use built-in function classes directly; \
-use corresponding function aliases (those with snake_case name, such as \
-F.convolution_nd) instead.\
+Furthermore, it's not recommended that you use built-in function classes \
+directly; use corresponding function aliases (those with snake_case name, \
+such as F.convolution_nd) instead.\
 '''.format(self.__class__.__name__)
         else:
             msg = '''\
@@ -306,7 +305,7 @@ Use apply() method instead.\
             hook.forward_preprocess(self, in_data)
 
         # Forward propagation
-        with cuda.get_device_from_array(*in_data):
+        with chainer.using_device(backend.get_device_from_array(*in_data)):
             self._input_indexes_to_retain = None
             self._output_indexes_to_retain = None
             if chainer.config.schedule_func is not None:
@@ -428,7 +427,7 @@ Use apply() method instead.\
                     if device is None:
                         device = x.device
                 else:
-                    fallback_data = backend.from_chainerx(data)
+                    fallback_data = backend.from_chx(data)
                     if device is None:
                         device = backend.ChainerxDevice(data.device)
 
@@ -446,7 +445,7 @@ Use apply() method instead.\
 
         # TODO(hvy): Take configuration.config.enable_backprop into
         # account?
-        chainerx_out_data = backend.to_chainerx(outputs)
+        chainerx_out_data = backend.to_chx(outputs)
 
         # Insert a ChainerX op-node that calls FunctionNode.backward in
         # backprop. Note that chainerx_out_data may not require gradients.
@@ -868,11 +867,15 @@ Use apply() method instead.\
 
     def unchain(self):
         """Purges in/out nodes and this function node itself from the graph."""
+        if self._is_chainerx_fallback_mode:
+            raise NotImplementedError(
+                'Unchaining is not yet supported in ChainerX fallback mode.')
         for y in self.outputs:
             y_ref = y()
             if y_ref is not None:
                 y_ref.unchain()
         self.inputs = None
+        self.outputs = None
 
     def add_hook(self, hook, name=None):
         """Registers a function hook.
@@ -978,14 +981,26 @@ def grad(outputs, inputs, grad_outputs=None, grad_inputs=None, set_grad=False,
     if not isinstance(inputs, (tuple, list)):
         raise TypeError(
             'inputs must be a tuple or a list, not {}.'.format(type(inputs)))
-    if not (grad_outputs is None or isinstance(grad_outputs, (tuple, list))):
-        raise TypeError(
-            'grad_outputs must be a tuple or a list or None, not {}.'.format(
-                type(grad_outputs)))
-    if not (grad_inputs is None or isinstance(grad_inputs, (tuple, list))):
-        raise TypeError(
-            'grad_inputs must be a tuple or a list or None, not {}.'.format(
-                type(grad_inputs)))
+    if grad_outputs is not None:
+        if not isinstance(grad_outputs, (tuple, list)):
+            raise TypeError(
+                'grad_outputs must be a tuple or a list or None, not {}.'
+                .format(type(grad_outputs)))
+        if len(outputs) != len(grad_outputs):
+            raise ValueError(
+                'grad_outputs must be of the same length as outputs.\n'
+                'len(outputs) = {}, len(grad_outputs) = {}'
+                .format(len(outputs), len(grad_outputs)))
+    if grad_inputs is not None:
+        if not isinstance(grad_inputs, (tuple, list)):
+            raise TypeError(
+                'grad_inputs must be a tuple or a list or None, not {}.'
+                .format(type(grad_inputs)))
+        if len(inputs) != len(grad_inputs):
+            raise ValueError(
+                'grad_inputs must be of the same length as inputs.\n'
+                'len(inputs) = {}, len(grad_inputs) = {}'
+                .format(len(inputs), len(grad_inputs)))
 
     for v in outputs:
         # Raise error here if v is created by Function.backward.
@@ -1047,11 +1062,8 @@ def grad(outputs, inputs, grad_outputs=None, grad_inputs=None, set_grad=False,
         grad_outputs = (None,) * len(outputs)
     for y, gy in zip(outputs, grad_outputs):
         if gy is None:
-            with cuda.get_device_from_array(y.data) as device:
-                if device is cuda.DummyDevice:
-                    gy_data = numpy.ones_like(y.data)
-                else:
-                    gy_data = cuda.cupy.ones_like(y.data)
+            with chainer.using_device(y.device):
+                gy_data = y.device.xp.ones_like(y.array)
                 gy = variable.Variable(gy_data, requires_grad=False)
             if loss_scale is not None:
                 gy.data *= loss_scale
@@ -1088,12 +1100,16 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads, loss_scale):
     input_nodes = set(x.node for x in inputs)
     ret_dict = {}
 
+    is_debug = chainer.is_debug()
+    base_hooks = chainer.get_function_hooks().values()
     while candidate_funcs:
         func = pop_candidate()
 
         # Collect the gradients w.r.t. the outputs
         ys = [y() for y in func.outputs]  # access via weak ref
-        gys = tuple([grads.pop(y) for y in ys])
+        gys = tuple([grads.pop(y)
+                     if y is not None and y.creator_node is not None else None
+                     for y in ys])
 
         for node, gy in six.moves.zip(ys, gys):
             if node is not None:
@@ -1122,25 +1138,28 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads, loss_scale):
         # Do backward
 
         # Call pre-backward hooks
-        hooks = chainer.get_function_hooks()
         if func._n_local_function_hooks != 0:
-            hooks = collections.OrderedDict(hooks)
-            hooks.update(func.local_function_hooks)
-        hooks = hooks.values()  # avoid six for performance
+            local_hooks = collections.OrderedDict(chainer.get_function_hooks())
+            local_hooks.update(func.local_function_hooks)
+            hooks = local_hooks.values()  # avoid six for performance
+        else:
+            hooks = base_hooks
 
-        in_data = tuple([x.data for x in func.inputs])
-        out_grad_data = tuple(
-            [None if g is None else g.data for g in gys])
+        in_data = [x.data for x in func.inputs]
+        out_grad_data = [None if g is None else g.data for g in gys]
 
-        with cuda.get_device_from_array(*in_data):
+        with chainer.using_device(backend.get_device_from_array(*in_data)):
             for hook in hooks:
-                hook.backward_preprocess(func, in_data, out_grad_data)
+                hook.backward_preprocess(
+                    func, tuple(in_data), tuple(out_grad_data))
 
-            _backprop_utils.backprop_step(func, input_indexes, gys, x_grads)
+            _backprop_utils.backprop_step(func, input_indexes, gys, x_grads,
+                                          is_debug)
 
             # Call post-backward hooks
             for hook in hooks:
-                hook.backward_postprocess(func, in_data, out_grad_data)
+                hook.backward_postprocess(
+                    func, tuple(in_data), tuple(out_grad_data))
 
         # Update grads
         for node, g in x_grads.items():
@@ -1170,7 +1189,7 @@ def _extract_apply_in_data(inputs):
     #
     # If at least one of the arrays is a ChainerX array, all other NumPy/CuPy
     # arrays are converted to ChainerX arrays without copy.
-    if len(inputs) == 0:
+    if not inputs:
         return False, ()
 
     if chainerx.is_available():
@@ -1192,7 +1211,7 @@ def _extract_apply_in_data(inputs):
                         has_chainerx_array = True
 
         if has_chainerx_array:
-            return True, tuple(backend.to_chainerx(arrays))
+            return True, tuple(backend.to_chx(arrays))
         else:
             return False, tuple(arrays)
 
@@ -1252,7 +1271,7 @@ def _make_chainerx_attribute_fallback_class(obj, device):
         if isinstance(value, chainerx.ndarray):
             fallback_arr = fallback_array_cache.get(name)
             if fallback_arr is None:
-                fallback_arr = backend.from_chainerx(value)
+                fallback_arr = backend.from_chx(value)
                 fallback_array_cache[name] = fallback_arr
             return fallback_arr
         return value
@@ -1261,7 +1280,7 @@ def _make_chainerx_attribute_fallback_class(obj, device):
     def setattr(self, name, value):
         if isinstance(value, fallback_device.xp.ndarray):
             fallback_array_cache[name] = value
-            sup.__setattr__(name, backend.to_chainerx(value))
+            sup.__setattr__(name, backend.to_chx(value))
             return
         sup.__setattr__(name, value)
 

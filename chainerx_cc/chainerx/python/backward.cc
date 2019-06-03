@@ -2,6 +2,7 @@
 
 #include <iterator>
 #include <memory>
+#include <utility>
 #include <vector>
 
 #include <nonstd/optional.hpp>

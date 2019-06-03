@@ -28,7 +28,7 @@ def _im2col(x, *args, **kwargs):
 
 class Im2Col(function_node.FunctionNode):
 
-    "Im2Col function."""
+    """Im2Col function."""
 
     def __init__(self, ksize, stride, pad, cover_all, dilate):
         self.kh, self.kw = _pair(ksize)
@@ -63,7 +63,7 @@ class Im2Col(function_node.FunctionNode):
 
 class Im2ColGrad(function_node.FunctionNode):
 
-    "Im2Col gradient function."""
+    """Im2Col gradient function."""
 
     def __init__(self, ksize, stride, pad, cover_all, dilate, in_shape):
         self.kh, self.kw = _pair(ksize)

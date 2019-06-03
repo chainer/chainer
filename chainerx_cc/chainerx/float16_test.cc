@@ -10,7 +10,7 @@
 namespace chainerx {
 namespace {
 
-bool IsNan(const Float16& x) {
+bool IsNan(Float16 x) {
     uint16_t exp = x.data() & 0x7c00;
     uint16_t frac = x.data() & 0x03ff;
     return exp == 0x7c00 && frac != 0x0000;
@@ -44,7 +44,7 @@ void CheckToFloat16FromFloat16Near(double d, double tol) {
 
 // Checks if `h` is equal to ToFloat16(FromFloat16(h)) exactly.
 // This function cannot take NaN as a parameter.  The cast of NaN is tested in `Float16Nan`.
-void CheckFromFloat16ToFloat16Eq(const Float16& h) {
+void CheckFromFloat16ToFloat16Eq(Float16 h) {
     float f = static_cast<float>(h);
     double d = static_cast<double>(h);
     EXPECT_EQ(d, static_cast<double>(f));
@@ -136,7 +136,7 @@ std::vector<Float16> GetFloat16Values() {
 }
 
 // Checks if `l` is equal to `r` or both of them are NaN.
-void ExpectEqFloat16(const Float16& l, const Float16& r) {
+void ExpectEqFloat16(Float16 l, Float16 r) {
     if (IsNan(l) && IsNan(r)) {
         return;
     }
@@ -153,8 +153,8 @@ TEST(NativeFloat16Test, Float16Neg) {
 }
 
 TEST(NativeFloat16Test, Float16Add) {
-    for (const Float16& x : GetFloat16Values()) {
-        for (const Float16& y : GetFloat16Values()) {
+    for (Float16 x : GetFloat16Values()) {
+        for (Float16 y : GetFloat16Values()) {
             Float16 expected{static_cast<double>(x) + static_cast<double>(y)};
             ExpectEqFloat16(expected, x + y);
             ExpectEqFloat16(expected, y + x);
@@ -163,8 +163,8 @@ TEST(NativeFloat16Test, Float16Add) {
 }
 
 TEST(NativeFloat16Test, Float16Subtract) {
-    for (const Float16& x : GetFloat16Values()) {
-        for (const Float16& y : GetFloat16Values()) {
+    for (Float16 x : GetFloat16Values()) {
+        for (Float16 y : GetFloat16Values()) {
             Float16 expected{static_cast<double>(x) - static_cast<double>(y)};
             ExpectEqFloat16(expected, x - y);
         }
@@ -172,8 +172,8 @@ TEST(NativeFloat16Test, Float16Subtract) {
 }
 
 TEST(NativeFloat16Test, Float16Multiply) {
-    for (const Float16& x : GetFloat16Values()) {
-        for (const Float16& y : GetFloat16Values()) {
+    for (Float16 x : GetFloat16Values()) {
+        for (Float16 y : GetFloat16Values()) {
             Float16 expected{static_cast<double>(x) * static_cast<double>(y)};
             ExpectEqFloat16(expected, x * y);
             ExpectEqFloat16(expected, y * x);
@@ -183,8 +183,8 @@ TEST(NativeFloat16Test, Float16Multiply) {
 }
 
 TEST(NativeFloat16Test, Float16Divide) {
-    for (const Float16& x : GetFloat16Values()) {
-        for (const Float16& y : GetFloat16Values()) {
+    for (Float16 x : GetFloat16Values()) {
+        for (Float16 y : GetFloat16Values()) {
             Float16 expected{static_cast<double>(x) / static_cast<double>(y)};
             ExpectEqFloat16(expected, x / y);
         }
@@ -192,7 +192,7 @@ TEST(NativeFloat16Test, Float16Divide) {
 }
 
 TEST(NativeFloat16Test, Float16AddI) {
-    for (const Float16& x : GetFloat16Values()) {
+    for (Float16 x : GetFloat16Values()) {
         for (Float16 y : GetFloat16Values()) {
             Float16 expected{static_cast<double>(y) + static_cast<double>(x)};
             Float16 z = (y += x);
@@ -203,7 +203,7 @@ TEST(NativeFloat16Test, Float16AddI) {
 }
 
 TEST(NativeFloat16Test, Float16SubtractI) {
-    for (const Float16& x : GetFloat16Values()) {
+    for (Float16 x : GetFloat16Values()) {
         for (Float16 y : GetFloat16Values()) {
             Float16 expected{static_cast<double>(y) - static_cast<double>(x)};
             Float16 z = y -= x;
@@ -214,7 +214,7 @@ TEST(NativeFloat16Test, Float16SubtractI) {
 }
 
 TEST(NativeFloat16Test, Float16MultiplyI) {
-    for (const Float16& x : GetFloat16Values()) {
+    for (Float16 x : GetFloat16Values()) {
         for (Float16 y : GetFloat16Values()) {
             Float16 expected{static_cast<double>(y) * static_cast<double>(x)};
             Float16 z = y *= x;
@@ -225,12 +225,35 @@ TEST(NativeFloat16Test, Float16MultiplyI) {
 }
 
 TEST(NativeFloat16Test, Float16DivideI) {
-    for (const Float16& x : GetFloat16Values()) {
+    for (Float16 x : GetFloat16Values()) {
         for (Float16 y : GetFloat16Values()) {
             Float16 expected{static_cast<double>(y) / static_cast<double>(x)};
             Float16 z = y /= x;
             ExpectEqFloat16(expected, y);
             ExpectEqFloat16(expected, z);
+        }
+    }
+}
+
+TEST(NativeFloat16Test, FloatComparison) {
+    for (Float16 x : GetFloat16Values()) {
+        for (Float16 y : GetFloat16Values()) {
+#define CHECK_COMPARISION_OPERATOR(op)                                       \
+    {                                                                        \
+        /* NOLINTNEXTLINE(misc-macro-parentheses) */                         \
+        EXPECT_EQ(static_cast<double>(x) op static_cast<double>(y), x op y); \
+        /* NOLINTNEXTLINE(misc-macro-parentheses) */                         \
+        EXPECT_EQ(static_cast<double>(y) op static_cast<double>(x), y op x); \
+    }
+
+            CHECK_COMPARISION_OPERATOR(==);
+            CHECK_COMPARISION_OPERATOR(!=);
+            CHECK_COMPARISION_OPERATOR(<);  // NOLINT(whitespace/operators)
+            CHECK_COMPARISION_OPERATOR(>);  // NOLINT(whitespace/operators)
+            CHECK_COMPARISION_OPERATOR(<=);
+            CHECK_COMPARISION_OPERATOR(>=);
+
+#undef CHECK_COMPARISION_OPERATOR
         }
     }
 }

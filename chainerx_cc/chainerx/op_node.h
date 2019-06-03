@@ -76,6 +76,8 @@ public:
     static std::shared_ptr<OpNode> CreateWithOutputArrayNodes(
             std::string name, BackpropId backprop_id, size_t input_count, const std::vector<ConstArrayRef>& outputs);
 
+    ~OpNode() = default;
+
     OpNode(const OpNode&) = delete;
     OpNode(OpNode&&) = delete;
     OpNode& operator=(const OpNode&) = delete;

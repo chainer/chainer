@@ -18,7 +18,7 @@ From the previous guide on :doc:`models`, let's use the ``MyChain`` class:
    ...         h = self.l1(x)
    ...         return self.l2(h)
 
-To tune parameters values to minimize loss, etc., we have to optimize them by the :class:`Optimizer` class.
+To tune parameters values to minimize loss, etc., we have to optimize them by the :class:`~chainer.Optimizer` class.
 It runs a numerical optimization algorithm on a given link.
 Many algorithms are implemented in the :mod:`~chainer.optimizers` module.
 Here we use the simplest one, called Stochastic Gradient Descent (SGD):
@@ -28,7 +28,7 @@ Here we use the simplest one, called Stochastic Gradient Descent (SGD):
    >>> model = MyChain()
    >>> optimizer = optimizers.SGD().setup(model)
 
-The method :meth:`~Optimizer.setup` prepares for the optimization given a link.
+The method :meth:`~chainer.Optimizer.setup` prepares for the optimization given a link.
 
 Some parameter/gradient manipulations, e.g. weight decay and gradient clipping, can be done by setting *hook functions* to the optimizer.
 Hook functions are called after the gradient computation and right before the actual update of parameters.
@@ -48,7 +48,7 @@ We here review the latter case.
 To use the optimizer in an automated fashion, see the :doc:`trainer` guide.
 
 There are two further ways to use the optimizer directly.
-One is manually computing gradients and then calling the :meth:`~Optimizer.update` method with no arguments.
+One is manually computing gradients and then calling the :meth:`~chainer.Optimizer.update` method with no arguments.
 Do not forget to clear the gradients beforehand!
 
 .. doctest::
@@ -60,8 +60,8 @@ Do not forget to clear the gradients beforehand!
    >>> loss.backward()
    >>> optimizer.update()
 
-The other way is just passing a loss function to the :meth:`~Optimizer.update` method.
-In this case, :meth:`~Link.cleargrads` is automatically called by the update method, so the user does not have to call it manually.
+The other way is just passing a loss function to the :meth:`~chainer.Optimizer.update` method.
+In this case, :meth:`~chainer.Link.cleargrads` is automatically called by the update method, so the user does not have to call it manually.
 
 .. doctest::
 
@@ -74,5 +74,5 @@ In this case, :meth:`~Link.cleargrads` is automatically called by the update met
    >>> arg2 = np.random.uniform(-1, 1, (2, 4)).astype(np.float32)
    >>> optimizer.update(lossfun, chainer.Variable(arg1), chainer.Variable(arg2))
 
-See :meth:`Optimizer.update` for the full specification.
+See :meth:`chainer.Optimizer.update` for the full specification.
 

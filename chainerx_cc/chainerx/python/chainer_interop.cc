@@ -5,6 +5,7 @@
 #include <iterator>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <gsl/gsl>
@@ -115,10 +116,12 @@ void InitChainerxChainerInterop(pybind11::module& m) {
               // Insert backward function
               BackwardBuilder bb{"chainer_function", std::move(reduced_input_array_refs), std::move(reduced_output_array_refs)};
               if (BackwardBuilder::Target bt = bb.CreateTarget()) {
-                  auto function_node_ptr = std::make_shared<py::object>(std::move(function_node), [](gsl::owner<py::object*> ptr) {
-                      py::gil_scoped_acquire acquire;
-                      delete ptr;
-                  });
+                  // Need to reallocate the function node in order to specify a custom deleter (that acquires the GIL before deletion).
+                  auto function_node_ptr =
+                          std::shared_ptr<py::object>{new py::object{std::move(function_node)}, [](gsl::owner<py::object*> ptr) {
+                                                          py::gil_scoped_acquire acquire;
+                                                          delete ptr;
+                                                      }};
 
                   // Retain inputs/outputs
                   auto retain_arrays = [](auto retain,

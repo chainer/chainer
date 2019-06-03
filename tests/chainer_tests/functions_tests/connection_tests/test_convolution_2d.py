@@ -5,11 +5,9 @@ import numpy
 import chainer
 from chainer.backends import cuda
 import chainer.functions as F
-from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
 from chainer.testing import backend
-from chainer.testing import condition
 
 
 @testing.parameterize(*(testing.product({
@@ -30,7 +28,7 @@ from chainer.testing import condition
     'nobias': [True, False],
 })))
 @backend.inject_backend_tests(
-    ['test_forward', 'test_backward', 'test_double_backward'],
+    None,
     # ChainerX tests
     testing.product({
         'use_chainerx': [True],
@@ -55,127 +53,77 @@ from chainer.testing import condition
             'cudnn_deterministic': [True, False],
             'autotune': [True, False],
         })]))
-class TestConvolution2DFunction(unittest.TestCase):
+class TestConvolution2DFunction(testing.FunctionTestCase):
 
     def setUp(self):
-        batches = 2
-        in_channels_a_group = 3
-        out_channels_a_group = 2
-        in_channels = in_channels_a_group * self.groups
-        out_channels = out_channels_a_group * self.groups
-        kh, kw = (3, 3)
+        self.batches = 2
+        self.in_channels_a_group = 3
+        self.out_channels_a_group = 2
+        self.in_channels = self.in_channels_a_group * self.groups
+        self.out_channels = self.out_channels_a_group * self.groups
+        self.kh, self.kw = (3, 3)
         self.stride = 2
-        self.pad = (int(kh / 2) * self.dilate, int(kw / 2) * self.dilate)
+        self.pad = (
+            int(self.kh / 2) * self.dilate, int(self.kw / 2) * self.dilate)
+
+        self.check_forward_options.update({
+            'atol': 5e-4, 'rtol': 5e-3
+        })
+        self.check_backward_options.update({
+            'atol': 5e-4, 'rtol': 5e-3
+        })
+        self.check_double_backward_options.update({
+            'atol': 5e-4, 'rtol': 5e-3
+        })
+        if numpy.float16 in (self.x_dtype, self.W_dtype):
+            self.check_forward_options.update({
+                'atol': 1e-3, 'rtol': 1e-2
+            })
+            self.check_backward_options.update({
+                'atol': 1e-3, 'rtol': 1e-3
+            })
+            self.check_double_backward_options.update({
+                'atol': 1e-3, 'rtol': 1e-3
+            })
+
+    def generate_inputs(self):
         W = numpy.random.normal(
-            0, numpy.sqrt(1. / (kh * kw * in_channels_a_group)),
-            (out_channels, in_channels_a_group, kh, kw)).astype(self.W_dtype)
+            0, numpy.sqrt(1. / (self.kh * self.kw * self.in_channels_a_group)),
+            (self.out_channels, self.in_channels_a_group, self.kh, self.kw)
+        ).astype(self.W_dtype)
+        x = numpy.random.uniform(
+            -1, 1, (self.batches, self.in_channels, 4, 3)).astype(self.x_dtype)
 
         if self.nobias:
-            b = None
+            return x, W
         else:
             b = numpy.random.uniform(
-                -1, 1, out_channels).astype(self.x_dtype)
+                -1, 1, self.out_channels).astype(self.x_dtype)
+            return x, W, b
 
-        x = numpy.random.uniform(
-            -1, 1, (batches, in_channels, 4, 3)).astype(self.x_dtype)
-        if self.cover_all:
-            gy = numpy.random.uniform(
-                -1, 1, (batches, out_channels, 3, 2)).astype(self.x_dtype)
+    def forward_expected(self, inputs):
+        if self.nobias:
+            x, W = inputs
+            b = None
         else:
-            gy = numpy.random.uniform(
-                -1, 1, (batches, out_channels, 2, 2)).astype(self.x_dtype)
-        ggx = numpy.random.uniform(-1, 1, x.shape).astype(
-            self.x_dtype)
-        ggW = numpy.random.uniform(-1, 1, W.shape).astype(
-            self.W_dtype)
-        ggb = None if b is None else numpy.random.uniform(
-            -1, 1, b.shape).astype(self.x_dtype)
+            x, W, b = inputs
+        with chainer.using_config('use_ideep', 'never'):
+            y_expected = F.convolution_2d(
+                x, W, b, stride=self.stride, pad=self.pad,
+                cover_all=self.cover_all, dilate=self.dilate,
+                groups=self.groups)
+        return y_expected.array,
 
-        self.inputs = [x, W, b]
-        self.grad_outputs = [gy]
-        self.grad_grad_inputs = [ggx, ggW, ggb]
-
-    def forward(self, inputs):
-        x, W, b = inputs
-        x = chainer.Variable(x)
-        W = chainer.Variable(W)
-        b = None if b is None else chainer.Variable(b)
+    def forward(self, inputs, device):
+        if self.nobias:
+            x, W = inputs
+            b = None
+        else:
+            x, W, b = inputs
         return F.convolution_2d(
             x, W, b, stride=self.stride, pad=self.pad,
             cover_all=self.cover_all, dilate=self.dilate,
-            groups=self.groups)
-
-    def check_forward(self, inputs, backend_config):
-        with chainer.using_config('use_ideep', 'never'):
-            y_expected = self.forward(inputs)
-
-        inputs = backend_config.get_array(inputs)
-
-        with backend_config:
-            y_actual = self.forward(inputs)
-
-        testing.assert_allclose(
-            y_expected.data, y_actual.data, atol=1e-3, rtol=5e-3)
-
-    def test_forward(self, backend_config):
-        self.check_forward(self.inputs, backend_config)
-
-    def check_backward(self, inputs, grad_outputs, backend_config):
-        if self.nobias:
-            inputs = inputs[:-1]
-
-        inputs = backend_config.get_array(inputs)
-        grad_outputs = backend_config.get_array(grad_outputs)
-
-        if not self.c_contiguous:
-            inputs = testing.array._as_noncontiguous_array(inputs)
-            grad_outputs = testing.array._as_noncontiguous_array(grad_outputs)
-
-        def f(*args):
-            return F.convolution_2d(*args, stride=self.stride, pad=self.pad,
-                                    cover_all=self.cover_all,
-                                    dilate=self.dilate, groups=self.groups)
-
-        with backend_config:
-            gradient_check.check_backward(
-                f, inputs, grad_outputs, dtype='d', atol=5e-4, rtol=5e-3)
-
-    @condition.retry(3)
-    def test_backward(self, backend_config):
-        self.check_backward(self.inputs, self.grad_outputs, backend_config)
-
-    def check_double_backward(
-            self, inputs, grad_outputs, grad_grad_inputs, backend_config):
-        if self.nobias:
-            inputs = inputs[:-1]
-            grad_grad_inputs = grad_grad_inputs[:-1]
-
-        inputs = backend_config.get_array(inputs)
-        grad_outputs = backend_config.get_array(grad_outputs)
-        grad_grad_inputs = backend_config.get_array(grad_grad_inputs)
-
-        if not self.c_contiguous:
-            inputs = testing.array._as_noncontiguous_array(inputs)
-            grad_outputs = testing.array._as_noncontiguous_array(grad_outputs)
-            grad_grad_inputs = testing.array._as_noncontiguous_array(
-                grad_grad_inputs)
-
-        def f(*args):
-            return F.convolution_2d(
-                *args, stride=self.stride, pad=self.pad,
-                cover_all=self.cover_all, dilate=self.dilate,
-                groups=self.groups)
-
-        with backend_config:
-            gradient_check.check_double_backward(
-                f, inputs, grad_outputs, grad_grad_inputs,
-                dtype='d', atol=5e-3, rtol=5e-2)
-
-    @condition.retry(3)
-    def test_double_backward(self, backend_config):
-        self.check_double_backward(
-            self.inputs, self.grad_outputs, self.grad_grad_inputs,
-            backend_config)
+            groups=self.groups),
 
 
 @testing.parameterize(*(testing.product({
