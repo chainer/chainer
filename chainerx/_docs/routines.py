@@ -498,6 +498,24 @@ Note:
 .. seealso:: :func:`numpy.dot`
 """)
 
+    _docs.set_doc(
+        chainerx.linalg.qr,
+        """qr(a)
+Compute the qr factorization of a matrix.
+
+Factor the matrix ``a`` as *qr*, where ``q`` is orthonormal and ``r`` is
+upper-triangular.
+
+Args:
+    a (~chainerx.ndarray): Matrix to be factored.
+
+Returns:
+    q (~chainerx.ndarray): A matrix with orthonormal columns.
+    r (~chainerx.ndarray): The upper-triangular matrix.
+
+.. seealso:: :func:`numpy.linalg.qr`
+""")
+
 
 def _docs_logic():
     _docs.set_doc(

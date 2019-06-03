@@ -340,6 +340,11 @@ void InitChainerxLinalg(pybind11::module& m) {
           [](const ArrayBodyPtr& a, const ArrayBodyPtr& b) { return MoveArrayBody(Dot(Array{a}, Array{b})); },
           py::arg("a"),
           py::arg("b"));
+
+    pybind11::module mlinalg = m.def_submodule("linalg");
+    mlinalg.def("qr",
+                [](const ArrayBodyPtr& a) { return QR(Array{a}); },
+                py::arg("a"));
 }
 
 void InitChainerxLogic(pybind11::module& m) {

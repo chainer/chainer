@@ -9,4 +9,6 @@ namespace chainerx {
 
 Array Dot(const Array& a, const Array& b, nonstd::optional<Dtype> out_dtype = nonstd::nullopt);
 
+std::tuple<Array, Array> QR(const Array& a);
+
 }  // namespace chainerx

@@ -98,4 +98,16 @@ Array Dot(const Array& a, const Array& b, nonstd::optional<Dtype> out_dtype) {
     return out_matrix.Reshape(out_shape);
 }
 
+std::tuple<Array, Array> QR(const Array& a) {
+    Array q{};
+    Array r{};
+
+    {
+        NoBackpropModeScope scope{};
+        std::tie(q, r) = a.device().backend().CallKernel<QRKernel>(a);
+    }
+
+    return std::make_tuple(std::move(q), std::move(r));
+}
+
 }  // namespace chainerx

@@ -817,6 +817,9 @@ def ones(shape: tp.Union[int, tp.Tuple[int, ...]],
 def ones_like(a: ndarray, device: tp.Optional[Device]=None) -> ndarray: ...
 
 
+def qr(a: ndarray) -> tp.Tuple[ndarray, ...]: ...
+
+
 @tp.overload
 def reshape(
         a: ndarray,

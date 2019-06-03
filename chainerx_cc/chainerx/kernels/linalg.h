@@ -16,4 +16,11 @@ public:
     virtual void Call(const Array& a, const Array& b, const Array& out) = 0;
 };
 
+class QRKernel : public Kernel {
+public:
+    static const char* name() { return "QR"; }
+
+    virtual std::tuple<Array, Array> Call(const Array& a) = 0;
+};
+
 }  // namespace chainerx
