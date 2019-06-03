@@ -186,12 +186,13 @@ setup_kwargs = dict(
 
 build_chainerx = 0 != int(os.getenv('CHAINER_BUILD_CHAINERX', '0'))
 
-# `CHAINER_READTHEDOCS` is set to `True` in the project configuration
-# of ReadTheDocs. It should be used instead of `READTHEDOCS` environment
-# variable during the installation process of Chainer package. This allows
-# projects that depend on Chainer package to build their docs on RTD without
-# building ChainerX.
-if os.getenv('CHAINER_READTHEDOCS', None) == 'True':
+# `CHAINER_READTHEDOCS` is set to `1` in the project configuration of
+# ReadTheDocs. It should be used instead of `READTHEDOCS` environment
+# variable (which is set to `True`) during the installation process of
+# Chainer package.
+# This allows projects that depend on Chainer package to build their docs
+# on RTD without building ChainerX.
+if os.getenv('CHAINER_READTHEDOCS', None) == '1':
     os.environ['MAKEFLAGS'] = '-j2'
     build_chainerx = True
 
