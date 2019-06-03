@@ -76,8 +76,7 @@ class NormalizeL2(function_node.FunctionNode):
 
 
 def normalize(x, eps=1e-5, axis=None):
-    """Normalize input by L2 norm (a.k.a.\\  Euclidean norm) over specified \
-axis or axes.
+    """Normalize input by L2 norm.
 
     This function implements L2 normalization on a sample along the given
     axis/axes. No reduction is done along the normalization axis.
