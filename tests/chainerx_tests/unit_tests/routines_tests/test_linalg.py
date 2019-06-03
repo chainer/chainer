@@ -93,3 +93,35 @@ def test_dot_invalid(is_module, xp, device, a_shape, b_shape, dtype):
         return xp.dot(a, b)
     else:
         return a.dot(b)
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    # Special shapes
+    chainer.testing.product({
+        'a_size': [2, ],
+        'in_dtypes': ['float32', 'float64'],
+        'contiguous': [None, 'C'],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True],
+    })
+))
+class TestCholesky(op_utils.NumpyOpTest):
+
+    def setup(self):
+        device = chainerx.get_default_device()
+        if device.name == 'native:0':
+            pytest.skip('CPU Cholesky is not implemented')
+
+    def generate_inputs(self):
+        print(self.a_size)
+        a = numpy.random.random((self.a_size, self.a_size)).astype(self.in_dtypes)
+        # Make random matrix a symmetric positive semi-definite one
+        a = a.T.dot(a)
+        return a,
+
+    def forward_xp(self, inputs, xp):
+        a, = inputs
+        L = xp.linalg.cholesky(a)
+        L[numpy.triu_indices_from(L, k=1)] = 0.0
+        return L,
