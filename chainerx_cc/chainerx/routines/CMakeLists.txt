@@ -2,12 +2,14 @@ add_library(chainerx_routines STATIC
     binary.cc
     connection.cc
     creation.cc
+    explog.cc
     hyperbolic.cc
     indexing.cc
     linalg.cc
     logic.cc
     manipulation.cc
     math.cc
+    misc.cc
     normalization.cc
     pooling.cc
     reduction.cc
@@ -21,12 +23,14 @@ install(FILES
     binary.h
     connection.h
     creation.h
+    explog.h
     hyperbolic.h
     indexing.h
     linalg.h
     logic.h
     manipulation.h
     math.h
+    misc.h
     normalization.h
     pooling.h
     reduction.h

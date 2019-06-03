@@ -13,7 +13,6 @@ install(FILES
 
 add_library(chainerx_native STATIC
     native_device.cc
-    native_device/activation.cc
     native_device/arithmetic.cc
     native_device/batch_norm.cc
     native_device/binary.cc

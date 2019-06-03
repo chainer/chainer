@@ -71,30 +71,9 @@ Array TrueDivide(Scalar x1, const Array& x2);
 
 Array Reciprocal(const Array& x);
 
-Array Maximum(const Array& x1, Scalar x2);
-Array Maximum(Scalar x1, const Array& x2);
-Array Maximum(const Array& x1, const Array& x2);
-
-Array Minimum(const Array& x1, Scalar x2);
-Array Minimum(Scalar x1, const Array& x2);
-Array Minimum(const Array& x1, const Array& x2);
-
-Array Exp(const Array& x);
-Array Expm1(const Array& x);
-Array Exp2(const Array& x);
-Array Log(const Array& x);
-Array Log10(const Array& x);
-Array Log1p(const Array& x);
-
 Array Sigmoid(const Array& x);
 
 Array Relu(const Array& x);
-
-Array Square(const Array& x);
-
-Array SquaredDifference(const Array& x1, const Array& x2);
-
-Array Sqrt(const Array& x);
 
 Array Power(const Array& x1, const Array& x2);
 
@@ -108,14 +87,8 @@ Array IsInf(const Array& x);
 
 Array IsFinite(const Array& x);
 
-Array Absolute(const Array& x);
-
 Array Ceil(const Array& x);
 
 Array Floor(const Array& x);
-
-Array Fabs(const Array& x);
-
-Array Sign(const Array& x);
 
 }  // namespace chainerx

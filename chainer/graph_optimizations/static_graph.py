@@ -1,11 +1,11 @@
 import sys
 import weakref
 
+import numpy as np
+
 import chainer
 from chainer.backends import cuda
 import chainer.function_node
-
-import numpy as np
 
 
 def _is_xp(x):
