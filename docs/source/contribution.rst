@@ -393,6 +393,6 @@ There are some rules on sending backport PRs.
 * Include the original PR number in the PR description, e.g. "This is a backport of #XXXX".
 * (Optional) Write in the PR description, the motivation behind the backport.
 
-There is a `backport tool https://github.com/chainer/backport`_ maintained by the core team that automates the process of creating backport PRs conforming to the rules above.
+There is a `backport tool <https://github.com/chainer/backport>`_ maintained by the core team that automates the process of creating backport PRs conforming to the rules above.
 
 Note: PRs that do not include any changes/additions to APIs (e.g. bug fixes, documentation improvements) are backported by the core team, but contributors are also welcomed to do so to make development faster.
