@@ -219,6 +219,7 @@ global_config.use_cudnn = os.environ.get('CHAINER_USE_CUDNN', 'auto')
 global_config.use_cudnn_tensor_core = 'auto'
 global_config.autotune = False
 global_config.schedule_func = None
+global_config.use_static_graph = True
 global_config.use_ideep = os.environ.get('CHAINER_USE_IDEEP', 'never')
 global_config.lazy_grad_sum = bool(int(
     os.environ.get('CHAINER_LAZY_GRAD_SUM', '0')))
