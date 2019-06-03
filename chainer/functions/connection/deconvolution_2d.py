@@ -27,6 +27,7 @@ class Deconvolution2DFunction(function_node.FunctionNode):
 
     cover_all = None
     _use_ideep = False
+    _supports_nhwc_tensor_layout = True
 
     def __init__(self, stride=1, pad=0, outsize=None, **kwargs):
         dilate, groups, tensor_layout = argument.parse_kwargs(
@@ -205,7 +206,12 @@ class Deconvolution2DFunction(function_node.FunctionNode):
             # cuDNN implementation
             return self._forward_cudnn(x, W, b)
 
-        elif self.groups > 1:
+        if self.tensor_layout == 'NHWC':
+            msg = ('NHWC tensor layout is available with {} only when cuDNN is'
+                   ' used.'.format(self.label))
+            raise RuntimeError(msg)
+
+        if self.groups > 1:
             return self._forward_grouped_convolution(x, W, b)
 
         else:

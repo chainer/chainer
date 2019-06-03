@@ -23,6 +23,7 @@ class ReLU(function_node.FunctionNode):
     """Rectified Linear Unit."""
 
     _use_cudnn = False
+    _supports_nhwc_tensor_layout = True
 
     def check_type_forward(self, in_types):
         type_check._argname(in_types, ('x',))

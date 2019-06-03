@@ -152,6 +152,8 @@ def absolute(self):
 
 class Add(function_node.FunctionNode):
 
+    _supports_nhwc_tensor_layout = True
+
     @property
     def label(self):
         return '_ + _'

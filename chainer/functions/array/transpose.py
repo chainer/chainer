@@ -7,6 +7,8 @@ from chainer.utils import type_check
 class Transpose(function_node.FunctionNode):
     """Permute the dimensions of an array."""
 
+    _supports_nhwc_tensor_layout = True
+
     def __init__(self, axes=None):
         self.axes = axes
 

@@ -1,3 +1,5 @@
+import warnings
+
 import numpy
 
 import chainer
@@ -310,6 +312,13 @@ class BatchNormalization(link.Link):
 
         if self.tensor_layout is None:
             self.tensor_layout = configuration.config.tensor_layout
+
+        if self.tensor_layout == 'NHWC':
+            if x.dtype != numpy.float16 or gamma.dtype != numpy.float32:
+                warnings.warn(
+                    'NHWC tensor layout should not be used unless an'
+                    ' environment variable CHAINER_DTYPE is set to mixed16.',
+                    UserWarning)
 
         if configuration.config.train:
             if finetune:

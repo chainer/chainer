@@ -45,6 +45,7 @@ class BatchNormalization(function_node.FunctionNode):
 
     mean = None
     inv_std = None
+    _supports_nhwc_tensor_layout = True
 
     def __init__(self, eps=2e-5, mean=None, var=None, decay=0.9, axis=None,
                  tensor_layout='NCHW'):
@@ -171,11 +172,16 @@ class BatchNormalization(function_node.FunctionNode):
         self.use_cudnn = self.mode.can_use_cudnn(xp)
         self.use_ideep = self.mode.can_use_ideep()
 
+        if not self.use_cudnn:
+            msg = ('NHWC tensor layout is available with {} only when cuDNN is'
+                   ' used.'.format(self.label))
+            raise RuntimeError(msg)
+
         self.use_cudnn_ex = False
         if (self.use_cudnn and
+                self.tensor_layout == 'NHWC' and
                 x.dtype == numpy.float16 and
                 gamma.dtype == numpy.float32 and
-                self.tensor_layout == 'NHWC' and
                 gamma.shape[0] % 4 == 0 and
                 _cudnn_version >= 7400):
             self.use_cudnn_ex = True
@@ -285,20 +291,25 @@ class BatchNormalization(function_node.FunctionNode):
                 var = self.running_var
             else:
                 # Create dummies.
-                mean = xp.zeros_like(gamma, dtype=x.dtype)
-                var = xp.zeros_like(gamma, dtype=x.dtype)
+                mean = xp.zeros_like(gamma)
+                var = xp.zeros_like(gamma)
+
+            if self.tensor_layout == 'NHWC':
+                x = x.transpose((0, 3, 1, 2))  # to NCHW
+            cudnn_tensor_layout = utils.get_cudnn_tensor_layout('NCHW')
 
             # self.mean and self.inv_std are used as buffers to save
             # intermediate results computed during forward pass. These buffers
             # are used to speed-up backward pass.
-            cudnn_tensor_layout = utils.get_cudnn_tensor_layout(
-                self.tensor_layout)
             y, self.mean, self.inv_std = (
                 cudnn.batch_normalization_forward_training(
                     x, gamma, beta, mean, var, None, None,
                     self.eps, self.decay, self.mode.is_for_conv2d,
                     self.mode.get_cudnn_mode(), chainer.is_debug(),
-                    cudnn_tensor_layout))
+                    d_layout=cudnn_tensor_layout))
+
+            if self.tensor_layout == 'NHWC':
+                y = y.transpose((0, 2, 3, 1))  # to NHWC
         else:
             # Generic CPU and GPU implementation
 
@@ -450,12 +461,18 @@ class BatchNormalizationGrad(function_node.FunctionNode):
                 self.reservespace.ptr, self.reservespace_size)
 
         elif self.use_cudnn:
-            cudnn_tensor_layout = utils.get_cudnn_tensor_layout(
-                self.tensor_layout)
+            if self.tensor_layout == 'NHWC':
+                x = x.transpose((0, 3, 1, 2))  # to NCHW
+                gy = gy.transpose((0, 3, 1, 2))  # to NCHW
+            cudnn_tensor_layout = utils.get_cudnn_tensor_layout('NCHW')
+
             gx, ggamma, gbeta = cudnn.batch_normalization_backward(
                 x, gamma, gy, self.mean, self.inv_std, self.eps,
                 self.mode.is_for_conv2d, self.mode.get_cudnn_mode(),
-                chainer.is_debug(), cudnn_tensor_layout)
+                chainer.is_debug(), d_layout=cudnn_tensor_layout)
+
+            if self.tensor_layout == 'NHWC':
+                gx = gx.transpose((0, 2, 3, 1))  # to NHWC
         else:
             # CPU and GPU implementation
             if isinstance(gy, intel64.mdarray):
@@ -540,6 +557,7 @@ class FixedBatchNormalization(function_node.FunctionNode):
 
     inv_std = None
     inv_var = None
+    _supports_nhwc_tensor_layout = True
 
     def __init__(self, eps=2e-5, axis=None, tensor_layout='NCHW'):
         # Note: cuDNN requires that eps be greater than or equals to
@@ -656,12 +674,17 @@ class FixedBatchNormalization(function_node.FunctionNode):
             self.inv_std = None
 
         elif mode.can_use_cudnn(xp):
-            cudnn_tensor_layout = utils.get_cudnn_tensor_layout(
-                self.tensor_layout)
+            if self.tensor_layout == 'NHWC':
+                x = x.transpose((0, 3, 1, 2))  # to NCHW
+            cudnn_tensor_layout = utils.get_cudnn_tensor_layout('NCHW')
+
             y = cudnn.batch_normalization_forward_inference(
                 x, gamma, beta, mean, var, self.eps,
                 mode.is_for_conv2d, mode.get_cudnn_mode(),
-                cudnn_tensor_layout)
+                d_layout=cudnn_tensor_layout)
+
+            if self.tensor_layout == 'NHWC':
+                y = y.transpose((0, 2, 3, 1))  # to NHWC
         else:
             # Generic CPU and GPU implementation
             gamma = gamma[expander]

@@ -154,6 +154,7 @@ class FunctionNode(object):
     _chainerx_retained_inputs = None
     _chainerx_retained_outputs = None
     lazy_grad_sum = False
+    _supports_nhwc_tensor_layout = False
 
     @property
     def local_function_hooks(self):
@@ -294,6 +295,12 @@ Use apply() method instead.\
 
         if configuration.config.type_check:
             self._check_data_type_forward(in_data)
+
+        if configuration.config.tensor_layout == 'NHWC':
+            if self._supports_nhwc_tensor_layout is False:
+                msg = ('NHWC tensor layout is not supported by {}'
+                       ''.format(self.label))
+                raise RuntimeError(msg)
 
         hooks = chainer.get_function_hooks()
         if self._n_local_function_hooks > 0:
@@ -509,7 +516,12 @@ Use apply() method instead.\
         assert len(inputs) > 0
         if isinstance(inputs[0], cuda.ndarray):
             return self.forward_gpu(inputs)
-        return self.forward_cpu(inputs)
+        else:
+            if configuration.config.tensor_layout == 'NHWC':
+                if self._supports_nhwc_tensor_layout is False:
+                    msg = 'NHWC tensor layout is not supported on CPU'
+                    raise RuntimeError(msg)
+            return self.forward_cpu(inputs)
 
     def forward_cpu(self, inputs):
         """Computes the output arrays from the input NumPy arrays.
