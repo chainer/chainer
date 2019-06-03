@@ -206,13 +206,10 @@ def is_arrays_compatible(arrays):
             # `types` is only initialized when needed.
             # (i.e. at the first occurrence of non-None, non-ChainerX inputs)
             if types is None:
-                if isinstance(a, backends.cuda.ndarray):
-                    types = backends.cuda.ndarray
-                else:
-                    cpu_types = get_cpu_array_types()
-                    if isinstance(a, cpu_types):
-                        types = cpu_types
-                    else:
+                types = backends.cuda.ndarray
+                if not isinstance(a, types):
+                    types = get_cpu_array_types()
+                    if not isinstance(a, types):
                         # Not an array.
                         # TODO(niboshi): Perhaps better to make it an error but
                         # in order to do that we won't be able to early-return
