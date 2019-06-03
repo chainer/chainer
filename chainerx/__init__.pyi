@@ -473,6 +473,9 @@ class ndarray:
 
 
 # chainerx_cc/chainerx/python/routines.cc
+def abs(x: ndarray) -> ndarray: ...
+
+
 def add(x1: tp.Any, x2: tp.Any) -> ndarray: ...
 
 
@@ -545,6 +548,9 @@ def ascontiguousarray(
 def atleast_2d(x: ndarray) -> ndarray: ...
 
 
+def atleast_3d(x: ndarray) -> ndarray: ...
+
+
 def average_pool(
         x: ndarray,
         ksize: tp.Union[int, tp.Tuple[int, ...]],
@@ -610,9 +616,6 @@ def copy(a: ndarray) -> ndarray: ...
 
 def cos(x: ndarray) -> ndarray: ...
 
-
-def abs(x: ndarray) -> ndarray: ...
-
 def cosh(x: ndarray) -> ndarray: ...
 
 def diag(v: ndarray, k: int=..., device: tp.Optional[Device]=None) -> ndarray: ...
@@ -628,6 +631,9 @@ def divide(x1: tp.Any, x2: tp.Any) -> ndarray: ...
 
 
 def dot(a: ndarray, b: ndarray) -> ndarray: ...
+
+
+def dstack(arrays: tp.List[ndarray]) -> ndarray: ...
 
 
 def empty(
