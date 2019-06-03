@@ -111,10 +111,12 @@ std::unordered_map<OpNode*, std::vector<uint8_t>> CreateSubgraph(
 
         // Initialize op node queue starting from outputs.
         for (const std::shared_ptr<ArrayNode>& array_node : output_array_nodes) {
-            forward_op_nodes.emplace(array_node.get(), nullptr);  // Outputs have no forward op nodes.
-            const std::shared_ptr<OpNode>& op_node = array_node->creator_op_node();
-            if (op_node != nullptr) {
-                PushNodeIfNotSeen(candidate_op_nodes, op_node.get(), seen_op_nodes);
+            if (array_node != nullptr) {
+                forward_op_nodes.emplace(array_node.get(), nullptr);  // Outputs have no forward op nodes.
+                const std::shared_ptr<OpNode>& op_node = array_node->creator_op_node();
+                if (op_node != nullptr) {
+                    PushNodeIfNotSeen(candidate_op_nodes, op_node.get(), seen_op_nodes);
+                }
             }
         }
 
@@ -211,27 +213,28 @@ public:
           backprop_id_{backprop_id},
           double_backprop_{double_backprop},
           array_node_grad_map_{std::move(array_node_grad_map)} {
-        for (const Array& output : outputs) {
-            if (!output.IsBackpropRequired(backprop_id)) {
-                throw ChainerxError{"Cannot start backprop from an array whose gradient is not required (on graph '", backprop_id, "')"};
+        if (!outputs_.empty()) {
+            // Collect output array nodes (can be nullptr).
+            output_array_nodes_.reserve(outputs.size());
+            for (const Array& output : outputs) {
+                output_array_nodes_.emplace_back(internal::GetArrayBody(output)->GetArrayNode(backprop_id));
             }
-            output_array_nodes_.emplace_back(internal::GetArrayBody(output)->GetArrayNode(backprop_id));
-        }
 
-        // Check if backward is possible for the given graph, in this context.
-        // It is not possible if a graph from an outer scope has already been backpropped.
-        backprop_id.context().CheckBackpropAllowed(backprop_id);
+            // Check if backward is possible for the given graph, in this context.
+            // It is not possible if a graph from an outer scope has already been backpropped.
+            backprop_id.context().CheckBackpropAllowed(backprop_id);
 
-        // Graphs for which gradients will be stopped.
-        // These include the current graph that is being backpropped depending on the double backprop option, as well as all graphs
-        // belonging to inner scopes, i.e. graphs with higher backprop ordinal ids.
-        backprop_ids_to_stop_gradient_ = backprop_id.context().GetInnerBackpropIds(backprop_id_);
-        if (double_backprop_ == DoubleBackpropOption::kDisable) {
-            backprop_ids_to_stop_gradient_.emplace_back(backprop_id_);
-        }
+            // Graphs for which gradients will be stopped.
+            // These include the current graph that is being backpropped depending on the double backprop option, as well as all graphs
+            // belonging to inner scopes, i.e. graphs with higher backprop ordinal ids.
+            backprop_ids_to_stop_gradient_ = backprop_id.context().GetInnerBackpropIds(backprop_id_);
+            if (double_backprop_ == DoubleBackpropOption::kDisable) {
+                backprop_ids_to_stop_gradient_.emplace_back(backprop_id_);
+            }
 
-        if (!inputs.empty()) {
-            input_required_flags_ = CreateSubgraph(inputs, output_array_nodes_, backprop_id);
+            if (!inputs.empty()) {
+                input_required_flags_ = CreateSubgraph(inputs, output_array_nodes_, backprop_id);
+            }
         }
     }
 
@@ -243,20 +246,24 @@ public:
         : BackwardImpl{inputs, outputs, backprop_id, double_backprop, {}} {}
 
     void Run() {
+        CHAINERX_ASSERT(output_array_nodes_.size() == outputs_.size());
+
         // Push initial output array nodes
         for (size_t i = 0; i < outputs_.size(); ++i) {
             const Array& output = outputs_[i];
-            const std::shared_ptr<ArrayNode>& array_node = output_array_nodes_[i];
+            const std::shared_ptr<ArrayNode>& array_node = gsl::at(output_array_nodes_, i);
 
-            // Add GradRef for output array nodes
-            auto emplace_result = array_node_grad_map_.emplace(array_node.get(), internal::GradRef{*array_node});
+            if (array_node != nullptr) {
+                // Add GradRef for output array nodes
+                auto emplace_result = array_node_grad_map_.emplace(array_node.get(), internal::GradRef{*array_node});
 
-            // Set unset output gradients to the default value of one
-            if (!emplace_result.first->second.get().has_value()) {
-                emplace_result.first->second.get() = OnesLike(output, output.device());
+                // Set unset output gradients to the default value of one
+                if (!emplace_result.first->second.get().has_value()) {
+                    emplace_result.first->second.get() = OnesLike(output, output.device());
+                }
+
+                PushCreatorOpNode(array_node);
             }
-
-            PushCreatorOpNode(array_node);
         }
 
         // Backpropagation

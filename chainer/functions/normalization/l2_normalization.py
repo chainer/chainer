@@ -76,7 +76,7 @@ class NormalizeL2(function_node.FunctionNode):
 
 
 def normalize(x, eps=1e-5, axis=1):
-    """L2 norm squared (a.k.a.\\  Euclidean norm).
+    """Normalize input by its L2 norm (a.k.a.\\  Euclidean norm).
 
     This function implements L2 normalization on a vector along the given axis.
     No reduction is done along the normalization axis.
@@ -98,7 +98,7 @@ def normalize(x, eps=1e-5, axis=1):
 
     Args:
         x (:class:`~chainer.Variable` or :ref:`ndarray`):
-            Two dimensional output variable. The first
+            `N` dimensional output variable. The first
             dimension is assumed to be the mini-batch dimension.
         eps (float): Epsilon value for numerical stability.
         axis (int or tuple of ints): Axis along which to normalize.

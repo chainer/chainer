@@ -511,13 +511,13 @@ Invalid operation is performed in: {0} (Forward)
 def _argname(in_types, names):
     """Assigns user friendly names for the input types.
 
-    This function also asserts that lenghts of in_types and names are the
+    This function also asserts that lengths of in_types and names are the
     same.
 
     Args:
         in_types (tuple of TypeInfoTuple): Tuple of type information to assign
             name to.
-        names (tuple of str): Human-readabel names of ``in_types``.
+        names (tuple of str): Human-readable names of ``in_types``.
     """
     if len(in_types) != len(names):
         raise InvalidType(

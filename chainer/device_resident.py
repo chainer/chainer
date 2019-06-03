@@ -139,7 +139,7 @@ without any copy.
     def from_chx(self):
         """Converts parameter variables and persistent values from ChainerX \
 to NumPy/CuPy devices without any copy."""
-        if isinstance(self._device, backend.ChainerxDevice):
+        if self._device.xp is chainerx:
             self._device = self._device.fallback_device
 
         self.device_resident_accept(_FromChxVisitor())

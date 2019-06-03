@@ -1,5 +1,5 @@
-import unittest
 import itertools
+import unittest
 
 import chainer
 import numpy

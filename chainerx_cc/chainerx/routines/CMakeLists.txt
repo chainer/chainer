@@ -2,15 +2,20 @@ add_library(chainerx_routines STATIC
     binary.cc
     connection.cc
     creation.cc
+    explog.cc
+    hyperbolic.cc
     indexing.cc
     linalg.cc
     logic.cc
     manipulation.cc
     math.cc
+    misc.cc
     normalization.cc
     pooling.cc
+    reduction.cc
     sorting.cc
     statistics.cc
+    trigonometric.cc
     type_util.cc
 )
 
@@ -18,16 +23,21 @@ install(FILES
     binary.h
     connection.h
     creation.h
+    explog.h
+    hyperbolic.h
     indexing.h
     linalg.h
     logic.h
     manipulation.h
     math.h
+    misc.h
     normalization.h
     pooling.h
+    reduction.h
     routines_util.h
     sorting.h
     statistics.h
+    trigonometric.h
     type_util.h
     DESTINATION include/chainerx/routines
     )

@@ -30,6 +30,12 @@ class ChainerxDevice(_backend.Device):
 
     @staticmethod
     def from_fallback_device(device):
+        """Returns a :class:`~chainer.backend.ChainerxDevice` corresponding \
+to the fallback device.
+
+        .. seealso::
+            :data:`~chainer.backend.ChainerxDevice.fallback_device`
+        """
         assert isinstance(device, _backend.Device)
         if isinstance(device, _cpu.CpuDevice):
             return ChainerxDevice(chainerx.get_device('native', 0))
@@ -46,6 +52,17 @@ class ChainerxDevice(_backend.Device):
 
     @property
     def fallback_device(self):
+        """Fallback device.
+
+        A fallback device is either a :class:`~chainer.backend.CpuDevice` or
+        a :class:`~chainer.backend.GpuDevice` which shares the same physical
+        device with the original ChainerX device.
+
+        For example, the fallback device of ``native:0`` ChainerX device is
+        :class:`~chainer.backend.CpuDevice`. The fallback device of ``cuda:1``
+        ChainerX device is :class:`~chainer.backend.GpuDevice` with device ID
+        1.
+        """
         backend_name = self.device.backend.name
         if backend_name == 'native':
             return _cpu.CpuDevice()
