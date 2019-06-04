@@ -89,6 +89,10 @@ std::size_t CudaConv::AlgoCacheKeyHash::operator()(const AlgoCacheKey& key) cons
     for (int64_t v : key.stride) {
         internal::HashCombine(seed, std::hash<int64_t>()(v));
     }
+    internal::HashCombine(seed, std::hash<int8_t>()(gsl::narrow<int8_t>(key.dilate.size())));
+    for (int64_t v : key.dilate) {
+        internal::HashCombine(seed, std::hash<int64_t>()(v));
+    }
     internal::HashCombine(seed, std::hash<std::underlying_type_t<Dtype>>()(static_cast<std::underlying_type_t<Dtype>>(key.dtype)));
     internal::HashCombine(seed, std::hash<size_t>()(key.max_workspace_size));
     return seed;
@@ -131,8 +135,9 @@ std::tuple<cudnnConvolutionFwdAlgo_t, size_t, cudnnMathType_t> CudaConv::FindCon
         const Array& y,
         size_t max_workspace_size,
         const StackVector<int64_t, kMaxNdim>& pad,
-        const StackVector<int64_t, kMaxNdim>& stride) {
-    auto key = AlgoCacheKey{x.shape(), w.shape(), y.shape(), pad, stride, x.dtype(), max_workspace_size};
+        const StackVector<int64_t, kMaxNdim>& stride,
+        const StackVector<int64_t, kMaxNdim>& dilate) {
+    auto key = AlgoCacheKey{x.shape(), w.shape(), y.shape(), pad, stride, dilate, x.dtype(), max_workspace_size};
     auto& algo_cache_map = fwd_algo_cache_map_;
     {
         std::lock_guard<std::mutex> lock{fwd_algo_cache_mutex_};
@@ -180,8 +185,9 @@ std::tuple<cudnnConvolutionBwdDataAlgo_t, size_t, cudnnMathType_t> CudaConv::Fin
         const Array& y,
         size_t max_workspace_size,
         const StackVector<int64_t, kMaxNdim>& pad,
-        const StackVector<int64_t, kMaxNdim>& stride) {
-    auto key = AlgoCacheKey{x.shape(), w.shape(), y.shape(), pad, stride, x.dtype(), max_workspace_size};
+        const StackVector<int64_t, kMaxNdim>& stride,
+        const StackVector<int64_t, kMaxNdim>& dilate) {
+    auto key = AlgoCacheKey{x.shape(), w.shape(), y.shape(), pad, stride, dilate, x.dtype(), max_workspace_size};
     auto& algo_cache_map = bwd_data_algo_cache_map_;
     {
         std::lock_guard<std::mutex> lock{bwd_data_algo_cache_mutex_};
@@ -229,8 +235,9 @@ std::tuple<cudnnConvolutionBwdFilterAlgo_t, size_t, cudnnMathType_t> CudaConv::F
         const Array& gw,
         size_t max_workspace_size,
         const StackVector<int64_t, kMaxNdim>& pad,
-        const StackVector<int64_t, kMaxNdim>& stride) {
-    auto key = AlgoCacheKey{x.shape(), gw.shape(), gy.shape(), pad, stride, x.dtype(), max_workspace_size};
+        const StackVector<int64_t, kMaxNdim>& stride,
+        const StackVector<int64_t, kMaxNdim>& dilate) {
+    auto key = AlgoCacheKey{x.shape(), gw.shape(), gy.shape(), pad, stride, dilate, x.dtype(), max_workspace_size};
     auto& algo_cache_map = bwd_filter_algo_cache_map_;
     {
         std::lock_guard<std::mutex> lock{bwd_filter_algo_cache_mutex_};
@@ -274,6 +281,7 @@ Array CudaConv::Conv(
         const nonstd::optional<Array>& b,
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
+        const StackVector<int64_t, kMaxNdim>& dilate,
         bool cover_all,
         Dtype out_dtype) {
     if (cover_all) {
@@ -294,6 +302,7 @@ Array CudaConv::Conv(
     CHAINERX_ASSERT(w.ndim() == x.ndim());
     CHAINERX_ASSERT(stride.size() == static_cast<size_t>(ndim));
     CHAINERX_ASSERT(pad.size() == static_cast<size_t>(ndim));
+    CHAINERX_ASSERT(dilate.size() == static_cast<size_t>(ndim));
 
     // w.shape = (out_channels, _, k_1, k_2, ..., k_N)
     int64_t out_channels = w.shape()[0];
@@ -303,7 +312,7 @@ Array CudaConv::Conv(
     // out_shape = (batch_size, out_channels, out_1, out_2, ..., out_N)
     Shape out_shape{batch_size, out_channels};
     for (int8_t i = 0; i < ndim; ++i) {
-        out_shape.emplace_back(internal::GetConvOutDim(x.shape()[i + 2], w.shape()[i + 2], stride[i], pad[i], cover_all));
+        out_shape.emplace_back(internal::GetConvOutDim(x.shape()[i + 2], w.shape()[i + 2], stride[i], pad[i], dilate[i], cover_all));
         CHAINERX_ASSERT(out_shape.back() > 0);
     }
     ConvDtypes dtypes = GetBestConvDtypes(out_dtype);
@@ -334,7 +343,7 @@ Array CudaConv::Conv(
 
     // auto tune
     std::tuple<cudnnConvolutionFwdAlgo_t, size_t, cudnnMathType_t> algo_perf = FindConvolutionForwardAlgorithm(
-            handle, x_desc, x_cont, filter_desc, w_cont, conv_desc, y_desc, y, max_workspace_size, pad, stride);
+            handle, x_desc, x_cont, filter_desc, w_cont, conv_desc, y_desc, y, max_workspace_size, pad, stride, dilate);
 
     cudnnConvolutionFwdAlgo_t algo = std::get<0>(algo_perf);
     size_t workspace_size = std::max(max_workspace_size, std::get<1>(algo_perf));
@@ -377,13 +386,14 @@ Array CudaConv::ConvTranspose(
         const nonstd::optional<Array>& b,
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
+        const StackVector<int64_t, kMaxNdim>& dilate,
         const StackVector<int64_t, kMaxNdim>& out_size,
         Dtype out_dtype) {
     int8_t ndim = x.ndim() - 2;  // Number of spatial dimensions
 
     // Check if cover_all is false
     for (int8_t i = 0; i < ndim; ++i) {
-        if (x.shape()[i + 2] != internal::GetConvOutDim(out_size[i], w.shape()[i + 2], stride[i], pad[i], false)) {
+        if (x.shape()[i + 2] != internal::GetConvOutDim(out_size[i], w.shape()[i + 2], stride[i], pad[i], dilate[i], false)) {
             throw ChainerxError{"CUDA transposed convolution does not support specified output sizes"};
         }
     }
@@ -401,6 +411,7 @@ Array CudaConv::ConvTranspose(
     CHAINERX_ASSERT(w.ndim() == x.ndim());
     CHAINERX_ASSERT(stride.size() == static_cast<size_t>(ndim));
     CHAINERX_ASSERT(pad.size() == static_cast<size_t>(ndim));
+    CHAINERX_ASSERT(dilate.size() == static_cast<size_t>(ndim));
     CHAINERX_ASSERT(out_size.size() == static_cast<size_t>(ndim));
 
     // w.shape = (in_channels, out_channels, k_1, k_2, ..., k_N)
@@ -428,7 +439,7 @@ Array CudaConv::ConvTranspose(
     CudnnTensorDescriptor x_desc{x_cont};
     CudnnTensorDescriptor y_desc{y};
     CudnnFilterDescriptor filter_desc{w_cont};
-    CudnnConvolutionDescriptor conv_desc{dtypes.conv_dtype, pad, stride, nonstd::nullopt /*dilation*/, 1 /*group*/};
+    CudnnConvolutionDescriptor conv_desc{dtypes.conv_dtype, pad, stride, dilate, 1 /*group*/};
 
     size_t max_workspace_size = backend.GetCudnnMaxWorkspaceSize();
 
@@ -441,7 +452,7 @@ Array CudaConv::ConvTranspose(
 
     // auto tune
     std::tuple<cudnnConvolutionBwdDataAlgo_t, size_t, cudnnMathType_t> algo_perf = FindConvolutionBackwardDataAlgorithm(
-            handle, filter_desc, w_cont, x_desc, x_cont, conv_desc, y_desc, y, max_workspace_size, pad, stride);
+            handle, filter_desc, w_cont, x_desc, x_cont, conv_desc, y_desc, y, max_workspace_size, pad, stride, dilate);
 
     cudnnConvolutionBwdDataAlgo_t algo = std::get<0>(algo_perf);
     size_t workspace_size = std::max(max_workspace_size, std::get<1>(algo_perf));
@@ -485,6 +496,7 @@ Array CudaConv::ConvGradWeight(
         const Array& gy,
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
+        const StackVector<int64_t, kMaxNdim>& dilate,
         bool cover_all) {
     if (cover_all) {
         throw ChainerxError{"CUDA convolution does not support cover_all"};
@@ -501,6 +513,7 @@ Array CudaConv::ConvGradWeight(
     CHAINERX_ASSERT(x.ndim() == w_shape.ndim());
     CHAINERX_ASSERT(stride.size() == static_cast<size_t>(ndim));
     CHAINERX_ASSERT(pad.size() == static_cast<size_t>(ndim));
+    CHAINERX_ASSERT(dilate.size() == static_cast<size_t>(ndim));
     CHAINERX_ASSERT(gy.ndim() == w_shape.ndim());
 
     if (CHAINERX_DEBUG) {
@@ -511,7 +524,7 @@ Array CudaConv::ConvGradWeight(
         // out_shape = (batch_size, out_channels, out_1, out_2, ..., out_N)
         Shape out_shape{batch_size, out_channels};
         for (int8_t i = 0; i < ndim; ++i) {
-            out_shape.emplace_back(internal::GetConvOutDim(x.shape()[i + 2], w_shape[i + 2], stride[i], pad[i], cover_all));
+            out_shape.emplace_back(internal::GetConvOutDim(x.shape()[i + 2], w_shape[i + 2], stride[i], pad[i], dilate[i], cover_all));
             CHAINERX_ASSERT(out_shape.back() > 0);
         }
         CHAINERX_ASSERT(gy.shape() == out_shape);
@@ -531,7 +544,7 @@ Array CudaConv::ConvGradWeight(
     CudnnTensorDescriptor x_desc{x_cont};
     CudnnTensorDescriptor gy_desc{gy_cont};
     CudnnFilterDescriptor gw_desc{gw};
-    CudnnConvolutionDescriptor conv_desc{dtypes.conv_dtype, pad, stride, nonstd::nullopt /*dilation*/, 1 /*groups*/};
+    CudnnConvolutionDescriptor conv_desc{dtypes.conv_dtype, pad, stride, dilate, 1 /*groups*/};
 
     size_t max_workspace_size = backend.GetCudnnMaxWorkspaceSize();
 
@@ -544,7 +557,7 @@ Array CudaConv::ConvGradWeight(
 
     // auto tune
     std::tuple<cudnnConvolutionBwdFilterAlgo_t, size_t, cudnnMathType_t> algo_perf = FindConvolutionBackwardFilterAlgorithm(
-            handle, x_desc, x_cont, gy_desc, gy_cont, conv_desc, gw_desc, gw, max_workspace_size, pad, stride);
+            handle, x_desc, x_cont, gy_desc, gy_cont, conv_desc, gw_desc, gw, max_workspace_size, pad, stride, dilate);
 
     cudnnConvolutionBwdFilterAlgo_t algo = std::get<0>(algo_perf);
     size_t workspace_size = std::max(max_workspace_size, std::get<1>(algo_perf));

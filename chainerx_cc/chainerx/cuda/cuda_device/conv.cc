@@ -25,6 +25,7 @@ public:
             const nonstd::optional<Array>& b,
             const StackVector<int64_t, kMaxNdim>& stride,
             const StackVector<int64_t, kMaxNdim>& pad,
+            const StackVector<int64_t, kMaxNdim>& dilate,
             bool cover_all,
             Dtype out_dtype,
             const nonstd::optional<Array>& out) override {
@@ -35,7 +36,7 @@ public:
 
         CudaDevice& device = dynamic_cast<CudaDevice&>(x.device());
         cuda_internal::DeviceInternals& device_internals = cuda_internal::GetDeviceInternals(device);
-        return device_internals.cuda_conv().Conv(device, x, w, b, stride, pad, cover_all, out_dtype);
+        return device_internals.cuda_conv().Conv(device, x, w, b, stride, pad, dilate, cover_all, out_dtype);
     }
 };
 
@@ -49,6 +50,7 @@ public:
             const nonstd::optional<Array>& b,
             const StackVector<int64_t, kMaxNdim>& stride,
             const StackVector<int64_t, kMaxNdim>& pad,
+            const StackVector<int64_t, kMaxNdim>& dilate,
             const StackVector<int64_t, kMaxNdim>& out_size,
             Dtype out_dtype,
             const nonstd::optional<Array>& out) override {
@@ -58,7 +60,7 @@ public:
         }
         CudaDevice& device = dynamic_cast<CudaDevice&>(x.device());
         cuda_internal::DeviceInternals& device_internals = cuda_internal::GetDeviceInternals(device);
-        return device_internals.cuda_conv().ConvTranspose(device, x, w, b, stride, pad, out_size, out_dtype);
+        return device_internals.cuda_conv().ConvTranspose(device, x, w, b, stride, pad, dilate, out_size, out_dtype);
     }
 };
 
@@ -73,6 +75,7 @@ public:
             const Array& gy,
             const StackVector<int64_t, kMaxNdim>& stride,
             const StackVector<int64_t, kMaxNdim>& pad,
+            const StackVector<int64_t, kMaxNdim>& dilate,
             bool cover_all,
             const nonstd::optional<Array>& out) override {
         // TODO(niboshi): Implement and test the `out` argument.
@@ -81,7 +84,7 @@ public:
         }
         CudaDevice& device = dynamic_cast<CudaDevice&>(x.device());
         cuda_internal::DeviceInternals& device_internals = cuda_internal::GetDeviceInternals(device);
-        return device_internals.cuda_conv().ConvGradWeight(device, w_dtype, w_shape, x, gy, stride, pad, cover_all);
+        return device_internals.cuda_conv().ConvGradWeight(device, w_dtype, w_shape, x, gy, stride, pad, dilate, cover_all);
     }
 };
 

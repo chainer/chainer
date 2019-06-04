@@ -170,9 +170,6 @@ class DeconvolutionND(function_node.FunctionNode):
 
     def forward_chainerx(self, inputs):
         # TODO(imanishi): Support it
-        if any(d != 1 for d in self.dilate):
-            return chainer.Fallback
-        # TODO(imanishi): Support it
         if self.groups != 1:
             return chainer.Fallback
         # TODO(imanishi): Support it
@@ -184,8 +181,10 @@ class DeconvolutionND(function_node.FunctionNode):
 
         stride = self.stride
         pad = self.pad
+        dilate = self.dilate
 
-        return chainerx.conv_transpose(*inputs, stride=stride, pad=pad),
+        return chainerx.conv_transpose(
+            *inputs, stride=stride, pad=pad, dilate=dilate),
 
     def forward(self, inputs):
         self.retain_inputs((0, 1))  # only retain x and W

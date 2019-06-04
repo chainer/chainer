@@ -93,9 +93,6 @@ class Convolution2DFunction(function_node.FunctionNode):
         # TODO(hvy): Support mixed precision.
         if any([arr.dtype != inputs[0].dtype for arr in inputs[1:]]):
             return chainer.Fallback
-        # TODO(hvy): Support dilate > 1.
-        if self.dy > 1 or self.dx > 1:
-            return chainer.Fallback
         # TODO(hvy): Support groups > 1.
         if self.groups > 1:
             return chainer.Fallback
@@ -104,7 +101,7 @@ class Convolution2DFunction(function_node.FunctionNode):
 
         return chainerx.conv(
             *inputs, stride=(self.sy, self.sx), pad=(self.ph, self.pw),
-            cover_all=self.cover_all),
+            dilate=(self.dy, self.dx), cover_all=self.cover_all),
 
     def forward_cpu(self, inputs):
         self.retain_inputs((0, 1))  # retain only x and W

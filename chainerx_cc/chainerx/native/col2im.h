@@ -14,6 +14,7 @@ Array Col2Im(
         const Array& col,
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
+        const StackVector<int64_t, kMaxNdim>& dilate,
         const StackVector<int64_t, kMaxNdim>& out_size);
 
 }  // namespace native_internal

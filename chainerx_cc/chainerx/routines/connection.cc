@@ -31,13 +31,13 @@
 namespace chainerx {
 namespace internal {
 
-int64_t GetConvOutDim(int64_t in_dim, int64_t kernel_size, int64_t stride, int64_t pad, bool cover_all) {
+int64_t GetConvOutDim(int64_t in_dim, int64_t kernel_size, int64_t stride, int64_t pad, int64_t dilate, bool cover_all) {
     CHAINERX_ASSERT(stride > 0);
     int64_t numerator{0};
     if (cover_all) {
-        numerator = in_dim + pad * 2 - kernel_size + stride - 1;
+        numerator = in_dim + pad * 2 - (kernel_size * dilate - (dilate - 1)) + stride - 1;
     } else {
-        numerator = in_dim + pad * 2 - kernel_size;
+        numerator = in_dim + pad * 2 - (kernel_size * dilate - (dilate - 1));
     }
     if (numerator < 0) {
         throw DimensionError{"Output size should be positive."};
@@ -45,11 +45,11 @@ int64_t GetConvOutDim(int64_t in_dim, int64_t kernel_size, int64_t stride, int64
     return numerator / stride + 1;
 }
 
-int64_t GetConvTransposeOutDim(int64_t in_dim, int64_t kernel_size, int64_t stride, int64_t pad, bool cover_all) {
+int64_t GetConvTransposeOutDim(int64_t in_dim, int64_t kernel_size, int64_t stride, int64_t pad, int64_t dilate, bool cover_all) {
     if (cover_all) {
-        return stride * (in_dim - 1) + kernel_size - stride + 1 - 2 * pad;
+        return stride * (in_dim - 1) + (kernel_size * dilate - (dilate - 1)) - stride + 1 - 2 * pad;
     }
-    return stride * (in_dim - 1) + kernel_size - 2 * pad;
+    return stride * (in_dim - 1) + (kernel_size * dilate - (dilate - 1)) - 2 * pad;
 }
 
 }  // namespace internal
@@ -63,16 +63,19 @@ Array ConvGradWeight(
         const Array& gy,
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
+        const StackVector<int64_t, kMaxNdim>& dilate,
         bool cover_all) {
     CHAINERX_ASSERT(x.ndim() == w_shape.ndim());
     CHAINERX_ASSERT(gy.ndim() == w_shape.ndim());
     CHAINERX_ASSERT(stride.size() == static_cast<size_t>(w_shape.ndim() - 2));
     CHAINERX_ASSERT(pad.size() == static_cast<size_t>(w_shape.ndim() - 2));
+    CHAINERX_ASSERT(dilate.size() == static_cast<size_t>(w_shape.ndim() - 2));
 
     Array out{};
     {
         NoBackpropModeScope scope{};
-        out = x.device().backend().CallKernel<ConvGradWeightKernel>(w_dtype, w_shape, x, gy, stride, pad, cover_all, nonstd::nullopt);
+        out = x.device().backend().CallKernel<ConvGradWeightKernel>(
+                w_dtype, w_shape, x, gy, stride, pad, dilate, cover_all, nonstd::nullopt);
         CHAINERX_ASSERT(out.dtype() == w_dtype);
     }
 
@@ -80,20 +83,20 @@ Array ConvGradWeight(
         BackwardBuilder bb{"conv-grad-weight", {x, gy}, out};
 
         if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-            bt.Define([x_shape = x.shape(), x_dtype = x.dtype(), gy_tok = bb.RetainInput(1), stride, pad](BackwardContext& bctx) {
+            bt.Define([x_shape = x.shape(), x_dtype = x.dtype(), gy_tok = bb.RetainInput(1), stride, pad, dilate](BackwardContext& bctx) {
                 const Array& gy = bctx.GetRetainedInput(gy_tok);
                 const Array& gout = *bctx.output_grad();
                 StackVector<int64_t, kMaxNdim> out_size{x_shape.begin() + 2, x_shape.end()};
                 CHAINERX_ASSERT(out_size.size() == stride.size());
-                bctx.input_grad() = ConvTranspose(gy, gout, nonstd::nullopt, stride, pad, out_size, x_dtype);
+                bctx.input_grad() = ConvTranspose(gy, gout, nonstd::nullopt, stride, pad, dilate, out_size, x_dtype);
             });
         }
 
         if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
-            bt.Define([gy_dtype = gy.dtype(), x_tok = bb.RetainInput(0), stride, pad, cover_all](BackwardContext& bctx) {
+            bt.Define([gy_dtype = gy.dtype(), x_tok = bb.RetainInput(0), stride, pad, dilate, cover_all](BackwardContext& bctx) {
                 const Array& x = bctx.GetRetainedInput(x_tok);
                 const Array& gout = *bctx.output_grad();
-                bctx.input_grad() = Conv(x, gout, nonstd::nullopt, stride, pad, cover_all, gy_dtype);
+                bctx.input_grad() = Conv(x, gout, nonstd::nullopt, stride, pad, dilate, cover_all, gy_dtype);
             });
         }
         bb.Finalize();
@@ -130,6 +133,7 @@ Array Conv(
         const nonstd::optional<Array>& b,
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
+        const StackVector<int64_t, kMaxNdim>& dilate,
         bool cover_all,
         nonstd::optional<Dtype> out_dtype) {
     ConvCheckNdim(x, w, stride, pad);
@@ -145,7 +149,7 @@ Array Conv(
     Array out{};
     {
         NoBackpropModeScope scope{};
-        out = x.device().backend().CallKernel<ConvKernel>(x, w, b, stride, pad, cover_all, real_out_dtype, nonstd::nullopt);
+        out = x.device().backend().CallKernel<ConvKernel>(x, w, b, stride, pad, dilate, cover_all, real_out_dtype, nonstd::nullopt);
     }
 
     {
@@ -159,19 +163,20 @@ Array Conv(
         BackwardBuilder bb{"conv", std::move(inputs), out};
 
         if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-            bt.Define([x_shape = x.shape(), x_dtype = x.dtype(), w_tok = bb.RetainInput(1), stride, pad](BackwardContext& bctx) {
+            bt.Define([x_shape = x.shape(), x_dtype = x.dtype(), w_tok = bb.RetainInput(1), stride, pad, dilate](BackwardContext& bctx) {
                 const Array& w = bctx.GetRetainedInput(w_tok);
                 const Array& gout = *bctx.output_grad();
                 StackVector<int64_t, kMaxNdim> out_size{x_shape.begin() + 2, x_shape.end()};
-                bctx.input_grad() = ConvTranspose(gout, w, nonstd::nullopt, stride, pad, out_size, x_dtype);
+                bctx.input_grad() = ConvTranspose(gout, w, nonstd::nullopt, stride, pad, dilate, out_size, x_dtype);
             });
         }
 
         if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
-            bt.Define([w_dtype = w.dtype(), w_shape = w.shape(), x_tok = bb.RetainInput(0), stride, pad, cover_all](BackwardContext& bctx) {
+            bt.Define([w_dtype = w.dtype(), w_shape = w.shape(), x_tok = bb.RetainInput(0), stride, pad, dilate, cover_all](
+                              BackwardContext& bctx) {
                 const Array& x = bctx.GetRetainedInput(x_tok);
                 const Array& gout = *bctx.output_grad();
-                bctx.input_grad() = ConvGradWeight(w_dtype, w_shape, x, gout, stride, pad, cover_all);
+                bctx.input_grad() = ConvGradWeight(w_dtype, w_shape, x, gout, stride, pad, dilate, cover_all);
             });
         }
 
@@ -200,6 +205,7 @@ Array ConvTranspose(
         const nonstd::optional<Array>& b,
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
+        const StackVector<int64_t, kMaxNdim>& dilate,
         const nonstd::optional<StackVector<int64_t, kMaxNdim>>& out_size,
         nonstd::optional<Dtype> out_dtype) {
     ConvCheckNdim(x, w, stride, pad);
@@ -228,7 +234,7 @@ Array ConvTranspose(
 
         // Detect cover_all from out_size
         for (int8_t i = 0; i < ndim; ++i) {
-            if (in_dims[i] != internal::GetConvOutDim(real_out_size[i], kernel_size[i], stride[i], pad[i], false)) {
+            if (in_dims[i] != internal::GetConvOutDim(real_out_size[i], kernel_size[i], stride[i], pad[i], dilate[i], false)) {
                 cover_all = true;
                 break;
             }
@@ -236,7 +242,7 @@ Array ConvTranspose(
     } else {
         // cover_all is assumed to be false.
         for (int8_t i = 0; i < ndim; ++i) {
-            int64_t out_dim = internal::GetConvTransposeOutDim(in_dims[i], kernel_size[i], stride[i], pad[i], cover_all);
+            int64_t out_dim = internal::GetConvTransposeOutDim(in_dims[i], kernel_size[i], stride[i], pad[i], dilate[i], cover_all);
             if (out_dim < 0) {
                 throw DimensionError{"Inconsistent dimensions. Output dimension at axis ", i, " would be negative."};
             }
@@ -246,7 +252,7 @@ Array ConvTranspose(
 
     // Check out_size and cover_all are consistent
     for (int8_t i = 0; i < ndim; ++i) {
-        if (in_dims[i] != internal::GetConvOutDim(real_out_size[i], kernel_size[i], stride[i], pad[i], cover_all)) {
+        if (in_dims[i] != internal::GetConvOutDim(real_out_size[i], kernel_size[i], stride[i], pad[i], dilate[i], cover_all)) {
             throw DimensionError{"Output dims ", Shape{real_out_size.begin(), real_out_size.end()}, " are incosistent."};
         }
     }
@@ -257,7 +263,8 @@ Array ConvTranspose(
     Array out{};
     {
         NoBackpropModeScope scope{};
-        out = x.device().backend().CallKernel<ConvTransposeKernel>(x, w, b, stride, pad, real_out_size, real_out_dtype, nonstd::nullopt);
+        out = x.device().backend().CallKernel<ConvTransposeKernel>(
+                x, w, b, stride, pad, dilate, real_out_size, real_out_dtype, nonstd::nullopt);
     }
 
     {
@@ -271,19 +278,21 @@ Array ConvTranspose(
         BackwardBuilder bb{"conv_transpose", std::move(inputs), out};
 
         if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-            bt.Define([x_shape = x.shape(), x_dtype = x.dtype(), w_tok = bb.RetainInput(1), stride, pad, cover_all](BackwardContext& bctx) {
+            bt.Define([x_shape = x.shape(), x_dtype = x.dtype(), w_tok = bb.RetainInput(1), stride, pad, dilate, cover_all](
+                              BackwardContext& bctx) {
                 const Array& w = bctx.GetRetainedInput(w_tok);
                 const Array& gout = *bctx.output_grad();
                 StackVector<int64_t, kMaxNdim> out_size{x_shape.begin() + 2, x_shape.end()};
-                bctx.input_grad() = Conv(gout, w, nonstd::nullopt, stride, pad, cover_all, x_dtype);
+                bctx.input_grad() = Conv(gout, w, nonstd::nullopt, stride, pad, dilate, cover_all, x_dtype);
             });
         }
 
         if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
-            bt.Define([w_dtype = w.dtype(), w_shape = w.shape(), x_tok = bb.RetainInput(0), stride, pad, cover_all](BackwardContext& bctx) {
+            bt.Define([w_dtype = w.dtype(), w_shape = w.shape(), x_tok = bb.RetainInput(0), stride, pad, dilate, cover_all](
+                              BackwardContext& bctx) {
                 const Array& x = bctx.GetRetainedInput(x_tok);
                 const Array& gout = *bctx.output_grad();
-                bctx.input_grad() = ConvGradWeight(w_dtype, w_shape, gout, x, stride, pad, cover_all);
+                bctx.input_grad() = ConvGradWeight(w_dtype, w_shape, gout, x, stride, pad, dilate, cover_all);
             });
         }
 

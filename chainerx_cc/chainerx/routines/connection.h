@@ -14,9 +14,9 @@ namespace internal {
 // Calculates output size of convolution.
 //
 // DimensionError is thrown if the output size is 0 or negative.
-int64_t GetConvOutDim(int64_t in_dim, int64_t kernel_size, int64_t stride, int64_t pad, bool cover_all);
+int64_t GetConvOutDim(int64_t in_dim, int64_t kernel_size, int64_t stride, int64_t pad, int64_t dilate, bool cover_all);
 
-int64_t GetConvTransposeOutDim(int64_t in_dim, int64_t kernel_size, int64_t stride, int64_t pad, bool cover_all);
+int64_t GetConvTransposeOutDim(int64_t in_dim, int64_t kernel_size, int64_t stride, int64_t pad, int64_t dilate, bool cover_all);
 
 }  // namespace internal
 
@@ -33,6 +33,7 @@ Array Conv(
         const nonstd::optional<Array>& b,
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
+        const StackVector<int64_t, kMaxNdim>& dilate,
         bool cover_all = false,
         nonstd::optional<Dtype> out_dtype = nonstd::nullopt);
 
@@ -42,6 +43,7 @@ Array ConvTranspose(
         const nonstd::optional<Array>& b,
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
+        const StackVector<int64_t, kMaxNdim>& dilate,
         const nonstd::optional<StackVector<int64_t, kMaxNdim>>& out_size = nonstd::nullopt,
         nonstd::optional<Dtype> out_dtype = nonstd::nullopt);
 

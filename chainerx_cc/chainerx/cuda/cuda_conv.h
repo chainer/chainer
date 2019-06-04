@@ -36,6 +36,7 @@ public:
             const nonstd::optional<Array>& b,
             const StackVector<int64_t, kMaxNdim>& stride,
             const StackVector<int64_t, kMaxNdim>& pad,
+            const StackVector<int64_t, kMaxNdim>& dilate,
             bool cover_all,
             Dtype out_dtype);
     Array ConvTranspose(
@@ -45,6 +46,7 @@ public:
             const nonstd::optional<Array>& b,
             const StackVector<int64_t, kMaxNdim>& stride,
             const StackVector<int64_t, kMaxNdim>& pad,
+            const StackVector<int64_t, kMaxNdim>& dilate,
             const StackVector<int64_t, kMaxNdim>& out_size,
             Dtype out_dtype);
     Array ConvGradWeight(
@@ -55,6 +57,7 @@ public:
             const Array& gy,
             const StackVector<int64_t, kMaxNdim>& stride,
             const StackVector<int64_t, kMaxNdim>& pad,
+            const StackVector<int64_t, kMaxNdim>& dilate,
             bool cover_all);
 
 private:
@@ -71,7 +74,8 @@ private:
             const Array& y,
             size_t max_workspace_size,
             const StackVector<int64_t, kMaxNdim>& pad,
-            const StackVector<int64_t, kMaxNdim>& stride);
+            const StackVector<int64_t, kMaxNdim>& stride,
+            const StackVector<int64_t, kMaxNdim>& dilate);
     std::tuple<cudnnConvolutionBwdDataAlgo_t, size_t, cudnnMathType_t> FindConvolutionBackwardDataAlgorithm(
             CudnnHandle& handle,
             const CudnnFilterDescriptor& filter_desc,
@@ -83,7 +87,8 @@ private:
             const Array& y,
             size_t max_workspace_size,
             const StackVector<int64_t, kMaxNdim>& pad,
-            const StackVector<int64_t, kMaxNdim>& stride);
+            const StackVector<int64_t, kMaxNdim>& stride,
+            const StackVector<int64_t, kMaxNdim>& dilate);
     std::tuple<cudnnConvolutionBwdFilterAlgo_t, size_t, cudnnMathType_t> FindConvolutionBackwardFilterAlgorithm(
             CudnnHandle& handle,
             const CudnnTensorDescriptor& x_desc,
@@ -95,7 +100,8 @@ private:
             const Array& gw,
             size_t max_workspace_size,
             const StackVector<int64_t, kMaxNdim>& pad,
-            const StackVector<int64_t, kMaxNdim>& stride);
+            const StackVector<int64_t, kMaxNdim>& stride,
+            const StackVector<int64_t, kMaxNdim>& dilate);
 
     struct AlgoCacheKey {
         Shape x_shape;
@@ -103,6 +109,7 @@ private:
         Shape y_shape;
         StackVector<int64_t, kMaxNdim> pad;
         StackVector<int64_t, kMaxNdim> stride;
+        StackVector<int64_t, kMaxNdim> dilate;
         Dtype dtype;
         size_t max_workspace_size;
 

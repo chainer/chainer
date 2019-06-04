@@ -107,7 +107,7 @@ Array Pool(
     // out_shape = (batch_size, out_channels, out_1, out_2, ..., out_N)
     Shape out_shape{x.shape()[0], x.shape()[1]};
     for (int8_t i = 0; i < ndim; ++i) {
-        out_shape.emplace_back(internal::GetConvOutDim(x.shape()[i + 2], kernel_size[i], stride[i], pad[i], cover_all));
+        out_shape.emplace_back(internal::GetConvOutDim(x.shape()[i + 2], kernel_size[i], stride[i], pad[i], 1, cover_all));
         CHAINERX_ASSERT(out_shape.back() > 0);
     }
 
