@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 import argparse
 import os
+import warnings
+
+import numpy
 
 import chainer
 from chainer import training
@@ -42,6 +45,10 @@ def main():
                        type=int, nargs='?', const=0,
                        help='GPU ID (negative value indicates CPU)')
     args = parser.parse_args()
+
+    if chainer.get_dtype() == numpy.float16:
+        warnings.warn(
+            'This example may cause NaN in FP16 mode.', RuntimeWarning)
 
     device = chainer.get_device(args.device)
     device.use()
