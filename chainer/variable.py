@@ -347,7 +347,10 @@ class VariableNode(object):
         if var is not None:
             return var
         var = Variable._init_unchecked(
-            self.data, self.name, None, self.requires_grad, None, self)
+            self.data,
+            name=self.name,
+            requires_grad=self.requires_grad,
+            node=self)
         return var
 
     def get_variable_or_none(self):
@@ -533,33 +536,33 @@ class Variable(object):
                     array_types[-1], type(data))
                 raise TypeError(msg)
 
-        self._init_impl(data, name, grad, requires_grad, None, None)
+        self._init_impl(data, None, name, grad, requires_grad, None, None)
 
     @staticmethod
-    def _init_unchecked(data=None, name=None, grad=None, requires_grad=True,
-                        is_chainerx_array=None, node=None):
-        # type: (tp.Optional[types.NdArray], tp.Optional[str], tp.Optional[types.NdArray], bool, tp.Optional[bool], tp.Optional[VariableNode]) -> Variable # NOQA
+    def _init_unchecked(data=None, device=None, name=None, grad=None,
+                        requires_grad=True, is_chainerx_array=None, node=None):
         """Creates a new :class:`Variable` without the validations for
         optimizing performance.
         """
 
         # Create a Variable without invoking __init__
         var = Variable.__new__(Variable)
-        var._init_impl(data, name, grad, requires_grad, is_chainerx_array,
-                       node)
+        var._init_impl(
+            data, device, name, grad, requires_grad, is_chainerx_array, node)
         return var
 
-    def _init_impl(self, data, name, grad, requires_grad, is_chainerx_array,
-                   node):
-        # type: (tp.Optional[types.NdArray], tp.Optional[str], tp.Optional[types.NdArray], bool, tp.Optional[bool], tp.Optional[VariableNode]) -> None # NOQA
-
+    def _init_impl(self, data, device, name, grad, requires_grad,
+                   is_chainerx_array, node):
         # Use a list as a data structure to hold the data array indirectly to
         # abstract its initialized/uninitialized state.
+
+        # `device` must be of type chainer.backend.Device.
+        # Check is skipped for performance.
 
         self._requires_grad = requires_grad  # type: bool
         self._loss_scale = None
         self._grad_var = None
-        self._device = None
+        self._device = device
 
         if is_chainerx_array is None:
             is_chainerx_array = isinstance(data, chainerx.ndarray)
