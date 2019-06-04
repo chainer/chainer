@@ -158,6 +158,32 @@ class TabularDataset(dataset_mixin.DatasetMixin):
         """
         return chainer.dataset.tabular._as_mode._AsDict(self)
 
+    def concat(self, *datasets):
+        """Stack datasets along rows.
+
+        Args:
+            datasets (iterable of :class:`TabularDataset`):
+                Datasets to be concatenated.
+                All datasets must have the same :attr:`keys`.
+
+        Returns:
+            A concatenated dataset.
+        """
+        return chainer.dataset.tabular._concat._Concat(self, *datasets)
+
+    def join(self, *datasets):
+        """Stack datasets along columns.
+
+        Args:
+            datasets (iterable of :class:`TabularDataset`):
+                Datasets to be concatenated.
+                All datasets must have the same length
+
+        Returns:
+            A joined dataset.
+        """
+        return chainer.dataset.tabular._join._Join(self, *datasets)
+
     def get_example(self, i):
         example = self.get_examples([i], None)
         example = tuple(col[0] for col in example)

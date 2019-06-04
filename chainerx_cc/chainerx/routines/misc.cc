@@ -139,6 +139,9 @@ Array Sqrt(const Array& x) {
 }
 
 Array Square(const Array& x) {
+    if (x.dtype() == Dtype::kBool) {
+        throw DtypeError{"Square operation don't support Boolean type"};
+    }
     Array out = EmptyLike(x, x.device());
 
     {

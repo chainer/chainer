@@ -1,9 +1,9 @@
-from chainer.functions.loss import crf1d
 from chainer.functions.array import transpose_sequence
-from chainer.links.connection.n_step_rnn import argsort_list_descent
-from chainer.links.connection.n_step_rnn import permutate_list
+from chainer.functions.loss import crf1d
 from chainer import initializers
 from chainer import link
+from chainer.links.connection.n_step_rnn import argsort_list_descent
+from chainer.links.connection.n_step_rnn import permutate_list
 from chainer import variable
 
 
