@@ -76,7 +76,7 @@ public:
 
 CHAINERX_NATIVE_REGISTER_KERNEL(BitwiseXorASKernel, NativeBitwiseXorASKernel);
 
-CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_BINARY_KERNEL(LeftShiftKernel, { out = x1 << x2; }, VisitIntegralDtype);
+CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_BINARY_KERNEL(LeftShiftKernel, { out = x1 << x2; }, VisitShiftDtype);
 
 class NativeLeftShiftASKernel : public LeftShiftASKernel {
 public:
@@ -116,7 +116,7 @@ public:
 
 CHAINERX_NATIVE_REGISTER_KERNEL(LeftShiftSAKernel, NativeLeftShiftSAKernel);
 
-CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_BINARY_KERNEL(RightShiftKernel, { out = x1 >> x2; }, VisitIntegralDtype);
+CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_BINARY_KERNEL(RightShiftKernel, { out = x1 >> x2; }, VisitShiftDtype);
 
 class NativeRightShiftASKernel : public RightShiftASKernel {
 public:
