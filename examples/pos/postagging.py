@@ -1,5 +1,6 @@
 import argparse
 import collections
+import warnings
 
 import nltk
 import numpy
@@ -77,6 +78,10 @@ def main():
     parser.add_argument('--resume', '-r', default='',
                         help='Resume the training from snapshot')
     args = parser.parse_args()
+
+    if chainer.get_dtype() == numpy.float16:
+        warnings.warn(
+            'This example may cause NaN in FP16 mode.', RuntimeWarning)
 
     vocab = collections.defaultdict(lambda: len(vocab))
     pos_vocab = collections.defaultdict(lambda: len(pos_vocab))
