@@ -172,7 +172,7 @@ class PureNcclCommunicator(mpi_communicator_base.MpiCommunicatorBase):
         self.nccl_comm.allReduce(gpu_buffer_a.ptr(),
                                  gpu_buffer_b.ptr(), n_elems,
                                  type_id, nccl.NCCL_SUM, stream.ptr)
-        chainer.cuda.cupy.mul(
+        chainer.cuda.cupy.multiply(
             gpu_buffer_b.array(n_elems, dtype=dtype),
             1.0 / self.size,
             gpu_buffer_a.array(n_elems, dtype=dtype))
