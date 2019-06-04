@@ -15,7 +15,7 @@ from chainer.utils import type_check
         ((3, 2, 4),) * 4,
         ((4,), (3, 1, 1), (2, 1), (3, 2, 4)),
     ],
-    'dtype': [numpy.float16, numpy.float32, numpy.float32],
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
 }))
 @testing.inject_backend_tests(
     None,
