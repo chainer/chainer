@@ -358,9 +358,7 @@ void InitChainerxLinalg(pybind11::module& m) {
                     } else {
                           throw py::value_error{"mode must be 'reduced', 'complete', 'r', or 'raw'"};
                     }
-                    auto qr = QR(a_array, qrmode);
-                    py::tuple qr_tuple = py::cast(qr);
-                    return qr_tuple;
+                    return QR(a_array, qrmode);
                 },
                 py::arg("a"),
                 py::arg("mode") = "reduced");
