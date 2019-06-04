@@ -165,7 +165,7 @@ Configuration Keys
 
 * ``use_static_graph`` (default: ``True``)
    Flag to configure whether or not to use the static subgraph optimization feature.
-   Where the static subgraph graph optimization decorator is used, we generally assume that that the feature should be used and the default value is thus ``True``.
+   Where the static subgraph optimization decorator is used, we generally assume that the feature should be used and the default value is thus ``True``.
    However, if you would want to run the same code without the feature, you can simply set the flag to ``False`` instead of removing the decorators.
    This is useful when for instance running your model with ChainerX, since ChainerX is not supported by the static subgraph optimization feature.
 
