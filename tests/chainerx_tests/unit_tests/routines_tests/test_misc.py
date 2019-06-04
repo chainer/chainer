@@ -135,6 +135,7 @@ class TestSquaredDifference(op_utils.OpTest):
         'in_dtypes,out_dtype': math_utils.in_out_float_dtypes_math_functions,
         'input': ['random'],
         'contiguous': [None, 'C'],
+        'is_module': [True, False],
     })
     + chainer.testing.product({
         'shape': [(2, 3)],
@@ -142,6 +143,7 @@ class TestSquaredDifference(op_utils.OpTest):
         'input': [float('inf'), -float('inf'), float('nan')],
         'skip_backward_test': [True],
         'skip_double_backward_test': [True],
+        'is_module': [True, False],
     })
 ))
 class TestAbs(math_utils.UnaryMathTestBase, op_utils.NumpyOpTest):
@@ -149,8 +151,14 @@ class TestAbs(math_utils.UnaryMathTestBase, op_utils.NumpyOpTest):
     dodge_nondifferentiable = True
 
     def func(self, xp, a):
+        # Check correct alias.
         assert chainerx.abs is chainerx.absolute
-        return xp.abs(a)
+
+        # Check computed result.
+        if self.is_module:
+            return xp.abs(a)
+        else:
+            return abs(a)
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
