@@ -2,6 +2,7 @@
 
 #include "chainerx/array.h"
 #include "chainerx/kernel.h"
+#include "chainerx/routines/linalg.h"
 
 namespace chainerx {
 
@@ -20,7 +21,7 @@ class QRKernel : public Kernel {
 public:
     static const char* name() { return "QR"; }
 
-    virtual std::tuple<Array, Array> Call(const Array& a) = 0;
+    virtual std::tuple<Array, Array> Call(const Array& a, QRMode mode) = 0;
 };
 
 }  // namespace chainerx

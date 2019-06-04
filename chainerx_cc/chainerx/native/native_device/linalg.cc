@@ -20,6 +20,7 @@
 #include "chainerx/native/elementwise.h"
 #include "chainerx/native/kernel_regist.h"
 #include "chainerx/routines/creation.h"
+#include "chainerx/routines/linalg.h"
 #include "chainerx/shape.h"
 
 namespace chainerx {
@@ -27,13 +28,17 @@ namespace native {
 
 class NativeQRKernel : public QRKernel {
 public:
-    std::tuple<Array, Array> Call(const Array& a) override {
+    std::tuple<Array, Array> Call(const Array& a, QRMode mode = QRMode::reduced) override {
 
         if (a.ndim() != 2) {
             throw DimensionError{"ChainerX QR decomposition supports only 2-dimensional arrays."};
         }
 
         throw NotImplementedError("QR decomposition is not yet implemented for native device");
+
+        if (mode != QRMode::reduced) {
+            throw NotImplementedError{"Modes other than reduce are not implemented"};
+        }
     }
 };
 

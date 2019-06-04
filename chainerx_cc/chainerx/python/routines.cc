@@ -343,8 +343,27 @@ void InitChainerxLinalg(pybind11::module& m) {
 
     pybind11::module mlinalg = m.def_submodule("linalg");
     mlinalg.def("qr",
-                [](const ArrayBodyPtr& a) { return QR(Array{a}); },
-                py::arg("a"));
+                [](const ArrayBodyPtr& a, const std::string& mode) {
+                    Array a_array{a};
+
+                    QRMode qrmode{};
+                    if (mode == "reduced") {
+                        qrmode = QRMode::reduced;
+                    } else if (mode == "complete") {
+                        qrmode = QRMode::complete;
+                    } else if (mode == "r") {
+                        qrmode = QRMode::r;
+                    } else if (mode == "raw") {
+                        qrmode = QRMode::raw;
+                    } else {
+                          throw py::value_error{"mode must be 'reduced', 'complete', 'r', or 'raw'"};
+                    }
+                    auto qr = QR(a_array, qrmode);
+                    py::tuple qr_tuple = py::cast(qr);
+                    return qr_tuple;
+                },
+                py::arg("a"),
+                py::arg("mode") = "reduced");
 }
 
 void InitChainerxLogic(pybind11::module& m) {
