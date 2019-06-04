@@ -45,25 +45,19 @@ public:
 
         CHAINERX_ASSERT(a.ndim() == 2);
 
-        throw NotImplementedError("QR decomposition is not yet implemented for cuda device");
-
-        if (mode != QRMode::reduced) {
-            throw NotImplementedError{"Modes other than reduce are not implemented yet"};
-        }
-
         int m = a.shape()[0];
         int n = a.shape()[1];
         int lda = std::min(m, n);
 
-        Array Q = Empty(Shape({m, n}), dtype, device);
-        Array R = Empty(Shape({n, n}), dtype, device);
-        Array tau = Empty(Shape({n, 1}), dtype, device);
+        Array Q = Empty(Shape({0}), dtype, device);
+        Array R = Empty(a.shape(), dtype, device);
+        device.backend().CallKernel<CopyKernel>(a, R);  // QR decomposition is done in-place
+        Array tau = Empty(Shape({lda, 1}), dtype, device);
 
-        auto qr_impl = [&](auto pt, auto geqrf_bufferSize, auto orgqr_bufferSize, auto geqrf, auto orgqr) {
+        auto qr_impl = [&](auto pt, auto geqrf_bufferSize, auto orgqr_bufferSize, auto geqrf, auto orgqr) -> std::tuple<Array, Array> {
             using T = typename decltype(pt)::type;
             cuda_internal::DeviceInternals& device_internals = cuda_internal::GetDeviceInternals(static_cast<CudaDevice&>(device));
 
-            T* a_ptr = static_cast<T*>(internal::GetRawOffsetData(a));
             T* q_ptr = static_cast<T*>(internal::GetRawOffsetData(Q));
             T* r_ptr = static_cast<T*>(internal::GetRawOffsetData(R));
             T* tau_ptr = static_cast<T*>(internal::GetRawOffsetData(tau));
@@ -77,11 +71,11 @@ public:
 
             device_internals.cusolver_handle().Call(
                 geqrf_bufferSize,
-                m, n, a_ptr, lda, &lwork_geqrf);
+                m, n, r_ptr, lda, &lwork_geqrf);
 
             device_internals.cusolver_handle().Call(
                 orgqr_bufferSize,
-                m, n, n, a_ptr, lda, tau_ptr, &lwork_orgqr);
+                m, n, n, r_ptr, lda, tau_ptr, &lwork_orgqr);
 
             lwork = (lwork_geqrf > lwork_orgqr) ? lwork_geqrf : lwork_orgqr;
 
@@ -90,7 +84,7 @@ public:
 
             device_internals.cusolver_handle().Call(
                 geqrf,
-                m, n, a_ptr, lda, tau_ptr, work_ptr, lwork, devInfo);
+                m, n, r_ptr, lda, tau_ptr, work_ptr, lwork, devInfo);
 
             int devInfo_h = 0;
             CheckCudaError(cudaMemcpy(&devInfo_h, devInfo, sizeof(int), cudaMemcpyDeviceToHost));
@@ -98,24 +92,50 @@ public:
                 throw ChainerxError{"Unsuccessfull geqrf (QR) execution. Info = ", devInfo_h};
             }
 
+            if (mode == QRMode::r) {
+                // R = R[range(0, lda), :]
+                // R = triu(R)
+                return std::make_tuple(std::move(Q), std::move(R));
+            }
+
+            if (mode == QRMode::raw) {
+                R = R.Transpose();
+                return std::make_tuple(std::move(R), std::move(tau));
+            }
+
+            // int mc;
+
+            if (mode == QRMode::complete && m > n) {
+                // mc = m;
+                Q = Empty(Shape({m, m}), dtype, device);
+            } else {
+                // mc = lda;
+                Q = Empty(Shape({m, n}), dtype, device);
+            }
+
+            // Q[:, range(0, n)] = R
+
             device_internals.cusolver_handle().Call(
                 orgqr,
-                m, n, n, a_ptr, lda, tau_ptr, work_ptr, lwork, devInfo);
+                m, n, n, q_ptr, lda, tau_ptr, work_ptr, lwork, devInfo);
 
             CheckCudaError(cudaMemcpy(&devInfo_h, devInfo, sizeof(int), cudaMemcpyDeviceToHost));
             if (devInfo_h != 0) {
                 throw ChainerxError{"Unsuccessfull orgqr (QR) execution. Info = ", devInfo_h};
             }
+
+            // Q = Q[:, range(0, mc)]
+            // R = R[range(0, mc), :]
+            // R = triu(R)
+            return std::make_tuple(std::move(Q), std::move(R));
         };
 
         if (a.dtype() == Dtype::kFloat32) {
-            qr_impl(PrimitiveType<float>{}, cusolverDnSgeqrf_bufferSize, cusolverDnSorgqr_bufferSize, cusolverDnSgeqrf, cusolverDnSorgqr);
+            return qr_impl(PrimitiveType<float>{}, cusolverDnSgeqrf_bufferSize, cusolverDnSorgqr_bufferSize, cusolverDnSgeqrf, cusolverDnSorgqr);
         } else {
             CHAINERX_ASSERT(a.dtype() == Dtype::kFloat64);
-            qr_impl(PrimitiveType<double>{}, cusolverDnDgeqrf_bufferSize, cusolverDnDorgqr_bufferSize, cusolverDnDgeqrf, cusolverDnDorgqr);
+            return qr_impl(PrimitiveType<double>{}, cusolverDnDgeqrf_bufferSize, cusolverDnDorgqr_bufferSize, cusolverDnDgeqrf, cusolverDnDorgqr);
         }
-
-        return std::make_tuple(std::move(Q), std::move(R));
 
     }
 };
