@@ -48,62 +48,74 @@ public:
         throw NotImplementedError("QR decomposition is not yet implemented for cuda device");
 
         if (mode != QRMode::reduced) {
-            throw NotImplementedError{"Modes other than reduce are not implemented"};
+            throw NotImplementedError{"Modes other than reduce are not implemented yet"};
         }
 
-        // using T = typename double;
+        int m = a.shape()[0];
+        int n = a.shape()[1];
+        int lda = std::min(m, n);
 
-        // const int m = a.shape[0];
-        // const int n = a.shape[1];
-        // const int lda = std::min(m, n);
+        Array Q = Empty(Shape({m, n}), dtype, device);
+        Array R = Empty(Shape({n, n}), dtype, device);
+        Array tau = Empty(Shape({n, 1}), dtype, device);
 
-        // Array Q = Empty(Shape(m, n), dtype, a.device());
-        // Array R = Empty(Shape(n, n), dtype, a.device());
+        auto qr_impl = [&](auto pt, auto geqrf_bufferSize, auto orgqr_bufferSize, auto geqrf, auto orgqr) {
+            using T = typename decltype(pt)::type;
+            cuda_internal::DeviceInternals& device_internals = cuda_internal::GetDeviceInternals(static_cast<CudaDevice&>(device));
 
-        // T d_tau;
-        // CheckCudaError(cudaMalloc(&d_tau, n*sizeof(T)));
-        // T d_R;
-        // CheckCudaError(cudaMalloc(&d_R, n*n*sizeof(T)));
-        // int *devInfo;
-        // CheckCudaError(cudaMalloc(&devInfo, sizeof(int)));
+            T* a_ptr = static_cast<T*>(internal::GetRawOffsetData(a));
+            T* q_ptr = static_cast<T*>(internal::GetRawOffsetData(Q));
+            T* r_ptr = static_cast<T*>(internal::GetRawOffsetData(R));
+            T* tau_ptr = static_cast<T*>(internal::GetRawOffsetData(tau));
 
-        // int lwork_geqrf = 0;
-        // int lwork_orgqr = 0;
-        // int lwork = 0;
-        // const float h_one = 1;
-        // const float h_minus_one = -1;
+            int *devInfo;
+            CheckCudaError(cudaMalloc(&devInfo, sizeof(int)));
 
-        // device_internals.cusolver_handle().Call(
-        //     cusolverDnDgeqrf_bufferSize,
-        //     m, n, a_ptr, lda, &lwork_geqrf);
-        
-        // device_internals.cusolver_handle().Call(
-        //     cusolverDnDorgqr_bufferSize,
-        //     m, n, n, a_ptr, lda, d_tau, &lwork_orgqr);
-        
-        // lwork = (lwork_geqrf > lwork_orgqr) ? lwork_geqrf : lwork_orgqr;
+            int lwork_geqrf = 0;
+            int lwork_orgqr = 0;
+            int lwork = 0;
 
-        // T *d_work;
-        // CheckCudaError(cudaMalloc(&d_work, lwork * sizeof(T)));
+            device_internals.cusolver_handle().Call(
+                geqrf_bufferSize,
+                m, n, a_ptr, lda, &lwork_geqrf);
 
-        // device_internals.cusolver_handle().Call(
-        //     cusolverDnDgeqrf,
-        //     m, n, a_ptr, lda, d_tau, d_work, lwork, devInfo);
+            device_internals.cusolver_handle().Call(
+                orgqr_bufferSize,
+                m, n, n, a_ptr, lda, tau_ptr, &lwork_orgqr);
 
-        // int devInfo_h = 0;
-        // CheckCudaError(cudaMemcpy(&devInfo_h, devInfo, sizeof(int), cudaMemcpyDeviceToHost));
-        // if (devInfo_h != 0) {
-        //     throw ChainerxError{"Unsuccessfull geqrf (QR) execution. Info = ", devInfo_h};
-        // }
+            lwork = (lwork_geqrf > lwork_orgqr) ? lwork_geqrf : lwork_orgqr;
 
-        // device_internals.cusolver_handle().Call(
-        //     cusolverDnDorgqr,
-        //     m, n, n, a_ptr, lda, d_tau, d_work, lwork, devInfo);
-        
-        // CheckCudaError(cudaMemcpy(&devInfo_h, devInfo, sizeof(int), cudaMemcpyDeviceToHost));
-        // if (devInfo_h != 0) {
-        //     throw ChainerxError{"Unsuccessfull orgqr (QR) execution. Info = ", devInfo_h};
-        // }
+            Array work = Empty(Shape({lwork, 1}), dtype, device);
+            T* work_ptr = static_cast<T*>(internal::GetRawOffsetData(work));
+
+            device_internals.cusolver_handle().Call(
+                geqrf,
+                m, n, a_ptr, lda, tau_ptr, work_ptr, lwork, devInfo);
+
+            int devInfo_h = 0;
+            CheckCudaError(cudaMemcpy(&devInfo_h, devInfo, sizeof(int), cudaMemcpyDeviceToHost));
+            if (devInfo_h != 0) {
+                throw ChainerxError{"Unsuccessfull geqrf (QR) execution. Info = ", devInfo_h};
+            }
+
+            device_internals.cusolver_handle().Call(
+                orgqr,
+                m, n, n, a_ptr, lda, tau_ptr, work_ptr, lwork, devInfo);
+
+            CheckCudaError(cudaMemcpy(&devInfo_h, devInfo, sizeof(int), cudaMemcpyDeviceToHost));
+            if (devInfo_h != 0) {
+                throw ChainerxError{"Unsuccessfull orgqr (QR) execution. Info = ", devInfo_h};
+            }
+        };
+
+        if (a.dtype() == Dtype::kFloat32) {
+            qr_impl(PrimitiveType<float>{}, cusolverDnSgeqrf_bufferSize, cusolverDnSorgqr_bufferSize, cusolverDnSgeqrf, cusolverDnSorgqr);
+        } else {
+            CHAINERX_ASSERT(a.dtype() == Dtype::kFloat64);
+            qr_impl(PrimitiveType<double>{}, cusolverDnDgeqrf_bufferSize, cusolverDnDorgqr_bufferSize, cusolverDnDgeqrf, cusolverDnDorgqr);
+        }
+
+        return std::make_tuple(std::move(Q), std::move(R));
 
     }
 };
