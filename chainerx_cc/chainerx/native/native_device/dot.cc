@@ -144,8 +144,11 @@ double MultiplyAdd(double x, double y, double z) { return std::fma(x, y, z); }
 class NativeDotKernel : public DotKernel {
 public:
     void Call(const Array& a, const Array& b, const Array& out) override {
-        Device& device = a.device();
+        NativeDevice& device = dynamic_cast<NativeDevice&>(a.device());
         device.CheckDevicesCompatible(a, b, out);
+        if (device.is_dry()) {
+            return;
+        }
 
         // TODO(sonots): Support ndim >= 2
         if (a.ndim() != 2 || b.ndim() != 2 || out.ndim() != 2) {

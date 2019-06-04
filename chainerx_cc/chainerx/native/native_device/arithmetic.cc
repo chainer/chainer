@@ -23,8 +23,11 @@ CHAINERX_NATIVE_REGISTER_ELTWISE_BINARY_KERNEL(AddKernel, { out = ArithmeticOps<
 class NativeAddASKernel : public AddASKernel {
 public:
     void Call(const Array& x1, Scalar x2, const Array& out) override {
-        Device& device = x1.device();
+        NativeDevice& device = dynamic_cast<NativeDevice&>(x1.device());
         device.CheckDevicesCompatible(x1, out);
+        if (device.is_dry()) {
+            return;
+        }
         const Array& x1_cast = x1.dtype() == out.dtype() ? x1 : x1.AsType(out.dtype());
         VisitDtype(out.dtype(), [&](auto pt) {
             using T = typename decltype(pt)::type;
@@ -44,8 +47,11 @@ CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_BINARY_KERNEL(SubtractKernel, { out = Ari
 class NativeSubtractASKernel : public SubtractASKernel {
 public:
     void Call(const Array& x1, Scalar x2, const Array& out) override {
-        Device& device = x1.device();
+        NativeDevice& device = dynamic_cast<NativeDevice&>(x1.device());
         device.CheckDevicesCompatible(x1, out);
+        if (device.is_dry()) {
+            return;
+        }
         const Array& x1_cast = x1.dtype() == out.dtype() ? x1 : x1.AsType(out.dtype());
         VisitNumericDtype(out.dtype(), [&](auto pt) {
             using T = typename decltype(pt)::type;
@@ -65,8 +71,11 @@ CHAINERX_NATIVE_REGISTER_ELTWISE_BINARY_KERNEL(MultiplyKernel, { out = Arithmeti
 class NativeMultiplyASKernel : public MultiplyASKernel {
 public:
     void Call(const Array& x1, Scalar x2, const Array& out) override {
-        Device& device = x1.device();
+        NativeDevice& device = dynamic_cast<NativeDevice&>(x1.device());
         device.CheckDevicesCompatible(x1, out);
+        if (device.is_dry()) {
+            return;
+        }
         const Array& x1_cast = x1.dtype() == out.dtype() ? x1 : x1.AsType(out.dtype());
         VisitDtype(out.dtype(), [&](auto pt) {
             using T = typename decltype(pt)::type;
@@ -120,8 +129,11 @@ CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_BINARY_KERNEL(FloorDivideKernel, { out = 
 class NativeFloorDivideASKernel : public FloorDivideASKernel {
 public:
     void Call(const Array& x1, Scalar x2, const Array& out) override {
-        Device& device = x1.device();
+        NativeDevice& device = dynamic_cast<NativeDevice&>(x1.device());
         device.CheckDevicesCompatible(x1, out);
+        if (device.is_dry()) {
+            return;
+        }
         const Array& x1_cast = x1.dtype() == out.dtype() ? x1 : x1.AsType(out.dtype());
         VisitNumericDtype(out.dtype(), [&](auto pt) {
             using T = typename decltype(pt)::type;
@@ -139,8 +151,11 @@ CHAINERX_NATIVE_REGISTER_KERNEL(FloorDivideASKernel, NativeFloorDivideASKernel);
 class NativeFloorDivideSAKernel : public FloorDivideSAKernel {
 public:
     void Call(Scalar x1, const Array& x2, const Array& out) override {
-        Device& device = x2.device();
+        NativeDevice& device = dynamic_cast<NativeDevice&>(x2.device());
         device.CheckDevicesCompatible(x2, out);
+        if (device.is_dry()) {
+            return;
+        }
         const Array& x2_cast = x2.dtype() == out.dtype() ? x2 : x2.AsType(out.dtype());
         VisitNumericDtype(out.dtype(), [&](auto pt) {
             using T = typename decltype(pt)::type;
@@ -160,8 +175,11 @@ CHAINERX_NATIVE_REGISTER_ELTWISE_BINARY_KERNEL(DivideKernel, { out = ArithmeticO
 class NativeDivideASKernel : public DivideASKernel {
 public:
     void Call(const Array& x1, Scalar x2, const Array& out) override {
-        Device& device = x1.device();
+        NativeDevice& device = dynamic_cast<NativeDevice&>(x1.device());
         device.CheckDevicesCompatible(x1, out);
+        if (device.is_dry()) {
+            return;
+        }
         const Array& x1_cast = x1.dtype() == out.dtype() ? x1 : x1.AsType(out.dtype());
         VisitDtype(out.dtype(), [&](auto pt) {
             using T = typename decltype(pt)::type;
@@ -179,8 +197,11 @@ CHAINERX_NATIVE_REGISTER_KERNEL(DivideASKernel, NativeDivideASKernel);
 class NativeDivideSAKernel : public DivideSAKernel {
 public:
     void Call(Scalar x1, const Array& x2, const Array& out) override {
-        Device& device = x2.device();
+        NativeDevice& device = dynamic_cast<NativeDevice&>(x2.device());
         device.CheckDevicesCompatible(x2, out);
+        if (device.is_dry()) {
+            return;
+        }
         const Array& x2_cast = x2.dtype() == out.dtype() ? x2 : x2.AsType(out.dtype());
         VisitDtype(out.dtype(), [&](auto pt) {
             using T = typename decltype(pt)::type;
@@ -200,8 +221,11 @@ CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_BINARY_KERNEL(PowerKernel, { out = chaine
 class NativePowerASKernel : public PowerASKernel {
 public:
     void Call(const Array& x1, Scalar x2, const Array& out) override {
-        Device& device = x1.device();
+        NativeDevice& device = dynamic_cast<NativeDevice&>(x1.device());
         device.CheckDevicesCompatible(x1, out);
+        if (device.is_dry()) {
+            return;
+        }
         const Array& x1_cast = x1.dtype() == out.dtype() ? x1 : x1.AsType(out.dtype());
         VisitNumericDtype(out.dtype(), [&](auto pt) {
             using T = typename decltype(pt)::type;
@@ -219,8 +243,11 @@ CHAINERX_NATIVE_REGISTER_KERNEL(PowerASKernel, NativePowerASKernel);
 class NativePowerSAKernel : public PowerSAKernel {
 public:
     void Call(Scalar x1, const Array& x2, const Array& out) override {
-        Device& device = x2.device();
+        NativeDevice& device = dynamic_cast<NativeDevice&>(x2.device());
         device.CheckDevicesCompatible(x2, out);
+        if (device.is_dry()) {
+            return;
+        }
         const Array& x2_cast = x2.dtype() == out.dtype() ? x2 : x2.AsType(out.dtype());
         VisitNumericDtype(out.dtype(), [&](auto pt) {
             using T = typename decltype(pt)::type;

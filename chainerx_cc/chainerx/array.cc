@@ -359,6 +359,9 @@ Array Array::ToDevice(Device& dst_device) const {
 
 Array Array::ToNative() const {
     Context& context = device().backend().context();
+    if (device().backend().GetName() == "native") {
+        return *this;
+    }
     Device& native_device = context.GetNativeBackend().GetDevice(0);
     return ToDevice(native_device);
 }

@@ -20,8 +20,11 @@
     class Native##key_kernel_cls : public key_kernel_cls {                                            \
     public:                                                                                           \
         void Call(const Array& x, const Array& out) override {                                        \
-            Device& device = x.device();                                                              \
+            NativeDevice& device = dynamic_cast<NativeDevice&>(x.device());                           \
             device.CheckDevicesCompatible(x, out);                                                    \
+            if (device.is_dry()) {                                                                    \
+                return;                                                                               \
+            }                                                                                         \
             const Array& x_cast = x.dtype() == out.dtype() ? x : x.AsType(out.dtype());               \
             visit_dtype(out.dtype(), [&](auto pt) {                                                   \
                 using T = typename decltype(pt)::type;                                                \
@@ -50,8 +53,11 @@
     class Native##key_kernel_cls : public key_kernel_cls {                                             \
     public:                                                                                            \
         void Call(const Array& x1, const Array& x2, const Array& out) override {                       \
-            Device& device = x1.device();                                                              \
+            NativeDevice& device = dynamic_cast<NativeDevice&>(x1.device());                           \
             device.CheckDevicesCompatible(x1, x2, out);                                                \
+            if (device.is_dry()) {                                                                     \
+                return;                                                                                \
+            }                                                                                          \
             const Array& x1_cast = x1.dtype() == out.dtype() ? x1 : x1.AsType(out.dtype());            \
             const Array& x2_cast = x2.dtype() == out.dtype() ? x2 : x2.AsType(out.dtype());            \
             visit_dtype(out.dtype(), [&](auto pt) {                                                    \

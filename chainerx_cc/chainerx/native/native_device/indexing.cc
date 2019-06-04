@@ -22,7 +22,11 @@ class NativeTakeKernel : public TakeKernel {
 public:
     void Call(const Array& a, const Array& indices, int8_t axis, const Array& out) override {
         CHAINERX_ASSERT(GetKind(indices.dtype()) == DtypeKind::kInt || GetKind(indices.dtype()) == DtypeKind::kUInt);
-        a.device().CheckDevicesCompatible(a, indices, out);
+        NativeDevice& device = dynamic_cast<NativeDevice&>(a.device());
+        if (device.is_dry()) {
+            return;
+        }
+        device.CheckDevicesCompatible(a, indices, out);
 
         const Array& indices_cast = indices.dtype() == Dtype::kInt64 ? indices : indices.AsType(Dtype::kInt64);
 
@@ -89,7 +93,11 @@ public:
     void Call(const Array& a, const Array& indices, int8_t axis, const Array& b, const Array& out) override {
         CHAINERX_ASSERT(a.shape() == out.shape());
         CHAINERX_ASSERT(GetKind(indices.dtype()) == DtypeKind::kInt || GetKind(indices.dtype()) == DtypeKind::kUInt);
-        a.device().CheckDevicesCompatible(a, indices, b);
+        NativeDevice& device = dynamic_cast<NativeDevice&>(a.device());
+        if (device.is_dry()) {
+            return;
+        }
+        device.CheckDevicesCompatible(a, indices, b);
 
         const Array& indices_cast = indices.dtype() == Dtype::kInt64 ? indices : indices.AsType(Dtype::kInt64);
 

@@ -198,20 +198,21 @@ def main():
 
     trainer.extend(extensions.Evaluator(val_iter, model, converter=converter,
                                         device=device), trigger=val_interval)
-    # TODO(sonots): Temporarily disabled for chainerx. Fix it.
-    if device.xp is not chainerx:
-        trainer.extend(extensions.DumpGraph('main/loss'))
-    trainer.extend(extensions.snapshot(), trigger=val_interval)
-    trainer.extend(extensions.snapshot_object(
-        model, 'model_iter_{.updater.iteration}'), trigger=val_interval)
-    # Be careful to pass the interval directly to LogReport
-    # (it determines when to emit log rather than when to read observations)
-    trainer.extend(extensions.LogReport(trigger=log_interval))
-    trainer.extend(extensions.observe_lr(), trigger=log_interval)
-    trainer.extend(extensions.PrintReport([
-        'epoch', 'iteration', 'main/loss', 'validation/main/loss',
-        'main/accuracy', 'validation/main/accuracy', 'lr'
-    ]), trigger=log_interval)
+    if False:
+        # TODO(sonots): Temporarily disabled for chainerx. Fix it.
+        if device.xp is not chainerx:
+            trainer.extend(extensions.DumpGraph('main/loss'))
+        trainer.extend(extensions.snapshot(), trigger=val_interval)
+        trainer.extend(extensions.snapshot_object(
+            model, 'model_iter_{.updater.iteration}'), trigger=val_interval)
+        # Be careful to pass the interval directly to LogReport
+        # (it determines when to emit log rather than when to read observations)
+        trainer.extend(extensions.LogReport(trigger=log_interval))
+        trainer.extend(extensions.observe_lr(), trigger=log_interval)
+        trainer.extend(extensions.PrintReport([
+            'epoch', 'iteration', 'main/loss', 'validation/main/loss',
+            'main/accuracy', 'validation/main/accuracy', 'lr'
+        ]), trigger=log_interval)
     trainer.extend(extensions.ProgressBar(update_interval=10))
 
     if args.resume:

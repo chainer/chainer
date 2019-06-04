@@ -71,6 +71,8 @@ class NativeDevice : public Device {
 public:
     void Synchronize() override;
 
+    bool is_dry() const { return index() == 1; }
+
     // memory.cc
 
     std::shared_ptr<void> Allocate(size_t bytesize) override;

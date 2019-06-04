@@ -22,7 +22,11 @@ class NativeAMaxKernel : public AMaxKernel {
 public:
     void Call(const Array& a, const Axes& axis, const Array& out) override {
         CHAINERX_ASSERT(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
-        a.device().CheckDevicesCompatible(a, out);
+        NativeDevice& device = dynamic_cast<NativeDevice&>(a.device());
+        if (device.is_dry()) {
+            return;
+        }
+        device.CheckDevicesCompatible(a, out);
 
         VisitDtype(a.dtype(), [&a, &axis, &out](auto pt) {
             using T = typename decltype(pt)::type;

@@ -57,6 +57,7 @@ class MomentumSGDRule(optimizer.UpdateRule):
                 self.state['v'], itype=intel64.ideep.wgt_array)
 
     def update_core_cpu(self, param):
+        return
         grad = param.grad
         if grad is None:
             return

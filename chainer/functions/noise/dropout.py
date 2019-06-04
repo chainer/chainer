@@ -7,6 +7,7 @@ from chainer import configuration
 from chainer import function_node
 from chainer.utils import argument
 from chainer.utils import type_check
+import chainerx
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
@@ -27,6 +28,21 @@ class Dropout(function_node.FunctionNode):
     def check_type_forward(self, in_types):
         type_check._argname(in_types, ('x',))
         type_check.expect(in_types[0].dtype.kind == 'f')
+
+    def forward_chainerx(self, x):
+        if (intel64.should_use_ideep('>=auto')
+                and intel64.inputs_all_ready(x)
+                and self.mask is None):
+            return self._forward_ideep(x)
+
+        if self.mask is not None:
+            y = x[0] * self.mask
+        else:
+            scale = x[0].dtype.type(1. / (1 - self.dropout_ratio))
+            flag = chainerx.empty(x[0].shape) >= self.dropout_ratio
+            self.mask = scale * flag
+            y = x[0] * self.mask
+        return y,
 
     def forward_cpu(self, x):
         if (intel64.should_use_ideep('>=auto')

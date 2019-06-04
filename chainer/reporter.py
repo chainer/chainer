@@ -342,13 +342,17 @@ class DictSummary(object):
         for k, v in six.iteritems(d):
             w = 1
             if isinstance(v, tuple):
-                w = v[1]
-                v = v[0]
-                if isinstance(w, variable.Variable):
-                    w = w.array
-                if not numpy.isscalar(w) and not getattr(w, 'ndim', -1) == 0:
-                    raise ValueError(
-                        'Given weight to {} was not scalar.'.format(k))
+                if len(v) == 1:
+                    v, = v
+                else:
+                    assert len(v) == 2
+                    w = v[1]
+                    v = v[0]
+                    if isinstance(w, variable.Variable):
+                        w = w.array
+                    if not numpy.isscalar(w) and not getattr(w, 'ndim', -1) == 0:
+                        raise ValueError(
+                            'Given weight to {} was not scalar.'.format(k))
             if isinstance(v, variable.Variable):
                 v = v.array
             if numpy.isscalar(v) or getattr(v, 'ndim', -1) == 0:

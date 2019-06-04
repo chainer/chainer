@@ -19,7 +19,10 @@ namespace {
 class NativeEqualKernel : public EqualKernel {
 public:
     void Call(const Array& x1, const Array& x2, const Array& out) override {
-        Device& device = x1.device();
+        NativeDevice& device = dynamic_cast<NativeDevice&>(x1.device());
+        if (device.is_dry()) {
+            return;
+        }
         device.CheckDevicesCompatible(x1, x2, out);
         Dtype dtype = PromoteTypes(x1.dtype(), x2.dtype());
         const Array& x1_cast = x1.dtype() == dtype ? x1 : x1.AsType(dtype);
@@ -39,7 +42,10 @@ CHAINERX_NATIVE_REGISTER_KERNEL(EqualKernel, NativeEqualKernel);
 class NativeNotEqualKernel : public NotEqualKernel {
 public:
     void Call(const Array& x1, const Array& x2, const Array& out) override {
-        Device& device = x1.device();
+        NativeDevice& device = dynamic_cast<NativeDevice&>(x1.device());
+        if (device.is_dry()) {
+            return;
+        }
         device.CheckDevicesCompatible(x1, x2, out);
         Dtype dtype = PromoteTypes(x1.dtype(), x2.dtype());
         const Array& x1_cast = x1.dtype() == dtype ? x1 : x1.AsType(dtype);
@@ -59,7 +65,10 @@ CHAINERX_NATIVE_REGISTER_KERNEL(NotEqualKernel, NativeNotEqualKernel);
 class NativeGreaterKernel : public GreaterKernel {
 public:
     void Call(const Array& x1, const Array& x2, const Array& out) override {
-        Device& device = x1.device();
+        NativeDevice& device = dynamic_cast<NativeDevice&>(x1.device());
+        if (device.is_dry()) {
+            return;
+        }
         device.CheckDevicesCompatible(x1, x2, out);
         Dtype dtype = PromoteTypes(x1.dtype(), x2.dtype());
         const Array& x1_cast = x1.dtype() == dtype ? x1 : x1.AsType(dtype);
@@ -79,7 +88,10 @@ CHAINERX_NATIVE_REGISTER_KERNEL(GreaterKernel, NativeGreaterKernel);
 class NativeGreaterEqualKernel : public GreaterEqualKernel {
 public:
     void Call(const Array& x1, const Array& x2, const Array& out) override {
-        Device& device = x1.device();
+        NativeDevice& device = dynamic_cast<NativeDevice&>(x1.device());
+        if (device.is_dry()) {
+            return;
+        }
         device.CheckDevicesCompatible(x1, x2, out);
         Dtype dtype = PromoteTypes(x1.dtype(), x2.dtype());
         const Array& x1_cast = x1.dtype() == dtype ? x1 : x1.AsType(dtype);

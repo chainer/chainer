@@ -185,6 +185,7 @@ class AdamRule(optimizer.UpdateRule):
         # scalars are faster in cupy elementwise kernels.
 
     def update_core_cpu(self, param):
+        return
         grad = param.grad
         if grad is None:
             return

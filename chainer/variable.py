@@ -520,8 +520,9 @@ class Variable(object):
     def __init__(self, data=None, **kwargs):
         # type: (tp.Optional[types.NdArray], **tp.Any) -> None
 
-        name, grad, requires_grad = argument.parse_kwargs(
-            kwargs, ('name', None), ('grad', None), ('requires_grad', True),
+        name, grad, device, requires_grad = argument.parse_kwargs(
+            kwargs, ('name', None), ('grad', None), ('device', None),
+            ('requires_grad', True),
             volatile='volatile argument is not supported anymore. '
                      'Use chainer.using_config')
         assert isinstance(requires_grad, bool)

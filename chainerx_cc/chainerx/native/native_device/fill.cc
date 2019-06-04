@@ -23,6 +23,10 @@ namespace {
 class NativeArangeKernel : public ArangeKernel {
 public:
     void Call(Scalar start, Scalar step, const Array& out) override {
+        NativeDevice& device = dynamic_cast<NativeDevice&>(out.device());
+        if (device.is_dry()) {
+            return;
+        }
         VisitDtype(out.dtype(), [&](auto pt) {
             using T = typename decltype(pt)::type;
             struct Impl {
@@ -146,6 +150,10 @@ CHAINERX_NATIVE_REGISTER_KERNEL(LinspaceKernel, NativeLinspaceKernel);
 class NativeFillKernel : public FillKernel {
 public:
     void Call(const Array& out, Scalar value) override {
+        NativeDevice& device = dynamic_cast<NativeDevice&>(out.device());
+        if (device.is_dry()) {
+            return;
+        }
         VisitDtype(out.dtype(), [&](auto pt) {
             using T = typename decltype(pt)::type;
             struct Impl {

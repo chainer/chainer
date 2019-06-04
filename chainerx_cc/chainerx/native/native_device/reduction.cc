@@ -24,7 +24,11 @@ public:
     void Call(const Array& a, const Axes& axis, const Array& out) override {
         CHAINERX_ASSERT(std::all_of(axis.begin(), axis.end(), [&a](int8_t i) { return a.shape()[i] > 0; }));
         CHAINERX_ASSERT(internal::IsValidReductionShape(a.shape(), axis, out.shape(), false));
-        a.device().CheckDevicesCompatible(a, out);
+        NativeDevice& device = dynamic_cast<NativeDevice&>(a.device());
+        if (device.is_dry()) {
+            return;
+        }
+        device.CheckDevicesCompatible(a, out);
 
         VisitDtype(a.dtype(), [&a, &axis, &out](auto pt) {
             using T = typename decltype(pt)::type;
@@ -55,7 +59,11 @@ public:
     void Call(const Array& a, const Axes& axis, const Array& out) override {
         CHAINERX_ASSERT(std::all_of(axis.begin(), axis.end(), [&a](int8_t i) { return a.shape()[i] > 0; }));
         CHAINERX_ASSERT(internal::IsValidReductionShape(a.shape(), axis, out.shape(), false));
-        a.device().CheckDevicesCompatible(a, out);
+        NativeDevice& device = dynamic_cast<NativeDevice&>(a.device());
+        if (device.is_dry()) {
+            return;
+        }
+        device.CheckDevicesCompatible(a, out);
 
         VisitDtype(a.dtype(), [&a, &axis, &out](auto pt) {
             using T = typename decltype(pt)::type;
@@ -85,7 +93,11 @@ class NativeSumKernel : public SumKernel {
 public:
     void Call(const Array& a, const Axes& axis, const Array& out) override {
         CHAINERX_ASSERT(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
-        a.device().CheckDevicesCompatible(a, out);
+        NativeDevice& device = dynamic_cast<NativeDevice&>(a.device());
+        if (device.is_dry()) {
+            return;
+        }
+        device.CheckDevicesCompatible(a, out);
 
         auto do_sum = [&a, &axis, &out](auto in_pt, auto out_pt) {
             using In = typename decltype(in_pt)::type;

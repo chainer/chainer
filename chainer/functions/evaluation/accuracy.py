@@ -1,11 +1,14 @@
 import six
 
-from chainer import backend
-from chainer import function
+import numpy
+
+from chainer.backends import cuda
+from chainer import function_node
 from chainer.utils import type_check
+import chainerx
 
 
-class Accuracy(function.Function):
+class Accuracy(function_node.FunctionNode):
 
     def __init__(self, ignore_label=None):
         self.ignore_label = ignore_label
@@ -28,8 +31,38 @@ class Accuracy(function.Function):
         for i in six.moves.range(t_ndim + 1, type_check.eval(x_type.ndim)):
             type_check.expect(x_type.shape[i] == 1)
 
-    def forward(self, inputs):
-        xp = backend.get_array_module(*inputs)
+    def forward_chainerx(self, inputs):
+        xp = chainerx
+        y, t = inputs
+
+        if self.ignore_label is not None:
+            mask = (t == self.ignore_label)
+            ignore_cnt = mask.sum()
+
+            # will always be true when the true label is ignore_label
+            # TODO(henry0312)
+            #   If cupy.where returns indexes, we could make the code better.
+            #   Also, we would need Advanced Indexing.
+            pred = xp.where(mask, self.ignore_label,
+                            y.argmax(axis=1).reshape(t.shape))
+            count = (pred == t).sum() - ignore_cnt
+            total = t.size - ignore_cnt
+
+            if total == 0:
+                return xp.asarray(0.0, dtype=y.dtype),
+            else:
+                return xp.asarray(float(count) / total, dtype=y.dtype),
+        else:
+            pred = y.argmax(axis=1).reshape(t.shape)
+            return xp.asarray((pred == t).mean()),
+
+    def forward_cpu(self, inputs):
+        return self._forward_xp(numpy, inputs)
+
+    def forward_gpu(self, inputs):
+        return self._forward_xp(cuda.cupy, inputs)
+
+    def _forward_xp(self, xp, inputs):
         y, t = inputs
 
         if self.ignore_label is not None:
@@ -95,4 +128,4 @@ y(i, j, k, ...)`.
         array(1.)
 
     """
-    return Accuracy(ignore_label=ignore_label)(y, t)
+    return Accuracy(ignore_label=ignore_label).apply((y, t))

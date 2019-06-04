@@ -27,7 +27,11 @@ CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_UNARY_KERNEL(SignKernel, { out = chainerx
 class NativeIfLessElseASSAKernel : public IfLessElseASSAKernel {
 public:
     void Call(const Array& x1, Scalar x2, Scalar pos, const Array& neg, const Array& out) override {
-        x1.device().CheckDevicesCompatible(x1, neg, out);
+        NativeDevice& device = dynamic_cast<NativeDevice&>(x1.device());
+        if (device.is_dry()) {
+            return;
+        }
+        device.CheckDevicesCompatible(x1, neg, out);
         Dtype x_dtype = ResultType(x1, x2);
         const Array& x1_cast = x1.dtype() == x_dtype ? x1 : x1.AsType(x_dtype);
         const Array& neg_cast = neg.dtype() == out.dtype() ? neg : neg.AsType(out.dtype());

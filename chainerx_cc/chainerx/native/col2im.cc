@@ -14,6 +14,7 @@
 #include "chainerx/indexer.h"
 #include "chainerx/macro.h"
 #include "chainerx/native/data_type.h"
+#include "chainerx/native/native_device.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/scalar.h"
 #include "chainerx/shape.h"
@@ -85,33 +86,37 @@ Array Col2Im(const Array& col, const Dims& stride, const Dims& pad, const Dims& 
     Array padded_out = Zeros(padded_shape, col.dtype(), col.device());
     CHAINERX_ASSERT(ndim + 2 == padded_out.ndim());
 
-    // Write to the output array
-    VisitDtype(col.dtype(), [&](auto pt) {
-        using T = typename decltype(pt)::type;
-        Indexer<2> batch_channel_indexer{Shape{batch_size, channels}};
+    NativeDevice& device = dynamic_cast<NativeDevice&>(col.device());
 
-        static_assert(4 * 2 + 2 == kMaxNdim, "4 is the maximum kernel ndim whose col ndim does not exceed kMaxNdim");
-        switch (ndim) {
-            case 0:
-                Col2ImImpl<T, 0>(col, padded_out, stride, batch_channel_indexer);
-                break;
-            case 1:
-                Col2ImImpl<T, 1>(col, padded_out, stride, batch_channel_indexer);
-                break;
-            case 2:
-                Col2ImImpl<T, 2>(col, padded_out, stride, batch_channel_indexer);
-                break;
-            case 3:
-                Col2ImImpl<T, 3>(col, padded_out, stride, batch_channel_indexer);
-                break;
-            case 4:
-                Col2ImImpl<T, 4>(col, padded_out, stride, batch_channel_indexer);
-                break;
-            default:
-                CHAINERX_NEVER_REACH();  // Never col.ndim() > kMaxNdim
-                break;
-        }
-    });
+    if (!device.is_dry()) {
+        // Write to the output array
+        VisitDtype(col.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            Indexer<2> batch_channel_indexer{Shape{batch_size, channels}};
+
+            static_assert(4 * 2 + 2 == kMaxNdim, "4 is the maximum kernel ndim whose col ndim does not exceed kMaxNdim");
+            switch (ndim) {
+                case 0:
+                    Col2ImImpl<T, 0>(col, padded_out, stride, batch_channel_indexer);
+                    break;
+                case 1:
+                    Col2ImImpl<T, 1>(col, padded_out, stride, batch_channel_indexer);
+                    break;
+                case 2:
+                    Col2ImImpl<T, 2>(col, padded_out, stride, batch_channel_indexer);
+                    break;
+                case 3:
+                    Col2ImImpl<T, 3>(col, padded_out, stride, batch_channel_indexer);
+                    break;
+                case 4:
+                    Col2ImImpl<T, 4>(col, padded_out, stride, batch_channel_indexer);
+                    break;
+                default:
+                    CHAINERX_NEVER_REACH();  // Never col.ndim() > kMaxNdim
+                    break;
+            }
+        });
+    }
 
     std::vector<ArrayIndex> slice{ArrayIndex{Slice{}}, ArrayIndex{Slice{}}};  // All batch and channel dimensions.
     for (int8_t i = 0; i < ndim; ++i) {

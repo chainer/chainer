@@ -20,7 +20,11 @@ CHAINERX_NATIVE_REGISTER_ELTWISE_UNARY_KERNEL(CopyKernel, { out = x; });
 class NativeAsTypeKernel : public AsTypeKernel {
 public:
     void Call(const Array& a, const Array& out) override {
-        a.device().CheckDevicesCompatible(a, out);
+        NativeDevice& device = dynamic_cast<NativeDevice&>(a.device());
+        if (device.is_dry()) {
+            return;
+        }
+        device.CheckDevicesCompatible(a, out);
         auto do_astype = [&](auto in_pt, auto out_pt) {
             using InT = typename decltype(in_pt)::type;
             using OutT = typename decltype(out_pt)::type;
