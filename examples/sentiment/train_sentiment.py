@@ -10,6 +10,7 @@ This is Socher's simple recursive model, not RTNN:
 
 import argparse
 import collections
+import warnings
 
 import numpy as np
 
@@ -139,6 +140,10 @@ def main():
     parser.add_argument('--test', dest='test', action='store_true')
     parser.set_defaults(test=False)
     args = parser.parse_args()
+
+    if chainer.get_dtype() == np.float16:
+        warnings.warn(
+            'This example may cause NaN in FP16 mode.', RuntimeWarning)
 
     n_epoch = args.epoch       # number of epochs
     n_units = args.unit        # number of units per layer
