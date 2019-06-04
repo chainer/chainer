@@ -22,6 +22,18 @@ __device__ inline bool IsInf(cuda::Float16 value) { return value.IsInf(); }
 __device__ inline bool IsInf(double value) { return isinf(value); }
 __device__ inline bool IsInf(float value) { return isinf(value); }
 
+__device__ inline double Arcsinh(double x) { return std::asinh(x); }
+
+__device__ inline float Arcsinh(float x) { return std::asinhf(x); }
+
+__device__ inline cuda::Float16 Arcsinh(cuda::Float16 x) { return cuda::Float16{std::asinhf(static_cast<float>(x))}; }
+
+__device__ inline double Arccosh(double x) { return std::acosh(x); }
+
+__device__ inline float Arccosh(float x) { return std::acoshf(x); }
+
+__device__ inline cuda::Float16 Arccosh(cuda::Float16 x) { return cuda::Float16{std::acoshf(static_cast<float>(x))}; }
+
 #define DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(name, func) \
     template <typename T>                              \
     __device__ inline T name(T x) {                    \
@@ -31,6 +43,8 @@ __device__ inline bool IsInf(float value) { return isinf(value); }
 
 DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Ceil, std::ceil)
 DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Floor, std::floor)
+DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Sinh, std::sinh)
+DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Cosh, std::cosh)
 DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Tanh, std::tanh)
 DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Sin, std::sin)
 DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Cos, std::cos)

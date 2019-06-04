@@ -21,7 +21,7 @@ def check(app, exception):
         name for name in _list_chainer_links()
         if not _is_rst_exists(name)]
 
-    if len(missing_entities) != 0:
+    if missing_entities:
         app.warn('\n'.join([
             'Undocumented entities found.',
             '',

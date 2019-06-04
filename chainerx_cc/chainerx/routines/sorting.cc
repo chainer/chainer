@@ -9,6 +9,7 @@
 #include "chainerx/backprop_mode.h"
 #include "chainerx/dtype.h"
 #include "chainerx/error.h"
+#include "chainerx/kernels/sorting.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/shape.h"
 
@@ -42,7 +43,7 @@ Array ArgMax(const Array& a, const OptionalAxes& axis) {
     Array out = Empty(out_shape, Dtype::kInt64, a.device());
     {
         NoBackpropModeScope scope{};
-        a.device().backend().CallOp<ArgMaxOp>(a, sorted_axis, out);
+        a.device().backend().CallKernel<ArgMaxKernel>(a, sorted_axis, out);
     }
     return out;
 }

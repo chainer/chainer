@@ -84,42 +84,6 @@ public:
     // src_ptr must reside in the host memory.
     virtual std::shared_ptr<void> FromHostMemory(const std::shared_ptr<void>& src_ptr, size_t bytesize) = 0;
 
-    // Calculate the sum of an array.
-    // It will be summed over the specified axes.
-    // `axis` must be normalized so that
-    // - it has only positive values,
-    // - it is sorted, and
-    // - it has no duplicated values.
-    // Otherwise, the behavior is undefined.
-    virtual void Sum(const Array& a, const Axes& axis, const Array& out) = 0;
-
-    // Calculates the maximum along specified axes.
-    // See Sum() for the explanation of arguments.
-    virtual void AMax(const Array& src, const Axes& axis, const Array& out) = 0;
-
-    // Compares x1 and x2 and assign either pos or neg according to the result.
-    //
-    // Formally, it calculates: out = x1 < x2 ? pos : neg
-    virtual void IfLessElseASSA(const Array& x1, Scalar x2, Scalar pos, const Array& neg, const Array& out) = 0;
-
-    // Compares x1 and x2 and assign either pos or neg according to the result.
-    //
-    // Formally, it calculates: out = x1 > x2 ? pos : neg
-    virtual void IfGreaterElseASSA(const Array& x1, Scalar x2, Scalar pos, const Array& neg, const Array& out) = 0;
-    virtual void IfGreaterElseAAAA(const Array& x1, const Array& x2, const Array& pos, const Array& neg, const Array& out) = 0;
-
-    virtual void Tanh(const Array& x, const Array& out) = 0;
-
-    virtual void Exp(const Array& x, const Array& out) = 0;
-    virtual void Log(const Array& x, const Array& out) = 0;
-
-    virtual void Square(const Array& x, const Array& out) = 0;
-
-    virtual void Sqrt(const Array& x, const Array& out) = 0;
-
-    virtual void IsNan(const Array& x, const Array& out) = 0;
-    virtual void IsInf(const Array& x, const Array& out) = 0;
-
     virtual void Synchronize() = 0;
 
     // TODO(sonots): optimize string concat

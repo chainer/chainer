@@ -21,6 +21,8 @@
 #include "chainerx/cuda/memory_pool.h"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
+#include "chainerx/kernels/normalization.h"
+#include "chainerx/kernels/pooling.h"
 #include "chainerx/routines/normalization.h"
 #include "chainerx/routines/pooling.h"
 #include "chainerx/scalar.h"
@@ -147,34 +149,6 @@ public:
     std::shared_ptr<void> TransferDataTo(Device& dst_device, const std::shared_ptr<void>& src_ptr, size_t offset, size_t bytesize) override;
 
     std::shared_ptr<void> FromHostMemory(const std::shared_ptr<void>& src_ptr, size_t bytesize) override;
-
-    // reduction.cu
-
-    void Sum(const Array& a, const Axes& axis, const Array& out) override;
-    void AMax(const Array& a, const Axes& axis, const Array& out) override;
-
-    // activation.cu
-
-    void IfLessElseASSA(const Array& x1, Scalar x2, Scalar pos, const Array& neg, const Array& out) override;
-
-    void IfGreaterElseASSA(const Array& x1, Scalar x2, Scalar pos, const Array& neg, const Array& out) override;
-    void IfGreaterElseAAAA(const Array& x1, const Array& x2, const Array& pos, const Array& neg, const Array& out) override;
-
-    void Tanh(const Array& x, const Array& out) override;
-
-    // exp_log.cu
-
-    void Exp(const Array& x, const Array& out) override;
-    void Log(const Array& x, const Array& out) override;
-
-    // misc.cu
-
-    void Square(const Array& x, const Array& out) override;
-
-    void Sqrt(const Array& x, const Array& out) override;
-
-    void IsNan(const Array& x, const Array& out) override;
-    void IsInf(const Array& x, const Array& out) override;
 
 protected:
     CudaDevice(CudaBackend& backend, int index)

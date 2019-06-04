@@ -72,6 +72,7 @@ class LogReport(extension.Extension):
         )
         if filename is None:
             filename = log_name
+        del log_name  # avoid accidental use
         self._log_name = filename
 
         self._init_summary()

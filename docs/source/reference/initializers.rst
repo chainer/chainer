@@ -16,7 +16,7 @@ A weight initializer can be any of the following objects.
 * A callable that takes an array (:class:`numpy.ndarray` or :class:`cupy.ndarray`)
   and feeds the initial data into it.
 * ``None``, in which case *the default initializer* is used.
-  Unless explicitly specified, it is :class:`~chainer.initializers.LeCunNormal`
+  Unless explicitly documented, it is :class:`~chainer.initializers.LeCunNormal`
   with scale value 1.
 
 If an initializer object has the ``dtype`` attribute, the initializer can assume that the array to feed the data into has that dtype. If the required dtype, depending on the context where the initializer is used, does not match the ``dtype`` attribute, Chainer will report an error.

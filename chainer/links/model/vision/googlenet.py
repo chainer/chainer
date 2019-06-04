@@ -215,7 +215,7 @@ class GoogLeNet(link.Chain):
         inception_4d_cache = None
         target_layers = set(layers)
         for key, funcs in self.functions.items():
-            if len(target_layers) == 0:
+            if not target_layers:
                 break
 
             if key == 'loss1_fc2':

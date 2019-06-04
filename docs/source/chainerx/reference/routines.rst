@@ -67,6 +67,7 @@ Array manipulation routines
    chainerx.concatenate
    chainerx.stack
    chainerx.split
+   chainerx.swapaxes
 
 Indexing routines
 -----------------
@@ -135,11 +136,15 @@ Mathematical functions
    chainerx.arcsin
    chainerx.arccos
    chainerx.arctan
+   chainerx.sinh
+   chainerx.cosh
    chainerx.tanh
-   chainerx.floor
+   chainerx.arcsinh
+   chainerx.arccosh
    chainerx.square
    chainerx.clip
    chainerx.ceil
+   chainerx.floor
 
 Random sampling
 ---------------

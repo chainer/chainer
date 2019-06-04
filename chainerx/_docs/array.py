@@ -271,6 +271,14 @@ Returns the maximum along a given axis.
 See :func:`chainerx.amax` for the full documentation.
 """)
 
+    _docs.set_doc(
+        ndarray.min,
+        """min(axis=None, keepdims=False)
+Returns the minimum along a given axis.
+
+See :func:`chainerx.amin` for the full documentation.
+""")
+
     # TODO(beam2d): Write about backprop_id argument.
     _docs.set_doc(
         ndarray.require_grad,
@@ -326,6 +334,14 @@ Args:
 Removes size-one axes from an array.
 
 See :func:`chainerx.squeeze` for the full documentation.
+""")
+
+    _docs.set_doc(
+        ndarray.swapaxes,
+        """swapaxes(axis1, axis2)
+Interchange two axes of an array..
+
+See :func:`chainerx.swapaxes` for the full documentation.
 """)
 
     _docs.set_doc(

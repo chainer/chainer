@@ -183,6 +183,10 @@ class TestMin(unittest.TestCase):
     def test_forward_gpu(self):
         self.check_forward(cuda.to_gpu(self.x))
 
+    @attr.chainerx
+    def test_forward_chainerx(self):
+        self.check_forward(chainerx.array(self.x))
+
     def check_backward(self, x_data, y_grad):
         gradient_check.check_backward(
             lambda x: functions.min(x, self.axis, self.keepdims),
@@ -195,6 +199,10 @@ class TestMin(unittest.TestCase):
     @attr.gpu
     def test_backward_gpu(self):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
+
+    @attr.chainerx
+    def test_backward_chainerx(self):
+        self.check_backward(chainerx.array(self.x), chainerx.array(self.gy))
 
     def check_double_backward(
             self, x_data, y_grad, x_grad_grad):
@@ -212,6 +220,13 @@ class TestMin(unittest.TestCase):
     def test_double_backward_gpu(self):
         self.check_double_backward(
             cuda.to_gpu(self.x), cuda.to_gpu(self.gy), cuda.to_gpu(self.ggx))
+
+    @attr.chainerx
+    def test_double_backward_chainerx(self):
+        self.check_double_backward(
+            chainerx.array(self.x),
+            chainerx.array(self.gy),
+            chainerx.array(self.ggx))
 
 
 class TestMinInvalid(unittest.TestCase):

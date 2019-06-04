@@ -5,8 +5,9 @@
 #include "chainerx/array.h"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
+#include "chainerx/kernels/logic.h"
 #include "chainerx/native/elementwise.h"
-#include "chainerx/native/op_regist.h"
+#include "chainerx/native/kernel_regist.h"
 #include "chainerx/native/reduce.h"
 #include "chainerx/routines/logic.h"
 
@@ -14,7 +15,7 @@ namespace chainerx {
 namespace native {
 namespace {
 
-class NativeEqualOp : public EqualOp {
+class NativeEqualKernel : public EqualKernel {
 public:
     void Call(const Array& x1, const Array& x2, const Array& out) override {
         Device& device = x1.device();
@@ -32,9 +33,9 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(EqualOp, NativeEqualOp);
+CHAINERX_NATIVE_REGISTER_KERNEL(EqualKernel, NativeEqualKernel);
 
-class NativeNotEqualOp : public NotEqualOp {
+class NativeNotEqualKernel : public NotEqualKernel {
 public:
     void Call(const Array& x1, const Array& x2, const Array& out) override {
         Device& device = x1.device();
@@ -52,9 +53,9 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(NotEqualOp, NativeNotEqualOp);
+CHAINERX_NATIVE_REGISTER_KERNEL(NotEqualKernel, NativeNotEqualKernel);
 
-class NativeGreaterOp : public GreaterOp {
+class NativeGreaterKernel : public GreaterKernel {
 public:
     void Call(const Array& x1, const Array& x2, const Array& out) override {
         Device& device = x1.device();
@@ -72,9 +73,9 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(GreaterOp, NativeGreaterOp);
+CHAINERX_NATIVE_REGISTER_KERNEL(GreaterKernel, NativeGreaterKernel);
 
-class NativeGreaterEqualOp : public GreaterEqualOp {
+class NativeGreaterEqualKernel : public GreaterEqualKernel {
 public:
     void Call(const Array& x1, const Array& x2, const Array& out) override {
         Device& device = x1.device();
@@ -92,9 +93,9 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(GreaterEqualOp, NativeGreaterEqualOp);
+CHAINERX_NATIVE_REGISTER_KERNEL(GreaterEqualKernel, NativeGreaterEqualKernel);
 
-class NativeLogicalNotOp : public LogicalNotOp {
+class NativeLogicalNotKernel : public LogicalNotKernel {
 public:
     void Call(const Array& x, const Array& out) override {
         Device& device = x.device();
@@ -109,9 +110,9 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(LogicalNotOp, NativeLogicalNotOp);
+CHAINERX_NATIVE_REGISTER_KERNEL(LogicalNotKernel, NativeLogicalNotKernel);
 
-class NativeLogicalAndOp : public LogicalAndOp {
+class NativeLogicalAndKernel : public LogicalAndKernel {
 public:
     void Call(const Array& x1, const Array& x2, const Array& out) override {
         Device& device = x1.device();
@@ -129,9 +130,9 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(LogicalAndOp, NativeLogicalAndOp);
+CHAINERX_NATIVE_REGISTER_KERNEL(LogicalAndKernel, NativeLogicalAndKernel);
 
-class NativeLogicalOrOp : public LogicalOrOp {
+class NativeLogicalOrKernel : public LogicalOrKernel {
 public:
     void Call(const Array& x1, const Array& x2, const Array& out) override {
         Device& device = x1.device();
@@ -149,9 +150,9 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(LogicalOrOp, NativeLogicalOrOp);
+CHAINERX_NATIVE_REGISTER_KERNEL(LogicalOrKernel, NativeLogicalOrKernel);
 
-class NativeAllOp : public AllOp {
+class NativeAllKernel : public AllKernel {
 public:
     void Call(const Array& a, const Axes& axis, const Array& out) override {
         CHAINERX_ASSERT(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
@@ -171,9 +172,9 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(AllOp, NativeAllOp);
+CHAINERX_NATIVE_REGISTER_KERNEL(AllKernel, NativeAllKernel);
 
-class NativeAnyOp : public AnyOp {
+class NativeAnyKernel : public AnyKernel {
 public:
     void Call(const Array& a, const Axes& axis, const Array& out) override {
         CHAINERX_ASSERT(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
@@ -194,7 +195,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(AnyOp, NativeAnyOp);
+CHAINERX_NATIVE_REGISTER_KERNEL(AnyKernel, NativeAnyKernel);
 
 }  // namespace
 }  // namespace native
