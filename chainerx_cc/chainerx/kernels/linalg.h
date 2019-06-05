@@ -2,6 +2,7 @@
 
 #include "chainerx/array.h"
 #include "chainerx/kernel.h"
+#include "chainerx/routines/linalg.h"
 
 namespace chainerx {
 
@@ -14,6 +15,13 @@ public:
     static const char* name() { return "Dot"; }
 
     virtual void Call(const Array& a, const Array& b, const Array& out) = 0;
+};
+
+class SVDKernel : public Kernel {
+public:
+    static const char* name() { return "SVD"; }
+
+    virtual std::tuple<Array, Array, Array> Call(const Array& a, bool full_matrices, bool compute_uv) = 0;
 };
 
 }  // namespace chainerx

@@ -98,4 +98,17 @@ Array Dot(const Array& a, const Array& b, nonstd::optional<Dtype> out_dtype) {
     return out_matrix.Reshape(out_shape);
 }
 
+std::tuple<Array, Array, Array> SVD(const Array& a, bool full_matrices, bool compute_uv) {
+    Array u{};
+    Array s{};
+    Array v{};
+
+    {
+        NoBackpropModeScope scope{};
+        std::tie(u, s, v) = a.device().backend().CallKernel<SVDKernel>(a, full_matrices, compute_uv);
+    }
+
+    return std::make_tuple(std::move(u), std::move(s), std::move(v));
+}
+
 }  // namespace chainerx

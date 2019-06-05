@@ -9,4 +9,6 @@ namespace chainerx {
 
 Array Dot(const Array& a, const Array& b, nonstd::optional<Dtype> out_dtype = nonstd::nullopt);
 
+std::tuple<Array, Array, Array> SVD(const Array& a, bool full_matrices, bool compute_uv);
+
 }  // namespace chainerx

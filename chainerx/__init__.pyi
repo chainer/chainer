@@ -852,6 +852,9 @@ def split(
         axis: int=...) -> tp.List[ndarray]: ...
 
 
+def svd(a: ndarray, *args: tp.Any) -> tp.Tuple[ndarray, ...]: ...
+
+
 def square(x: ndarray) -> ndarray: ...
 
 
