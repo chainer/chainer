@@ -253,7 +253,11 @@ public:
             W = W.Transpose({0, 2, 1});  // (G, yCg*k_size, xCg);
 
             // (G, yCg*k_size, N*x_size) = (G, yCg*k_size, xCg) @ (G, xCg, N*x_size);
-            Array col = TensorDot(W, nx, {0}, {1}, out_dtype);
+            std::vector<Array> col_data;
+            for (int64_t i = 0; i < G; ++i) {
+                col_data.push_back(W.At({i}).Dot(nx.At({i})));
+            }
+            Array col = Concatenate(col_data);
 
             Shape col_shape;
             col_shape.push_back(yC);
