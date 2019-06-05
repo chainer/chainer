@@ -123,6 +123,27 @@ Array Log10(const Array& x) {
     return out;
 }
 
+Array Log2(const Array& x) {
+    Dtype dtype = internal::GetMathResultDtype(x.dtype());
+    Array out = Empty(x.shape(), dtype, x.device());
+
+    {
+        NoBackpropModeScope scope{};
+        x.device().backend().CallKernel<Log10Kernel>(x, out);
+    }
+
+    BackwardBuilder bb{"log2", x, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([x_tok = bb.RetainInput(0)](BackwardContext& bctx) {
+            const Array& x = bctx.GetRetainedInput(x_tok);
+            bctx.input_grad() = *bctx.output_grad() / x * (1.0 / std::log(2.0));
+        });
+    }
+    bb.Finalize();
+
+    return out;
+}
+
 Array Log1p(const Array& x) {
     Dtype dtype = internal::GetMathResultDtype(x.dtype());
     Array out = Empty(x.shape(), dtype, x.device());
