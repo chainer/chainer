@@ -3,6 +3,7 @@ import numpy
 
 from chainerx_tests import array_utils
 from chainerx_tests import dtype_utils
+from chainerx_tests import math_utils
 from chainerx_tests import op_utils
 
 
@@ -73,23 +74,38 @@ _in_out_dtypes_math_functions = _in_out_float_dtypes_math_functions + [
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
-class TestLeakyRelu(op_utils.OpTest):
+@chainer.testing.parameterize(*(
+    chainer.testing.product([
+        chainer.testing.from_pytest_parameterize(
+            'shape', [
+                (2, 2),
+                (3, 3, 3),
+                (5, 5, 5),
+                (4, 1, 2, 4)
+            ]),
+        chainer.testing.from_pytest_parameterize(
+            'in_dtypes,out_dtype', math_utils.in_out_dtypes_math_functions)
+    ])
+))
+class TestLeakyRelu(op_utils.ChainerOpTest):
 
+    dodge_nondifferentiable = True
     slope = 0.2
 
-    def setup(self, shape, float_dtype):
-        self.dtype = float_dtype
-        self.shape = shape
+    def setup(self, float_dtype):
+        dtype = float_dtype
 
         if float_dtype == 'float16':
             self.check_forward_options.update({'atol': 1e-4, 'rtol': 1e-3})
-            self.check_backward_options.update({'atol': 1e-2, 'rtol': 5e-2})
+            self.check_backward_options.update({'atol': 5e-2, 'rtol': 5e-2})
             self.check_double_backward_options.update(
                 {'atol': 1e-2, 'rtol': 5e-2})
 
+        self.dtype = dtype
+
     def generate_inputs(self):
-        dtype = self.dtype
         shape = self.shape
+        dtype = self.dtype
         x = array_utils.create_dummy_ndarray(numpy, shape, dtype)
         return x,
 
@@ -98,10 +114,10 @@ class TestLeakyRelu(op_utils.OpTest):
         y = chainerx.leaky_relu(x, self.slope)
         return y,
 
-    def forward_expected(self, inputs):
+    def forward_chainer(self, inputs):
         x, = inputs
-        expected = numpy.where(x >= 0, x, x * self.slope)
-        return expected.astype(self.dtype),
+        y = chainer.functions.leaky_relu(x, self.slope)
+        return y,
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
