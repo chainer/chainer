@@ -863,11 +863,11 @@ class Variable(object):
         d_old = self._data[0]
         if d_old is not None and d is not None:
             old_device = self.device
-            if not old_device.is_compatible_array(d):
+            if not old_device.is_array_compatible(d):
                 new_device = backend.get_device_from_array(d)
                 raise ValueError(
-                    "The specified array is incompatible. Variable is "
-                    "configured against {} but it is on {}.".format(
+                    'Given array is incompatible with the device of the '
+                    'variable. Variable: {}, Array: {}'.format(
                         old_device, new_device))
 
         if self._has_chainerx_array:

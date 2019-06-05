@@ -38,7 +38,7 @@ class CpuDevice(_backend.Device):
     def send_array(self, array):
         return _array_to_cpu(array)
 
-    def is_compatible_array(self, array):
+    def is_array_compatible(self, array):
         return isinstance(array, numpy.ndarray)
 
 

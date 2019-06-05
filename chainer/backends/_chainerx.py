@@ -102,7 +102,7 @@ to the fallback device.
     def use(self):
         chainerx.set_default_device(self.device)
 
-    def is_compatible_array(self, array):
+    def is_array_compatible(self, array):
         return (
             isinstance(array, chainerx.ndarray)
             and self.device == array.device)
