@@ -47,12 +47,13 @@ public:
 
         int m = a.shape()[0];
         int n = a.shape()[1];
-        int lda = std::min(m, n);
+        int mn = std::min(m, n);
 
         Array Q = Empty(Shape({0}), dtype, device);
         Array R = Empty(a.shape(), dtype, device);
         device.backend().CallKernel<CopyKernel>(a, R);  // QR decomposition is done in-place
-        Array tau = Empty(Shape({lda, 1}), dtype, device);
+        R = R.Transpose();
+        Array tau = Empty(Shape({mn}), dtype, device);
 
         auto qr_impl = [&](auto pt, auto geqrf_bufferSize, auto orgqr_bufferSize, auto geqrf, auto orgqr) -> std::tuple<Array, Array> {
             using T = typename decltype(pt)::type;
@@ -65,26 +66,17 @@ public:
             int *devInfo;
             CheckCudaError(cudaMalloc(&devInfo, sizeof(int)));
 
-            int lwork_geqrf = 0;
-            int lwork_orgqr = 0;
-            int lwork = 0;
-
+            int buffersize_geqrf = 0;
             device_internals.cusolver_handle().Call(
                 geqrf_bufferSize,
-                m, n, r_ptr, lda, &lwork_geqrf);
+                m, n, r_ptr, n, &buffersize_geqrf);
 
-            device_internals.cusolver_handle().Call(
-                orgqr_bufferSize,
-                m, n, n, r_ptr, lda, tau_ptr, &lwork_orgqr);
-
-            lwork = (lwork_geqrf > lwork_orgqr) ? lwork_geqrf : lwork_orgqr;
-
-            Array work = Empty(Shape({lwork, 1}), dtype, device);
+            Array work = Empty(Shape({buffersize_geqrf}), dtype, device);
             T* work_ptr = static_cast<T*>(internal::GetRawOffsetData(work));
 
             device_internals.cusolver_handle().Call(
                 geqrf,
-                m, n, r_ptr, lda, tau_ptr, work_ptr, lwork, devInfo);
+                m, n, r_ptr, m, tau_ptr, work_ptr, buffersize_geqrf, devInfo);
 
             int devInfo_h = 0;
             CheckCudaError(cudaMemcpy(&devInfo_h, devInfo, sizeof(int), cudaMemcpyDeviceToHost));
@@ -93,40 +85,45 @@ public:
             }
 
             if (mode == QRMode::r) {
-                // R = R[range(0, lda), :]
-                // R = triu(R)
+                R = R.At(std::vector<ArrayIndex>{Slice{}, Slice{0, mn}}).Transpose();  // R = R[:, range(0, mn)].T
+                // R = triu(R);
                 return std::make_tuple(std::move(Q), std::move(R));
             }
 
             if (mode == QRMode::raw) {
-                R = R.Transpose();
                 return std::make_tuple(std::move(R), std::move(tau));
             }
 
-            // int mc;
-
+            int mc;
             if (mode == QRMode::complete && m > n) {
-                // mc = m;
+                mc = m;
                 Q = Empty(Shape({m, m}), dtype, device);
             } else {
-                // mc = lda;
-                Q = Empty(Shape({m, n}), dtype, device);
+                mc = mn;
+                Q = Empty(Shape({n, m}), dtype, device);
             }
 
-            // Q[:, range(0, n)] = R
+            Q.At(std::vector<ArrayIndex>{Slice{0, n}, Slice{}}) = R;  // Q[range(0, n), :] = R
+
+            int buffersize_orgqr = 0;
+            device_internals.cusolver_handle().Call(
+                orgqr_bufferSize,
+                m, mc, mn, q_ptr, m, tau_ptr, &buffersize_orgqr);
+
+            work = Empty(Shape({buffersize_orgqr}), dtype, device);
 
             device_internals.cusolver_handle().Call(
                 orgqr,
-                m, n, n, q_ptr, lda, tau_ptr, work_ptr, lwork, devInfo);
+                m, mc, mn, q_ptr, m, tau_ptr, work_ptr, buffersize_orgqr, devInfo);
 
             CheckCudaError(cudaMemcpy(&devInfo_h, devInfo, sizeof(int), cudaMemcpyDeviceToHost));
             if (devInfo_h != 0) {
                 throw ChainerxError{"Unsuccessfull orgqr (QR) execution. Info = ", devInfo_h};
             }
 
-            // Q = Q[:, range(0, mc)]
-            // R = R[range(0, mc), :]
-            // R = triu(R)
+            Q = Q.At(std::vector<ArrayIndex>{Slice{0, mc}, Slice{}}).Transpose();  // Q = Q[range(0, mc), :].T
+            R = R.At(std::vector<ArrayIndex>{Slice{}, Slice{0, mc}}).Transpose();  // R = R[:, range(0, mc)].T
+            // R = triu(R);
             return std::make_tuple(std::move(Q), std::move(R));
         };
 
