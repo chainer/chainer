@@ -246,6 +246,11 @@ def bilinear(e1, e2, W, V1=None, V2=None, b=None):
         <https://papers.nips.cc/paper/5028-reasoning-with-neural-tensor-
         networks-for-knowledge-base-completion>`_ [Socher+, NIPS2013].
 
+    .. seealso::
+
+        :class:`~chainer.links.Bilinear` to manage the model parameters
+        ``W``, ``V1``, ``V2``, and ``b``.
+
     """
     flags = [V1 is None, V2 is None, b is None]
     if any(flags):
