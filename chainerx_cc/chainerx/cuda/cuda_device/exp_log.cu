@@ -19,6 +19,8 @@ namespace chainerx {
 namespace cuda {
 namespace {
 
+CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(ErfKernel, { out = cuda::Erf(x); });
+
 CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(ExpKernel, { out = cuda::Exp(x); });
 
 CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(Expm1Kernel, { out = cuda::Expm1(x); });

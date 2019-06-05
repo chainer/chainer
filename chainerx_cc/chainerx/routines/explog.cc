@@ -14,9 +14,33 @@
 #include "chainerx/graph.h"
 #include "chainerx/kernels/explog.h"
 #include "chainerx/routines/creation.h"
+#include "chainerx/routines/math.h"
+#include "chainerx/routines/misc.h"
 #include "chainerx/routines/type_util.h"
 
 namespace chainerx {
+
+Array Erf(const Array& x) {
+    const float pi = std::acos(-1);
+    Dtype dtype = internal::GetMathResultDtype(x.dtype());
+    Array out = Empty(x.shape(), dtype, x.device());
+
+    {
+        NoBackpropModeScope scope{};
+        x.device().backend().CallKernel<ErfKernel>(x, out);
+    }
+
+    BackwardBuilder bb{"erf", x, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([x_tok = bb.RetainInput(0), pi](BackwardContext& bctx) {
+            const Array& x = bctx.GetRetainedInput(x_tok);
+            bctx.input_grad() = *bctx.output_grad() * 2 / std::pow(pi, 0.5) * Exp(-Square(x));
+        });
+    }
+    bb.Finalize();
+
+    return out;
+}
 
 Array Exp(const Array& x) {
     Dtype dtype = internal::GetMathResultDtype(x.dtype());

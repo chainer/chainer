@@ -7,6 +7,13 @@
 
 namespace chainerx {
 
+class ErfKernel : public Kernel {
+public:
+    static const char* name() { return "Erf"; }
+
+    virtual void Call(const Array& x, const Array& out) = 0;
+};
+
 class ExpKernel : public Kernel {
 public:
     static const char* name() { return "Exp"; }
