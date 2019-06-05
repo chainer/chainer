@@ -243,8 +243,7 @@ public:
             std::vector<int64_t> k_size(w.shape().begin() + 2, w.shape().end());
             int64_t const dims = k_size.size();
             if (xC % G != 0) {
-                // raise TypeError('The number of groups must be '
-                //                 'a divisor of that of input channels')
+                throw ChainerxError("The number of groups must be a divisor of that of input channels");
             }
 
             Array nx = RollAxis(x, 1);  // (xC, N, x_size...);
