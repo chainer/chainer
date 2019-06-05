@@ -54,18 +54,13 @@ public:
         StackVector<int64_t, kMaxNdim> kernel_size;
         std::copy_n(w.shape().begin() + 2, ndim, std::back_inserter(kernel_size));
 
-        // Convert to colum representation of shape (batch_size, channel, k_1, k_2, ..., k_n, out_1, out_2, ..., out_n).
-        Array col = native_internal::Im2Col(x, kernel_size, stride, pad, cover_all, 0);
-
         if (groups > 1) {
             // Run grouped convolution.
             int64_t const G = groups;
-            int64_t const N = col.shape()[0], iC = col.shape()[1];
+            int64_t const N = x.shape()[0], iC = x.shape()[1];
             int64_t const oC = w.shape()[0];
             int64_t const iCg = iC / G;
             int64_t const oCg = oC / G;
-            std::vector<int64_t> const o_size(x.shape().end() - ndim, x.shape().end());
-
             if (iC % G != 0) {
                 throw ChainerxError("The number of groups(", G, ") must be a divisor of that of input channels(", iC, ")");
             }
@@ -73,18 +68,24 @@ public:
                 throw ChainerxError("The number of groups(", G, ") must be a divisor of that of output channels(", oC, ")");
             }
 
-            Array nx = RollAxis(col, 0, ndim + 2);
+            // Convert to colum representation of shape (batch_size, channel, k_1, k_2, ..., k_n, out_1, out_2, ..., out_n).
+            Array nx = native_internal::Im2Col(x, kernel_size, stride, pad, cover_all, 0);
+            StackVector<int64_t, kMaxNdim> const o_size(nx.shape().end() - ndim, nx.shape().end());
+
+            nx = RollAxis(nx, 0, ndim + 2);
             int64_t const mul_len = iCg * std::accumulate(kernel_size.begin(), kernel_size.end(), 1, std::multiplies<int64_t>());
             nx = nx.Reshape({G, mul_len, N * std::accumulate(o_size.begin(), o_size.end(), 1, std::multiplies<int64_t>())});
             Array W = w.Reshape({G, oCg, mul_len});
 
             // (G, oCg, N*o_size) = (G, oCg, iCg*k_size) @ (G, iCg*k_size, N*o_size)
-            Axes axes;
-            axes.resize(ndim + 1);
-            std::iota(axes.begin(), axes.end(), 1);
-            Array y = TensorDot(W, nx, axes, axes, nx.dtype());
-            Shape new_shape({oC, N});
-            new_shape.insert(new_shape.begin(), o_size.begin(), o_size.end());
+            std::vector<Array> y_data;
+            for (int64_t i = 0; i < G; ++i) {
+                y_data.push_back(W.At({i}).Dot(nx.At({i})));
+            }
+            Array y = Concatenate(y_data);
+            // Array y = TensorDot(W, nx, {2}, {1}, nx.dtype());
+            Shape new_shape{oC, N};
+            new_shape.insert(new_shape.end(), o_size.begin(), o_size.end());
             y = y.Reshape(new_shape);
             y = RollAxis(y, 1);
 
@@ -100,6 +101,9 @@ public:
 
             return y;
         } else {
+            // Convert to colum representation of shape (batch_size, channel, k_1, k_2, ..., k_n, out_1, out_2, ..., out_n).
+            Array col = native_internal::Im2Col(x, kernel_size, stride, pad, cover_all, 0);
+
             // Compute the tensor dot product of col and w, reducing (channel, k_1, k_2, ..., k_n).
             Axes axes;
             axes.resize(ndim + 1);
@@ -152,30 +156,27 @@ public:
         // Compute the kernel size
         StackVector<int64_t, kMaxNdim> kernel_size{w_shape.begin() + 2, w_shape.end()};
 
-        // Im2Col
-        Array col = native_internal::Im2Col(x, kernel_size, stride, pad, cover_all, 0);
-
         if (groups > 1) {
             int64_t G = groups;
             int64_t N = x.shape()[0], iC = x.shape()[1];
             int64_t oC = gy.shape()[1];
-            Shape o_size(gy.shape().begin() + 2, gy.shape().end());
+            Shape const o_size(gy.shape().begin() + 2, gy.shape().end());
             int64_t o_size_prod = std::accumulate(o_size.begin(), o_size.end(), 1, std::multiplies<int64_t>());
             int64_t iCg = iC / G;
             int64_t oCg = oC / G;
 
-            // Do not check iCg and oCg because this class is rarely used alone
-
+            // Im2Col
             // (N, iC, k_size..., o_size...)
-            chainerx::Array nx = native_internal::Im2Col(x, kernel_size, stride, pad, cover_all);
+            Array nx = native_internal::Im2Col(x, kernel_size, stride, pad, cover_all, 0);
+
+            // Do not check iCg and oCg because this class is rarely used alone
 
             nx = RollAxis(nx, 0, ndim + 2);  // (iC, k_size..., N, o_size...)
             int64_t mul_len = iCg * std::accumulate(kernel_size.begin(), kernel_size.end(), 1, std::multiplies<int64_t>());
             nx = nx.Reshape({G, mul_len, N * o_size_prod});
             nx = nx.Transpose({0, 2, 1});  // (G, N*o_size, iCg*k_size)
 
-            chainerx::Array ngy = gy;
-            ngy = RollAxis(ngy, 1);  // (oC, N, o_size...)
+            chainerx::Array ngy = RollAxis(ngy, 1);  // (oC, N, o_size...)
             ngy = ngy.Reshape({G, oCg, N * o_size_prod});
 
             // (G, oCg, iCg*k_size) = (G, oCg, N*o_size) @ (G, N*o_size, iCg*k_size)
@@ -194,6 +195,9 @@ public:
 
             return gW;
         } else {
+            // Im2Col
+            Array col = native_internal::Im2Col(x, kernel_size, stride, pad, cover_all, 0);
+
             // TensorDot
             Axes out_axes{0};
             Axes col_axes{0};
