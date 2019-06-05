@@ -26,11 +26,7 @@ namespace native_internal {
 namespace {
 
 template <typename T, int8_t kKernelNdim>
-void Col2ImImpl(
-        const Array& col,
-        const Array& out,
-        const StackVector<int64_t, kMaxNdim>& stride,
-        const Indexer<2>& batch_channel_indexer) {
+void Col2ImImpl(const Array& col, const Array& out, const StackVector<int64_t, kMaxNdim>& stride, const Indexer<2>& batch_channel_indexer) {
     static constexpr int8_t kColNdim = 2 + 2 * kKernelNdim;
     static constexpr int8_t kOutNdim = 2 + kKernelNdim;
 
