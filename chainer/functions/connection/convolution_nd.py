@@ -49,6 +49,9 @@ class ConvolutionND(function_node.FunctionNode):
             )
 
     def forward_chainerx(self, inputs):
+        # TODO(hvy): Support dilate > 1.
+        if any(d != 1 for d in self.dilate):
+            return chainer.Fallback
         # TODO(hvy): Support mixed precision.
         if any([arr.dtype != inputs[0].dtype for arr in inputs[1:]]):
             return chainer.Fallback
@@ -58,8 +61,7 @@ class ConvolutionND(function_node.FunctionNode):
 
         return chainerx.conv(
             *inputs, stride=self.stride, pad=self.pad,
-            dilate=self.dilate, groups=self.groups,
-            cover_all=self.cover_all),
+            groups=self.groups, cover_all=self.cover_all),
 
     def _use_cudnn(self, x, W):
         if cuda._cudnn_version < 6000 and any(d != 1 for d in self.dilate):

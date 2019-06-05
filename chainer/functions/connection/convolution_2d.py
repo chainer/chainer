@@ -93,13 +93,15 @@ class Convolution2DFunction(function_node.FunctionNode):
         # TODO(hvy): Support mixed precision.
         if any([arr.dtype != inputs[0].dtype for arr in inputs[1:]]):
             return chainer.Fallback
+        # TODO(hvy): Support dilate > 1.
+        if self.dy > 1 or self.dx > 1:
+            return chainer.Fallback
         if inputs[0].device.backend.name == 'cuda' and self.cover_all:
             return chainer.Fallback
 
         return chainerx.conv(
             *inputs, stride=(self.sy, self.sx), pad=(self.ph, self.pw),
-            dilate=(self.dy, self.dx), groups=self.groups,
-            cover_all=self.cover_all),
+            groups=self.groups, cover_all=self.cover_all),
 
     def forward_cpu(self, inputs):
         self.retain_inputs((0, 1))  # retain only x and W

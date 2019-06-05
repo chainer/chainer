@@ -16,7 +16,6 @@ Array Im2Col(
         const StackVector<int64_t, kMaxNdim>& kernel_size,
         const StackVector<int64_t, kMaxNdim>& stride,
         const StackVector<int64_t, kMaxNdim>& pad,
-        const StackVector<int64_t, kMaxNdim>& dilate,
         bool cover_all,
         Scalar pad_value = 0);
 

@@ -94,7 +94,7 @@ public:
             Dtype dtype,
             const StackVector<int64_t, kMaxNdim>& pad,
             const StackVector<int64_t, kMaxNdim>& stride,
-            const nonstd::optional<StackVector<int64_t, kMaxNdim>>& dilate,
+            const nonstd::optional<StackVector<int64_t, kMaxNdim>>& dilation,
             int groups);
 
     ~CudnnConvolutionDescriptor();

@@ -69,8 +69,8 @@ StackVector<int, kMaxNdim> GetIntStride(const StackVector<int64_t, kMaxNdim>& st
 
 StackVector<int, kMaxNdim> GetIntPad(const StackVector<int64_t, kMaxNdim>& pad) { return GetIntStackVector(pad, "pad"); }
 
-StackVector<int, kMaxNdim> GetIntDilate(const StackVector<int64_t, kMaxNdim>& dilate) {
-    return GetIntStackVector(dilate, "dilate");
+StackVector<int, kMaxNdim> GetIntDilation(const StackVector<int64_t, kMaxNdim>& dilation) {
+    return GetIntStackVector(dilation, "dilation");
 }
 
 // Returns strides divided by item size
@@ -161,23 +161,23 @@ CudnnConvolutionDescriptor::CudnnConvolutionDescriptor(
         Dtype dtype,
         const StackVector<int64_t, kMaxNdim>& pad,
         const StackVector<int64_t, kMaxNdim>& stride,
-        const nonstd::optional<StackVector<int64_t, kMaxNdim>>& dilate,
+        const nonstd::optional<StackVector<int64_t, kMaxNdim>>& dilation,
         int groups)
     : CudnnConvolutionDescriptor{} {
     size_t ndim = pad.size();
     CHAINERX_ASSERT(ndim == stride.size());
-    CHAINERX_ASSERT(!dilate || ndim == dilate->size());
+    CHAINERX_ASSERT(!dilation || ndim == dilation->size());
 
     StackVector<int, kMaxNdim> int_stride = GetIntStride(stride);
     StackVector<int, kMaxNdim> int_pad = GetIntPad(pad);
-    StackVector<int, kMaxNdim> int_dilate{};
-    if (!dilate) {
+    StackVector<int, kMaxNdim> int_dilation{};
+    if (!dilation) {
         // TODO(sonots): Use assign(ndim, 1) if it becomes available
         for (size_t i = 0; i < ndim; ++i) {
-            int_dilate.emplace_back(1);
+            int_dilation.emplace_back(1);
         }
     } else {
-        int_dilate = GetIntDilate(*dilate);
+        int_dilation = GetIntDilation(*dilation);
     }
 
     cudnnDataType_t compute_type = GetCudnnDataType(dtype);
@@ -189,13 +189,13 @@ CudnnConvolutionDescriptor::CudnnConvolutionDescriptor(
                 int_pad[1],
                 int_stride[0],
                 int_stride[1],
-                int_dilate[0],
-                int_dilate[1],
+                int_dilation[0],
+                int_dilation[1],
                 CUDNN_CROSS_CORRELATION,
                 compute_type));
     } else {
         CheckCudnnError(cudnnSetConvolutionNdDescriptor(
-                desc_, ndim, &int_pad[0], &int_stride[0], &int_dilate[0], CUDNN_CROSS_CORRELATION, compute_type));
+                desc_, ndim, &int_pad[0], &int_stride[0], &int_dilation[0], CUDNN_CROSS_CORRELATION, compute_type));
     }
     if (groups > 1) {
         CheckCudnnError(cudnnSetConvolutionGroupCount(desc_, groups));
