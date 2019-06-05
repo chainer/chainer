@@ -36,6 +36,7 @@ void Col2ImImpl(
     static constexpr int8_t kOutNdim = 2 + kKernelNdim;
 
     CHAINERX_ASSERT(kKernelNdim == static_cast<int8_t>(stride.size()));
+    CHAINERX_ASSERT(kKernelNdim == static_cast<int8_t>(dilate.size()));
     CHAINERX_ASSERT(kColNdim == col.ndim());
     CHAINERX_ASSERT(kOutNdim == out.ndim());
 
