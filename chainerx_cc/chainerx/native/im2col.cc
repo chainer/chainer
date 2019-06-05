@@ -92,6 +92,7 @@ Array Im2Col(
     auto ndim = static_cast<int8_t>(kernel_size.size());  // Number of input image dimensions.
     CHAINERX_ASSERT(ndim == static_cast<int8_t>(stride.size()));
     CHAINERX_ASSERT(ndim == static_cast<int8_t>(pad.size()));
+    CHAINERX_ASSERT(ndim == static_cast<int8_t>(dilate.size()));
     CHAINERX_ASSERT(ndim + 2 == x.ndim());  // Batch and channel dimensions.
 
     Device& device = x.device();
