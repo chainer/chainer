@@ -49,11 +49,11 @@ class ConvolutionND(function_node.FunctionNode):
             )
 
     def forward_chainerx(self, inputs):
-        # TODO(hvy): Support dilate > 1.
-        if any(d != 1 for d in self.dilate):
-            return chainer.Fallback
         # TODO(hvy): Support mixed precision.
         if any([arr.dtype != inputs[0].dtype for arr in inputs[1:]]):
+            return chainer.Fallback
+        # TODO(hvy): Support dilate > 1.
+        if any(d != 1 for d in self.dilate):
             return chainer.Fallback
         if inputs[0].device.backend.name == 'cuda' and (
                 self.cover_all or self.ndim < 2):
