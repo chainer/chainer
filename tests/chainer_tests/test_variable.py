@@ -2742,26 +2742,55 @@ class TestVariableDoubleBackwardOneElementScalar(unittest.TestCase):
             chainer.grad([x.grad_var], [y.grad_var])
 
 
+@testing.backend.inject_backend_tests(None, _backend_params)
 class TestAsVariable(unittest.TestCase):
 
-    def check_to_variable_from_array(self, x):
+    def test_to_variable_from_array(self, backend_config):
+        x = backend_config.get_array(np.random.randn(1).astype(np.float32))
         y = chainer.as_variable(x)
         assert isinstance(y, chainer.Variable)
-        assert y.data is x
-        assert not y.requires_grad
+        assert y.requires_grad is False
 
-    def test_to_variable_from_numpy(self):
-        self.check_to_variable_from_array(np.empty(1, np.float32))
+        if backend_config.xp is chainerx:
+            # chainerx
+            assert y.array.shape == x.shape
+            assert y.array.device == x.device
+            assert y.array.strides == x.strides
+            assert not y.array.is_backprop_required()
+            chainerx.testing.assert_array_equal(y.array, x)
+        else:
+            # non-chainerx
+            assert y.array is x
 
-    @attr.gpu
-    def test_to_variable_from_cupy(self):
-        self.check_to_variable_from_array(cuda.cupy.empty(1, np.float32))
-
-    def test_to_variable_from_variable(self):
-        x = chainer.Variable(np.array(1, np.float32))
+    def check_to_variable_from_variable(self, backend_config, requires_grad):
+        x_arr = backend_config.get_array(np.random.randn(1).astype(np.float32))
+        x = chainer.Variable(x_arr, requires_grad=requires_grad)
         y = chainer.as_variable(x)
-        assert x is y
-        assert y.requires_grad
+        assert y is x
+        assert y.requires_grad is requires_grad
+
+    def test_to_variable_from_variable(self, backend_config):
+        self.check_to_variable_from_variable(backend_config, True)
+        self.check_to_variable_from_variable(backend_config, False)
+
+
+@testing.backend.inject_backend_tests(None, _backend_params)
+class TestAsArray(unittest.TestCase):
+
+    def test_to_array_from_array(self, backend_config):
+        x = backend_config.get_array(np.random.randn(1).astype(np.float32))
+        y = chainer.as_array(x)
+        assert y is x
+
+    def check_to_array_from_variable(self, backend_config, requires_grad):
+        x_arr = backend_config.get_array(np.random.randn(1).astype(np.float32))
+        x = chainer.Variable(x_arr, requires_grad=requires_grad)
+        y = chainer.as_array(x)
+        assert y is x.array
+
+    def test_to_array_from_variable(self, backend_config):
+        self.check_to_array_from_variable(backend_config, True)
+        self.check_to_array_from_variable(backend_config, False)
 
 
 @testing.parameterize(*testing.product({

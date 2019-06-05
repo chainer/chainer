@@ -139,6 +139,24 @@ result_comparable_dtypes_array_scalar = [
 ] + result_numeric_dtypes_array_scalar
 
 
+result_dtypes_array_scalar = [
+    # Bool scalar.
+    (('bool_',), bool, 'bool_'),
+    (('int8',), bool, 'int8'),
+    (('int16',), bool, 'int16'),
+    (('int32',), bool, 'int32'),
+    (('int64',), bool, 'int64'),
+    (('uint8',), bool, 'uint8'),
+    (('float16',), bool, 'float16'),
+    (('float32',), bool, 'float32'),
+    (('float64',), bool, 'float64'),
+    (('bool_',), numpy.bool_, 'bool_'),
+    (('int16',), numpy.bool_, 'int16'),
+    (('uint8',), numpy.bool_, 'uint8'),
+    (('float32',), numpy.bool_, 'float32'),
+] + result_numeric_dtypes_array_scalar
+
+
 def cast_if_numpy_array(xp, array, chx_expected_dtype):
     """Casts NumPy result array to match the dtype of ChainerX's corresponding
     result.

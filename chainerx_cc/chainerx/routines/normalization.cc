@@ -21,6 +21,7 @@
 #include "chainerx/macro.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/math.h"
+#include "chainerx/routines/misc.h"
 #include "chainerx/routines/routines_util.h"
 #include "chainerx/routines/statistics.h"
 #include "chainerx/routines/type_util.h"

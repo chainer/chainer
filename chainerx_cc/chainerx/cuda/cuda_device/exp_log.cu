@@ -13,7 +13,7 @@
 #include "chainerx/cuda/numeric.cuh"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
-#include "chainerx/kernels/math.h"
+#include "chainerx/kernels/explog.h"
 
 namespace chainerx {
 namespace cuda {
