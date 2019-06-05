@@ -4,7 +4,7 @@
 # https://github.com/chainer/xpytest/blob/master/proto/test_case.proto
 
 # Slow tests take 60+ seconds.
-rules { name: "chainer_tests\\functions_tests\\loss_tests\\test_softmax_cross_entropy.py" deadline: 360 }
+rules { name: "chainer_tests\\functions_tests\\loss_tests\\test_softmax_cross_entropy.py" deadline: 480 }
 rules { name: "chainer_tests\\functions_tests\\array_tests\\test_cast.py" deadline: 240 }
 rules { name: "chainer_tests\\functions_tests\\math_tests\\test_sparse_matmul.py" deadline: 240 }
 rules { name: "chainer_tests\\optimizers_tests\\test_optimizers_by_linear_model.py" deadline: 240 }

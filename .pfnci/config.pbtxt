@@ -93,3 +93,38 @@ configs {
     command: "bash .pfnci/script.sh py27and35"
   }
 }
+# Chainer unit tests with python3.7 on Windows.  This contains the following
+# tests:
+# - chainer_tests with python3.7 (not slow)
+configs {
+  key: "chainer.win.gpu"
+  value {
+    requirement {
+      cpu: 8
+      memory: 32
+      gpu: 1
+      image: "windows"
+    }
+    time_limit {
+      seconds: 6000
+    }
+    command:
+        ".pfnci\\run_test.bat 10_0 37 1"
+  }
+}
+configs {
+  key: "chainer.win.cpu"
+  value {
+    requirement {
+      cpu: 8
+      memory: 32
+      gpu: 1
+      image: "windows"
+    }
+    time_limit {
+      seconds: 6000
+    }
+    command:
+        ".pfnci\\run_test.bat 10_0 37 0"
+  }
+}

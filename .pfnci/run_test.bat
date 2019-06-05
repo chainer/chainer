@@ -2,6 +2,7 @@
 
 set CUDA_VER=%1
 set PY_VER=%2
+set GPU_LIMIT=%3
 set CUDA_PATH=CUDA_PATH_V%CUDA_VER%
 set PY_PATH=C:\Development\Python\Python%PY_VER%
 set PATH=%CUDA_PATH%\bin;%CUDA_PATH%\libnvvp;%PY_PATH%;%PY_PATH%\Scripts\%PATH%
@@ -32,5 +33,5 @@ cd %TEST_HOME%
 pip install -e .[test] -vvv
 pip install scipy
 
-set CHAINER_TEST_GPU_LIMIT=1
-xpytest --python python -m "not slow and not ideep" --thread 8 --hint .chainerci/hint.pbtxt tests/chainer_tests/**/test_*.py
+set CHAINER_TEST_GPU_LIMIT=%GPU_LIMIT%
+xpytest --python python -m "not slow and not ideep" --thread 8 --hint .pfnci/hint_win.pbtxt tests/chainer_tests/**/test_*.py
