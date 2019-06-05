@@ -59,7 +59,6 @@ public:
             using T = typename decltype(pt)::type;
             cuda_internal::DeviceInternals& device_internals = cuda_internal::GetDeviceInternals(static_cast<CudaDevice&>(device));
 
-            T* q_ptr = static_cast<T*>(internal::GetRawOffsetData(Q));
             T* r_ptr = static_cast<T*>(internal::GetRawOffsetData(R));
             T* tau_ptr = static_cast<T*>(internal::GetRawOffsetData(tau));
 
@@ -104,6 +103,7 @@ public:
             }
 
             Q.At(std::vector<ArrayIndex>{Slice{0, n}, Slice{}}) = R;  // Q[range(0, n), :] = R
+            T* q_ptr = static_cast<T*>(internal::GetRawOffsetData(Q));
 
             int buffersize_orgqr = 0;
             device_internals.cusolver_handle().Call(
