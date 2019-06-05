@@ -58,6 +58,14 @@ Axes GetSwapSpatialDimensionsAxes(size_t n) {
     return axes;
 }
 
+StackVector<int64_t, kMaxNdim> GetDilate(size_t ndim) {
+    StackVector<int64_t, kMaxNdim> ret;
+    for (size_t i = 0; i < ndim; ++i) {
+        ret.push_back(1);
+    }
+    return ret;
+}
+
 class NativeMaxPoolKernel : public MaxPoolKernel {
 public:
     std::tuple<Array, std::unique_ptr<MaxPoolGradState>> Call(
@@ -76,7 +84,7 @@ public:
         }
 
         // Convert to column representation of shape (batch_size, channel, k_1, k_2, ..., k_n, out_1, out_2, ..., out_n).
-        Array col = native_internal::Im2Col(x, kernel_size, stride, pad, {1, 1}, cover_all, GetLowestOrInf(x.dtype()));
+        Array col = native_internal::Im2Col(x, kernel_size, stride, pad, GetDilate(pad.size()), cover_all, GetLowestOrInf(x.dtype()));
         Axes axes{};
         axes.resize(kernel_size.size());
         std::iota(axes.begin(), axes.end(), 2);
@@ -137,7 +145,7 @@ public:
                 gcol.Reshape(out_shape_with_kernel).Transpose(GetSwapSpatialDimensionsAxes(kernel_size.size())),
                 stride,
                 pad,
-                {1, 1},
+                GetDilate(pad.size()),
                 {x.shape().begin() + 2, x.shape().end()});
 
         std::unique_ptr<MaxPoolGradGradState> grad_grad_state =
@@ -173,7 +181,7 @@ public:
         const Array& offset = native_state.offset();
         Dtype x_dtype = native_state.x_dtype();
 
-        Array col = native_internal::Im2Col(ggx, kernel_size, stride, pad, {1, 1}, cover_all, GetLowestOrInf(x_dtype));
+        Array col = native_internal::Im2Col(ggx, kernel_size, stride, pad, GetDilate(pad.size()), cover_all, GetLowestOrInf(x_dtype));
         return Take(
                 col.Transpose(GetSwapSpatialDimensionsAxes(kernel_size.size())).Reshape({col.GetTotalSize()}),
                 indices + offset.Reshape(indices.shape()),
@@ -267,7 +275,7 @@ public:
             throw NotImplementedError{"Passing out as an argument is not yet supported."};
         }
 
-        Array col = native_internal::Im2Col(x, kernel_size, stride, pad, {1, 1}, false, 0);
+        Array col = native_internal::Im2Col(x, kernel_size, stride, pad, GetDilate(pad.size()), false, 0);
 
         // Average along the kernel dimensions of col with shape (batch_size, channel, k_1, k_2, ..., k_n, out_1, out_2, ..., out_n).
         Axes kernel_axes{};
@@ -333,7 +341,7 @@ public:
         switch (pad_mode) {
             case AveragePoolPadMode::kZero: {
                 Array gcol = gout.Reshape(reshape_to).BroadcastTo(gcol_shape);
-                actual_gx = native_internal::Col2Im(gcol, stride, pad, {1, 1}, {x.shape().begin() + 2, x.shape().end()});
+                actual_gx = native_internal::Col2Im(gcol, stride, pad, GetDilate(pad.size()), {x.shape().begin() + 2, x.shape().end()});
                 int64_t width_zero = std::accumulate(kernel_size.begin(), kernel_size.end(), int64_t{1}, std::multiplies<>());
                 actual_gx /= width_zero;
                 break;
@@ -341,7 +349,7 @@ public:
             case AveragePoolPadMode::kIgnore: {
                 const Array& width_ignore = native_state.width_ignore().value();
                 Array gcol = (gout / width_ignore).Reshape(reshape_to).BroadcastTo(gcol_shape);
-                actual_gx = native_internal::Col2Im(gcol, stride, pad, {1, 1}, {x.shape().begin() + 2, x.shape().end()});
+                actual_gx = native_internal::Col2Im(gcol, stride, pad, GetDilate(pad.size()), {x.shape().begin() + 2, x.shape().end()});
                 break;
             }
             default:
