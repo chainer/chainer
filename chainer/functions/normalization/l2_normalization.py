@@ -75,13 +75,11 @@ class NormalizeL2(function_node.FunctionNode):
         return gx,
 
 
-def normalize(x, eps=1e-5, axis=None):
+def normalize(x, eps=1e-5, axis=1):
     """Normalize input by L2 norm.
 
     This function implements L2 normalization on a sample along the given
     axis/axes. No reduction is done along the normalization axis.
-    For an :math:`N` dimensional input, the input is reshaped into
-    2 dimension before normalization if `axis` is `None`.
 
     In the case when :obj:`axis=1` and :math:`\\mathbf{x}` is a matrix of
     dimension :math:`(N, K)`, where :math:`N` and :math:`K` denote mini-batch
@@ -110,6 +108,4 @@ def normalize(x, eps=1e-5, axis=None):
         as :math:`x`.
 
     """
-    if axis is None:
-        axis = tuple(range(1, x.ndim))
     return NormalizeL2(eps, axis).apply((x,))[0]
