@@ -17,6 +17,7 @@
 #include "chainerx/routines/arithmetic.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/explog.h"
+#include "chainerx/routines/indexing.h"
 #include "chainerx/routines/misc.h"
 #include "chainerx/routines/type_util.h"
 #include "chainerx/scalar.h"
@@ -37,8 +38,7 @@ Array Relu(const Array& x) {
 
 Array LeakyRelu(const Array& x, Scalar slope) {
     Array zero = ZerosLike(x, x.device());
-    return IfGreaterElse(x, zero, x, slope * x);
-
+    return Where(x > zero, x, slope * x);
 }
 
 }  // namespace chainerx
