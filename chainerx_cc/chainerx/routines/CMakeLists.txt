@@ -13,6 +13,7 @@ add_library(chainerx_routines STATIC
     normalization.cc
     pooling.cc
     reduction.cc
+    rounding.cc
     sorting.cc
     statistics.cc
     trigonometric.cc
@@ -34,6 +35,7 @@ install(FILES
     normalization.h
     pooling.h
     reduction.h
+    rounding.h
     routines_util.h
     sorting.h
     statistics.h

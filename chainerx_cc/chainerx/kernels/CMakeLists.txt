@@ -11,6 +11,7 @@ install(FILES
     misc.h
     normalization.h
     pooling.h
+    rounding.h
     sorting.h
     statistics.h
     trigonometric.h

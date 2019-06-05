@@ -25,10 +25,6 @@ CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(FabsKernel, { out = chainerx
 
 CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_UNARY_KERNEL(SignKernel, { out = chainerx::Sign(x); }, VisitNumericDtype);
 
-CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(CeilKernel, { out = chainerx::Ceil(x); });
-
-CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(FloorKernel, { out = chainerx::Floor(x); });
-
 class NativeIsNanKernel : public IsNanKernel {
 public:
     void Call(const Array& x, const Array& out) override {

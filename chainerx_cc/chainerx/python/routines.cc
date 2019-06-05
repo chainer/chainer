@@ -31,6 +31,7 @@
 #include "chainerx/routines/normalization.h"
 #include "chainerx/routines/pooling.h"
 #include "chainerx/routines/reduction.h"
+#include "chainerx/routines/rounding.h"
 #include "chainerx/routines/sorting.h"
 #include "chainerx/routines/statistics.h"
 #include "chainerx/routines/trigonometric.h"
