@@ -142,7 +142,7 @@ class TabularDataset(dataset_mixin.DatasetMixin):
         elif self.mode is dict:
             return dict(six.moves.zip(self.keys, examples))
 
-    def convert(self, *args, **kwargs):
+    def convert(self, data):
         """Convert fetched data.
 
         This method takes data fetched by :meth:`fetch` and
@@ -151,17 +151,16 @@ class TabularDataset(dataset_mixin.DatasetMixin):
         This behaviour can be overloaded by :meth:`with_converter`.
 
         Args:
-            args: Data from :meth:`fetch`.
-            kwargs: Data from :meth:`fetch`.
+            data (tuple or dict): Data from :meth:`fetch`.
 
         Returns:
             A tuple or dict.
             Each value is an ndarray.
         """
-        if args and not kwargs:
-            return tuple(_as_array(d) for d in args)
-        elif not args and kwargs:
-            return {k: _as_array(v) for k, v in kwargs.items()}
+        if isinstance(data, tuple):
+            return tuple(_as_array(d) for d in data)
+        elif isinstance(data, dict):
+            return {k: _as_array(v) for k, v in data.items()}
 
     def as_tuple(self):
         """Return a view with tuple mode.

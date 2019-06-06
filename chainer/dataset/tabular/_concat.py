@@ -109,5 +109,5 @@ class _Concat(tabular_dataset.TabularDataset):
                      for dataset_index, p in example_indices]
                     for col_index in six.moves.range(n_cols))
 
-    def convert(self, *args, **kwarg):
-        return self._datasets[0].convert(*args, **kwarg)
+    def convert(self, data):
+        return self._datasets[0].convert(data)

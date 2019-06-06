@@ -20,8 +20,8 @@ class _AsTuple(tabular_dataset.TabularDataset):
     def get_examples(self, indices, key_indices):
         return self._dataset.get_examples(indices, key_indices)
 
-    def convert(self, *args, **kwargs):
-        return self._dataset.convert(*args, **kwargs)
+    def convert(self, data):
+        return self._dataset.convert(data)
 
 
 class _AsDict(tabular_dataset.TabularDataset):
@@ -43,5 +43,5 @@ class _AsDict(tabular_dataset.TabularDataset):
     def get_examples(self, indices, key_indices):
         return self._dataset.get_examples(indices, key_indices)
 
-    def convert(self, *args, **kwarg):
-        return self._dataset.convert(*args, **kwarg)
+    def convert(self, data):
+        return self._dataset.convert(data)
