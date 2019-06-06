@@ -166,7 +166,10 @@ def get_device(device_spec):
                     'specifiers.'.format(device_spec))
             return _chainerx.ChainerxDevice(chainerx.get_device(device_spec))
 
-    raise ValueError('Invalid device specifier: {}'.format(device_spec))
+    raise TypeError(
+        'Device specifier must be a backend.Device, cuda.Device,'
+        ' chainerx.Device, integer or a string. Actual: {}'.format(
+            type(device_spec)))
 
 
 def _get_device_cupy_or_numpy(device_spec):
