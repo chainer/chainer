@@ -1,3 +1,5 @@
+from __future__ import division
+
 import numpy
 
 from chainer import backend
@@ -171,9 +173,10 @@ def interpolate_grad_bilinear_gpu(gy, v, u, vw, uw, H, W):
 
 class ResizeImages(function_node.FunctionNode):
 
-    def __init__(self, output_shape):
+    def __init__(self, output_shape, align_corners):
         self.out_H = output_shape[0]
         self.out_W = output_shape[1]
+        self.align_corners = align_corners
 
     def check_type_forward(self, in_types):
         type_check._argname(in_types, ('x',))
@@ -192,8 +195,14 @@ class ResizeImages(function_node.FunctionNode):
         out_H, out_W = self.out_H, self.out_W
 
         # Compute indices and weights.
-        v = xp.linspace(0, H - 1, num=out_H, dtype=numpy.float)
-        u = xp.linspace(0, W - 1, num=out_W, dtype=numpy.float)
+        if self.align_corners:
+            v = xp.arange(out_H, dtype=numpy.float) * (H - 1) / (out_H - 1)
+            u = xp.arange(out_W, dtype=numpy.float) * (W - 1) / (out_W - 1)
+        else:
+            v = (xp.arange(out_H, dtype=numpy.float) + 0.5) * H / out_H - 0.5
+            v = xp.maximum(v, 0)
+            u = (xp.arange(out_W, dtype=numpy.float) + 0.5) * W / out_W - 0.5
+            u = xp.maximum(u, 0)
         vw, v = xp.modf(v)
         uw, u = xp.modf(u)
         v = v.astype(numpy.intp)
@@ -215,15 +224,17 @@ class ResizeImages(function_node.FunctionNode):
 
     def backward(self, indexes, grad_outputs):
         return ResizeImagesGrad(
-            self.inputs[0].shape, (self.out_H, self.out_W)).apply(grad_outputs)
+            self.inputs[0].shape,
+            (self.out_H, self.out_W), self.align_corners).apply(grad_outputs)
 
 
 class ResizeImagesGrad(function_node.FunctionNode):
 
-    def __init__(self, input_shape, output_shape):
+    def __init__(self, input_shape, output_shape, align_corners):
         self.out_H = output_shape[0]
         self.out_W = output_shape[1]
         self.input_shape = input_shape
+        self.align_corners = align_corners
 
     def check_type_forward(self, in_types):
         type_check._argname(in_types, ('gy',))
@@ -242,8 +253,14 @@ class ResizeImagesGrad(function_node.FunctionNode):
         out_H, out_W = self.out_H, self.out_W
 
         # Compute indices and weights.
-        v = xp.linspace(0, H - 1, num=out_H, dtype=numpy.float)
-        u = xp.linspace(0, W - 1, num=out_W, dtype=numpy.float)
+        if self.align_corners:
+            v = xp.arange(out_H, dtype=numpy.float) * (H - 1) / (out_H - 1)
+            u = xp.arange(out_W, dtype=numpy.float) * (W - 1) / (out_W - 1)
+        else:
+            v = (xp.arange(out_H) + 0.5) * H / out_H - 0.5
+            v = xp.maximum(v, 0)
+            u = (xp.arange(out_W) + 0.5) * W / out_W - 0.5
+            u = xp.maximum(u, 0)
         vw, v = xp.modf(v)
         uw, u = xp.modf(u)
         v = v.astype(numpy.intp)
@@ -264,10 +281,11 @@ class ResizeImagesGrad(function_node.FunctionNode):
         return gx,
 
     def backward(self, indexes, grad_outputs):
-        return ResizeImages((self.out_H, self.out_W)).apply(grad_outputs)
+        return ResizeImages(
+            (self.out_H, self.out_W), self.align_corners).apply(grad_outputs)
 
 
-def resize_images(x, output_shape):
+def resize_images(x, output_shape, align_corners=True):
     """Resize images to the given shape.
 
     This function resizes 2D data to :obj:`output_shape`.
@@ -288,10 +306,13 @@ def resize_images(x, output_shape):
         output_shape (tuple): This is a tuple of length 2 whose values are
             :obj:`(h_O, w_O)`. Note that the order of height and width is
             opposite of the one in OpenCV.
+        align_corners (bool): When this value is :obj:`True`,
+            the corners of the input are mapped to the corners of
+            the output.
 
     Returns:
         ~chainer.Variable: Resized image whose shape is \
             :math:`(n, c_I, h_O, w_O)`.
 
     """
-    return ResizeImages(output_shape).apply((x,))[0]
+    return ResizeImages(output_shape, align_corners).apply((x,))[0]
