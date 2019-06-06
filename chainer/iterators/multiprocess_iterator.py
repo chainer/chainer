@@ -108,8 +108,6 @@ class MultiprocessIterator(iterator.Iterator):
                  order_sampler=None, dataset_timeout=30.0,
                  maxtasksperchild=None):
         self.dataset = dataset
-        self._is_tabular = isinstance(
-            self.dataset, chainer.dataset.TabularDataset)
         self.batch_size = batch_size
         self.repeat = repeat
         self.shuffle = shuffle
@@ -162,9 +160,6 @@ class MultiprocessIterator(iterator.Iterator):
         if batch is None:
             raise StopIteration
         else:
-            if self._is_tabular:
-                batch = self.dataset.convert(_transpose.transpose(batch))
-
             return batch
 
     next = __next__
@@ -354,6 +349,8 @@ class _PrefetchLoop(object):
                  order_sampler,
                  _interruption_testing, maxtasksperchild):
         self.dataset = dataset
+        self._is_tabular = isinstance(
+            self.dataset, chainer.dataset.TabularDataset)
         self.batch_size = batch_size
         self.repeat = repeat
         self.n_processes = n_processes
@@ -422,6 +419,9 @@ class _PrefetchLoop(object):
             self.mem_size = max(map(_measure, batch))
             self._allocate_shared_memory()
 
+            if self._is_tabular:
+                batch = self.dataset.convert(_transpose.transpose(batch))
+
         return batch, self.prefetch_state
 
     def _allocate_shared_memory(self):
@@ -487,6 +487,9 @@ class _PrefetchLoop(object):
                 else:
                     break
             batch = [_unpack(data, self.mem_bulk) for data in data_all]
+
+            if self._is_tabular:
+                batch = self.dataset.convert(_transpose.transpose(batch))
 
         self._comm.put(batch, self.prefetch_state, reset_count)
         return True
