@@ -424,15 +424,16 @@ class TestMultithreadIteratorInvalidOrderSampler(unittest.TestCase):
             it.next()
 
 
-@testing.parameterize(
-    {'mode': tuple},
-    {'mode': dict},
-)
+@testing.parameterize(*testing.product({
+    'mode': [tuple, dict],
+    'n_threads': [1, 2],
+}))
 class TestMultithreadIteratorTabularDataset(unittest.TestCase):
 
     def test_iterator_tabular_dataset(self):
         dataset = dummy_dataset.DummyDataset(mode=self.mode)
-        it = iterators.MultithreadIterator(dataset, 2, shuffle=False)
+        it = iterators.MultithreadIterator(
+            dataset, 2, shuffle=False, n_threads=self.n_threads)
         output = it.next()
 
         if self.mode is tuple:

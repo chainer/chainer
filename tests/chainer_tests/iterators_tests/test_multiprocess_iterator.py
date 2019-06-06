@@ -817,15 +817,22 @@ class TestMultiprocessIteratorStalledDatasetDetection(unittest.TestCase):
             for i in range((len(dataset) + batch_size - 1) // batch_size)]
 
 
-@testing.parameterize(
-    {'mode': tuple},
-    {'mode': dict},
-)
+@testing.parameterize(*testing.product({
+    'mode': [tuple, dict],
+    'n_prefetch': [1, 2],
+    'shared_mem': [None, 1000000],
+}))
 class TestMultiprocessIteratorTabularDataset(unittest.TestCase):
+
+    n_processes = 2
 
     def test_iterator_tabular_dataset(self):
         dataset = dummy_dataset.DummyDataset(mode=self.mode)
-        it = iterators.MultiprocessIterator(dataset, 2, shuffle=False)
+        it = iterators.MultiprocessIterator(
+            dataset, 2, shuffle=False,
+            n_processes=self.n_processes,
+            n_prefetch=self.n_prefetch,
+            shared_mem=self.shared_mem)
         output = it.next()
 
         if self.mode is tuple:
