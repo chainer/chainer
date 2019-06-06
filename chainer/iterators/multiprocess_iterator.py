@@ -10,8 +10,10 @@ import warnings
 import numpy
 import six
 
+import chainer
 from chainer.dataset import iterator
 from chainer.iterators import _statemachine
+from chainer.iterators import _transpose
 from chainer.iterators.order_samplers import ShuffleOrderSampler
 
 
@@ -106,6 +108,8 @@ class MultiprocessIterator(iterator.Iterator):
                  order_sampler=None, dataset_timeout=30.0,
                  maxtasksperchild=None):
         self.dataset = dataset
+        self._is_tabular = isinstance(
+            self.dataset, chainer.dataset.TabularDataset)
         self.batch_size = batch_size
         self.repeat = repeat
         self.shuffle = shuffle
@@ -158,6 +162,9 @@ class MultiprocessIterator(iterator.Iterator):
         if batch is None:
             raise StopIteration
         else:
+            if self._is_tabular:
+                batch = self.dataset.convert(_transpose.transpose(batch))
+
             return batch
 
     next = __next__
