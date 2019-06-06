@@ -3,6 +3,7 @@ import numpy
 
 from chainerx_tests import array_utils
 from chainerx_tests import dtype_utils
+from chainerx_tests import math_utils
 from chainerx_tests import op_utils
 
 
@@ -73,13 +74,26 @@ _in_out_dtypes_math_functions = _in_out_float_dtypes_math_functions + [
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
-class TestClippedRelu(op_utils.OpTest):
+@chainer.testing.parameterize(*(
+    chainer.testing.product([
+        chainer.testing.from_pytest_parameterize(
+            'shape', [
+                (2, 2),
+                (3, 3, 3),
+                (5, 5, 5),
+                (4, 1, 2, 4)
+            ]),
+        chainer.testing.from_pytest_parameterize(
+            'in_dtypes,out_dtype', math_utils.in_out_dtypes_math_functions)
+    ])
+))
+class TestClippedRelu(op_utils.ChainerOpTest):
 
+    dodge_nondifferentiable = True
     z = 0.75
 
-    def setup(self, shape, float_dtype):
-        self.dtype = float_dtype
-        self.shape = shape
+    def setup(self, float_dtype):
+        dtype = float_dtype
 
         if float_dtype == 'float16':
             self.check_forward_options.update({'atol': 1e-4, 'rtol': 1e-3})
@@ -87,9 +101,11 @@ class TestClippedRelu(op_utils.OpTest):
             self.check_double_backward_options.update(
                 {'atol': 1e-2, 'rtol': 5e-2})
 
+        self.dtype = dtype
+
     def generate_inputs(self):
-        dtype = self.dtype
         shape = self.shape
+        dtype = self.dtype
         x = array_utils.create_dummy_ndarray(numpy, shape, dtype)
         return x,
 
@@ -98,25 +114,41 @@ class TestClippedRelu(op_utils.OpTest):
         y = chainerx.clipped_relu(x, self.z)
         return y,
 
-    def forward_expected(self, inputs):
+    def forward_chainer(self, inputs):
         x, = inputs
-        y = numpy.asarray(x.clip(0, self.z)).astype(x.dtype)
+        y = chainer.functions.clipped_relu(x, self.z)
         return y,
 
 
-class TestCrelu(op_utils.OpTest):
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    chainer.testing.product([
+        chainer.testing.from_pytest_parameterize(
+            'shape', [
+                (2, 2),
+                (3, 3, 3),
+                (5, 5, 5),
+                (4, 1, 2, 4)
+            ]),
+        chainer.testing.from_pytest_parameterize(
+            'in_dtypes,out_dtype', math_utils.in_out_dtypes_math_functions)
+    ])
+))
+class TestCrelu(op_utils.ChainerOpTest):
 
+    dodge_nondifferentiable = True
     axis = 1
 
-    def setup(self, shape, float_dtype):
-        self.shape = shape
-        self.dtype = float_dtype
+    def setup(self, float_dtype):
+        dtype = float_dtype
 
         if float_dtype == 'float16':
             self.check_forward_options.update({'atol': 1e-4, 'rtol': 1e-3})
             self.check_backward_options.update({'atol': 1e-2, 'rtol': 5e-2})
             self.check_double_backward_options.update(
                 {'atol': 1e-2, 'rtol': 5e-2})
+
+        self.dtype = dtype
 
     def generate_inputs(self):
         shape = self.shape
@@ -129,49 +161,9 @@ class TestCrelu(op_utils.OpTest):
         y = chainerx.crelu(x, self.axis)
         return y,
 
-    def forward_expected(self, inputs):
+    def forward_chainer(self, inputs):
         x, = inputs
-        expected_former = numpy.maximum(0, x)
-        expected_latter = numpy.maximum(0, -x)
-        expected = numpy.concatenate(
-            (expected_former, expected_latter), axis=self.axis)
-        y = numpy.asarray(expected).astype(x.dtype)
-        return y,
-
-
-@op_utils.op_test(['native:0', 'cuda:0'])
-class TestElu(op_utils.OpTest):
-
-    alpha = 2.0
-
-    def setup(self, shape, float_dtype):
-        self.shape = shape
-        self.dtype = float_dtype
-
-        if float_dtype == 'float16':
-            self.check_forward_options.update({'atol': 1e-4, 'rtol': 1e-3})
-            self.check_backward_options.update({'atol': 1e-2, 'rtol': 5e-2})
-            self.check_double_backward_options.update(
-                {'atol': 1e-2, 'rtol': 5e-2})
-
-    def generate_inputs(self):
-        shape = self.shape
-        dtype = self.dtype
-        x = array_utils.create_dummy_ndarray(numpy, shape, dtype)
-        return x,
-
-    def forward_chainerx(self, inputs):
-        x, = inputs
-        y = chainerx.elu(x, self.alpha)
-        return y,
-
-    def forward_expected(self, inputs):
-        x, = inputs
-        expected = x.astype(numpy.float64, copy=True)
-        for i in numpy.ndindex(x.shape):
-            if x[i] < 0:
-                expected[i] = self.alpha * numpy.expm1(expected[i])
-        y = numpy.asarray(expected).astype(x.dtype)
+        y = chainer.functions.crelu(x, self.axis)
         return y,
 
 
