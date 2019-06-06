@@ -53,8 +53,8 @@ class _Slice(tabular_dataset.TabularDataset):
         key_indices = _merge_key_indices(self._key_indices, key_indices)
         return self._dataset.get_examples(indices, key_indices)
 
-    def convert(self, data):
-        return self._dataset.convert(data)
+    def convert(self, *args, **kwarg):
+        return self._dataset.convert(*args, **kwarg)
 
 
 class _SliceHelper(object):
