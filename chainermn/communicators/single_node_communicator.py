@@ -78,15 +78,16 @@ class SingleNodeCommunicator(mpi_communicator_base.MpiCommunicatorBase):
         params = _memory_utility.extract_params_set_grad(model, zero_fill)
 
         allreduce_grad_dtype = chainer.get_dtype()
-        itemsize = allreduce_grad_dtype.itemsize
         n_elems_total = _memory_utility.count_elements(params, 'grad',
                                                        zero_fill)
-        n_bytes_total = n_elems_total * itemsize
-        self.gpu_buffer_a.assign(n_bytes_total)
-        self.gpu_buffer_b.assign(n_bytes_total)
+        _memory_utility.prepare_multi_node_mean_pack_buffer(
+            allreduce_grad_dtype, n_elems_total, self.gpu_buffer_a,
+            self.gpu_buffer_b)
 
-        _memory_utility.pack_params(params, 'grad', self.gpu_buffer_a, allreduce_grad_dtype,
-                                    zero_fill)
+        _memory_utility.pack_params_to_buffer(params, None,
+                                              self.gpu_buffer_a,
+                                              allreduce_grad_dtype,
+                                              zero_fill, stream)
 
         if chainer.is_debug():
             stream.synchronize()
@@ -107,5 +108,7 @@ class SingleNodeCommunicator(mpi_communicator_base.MpiCommunicatorBase):
             stream.synchronize()
             self.ensure_all_finite(arr)
 
-        _memory_utility.unpack_params(params, 'grad', self.gpu_buffer_b, allreduce_grad_dtype,
-                                      zero_fill)
+        _memory_utility.unpack_params_from_buffer(params, None,
+                                                  self.gpu_buffer_b,
+                                                  allreduce_grad_dtype,
+                                                  zero_fill, stream)
