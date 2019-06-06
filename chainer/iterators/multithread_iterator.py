@@ -2,11 +2,11 @@ from __future__ import division
 from multiprocessing import pool
 
 import numpy
-import six
 
 import chainer
 from chainer.dataset import iterator
 from chainer.iterators import _statemachine
+from chainer.iterators import _transpose
 from chainer.iterators.order_samplers import ShuffleOrderSampler
 
 
@@ -172,14 +172,7 @@ class MultithreadIterator(iterator.Iterator):
             next.wait(0.5)  # To avoid interruption bug in Python2
 
         if self._is_tabular:
-            data = next.get()
-            if isinstance(data[0], tuple):
-                batch = tuple([d[i] for d in data]
-                              for i in six.moves.range(len(data[0])))
-            elif isinstance(data[0], dict):
-                batch = {k: [d[k] for d in data]
-                         for k in data[0].keys()}
-            return self.dataset.convert(batch)
+            return self.dataset.convert(_transpose.transpose(next.get()))
 
         batch = [data for data in next.get()]
         return batch
