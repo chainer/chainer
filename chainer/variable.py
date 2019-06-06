@@ -856,7 +856,7 @@ class Variable(object):
 
     @array.setter
     def array(self, d):
-        # type: (types.NdArray) -> None
+        # type: (tp.Optional[types.NdArray]) -> None
 
         if self._has_chainerx_array:
             d_old = self._data[0]
@@ -951,6 +951,7 @@ class Variable(object):
 
     @property
     def grad(self):
+        # type: () -> tp.Optional[types.NdArray]
         """Gradient array of this variable.
 
         Note that this property returns the underlying array of the gradient
@@ -993,6 +994,7 @@ class Variable(object):
 
     @grad.setter
     def grad(self, g):
+        # type: (tp.Optional[types.NdArray]) -> None
         if g is not None:
             _check_grad_type(None, self, False, g)
         self._set_grad_without_check(g)
@@ -1010,12 +1012,14 @@ class Variable(object):
 
     @property
     def grad_var(self):
+        # type: () -> tp.Optional["Variable"]
         """Gradient variable."""
         self._ensure_grad_var_up_to_date()
         return self._grad_var
 
     @grad_var.setter
     def grad_var(self, g):
+        # type: (tp.Optional["Variable"]) -> None
         if g is not None:
             _check_grad_type(None, self, False, g.array)
         self._set_grad_var_without_check(g)
