@@ -99,8 +99,8 @@ def extract_params_set_grad(model, zero_fill):
                 if param.grad is not None]
 
 
-def count_grad_elements(params, zero_fill):
-    if zero_fill:
+def count_elements(params, attr_name, zero_fill):
+    if attr_name == 'data' or zero_fill:
         return sum(param.data.size for param in params)
     else:
         return sum(param.grad.size for param in params)

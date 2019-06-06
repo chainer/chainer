@@ -53,23 +53,25 @@ class HierarchicalCommunicator(mpi_communicator_base.MpiCommunicatorBase):
     def multi_node_mean_grad(self, model, zero_fill=False):
         self._init_comms()
         stream = chainer.cuda.Stream.null
+        allreduce_grad_dtype = np.float32
 
         params = _memory_utility.extract_params_set_grad(model, zero_fill)
-        itemsize = 4
-        n_elems_total = _memory_utility.count_grad_elements(params,
-                                                            zero_fill)
+        itemsize = allreduce_grad_dtype.itemsize
+        n_elems_total = _memory_utility.count_elements(params, 'grad',
+                                                       zero_fill)
         n_elems_per_node = int(math.ceil(n_elems_total / self.inter_size))
         n_bytes_per_node = n_elems_per_node * itemsize
         n_bytes_buffer = n_bytes_per_node * self.inter_size
 
-        self.gpu_buffer_a.assign(n_bytes_buffer)
-        self.gpu_buffer_b.assign(n_bytes_buffer)
 
-        allreduce_grad_dtype = np.float32
+        _memory_utility.prepare_multi_node_mean_pack_buffer(
+            allreduce_grad_dtype, n_elems_total, self.gpu_buffer_a,
+            self.gpu_buffer_b)
 
-        _memory_utility.pack_params(
-            params, 'grad', self.gpu_buffer_a,
-            allreduce_grad_dtype, zero_fill, stream)
+        _memory_utility.pack_params_to_buffer(params, None,
+                                              self.gpu_buffer_a,
+                                              allreduce_grad_dtype,
+                                              zero_fill, stream)
 
         if chainer.is_debug():
             stream.synchronize()
@@ -98,6 +100,7 @@ class HierarchicalCommunicator(mpi_communicator_base.MpiCommunicatorBase):
             stream.synchronize()
             self.ensure_all_finite(self.gpu_buffer_b.array(n_elems_total))
 
-        _memory_utility.unpack_params(
-            params, 'grad', self.gpu_buffer_b, allreduce_grad_dtype, zero_fill,
-            stream)
+        _memory_utility.unpack_params_from_buffer(params, None,
+                                                  self.gpu_buffer_b,
+                                                  allreduce_grad_dtype,
+                                                  zero_fill, stream)

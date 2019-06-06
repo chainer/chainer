@@ -58,8 +58,8 @@ class TwoDimensionalCommunicator(mpi_communicator_base.MpiCommunicatorBase):
 
         params = _memory_utility.extract_params_set_grad(model, zero_fill)
         itemsize = 4
-        n_elems_total = _memory_utility.count_grad_elements(params,
-                                                            zero_fill)
+        n_elems_total = _memory_utility.count_elements(params,
+                                                       zero_fill)
         n_elems_per_node_2d = int(math.ceil(n_elems_total / self.size))
         n_elems_per_node_1d = n_elems_per_node_2d * self.inter_size
         n_bytes_per_node_1d = n_elems_per_node_1d * itemsize

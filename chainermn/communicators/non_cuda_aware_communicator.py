@@ -77,8 +77,8 @@ class NonCudaAwareCommunicator(mpi_communicator_base.MpiCommunicatorBase):
 
         params = _memory_utility.extract_params_set_grad(model, zero_fill)
         itemsize = 4
-        n_elems_total = _memory_utility.count_grad_elements(params,
-                                                            zero_fill)
+        n_elems_total = _memory_utility.count_elements(params,
+                                                       zero_fill)
         n_elems_per_node = int(math.ceil(n_elems_total / self.inter_size))
         n_elems_buffer = n_elems_per_node * self.inter_size
         n_bytes_per_node = n_elems_per_node * itemsize

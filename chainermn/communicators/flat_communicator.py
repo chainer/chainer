@@ -15,8 +15,8 @@ class FlatCommunicator(mpi_communicator_base.MpiCommunicatorBase):
     def multi_node_mean_grad(self, model, zero_fill=False):
         params = _memory_utility.extract_params_set_grad(model, zero_fill)
         itemsize = 4
-        n_elems_total = _memory_utility.count_grad_elements(params,
-                                                            zero_fill)
+        n_elems_total = _memory_utility.count_elements(params,
+                                                       zero_fill)
         n_bytes_total = n_elems_total * itemsize
         self.gpu_buffer_a.assign(n_bytes_total)
         self.gpu_buffer_b.assign(n_bytes_total)

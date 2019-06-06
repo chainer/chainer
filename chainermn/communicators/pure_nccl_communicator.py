@@ -64,7 +64,8 @@ class PureNcclCommunicator(mpi_communicator_base.MpiCommunicatorBase):
         self._init_comms()
         params = _memory_utility.extract_params_set_data(model)
         data_dtype = chainer.get_dtype()
-        n_elems = sum(param.data.size for param in params)
+        n_elems = _memory_utility.count_elements(params, 'data',
+                                                 zero_fill=False)
         data_n_bytes = data_dtype.itemsize * n_elems
         if self.gpu_buffer_a.size != data_n_bytes:
             self.gpu_buffer_a.assign(data_n_bytes)
@@ -96,8 +97,8 @@ class PureNcclCommunicator(mpi_communicator_base.MpiCommunicatorBase):
 
         assert allreduce_grad_dtype is not None
 
-        n_elems = _memory_utility.count_grad_elements(params,
-                                                      zero_fill)
+        n_elems = _memory_utility.count_elements(params, 'grad',
+                                                 zero_fill)
         needs_sync = _memory_utility.prepare_multi_node_mean_pack_buffer(
             allreduce_grad_dtype, n_elems, self.gpu_buffer_a,
             self.gpu_buffer_b)
