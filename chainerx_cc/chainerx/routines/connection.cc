@@ -23,7 +23,6 @@
 #include "chainerx/kernels/linalg.h"
 #include "chainerx/kernels/math.h"
 #include "chainerx/macro.h"
-#include "chainerx/routines/arithmetic.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/linalg.h"
 #include "chainerx/routines/reduction.h"

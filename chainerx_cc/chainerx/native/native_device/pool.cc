@@ -25,7 +25,6 @@
 #include "chainerx/native/kernel_regist.h"
 #include "chainerx/native/tensor_dot.h"
 #include "chainerx/numeric_limits.h"
-#include "chainerx/routines/arithmetic.h"
 #include "chainerx/routines/connection.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/indexing.h"
