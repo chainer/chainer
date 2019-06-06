@@ -9,6 +9,8 @@ from chainer import iterators
 from chainer import serializer
 from chainer import testing
 
+from chainer_tests.dataset_tests.tabular_tests import dummy_dataset
+
 
 class DummySerializer(serializer.Serializer):
 
@@ -420,6 +422,29 @@ class TestMultithreadIteratorInvalidOrderSampler(unittest.TestCase):
             it = iterators.MultithreadIterator(
                 dataset, 6, order_sampler=InvalidOrderSampler())
             it.next()
+
+
+@testing.parameterize(
+    {'mode': tuple},
+    {'mode': dict},
+)
+class TestMultithreadIteratorTabularDataset(unittest.TestCase):
+
+    def test_iterator_tabular_dataset(self):
+        dataset = dummy_dataset.DummyDataset(mode=self.mode)
+        it = iterators.MultithreadIterator(dataset, 2, shuffle=False)
+        output = it.next()
+
+        if self.mode is tuple:
+            expected = tuple(dataset.data[:, [0, 1]])
+        elif self.mode is dict:
+            expected = dict(zip(('a', 'b', 'c'), dataset.data[:, [0, 1]]))
+        numpy.testing.assert_equal(output, expected)
+
+        if self.mode is dict:
+            output = output.values()
+        for out in output:
+            self.assertIsInstance(out, numpy.ndarray)
 
 
 testing.run_module(__name__, __file__)
