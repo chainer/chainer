@@ -357,7 +357,7 @@ def check_allreduce_grad_empty_half(communicator, model):
         chainer.testing.assert_allclose(model.b.W.grad,
                                         (base + 1) * np.ones((4, 3)))
 
-        v = 0
+        v = 0.0
         for i in range(communicator.size):
             if i % 2 == 0:
                 v += i + 2
