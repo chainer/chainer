@@ -396,7 +396,7 @@ class ndarray:
 
     def set_grad(
             self,
-            grad: ndarray,
+            grad: tp.Optional[ndarray],
             backprop_id: tp.Optional[BackpropId]=None) -> None: ...
 
     @tp.overload
