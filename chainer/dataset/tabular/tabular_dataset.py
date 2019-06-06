@@ -190,6 +190,10 @@ class TabularDataset(dataset_mixin.DatasetMixin):
         """
         return chainer.dataset.tabular._join._Join(self, *datasets)
 
+    def with_converter(self, converter):
+        return chainer.dataset.tabular._with_converter._WithConverter(
+            self, converter)
+
     def get_example(self, i):
         example = self.get_examples([i], None)
         example = tuple(col[0] for col in example)
