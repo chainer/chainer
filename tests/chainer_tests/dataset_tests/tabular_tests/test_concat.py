@@ -95,4 +95,17 @@ class TestConcatInvalid(unittest.TestCase):
             dataset_a.concat(dataset_b)
 
 
+class TestConcatConvert(unittest.TestCase):
+
+    def test_concat_convert(self):
+        def converter(data):
+            self.assertEqual(data, 'input')
+            return 'converted'
+
+        dataset_a = dummy_dataset.DummyDataset().with_converter(converter)
+        dataset_b = dummy_dataset.DummyDataset()
+        view = dataset_a.concat(dataset_b)
+        self.assertEqual(view.convert('input'), 'converted')
+
+
 testing.run_module(__name__, __file__)
