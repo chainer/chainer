@@ -142,6 +142,12 @@ class TabularDataset(dataset_mixin.DatasetMixin):
         elif self.mode is dict:
             return dict(six.moves.zip(self.keys, examples))
 
+    def convert(self, data):
+        if isinstance(data, tuple):
+            return tuple(_as_array(d) for d in data)
+        elif isinstance(data, dict):
+            return {k: _as_array(v) for k, v in data.items()}
+
     def as_tuple(self):
         """Return a view with tuple mode.
 
@@ -191,3 +197,12 @@ class TabularDataset(dataset_mixin.DatasetMixin):
             return example
         elif self.mode is dict:
             return dict(six.moves.zip(self.keys, example))
+
+
+def _as_array(data):
+    if isinstance(data, chainer.get_array_types()):
+        return data
+    else:
+        device = chainer.backend.get_device_from_array(data[0])
+        with chainer.using_device(device):
+            return device.xp.stack(data)
