@@ -30,13 +30,13 @@ def from_data(*args, **kwargs):
 
         if isinstance(data, chainer.get_array_types()):
             datasets.append(_Array(key, data, tuple))
-        else:
+        elif isinstance(data, list):
             datasets.append(_List(key, data, tuple))
 
     for key, data in kwargs.items():
         if isinstance(data, chainer.get_array_types()):
             datasets.append(_Array(key, data, dict))
-        else:
+        elif isinstance(data, list):
             datasets.append(_List(key, data, dict))
 
     if len(datasets) == 0:
