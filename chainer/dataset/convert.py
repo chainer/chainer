@@ -211,6 +211,11 @@ def concat_examples(batch, device=None, padding=None):
     if not batch:
         raise ValueError('batch is empty')
 
+    if isinstance(batch, tuple):
+        return tuple(to_device(device, b) for b in batch)
+    elif isinstance(batch, dict):
+        return {k: to_device(device, v) for k, v in batch.items()}
+
     first_elem = batch[0]
 
     if isinstance(first_elem, tuple):
