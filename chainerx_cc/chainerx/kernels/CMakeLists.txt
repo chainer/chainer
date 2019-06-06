@@ -13,5 +13,6 @@ install(FILES
     sorting.h
     statistics.h
     trigonometric.h
+    rnn.h
     DESTINATION include/chainerx/kernels
     )

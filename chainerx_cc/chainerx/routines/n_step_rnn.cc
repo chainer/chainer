@@ -197,7 +197,41 @@ std::vector<std::vector<Array>> n_step_lstm(
         const std::vector<std::vector<Array>>& ws,
         const std::vector<std::vector<Array>>& bs,
         std::vector<Array>& xs) {
+    // assuming that all arrays in the a list should belong to the same device
+    hx.device().CheckDevicesCompatible(hx, cx, ws[0][0], bs[0][0], xs[0]); 
+    if(hx.device().backend().GetName() == "cuda")
+    {
+        std::vector<std::vector<Array>> out;
+        {
+            NoBackpropModeScope scope{};
+            out = hx.device().backend().CallKernel<RnnKernel>(n_layers, hx, cx, ws, bs, xs, 0, 1);
+        }
+        {
+            std::vector<ConstArrayRef> inp;
+            inp.push_back(hx);
+            inp.push_back(cx);
+            for(int64_t i = 0; i < n_layers; i++) {
+                for(int64_t j = 0; j < 8; j++) {
+                    inp.push_back(ws[i][j]);
+                    inp.push_back(bs[i][j]);
+                }
+            }
+            std::vector<ConstArrayRef> out_grad;
+            out_grad.push_back(out[0][0]);
+            out_grad.push_back(out[0][1]); 
+            for(int64_t i = 0; i < xs.size(); i++) {
+                inp.push_back(xs[i]);
+                out_grad.push_back(out[1][i]);
+            }
+
+
+            BackwardBuilder bb{"lstm_backward", inp, out_grad};
+            std::vector
+        }
+
+    } else {
     return n_step_rnn_impl(&_lstm, n_layers, hx, nonstd::optional<Array>{cx}, ws, bs, xs, 0);
+    }
 }
 
 std::vector<std::vector<Array>> n_step_bilstm(
@@ -207,6 +241,33 @@ std::vector<std::vector<Array>> n_step_bilstm(
         const std::vector<std::vector<Array>>& ws,
         const std::vector<std::vector<Array>>& bs,
         std::vector<Array>& xs) {
+    // assuming that all arrays in the a list should belong to the same device
+    hx.device().CheckDevicesCompatible(hx, cx, ws[0][0], bs[0][0], xs[0]); 
+    if(hx.device().backend().GetName() == "cuda")
+    {
+        std::vector<std::vector<Array>> out;
+        {
+            NoBackpropModeScope scope{};
+            out = hx.device().backend().CallKernel<RnnKernel>()
+        }
+
+    } else {
     return n_step_rnn_impl(&_lstm, n_layers, hx, nonstd::optional<Array>{cx}, ws, bs, xs, 1);
+    }
 }
+
+std::vector<std::vector<Array>> RnnGrad(
+    int64_t n_layers,
+    Array hx,
+    Array cx,
+    const std::vector<std::vector<Array>>& ws,
+    const std::vector<std::vector<Array>>& bs,
+    std::vector<Array> xs,
+    Array hy,
+    Array cy,
+    std::vector<Array> out
+    ) {
+    
+}
+
 }  // namespace chainerx
