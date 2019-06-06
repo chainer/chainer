@@ -1273,6 +1273,12 @@ def static_graph(*args, **kwargs):
 
     def wrap(func):
         def wrapped_func(*inner_args, **inner_kwargs):
+            # The static subgraph optimization feature can be turned off using
+            # a configuration, in which case this decorator merely calls the
+            # wrapped function without introducing any side effects.
+            if not chainer.config.use_static_graph:
+                return func(*inner_args, **inner_kwargs)
+
             if verbosity_level >= 2:
                 print('Calling static chain...')
 
