@@ -8,7 +8,6 @@ the code is mostly unchanged except for the addition of the
 from __future__ import print_function
 
 import argparse
-import sys
 import warnings
 
 import numpy
@@ -117,8 +116,12 @@ def main():
 
     device = chainer.get_device(args.device)
     if device.xp is chainerx:
-        sys.stderr.write('This example does not support ChainerX devices.\n')
-        sys.exit(1)
+        warnings.warn(
+            'Static subgraph optimization does not support ChainerX and will'
+            ' be disabled.', UserWarning)
+        use_static_graph = False
+    else:
+        use_static_graph = True
 
     print('Device: {}'.format(device))
     print('# unit: {}'.format(args.unit))
@@ -159,7 +162,9 @@ def main():
 
     # Dump a computational graph from 'loss' variable at the first iteration
     # The "main" refers to the target link of the "main" optimizer.
-    trainer.extend(extensions.DumpGraph('main/loss'))
+    # TODO(hvy): Temporarily disabled for chainerx. Fix it.
+    if device.xp is not chainerx:
+        trainer.extend(extensions.DumpGraph('main/loss'))
 
     # Take a snapshot for each specified epoch
     frequency = args.epoch if args.frequency == -1 else max(1, args.frequency)
@@ -194,7 +199,8 @@ def main():
         chainer.serializers.load_npz(args.resume, trainer)
 
     # Run the training
-    trainer.run()
+    with chainer.using_config('use_static_graph', use_static_graph):
+        trainer.run()
 
 
 if __name__ == '__main__':
