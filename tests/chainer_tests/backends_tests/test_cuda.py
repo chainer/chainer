@@ -109,6 +109,16 @@ class TestCuda(unittest.TestCase):
         assert cuda.get_device_from_id(0) == cuda.Device(0)
 
     @attr.gpu
+    def test_get_device_from_id_invalid(self):
+        with self.assertRaises(ValueError):
+            cuda.get_device_from_id(99999)
+
+    @attr.gpu
+    def test_get_device_from_id_negative(self):
+        with self.assertRaises(ValueError):
+            cuda.get_device_from_id(-1)
+
+    @attr.gpu
     def test_get_device_from_array(self):
         arr = cuda.cupy.array([0])
         assert cuda.get_device_from_array(arr) == cuda.Device(0)
@@ -118,6 +128,12 @@ class TestCuda(unittest.TestCase):
         with testing.assert_warns(DeprecationWarning):
             device = cuda.get_device(0)
         assert device == cuda.Device(0)
+
+    @attr.gpu
+    def test_get_device_for_int_invalid(self):
+        with self.assertRaises(ValueError):
+            with testing.assert_warns(DeprecationWarning):
+                cuda.get_device(99999)
 
     @attr.gpu
     @unittest.skipUnless(_builtins_available,
@@ -533,10 +549,10 @@ class TestGpuDeviceFromArrayInvalidValue(unittest.TestCase):
 
 @testing.parameterize(*testing.product(
     {
-        'device_id': [0, 1, 99999, numpy.int32(1)],
+        'device_id': [0, 1, numpy.int32(1)],
     }))
 @attr.gpu
-class TestGpuDeviceFromDeviceId(unittest.TestCase):
+class TestGpuDeviceFromValidDeviceId(unittest.TestCase):
 
     def test_from_device_id(self):
         device = backend.GpuDevice.from_device_id(self.device_id)
@@ -548,7 +564,7 @@ class TestGpuDeviceFromDeviceId(unittest.TestCase):
 
 @testing.parameterize(*testing.product(
     {
-        'device_id': [None, -1, (), 0.0, numpy.float32(0)],
+        'device_id': [None, -1, (), 0.0, numpy.float32(0), 99999],
     }))
 @attr.gpu
 class TestGpuDeviceFromDeviceIdInvalid(unittest.TestCase):
