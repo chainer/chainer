@@ -1180,7 +1180,7 @@ def test_copy(xp, shape, dtype, device, is_module):
 
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize_pytest('indexing', ['xy', 'ij'])
-@chainer.testing.parameterize_pytest('input_arrs', [2, 3, 4, 5, 6])
+@chainer.testing.parameterize_pytest('input_arrs', [1, 2, 3, 4, 5, 6])
 class TestMeshgrid(op_utils.NumpyOpTest):
 
     check_numpy_strides_compliance = False
@@ -1205,6 +1205,17 @@ class TestMeshgrid(op_utils.NumpyOpTest):
 
     def forward_xp(self, inputs, xp):
         return tuple(xp.meshgrid(*inputs, indexing=self.indexing))
+
+
+@chainerx.testing.numpy_chainerx_array_equal()
+def test_meshgrid_no_array(xp):
+    return xp.meshgrid()
+
+
+@chainerx.testing.numpy_chainerx_array_equal()
+@pytest.mark.parametrize('indexing', ['xy', 'ij'])
+def test_meshgrid_no_array_indexing(xp, indexing):
+    return xp.meshgrid(indexing=indexing)
 
 
 @chainerx.testing.numpy_chainerx_array_equal(

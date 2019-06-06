@@ -351,6 +351,16 @@ std::vector<Array> Meshgrid(const std::vector<Array>& arrays, MeshgridIndexingMo
     Shape broadcast_shape;
     std::vector<Shape> broadcasted_array_shapes;
     std::vector<Array> grid_arrays;
+
+    // special cases
+    // similar behavior to numpy.
+    if (arrays.size() == 0) {
+        return grid_arrays;
+    } else if (arrays.size() == 1) {
+        grid_arrays.emplace_back(arrays[0]);
+        return grid_arrays;
+    }
+
     grid_arrays.reserve(arrays.size());
     broadcasted_array_shapes.reserve(arrays.size());
 
