@@ -148,6 +148,20 @@ class TabularDataset(dataset_mixin.DatasetMixin):
             return examples[0]
 
     def convert(self, data):
+        """Convert fetched data.
+
+        This method takes data fetched by :meth:`fetch` and
+        pre-process them before passing them to models.
+        The default behaviour is converting each column into an ndarray.
+        This behaviour can be overloaded by :meth:`with_converter`.
+
+        Args:
+            data (tuple or dict): Data from :meth:`fetch`.
+
+        Returns:
+            A tuple or dict.
+            Each value is an ndarray.
+        """
         if isinstance(data, tuple):
             return tuple(_as_array(d) for d in data)
         elif isinstance(data, dict):
@@ -228,6 +242,17 @@ class TabularDataset(dataset_mixin.DatasetMixin):
             self, keys, transform_batch)
 
     def with_converter(self, converter):
+        """Overload the behaviour of :meth:`convert`.
+
+        This method overloads :meth:`convert`.
+
+        Args:
+            converter (callable): A new converter.
+
+        Returns:
+            A dataset with the new converter.
+        """
+
         return chainer.dataset.tabular._with_converter._WithConverter(
             self, converter)
 
