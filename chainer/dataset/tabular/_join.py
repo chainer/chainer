@@ -59,5 +59,5 @@ class _Join(tabular_dataset.TabularDataset):
 
         return tuple(examples[key_index] for key_index in key_indices)
 
-    def convert(self, *args, **kwarg):
-        return self._datasets[0].convert(*args, **kwarg)
+    def convert(self, data):
+        return self._datasets[0].convert(data)
