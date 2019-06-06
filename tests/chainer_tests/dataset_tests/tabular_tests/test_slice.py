@@ -134,6 +134,18 @@ class TestSlice(unittest.TestCase):
                 self.assertIsInstance(out, list)
 
 
+class TestSliceConvert(unittest.TestCase):
+
+    def test_slice_convert(self):
+        def converter(data):
+            self.assertEqual(data, 'input')
+            return 'converted'
+
+        dataset = dummy_dataset.DummyDataset().with_converter(converter)
+        view = dataset.slice[[3, 1], (1, 'a')]
+        self.assertEqual(view.convert('input'), 'converted')
+
+
 # Replace list of bool with ndarray of bool
 # since old numpy cannot handle list of bool.
 def _indices_for_numpy(indices):

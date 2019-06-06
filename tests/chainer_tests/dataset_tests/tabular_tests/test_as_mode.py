@@ -20,6 +20,18 @@ class TestAsTuple(unittest.TestCase):
         self.assertEqual(view.mode, tuple)
 
 
+class TestAsTupleConvert(unittest.TestCase):
+
+    def test_as_tuple_convert(self):
+        def converter(data):
+            self.assertEqual(data, 'input')
+            return 'converted'
+
+        dataset = dummy_dataset.DummyDataset().with_converter(converter)
+        view = dataset.as_tuple()
+        self.assertEqual(view.convert('input'), 'converted')
+
+
 @testing.parameterize(
     {'mode': tuple},
     {'mode': dict},
@@ -33,6 +45,18 @@ class TestAsDict(unittest.TestCase):
         self.assertEqual(len(view), len(dataset))
         self.assertEqual(view.keys, dataset.keys)
         self.assertEqual(view.mode, dict)
+
+
+class TestAsDictConvert(unittest.TestCase):
+
+    def test_as_dict_convert(self):
+        def converter(data):
+            self.assertEqual(data, 'input')
+            return 'converted'
+
+        dataset = dummy_dataset.DummyDataset().with_converter(converter)
+        view = dataset.as_dict()
+        self.assertEqual(view.convert('input'), 'converted')
 
 
 testing.run_module(__name__, __file__)

@@ -35,6 +35,22 @@ class TestTabularDataset(unittest.TestCase):
             else:
                 self.assertIsInstance(out, list)
 
+    def test_convert(self):
+        dataset = dummy_dataset.DummyDataset(
+            mode=self.mode, return_array=self.return_array)
+        output = dataset.convert(dataset.fetch())
+
+        if self.mode is tuple:
+            expected = tuple(dataset.data)
+        elif self.mode is dict:
+            expected = dict(zip(('a', 'b', 'c'), dataset.data))
+        np.testing.assert_equal(output, expected)
+
+        if self.mode is dict:
+            output = output.values()
+        for out in output:
+            self.assertIsInstance(out, np.ndarray)
+
     def test_get_example(self):
         def callback(indices, key_indices):
             self.assertEqual(indices, [3])

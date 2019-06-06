@@ -84,4 +84,17 @@ class TestJoinInvalid(unittest.TestCase):
             dataset_a.join(dataset_b)
 
 
+class TestJoinConvert(unittest.TestCase):
+
+    def test_join_convert(self):
+        def converter(data):
+            self.assertEqual(data, 'input')
+            return 'converted'
+
+        dataset_a = dummy_dataset.DummyDataset().with_converter(converter)
+        dataset_b = dummy_dataset.DummyDataset(keys=('d', 'e'))
+        view = dataset_a.join(dataset_b)
+        self.assertEqual(view.convert('input'), 'converted')
+
+
 testing.run_module(__name__, __file__)
