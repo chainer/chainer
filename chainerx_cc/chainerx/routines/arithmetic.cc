@@ -29,7 +29,6 @@
 #include "chainerx/scalar.h"
 #include "chainerx/shape.h"
 
-
 namespace chainerx {
 
 Array Negative(const Array& x) {

@@ -7,7 +7,6 @@
 #include "chainerx/array.h"
 #include "chainerx/scalar.h"
 
-
 namespace chainerx {
 
 Array Negative(const Array& x);

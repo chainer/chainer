@@ -110,6 +110,7 @@ _in_out_dtypes_float_arithmetic_scalar = (
 _in_out_dtypes_inplace_float_arithmetic_scalar = (
     _in_out_dtypes_float_array_float_scalar)
 
+
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
     # Special shapes
@@ -1193,6 +1194,7 @@ def _create_dummy_array_for_dot(xp, shape, dtype):
         x = x.astype(dtype)
     return xp.array(x)
 
+
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
     # Special shapes
@@ -1366,5 +1368,3 @@ def test_power_invalid_bool_dtype(
                 a ** b
             else:
                 b ** a
-
-

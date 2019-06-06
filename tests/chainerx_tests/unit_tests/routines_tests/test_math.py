@@ -5,7 +5,6 @@ import pytest
 import chainerx
 import chainerx.testing
 
-from chainerx_tests import array_utils
 from chainerx_tests import dtype_utils
 from chainerx_tests import math_utils
 from chainerx_tests import op_utils
@@ -109,6 +108,7 @@ _in_out_dtypes_float_arithmetic_scalar = (
 
 _in_out_dtypes_inplace_float_arithmetic_scalar = (
     _in_out_dtypes_float_array_float_scalar)
+
 
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
