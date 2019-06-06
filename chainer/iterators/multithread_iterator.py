@@ -6,7 +6,7 @@ import numpy
 import chainer
 from chainer.dataset import iterator
 from chainer.iterators import _statemachine
-from chainer.iterators import _transpose
+from chainer.iterators import _tabular_helper
 from chainer.iterators.order_samplers import ShuffleOrderSampler
 
 
@@ -147,7 +147,9 @@ class MultithreadIterator(iterator.Iterator):
 
     @staticmethod
     def _convert(convert, data):
-        return convert(_transpose.transpose(data.get()))
+        return _tabular_helper.apply(
+            convert,
+            _tabular_helper.transpose(data.get()))
 
     def _invoke_prefetch(self):
         assert self._next is None
