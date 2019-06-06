@@ -658,7 +658,7 @@ class Link(device_resident.DeviceResident):
             if param.data is None and data is not None:
                 # Initialize the parameter here
                 param.initialize(data.shape)
-                param.data[:] = param.device.send(data)
+                param.data[...] = param.device.send(data)
         for name in self._persistent:
             d[name] = serializer(name, d[name])
 
