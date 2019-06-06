@@ -148,7 +148,7 @@ class TestResizeImagesForwardUpScale(testing.FunctionTestCase):
         return y,
 
 
-class TestResizeImagesForwardMultiLines(unittest.TestCase):
+class TestResizeImagesForwardMultiLinesAlignCorners(unittest.TestCase):
 
     in_shape = (1, 1, 987, 123)
     output_shape = (1, 1, 765, 345)
