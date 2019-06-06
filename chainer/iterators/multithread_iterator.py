@@ -145,6 +145,10 @@ class MultithreadIterator(iterator.Iterator):
         dataset, index = args
         return dataset[index]
 
+    @staticmethod
+    def _convert(convert, data):
+        return convert(_transpose.transpose(data.get()))
+
     def _invoke_prefetch(self):
         assert self._next is None
         self._next_state, indices = _statemachine.iterator_statemachine(
@@ -159,6 +163,11 @@ class MultithreadIterator(iterator.Iterator):
             args = [(self.dataset, index) for index in indices]
             self._next = self._pool.map_async(MultithreadIterator._read, args)
 
+            if self._is_tabular:
+                self._next = self._pool.apply_async(
+                    MultithreadIterator._convert,
+                    (self.dataset.convert, self._next))
+
     def _get(self):
         self._previous_epoch_detail = self.epoch_detail
         self._state = self._next_state
@@ -172,7 +181,7 @@ class MultithreadIterator(iterator.Iterator):
             next.wait(0.5)  # To avoid interruption bug in Python2
 
         if self._is_tabular:
-            return self.dataset.convert(_transpose.transpose(next.get()))
+            return next.get()
 
         batch = [data for data in next.get()]
         return batch
