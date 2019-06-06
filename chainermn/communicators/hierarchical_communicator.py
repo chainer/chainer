@@ -53,7 +53,7 @@ class HierarchicalCommunicator(mpi_communicator_base.MpiCommunicatorBase):
     def multi_node_mean_grad(self, model, zero_fill=False):
         self._init_comms()
         stream = chainer.cuda.Stream.null
-        allreduce_grad_dtype = np.float32
+        allreduce_grad_dtype = np.float32()
 
         params = _memory_utility.extract_params_set_grad(model, zero_fill)
         itemsize = allreduce_grad_dtype.itemsize
