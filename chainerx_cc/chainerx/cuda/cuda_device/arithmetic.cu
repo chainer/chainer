@@ -14,7 +14,9 @@
 #include "chainerx/cuda/numeric.cuh"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
+#include "chainerx/kernels/arithmetic.h"
 #include "chainerx/kernels/math.h"
+#include "chainerx/routines/arithmetic.h"
 #include "chainerx/routines/math.h"
 #include "chainerx/scalar.h"
 
