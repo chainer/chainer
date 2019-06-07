@@ -9,19 +9,22 @@ set PATH=%CUDA_PATH%\bin;%CUDA_PATH%\libnvvp;%PY_PATH%;%PY_PATH%\Scripts\%PATH%
 
 set CHAINER_LATEST_MAJOR_VER=7
 set TEST_HOME=%CD%
+set PYTEST_ATTR=not slow and not ideep
 
 curl -o xpytest.exe --insecure -L https://github.com/disktnk/xpytest/releases/download/v0.0.1/xpytest.exe
 
 if %GPU_LIMIT% gtr 0 (
     rem cannot set variable within if block, so use subroutine
     call :INSTALL_CUPY
+) else (
+    set PYTEST_ATTR=not gpu and not cudnn and %PYTEST_ATTR%
 )
 
 pip install -e .[test] -vvv
 pip install scipy
 
 set CHAINER_TEST_GPU_LIMIT=%GPU_LIMIT%
-xpytest --python python -m "not slow and not ideep" --thread 8 --hint .pfnci/hint_win.pbtxt tests/chainer_tests/**/test_*.py
+xpytest --python python -m "%PYTEST_ATTR%" --thread 8 --hint .pfnci/hint_win.pbtxt tests/chainer_tests/**/test_*.py
 
 exit /b
 
