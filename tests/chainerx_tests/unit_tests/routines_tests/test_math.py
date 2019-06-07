@@ -6,7 +6,6 @@ import chainerx
 import chainerx.testing
 
 from chainerx_tests import dtype_utils
-from chainerx_tests import math_utils
 from chainerx_tests import op_utils
 
 
