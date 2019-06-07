@@ -394,6 +394,9 @@ class TestBroadcastTo(op_utils.NumpyOpTest):
     ((3,), (2,)),
     ((3,), (3, 2)),
     ((1, 3), (3, 2)),
+    ((3,), [2]),
+    ((3,), [3, 2]),
+    ((1, 3), [3, 2]),
 ])
 def test_broadcast_to_invalid(xp, src_shape, dst_shape):
     a = xp.ones(src_shape, 'float32')
