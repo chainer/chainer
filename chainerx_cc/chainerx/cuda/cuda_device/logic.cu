@@ -10,6 +10,7 @@
 #include "chainerx/cuda/data_type.cuh"
 #include "chainerx/cuda/elementwise.cuh"
 #include "chainerx/cuda/kernel_regist.h"
+#include "chainerx/cuda/numeric.cuh"
 #include "chainerx/cuda/reduce.cuh"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"

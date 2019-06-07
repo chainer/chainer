@@ -9,6 +9,7 @@
 #include "chainerx/native/elementwise.h"
 #include "chainerx/native/kernel_regist.h"
 #include "chainerx/native/reduce.h"
+#include "chainerx/numeric.h"
 #include "chainerx/routines/logic.h"
 
 namespace chainerx {
