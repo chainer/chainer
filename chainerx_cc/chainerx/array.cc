@@ -35,6 +35,7 @@
 #include "chainerx/macro.h"
 #include "chainerx/native/native_backend.h"
 #include "chainerx/op_node.h"
+#include "chainerx/routines/arithmetic.h"
 #include "chainerx/routines/binary.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/indexing.h"

@@ -261,8 +261,7 @@ The training loop code is as follows:
 
             test_losses = []
             test_accuracies = []
-            while True:
-                test_batch = test_iter.next()
+            for test_batch in test_iter:
                 image_test, target_test = concat_examples(test_batch, gpu_id)
 
                 # Forward the test data
@@ -277,12 +276,7 @@ The training loop code is as follows:
                 accuracy.to_cpu()
                 test_accuracies.append(accuracy.array)
 
-                if test_iter.is_new_epoch:
-                    test_iter.epoch = 0
-                    test_iter.current_position = 0
-                    test_iter.is_new_epoch = False
-                    test_iter._pushed_position = None
-                    break
+            test_iter.reset()
 
             print('val_loss:{:.04f} val_accuracy:{:.04f}'.format(
                 np.mean(test_losses), np.mean(test_accuracies)))

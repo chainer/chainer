@@ -4,6 +4,7 @@
 # https://github.com/chainer/xpytest/blob/master/proto/test_case.proto
 
 # Too flaky tests.  Retry up to 4 times.
+rules { name: "chainerx_tests/unit_tests/routines_tests/test_arithmetic.py" xdist: 8 deadline: 240 retry: 4 }
 rules { name: "chainerx_tests/unit_tests/routines_tests/test_math.py" xdist: 8 deadline: 240 retry: 4 }
 rules { name: "chainer_tests/functions_tests/activation_tests/test_elu.py" xdist: 2 retry: 4 }
 

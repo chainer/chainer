@@ -123,6 +123,13 @@ you wish (by debugging the ``forward()`` method of :class:`~chainer.static_graph
 in :mod:`~chainer.static_graph`).
 
 
+Disabling the static subgraph optimization
+------------------------------------------
+
+It is possible to turn off the static subgraph optimization feature by setting the ``chainer.config.use_static_graph`` to ``False``.
+If set to ``False``, the :func:`chainer.static_graph` decorator will simply call the wrapped function without any further side effects.
+
+
 Limitations and future work
 ---------------------------
 
@@ -139,6 +146,8 @@ Limitations and future work
 - Model export: In the case where the complete computation graph for the model is static, it should be possible in principle to export the static schedule in a format that can be run on other platforms and languages. One of the other original motivations for this feature was to support exporting static Chainer models to run on C/C++ and/or optimize the static schedule execution code in Cython/C/C++. However, it seems that ONNX is now fulfilling this purpose and there is a separate ONNX exporter already in development for Chainer. Perhaps these two features can be merged at some point in the future.
 
 - Double-backward support: This feature was designed to support double-backward (gradient of gradient) but it has not been tested.
+
+- ChainerX is not supported. If you have code written using this feature but would like to run the model with ChainerX, please set the ``chainer.config.use_static_graph`` configuration to ``False``. The code should then work without any additional changes.
 
 Examples
 --------
