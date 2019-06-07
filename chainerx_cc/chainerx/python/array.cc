@@ -174,13 +174,8 @@ void InitChainerxArray(pybind11::module& m) {
     // This is currently for internal use (from Chainer) to support CuPy.
     // TODO(niboshi): Remove this once it will be possible to import cupy.ndarray using chx.array / chx.asarray.
     m.def("_fromrawpointer",
-          [](intptr_t ptr,
-             py::handle shape,
-             py::handle dtype,
-             const py::tuple& strides,
-             py::handle device,
-             int64_t offset,
-             py::object base) -> ArrayBodyPtr {
+          [](intptr_t ptr, py::handle shape, py::handle dtype, const py::tuple& strides, py::handle device, int64_t offset, py::object base)
+                  -> ArrayBodyPtr {
               // TODO(niboshi): Expose `base` as `ndarray.base` attribute.
               void* c_ptr = reinterpret_cast<void*>(ptr);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
               // Note that inc_ref() / dec_ref() is performed by the lambda capture.
