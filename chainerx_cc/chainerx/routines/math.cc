@@ -44,26 +44,6 @@ Array Relu(const Array& x) {
     return Maximum(0, x_cast);
 }
 
-Array Ceil(const Array& x) {
-    Dtype dtype = internal::GetMathResultDtype(x.dtype());
-    Array out = Empty(x.shape(), dtype, x.device());
-    {
-        NoBackpropModeScope scope{};
-        x.device().backend().CallKernel<CeilKernel>(x, out);
-    }
-    return out;
-}
-
-Array Floor(const Array& x) {
-    Dtype dtype = internal::GetMathResultDtype(x.dtype());
-    Array out = Empty(x.shape(), dtype, x.device());
-    {
-        NoBackpropModeScope scope{};
-        x.device().backend().CallKernel<FloorKernel>(x, out);
-    }
-    return out;
-}
-
 Array IsNan(const Array& x) {
     Array out = Empty(x.shape(), Dtype::kBool, x.device());
     {
