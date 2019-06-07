@@ -1,5 +1,6 @@
 from __future__ import division
 import copy
+import threading
 import unittest
 
 import numpy
@@ -446,6 +447,18 @@ class TestMultithreadIteratorTabularDataset(unittest.TestCase):
             output = output.values()
         for out in output:
             self.assertIsInstance(out, numpy.ndarray)
+
+    def test_iterator_tabular_dataset_converter(self):
+        def converter(a, b, c):
+            self.assertNotEqual(
+                threading.current_thread(), threading.main_thread())
+            return 'converted'
+
+        dataset = dummy_dataset.DummyDataset(
+            mode=self.mode).with_converter(converter)
+        it = iterators.MultithreadIterator(
+            dataset, 2, shuffle=False, n_threads=self.n_threads)
+        self.assertEqual(it.next(), 'converted')
 
 
 testing.run_module(__name__, __file__)
