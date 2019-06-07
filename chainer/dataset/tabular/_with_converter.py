@@ -21,5 +21,8 @@ class _WithConverter(tabular_dataset.TabularDataset):
     def get_examples(self, indices, key_indices):
         return self._dataset.get_examples(indices, key_indices)
 
-    def convert(self, *args, **kwargs):
-        return self._converter(*args, **kwargs)
+    def convert(self, data):
+        if isinstance(data, tuple):
+            return self._converter(*data)
+        elif isinstance(data, dict):
+            return self._converter(**data)

@@ -38,12 +38,11 @@ class TestTabularDataset(unittest.TestCase):
     def test_convert(self):
         dataset = dummy_dataset.DummyDataset(
             mode=self.mode, return_array=self.return_array)
+        output = dataset.convert(dataset.fetch())
 
         if self.mode is tuple:
-            output = dataset.convert(*dataset.fetch())
             expected = tuple(dataset.data)
         elif self.mode is dict:
-            output = dataset.convert(**dataset.fetch())
             expected = dict(zip(('a', 'b', 'c'), dataset.data))
         np.testing.assert_equal(output, expected)
 
