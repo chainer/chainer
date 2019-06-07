@@ -4,8 +4,6 @@
 #include <cstddef>
 #include <cstdint>
 
-#include "chainerx/shape.h"
-
 namespace chainerx {
 namespace python {
 namespace python_internal {
