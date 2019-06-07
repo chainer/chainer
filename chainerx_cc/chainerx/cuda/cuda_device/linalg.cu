@@ -87,6 +87,10 @@ public:
             device.backend().CallKernel<CopyKernel>(Identity(m, dtype, device), out);
             T* out_ptr = static_cast<T*>(internal::GetRawOffsetData(out));
 
+            // There is LAPACK routine ``getri`` for computing the inverse of an LU-factored matrix,
+            // but cuSOLVER does not have it implemented, therefore inverse is obtained with ``getrs``
+            // inv(A) == solve(A, Identity)
+
             device_internals.cusolver_handle().Call(
                 getrs,
                 CUBLAS_OP_N, m, m, lu_ptr, m,
