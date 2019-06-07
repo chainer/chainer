@@ -48,15 +48,19 @@ public:
         int n = a.shape()[0];
         int m = a.shape()[1];
 
-        Array x = Empty(a.shape(), dtype, device);
-        bool trans_flag = true;
+        Array x{};
+        bool trans_flag;
 
         if (m >= n) {
+            x = Empty(Shape({n, m}), dtype, device);
             device.backend().CallKernel<CopyKernel>(a, x);
             trans_flag = false;
         } else {
             m = a.shape()[0];
             n = a.shape()[1];
+            x = Empty(Shape({n, m}), dtype, device);
+            device.backend().CallKernel<CopyKernel>(a.Transpose(), x);
+            trans_flag = true;
         }
         int mn = std::min(m, n);
 
