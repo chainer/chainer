@@ -56,6 +56,8 @@ Array All(const Array& a, const OptionalAxes& axis = nonstd::nullopt, bool keepd
 
 Array Any(const Array& a, const OptionalAxes& axis = nonstd::nullopt, bool keepdims = false);
 
+Array IsNan(const Array& x);
+
 Array IsInf(const Array& x);
 
 Array IsFinite(const Array& x);

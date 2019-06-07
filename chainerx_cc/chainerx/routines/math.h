@@ -13,6 +13,4 @@ Array Sigmoid(const Array& x);
 
 Array Relu(const Array& x);
 
-Array IsNan(const Array& x);
-
 }  // namespace chainerx
