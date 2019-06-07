@@ -60,13 +60,6 @@ def main():
             'This example may cause NaN in FP16 mode.', RuntimeWarning)
 
     device = chainer.get_device(args.device)
-    if device.xp is chainerx:
-        warnings.warn(
-            'Static subgraph optimization does not support ChainerX and will'
-            ' be disabled.', UserWarning)
-        use_static_graph = False
-    else:
-        use_static_graph = True
 
     print('Device: {}'.format(device))
     print('# Minibatch-size: {}'.format(args.batchsize))
@@ -104,13 +97,13 @@ def main():
     optimizer.add_hook(chainer.optimizer.WeightDecay(5e-4))
 
     train_iter = chainer.iterators.SerialIterator(train, args.batchsize)
-    test_iter = chainer.iterators.SerialIterator(test, args.batchsize,
-                                                 repeat=False, shuffle=False)
+    test_iter = chainer.iterators.SerialIterator(
+        test, args.batchsize, repeat=False, shuffle=False)
 
-    sum_accuracy = 0
-    sum_loss = 0
+    def run():
+        sum_accuracy = 0
+        sum_loss = 0
 
-    with chainer.using_config('use_static_graph', use_static_graph):
         while train_iter.epoch < args.epoch:
             batch = train_iter.next()
             # Reduce learning rate by 0.5 every 25 epochs.
@@ -150,6 +143,15 @@ def main():
                     sum_loss / test_count, sum_accuracy / test_count))
                 sum_accuracy = 0
                 sum_loss = 0
+
+    if device.xp is not chainerx:
+        run()
+    else:
+        warnings.warn(
+            'Static subgraph optimization does not support ChainerX and will'
+            ' be disabled.', UserWarning)
+        with chainer.using_config('use_static_graph', False):
+            run()
 
     # Save the model and the optimizer
     print('save the model')

@@ -55,13 +55,6 @@ def main():
             'This example may cause NaN in FP16 mode.', RuntimeWarning)
 
     device = chainer.get_device(args.device)
-    if device.xp is chainerx:
-        warnings.warn(
-            'Static subgraph optimization does not support ChainerX and will'
-            ' be disabled.', UserWarning)
-        use_static_graph = False
-    else:
-        use_static_graph = True
 
     print('Device: {}'.format(device))
     print('# Minibatch-size: {}'.format(args.batchsize))
@@ -142,8 +135,14 @@ def main():
         chainer.serializers.load_npz(args.resume, trainer)
 
     # Run the training
-    with chainer.using_config('use_static_graph', use_static_graph):
+    if device.xp is not chainerx:
         trainer.run()
+    else:
+        warnings.warn(
+            'Static subgraph optimization does not support ChainerX and will'
+            ' be disabled.', UserWarning)
+        with chainer.using_config('use_static_graph', False):
+            trainer.run()
 
 
 if __name__ == '__main__':
