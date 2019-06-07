@@ -7,6 +7,9 @@ the code is mostly unchanged except for the addition of the
 """
 import argparse
 import sys
+import warnings
+
+import numpy
 
 import chainer
 import chainer.links as L
@@ -47,6 +50,10 @@ def main():
                        type=int, nargs='?', const=0,
                        help='GPU ID (negative value indicates CPU)')
     args = parser.parse_args()
+
+    if chainer.get_dtype() == numpy.float16:
+        warnings.warn(
+            'This example may cause NaN in FP16 mode.', RuntimeWarning)
 
     device = chainer.get_device(args.device)
     if device.xp is chainerx:

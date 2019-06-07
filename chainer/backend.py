@@ -154,7 +154,16 @@ def get_device(device_spec):
                 if not colon:
                     return intel64.Intel64Device()
 
-        elif chainerx.is_available():
+        else:
+            # String device specifier without '@' prefix is assumed to be a
+            # ChainerX device.
+            if not chainerx.is_available():
+                raise RuntimeError(
+                    'Tried to parse ChainerX device specifier \'{}\', '
+                    'but ChainerX is not available. '
+                    'Note that device specifiers without \'@\' prefix are '
+                    'assumed to be ChainerX device '
+                    'specifiers.'.format(device_spec))
             return _chainerx.ChainerxDevice(chainerx.get_device(device_spec))
 
     raise ValueError('Invalid device specifier: {}'.format(device_spec))

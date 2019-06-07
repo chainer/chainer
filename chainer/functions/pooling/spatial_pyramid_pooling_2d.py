@@ -1,4 +1,5 @@
 import math
+
 import six
 
 import chainer

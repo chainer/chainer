@@ -5,7 +5,7 @@
 #include "chainerx/array.h"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
-#include "chainerx/kernels/math.h"
+#include "chainerx/kernels/explog.h"
 #include "chainerx/native/elementwise.h"
 #include "chainerx/native/kernel_regist.h"
 #include "chainerx/numeric.h"

@@ -168,6 +168,8 @@ def static_code(*dec_args, **dec_kwargs):
             # If trace mode is on, add to schedule.
             schedule_function = chainer.config.schedule_func
             if schedule_function is not None:
+                assert chainer.config.use_static_graph
+
                 # Note: 'ret = func(*args, **kwargs)' is called inside
                 # the following method.
                 ret = schedule_function.append_function(func, args, kwargs,
