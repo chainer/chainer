@@ -176,19 +176,22 @@ def compute_indices_and_weights(out_size, in_size, mode, align_corners, xp):
     H, W = in_size
     if mode == 'bilinear':
         if align_corners:
-            v = xp.arange(out_H, dtype=numpy.float) * (H - 1) / (out_H - 1)
-            u = xp.arange(out_W, dtype=numpy.float) * (W - 1) / (out_W - 1)
+            y_scale = (H - 1) / (out_H - 1)
+            x_scale = (W - 1) / (out_W - 1)
+            v = xp.arange(out_H, dtype=numpy.float) * y_scale
+            u = xp.arange(out_W, dtype=numpy.float) * x_scale
         else:
-            v = (xp.arange(out_H, dtype=numpy.float) + 0.5) * H / out_H - 0.5
+            y_scale = H / out_H
+            x_scale = W / out_W
+            v = (xp.arange(out_H, dtype=numpy.float) + 0.5) * y_scale - 0.5
             v = xp.maximum(v, 0)
-            u = (xp.arange(out_W, dtype=numpy.float) + 0.5) * W / out_W - 0.5
+            u = (xp.arange(out_W, dtype=numpy.float) + 0.5) * x_scale - 0.5
             u = xp.maximum(u, 0)
         vw, v = xp.modf(v)
         uw, u = xp.modf(u)
     elif mode == 'nearest':
         y_scale = H / out_H
         x_scale = W / out_W
-
         v = xp.minimum(xp.floor(
             xp.arange(out_H, dtype=numpy.float) * y_scale), H - 1)
         u = xp.minimum(xp.floor(
