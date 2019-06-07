@@ -98,4 +98,16 @@ Array Dot(const Array& a, const Array& b, nonstd::optional<Dtype> out_dtype) {
     return out_matrix.Reshape(out_shape);
 }
 
+Array Solve(const Array& a, const Array& b) {
+    Dtype dtype = internal::GetMathResultDtype(b.dtype());
+    Array out = Empty(b.shape(), dtype, b.device());
+
+    {
+        NoBackpropModeScope scope{};
+        a.device().backend().CallKernel<SolveKernel>(a, b, out);
+    }
+
+    return out;
+}
+
 }  // namespace chainerx

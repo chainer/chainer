@@ -498,6 +498,24 @@ Note:
 .. seealso:: :func:`numpy.dot`
 """)
 
+    _docs.set_doc(
+        chainerx.linalg.solve,
+        """solve(a, b)
+Solves a linear matrix equation, or system of linear scalar equations.
+
+It computes the exact solution of ``x`` in ``ax = b``,
+where ``a`` is a square and full rank matrix.
+
+Args:
+    a (~chainerx.ndarray): Coefficient matrix.
+    a (~chainerx.ndarray): "dependent variable" values.
+
+Returns:
+    :class:`~chainerx.ndarray`: Solution to the system ``ax = b``.
+
+.. seealso:: :func:`numpy.linalg.solve`
+""")
+
 
 def _docs_logic():
     _docs.set_doc(

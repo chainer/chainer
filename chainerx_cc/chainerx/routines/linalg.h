@@ -9,4 +9,6 @@ namespace chainerx {
 
 Array Dot(const Array& a, const Array& b, nonstd::optional<Dtype> out_dtype = nonstd::nullopt);
 
+Array Solve(const Array& a, const Array& b);
+
 }  // namespace chainerx
