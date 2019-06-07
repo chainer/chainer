@@ -117,8 +117,7 @@ configs {
   value {
     requirement {
       cpu: 8
-      memory: 32
-      gpu: 1
+      memory: 16
       image: "windows"
     }
     time_limit {
