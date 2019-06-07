@@ -12,7 +12,7 @@ namespace python_internal {
 
 namespace py = pybind11;
 
-Shape ToShape(const py::tuple& tup) {
+Shape ToShape(const py::sequence& tup) {
     Shape shape{};
     std::transform(tup.begin(), tup.end(), std::back_inserter(shape), [](auto& item) { return py::cast<int64_t>(item); });
     return shape;

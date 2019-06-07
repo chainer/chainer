@@ -117,15 +117,15 @@ void InitChainerxCreation(pybind11::module& m) {
           py::arg("dtype") = nullptr,
           py::arg("device") = nullptr);
     m.def("empty",
-          [](py::tuple shape, py::handle dtype, py::handle device) {
-              return MoveArrayBody(Empty(ToShape(shape), dtype.is_none() ? Dtype::kFloat32 : GetDtype(dtype), GetDevice(device)));
-          },
-          py::arg("shape"),
-          py::arg("dtype") = nullptr,
-          py::arg("device") = nullptr);
-    m.def("empty",
-          [](py::int_ dim, py::handle dtype, py::handle device) {
-              return MoveArrayBody(Empty(Shape{dim}, dtype.is_none() ? Dtype::kFloat32 : GetDtype(dtype), GetDevice(device)));
+          [](py::handle shape, py::handle dtype, py::handle device) {
+              if (py::isinstance<py::sequence>(shape)) {
+                  return MoveArrayBody(Empty(ToShape(shape), dtype.is_none() ? Dtype::kFloat32 : GetDtype(dtype),
+                      GetDevice(device)));
+              } else if (py::isinstance<py::int_>(shape)) {
+                  int64_t dim = shape.cast<int64_t>();
+                  return MoveArrayBody(Empty(Shape{dim}, dtype.is_none() ? Dtype::kFloat32 : GetDtype(dtype),
+                      GetDevice(device)));
+              }
           },
           py::arg("shape"),
           py::arg("dtype") = nullptr,
