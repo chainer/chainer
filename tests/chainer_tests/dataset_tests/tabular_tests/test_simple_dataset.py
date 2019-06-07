@@ -7,35 +7,32 @@ from chainer import testing
 from chainer.dataset import tabular
 
 
-class DatasetDataOnly(tabular.AttrBasedDataset):
+class DatasetDataOnly(tabular.SimpleDataset):
 
     def __init__(self):
         super().__init__()
-        with self.init_scope():
-            self.a = np.arange(10)
-            self.b = [3, 1, 4, 5, 9, 2, 6, 8, 7, 0]
+        self.add_column('a', np.arange(10))
+        self.add_column('b', [3, 1, 4, 5, 9, 2, 6, 8, 7, 0])
 
 
-class DatasetDataOnlyWithWrongLen(tabular.AttrBasedDataset):
+class DatasetDataOnlyWithWrongLen(tabular.SimpleDataset):
 
     def __init__(self):
         super().__init__()
-        with self.init_scope():
-            self.a = np.arange(10)
-            self.b = [3, 1, 4, 5, 9, 2, 6, 8, 7, 0]
+        self.add_column('a', np.arange(10))
+        self.add_column('b', [3, 1, 4, 5, 9, 2, 6, 8, 7, 0])
 
     def __len__(self):
         return 12
 
 
-class DatasetCallableOnly(tabular.AttrBasedDataset):
+class DatasetCallableOnly(tabular.SimpleDataset):
 
     def __init__(self):
         super().__init__()
-        with self.init_scope():
-            self.a = self.get_a
-            self['b', 'c'] = self.get_bc
-            self['d', 'e'] = self.get_de
+        self.add_column('a', self.get_a)
+        self.add_column(('b', 'c'), self.get_bc)
+        self.add_column(('d', 'e'), self.get_de)
 
     def __len__(self):
         return 10
@@ -50,14 +47,13 @@ class DatasetCallableOnly(tabular.AttrBasedDataset):
         return {'d': 'd[{}]'.format(i), 'e': 'e[{}]'.format(i)}
 
 
-class DatasetCallableOnlyWithoutLen(tabular.AttrBasedDataset):
+class DatasetCallableOnlyWithoutLen(tabular.SimpleDataset):
 
     def __init__(self):
         super().__init__()
-        with self.init_scope():
-            self.a = self.get_a
-            self['b', 'c'] = self.get_bc
-            self['d', 'e'] = self.get_de
+        self.add_column('a', self.get_a)
+        self.add_column(('b', 'c'), self.get_bc)
+        self.add_column(('d', 'e'), self.get_de)
 
     def get_a(self, i):
         return 'a[{}]'.format(i)
@@ -69,15 +65,14 @@ class DatasetCallableOnlyWithoutLen(tabular.AttrBasedDataset):
         return {'d': 'd[{}]'.format(i), 'e': 'e[{}]'.format(i)}
 
 
-class DatasetMixed(tabular.AttrBasedDataset):
+class DatasetMixed(tabular.SimpleDataset):
 
     def __init__(self):
         super().__init__()
-        with self.init_scope():
-            self.a = np.arange(10)
-            self.b = self.get_b
-            self.c = [3, 1, 4, 5, 9, 2, 6, 8, 7, 0]
-            self['d', 'e'] = self.get_de
+        self.add_column('a', np.arange(10))
+        self.add_column('b', self.get_b)
+        self.add_column('c', [3, 1, 4, 5, 9, 2, 6, 8, 7, 0])
+        self.add_column(('d', 'e'), self.get_de)
 
     def get_b(self, i):
         return 'b[{}]'.format(i)
@@ -86,7 +81,7 @@ class DatasetMixed(tabular.AttrBasedDataset):
         return {'d': 'd[{}]'.format(i), 'e': 'e[{}]'.format(i)}
 
 
-class TestAttrBasedDataset(unittest.TestCase):
+class TestSimpleDataset(unittest.TestCase):
 
     def test_data_only(self):
         dataset = DatasetDataOnly()
