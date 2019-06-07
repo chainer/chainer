@@ -124,7 +124,7 @@ void InitChainerxCreation(pybind11::module& m) {
           py::arg("dtype") = nullptr,
           py::arg("device") = nullptr);
     m.def("full",
-          [](py::tuple shape, Scalar fill_value, py::handle dtype, py::handle device) {
+          [](py::handle shape, Scalar fill_value, py::handle dtype, py::handle device) {
               return MoveArrayBody(Full(ToShape(shape), fill_value, GetDtype(dtype), GetDevice(device)));
           },
           py::arg("shape"),
@@ -140,7 +140,7 @@ void InitChainerxCreation(pybind11::module& m) {
           py::arg("dtype"),
           py::arg("device") = nullptr);
     m.def("full",
-          [](py::tuple shape, Scalar fill_value, py::handle device) {
+          [](py::handle shape, Scalar fill_value, py::handle device) {
               return MoveArrayBody(Full(ToShape(shape), fill_value, GetDevice(device)));
           },
           py::arg("shape"),
@@ -152,7 +152,7 @@ void InitChainerxCreation(pybind11::module& m) {
           py::arg("fill_value"),
           py::arg("device") = nullptr);
     m.def("zeros",
-          [](py::tuple shape, py::handle dtype, py::handle device) {
+          [](py::handle shape, py::handle dtype, py::handle device) {
               return MoveArrayBody(Zeros(ToShape(shape), dtype.is_none() ? Dtype::kFloat32 : GetDtype(dtype), GetDevice(device)));
           },
           py::arg("shape"),
@@ -166,7 +166,7 @@ void InitChainerxCreation(pybind11::module& m) {
           py::arg("dtype") = nullptr,
           py::arg("device") = nullptr);
     m.def("ones",
-          [](py::tuple shape, py::handle dtype, py::handle device) {
+          [](py::handle shape, py::handle dtype, py::handle device) {
               return MoveArrayBody(Ones(ToShape(shape), dtype.is_none() ? Dtype::kFloat32 : GetDtype(dtype), GetDevice(device)));
           },
           py::arg("shape"),
@@ -431,7 +431,7 @@ void InitChainerxManipulation(pybind11::module& m) {
           py::arg("axis"),
           py::arg("start") = 0);
     m.def("reshape",
-          [](const ArrayBodyPtr& a, py::tuple newshape) { return MoveArrayBody(Reshape(Array{a}, ToShape(newshape))); },
+          [](const ArrayBodyPtr& a, py::handle newshape) { return MoveArrayBody(Reshape(Array{a}, ToShape(newshape))); },
           py::arg("a"),
           py::arg("newshape"));
     m.def("reshape",
@@ -468,7 +468,7 @@ void InitChainerxManipulation(pybind11::module& m) {
           py::arg("axis1"),
           py::arg("axis2"));
     m.def("broadcast_to",
-          [](const ArrayBodyPtr& array, py::tuple shape) { return MoveArrayBody(Array{array}.BroadcastTo(ToShape(shape))); },
+          [](const ArrayBodyPtr& array, py::handle shape) { return MoveArrayBody(Array{array}.BroadcastTo(ToShape(shape))); },
           py::arg("array"),
           py::arg("shape"));
     m.def("concatenate",

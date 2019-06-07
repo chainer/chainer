@@ -159,7 +159,7 @@ ArrayBodyPtr MakeArray(py::handle object, const nonstd::optional<Dtype>& dtype, 
 void InitChainerxArray(pybind11::module& m) {
     py::class_<ArrayBody, ArrayBodyPtr> c{m, "ndarray", py::buffer_protocol()};
     // TODO(hvy): Support all arguments in the constructor of numpy.ndarray.
-    c.def(py::init([](const py::tuple& shape, py::handle dtype, py::handle device) {
+    c.def(py::init([](py::handle shape, py::handle dtype, py::handle device) {
               return MoveArrayBody(Empty(ToShape(shape), GetDtype(dtype), GetDevice(device)));
           }),
           py::arg("shape"),
@@ -175,7 +175,7 @@ void InitChainerxArray(pybind11::module& m) {
     // TODO(niboshi): Remove this once it will be possible to import cupy.ndarray using chx.array / chx.asarray.
     m.def("_fromrawpointer",
           [](intptr_t ptr,
-             const py::tuple& shape,
+             py::handle shape,
              py::handle dtype,
              const py::tuple& strides,
              py::handle device,
@@ -268,7 +268,7 @@ void InitChainerxArray(pybind11::module& m) {
           },
           py::arg("axes") = nullptr);
     c.def("transpose", [](const ArrayBodyPtr& self, py::args args) { return MoveArrayBody(Array{self}.Transpose(ToAxes(args))); });
-    c.def("reshape", [](const ArrayBodyPtr& self, py::tuple shape) { return MoveArrayBody(Array{self}.Reshape(ToShape(shape))); });
+    c.def("reshape", [](const ArrayBodyPtr& self, py::handle shape) { return MoveArrayBody(Array{self}.Reshape(ToShape(shape))); });
     c.def("reshape", [](const ArrayBodyPtr& self, const std::vector<int64_t>& shape) {
         return MoveArrayBody(Array{self}.Reshape({shape.begin(), shape.end()}));
     });

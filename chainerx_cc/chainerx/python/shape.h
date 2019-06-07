@@ -8,7 +8,7 @@ namespace chainerx {
 namespace python {
 namespace python_internal {
 
-Shape ToShape(const pybind11::tuple& tup);
+Shape ToShape(pybind11::handle shape);
 
 pybind11::tuple ToTuple(const Shape& shape);
 
