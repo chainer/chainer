@@ -128,7 +128,8 @@ void ExpectDataEqual(T expected, const Array& actual) {
 #define GET_MACRO(_1, _2, _3, _4, _5, NAME, ...) NAME
 #define EXPECT_ARRAY_ALL_CLOSE2(a, b) EXPECT_PRED_FORMAT5(::chainerx::testing::testing_internal::IsAllClose, a, b, 1e-5, 1e-8, false)
 #define EXPECT_ARRAY_ALL_CLOSE3(a, b, rtol) EXPECT_PRED_FORMAT5(::chainerx::testing::testing_internal::IsAllClose, a, b, rtol, 1e-8, false)
-#define EXPECT_ARRAY_ALL_CLOSE4(a, b, rtol, atol) EXPECT_PRED_FORMAT5(::chainerx::testing::testing_internal::IsAllClose, a, b, rtol, atol, false)
+#define EXPECT_ARRAY_ALL_CLOSE4(a, b, rtol, atol) \
+    EXPECT_PRED_FORMAT5(::chainerx::testing::testing_internal::IsAllClose, a, b, rtol, atol, false)
 #define EXPECT_ARRAY_ALL_CLOSE5(a, b, rtol, atol, equal_nan) \
     EXPECT_PRED_FORMAT5(::chainerx::testing::testing_internal::IsAllClose, a, b, rtol, atol, equal_nan)
 #define EXPECT_ARRAY_ALL_CLOSE(...)                                                                                            \
@@ -136,6 +137,7 @@ void ExpectDataEqual(T expected, const Array& actual) {
     (__VA_ARGS__)
 
 // Expects that the arrays a and b have distint array bodies.
-#define EXPECT_ARRAY_HAVE_DISTINCT_ARRAY_NODES(a, b) EXPECT_PRED_FORMAT2(::chainerx::testing::testing_internal::HaveDistinctArrayNodes, a, b)
+#define EXPECT_ARRAY_HAVE_DISTINCT_ARRAY_NODES(a, b) \
+    EXPECT_PRED_FORMAT2(::chainerx::testing::testing_internal::HaveDistinctArrayNodes, a, b)
 
 }  // namespace chainerx
