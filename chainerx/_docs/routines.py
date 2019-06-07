@@ -500,10 +500,13 @@ Note:
 
     _docs.set_doc(
         chainerx.linalg.svd,
-        """Singular Value Decomposition.
+        """svd(a, full_matrices=True, compute_uv=True)
+Singular Value Decomposition.
+
 Factorizes the matrix ``a`` as ``u * np.diag(s) * v``, where ``u`` and
 ``v`` are unitary and ``s`` is an one-dimensional array of ``a``'s
 singular values.
+
 Args:
     a (~chainerx.ndarray): The input matrix with dimension ``(M, N)``.
     full_matrices (bool): If True, it returns u and v with dimensions
@@ -511,9 +514,11 @@ Args:
         are respectively ``(M, K)`` and ``(K, N)``, where
         ``K = min(M, N)``.
     compute_uv (bool): If True, it only returns singular values.
+
 Returns:
     tuple of :class:`chainerx.ndarray`:
         A tuple of ``(u, s, v)`` such that ``a = u * diag(s) * v``.
+
 .. seealso:: :func:`numpy.linalg.svd`
 """)
 
