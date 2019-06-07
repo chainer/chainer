@@ -18,7 +18,7 @@ class TestWithConverter(unittest.TestCase):
 
         def converter(*args, **kwargs):
             if self.mode is tuple:
-                np.testing.assert_equal(args, dataset.data)
+                np.testing.assert_equal(args, tuple(dataset.data))
                 self.assertEqual(kwargs, {})
             elif self.mode is dict:
                 self.assertEqual(args, ())
