@@ -191,8 +191,8 @@ def concat_examples(batch, device=None, padding=None):
               [5, 6]]), 'label': array([0, 1, 2])}
 
     Args:
-        batch (list): A list of examples. This is typically given by a dataset
-            iterator.
+        batch (list or tuple or dict): A batch of examples.
+            This is typically given by a dataset iterator.
         device (device specifier): A device to which each array is sent.
             If it is omitted, all arrays are left in their original devices.
             See :meth:`~chainer.dataset.convert.to_device` for more details.
@@ -201,6 +201,7 @@ def concat_examples(batch, device=None, padding=None):
             minimum dimensionalities that can accommodate all arrays is
             created, and elements outside of the examples are padded by this
             value.
+            If :obj:`batch` is a tuple or dict, this parameter is ignored.
 
     Returns:
         Array, a tuple of arrays, or a dictionary of arrays. The type depends
