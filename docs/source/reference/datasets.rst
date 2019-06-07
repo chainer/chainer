@@ -50,6 +50,7 @@ Tabular Dataset Helpers
    :nosignatures:
 
    chainer.dataset.tabular.from_data
+   chainer.dataset.tabular.SimpleDataset
 
 
 Iterator Interface
