@@ -13,6 +13,7 @@
 #include "chainerx/constant.h"
 #include "chainerx/dtype.h"
 #include "chainerx/error.h"
+#include "chainerx/kernels/arithmetic.h"
 #include "chainerx/kernels/indexing.h"
 #include "chainerx/kernels/math.h"
 #include "chainerx/kernels/pooling.h"

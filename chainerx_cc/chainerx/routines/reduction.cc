@@ -18,6 +18,7 @@
 #include "chainerx/graph.h"
 #include "chainerx/kernels/reduction.h"
 #include "chainerx/macro.h"
+#include "chainerx/routines/arithmetic.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/explog.h"
 #include "chainerx/routines/manipulation.h"
