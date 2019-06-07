@@ -136,8 +136,8 @@ class ThinStackRecursiveNet(chainer.Chain):
         count = 0
         correct = 0
 
-        stack = self.xp.zeros(
-            (batch, maxlen * 2, self.n_units), self.xp.float32)
+        dtype = chainer.get_dtype()
+        stack = self.xp.zeros((batch, maxlen * 2, self.n_units), dtype)
         for i, (word, label) in enumerate(zip(sequences, leaf_labels)):
             batch = word.shape[0]
             es = self.leaf(word)
