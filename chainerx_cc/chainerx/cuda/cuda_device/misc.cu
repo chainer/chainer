@@ -14,9 +14,9 @@
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
 #include "chainerx/kernels/arithmetic.h"
+#include "chainerx/kernels/logic.h"
 #include "chainerx/kernels/math.h"
 #include "chainerx/kernels/misc.h"
-#include "chainerx/kernels/logic.h"
 #include "chainerx/routines/type_util.h"
 
 namespace chainerx {
