@@ -22,4 +22,7 @@ class _WithConverter(tabular_dataset.TabularDataset):
         return self._dataset.get_examples(indices, key_indices)
 
     def convert(self, data):
-        return self._converter(data)
+        if isinstance(data, tuple):
+            return self._converter(*data)
+        elif isinstance(data, dict):
+            return self._converter(**data)

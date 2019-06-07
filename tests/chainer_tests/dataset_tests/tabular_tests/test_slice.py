@@ -134,16 +134,20 @@ class TestSlice(unittest.TestCase):
                 self.assertIsInstance(out, list)
 
 
+@testing.parameterize(
+    {'mode': tuple},
+    {'mode': dict},
+)
 class TestSliceConvert(unittest.TestCase):
 
     def test_slice_convert(self):
-        def converter(data):
-            self.assertEqual(data, 'input')
+        def converter(b, a):
             return 'converted'
 
-        dataset = dummy_dataset.DummyDataset().with_converter(converter)
+        dataset = dummy_dataset.DummyDataset(
+            mode=self.mode).with_converter(converter)
         view = dataset.slice[[3, 1], (1, 'a')]
-        self.assertEqual(view.convert('input'), 'converted')
+        self.assertEqual(view.convert(view.fetch()), 'converted')
 
 
 # Replace list of bool with ndarray of bool
