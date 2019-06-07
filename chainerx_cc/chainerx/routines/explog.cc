@@ -8,6 +8,7 @@
 #include "chainerx/backprop_mode.h"
 #include "chainerx/backward_builder.h"
 #include "chainerx/backward_context.h"
+#include "chainerx/constant.h"
 #include "chainerx/dtype.h"
 #include "chainerx/enum.h"
 #include "chainerx/error.h"
@@ -21,7 +22,6 @@
 namespace chainerx {
 
 Array Erf(const Array& x) {
-    const float pi = std::acos(-1);
     Dtype dtype = internal::GetMathResultDtype(x.dtype());
     Array out = Empty(x.shape(), dtype, x.device());
 
@@ -32,9 +32,9 @@ Array Erf(const Array& x) {
 
     BackwardBuilder bb{"erf", x, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-        bt.Define([x_tok = bb.RetainInput(0), pi](BackwardContext& bctx) {
+        bt.Define([x_tok = bb.RetainInput(0)](BackwardContext& bctx) {
             const Array& x = bctx.GetRetainedInput(x_tok);
-            bctx.input_grad() = *bctx.output_grad() * 2 / std::pow(pi, 0.5) * Exp(-Square(x));
+            bctx.input_grad() = *bctx.output_grad() * 2.0 / static_cast<double>(std::sqrt(kPi)) * Exp(-Square(x));
         });
     }
     bb.Finalize();
