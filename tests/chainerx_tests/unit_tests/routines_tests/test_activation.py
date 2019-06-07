@@ -3,7 +3,6 @@ import numpy
 
 from chainerx_tests import array_utils
 from chainerx_tests import dtype_utils
-from chainerx_tests import math_utils
 from chainerx_tests import op_utils
 
 
@@ -75,27 +74,30 @@ _in_out_dtypes_math_functions = _in_out_float_dtypes_math_functions + [
 
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
-    chainer.testing.product([
-        chainer.testing.from_pytest_parameterize(
-            'shape', [
-                (2, 2),
-                (3, 3, 3),
-                (5, 5, 5),
-                (4, 1, 2, 4)
-            ]),
-        chainer.testing.from_pytest_parameterize(
-            'in_dtypes,out_dtype', math_utils.in_out_dtypes_math_functions)
-    ])
+    # Special shapes
+    chainer.testing.product({
+        'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
+        'in_dtypes,out_dtype': _in_out_dtypes_math_functions,
+        'input': [-2, 2],
+        'contiguous': [None, 'C'],
+    })
+    # Special values
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,out_dtype': _in_out_float_dtypes_math_functions,
+        'input': [0, float('inf'), -float('inf'), float('nan')],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True],
+    })
 ))
-class TestLeakyRelu(op_utils.ChainerOpTest):
+class TestLeakyRelu(UnaryMathTestBase, op_utils.ChainerOpTest):
 
-    dodge_nondifferentiable = True
     slope = 0.2
 
-    def setup(self, float_dtype):
-        dtype = float_dtype
+    def setup(self):
+        dtype, = self.in_dtypes
 
-        if float_dtype == 'float16':
+        if dtype == 'float16':
             self.check_forward_options.update({'atol': 1e-4, 'rtol': 1e-3})
             self.check_backward_options.update({'atol': 5e-2, 'rtol': 5e-2})
             self.check_double_backward_options.update(
@@ -106,7 +108,7 @@ class TestLeakyRelu(op_utils.ChainerOpTest):
     def generate_inputs(self):
         shape = self.shape
         dtype = self.dtype
-        x = array_utils.create_dummy_ndarray(numpy, shape, dtype)
+        x = array_utils.uniform(shape, dtype)
         return x,
 
     def forward_chainerx(self, inputs):

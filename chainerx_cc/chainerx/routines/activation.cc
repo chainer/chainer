@@ -38,7 +38,7 @@ Array Relu(const Array& x) {
 
 Array LeakyRelu(const Array& x, Scalar slope) {
     Array zero = ZerosLike(x, x.device());
-    return Where(x > zero, x, slope * x);
+    return Where(x >= zero, x, slope * x);
 }
 
 }  // namespace chainerx
