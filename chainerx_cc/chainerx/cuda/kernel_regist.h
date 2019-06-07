@@ -4,11 +4,12 @@
 
 #include "chainerx/array.h"
 #include "chainerx/cuda/cuda_backend.h"
+#include "chainerx/cuda/cuda_set_device_scope.h"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
 #include "chainerx/kernel_registry.h"
 
-// TODO(niboshi): Rename this file to *.cuh and include cuda/elementwise.cuh.
+// TODO(niboshi): Rename this file to *.cuh and include cuda/elementwise.cuh and cuda/data_type.cuh.
 
 // Register an kernel statically in CudaBackend.
 #define CHAINERX_CUDA_REGISTER_KERNEL(key_kernel_cls, kernel_cls)                                       \

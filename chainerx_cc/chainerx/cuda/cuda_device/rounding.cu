@@ -1,3 +1,6 @@
+// TODO(niboshi): data_type.cuh and elementwise.cuh should be included in kernel_regist.h (after renamed to .cuh)
+#include "chainerx/cuda/data_type.cuh"
+#include "chainerx/cuda/elementwise.cuh"
 #include "chainerx/cuda/kernel_regist.h"
 #include "chainerx/cuda/numeric.cuh"
 #include "chainerx/kernels/rounding.h"
