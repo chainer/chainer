@@ -1,13 +1,6 @@
 import six
 
 
-def apply(convert, data):
-    if isinstance(data, tuple):
-        return convert(*data)
-    elif isinstance(data, dict):
-        return convert(**data)
-
-
 def transpose(data):
     if isinstance(data[0], tuple):
         return tuple([d[i] for d in data]

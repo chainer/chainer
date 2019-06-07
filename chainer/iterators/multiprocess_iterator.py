@@ -13,7 +13,7 @@ import six
 import chainer
 from chainer.dataset import iterator
 from chainer.iterators import _statemachine
-from chainer.iterators import _tabular_helper
+from chainer.iterators import _transpose
 from chainer.iterators.order_samplers import ShuffleOrderSampler
 
 
@@ -420,9 +420,7 @@ class _PrefetchLoop(object):
             self._allocate_shared_memory()
 
             if self._is_tabular:
-                batch = _tabular_helper.apply(
-                    self.dataset.convert,
-                    _tabular_helper.transpose(batch))
+                batch = self.dataset.convert(_transpose.transpose(batch))
 
         return batch, self.prefetch_state
 
@@ -491,9 +489,7 @@ class _PrefetchLoop(object):
             batch = [_unpack(data, self.mem_bulk) for data in data_all]
 
             if self._is_tabular:
-                batch = _tabular_helper.apply(
-                    self.dataset.convert,
-                    _tabular_helper.transpose(batch))
+                batch = self.dataset.convert(_transpose.transpose(batch))
 
         self._comm.put(batch, self.prefetch_state, reset_count)
         return True

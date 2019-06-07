@@ -5,7 +5,6 @@ import numpy
 import chainer
 from chainer.dataset import iterator
 from chainer.iterators import _statemachine
-from chainer.iterators import _tabular_helper
 from chainer.iterators.order_samplers import ShuffleOrderSampler
 
 
@@ -79,9 +78,7 @@ class SerialIterator(iterator.Iterator):
             raise StopIteration
 
         if self._is_tabular:
-            return _tabular_helper.apply(
-                self.dataset.convert,
-                self.dataset.slice[indices].fetch())
+            return self.dataset.convert(self.dataset.slice[indices].fetch())
 
         batch = [self.dataset[index] for index in indices]
         return batch
