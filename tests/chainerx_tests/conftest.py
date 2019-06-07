@@ -125,7 +125,7 @@ _shapes = [
 
 _shapes_as_sequence_or_int = (
     _shapes
-    + map(lambda t: list(t), _shapes)
+    + list(map(lambda t: list(t), _shapes))
     + [0, 1, 5])
 
 
