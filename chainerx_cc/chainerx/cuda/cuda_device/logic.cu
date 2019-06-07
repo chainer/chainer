@@ -265,6 +265,69 @@ public:
 
 CHAINERX_CUDA_REGISTER_KERNEL(AnyKernel, CudaAnyKernel);
 
+template <typename T>
+struct IsNanImpl {
+    using CudaType = cuda_internal::DataType<T>;
+    __device__ void operator()(int64_t /*i*/, CudaType x, bool& out) { out = cuda::IsNan(x); }
+};
+
+class CudaIsNanKernel : public IsNanKernel {
+public:
+    void Call(const Array& x, const Array& out) override {
+        Device& device = x.device();
+        device.CheckDevicesCompatible(x, out);
+        CudaSetDeviceScope scope{device.index()};
+        VisitDtype(x.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            Elementwise<const T, bool>(IsNanImpl<T>{}, x, out);
+        });
+    }
+};
+
+CHAINERX_CUDA_REGISTER_KERNEL(IsNanKernel, CudaIsNanKernel);
+
+template <typename T>
+struct IsInfImpl {
+    using CudaType = cuda_internal::DataType<T>;
+    __device__ void operator()(int64_t /*i*/, CudaType x, bool& out) { out = cuda::IsInf(x); }
+};
+
+class CudaIsInfKernel : public IsInfKernel {
+public:
+    void Call(const Array& x, const Array& out) override {
+        Device& device = x.device();
+        device.CheckDevicesCompatible(x, out);
+        CudaSetDeviceScope scope{device.index()};
+        VisitDtype(x.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            Elementwise<const T, bool>(IsInfImpl<T>{}, x, out);
+        });
+    }
+};
+
+CHAINERX_CUDA_REGISTER_KERNEL(IsInfKernel, CudaIsInfKernel);
+
+template <typename T>
+struct IsFiniteImpl {
+    using CudaType = cuda_internal::DataType<T>;
+    __device__ void operator()(int64_t /*i*/, CudaType x, bool& out) { out = !(cuda::IsInf(x) || cuda::IsNan(x)); }
+};
+
+class CudaIsFiniteKernel : public IsFiniteKernel {
+public:
+    void Call(const Array& x, const Array& out) override {
+        Device& device = x.device();
+        device.CheckDevicesCompatible(x, out);
+        CudaSetDeviceScope scope{device.index()};
+        VisitDtype(x.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            Elementwise<const T, bool>(IsFiniteImpl<T>{}, x, out);
+        });
+    }
+};
+
+CHAINERX_CUDA_REGISTER_KERNEL(IsFiniteKernel, CudaIsFiniteKernel);
+
 }  // namespace
 }  // namespace cuda
 }  // namespace chainerx
