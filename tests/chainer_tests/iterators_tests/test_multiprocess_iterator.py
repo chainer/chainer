@@ -846,5 +846,21 @@ class TestMultiprocessIteratorTabularDataset(unittest.TestCase):
         for out in output:
             self.assertIsInstance(out, numpy.ndarray)
 
+    def test_iterator_tabular_dataset_converter(self):
+        def converter(a, b, c):
+            if self.shared_mem is not None:
+                self.assertNotEqual(
+                    threading.current_thread(), threading.main_thread())
+            return 'converted'
+
+        dataset = dummy_dataset.DummyDataset(
+            mode=self.mode).with_converter(converter)
+        it = iterators.MultiprocessIterator(
+            dataset, 2, shuffle=False,
+            n_processes=self.n_processes,
+            n_prefetch=self.n_prefetch,
+            shared_mem=self.shared_mem)
+        self.assertEqual(it.next(), 'converted')
+
 
 testing.run_module(__name__, __file__)
