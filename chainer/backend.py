@@ -153,7 +153,10 @@ def get_device(device_spec):
             elif mod_name == 'intel64':
                 if not colon:
                     return intel64.Intel64Device()
-
+            raise ValueError(
+                'Device specifiers starting with \'@\' must be followed by'
+                ' a module name and depending on the module, module specific'
+                ' precise device specifiers. Actual: {}'.format(device_spec))
         else:
             # String device specifier without '@' prefix is assumed to be a
             # ChainerX device.
