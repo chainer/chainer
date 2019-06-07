@@ -44,5 +44,20 @@ public:
 
 CHAINERX_NATIVE_REGISTER_KERNEL(SVDKernel, NativeSVDKernel);
 
+class NativePseudoInverseKernel : public PseudoInverseKernel {
+public:
+    void Call(const Array& a, const Array& out, float rcond = 1e-15) override {
+
+        if (a.ndim() != 2 || out.ndim() != 2 || rcond != 1.0) {
+            throw DimensionError{"ChainerX pseudo-inverse supports only 2-dimensional arrays."};
+        }
+
+        throw NotImplementedError("PseudoInverse is not yet implemented for native device");
+
+    }
+};
+
+CHAINERX_NATIVE_REGISTER_KERNEL(PseudoInverseKernel, NativePseudoInverseKernel);
+
 }  // namespace native
 }  // namespace chainerx

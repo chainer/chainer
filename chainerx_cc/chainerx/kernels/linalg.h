@@ -24,4 +24,11 @@ public:
     virtual std::tuple<Array, Array, Array> Call(const Array& a, bool full_matrices, bool compute_uv) = 0;
 };
 
+class PseudoInverseKernel : public Kernel {
+public:
+    static const char* name() { return "PseudoInverse"; }
+
+    virtual void Call(const Array& a, const Array& out, float rcond) = 0;
+};
+
 }  // namespace chainerx

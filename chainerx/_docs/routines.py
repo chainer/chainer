@@ -522,6 +522,24 @@ Returns:
 .. seealso:: :func:`numpy.linalg.svd`
 """)
 
+    _docs.set_doc(
+        chainerx.linalg.pinv,
+        """pinv(a, rcond=1e-15)
+Compute the (Moore-Penrose) pseudo-inverse of a matrix.
+
+Calculate the generalized inverse of a matrix using its singular-value
+decomposition (SVD) and including all large singular values.
+
+Args:
+    a (~chainerx.ndarray): The input matrix to be pseudo-inverted.
+    rcond (float): Cutoff for small singular values.
+
+Returns:
+    :class:`~chainerx.ndarray`: The pseudo-inverse of ``a``.
+
+.. seealso:: :func:`numpy.linalg.pinv`
+""")
+
 
 def _docs_logic():
     _docs.set_doc(

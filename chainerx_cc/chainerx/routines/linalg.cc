@@ -111,4 +111,16 @@ std::tuple<Array, Array, Array> SVD(const Array& a, bool full_matrices, bool com
     return std::make_tuple(std::move(u), std::move(s), std::move(v));
 }
 
+Array PseudoInverse(const Array& a, float& rcond) {
+    Dtype dtype = internal::GetMathResultDtype(a.dtype());
+    Array out = Empty(Shape({a.shape()[1], a.shape()[0]}), dtype, a.device());
+
+    {
+        NoBackpropModeScope scope{};
+        a.device().backend().CallKernel<PseudoInverseKernel>(a, out, rcond);
+    }
+
+    return out;
+}
+
 }  // namespace chainerx

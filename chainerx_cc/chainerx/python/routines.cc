@@ -353,6 +353,11 @@ void InitChainerxLinalg(pybind11::module& m) {
                 py::arg("a"),
                 py::arg("full_matrices") = 1,
                 py::arg("compute_uv") = 1);
+
+    mlinalg.def("pinv",
+                [](const ArrayBodyPtr& a, float rcond) { return MoveArrayBody(PseudoInverse(Array{a}, rcond)); },
+                py::arg("a"),
+                py::arg("rcond") = 1e-15);
 }
 
 void InitChainerxLogic(pybind11::module& m) {

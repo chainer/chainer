@@ -817,6 +817,9 @@ def ones(shape: tp.Union[int, tp.Tuple[int, ...]],
 def ones_like(a: ndarray, device: tp.Optional[Device]=None) -> ndarray: ...
 
 
+def pinv(a: ndarray, rcond: float=...) -> ndarray: ...
+
+
 @tp.overload
 def reshape(
         a: ndarray,

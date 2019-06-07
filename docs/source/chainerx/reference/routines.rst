@@ -96,6 +96,7 @@ Linear algebra
    chainerx.dot
 
    chainerx.linalg.svd
+   chainerx.linalg.pinv
 
 Logic functions
 ---------------

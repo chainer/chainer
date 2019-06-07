@@ -145,5 +145,31 @@ public:
 
 CHAINERX_CUDA_REGISTER_KERNEL(SVDKernel, CudaSVDKernel);
 
+class CudaPseudoInverseKernel : public PseudoInverseKernel {
+public:
+    void Call(const Array& a, const Array& out, float rcond = 1e-15) override {
+        Device& device = a.device();
+        device.CheckDevicesCompatible(a, out);
+        Dtype dtype = a.dtype();
+        CudaSetDeviceScope scope{device.index()};
+
+        CHAINERX_ASSERT(a.ndim() == 2);
+        CHAINERX_ASSERT(out.ndim() == 2);
+
+        Array u{};
+        Array s{};
+        Array vt{};
+
+        std::tie(u, s, vt) = device.backend().CallKernel<SVDKernel>(out, false, true);
+
+        Array cutoff = rcond * s.Max();
+
+        throw NotImplementedError("PseudoInverse is not yet implemented for cuda device");
+
+    }
+};
+
+CHAINERX_CUDA_REGISTER_KERNEL(PseudoInverseKernel, CudaPseudoInverseKernel);
+
 }  // namespace cuda
 }  // namespace chainerx
