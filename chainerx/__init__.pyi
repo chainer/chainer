@@ -722,6 +722,9 @@ def identity(
         device: tp.Optional[Device]=None) -> ndarray: ...
 
 
+def inv(a: ndarray) -> ndarray: ...
+
+
 def is_available(): ...
 
 

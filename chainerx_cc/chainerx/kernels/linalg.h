@@ -2,6 +2,7 @@
 
 #include "chainerx/array.h"
 #include "chainerx/kernel.h"
+#include "chainerx/routines/linalg.h"
 
 namespace chainerx {
 
@@ -14,6 +15,13 @@ public:
     static const char* name() { return "Dot"; }
 
     virtual void Call(const Array& a, const Array& b, const Array& out) = 0;
+};
+
+class InverseKernel : public Kernel {
+public:
+    static const char* name() { return "Inverse"; }
+
+    virtual void Call(const Array& a, const Array& out) = 0;
 };
 
 }  // namespace chainerx
