@@ -166,10 +166,10 @@ class TestElu(op_utils.ChainerOpTest):
 
     alpha = 2.0
 
-    def setup(self, float_dtype):
-        dtype = float_dtype
+    def setup(self):
+        dtype, = self.in_dtypes
 
-        if float_dtype == 'float16':
+        if dtype == 'float16':
             self.check_forward_options.update({'atol': 1e-4, 'rtol': 1e-3})
             self.check_backward_options.update({'atol': 5e-2, 'rtol': 5e-2})
             self.check_double_backward_options.update(
@@ -180,7 +180,7 @@ class TestElu(op_utils.ChainerOpTest):
     def generate_inputs(self):
         shape = self.shape
         dtype = self.dtype
-        x = array_utils.create_dummy_ndarray(numpy, shape, dtype)
+        x = array_utils.uniform(shape, dtype)
         return x,
 
     def forward_chainerx(self, inputs):
