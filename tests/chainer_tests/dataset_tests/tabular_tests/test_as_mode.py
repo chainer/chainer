@@ -24,13 +24,12 @@ class TestAsTuple(unittest.TestCase):
 class TestAsTupleConvert(unittest.TestCase):
 
     def test_as_tuple_convert(self):
-        def converter(data):
-            self.assertEqual(data, 'input')
+        def converter(a, b, c):
             return 'converted'
 
         dataset = dummy_dataset.DummyDataset().with_converter(converter)
         view = dataset.as_tuple()
-        self.assertEqual(view.convert('input'), 'converted')
+        self.assertEqual(view.convert(view.fetch()), 'converted')
 
 
 @testing.parameterize(
@@ -52,13 +51,12 @@ class TestAsDict(unittest.TestCase):
 class TestAsDictConvert(unittest.TestCase):
 
     def test_as_dict_convert(self):
-        def converter(data):
-            self.assertEqual(data, 'input')
+        def converter(a, b, c):
             return 'converted'
 
         dataset = dummy_dataset.DummyDataset().with_converter(converter)
         view = dataset.as_dict()
-        self.assertEqual(view.convert('input'), 'converted')
+        self.assertEqual(view.convert(view.fetch()), 'converted')
 
 
 testing.run_module(__name__, __file__)
