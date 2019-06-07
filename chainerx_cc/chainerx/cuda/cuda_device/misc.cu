@@ -13,7 +13,6 @@
 #include "chainerx/cuda/numeric.cuh"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
-//#include "chainerx/kernels/arithmetic.h"
 #include "chainerx/kernels/logic.h"
 #include "chainerx/kernels/math.h"
 #include "chainerx/kernels/misc.h"
