@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "chainerx/array.h"
+#include "chainerx/device.h"
 #include "chainerx/dtype.h"
 #include "chainerx/enum.h"
 #include "chainerx/error.h"
@@ -36,6 +37,10 @@ Array CRelu(const Array& x, int8_t axis) {
     std::vector<Array> c{x_cast, Negative(x_cast)};
     Array concat = Concatenate(c, axis);
     return Relu(concat);
+
+Array Elu(const Array& x, Scalar alpha) {
+    Array zero = ZerosLike(x, x.device());
+    return Where(x > zero, x, alpha * Expm1(x));
 }
 
 Array Sigmoid(const Array& x) {
@@ -48,6 +53,7 @@ Array Relu(const Array& x) {
     Dtype dtype = internal::GetMathResultDtype(x.dtype());
     const Array& x_cast = x.dtype() == dtype ? x : x.AsType(dtype);
     return Maximum(0, x_cast);
+
 }
 
 Array LeakyRelu(const Array& x, Scalar slope) {
