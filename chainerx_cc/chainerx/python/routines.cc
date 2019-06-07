@@ -20,7 +20,6 @@
 #include "chainerx/macro.h"
 #include "chainerx/routines/activation.h"
 #include "chainerx/routines/arithmetic.h"
-#include "chainerx/routines/activation.h"
 #include "chainerx/routines/binary.h"
 #include "chainerx/routines/connection.h"
 #include "chainerx/routines/creation.h"
