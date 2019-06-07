@@ -6,6 +6,7 @@
 #include "chainerx/array.h"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
+#include "chainerx/kernels/logic.h"
 #include "chainerx/kernels/math.h"
 #include "chainerx/kernels/misc.h"
 #include "chainerx/native/elementwise.h"
