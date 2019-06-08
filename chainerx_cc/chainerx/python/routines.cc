@@ -1045,16 +1045,12 @@ void InitChainerxLoss(pybind11::module& m) {
           py::arg("mean"),
           py::arg("ln_var"));
     m.def("huber_loss",
-          [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2, Scalar delta, const std::string& reduce) {
-              if (!(reduce == "no" || reduce == "sum_along_second_axis")) {
-                  throw py::value_error{"reduce must be either of 'no' or 'sum_along_second_axis'"};
-              }
-              return MoveArrayBody(HuberLoss(Array{x1}, Array{x2}, delta, reduce));
+          [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2, Scalar delta) {
+              return MoveArrayBody(HuberLoss(Array{x1}, Array{x2}, delta));
           },
           py::arg("x1"),
           py::arg("x2"),
-          py::arg("delta"),
-          py::arg("reduce") = "sum_along_second_axis");
+          py::arg("delta"));
 }
 
 }  // namespace

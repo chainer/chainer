@@ -117,8 +117,6 @@ class TestGaussianKLDivergence(LossBase):
         chainer.testing.from_pytest_parameterize(
             'in_dtypes,out_dtype', _in_out_loss_dtypes),
         chainer.testing.from_pytest_parameterize(
-            'reduce', ['sum_along_second_axis', 'no']),
-        chainer.testing.from_pytest_parameterize(
             'delta', [0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5])
     ])
 ))
@@ -126,4 +124,8 @@ class TestHuberLoss(LossBase):
 
     def forward_xp(self, inputs, xp):
         x, t = inputs
-        return xp.huber_loss(x, t, 0.5, reduce=self.reduce),
+        if xp is chainerx:
+            out = xp.huber_loss(x, t, self.delta)
+        else:
+            out = xp.huber_loss(x, t, self.delta, reduce='no')
+        return out,
