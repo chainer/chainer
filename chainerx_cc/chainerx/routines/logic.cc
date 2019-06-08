@@ -25,11 +25,19 @@ public:
     }
 };
 
+void CheckLogicDtypes(DtypeKind kind1, DtypeKind kind2) {
+    if ((kind1 == DtypeKind::kBool) != (kind2 == DtypeKind::kBool)) {
+        throw DtypeError{"Comparison of bool and non-bool dtypes is not supported."};
+    }
+}
+
+void CheckLogicDtypes(const Array& x1, const Array& x2) { return CheckLogicDtypes(GetKind(x1.dtype()), GetKind(x2.dtype())); }
+
+void CheckLogicDtypes(const Array& x1, Scalar x2) { return CheckLogicDtypes(GetKind(x1.dtype()), x2.kind()); }
+
 template <typename KernelType>
 Array LogicBinary(const Array& x1, const Array& x2) {
-    if ((x1.dtype() == Dtype::kBool) != (x2.dtype() == Dtype::kBool)) {
-        throw DtypeError{"Comparison of ", GetDtypeName(x1.dtype()), " and ", GetDtypeName(x2.dtype()), " is not supported."};
-    }
+    CheckLogicDtypes(x1, x2);
     return internal::BroadcastBinary(LogicBinaryImpl<KernelType>{}, x1, x2, Dtype::kBool);
 }
 
@@ -54,7 +62,17 @@ Array LogicalNot(const Array& x) {
 
 Array LogicalAnd(const Array& x1, const Array& x2) { return LogicBinary<LogicalAndKernel>(x1, x2); }
 
+Array LogicalAnd(const Array& x1, Scalar x2) {
+    CheckLogicDtypes(x1, x2);
+    return static_cast<bool>(x2) ? x1.AsType(Dtype::kBool) : Zeros(x1.shape(), Dtype::kBool, x1.device());
+}
+
 Array LogicalOr(const Array& x1, const Array& x2) { return LogicBinary<LogicalOrKernel>(x1, x2); }
+
+Array LogicalOr(const Array& x1, Scalar x2) {
+    CheckLogicDtypes(x1, x2);
+    return static_cast<bool>(x2) ? Ones(x1.shape(), Dtype::kBool, x1.device()) : x1.AsType(Dtype::kBool);
+}
 
 Array LogicalXor(const Array& x1, const Array& x2) { return LogicBinary<LogicalXorKernel>(x1, x2); }
 

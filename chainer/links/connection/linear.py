@@ -150,6 +150,6 @@ class Linear(link.Link):
 
         """
         if self.W.array is None:
-            in_size = utils.size_of_shape(x.shape[1:])
+            in_size = utils.size_of_shape(x.shape[n_batch_axes:])
             self._initialize_params(in_size)
         return linear.linear(x, self.W, self.b, n_batch_axes=n_batch_axes)

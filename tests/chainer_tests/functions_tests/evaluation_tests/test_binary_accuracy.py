@@ -4,8 +4,8 @@ import numpy
 import six
 
 import chainer
-from chainer import testing
 from chainer import functions
+from chainer import testing
 from chainer.utils import force_array
 from chainer.utils import type_check
 

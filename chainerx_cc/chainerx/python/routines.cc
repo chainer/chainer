@@ -17,9 +17,11 @@
 #include "chainerx/dtype.h"
 #include "chainerx/error.h"
 #include "chainerx/macro.h"
+#include "chainerx/routines/arithmetic.h"
 #include "chainerx/routines/binary.h"
 #include "chainerx/routines/connection.h"
 #include "chainerx/routines/creation.h"
+#include "chainerx/routines/explog.h"
 #include "chainerx/routines/hyperbolic.h"
 #include "chainerx/routines/indexing.h"
 #include "chainerx/routines/linalg.h"
@@ -27,8 +29,10 @@
 #include "chainerx/routines/loss.h"
 #include "chainerx/routines/manipulation.h"
 #include "chainerx/routines/math.h"
+#include "chainerx/routines/misc.h"
 #include "chainerx/routines/normalization.h"
 #include "chainerx/routines/pooling.h"
+#include "chainerx/routines/reduction.h"
 #include "chainerx/routines/sorting.h"
 #include "chainerx/routines/statistics.h"
 #include "chainerx/routines/trigonometric.h"
@@ -308,6 +312,25 @@ void InitChainerxIndexing(pybind11::module& m) {
           [](const ArrayBodyPtr& condition, const ArrayBodyPtr& x, const ArrayBodyPtr& y) {
               return MoveArrayBody(Where(Array{condition}, Array{x}, Array{y}));
           },
+          py::arg("condition"),
+          py::arg("x"),
+          py::arg("y"));
+    m.def("where",
+          [](const ArrayBodyPtr& condition, const ArrayBodyPtr& x, Scalar y) {
+              return MoveArrayBody(Where(Array{condition}, Array{x}, y));
+          },
+          py::arg("condition"),
+          py::arg("x"),
+          py::arg("y"));
+    m.def("where",
+          [](const ArrayBodyPtr& condition, Scalar x, const ArrayBodyPtr& y) {
+              return MoveArrayBody(Where(Array{condition}, x, Array{y}));
+          },
+          py::arg("condition"),
+          py::arg("x"),
+          py::arg("y"));
+    m.def("where",
+          [](const ArrayBodyPtr& condition, Scalar x, Scalar y) { return MoveArrayBody(Where(Array{condition}, x, y)); },
           py::arg("condition"),
           py::arg("x"),
           py::arg("y"));
@@ -677,8 +700,11 @@ void InitChainerxMath(pybind11::module& m) {
           py::arg("x1"),
           py::arg("x2"));
     m.def("exp", [](const ArrayBodyPtr& x) { return MoveArrayBody(Exp(Array{x})); }, py::arg("x"));
+    m.def("expm1", [](const ArrayBodyPtr& x) { return MoveArrayBody(Expm1(Array{x})); }, py::arg("x"));
+    m.def("exp2", [](const ArrayBodyPtr& x) { return MoveArrayBody(Exp2(Array{x})); }, py::arg("x"));
     m.def("log", [](const ArrayBodyPtr& x) { return MoveArrayBody(Log(Array{x})); }, py::arg("x"));
     m.def("log10", [](const ArrayBodyPtr& x) { return MoveArrayBody(Log10(Array{x})); }, py::arg("x"));
+    m.def("log1p", [](const ArrayBodyPtr& x) { return MoveArrayBody(Log1p(Array{x})); }, py::arg("x"));
     m.def("logsumexp",
           [](const ArrayBodyPtr& x, int8_t axis, bool keepdims) { return MoveArrayBody(LogSumExp(Array{x}, Axes{axis}, keepdims)); },
           py::arg("x"),

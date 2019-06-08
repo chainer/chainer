@@ -68,6 +68,7 @@ from chainer.sequential import Sequential  # NOQA
 from chainer.serializer import AbstractSerializer  # NOQA
 from chainer.serializer import Deserializer  # NOQA
 from chainer.serializer import Serializer  # NOQA
+from chainer.variable import as_array  # NOQA
 from chainer.variable import as_variable  # NOQA
 from chainer.variable import Parameter  # NOQA
 from chainer.variable import Variable  # NOQA
@@ -218,6 +219,7 @@ global_config.use_cudnn = os.environ.get('CHAINER_USE_CUDNN', 'auto')
 global_config.use_cudnn_tensor_core = 'auto'
 global_config.autotune = False
 global_config.schedule_func = None
+global_config.use_static_graph = True
 global_config.use_ideep = os.environ.get('CHAINER_USE_IDEEP', 'never')
 global_config.lazy_grad_sum = bool(int(
     os.environ.get('CHAINER_LAZY_GRAD_SUM', '0')))
@@ -233,6 +235,7 @@ else:
     raise TypeError('incorrect dtype name in CHAINER_DTYPE: "{}". '
                     'Only float16/32/64 are allowed.'.format(_chainer_dtype))
 global_config.in_recomputing = False
+global_config._will_recompute = False
 
 
 def is_debug():

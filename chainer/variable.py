@@ -856,7 +856,7 @@ class Variable(object):
 
     @array.setter
     def array(self, d):
-        # type: (types.NdArray) -> None
+        # type: (tp.Optional[types.NdArray]) -> None
 
         if self._has_chainerx_array:
             d_old = self._data[0]
@@ -912,8 +912,15 @@ class Variable(object):
 
         self.array = d
 
-    def _set_chainerx_grad(self, g):
-        # Assigns chainerx.ndarray.grad
+    def _set_chainerx_grad(self, g, from_grad_var):
+        # Assigns chainerx.ndarray.grad.
+        #
+        # If the main array is connected to the graph, in order to enable
+        # double-backprop, the grad will also be backprop-required
+        # (a view is created not to affect the given grad).
+        # If the given grad is from a grad_var, this operation is skipped,
+        # as the status of the given grad reflects the necessity of
+        # double-backprop.
         assert self.xp is chainerx
         if not self._requires_grad and g is not None:
             raise RuntimeError(
@@ -925,11 +932,17 @@ class Variable(object):
                 raise RuntimeError(
                     'Cannot set a gradient to an empty variable')
         elif arr.is_backprop_required():
+            # If g is grad-stopped, require grad on it.
+            # Make a view in order not to affect the input.
+            if (g is not None
+                    and not from_grad_var
+                    and not g.is_backprop_required()):
+                g = g.view().require_grad()
             arr.set_grad(g)
 
     def _set_grad_without_check(self, g):
         if self._has_chainerx_array:
-            self._set_chainerx_grad(g)
+            self._set_chainerx_grad(g, False)
             self._grad_var = None
             return
 
@@ -938,6 +951,7 @@ class Variable(object):
 
     @property
     def grad(self):
+        # type: () -> tp.Optional[types.NdArray]
         """Gradient array of this variable.
 
         Note that this property returns the underlying array of the gradient
@@ -980,13 +994,16 @@ class Variable(object):
 
     @grad.setter
     def grad(self, g):
+        # type: (tp.Optional[types.NdArray]) -> None
         if g is not None:
             _check_grad_type(None, self, False, g)
         self._set_grad_without_check(g)
 
     def _set_grad_var_without_check(self, gv):
         if self._has_chainerx_array:
-            self._set_chainerx_grad(None if gv is None else gv._data[0])
+            self._set_chainerx_grad(
+                None if gv is None else gv._data[0],
+                True)
             self._grad_var = gv
             return
 
@@ -995,12 +1012,14 @@ class Variable(object):
 
     @property
     def grad_var(self):
+        # type: () -> tp.Optional["Variable"]
         """Gradient variable."""
         self._ensure_grad_var_up_to_date()
         return self._grad_var
 
     @grad_var.setter
     def grad_var(self, g):
+        # type: (tp.Optional["Variable"]) -> None
         if g is not None:
             _check_grad_type(None, self, False, g.array)
         self._set_grad_var_without_check(g)
@@ -1189,8 +1208,8 @@ class Variable(object):
         else:
             self._data = [new_arr]
             if grad_var is not None:
-                grad_var.to_device(device)
-                # _grad has been invalidated by grad_var.to_device().
+                grad_var._to_device(device, allow_unchaining=allow_unchaining)
+                # _grad has been invalidated by the line above.
                 self._grad = grad_var.array
 
         # ensure that the node tracks the device migration
@@ -1914,7 +1933,6 @@ def as_variable(obj):
     return Variable(obj, requires_grad=requires_grad)
 
 
-# TODO(hvy): Make private, i.e. _as_array?
 def as_array(obj):
     """Returns the underlying array from a variable or an array.
 

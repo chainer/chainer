@@ -14,12 +14,14 @@
 
 include(FindPackageHandleStandardArgs)
 
+# Determine CUDNN_ROOT_DIR
 if(DEFINED ENV{CUDNN_ROOT_DIR})
   set(CUDNN_ROOT_DIR $ENV{CUDNN_ROOT_DIR})
 else()
   set(CUDNN_ROOT_DIR "" CACHE PATH "Folder contains NVIDIA cuDNN")
 endif()
 
+# Determine CUDNN_INCLUDE_DIR
 if(DEFINED ENV{CUDNN_INCLUDE_DIR})
   set(CUDNN_INCLUDE_DIR $ENV{CUDNN_INCLUDE_DIR})
 else()
@@ -28,13 +30,25 @@ else()
     PATH_SUFFIXES cuda/include include)
 endif()
 
-if(DEFINED ENV{USE_STATIC_CUDNN})
+# Determine CUDNN_LIB_DIR
+if(DEFINED ENV{CUDNN_LIB_DIR})
+  set(CUDNN_LIB_DIR $ENV{CUDNN_LIB_DIR})
+endif()
+
+# Determine CUDNN_LIBNAME
+if(DEFINED ENV{CUDNN_LIBNAME})
+  # libname from envvar
+  set(CUDNN_LIBNAME $ENV{CUDNN_LIBNAME})
+elseif(DEFINED ENV{USE_STATIC_CUDNN})
+  # Static library
   MESSAGE(STATUS "USE_STATIC_CUDNN detected. Linking against static CUDNN library")
   set(CUDNN_LIBNAME "libcudnn_static.a")
 else()
+  # Dynamic library
   set(CUDNN_LIBNAME "cudnn")
 endif()
 
+# Determine CUDNN_LIBRARY
 if(DEFINED ENV{CUDNN_LIBRARY})
   SET(CUDNN_LIBRARY $ENV{CUDNN_LIBRARY})
 else()
@@ -43,21 +57,22 @@ else()
     PATH_SUFFIXES lib lib64 cuda/lib cuda/lib64 lib/x64)
 endif()
 
+# Misc.
 if(CUDNN_INCLUDE_DIR AND CUDNN_LIBRARY)
-	# get cuDNN version
+  # Find cudnn.h and determine CUDNN_VERSION
   file(READ ${CUDNN_INCLUDE_DIR}/cudnn.h CUDNN_HEADER_CONTENTS)
-	string(REGEX MATCH "define CUDNN_MAJOR * +([0-9]+)"
-				 CUDNN_VERSION_MAJOR "${CUDNN_HEADER_CONTENTS}")
-	string(REGEX REPLACE "define CUDNN_MAJOR * +([0-9]+)" "\\1"
-				 CUDNN_VERSION_MAJOR "${CUDNN_VERSION_MAJOR}")
-	string(REGEX MATCH "define CUDNN_MINOR * +([0-9]+)"
-				 CUDNN_VERSION_MINOR "${CUDNN_HEADER_CONTENTS}")
-	string(REGEX REPLACE "define CUDNN_MINOR * +([0-9]+)" "\\1"
-				 CUDNN_VERSION_MINOR "${CUDNN_VERSION_MINOR}")
-	string(REGEX MATCH "define CUDNN_PATCHLEVEL * +([0-9]+)"
-				 CUDNN_VERSION_PATCH "${CUDNN_HEADER_CONTENTS}")
-	string(REGEX REPLACE "define CUDNN_PATCHLEVEL * +([0-9]+)" "\\1"
-				 CUDNN_VERSION_PATCH "${CUDNN_VERSION_PATCH}")
+    string(REGEX MATCH "define CUDNN_MAJOR * +([0-9]+)"
+                 CUDNN_VERSION_MAJOR "${CUDNN_HEADER_CONTENTS}")
+    string(REGEX REPLACE "define CUDNN_MAJOR * +([0-9]+)" "\\1"
+                 CUDNN_VERSION_MAJOR "${CUDNN_VERSION_MAJOR}")
+    string(REGEX MATCH "define CUDNN_MINOR * +([0-9]+)"
+                 CUDNN_VERSION_MINOR "${CUDNN_HEADER_CONTENTS}")
+    string(REGEX REPLACE "define CUDNN_MINOR * +([0-9]+)" "\\1"
+                 CUDNN_VERSION_MINOR "${CUDNN_VERSION_MINOR}")
+    string(REGEX MATCH "define CUDNN_PATCHLEVEL * +([0-9]+)"
+                 CUDNN_VERSION_PATCH "${CUDNN_HEADER_CONTENTS}")
+    string(REGEX REPLACE "define CUDNN_PATCHLEVEL * +([0-9]+)" "\\1"
+                 CUDNN_VERSION_PATCH "${CUDNN_VERSION_PATCH}")
   # Assemble cuDNN version
   if(NOT CUDNN_VERSION_MAJOR)
     set(CUDNN_VERSION "?")
@@ -71,6 +86,7 @@ if(CUDNN_INCLUDE_DIR AND CUDNN_LIBRARY)
   mark_as_advanced(CUDNN_ROOT_DIR CUDNN_LIBRARY CUDNN_INCLUDE_DIR)
 endif()
 
+# Find and load cuDNN settings
 find_package_handle_standard_args(
     CuDNN
     VERSION_VAR CUDNN_VERSION
