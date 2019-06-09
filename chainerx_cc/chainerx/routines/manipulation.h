@@ -67,6 +67,6 @@ Array HStack(const std::vector<Array>& arrays);
 // Returns a joined array along vertical axis.
 Array VStack(const std::vector<Array>& arrays);
 
-Array Moveaxis(const Array& a, const Axes& src, const Axes& dst);
+Array Moveaxis(const Array& a, const Axes& source, const Axes& destination);
 
 }  // namespace chainerx

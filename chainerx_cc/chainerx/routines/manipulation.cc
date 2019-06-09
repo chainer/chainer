@@ -769,7 +769,7 @@ Array Moveaxis(const Array& a, const Axes& source, const Axes& destination) {
         throw DimensionError{"Invalid Source or Destination Axes"};
     }
 
-    if (source.size() == 0) {
+    if (source.empty()) {
         return a;
     }
 
