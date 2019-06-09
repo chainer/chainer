@@ -131,3 +131,29 @@ class TestSVD(op_utils.NumpyOpTest):
             else:
                 s = out
             return s,
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    chainer.testing.product({
+        'shape': [(1, 1), (2, 3), (5, 5)],
+        'in_dtypes': ['float32', 'float64'],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True],
+    })
+))
+class TestPseudoInverse(op_utils.NumpyOpTest):
+
+    def setup(self):
+        device = chainerx.get_default_device()
+        if device.name == 'native:0':
+            pytest.skip('CPU pinv is not implemented')
+
+    def generate_inputs(self):
+        a = numpy.random.random(self.shape).astype(self.in_dtypes)
+        return a,
+
+    def forward_xp(self, inputs, xp):
+        a, = inputs
+        out = xp.linalg.pinv(a)
+        return out,
