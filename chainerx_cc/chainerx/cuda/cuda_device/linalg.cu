@@ -75,6 +75,9 @@ public:
                 u = Empty(Shape({mn, m}), dtype, device);
                 vt = Empty(Shape({mn, n}), dtype, device);
             }
+        } else {
+            u = Empty(Shape({0}), dtype, device);
+            vt = Empty(Shape({0}), dtype, device);
         }
 
         Array s = Empty(Shape({mn}), dtype, device);
@@ -87,10 +90,6 @@ public:
             T* s_ptr = static_cast<T*>(internal::GetRawOffsetData(s));
             T* u_ptr = static_cast<T*>(internal::GetRawOffsetData(u));
             T* vt_ptr = static_cast<T*>(internal::GetRawOffsetData(vt));
-            if (!compute_uv) {
-                u_ptr = nullptr;
-                vt_ptr = nullptr;
-            }
 
             int *devInfo;
             CheckCudaError(cudaMalloc(&devInfo, sizeof(int)));
@@ -122,14 +121,10 @@ public:
                 throw ChainerxError{"Unsuccessfull gesvd (SVD) execution. Info = ", devInfo_h};
             }
 
-            if (compute_uv) {
-                if (trans_flag) {
-                    return std::make_tuple(std::move(u.Transpose()), std::move(s), std::move(vt.Transpose()));
-                } else {
-                    return std::make_tuple(std::move(vt), std::move(s), std::move(u));
-                }
+            if (trans_flag) {
+                return std::make_tuple(std::move(u.Transpose()), std::move(s), std::move(vt.Transpose()));
             } else {
-                return std::make_tuple(std::move(Empty(Shape({0}), dtype, device)), std::move(s), std::move(Empty(Shape({0}), dtype, device)));
+                return std::make_tuple(std::move(vt), std::move(s), std::move(u));
             }
         };
 
