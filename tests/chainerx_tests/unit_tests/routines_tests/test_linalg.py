@@ -93,3 +93,41 @@ def test_dot_invalid(is_module, xp, device, a_shape, b_shape, dtype):
         return xp.dot(a, b)
     else:
         return a.dot(b)
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    chainer.testing.product({
+        'shape': [(1, 1), (2, 3), (5, 5)],
+        'in_dtypes': ['float32', 'float64'],
+        'full_matrices': [True, False],
+        'compute_uv': [True, False],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True],
+    })
+))
+class TestSVD(op_utils.NumpyOpTest):
+
+    def setup(self):
+        device = chainerx.get_default_device()
+        if device.name == 'native:0':
+            pytest.skip('CPU SVD is not implemented')
+
+    def generate_inputs(self):
+        a = numpy.random.random(self.shape).astype(self.in_dtypes)
+        return a,
+
+    def forward_xp(self, inputs, xp):
+        a, = inputs
+        out = xp.linalg.svd(a, full_matrices=self.full_matrices, compute_uv=self.compute_uv)
+        # NOTE: cuSOLVER's (CuPy's) and NumPy's outputs of u and v might
+        # differ in signs, which is not a problem mathematically
+        if self.compute_uv:
+            u, s, v = out
+            return xp.abs(u), s, xp.abs(v)
+        else:
+            if xp is chainerx:
+                _, s, _ = out
+            else:
+                s = out
+            return s,
