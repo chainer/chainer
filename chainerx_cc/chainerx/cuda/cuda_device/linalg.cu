@@ -160,11 +160,17 @@ public:
         Array s{};
         Array vt{};
 
-        std::tie(u, s, vt) = device.backend().CallKernel<SVDKernel>(out, false, true);
+        std::tie(u, s, vt) = device.backend().CallKernel<SVDKernel>(a, false, true);
 
         Array cutoff = rcond * s.Max();
+        Array cutoff_indices = s <= cutoff;
 
-        throw NotImplementedError("PseudoInverse is not yet implemented for cuda device");
+        Array sinv = 1.0 / s;
+        // sinv[cutoff_indices] = 0;
+
+        std::vector<ArrayIndex> indices{Slice{}, NewAxis{}};
+
+        device.backend().CallKernel<DotKernel>(vt.Transpose(), sinv.At(indices) * u.Transpose(), out);
 
     }
 };
