@@ -57,9 +57,9 @@ public:
 
     virtual std::tuple<Array, std::unique_ptr<MaxPoolGradGradState>> Call(
             const Array& gout,
-            StackVector<int64_t, kMaxNdim> kernel_size,
-            StackVector<int64_t, kMaxNdim> stride,
-            StackVector<int64_t, kMaxNdim> pad,
+            const StackVector<int64_t, kMaxNdim>& kernel_size,
+            const StackVector<int64_t, kMaxNdim>& stride,
+            const StackVector<int64_t, kMaxNdim>& pad,
             const std::shared_ptr<MaxPoolGradState>& state,
             bool return_state,
             const nonstd::optional<Array>& gx) = 0;
@@ -71,9 +71,9 @@ public:
 
     virtual Array Call(
             const Array& ggx,
-            StackVector<int64_t, kMaxNdim> kernel_size,
-            StackVector<int64_t, kMaxNdim> stride,
-            StackVector<int64_t, kMaxNdim> pad,
+            const StackVector<int64_t, kMaxNdim>& kernel_size,
+            const StackVector<int64_t, kMaxNdim>& stride,
+            const StackVector<int64_t, kMaxNdim>& pad,
             bool cover_all,
             const std::shared_ptr<MaxPoolGradGradState>& state,
             const nonstd::optional<Array>& ggout) = 0;
@@ -97,9 +97,9 @@ public:
 
     virtual std::tuple<Array, std::unique_ptr<AveragePoolGradState>> Call(
             const Array& x,
-            StackVector<int64_t, kMaxNdim> kernel_size,
-            StackVector<int64_t, kMaxNdim> stride,
-            StackVector<int64_t, kMaxNdim> pad,
+            const StackVector<int64_t, kMaxNdim>& kernel_size,
+            const StackVector<int64_t, kMaxNdim>& stride,
+            const StackVector<int64_t, kMaxNdim>& pad,
             AveragePoolPadMode pad_mode,
             bool return_state,
             const nonstd::optional<Array>& out) = 0;
@@ -111,9 +111,9 @@ public:
 
     virtual Array Call(
             const Array& gout,
-            StackVector<int64_t, kMaxNdim> kernel_size,
-            StackVector<int64_t, kMaxNdim> stride,
-            StackVector<int64_t, kMaxNdim> pad,
+            const StackVector<int64_t, kMaxNdim>& kernel_size,
+            const StackVector<int64_t, kMaxNdim>& stride,
+            const StackVector<int64_t, kMaxNdim>& pad,
             AveragePoolPadMode pad_mode,
             const std::shared_ptr<AveragePoolGradState>& state,
             const nonstd::optional<Array>& gx) = 0;

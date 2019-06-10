@@ -285,9 +285,9 @@ class CudaMaxPoolGradKernel : public MaxPoolGradKernel {
 public:
     std::tuple<Array, std::unique_ptr<MaxPoolGradGradState>> Call(
             const Array& gout,
-            StackVector<int64_t, kMaxNdim> kernel_size,
-            StackVector<int64_t, kMaxNdim> stride,
-            StackVector<int64_t, kMaxNdim> pad,
+            const StackVector<int64_t, kMaxNdim>& kernel_size,
+            const StackVector<int64_t, kMaxNdim>& stride,
+            const StackVector<int64_t, kMaxNdim>& pad,
             const std::shared_ptr<MaxPoolGradState>& state,
             bool return_state,
             const nonstd::optional<Array>& gx) override {
@@ -312,9 +312,9 @@ class CudaMaxPoolGradGradKernel : public MaxPoolGradGradKernel {
 public:
     Array Call(
             const Array& ggx,
-            StackVector<int64_t, kMaxNdim> kernel_size,
-            StackVector<int64_t, kMaxNdim> stride,
-            StackVector<int64_t, kMaxNdim> pad,
+            const StackVector<int64_t, kMaxNdim>& kernel_size,
+            const StackVector<int64_t, kMaxNdim>& stride,
+            const StackVector<int64_t, kMaxNdim>& pad,
             bool /*cover_all*/,
             const std::shared_ptr<MaxPoolGradGradState>& state,
             const nonstd::optional<Array>& ggout) override {
@@ -346,9 +346,9 @@ class CudaAveragePoolKernel : public AveragePoolKernel {
 public:
     std::tuple<Array, std::unique_ptr<AveragePoolGradState>> Call(
             const Array& x,
-            StackVector<int64_t, kMaxNdim> kernel_size,
-            StackVector<int64_t, kMaxNdim> stride,
-            StackVector<int64_t, kMaxNdim> pad,
+            const StackVector<int64_t, kMaxNdim>& kernel_size,
+            const StackVector<int64_t, kMaxNdim>& stride,
+            const StackVector<int64_t, kMaxNdim>& pad,
             AveragePoolPadMode pad_mode,
             bool return_state,
             const nonstd::optional<Array>& out) override {
@@ -368,9 +368,9 @@ class CudaAveragePoolGradKernel : public AveragePoolGradKernel {
 public:
     Array Call(
             const Array& gout,
-            StackVector<int64_t, kMaxNdim> kernel_size,
-            StackVector<int64_t, kMaxNdim> stride,
-            StackVector<int64_t, kMaxNdim> pad,
+            const StackVector<int64_t, kMaxNdim>& kernel_size,
+            const StackVector<int64_t, kMaxNdim>& stride,
+            const StackVector<int64_t, kMaxNdim>& pad,
             AveragePoolPadMode pad_mode,
             const std::shared_ptr<AveragePoolGradState>& state,
             const nonstd::optional<Array>& gx) override {
