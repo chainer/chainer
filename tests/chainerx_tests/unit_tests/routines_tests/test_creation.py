@@ -5,11 +5,13 @@ import tempfile
 import numpy
 import pytest
 
+import chainer
 import chainerx
 import chainerx.testing
 
 from chainerx_tests import array_utils
 from chainerx_tests import dtype_utils
+from chainerx_tests import op_utils
 
 
 _array_params_list = [
@@ -1173,3 +1175,54 @@ def test_copy(xp, shape, dtype, device, is_module):
         return xp.copy(a)
     else:
         return a.copy()
+
+
+@chainerx.testing.numpy_chainerx_array_equal()
+@pytest.mark.parametrize('N,M,k', [
+    (2, 1, -2),
+    (2, 1, -1),
+    (2, 1, 0),
+    (2, 1, 1),
+    (2, 1, 2),
+    (3, 4, -4),
+    (3, 4, -1),
+    (3, 4, 1),
+    (3, 4, 4),
+    (6, 3, 1),
+    (6, 3, -1),
+    (3, 6, 1),
+    (3, 6, -1),
+])
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@chainerx.testing.parametrize_dtype_specifier('dtype_spec')
+def test_tri(xp, N, M, k, dtype_spec, device):
+    if xp is numpy and isinstance(dtype_spec, chainerx.dtype):
+        dtype_spec = dtype_spec.name
+    out = xp.tri(N, M, k, dtype_spec)
+    if dtype_spec in (None, Unspecified):
+        out = dtype_utils.cast_if_numpy_array(xp, out, 'float32')
+    return out
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    # Special shapes
+    chainer.testing.product({
+        'shape': [(2, 1), (3, 4), (6, 3), (3, 6)],
+        'k': [0, 1, -1],
+        'in_dtypes': ['float32', 'float64'],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True]
+    })
+))
+class TestTrilTriu(op_utils.NumpyOpTest):
+
+    def generate_inputs(self):
+        a = numpy.random.random(self.shape).astype(self.in_dtypes)
+        return a,
+
+    def forward_xp(self, inputs, xp):
+        a, = inputs
+        tril = xp.tril(a, self.k)
+        triu = xp.triu(a, self.k)
+        return tril, triu,
