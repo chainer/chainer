@@ -95,10 +95,8 @@ class _TransformBatch(tabular_dataset.TabularDataset):
         in_examples = self._dataset.get_examples(indices, None)
 
         if self._dataset.mode is tuple:
-            self._mode = tuple
             out_examples = self._transform_batch(*in_examples)
         elif self._dataset.mode is dict:
-            self._mode = dict
             out_examples = self._transform_batch(
                 **dict(six.moves.zip(self._dataset.keys, in_examples)))
 
