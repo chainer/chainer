@@ -78,7 +78,7 @@ Returns:
 """)
 
     _docs.set_doc(
-        chainerx.eye,
+        chainerx.tri,
         """tri(N, M=None, k=0, dtype=float64, device=None)
 Returns a 2-D array with ones at and below the given diagonal
 and zeros elsewhere.
