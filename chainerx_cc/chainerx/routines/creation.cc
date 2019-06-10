@@ -354,9 +354,11 @@ std::vector<Array> Meshgrid(const std::vector<Array>& arrays, MeshgridIndexingMo
 
     // special cases
     // similar behavior to numpy.
-    if (arrays.size() == 0) {
+    if (arrays.empty()) {
         return grid_arrays;
-    } else if (arrays.size() == 1) {
+    }
+
+    if (arrays.size() == 1) {
         grid_arrays.emplace_back(arrays[0]);
         return grid_arrays;
     }
