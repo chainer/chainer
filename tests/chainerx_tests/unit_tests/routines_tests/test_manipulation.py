@@ -1073,7 +1073,7 @@ class TestHVDStack(op_utils.NumpyOpTest):
     [(1, 1, 2), (3, 5, 8)]
 ])
 @pytest.mark.parametrize('func_name', [
-    'hstack', 'vstack'
+    'hstack', 'vstack', 'dstack'
 ])
 def test_hvdstack_invalid_shapes(func_name, xp, shape):
     inputs = _make_inputs(shape, ['float32'] * len(shape))
