@@ -308,7 +308,8 @@ def resize_images(x, output_shape, align_corners=True):
             opposite of the one in OpenCV.
         align_corners (bool): When this value is :obj:`True`,
             the corners of the input are mapped to the corners of
-            the output.
+            the output. When :obj:`False`, the behavior is the same as
+            OpenCV.
 
     Returns:
         ~chainer.Variable: Resized image whose shape is \
