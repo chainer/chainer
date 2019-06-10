@@ -30,6 +30,7 @@
 #include "chainerx/kernels/misc.h"
 #include "chainerx/macro.h"
 #include "chainerx/routines/creation.h"
+#include "chainerx/routines/indexing.h"
 #include "chainerx/routines/linalg.h"
 #include "chainerx/routines/math.h"
 
@@ -164,7 +165,7 @@ public:
         Array cutoff_indices = s <= cutoff;
 
         Array sinv = 1.0 / s;
-        // sinv[cutoff_indices] = 0;
+        sinv = Where(cutoff_indices, 0, sinv);
 
         std::vector<ArrayIndex> indices{Slice{}, NewAxis{}};
 
