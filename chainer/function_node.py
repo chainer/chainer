@@ -1194,6 +1194,7 @@ def _extract_apply_in_data(inputs):
 
     if chainerx.is_available():
         has_chainerx_array = False
+        nonchainerx_requires_grad = False
 
         # Unwrap arrays
         arrays = []
@@ -1204,6 +1205,7 @@ def _extract_apply_in_data(inputs):
                     has_chainerx_array = True
                 else:
                     arrays.append(x.array)
+                    nonchainerx_requires_grad |= x.requires_grad
             else:  # x is ndarray
                 arrays.append(x)
                 if not has_chainerx_array:
@@ -1211,6 +1213,9 @@ def _extract_apply_in_data(inputs):
                         has_chainerx_array = True
 
         if has_chainerx_array:
+            if nonchainerx_requires_grad:
+                raise NotImplementedError(
+                    'Cannot mix ChainerX and non-ChainerX computation')
             return True, tuple(backend.to_chx(arrays))
         else:
             return False, tuple(arrays)
