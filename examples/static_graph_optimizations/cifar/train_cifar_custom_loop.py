@@ -28,6 +28,54 @@ from chainer.datasets import get_cifar100
 import models.VGG
 
 
+def run_train_loop(
+        optimizer, train_iter, test_iter, train_count, test_count, epoch,
+        device):
+    model = optimizer.target
+
+    sum_accuracy = 0
+    sum_loss = 0
+    while train_iter.epoch < epoch:
+        batch = train_iter.next()
+        # Reduce learning rate by 0.5 every 25 epochs.
+        if train_iter.epoch % 25 == 0 and train_iter.is_new_epoch:
+            optimizer.lr *= 0.5
+            print('Reducing learning rate to: {}'.format(optimizer.lr))
+
+        x_array, t_array = convert.concat_examples(batch, device)
+        x = chainer.Variable(x_array)
+        t = chainer.Variable(t_array, requires_grad=False)
+        optimizer.update(model, x, t)
+        sum_loss += float(model.loss.array) * len(t)
+        sum_accuracy += float(model.accuracy.array) * len(t)
+
+        if train_iter.is_new_epoch:
+            print('epoch: {}'.format(train_iter.epoch))
+            print('train mean loss: {}, accuracy: {}'.format(
+                sum_loss / train_count, sum_accuracy / train_count))
+            # evaluation
+            sum_accuracy = 0
+            sum_loss = 0
+            model.predictor.train = False
+            # It is good practice to turn off train mode during evaluation.
+            with configuration.using_config('train', False):
+                for batch in test_iter:
+                    x_array, t_array = convert.concat_examples(
+                        batch, device)
+                    x = chainer.Variable(x_array)
+                    t = chainer.Variable(t_array, requires_grad=False)
+                    loss = model(x, t)
+                    sum_loss += float(loss.array) * len(t)
+                    sum_accuracy += float(model.accuracy.array) * len(t)
+
+            test_iter.reset()
+            model.predictor.train = True
+            print('test mean  loss: {}, accuracy: {}'.format(
+                sum_loss / test_count, sum_accuracy / test_count))
+            sum_accuracy = 0
+            sum_loss = 0
+
+
 def main():
     parser = argparse.ArgumentParser(description='Chainer CIFAR example:')
     parser.add_argument('--dataset', default='cifar10',
@@ -100,58 +148,18 @@ def main():
     test_iter = chainer.iterators.SerialIterator(
         test, args.batchsize, repeat=False, shuffle=False)
 
-    def run():
-        sum_accuracy = 0
-        sum_loss = 0
-
-        while train_iter.epoch < args.epoch:
-            batch = train_iter.next()
-            # Reduce learning rate by 0.5 every 25 epochs.
-            if train_iter.epoch % 25 == 0 and train_iter.is_new_epoch:
-                optimizer.lr *= 0.5
-                print('Reducing learning rate to: {}'.format(optimizer.lr))
-
-            x_array, t_array = convert.concat_examples(batch, device)
-            x = chainer.Variable(x_array)
-            t = chainer.Variable(t_array, requires_grad=False)
-            optimizer.update(model, x, t)
-            sum_loss += float(model.loss.array) * len(t)
-            sum_accuracy += float(model.accuracy.array) * len(t)
-
-            if train_iter.is_new_epoch:
-                print('epoch: {}'.format(train_iter.epoch))
-                print('train mean loss: {}, accuracy: {}'.format(
-                    sum_loss / train_count, sum_accuracy / train_count))
-                # evaluation
-                sum_accuracy = 0
-                sum_loss = 0
-                model.predictor.train = False
-                # It is good practice to turn off train mode during evaluation.
-                with configuration.using_config('train', False):
-                    for batch in test_iter:
-                        x_array, t_array = convert.concat_examples(
-                            batch, device)
-                        x = chainer.Variable(x_array)
-                        t = chainer.Variable(t_array, requires_grad=False)
-                        loss = model(x, t)
-                        sum_loss += float(loss.array) * len(t)
-                        sum_accuracy += float(model.accuracy.array) * len(t)
-
-                test_iter.reset()
-                model.predictor.train = True
-                print('test mean  loss: {}, accuracy: {}'.format(
-                    sum_loss / test_count, sum_accuracy / test_count))
-                sum_accuracy = 0
-                sum_loss = 0
-
     if device.xp is not chainerx:
-        run()
+        run_train_loop(
+            optimizer, train_iter, test_iter, train_count, test_count,
+            args.epoch, device)
     else:
         warnings.warn(
             'Static subgraph optimization does not support ChainerX and will'
             ' be disabled.', UserWarning)
         with chainer.using_config('use_static_graph', False):
-            run()
+            run_train_loop(
+                optimizer, train_iter, test_iter, train_count, test_count,
+                args.epoch, device)
 
     # Save the model and the optimizer
     print('save the model')
