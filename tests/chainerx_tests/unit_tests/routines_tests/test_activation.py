@@ -162,36 +162,17 @@ class TestCRelu(UnaryMathTestBase, op_utils.NumpyOpTest):
         'skip_double_backward_test': [True],
     })
 ))
-class TestElu(op_utils.ChainerOpTest):
+class TestElu(UnaryMathTestBase, op_utils.NumpyOpTest):
 
     alpha = 2.0
 
-    def setup(self):
-        dtype, = self.in_dtypes
-
-        if dtype == 'float16':
-            self.check_forward_options.update({'atol': 1e-4, 'rtol': 1e-3})
-            self.check_backward_options.update({'atol': 5e-2, 'rtol': 5e-2})
-            self.check_double_backward_options.update(
-                {'atol': 1e-2, 'rtol': 5e-2})
-
-        self.dtype = dtype
-
-    def generate_inputs(self):
-        shape = self.shape
-        dtype = self.dtype
-        x = array_utils.uniform(shape, dtype)
-        return x,
-
-    def forward_chainerx(self, inputs):
-        x, = inputs
-        y = chainerx.elu(x, self.alpha)
-        return y,
-
-    def forward_chainer(self, inputs):
-        x, = inputs
-        y = chainer.functions.elu(x, self.alpha)
-        return y,
+    def func(self, xp, a):
+        if xp is numpy:
+            y = a.copy()
+            negzero_indices = y <= 0
+            y[negzero_indices] = self.alpha * numpy.expm1(y[negzero_indices])
+            return y
+        return xp.elu(a, self.alpha)
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
