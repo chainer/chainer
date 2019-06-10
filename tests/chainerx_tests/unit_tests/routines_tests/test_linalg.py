@@ -122,7 +122,6 @@ class TestCholesky(op_utils.NumpyOpTest):
     def forward_xp(self, inputs, xp):
         a, = inputs
         L = xp.linalg.cholesky(a)
-        L[numpy.triu_indices_from(L, k=1)] = 0.0
         return L,
 
 
@@ -154,5 +153,4 @@ class TestCholeskyFailing(op_utils.NumpyOpTest):
     def forward_xp(self, inputs, xp):
         a, = inputs
         L = xp.linalg.cholesky(a)
-        L[numpy.triu_indices_from(L, k=1)] = 0.0
         return L,
