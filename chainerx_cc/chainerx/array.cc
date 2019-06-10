@@ -171,6 +171,26 @@ Array& Array::operator^=(Scalar rhs) {
     return *this;
 }
 
+Array& Array::operator<<=(const Array& rhs) {
+    internal::ILeftShift(*this, rhs);
+    return *this;
+}
+
+Array& Array::operator<<=(Scalar rhs) {
+    internal::ILeftShift(*this, rhs);
+    return *this;
+}
+
+Array& Array::operator>>=(const Array& rhs) {
+    internal::IRightShift(*this, rhs);
+    return *this;
+}
+
+Array& Array::operator>>=(Scalar rhs) {
+    internal::IRightShift(*this, rhs);
+    return *this;
+}
+
 const Array& Array::operator+=(const Array& rhs) const {
     internal::IAdd(*this, rhs);
     return *this;
