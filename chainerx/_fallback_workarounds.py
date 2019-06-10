@@ -62,7 +62,9 @@ def _from_chx(array, check_backprop=True):
     # Objects with other types are kept intact.
     # Returns a pair: (xp, cupy device or dummy context, numpy/cupy.ndarray).
     if not isinstance(array, chainerx.ndarray):
-        return None, _dummy_context, array
+        raise RuntimeError(
+            'ChainerX function fallback using NumPy/CuPy is not '
+            'supported for datatypes other than ChainerX.ndarray.')
     if check_backprop and array.is_backprop_required():
         raise RuntimeError(
             'ChainerX function fallback using NumPy/CuPy is not '
