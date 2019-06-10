@@ -61,7 +61,7 @@ public:
 
 class TriKernel : public Kernel {
 public:
-    static const char* name() { return "Linspace"; }
+    static const char* name() { return "Tri"; }
 
     // Creates a 2-dimensional array with ones at and below the given diagonal.
     // out must be a 2-dim array.
