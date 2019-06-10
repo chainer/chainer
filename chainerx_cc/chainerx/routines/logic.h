@@ -62,8 +62,4 @@ Array IsInf(const Array& x);
 
 Array IsFinite(const Array& x);
 
-Array Ceil(const Array& x);
-
-Array Floor(const Array& x);
-
 }  // namespace chainerx
