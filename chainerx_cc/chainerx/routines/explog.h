@@ -6,6 +6,8 @@
 
 namespace chainerx {
 
+Array Erf(const Array& x);
+
 Array Exp(const Array& x);
 
 Array Expm1(const Array& x);

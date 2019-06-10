@@ -1,7 +1,54 @@
 import chainer
+import chainerx
+import numpy
 
 from chainerx_tests import math_utils
 from chainerx_tests import op_utils
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    chainer.testing.product([
+        chainer.testing.from_pytest_parameterize(
+            'shape', [
+                (2, 2),
+                (3, 3, 3),
+                (5, 5, 5),
+                (4, 1, 2, 4)
+            ]),
+        chainer.testing.from_pytest_parameterize(
+            'in_dtypes,out_dtype', math_utils.in_out_dtypes_math_functions)
+    ])
+))
+class TestErf(op_utils.ChainerOpTest):
+
+    dodge_nondifferentiable = True
+
+    def setup(self, float_dtype):
+        dtype = float_dtype
+
+        if dtype == 'float16':
+            self.check_backward_options.update({'rtol': 5e-2, 'atol': 5e-2})
+            self.check_double_backward_options.update({
+                'rtol': 5e-2, 'atol': 5e-2})
+
+        self.dtype = dtype
+
+    def generate_inputs(self):
+        shape = self.shape
+        dtype = self.dtype
+        x = numpy.random.normal(-1, 1, shape).astype(dtype)
+        return x,
+
+    def forward_chainerx(self, inputs):
+        x, = inputs
+        y = chainerx.erf(x)
+        return y,
+
+    def forward_chainer(self, inputs):
+        x, = inputs
+        y = chainer.functions.erf(x)
+        return y,
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])

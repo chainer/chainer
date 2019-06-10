@@ -14,6 +14,8 @@ namespace chainerx {
 namespace native {
 namespace {
 
+CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(ErfKernel, { out = chainerx::Erf(x); });
+
 CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(ExpKernel, { out = chainerx::Exp(x); });
 
 CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(Expm1Kernel, { out = chainerx::Expm1(x); });
