@@ -99,7 +99,7 @@ def test_dot_invalid(is_module, xp, device, a_shape, b_shape, dtype):
 @chainer.testing.parameterize(*(
     # Special shapes
     chainer.testing.product({
-        'shape': [(), (1, 1), (2, 3), (5, 5)],
+        'shape': [(1, 1), (3, 3), (6, 6)],
         'in_dtypes': ['float32', 'float64'],
         'contiguous': [None, 'C'],
         'skip_backward_test': [True],
@@ -112,14 +112,43 @@ class TestCholesky(op_utils.NumpyOpTest):
         device = chainerx.get_default_device()
         if device.name == 'native:0':
             pytest.skip('CPU Cholesky is not implemented')
-        self.forward_accept_errors = (numpy.linalg.LinAlgError, chainerx.ChainerxError, chainerx.DimensionError)
 
     def generate_inputs(self):
         a = numpy.random.random(self.shape).astype(self.in_dtypes)
         # Make random square matrix a symmetric positive semi-definite one
-        if len(a.shape) == 2:
-            if a.shape[0] == a.shape[1]:
-                a = numpy.array(a.T.dot(a))
+        a = numpy.array(a.T.dot(a))
+        return a,
+
+    def forward_xp(self, inputs, xp):
+        a, = inputs
+        L = xp.linalg.cholesky(a)
+        L[numpy.triu_indices_from(L, k=1)] = 0.0
+        return L,
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    # Special shapes
+    chainer.testing.product({
+        'shape': [(), (2, 3), (3, 2), (6, 6)],
+        'in_dtypes': ['float32', 'float64'],
+        'contiguous': [None, 'C'],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True]
+    })
+))
+class TestCholeskyFailing(op_utils.NumpyOpTest):
+
+    def setup(self):
+        device = chainerx.get_default_device()
+        if device.name == 'native:0':
+            pytest.skip('CPU Cholesky is not implemented')
+        self.forward_accept_errors = (numpy.linalg.LinAlgError,
+                                      chainerx.ChainerxError,
+                                      chainerx.DimensionError)
+
+    def generate_inputs(self):
+        a = numpy.random.random(self.shape).astype(self.in_dtypes)
         return a,
 
     def forward_xp(self, inputs, xp):
