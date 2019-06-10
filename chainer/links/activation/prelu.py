@@ -45,14 +45,14 @@ class PReLU(link.Link):
                 super(MLP, self).__init__()
                 with self.init_scope():
                     self.l1 = L.Linear(None, n_units)
-                    self.s1 = L.PReLU()
+                    self.a1 = L.PReLU()
                     self.l2 = L.Linear(None, n_units)
-                    self.s2 = L.PReLU()
+                    self.a2 = L.PReLU()
                     self.l3 = L.Linear(None, n_out)
 
             def forward(self, x):
-                h1 = self.s1(self.l1(x))
-                h2 = self.s2(self.l2(h1))
+                h1 = self.a1(self.l1(x))
+                h2 = self.a2(self.l2(h1))
                 return self.l3(h2)
 
     .. seealso:: :func:`chainer.functions.prelu`
