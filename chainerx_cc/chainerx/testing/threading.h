@@ -10,6 +10,7 @@
 #include <gtest/gtest.h>
 
 #include "chainerx/array_body_leak_detection.h"
+#include "chainerx/context.h"
 #include "chainerx/macro.h"
 
 namespace chainerx {

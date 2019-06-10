@@ -10,6 +10,7 @@ from chainer import serializer as serializer_module
 from chainer.training import extension
 from chainer.training import trigger as trigger_module
 from chainer import utils
+from chainer.utils import argument
 
 
 class LogReport(extension.Extension):
@@ -47,21 +48,31 @@ class LogReport(extension.Extension):
             result dictionary is passed to this callback on the output. This
             callback can modify the result dictionaries, which are used to
             output to the log file.
-        log_name (str): Name of the log file under the output directory. It can
+        filename (str): Name of the log file under the output directory. It can
             be a format string: the last result dictionary is passed for the
             formatting. For example, users can use '{iteration}' to separate
             the log files for different iterations. If the log name is None, it
             does not output the log to any file.
+            Although it is recommended to use `filename`, you can also specify
+            the name of the log file with the `log_name` argument
+            for back compatibility. However, `filename` will be used if
+            both `filename` and `log_name` are specified.
 
     """
 
     def __init__(self, keys=None, trigger=(1, 'epoch'), postprocess=None,
-                 log_name='log'):
+                 filename=None, **kwargs):
         self._keys = keys
         self._trigger = trigger_module.get_trigger(trigger)
         self._postprocess = postprocess
-        self._log_name = log_name
         self._log = []
+
+        log_name, = argument.parse_kwargs(
+            kwargs, ('log_name', 'log'),
+        )
+        if filename is None:
+            filename = log_name
+        self._log_name = filename
 
         self._init_summary()
 

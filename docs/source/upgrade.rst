@@ -20,6 +20,21 @@ You need to manually update CuPy package when updating Chainer package.
 This is because the automatic update made users difficult to switch between CuPy packages (e.g. ``cupy-cuda90`` and ``cupy-cuda92`` etc).
 See `#5425 <https://github.com/chainer/chainer/pull/5425>`__ for details.
 
+Deprecation Notice on Communicators and Old NCCL versions
+---------------------------------------------------------
+
+Chainer v6 only supports NCCL 2.3 and newer versions.
+Old NCCL versions are to be deprecated and will be removed in future versions.
+As of old NCCL deprecation, several communicators built for them are to be deprecated as well:
+
+- ``hierarchical``
+- ``two_dimensional``
+- ``single_node``
+
+They will be removed in future versions. Also, default communicator
+changed to `pure_nccl` from `hierarchical`.
+
+
 CuPy v6
 -------
 
@@ -40,6 +55,16 @@ In Chainer v5, ChainerMN now became a part of Chainer; ChainerMN will be install
 If you are using ``chainermn`` package, make sure to remove it by ``pip uninstall chainermn`` before upgrading to Chainer v5 or later.
 
 For documentation of ChainerMN, see :doc:`chainermn/index`.
+
+Use ``forward`` Instead of ``__call__`` in Links
+------------------------------------------------
+
+Prior to Chainer v5, ``__call__`` method is used to define the behavior of :class:`~chainer.Link`.
+In Chainer v5, ``forward`` method has been introduced, and is now recommended to use it instead of ``__call__``.
+The base class (:class:`~chainer.Link`) provides ``__call__`` method implementation that invokes ``forward`` method defined in the subclass; the only thing you need to do is to rename the method name (replace ``def __call__(...)`` with ``def forward(...)``).
+
+For backward compatibility, you can still use ``__call__`` to define your own link.
+However, new features introduced in Chainer v5 (e.g., :class:`~chainer.LinkHook`) may not be available for such links.
 
 FunctionNode Classes are Hidden from ``chainer.functions``
 ----------------------------------------------------------

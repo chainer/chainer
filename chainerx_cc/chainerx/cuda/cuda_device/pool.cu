@@ -13,6 +13,7 @@
 #include "chainerx/cuda/cuda_runtime.h"
 #include "chainerx/cuda/cuda_set_device_scope.h"
 #include "chainerx/cuda/cudnn.h"
+#include "chainerx/cuda/data_type.cuh"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
 #include "chainerx/error.h"
@@ -59,7 +60,7 @@ __global__ void MaxPoolDoubleBackwardKernel(
         it_x.index()[0] = it_y.index()[0];  // batch.
         it_x.index()[1] = it_y.index()[1];  // channel.
 
-        T y = y_iarray[it_y];
+        cuda_internal::StorageType<T> y = y_iarray[it_y];
 
         // Iterate over the kernel in the reverse order, since the resulting index should the be first match.
         for (it_kernel.Restart(); it_kernel.raw_index() >= 0; --it_kernel) {
@@ -125,12 +126,12 @@ public:
         cudnn_handle_.Call(
                 cudnnPoolingForward,
                 *pool_desc,
-                cuda_internal::GetValuePtr<1>(dtype),
+                cuda_internal::GetCudnnCoefficientPtr<1>(dtype),
                 *x_desc,
-                internal::GetRawOffsetData<void>(x_cont),
-                cuda_internal::GetValuePtr<0>(dtype),
+                internal::GetRawOffsetData(x_cont),
+                cuda_internal::GetCudnnCoefficientPtr<0>(dtype),
                 *y_desc,
-                internal::GetRawOffsetData<void>(y));
+                internal::GetRawOffsetData(y));
 
         x_ = x;
         y_ = y;
@@ -169,16 +170,16 @@ public:
         cudnn_handle_.Call(
                 cudnnPoolingBackward,
                 *pool_desc,
-                cuda_internal::GetValuePtr<1>(dtype),
+                cuda_internal::GetCudnnCoefficientPtr<1>(dtype),
                 *y_desc,
-                internal::GetRawOffsetData<void>(y_cont),
+                internal::GetRawOffsetData(y_cont),
                 *gout_desc,
-                internal::GetRawOffsetData<void>(gout_cont),
+                internal::GetRawOffsetData(gout_cont),
                 *x_desc,
-                internal::GetRawOffsetData<void>(x_cont),
-                cuda_internal::GetValuePtr<0>(dtype),
+                internal::GetRawOffsetData(x_cont),
+                cuda_internal::GetCudnnCoefficientPtr<0>(dtype),
                 *gx_desc,
-                internal::GetRawOffsetData<void>(gx));
+                internal::GetRawOffsetData(gx));
 
         return gx;
     }

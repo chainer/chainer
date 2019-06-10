@@ -178,6 +178,8 @@ MemoryPool::~MemoryPool() {
 void MemoryPool::FreeUnusedBlocks() {
     CudaSetDeviceScope scope{device_index_};
 
+    std::lock_guard<std::mutex> lock{free_bins_mutex_};
+
     // Frees unused memory blocks
     for (FreeBinsMap::value_type& pair : free_bins_) {
         FreeList& free_list = pair.second;

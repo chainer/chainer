@@ -1,3 +1,6 @@
+import copy
+import pickle
+
 import pytest
 
 import chainerx
@@ -133,3 +136,18 @@ def test_using_device_with_name(device_instance1, device_instance2):
     with chainerx.using_device(device2.backend.name, device2.index) as scope:
         assert chainerx.get_default_device() == device2
         assert scope.device is device2
+
+
+# TODO(niboshi): Add pickle test involving context destruction and re-creation
+@pytest.mark.parametrize_device(['native:0', 'native:1', 'cuda:0'])
+def test_device_pickle(device):
+    s = pickle.dumps(device)
+    device2 = pickle.loads(s)
+    assert device is device2
+
+
+# TODO(niboshi): Add deepcopy test with arbitrary context
+@pytest.mark.parametrize_device(['native:0', 'native:1', 'cuda:0'])
+def test_device_deepcopy(device):
+    device2 = copy.deepcopy(device)
+    assert device is device2

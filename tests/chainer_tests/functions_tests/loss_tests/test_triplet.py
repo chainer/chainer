@@ -52,7 +52,8 @@ class TestTriplet(unittest.TestCase):
         if self.dtype == numpy.float16:
             self.check_forward_options = {'rtol': 5e-3, 'atol': 5e-3}
             self.check_backward_options = {'rtol': 5e-2, 'atol': 5e-2}
-            self.check_double_backward_options = {'rtol': 5e0, 'atol': 5e0}
+            self.check_double_backward_options = {
+                'dtype': numpy.float64, 'rtol': 1e-3, 'atol': 1e-3}
         elif self.dtype == numpy.float32:
             self.check_forward_options = {'rtol': 1e-4, 'atol': 1e-4}
             self.check_backward_options = {'rtol': 5e-4, 'atol': 5e-4}

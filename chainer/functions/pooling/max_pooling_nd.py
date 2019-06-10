@@ -279,8 +279,8 @@ def max_pooling_nd(x, ksize, stride=None, pad=0, cover_all=True,
             When ``return_indices`` is ``False`` (default), returns the output
             variable.
             When ``True``, returns the tuple of the output variable and
-            pooling indices (`ndarray`). Pooling indices will be on the same
-            device as the input.
+            pooling indices (:ref:`ndarray`). Pooling indices will be on the
+            same device as the input.
 
     """
     ndim = len(x.shape[2:])

@@ -186,6 +186,9 @@ class TestUpdaterUpdateArguments(unittest.TestCase):
         self.assertEqual(iterator.next_called, 1)
 
 
+@testing.parameterize(
+    {'converter_style': 'old'},
+    {'converter_style': 'new'})
 @chainer.testing.backend.inject_backend_tests(
     ['test_converter_given_device'],
     [
@@ -229,25 +232,69 @@ class TestUpdaterCustomConverter(unittest.TestCase):
         self.check_converter_out_dict(device)
         self.check_converter_out_obj(device)
 
+    def get_converter(self, converter_func):
+        if self.converter_style == 'old':
+            return converter_func
+        if self.converter_style == 'new':
+            @chainer.dataset.converter()
+            def wrapped_converter(*args, **kwargs):
+                return converter_func(*args, **kwargs)
+
+            return wrapped_converter
+        assert False
+
+    def check_converter_received_device_arg(
+            self, received_device_arg, device_arg):
+
+        new_style = self.converter_style == 'new'
+
+        # None
+        if device_arg is None:
+            self.assertIs(received_device_arg, None)
+            return
+
+        # Normalize input device types
+        is_cpu = False
+        cuda_device_id = None
+        if isinstance(device_arg, int):
+            if device_arg < 0:
+                is_cpu = True
+            else:
+                cuda_device_id = device_arg
+        elif isinstance(device_arg, _cpu.CpuDevice):
+            is_cpu = True
+        elif isinstance(device_arg, cuda.GpuDevice):
+            cuda_device_id = device_arg.device.id
+        else:
+            assert False
+
+        # Check received device
+        if is_cpu:
+            if new_style:
+                self.assertEqual(received_device_arg, _cpu.CpuDevice())
+            else:
+                self.assertEqual(received_device_arg, -1)
+
+        elif cuda_device_id is not None:
+            if new_style:
+                self.assertEqual(
+                    received_device_arg,
+                    cuda.GpuDevice.from_device_id(cuda_device_id))
+            else:
+                self.assertIsInstance(received_device_arg, int)
+                self.assertEqual(received_device_arg, cuda_device_id)
+        else:
+            self.assertTrue(new_style)
+            self.assertIs(received_device_arg, device_arg)
+
     def check_converter_in_arrays(self, device_arg):
         iterator = DummyIterator([(numpy.array(1), numpy.array(2))])
         optimizer = self.create_optimizer()
 
         called = [0]
 
-        def converter(batch, device):
-            if device_arg is None:
-                self.assertIs(device, None)
-            elif isinstance(device_arg, int):
-                self.assertEqual(device, device_arg)
-            elif isinstance(device_arg, _cpu.CpuDevice):
-                self.assertIsInstance(device, int)
-                self.assertEqual(device, -1)
-            elif isinstance(device_arg, cuda.GpuDevice):
-                self.assertIsInstance(device, int)
-                self.assertEqual(device, device_arg.device.id)
-            else:
-                assert False
+        def converter_impl(batch, device):
+            self.check_converter_received_device_arg(device, device_arg)
 
             self.assertIsInstance(batch, list)
             self.assertEqual(len(batch), 1)
@@ -260,6 +307,8 @@ class TestUpdaterCustomConverter(unittest.TestCase):
             self.assertEqual(samples[1], 2)
             called[0] += 1
             return samples
+
+        converter = self.get_converter(converter_impl)
 
         updater = self.create_updater(
             iterator, optimizer, converter, device_arg)
@@ -274,19 +323,8 @@ class TestUpdaterCustomConverter(unittest.TestCase):
 
         called = [0]
 
-        def converter(batch, device):
-            if device_arg is None:
-                self.assertIs(device, None)
-            elif isinstance(device_arg, int):
-                self.assertEqual(device, device_arg)
-            elif isinstance(device_arg, _cpu.CpuDevice):
-                self.assertIsInstance(device, int)
-                self.assertEqual(device, -1)
-            elif isinstance(device_arg, cuda.GpuDevice):
-                self.assertIsInstance(device, int)
-                self.assertEqual(device, device_arg.device.id)
-            else:
-                assert False
+        def converter_impl(batch, device):
+            self.check_converter_received_device_arg(device, device_arg)
 
             self.assertIsInstance(batch, list)
             self.assertEqual(len(batch), 2)
@@ -294,6 +332,8 @@ class TestUpdaterCustomConverter(unittest.TestCase):
             self.assertIs(batch[1], obj2)
             called[0] += 1
             return obj1, obj2
+
+        converter = self.get_converter(converter_impl)
 
         updater = self.create_updater(
             iterator, optimizer, converter, device_arg)
@@ -305,8 +345,11 @@ class TestUpdaterCustomConverter(unittest.TestCase):
         optimizer = self.create_optimizer()
         converter_out = (object(), object())
 
-        def converter(batch, device):
+        def converter_impl(batch, device):
+            self.check_converter_received_device_arg(device, device_arg)
             return converter_out
+
+        converter = self.get_converter(converter_impl)
 
         updater = self.create_updater(
             iterator, optimizer, converter, device_arg)
@@ -327,8 +370,11 @@ class TestUpdaterCustomConverter(unittest.TestCase):
         optimizer = self.create_optimizer()
         converter_out = {'x': object(), 'y': object()}
 
-        def converter(batch, device):
+        def converter_impl(batch, device):
+            self.check_converter_received_device_arg(device, device_arg)
             return converter_out
+
+        converter = self.get_converter(converter_impl)
 
         updater = self.create_updater(
             iterator, optimizer, converter, device_arg)
@@ -350,8 +396,11 @@ class TestUpdaterCustomConverter(unittest.TestCase):
         optimizer = self.create_optimizer()
         converter_out = object()
 
-        def converter(batch, device):
+        def converter_impl(batch, device):
+            self.check_converter_received_device_arg(device, device_arg)
             return converter_out
+
+        converter = self.get_converter(converter_impl)
 
         updater = self.create_updater(
             iterator, optimizer, converter, device_arg)

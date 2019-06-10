@@ -17,7 +17,8 @@ namespace {
 
 template <typename T>
 struct CopyImpl {
-    __device__ void operator()(int64_t /*i*/, T a, T& out) { out = a; }
+    using CudaType = cuda_internal::DataType<T>;
+    __device__ void operator()(int64_t /*i*/, CudaType a, CudaType& out) { out = a; }
 };
 
 }  // namespace
@@ -35,7 +36,9 @@ namespace {
 
 template <typename InT, typename OutT>
 struct AsTypeImpl {
-    __device__ void operator()(int64_t /*i*/, InT a, OutT& out) { out = static_cast<OutT>(a); }
+    using InCudaType = cuda_internal::DataType<InT>;
+    using OutCudaType = cuda_internal::DataType<OutT>;
+    __device__ void operator()(int64_t /*i*/, InCudaType a, OutCudaType& out) { out = static_cast<OutCudaType>(a); }
 };
 
 }  // namespace

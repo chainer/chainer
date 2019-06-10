@@ -92,10 +92,6 @@ class TestNegativeSampling(unittest.TestCase):
         return ret
 
     def test_forward(self, backend_config):
-        # TODO(niboshi): Support it
-        if backend_config.use_chainerx and self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
-
         x_data = backend_config.get_array(self.x)
         t_data = backend_config.get_array(self.t)
         x = chainer.Variable(x_data)
@@ -131,21 +127,13 @@ class TestNegativeSampling(unittest.TestCase):
         testing.assert_allclose(y.data, loss, **self.test_forward_options)
 
     def test_to_cpu(self, backend_config):
-        # TODO(niboshi): Support it
-        if backend_config.use_chainerx and self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
-
         link = self.create_link()
         link.to_device(backend_config.device)
         self.assertEqual(link.sampler.device, backend_config.device)
-        link.to_device(numpy)
+        link.to_cpu()
         self.assertEqual(link.sampler.device, backend.CpuDevice())
 
     def test_return_samples(self, backend_config):
-        # TODO(niboshi): Support it
-        if backend_config.use_chainerx and self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
-
         batch_size = self.t.shape[0]
         link = self.create_link()
         link.to_device(backend_config.device)
@@ -175,9 +163,6 @@ class TestNegativeSampling(unittest.TestCase):
     def test_backward_compare_with_numpy(self, backend_config):
         # This test compares gradients with that of NumPy mode.
 
-        # TODO(niboshi): Support it
-        if backend_config.use_chainerx and self.dtype == numpy.float16:
-            raise unittest.SkipTest('ChainerX does not support float16')
         rng = numpy.random.RandomState()
         rng_state = rng.get_state()
 

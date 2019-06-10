@@ -101,20 +101,18 @@ class OrthogonalBase(unittest.TestCase):
 
         ab = 0.5 * (self.dim_in - 1)
 
-        beta_cdf = stats.beta(
-            ab, ab, loc=-expected_scale, scale=2*expected_scale).cdf
-
-        def abs_beta_cdf(x):
-            return numpy.fmax(0, 2 * beta_cdf(x) - 1)
-
         for samples in sampless:
             if self.dim_in == 1:
                 numpy.testing.assert_allclose(abs(samples), expected_scale)
                 _, p = stats.chisquare((numpy.sign(samples) + 1) // 2)
             else:
                 _, p = stats.kstest(
-                    numpy.abs(samples),
-                    abs_beta_cdf
+                    samples,
+                    stats.beta(
+                        ab, ab,
+                        loc=-expected_scale,
+                        scale=2*expected_scale
+                    ).cdf
                 )
             assert p >= alpha
 

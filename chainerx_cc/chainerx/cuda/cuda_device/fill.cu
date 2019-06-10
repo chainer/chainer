@@ -25,9 +25,10 @@ namespace {
 
 template <typename T>
 struct ArangeImpl {
-    __device__ void operator()(int64_t i, T& out) { out = start + step * i; }
-    T start;
-    T step;
+    using CudaType = cuda_internal::DataType<T>;
+    __device__ void operator()(int64_t i, CudaType& out) { out = start + step * static_cast<CudaType>(i); }
+    CudaType start;
+    CudaType step;
 };
 
 }  // namespace
@@ -36,7 +37,8 @@ void CudaDevice::Arange(Scalar start, Scalar step, const Array& out) {
     CudaSetDeviceScope scope{index()};
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        Elementwise<T>(ArangeImpl<T>{static_cast<T>(start), static_cast<T>(step)}, out);
+        using CudaType = cuda_internal::DataType<T>;
+        Elementwise<T>(ArangeImpl<T>{static_cast<CudaType>(start), static_cast<CudaType>(step)}, out);
     });
 }
 
@@ -44,8 +46,9 @@ namespace {
 
 template <typename T>
 struct FillImpl {
-    __device__ void operator()(int64_t /*i*/, T& out) { out = value; }
-    T value;
+    using CudaType = cuda_internal::DataType<T>;
+    __device__ void operator()(int64_t /*i*/, CudaType& out) { out = value; }
+    CudaType value;
 };
 
 }  // namespace
@@ -54,7 +57,8 @@ void CudaDevice::Fill(const Array& out, Scalar value) {
     CudaSetDeviceScope scope{index()};
     VisitDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        Elementwise<T>(FillImpl<T>{static_cast<T>(value)}, out);
+        using CudaType = cuda_internal::DataType<T>;
+        Elementwise<T>(FillImpl<T>{static_cast<CudaType>(value)}, out);
     });
 }
 
@@ -62,8 +66,9 @@ namespace {
 
 template <typename T>
 struct IdentityImpl {
+    using CudaType = cuda_internal::DataType<T>;
     explicit IdentityImpl(int64_t n) : n_plus_one{n + 1} {}
-    __device__ void operator()(int64_t i, T& out) { out = i % n_plus_one == 0 ? T{1} : T{0}; }
+    __device__ void operator()(int64_t i, CudaType& out) { out = i % n_plus_one == 0 ? CudaType{1} : CudaType{0}; }
     int64_t n_plus_one;
 };
 
@@ -84,8 +89,11 @@ namespace {
 
 template <typename T>
 struct EyeImpl {
+    using CudaType = cuda_internal::DataType<T>;
     EyeImpl(int64_t m, int64_t k) : start{k < 0 ? -k * m : k}, stop{m * (m - k)}, step{m + 1} {}
-    __device__ void operator()(int64_t i, T& out) { out = start <= i && i < stop && (i - start) % step == 0 ? T{1} : T{0}; }
+    __device__ void operator()(int64_t i, CudaType& out) {
+        out = start <= i && i < stop && (i - start) % step == 0 ? CudaType{1} : CudaType{0};
+    }
     int64_t start;
     int64_t stop;
     int64_t step;
@@ -162,9 +170,10 @@ namespace {
 
 template <typename T>
 struct LinspaceImpl {
-    __device__ void operator()(int64_t i, T& out) {
+    using CudaType = cuda_internal::DataType<T>;
+    __device__ void operator()(int64_t i, CudaType& out) {
         double value = n == 1 ? start : (start * (n - 1 - i) + stop * i) / (n - 1);
-        out = cuda_numeric_cast<T>(value);
+        out = cuda_numeric_cast<CudaType>(value);
     }
     int64_t n;
     double start;

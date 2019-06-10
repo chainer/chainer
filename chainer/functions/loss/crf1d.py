@@ -102,7 +102,7 @@ def crf1d(cost, xs, ys, reduce='mean'):
     """
     if reduce not in ('mean', 'no'):
         raise ValueError(
-            "only 'mean' and 'no' are valid for 'reduce', but '%s' is "
+            'only \'mean\' and \'no\' are valid for \'reduce\', but \'%s\' is '
             'given' % reduce)
 
     assert xs[0].shape[1] == cost.shape[0]

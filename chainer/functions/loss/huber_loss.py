@@ -12,8 +12,8 @@ class HuberLoss(function_node.FunctionNode):
 
         if reduce not in ('sum_along_second_axis', 'no'):
             raise ValueError(
-                "Only 'sum_along_second_axis' and 'no' are valid "
-                "for 'reduce', but '%s' is given" % reduce)
+                'Only \'sum_along_second_axis\' and \'no\' are valid '
+                'for \'reduce\', but \'%s\' is given' % reduce)
 
         self.reduce = reduce
 

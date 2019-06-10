@@ -21,13 +21,13 @@ class TestDirichlet(testing.distribution_unittest):
         self.scipy_dist = stats.dirichlet
 
         self.test_targets = set([
-            "batch_shape", "entropy", "event_shape", "mean", "sample",
-            "support", "variance"])
+            'batch_shape', 'entropy', 'event_shape', 'mean', 'sample',
+            'support', 'variance'])
 
         alpha = numpy.random.uniform(
             0, 10, self.shape + (3,)).astype(numpy.float32)
-        self.params = {"alpha": alpha}
-        self.scipy_params = {"alpha": alpha}
+        self.params = {'alpha': alpha}
+        self.scipy_params = {'alpha': alpha}
         self.support = '[0, 1]'
         self.event_shape = (3,)
 

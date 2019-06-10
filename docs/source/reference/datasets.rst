@@ -50,6 +50,8 @@ Batch Conversion Function
    :toctree: generated/
    :nosignatures:
 
+   chainer.dataset.converter
+
    chainer.dataset.concat_examples
    chainer.dataset.ConcatWithAsyncTransfer
    chainer.dataset.to_device
@@ -202,6 +204,8 @@ Concrete Datasets
    :nosignatures:
 
    chainer.datasets.get_mnist
+   chainer.datasets.get_kuzushiji_mnist
+   chainer.datasets.get_kuzushiji_mnist_labels
    chainer.datasets.get_fashion_mnist_labels
    chainer.datasets.get_fashion_mnist
    chainer.datasets.get_cifar10

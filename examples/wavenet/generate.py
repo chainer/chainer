@@ -41,7 +41,7 @@ else:
 _, condition, _ = Preprocess(
     sr=16000, n_fft=1024, hop_length=256, n_mels=128, top_db=20,
     length=None, quantize=args.a_channels)(args.input)
-x = numpy.zeros([1, args.a_channels, 1, 1], dtype=numpy.float32)
+x = numpy.zeros([1, args.a_channels, 1, 1], dtype=condition.dtype)
 condition = numpy.expand_dims(condition, axis=0)
 
 # Define networks

@@ -9,6 +9,7 @@
 #include "chainerx/cuda/cuda_runtime.h"
 #include "chainerx/cuda/cuda_set_device_scope.h"
 #include "chainerx/cuda/elementwise.cuh"
+#include "chainerx/cuda/numeric.cuh"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
 
@@ -17,33 +18,48 @@ namespace cuda {
 namespace {
 
 template <typename T>
-struct SqrtImpl {
-    __device__ void operator()(int64_t /*i*/, T x, T& out) { out = std::sqrt(x); }
+struct SquareImpl {
+    using CudaType = cuda_internal::DataType<T>;
+    __device__ void operator()(int64_t /*i*/, CudaType x, CudaType& out) { out = x * x; }
 };
 
 }  // namespace
 
-void CudaDevice::Sqrt(const Array& x, const Array& out) {
+void CudaDevice::Square(const Array& x, const Array& out) {
     CheckDevicesCompatible(x, out);
     CudaSetDeviceScope scope{index()};
     VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
         using T = typename decltype(pt)::type;
-        Elementwise<const T, T>(SqrtImpl<T>{}, x, out);
+        Elementwise<const T, T>(SquareImpl<T>{}, x, out);
     });
 }
 
 namespace {
 
 template <typename T>
-__device__ bool IsNan(T /*value*/) {
-    return false;
+struct SqrtImpl {
+    using CudaType = cuda_internal::DataType<T>;
+    __device__ void operator()(int64_t /*i*/, CudaType x, CudaType& out) { out = cuda::Sqrt(x); }
+};
+
+}  // namespace
+
+void CudaDevice::Sqrt(const Array& x, const Array& out) {
+    CheckDevicesCompatible(x, out);
+    const Array& x_cast = x.dtype() == out.dtype() ? x : x.AsType(out.dtype());
+    CudaSetDeviceScope scope{index()};
+    VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+        Elementwise<const T, T>(SqrtImpl<T>{}, x_cast, out);
+    });
 }
-__device__ bool IsNan(double value) { return isnan(value); }
-__device__ bool IsNan(float value) { return isnan(value); }
+
+namespace {
 
 template <typename T>
 struct IsNanImpl {
-    __device__ void operator()(int64_t /*i*/, T x, bool& out) { out = IsNan(x); }
+    using CudaType = cuda_internal::DataType<T>;
+    __device__ void operator()(int64_t /*i*/, CudaType x, bool& out) { out = cuda::IsNan(x); }
 };
 
 }  // namespace
@@ -60,15 +76,9 @@ void CudaDevice::IsNan(const Array& x, const Array& out) {
 namespace {
 
 template <typename T>
-__device__ bool IsInf(T /*value*/) {
-    return false;
-}
-__device__ bool IsInf(double value) { return isinf(value); }
-__device__ bool IsInf(float value) { return isinf(value); }
-
-template <typename T>
 struct IsInfImpl {
-    __device__ void operator()(int64_t /*i*/, T x, bool& out) { out = IsInf(x); }
+    using CudaType = cuda_internal::DataType<T>;
+    __device__ void operator()(int64_t /*i*/, CudaType x, bool& out) { out = cuda::IsInf(x); }
 };
 
 }  // namespace

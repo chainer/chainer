@@ -5,6 +5,7 @@ import chainer
 from chainer import backend
 from chainer.backends import cuda
 from chainer import function_node
+from chainer import utils
 from chainer.utils import type_check
 
 
@@ -74,6 +75,7 @@ class EmbedIDGrad(function_node.FunctionNode):
                     continue
                 gW[ix] += igy
         else:
+            utils.nondeterministic('atomicAdd')
             if self.ignore_label is None:
                 cuda.elementwise(
                     'T gy, S x, S n_out', 'raw T gW',

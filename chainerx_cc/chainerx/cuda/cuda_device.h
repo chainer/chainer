@@ -7,6 +7,8 @@
 #include <cstdint>
 #include <memory>
 #include <mutex>
+#include <queue>
+#include <utility>
 
 #include <nonstd/optional.hpp>
 
@@ -25,6 +27,25 @@ namespace cuda {
 namespace cuda_internal {
 
 class CudaConvTest;  // for unit-tests
+
+// Keeps any memory from being freed before CUDA asynchronous operations are finished.
+// Operations in this class are thread safe.
+class MemoryKeeper {
+public:
+    ~MemoryKeeper();
+
+    // Registers a pointer to a memory chunk.
+    // The memory is only freed after all preceding CUDA operations in the stream are finished.
+    // TODO(niboshi): Currently only the default stream is supported.
+    void Add(cudaStream_t stream, std::shared_ptr<void> memory);
+
+    // Checks for recorded events and frees the associated memories.
+    void Collect();
+
+private:
+    std::mutex mutex_{};
+    std::queue<std::pair<cudaEvent_t, std::shared_ptr<void>>> queue_{};
+};
 
 }  // namespace cuda_internal
 
@@ -80,12 +101,13 @@ public:
     void Multiply(const Array& x1, const Array& x2, const Array& out) override;
     void MultiplyAS(const Array& x1, Scalar x2, const Array& out) override;
 
+    void FloorDivide(const Array& x1, const Array& x2, const Array& out) override;
+    void FloorDivideAS(const Array& x1, Scalar x2, const Array& out) override;
+
     void Divide(const Array& x1, const Array& x2, const Array& out) override;
     void DivideAS(const Array& x1, Scalar x2, const Array& out) override;
 
     // reduction.cu
-
-    void ArgMax(const Array& a, const Axes& axis, const Array& out) override;
 
     void Sum(const Array& a, const Axes& axis, const Array& out) override;
     void AMax(const Array& a, const Axes& axis, const Array& out) override;
@@ -96,23 +118,27 @@ public:
 
     void AsType(const Array& a, const Array& out) override;
 
-    // comparison.cu
-
-    void Equal(const Array& x1, const Array& x2, const Array& out) override;
-
-    void NotEqual(const Array& x1, const Array& x2, const Array& out) override;
-
-    void Greater(const Array& x1, const Array& x2, const Array& out) override;
-
-    void GreaterEqual(const Array& x1, const Array& x2, const Array& out) override;
-
-    void LogicalNot(const Array& x1, const Array& out) override;
-
     // activation.cu
 
     void IfLessElseASSA(const Array& x1, Scalar x2, Scalar pos, const Array& neg, const Array& out) override;
 
+    void IfGreaterElseASSA(const Array& x1, Scalar x2, Scalar pos, const Array& neg, const Array& out) override;
+
     void Tanh(const Array& x, const Array& out) override;
+
+    void Sin(const Array& x, const Array& out) override;
+
+    void Cos(const Array& x, const Array& out) override;
+
+    // trigonometric.cu
+
+    void Tan(const Array& x, const Array& out) override;
+
+    void Arcsin(const Array& x, const Array& out) override;
+
+    void Arccos(const Array& x, const Array& out) override;
+
+    void Arctan(const Array& x, const Array& out) override;
 
     // dot.cc
 
@@ -125,16 +151,12 @@ public:
 
     // misc.cu
 
+    void Square(const Array& x, const Array& out) override;
+
     void Sqrt(const Array& x, const Array& out) override;
 
     void IsNan(const Array& x, const Array& out) override;
     void IsInf(const Array& x, const Array& out) override;
-
-    // indexing.cu
-
-    void Take(const Array& a, const Array& indices, int8_t axis, const Array& out) override;
-
-    void AddAt(const Array& a, const Array& indices, int8_t axis, const Array& b, const Array& out) override;
 
     // conv.cc
 
@@ -144,7 +166,8 @@ public:
             const nonstd::optional<Array>& b,
             const StackVector<int64_t, kMaxNdim>& stride,
             const StackVector<int64_t, kMaxNdim>& pad,
-            bool cover_all) override;
+            bool cover_all,
+            Dtype out_dtype) override;
 
     Array ConvGradWeight(
             Dtype w_dtype,
@@ -161,7 +184,8 @@ public:
             const nonstd::optional<Array>& b,
             const StackVector<int64_t, kMaxNdim>& stride,
             const StackVector<int64_t, kMaxNdim>& pad,
-            const StackVector<int64_t, kMaxNdim>& out_size) override;
+            const StackVector<int64_t, kMaxNdim>& out_size,
+            Dtype out_dtype) override;
 
     // pool.cc
 
@@ -212,6 +236,9 @@ private:
 
     // TODO(hvy): Consider checking if pinned memory is available by querying canMapHostMemory.
     std::shared_ptr<MemoryPool> pinned_memory_pool_;
+
+    // Memory keeper.
+    cuda_internal::MemoryKeeper memory_keeper_{};
 
     std::mutex cublas_handle_mutex_;
     cublasHandle_t cublas_handle_{};

@@ -64,7 +64,7 @@ class MLPSideEffect(chainer.Chain):
         # using the `@static_code` decorator.
         self.side_effect_counter += 1
         if self.side_effect_counter % 1000 == 0:
-            print("Side effect counter: ", self.side_effect_counter)
+            print('Side effect counter: ', self.side_effect_counter)
 
     @static_graph
     def __call__(self, x):

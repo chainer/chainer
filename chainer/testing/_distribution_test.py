@@ -16,7 +16,7 @@ def skip_not_in_test_target(test_target):
         def new_f(self, *args, **kwargs):
             if test_target not in self.test_targets:
                 self.skipTest(
-                    "\'%s\' does not exist in test_targets." % test_target)
+                    '\'%s\' does not exist in test_targets.' % test_target)
             else:
                 f(self, *args, **kwargs)
         return new_f
@@ -38,12 +38,12 @@ class distribution_unittest(unittest.TestCase):
         self.setUp_configure()
 
         targets_not_found = self.test_targets - {
-            "batch_shape", "cdf", "entropy", "event_shape", "icdf", "log_cdf",
-            "log_prob", "log_survival", "mean", "prob", "sample", "stddev",
-            "support", "survival", "variance"}
+            'batch_shape', 'cdf', 'entropy', 'event_shape', 'icdf', 'log_cdf',
+            'log_prob', 'log_survival', 'mean', 'prob', 'sample', 'stddev',
+            'support', 'survival', 'variance'}
         if targets_not_found:
             raise ValueError(
-                "invalid target(s): {}".format(targets_not_found))
+                'invalid target(s): {}'.format(targets_not_found))
 
         if self.is_variable:
             self.params = {k: chainer.Variable(v)

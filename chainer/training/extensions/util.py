@@ -1,21 +1,21 @@
 import os
-if os.name == "nt":
+if os.name == 'nt':
     import ctypes
 
     _STD_OUTPUT_HANDLE = -11
 
     class _COORD(ctypes.Structure):
-        _fields_ = [("X", ctypes.c_short), ("Y", ctypes.c_short)]
+        _fields_ = [('X', ctypes.c_short), ('Y', ctypes.c_short)]
 
     class _SMALL_RECT(ctypes.Structure):
-        _fields_ = [("Left", ctypes.c_short), ("Top", ctypes.c_short),
-                    ("Right", ctypes.c_short), ("Bottom", ctypes.c_short)]
+        _fields_ = [('Left', ctypes.c_short), ('Top', ctypes.c_short),
+                    ('Right', ctypes.c_short), ('Bottom', ctypes.c_short)]
 
     class _CONSOLE_SCREEN_BUFFER_INFO(ctypes.Structure):
-        _fields_ = [("dwSize", _COORD), ("dwCursorPosition", _COORD),
-                    ("wAttributes", ctypes.c_ushort),
-                    ("srWindow", _SMALL_RECT),
-                    ("dwMaximumWindowSize", _COORD)]
+        _fields_ = [('dwSize', _COORD), ('dwCursorPosition', _COORD),
+                    ('wAttributes', ctypes.c_ushort),
+                    ('srWindow', _SMALL_RECT),
+                    ('dwMaximumWindowSize', _COORD)]
 
     def set_console_cursor_position(x, y):
         """Set relative cursor position from current position to (x,y)"""

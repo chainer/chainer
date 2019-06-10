@@ -14,6 +14,10 @@ class CpuDevice(_backend.Device):
     def xp(self):
         return numpy
 
+    @property
+    def supported_array_types(self):
+        return (numpy.ndarray,)
+
     @staticmethod
     def from_array(array):
         if isinstance(array, numpy.ndarray):
@@ -28,12 +32,6 @@ class CpuDevice(_backend.Device):
 
     def send_array(self, array):
         return _array_to_cpu(array)
-
-
-def _get_device(device_spec):
-    if device_spec is numpy:
-        return CpuDevice()
-    return None
 
 
 def _to_cpu(array):

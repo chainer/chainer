@@ -5,9 +5,11 @@ import six
 
 import chainer
 from chainer.backends import cuda
+from chainer import device_resident
 from chainer import function
 from chainer.initializers import uniform
 from chainer import link
+from chainer import utils
 from chainer.utils import type_check
 from chainer import variable
 
@@ -63,7 +65,8 @@ class TreeParser(object):
             self.codes[node] = numpy.array(self.code, dtype=self.dtype)
 
 
-class BinaryHierarchicalSoftmaxFunction(function.Function):
+class BinaryHierarchicalSoftmaxFunction(
+        device_resident.DeviceResident, function.Function):
 
     """Hierarchical softmax function based on a binary tree.
 
@@ -80,6 +83,8 @@ class BinaryHierarchicalSoftmaxFunction(function.Function):
     """
 
     def __init__(self, tree, dtype):
+        device_resident.DeviceResident.__init__(self)
+
         parser = TreeParser(dtype)
         parser.parse(tree)
         paths = parser.get_paths()
@@ -115,16 +120,12 @@ class BinaryHierarchicalSoftmaxFunction(function.Function):
             w_type.shape[1] == x_type.shape[1],
         )
 
-    def _to_device(self, device, skip_between_cupy_devices=False):
-        # TODO(niboshi): Avoid forcing concrete implementations to handle
-        # skip_between_cupy_devices
-        device = chainer.get_device(device)
-        if not (skip_between_cupy_devices
-                and device.xp is cuda.cupy
-                and isinstance(self.paths, cuda.ndarray)):
-            self.paths = device.send(self.paths)
-            self.codes = device.send(self.codes)
-            self.begins = device.send(self.begins)
+    def device_resident_accept(self, visitor):
+        super(BinaryHierarchicalSoftmaxFunction, self).device_resident_accept(
+            visitor)
+        self.paths = visitor.visit_array(self.paths)
+        self.codes = visitor.visit_array(self.codes)
+        self.begins = visitor.visit_array(self.begins)
 
     def forward_cpu(self, inputs):
         x, t, W = inputs
@@ -213,6 +214,7 @@ class BinaryHierarchicalSoftmaxFunction(function.Function):
         return ls.sum(),
 
     def backward_gpu(self, inputs, grad_outputs):
+        utils.nondeterministic('atomicAdd')
         x, t, W = inputs
         gloss, = grad_outputs
 
@@ -308,14 +310,9 @@ class BinaryHierarchicalSoftmax(link.Link):
             self.W = variable.Parameter(uniform.Uniform(1),
                                         (self._func.parser_size, in_size))
 
-    def _to_device(self, device, skip_between_cupy_devices=False):
-        # Overrides Link._to_device
-        # TODO(niboshi): Avoid forcing concrete links to override _to_device
-        device = chainer.get_device(device)
-        self._func._to_device(
-            device, skip_between_cupy_devices=skip_between_cupy_devices)
-        return super(BinaryHierarchicalSoftmax, self)._to_device(
-            device, skip_between_cupy_devices=skip_between_cupy_devices)
+    def device_resident_accept(self, visitor):
+        super(BinaryHierarchicalSoftmax, self).device_resident_accept(visitor)
+        self._func.device_resident_accept(visitor)
 
     @staticmethod
     def create_huffman_tree(word_counts):

@@ -6,6 +6,7 @@
 #include "chainerx/array.h"
 #include "chainerx/dtype.h"
 #include "chainerx/error.h"
+#include "chainerx/float16.h"
 #include "chainerx/macro.h"
 #include "chainerx/stack_vector.h"
 
@@ -27,17 +28,20 @@ void CheckCudnnError(cudnnStatus_t status);
 
 namespace cuda_internal {
 
-// Returns a pointer to a value of given type, allocated on the static storage.
+// Returns a pointer to a cuDNN coefficient value of given type, allocated on the static storage.
 template <int kValue>
-const void* GetValuePtr(Dtype dtype) {
-    static const float kFloat32Value = kValue;
-    static const double kFloat64Value = kValue;
+const void* GetCudnnCoefficientPtr(Dtype dtype) {
+    // TODO(niboshi): Get rid of the assumption that native and cuda float16 share the same representation.
+    static const float kFloat32Value{kValue};
+    static const double kFloat64Value{kValue};
 
     switch (dtype) {
-        case Dtype::kFloat64:
-            return &kFloat64Value;
+        case Dtype::kFloat16:
+            // fallthrough: cuDNN accepts float32 coefficients for float16 tensor operations.
         case Dtype::kFloat32:
             return &kFloat32Value;
+        case Dtype::kFloat64:
+            return &kFloat64Value;
         default:
             CHAINERX_NEVER_REACH();
     }

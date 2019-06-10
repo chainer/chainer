@@ -40,7 +40,7 @@ class ScatterAdd(function_node.FunctionNode):
         y = a.copy()
         xp = backend.get_array_module(a)
         slices = tuple([
-            backend.from_chainerx(s) if isinstance(s, chainerx.ndarray) else s
+            backend.from_chx(s) if isinstance(s, chainerx.ndarray) else s
             for s in self.slices])
         if y[slices].shape != b.shape:
             raise ValueError(

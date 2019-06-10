@@ -12,7 +12,7 @@ from chainer.training.updaters import standard_updater
 try:
     from cupy.cuda import nccl
     _available = True
-except ImportError:
+except Exception:
     _available = False
 
 import numpy
@@ -45,7 +45,6 @@ class _Worker(multiprocessing.Process):
         dev = cuda.Device(self.device)
         dev.use()
         self.setup()
-        gp = None
         while True:
             job, data = self.pipe.recv()
             if job == 'finalize':
@@ -56,13 +55,11 @@ class _Worker(multiprocessing.Process):
                 self.model.cleargrads()
 
                 batch = self.converter(self.iterator.next(), self.device)
-                observation = {}
-                with self.reporter.scope(observation):
+                with self.reporter.scope({}):  # pass dummy observation
                     loss = _calc_loss(self.model, batch)
 
                 self.model.cleargrads()
                 loss.backward()
-
                 del loss
 
                 gg = gather_grads(self.model)
@@ -78,7 +75,7 @@ class _Worker(multiprocessing.Process):
                 self.comm.bcast(gp.data.ptr, gp.size, nccl_data_type, 0,
                                 null_stream.ptr)
                 scatter_params(self.model, gp)
-                gp = None
+                del gp
 
 
 class MultiprocessParallelUpdater(standard_updater.StandardUpdater):
@@ -218,7 +215,7 @@ class MultiprocessParallelUpdater(standard_updater.StandardUpdater):
             self._master.to_gpu(self._devices[0])
             if len(self._devices) > 1:
                 comm_id = nccl.get_unique_id()
-                self._send_message(("set comm_id", comm_id))
+                self._send_message(('set comm_id', comm_id))
                 self.comm = nccl.NcclCommunicator(len(self._devices),
                                                   comm_id, 0)
 
@@ -369,7 +366,7 @@ def gather_grads(link):
     """
     if link.xp is numpy:
         raise RuntimeError('gather_grads works only on GPU.')
-    return _gather(link, "grad")
+    return _gather(link, 'grad')
 
 
 def gather_params(link):
@@ -382,7 +379,7 @@ def gather_params(link):
     """
     if link.xp is numpy:
         raise RuntimeError('Link.gather_params works only on GPU.')
-    return _gather(link, "data")
+    return _gather(link, 'data')
 
 
 def _memcpy_scatter():
@@ -462,7 +459,7 @@ def scatter_grads(link, array):
         link (chainer.link.Link): Target link object.
         array (cupy.ndarray): gathered array created by gather_grads()
     """
-    return _scatter(link, array, "grad")
+    return _scatter(link, array, 'grad')
 
 
 def scatter_params(link, array):
@@ -472,7 +469,7 @@ def scatter_params(link, array):
         link (chainer.link.Link): Target link object.
         array (cupy.ndarray): gathered array created by gather_params()
     """
-    return _scatter(link, array, "data")
+    return _scatter(link, array, 'data')
 
 
 def _get_nccl_data_type(dtype):

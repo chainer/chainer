@@ -149,10 +149,10 @@ class ScheduleInfo(object):
         self.run_post_hooks(ret)
 
     def __repr__(self):
-        out = "function: " + str(self.func) + "\n"
-        out += "name: " + str(self.func_name) + "\n"
-        out += "args: " + str(self.args) + "\n"
-        out += "kwargs: " + str(self.args) + "\n"
+        out = 'function: ' + str(self.func) + '\n'
+        out += 'name: ' + str(self.func_name) + '\n'
+        out += 'args: ' + str(self.args) + '\n'
+        out += 'kwargs: ' + str(self.args) + '\n'
         return out
 
 
@@ -224,19 +224,19 @@ class ArrayInfo(object):
         return self.ndarray_module.empty(self.shape, dtype=self.dtype)
 
     def __repr__(self):
-        out = "shape: {}\n".format(self.shape)
+        out = 'shape: {}\n'.format(self.shape)
         if self.was_deleted():
-            out += "Weak reference: dead\n"
+            out += 'Weak reference: dead\n'
         else:
-            out += "Weak reference: alive\n"
+            out += 'Weak reference: alive\n'
         if self.retain:
-            out += "Retained with retain_inputs()/retain_outputs().\n"
+            out += 'Retained with retain_inputs()/retain_outputs().\n'
         if self.dynamically_allocated:
-            out += "Dynamically allocated at\n"
+            out += 'Dynamically allocated at\n'
             out += \
-                "  pass_depth: {}\n".format(self.dynamic_allocation_pass_depth)
-            out += "  sched_index: {}\n".format(self.dynamic_allocation_index)
-        out += "array id: {}".format(self.id)
+                '  pass_depth: {}\n'.format(self.dynamic_allocation_pass_depth)
+            out += '  sched_index: {}\n'.format(self.dynamic_allocation_index)
+        out += 'array id: {}'.format(self.id)
         return out
 
 
@@ -603,7 +603,7 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
         return ret
 
     def __repr__(self):
-        out = "StaticSchedule:\n"
+        out = 'StaticSchedule:\n'
         if self.pass_depth == 0:
             depth = 'forward pass'
         elif self.pass_depth == 1:
@@ -612,9 +612,9 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
             depth = 'double backward pass'
         else:
             depth = str(self.pass_depth)
-        out += "Pass depth: " + depth + "\n"
-        out += "Length of unique_arrays: " + \
-               str(len(self.unique_arrays)) + "\n"
+        out += 'Pass depth: ' + depth + '\n'
+        out += 'Length of unique_arrays: ' + \
+               str(len(self.unique_arrays)) + '\n'
         for x in self.schedule_info_list:
             out += str(x)
         return out
@@ -735,8 +735,8 @@ class StaticScheduleFunction(chainer.function_node.FunctionNode):
                     self.out_var_hooks.append((var_ind, unique_list_index))
                     self.unique_ind_to_out_var_ind[unique_list_index] = var_ind
                 else:
-                    raise RuntimeError("Could not find output variable in "
-                                       "unique_arrays.")
+                    raise RuntimeError('Could not find output variable in '
+                                       'unique_arrays.')
 
     def build_schedule(self, chain, in_vars):
         """Build the static schedule.
@@ -1008,7 +1008,7 @@ class ScheduleManager(object):
                 # Training config changed, so clear caches.
                 self.prev_train_config = chainer.config.train
                 if self.verbosity_level >= 2:
-                    print("Clearing schedule cache...")
+                    print('Clearing schedule cache...')
                 self.schedules.clear()
                 self.in_use_count.clear()
 
@@ -1082,16 +1082,16 @@ class ScheduleManager(object):
             if self.train_count > self.max_in_use_train:
                 self.max_in_use_train = self.train_count
                 if self.verbosity_level >= 2:
-                    print("Maximum in-use schedules per training iteration: ",
+                    print('Maximum in-use schedules per training iteration: ',
                           self.max_in_use_train)
             self.train_count = 0
 
     def __repr__(self):
-        out = "ScheduleManager:\n"
+        out = 'ScheduleManager:\n'
         for key_str in self.schedules:
-            out += "key string: " + key_str
+            out += 'key string: ' + key_str
             sched_list = self.schedules[key_str]
-            out += " -> schedule list of length: " + \
+            out += ' -> schedule list of length: ' + \
                    str(len(sched_list)) + '\n'
             for sched in sched_list:
                 out += str(sched)
@@ -1331,7 +1331,7 @@ def static_graph(*args, **kwargs):
                 # First check that this chain is not called from inside another
                 # static chain because it is not allowed.
                 if chainer.config.schedule_func is not None:
-                    raise RuntimeError("Not allowed to nest static chains: ",
+                    raise RuntimeError('Not allowed to nest static chains: ',
                                        chain)
 
                 new_args = []

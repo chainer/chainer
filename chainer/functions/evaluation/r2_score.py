@@ -11,7 +11,7 @@ class R2_score(function.Function):
         if multioutput in ['uniform_average', 'raw_values']:
             self.multioutput = multioutput
         else:
-            raise ValueError("invalid multioutput argument")
+            raise ValueError('invalid multioutput argument')
 
     def check_type_forward(self, in_types):
         type_check._argname(in_types, ('pred', 'true'))

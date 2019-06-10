@@ -12,9 +12,11 @@
 #include "chainerx/error.h"
 #include "chainerx/indexable_array.h"
 #include "chainerx/indexer.h"
+#include "chainerx/native/data_type.h"
 #include "chainerx/native/native_backend.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/manipulation.h"
+#include "chainerx/scalar.h"
 
 namespace chainerx {
 namespace numerical_gradient_internal {
@@ -28,7 +30,7 @@ void SynchronizeArrays(const Arrays& arrays) {
 
 Scalar Norm(const Array& x) {
     Scalar s = AsScalar((x * x).Sum());
-    return Scalar(std::sqrt(static_cast<double>(s)), x.dtype());
+    return Scalar{std::sqrt(static_cast<double>(s))};
 }
 
 void Set(const Array& out, int64_t flat_index, Scalar value) {
@@ -38,7 +40,7 @@ void Set(const Array& out, int64_t flat_index, Scalar value) {
         using T = typename decltype(pt)::type;
         IndexableArray<T> iarray{out};
         Indexer<> indexer{out.shape()};
-        T& dst = iarray[indexer.It(flat_index)];
+        T& dst = native::StorageToDataType<T>(iarray[indexer.It(flat_index)]);
         auto src = static_cast<T>(value);
         Device& device = out.device();
         device.MemoryCopyFrom(&dst, &src, sizeof(T), native_device);
@@ -54,7 +56,7 @@ Scalar Get(const Array& out, int64_t flat_index) {
         using T = typename decltype(pt)::type;
         IndexableArray<const T> iarray{out};
         Indexer<> indexer{out.shape()};
-        const T& src = iarray[indexer.It(flat_index)];
+        const T& src = native::StorageToDataType<const T>(iarray[indexer.It(flat_index)]);
         T dst{};
         out.device().MemoryCopyTo(&dst, &src, sizeof(T), native_device);
         return Scalar{dst};
@@ -98,7 +100,7 @@ Arrays CalculateNumericalGradient(
         // Only the target array is deeply copied
         xi = xi.Copy();
         // Give displacement and evaluate
-        Set(xi, in_flat_index, Get(xi, in_flat_index) + Scalar(static_cast<float>(eps_scalar) * multiplier, eps_scalar.dtype()));
+        Set(xi, in_flat_index, Get(xi, in_flat_index) + Scalar{static_cast<float>(eps_scalar) * multiplier});
         return func(xs_copy);
     };
 
@@ -115,7 +117,7 @@ Arrays CalculateNumericalGradient(
 
             for (int j = 0; j < nout; ++j) {
                 Array dy = ys1.at(j) - ys0.at(j);
-                Array denom = FullLike(dy, eps_scalar) * FullLike(dy, Scalar(2, dtype));
+                Array denom = FullLike(dy, eps_scalar) * FullLike(dy, Scalar{2, GetKind(dtype)});
 
                 Array slope = (ys1.at(j) - ys0.at(j)) / denom;
                 Scalar g = AsScalar((slope * grad_outputs.at(j)).Sum().AsType(dtype));

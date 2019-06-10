@@ -77,7 +77,7 @@ class TestGraphBuilderKeepGraphOnReport(unittest.TestCase):
         updater = training.updaters.StandardUpdater(iterator, optimizer)
         trainer = training.Trainer(updater, (n_epochs, 'epoch'), out=outdir)
 
-        extension = c.DumpGraph('main/loss', out_name='test.dot')
+        extension = c.DumpGraph('main/loss', filename='test.dot')
         trainer.extend(extension)
 
         # Run
@@ -96,6 +96,9 @@ class TestGraphBuilderKeepGraphOnReport(unittest.TestCase):
         # Check that only the first iteration is dumped
         self.assertIn('Function1', graph_dot)
         self.assertNotIn('Function2', graph_dot)
+
+        if c.is_graphviz_available():
+            self.assertTrue(os.path.exists(os.path.join(outdir, 'test.png')))
 
     def _check(self, initial_flag):
         tempdir = tempfile.mkdtemp()

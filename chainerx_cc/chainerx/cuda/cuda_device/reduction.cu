@@ -9,12 +9,17 @@
 #include "chainerx/axes.h"
 #include "chainerx/cuda/cuda_runtime.h"
 #include "chainerx/cuda/cuda_set_device_scope.h"
+#include "chainerx/cuda/data_type.cuh"
+#include "chainerx/cuda/numeric.cuh"
+#include "chainerx/cuda/numeric_limits.cuh"
+#include "chainerx/cuda/op_regist.h"
 #include "chainerx/cuda/reduce.cuh"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
 #include "chainerx/macro.h"
 #include "chainerx/numeric_limits.h"
 #include "chainerx/reduction_kernel_arg.h"
+#include "chainerx/routines/sorting.h"
 #include "chainerx/shape.h"
 
 namespace chainerx {
@@ -23,12 +28,13 @@ namespace {
 
 template <typename T>
 struct ArgMaxImpl {
+    using CudaType = cuda_internal::DataType<T>;
     struct MaxAndArgMax {
-        T max;
+        CudaType max;
         int64_t argmax;
     };
-    __device__ MaxAndArgMax Identity() { return {T{}, -1}; }
-    __device__ MaxAndArgMax MapIn(T in, int64_t index) { return {in, index}; }
+    __device__ MaxAndArgMax Identity() { return {CudaType{}, -1}; }
+    __device__ MaxAndArgMax MapIn(CudaType in, int64_t index) { return {in, index}; }
     __device__ void Reduce(MaxAndArgMax next, MaxAndArgMax& accum) {
         if (accum.argmax < 0 || accum.max < next.max) {
             accum = next;
@@ -37,25 +43,29 @@ struct ArgMaxImpl {
     __device__ int64_t MapOut(MaxAndArgMax accum) { return accum.argmax; }
 };
 
-}  // namespace
+class CudaArgMaxOp : public ArgMaxOp {
+protected:
+    void Impl(const Array& a, const Axes& axis, const Array& out) override {
+        Device& device = a.device();
+        device.CheckDevicesCompatible(a, out);
+        CudaSetDeviceScope scope{device.index()};
+        VisitDtype(a.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            Reduce<T, int64_t>(a, axis, out, ArgMaxImpl<T>{});
+        });
+    }
+};
 
-void CudaDevice::ArgMax(const Array& a, const Axes& axis, const Array& out) {
-    CheckDevicesCompatible(a, out);
-    CudaSetDeviceScope scope{index()};
-    VisitDtype(a.dtype(), [&](auto pt) {
-        using T = typename decltype(pt)::type;
-        Reduce<T, int64_t>(a, axis, out, ArgMaxImpl<T>{});
-    });
-}
-
-namespace {
+CHAINERX_REGISTER_OP_CUDA(ArgMaxOp, CudaArgMaxOp);
 
 template <typename In, typename Out>
 struct SumImpl {
-    __device__ Out Identity() { return Out{0}; }
-    __device__ Out MapIn(In in, int64_t /*index*/) { return static_cast<Out>(in); }
-    __device__ void Reduce(Out next, Out& accum) { accum += next; }
-    __device__ Out MapOut(Out accum) { return accum; }
+    using InCudaType = cuda_internal::DataType<In>;
+    using OutCudaType = cuda_internal::DataType<Out>;
+    __device__ OutCudaType Identity() { return OutCudaType{0}; }
+    __device__ OutCudaType MapIn(InCudaType in, int64_t /*index*/) { return static_cast<OutCudaType>(in); }
+    __device__ void Reduce(OutCudaType next, OutCudaType& accum) { accum += next; }
+    __device__ OutCudaType MapOut(OutCudaType accum) { return accum; }
 };
 
 }  // namespace
@@ -75,24 +85,20 @@ void CudaDevice::Sum(const Array& a, const Axes& axis, const Array& out) {
 }
 
 namespace {
-template <typename T>
-__device__ bool IsNan(T /*value*/) {
-    return false;
-}
-__device__ bool IsNan(double value) { return ::isnan(value); }
-__device__ bool IsNan(float value) { return ::isnan(value); }
 
 template <typename T>
 struct AMaxImpl {
-    __device__ T Identity() { return NumericLimits<T>::LowestOrInf(); }
-    __device__ T MapIn(T in, int64_t /*index*/) { return in; }
-    __device__ void Reduce(T next, T& accum) {
-        if (IsNan(next) || accum < next) {
+    using CudaType = cuda_internal::DataType<T>;
+    __device__ CudaType Identity() { return cuda::NumericLimits<CudaType>::LowestOrInf(); }
+    __device__ CudaType MapIn(CudaType in, int64_t /*index*/) { return in; }
+    __device__ void Reduce(CudaType next, CudaType& accum) {
+        if (cuda::IsNan(next) || accum < next) {
             accum = next;
         }
     }
-    __device__ T MapOut(T accum) { return accum; }
+    __device__ CudaType MapOut(CudaType accum) { return accum; }
 };
+
 }  // namespace
 
 void CudaDevice::AMax(const Array& a, const Axes& axis, const Array& out) {

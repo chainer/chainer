@@ -1,4 +1,3 @@
-import numpy
 import six
 
 from chainer import backend
@@ -69,7 +68,7 @@ class StandardUpdater(_updater.Updater):
                  device=None, loss_func=None, loss_scale=None,
                  auto_new_epoch=True):
         if device is not None:
-            device = backend._get_device_compat(device)
+            device = backend.get_device(device)
 
         if isinstance(iterator, iterator_module.Iterator):
             iterator = {'main': iterator}
@@ -81,8 +80,12 @@ class StandardUpdater(_updater.Updater):
 
         if device is not None:
             for optimizer in six.itervalues(self._optimizers):
-                optimizer.target._to_device(
-                    device, skip_between_cupy_devices=True)
+                if isinstance(device, cuda.GpuDevice):
+                    # Do not transfer between different cupy devices.
+                    # TODO(niboshi): Reconsider this behavior
+                    optimizer.target.to_gpu(device.device.id)
+                else:
+                    optimizer.target.to_device(device)
 
         self.converter = converter
         self.loss_func = loss_func
@@ -172,29 +175,10 @@ class StandardUpdater(_updater.Updater):
         self.update_core()
         self.iteration += 1
 
-    def _call_converter(self, batch, device):
-        # TODO(niboshi): This is a temporary workaround to keep backward
-        # compatibility about user-defined custom converters. Existing
-        # converters expect int values as the `device` argument, so they
-        # can't handle ChainerX devices. We should either break backward
-        # compatibility at some time or introduce a sparate API.
-        converter = self.converter
-        if converter is convert.concat_examples:
-            return converter(batch, device)
-        else:
-            if device is None:
-                return converter(batch, None)
-            if device.xp is numpy:
-                return converter(batch, -1)
-            if device.xp is cuda.cupy:
-                return converter(batch, device.device.id)
-            raise NotImplementedError(
-                'Currently only `concat_examples` supports ChainerX.')
-
     def update_core(self):
         iterator = self._iterators['main']
         batch = iterator.next()
-        in_arrays = self._call_converter(batch, self.device)
+        in_arrays = convert._call_converter(self.converter, batch, self.device)
 
         optimizer = self._optimizers['main']
         loss_func = self.loss_func or optimizer.target

@@ -1,4 +1,3 @@
-import contextlib
 import os
 import shutil
 import traceback
@@ -25,6 +24,17 @@ def _pop_or_none(grad_list):
     return grad_list.pop() if grad_list else None
 
 
+def _grad_var_from_alive_node(node):
+    # Used by `accumulate_grad_inputs` option of `GradTable`
+    var = node.get_variable_or_none()
+    if var is None:
+        return None
+    else:
+        gv = var.grad_var
+        var.grad_var = None
+        return gv
+
+
 class GradTable(object):
 
     """Dict of nodes to references of gradients
@@ -35,19 +45,23 @@ class GradTable(object):
     lazily.
 
     Args:
-        load_if_new (bool): read ``grad_var`` of input node when the node
-            has not been added.
+        accumulate_grad_inputs (bool): Fallback to grad_var of input variables.
+            However, the current implementation reproduces the legacy behavior,
+            i.e. to read ``grad_var`` of node when the node has not been added.
 
     """
 
-    def __init__(self, load_if_new=False):
+    def __init__(self, accumulate_grad_inputs=False):
         self.grads = {}
-        self._load_if_new = load_if_new
+        self._load_if_new = accumulate_grad_inputs
         self._reproduce_bug = chainer.config.reproduce_backward_output_bug
 
     def __setitem__(self, node, grad):
         assert node is not None
         self.grads[node] = _pure(grad)
+
+    def accumulate(self, node, grad):
+        self.get_as_list(node).append(grad)
 
     def get_as_list(self, node):
         assert node is not None
@@ -56,7 +70,7 @@ class GradTable(object):
             if self._load_if_new and node.creator_node is None:
                 node._check_old_style_gradient()
                 # accumulate the gradient only if the node is a leaf
-                grads[node] = _pure(node.grad_var)
+                grads[node] = _pure(_grad_var_from_alive_node(node))
             else:
                 grads[node] = []
         return grads[node]
@@ -71,7 +85,7 @@ class GradTable(object):
         # Reproduce bug before v5.
         # Variable.backward had the bug, but chainer.grad did not.
         if self._load_if_new and self._reproduce_bug:
-            g = node.grad_var
+            g = _grad_var_from_alive_node(node)
             if self._reproduce_bug == 'warn' and g is not None:
                 warnings.warn(
                     '''\
@@ -90,7 +104,7 @@ the computational graph but whose creator '{}' does.'''.format(
 
 
 def backprop_step(
-        func, target_input_indexes, grad_outputs, grad_inputs):
+        func, target_input_indexes, grad_outputs, grad_inputs, is_debug):
     """Accumulates gradients of a FunctionNode
 
     This routine is used by :meth:`chainer.Variable.backward` and
@@ -107,9 +121,9 @@ def backprop_step(
             given, the corresponding element is ``None``.
         grad_inputs (dict): References of the gradients w.r.t. the input
             variables.
+        is_debug (bool): ``True`` if the debug mode is enabled.
 
     """
-    is_debug = chainer.is_debug()
     if is_debug:
         assert isinstance(target_input_indexes, tuple)
         assert target_input_indexes == tuple(sorted(target_input_indexes))
@@ -121,13 +135,22 @@ def backprop_step(
             _pop_or_none(grad_inputs[func.inputs[i]])
             for i in target_input_indexes
         ])
-        with _reraise_forward_stack(func):
+
+        # Call backward_accumulate()
+        try:
             gxs = func.backward_accumulate(
                 target_input_indexes, grad_outputs, grad_inputs_tuple)
+        except Exception as e:
+            _reraise_with_stack(func, e)
+
     else:  # otherwise, backward should be overridden
-        with _reraise_forward_stack(func):
+
+        # Call backward()
+        try:
             gxs = func.backward(
                 target_input_indexes, grad_outputs)
+        except Exception as e:
+            _reraise_with_stack(func, e)
 
         if is_debug:
             for gx in gxs:
@@ -153,32 +176,34 @@ def backprop_step(
             raise ValueError(func._get_error_message(msg))
 
     for i, gx in six.moves.zip(target_input_indexes, gxs):
-        if gx is not None:
-            grad_inputs[func.inputs[i]].append(gx)
+        if gx is None or gx.array is None:
+            continue
 
-            if is_debug:
-                node_x = func.inputs[i]
-                g_input_list = grad_inputs[node_x]
-                if gx.shape != node_x.shape:
+        grad_inputs[func.inputs[i]].append(gx)
+
+        if is_debug:
+            node_x = func.inputs[i]
+            g_input_list = grad_inputs[node_x]
+            if gx.shape != node_x.shape:
+                raise ValueError(func._get_error_message(
+                    'shape of gradients returned from backward is '
+                    'incorrect: '
+                    'input-index={}, actual {} != expected {}'.format(
+                        i, gx.shape, node_x.shape)))
+            if gx is not None and g_input_list:
+                g_input = g_input_list[0]
+                if gx.shape != g_input.shape:
                     raise ValueError(func._get_error_message(
                         'shape of gradients returned from backward is '
                         'incorrect: '
                         'input-index={}, actual {} != expected {}'.format(
-                            i, gx.shape, node_x.shape)))
-                if gx is not None and g_input_list:
-                    g_input = g_input_list[0]
-                    if gx.shape != g_input.shape:
-                        raise ValueError(func._get_error_message(
-                            'shape of gradients returned from backward is '
-                            'incorrect: '
-                            'input-index={}, actual {} != expected {}'.format(
-                                i, gx.shape, g_input.shape)))
-                    if gx.dtype != g_input.dtype:
-                        raise ValueError(func._get_error_message(
-                            'dtype of gradients returned from backward is '
-                            'incorrect: '
-                            'input-index={}, actual {} != expected {}'.format(
-                                i, gx.dtype, g_input.dtype)))
+                            i, gx.shape, g_input.shape)))
+                if gx.dtype != g_input.dtype:
+                    raise ValueError(func._get_error_message(
+                        'dtype of gradients returned from backward is '
+                        'incorrect: '
+                        'input-index={}, actual {} != expected {}'.format(
+                            i, gx.dtype, g_input.dtype)))
     del gxs
 
     if is_debug:
@@ -208,25 +233,19 @@ def _get_columns():
     return get_terminal_size()[0]
 
 
-@contextlib.contextmanager
-def _reraise_forward_stack(func):
-    if func.stack is None:
-        yield
-    else:
-        try:
-            yield
-        except Exception as e:
-            # Reraise any type of exceptions including the following:
-            # - Chainer raises RuntimeError for NaN values; and
-            # - NumPy raises FloatingPointError for invalid values.
+def _reraise_with_stack(func, e):
+    if func.stack is not None:
+        # Reraise any type of exceptions including the following:
+        # - Chainer raises RuntimeError for NaN values; and
+        # - NumPy raises FloatingPointError for invalid values.
 
-            # TODO(kataoka): unify variable._check_grad_type and below
-            additional_message = \
-                '\n{}\nStacktrace of the function is below:\n{}'.format(
-                    '-' * _get_columns(),
-                    ''.join(traceback.format_list(func.stack[:-1])))
-            if e.args:
-                e.args = (e.args[0] + additional_message,) + e.args[1:]
-            else:
-                e.args = (additional_message,)
-            raise
+        # TODO(kataoka): unify variable._check_grad_type and below
+        additional_message = \
+            '\n{}\nStacktrace of the function is below:\n{}'.format(
+                '-' * _get_columns(),
+                ''.join(traceback.format_list(func.stack[:-1])))
+        if e.args:
+            e.args = (e.args[0] + additional_message,) + e.args[1:]
+        else:
+            e.args = (additional_message,)
+    raise

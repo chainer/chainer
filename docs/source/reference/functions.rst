@@ -64,6 +64,7 @@ Activation functions
    chainer.functions.prelu
    chainer.functions.rrelu
    chainer.functions.relu
+   chainer.functions.relu6
    chainer.functions.selu
    chainer.functions.sigmoid
    chainer.functions.slstm
@@ -80,6 +81,7 @@ Array manipulations
    :toctree: generated/
    :nosignatures:
 
+   chainer.functions.as_strided
    chainer.functions.broadcast
    chainer.functions.broadcast_to
    chainer.functions.cast
@@ -294,8 +296,10 @@ Normalization functions
 
    chainer.functions.batch_normalization
    chainer.functions.batch_renormalization
+   chainer.functions.decorrelated_batch_normalization
    chainer.functions.fixed_batch_normalization
    chainer.functions.fixed_batch_renormalization
+   chainer.functions.fixed_decorrelated_batch_normalization
    chainer.functions.group_normalization
    chainer.functions.layer_normalization
    chainer.functions.local_response_normalization

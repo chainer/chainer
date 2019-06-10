@@ -1,6 +1,3 @@
-import contextlib
-
-
 def _convert_arrays(array, func):
     # Converts array or arrays
     if isinstance(array, (list, tuple)):
@@ -22,9 +19,15 @@ def _convert_arrays(array, func):
         return func(array)
 
 
-@contextlib.contextmanager
-def _dummy_context():
-    yield
+class _DummyContext(object):
+    def __enter__(self):
+        pass
+
+    def __exit__(self, typ, value, traceback):
+        pass
+
+
+_dummy_context = _DummyContext()
 
 
 # TODO(niboshi): Write more detailed description about interface/usage.
@@ -35,6 +38,17 @@ class Device(object):
     @property
     def xp(self):
         """Array module corresponding to the device."""
+        raise NotImplementedError(
+            'Device implementation must override this property.')
+
+    @property
+    def supported_array_types(self):
+        """Array types supported by the device.
+
+        Returns:
+            tuple of array types which the device's module functions can
+            handle.
+        """
         raise NotImplementedError(
             'Device implementation must override this property.')
 
@@ -52,9 +66,12 @@ class Device(object):
         raise NotImplementedError(
             'Device implementation must override this method.')
 
+    def __ne__(self, other):
+        return not (self == other)
+
     def create_context(self):
         # Returns an object that implements __enter__ and __exit__.
-        return _dummy_context()
+        return _dummy_context
 
     def send(self, arrays):
         """Transfers given arrays to the device.

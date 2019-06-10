@@ -115,8 +115,8 @@ class ConnectionistTemporalClassification(function.Function):
 
         if reduce not in ('mean', 'no'):
             raise ValueError(
-                "only 'mean' and 'no' are valid "
-                "for 'reduce', but '%s' is given" % reduce)
+                'only \'mean\' and \'no\' are valid '
+                'for \'reduce\', but \'%s\' is given' % reduce)
         self.reduce = reduce
 
     def check_type_forward(self, in_types):
@@ -168,6 +168,7 @@ class ConnectionistTemporalClassification(function.Function):
                         multiply_seq[:, b, 0:path_length[b]]
                         [:, target_path == c], axis=1)
         else:
+            utils.nondeterministic('atomicAdd')
             cuda.elementwise(
                 'T prob, I path, I path_length, I max_path_length',
                 'raw T cum_prob',

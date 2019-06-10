@@ -1,10 +1,13 @@
 #include "chainerx/cuda/memory_pool.h"
 
+#include <map>
 #include <memory>
+#include <mutex>
 
 #include <gtest/gtest.h>
 
 #include "chainerx/error.h"
+#include "chainerx/testing/threading.h"
 
 namespace chainerx {
 namespace cuda {
@@ -116,20 +119,31 @@ public:
 
     MallocStatus Malloc(void** ptr, size_t bytesize) override {
         CHAINERX_ASSERT(bytesize > 0);
-        ++malloc_called_;
-        if (capacity_ < bytesize) {
-            return MallocStatus::kErrorMemoryAllocation;
+        uint8_t* mem{};
+        {
+            std::lock_guard<std::mutex> lock{sizes_mutex_};
+            ++malloc_called_;
+            if (capacity_ < bytesize) {
+                return MallocStatus::kErrorMemoryAllocation;
+            }
+            mem = new uint8_t[bytesize];
+            sizes_[mem] = bytesize;
+            capacity_ -= bytesize;
         }
-        // bytesize is encoded in the dummy pointer.
-        auto i = static_cast<intptr_t>(bytesize);
-        *ptr = reinterpret_cast<void*>(i);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-        capacity_ -= bytesize;
+        *ptr = mem;
         return MallocStatus::kSuccess;
     }
     void Free(void* ptr) noexcept override {
-        intptr_t i = reinterpret_cast<intptr_t>(ptr);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-        capacity_ += static_cast<size_t>(i);
-        ++free_called_;
+        uint8_t* mem = static_cast<uint8_t*>(ptr);
+        {
+            std::lock_guard<std::mutex> lock{sizes_mutex_};
+            auto it = sizes_.find(mem);
+            CHAINERX_ASSERT(it != sizes_.end());
+            capacity_ += it->second;
+            sizes_.erase(it);
+            ++free_called_;
+        }
+        delete[] mem;
     }
 
     int malloc_called() const { return malloc_called_; }
@@ -139,6 +153,8 @@ private:
     size_t capacity_;
     int malloc_called_{0};
     int free_called_{0};
+    std::mutex sizes_mutex_;
+    std::map<void*, size_t> sizes_;
 };
 
 class MemoryPoolTestForEachAllocator : public ::testing::TestWithParam<std::shared_ptr<MemoryPool>> {};
@@ -354,6 +370,52 @@ TEST(MemoryPoolTest, FreeUnusedBlocksSplitAndFreeHead) {
     void* ptr2 = memory_pool.Malloc(kAllocationUnitSize * 2);
     EXPECT_EQ(head, ptr2);
     EXPECT_EQ(allocator->free_called(), 0);
+}
+
+TEST(MemoryPoolTest, FreeUnusedBlocksThreadSafe) {
+    static constexpr size_t kRepeat = 100U;
+    MemoryPool memory_pool{0, std::make_unique<FixedCapacityDummyAllocator>(0xffffffffU)};
+
+    // TODO(niboshi): Use TEST_THREAD_SAFE. Currently it depends on thread sanitizer and does not work with CUDA.
+    testing::RunThreads(2, [&memory_pool](size_t thread_index) {
+        for (size_t i = 0; i < kRepeat; ++i) {
+            switch (thread_index) {
+                case 0: {
+                    void* ptr = memory_pool.Malloc(1U);
+                    memory_pool.Free(ptr);
+                    break;
+                }
+                case 1:
+                    memory_pool.FreeUnusedBlocks();
+                    break;
+                default:
+                    CHAINERX_NEVER_REACH();
+            }
+        }
+    });
+}
+
+TEST(MemoryPoolTest, MallocFreeThreadSafe) {
+    static constexpr size_t kRepeat = 100U;
+    MemoryPool memory_pool{0, std::make_unique<FixedCapacityDummyAllocator>(0xffffffffU)};
+
+    // TODO(niboshi): Use TEST_THREAD_SAFE. Currently it depends on thread sanitizer and does not work with CUDA.
+    testing::RunThreads(2, [&memory_pool](size_t thread_index) {
+        for (size_t i = 0; i < kRepeat; ++i) {
+            switch (thread_index) {
+                case 0: {
+                    void* ptr = memory_pool.Malloc(1U);
+                    memory_pool.Free(ptr);
+                    break;
+                }
+                case 1: {
+                    void* ptr = memory_pool.Malloc(1U);
+                    memory_pool.Free(ptr);
+                    break;
+                }
+            }
+        }
+    });
 }
 
 }  // namespace
