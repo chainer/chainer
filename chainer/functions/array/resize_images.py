@@ -297,7 +297,8 @@ class ResizeImagesGrad(function_node.FunctionNode):
 
     def backward(self, indexes, grad_outputs):
         return ResizeImages(
-            (self.out_H, self.out_W), self.mode, self.align_corners).apply(grad_outputs)
+            (self.out_H, self.out_W),
+            self.mode, self.align_corners).apply(grad_outputs)
 
 
 def resize_images(x, output_shape, mode='bilinear', align_corners=True):
