@@ -6,6 +6,8 @@
 #include <string>
 #include <vector>
 
+#include "chainerx/shape.h"
+
 namespace chainerx {
 namespace python {
 namespace python_internal {
@@ -18,13 +20,13 @@ Shape ToShape(py::handle shape) {
         try {
             seq = py::cast<std::vector<int64_t>>(shape);
         } catch (const py::cast_error& e) {
-            throw py::type_error{std::string{"shape not understood: "} + py::cast<std::string>(py::repr(shape))};
+            throw py::type_error{"shape not understood: " + py::cast<std::string>(py::repr(shape))};
         }
         return Shape{seq};
     } else if (py::isinstance<py::int_>(shape)) {
         return Shape{shape.cast<int64_t>()};
     } else {
-        throw py::type_error{"only integer and sequence are valid shape"};
+        throw py::type_error{"expected sequence object or a single integer"};
     }
 }
 
