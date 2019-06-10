@@ -854,7 +854,7 @@ Note:
 
     _docs.set_doc(
         chainerx.hstack,
-        """stack(arrays)
+        """hstack(arrays)
 Stack arrays in sequence horizontally (column wise).
 
 Args:
@@ -872,7 +872,7 @@ Note:
 
     _docs.set_doc(
         chainerx.vstack,
-        """stack(arrays)
+        """vstack(arrays)
 Stack arrays in sequence vertically (row wise).
 
 Args:
@@ -886,6 +886,24 @@ Note:
     output array to the input arrays in ``arrays``.
 
 .. seealso:: :func:`numpy.vstack`
+""")
+
+    _docs.set_doc(
+        chainerx.dstack,
+        """dstack(arrays)
+Stack arrays in sequence depth wise (along third axis).
+
+Args:
+    arrays (sequence of :class:`~chainerx.ndarray`\\ s): Arrays to be stacked.
+
+Returns:
+    ~chainerx.ndarray: Stacked array.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input arrays in ``arrays``.
+
+.. seealso:: :func:`numpy.dstack`
 """)
 
     _docs.set_doc(
@@ -906,7 +924,28 @@ Note:
     * During backpropagation, this function propagates the gradient of the
       output array to the input arrays in ``a``.
 
-.. seealso:: :func:`numpy.vstack`
+.. seealso:: :func:`numpy.atleast_2d`
+""")
+
+    _docs.set_doc(
+        chainerx.atleast_3d,
+        """atleast_3d(a)
+View inputs as arrays with at least three dimensions.
+
+Args:
+    a (~chainerx.ndarray): Array.
+
+Returns:
+    ~chainerx.ndarray: An array with a.ndim >= 3.
+    Copies are avoided where possible, and views with
+    three or more dimensions are returned.
+
+Note:
+    * Arrays that already have three or more dimensions are preserved.
+    * During backpropagation, this function propagates the gradient of the
+      output array to the input arrays in ``a``.
+
+.. seealso:: :func:`numpy.atleast_3d`
 """)
 
     _docs.set_doc(
@@ -1267,6 +1306,24 @@ Note:
     output array to the input array ``x``.
 
 .. seealso:: :data:`numpy.log10`
+""")
+
+    _docs.set_doc(
+        chainerx.log1p,
+        """log1p(x)
+Natural logarithm of one plus the input, element-wise.
+
+Args:
+    x (~chainerx.ndarray): Input array.
+
+Returns:
+    :class:`~chainerx.ndarray`: Returned array: :math:`y = \\log(1 + x)`.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``x``.
+
+.. seealso:: :data:`numpy.log1p`
 """)
 
     _docs.set_doc(
@@ -1714,13 +1771,13 @@ Args:
     x2 (~chainerx.ndarray or scalar): Input array of integers.
 
 Returns:
-    :class:`~chainerx.ndarray`: Returned array: :math:`y = x_1 \& x_2`
+    :class:`~chainerx.ndarray`: Returned array: :math:`y = x_1 \\& x_2`
 
 Note:
     During backpropagation, this function does not propagate gradients.
 
 .. seealso:: :data:`numpy.bitwise_and`
-""")  # NOQA
+""")
 
     _docs.set_doc(
         chainerx.bitwise_or,
@@ -1750,13 +1807,13 @@ Args:
     x2 (~chainerx.ndarray or scalar): Input array of integers.
 
 Returns:
-    :class:`~chainerx.ndarray`: Returned array: :math:`y = x_1 \oplus x_2`
+    :class:`~chainerx.ndarray`: Returned array: :math:`y = x_1 \\oplus x_2`
 
 Note:
     During backpropagation, this function does not propagate gradients.
 
 .. seealso:: :data:`numpy.bitwise_xor`
-""")  # NOQA
+""")
 
 
 def _docs_sorting():
@@ -2202,7 +2259,8 @@ Note:
 def _docs_normalization():
     _docs.set_doc(
         chainerx.batch_norm,
-        """batch_norm(x, gamma, beta, running_mean, running_var, eps=2e-5, decay=0.9, axis=None)
+        """batch_norm(x, gamma, beta, running_mean, running_var, eps=2e-5, \
+decay=0.9, axis=None)
 Batch normalization function.
 
 It takes the input array ``x`` and two parameter arrays ``gamma`` and
@@ -2235,7 +2293,7 @@ Note:
 
 See: `Batch Normalization: Accelerating Deep Network Training by Reducing\
       Internal Covariate Shift <https://arxiv.org/abs/1502.03167>`_
-""")  # NOQA
+""")
 
     _docs.set_doc(
         chainerx.fixed_batch_norm,

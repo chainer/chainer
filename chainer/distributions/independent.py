@@ -5,8 +5,8 @@ from chainer import distribution
 from chainer.functions.array import repeat
 from chainer.functions.array import reshape
 from chainer.functions.array import transpose
-from chainer.functions.math import sum as sum_mod
 from chainer.functions.math import prod
+from chainer.functions.math import sum as sum_mod
 from chainer.utils import array
 from chainer.utils import cache
 

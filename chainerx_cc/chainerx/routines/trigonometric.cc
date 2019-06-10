@@ -7,7 +7,7 @@
 #include "chainerx/dtype.h"
 #include "chainerx/graph.h"
 #include "chainerx/kernels/trigonometric.h"
-#include "chainerx/routines/math.h"
+#include "chainerx/routines/misc.h"
 #include "chainerx/routines/routines_util.h"
 #include "chainerx/routines/type_util.h"
 #include "chainerx/shape.h"

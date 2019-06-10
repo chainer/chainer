@@ -1,17 +1,14 @@
 from __future__ import absolute_import
-import collections
 import copy
-import heapq
 import traceback
 import typing as tp  # NOQA
 import warnings
 import weakref
 
 import numpy
-import six
 
 import chainer
-from chainer import _backprop_utils
+from chainer import _backprop
 from chainer import backend
 from chainer.backends import _cpu
 from chainer.backends import cuda
@@ -856,7 +853,7 @@ class Variable(object):
 
     @array.setter
     def array(self, d):
-        # type: (types.NdArray) -> None
+        # type: (tp.Optional[types.NdArray]) -> None
 
         if self._has_chainerx_array:
             d_old = self._data[0]
@@ -912,8 +909,15 @@ class Variable(object):
 
         self.array = d
 
-    def _set_chainerx_grad(self, g):
-        # Assigns chainerx.ndarray.grad
+    def _set_chainerx_grad(self, g, from_grad_var):
+        # Assigns chainerx.ndarray.grad.
+        #
+        # If the main array is connected to the graph, in order to enable
+        # double-backprop, the grad will also be backprop-required
+        # (a view is created not to affect the given grad).
+        # If the given grad is from a grad_var, this operation is skipped,
+        # as the status of the given grad reflects the necessity of
+        # double-backprop.
         assert self.xp is chainerx
         if not self._requires_grad and g is not None:
             raise RuntimeError(
@@ -925,11 +929,17 @@ class Variable(object):
                 raise RuntimeError(
                     'Cannot set a gradient to an empty variable')
         elif arr.is_backprop_required():
+            # If g is grad-stopped, require grad on it.
+            # Make a view in order not to affect the input.
+            if (g is not None
+                    and not from_grad_var
+                    and not g.is_backprop_required()):
+                g = g.view().require_grad()
             arr.set_grad(g)
 
     def _set_grad_without_check(self, g):
         if self._has_chainerx_array:
-            self._set_chainerx_grad(g)
+            self._set_chainerx_grad(g, False)
             self._grad_var = None
             return
 
@@ -938,6 +948,7 @@ class Variable(object):
 
     @property
     def grad(self):
+        # type: () -> tp.Optional[types.NdArray]
         """Gradient array of this variable.
 
         Note that this property returns the underlying array of the gradient
@@ -980,13 +991,16 @@ class Variable(object):
 
     @grad.setter
     def grad(self, g):
+        # type: (tp.Optional[types.NdArray]) -> None
         if g is not None:
             _check_grad_type(None, self, False, g)
         self._set_grad_without_check(g)
 
     def _set_grad_var_without_check(self, gv):
         if self._has_chainerx_array:
-            self._set_chainerx_grad(None if gv is None else gv._data[0])
+            self._set_chainerx_grad(
+                None if gv is None else gv._data[0],
+                True)
             self._grad_var = gv
             return
 
@@ -995,12 +1009,14 @@ class Variable(object):
 
     @property
     def grad_var(self):
+        # type: () -> tp.Optional["Variable"]
         """Gradient variable."""
         self._ensure_grad_var_up_to_date()
         return self._grad_var
 
     @grad_var.setter
     def grad_var(self, g):
+        # type: (tp.Optional["Variable"]) -> None
         if g is not None:
             _check_grad_type(None, self, False, g.array)
         self._set_grad_var_without_check(g)
@@ -1189,8 +1205,8 @@ class Variable(object):
         else:
             self._data = [new_arr]
             if grad_var is not None:
-                grad_var.to_device(device)
-                # _grad has been invalidated by grad_var.to_device().
+                grad_var._to_device(device, allow_unchaining=allow_unchaining)
+                # _grad has been invalidated by the line above.
                 self._grad = grad_var.array
 
         # ensure that the node tracks the device migration
@@ -1431,7 +1447,8 @@ class Variable(object):
             # TODO(kataoka): The following line should not pass grad_var = None
             # to _backprop_to_all, but it is working because grad_var is
             # immediately popped away as None = _backprop_utils._reduce([None])
-            _backprop_to_all([(node, grad_var)], retain_grad, loss_scale)
+            _backprop._backprop_to_all(
+                [(node, grad_var)], retain_grad, loss_scale)
 
     def item(self):
         """Converts the variable with one element to a Python scalar.
@@ -1566,125 +1583,6 @@ class Variable(object):
 
     __array_priority__ = 200  # type: int
     __hash__ = None  # type: tp.Callable[[object], int]
-
-
-def _backprop_to_all(outputs, retain_grad, loss_scale):
-    """Backprop to all input variables
-
-    Args:
-        outputs (list of tuple): each tuple is (y_node, y_grad_var).
-            y_grad_var should not be None.
-        retain_grad (bool): see docstring of Variable.backward
-        loss_scale (float): see docstring of Variable.backward
-
-    """
-    OrderedDict = chainer.utils._collections.OrderedDict  # fix py2 memory leak
-
-    cand_funcs = []
-    seen_set = set()
-
-    def add_cand(cand):
-        if cand not in seen_set:
-            # Negate since heapq is min-heap
-            heapq.heappush(cand_funcs, (-cand.rank, len(seen_set), cand))
-            seen_set.add(cand)
-
-    grads = _backprop_utils.GradTable(accumulate_grad_inputs=True)
-
-    leaf_nodes = set()
-
-    for y, gy in outputs:
-        grads.accumulate(y, gy)
-
-        func = y.creator_node
-        if func is None:  # leaf
-            leaf_nodes.add(y)
-        else:
-            add_cand(func)
-
-    # Fix F812 (Python 2)
-    y = None
-    del y
-
-    is_debug = chainer.is_debug()
-    base_hooks = chainer.get_function_hooks().values()
-    while cand_funcs:
-        _, _, func = heapq.heappop(cand_funcs)
-        inputs = func.inputs
-        target_input_indexes = tuple([
-            i for i, x in enumerate(inputs) if x.requires_grad
-        ])
-        outputs = [y() for y in func.outputs]  # access via weak ref
-        out_grad = tuple([grads.pop(y)
-                          if y is not None and y.creator_node is not None
-                          else None
-                          for y in outputs])
-        if not target_input_indexes:
-            continue
-
-        in_data = [x.data for x in inputs]
-        out_grad_array = [None if g is None else g.array for g in out_grad]
-        if func._n_local_function_hooks != 0:
-            local_hooks = collections.OrderedDict(chainer.get_function_hooks())
-            local_hooks.update(func.local_function_hooks)
-            hooks = local_hooks.values()  # avoid six for performance
-        else:
-            hooks = base_hooks
-
-        with chainer.using_device(
-                backend.get_device_from_array(*(in_data + out_grad_array))):
-            for hook in hooks:
-                hook.backward_preprocess(
-                    func, tuple(in_data), tuple(out_grad_array))
-
-            # Collect the current input gradients.
-            target_inputs = [inputs[i] for i in target_input_indexes]
-            # Keep the order for the portability, rather than
-            # in_grad = {x: grads.get_as_list(x)
-            #            for x in set(target_inputs)}
-            in_grad = OrderedDict()
-            for x in target_inputs:
-                if x not in in_grad:
-                    in_grad[x] = grads.get_as_list(x)
-
-            _backprop_utils.backprop_step(
-                func, target_input_indexes, out_grad, in_grad, is_debug)
-
-            for hook in hooks:
-                hook.backward_postprocess(
-                    func, tuple(in_data), tuple(out_grad_array))
-
-        if retain_grad:
-            # The gradients of the outputs of `func` are final. Store them if
-            # retain_grad=True.
-            for y, gy in six.moves.zip(outputs, out_grad):
-                if y is not None:
-                    y._set_grad_var_if_available(gy)
-            del gy  # to reduce memory usage
-        del out_grad  # to reduce memory usage
-
-        for x, gx in in_grad.items():
-            if not gx:  # gradient == None
-                continue
-
-            for gx_elem in gx:
-                if gx_elem is not None:
-                    _check_grad_type(func, x, True, gx_elem.array)
-            del gx_elem  # to reduce memory usage
-
-            if x.creator_node is None:  # leaf
-                leaf_nodes.add(x)
-            else:
-                add_cand(x.creator_node)
-        del gx, in_grad  # to reduce memory usage
-
-    for x in leaf_nodes:
-        x_var = x.get_variable_or_none()
-        gx = grads.pop(x)
-        if x_var is not None:
-            x_var._set_grad_var_without_check(gx)
-            x_var._loss_scale = loss_scale
-    grads.assert_no_grads()
 
 
 class Parameter(Variable):
@@ -1914,7 +1812,6 @@ def as_variable(obj):
     return Variable(obj, requires_grad=requires_grad)
 
 
-# TODO(hvy): Make private, i.e. _as_array?
 def as_array(obj):
     """Returns the underlying array from a variable or an array.
 

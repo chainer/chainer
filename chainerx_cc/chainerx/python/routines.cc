@@ -17,17 +17,21 @@
 #include "chainerx/dtype.h"
 #include "chainerx/error.h"
 #include "chainerx/macro.h"
+#include "chainerx/routines/arithmetic.h"
 #include "chainerx/routines/binary.h"
 #include "chainerx/routines/connection.h"
 #include "chainerx/routines/creation.h"
+#include "chainerx/routines/explog.h"
 #include "chainerx/routines/hyperbolic.h"
 #include "chainerx/routines/indexing.h"
 #include "chainerx/routines/linalg.h"
 #include "chainerx/routines/logic.h"
 #include "chainerx/routines/manipulation.h"
 #include "chainerx/routines/math.h"
+#include "chainerx/routines/misc.h"
 #include "chainerx/routines/normalization.h"
 #include "chainerx/routines/pooling.h"
+#include "chainerx/routines/reduction.h"
 #include "chainerx/routines/sorting.h"
 #include "chainerx/routines/statistics.h"
 #include "chainerx/routines/trigonometric.h"
@@ -310,6 +314,25 @@ void InitChainerxIndexing(pybind11::module& m) {
           py::arg("condition"),
           py::arg("x"),
           py::arg("y"));
+    m.def("where",
+          [](const ArrayBodyPtr& condition, const ArrayBodyPtr& x, Scalar y) {
+              return MoveArrayBody(Where(Array{condition}, Array{x}, y));
+          },
+          py::arg("condition"),
+          py::arg("x"),
+          py::arg("y"));
+    m.def("where",
+          [](const ArrayBodyPtr& condition, Scalar x, const ArrayBodyPtr& y) {
+              return MoveArrayBody(Where(Array{condition}, x, Array{y}));
+          },
+          py::arg("condition"),
+          py::arg("x"),
+          py::arg("y"));
+    m.def("where",
+          [](const ArrayBodyPtr& condition, Scalar x, Scalar y) { return MoveArrayBody(Where(Array{condition}, x, y)); },
+          py::arg("condition"),
+          py::arg("x"),
+          py::arg("y"));
 }
 
 void InitChainerxLinalg(pybind11::module& m) {
@@ -478,6 +501,7 @@ void InitChainerxManipulation(pybind11::module& m) {
           py::arg("arrays"),
           py::arg("axis") = 0);
     m.def("atleast_2d", [](const ArrayBodyPtr& a) { return MoveArrayBody(AtLeast2D(Array{a})); }, py::arg("a"));
+    m.def("atleast_3d", [](const ArrayBodyPtr& a) { return MoveArrayBody(AtLeast3D(Array{a})); }, py::arg("a"));
     m.def("hstack",
           [](py::sequence arrays) {
               std::vector<Array> xs;
@@ -498,6 +522,17 @@ void InitChainerxManipulation(pybind11::module& m) {
               return MoveArrayBody(VStack(xs));
           },
           py::arg("arrays"));
+    m.def("dstack",
+          [](py::sequence arrays) {
+              std::vector<Array> xs;
+              xs.reserve(arrays.size());
+              std::transform(arrays.begin(), arrays.end(), std::back_inserter(xs), [](const auto& item) {
+                  return Array{py::cast<ArrayBodyPtr>(item)};
+              });
+              return MoveArrayBody(DStack(xs));
+          },
+          py::arg("arrays"));
+
     m.def("split",
           [](const ArrayBodyPtr& ary, py::handle indices_or_sections, int8_t axis) {
               // TODO(niboshi): Perhaps we would want more general approach to handle multi-type arguments like indices_or_sections to
@@ -696,9 +731,13 @@ void InitChainerxMath(pybind11::module& m) {
           [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return MoveArrayBody(Minimum(Array{x1}, Array{x2})); },
           py::arg("x1"),
           py::arg("x2"));
+    m.def("erf", [](const ArrayBodyPtr& x) { return MoveArrayBody(Erf(Array{x})); }, py::arg("x"));
     m.def("exp", [](const ArrayBodyPtr& x) { return MoveArrayBody(Exp(Array{x})); }, py::arg("x"));
+    m.def("expm1", [](const ArrayBodyPtr& x) { return MoveArrayBody(Expm1(Array{x})); }, py::arg("x"));
+    m.def("exp2", [](const ArrayBodyPtr& x) { return MoveArrayBody(Exp2(Array{x})); }, py::arg("x"));
     m.def("log", [](const ArrayBodyPtr& x) { return MoveArrayBody(Log(Array{x})); }, py::arg("x"));
     m.def("log10", [](const ArrayBodyPtr& x) { return MoveArrayBody(Log10(Array{x})); }, py::arg("x"));
+    m.def("log1p", [](const ArrayBodyPtr& x) { return MoveArrayBody(Log1p(Array{x})); }, py::arg("x"));
     m.def("logsumexp",
           [](const ArrayBodyPtr& x, int8_t axis, bool keepdims) { return MoveArrayBody(LogSumExp(Array{x}, Axes{axis}, keepdims)); },
           py::arg("x"),

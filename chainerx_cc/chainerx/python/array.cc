@@ -26,10 +26,12 @@
 #include "chainerx/indexer.h"
 #include "chainerx/native/data_type.h"
 #include "chainerx/native/native_backend.h"
+#include "chainerx/routines/arithmetic.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/indexing.h"
 #include "chainerx/routines/manipulation.h"
 #include "chainerx/routines/math.h"
+#include "chainerx/routines/misc.h"
 #include "chainerx/routines/sorting.h"
 #include "chainerx/shape.h"
 #include "chainerx/slice.h"
@@ -347,6 +349,7 @@ void InitChainerxArray(pybind11::module& m) {
           },
           py::is_operator());
     c.def("__neg__", [](const ArrayBodyPtr& self) { return MoveArrayBody(-Array{self}); });
+    c.def("__abs__", [](const ArrayBodyPtr& self) { return MoveArrayBody(Absolute(Array{self})); }, py::is_operator());
     c.def("__iadd__",
           [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(std::move(Array{self} += Array{rhs})); },
           py::is_operator());
