@@ -82,7 +82,7 @@ class GradTable(object):
         if node in grads:
             return _reduce(grads.pop(node))
 
-        # Reproduce bug before v5.
+        # Reproduce bug before v7.
         # Variable.backward had the bug, but chainer.grad did not.
         if self._load_if_new and self._reproduce_bug:
             g = _grad_var_from_alive_node(node)
