@@ -449,7 +449,7 @@ class TestMultithreadIteratorTabularDataset(unittest.TestCase):
             self.assertIsInstance(out, numpy.ndarray)
 
     def test_iterator_tabular_dataset_converter(self):
-        main_thread = threading.main_thread()
+        main_thread = threading.current_thread()
 
         def converter(a, b, c):
             self.assertNotEqual(threading.current_thread(), main_thread)
