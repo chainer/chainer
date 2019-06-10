@@ -2361,6 +2361,7 @@ class TestLinkOverrideToDeviceMethods(unittest.TestCase):
 
             elif method_name == 'to_gpu':
                 def to_gpu(self, device=None):
+                    assert isinstance(device, (cuda.Device, int))
                     self.to_method_called += 1
 
             elif method_name == 'to_intel64':

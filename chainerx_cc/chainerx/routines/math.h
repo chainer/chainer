@@ -105,16 +105,76 @@ Array IsInf(const Array& x);
 
 Array Tanh(const Array& x);
 
-Array Sin(const Array& x);
+class SinOp : public Op {
+public:
+    static const char* name() { return "Sin"; }
 
-Array Cos(const Array& x);
+    virtual Array Call(const Array& x);
 
-Array Tan(const Array& x);
+protected:
+    virtual void Impl(const Array& x, const Array& out) = 0;
+};
 
-Array Arcsin(const Array& x);
+inline Array Sin(const Array& x) { return x.device().backend().CallOp<SinOp>(x); }
 
-Array Arccos(const Array& x);
+class CosOp : public Op {
+public:
+    static const char* name() { return "Cos"; }
 
-Array Arctan(const Array& x);
+    virtual Array Call(const Array& x);
+
+protected:
+    virtual void Impl(const Array& x, const Array& out) = 0;
+};
+
+inline Array Cos(const Array& x) { return x.device().backend().CallOp<CosOp>(x); }
+
+class TanOp : public Op {
+public:
+    static const char* name() { return "Tan"; }
+
+    virtual Array Call(const Array& x);
+
+protected:
+    virtual void Impl(const Array& x, const Array& out) = 0;
+};
+
+inline Array Tan(const Array& x) { return x.device().backend().CallOp<TanOp>(x); }
+
+class ArcsinOp : public Op {
+public:
+    static const char* name() { return "Arcsin"; }
+
+    virtual Array Call(const Array& x);
+
+protected:
+    virtual void Impl(const Array& x, const Array& out) = 0;
+};
+
+inline Array Arcsin(const Array& x) { return x.device().backend().CallOp<ArcsinOp>(x); }
+
+class ArccosOp : public Op {
+public:
+    static const char* name() { return "Arccos"; }
+
+    virtual Array Call(const Array& x);
+
+protected:
+    virtual void Impl(const Array& x, const Array& out) = 0;
+};
+
+inline Array Arccos(const Array& x) { return x.device().backend().CallOp<ArccosOp>(x); }
+
+class ArctanOp : public Op {
+public:
+    static const char* name() { return "Arctan"; }
+
+    virtual Array Call(const Array& x);
+
+protected:
+    virtual void Impl(const Array& x, const Array& out) = 0;
+};
+
+inline Array Arctan(const Array& x) { return x.device().backend().CallOp<ArctanOp>(x); }
 
 }  // namespace chainerx

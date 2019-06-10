@@ -90,7 +90,7 @@ class DeviceResident(utils.enable_final(meta_base=abc.ABCMeta)):
         device = chainer.backends.cuda.GpuDevice(cuda_device)
         visitor = _ToDeviceVisitor(
             device,
-            entry_method_info=('to_gpu', {'device': device}),
+            entry_method_info=('to_gpu', {'device': device.device}),
             skip_between_cupy_devices=True)
         self.__to_device(visitor)
         return self
