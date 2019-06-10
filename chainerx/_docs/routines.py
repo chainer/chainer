@@ -854,7 +854,7 @@ Note:
 
     _docs.set_doc(
         chainerx.hstack,
-        """stack(arrays)
+        """hstack(arrays)
 Stack arrays in sequence horizontally (column wise).
 
 Args:
@@ -872,7 +872,7 @@ Note:
 
     _docs.set_doc(
         chainerx.vstack,
-        """stack(arrays)
+        """vstack(arrays)
 Stack arrays in sequence vertically (row wise).
 
 Args:
@@ -886,6 +886,24 @@ Note:
     output array to the input arrays in ``arrays``.
 
 .. seealso:: :func:`numpy.vstack`
+""")
+
+    _docs.set_doc(
+        chainerx.dstack,
+        """dstack(arrays)
+Stack arrays in sequence depth wise (along third axis).
+
+Args:
+    arrays (sequence of :class:`~chainerx.ndarray`\\ s): Arrays to be stacked.
+
+Returns:
+    ~chainerx.ndarray: Stacked array.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input arrays in ``arrays``.
+
+.. seealso:: :func:`numpy.dstack`
 """)
 
     _docs.set_doc(
@@ -906,7 +924,28 @@ Note:
     * During backpropagation, this function propagates the gradient of the
       output array to the input arrays in ``a``.
 
-.. seealso:: :func:`numpy.vstack`
+.. seealso:: :func:`numpy.atleast_2d`
+""")
+
+    _docs.set_doc(
+        chainerx.atleast_3d,
+        """atleast_3d(a)
+View inputs as arrays with at least three dimensions.
+
+Args:
+    a (~chainerx.ndarray): Array.
+
+Returns:
+    ~chainerx.ndarray: An array with a.ndim >= 3.
+    Copies are avoided where possible, and views with
+    three or more dimensions are returned.
+
+Note:
+    * Arrays that already have three or more dimensions are preserved.
+    * During backpropagation, this function propagates the gradient of the
+      output array to the input arrays in ``a``.
+
+.. seealso:: :func:`numpy.atleast_3d`
 """)
 
     _docs.set_doc(

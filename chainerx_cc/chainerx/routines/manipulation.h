@@ -61,10 +61,14 @@ Array Flipud(const Array& m);
 
 Array AtLeast2D(const Array& x);
 
+Array AtLeast3D(const Array& x);
+
 // Returns a joined array along horizontal axis.
 Array HStack(const std::vector<Array>& arrays);
 
 // Returns a joined array along vertical axis.
 Array VStack(const std::vector<Array>& arrays);
+
+Array DStack(const std::vector<Array>& arrays);
 
 }  // namespace chainerx

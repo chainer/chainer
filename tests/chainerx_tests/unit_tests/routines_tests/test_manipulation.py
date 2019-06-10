@@ -1035,12 +1035,12 @@ def test_flipud_invalid(xp, shape):
         [(0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 0)],
         [(2, 2, 2, 2), (2, 2, 2, 2), (2, 2, 2, 2)],
     ], 'func_name': [
-        'hstack', 'vstack'
+        'hstack', 'vstack', 'dstack'
     ],
         'dtype': chainerx.testing.dtypes.all_dtypes
     })
 ))
-class TestHVStack(op_utils.NumpyOpTest):
+class TestHVDStack(op_utils.NumpyOpTest):
 
     dtypes = None
 
@@ -1057,6 +1057,8 @@ class TestHVStack(op_utils.NumpyOpTest):
             y = xp.hstack(inputs)
         elif self.func_name == 'vstack':
             y = xp.vstack(inputs)
+        elif self.func_name == 'dstack':
+            y = xp.dstack(inputs)
 
         return y,
 
@@ -1073,7 +1075,7 @@ class TestHVStack(op_utils.NumpyOpTest):
 @pytest.mark.parametrize('func_name', [
     'hstack', 'vstack'
 ])
-def test_hvstack_invalid_shapes(func_name, xp, shape):
+def test_hvdstack_invalid_shapes(func_name, xp, shape):
     inputs = _make_inputs(shape, ['float32'] * len(shape))
     inputs = [xp.array(a) for a in inputs]
 
@@ -1081,6 +1083,8 @@ def test_hvstack_invalid_shapes(func_name, xp, shape):
         b = xp.hstack(inputs)
     elif func_name == 'vstack':
         b = xp.vstack(inputs)
+    elif func_name == 'dstack':
+        b = xp.dstack(inputs)
 
     return b
 
@@ -1089,14 +1093,16 @@ def test_hvstack_invalid_shapes(func_name, xp, shape):
     accept_error=(
         chainerx.DimensionError, ValueError))
 @pytest.mark.parametrize('func_name', [
-    'hstack', 'vstack'
+    'hstack', 'vstack', 'dstack'
 ])
-def test_hvstack_invalid_empty(func_name, xp):
+def test_hvdstack_invalid_empty(func_name, xp):
     inputs = []
     if func_name == 'hstack':
         output = xp.hstack(inputs)
     elif func_name == 'vstack':
         output = xp.vstack(inputs)
+    elif func_name == 'dstack':
+        output = xp.dstack(inputs)
 
     return output
 
@@ -1128,4 +1134,34 @@ class TestAtLeast2d(op_utils.NumpyOpTest):
     def forward_xp(self, input, xp):
         x, = input
         y = xp.atleast_2d(x)
+        return y,
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    chainer.testing.product({'shapes': [
+        (1,),
+        (1, 1),
+        (1, 1, 1),
+        (2, 2, 2, 2),
+    ],
+        'dtype': chainerx.testing.dtypes.all_dtypes
+    })
+))
+class TestAtLeast3d(op_utils.NumpyOpTest):
+
+    dtypes = None
+
+    def setup(self):
+        if numpy.dtype(self.dtype).kind != 'f':
+            self.skip_backward_test = True
+            self.skip_double_backward_test = True
+
+    def generate_inputs(self):
+        a = numpy.random.uniform(0, 1, self.shapes).astype(self.dtype)
+        return a,
+
+    def forward_xp(self, input, xp):
+        x, = input
+        y = xp.atleast_3d(x)
         return y,
