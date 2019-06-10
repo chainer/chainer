@@ -37,10 +37,8 @@ namespace cuda {
 namespace {
 
 // Struct that allows passing StackVectors to CUDA kernels.
-struct CudaStackVector {
-    explicit CudaStackVector(const StackVector<int64_t, kMaxNdim>& stack_vector) {
-        std::copy_n(stack_vector.begin(), stack_vector.size(), data);
-    }
+struct CudaDims {
+    explicit CudaDims(const Dims& stack_vector) { std::copy_n(stack_vector.begin(), stack_vector.size(), data); }
     int64_t data[kMaxNdim];
 };
 
@@ -56,8 +54,8 @@ __global__ void MaxPoolDoubleBackwardKernel(
         Indexer<> x_indexer,
         Indexer<> out_indexer,
         Indexer<> kernel_indexer,
-        CudaStackVector stride,
-        CudaStackVector pad) {
+        CudaDims stride,
+        CudaDims pad) {
     auto it_kernel = kernel_indexer.It(kernel_indexer.total_size() - 1);
     auto it_x = x_indexer.It(0);
 
@@ -239,15 +237,7 @@ Array MaxPoolGradGrad(
         int64_t block_size = std::min<int64_t>(total_size, kMaxBlockSize);
 
         MaxPoolDoubleBackwardKernel<<<grid_size, block_size>>>(
-                ggx_iarray,
-                x_iarray,
-                out_iarray,
-                ggout_iarray,
-                x_indexer,
-                out_indexer,
-                kernel_indexer,
-                CudaStackVector{stride},
-                CudaStackVector{pad});
+                ggx_iarray, x_iarray, out_iarray, ggout_iarray, x_indexer, out_indexer, kernel_indexer, CudaDims{stride}, CudaDims{pad});
     });
 
     return actual_ggout;
