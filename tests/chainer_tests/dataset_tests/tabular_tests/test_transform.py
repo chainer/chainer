@@ -99,4 +99,56 @@ class TestTransform(unittest.TestCase):
                 self.assertIsInstance(out, list)
 
 
+@testing.parameterize(
+    {'mode': tuple},
+    {'mode': dict},
+)
+class TestTransformInvalid(unittest.TestCase):
+
+    def setUp(self):
+        self.count = 0
+
+    def _transform(self, a, b, c):
+        self.count += 1
+        if self.count % 2 == 0:
+            mode = self.mode
+        else:
+            if self.mode is tuple:
+                mode = dict
+            elif self.mode is dict:
+                mode = tuple
+
+        if mode is tuple:
+            return a, b, c
+        elif mode is dict:
+            return {'a': a, 'b': b, 'c': c}
+
+    def test_transform_inconsistent_mode(self):
+        dataset = dummy_dataset.DummyDataset()
+        view = dataset.transform(('a', 'b', 'c'), self._transform)
+        view.get_examples([0], None)
+        with self.assertRaises(ValueError):
+            view.get_examples([0], None)
+
+    def test_transform_batch_inconsistent_mode(self):
+        dataset = dummy_dataset.DummyDataset()
+        view = dataset.transform_batch(('a', 'b', 'c'), self._transform)
+        view.get_examples(None, None)
+        with self.assertRaises(ValueError):
+            view.get_examples(None, None)
+
+    def test_transform_batch_length_changed(self):
+        dataset = dummy_dataset.DummyDataset()
+
+        def transform_batch(a, b, c):
+            if self.mode is tuple:
+                return a + [0], b
+            elif self.mode is dict:
+                return {'a': a + [0], 'b': b}
+
+        view = dataset.transform_batch(('a', 'b'), transform_batch)
+        with self.assertRaises(ValueError):
+            view.get_examples(None, None)
+
+
 testing.run_module(__name__, __file__)

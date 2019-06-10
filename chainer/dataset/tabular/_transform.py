@@ -44,10 +44,16 @@ class _Transform(tabular_dataset.TabularDataset):
             if not isinstance(out_example, (tuple, dict)):
                 out_example = out_example,
             if isinstance(out_example, tuple):
+                if self._mode and self._mode is not tuple:
+                    raise ValueError(
+                        'transform must not change its return type')
                 self._mode = tuple
                 for col_index, key_index in enumerate(key_indices):
                     out_examples[col_index].append(out_example[key_index])
             elif isinstance(out_example, dict):
+                if self._mode and self._mode is not dict:
+                    raise ValueError(
+                        'transform_batch must not change its return type')
                 self._mode = dict
                 for col_index, key_index in enumerate(key_indices):
                     out_examples[col_index].append(
@@ -103,6 +109,9 @@ class _TransformBatch(tabular_dataset.TabularDataset):
         if not isinstance(out_examples, (tuple, dict)):
             out_examples = out_examples,
         if isinstance(out_examples, tuple):
+            if self._mode and self._mode is not tuple:
+                raise ValueError(
+                    'transform_batch must not change its return type')
             self._mode = tuple
             if not all(len(col) == len_ for col in out_examples):
                 raise ValueError(
@@ -110,6 +119,9 @@ class _TransformBatch(tabular_dataset.TabularDataset):
             return tuple(out_examples[key_index]
                          for key_index in key_indices)
         elif isinstance(out_examples, dict):
+            if self._mode and self._mode is not dict:
+                raise ValueError(
+                    'transform_batch must not change its return type')
             self._mode = dict
             if not all(len(col) == len_ for col in out_examples.values()):
                 raise ValueError(
