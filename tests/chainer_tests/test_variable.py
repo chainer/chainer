@@ -2304,6 +2304,34 @@ class TestVariableBackwardErrorTraceback(unittest.TestCase):
         y.backward()
 
 
+class TestVariableBackwardOption(unittest.TestCase):
+
+    def setUp(self):
+        self.x1 = chainer.Variable(np.array([0, 1], np.float32))
+        self.x2 = chainer.Variable(np.array([2, 3], np.float32))
+        self.y1, self.y2 = chainer.functions.identity(self.x1, self.x2)
+        self.y1.grad = np.array([4, 5], np.float32)
+        self.y2.grad = np.array([6, 7], np.float32)
+
+    def test_backward_output_bug_default(self):
+        with testing.assert_warns(FutureWarning):
+            self.y1.backward()
+        testing.assert_allclose(self.x1.grad, [4, 5])
+        testing.assert_allclose(self.x2.grad, [6, 7])
+
+    def test_backward_output_bug_force(self):
+        with chainer.using_config('reproduce_backward_output_bug', True):
+            self.y1.backward()
+        testing.assert_allclose(self.x1.grad, [4, 5])
+        testing.assert_allclose(self.x2.grad, [6, 7])
+
+    def test_backward_output_bug_fixed(self):
+        with chainer.using_config('reproduce_backward_output_bug', False):
+            self.y1.backward()
+        testing.assert_allclose(self.x1.grad, [4, 5])
+        assert self.x2.grad is None
+
+
 @testing.parameterize(*testing.product({
     'in_shape': [(4, 3, 2)],
     'out_shape': [(2, 2, 6), (2, -1, 6), 24, (-1,), [2, 12]],
