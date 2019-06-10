@@ -18,6 +18,8 @@ class TestDataset(unittest.TestCase):
         self.communicator = NaiveCommunicator(self.mpi_comm)
 
     def check_scatter_dataset(self, original_dataset, shuffle=False, root=0):
+        if self.communicator.rank != root:
+            original_dataset = None
         my_dataset = chainermn.scatter_dataset(
             original_dataset, self.communicator,
             shuffle=shuffle, root=root)

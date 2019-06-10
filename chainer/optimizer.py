@@ -1,9 +1,9 @@
 from __future__ import absolute_import
 import collections
 import copy
+import math
 import warnings
 
-import math
 import numpy
 import six
 

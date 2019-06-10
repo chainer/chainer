@@ -18,6 +18,7 @@
 #include "chainerx/error.h"
 #include "chainerx/graph.h"
 #include "chainerx/kernel_registry.h"
+#include "chainerx/kernels/arithmetic.h"
 #include "chainerx/kernels/connection.h"
 #include "chainerx/kernels/linalg.h"
 #include "chainerx/kernels/math.h"

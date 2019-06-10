@@ -13,6 +13,7 @@
 #include "chainerx/cuda/numeric.cuh"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
+#include "chainerx/kernels/arithmetic.h"
 #include "chainerx/kernels/math.h"
 #include "chainerx/kernels/misc.h"
 #include "chainerx/routines/type_util.h"
@@ -23,7 +24,7 @@ namespace {
 
 CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(SqrtKernel, { out = cuda::Sqrt(x); });
 
-CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(SquareKernel, { out = x * x; });
+CHAINERX_CUDA_REGISTER_ELTWISE_DTYPE_UNARY_KERNEL(SquareKernel, { out = x * x; }, VisitNumericDtype);
 
 CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(FabsKernel, { out = cuda::Fabs(x); });
 

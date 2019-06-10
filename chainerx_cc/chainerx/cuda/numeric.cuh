@@ -64,6 +64,12 @@ __device__ inline cuda::Float16 Sign(cuda::Float16 x) {
     return IsNan(x) ? x : cuda::Float16{static_cast<int>(cuda::Float16{0} < x) - static_cast<int>(x < cuda::Float16{0})};
 }
 
+__device__ inline double Erf(double x) { return std::erf(x); }
+
+__device__ inline float Erf(float x) { return std::erff(x); }
+
+__device__ inline cuda::Float16 Erf(cuda::Float16 x) { return cuda::Float16{std::erff(static_cast<float>(x))}; }
+
 __device__ inline double Expm1(double x) { return std::expm1(x); }
 
 __device__ inline float Expm1(float x) { return std::expm1f(x); }

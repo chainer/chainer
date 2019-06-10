@@ -18,9 +18,11 @@
 #include "chainerx/dtype.h"
 #include "chainerx/error.h"
 #include "chainerx/macro.h"
+#include "chainerx/routines/arithmetic.h"
 #include "chainerx/routines/binary.h"
 #include "chainerx/routines/connection.h"
 #include "chainerx/routines/creation.h"
+#include "chainerx/routines/explog.h"
 #include "chainerx/routines/hyperbolic.h"
 #include "chainerx/routines/indexing.h"
 #include "chainerx/routines/linalg.h"
@@ -696,6 +698,7 @@ void InitChainerxMath(pybind11::module& m) {
           [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return MoveArrayBody(Minimum(Array{x1}, Array{x2})); },
           py::arg("x1"),
           py::arg("x2"));
+    m.def("erf", [](const ArrayBodyPtr& x) { return MoveArrayBody(Erf(Array{x})); }, py::arg("x"));
     m.def("exp", [](const ArrayBodyPtr& x) { return MoveArrayBody(Exp(Array{x})); }, py::arg("x"));
     m.def("expm1", [](const ArrayBodyPtr& x) { return MoveArrayBody(Expm1(Array{x})); }, py::arg("x"));
     m.def("exp2", [](const ArrayBodyPtr& x) { return MoveArrayBody(Exp2(Array{x})); }, py::arg("x"));

@@ -149,7 +149,8 @@ def chunked_bcast_obj(obj, mpi_comm, max_buf_len=256 * 1024 * 1024,
     if (total_bytes % max_buf_len) > 0:
         total_chunk_num += 1
 
-    data = mpi_comm.bcast((total_chunk_num, max_buf_len, total_bytes))
+    data = mpi_comm.bcast((total_chunk_num, max_buf_len, total_bytes),
+                          root=root)
     assert data is not None
     (total_chunk_num, max_buf_len, total_bytes) = data
 
@@ -167,7 +168,7 @@ def chunked_bcast_obj(obj, mpi_comm, max_buf_len=256 * 1024 * 1024,
         if mpi_comm.rank != root:
             pickled_bytes[b:e] = buf
 
-    if mpi_comm.rank > root:
+    if mpi_comm.rank != root:
         obj = pickle.loads(pickled_bytes)
 
     return obj
