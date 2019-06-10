@@ -1,13 +1,8 @@
-import unittest
-
 import numpy
 
-import chainer
-from chainer.backends import cuda
-from chainer.functions.array import separate
-from chainer import gradient_check
+from chainer import functions
 from chainer import testing
-from chainer.testing import attr
+from chainer.utils import force_array
 
 
 @testing.parameterize(*testing.product_dict(
@@ -26,45 +21,44 @@ from chainer.testing import attr
         {'dtype': numpy.float64},
     ]
 ))
-class TestSeparate(unittest.TestCase):
+@testing.fix_random()
+@testing.inject_backend_tests(
+    None,
+    # CPU tests
+    [
+        {},
+    ]
+    # GPU tests
+    + testing.product({
+        'use_cuda': [True],
+        'use_cudnn': ['never', 'always'],
+        'cuda_device': [0, 1],
+    })
+    # ChainerX tests
+    + testing.product({
+        'use_chainerx': [True],
+        'chainerx_device': ['native:0', 'cuda:0', 'cuda:1'],
+    })
+)
+class TestSeparate(testing.FunctionTestCase):
 
     def setUp(self):
-        self.x = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
-        yshape = list(self.shape)
-        del yshape[self.axis]
-        self.gys = [numpy.random.uniform(-1, 1, yshape).astype(self.dtype)
-                    for _ in range(self.shape[self.axis])]
+        self.skip_double_backward_test = True
 
-    def check_forward(self, x_data):
-        x = chainer.Variable(x_data)
-        ys = separate.separate(x, self.axis)
+    def generate_inputs(self):
+        x = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        return x,
 
-        self.assertIsInstance(ys, tuple)
-        self.assertEqual(len(ys), self.shape[self.axis])
-        for i in range(self.shape[self.axis]):
-            expect = self.x.take(i, axis=self.axis)
-            testing.assert_allclose(ys[i].data, expect)
+    def forward(self, inputs, device):
+        x, = inputs
+        return functions.separate(x, self.axis)
 
-    def test_forward_cpu(self):
-        self.check_forward(self.x)
-
-    @attr.gpu
-    def test_forward_gpu(self):
-        self.check_forward(cuda.to_gpu(self.x))
-
-    def check_backward(self, x_data, gys_data):
-        def f(x):
-            return separate.separate(x, self.axis)
-
-        gradient_check.check_backward(f, x_data, gys_data, dtype='d')
-
-    def test_backward_cpu(self):
-        self.check_backward(self.x, self.gys)
-
-    @attr.gpu
-    def test_backward_gpu(self):
-        self.check_backward(cuda.to_gpu(self.x),
-                            [cuda.to_gpu(g) for g in self.gys])
+    def forward_expected(self, inputs):
+        x, = inputs
+        return tuple(
+            force_array(x.take(i, axis=self.axis))
+            for i in range(self.shape[self.axis])
+        )
 
 
 testing.run_module(__name__, __file__)

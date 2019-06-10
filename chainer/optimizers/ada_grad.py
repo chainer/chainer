@@ -1,6 +1,6 @@
 import numpy
 
-from chainer import backend
+import chainer
 from chainer.backends import cuda
 from chainer import optimizer
 from chainer import types
@@ -48,9 +48,8 @@ class AdaGradRule(optimizer.UpdateRule):
             self.hyperparam.eps = eps
 
     def init_state(self, param):
-        xp = backend.get_array_module(param.data)
-        with cuda.get_device_from_array(param.data):
-            self.state['h'] = xp.zeros_like(param.data)
+        with chainer.using_device(param.device):
+            self.state['h'] = param.device.xp.zeros_like(param.data)
 
     def update_core_cpu(self, param):
         grad = param.grad

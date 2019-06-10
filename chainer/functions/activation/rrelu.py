@@ -96,12 +96,15 @@ def rrelu(x, l=1. / 8, u=1. / 3, **kwargs):
 
     This function is expressed as
 
-    .. math:: f(x)=\\max(x, ax),
+    .. math:: f(x)=\\max(x, rx),
 
-    where :math:`a` is a random number sampled from a uniform distribution
+    where :math:`r` is a random number sampled from a uniform distribution
     :math:`U(l, u)`.
 
-    See: https://arxiv.org/pdf/1505.00853.pdf
+    .. note::
+
+        The :math:`r` corresponds to :math:`a` in the original
+        paper (https://arxiv.org/pdf/1505.00853.pdf).
 
     Args:
         x (:class:`~chainer.Variable` or :ref:`ndarray`):
@@ -112,7 +115,7 @@ def rrelu(x, l=1. / 8, u=1. / 3, **kwargs):
             The r to be used for rrelu.
             The shape and dtype must be the same as ``x[0]`` and should be on
             the same device.
-            If ``r``  is not specified or set to ``None``, a ``r`` will be
+            If ``r``  is not specified or set to ``None``, an ``r`` will be
             generated randomly according to the given ``l`` and ``u``.
             If ``r`` is specified, ``l`` and ``u`` will be ignored.
         return_r (bool):

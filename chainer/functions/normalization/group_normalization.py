@@ -89,7 +89,7 @@ class GroupNormalization(function_node.FunctionNode):
         cudnn_shape = (1, batch_size * groups, -1, 1)
         x = x.reshape(cudnn_shape)
 
-        with cuda.get_device_from_array(x):
+        with x.device:
             dummy_beta = xp.zeros(batch_size * groups, dtype=x.dtype)
             self.dummy_gamma = xp.ones_like(dummy_beta)
         x_hat, self.mean, self.inv_std = \

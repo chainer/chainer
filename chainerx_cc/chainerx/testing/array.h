@@ -23,9 +23,9 @@ namespace array_detail {
 
 class ArrayBuilder {
 public:
-    explicit ArrayBuilder(const Shape& shape) : shape_{shape}, device_{&GetDefaultDevice()} {}
+    explicit ArrayBuilder(Shape shape) : shape_{std::move(shape)}, device_{&GetDefaultDevice()} {}
 
-    operator Array() const { return Build(); }
+    operator Array() const { return Build(); }  // NOLINT
 
     Array operator*() const { return Build(); }
 
@@ -67,7 +67,7 @@ public:
                 for (const T& value : data) {
                     // Copy a single value
                     CHAINERX_ASSERT((raw_ptr - ptr.get()) < static_cast<ptrdiff_t>(n_bytes));
-                    *reinterpret_cast<T*>(raw_ptr) = value;
+                    *reinterpret_cast<T*>(raw_ptr) = value;  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
                     // Advance the counter and the pointer
                     int8_t i_dim = shape.ndim() - 1;
                     while (i_dim >= 0) {
@@ -82,7 +82,7 @@ public:
                     }
                 }
             }
-            return internal::FromHostData(shape, dtype, std::move(ptr), std::move(strides), 0, *builder.device_);
+            return internal::FromHostData(shape, dtype, std::move(ptr), strides, 0, *builder.device_);
         };
         return *this;
     }

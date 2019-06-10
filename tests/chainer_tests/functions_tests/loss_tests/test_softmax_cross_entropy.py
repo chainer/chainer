@@ -4,6 +4,7 @@ import numpy
 import six
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
@@ -66,6 +67,16 @@ import chainerx
                          ((2, 3, 2, 2), (0, 1, 0))],
         'dtype': [numpy.float32],
         'label_dtype': [numpy.int8, numpy.int16, numpy.int64],
+    }) + testing.product({
+        # Test float16 does not under/overflow in reduction for large batch
+        'reduce': ['mean'],
+        'cache_score': [False],
+        'normalize': [False, True],
+        'weight_apply': [True],
+        'shape_ignore': [
+            ((300000, 2), None)],
+        'dtype': [numpy.float16],
+        'label_dtype': [numpy.int64],
     }))
 @testing.parameterize(
     *testing.product({'enable_double_backprop': [False, True]}))
@@ -139,6 +150,14 @@ class TestSoftmaxCrossEntropy(testing.FunctionTestCase):
 
         if not (self.enable_double_backprop or device.xp is chainerx):
             assert (loss.creator.y is not None) == self.cache_score
+
+        # All the loss values except those corresponding to the ignored label
+        # must be positive.
+        # TODO(niboshi): Use device.xp.where once chainerx supports it.
+        assert numpy.where(
+            backend.CpuDevice().send(t == -1),
+            True,
+            backend.CpuDevice().send(loss.array) > 0).all()
 
         return loss,
 

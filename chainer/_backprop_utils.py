@@ -1,5 +1,6 @@
 import os
 import shutil
+import sys
 import traceback
 
 import six
@@ -23,6 +24,17 @@ def _pop_or_none(grad_list):
     return grad_list.pop() if grad_list else None
 
 
+def _grad_var_from_alive_node(node):
+    # Used by `accumulate_grad_inputs` option of `GradTable`
+    var = node.get_variable_or_none()
+    if var is None:
+        return None
+    else:
+        gv = var.grad_var
+        var.grad_var = None
+        return gv
+
+
 class GradTable(object):
 
     """Dict of nodes to references of gradients
@@ -33,18 +45,22 @@ class GradTable(object):
     lazily.
 
     Args:
-        load_if_new (bool): read ``grad_var`` of node when the node has not
-            been added.
+        accumulate_grad_inputs (bool): Fallback to grad_var of input variables.
+            However, the current implementation reproduces the legacy behavior,
+            i.e. to read ``grad_var`` of node when the node has not been added.
 
     """
 
-    def __init__(self, load_if_new=False):
+    def __init__(self, accumulate_grad_inputs=False):
         self.grads = {}
-        self._load_if_new = load_if_new
+        self._load_if_new = accumulate_grad_inputs
 
     def __setitem__(self, node, grad):
         assert node is not None
         self.grads[node] = _pure(grad)
+
+    def accumulate(self, node, grad):
+        self.get_as_list(node).append(grad)
 
     def get_as_list(self, node):
         assert node is not None
@@ -53,7 +69,7 @@ class GradTable(object):
             if self._load_if_new and node.creator_node is None:
                 node._check_old_style_gradient()
                 # accumulate the gradient only if the node is a leaf
-                grads[node] = _pure(node.grad_var)
+                grads[node] = _pure(_grad_var_from_alive_node(node))
             else:
                 grads[node] = []
         return grads[node]
@@ -65,7 +81,7 @@ class GradTable(object):
         if node in grads:
             return _reduce(grads.pop(node))
         if self._load_if_new:
-            return node.grad_var
+            return _grad_var_from_alive_node(node)
         else:
             return None
 
@@ -197,11 +213,11 @@ def backprop_step(
 
 
 def _get_columns():
-    try:
-        get_terminal_size = shutil.get_terminal_size
-    except AttributeError:
-        return os.getenv('COLUMNS', 80)
-    return get_terminal_size()[0]
+    # Returns the terminal column width.
+    if sys.version_info >= (3, 3):
+        cols, rows = shutil.get_terminal_size()
+        return cols
+    return int(os.getenv('COLUMNS', 80))
 
 
 def _reraise_with_stack(func, e):

@@ -4,30 +4,38 @@ import chainerx
 import chainerx.testing
 
 
-def test_float_dtypes():
-    # float_dtypes must be a subset of all_dtypes
-    assert all(
-        dtype in chainerx.testing.all_dtypes
-        for dtype in chainerx.testing.float_dtypes)
+def test_dtype_lists():
+    # Each dtype list must be a subset of all_dtypes.
+    dtype_lists = [
+        chainerx.testing.all_dtypes,
+        chainerx.testing.float_dtypes,
+        chainerx.testing.signed_dtypes,
+        chainerx.testing.unsigned_dtypes,
+        chainerx.testing.integral_dtypes,
+        chainerx.testing.nonfloat_dtypes,
+    ]
+    for dtype_list in dtype_lists:
+        assert isinstance(dtype_list, tuple)
+        assert all([
+            dtype in chainerx.testing.all_dtypes
+            for dtype in dtype_list])
 
     # Check dtype kind
     for dtype in chainerx.testing.all_dtypes:
         is_float = dtype in chainerx.testing.float_dtypes
-        assert is_float == (numpy.dtype(
-            getattr(numpy, dtype)).kind in ('f', 'c'))
+        assert is_float == (numpy.dtype(dtype).kind in ('f', 'c'))
 
-
-def test_signed_dtypes():
-    # signe_dtypes must be a subset of all_dtypes
-    assert all(
-        dtype in chainerx.testing.all_dtypes
-        for dtype in chainerx.testing.signed_dtypes)
-
-    # Check dtype kind
-    for dtype in chainerx.testing.all_dtypes:
         is_signed = dtype in chainerx.testing.signed_dtypes
-        assert is_signed == (numpy.dtype(
-            getattr(numpy, dtype)).kind in ('i', 'f', 'c'))
+        assert is_signed == (numpy.dtype(dtype).kind in ('i', 'f', 'c'))
+
+        is_unsigned = dtype in chainerx.testing.unsigned_dtypes
+        assert is_unsigned == (numpy.dtype(dtype).kind == 'u')
+
+        is_integral = dtype in chainerx.testing.integral_dtypes
+        assert is_integral == (numpy.dtype(dtype).kind in ('i', 'u'))
+
+        is_nonfloat = dtype in chainerx.testing.nonfloat_dtypes
+        assert is_nonfloat == (numpy.dtype(dtype).kind != 'f')
 
 
 @chainerx.testing.parametrize_dtype_specifier('spec')

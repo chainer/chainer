@@ -1,11 +1,11 @@
 import sys
 import weakref
 
+import numpy as np
+
 import chainer
 from chainer.backends import cuda
 import chainer.function_node
-
-import numpy as np
 
 
 def _is_xp(x):
@@ -49,13 +49,13 @@ class ScheduleInfo(object):
         assert len(self.array_infos) == len(self.unique_arrays)
         self.func_name = func_name
         self.in_list = None
-        if len(self.inputs_hooks) > 0:
+        if self.inputs_hooks:
             self.in_list = self.kwargs['inputs']
-        if len(self.outputs_hooks) > 0:
+        if self.outputs_hooks:
             self.out_list = self.kwargs['outputs']
         # Check if 'func' wraps code of a 'FunctionNode':
         self.function_node = None
-        if len(self.args) > 0:
+        if self.args:
             maybe_func = self.args[0]
             if isinstance(maybe_func, chainer.FunctionNode):
                 self.function_node = maybe_func
@@ -1273,6 +1273,12 @@ def static_graph(*args, **kwargs):
 
     def wrap(func):
         def wrapped_func(*inner_args, **inner_kwargs):
+            # The static subgraph optimization feature can be turned off using
+            # a configuration, in which case this decorator merely calls the
+            # wrapped function without introducing any side effects.
+            if not chainer.config.use_static_graph:
+                return func(*inner_args, **inner_kwargs)
+
             if verbosity_level >= 2:
                 print('Calling static chain...')
 

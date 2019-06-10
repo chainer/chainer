@@ -71,6 +71,10 @@ class Gumbel(distribution.Distribution):
     def mean(self):
         return self.loc + EULER * self.scale
 
+    @property
+    def params(self):
+        return {'loc': self.loc, 'scale': self.scale}
+
     def sample_n(self, n):
         xp = cuda.get_array_module(self.loc)
         if xp is cuda.cupy:

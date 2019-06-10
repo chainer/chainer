@@ -1,6 +1,6 @@
 try:
-    from cupy.cuda.nccl import get_unique_id  # NOQA
     from cupy.cuda.nccl import get_build_version  # NOQA
+    from cupy.cuda.nccl import get_unique_id  # NOQA
     from cupy.cuda.nccl import get_version  # NOQA
     from cupy.cuda.nccl import NCCL_FLOAT  # NOQA
     from cupy.cuda.nccl import NCCL_FLOAT16  # NOQA
@@ -10,5 +10,5 @@ try:
     from cupy.cuda.nccl import NcclCommunicator  # NOQA
     from cupy.cuda.nccl import NcclError  # NOQA
     _available = True
-except ImportError:
+except Exception:
     _available = False

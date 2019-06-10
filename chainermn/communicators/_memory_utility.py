@@ -7,7 +7,7 @@ import chainer.backends
 try:
     import cupy as cp
     _cupy_avail = True
-except ImportError:
+except Exception:
     _cupy_avail = False
 
 
@@ -89,27 +89,63 @@ def extract_params_set_data(model):
             if param.data is not None]
 
 
-def extract_params_set_grad(model):
-    return [param for _, param in sorted(model.namedparams())
-            if param.grad is not None]
+def extract_params_set_grad(model, zero_fill):
+    if zero_fill:
+        return [param for _, param in sorted(model.namedparams())
+                if param.grad is not None or param.data is not None]
+    else:
+        return [param for _, param in sorted(model.namedparams())
+                if param.grad is not None]
 
 
-def pack_params(params, itemsize, attr_name, buffer, stream=None):
+def count_grad_elements(params, zero_fill):
+    if zero_fill:
+        return sum(param.data.size for param in params)
+    else:
+        return sum(param.grad.size for param in params)
+
+
+def pack_params(params, attr_name, buffer,
+                transfer_dtype, zero_fill, stream=None):
+    if len(params) == 0:
+        return
+
+    # NOTE: dtypes of params might be mixed, in particular f16 & f32.
     offset = 0
     for param in params:
         v = getattr(param, attr_name)
-        size = v.size * itemsize
-        buffer.from_device(v, size, offset, stream)
+        if attr_name == 'grad' and v is None and zero_fill:
+            v = param.xp.zeros_like(param.data)
+        size = v.size * np.dtype(transfer_dtype).itemsize
+        if v.dtype != transfer_dtype:
+            tmp = v.astype(transfer_dtype)
+            buffer.from_device(tmp, size, offset, stream)
+        else:
+            buffer.from_device(v, size, offset, stream)
+
         offset += size
 
 
-def unpack_params(params, itemsize, attr_name, buffer, stream=None):
+def unpack_params(params, attr_name, buffer,
+                  transfer_dtype, zero_fill, stream=None):
+    """Pack parameters into a single CuPy array for efficient communication."""
+    if len(params) == 0:
+        return
+    xp = chainer.backend.get_array_module(getattr(params[0], attr_name))
     offset = 0
     for param in params:
         v = getattr(param, attr_name)
-        size = v.size * itemsize
+        if attr_name == 'grad' and v is None and zero_fill:
+            v = param.xp.empty_like(param.data)
+            setattr(param, attr_name, v)
+        size = v.size * np.dtype(transfer_dtype).itemsize
+        grad_dtype = v.dtype
+        if grad_dtype != transfer_dtype:
+            v = xp.array(v, copy=False, dtype=transfer_dtype)
         buffer.to_device(v, size, offset, stream)
         offset += size
+        if grad_dtype != transfer_dtype:
+            setattr(param, attr_name, v.astype(grad_dtype))
 
 
 def array_to_buffer_object(array, mpi_dtype=mpi4py.MPI.FLOAT):

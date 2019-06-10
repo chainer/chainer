@@ -32,7 +32,8 @@ class Erf(function_node.FunctionNode):
             except ImportError:
                 warnings.warn(
                     'SciPy is not available. Forward computation of erf in CPU'
-                    ' can be slow without SciPy.')
+                    ' can be slow without SciPy.',
+                    chainer.warnings.PerformanceWarning)
                 _erf_cpu = numpy.vectorize(math.erf)
         self.retain_inputs((0,))
         return utils.force_array(_erf_cpu(x[0]), dtype=x[0].dtype),

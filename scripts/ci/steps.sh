@@ -182,6 +182,7 @@ step_python_build() {
 
     CHAINER_BUILD_CHAINERX=1 \
     CHAINERX_BUILD_CUDA=ON \
+    CHAINERX_BUILD_TYPE=Debug \
     pip install "$REPO_DIR"[test]
 }
 
@@ -192,6 +193,7 @@ step_python_test_chainerx() {
     # TODO(niboshi): threshold is temporarily lowered from 80 to 50. Restore it after writing tests for testing package.
     COVERAGE_FILE="$WORK_DIR"/coverage-data \
     pytest \
+        -rfEX \
         --showlocals \
         --cov=chainerx \
         --no-cov-on-fail \
@@ -209,6 +211,7 @@ step_python_test_chainer() {
     pushd "$temp_dir"
 
     pytest \
+        -rfEX \
         --showlocals \
         -m 'not slow and not ideep' \
         "$REPO_DIR"/tests/chainer_tests

@@ -56,13 +56,13 @@ class DeconvolutionND(function_node.FunctionNode):
         if type_check.eval(n_in) == 3:
             b_type = in_types[2]
             type_check.expect(
-                b_type.dtype == x_type.dtype,
+                b_type.dtype.kind == 'f',
                 b_type.ndim == 1,
                 # Need to consider the case that group count > 1.
                 # b_type.shape[0] == w_type.shape[1]
             )
 
-    def _use_cudnn(self, x, W):
+    def _use_cudnn(self, x, W, b):
         if ((cuda._cudnn_version < 6000
              or configuration.config.cudnn_deterministic)
                 and any(d != 1 for d in self.dilate)):
@@ -76,7 +76,8 @@ class DeconvolutionND(function_node.FunctionNode):
             chainer.should_use_cudnn('>=auto')
             and not self.cover_all
             and self.ndim > 1
-            and x.dtype == W.dtype)
+            and x.dtype == W.dtype
+            and (b is None or x.dtype == b.dtype))
 
     def _forward_xp(self, x, W, b, xp):
         if 1 < self.groups:
@@ -205,7 +206,7 @@ class DeconvolutionND(function_node.FunctionNode):
         xp = backend.get_array_module(*inputs)
         if xp is numpy:
             return self._forward_xp(x, W, b, numpy)
-        elif not self._use_cudnn(x, W):
+        elif not self._use_cudnn(x, W, b):
             return self._forward_xp(x, W, b, cuda.cupy)
         else:
             return self._forward_cudnn(x, W, b)
@@ -227,6 +228,8 @@ class DeconvolutionND(function_node.FunctionNode):
         if 2 in indexes:
             axis = (0,) + tuple(moves.range(2, gy.ndim))
             gb = chainer.functions.sum(gy, axis=axis)
+            if gb.dtype != self.inputs[2].dtype:
+                gb = chainer.functions.cast(gb, self.inputs[2].dtype)
             ret.append(gb)
 
         return ret
