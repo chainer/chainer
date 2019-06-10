@@ -30,8 +30,9 @@ def _contains_nan(x):
 
     """
     if x.dtype.kind in ('f', 'c'):
-        with cuda.get_device_from_array(x):
-            return get_array_module(x).isnan(x).any()
+        device = get_device_from_array(x)
+        with chainer.using_device(device):
+            return device.xp.isnan(x).any()
     else:
         return False
 
@@ -49,7 +50,9 @@ def copyto(dst, src):
             Source array.
 
     """
-    if isinstance(dst, numpy.ndarray):
+    if isinstance(dst, chainerx.ndarray):
+        dst[...] = _chainerx._array_to_chainerx(src, dst.device)
+    elif isinstance(dst, numpy.ndarray):
         numpy.copyto(dst, _cpu._to_cpu(src))
     elif isinstance(dst, intel64.mdarray):
         intel64.ideep.basic_copyto(
@@ -93,9 +96,9 @@ def get_device(device_spec):
     """Returns a device object.
 
     Args:
-        device_spec (object): Device specifier. If a :class:`chainer.Device`
-            instance is given, it is returned intact. Otherwise the following
-            values are supported:
+        device_spec (object): Device specifier.
+            If a :class:`chainer.backend.Device` instance is given, it is
+            returned intact. Otherwise the following values are supported:
 
             * ChainerX devices
 
@@ -107,7 +110,7 @@ def get_device(device_spec):
 
               * A string starts with ``'@cupy:'``.
                 (ex. ``'@cupy:0'``)
-              * A :class:`chainer.backends.cuda.Device` object.
+              * A :class:`cupy.cuda.Device` object.
 
             * NumPy
 
@@ -150,11 +153,26 @@ def get_device(device_spec):
             elif mod_name == 'intel64':
                 if not colon:
                     return intel64.Intel64Device()
-
-        elif chainerx.is_available():
+            raise ValueError(
+                'Device specifiers starting with \'@\' must be followed by'
+                ' a module name and depending on the module, module specific'
+                ' precise device specifiers. Actual: {}'.format(device_spec))
+        else:
+            # String device specifier without '@' prefix is assumed to be a
+            # ChainerX device.
+            if not chainerx.is_available():
+                raise RuntimeError(
+                    'Tried to parse ChainerX device specifier \'{}\', '
+                    'but ChainerX is not available. '
+                    'Note that device specifiers without \'@\' prefix are '
+                    'assumed to be ChainerX device '
+                    'specifiers.'.format(device_spec))
             return _chainerx.ChainerxDevice(chainerx.get_device(device_spec))
 
-    raise ValueError('Invalid device specifier: {}'.format(device_spec))
+    raise TypeError(
+        'Device specifier must be a backend.Device, cuda.Device,'
+        ' chainerx.Device, integer or a string. Actual: {}'.format(
+            type(device_spec)))
 
 
 def _get_device_cupy_or_numpy(device_spec):
@@ -171,6 +189,17 @@ def using_device(device_spec):
     Args:
         device_spec (object): Device specifier. See :func:`chainer.get_device`
             for details.
+
+    .. admonition:: Example
+
+        .. testcode::
+           :skipif: doctest_helper.skipif_not_enough_cuda_devices(2)
+
+           with chainer.using_device('@cupy:1'):
+               a = cupy.empty((3, 2))
+
+           assert a.device.id == 1
+
     """
 
     # TODO(niboshi): Set default device (once this concept is introduced in
@@ -180,8 +209,7 @@ def using_device(device_spec):
 
 
 def get_array_module(*args):
-    """Gets an appropriate one from :mod:`numpy`, :mod:`cupy`, or
-    :mod:`chainerx`.
+    """Gets an appropriate NumPy-compatible module to process arguments
 
     This function will return their data arrays' array module for
     :class:`~chainer.Variable` arguments.
@@ -191,7 +219,7 @@ def get_array_module(*args):
             used.
 
     Returns:
-        module: :mod:`cupy`, :mod:`numpy`, or :mod:`chainerx` is returned based
+        module: :mod:`numpy`, :mod:`cupy`, or :mod:`chainerx` is returned based
         on the types of the arguments.
 
     """
@@ -231,7 +259,7 @@ def get_device_from_array(*arrays):
             is returned.
 
     Returns:
-        chainer.Device: Device instance.
+        chainer.backend.Device: Device instance.
     """
     for array in arrays:
         device = GpuDevice.from_array(array)

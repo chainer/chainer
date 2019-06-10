@@ -281,7 +281,7 @@ class _MultiNodeCheckpointer(extension.Extension):
 
         # Get set of common snapshot numbers (=iteration number)
         iters = [i for name, rank, i in self._parse_filenames(self.files)]
-        if len(iters) > 0:
+        if iters:
             # Adopt latest snapshot from iteration number
             i = max(iters)
 

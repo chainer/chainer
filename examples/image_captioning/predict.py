@@ -2,12 +2,14 @@
 import argparse
 import glob
 import os
+import sys
 
 import numpy as np
 from PIL import Image
 
 import chainer
 from chainer import serializers
+import chainerx
 
 import datasets
 from model import ImageCaptionModel
@@ -26,11 +28,26 @@ def main():
     parser.add_argument('--rnn', type=str, default='nsteplstm',
                         choices=['nsteplstm', 'lstm'],
                         help='Language model layer type')
-    parser.add_argument('--gpu', type=int, default=0,
-                        help='GPU ID (negative value indicates CPU)')
+    parser.add_argument('--device', '-d', type=str, default='-1',
+                        help='Device specifier. Either ChainerX device '
+                        'specifier or an integer. If non-negative integer, '
+                        'CuPy arrays with specified device id are used. If '
+                        'negative integer, NumPy arrays are used')
     parser.add_argument('--max-caption-length', type=int, default=30,
                         help='Maximum caption length generated')
+    group = parser.add_argument_group('deprecated arguments')
+    group.add_argument('--gpu', '-g', dest='device',
+                       type=int, nargs='?', const=0,
+                       help='GPU ID (negative value indicates CPU)')
     args = parser.parse_args()
+
+    device = chainer.get_device(args.device)
+    if device.xp is chainerx:
+        sys.stderr.write('This example does not support ChainerX devices.\n')
+        sys.exit(1)
+
+    print('Device: {}'.format(device))
+    print()
 
     # Load the dataset to obtain the vocabulary, which is needed to convert
     # predicted tokens into actual words
@@ -40,6 +57,8 @@ def main():
 
     model = ImageCaptionModel(len(train.vocab), rnn=args.rnn)
     serializers.load_npz(args.model, model)
+
+    model.to_device(device)
 
     if args.img_dir:  # Read all images in directory
         img_paths = [
@@ -58,11 +77,7 @@ def main():
         img = model.prepare(img)
         imgs.append(img)
     imgs = np.asarray(imgs)
-
-    if args.gpu >= 0:
-        chainer.backends.cuda.get_device_from_id(args.gpu).use()
-        model.to_gpu()
-        imgs = chainer.backends.cuda.to_gpu(imgs)
+    imgs = device.send(imgs)
 
     bos = vocab['<bos>']
     eos = vocab['<eos>']
@@ -70,7 +85,7 @@ def main():
             chainer.no_backprop_mode():
         captions = model.predict(
             imgs, bos=bos, eos=eos, max_caption_length=args.max_caption_length)
-    captions = chainer.backends.cuda.to_cpu(captions)
+    captions = chainer.get_device('@numpy').send(captions)
 
     # Print the predicted captions
     file_names = [os.path.basename(path) for path in img_paths]

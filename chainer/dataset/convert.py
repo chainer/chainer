@@ -208,7 +208,7 @@ def concat_examples(batch, device=None, padding=None):
 
     """
     assert device is None or isinstance(device, backend.Device)
-    if len(batch) == 0:
+    if not batch:
         raise ValueError('batch is empty')
 
     first_elem = batch[0]
@@ -336,11 +336,11 @@ class ConcatWithAsyncTransfer(object):
             Array, a tuple of arrays, or a dictionary of arrays.
             The type depends on the type of each example in the batch.
         """
-        if len(batch) == 0:
+        if not batch:
             raise ValueError('batch is empty')
         first_elem = batch[0]
 
-        if len(self._conveyor) == 0:
+        if not self._conveyor:
             self._device = device  # device is set at first call
             if device is not None and device >= 0 and self._stream is None:
                 with cuda.get_device_from_id(device):
@@ -459,7 +459,7 @@ class Conveyor(object):
                                              array.dtype,
                                              array.size
                                              ).reshape(array.shape)
-                cp_array = cuda.cupy.empty_like(array)
+                cp_array = cuda.cupy.empty(array.shape, array.dtype)
 
             pin_array[...] = array  # copy(CPU): paged -> pinned
             cp_array.set(pin_array, self._stream)  # copy: CPU to GPU

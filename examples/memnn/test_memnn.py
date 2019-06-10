@@ -4,6 +4,8 @@ import argparse
 
 import numpy
 
+import chainer
+
 import babi
 import memnn
 
@@ -17,11 +19,24 @@ def main():
     parser.add_argument('DATA',
                         help='Path to test data in bAbI dataset '
                         '(e.g. "qa1_single-supporting-fact_test.txt")')
-    parser.add_argument('--gpu', '-g', type=int, default=-1,
-                        help='GPU ID (negative value indicates CPU)')
+    parser.add_argument('--device', '-d', type=str, default='-1',
+                        help='Device specifier. Either ChainerX device '
+                        'specifier or an integer. If non-negative integer, '
+                        'CuPy arrays with specified device id are used. If '
+                        'negative integer, NumPy arrays are used')
+    group = parser.add_argument_group('deprecated arguments')
+    group.add_argument('--gpu', '-g', dest='device',
+                       type=int, nargs='?', const=0,
+                       help='GPU ID (negative value indicates CPU)')
     args = parser.parse_args()
 
+    device = chainer.get_device(args.device)
+    xp = device.xp
+    device.use()
+
     model, vocab = memnn.load_model(args.MODEL)
+    model.to_device(device)
+
     network = model.predictor
     max_memory = network.max_memory
     id_to_vocab = {i: v for v, i in vocab.items()}
@@ -33,21 +48,21 @@ def main():
                        for story in test_data)
     correct = total = 0
     for story in test_data:
-        mem = numpy.zeros((max_memory, sentence_len), dtype=numpy.int32)
+        mem = xp.zeros((max_memory, sentence_len), dtype=numpy.int32)
         i = 0
         for sent in story:
             if isinstance(sent, babi.Sentence):
                 if i == max_memory:
                     mem[0:i - 1, :] = mem[1:i, :]
                     i -= 1
-                mem[i, 0:len(sent.sentence)] = sent.sentence
+                mem[i, 0:len(sent.sentence)] = xp.asarray(sent.sentence)
                 i += 1
             elif isinstance(sent, babi.Query):
-                query = numpy.array(sent.sentence, dtype=numpy.int32)
+                query = xp.array(sent.sentence, dtype=numpy.int32)
 
                 # networks assumes mini-batch data
                 score = network(mem[None], query[None])[0]
-                answer = numpy.argmax(score.array)
+                answer = int(xp.argmax(score.array))
 
                 if answer == sent.answer:
                     correct += 1

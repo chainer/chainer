@@ -20,6 +20,7 @@ _min_max_single_axis_params = [
     (numpy.asarray([4, 1, 4, 1]), 0),
     (numpy.asarray([[4, 4, 1, 1], [4, 1, 4, 1]]), 0),
     (numpy.asarray([[4, 4, 1, 1], [4, 1, 4, 1]]).T, 1),
+    (numpy.asarray([-2, -3, -1]), 0),
     (numpy.asarray([-0.0, +0.0, +0.0, -0.0]), None),
     (numpy.asarray([[True, True, False, False],
                     [True, False, True, False]]), 0),
@@ -62,4 +63,34 @@ class TestArgmax(op_utils.NumpyOpTest):
             b = xp.argmax(a, axis)
         else:
             b = a.argmax(axis)
+        return b,
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize_pytest('input,axis', _min_max_single_axis_params)
+@chainer.testing.parameterize_pytest('is_module', [True, False])
+class TestArgmin(op_utils.NumpyOpTest):
+
+    skip_backward_test = True
+    skip_double_backward_test = True
+    forward_accept_errors = (ValueError, chainerx.DimensionError)
+
+    def setup(self, dtype):
+        try:
+            a_np = self.input.astype(dtype)
+        except (ValueError, OverflowError):
+            raise unittest.SkipTest('invalid combination of data and dtype')
+
+        self.a_np = a_np
+
+    def generate_inputs(self):
+        return self.a_np,
+
+    def forward_xp(self, inputs, xp):
+        a, = inputs
+        axis = self.axis
+        if self.is_module:
+            b = xp.argmin(a, axis)
+        else:
+            b = a.argmin(axis)
         return b,

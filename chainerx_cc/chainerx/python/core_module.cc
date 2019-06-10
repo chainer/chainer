@@ -47,12 +47,13 @@ void InitChainerxModule(pybind11::module& m) {
     InitChainerxDtype(m);
     InitChainerxError(m);
     InitChainerxScalar(m);
-    InitChainerxArrayIndex(m);
     InitChainerxArray(m);
     InitChainerxBackward(m);
     InitChainerxCheckBackward(m);
     InitChainerxRoutines(m);
     InitChainerxChainerInterop(m);
+
+    m.def("_is_debug", []() -> bool { return CHAINERX_DEBUG; });
 
     // chainerx.testing (chainerx._testing)
     //

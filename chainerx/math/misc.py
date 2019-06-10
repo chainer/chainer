@@ -2,27 +2,6 @@ import chainerx
 
 
 # TODO(sonots): Implement in C++
-def square(x):
-    """Returns the element-wise square of the input.
-
-    Args:
-        x (~chainerx.ndarray or scalar): Input data
-
-    Returns:
-        ~chainerx.ndarray: Returned array: :math:`y = x * x`.
-        A scalar is returned if ``x`` is a scalar.
-
-    Note:
-        During backpropagation, this function propagates the gradient
-        of the output array to the input array ``x``.
-
-    .. seealso:: :data:`numpy.square`
-
-    """
-    return x * x
-
-
-# TODO(sonots): Implement in C++
 def clip(a, a_min, a_max):
     """Clips the values of an array to a given interval.
 
@@ -51,4 +30,13 @@ def clip(a, a_min, a_max):
     .. seealso:: :func:`numpy.clip`
 
     """
-    return -chainerx.maximum(-chainerx.maximum(a, a_min), -a_max)
+    if a_min is None and a_max is None:
+        raise ValueError('Must set either a_min or a_max.')
+
+    if a_min is not None:
+        a = chainerx.maximum(a, a_min)
+
+    if a_max is not None:
+        a = chainerx.minimum(a, a_max)
+
+    return a

@@ -1,7 +1,8 @@
+import six
+
 from chainer import configuration
 from chainer.training import extension
 from chainer import variable
-import six
 
 
 class unchain_variables(extension.Extension):

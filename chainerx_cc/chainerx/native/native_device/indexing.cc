@@ -7,9 +7,10 @@
 #include "chainerx/dtype.h"
 #include "chainerx/indexable_array.h"
 #include "chainerx/indexer.h"
+#include "chainerx/kernels/indexing.h"
 #include "chainerx/macro.h"
 #include "chainerx/native/elementwise.h"
-#include "chainerx/native/op_regist.h"
+#include "chainerx/native/kernel_regist.h"
 #include "chainerx/routines/indexing.h"
 #include "chainerx/shape.h"
 
@@ -17,9 +18,9 @@ namespace chainerx {
 namespace native {
 namespace {
 
-class NativeTakeOp : public TakeOp {
-protected:
-    void Impl(const Array& a, const Array& indices, int8_t axis, const Array& out) override {
+class NativeTakeKernel : public TakeKernel {
+public:
+    void Call(const Array& a, const Array& indices, int8_t axis, const Array& out) override {
         CHAINERX_ASSERT(GetKind(indices.dtype()) == DtypeKind::kInt || GetKind(indices.dtype()) == DtypeKind::kUInt);
         a.device().CheckDevicesCompatible(a, indices, out);
 
@@ -81,11 +82,11 @@ protected:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(TakeOp, NativeTakeOp);
+CHAINERX_NATIVE_REGISTER_KERNEL(TakeKernel, NativeTakeKernel);
 
-class NativeAddAtOp : public AddAtOp {
-protected:
-    void Impl(const Array& a, const Array& indices, int8_t axis, const Array& b, const Array& out) override {
+class NativeAddAtKernel : public AddAtKernel {
+public:
+    void Call(const Array& a, const Array& indices, int8_t axis, const Array& b, const Array& out) override {
         CHAINERX_ASSERT(a.shape() == out.shape());
         CHAINERX_ASSERT(GetKind(indices.dtype()) == DtypeKind::kInt || GetKind(indices.dtype()) == DtypeKind::kUInt);
         a.device().CheckDevicesCompatible(a, indices, b);
@@ -155,7 +156,97 @@ protected:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(AddAtOp, NativeAddAtOp);
+CHAINERX_NATIVE_REGISTER_KERNEL(AddAtKernel, NativeAddAtKernel);
+
+class NativeWhereKernel : public WhereKernel {
+public:
+    void Call(const Array& condition, const Array& x, const Array& y, const Array& out) override {
+        Device& device = condition.device();
+        device.CheckDevicesCompatible(condition, x, y, out);
+        const Array& condition_cast = condition.dtype() != Dtype::kBool ? condition.AsType(Dtype::kBool) : condition;
+
+        Dtype out_dtype = out.dtype();
+        const Array& x_cast = x.dtype() != out_dtype ? x.AsType(out_dtype) : x;
+        const Array& y_cast = y.dtype() != out_dtype ? y.AsType(out_dtype) : y;
+
+        VisitDtype(out.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            struct Impl {
+                void operator()(int64_t /*i*/, bool condition, T x, T y, T& out) { out = condition ? x : y; }
+            };
+            Elementwise<const bool, const T, const T, T>(Impl{}, condition_cast, x_cast, y_cast, out);
+        });
+    }
+};
+
+CHAINERX_NATIVE_REGISTER_KERNEL(WhereKernel, NativeWhereKernel);
+
+class NativeWhereAASKernel : public WhereAASKernel {
+public:
+    void Call(const Array& condition, const Array& x, Scalar y, const Array& out) override {
+        Device& device = condition.device();
+        device.CheckDevicesCompatible(condition, x, out);
+        const Array& condition_cast = condition.dtype() != Dtype::kBool ? condition.AsType(Dtype::kBool) : condition;
+
+        Dtype out_dtype = out.dtype();
+        const Array& x_cast = x.dtype() != out_dtype ? x.AsType(out_dtype) : x;
+
+        VisitDtype(out.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            struct Impl {
+                T y;
+                void operator()(int64_t /*i*/, bool condition, T x, T& out) { out = condition ? x : y; }
+            };
+            Elementwise<const bool, const T, T>(Impl{static_cast<T>(y)}, condition_cast, x_cast, out);
+        });
+    }
+};
+
+CHAINERX_NATIVE_REGISTER_KERNEL(WhereAASKernel, NativeWhereAASKernel);
+
+class NativeWhereASAKernel : public WhereASAKernel {
+public:
+    void Call(const Array& condition, Scalar x, const Array& y, const Array& out) override {
+        Device& device = condition.device();
+        device.CheckDevicesCompatible(condition, y, out);
+        const Array& condition_cast = condition.dtype() != Dtype::kBool ? condition.AsType(Dtype::kBool) : condition;
+
+        Dtype out_dtype = out.dtype();
+        const Array& y_cast = y.dtype() != out_dtype ? y.AsType(out_dtype) : y;
+
+        VisitDtype(out.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            struct Impl {
+                T x;
+                void operator()(int64_t /*i*/, bool condition, T y, T& out) { out = condition ? x : y; }
+            };
+            Elementwise<const bool, const T, T>(Impl{static_cast<T>(x)}, condition_cast, y_cast, out);
+        });
+    }
+};
+
+CHAINERX_NATIVE_REGISTER_KERNEL(WhereASAKernel, NativeWhereASAKernel);
+
+class NativeWhereASSKernel : public WhereASSKernel {
+public:
+    void Call(const Array& condition, Scalar x, Scalar y, const Array& out) override {
+        Device& device = condition.device();
+        device.CheckDevicesCompatible(condition, out);
+        const Array& condition_cast = condition.dtype() != Dtype::kBool ? condition.AsType(Dtype::kBool) : condition;
+
+        VisitDtype(out.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            struct Impl {
+                T x;
+                T y;
+                void operator()(int64_t /*i*/, bool condition, T& out) { out = condition ? x : y; }
+            };
+            Elementwise<const bool, T>(Impl{static_cast<T>(x), static_cast<T>(y)}, condition_cast, out);
+        });
+    }
+};
+
+CHAINERX_NATIVE_REGISTER_KERNEL(WhereASSKernel, NativeWhereASSKernel);
 
 }  // namespace
 }  // namespace native

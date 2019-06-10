@@ -8,6 +8,9 @@ from chainer import training
 from chainer.training import extensions
 import chainerx
 
+import matplotlib
+matplotlib.use('Agg')
+
 
 # Network definition
 class MLP(chainer.Chain):
@@ -41,12 +44,10 @@ def main():
                         'negative integer, NumPy arrays are used')
     parser.add_argument('--out', '-o', default='result',
                         help='Directory to output the result')
-    parser.add_argument('--resume', '-r', default='',
+    parser.add_argument('--resume', '-r', type=str,
                         help='Resume the training from snapshot')
     parser.add_argument('--unit', '-u', type=int, default=1000,
                         help='Number of units')
-    parser.add_argument('--noplot', dest='plot', action='store_false',
-                        help='Disable PlotReport extension')
     group = parser.add_argument_group('deprecated arguments')
     group.add_argument('--gpu', '-g', dest='device',
                        type=int, nargs='?', const=0,
@@ -101,14 +102,13 @@ def main():
     trainer.extend(extensions.LogReport())
 
     # Save two plot images to the result dir
-    if args.plot and extensions.PlotReport.available():
-        trainer.extend(
-            extensions.PlotReport(['main/loss', 'validation/main/loss'],
-                                  'epoch', file_name='loss.png'))
-        trainer.extend(
-            extensions.PlotReport(
-                ['main/accuracy', 'validation/main/accuracy'],
-                'epoch', file_name='accuracy.png'))
+    trainer.extend(
+        extensions.PlotReport(['main/loss', 'validation/main/loss'],
+                              'epoch', file_name='loss.png'))
+    trainer.extend(
+        extensions.PlotReport(
+            ['main/accuracy', 'validation/main/accuracy'],
+            'epoch', file_name='accuracy.png'))
 
     # Print selected entries of the log to stdout
     # Here "main" refers to the target link of the "main" optimizer again, and
@@ -122,7 +122,7 @@ def main():
     # Print a progress bar to stdout
     trainer.extend(extensions.ProgressBar())
 
-    if args.resume:
+    if args.resume is not None:
         # Resume from a snapshot
         chainer.serializers.load_npz(args.resume, trainer)
 
