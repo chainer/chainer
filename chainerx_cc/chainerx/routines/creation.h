@@ -124,4 +124,10 @@ Array Tri(
         nonstd::optional<Dtype> dtype,
         Device& device = GetDefaultDevice());
 
+// Creates a lower triangle of an array.
+Array Tril(const Array& m, int64_t k);
+
+// Creates an upper triangle of an array.
+Array Triu(const Array& m, int64_t k);
+
 }  // namespace chainerx

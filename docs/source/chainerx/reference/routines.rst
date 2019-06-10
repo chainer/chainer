@@ -38,6 +38,8 @@ Array creation routines
    chainerx.diag
    chainerx.diagflat
    chainerx.tri
+   chainerx.tril
+   chainerx.triu
 
 Activation functions
 --------------------

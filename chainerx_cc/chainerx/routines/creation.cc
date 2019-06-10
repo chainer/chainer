@@ -1,4 +1,5 @@
 #include "chainerx/routines/creation.h"
+#include "chainerx/routines/indexing.h"
 
 #include <algorithm>
 #include <cmath>
@@ -359,6 +360,26 @@ Array Tri(int64_t n, nonstd::optional<int64_t> m, nonstd::optional<int64_t> k, n
     {
         NoBackpropModeScope scope{};
         device.backend().CallKernel<TriKernel>(k.value(), out);
+    }
+    return out;
+}
+
+Array Tril(const Array& m, int64_t k = 0) {
+    Array out = Empty(m.shape(), m.dtype(), m.device());
+    {
+        NoBackpropModeScope scope{};
+        Array mask = Tri(m.shape()[m.ndim() - 2], m.shape()[m.ndim() - 1], k, Dtype::kBool);
+        out = Where(mask, m, 0);
+    }
+    return out;
+}
+
+Array Triu(const Array& m, int64_t k = 0) {
+    Array out = Empty(m.shape(), m.dtype(), m.device());
+    {
+        NoBackpropModeScope scope{};
+        Array mask = Tri(m.shape()[m.ndim() - 2], m.shape()[m.ndim() - 1], k - 1, Dtype::kBool);
+        out = Where(mask, 0, m);
     }
     return out;
 }

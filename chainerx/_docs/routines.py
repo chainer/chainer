@@ -101,6 +101,44 @@ Returns:
 """)
 
     _docs.set_doc(
+        chainerx.tril,
+        """tril(m, k=0)
+Lower triangle of an array.
+
+Returns a copy of an array with elements above the k-th diagonal zeroed.
+
+Args:
+    m (~chainerx.ndarray): Input array.
+    k (int): Index of the diagonal. Zero indicates the main diagonal,
+        a positive index an upper diagonal, and a negative index a lower
+        diagonal.
+
+Returns:
+    ~chainerx.ndarray: Lower triangle of ``m``.
+
+.. seealso:: :func:`numpy.tril`
+""")
+
+    _docs.set_doc(
+        chainerx.triu,
+        """triu(m, k=0)
+Upper triangle of an array.
+
+Returns a copy of an array with elements below the k-th diagonal zeroed.
+
+Args:
+    m (~chainerx.ndarray): Input array.
+    k (int): Index of the diagonal. Zero indicates the main diagonal,
+        a positive index an upper diagonal, and a negative index a lower
+        diagonal.
+
+Returns:
+    ~chainerx.ndarray: Upper triangle of ``m``.
+
+.. seealso:: :func:`numpy.triu`
+""")
+
+    _docs.set_doc(
         chainerx.identity,
         """identity(n, dtype=None, device=None)
 Returns a 2-D identity array.
