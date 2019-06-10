@@ -37,7 +37,7 @@ def generate_array(initializer, shape, xp, dtype=None, device=None):
     Args:
         initializer: A callable object that takes :ref:`ndarray` and edits its
             value.
-        shape (tuple): Shape of a return array.
+        shape (int or tuple of int): Shape of a return array.
         xp (module): :mod:`cupy`, :mod:`numpy`, or :mod:`chainerx`.
         dtype: Dtype specifier. If omitted, ``initializer.dtype`` is used.
         device: Target device specifier. If omitted, the current device is
