@@ -43,7 +43,9 @@ public:
         Dtype dtype = a.dtype();
         CudaSetDeviceScope scope{device.index()};
 
-        CHAINERX_ASSERT(a.ndim() == 2);
+        if (a.ndim() != 2) {
+            throw DimensionError{"ChainerX SVD supports only 2-dimensional arrays."};
+        }
 
         int n = a.shape()[0];
         int m = a.shape()[1];
@@ -148,8 +150,9 @@ public:
         Dtype dtype = a.dtype();
         CudaSetDeviceScope scope{device.index()};
 
-        CHAINERX_ASSERT(a.ndim() == 2);
-        CHAINERX_ASSERT(out.ndim() == 2);
+        if (a.ndim() != 2 || out.ndim() != 2) {
+            throw DimensionError{"ChainerX pseudo-inverse supports only 2-dimensional arrays."};
+        }
 
         Array u{};
         Array s{};
