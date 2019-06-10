@@ -116,4 +116,12 @@ Array Linspace(
         const nonstd::optional<Dtype>& dtype = nonstd::nullopt,
         Device& device = GetDefaultDevice());
 
+// Creates a 2-dimensional array with ones at and below the given diagonal and zeros elsewhere.
+Array Tri(
+        int64_t n,
+        nonstd::optional<int64_t> m,
+        nonstd::optional<int64_t> k,
+        nonstd::optional<Dtype> dtype,
+        Device& device = GetDefaultDevice());
+
 }  // namespace chainerx

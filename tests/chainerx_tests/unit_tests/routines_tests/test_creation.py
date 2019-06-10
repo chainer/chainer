@@ -1173,3 +1173,30 @@ def test_copy(xp, shape, dtype, device, is_module):
         return xp.copy(a)
     else:
         return a.copy()
+
+
+@chainerx.testing.numpy_chainerx_array_equal()
+@pytest.mark.parametrize('N,M,k', [
+    (2, 1, -2),
+    (2, 1, -1),
+    (2, 1, 0),
+    (2, 1, 1),
+    (2, 1, 2),
+    (3, 4, -4),
+    (3, 4, -1),
+    (3, 4, 1),
+    (3, 4, 4),
+    (6, 3, 1),
+    (6, 3, -1),
+    (3, 6, 1),
+    (3, 6, -1),
+])
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@chainerx.testing.parametrize_dtype_specifier('dtype_spec')
+def test_tri(xp, N, M, k, dtype_spec, device):
+    if xp is numpy and isinstance(dtype_spec, chainerx.dtype):
+        dtype_spec = dtype_spec.name
+    out = xp.tri(N, M, k, dtype_spec)
+    if dtype_spec in (None, Unspecified):
+        out = dtype_utils.cast_if_numpy_array(xp, out, 'float32')
+    return out

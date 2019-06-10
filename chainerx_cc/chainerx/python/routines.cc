@@ -280,6 +280,18 @@ void InitChainerxCreation(pybind11::module& m) {
           py::arg("endpoint") = true,
           py::arg("dtype") = nullptr,
           py::arg("device") = nullptr);
+    m.def("tri",
+          [](int64_t n, nonstd::optional<int64_t> m, int64_t k, py::handle dtype, py::handle device) {
+              if (!m.has_value()) {
+                  m = n;
+              }
+              return MoveArrayBody(Tri(n, m.value(), k, GetDtype(dtype), GetDevice(device)));
+          },
+          py::arg("N"),
+          py::arg("M") = nullptr,
+          py::arg("k") = 0,
+          py::arg("dtype") = "float64",
+          py::arg("device") = nullptr);
 }
 
 void InitChainerxIndexing(pybind11::module& m) {

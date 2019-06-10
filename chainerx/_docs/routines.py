@@ -78,6 +78,29 @@ Returns:
 """)
 
     _docs.set_doc(
+        chainerx.eye,
+        """tri(N, M=None, k=0, dtype=float64, device=None)
+Returns a 2-D array with ones at and below the given diagonal
+and zeros elsewhere.
+
+Args:
+    N (int): Number of rows.
+    M (int): Number of columns. M == N by default.
+    k (int): Index of the diagonal. Zero indicates the main diagonal,
+        a positive index an upper diagonal, and a negative index a lower
+        diagonal.
+    dtype: Data type.
+    device (~chainerx.Device): Device on which the array is allocated.
+        If omitted, :ref:`the default device <chainerx_device>` is chosen.
+
+Returns:
+    ~chainerx.ndarray: A 2-D array with given diagonals filled ones at and
+    below the given diagonal and zeros elsewhere.
+
+.. seealso:: :func:`numpy.tri`
+""")
+
+    _docs.set_doc(
         chainerx.identity,
         """identity(n, dtype=None, device=None)
 Returns a 2-D identity array.

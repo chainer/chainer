@@ -37,6 +37,7 @@ Array creation routines
    chainerx.linspace
    chainerx.diag
    chainerx.diagflat
+   chainerx.tri
 
 Activation functions
 --------------------
