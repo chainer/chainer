@@ -43,8 +43,12 @@ public:
         Dtype dtype = a.dtype();
         CudaSetDeviceScope scope{device.index()};
 
-        CHAINERX_ASSERT(a.ndim() == 2);
-        CHAINERX_ASSERT(a.shape()[0] == a.shape()[1]);
+        if (a.ndim() != 2) {
+            throw DimensionError{"ChainerX solve supports only 2-dimensional arrays."};
+        }
+        if (a.shape()[0] != a.shape()[1]) {
+            throw DimensionError{"Matrix is not square."};
+        }
 
         auto solve_impl = [&](auto pt, auto getrf_bufferSize, auto getrf, auto getrs) {
             using T = typename decltype(pt)::type;
