@@ -2015,7 +2015,7 @@ Note:
 """)  # NOQA
 
     _docs.set_doc(
-        chainerx.left_shift,
+        chainerx.right_shift,
         """right_shift(x1, x2)
 Shift the bits of an integer to the right.
 

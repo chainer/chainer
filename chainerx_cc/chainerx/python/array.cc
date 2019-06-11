@@ -384,14 +384,14 @@ void InitChainerxArray(pybind11::module& m) {
           [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(std::move(Array{self} ^= Array{rhs})); },
           py::is_operator());
     c.def("__ixor__", [](const ArrayBodyPtr& self, Scalar rhs) { return MoveArrayBody(std::move(Array{self} ^= rhs)); }, py::is_operator());
-    c.def("__ileft_shift__",
+    c.def("__ilshift__",
           [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(std::move(Array{self} <<= Array{rhs})); },
           py::is_operator());
-    c.def("__ileft_shift__", [](const ArrayBodyPtr& self, Scalar rhs) { return MoveArrayBody(std::move(Array{self} <<= rhs)); }, py::is_operator());
-    c.def("__iright_shift__",
+    c.def("__ilshift__", [](const ArrayBodyPtr& self, Scalar rhs) { return MoveArrayBody(std::move(Array{self} <<= rhs)); }, py::is_operator());
+    c.def("__irshift__",
           [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(std::move(Array{self} >>= Array{rhs})); },
           py::is_operator());
-    c.def("__iright_shift__", [](const ArrayBodyPtr& self, Scalar rhs) { return MoveArrayBody(std::move(Array{self} >>= rhs)); }, py::is_operator());
+    c.def("__irshift__", [](const ArrayBodyPtr& self, Scalar rhs) { return MoveArrayBody(std::move(Array{self} >>= rhs)); }, py::is_operator());
     c.def("__add__",
           [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(Array{self} + Array{rhs}); },
           py::is_operator());
@@ -442,16 +442,16 @@ void InitChainerxArray(pybind11::module& m) {
           py::is_operator());
     c.def("__xor__", [](const ArrayBodyPtr& self, Scalar rhs) { return MoveArrayBody(Array{self} ^ rhs); }, py::is_operator());
     c.def("__rxor__", [](const ArrayBodyPtr& self, Scalar lhs) { return MoveArrayBody(Array{self} ^ lhs); }, py::is_operator());
-    c.def("__left_shift__",
+    c.def("__lshift__",
           [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(Array{self} << Array{rhs}); },
           py::is_operator());
-    c.def("__left_shift__", [](const ArrayBodyPtr& self, Scalar rhs) { return MoveArrayBody(Array{self} << rhs); }, py::is_operator());
-    c.def("__rleft_shift__", [](const ArrayBodyPtr& self, Scalar lhs) { return MoveArrayBody(Array{self} << lhs); }, py::is_operator());
-    c.def("__right_shift__",
+    c.def("__lshift__", [](const ArrayBodyPtr& self, Scalar rhs) { return MoveArrayBody(Array{self} << rhs); }, py::is_operator());
+    c.def("__rlshift__", [](const ArrayBodyPtr& self, Scalar lhs) { return MoveArrayBody(Array{self} << lhs); }, py::is_operator());
+    c.def("__rshift__",
           [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(Array{self} >> Array{rhs}); },
           py::is_operator());
-    c.def("__right_shift__", [](const ArrayBodyPtr& self, Scalar rhs) { return MoveArrayBody(Array{self} >> rhs); }, py::is_operator());
-    c.def("__rright_shift__", [](const ArrayBodyPtr& self, Scalar lhs) { return MoveArrayBody(Array{self} >> lhs); }, py::is_operator());
+    c.def("__rshift__", [](const ArrayBodyPtr& self, Scalar rhs) { return MoveArrayBody(Array{self} >> rhs); }, py::is_operator());
+    c.def("__rrshift__", [](const ArrayBodyPtr& self, Scalar lhs) { return MoveArrayBody(Array{self} >> lhs); }, py::is_operator());
     c.def("sum",
           [](const ArrayBodyPtr& self, int8_t axis, bool keepdims) { return MoveArrayBody(Array{self}.Sum(Axes{axis}, keepdims)); },
           "axis"_a,
