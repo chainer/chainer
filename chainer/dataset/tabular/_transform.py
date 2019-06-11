@@ -53,7 +53,7 @@ class _Transform(tabular_dataset.TabularDataset):
             elif isinstance(out_example, dict):
                 if self._mode and self._mode is not dict:
                     raise ValueError(
-                        'transform_batch must not change its return type')
+                        'transform must not change its return type')
                 self._mode = dict
                 for col_index, key_index in enumerate(key_indices):
                     out_examples[col_index].append(
