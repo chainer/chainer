@@ -49,6 +49,13 @@ public:
     virtual void Call(const Array& x, const Array& out) = 0;
 };
 
+class Log2Kernel : public Kernel {
+public:
+    static const char* name() { return "Log2"; }
+
+    virtual void Call(const Array& x, const Array& out) = 0;
+};
+
 class Log1pKernel : public Kernel {
 public:
     static const char* name() { return "Log1p"; }
