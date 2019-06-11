@@ -14,6 +14,7 @@
 #include "chainerx/constant.h"
 #include "chainerx/context.h"
 #include "chainerx/device.h"
+#include "chainerx/dims.h"
 #include "chainerx/dtype.h"
 #include "chainerx/error.h"
 #include "chainerx/macro.h"
@@ -36,7 +37,6 @@
 #include "chainerx/routines/statistics.h"
 #include "chainerx/routines/trigonometric.h"
 #include "chainerx/scalar.h"
-#include "chainerx/stack_vector.h"
 
 #include "chainerx/python/array.h"
 #include "chainerx/python/array_index.h"
@@ -948,8 +948,7 @@ void InitChainerxConnection(pybind11::module& m) {
                       b.has_value() ? nonstd::optional<Array>{Array{*b}} : nonstd::nullopt,
                       ToStackVector<int64_t>(stride, ndim),
                       ToStackVector<int64_t>(pad, ndim),
-                      outsize.has_value() ? nonstd::optional<StackVector<int64_t, kMaxNdim>>{ToStackVector<int64_t>(*outsize, ndim)}
-                                          : nonstd::nullopt));
+                      outsize.has_value() ? nonstd::optional<Dims>{ToStackVector<int64_t>(*outsize, ndim)} : nonstd::nullopt));
           },
           py::arg("x"),
           py::arg("w"),
