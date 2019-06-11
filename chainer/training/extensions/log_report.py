@@ -91,7 +91,7 @@ keys=None, trigger=(1, 'epoch'), postprocess=None, filename='log')
 
         if self._trigger(trainer):
             # output the result
-            stats = self._summary.compute_mean()
+            stats = self._summary.make_statistics()
             stats_cpu = {}
             for name, value in six.iteritems(stats):
                 stats_cpu[name] = float(value)  # copy to CPU
