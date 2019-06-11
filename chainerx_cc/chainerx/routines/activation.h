@@ -1,9 +1,5 @@
 #pragma once
 
-#include <cstdint>
-
-#include <nonstd/optional.hpp>
-
 #include "chainerx/array.h"
 #include "chainerx/scalar.h"
 
