@@ -121,7 +121,8 @@ public:
                 throw ChainerxError{"Unsuccessfull orgqr (QR) execution. Info = ", devInfo_h};
             }
 
-            Q = Q.At(std::vector<ArrayIndex>{Slice{0, mc}, Slice{}}).Transpose();  // Q = Q[0:mc, :].T
+            // .Copy() is needed to have correct strides
+            Q = Q.At(std::vector<ArrayIndex>{Slice{0, mc}, Slice{}}).Transpose().Copy();  // Q = Q[0:mc, :].T
             R = R.At(std::vector<ArrayIndex>{Slice{}, Slice{0, mc}}).Transpose();  // R = R[:, 0:mc].T
             R = Triu(R, 0);
             return std::make_tuple(std::move(Q), std::move(R));
