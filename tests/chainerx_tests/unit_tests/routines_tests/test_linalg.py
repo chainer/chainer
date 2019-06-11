@@ -93,3 +93,60 @@ def test_dot_invalid(is_module, xp, device, a_shape, b_shape, dtype):
         return xp.dot(a, b)
     else:
         return a.dot(b)
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    chainer.testing.product({
+        'shape': [(1, 1), (3, 3), (6, 6)],
+        'in_dtypes': ['float32', 'float64'],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True],
+    })
+))
+class TestSolve(op_utils.NumpyOpTest):
+
+    def setup(self):
+        device = chainerx.get_default_device()
+        if device.name == 'native:0':
+            pytest.skip('CPU SVD is not implemented')
+
+    def generate_inputs(self):
+        a = numpy.random.random(self.shape).astype(self.in_dtypes)
+        b = numpy.random.random(self.shape[0]).astype(self.in_dtypes)
+        return a, b
+
+    def forward_xp(self, inputs, xp):
+        a, b = inputs
+        out = xp.linalg.solve(a, b)
+        return out,
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    # Special shapes
+    chainer.testing.product({
+        'shape': [(2, 3), (3, 2)],
+        'in_dtypes': ['float32', 'float64'],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True]
+    })
+))
+class TestSolveFailing(op_utils.NumpyOpTest):
+
+    def setup(self):
+        device = chainerx.get_default_device()
+        if device.name == 'native:0':
+            pytest.skip('CPU Cholesky is not implemented')
+        self.forward_accept_errors = (numpy.linalg.LinAlgError,
+                                      chainerx.DimensionError)
+
+    def generate_inputs(self):
+        a = numpy.random.random(self.shape).astype(self.in_dtypes)
+        b = numpy.random.random(self.shape).astype(self.in_dtypes)
+        return a, b
+
+    def forward_xp(self, inputs, xp):
+        a, b = inputs
+        out = xp.linalg.solve(a, b)
+        return out,
