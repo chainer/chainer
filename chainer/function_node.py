@@ -1006,19 +1006,30 @@ def grad(outputs, inputs, grad_outputs=None, grad_inputs=None, set_grad=False,
     chx_inputs = sum(map(lambda x: x._has_chainerx_array, inputs))
     if chx_inputs == len(inputs):
         # Need to access the arrays to invoke the chainer grad function
+        if grad_inputs is not None:
+            raise ValueError(
+                'grad_inputs is not supported on chainerx.grad interface')
+        if grad_outputs is not None:
+            raise ValueError(
+                'grad_outputs is not supported on chainerx.grad interface')
+        if retain_grad:
+            raise ValueError(
+                'retain_grad is not supported on chainerx.grad interface')
+        if loss_scale is not None:
+            raise ValueError(
+                'loss_scale is not supported on chainerx.grad interface')
         outputs_chx = list(map(lambda x: x._data[0], outputs))
         inputs_chx = list(map(lambda x: x._data[0], inputs))
-        grads = chainerx.grad(outputs_chx, inputs_chx, None, enable_double_backprop)
+        grads = chainerx.grad(
+            outputs_chx, inputs_chx, None, enable_double_backprop)
         ret_vars = [variable.Variable(g, requires_grad=False) for g in grads]
         if set_grad:
             for x,g in zip(inputs,ret_vars):
                 x.grad_var = g
-
         return ret_vars
     elif chx_inputs > 0:
         raise TypeError(
-            'Mixing chainerx and non-chainerx variables')
-
+            'Mixing chainerx and non-chainerx variables is not allowed')
 
     for v in outputs:
         # Raise error here if v is created by Function.backward.
