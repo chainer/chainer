@@ -50,9 +50,7 @@ public:
         int mn = std::min(m, n);
 
         Array Q = Empty(Shape({0}), dtype, device);
-        Array R = Empty(a.shape(), dtype, device);
-        device.backend().CallKernel<CopyKernel>(a, R);  // QR decomposition is done in-place
-        R = R.Transpose();
+        Array R = a.Transpose().Copy(); // QR decomposition is done in-place
         Array tau = Empty(Shape({mn}), dtype, device);
 
         auto qr_impl = [&](auto pt, auto geqrf_bufferSize, auto orgqr_bufferSize, auto geqrf, auto orgqr) -> std::tuple<Array, Array> {
