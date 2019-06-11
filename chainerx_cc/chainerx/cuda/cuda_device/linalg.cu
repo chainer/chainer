@@ -82,7 +82,7 @@ public:
             }
 
             if (mode == QRMode::r) {
-                R = R.At(std::vector<ArrayIndex>{Slice{}, Slice{0, mn}}).Transpose();  // R = R[:, range(0, mn)].T
+                R = R.At(std::vector<ArrayIndex>{Slice{}, Slice{0, mn}}).Transpose();  // R = R[:, 0:mn].T
                 // R = triu(R);
                 return std::make_tuple(std::move(Q), std::move(R));
             }
@@ -100,7 +100,7 @@ public:
                 Q = Empty(Shape({n, m}), dtype, device);
             }
 
-            Q.At(std::vector<ArrayIndex>{Slice{0, n}, Slice{}}) = R;  // Q[range(0, n), :] = R
+            device.backend().CallKernel<CopyKernel>(R, Q.At(std::vector<ArrayIndex>{Slice{0, n}, Slice{}})); // Q[0:n, :] = R
             T* q_ptr = static_cast<T*>(internal::GetRawOffsetData(Q));
 
             int buffersize_orgqr = 0;
@@ -119,8 +119,8 @@ public:
                 throw ChainerxError{"Unsuccessfull orgqr (QR) execution. Info = ", devInfo_h};
             }
 
-            Q = Q.At(std::vector<ArrayIndex>{Slice{0, mc}, Slice{}}).Transpose();  // Q = Q[range(0, mc), :].T
-            R = R.At(std::vector<ArrayIndex>{Slice{}, Slice{0, mc}}).Transpose();  // R = R[:, range(0, mc)].T
+            Q = Q.At(std::vector<ArrayIndex>{Slice{0, mc}, Slice{}}).Transpose();  // Q = Q[0:mc, :].T
+            R = R.At(std::vector<ArrayIndex>{Slice{}, Slice{0, mc}}).Transpose();  // R = R[:, 0:mc].T
             // R = triu(R);
             return std::make_tuple(std::move(Q), std::move(R));
         };
