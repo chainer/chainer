@@ -2,8 +2,10 @@ import unittest
 
 import mock
 import numpy
+import pytest
 
 import chainer
+from chainer import backend
 from chainer.backends import _cpu
 from chainer.backends import cuda
 from chainer import dataset
@@ -71,6 +73,7 @@ class TestStandardUpdater(unittest.TestCase):
 
     def test_init_values(self):
         assert self.updater.device is None
+        assert self.updater.input_device is None
         assert self.updater.loss_func is None
         assert self.updater.iteration == 0
 
@@ -113,6 +116,257 @@ class TestStandardUpdater(unittest.TestCase):
         assert self.optimizer.serialize_called[0].path == ['optimizer:main']
 
         assert serializer.called == [('iteration', 0)]
+
+
+_backend_params = [
+    # NumPy
+    {},
+    # CuPy
+    {'use_cuda': True, 'cuda_device': 0},
+    {'use_cuda': True, 'cuda_device': 1},
+    # ChainerX
+    {'use_chainerx': True, 'chainerx_device': 'native:0'},
+    {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+    {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
+]
+
+
+@chainer.testing.backend.inject_backend_tests(None, _backend_params)
+@chainer.testing.backend.inject_backend_tests(None, _backend_params)
+@chainer.testing.backend.inject_backend_tests(None, _backend_params)
+class TestStandardUpdaterDevice(unittest.TestCase):
+
+    def test_device(
+            self, model_initial_backend_config, model_backend_config,
+            input_backend_config):
+        model_initial_device = model_initial_backend_config.device
+        device = model_backend_config.device
+        input_device = input_backend_config.device
+
+        model = chainer.Link()
+        model.to_device(model_initial_device)
+        optimizer = DummyOptimizer()
+        optimizer.setup(model)
+        iterator = DummyIterator([numpy.array(1), numpy.array(2)])
+
+        updater = training.updaters.StandardUpdater(
+            iterator,
+            optimizer,
+            device=device,
+            input_device=input_device)
+
+        assert updater.device is device
+        assert updater.input_device is input_device
+
+        # Check the model device.
+        assert model.device == device
+
+        updater.update_core()
+
+        assert optimizer.update.call_count == 1
+        args, kwargs = optimizer.update.call_args
+        assert len(args) == 2
+        assert len(kwargs) == 0
+        loss, v1 = args
+
+        # Check the input device.
+        assert backend.get_device_from_array(v1) == input_device
+
+
+class DummyDevice(backend.Device):
+
+    xp = numpy
+    supported_array_types = (numpy.ndarray,)
+
+    def __init__(self, index):
+        self.index = index
+
+    def __eq__(self, other):
+        return isinstance(other, DummyDevice) and other.index == self.index
+
+    # TODO(niboshi): Define name property instead (#7149).
+    def __str__(self):
+        return '@dummy:{}'.format(self.index)
+
+    def send_array(self, array):
+        return array.copy()
+
+
+@testing.parameterize(*testing.product({
+    'omit_device': [True, False],
+    'omit_input_device': [True, False],
+}))
+class TestStandardUpdaterDeviceArgumentFallback(unittest.TestCase):
+    """Tests the fallback behavior regarding device and input_device
+    arguments."""
+
+    def test_device_argument_fallback(self):
+        self.check_device_argument_fallback(
+            initial_model_device=DummyDevice(0),
+            initial_input_device=DummyDevice(1),
+            device_arg=DummyDevice(3),
+            input_device_arg=DummyDevice(4))
+
+    @attr.multi_gpu(2)
+    def test_gpu_to_gpu_transfer(self):
+        # GpuDevice is given as device arguments:
+        # - model GPU-to-GPU transfer should be skipped.
+        # - input GPU-to-GPU transfer should NOT be skipped.
+        self.check_device_argument_fallback(
+            initial_model_device=backend.GpuDevice.from_device_id(0),
+            initial_input_device=backend.GpuDevice.from_device_id(0),
+            device_arg=backend.GpuDevice.from_device_id(1),
+            input_device_arg=backend.GpuDevice.from_device_id(1))
+
+    def _get_expected_devices(
+            self,
+            initial_model_device,
+            initial_input_device,
+            device_arg,
+            input_device_arg):
+        # Determines the expected devices.
+        # Returns: (
+        #    expected_device_attr:   Expected StandardUpdater.device
+        #    expected_model_device:  Expected model device
+        #    expected_input_device:  Expected device given to converters
+        # )
+        # or None if an error is expected.
+
+        if device_arg is not None:
+            # device argument is given
+
+            # If device_arg is GpuDevice,  it will skip GPU-to-GPU transfer of
+            # the model (but not input).
+            if isinstance(device_arg, backend.GpuDevice):
+                if isinstance(initial_model_device, backend.GpuDevice):
+                    expected_model_device = initial_model_device
+                else:
+                    expected_model_device = device_arg
+
+                expected_input_device = device_arg
+                expected_device_attr = device_arg
+
+                return (
+                    expected_device_attr,
+                    expected_model_device,
+                    expected_input_device)
+
+            # device argument is not GpuDevice: fallthrough
+
+        # expect_table
+        # Key:   (omit_device, omit_input_device)
+        # Value: (expected_device, expected_input_device)
+        #
+        # None means unchanged.
+        expect_table = {
+            (0, 0): (device_arg, input_device_arg),
+            (0, 1): (device_arg, device_arg),
+            (1, 0): (None, input_device_arg),
+            (1, 1): (None, None),
+        }
+        omit_device = 1 if device_arg is None else 0
+        omit_input_device = 1 if input_device_arg is None else 0
+        expected_model_device, expected_input_device = (
+            expect_table[(
+                omit_device,
+                omit_input_device)])
+        expected_device_attr = expected_model_device
+        return (
+            expected_device_attr,
+            expected_model_device,
+            expected_input_device)
+
+    def check_device_argument_fallback(
+            self,
+            initial_model_device,
+            initial_input_device,
+            device_arg,
+            input_device_arg):
+
+        if self.omit_device:
+            device_arg = None
+        if self.omit_input_device:
+            input_device_arg = None
+
+        actual_converter_device_args = []
+
+        @chainer.dataset.converter()
+        def convert(arr, device):
+            # The converter records the given device.
+            actual_converter_device_args.append(device)
+            if device is None:
+                return arr
+            return device.send(arr)
+
+        class Model(chainer.Link):
+            def __init__(self):
+                chainer.Link.__init__(self)
+                with self.init_scope():
+                    self.p1 = chainer.Parameter()
+                    self.p2 = chainer.Parameter(
+                        numpy.array([1, 2], numpy.float32))
+
+            def forward(self, x):
+                return chainer.functions.identity(x)
+
+        model = Model()
+        model.to_device(initial_model_device)
+        optimizer = DummyOptimizer()
+        optimizer.setup(model)
+        iterator = DummyIterator([
+            initial_input_device.send(numpy.array(1)),
+        ])
+
+        # Make kwargs
+        kwargs = {}
+        if device_arg is not None:
+            kwargs['device'] = device_arg
+        if input_device_arg is not None:
+            kwargs['input_device'] = input_device_arg
+
+        # Calculate the expected devices
+        expect = self._get_expected_devices(
+            initial_model_device,
+            initial_input_device,
+            device_arg,
+            input_device_arg)
+
+        if expect is None:
+            # Error is expected
+            with pytest.raises(KeyError):
+                training.updaters.StandardUpdater(
+                    iterator, optimizer, convert, **kwargs)
+            return
+
+        (expected_device_attr,
+         expected_model_device,
+         expected_input_device) = expect
+
+        # Create the StandardUpdater
+        updater = training.updaters.StandardUpdater(
+            iterator, optimizer, convert, **kwargs)
+
+        assert updater.device == expected_device_attr
+        assert updater.input_device == expected_input_device
+
+        # Check the model device
+        if expected_model_device is None:
+            # Model device is unchanged
+            # TODO(niboshi): model.device should be initial_model_device too.
+            assert model.p1.device == initial_model_device
+            assert model.p2.device == initial_model_device
+        else:
+            # Model is transferred
+            # TODO(niboshi): model.device should be expected_model_device too.
+            assert model.p1.device == expected_model_device
+            assert model.p2.device == expected_model_device
+
+        # Process a batch
+        updater.update_core()
+
+        # Check the input device given to the converter
+        assert len(actual_converter_device_args) == 1
+        assert actual_converter_device_args[0] == expected_input_device
 
 
 class TestStandardUpdaterDataTypes(unittest.TestCase):
