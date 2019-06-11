@@ -215,6 +215,10 @@ keys=None, trigger=(1, 'epoch'), postprocess=None, filename='log.jsonl')
 
         self._init_summary()
 
+    @property
+    def default_name(self):
+        return "LogReport"
+
     def __call__(self, trainer):
         # accumulate the observations
         keys = self._keys
