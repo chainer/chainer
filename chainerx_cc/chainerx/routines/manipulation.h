@@ -71,4 +71,6 @@ Array VStack(const std::vector<Array>& arrays);
 
 Array DStack(const std::vector<Array>& arrays);
 
+Array Moveaxis(const Array& a, const Axes& source, const Axes& destination);
+
 }  // namespace chainerx

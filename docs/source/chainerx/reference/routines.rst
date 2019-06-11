@@ -77,6 +77,7 @@ Array manipulation routines
    chainerx.flip
    chainerx.fliplr
    chainerx.flipud
+   chainerx.moveaxis
 
 Indexing routines
 -----------------

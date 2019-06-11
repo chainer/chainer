@@ -1084,6 +1084,32 @@ Note:
 .. seealso:: :func:`numpy.flipud`
 """)
 
+    _docs.set_doc(
+        chainerx.moveaxis,
+        """moveaxis(a, source, destination)
+Move axes of an array to new positions.
+
+Other axes remain in their original order.
+
+Args:
+    a (~chainerx.ndarray): Input Array.
+    source (int or tuple of ints): Original positions of the axes to move.
+    These must be unique.
+    destintation (int or tuple of ints): Destination positions for each of
+    the original axes. These must also be unique.
+
+Returns:
+    ~chainerx.ndarray: Array with moved axes. This array is a view of the
+    input array.
+
+Note:
+    * During backpropagation, this function propagates the gradients of the
+      output arrays to the input array ``a``.
+
+
+.. seealso:: :func:`numpy.moveaxis`
+""")
+
 
 def _docs_math():
     _docs.set_doc(

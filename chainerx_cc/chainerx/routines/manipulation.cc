@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <functional>
 #include <numeric>
+#include <set>
 #include <sstream>
 #include <string>
 #include <utility>
@@ -818,6 +819,47 @@ Array DStack(const std::vector<Array>& arrays) {
     std::vector<Array> reshaped_arrays(arrays.size());
     std::transform(arrays.begin(), arrays.end(), reshaped_arrays.begin(), AtLeast3D);
     return Concatenate(reshaped_arrays, 2);
+}
+
+Array Moveaxis(const Array& a, const Axes& source, const Axes& destination) {
+    if (source.size() != destination.size()) {
+        throw DimensionError{"Invalid Source or Destination Axes"};
+    }
+
+    if (source.empty()) {
+        return a;
+    }
+
+    const Axes& normalized_source = internal::GetNormalizedAxes(source, a.ndim());
+    const Axes& normalized_destination = internal::GetNormalizedAxes(destination, a.ndim());
+
+    Axes order, source_axes, destination_axes;
+    order.resize(a.ndim());
+    source_axes.resize(a.ndim());
+    destination_axes.resize(a.ndim());
+
+    std::iota(source_axes.begin(), source_axes.end(), 0);
+    std::iota(destination_axes.begin(), destination_axes.end(), 0);
+
+    for (int8_t i = 0; i < source.ndim(); ++i) {
+        order[normalized_destination[i]] = normalized_source[i];
+        source_axes[normalized_source[i]] = -1;
+        destination_axes[normalized_destination[i]] = -1;
+    }
+
+    auto source_iter = std::remove(source_axes.begin(), source_axes.end(), -1);
+    auto destination_iter = std::remove(destination_axes.begin(), destination_axes.end(), -1);
+
+    int8_t rest_dim = a.ndim() - source.ndim();
+    CHAINERX_ASSERT(a.ndim() - destination.ndim() == rest_dim);
+    CHAINERX_ASSERT(static_cast<int8_t>(source_iter - source_axes.begin()) == rest_dim);
+    CHAINERX_ASSERT(static_cast<int8_t>(destination_iter - destination_axes.begin()) == rest_dim);
+
+    for (int8_t i = 0; i < rest_dim; ++i) {
+        order[destination_axes[i]] = source_axes[i];
+    }
+
+    return a.Transpose(order);
 }
 
 }  // namespace chainerx
