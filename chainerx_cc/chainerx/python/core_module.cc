@@ -47,7 +47,6 @@ void InitChainerxModule(pybind11::module& m) {
     InitChainerxDtype(m);
     InitChainerxError(m);
     InitChainerxScalar(m);
-    InitChainerxArrayIndex(m);
     InitChainerxArray(m);
     InitChainerxBackward(m);
     InitChainerxCheckBackward(m);

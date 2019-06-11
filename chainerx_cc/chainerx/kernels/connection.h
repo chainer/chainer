@@ -6,8 +6,8 @@
 
 #include "chainerx/array.h"
 #include "chainerx/constant.h"
+#include "chainerx/dims.h"
 #include "chainerx/kernel.h"
-#include "chainerx/stack_vector.h"
 
 namespace chainerx {
 
@@ -26,9 +26,9 @@ public:
             const Array& x,
             const Array& w,
             const nonstd::optional<Array>& b,
-            const StackVector<int64_t, kMaxNdim>& stride,
-            const StackVector<int64_t, kMaxNdim>& pad,
-            const StackVector<int64_t, kMaxNdim>& dilate,
+            const Dims& stride,
+            const Dims& pad,
+            const Dims& dilate,
             bool cover_all,
             Dtype out_dtype,
             const nonstd::optional<Array>& out) = 0;
@@ -49,10 +49,10 @@ public:
             const Array& x,
             const Array& w,
             const nonstd::optional<Array>& b,
-            const StackVector<int64_t, kMaxNdim>& stride,
-            const StackVector<int64_t, kMaxNdim>& pad,
-            const StackVector<int64_t, kMaxNdim>& dilate,
-            const StackVector<int64_t, kMaxNdim>& out_size,
+            const Dims& stride,
+            const Dims& pad,
+            const Dims& dilate,
+            const Dims& out_size,
             Dtype out_dtype,
             const nonstd::optional<Array>& out) = 0;
 };
@@ -66,9 +66,9 @@ public:
             const Shape& w_shape,
             const Array& x,
             const Array& gy,
-            const StackVector<int64_t, kMaxNdim>& stride,
-            const StackVector<int64_t, kMaxNdim>& pad,
-            const StackVector<int64_t, kMaxNdim>& dilate,
+            const Dims& stride,
+            const Dims& pad,
+            const Dims& dilate,
             bool cover_all,
             const nonstd::optional<Array>& out) = 0;
 };

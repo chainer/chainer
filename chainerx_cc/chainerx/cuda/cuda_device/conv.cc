@@ -6,12 +6,12 @@
 #include "chainerx/constant.h"
 #include "chainerx/cuda/cuda_conv.h"
 #include "chainerx/cuda/kernel_regist.h"
+#include "chainerx/dims.h"
 #include "chainerx/dtype.h"
 #include "chainerx/error.h"
 #include "chainerx/kernels/connection.h"
 #include "chainerx/native/kernel_regist.h"
 #include "chainerx/shape.h"
-#include "chainerx/stack_vector.h"
 
 namespace chainerx {
 namespace cuda {
@@ -23,9 +23,9 @@ public:
             const Array& x,
             const Array& w,
             const nonstd::optional<Array>& b,
-            const StackVector<int64_t, kMaxNdim>& stride,
-            const StackVector<int64_t, kMaxNdim>& pad,
-            const StackVector<int64_t, kMaxNdim>& dilate,
+            const Dims& stride,
+            const Dims& pad,
+            const Dims& dilate,
             bool cover_all,
             Dtype out_dtype,
             const nonstd::optional<Array>& out) override {
@@ -48,10 +48,10 @@ public:
             const Array& x,
             const Array& w,
             const nonstd::optional<Array>& b,
-            const StackVector<int64_t, kMaxNdim>& stride,
-            const StackVector<int64_t, kMaxNdim>& pad,
-            const StackVector<int64_t, kMaxNdim>& dilate,
-            const StackVector<int64_t, kMaxNdim>& out_size,
+            const Dims& stride,
+            const Dims& pad,
+            const Dims& dilate,
+            const Dims& out_size,
             Dtype out_dtype,
             const nonstd::optional<Array>& out) override {
         // TODO(niboshi): Implement and test the `out` argument.
@@ -73,9 +73,9 @@ public:
             const Shape& w_shape,
             const Array& x,
             const Array& gy,
-            const StackVector<int64_t, kMaxNdim>& stride,
-            const StackVector<int64_t, kMaxNdim>& pad,
-            const StackVector<int64_t, kMaxNdim>& dilate,
+            const Dims& stride,
+            const Dims& pad,
+            const Dims& dilate,
             bool cover_all,
             const nonstd::optional<Array>& out) override {
         // TODO(niboshi): Implement and test the `out` argument.

@@ -6,11 +6,15 @@ import six
 
 import chainer
 from chainer.backends import cuda
+from chainer import configuration
 from chainer import function_node
 from chainer.functions.pooling import max_pooling_nd_kernel
 from chainer.functions.pooling import pooling_nd
 from chainer.utils import conv_nd
 import chainerx
+
+if cuda.cudnn_enabled:
+    _cudnn_version = cuda.cuda.cudnn.getVersion()
 
 
 class MaxPoolingND(pooling_nd._PoolingND):
@@ -93,7 +97,10 @@ class MaxPoolingND(pooling_nd._PoolingND):
         return MaxPoolingNDGrad(self).apply(gy)
 
     def _get_pool_mode(self):
-        return cuda.cuda.cudnn.CUDNN_POOLING_MAX
+        if _cudnn_version >= 6000 and configuration.config.cudnn_deterministic:
+            return cuda.cuda.cudnn.CUDNN_POOLING_MAX_DETERMINISTIC
+        else:
+            return cuda.cuda.cudnn.CUDNN_POOLING_MAX
 
 
 class MaxPoolingNDGrad(function_node.FunctionNode):

@@ -11,8 +11,10 @@
 
 #include "chainerx/array.h"
 #include "chainerx/constant.h"
+#include "chainerx/dims.h"
 #include "chainerx/dtype.h"
 #include "chainerx/error.h"
+#include "chainerx/kernels/arithmetic.h"
 #include "chainerx/kernels/indexing.h"
 #include "chainerx/kernels/math.h"
 #include "chainerx/kernels/pooling.h"
@@ -31,7 +33,6 @@
 #include "chainerx/routines/pooling.h"
 #include "chainerx/scalar.h"
 #include "chainerx/shape.h"
-#include "chainerx/stack_vector.h"
 
 namespace chainerx {
 namespace native {
@@ -69,13 +70,8 @@ StackVector<int64_t, kMaxNdim> GetDilate(size_t ndim) {
 class NativeMaxPoolKernel : public MaxPoolKernel {
 public:
     std::tuple<Array, std::unique_ptr<MaxPoolGradState>> Call(
-            const Array& x,
-            StackVector<int64_t, kMaxNdim> kernel_size,
-            StackVector<int64_t, kMaxNdim> stride,
-            StackVector<int64_t, kMaxNdim> pad,
-            bool cover_all,
-            bool return_state,
-            const nonstd::optional<Array>& out) override {
+            const Array& x, Dims kernel_size, Dims stride, Dims pad, bool cover_all, bool return_state, const nonstd::optional<Array>& out)
+            override {
         CHAINERX_ASSERT(internal::GetArrayBody(x)->nodes().empty());
 
         // TODO(hvy): Implement and test the `out` argument.
@@ -104,9 +100,9 @@ class NativeMaxPoolGradKernel : public MaxPoolGradKernel {
 public:
     std::tuple<Array, std::unique_ptr<MaxPoolGradGradState>> Call(
             const Array& gout,
-            StackVector<int64_t, kMaxNdim> kernel_size,
-            StackVector<int64_t, kMaxNdim> stride,
-            StackVector<int64_t, kMaxNdim> pad,
+            Dims kernel_size,
+            Dims stride,
+            Dims pad,
             const std::shared_ptr<MaxPoolGradState>& state,
             bool return_state,
             const nonstd::optional<Array>& gx) override {
@@ -161,9 +157,9 @@ class NativeMaxPoolGradGradKernel : public MaxPoolGradGradKernel {
 public:
     Array Call(
             const Array& ggx,
-            StackVector<int64_t, kMaxNdim> kernel_size,
-            StackVector<int64_t, kMaxNdim> stride,
-            StackVector<int64_t, kMaxNdim> pad,
+            Dims kernel_size,
+            Dims stride,
+            Dims pad,
             bool cover_all,
             const std::shared_ptr<MaxPoolGradGradState>& state,
             const nonstd::optional<Array>& ggout) override {
@@ -198,12 +194,7 @@ void Mean(const Array& a, const Axes& axis, const Array& out) {
     device.backend().CallKernel<DivideASKernel>(out, internal::CountItemsAlongAxes(a.shape(), axis), out);
 }
 
-Array GetPadModeIgnorePoolingWidths(
-        const Shape& shape,
-        const StackVector<int64_t, kMaxNdim>& kernel_size,
-        const StackVector<int64_t, kMaxNdim>& stride,
-        const StackVector<int64_t, kMaxNdim>& pad,
-        Dtype dtype) {
+Array GetPadModeIgnorePoolingWidths(const Shape& shape, const Dims& kernel_size, const Dims& stride, const Dims& pad, Dtype dtype) {
     int8_t n = shape.ndim() - 2;
     CHAINERX_ASSERT(n == static_cast<int8_t>(kernel_size.size()));
     CHAINERX_ASSERT(n == static_cast<int8_t>(stride.size()));
@@ -262,9 +253,9 @@ class NativeAveragePoolKernel : public AveragePoolKernel {
 public:
     std::tuple<Array, std::unique_ptr<AveragePoolGradState>> Call(
             const Array& x,
-            StackVector<int64_t, kMaxNdim> kernel_size,
-            StackVector<int64_t, kMaxNdim> stride,
-            StackVector<int64_t, kMaxNdim> pad,
+            Dims kernel_size,
+            Dims stride,
+            Dims pad,
             AveragePoolPadMode pad_mode,
             bool return_state,
             const nonstd::optional<Array>& out) override {
@@ -316,9 +307,9 @@ class NativeAveragePoolGradKernel : public AveragePoolGradKernel {
 public:
     Array Call(
             const Array& gout,
-            StackVector<int64_t, kMaxNdim> kernel_size,
-            StackVector<int64_t, kMaxNdim> stride,
-            StackVector<int64_t, kMaxNdim> pad,
+            Dims kernel_size,
+            Dims stride,
+            Dims pad,
             AveragePoolPadMode pad_mode,
             const std::shared_ptr<AveragePoolGradState>& state,
             const nonstd::optional<Array>& gx) override {

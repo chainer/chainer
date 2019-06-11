@@ -394,6 +394,7 @@ class TestBroadcastTo(op_utils.NumpyOpTest):
     ((3,), (2,)),
     ((3,), (3, 2)),
     ((1, 3), (3, 2)),
+    ((3,), [2]),  # shape as a list instead of tuple
 ])
 def test_broadcast_to_invalid(xp, src_shape, dst_shape):
     a = xp.ones(src_shape, 'float32')
@@ -1035,12 +1036,12 @@ def test_flipud_invalid(xp, shape):
         [(0, 0, 0, 0), (0, 0, 0, 0), (0, 0, 0, 0)],
         [(2, 2, 2, 2), (2, 2, 2, 2), (2, 2, 2, 2)],
     ], 'func_name': [
-        'hstack', 'vstack'
+        'hstack', 'vstack', 'dstack'
     ],
         'dtype': chainerx.testing.dtypes.all_dtypes
     })
 ))
-class TestHVStack(op_utils.NumpyOpTest):
+class TestHVDStack(op_utils.NumpyOpTest):
 
     dtypes = None
 
@@ -1057,6 +1058,8 @@ class TestHVStack(op_utils.NumpyOpTest):
             y = xp.hstack(inputs)
         elif self.func_name == 'vstack':
             y = xp.vstack(inputs)
+        elif self.func_name == 'dstack':
+            y = xp.dstack(inputs)
 
         return y,
 
@@ -1073,7 +1076,7 @@ class TestHVStack(op_utils.NumpyOpTest):
 @pytest.mark.parametrize('func_name', [
     'hstack', 'vstack'
 ])
-def test_hvstack_invalid_shapes(func_name, xp, shape):
+def test_hvdstack_invalid_shapes(func_name, xp, shape):
     inputs = _make_inputs(shape, ['float32'] * len(shape))
     inputs = [xp.array(a) for a in inputs]
 
@@ -1081,6 +1084,8 @@ def test_hvstack_invalid_shapes(func_name, xp, shape):
         b = xp.hstack(inputs)
     elif func_name == 'vstack':
         b = xp.vstack(inputs)
+    elif func_name == 'dstack':
+        b = xp.dstack(inputs)
 
     return b
 
@@ -1089,14 +1094,16 @@ def test_hvstack_invalid_shapes(func_name, xp, shape):
     accept_error=(
         chainerx.DimensionError, ValueError))
 @pytest.mark.parametrize('func_name', [
-    'hstack', 'vstack'
+    'hstack', 'vstack', 'dstack'
 ])
-def test_hvstack_invalid_empty(func_name, xp):
+def test_hvdstack_invalid_empty(func_name, xp):
     inputs = []
     if func_name == 'hstack':
         output = xp.hstack(inputs)
     elif func_name == 'vstack':
         output = xp.vstack(inputs)
+    elif func_name == 'dstack':
+        output = xp.dstack(inputs)
 
     return output
 
@@ -1129,3 +1136,132 @@ class TestAtLeast2d(op_utils.NumpyOpTest):
         x, = input
         y = xp.atleast_2d(x)
         return y,
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    chainer.testing.product({'shapes': [
+        (1,),
+        (1, 1),
+        (1, 1, 1),
+        (2, 2, 2, 2),
+    ],
+        'dtype': chainerx.testing.dtypes.all_dtypes
+    })
+))
+class TestAtLeast3d(op_utils.NumpyOpTest):
+
+    dtypes = None
+
+    def setup(self):
+        if numpy.dtype(self.dtype).kind != 'f':
+            self.skip_backward_test = True
+            self.skip_double_backward_test = True
+
+    def generate_inputs(self):
+        a = numpy.random.uniform(0, 1, self.shapes).astype(self.dtype)
+        return a,
+
+    def forward_xp(self, input, xp):
+        x, = input
+        y = xp.atleast_3d(x)
+        return y,
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    # sequence args
+    chainer.testing.product({'arr_shape': [
+        (1, 2, 3)
+    ],
+        'src': list(itertools.permutations(range(3), 3)),
+        'dst': list(itertools.permutations(range(3), 3)),
+        'dtype': chainerx.testing.dtypes.all_dtypes
+    }) + chainer.testing.product({'arr_shape': [
+        (1, 2, 3)
+    ],
+        'src': list(itertools.permutations(range(3), 2)),
+        'dst': list(itertools.permutations(range(3), 2)),
+        'dtype': chainerx.testing.dtypes.all_dtypes
+    })
+    + chainer.testing.product({'arr_shape': [
+        (1, 2, 3)
+    ],
+        'src': list(itertools.permutations(range(3), 1)),
+        'dst': list(itertools.permutations(range(3), 1)),
+        'dtype': chainerx.testing.dtypes.all_dtypes
+    })
+    # negative axis
+    + chainer.testing.product({'arr_shape': [
+        (1, 2, 3)
+    ],
+        'src': list(itertools.permutations(range(0, -3, -1), 3)),
+        'dst': list(itertools.permutations(range(0, -3, -1), 3)),
+        'dtype': chainerx.testing.dtypes.all_dtypes
+    }) + chainer.testing.product({'arr_shape': [
+        (1, 2, 3)
+    ],
+        'src': list(itertools.permutations(range(0, -3, -1), 2)),
+        'dst': list(itertools.permutations(range(0, -3, -1), 2)),
+        'dtype': chainerx.testing.dtypes.all_dtypes
+    })
+    + chainer.testing.product({'arr_shape': [
+        (1, 2, 3)
+    ],
+        'src': list(itertools.permutations(range(0, -3, -1), 1)),
+        'dst': list(itertools.permutations(range(0, -3, -1), 1)),
+        'dtype': chainerx.testing.dtypes.all_dtypes
+    })
+    # empty
+    + chainer.testing.product({'arr_shape': [
+        (1, 2, 3)
+    ],
+        'src': [()],
+        'dst': [()],
+        'dtype': chainerx.testing.dtypes.all_dtypes
+    })
+    # integer args
+    + chainer.testing.product({'arr_shape': [
+        (1, 2, 3)
+    ],
+        'src': list(range(3)),
+        'dst': list(range(3)),
+        'dtype': chainerx.testing.dtypes.all_dtypes
+    })
+))
+class TestMoveaxis(op_utils.NumpyOpTest):
+
+    dtypes = None
+
+    def setup(self):
+        if numpy.dtype(self.dtype).kind != 'f':
+            self.skip_backward_test = True
+            self.skip_double_backward_test = True
+
+    def generate_inputs(self):
+        a = numpy.random.uniform(0, 1, self.arr_shape).astype(self.dtype)
+        return a,
+
+    def forward_xp(self, input, xp):
+        x, = input
+        y = xp.moveaxis(x, self.src, self.dst)
+        return y,
+
+
+@chainerx.testing.numpy_chainerx_array_equal(
+    accept_error=(
+        chainerx.DimensionError, ValueError))
+@pytest.mark.parametrize('shape,source,dst', [
+    # differing src, dst
+    ((1, 2, 3), (1, 2), (2,)),
+    # out of bounds
+    ((1, 2, 3), (1, 4), (2, 0)),
+    ((1, 2, 3), (1, 2), (-4, 0)),
+    # duplicate
+    ((1, 2, 3), (1, 1), (2, 0)),
+    ((1, 2, 3), (1, 2), (2, 2)),
+])
+def test_moveaxis_invalid(xp, shape, source, dst):
+    a = array_utils.uniform(shape, 'float')
+    a = xp.array(a)
+    return xp.moveaxis(a, source, dst)
