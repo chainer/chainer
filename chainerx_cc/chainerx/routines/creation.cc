@@ -368,7 +368,7 @@ Array Tril(const Array& m, int64_t k = 0) {
     Array out = Empty(m.shape(), m.dtype(), m.device());
     {
         NoBackpropModeScope scope{};
-        Array mask = Tri(m.shape()[m.ndim() - 2], m.shape()[m.ndim() - 1], k, Dtype::kBool);
+        Array mask = Tri(m.shape()[m.ndim() - 2], m.shape()[m.ndim() - 1], k, Dtype::kBool, m.device());
         out = Where(mask, m, 0);
     }
     return out;
@@ -378,7 +378,7 @@ Array Triu(const Array& m, int64_t k = 0) {
     Array out = Empty(m.shape(), m.dtype(), m.device());
     {
         NoBackpropModeScope scope{};
-        Array mask = Tri(m.shape()[m.ndim() - 2], m.shape()[m.ndim() - 1], k - 1, Dtype::kBool);
+        Array mask = Tri(m.shape()[m.ndim() - 2], m.shape()[m.ndim() - 1], k - 1, Dtype::kBool, m.device());
         out = Where(mask, 0, m);
     }
     return out;
