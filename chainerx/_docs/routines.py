@@ -915,7 +915,7 @@ Note:
 
     _docs.set_doc(
         chainerx.hstack,
-        """stack(arrays)
+        """hstack(arrays)
 Stack arrays in sequence horizontally (column wise).
 
 Args:
@@ -933,7 +933,7 @@ Note:
 
     _docs.set_doc(
         chainerx.vstack,
-        """stack(arrays)
+        """vstack(arrays)
 Stack arrays in sequence vertically (row wise).
 
 Args:
@@ -947,6 +947,24 @@ Note:
     output array to the input arrays in ``arrays``.
 
 .. seealso:: :func:`numpy.vstack`
+""")
+
+    _docs.set_doc(
+        chainerx.dstack,
+        """dstack(arrays)
+Stack arrays in sequence depth wise (along third axis).
+
+Args:
+    arrays (sequence of :class:`~chainerx.ndarray`\\ s): Arrays to be stacked.
+
+Returns:
+    ~chainerx.ndarray: Stacked array.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input arrays in ``arrays``.
+
+.. seealso:: :func:`numpy.dstack`
 """)
 
     _docs.set_doc(
@@ -967,7 +985,28 @@ Note:
     * During backpropagation, this function propagates the gradient of the
       output array to the input arrays in ``a``.
 
-.. seealso:: :func:`numpy.vstack`
+.. seealso:: :func:`numpy.atleast_2d`
+""")
+
+    _docs.set_doc(
+        chainerx.atleast_3d,
+        """atleast_3d(a)
+View inputs as arrays with at least three dimensions.
+
+Args:
+    a (~chainerx.ndarray): Array.
+
+Returns:
+    ~chainerx.ndarray: An array with a.ndim >= 3.
+    Copies are avoided where possible, and views with
+    three or more dimensions are returned.
+
+Note:
+    * Arrays that already have three or more dimensions are preserved.
+    * During backpropagation, this function propagates the gradient of the
+      output array to the input arrays in ``a``.
+
+.. seealso:: :func:`numpy.atleast_3d`
 """)
 
     _docs.set_doc(
@@ -1104,6 +1143,32 @@ Note:
 
 
 .. seealso:: :func:`numpy.flipud`
+""")
+
+    _docs.set_doc(
+        chainerx.moveaxis,
+        """moveaxis(a, source, destination)
+Move axes of an array to new positions.
+
+Other axes remain in their original order.
+
+Args:
+    a (~chainerx.ndarray): Input Array.
+    source (int or tuple of ints): Original positions of the axes to move.
+    These must be unique.
+    destintation (int or tuple of ints): Destination positions for each of
+    the original axes. These must also be unique.
+
+Returns:
+    ~chainerx.ndarray: Array with moved axes. This array is a view of the
+    input array.
+
+Note:
+    * During backpropagation, this function propagates the gradients of the
+      output arrays to the input array ``a``.
+
+
+.. seealso:: :func:`numpy.moveaxis`
 """)
 
 
@@ -1302,6 +1367,24 @@ Note:
     output array to the input array ``x``.
 
 .. seealso:: :data:`numpy.log10`
+""")
+
+    _docs.set_doc(
+        chainerx.log2,
+        """log2(x)
+Base 2 logarithm, element-wise.
+
+Args:
+    x (~chainerx.ndarray): Input array.
+
+Returns:
+    :class:`~chainerx.ndarray`: Returned array: :math:`y = \\log_{2} x`.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``x``.
+
+.. seealso:: :data:`numpy.log2`
 """)
 
     _docs.set_doc(

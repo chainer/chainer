@@ -406,3 +406,42 @@ def test_logical_reductions_invalid(func, is_module, xp, shape,
                                     axis, keepdims, dtype, device):
     a = array_utils.create_dummy_ndarray(xp, shape, dtype, device)
     func(xp, a, axis, keepdims, is_module)
+
+
+@chainerx.testing.numpy_chainerx_array_equal()
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('input', [
+    numpy.asarray(0), numpy.asarray(-1), numpy.asarray(
+        10), numpy.asarray(float('inf')), numpy.asarray(-float('inf')),
+    numpy.asarray(float('nan')), numpy.full(
+        (), 2), numpy.full((0,), 2), numpy.full((2, 3), 2)
+])
+def test_isnan(xp, device, input, dtype):
+    a = xp.array(input.astype(dtype))
+    return xp.isnan(a)
+
+
+@chainerx.testing.numpy_chainerx_array_equal()
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('input', [
+    numpy.asarray(0), numpy.asarray(-1), numpy.asarray(
+        10), numpy.asarray(float('inf')), numpy.asarray(-float('inf')),
+    numpy.asarray(float('nan')), numpy.full(
+        (), 2), numpy.full((0,), 2), numpy.full((2, 3), 2)
+])
+def test_isinf(xp, device, input, dtype):
+    a = xp.array(input.astype(dtype))
+    return xp.isinf(a)
+
+
+@chainerx.testing.numpy_chainerx_array_equal()
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('input', [
+    numpy.asarray(0), numpy.asarray(-1), numpy.asarray(
+        10), numpy.asarray(float('inf')), numpy.asarray(-float('inf')),
+    numpy.asarray(float('nan')), numpy.full(
+        (), 2), numpy.full((0,), 2), numpy.full((2, 3), 2)
+])
+def test_isfinite(xp, device, input, dtype):
+    a = xp.array(input.astype(dtype))
+    return xp.isfinite(a)

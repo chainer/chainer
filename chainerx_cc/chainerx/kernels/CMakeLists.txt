@@ -1,4 +1,5 @@
 install(FILES
+    arithmetic.h
     binary.h
     connection.h
     creation.h

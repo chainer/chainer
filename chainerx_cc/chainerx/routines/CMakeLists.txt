@@ -1,4 +1,5 @@
 add_library(chainerx_routines STATIC
+    arithmetic.cc
     binary.cc
     connection.cc
     creation.cc
@@ -20,6 +21,7 @@ add_library(chainerx_routines STATIC
 )
 
 install(FILES
+    arithmetic.h
     binary.h
     connection.h
     creation.h
