@@ -43,7 +43,9 @@ public:
         Dtype dtype = a.dtype();
         CudaSetDeviceScope scope{device.index()};
 
-        CHAINERX_ASSERT(a.ndim() == 2);
+        if (a.ndim() != 2) {
+            throw DimensionError{"ChainerX QR supports only 2-dimensional arrays."};
+        }
 
         int m = a.shape()[0];
         int n = a.shape()[1];
