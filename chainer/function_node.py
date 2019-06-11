@@ -1001,6 +1001,24 @@ def grad(outputs, inputs, grad_outputs=None, grad_inputs=None, set_grad=False,
                 'grad_inputs must be of the same length as inputs.\n'
                 'len(inputs) = {}, len(grad_inputs) = {}'
                 .format(len(inputs), len(grad_inputs)))
+    # Check if all the inputs are chainerx arrays and if so
+    # Relies in chainerx.grad function
+    chx_inputs = sum(map(lambda x: x._has_chainerx_array, inputs))
+    if chx_inputs == len(inputs):
+        # Need to access the arrays to invoke the chainer grad function
+        outputs_chx = list(map(lambda x: x._data[0], outputs))
+        inputs_chx = list(map(lambda x: x._data[0], inputs))
+        grads = chainerx.grad(outputs_chx, inputs_chx, None, enable_double_backprop)
+        ret_vars = [variable.Variable(g, requires_grad=False) for g in grads]
+        if set_grad:
+            for x,g in zip(inputs,ret_vars):
+                x.grad_var = g
+
+        return ret_vars
+    elif chx_inputs > 0:
+        raise TypeError(
+            'Mixing chainerx and non-chainerx variables')
+
 
     for v in outputs:
         # Raise error here if v is created by Function.backward.
