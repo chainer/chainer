@@ -75,7 +75,6 @@ MIT License (see `LICENSE` file).
 ## More information
 
 - [Release notes](https://github.com/chainer/chainer/releases)
-- [Research projects using Chainer](https://github.com/chainer/chainer/wiki/Research-projects-using-Chainer)
 
 
 ## Reference
