@@ -69,17 +69,38 @@ def copy(x, dst):
     if dst is cuda.DummyDevice:
         dst = chainer.get_device('@numpy')
 
-    in_device = backend.get_device_from_array(
-        x.array if isinstance(x, chainer.Variable) else x)
+    x_is_var = isinstance(x, chainer.Variable)
+    in_device = backend.get_device_from_array(x.array if x_is_var else x)
     out_device = chainer.get_device(dst)
 
-    is_chainerx = in_device.xp is chainerx
-    if is_chainerx != (out_device.xp is chainerx):
-        raise RuntimeError(
-            'F.copy does not support copies between non-ChainerX devices and '
-            'ChainerX devices.\n'
-            'From: {}\n'
-            'To: {}'.format(in_device, out_device))
+    if in_device.xp is chainerx:
+        x_arr = x.chx_array if x_is_var else x
+        if out_device.xp is not chainerx:
+            # ChainerX to non-ChainerX
+            if x_arr.is_backprop_required():
+                raise RuntimeError(
+                    'F.copy does not support copy from a ChainerX array with '
+                    'backprop required to a non-ChainerX device.\n'
+                    'From: {}\n'
+                    'To: {}'.format(in_device, out_device))
+            return chainer.Variable(
+                out_device.send(x_arr), requires_grad=False)
 
+        # ChainerX to ChainerX
+        return chainer.Variable(
+            out_device.send(x_arr), requires_grad=x_arr.is_backprop_required())
+
+    if out_device.xp is chainerx:
+        # Non-ChainerX to ChainerX
+        if x_is_var and x.requires_grad:
+            raise RuntimeError(
+                'F.copy does not support copy from a non-ChainerX array with '
+                'backprop required to a ChainerX device.\n'
+                'From: {}\n'
+                'To: {}'.format(in_device, out_device))
+        x_arr = x.array if x_is_var else x
+        return chainer.Variable(out_device.send(x_arr), requires_grad=False)
+
+    # Non-ChainerX to non-ChainerX
     y, = Copy(in_device, out_device).apply((x,))
     return y
