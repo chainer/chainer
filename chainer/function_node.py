@@ -1024,7 +1024,7 @@ def grad(outputs, inputs, grad_outputs=None, grad_inputs=None, set_grad=False,
             outputs_chx, inputs_chx, None, enable_double_backprop)
         ret_vars = [variable.Variable(g, requires_grad=False) for g in grads]
         if set_grad:
-            for x,g in zip(inputs,ret_vars):
+            for x, g in zip(inputs, ret_vars):
                 x.grad_var = g
         return ret_vars
     elif chx_inputs > 0:
