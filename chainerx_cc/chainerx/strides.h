@@ -20,8 +20,8 @@
 
 namespace chainerx {
 
-class Strides : public StackVector<int64_t, kMaxNdim> {
-    using BaseVector = StackVector<int64_t, kMaxNdim>;
+class Strides : public Dims {
+    using BaseVector = Dims;
 
 public:
     using const_iterator = BaseVector::const_iterator;

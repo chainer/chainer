@@ -14,9 +14,11 @@
 #include "chainerx/constant.h"
 #include "chainerx/context.h"
 #include "chainerx/device.h"
+#include "chainerx/dims.h"
 #include "chainerx/dtype.h"
 #include "chainerx/error.h"
 #include "chainerx/macro.h"
+#include "chainerx/routines/arithmetic.h"
 #include "chainerx/routines/binary.h"
 #include "chainerx/routines/connection.h"
 #include "chainerx/routines/creation.h"
@@ -35,7 +37,6 @@
 #include "chainerx/routines/statistics.h"
 #include "chainerx/routines/trigonometric.h"
 #include "chainerx/scalar.h"
-#include "chainerx/stack_vector.h"
 
 #include "chainerx/python/array.h"
 #include "chainerx/python/array_index.h"
@@ -116,21 +117,14 @@ void InitChainerxCreation(pybind11::module& m) {
           py::arg("dtype") = nullptr,
           py::arg("device") = nullptr);
     m.def("empty",
-          [](py::tuple shape, py::handle dtype, py::handle device) {
+          [](py::handle shape, py::handle dtype, py::handle device) {
               return MoveArrayBody(Empty(ToShape(shape), dtype.is_none() ? Dtype::kFloat32 : GetDtype(dtype), GetDevice(device)));
           },
           py::arg("shape"),
           py::arg("dtype") = nullptr,
           py::arg("device") = nullptr);
-    m.def("empty",
-          [](py::int_ dim, py::handle dtype, py::handle device) {
-              return MoveArrayBody(Empty(Shape{dim}, dtype.is_none() ? Dtype::kFloat32 : GetDtype(dtype), GetDevice(device)));
-          },
-          py::arg("shape"),
-          py::arg("dtype") = nullptr,
-          py::arg("device") = nullptr);
     m.def("full",
-          [](py::tuple shape, Scalar fill_value, py::handle dtype, py::handle device) {
+          [](py::handle shape, Scalar fill_value, py::handle dtype, py::handle device) {
               return MoveArrayBody(Full(ToShape(shape), fill_value, GetDtype(dtype), GetDevice(device)));
           },
           py::arg("shape"),
@@ -146,7 +140,7 @@ void InitChainerxCreation(pybind11::module& m) {
           py::arg("dtype"),
           py::arg("device") = nullptr);
     m.def("full",
-          [](py::tuple shape, Scalar fill_value, py::handle device) {
+          [](py::handle shape, Scalar fill_value, py::handle device) {
               return MoveArrayBody(Full(ToShape(shape), fill_value, GetDevice(device)));
           },
           py::arg("shape"),
@@ -158,7 +152,7 @@ void InitChainerxCreation(pybind11::module& m) {
           py::arg("fill_value"),
           py::arg("device") = nullptr);
     m.def("zeros",
-          [](py::tuple shape, py::handle dtype, py::handle device) {
+          [](py::handle shape, py::handle dtype, py::handle device) {
               return MoveArrayBody(Zeros(ToShape(shape), dtype.is_none() ? Dtype::kFloat32 : GetDtype(dtype), GetDevice(device)));
           },
           py::arg("shape"),
@@ -172,7 +166,7 @@ void InitChainerxCreation(pybind11::module& m) {
           py::arg("dtype") = nullptr,
           py::arg("device") = nullptr);
     m.def("ones",
-          [](py::tuple shape, py::handle dtype, py::handle device) {
+          [](py::handle shape, py::handle dtype, py::handle device) {
               return MoveArrayBody(Ones(ToShape(shape), dtype.is_none() ? Dtype::kFloat32 : GetDtype(dtype), GetDevice(device)));
           },
           py::arg("shape"),
@@ -462,7 +456,7 @@ void InitChainerxManipulation(pybind11::module& m) {
           py::arg("axis"),
           py::arg("start") = 0);
     m.def("reshape",
-          [](const ArrayBodyPtr& a, py::tuple newshape) { return MoveArrayBody(Reshape(Array{a}, ToShape(newshape))); },
+          [](const ArrayBodyPtr& a, py::handle newshape) { return MoveArrayBody(Reshape(Array{a}, ToShape(newshape))); },
           py::arg("a"),
           py::arg("newshape"));
     m.def("reshape",
@@ -499,7 +493,7 @@ void InitChainerxManipulation(pybind11::module& m) {
           py::arg("axis1"),
           py::arg("axis2"));
     m.def("broadcast_to",
-          [](const ArrayBodyPtr& array, py::tuple shape) { return MoveArrayBody(Array{array}.BroadcastTo(ToShape(shape))); },
+          [](const ArrayBodyPtr& array, py::handle shape) { return MoveArrayBody(Array{array}.BroadcastTo(ToShape(shape))); },
           py::arg("array"),
           py::arg("shape"));
     m.def("concatenate",
@@ -525,6 +519,7 @@ void InitChainerxManipulation(pybind11::module& m) {
           py::arg("arrays"),
           py::arg("axis") = 0);
     m.def("atleast_2d", [](const ArrayBodyPtr& a) { return MoveArrayBody(AtLeast2D(Array{a})); }, py::arg("a"));
+    m.def("atleast_3d", [](const ArrayBodyPtr& a) { return MoveArrayBody(AtLeast3D(Array{a})); }, py::arg("a"));
     m.def("hstack",
           [](py::sequence arrays) {
               std::vector<Array> xs;
@@ -545,6 +540,17 @@ void InitChainerxManipulation(pybind11::module& m) {
               return MoveArrayBody(VStack(xs));
           },
           py::arg("arrays"));
+    m.def("dstack",
+          [](py::sequence arrays) {
+              std::vector<Array> xs;
+              xs.reserve(arrays.size());
+              std::transform(arrays.begin(), arrays.end(), std::back_inserter(xs), [](const auto& item) {
+                  return Array{py::cast<ArrayBodyPtr>(item)};
+              });
+              return MoveArrayBody(DStack(xs));
+          },
+          py::arg("arrays"));
+
     m.def("split",
           [](const ArrayBodyPtr& ary, py::handle indices_or_sections, int8_t axis) {
               // TODO(niboshi): Perhaps we would want more general approach to handle multi-type arguments like indices_or_sections to
@@ -633,6 +639,27 @@ void InitChainerxManipulation(pybind11::module& m) {
           py::arg("ary"),
           py::arg("indices_or_sections"),
           py::arg("axis") = 0);
+    m.def("moveaxis",
+          [](const ArrayBodyPtr& a, const std::vector<int8_t>& source, const std::vector<int8_t>& destination) {
+              return MoveArrayBody(Moveaxis(Array{a}, Axes{source.begin(), source.end()}, Axes{destination.begin(), destination.end()}));
+          },
+          py::arg("a"),
+          py::arg("source") = nullptr,
+          py::arg("destination") = nullptr);
+    m.def("moveaxis",
+          [](const ArrayBodyPtr& a, py::tuple source, py::tuple destination) {
+              return MoveArrayBody(Moveaxis(Array{a}, ToAxes(source), ToAxes(destination)));
+          },
+          py::arg("a"),
+          py::arg("source") = nullptr,
+          py::arg("destination") = nullptr);
+    m.def("moveaxis",
+          [](const ArrayBodyPtr& a, int8_t source, int8_t destination) {
+              return MoveArrayBody(Moveaxis(Array{a}, {source}, {destination}));
+          },
+          py::arg("a"),
+          py::arg("source") = nullptr,
+          py::arg("destination") = nullptr);
 }
 
 void InitChainerxMath(pybind11::module& m) {
@@ -722,11 +749,13 @@ void InitChainerxMath(pybind11::module& m) {
           [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return MoveArrayBody(Minimum(Array{x1}, Array{x2})); },
           py::arg("x1"),
           py::arg("x2"));
+    m.def("erf", [](const ArrayBodyPtr& x) { return MoveArrayBody(Erf(Array{x})); }, py::arg("x"));
     m.def("exp", [](const ArrayBodyPtr& x) { return MoveArrayBody(Exp(Array{x})); }, py::arg("x"));
     m.def("expm1", [](const ArrayBodyPtr& x) { return MoveArrayBody(Expm1(Array{x})); }, py::arg("x"));
     m.def("exp2", [](const ArrayBodyPtr& x) { return MoveArrayBody(Exp2(Array{x})); }, py::arg("x"));
     m.def("log", [](const ArrayBodyPtr& x) { return MoveArrayBody(Log(Array{x})); }, py::arg("x"));
     m.def("log10", [](const ArrayBodyPtr& x) { return MoveArrayBody(Log10(Array{x})); }, py::arg("x"));
+    m.def("log2", [](const ArrayBodyPtr& x) { return MoveArrayBody(Log2(Array{x})); }, py::arg("x"));
     m.def("log1p", [](const ArrayBodyPtr& x) { return MoveArrayBody(Log1p(Array{x})); }, py::arg("x"));
     m.def("logsumexp",
           [](const ArrayBodyPtr& x, int8_t axis, bool keepdims) { return MoveArrayBody(LogSumExp(Array{x}, Axes{axis}, keepdims)); },
@@ -944,8 +973,7 @@ void InitChainerxConnection(pybind11::module& m) {
                       b.has_value() ? nonstd::optional<Array>{Array{*b}} : nonstd::nullopt,
                       ToStackVector<int64_t>(stride, ndim),
                       ToStackVector<int64_t>(pad, ndim),
-                      outsize.has_value() ? nonstd::optional<StackVector<int64_t, kMaxNdim>>{ToStackVector<int64_t>(*outsize, ndim)}
-                                          : nonstd::nullopt));
+                      outsize.has_value() ? nonstd::optional<Dims>{ToStackVector<int64_t>(*outsize, ndim)} : nonstd::nullopt));
           },
           py::arg("x"),
           py::arg("w"),
