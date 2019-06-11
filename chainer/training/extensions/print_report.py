@@ -52,7 +52,8 @@ class PrintReport(extension.Extension):
         log_report = self._log_report
         if isinstance(log_report, str):
             log_report = trainer.get_extension(log_report)
-        elif isinstance(log_report, log_report_module.LogReport):
+        elif isinstance(log_report, (log_report_module.LogReport,
+                                     log_report_module.LogJsonlReport)):
             log_report(trainer)  # update the log report
         else:
             raise TypeError('log report has a wrong type %s' %
@@ -72,7 +73,8 @@ class PrintReport(extension.Extension):
 
     def serialize(self, serializer):
         log_report = self._log_report
-        if isinstance(log_report, log_report_module.LogReport):
+        if isinstance(log_report, (log_report_module.LogReport,
+                                   log_report_module.LogJsonlReport)):
             log_report.serialize(serializer['_log_report'])
 
     def _print(self, observation):
