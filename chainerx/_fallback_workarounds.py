@@ -62,10 +62,10 @@ def _from_chx(array, check_backprop=True):
     # Objects with other types are kept intact.
     # Returns a pair: (xp, cupy device or dummy context, numpy/cupy.ndarray).
     if not isinstance(array, chainerx.ndarray):
-        if isinstance(array, numpy.ndarray):
-            return numpy, _dummy_context, array
-        if cupy and isinstance(array, cupy.ndarray):
-            return cupy, _dummy_context, array
+        if isinstance(array, numpy.ndarray) or cupy and isinstance(array, cupy.ndarray):
+            raise TypeError(
+                'ChainerX function fallback using NumPy/CuPy arrays '
+                'is not supported.')
         # _from_chx is also called for slice and tuple objects
         # Used to index a chx array
         return None, _dummy_context, array
