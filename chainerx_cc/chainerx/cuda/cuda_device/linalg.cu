@@ -112,5 +112,85 @@ public:
 
 CHAINERX_CUDA_REGISTER_KERNEL(SolveKernel, CudaSolveKernel);
 
+class CudaInverseKernel : public InverseKernel {
+public:
+    void Call(const Array& a, const Array& out) override {
+        Device& device = a.device();
+        Dtype dtype = a.dtype();
+        CudaSetDeviceScope scope{device.index()};
+
+        if (a.ndim() != 2) {
+            throw DimensionError{"ChainerX inverse supports only 2-dimensional arrays."};
+        }
+        if (a.shape()[0] != a.shape()[1]) {
+            throw DimensionError{"Matrix is not square."};
+        }
+
+        auto inverse_impl = [&](auto pt, auto getrf_bufferSize, auto getrf, auto getrs) {
+            using T = typename decltype(pt)::type;
+            cuda_internal::DeviceInternals& device_internals = cuda_internal::GetDeviceInternals(static_cast<CudaDevice&>(device));
+
+            Array lu_matrix = Empty(a.shape(), dtype, device);
+            device.backend().CallKernel<CopyKernel>(a, lu_matrix);
+            T* lu_ptr = static_cast<T*>(internal::GetRawOffsetData(lu_matrix));
+
+            int m = a.shape()[0];
+
+            Array ipiv = Empty(Shape({m}), Dtype::kInt32, device);
+            int* ipiv_ptr = static_cast<int*>(internal::GetRawOffsetData(ipiv));
+
+            int buffersize = 0;
+            device_internals.cusolver_handle().Call(
+                getrf_bufferSize,
+                m, m, lu_ptr, m, &buffersize);
+
+            Array work = Empty(Shape({buffersize}), dtype, device);
+            T* work_ptr = static_cast<T*>(internal::GetRawOffsetData(work));
+
+            int *devInfo;
+            CheckCudaError(cudaMalloc(&devInfo, sizeof(int)));
+
+            device_internals.cusolver_handle().Call(
+                getrf,
+                m, m, lu_ptr, m,
+                work_ptr, ipiv_ptr, devInfo);
+
+            int devInfo_h = 0;
+            CheckCudaError(cudaMemcpy(&devInfo_h, devInfo, sizeof(int), cudaMemcpyDeviceToHost));
+            if (devInfo_h != 0) {
+                throw ChainerxError{"Unsuccessfull getrf (LU) execution. Info = ", devInfo_h};
+            }
+
+            device.backend().CallKernel<CopyKernel>(Identity(m, dtype, device), out);
+            T* out_ptr = static_cast<T*>(internal::GetRawOffsetData(out));
+
+            // There is LAPACK routine ``getri`` for computing the inverse of an LU-factored matrix,
+            // but cuSOLVER does not have it implemented, therefore inverse is obtained with ``getrs``
+            // inv(A) == solve(A, Identity)
+
+            device_internals.cusolver_handle().Call(
+                getrs,
+                CUBLAS_OP_N, m, m, lu_ptr, m,
+                ipiv_ptr, out_ptr, m, devInfo);
+
+            CheckCudaError(cudaMemcpy(&devInfo_h, devInfo, sizeof(int), cudaMemcpyDeviceToHost));
+            if (devInfo_h != 0) {
+                throw ChainerxError{"Unsuccessfull getrs execution. Info = ", devInfo_h};
+            }
+
+        };
+
+        if (a.dtype() == Dtype::kFloat32) {
+            inverse_impl(PrimitiveType<float>{}, cusolverDnSgetrf_bufferSize, cusolverDnSgetrf, cusolverDnSgetrs);
+        } else {
+            CHAINERX_ASSERT(a.dtype() == Dtype::kFloat64);
+            inverse_impl(PrimitiveType<double>{}, cusolverDnDgetrf_bufferSize, cusolverDnDgetrf, cusolverDnDgetrs);
+        }
+
+    }
+};
+
+CHAINERX_CUDA_REGISTER_KERNEL(InverseKernel, CudaInverseKernel);
+
 }  // namespace cuda
 }  // namespace chainerx

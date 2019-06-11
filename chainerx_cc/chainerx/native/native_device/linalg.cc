@@ -31,11 +31,23 @@ public:
         Device& device = a.device();
         device.CheckDevicesCompatible(a, b, out);
 
-        throw NotImplementedError("Inverse kernel is not yet implemented for native device");
+        throw NotImplementedError("Solve kernel is not yet implemented for native device");
     }
 };
 
 CHAINERX_NATIVE_REGISTER_KERNEL(SolveKernel, NativeSolveKernel);
+
+class NativeInverseKernel : public InverseKernel {
+public:
+    void Call(const Array& a, const Array& out) override {
+        Device& device = a.device();
+        device.CheckDevicesCompatible(a, out);
+
+        throw NotImplementedError("Inverse kernel is not yet implemented for native device");
+    }
+};
+
+CHAINERX_NATIVE_REGISTER_KERNEL(InverseKernel, NativeInverseKernel);
 
 }  // namespace native
 }  // namespace chainerx

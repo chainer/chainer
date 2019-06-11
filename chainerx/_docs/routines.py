@@ -516,6 +516,23 @@ Returns:
 .. seealso:: :func:`numpy.linalg.solve`
 """)
 
+    _docs.set_doc(
+        chainerx.linalg.inv,
+        """inv(a)
+Computes the inverse of a matrix.
+
+This function computes matrix ``a_inv`` from n-dimensional regular matrix
+``a`` such that ``dot(a, a_inv) == eye(n)``.
+
+Args:
+    a (~chainerx.ndarray): The regular matrix.
+
+Returns:
+    :class:`~chainerx.ndarray`: The inverse of a matrix.
+
+.. seealso:: :func:`numpy.linalg.inv`
+""")
+
 
 def _docs_logic():
     _docs.set_doc(
