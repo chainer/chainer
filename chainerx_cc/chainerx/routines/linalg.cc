@@ -99,6 +99,8 @@ Array Dot(const Array& a, const Array& b, nonstd::optional<Dtype> out_dtype) {
 }
 
 Array Solve(const Array& a, const Array& b) {
+    CheckEqual(a.device(), b.device());
+    CheckEqual(a.dtype(), b.dtype());
     Dtype dtype = internal::GetMathResultDtype(b.dtype());
     Array out = Empty(b.shape(), dtype, b.device());
 
