@@ -166,7 +166,7 @@ public:
 
             // There is LAPACK routine ``getri`` for computing the inverse of an LU-factored matrix,
             // but cuSOLVER does not have it implemented, therefore inverse is obtained with ``getrs``
-            // inv(A) == solve(A, Identity)
+            // inv(A) == solve(LU, Identity)
 
             device_internals.cusolver_handle().Call(
                 getrs,
