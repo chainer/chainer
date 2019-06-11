@@ -187,11 +187,58 @@ test_py27and35() {
   exit $((py27_test_status || py35_test_status))
 }
 
+# test_doctest is a test function for chainer.doctest.
+test_doctest() {
+  # NOTE: This is required because .git directory is used to find the root
+  # directory of the repository.
+  mkdir -p /chainer/.git
+
+  #-----------------------------------------------------------------------------
+  # Install Chainer
+  #-----------------------------------------------------------------------------
+  CHAINER_BUILD_CHAINERX=1 CHAINERX_BUILD_CUDA=1 MAKEFLAGS="-j$(nproc)" \
+  CHAINERX_NVCC_GENERATE_CODE=arch=compute_70,code=sm_70 \
+      python3.7 -m pip install -e /chainer[doctest]
+
+  #-----------------------------------------------------------------------------
+  # Run doctest
+  #-----------------------------------------------------------------------------
+  cd /chainer/docs
+  # NOTE: doctest must run twice because of doctest bug:
+  # https://github.com/chainer/chainer-test/pull/356
+  make doctest
+  make doctest
+}
+
+# test_docs is a test function for chainer.docs.
+test_docs() {
+  # NOTE: This is required because .git directory is used to find the root
+  # directory of the repository.
+  mkdir -p /chainer/.git
+
+  #-----------------------------------------------------------------------------
+  # Install Chainer
+  #-----------------------------------------------------------------------------
+  CHAINER_BUILD_CHAINERX=1 CHAINERX_BUILD_CUDA=1 MAKEFLAGS="-j$(nproc)" \
+  CHAINERX_NVCC_GENERATE_CODE=arch=compute_70,code=sm_70 \
+      python3.7 -m pip install -e /chainer[docs]
+
+  #-----------------------------------------------------------------------------
+  # Generate document
+  #-----------------------------------------------------------------------------
+  cd /chainer/docs
+  make html
+  mkdir -p /artifacts
+  cp -a build/html/* /artifacts/
+}
+
 ################################################################################
 # Bootstrap
 ################################################################################
 case "${TARGET}" in
   'py37' ) test_py37;;
   'py27and35' ) test_py27and35;;
+  'doctest' ) test_doctest;;
+  'docs' ) test_docs;;
   * ) echo "Unsupported target: ${TARGET}" >&2; exit 1;;
 esac

@@ -56,6 +56,30 @@ main() {
           "asia.gcr.io/pfn-public-ci/chainer-ci-prep.${TARGET}" \
           bash /src/.pfnci/run.sh "${TARGET}"
       ;;
+    # Doctest.
+    'doctest' )
+      run "${docker_args[@]}" \
+          "asia.gcr.io/pfn-public-ci/chainer-ci-prep.py37" \
+          bash /src/.pfnci/run.sh "${TARGET}"
+      ;;
+    # Document generation.
+    'docs' )
+      # Prepare artifacts directory to generate documents.
+      run mkdir -p artifacts
+      docker_args+=(--volume="$(pwd)/artifacts:/artifacts")
+
+      run "${docker_args[@]}" \
+          "asia.gcr.io/pfn-public-ci/chainer-ci-prep.py37" \
+          bash /src/.pfnci/run.sh "${TARGET}"
+
+      # Copy generated documents to Google Cloud Storage.
+      document_id="${CI_JOB_ID:-document_id}"
+      run gsutil -m -q cp -r ./artifacts/* \
+          "gs://chainer-artifacts-pfn-public-ci/${document_id}/"
+
+      echo "Generated document is available at:"
+      echo "https://storage.googleapis.com/chainer-artifacts-pfn-public-ci/${document_id}/index.html"
+      ;;
     # Unsupported targets.
     * )
       echo "Unsupported target: ${TARGET}" >&2

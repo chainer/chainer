@@ -93,3 +93,39 @@ configs {
     command: "bash .pfnci/script.sh py27and35"
   }
 }
+
+# Doctest.
+# URL: https://ci.preferred.jp/chainer.doctest/
+configs {
+  key: "chainer.doctest"
+  value {
+    requirement {
+      cpu: 20
+      memory: 30
+      gpu: 2
+    }
+    time_limit: {
+      seconds: 900
+    }
+    environment_variables { key: "GPU" value: "2" }
+    command: "bash .pfnci/script.sh doctest"
+  }
+}
+
+# Document generation.  This target will generate Chainer document pages and
+# output to Google Cloud Storage (URL to the generated document will be given
+# at the end of execution logs).
+# URL: https://ci.preferred.jp/chainer.docs/
+configs {
+  key: "chainer.docs"
+  value {
+    requirement {
+      cpu: 20
+      memory: 30
+    }
+    time_limit: {
+      seconds: 900
+    }
+    command: "bash .pfnci/script.sh docs"
+  }
+}
