@@ -321,6 +321,7 @@ class TestConvolution2DInvalidDilation(unittest.TestCase):
             with chainer.using_config('use_ideep', 'never'):
                 self.check_invalid_dilation(x, w)
 
+    @attr.ideep
     def test_invalid_dilation_cpu_ideep(self):
         x = numpy.ones(self.x_shape, numpy.float32)
         w = numpy.ones(self.w_shape, numpy.float32)
@@ -328,6 +329,7 @@ class TestConvolution2DInvalidDilation(unittest.TestCase):
             with chainer.using_config('use_ideep', 'always'):
                 self.check_invalid_dilation(x, w)
 
+    @attr.gpu
     def test_invalid_dilation_gpu(self):
         x = cuda.cupy.ones(self.x_shape, numpy.float32)
         w = cuda.cupy.ones(self.w_shape, numpy.float32)
@@ -335,6 +337,7 @@ class TestConvolution2DInvalidDilation(unittest.TestCase):
             with chainer.using_config('use_cudnn', 'never'):
                 self.check_invalid_dilation(x, w)
 
+    @attr.cudnn
     def test_invalid_dilation_gpu_cudnn(self):
         x = cuda.cupy.ones(self.x_shape, numpy.float32)
         w = cuda.cupy.ones(self.w_shape, numpy.float32)
