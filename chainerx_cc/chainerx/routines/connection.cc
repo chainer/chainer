@@ -33,11 +33,13 @@ namespace internal {
 
 int64_t GetConvOutDim(int64_t in_dim, int64_t kernel_size, int64_t stride, int64_t pad, int64_t dilate, bool cover_all) {
     CHAINERX_ASSERT(stride > 0);
+    CHAINERX_ASSERT(dilate > 0);
     int64_t numerator{0};
+    int64_t dilated_kernel = kernel_size + (kernel_size - 1) * (dilate - 1);
     if (cover_all) {
-        numerator = in_dim + pad * 2 - (kernel_size * dilate - (dilate - 1)) + stride - 1;
+        numerator = in_dim + pad * 2 - dilated_kernel + stride - 1;
     } else {
-        numerator = in_dim + pad * 2 - (kernel_size * dilate - (dilate - 1));
+        numerator = in_dim + pad * 2 - dilated_kernel;
     }
     if (numerator < 0) {
         throw DimensionError{"Output size should be positive."};
@@ -46,10 +48,13 @@ int64_t GetConvOutDim(int64_t in_dim, int64_t kernel_size, int64_t stride, int64
 }
 
 int64_t GetConvTransposeOutDim(int64_t in_dim, int64_t kernel_size, int64_t stride, int64_t pad, int64_t dilate, bool cover_all) {
+    CHAINERX_ASSERT(stride > 0);
+    CHAINERX_ASSERT(dilate > 0);
+    int64_t dilated_kernel = kernel_size + (kernel_size - 1) * (dilate - 1);
     if (cover_all) {
-        return stride * (in_dim - 1) + (kernel_size * dilate - (dilate - 1)) - stride + 1 - 2 * pad;
+        return stride * (in_dim - 1) + dilated_kernel - stride + 1 - 2 * pad;
     }
-    return stride * (in_dim - 1) + (kernel_size * dilate - (dilate - 1)) - 2 * pad;
+    return stride * (in_dim - 1) + dilated_kernel - 2 * pad;
 }
 
 }  // namespace internal
