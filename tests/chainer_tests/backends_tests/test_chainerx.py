@@ -131,4 +131,33 @@ class TestFromToChainerx(unittest.TestCase):
         self.check_equal_memory_shared(arr, arr_converted)
 
 
+@chainer.testing.inject_backend_tests(
+    None,
+    [
+        # NumPy
+        {},
+        # CuPy
+        {'use_cuda': True, 'cuda_device': 0},
+        {'use_cuda': True, 'cuda_device': 1},
+        # ChainerX
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
+    ])
+@attr.chainerx
+class TestIsArrayCompatible(unittest.TestCase):
+
+    def test_is_array_compatible(self, backend_config):
+        target = backend.ChainerxDevice(chainerx.get_device("native:0"))
+
+        arr = backend_config.get_array(numpy.ndarray((2,), numpy.float32))
+        device = backend_config.device
+
+        if (isinstance(device, backend.ChainerxDevice)
+                and device.device == chainerx.get_device('native:0')):
+            assert target.is_array_compatible(arr)
+        else:
+            assert not target.is_array_compatible(arr)
+
+
 testing.run_module(__name__, __file__)

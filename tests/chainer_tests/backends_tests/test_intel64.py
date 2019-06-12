@@ -54,4 +54,26 @@ class TestIntel64DeviceFromArrayInvalidValue(unittest.TestCase):
         assert device is None
 
 
+@testing.backend.inject_backend_tests(
+    None,
+    [
+        {},
+        {'use_cuda': True},
+        {'use_ideep': 'always'},
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+    ])
+class TestIsArrayCompatible(unittest.TestCase):
+
+    def test_is_array_compatible(self, backend_config):
+        target = backend.Intel64Device()
+
+        arr = backend_config.get_array(numpy.ndarray((2,), numpy.float32))
+        device = backend_config.device
+
+        if isinstance(device, (backend.CpuDevice, backend.Intel64Device)):
+            assert target.is_array_compatible(arr)
+        else:
+            assert not target.is_array_compatible(arr)
+
+
 testing.run_module(__name__, __file__)
