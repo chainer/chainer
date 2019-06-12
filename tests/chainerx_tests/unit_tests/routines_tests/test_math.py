@@ -2,9 +2,6 @@ import chainer
 import numpy
 import pytest
 
-import chainerx
-import chainerx.testing
-
 from chainerx_tests import dtype_utils
 from chainerx_tests import op_utils
 
