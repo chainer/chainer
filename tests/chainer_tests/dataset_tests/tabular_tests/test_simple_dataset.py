@@ -81,6 +81,23 @@ class DatasetMixed(tabular.SimpleDataset):
         return {'d': 'd[{}]'.format(i), 'e': 'e[{}]'.format(i)}
 
 
+class DatasetOverrideKeys(tabular.SimpleDataset):
+
+    def __init__(self):
+        super().__init__()
+        self.add_column('a', np.arange(10))
+        self.add_column('b', self.get_b)
+        self.add_column('c', [3, 1, 4, 5, 9, 2, 6, 8, 7, 0])
+        self.add_column(('d', 'e'), self.get_de)
+        self.keys = ('a', 'e')
+
+    def get_b(self, i):
+        return 'b[{}]'.format(i)
+
+    def get_de(self, i):
+        return {'d': 'd[{}]'.format(i), 'e': 'e[{}]'.format(i)}
+
+
 class TestSimpleDataset(unittest.TestCase):
 
     def test_data_only(self):
@@ -148,6 +165,21 @@ class TestSimpleDataset(unittest.TestCase):
         self.assertIsInstance(output[2], list)
         self.assertIsInstance(output[3], list)
         self.assertIsInstance(output[4], list)
+
+    def test_override_keys(self):
+        dataset = DatasetOverrideKeys()
+
+        self.assertIsInstance(dataset, chainer.dataset.TabularDataset)
+        self.assertEqual(len(dataset), 10)
+        self.assertEqual(dataset.keys, ('a', 'e'))
+        self.assertEqual(dataset.mode, tuple)
+
+        output = dataset.slice[[1, 3]].fetch()
+        np.testing.assert_equal(output, (
+            [1, 3],
+            ['e[1]', 'e[3]']))
+        self.assertIsInstance(output[0], np.ndarray)
+        self.assertIsInstance(output[1], list)
 
 
 testing.run_module(__name__, __file__)

@@ -54,9 +54,8 @@ class SimpleDataset(tabular_dataset.TabularDataset):
             key (str or tuple of strs): The name(s) of key(s).
             value (array or list or callable): The data of column(s).
         """
-        if isinstance(value, chainer.get_array_types() + (list,)) or \
-           callable(value):
-            self._columns.append((key, value))
+        self._columns.append((key, value))
+        self._dataset = None
 
     def __len__(self):
         if self._len is None:
@@ -89,6 +88,10 @@ class SimpleDataset(tabular_dataset.TabularDataset):
     @property
     def keys(self):
         return self._get_dataset().keys
+
+    @keys.setter
+    def keys(self, keys):
+        self._dataset = self._get_dataset().slice[:, keys]
 
     @property
     def mode(self):
