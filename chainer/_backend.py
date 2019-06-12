@@ -105,16 +105,3 @@ class Device(object):
         """Makes the device current in the current thread.
          """
         pass
-
-    def is_array_compatible(self, array):
-        """Returns if the specified array is compatible with the device.
-
-        Args:
-            array (:ref:`ndarray`): An array to be checked
-
-        Returns:
-            ``True`` if the array is compatible with the device. Otherwise
-            ``False`` is returned.
-        """
-        raise NotImplementedError(
-            'Device implementation must override this method.')
