@@ -38,17 +38,17 @@ a language model :math:`P({\bf X})`.
 **Recurrent Neural Net Language Model** (RNNLM) is a type of neural net
 language models which contains the RNNs in the network. Since an RNN can deal with
 the variable length inputs, it is suitable for modeling the sequential data such
-as sentences in natural language. 
+as sentences in natural language.
 
 We show one layer of an RNNLM with these parameters.
 
 =======================  =============================================
-Symbol                   Definition 
+Symbol                   Definition
 =======================  =============================================
-:math:`{\bf x}_t`        the one-hot vector of :math:`t`-th word 
+:math:`{\bf x}_t`        the one-hot vector of :math:`t`-th word
 :math:`{\bf y}_t`        the :math:`t`-th output
-:math:`{\bf h}_t^{(i)}`  the :math:`t`-th hidden layer of :math:`i`-th layer 
-:math:`{\bf p}_t`        the next word's probability of :math:`t`-th word 
+:math:`{\bf h}_t^{(i)}`  the :math:`t`-th hidden layer of :math:`i`-th layer
+:math:`{\bf p}_t`        the next word's probability of :math:`t`-th word
 :math:`{\bf E}`          Embedding matrix
 :math:`{\bf W}_h`        Hidden layer matrix
 :math:`{\bf W}_o`        Output layer matrix
@@ -92,7 +92,7 @@ the perplexity is represented as follows:
 
 We usually use :math:`b = 2` or :math:`b = e`. The perplexity shows how much
 varied the predicted distribution for the next word is. When a language model
-represents the dataset well, it should show a high probability only for the correct 
+represents the dataset well, it should show a high probability only for the correct
 next word, so that the entropy should be high. In the above equation, the sign is
 reversed, so that smaller perplexity means better model.
 
@@ -119,12 +119,12 @@ The RNNLM used in this notebook is depicted in the above figure. The symbols
 appeared in the figure are defined as follows:
 
 =======================  =============================================
-Symbol                   Definition 
+Symbol                   Definition
 =======================  =============================================
-:math:`{\bf x}_t`        the one-hot vector of :math:`t`-th word 
+:math:`{\bf x}_t`        the one-hot vector of :math:`t`-th word
 :math:`{\bf y}_t`        the :math:`t`-th output
-:math:`{\bf h}_t^{(i)}`  the :math:`t`-th hidden layer of :math:`i`-th layer 
-:math:`{\bf p}_t`        the next word's probability of :math:`t`-th word 
+:math:`{\bf h}_t^{(i)}`  the :math:`t`-th hidden layer of :math:`i`-th layer
+:math:`{\bf p}_t`        the next word's probability of :math:`t`-th word
 :math:`{\bf E}`          Embedding matrix
 :math:`{\bf W}_h`        Hidden layer matrix
 :math:`{\bf W}_o`        Output layer matrix
@@ -158,7 +158,7 @@ Define all training settings here.
 .. literalinclude:: ../../../examples/ptb/train_ptb.py
    :language: python
    :start-after: argparse.ArgumentParser()
-   :end-before: parser.parse_args
+   :end-before: add_argument_group
    :caption: train_ptb.py
    :dedent: 4
 
@@ -201,7 +201,7 @@ Let's download and make dataset objects using it:
 
 .. literalinclude:: ../../../examples/ptb/train_ptb.py
    :language: python
-   :start-after: parser.parse_args
+   :start-after: device.use()
    :end-before: n_vocab
    :caption: train_ptb.py
    :dedent: 4
@@ -273,24 +273,24 @@ because it calculates softmax cross entropy as the loss.
 .. literalinclude:: ../../../examples/ptb/train_ptb.py
    :language: python
    :start-after: Prepare an RNNLM model
-   :end-before: args.gpu
+   :end-before: to_device
    :caption: train_ptb.py
    :dedent: 4
 
 Note that :class:`~chainer.links.Classifier` computes not only the loss but also accuracy based on a given
 input/label pair. To learn the RNN language model, we only need the loss (cross entropy) in the
-:class:`Classifier` because we calculate the perplexity instead of classification accuracy to check
+:class:`~chainer.links.Classifier` because we calculate the perplexity instead of classification accuracy to check
 the performance of the model. So, we turn off computing the accuracy by giving False to
 ``model.compute_accuracy`` attribute.
 
 2.2.10 Setup Optimizer
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-Prepare an optimizer. Here, we use :class:`~chainer.optimizer.GradientClipping`
+Prepare an optimizer. Here, we use :class:`~chainer.optimizer_hooks.GradientClipping`
 to prevent gradient explosion. It automatically clips
 the gradient to be used to update the parameters in the model with given constant
 ``gradclip``.
-  
+
 .. literalinclude:: ../../../examples/ptb/train_ptb.py
    :language: python
    :start-after: Set up an optimizer
@@ -361,4 +361,4 @@ We use the script in the PTB example of the official repository:
     $ pwd
     /root2chainer/chainer/examples/ptb
     $ python gentxt.py -m model.npz -p apple
-    apple a new u.s. economist with <unk> <unk> fixed more than to N the company said who is looking back to 
+    apple a new u.s. economist with <unk> <unk> fixed more than to N the company said who is looking back to

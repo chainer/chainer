@@ -37,7 +37,7 @@ matrix:
       - PYTHON_VERSION=3.5.1
       - PYENV_ROOT=~/.pyenv
       - PATH=$PYENV_ROOT/shims:$PATH:$PYENV_ROOT/bin
-      if: (branch = master OR branch = v5) AND (NOT type in (pull_request))
+      if: (branch = master OR branch = v6) AND (NOT type in (pull_request))
 
     - name: "macOS Py27 | chainer, chainermn"
       os: osx

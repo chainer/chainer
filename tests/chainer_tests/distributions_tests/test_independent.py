@@ -45,9 +45,10 @@ def _generate_test_parameter(
         reinterpreted_batch_ndims):
     shape_pattern = _generate_valid_shape_pattern(
         inner_shape, inner_event_shape, reinterpreted_batch_ndims)
-    return list(map(
-        lambda dicts: dict(dicts[0], **dicts[1]),
-        itertools.product(parameter_list, shape_pattern)))
+    return [
+        dict(dicts[0], **dicts[1])
+        for dicts in itertools.product(parameter_list, shape_pattern)
+    ]
 
 
 @testing.parameterize(*_generate_test_parameter(

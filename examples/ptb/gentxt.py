@@ -35,14 +35,22 @@ def main():
                         help='negative value indicates NOT use random choice')
     parser.add_argument('--length', type=int, default=20,
                         help='length of the generated text')
-    parser.add_argument('--gpu', type=int, default=-1,
-                        help='GPU ID (negative value indicates CPU)')
+    parser.add_argument('--device', '-d', type=str, default='-1',
+                        help='Device specifier. Either ChainerX device '
+                        'specifier or an integer. If non-negative integer, '
+                        'CuPy arrays with specified device id are used. If '
+                        'negative integer, NumPy arrays are used')
+    group = parser.add_argument_group('deprecated arguments')
+    group.add_argument('--gpu', '-g', dest='device',
+                       type=int, nargs='?', const=-1,
+                       help='GPU ID (negative value indicates CPU)')
     args = parser.parse_args()
 
     np.random.seed(args.seed)
     chainer.config.train = False
 
-    xp = cuda.cupy if args.gpu >= 0 else np
+    device = chainer.get_device(args.device)
+    device.use()
 
     # load vocabulary
     vocab = chainer.datasets.get_ptb_words_vocabulary()
@@ -58,9 +66,7 @@ def main():
 
     serializers.load_npz(args.model, model)
 
-    if args.gpu >= 0:
-        cuda.get_device_from_id(args.gpu).use()
-        model.to_gpu()
+    model.to_device(device)
 
     model.predictor.reset_state()
 
@@ -68,8 +74,10 @@ def main():
     if isinstance(primetext, six.binary_type):
         primetext = primetext.decode('utf-8')
 
+    xp = device.xp
     if primetext in vocab:
-        prev_word = chainer.Variable(xp.array([vocab[primetext]], xp.int32))
+        prev_word = chainer.Variable(
+            xp.array([vocab[primetext]], xp.int32), requires_grad=False)
     else:
         print('ERROR: Unfortunately ' + primetext + ' is unknown.')
         exit()
@@ -91,7 +99,8 @@ def main():
         else:
             sys.stdout.write(ivocab[index] + ' ')
 
-        prev_word = chainer.Variable(xp.array([index], dtype=xp.int32))
+        prev_word = chainer.Variable(
+            xp.array([index], dtype=xp.int32), requires_grad=False)
 
     sys.stdout.write('\n')
 

@@ -36,6 +36,9 @@ export REPO_DIR
 export WORK_DIR
 export CHAINER_BASH_ENV
 
+# Increase the default columns for better browsability
+export COLUMNS=120
+
 
 run_prestep() {
     # Failure immediately stops the script.
@@ -44,10 +47,30 @@ run_prestep() {
 
 
 run_step() {
+    local status=0
+
+    travis_fold_start "${1}" "$@"
+    bash "$this_dir"/run-step.sh "$@" || status=$?
+    travis_fold_end "${1}"
+
     # In case of failure, CHAINER_TEST_STATUS is incremented by 1.
-    bash "$this_dir"/run-step.sh "$@" || CHAINER_TEST_STATUS=$((CHAINER_TEST_STATUS + 1))
+    if [[ ${status} != 0 ]]; then
+        CHAINER_TEST_STATUS=$((CHAINER_TEST_STATUS + 1))
+        console_warning "Error: the above step failed with status ${status}"
+    fi
 }
 
+travis_fold_start() {
+    echo -e "travis_fold:start:$1\033[33;1m$2\033[0m"
+}
+
+travis_fold_end() {
+    echo -e "\ntravis_fold:end:$1\r"
+}
+
+console_warning() {
+    echo -e "\033[31;1;4m$@\033[0m"
+}
 
 case "${CHAINER_TRAVIS_TEST}" in
     "python-static-check")

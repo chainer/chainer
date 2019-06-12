@@ -10,3 +10,4 @@ from chainer.dataset.download import get_dataset_directory  # NOQA
 from chainer.dataset.download import get_dataset_root  # NOQA
 from chainer.dataset.download import set_dataset_root  # NOQA
 from chainer.dataset.iterator import Iterator  # NOQA
+from chainer.dataset.tabular.tabular_dataset import TabularDataset  # NOQA

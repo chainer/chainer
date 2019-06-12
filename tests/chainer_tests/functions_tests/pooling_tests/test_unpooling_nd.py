@@ -6,12 +6,8 @@ import six
 
 import chainer
 from chainer import backend
-from chainer.backends import cuda
 from chainer import functions
-from chainer import gradient_check
 from chainer import testing
-from chainer.testing import attr
-from chainer.testing import condition
 from chainer.utils import conv
 from chainer.utils import type_check
 
@@ -56,117 +52,96 @@ def expected_unpooling_nd(x_data, outs, ksize, stride, pad):
     'cover_all': [True, False],
     'dtype': [numpy.float32],
 })))
-class TestUnpoolingND(unittest.TestCase):
+@testing.inject_backend_tests(
+    ['test_forward', 'test_backward', 'test_double_backward',
+     'test_consistency_regression_forward',
+     'test_consistency_regression_backward'],
+    # CPU tests
+    testing.product({
+        'use_cuda': [False],
+        'use_ideep': ['never', 'always'],
+    })
+    # GPU tests
+    + testing.product({
+        'use_cuda': [True],
+        'use_cudnn': ['never', 'always'],
+        'cuda_device': [0, 1],
+    })
+    # ChainerX tests
+    + [
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
+    ])
+class TestUnpoolingND(testing.FunctionTestCase):
 
     def setUp(self):
         N = 2
         c = 3
-        ndim = len(self.dims)
-        self.ksize = (self._ksize,) * ndim
-        self.stride = (self._stride,) * ndim
-        self.pad = (self._pad,) * ndim
+        self.ndim = len(self.dims)
+        self.ksize = (self._ksize,) * self.ndim
+        self.stride = (self._stride,) * self.ndim
+        self.pad = (self._pad,) * self.ndim
 
-        x_shape = (N, c) + self.dims
-        self.x = numpy.random.uniform(-1, 1, x_shape).astype(self.dtype)
+        self.x_shape = (N, c) + self.dims
 
-        outs = tuple(
+        self.outs = tuple(
             conv.get_deconv_outsize(d, k, s, p, cover_all=self.cover_all)
             for (d, k, s, p)
             in zip(self.dims, self.ksize, self.stride, self.pad))
-        gy_shape = (N, c) + outs
-        self.gy = numpy.random.uniform(-1, 1, gy_shape).astype(self.dtype)
+        self.gy_shape = (N, c) + self.outs
 
         if self.dtype == numpy.float16:
             self.check_forward_options = {'atol': 2 ** -4, 'rtol': 2 ** -4}
-            self.check_backward_options = {
-                'dtype': numpy.float64, 'atol': 2 ** -4, 'rtol': 2 ** -4}
+            self.check_backward_options = {'atol': 2 ** -4, 'rtol': 2 ** -4}
             self.check_double_backward_options = {}
         else:
             self.check_forward_options = {}
             self.check_backward_options = {'atol': 1e-3, 'rtol': 1e-3}
             self.check_double_backward_options = {'atol': 3e-3, 'rtol': 3e-2}
-        self.ggx = numpy.random.uniform(
-            -1, 1, self.x.shape).astype(self.dtype)
 
-    def check_forward(self, x_data):
-        ksize = self.ksize
-        stride = self.stride
-        pad = self.pad
+    def generate_inputs(self):
+        x = numpy.random.uniform(-1, 1, self.x_shape).astype(self.dtype)
+        return x,
 
-        # Compute unpooling.
-        x = chainer.Variable(x_data)
+    def forward_expected(self, inputs):
+        x, = inputs
+        outs = self.gy_shape[2:]
+        y_expected = expected_unpooling_nd(
+            x, outs, self.ksize, self.stride, self.pad)
+        return y_expected,
+
+    def forward(self, inputs, device):
+        x, = inputs
         y = functions.unpooling_nd(
-            x, ksize, stride, pad, cover_all=self.cover_all)
+            x, self.ksize, self.stride, self.pad, cover_all=self.cover_all)
+        return y,
 
-        # Test output's dtype and shape.
-        self.assertEqual(y.data.dtype, self.dtype)
-        self.assertEqual(y.data.shape, self.gy.shape)
-
-        # Test output's value.
-        outs = self.gy.shape[2:]
-        y_expected = expected_unpooling_nd(self.x, outs, ksize, stride, pad)
-        testing.assert_allclose(
-            y_expected, y.data, **self.check_forward_options)
-
-    @condition.retry(3)
-    def test_forward_cpu(self):
-        self.check_forward(self.x)
-
-    @attr.gpu
-    @condition.retry(3)
-    def test_forward_gpu(self):
-        self.check_forward(cuda.to_gpu(self.x))
-
-    def check_forward_consistency_regression(self, x_data):
+    def check_forward_consistency_regression(self, backend_config):
         # Regression test to two-dimensional unpooling layer.
-
-        if len(self.dims) != 2:
-            return
+        inputs, = self.generate_inputs()
+        x = chainer.Variable(backend_config.get_array(inputs))
 
         ksize = self.ksize
         stride = self.stride
         pad = self.pad
 
-        y_nd = functions.unpooling_nd(x_data, ksize, stride=stride, pad=pad,
+        y_nd = functions.unpooling_nd(x, ksize, stride=stride, pad=pad,
                                       cover_all=self.cover_all)
-        y_2d = functions.unpooling_2d(x_data, ksize, stride=stride, pad=pad,
+        y_2d = functions.unpooling_2d(x, ksize, stride=stride, pad=pad,
                                       cover_all=self.cover_all)
         testing.assert_allclose(
-            y_nd.data, y_2d.data, **self.check_forward_options)
+            y_nd.array, y_2d.array, **self.check_forward_options)
 
-    @condition.retry(3)
-    def test_forward_consistency_regression_cpu(self):
-        self.check_forward_consistency_regression(self.x)
+    def test_consistency_regression_forward(self, backend_config):
+        if len(self.dims) == 2:
+            self.check_forward_consistency_regression(backend_config)
 
-    @attr.gpu
-    @condition.retry(3)
-    def test_forward_consistency_regression_gpu(self):
-        self.check_forward_consistency_regression(cuda.to_gpu(self.x))
-
-    def check_backward(self, x_data, y_grad):
-        def f(x):
-            return functions.unpooling_nd(
-                x, self.ksize, stride=self.stride, pad=self.pad,
-                cover_all=self.cover_all)
-
-        gradient_check.check_backward(
-            f, x_data, y_grad, **self.check_backward_options)
-
-    @condition.retry(3)
-    def test_backward_cpu(self):
-        self.check_backward(self.x, self.gy)
-
-    @attr.gpu
-    @condition.retry(3)
-    def test_backward_gpu(self):
-        self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
-
-    def check_backward_consistency_regression(self, x_data, gy_data):
+    def check_backward_consistency_regression(self, backend_config):
         # Regression test to two-dimensional unpooling layer.
 
-        ndim = len(self.dims)
-        if ndim != 2:
-            return
+        x_data, = self.generate_inputs()
+        gy_data = numpy.random.uniform(-1, 1, self.gy_shape).astype(self.dtype)
 
         ksize = self.ksize
         stride = self.stride
@@ -192,54 +167,10 @@ class TestUnpoolingND(unittest.TestCase):
         testing.assert_allclose(
             x_nd.grad, x_2d.grad, atol=opt['atol'], rtol=opt['rtol'])
 
-    @condition.retry(3)
-    def test_backward_consistency_regression_cpu(self):
-        self.check_backward_consistency_regression(self.x, self.gy)
-
-    @attr.gpu
-    @condition.retry(3)
-    def test_backward_consistency_regression_gpu(self):
-        self.check_backward_consistency_regression(
-            cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
-
-    def check_double_backward(self, x_data, y_grad, x_grad_grad,
-                              use_cudnn='always'):
-        def f(x):
-            outs = self.gy.shape[2:]
-            return functions.unpooling_nd(
-                x, self.ksize, stride=self.stride, pad=self.pad,
-                outsize=outs, cover_all=self.cover_all)
-
-        with chainer.using_config('use_cudnn', use_cudnn):
-            gradient_check.check_double_backward(
-                f, x_data, y_grad, x_grad_grad, dtype=numpy.float64,
-                **self.check_double_backward_options)
-
-    @condition.retry(3)
-    def test_double_backward_cpu(self):
-        self.check_double_backward(
-            self.x, self.gy, self.ggx, 'never')
-
-    @attr.gpu
-    @condition.retry(3)
-    def test_double_backward_gpu(self):
-        self.check_double_backward(
-            cuda.to_gpu(self.x), cuda.to_gpu(self.gy), cuda.to_gpu(self.ggx))
-
-    @attr.gpu
-    @condition.retry(3)
-    def test_double_backward_gpu_non_contiguous(self):
-        self.check_double_backward(
-            cuda.cupy.asfortranarray(cuda.to_gpu(self.x)),
-            cuda.cupy.asfortranarray(cuda.to_gpu(self.gy)),
-            cuda.cupy.asfortranarray(cuda.to_gpu(self.ggx)))
-
-    @attr.gpu
-    @condition.retry(3)
-    def test_double_backward_gpu_no_cudnn(self):
-        self.check_double_backward(
-            cuda.to_gpu(self.x), cuda.to_gpu(self.gy), cuda.to_gpu(self.ggx),
-            'never')
+    def test_consistency_regression_backward(self, backend_config):
+        ndim = len(self.dims)
+        if ndim == 2:
+            self.check_backward_consistency_regression(backend_config)
 
 
 @testing.parameterize(*testing.product({

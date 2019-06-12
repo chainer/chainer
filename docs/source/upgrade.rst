@@ -21,6 +21,12 @@ In Chainer v7, ``issubclass(chainer.Variable, collections.abc.Iterable)`` (or ``
 Chainer v6
 ==========
 
+Dropping Python 3.4
+-------------------
+
+Starting from Chainer v6, Python 3.4 will no longer be supported as it reaches its end-of-life (EOL) and Python 3.5.1 will become the minimum Python 3 version supported by Chainer.
+Please upgrade the Python version if you are using Python 3.4 to any version listed under :ref:`install-guide`.
+
 CuPy Needs To Be Manually Updated
 ---------------------------------
 
@@ -71,7 +77,7 @@ Use ``forward`` Instead of ``__call__`` in Links
 ------------------------------------------------
 
 Prior to Chainer v5, ``__call__`` method is used to define the behavior of :class:`~chainer.Link`.
-In Chainer v5, ``forward`` method has been introduced, and is now recommended to use it instead of ``__call__``.
+In Chainer v5, ``forward`` method has been introduced, and is now recommended that you use it instead of ``__call__``.
 The base class (:class:`~chainer.Link`) provides ``__call__`` method implementation that invokes ``forward`` method defined in the subclass; the only thing you need to do is to rename the method name (replace ``def __call__(...)`` with ``def forward(...)``).
 
 For backward compatibility, you can still use ``__call__`` to define your own link.
@@ -138,7 +144,7 @@ If you implement your own :class:`~chainer.training.Updater` class, you may need
 Extending the Backend Namespace
 -------------------------------
 
-In addition to ``chainer.backends``, we introduced ``chainer.backend``. This subpackage contains utility functions that span several backends. For instance, it includes ``chainer.backend.get_array_module`` which used to be defined in ``chainer.backends.cuda.get_array_module``. Both can be used but the latter will be deprecated.
+In addition to ``chainer.backends``, we introduced ``chainer.backend``. This subpackage contains utility functions that span several backends. For instance, it includes :func:`chainer.backend.get_array_module` which used to be defined in :func:`chainer.backends.cuda.get_array_module`. Both can be used but the latter will be deprecated.
 
 ``get_device_from_array`` Returns Actual Device for Empty Arrays
 ----------------------------------------------------------------
@@ -250,16 +256,16 @@ Chainer v3
 Introduction of New-style Functions
 -----------------------------------
 
-This release introduces new-style functions (classes inheriting from :class:`FunctionNode`) that support double backward (gradient of gradient).
+This release introduces new-style functions (classes inheriting from :class:`~chainer.FunctionNode`) that support double backward (gradient of gradient).
 See the `Release Note for v3.0.0 <https://github.com/chainer/chainer/releases/tag/v3.0.0>`_ for the usage of this feature.
 
-Many of :doc:`reference/functions` are already migrated to new-style, although some of functions are still old-style (classes inheriting from :class:`Function`).
+Many of :doc:`reference/functions` are already migrated to new-style, although some of functions are still old-style (classes inheriting from :class:`~chainer.Function`).
 We are going to migrate more old-style functions to new-style in upcoming minor releases.
 
 This does not break the existing code.
-Old-style functions (classes inheriting from :class:`Function`) are still supported in v3 and future versions of Chainer.
+Old-style functions (classes inheriting from :class:`~chainer.Function`) are still supported in v3 and future versions of Chainer.
 
-If you are going to write new functions, it is encouraged to use :class:`FunctionNode` to support double backward.
+If you are going to write new functions, it is encouraged to use :class:`~chainer.FunctionNode` to support double backward.
 
 .. attention::
 
