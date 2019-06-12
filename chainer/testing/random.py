@@ -1,12 +1,12 @@
 from __future__ import absolute_import
 import atexit
 import functools
-import numpy
 import os
 import random
 import types
 import unittest
 
+import numpy
 
 from chainer.backends import cuda
 from chainer.testing import _bundle

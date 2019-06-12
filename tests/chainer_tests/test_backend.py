@@ -279,6 +279,17 @@ class TestDeviceSpec(unittest.TestCase):
         # tuple is no longer supported from Chainer
         self.check_invalid(('native', 0))
 
+    def test_cuda_dummy_device_invalid(self):
+        self.check_invalid(cuda.DummyDevice)
+
+    @unittest.skipIf(
+        chainerx.is_available(), 'Only tested when ChainerX is not built')
+    def test_chx_device_spec_without_chx_available(self):
+        # If chainerx is not available, get_device() with unprefixed string
+        # should mention ChainerX unavailability in the error message.
+        with pytest.raises(RuntimeError, match=r'.*ChainerX.*'):
+            chainer.get_device('foo')
+
 
 class TestDevice(unittest.TestCase):
 

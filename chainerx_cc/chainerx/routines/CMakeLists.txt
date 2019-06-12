@@ -1,7 +1,9 @@
 add_library(chainerx_routines STATIC
+    arithmetic.cc
     binary.cc
     connection.cc
     creation.cc
+    explog.cc
     hyperbolic.cc
     indexing.cc
     linalg.cc
@@ -19,9 +21,11 @@ add_library(chainerx_routines STATIC
 )
 
 install(FILES
+    arithmetic.h
     binary.h
     connection.h
     creation.h
+    explog.h
     hyperbolic.h
     indexing.h
     linalg.h

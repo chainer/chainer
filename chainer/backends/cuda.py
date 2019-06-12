@@ -147,7 +147,7 @@ def check_cuda_available():
         check_cuda_available._already_warned = True
 
 
-class DummyDeviceType(Device):
+class DummyDeviceType(object):
 
     """Dummy device class that does nothing with cupy.cuda.Device interface.
 

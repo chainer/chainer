@@ -417,7 +417,7 @@ class TestVariable(unittest.TestCase):
 
     # TODO(kataoka): Variable.backward with ChainerX backend unexpectedly
     # behaves like retain_grad=True
-    @pytest.mark.xfail(strict=True)
+    @unittest.expectedFailure
     @attr.chainerx
     def test_backward_chainerx(self):
         ret = self.create_linear_chain(2, chainerx)
