@@ -43,7 +43,7 @@ public:
         CudaSetDeviceScope scope{device.index()};
 
         if (a.ndim() != 2 || out.ndim() != 2) {
-            throw DimensionError{"ChainerX cholesky supports only 2-dimensional arrays."};
+            throw DimensionError{"ChainerX Cholesky only supports 2-dimensional arrays."};
         }
         if (a.shape()[0] != a.shape()[1]) {
             throw DimensionError{"Matrix is not square."};
