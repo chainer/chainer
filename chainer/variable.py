@@ -867,7 +867,7 @@ class Variable(object):
                 new_device = backend.get_device_from_array(d)
                 raise ValueError(
                     'Given array is incompatible with the device of the '
-                    'variable. Variable: {}, Array: {}'.format(
+                    'variable.\nVariable: {}\nArray: {}'.format(
                         old_device, new_device))
 
         if self._has_chainerx_array:
@@ -1198,8 +1198,6 @@ class Variable(object):
         elif not was_chainerx and is_chainerx:
             self._chainerx_name = self._node.name
 
-        # Note: It affects the whole behavior of Variable's methods.
-        #       We must place them in this place.
         self._device = device
         self._has_chainerx_array = is_chainerx
 
