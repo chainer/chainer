@@ -24,6 +24,7 @@ add_library(chainerx_native STATIC
     native_device/fill.cc
     native_device/hyperbolic.cc
     native_device/indexing.cc
+    native_device/linalg.cc
     native_device/memory.cc
     native_device/misc.cc
     native_device/pool.cc

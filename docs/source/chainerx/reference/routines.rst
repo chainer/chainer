@@ -95,6 +95,9 @@ Linear algebra
 
    chainerx.dot
 
+   chainerx.linalg.eigh
+   chainerx.linalg.eigvalsh
+
 Logic functions
 ---------------
 

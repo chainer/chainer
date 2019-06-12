@@ -98,4 +98,42 @@ Array Dot(const Array& a, const Array& b, nonstd::optional<Dtype> out_dtype) {
     return out_matrix.Reshape(out_shape);
 }
 
+std::tuple<Array, Array> Eigh(const Array& a, const std::string& uplo) {
+    if (a.ndim() != 2) {
+        throw DimensionError{"ChainerX Eigh supports only 2-dimensional arrays."};
+    }
+    if (a.shape()[0] != a.shape()[1]) {
+        throw DimensionError{"Matrix is not square."};
+    }
+
+    Array w{};
+    Array v{};
+
+    {
+        NoBackpropModeScope scope{};
+        std::tie(w, v) = a.device().backend().CallKernel<SyevdKernel>(a, uplo, true);
+    }
+
+    return std::make_tuple(std::move(w), std::move(v));
+}
+
+Array Eigvalsh(const Array& a, const std::string& uplo) {
+    if (a.ndim() != 2) {
+        throw DimensionError{"ChainerX Eigvalsh supports only 2-dimensional arrays."};
+    }
+    if (a.shape()[0] != a.shape()[1]) {
+        throw DimensionError{"Matrix is not square."};
+    }
+
+    Array w{};
+    Array v{};
+
+    {
+        NoBackpropModeScope scope{};
+        std::tie(w, v) = a.device().backend().CallKernel<SyevdKernel>(a, uplo, false);
+    }
+
+    return w;
+}
+
 }  // namespace chainerx

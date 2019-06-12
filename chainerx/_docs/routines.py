@@ -498,6 +498,46 @@ Note:
 .. seealso:: :func:`numpy.dot`
 """)
 
+    _docs.set_doc(
+        chainerx.linalg.eigh,
+        """eigh(a, UPLO='L')
+Compute the eigenvalues and eigenvectors of a real symmetric matrix.
+
+Args:
+    a (~chainerx.ndarray): Real symmetric matrix whose eigenvalues
+        and eigenvectors are to be computed.
+    UPLO (string): Specifies whether the calculation is done with the lower
+        triangular part of a (‘L’, default) or the upper triangular part (‘U’).
+
+Returns:
+    w (~chainerx.ndarray): The eigenvalues in ascending order, each repeated
+    according to its multiplicity.
+    v (~chainerx.ndarray): The column v[:, i] is the normalized eigenvector
+        corresponding to the eigenvalue w[i].
+
+.. seealso:: :func:`numpy.linalg.eigh`
+""")
+
+    _docs.set_doc(
+        chainerx.linalg.eigvalsh,
+        """eigvalsh(a, UPLO='L')
+Compute the eigenvalues and eigenvectors of a real symmetric matrix.
+
+Main difference from eigh: the eigenvectors are not computed.
+
+Args:
+    a (~chainerx.ndarray): Real symmetric matrix whose eigenvalues
+        and eigenvectors are to be computed.
+    UPLO (string): Specifies whether the calculation is done with the lower
+        triangular part of a (‘L’, default) or the upper triangular part (‘U’). (optional).
+
+Returns:
+    w (~chainerx.ndarray): The eigenvalues in ascending order, each repeated
+        according to its multiplicity.
+
+.. seealso:: :func:`numpy.linalg.eigvalsh`
+""")
+
 
 def _docs_logic():
     _docs.set_doc(
