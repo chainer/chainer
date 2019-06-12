@@ -1,6 +1,7 @@
 import unittest
 
 import chainer
+import chainer.backends
 from chainer.backends.cuda import cupy
 import chainer.functions as F
 import chainer.links as L
@@ -39,12 +40,16 @@ class Model(chainer.Chain):
         return err
 
 
+@chainer.testing.parameterize(*chainer.testing.product({
+    'dtype': [np.float16, np.float32],
+}))
 class TestNStepRNN(unittest.TestCase):
 
     def setup(self, gpu):
         if gpu:
             self.communicator = chainermn.create_communicator('flat')
-            chainer.cuda.get_device_from_id(self.communicator.intra_rank).use()
+            chainer.backends.cuda.get_device_from_id(
+                self.communicator.intra_rank).use()
         else:
             self.communicator = chainermn.create_communicator('naive')
 
@@ -66,25 +71,27 @@ class TestNStepRNN(unittest.TestCase):
         n, n_vocab, l = 100, 8, 10
         # Number of model parameters are same among processes.
         n_hid = 2
+        with chainer.using_config('dtype', self.dtype):
+            X = [np.random.randint(
+                0, n_vocab, size=np.random.randint(l // 2, l + 1),
+                dtype=np.int32)
+                for _ in range(n)]
+            Y = (np.random.rand(n) * 2).astype(self.dtype)
+            model = Model(
+                n_vocab, n_hid, self.communicator, self.rank_next,
+                self.rank_prev)
 
-        X = [np.random.randint(
-            0, n_vocab, size=np.random.randint(l // 2, l + 1), dtype=np.int32)
-            for _ in range(n)]
-        Y = (np.random.rand(n) * 2).astype(np.float32)
-        model = Model(
-            n_vocab, n_hid, self.communicator, self.rank_next, self.rank_prev)
+            if gpu:
+                model.to_device(cupy.cuda.Device()
+                X = [chainer.backends.cuda.to_gpu(x) for x in X]
+                Y = chainer.backends.cuda.to_gpu(Y)
 
-        if gpu:
-            model.to_device(cupy.cuda.Device())
-            X = [chainer.cuda.to_gpu(x) for x in X]
-            Y = chainer.cuda.to_gpu(Y)
+            for i in range(n):
+                err = model(X[i:i + 1], Y[i:i + 1])
+                err.backward()
 
-        for i in range(n):
-            err = model(X[i:i + 1], Y[i:i + 1])
-            err.backward()
-
-        # Check if backprop finishes without deadlock.
-        self.assertTrue(True)
+            # Check if backprop finishes without deadlock.
+            self.assertTrue(True)
 
     @pytest.mark.filterwarnings('ignore::DeprecationWarning')
     def test_homogeneous_rnn_cpu(self):
@@ -98,28 +105,31 @@ class TestNStepRNN(unittest.TestCase):
     def check_heterogeneous_rnn(self, gpu):
         self.setup(gpu)
 
-        n, n_vocab, l = 100, 8, 10
-        # Number of model parameters are different among processes.
-        n_hid = (self.communicator.rank + 1) * 10
+        with chainer.using_config('dtype', self.dtype):
+            n, n_vocab, l = 100, 8, 10
+            # Number of model parameters are different among processes.
+            n_hid = (self.communicator.rank + 1) * 10
 
-        X = [np.random.randint(
-            0, n_vocab, size=np.random.randint(l // 2, l + 1), dtype=np.int32)
-            for _ in range(n)]
-        Y = (np.random.rand(n) * 2).astype(np.float32)
-        model = Model(
-            n_vocab, n_hid, self.communicator, self.rank_next, self.rank_prev)
+            X = [np.random.randint(
+                0, n_vocab, size=np.random.randint(l // 2, l + 1),
+                dtype=np.int32)
+                for _ in range(n)]
+            Y = (np.random.rand(n) * 2).astype(self.dtype)
+            model = Model(
+                n_vocab, n_hid, self.communicator, self.rank_next,
+                self.rank_prev)
 
-        if gpu:
-            model.to_device(cupy.cuda.Device())
-            X = [chainer.cuda.to_gpu(x) for x in X]
-            Y = chainer.cuda.to_gpu(Y)
+            if gpu:
+                model.to_device(cupy.cuda.Device()
+                X = [chainer.backends.cuda.to_gpu(x) for x in X]
+                Y = chainer.backends.cuda.to_gpu(Y)
 
-        for i in range(n):
-            err = model(X[i:i + 1], Y[i:i + 1])
-            err.backward()
+            for i in range(n):
+                err = model(X[i:i + 1], Y[i:i + 1])
+                err.backward()
 
-        # Check if backprop finishes without deadlock.
-        self.assertTrue(True)
+            # Check if backprop finishes without deadlock.
+            self.assertTrue(True)
 
     @pytest.mark.filterwarnings('ignore::DeprecationWarning')
     def test_heterogeneous_rnn_cpu(self):
