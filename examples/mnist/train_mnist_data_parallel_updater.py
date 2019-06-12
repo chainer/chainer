@@ -6,6 +6,7 @@ import chainer.links as L
 from chainer import training
 from chainer.training import extensions
 import chainerx
+import sys
 
 import train_mnist
 
@@ -31,7 +32,7 @@ def main():
                         'specifiers or integers. If non-negative integer, '
                         'CuPy arrays with specified device id are used. If '
                         'negative integer, NumPy arrays are used')
-    parser.add_argument('--loaderjob', '-j', type=int,
+    parser.add_argument('--ljob', '-j', type=int,
                         help='Number of parallel data loading processes')
     args = parser.parse_args()
 
@@ -55,13 +56,15 @@ def main():
     train_iters = [
         chainer.iterators.MultiprocessIterator(i,
                                                args.batchsize,
-                                               n_processes=args.loaderjob)
-        for i in chainer.datasets.split_dataset_n_random(train, args.loaderjob)]
+                                               n_processes=args.ljob)
+        for i in chainer.datasets.split_dataset_n_random(train, args.ljob)]
     test_iter = chainer.iterators.MultiprocessIterator(
-        test, args.batchsize, repeat=False, n_processes=args.loaderjob)
+        test, args.batchsize, repeat=False, n_processes=args.ljob)
 
-    updater = training.updaters.MultiprocessParallelUpdater(train_iters, optimizer,
-                                                   devices=(devices))
+    updater = training.updaters.MultiprocessParallelUpdater(train_iters,
+                                                            optimizer,
+                                                            devices=(devices))
+
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.out)
 
     trainer.extend(extensions.Evaluator(test_iter, model, device=devices[0]))
