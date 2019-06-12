@@ -264,9 +264,9 @@ class CudaMaxPoolGradKernel : public MaxPoolGradKernel {
 public:
     std::tuple<Array, std::unique_ptr<MaxPoolGradGradState>> Call(
             const Array& gout,
-            Dims kernel_size,
-            Dims stride,
-            Dims pad,
+            const Dims& kernel_size,
+            const Dims& stride,
+            const Dims& pad,
             const std::shared_ptr<MaxPoolGradState>& state,
             bool return_state,
             const nonstd::optional<Array>& gx) override {
@@ -291,9 +291,9 @@ class CudaMaxPoolGradGradKernel : public MaxPoolGradGradKernel {
 public:
     Array Call(
             const Array& ggx,
-            Dims kernel_size,
-            Dims stride,
-            Dims pad,
+            const Dims& kernel_size,
+            const Dims& stride,
+            const Dims& pad,
             bool /*cover_all*/,
             const std::shared_ptr<MaxPoolGradGradState>& state,
             const nonstd::optional<Array>& ggout) override {
@@ -325,9 +325,9 @@ class CudaAveragePoolKernel : public AveragePoolKernel {
 public:
     std::tuple<Array, std::unique_ptr<AveragePoolGradState>> Call(
             const Array& x,
-            Dims kernel_size,
-            Dims stride,
-            Dims pad,
+            const Dims& kernel_size,
+            const Dims& stride,
+            const Dims& pad,
             AveragePoolPadMode pad_mode,
             bool return_state,
             const nonstd::optional<Array>& out) override {
@@ -347,9 +347,9 @@ class CudaAveragePoolGradKernel : public AveragePoolGradKernel {
 public:
     Array Call(
             const Array& gout,
-            Dims kernel_size,
-            Dims stride,
-            Dims pad,
+            const Dims& kernel_size,
+            const Dims& stride,
+            const Dims& pad,
             AveragePoolPadMode pad_mode,
             const std::shared_ptr<AveragePoolGradState>& state,
             const nonstd::optional<Array>& gx) override {
