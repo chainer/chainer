@@ -1003,7 +1003,8 @@ def grad(outputs, inputs, grad_outputs=None, grad_inputs=None, set_grad=False,
                 .format(len(inputs), len(grad_inputs)))
     # Check if all the inputs are chainerx arrays and if so
     # Relies in chainerx.grad function
-    chx_inputs = sum(map(lambda x: x._has_chainerx_array, inputs))
+    chx_inputs = sum(map(lambda x: x._has_chainerx_array 
+                                if x is not None else False, inputs))
     if chx_inputs == len(inputs):
         # Need to access the arrays to invoke the chainer grad function
         if grad_inputs is not None:
