@@ -126,7 +126,8 @@ class ChainerOpTest(OpTest):
 
         def forward_chainerx(self, inputs):
             x, w, b = inputs
-            y = chainerx.conv(x, w, b, self.stride, self.pad, self.cover_all)
+            y = chainerx.conv(x, w, b, stride=self.stride, pad=self.pad,
+                              dilate=1, cover_all=self.cover_all)
             return y,
 
         def forward_chainer(self, inputs):

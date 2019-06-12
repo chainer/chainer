@@ -102,7 +102,9 @@ class _ConvTestBase(object):
             (x, w), b = inputs, None
         else:
             x, w, b = inputs
-        y = chainerx.conv(x, w, b, self.stride, self.pad, self.cover_all)
+        y = chainerx.conv(
+            x, w, b, stride=self.stride, pad=self.pad, dilate=1,
+            cover_all=self.cover_all)
         return y,
 
     def forward_chainer(self, inputs):
@@ -196,7 +198,7 @@ def test_conv_invalid(
     with pytest.raises(chainerx.DimensionError):
         chainerx.conv(
             *_create_conv_args(
-                chainerx, device, x_shape, w_shape, b_shape, stride, pad,
+                chainerx, device, x_shape, w_shape, b_shape, stride, pad, 1,
                 cover_all, float_dtype))
 
 
@@ -284,7 +286,8 @@ class _ConvTransposeTestBase(object):
         else:
             (x, w), b = inputs, None
         y = chainerx.conv_transpose(
-            x, w, b, self.stride, self.pad, self.outsize)
+            x, w, b, stride=self.stride, pad=self.pad, dilate=1,
+            outsize=self.outsize)
         return y,
 
     def forward_chainer(self, inputs):
@@ -391,7 +394,8 @@ def test_conv_transpose_invalid(
         b = array_utils.create_dummy_ndarray(chainerx, b_shape, float_dtype)
 
     with pytest.raises(chainerx.DimensionError):
-        chainerx.conv_transpose(x, w, b, stride, pad, outsize)
+        chainerx.conv_transpose(x, w, b, stride=stride, pad=pad, dilate=1,
+                                outsize=outsize)
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
