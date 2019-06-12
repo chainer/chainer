@@ -25,6 +25,7 @@ namespace python {
 namespace python_internal {
 
 namespace py = pybind11;
+using namespace py::literals;
 
 using ArrayBodyPtr = std::shared_ptr<internal::ArrayBody>;
 
@@ -230,11 +231,11 @@ void InitChainerxChainerInterop(pybind11::module& m) {
               }
               bb.Finalize();
           },
-          py::arg("function_node"),
-          py::arg("inputs"),
-          py::arg("outputs"),
-          py::arg("input_indexes_to_retain"),
-          py::arg("output_indexes_to_retain"));
+          "function_node"_a,
+          "inputs"_a,
+          "outputs"_a,
+          "input_indexes_to_retain"_a,
+          "output_indexes_to_retain"_a);
 }
 
 }  // namespace python_internal
