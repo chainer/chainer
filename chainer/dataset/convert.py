@@ -1,5 +1,4 @@
 import collections
-import functools
 
 import numpy
 import six
@@ -7,6 +6,42 @@ import six
 import chainer
 from chainer import backend
 from chainer.backends import cuda
+
+
+class Converter(object):
+
+    """Base class of converters."""
+
+    def __call__(self, batch, device):
+        raise NotImplementedError(
+            'Concrete class must implement __call__.')
+
+
+class _ArbitraryCallableConverter(Converter):
+    """Converter to wrap a callable with arbitrary arguments.
+
+    This class accepts arbitrary arguments and pass-through to the underlying
+    callable, with device argument replaced.
+    """
+
+    def __init__(self, base_callable):
+        if not callable(base_callable):
+            raise TypeError(
+                'Can only wrap a callable. Actual: {}'.format(
+                    type(base_callable)))
+        self.base_callable = base_callable
+
+    def __call__(self, *args, **kwargs):
+        base_callable = self.base_callable
+
+        # Normalize the 'device' argument
+        if len(args) >= 2:
+            # specified as a positional argument
+            args = list(args)
+            args[1] = _get_device(args[1])
+        elif 'device' in kwargs:
+            kwargs['device'] = _get_device(kwargs['device'])
+        return base_callable(*args, **kwargs)
 
 
 def converter():
@@ -44,20 +79,7 @@ def converter():
     """
 
     def wrap(func):
-        func.__is_decorated_converter = True
-
-        @functools.wraps(func)
-        def wrap_call(*args, **kwargs):
-            # Normalize the 'device' argument
-            if len(args) >= 2:
-                # specified as a positional argument
-                args = list(args)
-                args[1] = _get_device(args[1])
-            elif 'device' in kwargs:
-                kwargs['device'] = _get_device(kwargs['device'])
-            return func(*args, **kwargs)
-
-        return wrap_call
+        return _ArbitraryCallableConverter(func)
 
     return wrap
 
@@ -68,7 +90,7 @@ def _call_converter(converter, batch, device):
     # old-style (accepts int as device).
     assert device is None or isinstance(device, backend.Device)
 
-    if getattr(converter, '__is_decorated_converter', False):
+    if isinstance(converter, Converter):
         # New-style converter
         return converter(batch, device)
 
