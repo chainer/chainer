@@ -26,6 +26,7 @@ from chainer import warnings  # NOQA
 
 # import class and function
 # These functions from backends.cuda are kept for backward compatibility
+from chainer._backprop import backward  # NOQA
 from chainer._runtime_info import print_runtime_info  # NOQA
 from chainer.backend import get_device  # NOQA
 from chainer.backend import using_device  # NOQA

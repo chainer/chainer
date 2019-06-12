@@ -50,7 +50,7 @@ private:
 
 void InitChainerxDeviceBuffer(pybind11::module& m) {
     py::class_<PyDeviceBuffer> c{m, "_DeviceBuffer", py::buffer_protocol()};
-    c.def(py::init([](const py::list& list, const py::tuple& shape_tup, const py::handle& dtype_handle, const py::handle& device) {
+    c.def(py::init([](const py::list& list, py::handle shape_tup, const py::handle& dtype_handle, const py::handle& device) {
               Shape shape = python_internal::ToShape(shape_tup);
               int64_t total_size = shape.GetTotalSize();
               if (static_cast<size_t>(total_size) != list.size()) {

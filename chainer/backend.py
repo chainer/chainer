@@ -153,7 +153,10 @@ def get_device(device_spec):
             elif mod_name == 'intel64':
                 if not colon:
                     return intel64.Intel64Device()
-
+            raise ValueError(
+                'Device specifiers starting with \'@\' must be followed by'
+                ' a module name and depending on the module, module specific'
+                ' precise device specifiers. Actual: {}'.format(device_spec))
         else:
             # String device specifier without '@' prefix is assumed to be a
             # ChainerX device.
@@ -166,7 +169,10 @@ def get_device(device_spec):
                     'specifiers.'.format(device_spec))
             return _chainerx.ChainerxDevice(chainerx.get_device(device_spec))
 
-    raise ValueError('Invalid device specifier: {}'.format(device_spec))
+    raise TypeError(
+        'Device specifier must be a backend.Device, cuda.Device,'
+        ' chainerx.Device, integer or a string. Actual: {}'.format(
+            type(device_spec)))
 
 
 def _get_device_cupy_or_numpy(device_spec):
