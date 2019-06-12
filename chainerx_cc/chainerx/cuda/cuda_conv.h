@@ -13,9 +13,9 @@
 #include "chainerx/array.h"
 #include "chainerx/constant.h"
 #include "chainerx/cuda/cudnn.h"
+#include "chainerx/dims.h"
 #include "chainerx/dtype.h"
 #include "chainerx/shape.h"
-#include "chainerx/stack_vector.h"
 
 namespace chainerx {
 namespace cuda {
@@ -34,8 +34,8 @@ public:
             const Array& x,
             const Array& w,
             const nonstd::optional<Array>& b,
-            const StackVector<int64_t, kMaxNdim>& stride,
-            const StackVector<int64_t, kMaxNdim>& pad,
+            const Dims& stride,
+            const Dims& pad,
             int groups,
             bool cover_all,
             Dtype out_dtype);
@@ -44,10 +44,10 @@ public:
             const Array& x,
             const Array& w,
             const nonstd::optional<Array>& b,
-            const StackVector<int64_t, kMaxNdim>& stride,
-            const StackVector<int64_t, kMaxNdim>& pad,
+            const Dims& stride,
+            const Dims& pad,
             int groups,
-            const StackVector<int64_t, kMaxNdim>& out_size,
+            const Dims& out_size,
             Dtype out_dtype);
     Array ConvGradWeight(
             CudaDevice& device,
@@ -55,8 +55,8 @@ public:
             const Shape& w_shape,
             const Array& x,
             const Array& gy,
-            const StackVector<int64_t, kMaxNdim>& stride,
-            const StackVector<int64_t, kMaxNdim>& pad,
+            const Dims& stride,
+            const Dims& pad,
             int groups,
             bool cover_all);
 
@@ -73,8 +73,8 @@ private:
             const CudnnTensorDescriptor& y_desc,
             const Array& y,
             size_t max_workspace_size,
-            const StackVector<int64_t, kMaxNdim>& pad,
-            const StackVector<int64_t, kMaxNdim>& stride,
+            const Dims& pad,
+            const Dims& stride,
             int groups);
     std::tuple<cudnnConvolutionBwdDataAlgo_t, size_t, cudnnMathType_t> FindConvolutionBackwardDataAlgorithm(
             CudnnHandle& handle,
@@ -86,8 +86,8 @@ private:
             const CudnnTensorDescriptor& y_desc,
             const Array& y,
             size_t max_workspace_size,
-            const StackVector<int64_t, kMaxNdim>& pad,
-            const StackVector<int64_t, kMaxNdim>& stride,
+            const Dims& pad,
+            const Dims& stride,
             int groups);
     std::tuple<cudnnConvolutionBwdFilterAlgo_t, size_t, cudnnMathType_t> FindConvolutionBackwardFilterAlgorithm(
             CudnnHandle& handle,
@@ -99,16 +99,16 @@ private:
             const CudnnFilterDescriptor& gw_desc,
             const Array& gw,
             size_t max_workspace_size,
-            const StackVector<int64_t, kMaxNdim>& pad,
-            const StackVector<int64_t, kMaxNdim>& stride,
+            const Dims& pad,
+            const Dims& stride,
             int groups);
 
     struct AlgoCacheKey {
         Shape x_shape;
         Shape w_shape;
         Shape y_shape;
-        StackVector<int64_t, kMaxNdim> pad;
-        StackVector<int64_t, kMaxNdim> stride;
+        Dims pad;
+        Dims stride;
         int groups;
         Dtype dtype;
         size_t max_workspace_size;

@@ -12,6 +12,7 @@
 #include "chainerx/array.h"
 #include "chainerx/axes.h"
 #include "chainerx/device.h"
+#include "chainerx/dims.h"
 #include "chainerx/dtype.h"
 #include "chainerx/error.h"
 #include "chainerx/indexable_array.h"
@@ -25,7 +26,6 @@
 #include "chainerx/native/tensor_dot.h"
 #include "chainerx/routines/manipulation.h"
 #include "chainerx/shape.h"
-#include "chainerx/stack_vector.h"
 
 namespace chainerx {
 namespace native {
@@ -37,8 +37,8 @@ public:
             const Array& x,
             const Array& w,
             const nonstd::optional<Array>& b,
-            const StackVector<int64_t, kMaxNdim>& stride,
-            const StackVector<int64_t, kMaxNdim>& pad,
+            const Dims& stride,
+            const Dims& pad,
             int groups,
             bool cover_all,
             Dtype out_dtype,
@@ -51,7 +51,7 @@ public:
         int8_t ndim = w.ndim() - 2;  // Number of spatial dimensions
 
         // Compute the kernel size from the weight array.
-        StackVector<int64_t, kMaxNdim> kernel_size;
+        Dims kernel_size;
         std::copy_n(w.shape().begin() + 2, ndim, std::back_inserter(kernel_size));
 
         if (groups > 1) {
@@ -70,7 +70,7 @@ public:
 
             // Convert to colum representation of shape (batch_size, channel, k_1, k_2, ..., k_n, out_1, out_2, ..., out_n).
             Array nx = native_internal::Im2Col(x, kernel_size, stride, pad, cover_all, 0);
-            StackVector<int64_t, kMaxNdim> const o_size(nx.shape().end() - ndim, nx.shape().end());
+            Dims const o_size(nx.shape().end() - ndim, nx.shape().end());
 
             nx = RollAxis(nx, 0, ndim + 2);
             int64_t const mul_len = iCg * std::accumulate(kernel_size.begin(), kernel_size.end(), 1, std::multiplies<int64_t>());
@@ -139,8 +139,8 @@ public:
             const Shape& w_shape,
             const Array& x,
             const Array& gy,
-            const StackVector<int64_t, kMaxNdim>& stride,
-            const StackVector<int64_t, kMaxNdim>& pad,
+            const Dims& stride,
+            const Dims& pad,
             int groups,
             bool cover_all,
             const nonstd::optional<Array>& out) override {
@@ -154,7 +154,7 @@ public:
         int8_t ndim = x.ndim() - 2;  // Number of spatial dimensions
 
         // Compute the kernel size
-        StackVector<int64_t, kMaxNdim> kernel_size{w_shape.begin() + 2, w_shape.end()};
+        Dims kernel_size{w_shape.begin() + 2, w_shape.end()};
 
         if (groups > 1) {
             int64_t G = groups;
@@ -218,10 +218,10 @@ public:
             const Array& x,
             const Array& w,
             const nonstd::optional<Array>& b,
-            const StackVector<int64_t, kMaxNdim>& stride,
-            const StackVector<int64_t, kMaxNdim>& pad,
+            const Dims& stride,
+            const Dims& pad,
             int groups,
-            const StackVector<int64_t, kMaxNdim>& out_size,
+            const Dims& out_size,
             Dtype out_dtype,
             const nonstd::optional<Array>& out) override {
         // TODO(niboshi): Implement and test the `out` argument.

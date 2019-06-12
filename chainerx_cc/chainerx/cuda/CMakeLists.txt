@@ -28,7 +28,7 @@ CUDA_ADD_LIBRARY(chainerx_cuda STATIC
     cuda_device/binary.cu
     cuda_device/conv.cc
     cuda_device/copy.cu
-    cuda_device/comparison.cu
+    cuda_device/logic.cu
     cuda_device/dot.cu
     cuda_device/exp_log.cu
     cuda_device/fill.cu
