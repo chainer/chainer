@@ -5,8 +5,8 @@
 #include <type_traits>
 
 #include <cublas_v2.h>
+#include <cuda_fp16.h>
 #include <cuda_runtime.h>
-#include <cuda_fp16.hpp>
 
 #include "chainerx/array.h"
 #include "chainerx/axes.h"
