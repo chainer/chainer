@@ -40,6 +40,7 @@ public:
     void Call(const Array& a, const Array& out) override {
         Device& device = a.device();
         device.CheckDevicesCompatible(a, out);
+        Dtype dtype = a.dtype();
         CudaSetDeviceScope scope{device.index()};
 
         CHAINERX_ASSERT(a.ndim() == 2);
