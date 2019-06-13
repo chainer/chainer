@@ -110,7 +110,7 @@ class TestCholesky(op_utils.NumpyOpTest):
 
     def setup(self):
         device = chainerx.get_default_device()
-        if device.name == 'native:0':
+        if device.backend.name == 'native':
             pytest.skip('CPU Cholesky is not implemented')
 
     def generate_inputs(self):
@@ -138,13 +138,14 @@ class TestCholesky(op_utils.NumpyOpTest):
 ))
 class TestCholeskyFailing(op_utils.NumpyOpTest):
 
+    forward_accept_errors = (numpy.linalg.LinAlgError,
+                             chainerx.ChainerxError,
+                             chainerx.DimensionError)
+
     def setup(self):
         device = chainerx.get_default_device()
-        if device.name == 'native:0':
+        if device.backend.name == 'native':
             pytest.skip('CPU Cholesky is not implemented')
-        self.forward_accept_errors = (numpy.linalg.LinAlgError,
-                                      chainerx.ChainerxError,
-                                      chainerx.DimensionError)
 
     def generate_inputs(self):
         a = numpy.random.random(self.shape).astype(self.in_dtypes)
