@@ -18,7 +18,7 @@ class Unspecified(object):
 
 
 def _create_conv_args(
-        xp, device, x_shape, w_shape, b_shape, stride, pad, cover_all,
+        xp, device, x_shape, w_shape, b_shape, stride, pad, cover_all, groups,
         float_dtype):
     x = array_utils.create_dummy_ndarray(xp, x_shape, float_dtype)
     w = array_utils.create_dummy_ndarray(xp, w_shape, float_dtype)
@@ -28,7 +28,7 @@ def _create_conv_args(
         b = array_utils.create_dummy_ndarray(xp, b_shape, float_dtype)
     if device.backend.name == 'cuda':  # cover_all is not supported by CUDA.
         cover_all = False
-    return x, w, b, stride, pad, cover_all
+    return x, w, b, stride, pad, groups, cover_all
 
 
 def _convert_to_nhwc_layout(array):
