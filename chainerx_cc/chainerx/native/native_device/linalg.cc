@@ -29,7 +29,6 @@ namespace native {
 class NativeSVDKernel : public SVDKernel {
 public:
     std::tuple<Array, Array, Array> Call(const Array& a, bool full_matrices = true, bool compute_uv = true) override {
-
         if (a.ndim() != 2) {
             throw DimensionError{"ChainerX SVD decomposition supports only 2-dimensional arrays."};
         }
@@ -37,7 +36,8 @@ public:
         throw NotImplementedError("SVD decomposition is not yet implemented for native device");
 
         if (full_matrices || compute_uv) {
-            throw NotImplementedError("SVD decomposition is not yet implemented for native device");;
+            throw NotImplementedError("SVD decomposition is not yet implemented for native device");
+            ;
         }
     }
 };
@@ -47,13 +47,11 @@ CHAINERX_NATIVE_REGISTER_KERNEL(SVDKernel, NativeSVDKernel);
 class NativePseudoInverseKernel : public PseudoInverseKernel {
 public:
     void Call(const Array& a, const Array& out, float rcond = 1e-15) override {
-
         if (a.ndim() != 2 || out.ndim() != 2 || rcond != 1.0) {
             throw DimensionError{"ChainerX pseudo-inverse supports only 2-dimensional arrays."};
         }
 
         throw NotImplementedError("PseudoInverse is not yet implemented for native device");
-
     }
 };
 

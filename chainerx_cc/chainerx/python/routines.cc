@@ -342,22 +342,24 @@ void InitChainerxLinalg(pybind11::module& m) {
           py::arg("b"));
 
     pybind11::module mlinalg = m.def_submodule("linalg");
-    mlinalg.def("svd",
-                [](const ArrayBodyPtr& a, bool full_matrices, bool compute_uv) {
-                    std::tuple<Array, Array, Array> usv = SVD(Array{a}, full_matrices, compute_uv);
-                    Array u = std::get<0>(usv);
-                    Array s = std::get<1>(usv);
-                    Array v = std::get<2>(usv);
-                    return std::make_tuple(MoveArrayBody(Array{u}), MoveArrayBody(Array{s}), MoveArrayBody(Array{v}));
-                },
-                py::arg("a"),
-                py::arg("full_matrices") = 1,
-                py::arg("compute_uv") = 1);
+    mlinalg.def(
+            "svd",
+            [](const ArrayBodyPtr& a, bool full_matrices, bool compute_uv) {
+                std::tuple<Array, Array, Array> usv = SVD(Array{a}, full_matrices, compute_uv);
+                Array u = std::get<0>(usv);
+                Array s = std::get<1>(usv);
+                Array v = std::get<2>(usv);
+                return std::make_tuple(MoveArrayBody(Array{u}), MoveArrayBody(Array{s}), MoveArrayBody(Array{v}));
+            },
+            py::arg("a"),
+            py::arg("full_matrices") = 1,
+            py::arg("compute_uv") = 1);
 
-    mlinalg.def("pinv",
-                [](const ArrayBodyPtr& a, float rcond) { return MoveArrayBody(PseudoInverse(Array{a}, rcond)); },
-                py::arg("a"),
-                py::arg("rcond") = 1e-15);
+    mlinalg.def(
+            "pinv",
+            [](const ArrayBodyPtr& a, float rcond) { return MoveArrayBody(PseudoInverse(Array{a}, rcond)); },
+            py::arg("a"),
+            py::arg("rcond") = 1e-15);
 }
 
 void InitChainerxLogic(pybind11::module& m) {

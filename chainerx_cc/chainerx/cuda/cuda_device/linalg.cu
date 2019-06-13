@@ -4,9 +4,9 @@
 #include <mutex>
 #include <type_traits>
 
-#include <cusolverDn.h>
 #include <cublas_v2.h>
 #include <cuda_runtime.h>
+#include <cusolverDn.h>
 #include <cuda_fp16.hpp>
 
 #include "chainerx/array.h"
@@ -14,9 +14,9 @@
 #include "chainerx/backend.h"
 #include "chainerx/backend_util.h"
 #include "chainerx/cuda/cublas.h"
-#include "chainerx/cuda/cusolver.h"
 #include "chainerx/cuda/cuda_runtime.h"
 #include "chainerx/cuda/cuda_set_device_scope.h"
+#include "chainerx/cuda/cusolver.h"
 #include "chainerx/cuda/data_type.cuh"
 #include "chainerx/cuda/float16.cuh"
 #include "chainerx/cuda/kernel_regist.h"
@@ -94,13 +94,11 @@ public:
             T* u_ptr = static_cast<T*>(internal::GetRawOffsetData(u));
             T* vt_ptr = static_cast<T*>(internal::GetRawOffsetData(vt));
 
-            int *devInfo;
+            int* devInfo;
             CheckCudaError(cudaMalloc(&devInfo, sizeof(int)));
 
             int buffersize = 0;
-            device_internals.cusolver_handle().Call(
-                gesvd_bufferSize,
-                m, n, &buffersize);
+            device_internals.cusolver_handle().Call(gesvd_bufferSize, m, n, &buffersize);
 
             Array work = Empty(Shape({buffersize}), dtype, device);
             T* work_ptr = static_cast<T*>(internal::GetRawOffsetData(work));
@@ -113,10 +111,7 @@ public:
             }
 
             device_internals.cusolver_handle().Call(
-                gesvd,
-                job, job, m, n, x_ptr, m,
-                s_ptr, u_ptr, m, vt_ptr, n,
-                work_ptr, buffersize, nullptr, devInfo);
+                    gesvd, job, job, m, n, x_ptr, m, s_ptr, u_ptr, m, vt_ptr, n, work_ptr, buffersize, nullptr, devInfo);
 
             int devInfo_h = 0;
             CheckCudaError(cudaMemcpy(&devInfo_h, devInfo, sizeof(int), cudaMemcpyDeviceToHost));
@@ -137,7 +132,6 @@ public:
             CHAINERX_ASSERT(a.dtype() == Dtype::kFloat64);
             return svd_impl(PrimitiveType<double>{}, cusolverDnDgesvd_bufferSize, cusolverDnDgesvd);
         }
-
     }
 };
 
@@ -170,7 +164,6 @@ public:
         std::vector<ArrayIndex> indices{Slice{}, NewAxis{}};
 
         device.backend().CallKernel<DotKernel>(vt.Transpose(), sinv.At(indices) * u.Transpose(), out);
-
     }
 };
 
