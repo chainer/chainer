@@ -1,5 +1,6 @@
 import chainer
 import numpy
+import pytest
 
 import chainerx
 import chainerx.testing
@@ -130,3 +131,48 @@ class TestSigmoid(op_utils.OpTest):
         x, = inputs
         y = numpy.asarray(numpy.reciprocal(1 + numpy.exp(-x))).astype(x.dtype)
         return y,
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    # Differentiable
+    chainer.testing.product({
+        'input': [
+            numpy.asarray(0.),
+            numpy.asarray(-1.),
+            numpy.asarray(1.),
+            numpy.asarray(10.),
+            numpy.full((), 2.),
+            numpy.full((0,), 2.),
+            numpy.full((2, 3), 2.)
+        ]})
+    +
+    # Nondifferentiable
+    chainer.testing.product({
+        'input': [
+            numpy.asarray(float('inf')),
+            numpy.asarray(float('nan')),
+        ],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True],
+    })
+))
+@pytest.mark.parametrize('contiguous', [None, 'C'])
+class TestSigmoidAlt(op_utils.NumpyOpTest):
+
+    def setup(self, contiguous, float_dtype):
+        self.dtype = float_dtype
+        self.contiguous = contiguous
+        self.check_forward_options = {'atol': 5e-3, 'rtol': 5e-3}
+
+        if float_dtype == 'float16':
+            self.check_backward_options = {'atol': 5e-4, 'rtol': 5e-3}
+            self.check_double_backward_options = {'atol': 5e-3, 'rtol': 5e-2}
+
+    def generate_inputs(self):
+        return self.input,
+
+    def forward_xp(self, inputs, xp):
+        if xp is numpy:
+            return 1 / (1 + numpy.exp(-inputs[0])),
+        return xp.sigmoid(inputs[0]),

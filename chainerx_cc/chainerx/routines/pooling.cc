@@ -20,7 +20,6 @@
 #include "chainerx/graph.h"
 #include "chainerx/kernels/pooling.h"
 #include "chainerx/routines/arithmetic.h"
-#include "chainerx/routines/math.h"
 #include "chainerx/routines/routines_util.h"
 
 namespace chainerx {
