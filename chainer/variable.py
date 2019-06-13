@@ -164,7 +164,7 @@ class VariableNode(object):
     :class:`~chainer.Variable`.
 
     Args:
-        variable (Variable): The corresponding variable object.
+        variable (~chainer.Variable): The corresponding variable object.
         name (str): Name of the variable node.
 
     Attributes:
@@ -340,7 +340,7 @@ class VariableNode(object):
         this node object and returns it.
 
         Returns:
-            Variable: The variable object that refers this node.
+            ~chainer.Variable: The variable object that refers this node.
 
         """
         var = self._variable()
@@ -358,7 +358,7 @@ class VariableNode(object):
         returns ``None``.
 
         Returns:
-            Variable: The variable object that refers this node.
+            ~chainer.Variable: The variable object that refers this node.
 
         """
         return self._variable()
@@ -855,7 +855,7 @@ class Variable(object):
 
     @array.setter
     def array(self, d):
-        # type: (types.NdArray) -> None
+        # type: (tp.Optional[types.NdArray]) -> None
 
         if self._has_chainerx_array:
             d_old = self._data[0]
@@ -937,6 +937,7 @@ class Variable(object):
 
     @property
     def grad(self):
+        # type: () -> tp.Optional[types.NdArray]
         """Gradient array of this variable.
 
         Note that this property returns the underlying array of the gradient
@@ -979,6 +980,7 @@ class Variable(object):
 
     @grad.setter
     def grad(self, g):
+        # type: (tp.Optional[types.NdArray]) -> None
         if g is not None:
             _check_grad_type(None, self, False, g)
         self._set_grad_without_check(g)
@@ -994,12 +996,14 @@ class Variable(object):
 
     @property
     def grad_var(self):
+        # type: () -> tp.Optional["Variable"]
         """Gradient variable."""
         self._ensure_grad_var_up_to_date()
         return self._grad_var
 
     @grad_var.setter
     def grad_var(self, g):
+        # type: (tp.Optional["Variable"]) -> None
         if g is not None:
             _check_grad_type(None, self, False, g.array)
         self._set_grad_var_without_check(g)
@@ -1261,7 +1265,7 @@ class Variable(object):
         does nothing.
 
         Args:
-            var (Variable): Source variable.
+            var (~chainer.Variable): Source variable.
 
         """
         src = var.array
@@ -1286,7 +1290,7 @@ class Variable(object):
         then accumulates the gradient.
 
         Args:
-            var (Variable): Source variable.
+            var (~chainer.Variable): Source variable.
 
         """
         # TODO(sonots): Implement for ChainerX
@@ -1372,7 +1376,8 @@ class Variable(object):
 
                 In most cases of training some models, the purpose of backprop
                 is to compute gradients of parameters, not of all variables,
-                and therefore it is recommended to set this flag ``False``.
+                and therefore it is recommended that this flag be set to
+                ``False``.
             enable_double_backprop (bool): *(Added in v3.0)* If ``True``,
                 computational trace of the whole backpropagation procedure is
                 recorded to the computational graph so that one can further do
@@ -1396,7 +1401,7 @@ class Variable(object):
                     'retain_grad is not supported for ChainerX array.')
             if loss_scale is not None:
                 raise RuntimeError(
-                    'loss_scale if not supported for ChainerX array.')
+                    'loss_scale is not supported for ChainerX array.')
             arr = self._data[0]
             assert isinstance(arr, chainerx.ndarray)
             chainerx.backward(
@@ -1614,7 +1619,10 @@ def _backprop_to_all(outputs, retain_grad, loss_scale):
             i for i, x in enumerate(inputs) if x.requires_grad
         ])
         outputs = [y() for y in func.outputs]  # access via weak ref
-        out_grad = tuple([grads.pop(y) for y in outputs])
+        out_grad = tuple([grads.pop(y)
+                          if y is not None and y.creator_node is not None
+                          else None
+                          for y in outputs])
         if not target_input_indexes:
             continue
 

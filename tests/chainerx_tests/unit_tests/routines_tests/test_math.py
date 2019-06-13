@@ -30,7 +30,7 @@ class UnaryMathTestBase(object):
 
         if in_dtype == 'float16':
             self.check_forward_options.update({'rtol': 1e-3, 'atol': 1e-3})
-            self.check_backward_options.update({'rtol': 1e-3, 'atol': 1e-3})
+            self.check_backward_options.update({'rtol': 3e-3, 'atol': 3e-3})
             self.check_double_backward_options.update(
                 {'rtol': 1e-2, 'atol': 1e-2})
 
@@ -1409,6 +1409,8 @@ def test_sum_invalid(is_module, xp, shape, axis, keepdims, dtype):
 ))
 class TestMinimumScalar(MathScalarTestBase, op_utils.NumpyOpTest):
 
+    dodge_nondifferentiable = True
+
     def func_scalar(self, xp, a, scalar):
         if self.is_scalar_rhs:
             return xp.minimum(a, scalar)
@@ -1455,6 +1457,8 @@ class TestMinimumScalar(MathScalarTestBase, op_utils.NumpyOpTest):
     })
 ))
 class TestMaximumScalar(MathScalarTestBase, op_utils.NumpyOpTest):
+
+    dodge_nondifferentiable = True
 
     def func_scalar(self, xp, a, scalar):
         if self.is_scalar_rhs:
@@ -1592,6 +1596,12 @@ class TestLogSumExp(UnaryMathTestBase, op_utils.NumpyOpTest):
 
     input = 'random'
 
+    def setup(self):
+        super().setup()
+        if self.in_dtypes == 'float16':
+            # TODO(imanishi): Support device implementation and remove this.
+            self.check_forward_options.update({'rtol': 3e-3, 'atol': 3e-3})
+
     def forward_xp(self, inputs, xp):
         x, = inputs
         axis = self.axis
@@ -1641,6 +1651,59 @@ def test_log_softmax_invalid(device, a_shape, axis, dtype):
     a = array_utils.create_dummy_ndarray(chainerx, a_shape, dtype)
     with pytest.raises(chainerx.DimensionError):
         return chainerx.log_softmax(a, axis=axis)
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    # Special shapes
+    chainer.testing.product({
+        'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
+        'in_dtypes,out_dtype': (
+            _make_same_in_out_dtypes(2, chainerx.testing.float_dtypes)),
+        'input_lhs': ['random'],
+        'input_rhs': ['random'],
+        'is_module': [False],
+    })
+    # Special values
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,out_dtype': (
+            _make_same_in_out_dtypes(2, chainerx.testing.float_dtypes)),
+        'input_lhs': ['random', float('inf'), -float('inf'), float('nan')],
+        'input_rhs': ['random', float('inf'), -float('inf'), float('nan')],
+        'is_module': [False],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True],
+    })
+))
+class TestSquaredDifference(op_utils.OpTest):
+
+    def setup(self):
+        x1_dtype, x2_dtype = self.in_dtypes
+
+        if x1_dtype == 'float16' or x2_dtype == 'float16':
+            self.check_forward_options.update({'atol': 3e-3, 'rtol': 3e-3})
+            self.check_backward_options.update({'atol': 1e-2, 'rtol': 5e-2})
+            self.check_double_backward_options.update(
+                {'atol': 1e-2, 'rtol': 5e-2})
+
+    def generate_inputs(self):
+        shape = self.shape
+        x1_dtype, x2_dtype = self.in_dtypes
+        x1 = array_utils.uniform(shape, x1_dtype)
+        x2 = array_utils.uniform(shape, x2_dtype)
+        return x1, x2
+
+    def forward_chainerx(self, inputs):
+        x1, x2 = inputs
+        y = chainerx.squared_difference(x1, x2)
+        return y,
+
+    def forward_expected(self, inputs):
+        x1, x2 = inputs
+        y = numpy.asarray(
+            numpy.square(numpy.subtract(x1, x2))).astype(x1.dtype)
+        return y,
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
@@ -1817,6 +1880,9 @@ class TestCos(UnaryMathTestBase, op_utils.NumpyOpTest):
 ))
 class TestTan(UnaryMathTestBase, op_utils.NumpyOpTest):
 
+    dodge_nondifferentiable = True
+    check_backward_options = {'atol': 3e-5}
+
     def func(self, xp, a):
         return xp.tan(a)
 
@@ -1891,6 +1957,30 @@ class TestArctan(UnaryMathTestBase, op_utils.NumpyOpTest):
 
     def func(self, xp, a):
         return xp.arctan(a)
+
+
+@chainerx.testing.numpy_chainerx_array_equal()
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('input', [
+    numpy.asarray(0.5),
+    numpy.asarray(-1.2),
+    numpy.asarray(10.9),
+    numpy.asarray(float('inf')),
+    numpy.asarray(-float('inf')),
+    numpy.asarray(float('nan')),
+    numpy.full((), 2.1),
+    numpy.full((0,), 2),
+    numpy.full((2, 3), 2.6),
+    numpy.full((1, 1), 1.01),
+    numpy.full((1, 1), 1.99),
+])
+@pytest.mark.parametrize('dtypes', _in_out_dtypes_math_functions)
+def test_ceil(xp, device, input, dtypes):
+    (in_dtype, ), out_dtype = dtypes
+    a = xp.array(input.astype(in_dtype))
+    a = xp.ceil(a)
+    a = dtype_utils.cast_if_numpy_array(xp, a, out_dtype)
+    return a
 
 
 @chainerx.testing.numpy_chainerx_array_equal()
@@ -2008,3 +2098,44 @@ def test_max_invalid_shapes_and_axis(device, array, axis, dtype, is_module):
             chainerx.max(a, axis)
         else:
             a.max(axis)
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    # Special shapes
+    chainer.testing.product({
+        'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
+        'in_dtypes,out_dtype': (
+            _make_same_in_out_dtypes(2, chainerx.testing.numeric_dtypes)),
+        'input_lhs': ['random'],
+        'input_rhs': ['random'],
+        'is_module': [False],
+    })
+    # is_module
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,out_dtype': (
+            _make_same_in_out_dtypes(2, chainerx.testing.numeric_dtypes)),
+        'input_lhs': ['random'],
+        'input_rhs': ['random'],
+        'is_module': [True, False],
+    })
+    # TODO(aksub99): Add tests for inf and NaN.
+))
+class TestMinimum(BinaryMathTestBase, op_utils.NumpyOpTest):
+
+    dodge_nondifferentiable = True
+
+    def func(self, xp, a, b):
+        return xp.minimum(a, b)
+
+
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('dtypes', _in_out_dtypes_arithmetic_invalid)
+def test_minimum_invalid_dtypes(device, dtypes):
+    (in_dtype1, in_dtype2), _ = dtypes
+    shape = (3, 2)
+    a = chainerx.array(array_utils.uniform(shape, in_dtype1))
+    b = chainerx.array(array_utils.uniform(shape, in_dtype2))
+    with pytest.raises(chainerx.DtypeError):
+        chainerx.minimum(a, b)

@@ -500,6 +500,8 @@ std::vector<Array> StackGrad(const Array& gout, int8_t axis) {
     Strides strides{gout.strides()};
     size_t dim = shape[axis];
     int64_t step = strides[axis];
+    int64_t offset = gout.offset();
+    bool is_empty = gout.GetTotalSize() == 0;
     shape.erase(shape.begin() + axis);
     strides.erase(strides.begin() + axis);
 
@@ -512,8 +514,11 @@ std::vector<Array> StackGrad(const Array& gout, int8_t axis) {
         Dtype dtype = gout.dtype();
         Device& device = gout.device();
         for (size_t i = 0; i < dim; ++i) {
-            gxs.emplace_back(internal::MakeArray(shape, strides, dtype, device, gout.data(), step * i));
+            gxs.emplace_back(internal::MakeArray(shape, strides, dtype, device, gout.data(), offset));
             gxs_refs.emplace_back(gxs.back());
+            if (!is_empty) {
+                offset += step;
+            }
         }
     }
 
@@ -541,9 +546,10 @@ Array Stack(const std::vector<Array>& arrays, int8_t axis) {
         throw DimensionError{"Need at least one array to stack"};
     }
 
-    Shape shape = arrays.front().shape();
-    Dtype dtype = arrays.front().dtype();
-    Device& device = arrays.front().device();
+    const Array& array = arrays.front();
+    Shape shape = array.shape();
+    Dtype dtype = array.dtype();
+    Device& device = array.device();
     uint8_t ndim = shape.ndim();
     axis = internal::NormalizeAxis(axis, ndim + 1);
 
@@ -566,15 +572,17 @@ Array Stack(const std::vector<Array>& arrays, int8_t axis) {
 
     Array out = internal::Empty(shape, dtype, strides, device);
 
-    int64_t step = strides[axis];
-    strides.erase(strides.begin() + axis);
-    {
-        NoBackpropModeScope scope{};
-        int64_t out_offset = 0;
-        for (const Array& array : arrays) {
-            Array sliced_out = internal::MakeArray(array.shape(), strides, dtype, device, out.data(), out_offset);
-            device.Copy(array, sliced_out);
-            out_offset += step;
+    if (out.GetTotalSize() != 0) {
+        int64_t step = strides[axis];
+        strides.erase(strides.begin() + axis);
+        {
+            NoBackpropModeScope scope{};
+            int64_t out_offset = 0;
+            for (const Array& array : arrays) {
+                Array sliced_out = internal::MakeArray(array.shape(), strides, dtype, device, out.data(), out_offset);
+                device.Copy(array, sliced_out);
+                out_offset += step;
+            }
         }
     }
 
@@ -648,13 +656,18 @@ std::vector<Array> Split(const Array& ary, int64_t sections, int8_t axis) {
     out_shape[axis_norm] = out_dim;
     int64_t out_stride = ary.strides()[axis_norm];
     int64_t out_offset = ary.offset();
+    bool is_empty = ary.GetTotalSize() == 0;
 
     std::vector<Array> out{};
     out.reserve(sections);
 
     for (int64_t i = 0; i < sections; ++i) {
         out.emplace_back(internal::MakeArray(out_shape, ary.strides(), ary.dtype(), ary.device(), ary.data(), out_offset));
-        out_offset += out_stride * out_dim;
+
+        // Empty arrays should all have offsets of 0 to e.g. avoid out-of-memory errors.
+        if (!is_empty) {
+            out_offset += out_stride * out_dim;
+        }
     }
 
     DefineSplitBackward(ary, out, axis_norm);
@@ -676,6 +689,7 @@ std::vector<Array> Split(const Array& ary, std::vector<int64_t> indices, int8_t 
     int64_t out_stride = ary.strides()[axis_norm];
     int64_t out_offset = ary.offset();
     int64_t slice_start = 0;
+    bool is_empty = ary.GetTotalSize() == 0;
 
     std::vector<Array> out{};
     out.reserve(indices.size());
@@ -689,7 +703,11 @@ std::vector<Array> Split(const Array& ary, std::vector<int64_t> indices, int8_t 
 
         out.emplace_back(internal::MakeArray(out_shape, ary.strides(), ary.dtype(), ary.device(), ary.data(), out_offset));
 
-        out_offset += out_stride * slice_step;
+        // Empty arrays should all have offsets of 0 to e.g. avoid out-of-memory errors.
+        if (!is_empty) {
+            out_offset += out_stride * slice_step;
+        }
+
         slice_start = slice_stop;
     }
 

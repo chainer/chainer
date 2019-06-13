@@ -70,10 +70,10 @@ class Link(device_resident.DeviceResident):
 
     .. note::
        Whereas arbitrary serializable objects can be registered as persistent
-       values, it is strongly recommended to just register values that should
-       be treated as results of learning. A typical example of persistent
-       values is ones computed during training and required for testing, e.g.
-       running statistics for batch normalization.
+       values, it is strongly recommended that you just register values that
+       should be treated as results of learning. A typical example of
+       persistent values is ones computed during training and required for
+       testing, e.g. running statistics for batch normalization.
 
     Parameters and persistent values are referred by their names. They can be
     accessed as attributes of the links. Link class itself manages the lists
@@ -329,11 +329,13 @@ class Link(device_resident.DeviceResident):
             shape (int or tuple of ints): Shape of the parameter array. If it
                 is omitted, the parameter variable is left uninitialized.
             dtype: Data type of the parameter array.
-            initializer: If it is not ``None``, the data is initialized with
-                the given initializer. If it is an array, the data is directly
-                initialized by it. If it is callable, it is used as a weight
-                initializer. Note that in these cases, ``dtype`` argument is
-                ignored.
+            initializer (:ref:`initializer <initializer>`): If it is not
+                ``None``, the data is initialized with the given initializer.
+                If it is an array, the data is directly initialized by it. If
+                it is callable, it is used as a weight initializer. Note that
+                in these cases, ``dtype`` argument is ignored. It can also be
+                a scalar, in which case the data array will be filled by this
+                scalar. Note that float32 is used in this case.
 
         """
         if name in self.__dict__:

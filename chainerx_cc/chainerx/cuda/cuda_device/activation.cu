@@ -63,6 +63,18 @@ struct IfGreaterElseASSAImpl {
 
 }  // namespace
 
+namespace {
+
+template <typename T>
+struct IfGreaterElseAAAAImpl {
+    using CudaType = cuda_internal::DataType<T>;
+    __device__ void operator()(int64_t /*i*/, CudaType x1, CudaType x2, CudaType pos, CudaType neg, CudaType& out) {
+        out = x1 > x2 ? pos : neg;
+    }
+};
+
+}  // namespace
+
 void CudaDevice::IfGreaterElseASSA(const Array& x1, Scalar x2, Scalar pos, const Array& neg, const Array& out) {
     CheckDevicesCompatible(x1, neg, out);
     Dtype x_dtype = ResultType(x1, x2);
@@ -78,6 +90,16 @@ void CudaDevice::IfGreaterElseASSA(const Array& x1, Scalar x2, Scalar pos, const
             Elementwise<const In, const Out, Out>(
                     IfGreaterElseASSAImpl<In, Out>{static_cast<CudaTypeIn>(x2), static_cast<CudaTypeOut>(pos)}, x1_cast, neg_cast, out);
         });
+    });
+}
+
+void CudaDevice::IfGreaterElseAAAA(const Array& x1, const Array& x2, const Array& pos, const Array& neg, const Array& out) {
+    CheckDevicesCompatible(x1, x2, pos, neg, out);
+    CudaSetDeviceScope scope{index()};
+    VisitDtype(out.dtype(), [&](auto pt) {
+        using T = typename decltype(pt)::type;
+        using CudaType = cuda_internal::DataType<T>;
+        Elementwise<const T, const T, const T, const T, T>(IfGreaterElseAAAAImpl<T>{}, x1, x2, pos, neg, out);
     });
 }
 

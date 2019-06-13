@@ -27,6 +27,15 @@ inline bool IsInf(double value) { return std::isinf(value); }
 inline bool IsInf(float value) { return std::isinf(value); }
 
 template <typename T>
+inline T Ceil(T x) {
+    return std::ceil(x);
+}
+template <>
+inline chainerx::Float16 Ceil<chainerx::Float16>(chainerx::Float16 x) {
+    return Float16{std::ceil(static_cast<float>(x))};
+}
+
+template <typename T>
 inline T Tanh(T x) {
     return std::tanh(x);
 }

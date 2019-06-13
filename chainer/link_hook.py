@@ -22,7 +22,7 @@ class _ForwardPreprocessCallbackArgs(object):
 
 
 class _ForwardPostprocessCallbackArgs(object):
-    """Callback data for LinkHook.forward_postrocess"""
+    """Callback data for LinkHook.forward_postprocess"""
 
     def __init__(self, link, forward_name, args, kwargs, out):
         # type: ('chainer.link.Link', str, tp.Tuple[tp.Any, ...], tp.Dict[str, tp.Any], tp.Any) -> None # NOQA

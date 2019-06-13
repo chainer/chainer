@@ -2357,15 +2357,18 @@ class TestLinkOverrideToDeviceMethods(unittest.TestCase):
 
             elif method_name == 'to_cpu':
                 def to_cpu(self):
+                    super(ChildLink, self).to_cpu()
                     self.to_method_called += 1
 
             elif method_name == 'to_gpu':
                 def to_gpu(self, device=None):
                     assert isinstance(device, (cuda.Device, int))
+                    super(ChildLink, self).to_gpu(device)
                     self.to_method_called += 1
 
             elif method_name == 'to_intel64':
                 def to_intel64(self):
+                    super(ChildLink, self).to_intel64()
                     self.to_method_called += 1
 
             else:

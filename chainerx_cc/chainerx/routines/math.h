@@ -81,6 +81,7 @@ Array Maximum(Scalar x1, const Array& x2);
 
 Array Minimum(const Array& x1, Scalar x2);
 Array Minimum(Scalar x1, const Array& x2);
+Array Minimum(const Array& x1, const Array& x2);
 
 Array Exp(const Array& x);
 Array Log(const Array& x);
@@ -96,6 +97,8 @@ Array LogSoftmax(const Array& x, const OptionalAxes& axis = nonstd::nullopt);
 Array Sigmoid(const Array& x);
 
 Array Square(const Array& x);
+
+Array SquaredDifference(const Array& x1, const Array& x2);
 
 Array Sqrt(const Array& x);
 
@@ -147,6 +150,13 @@ public:
     virtual void Call(const Array& x, const Array& out) = 0;
 };
 
+class CeilOp : public Op {
+public:
+    static const char* name() { return "Ceil"; }
+
+    virtual void Call(const Array& x, const Array& out) = 0;
+};
+
 Array Sin(const Array& x);
 
 Array Cos(const Array& x);
@@ -158,5 +168,7 @@ Array Arcsin(const Array& x);
 Array Arccos(const Array& x);
 
 Array Arctan(const Array& x);
+
+Array Ceil(const Array& x);
 
 }  // namespace chainerx

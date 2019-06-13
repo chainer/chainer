@@ -7,7 +7,9 @@
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
 #include "chainerx/native/elementwise.h"
+#include "chainerx/native/op_regist.h"
 #include "chainerx/numeric.h"
+#include "chainerx/routines/math.h"
 
 namespace chainerx {
 namespace native {
@@ -56,6 +58,24 @@ void NativeDevice::IsInf(const Array& x, const Array& out) {
         Elementwise<const T, bool>(Impl{}, x, out);
     });
 }
+
+class NativeCeilOp : public CeilOp {
+public:
+    void Call(const Array& x, const Array& out) override {
+        Device& device = x.device();
+        device.CheckDevicesCompatible(x, out);
+        const Array& x_cast = x.dtype() == out.dtype() ? x : x.AsType(out.dtype());
+        VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            struct Impl {
+                void operator()(int64_t /*i*/, T x, T& out) { out = chainerx::Ceil(x); }
+            };
+            Elementwise<const T, T>(Impl{}, x_cast, out);
+        });
+    }
+};
+
+CHAINERX_REGISTER_OP_NATIVE(CeilOp, NativeCeilOp);
 
 }  // namespace native
 }  // namespace chainerx

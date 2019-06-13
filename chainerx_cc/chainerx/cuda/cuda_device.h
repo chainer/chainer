@@ -52,6 +52,8 @@ private:
     std::queue<std::pair<cudaEvent_t, std::shared_ptr<void>>> queue_{};
 };
 
+// Keeps handles and other device internals.
+// These internals are exposed through `GetDeviceInternals` for CUDA internal usages.
 class DeviceInternals {
 public:
     DeviceInternals(const DeviceInternals&) = delete;
@@ -59,7 +61,7 @@ public:
     DeviceInternals& operator=(const DeviceInternals&) = delete;
     DeviceInternals& operator=(DeviceInternals&&) = delete;
 
-    explicit DeviceInternals(int index) : index_{index}, cublas_handle_{index}, cudnn_handle_{index} {}
+    explicit DeviceInternals(int device_index) : cublas_handle_{device_index}, cudnn_handle_{device_index} {}
 
     cuda_internal::CublasHandle& cublas_handle() { return cublas_handle_; }
 
@@ -68,8 +70,6 @@ public:
     cuda_internal::CudaConv& cuda_conv() { return cuda_conv_; }
 
 private:
-    int index_;
-
     cuda_internal::CublasHandle cublas_handle_;
 
     cuda_internal::CudnnHandle cudnn_handle_;
@@ -151,6 +151,7 @@ public:
     void IfLessElseASSA(const Array& x1, Scalar x2, Scalar pos, const Array& neg, const Array& out) override;
 
     void IfGreaterElseASSA(const Array& x1, Scalar x2, Scalar pos, const Array& neg, const Array& out) override;
+    void IfGreaterElseAAAA(const Array& x1, const Array& x2, const Array& pos, const Array& neg, const Array& out) override;
 
     void Tanh(const Array& x, const Array& out) override;
 
@@ -215,15 +216,6 @@ public:
             const StackVector<int64_t, kMaxNdim>& pad,
             AveragePoolPadMode pad_mode) override;
 
-    // batch_norm.cc
-
-    std::unique_ptr<BatchNormForwardBackward> GetBatchNormForwardBackward(
-            const Array& running_mean, const Array& running_var, Scalar eps, Scalar decay, const Axes& axis) override;
-
-    Array FixedBatchNorm(
-            const Array& x, const Array& gamma, const Array& beta, const Array& mean, const Array& var, Scalar eps, const Axes& axis)
-            override;
-
 protected:
     CudaDevice(CudaBackend& backend, int index)
         : Device{backend, index},
@@ -251,9 +243,9 @@ private:
     // TODO(hvy): Consider checking if pinned memory is available by querying canMapHostMemory.
     std::shared_ptr<MemoryPool> pinned_memory_pool_;
 
-    // Memory keeper.
     cuda_internal::DeviceInternals device_internals_;
 
+    // Memory keeper.
     cuda_internal::MemoryKeeper memory_keeper_{};
 };
 

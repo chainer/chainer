@@ -219,9 +219,9 @@ class FunctionNode(object):
 Chainer's built-in function class object ({}) which is derived from \
 chainer.FunctionNode has been called as if it were a callable. \
 Use FunctionNode.apply() method instead.
-Furthermore, it's not recommended to use built-in function classes directly; \
-use corresponding function aliases (those with snake_case name, such as \
-F.convolution_nd) instead.\
+Furthermore, it's not recommended that you use built-in function classes \
+directly; use corresponding function aliases (those with snake_case name, \
+such as F.convolution_nd) instead.\
 '''.format(self.__class__.__name__)
         else:
             msg = '''\
@@ -1107,7 +1107,9 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads, loss_scale):
 
         # Collect the gradients w.r.t. the outputs
         ys = [y() for y in func.outputs]  # access via weak ref
-        gys = tuple([grads.pop(y) for y in ys])
+        gys = tuple([grads.pop(y)
+                     if y is not None and y.creator_node is not None else None
+                     for y in ys])
 
         for node, gy in six.moves.zip(ys, gys):
             if node is not None:

@@ -10,6 +10,7 @@ This is Socher's simple recursive model, not RTNN:
 
 import argparse
 import collections
+import warnings
 
 import numpy as np
 
@@ -122,6 +123,10 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--gpu', '-g', default=-1, type=int,
                         help='GPU ID (negative value indicates CPU)')
+    parser.add_argument('--out', '-o', default='result', type=str,
+                        help='Directory to ouput the result')
+    parser.add_argument('--resume', '-r', type=str,
+                        help='Resume the training from snapshot')
     parser.add_argument('--epoch', '-e', default=400, type=int,
                         help='number of epochs to learn')
     parser.add_argument('--unit', '-u', default=30, type=int,
@@ -135,6 +140,10 @@ def main():
     parser.add_argument('--test', dest='test', action='store_true')
     parser.set_defaults(test=False)
     args = parser.parse_args()
+
+    if chainer.get_dtype() == np.float16:
+        warnings.warn(
+            'This example may cause NaN in FP16 mode.', RuntimeWarning)
 
     n_epoch = args.epoch       # number of epochs
     n_units = args.unit        # number of units per layer
@@ -161,6 +170,7 @@ def main():
     model = RecursiveNet(len(vocab), n_units, n_label)
 
     if args.gpu >= 0:
+        cuda.get_device_from_id(args.gpu).use()
         model.to_gpu()
 
     # Setup optimizer
@@ -176,7 +186,7 @@ def main():
         train_iter, optimizer, device=args.gpu, converter=_convert)
 
     # Setup trainer and run
-    trainer = chainer.training.Trainer(updater, (n_epoch, 'epoch'))
+    trainer = chainer.training.Trainer(updater, (n_epoch, 'epoch'), args.out)
     trainer.extend(
         extensions.Evaluator(validation_iter, model, device=args.gpu,
                              converter=_convert),
@@ -192,6 +202,13 @@ def main():
     trainer.extend(extensions.PrintReport(
         ['epoch', 'main/loss', 'validation/main/loss',
          'main/accuracy', 'validation/main/accuracy', 'elapsed_time']))
+
+    trainer.extend(
+        extensions.snapshot(filename='snapshot_epoch_{.updater.epoch}'),
+        trigger=(epoch_per_eval, 'epoch'))
+
+    if args.resume is not None:
+        chainer.serializers.load_npz(args.resume, trainer)
     trainer.run()
 
     print('Test evaluation')

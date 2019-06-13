@@ -3,6 +3,7 @@
 """
 import argparse
 import os
+import warnings
 
 import numpy as np
 
@@ -16,9 +17,9 @@ import net
 
 def main():
     parser = argparse.ArgumentParser(description='Chainer example: VAE')
-    parser.add_argument('--initmodel', '-m', default='',
+    parser.add_argument('--initmodel', '-m', type=str,
                         help='Initialize the model from given file')
-    parser.add_argument('--resume', '-r', default='',
+    parser.add_argument('--resume', '-r', type=str,
                         help='Resume the optimization from snapshot')
     parser.add_argument('--device', '-d', type=str, default='-1',
                         help='Device specifier. Either ChainerX device '
@@ -51,6 +52,10 @@ def main():
                        help='GPU ID (negative value indicates CPU)')
     args = parser.parse_args()
 
+    if chainer.get_dtype() == np.float16:
+        warnings.warn(
+            'This example may cause NaN in FP16 mode.', RuntimeWarning)
+
     device = chainer.get_device(args.device)
     device.use()
 
@@ -74,7 +79,7 @@ def main():
     optimizer.setup(avg_elbo_loss)
 
     # Initialize
-    if args.initmodel:
+    if args.initmodel is not None:
         chainer.serializers.load_npz(args.initmodel, avg_elbo_loss)
 
     # Load the MNIST dataset
@@ -111,7 +116,7 @@ def main():
          'main/reconstr', 'main/kl_penalty', 'elapsed_time']))
     trainer.extend(extensions.ProgressBar())
 
-    if args.resume:
+    if args.resume is not None:
         chainer.serializers.load_npz(args.resume, trainer)
 
     # Run the training
