@@ -2261,6 +2261,53 @@ class TestVariableBackwardErrorTraceback(unittest.TestCase):
         y.backward()
 
 
+class TestVariableBackwardChx(unittest.TestCase):
+
+    # NOTE(kataoka): The main purpose is xfail. Backprop through mixed
+    # (ChainerX and non-ChainerX) backends has not been supported.
+
+    def check_backward(self, xp, num_to_chx):
+        arrays = [xp.array(3 + i, dtype=xp.float32) for i in range(2)]
+        for i in range(num_to_chx):
+            arrays[i] = backend.to_chx(arrays[i])
+        variables = [chainer.Variable(a) for a in arrays]
+        x0, x1 = variables
+        y = x0 + x1
+        assert y.device == x0.device
+        y.backward()
+        assert x0.grad is not None
+        testing.assert_allclose(x0.grad, 1)
+        assert x1.grad is not None
+        testing.assert_allclose(x1.grad, 1)
+
+    def test_cpu_backward0(self):
+        self.check_backward(np, 0)
+
+    @pytest.mark.xfail(strict=True)
+    @attr.chainerx
+    def test_cpu_backward1(self):
+        self.check_backward(np, 1)
+
+    @attr.chainerx
+    def test_cpu_backward2(self):
+        self.check_backward(np, 2)
+
+    @attr.gpu
+    def test_gpu_backward0(self):
+        self.check_backward(cuda.cupy, 0)
+
+    @pytest.mark.xfail(strict=True)
+    @attr.chainerx
+    @attr.gpu
+    def test_gpu_backward1(self):
+        self.check_backward(cuda.cupy, 1)
+
+    @attr.chainerx
+    @attr.gpu
+    def test_gpu_backward2(self):
+        self.check_backward(cuda.cupy, 2)
+
+
 @testing.parameterize(*testing.product({
     'in_shape': [(4, 3, 2)],
     'out_shape': [(2, 2, 6), (2, -1, 6), 24, (-1,), [2, 12]],
