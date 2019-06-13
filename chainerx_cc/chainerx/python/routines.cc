@@ -20,6 +20,7 @@
 #include "chainerx/routines/binary.h"
 #include "chainerx/routines/connection.h"
 #include "chainerx/routines/creation.h"
+#include "chainerx/routines/explog.h"
 #include "chainerx/routines/hyperbolic.h"
 #include "chainerx/routines/indexing.h"
 #include "chainerx/routines/linalg.h"
