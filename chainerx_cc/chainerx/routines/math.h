@@ -13,8 +13,4 @@ Array Sigmoid(const Array& x);
 
 Array Relu(const Array& x);
 
-Array Ceil(const Array& x);
-
-Array Floor(const Array& x);
-
 }  // namespace chainerx
