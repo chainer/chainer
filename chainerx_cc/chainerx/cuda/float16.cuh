@@ -1,6 +1,6 @@
 #pragma once
 
-#include <cuda_fp16.hpp>
+#include <cuda_fp16.h>
 
 #include "chainerx/float16.h"
 #include "chainerx/scalar.h"

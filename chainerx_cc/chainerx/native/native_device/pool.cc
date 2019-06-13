@@ -16,7 +16,6 @@
 #include "chainerx/error.h"
 #include "chainerx/kernels/arithmetic.h"
 #include "chainerx/kernels/indexing.h"
-#include "chainerx/kernels/math.h"
 #include "chainerx/kernels/pooling.h"
 #include "chainerx/kernels/reduction.h"
 #include "chainerx/macro.h"
