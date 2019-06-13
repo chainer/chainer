@@ -1,9 +1,5 @@
 #include "chainerx/cuda/cusolver.h"
 
-<<<<<<< HEAD
-#include <cublas_v2.h>
-=======
->>>>>>> ivan-add-cusolver-handle
 #include <cusolverDn.h>
 #include <cuda_runtime.h>
 
