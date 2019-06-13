@@ -169,7 +169,7 @@ public:
                     int64_t row = i % m;
                     int64_t col = i / m;
                     out = row <= col + k ? T{1} : T{0};
-                    }
+                }
                 int64_t m;
                 int64_t k;
             };

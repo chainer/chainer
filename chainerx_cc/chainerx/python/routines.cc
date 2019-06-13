@@ -293,14 +293,8 @@ void InitChainerxCreation(pybind11::module& m) {
           py::arg("k") = 0,
           py::arg("dtype") = "float64",
           py::arg("device") = nullptr);
-    m.def("tril",
-          [](const ArrayBodyPtr& m, int64_t k) { return MoveArrayBody(Tril(Array{m}, k)); },
-          py::arg("m"),
-          py::arg("k") = 0);
-    m.def("triu",
-          [](const ArrayBodyPtr& m, int64_t k) { return MoveArrayBody(Triu(Array{m}, k)); },
-          py::arg("m"),
-          py::arg("k") = 0);
+    m.def("tril", [](const ArrayBodyPtr& m, int64_t k) { return MoveArrayBody(Tril(Array{m}, k)); }, py::arg("m"), py::arg("k") = 0);
+    m.def("triu", [](const ArrayBodyPtr& m, int64_t k) { return MoveArrayBody(Triu(Array{m}, k)); }, py::arg("m"), py::arg("k") = 0);
 }
 
 void InitChainerxIndexing(pybind11::module& m) {
@@ -362,9 +356,7 @@ void InitChainerxLinalg(pybind11::module& m) {
           py::arg("b"));
 
     pybind11::module mlinalg = m.def_submodule("linalg");
-    mlinalg.def("cholesky",
-                [](const ArrayBodyPtr& a) { return MoveArrayBody(Cholesky(Array{a})); },
-                py::arg("a"));
+    mlinalg.def("cholesky", [](const ArrayBodyPtr& a) { return MoveArrayBody(Cholesky(Array{a})); }, py::arg("a"));
 }
 
 void InitChainerxLogic(pybind11::module& m) {
