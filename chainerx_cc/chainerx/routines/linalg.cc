@@ -99,6 +99,9 @@ Array Dot(const Array& a, const Array& b, nonstd::optional<Dtype> out_dtype) {
 }
 
 std::tuple<Array, Array, Array> SVD(const Array& a, bool full_matrices, bool compute_uv) {
+    if (a.ndim() != 2) {
+        throw DimensionError{"ChainerX SVD supports only 2-dimensional arrays."};
+    }
     Array u{};
     Array s{};
     Array v{};
@@ -112,6 +115,9 @@ std::tuple<Array, Array, Array> SVD(const Array& a, bool full_matrices, bool com
 }
 
 Array PseudoInverse(const Array& a, float rcond) {
+    if (a.ndim() != 2) {
+        throw DimensionError{"ChainerX pseudo-inverse supports only 2-dimensional arrays."};
+    }
     Dtype dtype = internal::GetMathResultDtype(a.dtype());
     Array out = Empty(Shape({a.shape()[1], a.shape()[0]}), dtype, a.device());
 
