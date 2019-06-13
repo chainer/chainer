@@ -31,9 +31,9 @@ public:
         Device& device = a.device();
         device.CheckDevicesCompatible(a, out);
 
-        if (a.ndim() != 2 || out.ndim() != 2) {
-            throw DimensionError{"ChainerX cholesky supports only 2-dimensional arrays."};
-        }
+        CHAINERX_ASSERT(a.ndim() == 2);
+        CHAINERX_ASSERT(out.ndim() == 2);
+        CHAINERX_ASSERT(a.shape()[0] == a.shape()[1]);
 
         throw NotImplementedError("cholesky is not yet implemented for native device");
     }

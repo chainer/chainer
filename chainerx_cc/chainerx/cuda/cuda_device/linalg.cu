@@ -42,12 +42,9 @@ public:
         device.CheckDevicesCompatible(a, out);
         CudaSetDeviceScope scope{device.index()};
 
-        if (a.ndim() != 2 || out.ndim() != 2) {
-            throw DimensionError{"ChainerX Cholesky only supports 2-dimensional arrays."};
-        }
-        if (a.shape()[0] != a.shape()[1]) {
-            throw DimensionError{"Matrix is not square."};
-        }
+        CHAINERX_ASSERT(a.ndim() == 2);
+        CHAINERX_ASSERT(out.ndim() == 2);
+        CHAINERX_ASSERT(a.shape()[0] == a.shape()[1]);
 
         // potrf (cholesky) stores result in-place, therefore copy ``a`` to ``out`` and then pass ``out`` to the routine
         device.backend().CallKernel<CopyKernel>(a, out);

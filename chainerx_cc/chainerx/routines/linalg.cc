@@ -102,6 +102,13 @@ Array Cholesky(const Array& a) {
     Dtype dtype = internal::GetMathResultDtype(a.dtype());
     Array out = Empty(a.shape(), dtype, a.device());
 
+    if (a.ndim() != 2 || out.ndim() != 2) {
+        throw DimensionError{"ChainerX Cholesky only supports 2-dimensional arrays."};
+    }
+    if (a.shape()[0] != a.shape()[1]) {
+        throw DimensionError{"Matrix is not square."};
+    }
+
     {
         NoBackpropModeScope scope{};
         a.device().backend().CallKernel<CholeskyKernel>(a, out);
