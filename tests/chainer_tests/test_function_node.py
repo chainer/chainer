@@ -377,6 +377,75 @@ class TestFunctionNodeMixChainerxAndXpArrays(unittest.TestCase):
     def test_mix_cupy(self):
         self.check_mix_xp(cuda.cupy)
 
+    def check_mix_xp_variable(self, xp, xp_requires_grad, chx_requires_grad):
+        xp_x1 = xp.random.randn(2, 3).astype(numpy.float32)
+        xp_x2 = xp.random.randn(2, 3).astype(numpy.float32)
+        x2 = backend.to_chx(xp_x2)
+        var1 = chainer.Variable(xp_x1, requires_grad=xp_requires_grad)
+        var2 = chainer.Variable(x2, requires_grad=chx_requires_grad)
+        y, = self.SimpleFunctionNode(xp).apply((var1, var2))
+
+        assert isinstance(y.array, chainerx.ndarray)
+        chainerx.testing.assert_array_equal(
+            backend.CpuDevice().send(xp_x1 * xp_x2), y.array)
+
+    @attr.chainerx
+    def test_mix_numpy_variable(self):
+        with pytest.raises(NotImplementedError):
+            self.check_mix_xp_variable(numpy, True, True)
+        with pytest.raises(NotImplementedError):
+            self.check_mix_xp_variable(numpy, True, False)
+
+    @attr.chainerx
+    @attr.gpu
+    def test_mix_cupy_variable(self):
+        with pytest.raises(NotImplementedError):
+            self.check_mix_xp_variable(cuda.cupy, True, True)
+        with pytest.raises(NotImplementedError):
+            self.check_mix_xp_variable(cuda.cupy, True, False)
+
+    @attr.chainerx
+    def test_mix_numpy_variable_no_backprop(self):
+        with chainer.no_backprop_mode():
+            self.check_mix_xp_variable(numpy, True, True)
+
+    @attr.chainerx
+    @attr.gpu
+    def test_mix_cupy_variable_no_backprop(self):
+        with chainer.no_backprop_mode():
+            self.check_mix_xp_variable(cuda.cupy, True, True)
+
+    @attr.chainerx
+    def test_mix_numpy_variable_no_requires_grad(self):
+        self.check_mix_xp_variable(numpy, False, True)
+
+    @attr.chainerx
+    @attr.gpu
+    def test_mix_cupy_variable_no_requires_grad(self):
+        self.check_mix_xp_variable(cuda.cupy, False, True)
+
+    def check_mix_xp_variable_array(self, xp, xp_requires_grad):
+        xp_x1 = xp.random.randn(2, 3).astype(numpy.float32)
+        xp_x2 = xp.random.randn(2, 3).astype(numpy.float32)
+        x2 = backend.to_chx(xp_x2)
+        var1 = chainer.Variable(xp_x1, requires_grad=xp_requires_grad)
+        y, = self.SimpleFunctionNode(xp).apply((var1, x2))
+
+        assert isinstance(y.array, chainerx.ndarray)
+        chainerx.testing.assert_array_equal(
+            backend.CpuDevice().send(xp_x1 * xp_x2), y.array)
+
+    @attr.chainerx
+    def test_mix_numpy_variable_array(self):
+        with pytest.raises(NotImplementedError):
+            self.check_mix_xp_variable_array(numpy, True)
+
+    @attr.chainerx
+    @attr.gpu
+    def test_mix_cupy_variable_array(self):
+        with pytest.raises(NotImplementedError):
+            self.check_mix_xp_variable(cuda.cupy, True)
+
 
 class TestFunctionNodeInvalidType(unittest.TestCase):
 
