@@ -19,6 +19,7 @@
 #include "chainerx/graph.h"
 #include "chainerx/kernel_registry.h"
 #include "chainerx/kernels/connection.h"
+#include "chainerx/kernels/rnn.h"
 #include "chainerx/kernels/linalg.h"
 #include "chainerx/kernels/math.h"
 #include "chainerx/macro.h"
@@ -219,16 +220,42 @@ std::vector<std::vector<Array>> n_step_lstm(
             std::vector<ConstArrayRef> out_grad;
             out_grad.push_back(out[0][0]);
             out_grad.push_back(out[0][1]); 
-            for(int64_t i = 0; i < xs.size(); i++) {
+            for(uint i = 0; i < xs.size(); i++) {
                 inp.push_back(xs[i]);
                 out_grad.push_back(out[1][i]);
             }
 
 
             BackwardBuilder bb{"lstm_backward", inp, out_grad};
-            std::vector
+            std::vector<size_t> ind;
+            for(uint i = 0; i < inp.size(); i++) {
+                ind.push_back(i);
+            }
+            if(BackwardBuilder::Target bt = bb.CreateTarget(ind)) {
+                bt.Define([&](BackwardContext& bctx) {
+                    Array dhy = *bctx.output_grad(0);
+                    Array dcy = *bctx.output_grad(1);
+                    std::vector<Array> dout;
+                    for(uint i = 2; i < xs.size()+2; i++) {
+                        dout.push_back(*bctx.output_grad(i));
+                    }
+                    std::vector<std::vector<Array>> grad = hx.device().backend().CallKernel<RnnBackwardKernel>((int)n_layers, hx, cx, ws, bs, xs, dhy, dcy, out[1], dout, 0, 1);
+                    bctx.input_grad(0) = grad[0][0];
+                    bctx.input_grad(1) = grad[0][1];
+                    int grad_ind = 2;
+                    for(int64_t i = 0; i <  n_layers; i++) {
+                        for(int64_t j = 0; j <  8; j++) {
+                            bctx.input_grad(grad_ind) = grad[2][grad_ind - 2];
+                            grad_ind++;
+                        }
+                    }
+                    for(uint i = 0; i < xs.size(); i++) {
+                        bctx.input_grad(grad_ind++) = grad[1][i];
+                    }
+                });
+            }
         }
-
+        return out;
     } else {
     return n_step_rnn_impl(&_lstm, n_layers, hx, nonstd::optional<Array>{cx}, ws, bs, xs, 0);
     }
@@ -241,33 +268,10 @@ std::vector<std::vector<Array>> n_step_bilstm(
         const std::vector<std::vector<Array>>& ws,
         const std::vector<std::vector<Array>>& bs,
         std::vector<Array>& xs) {
-    // assuming that all arrays in the a list should belong to the same device
-    hx.device().CheckDevicesCompatible(hx, cx, ws[0][0], bs[0][0], xs[0]); 
-    if(hx.device().backend().GetName() == "cuda")
-    {
-        std::vector<std::vector<Array>> out;
-        {
-            NoBackpropModeScope scope{};
-            out = hx.device().backend().CallKernel<RnnKernel>()
-        }
-
-    } else {
+    
     return n_step_rnn_impl(&_lstm, n_layers, hx, nonstd::optional<Array>{cx}, ws, bs, xs, 1);
-    }
-}
-
-std::vector<std::vector<Array>> RnnGrad(
-    int64_t n_layers,
-    Array hx,
-    Array cx,
-    const std::vector<std::vector<Array>>& ws,
-    const std::vector<std::vector<Array>>& bs,
-    std::vector<Array> xs,
-    Array hy,
-    Array cy,
-    std::vector<Array> out
-    ) {
     
 }
+
 
 }  // namespace chainerx
