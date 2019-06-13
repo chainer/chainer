@@ -193,9 +193,6 @@ def batch_renormalization(x, gamma, beta, rmax, dmax, eps=2e-5,
         - ``F.batch_renormalization`` applies Bessel's correction to update the
           moving average of variances.
 
-        In order to reuse :func:`chainer.functions.fixed_batch_normalization`
-        on inference, ``running_var`` does not include ``eps``.
-
     See: `Batch Renormalization: Towards Reducing Minibatch Dependence in
     Batch-Normalized Models <https://arxiv.org/abs/1702.03275>`_
 
