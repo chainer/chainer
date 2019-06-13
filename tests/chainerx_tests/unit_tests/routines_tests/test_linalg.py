@@ -174,13 +174,14 @@ class TestPseudoInverse(op_utils.NumpyOpTest):
 ))
 class TestPseudoInverseFailing(op_utils.NumpyOpTest):
 
+    forward_accept_errors = (numpy.linalg.LinAlgError,
+                             chainerx.ChainerxError,
+                             chainerx.DimensionError)
+
     def setup(self):
         device = chainerx.get_default_device()
         if device.backend.name == 'native':
             pytest.skip('CPU pinv is not implemented')
-        self.forward_accept_errors = (numpy.linalg.LinAlgError,
-                                      chainerx.ChainerxError,
-                                      chainerx.DimensionError)
 
     def generate_inputs(self):
         a = numpy.random.random(self.shape).astype(self.in_dtypes)
