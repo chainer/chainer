@@ -47,9 +47,9 @@ public:
             throw DimensionError{"ChainerX QR supports only 2-dimensional arrays."};
         }
 
-        int m = a.shape()[0];
-        int n = a.shape()[1];
-        int mn = std::min(m, n);
+        int64_t m = a.shape()[0];
+        int64_t n = a.shape()[1];
+        int64_t mn = std::min(m, n);
 
         Array Q = Empty(Shape({0}), dtype, device);
         Array R = a.Transpose().Copy();  // QR decomposition is done in-place
@@ -89,7 +89,7 @@ public:
                 return std::make_tuple(std::move(R), std::move(tau));
             }
 
-            int mc;
+            int64_t mc;
             if (mode == QRMode::complete && m > n) {
                 mc = m;
                 Q = Empty(Shape({m, m}), dtype, device);
