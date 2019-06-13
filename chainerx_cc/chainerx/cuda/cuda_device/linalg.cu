@@ -4,9 +4,9 @@
 #include <mutex>
 #include <type_traits>
 
-#include <cusolverDn.h>
 #include <cublas_v2.h>
 #include <cuda_runtime.h>
+#include <cusolverDn.h>
 #include <cuda_fp16.hpp>
 
 #include "chainerx/array.h"
@@ -14,9 +14,9 @@
 #include "chainerx/backend.h"
 #include "chainerx/backend_util.h"
 #include "chainerx/cuda/cublas.h"
-#include "chainerx/cuda/cusolver.h"
 #include "chainerx/cuda/cuda_runtime.h"
 #include "chainerx/cuda/cuda_set_device_scope.h"
+#include "chainerx/cuda/cusolver.h"
 #include "chainerx/cuda/data_type.cuh"
 #include "chainerx/cuda/float16.cuh"
 #include "chainerx/cuda/kernel_regist.h"
@@ -60,7 +60,7 @@ public:
 
             T* v_ptr = static_cast<T*>(internal::GetRawOffsetData(v));
             T* w_ptr = static_cast<T*>(internal::GetRawOffsetData(w));
- 
+
             cusolverEigMode_t jobz = CUSOLVER_EIG_MODE_NOVECTOR;
             if (compute_eigen_vector) {
                 jobz = CUSOLVER_EIG_MODE_VECTOR;
@@ -72,19 +72,15 @@ public:
             }
 
             int buffersize = 0;
-            device_internals.cusolver_handle().Call(
-                syevd_bufferSize,
-                jobz, uplo, m, v_ptr, lda, w_ptr, &buffersize);
+            device_internals.cusolver_handle().Call(syevd_bufferSize, jobz, uplo, m, v_ptr, lda, w_ptr, &buffersize);
 
             Array work = Empty(Shape({buffersize}), dtype, device);
             T* work_ptr = static_cast<T*>(internal::GetRawOffsetData(work));
 
-            int *devInfo;
+            int* devInfo;
             CheckCudaError(cudaMalloc(&devInfo, sizeof(int)));
 
-            device_internals.cusolver_handle().Call(
-                syevd,
-                jobz, uplo, m, v_ptr, lda, w_ptr, work_ptr, buffersize, devInfo);
+            device_internals.cusolver_handle().Call(syevd, jobz, uplo, m, v_ptr, lda, w_ptr, work_ptr, buffersize, devInfo);
 
             int devInfo_h = 0;
             CheckCudaError(cudaMemcpy(&devInfo_h, devInfo, sizeof(int), cudaMemcpyDeviceToHost));
@@ -93,7 +89,6 @@ public:
             }
 
             return std::make_tuple(std::move(w), std::move(v.Transpose().Copy()));
-
         };
 
         switch (a.dtype()) {
@@ -109,7 +104,6 @@ public:
             default:
                 CHAINERX_NEVER_REACH();
         }
-
     }
 };
 

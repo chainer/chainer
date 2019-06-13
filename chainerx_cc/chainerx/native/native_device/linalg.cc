@@ -29,13 +29,12 @@ namespace native {
 class NativeSyevdKernel : public SyevdKernel {
 public:
     std::tuple<Array, Array> Call(const Array& a, const std::string& UPLO, bool compute_eigen_vector) override {
-
         CHAINERX_ASSERT(a.ndim() == 2);
 
         throw NotImplementedError("Eigen decomposition is not yet implemented for native device");
 
-        if (compute_eigen_vector || UPLO=="L") {
-            throw NotImplementedError("Eigen decomposition is not yet implemented for native device");;
+        if (compute_eigen_vector || UPLO == "L") {
+            throw NotImplementedError("Eigen decomposition is not yet implemented for native device");
         }
     }
 };
