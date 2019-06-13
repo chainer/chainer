@@ -1,7 +1,7 @@
 #include "chainerx/cuda/cusolver.h"
 
-#include <cusolverDn.h>
 #include <cuda_runtime.h>
+#include <cusolverDn.h>
 
 #include <string>
 
