@@ -82,7 +82,7 @@ public:
 
     cuda_internal::CudnnHandle& cudnn_handle() { return cudnn_handle_; }
 
-    cuda_internal::CusolverHandle& cusolver_handle() { return cusolver_handle_; }
+    cuda_internal::CusolverDnHandle& cusolverdn_handle() { return cusolverdn_handle_; }
 
     cuda_internal::CudaConv& cuda_conv() { return cuda_conv_; }
 
@@ -91,7 +91,7 @@ private:
 
     cuda_internal::CudnnHandle cudnn_handle_;
 
-    cuda_internal::CusolverHandle cusolver_handle_;
+    cuda_internal::CusolverDnHandle cusolverdn_handle_;
 
     cuda_internal::CudaConv cuda_conv_{};
 };
