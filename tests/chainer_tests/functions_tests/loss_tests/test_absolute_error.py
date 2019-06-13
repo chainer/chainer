@@ -10,22 +10,10 @@ from chainer.testing import attr
 from chainer import utils
 
 
-@testing.parameterize(*testing.product_dict(
-    [{'dtype': numpy.float16,
-      'double_backward_options': {'atol': 3e-1, 'rtol': 3e-1}},
-     {'dtype': numpy.float32,
-      'double_backward_options': {}},
-     {'dtype': numpy.float64,
-      'double_backward_options': {}},
-     ],
-    [{'shape': (4, 3)},
-     {'shape': (4, 3, 2)},
-     {'shape': (4,)},
-     {'shape': ()},
-     {'shape': (1,)},
-     {'shape': (1, 1)},
-     ]
-))
+@testing.parameterize(*testing.product({
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'shape': [(), (1,), (1, 1), (4,), (4, 3), (4, 3, 2)],
+}))
 @testing.inject_backend_tests(
     ['test_forward', 'test_backward', 'test_double_backward'],
     # CPU
@@ -47,10 +35,7 @@ class TestAbsoluteError(testing.FunctionTestCase):
             self.check_forward_options.update({'atol': 1e-3, 'rtol': 1e-3})
             self.check_backward_options.update({'atol': 5e-2, 'rtol': 5e-2})
             self.check_double_backward_options.update(
-                {'atol': 5e-2, 'rtol': 5e-2})
-        if self.double_backward_options:
-            self.check_double_backward_options.udpate(
-                self.double_backward_options)
+                {'atol': 3e-1, 'rtol': 3e-1})
 
     def generate_inputs(self):
         x0 = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
@@ -69,28 +54,10 @@ class TestAbsoluteError(testing.FunctionTestCase):
         return functions.absolute_error(x0, x1),
 
 
-@testing.parameterize(*testing.product_dict(
-    [
-        {'dtype': numpy.float16},
-        {'dtype': numpy.float32},
-        {'dtype': numpy.float64},
-    ],
-    [
-        {'shape': (4, 3)},
-        {'shape': (4, 3, 2)},
-        {'shape': (4,)},
-        {'shape': ()},
-        {'shape': (1,)},
-        {'shape': (1, 1)},
-    ]
-))
-@testing.inject_backend_tests(
-    'test_backward_non_default_gpu',
-    testing.product({
-        'use_cuda': [True],
-        'use_cudnn': ['never', 'always'],
-    })
-)
+@testing.parameterize(*testing.product({
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'shape': [(), (1,), (1, 1), (4,), (4, 3), (4, 3, 2)],
+}))
 class TestNonDefaultGPU(unittest.TestCase):
 
     # This test is for https://github.com/chainer/chainer/issues/4669
@@ -104,11 +71,11 @@ class TestNonDefaultGPU(unittest.TestCase):
         self.gy = numpy.random.random(self.shape).astype(self.dtype)
 
     @attr.multi_gpu(2)
-    def test_backward_non_default_gpu(self, backend_config):
+    def test_backward_non_default_gpu(self):
         x0 = chainer.Variable(cuda.to_gpu(self.x0, 1))
         x1 = chainer.Variable(cuda.to_gpu(self.x1, 1))
         gy = cuda.to_gpu(self.gy, 1)
-        with cuda.get_device_from_id(0), backend_config:
+        with cuda.get_device_from_id(0):
             y = functions.absolute_error(x0, x1)
             y.grad = gy
             y.backward()
