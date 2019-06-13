@@ -109,7 +109,6 @@ public:
         if (!is_out_contiguous) {
             device.backend().CallKernel<CopyKernel>(out_contiguous, out);
         }
-
     }
 };
 
