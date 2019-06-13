@@ -69,7 +69,7 @@ private:
 // These internals are exposed through `GetDeviceInternals` for CUDA internal usages.
 class DeviceInternals {
 public:
-    explicit DeviceInternals(int device_index) : cublas_handle_{device_index}, cudnn_handle_{device_index}, cusolver_handle_{device_index} {}
+    explicit DeviceInternals(int device_index) : cublas_handle_{device_index}, cudnn_handle_{device_index}, cusolverdn_handle_{device_index} {}
 
     ~DeviceInternals() = default;
 
