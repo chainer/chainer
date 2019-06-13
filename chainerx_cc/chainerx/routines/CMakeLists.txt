@@ -1,7 +1,9 @@
 add_library(chainerx_routines STATIC
+    arithmetic.cc
     binary.cc
     connection.cc
     creation.cc
+    explog.cc
     hyperbolic.cc
     indexing.cc
     linalg.cc
@@ -12,6 +14,7 @@ add_library(chainerx_routines STATIC
     normalization.cc
     pooling.cc
     reduction.cc
+    rounding.cc
     sorting.cc
     statistics.cc
     trigonometric.cc
@@ -19,9 +22,11 @@ add_library(chainerx_routines STATIC
 )
 
 install(FILES
+    arithmetic.h
     binary.h
     connection.h
     creation.h
+    explog.h
     hyperbolic.h
     indexing.h
     linalg.h
@@ -32,6 +37,7 @@ install(FILES
     normalization.h
     pooling.h
     reduction.h
+    rounding.h
     routines_util.h
     sorting.h
     statistics.h

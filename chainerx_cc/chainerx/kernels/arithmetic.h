@@ -92,48 +92,6 @@ public:
     virtual void Call(Scalar x1, const Array& x2, const Array& out) = 0;
 };
 
-class ExpKernel : public Kernel {
-public:
-    static const char* name() { return "Exp"; }
-
-    virtual void Call(const Array& x, const Array& out) = 0;
-};
-
-class Expm1Kernel : public Kernel {
-public:
-    static const char* name() { return "Expm1"; }
-
-    virtual void Call(const Array& x, const Array& out) = 0;
-};
-
-class Exp2Kernel : public Kernel {
-public:
-    static const char* name() { return "Exp2"; }
-
-    virtual void Call(const Array& x, const Array& out) = 0;
-};
-
-class LogKernel : public Kernel {
-public:
-    static const char* name() { return "Log"; }
-
-    virtual void Call(const Array& x, const Array& out) = 0;
-};
-
-class Log10Kernel : public Kernel {
-public:
-    static const char* name() { return "Log10"; }
-
-    virtual void Call(const Array& x, const Array& out) = 0;
-};
-
-class Log1pKernel : public Kernel {
-public:
-    static const char* name() { return "Log1p"; }
-
-    virtual void Call(const Array& x, const Array& out) = 0;
-};
-
 class PowerKernel : public Kernel {
 public:
     static const char* name() { return "Power"; }
@@ -153,41 +111,6 @@ public:
     static const char* name() { return "PowerSA"; }
 
     virtual void Call(Scalar x1, const Array& x2, const Array& out) = 0;
-};
-
-class CeilKernel : public Kernel {
-public:
-    static const char* name() { return "Ceil"; }
-
-    virtual void Call(const Array& x, const Array& out) = 0;
-};
-
-class FloorKernel : public Kernel {
-public:
-    static const char* name() { return "Floor"; }
-
-    virtual void Call(const Array& x, const Array& out) = 0;
-};
-
-class IsNanKernel : public Kernel {
-public:
-    static const char* name() { return "IsNan"; }
-
-    virtual void Call(const Array& x, const Array& out) = 0;
-};
-
-class IsInfKernel : public Kernel {
-public:
-    static const char* name() { return "IsInf"; }
-
-    virtual void Call(const Array& x, const Array& out) = 0;
-};
-
-class IsFiniteKernel : public Kernel {
-public:
-    static const char* name() { return "IsFinite"; }
-
-    virtual void Call(const Array& x, const Array& out) = 0;
 };
 
 }  // namespace chainerx

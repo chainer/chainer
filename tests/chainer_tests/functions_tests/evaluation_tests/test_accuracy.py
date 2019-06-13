@@ -5,8 +5,8 @@ import six
 
 import chainer
 from chainer.backends import cuda
-from chainer import testing
 from chainer import functions
+from chainer import testing
 from chainer.testing import attr
 from chainer.utils import force_array
 from chainer.utils import type_check
