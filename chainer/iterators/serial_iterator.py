@@ -102,6 +102,13 @@ class SerialIterator(iterator.Iterator):
             return None
         return self._previous_epoch_detail
 
+    def remaining_batch_num(self):
+        remain = len(self.dataset) - self.current_position
+        if remain % self.batch_size == 0:
+            return remain // self.batch_size
+        else:
+            return remain // self.batch_size + 1
+
     def serialize(self, serializer):
         current_position = serializer('current_position',
                                       self.current_position)

@@ -72,6 +72,17 @@ class Iterator(object):
     def __exit__(self, exc_type, exc_value, traceback):
         self.finalize()
 
+    def remaining_size(self):
+        """Returns remaining number of batches of the epoch.
+
+        .. note::
+           This method is optional to inherited iterators; underlying
+           dataset may or may not have fixed length. Developers have
+           make sure this method is implemented before running it.
+
+        """
+        raise NotImplementedError
+
     def serialize(self, serializer):
         """Serializes the internal state of the iterator.
 
