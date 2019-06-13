@@ -37,8 +37,8 @@ loss_func=None, loss_scale=None, auto_new_epoch=True, *, input_device=None)
             extracted by the main iterator and the ``device`` option are passed
             to this function. :func:`chainer.dataset.concat_examples` is used
             by default.
-        device: Device to which the training data is sent. Negative value
-            indicates the host memory (CPU).
+        device(device specifier): Device to which the model is sent.
+            If ``None``, the device of the model will stay unchanged.
         loss_func: Loss function. The target link of the main optimizer is used
             by default.
         loss_scale (float): Loss scaling factor. Loss scaling is a usefull
@@ -55,10 +55,8 @@ loss_func=None, loss_scale=None, auto_new_epoch=True, *, input_device=None)
             main iterator is ``True``.
         input_device (device specifier):
             Device to which the training data is sent.
-            If ``input_device`` is omitted and ``model_device`` is given,
-            ``input_device`` will match the ``device`` argument.
-            If both omitted, the device of the input will stay unchanged.
-            Also see the note below.
+            If ``input_device`` is omitted, it will match the ``device``
+            argument.
 
     Attributes:
         converter: Converter function.
