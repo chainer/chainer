@@ -106,7 +106,7 @@ class Device(object):
          """
         pass
 
-    def is_array_compatible(self, array):
+    def is_array_supported(self, array):
         """Returns if the specified array is compatible with the device.
         Args:
             array (:ref:`ndarray`): An array to be checked
