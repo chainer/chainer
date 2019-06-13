@@ -2,7 +2,6 @@
 #include <cstring>
 #include <string>
 
-#include <absl/debugging/failure_signal_handler.h>
 #include <pybind11/pybind11.h>
 #include <gsl/gsl>
 
