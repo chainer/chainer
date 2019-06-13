@@ -141,6 +141,8 @@ class TabularDataset(dataset_mixin.DatasetMixin):
             return examples
         elif self.mode is dict:
             return dict(six.moves.zip(self.keys, examples))
+        elif self.mode is None:
+            return examples[0]
 
     def as_tuple(self):
         """Return a view with tuple mode.
@@ -191,3 +193,5 @@ class TabularDataset(dataset_mixin.DatasetMixin):
             return example
         elif self.mode is dict:
             return dict(six.moves.zip(self.keys, example))
+        elif self.mode is None:
+            return example[0]
