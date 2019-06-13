@@ -126,11 +126,18 @@ public:
             }
         };
 
-        if (a.dtype() == Dtype::kFloat32) {
-            return svd_impl(PrimitiveType<float>{}, cusolverDnSgesvd_bufferSize, cusolverDnSgesvd);
-        } else {
-            CHAINERX_ASSERT(a.dtype() == Dtype::kFloat64);
-            return svd_impl(PrimitiveType<double>{}, cusolverDnDgesvd_bufferSize, cusolverDnDgesvd);
+        switch (a.dtype()) {
+            case Dtype::kFloat16:
+                throw DtypeError{"Half-precision (float16) is not supported by SVD"};
+                break;
+            case Dtype::kFloat32:
+                return svd_impl(PrimitiveType<float>{}, cusolverDnSgesvd_bufferSize, cusolverDnSgesvd);
+                break;
+            case Dtype::kFloat64:
+                return svd_impl(PrimitiveType<double>{}, cusolverDnDgesvd_bufferSize, cusolverDnDgesvd);
+                break;
+            default:
+                CHAINERX_NEVER_REACH();
         }
     }
 };
