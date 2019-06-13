@@ -98,7 +98,7 @@ public:
             CheckCudaError(cudaMalloc(&devInfo, sizeof(int)));
 
             int buffersize = 0;
-            device_internals.cusolver_handle().Call(gesvd_bufferSize, m, n, &buffersize);
+            device_internals.cusolverdn_handle().Call(gesvd_bufferSize, m, n, &buffersize);
 
             Array work = Empty(Shape({buffersize}), dtype, device);
             T* work_ptr = static_cast<T*>(internal::GetRawOffsetData(work));
@@ -110,7 +110,7 @@ public:
                 job = 'N';
             }
 
-            device_internals.cusolver_handle().Call(
+            device_internals.cusolverdn_handle().Call(
                     gesvd, job, job, m, n, x_ptr, m, s_ptr, u_ptr, m, vt_ptr, n, work_ptr, buffersize, nullptr, devInfo);
 
             int devInfo_h = 0;
