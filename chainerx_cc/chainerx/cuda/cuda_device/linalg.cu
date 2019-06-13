@@ -92,7 +92,7 @@ public:
                 throw ChainerxError{"Unsuccessfull syevd (Eigen Decomposition) execution. Info = ", devInfo_h};
             }
 
-            return std::make_tuple(std::move(w), std::move(v.Transpose()));
+            return std::make_tuple(std::move(w), std::move(v.Transpose().Copy()));
 
         };
 
