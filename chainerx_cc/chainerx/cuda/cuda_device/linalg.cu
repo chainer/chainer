@@ -91,11 +91,18 @@ public:
             }
         };
 
-        if (a.dtype() == Dtype::kFloat32) {
-            solve_impl(PrimitiveType<float>{}, cusolverDnSgetrf_bufferSize, cusolverDnSgetrf, cusolverDnSgetrs);
-        } else {
-            CHAINERX_ASSERT(a.dtype() == Dtype::kFloat64);
-            solve_impl(PrimitiveType<double>{}, cusolverDnDgetrf_bufferSize, cusolverDnDgetrf, cusolverDnDgetrs);
+        switch (a.dtype()) {
+            case Dtype::kFloat16:
+                throw DtypeError{"Half-precision (float16) is not supported by solve"};
+                break;
+            case Dtype::kFloat32:
+                solve_impl(PrimitiveType<float>{}, cusolverDnSgetrf_bufferSize, cusolverDnSgetrf, cusolverDnSgetrs);
+                break;
+            case Dtype::kFloat64:
+                solve_impl(PrimitiveType<double>{}, cusolverDnDgetrf_bufferSize, cusolverDnDgetrf, cusolverDnDgetrs);
+                break;
+            default:
+                CHAINERX_NEVER_REACH();
         }
     }
 };
