@@ -70,7 +70,7 @@ public:
             T* out_ptr = static_cast<T*>(internal::GetRawOffsetData(out_contiguous));
             int work_size = 0;
             const int N = a.shape()[0];
-            device_internals.cusolver_handle().Call(
+            device_internals.cusolverdn_handle().Call(
                 bufsize_func,
                 uplo,
                 N,
@@ -83,7 +83,7 @@ public:
             CheckCudaError(cudaMalloc(&work_space, work_size * sizeof(T)));
             int *devInfo;
             CheckCudaError(cudaMalloc(&devInfo, sizeof(int)));
-            device_internals.cusolver_handle().Call(
+            device_internals.cusolverdn_handle().Call(
                 solver_func,
                 uplo,
                 N,
