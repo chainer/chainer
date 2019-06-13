@@ -44,20 +44,24 @@ class SGDRule(optimizer.UpdateRule):
         grad = param.grad
         if grad is None:
             return
+        batch_size_factor = self.hyperparam.batch_size_factor
+        lr = self.hyperparam.lr * batch_size_factor
         if isinstance(param.data, intel64.mdarray):
             param.data.inplace_axpby(1.0, -self.hyperparam.lr, grad)
         else:
-            param.data -= self.hyperparam.lr * grad
+            param.data -= lr * grad
 
     def update_core_gpu(self, param):
         grad = param.grad
         if grad is None:
             return
+        batch_size_factor = self.hyperparam.batch_size_factor
+        lr = self.hyperparam.lr * batch_size_factor
         if SGDRule._kernel is None:
             SGDRule._kernel = cuda.elementwise(
                 'T grad, T lr', 'T param',
                 'param -= lr * grad', 'sgd')
-        SGDRule._kernel(grad, self.hyperparam.lr, param.data)
+        SGDRule._kernel(grad, lr, param.data)
 
 
 class SGD(optimizer.GradientMethod):

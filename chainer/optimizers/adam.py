@@ -193,6 +193,9 @@ class AdamRule(optimizer.UpdateRule):
         self._check_eps(dtype)
         grad = grad.astype(dtype, copy=False)
 
+        batch_size_factor = self.hyperparam.batch_size_factor
+        eps = self.hyperparam.eps / batch_size_factor
+
         m, v = self.state['m'], self.state['v']
 
         # m += (1 - beta1) * (grad - m)
@@ -210,7 +213,7 @@ class AdamRule(optimizer.UpdateRule):
         else:
             vhat = v
         vhat = vhat.astype(dtype, copy=False)
-        step = self.alpha_t / (numpy.sqrt(vhat) + hp.eps)
+        step = self.alpha_t / (numpy.sqrt(vhat) + eps)
         if hp.adabound:
             lower, upper = self.bounds
             step = numpy.clip(step, lower, upper)
@@ -226,6 +229,11 @@ class AdamRule(optimizer.UpdateRule):
         hp = self.hyperparam
         dtype = _get_intermediate_dtype(param.dtype.type)
         self._check_eps(dtype)
+
+        # TODO(ecastill): verify that eps reduction applies to all Adam
+        # derived methods
+        batch_size_factor = self.hyperparam.batch_size_factor
+        eps = self.hyperparam.eps / batch_size_factor
 
         if self._dummy is None:
             self._dummy = cuda.cupy.empty((0,), dtype=dtype)
@@ -249,7 +257,7 @@ class AdamRule(optimizer.UpdateRule):
                     'amsbound')
             AdamRule._amsbound_kernel(
                 grad, self.alpha_t, 1 - hp.beta1,
-                1 - hp.beta2, lower, upper, hp.eps,
+                1 - hp.beta2, lower, upper, eps,
                 hp.eta, hp.weight_decay_rate, self._dummy,
                 param.data, self.state['m'], self.state['v'],
                 self.state['vhat'])
@@ -269,7 +277,7 @@ class AdamRule(optimizer.UpdateRule):
                     'adabound')
             AdamRule._adabound_kernel(
                 grad, self.alpha_t, 1 - hp.beta1,
-                1 - hp.beta2, lower, upper, hp.eps,
+                1 - hp.beta2, lower, upper, eps,
                 hp.eta, hp.weight_decay_rate, self._dummy,
                 param.data, self.state['m'], self.state['v'])
         elif hp.amsgrad:
@@ -287,7 +295,7 @@ class AdamRule(optimizer.UpdateRule):
                     'adam')
             AdamRule._amsgrad_kernel(
                 grad, self.alpha_t, 1 - hp.beta1,
-                1 - hp.beta2, hp.eps,
+                1 - hp.beta2, eps,
                 hp.eta, hp.weight_decay_rate, self._dummy,
                 param.data, self.state['m'], self.state['v'],
                 self.state['vhat'])
@@ -305,7 +313,7 @@ class AdamRule(optimizer.UpdateRule):
                     'adam')
             AdamRule._kernel(
                 grad, self.alpha_t, 1 - hp.beta1,
-                1 - hp.beta2, hp.eps,
+                1 - hp.beta2, eps,
                 hp.eta, hp.weight_decay_rate, self._dummy,
                 param.data, self.state['m'], self.state['v'])
 

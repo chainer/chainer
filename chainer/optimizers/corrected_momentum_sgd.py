@@ -59,26 +59,30 @@ class CorrectedMomentumSGDRule(optimizer.UpdateRule):
         if grad is None:
             return
         v = self.state['v']
+        batch_size_factor = self.hyperparam.batch_size_factor
+        lr = self.hyperparam.lr * batch_size_factor
         if isinstance(v, intel64.mdarray):
             v.inplace_axpby(self.hyperparam.momentum,
                             -1, grad)
-            param.data += self.hyperparam.lr * v
+            param.data += lr * v
         else:
             v *= self.hyperparam.momentum
             v -= grad
-            param.data += self.hyperparam.lr * v
+            param.data += lr * v
 
     def update_core_gpu(self, param):
         grad = param.grad
         if grad is None:
             return
+        batch_size_factor = self.hyperparam.batch_size_factor
+        lr = self.hyperparam.lr * batch_size_factor
         cuda.elementwise(
             'T grad, T lr, T momentum',
             'T param, T v',
             '''v = momentum * v - grad;
                param += lr * v;''',
             'momentum_sgd')(
-                grad, self.hyperparam.lr, self.hyperparam.momentum,
+                grad, lr, self.hyperparam.momentum,
                 param.data, self.state['v'])
 
 

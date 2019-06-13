@@ -74,12 +74,15 @@ class RMSpropGravesRule(optimizer.UpdateRule):
         n, g, delta = self.state['n'], self.state['g'], self.state['delta']
         hp = self.hyperparam
 
+        batch_size_factor = self.hyperparam.batch_size_factor
+        eps = hp.eps / batch_size_factor**2
+
         n *= hp.alpha
         n += (1 - hp.alpha) * grad * grad
         g *= hp.alpha
         g += (1 - hp.alpha) * grad
         delta *= hp.momentum
-        delta -= hp.lr * grad / numpy.sqrt(n - g * g + hp.eps)
+        delta -= hp.lr * grad / numpy.sqrt(n - g * g + eps)
         param.data += delta
 
     def update_core_gpu(self, param):
@@ -87,6 +90,8 @@ class RMSpropGravesRule(optimizer.UpdateRule):
         if grad is None:
             return
         hp = self.hyperparam
+        batch_size_factor = self.hyperparam.batch_size_factor
+        eps = hp.eps / batch_size_factor**2
         if RMSpropGravesRule._kernel is None:
             RMSpropGravesRule._kernel = cuda.elementwise(
                 'T grad, T lr, T alpha, T momentum, T eps',
@@ -98,7 +103,7 @@ class RMSpropGravesRule(optimizer.UpdateRule):
                    param += delta;''',
                 'rmsprop_graves')
         RMSpropGravesRule._kernel(
-            grad, hp.lr, hp.alpha, hp.momentum, hp.eps, param.data,
+            grad, hp.lr, hp.alpha, hp.momentum, eps, param.data,
             self.state['n'], self.state['g'], self.state['delta'])
 
 

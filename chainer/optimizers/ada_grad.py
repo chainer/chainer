@@ -57,7 +57,8 @@ class AdaGradRule(optimizer.UpdateRule):
             return
 
         lr = self.hyperparam.lr
-        eps = self.hyperparam.eps
+        batch_size_factor = self.hyperparam.batch_size_factor
+        eps = self.hyperparam.eps / batch_size_factor
         h = self.state['h']
 
         h += grad * grad
@@ -67,6 +68,8 @@ class AdaGradRule(optimizer.UpdateRule):
         grad = param.grad
         if grad is None:
             return
+        batch_size_factor = self.hyperparam.batch_size_factor
+        eps = self.hyperparam.eps / batch_size_factor
         if AdaGradRule._kernel is None:
             AdaGradRule._kernel = cuda.elementwise(
                 'T grad, T lr, T eps',
@@ -74,7 +77,7 @@ class AdaGradRule(optimizer.UpdateRule):
                 '''h += grad * grad;
                    param -= lr * grad / (sqrt(h) + eps);''',
                 'adagrad')
-        AdaGradRule._kernel(grad, self.hyperparam.lr, self.hyperparam.eps,
+        AdaGradRule._kernel(grad, self.hyperparam.lr, eps,
                             param.data, self.state['h'])
 
 

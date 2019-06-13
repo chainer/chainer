@@ -61,9 +61,10 @@ class MomentumSGDRule(optimizer.UpdateRule):
         if grad is None:
             return
         v = self.state['v']
+        batch_size_factor = self.hyperparam.batch_size_factor
+        lr = self.hyperparam.lr * batch_size_factor
         if isinstance(v, intel64.mdarray):
-            v.inplace_axpby(self.hyperparam.momentum, -
-                            self.hyperparam.lr, grad)
+            v.inplace_axpby(self.hyperparam.momentum, -lr, grad)
             param.data += v
         else:
             v *= self.hyperparam.momentum
@@ -74,6 +75,8 @@ class MomentumSGDRule(optimizer.UpdateRule):
         grad = param.grad
         if grad is None:
             return
+        batch_size_factor = self.hyperparam.batch_size_factor
+        lr = self.hyperparam.lr * batch_size_factor
         if MomentumSGDRule._kernel is None:
             MomentumSGDRule._kernel = cuda.elementwise(
                 'T grad, T lr, T momentum',
@@ -82,7 +85,7 @@ class MomentumSGDRule(optimizer.UpdateRule):
                    param += v;''',
                 'momentum_sgd')
         MomentumSGDRule._kernel(
-            grad, self.hyperparam.lr, self.hyperparam.momentum, param.data,
+            grad, lr, self.hyperparam.momentum, param.data,
             self.state['v'])
 
 

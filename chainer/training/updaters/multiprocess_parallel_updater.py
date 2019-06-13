@@ -143,23 +143,11 @@ class MultiprocessParallelUpdater(standard_updater.StandardUpdater):
         for iterator in iterators[1:]:
             assert len(iterator.dataset) == len(iterators[0].dataset)
 
-        # Correct optimizer parameters for new minibatch size
-        optim = optimizer.__class__.__name__
-        if optim in ('Adam', 'AdaGrad', 'RMSprop'):
-            optimizer.eps *= len(devices)
-            warnings.warn('optimizer.eps is changed to {} '
+        if len(devices) > 1:
+            optimizer.batch_size_factor = 1.0/len(devices)
+            warnings.warn('optimizer.batch_size_factor is changed to {} '
                           'by MultiprocessParallelUpdater for new batch size.'.
-                          format(optimizer.eps))
-        elif optim in ('RMSpropGraves', 'AdaDelta'):
-            optimizer.eps *= len(devices) ** 2  # not quite right for AdaDelta
-            warnings.warn('optimizer.eps is changed to {} '
-                          'by MultiprocessParallelUpdater for new batch size.'.
-                          format(optimizer.eps))
-        elif hasattr(optimizer, 'lr'):
-            optimizer.lr /= len(devices)
-            warnings.warn('optimizer.lr is changed to {} '
-                          'by MultiprocessParallelUpdater for new batch size.'.
-                          format(optimizer.lr))
+                          format(optimizer.batch_size_factor))
 
         super(MultiprocessParallelUpdater, self).__init__(
             iterator=iterators[0],

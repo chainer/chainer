@@ -55,7 +55,10 @@ class NesterovAGRule(optimizer.UpdateRule):
         if grad is None:
             return
         v = self.state['v']
-        lr, momentum = self.hyperparam.lr, self.hyperparam.momentum
+
+        batch_size_factor = self.hyperparam.batch_size_factor
+        lr = self.hyperparam.lr * batch_size_factor
+        momentum = self.hyperparam.momentum
 
         v *= momentum
         v -= lr * grad
@@ -66,6 +69,8 @@ class NesterovAGRule(optimizer.UpdateRule):
         grad = param.grad
         if grad is None:
             return
+        batch_size_factor = self.hyperparam.batch_size_factor
+        lr = self.hyperparam.lr * batch_size_factor
         if NesterovAGRule._kernel is None:
             NesterovAGRule._kernel = cuda.elementwise(
                 'T grad, T lr, T momentum',
@@ -76,7 +81,7 @@ class NesterovAGRule(optimizer.UpdateRule):
                 ''',
                 'nesterov_ag')
         NesterovAGRule._kernel(
-            grad, self.hyperparam.lr, self.hyperparam.momentum,
+            grad, lr, self.hyperparam.momentum,
             param.data, self.state['v'])
 
 
