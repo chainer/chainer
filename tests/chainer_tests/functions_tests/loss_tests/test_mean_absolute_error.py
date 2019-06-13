@@ -7,6 +7,7 @@ from chainer.backends import cuda
 from chainer import functions
 from chainer import testing
 from chainer import utils
+from chainer.testing import attr
 from chainer.utils import type_check
 
 
@@ -98,6 +99,7 @@ class TestMeanAbsoluteErrorFP16Overflow(unittest.TestCase):
     def test_fp16_overflow_cpu(self):
         self.check_fp16_overflow(numpy)
 
+    @attr.gpu
     def test_fp16_overflow_gpu(self):
         self.check_fp16_overflow(cuda.cupy)
 
