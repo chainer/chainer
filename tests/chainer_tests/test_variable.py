@@ -2265,6 +2265,8 @@ class TestVariableBackwardChx(unittest.TestCase):
 
     # NOTE(kataoka): The main purpose is xfail. Backprop through mixed
     # (ChainerX and non-ChainerX) backends has not been supported.
+    # It is tested in test_function_node.TestFunctionNodeMixChainerxAndXpArrays
+    # that an error other than AssertionError is raised.
 
     def check_backward(self, xp, num_to_chx):
         arrays = [xp.array(3 + i, dtype=xp.float32) for i in range(2)]
