@@ -23,7 +23,7 @@ namespace testing {
 namespace testing_internal {
 
 namespace py = pybind11;  // standard convention
-using namespace py::literals;
+using py::literals::operator""_a;
 
 // A device buffer that upon construction allocates device memory and creates a py::buffer_info, sharing ownership of the managed data
 // (py::buffer_info only holds a raw pointer and does not manage the lifetime of the pointed data). Memoryviews created from this buffer

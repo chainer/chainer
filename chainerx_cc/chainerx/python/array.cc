@@ -56,7 +56,7 @@ using internal::MoveArrayBody;
 }  // namespace
 
 namespace py = pybind11;
-using namespace py::literals;
+using py::literals::operator""_a;
 
 ArrayBodyPtr MakeArrayFromNumpyArray(py::array array, Device& device) {
     Shape shape{array.shape(), array.shape() + array.ndim()};

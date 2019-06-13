@@ -13,7 +13,7 @@ namespace testing {
 namespace testing_internal {
 
 namespace py = pybind11;
-using namespace py::literals;
+using py::literals::operator""_a;
 
 void InitChainerxTestingModule(pybind11::module& m) {
     InitChainerxDeviceBuffer(m);

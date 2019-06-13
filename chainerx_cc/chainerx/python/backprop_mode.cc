@@ -21,7 +21,7 @@ namespace python_internal {
 namespace {
 
 namespace py = pybind11;  // standard convention
-using namespace py::literals;
+using py::literals::operator""_a;
 
 template <class BackpropModeScope>
 class PyBackpropModeScope {

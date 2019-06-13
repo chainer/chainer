@@ -53,7 +53,7 @@ namespace python {
 namespace python_internal {
 
 namespace py = pybind11;
-using namespace py::literals;
+using py::literals::operator""_a;
 
 namespace {
 

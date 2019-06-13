@@ -19,7 +19,7 @@ namespace python {
 namespace python_internal {
 
 namespace py = pybind11;  // standard convention
-using namespace py::literals;
+using py::literals::operator""_a;
 
 Context& GetContext(py::handle handle) {
     if (handle.is_none()) {
