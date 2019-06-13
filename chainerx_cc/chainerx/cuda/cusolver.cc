@@ -1,8 +1,8 @@
 #include "chainerx/cuda/cusolver.h"
 
 #include <cublas_v2.h>
-#include <cusolverDn.h>
 #include <cuda_runtime.h>
+#include <cusolverDn.h>
 
 #include <string>
 

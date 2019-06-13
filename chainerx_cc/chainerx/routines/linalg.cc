@@ -112,7 +112,6 @@ Array Solve(const Array& a, const Array& b) {
     return out;
 }
 
-
 Array Inverse(const Array& a) {
     Dtype dtype = internal::GetMathResultDtype(a.dtype());
     Array out = Empty(a.shape(), dtype, a.device());

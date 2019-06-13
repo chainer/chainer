@@ -4,9 +4,9 @@
 #include <mutex>
 #include <type_traits>
 
-#include <cusolverDn.h>
 #include <cublas_v2.h>
 #include <cuda_runtime.h>
+#include <cusolverDn.h>
 #include <cuda_fp16.hpp>
 
 #include "chainerx/array.h"
@@ -14,9 +14,9 @@
 #include "chainerx/backend.h"
 #include "chainerx/backend_util.h"
 #include "chainerx/cuda/cublas.h"
-#include "chainerx/cuda/cusolver.h"
 #include "chainerx/cuda/cuda_runtime.h"
 #include "chainerx/cuda/cuda_set_device_scope.h"
+#include "chainerx/cuda/cusolver.h"
 #include "chainerx/cuda/data_type.cuh"
 #include "chainerx/cuda/float16.cuh"
 #include "chainerx/cuda/kernel_regist.h"
@@ -64,20 +64,15 @@ public:
             int* ipiv_ptr = static_cast<int*>(internal::GetRawOffsetData(ipiv));
 
             int buffersize = 0;
-            device_internals.cusolver_handle().Call(
-                getrf_bufferSize,
-                m, m, lu_ptr, m, &buffersize);
+            device_internals.cusolver_handle().Call(getrf_bufferSize, m, m, lu_ptr, m, &buffersize);
 
             Array work = Empty(Shape({buffersize}), dtype, device);
             T* work_ptr = static_cast<T*>(internal::GetRawOffsetData(work));
 
-            int *devInfo;
+            int* devInfo;
             CheckCudaError(cudaMalloc(&devInfo, sizeof(int)));
 
-            device_internals.cusolver_handle().Call(
-                getrf,
-                m, m, lu_ptr, m,
-                work_ptr, ipiv_ptr, devInfo);
+            device_internals.cusolver_handle().Call(getrf, m, m, lu_ptr, m, work_ptr, ipiv_ptr, devInfo);
 
             int devInfo_h = 0;
             CheckCudaError(cudaMemcpy(&devInfo_h, devInfo, sizeof(int), cudaMemcpyDeviceToHost));
@@ -88,16 +83,12 @@ public:
             device.backend().CallKernel<CopyKernel>(b, out);
             T* out_ptr = static_cast<T*>(internal::GetRawOffsetData(out));
 
-            device_internals.cusolver_handle().Call(
-                getrs,
-                CUBLAS_OP_N, m, m, lu_ptr, m,
-                ipiv_ptr, out_ptr, m, devInfo);
+            device_internals.cusolver_handle().Call(getrs, CUBLAS_OP_N, m, m, lu_ptr, m, ipiv_ptr, out_ptr, m, devInfo);
 
             CheckCudaError(cudaMemcpy(&devInfo_h, devInfo, sizeof(int), cudaMemcpyDeviceToHost));
             if (devInfo_h != 0) {
                 throw ChainerxError{"Unsuccessfull getrs (Solve) execution. Info = ", devInfo_h};
             }
-
         };
 
         if (a.dtype() == Dtype::kFloat32) {
@@ -106,7 +97,6 @@ public:
             CHAINERX_ASSERT(a.dtype() == Dtype::kFloat64);
             solve_impl(PrimitiveType<double>{}, cusolverDnDgetrf_bufferSize, cusolverDnDgetrf, cusolverDnDgetrs);
         }
-
     }
 };
 
@@ -131,7 +121,6 @@ public:
         // inv(A) == solve(A, Identity)
         Array b = Identity(a.shape()[0], dtype, device);
         device.backend().CallKernel<SolveKernel>(a.Transpose(), b, out);
-
     }
 };
 
