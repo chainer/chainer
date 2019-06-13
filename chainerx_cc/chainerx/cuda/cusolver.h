@@ -2,7 +2,6 @@
 
 #include <mutex>
 
-#include <cublas_v2.h>
 #include <cusolverDn.h>
 
 #include "chainerx/error.h"
@@ -14,16 +13,16 @@ void CheckCusolverError(cusolverStatus_t status);
 
 namespace cuda_internal {
 
-class CusolverHandle {
+class CusolverDnHandle {
 public:
-    explicit CusolverHandle(int device_index) : device_index_{device_index} {}
+    explicit CusolverDnHandle(int device_index) : device_index_{device_index} {}
 
-    ~CusolverHandle();
+    ~CusolverDnHandle();
 
-    CusolverHandle(const CusolverHandle&) = delete;
-    CusolverHandle(CusolverHandle&&) = delete;
-    CusolverHandle& operator=(const CusolverHandle&) = delete;
-    CusolverHandle& operator=(CusolverHandle&&) = delete;
+    CusolverDnHandle(const CusolverDnHandle&) = delete;
+    CusolverDnHandle(CusolverDnHandle&&) = delete;
+    CusolverDnHandle& operator=(const CusolverDnHandle&) = delete;
+    CusolverDnHandle& operator=(CusolverDnHandle&&) = delete;
 
     template <class Func, class... Args>
     void Call(Func&& func, Args&&... args) {
