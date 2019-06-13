@@ -72,7 +72,7 @@ public:
             }
 
             int buffersize = 0;
-            device_internals.cusolver_handle().Call(syevd_bufferSize, jobz, uplo, m, v_ptr, lda, w_ptr, &buffersize);
+            device_internals.cusolverdn_handle().Call(syevd_bufferSize, jobz, uplo, m, v_ptr, lda, w_ptr, &buffersize);
 
             Array work = Empty(Shape({buffersize}), dtype, device);
             T* work_ptr = static_cast<T*>(internal::GetRawOffsetData(work));
@@ -80,7 +80,7 @@ public:
             int* devInfo;
             CheckCudaError(cudaMalloc(&devInfo, sizeof(int)));
 
-            device_internals.cusolver_handle().Call(syevd, jobz, uplo, m, v_ptr, lda, w_ptr, work_ptr, buffersize, devInfo);
+            device_internals.cusolverdn_handle().Call(syevd, jobz, uplo, m, v_ptr, lda, w_ptr, work_ptr, buffersize, devInfo);
 
             int devInfo_h = 0;
             CheckCudaError(cudaMemcpy(&devInfo_h, devInfo, sizeof(int), cudaMemcpyDeviceToHost));
