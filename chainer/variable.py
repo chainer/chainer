@@ -863,10 +863,10 @@ class Variable(object):
         d_old = self._data[0]
         if d_old is not None and d is not None:
             old_device = self.device
-            if not old_device.is_array_compatible(d):
+            if not old_device.is_array_supported(d):
                 new_device = backend.get_device_from_array(d)
                 raise ValueError(
-                    'Given array is incompatible with the device of the '
+                    'Given array is not supported in the device of the '
                     'variable.\nVariable: {}\nArray: {}'.format(
                         old_device, new_device))
 
