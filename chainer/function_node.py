@@ -1213,9 +1213,20 @@ def _extract_apply_in_data(inputs):
                         has_chainerx_array = True
 
         if has_chainerx_array:
-            if nonchainerx_requires_grad:
-                raise NotImplementedError(
-                    'Cannot mix ChainerX and non-ChainerX computation')
+            if nonchainerx_requires_grad and chainer.config.enable_backprop:
+                msg = []
+                msg.append(
+                    'Cannot mix ChainerX and non-ChainerX inputs because '
+                    'ChainerX\'s backprop does not support Variables on '
+                    'other backends')
+                for i, x in enumerate(inputs):
+                    typ = type(chainer.Variable()).__name__
+                    if isinstance(x, variable.Variable):
+                        typ += '(requires_grad={})'.format(x.requires_grad)
+                    msg.append(
+                        'input[{}]: {} on {}'.format(
+                            i, typ, x.device))
+                raise NotImplementedError('\n'.join(msg))
             return True, tuple(backend.to_chx(arrays))
         else:
             return False, tuple(arrays)
