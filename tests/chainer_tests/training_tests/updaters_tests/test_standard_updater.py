@@ -209,13 +209,42 @@ class TestStandardUpdaterDeviceArgumentFallback(unittest.TestCase):
 
     @attr.multi_gpu(2)
     def test_gpu_to_gpu_transfer(self):
-        # GpuDevice is given as device arguments:
+        initial_model_device = backend.GpuDevice.from_device_id(0)
+        initial_input_device = backend.GpuDevice.from_device_id(0)
+        # GpuDevice is given as device/input_device arguments:
         # - model GPU-to-GPU transfer should be skipped.
         # - input GPU-to-GPU transfer should NOT be skipped.
+
+        # device      : GPU 1
+        # input_device: Other device
         self.check_device_argument_fallback(
-            initial_model_device=backend.GpuDevice.from_device_id(0),
-            initial_input_device=backend.GpuDevice.from_device_id(0),
+            initial_model_device=initial_model_device,
+            initial_input_device=initial_input_device,
             device_arg=backend.GpuDevice.from_device_id(1),
+            input_device_arg=DummyDevice(0))
+
+        # device      : GPU 1
+        # input_device: omitted
+        self.check_device_argument_fallback(
+            initial_model_device=initial_model_device,
+            initial_input_device=initial_input_device,
+            device_arg=backend.GpuDevice.from_device_id(1),
+            input_device_arg=None)
+
+        # device      : Other device
+        # input_device: GPU 1
+        self.check_device_argument_fallback(
+            initial_model_device=initial_model_device,
+            initial_input_device=initial_input_device,
+            device_arg=DummyDevice(0),
+            input_device_arg=backend.GpuDevice.from_device_id(1))
+
+        # device      : omitted
+        # input_device: GPU 1
+        self.check_device_argument_fallback(
+            initial_model_device=initial_model_device,
+            initial_input_device=initial_input_device,
+            device_arg=None,
             input_device_arg=backend.GpuDevice.from_device_id(1))
 
     def _get_expected_devices(
@@ -241,7 +270,12 @@ class TestStandardUpdaterDeviceArgumentFallback(unittest.TestCase):
             else:
                 expected_model_device = device_arg
 
-            expected_input_device = device_arg
+            # If input_device is omitted, device argument should be used.
+            if input_device_arg is None:
+                expected_input_device = device_arg
+            else:
+                expected_input_device = input_device_arg
+
             expected_device_attr = device_arg
 
             return (
