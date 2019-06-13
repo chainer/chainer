@@ -588,7 +588,6 @@ class TestGpuDeviceUse(unittest.TestCase):
         {'use_cuda': True, 'cuda_device': 0},
         {'use_cuda': True, 'cuda_device': 1},
     ])
-@attr.gpu
 class TestGpuIsArraySupported(unittest.TestCase):
 
     def test_is_array_supported(self, backend_config1, backend_config2):

@@ -152,7 +152,6 @@ class TestFromToChainerx(unittest.TestCase):
         {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
         {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
     ])
-@attr.chainerx
 class TestChainerxIsArraySupported(unittest.TestCase):
 
     def test_is_array_supported(self, backend_config1, backend_config2):
