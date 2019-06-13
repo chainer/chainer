@@ -195,18 +195,16 @@ class CommunicatorBase(six.with_metaclass(ABCMeta)):
         raise NotImplementedError()
 
     @abstractmethod
-    def allreduce(self, data):
+    def allreduce(self, data, op):
         '''Allreduce operation among processes
 
         Processes one of several aggregation operations using all data from
         all processes and returns the result of the aggregation to all
         processes.
 
-        TODO(kuenishi): add ``op`` argument once we find a use case
-        for operations other than 'SUM'.
-
         Args:
             data (ndarray): the data to aggregate among all nodes.
+            op: reduce operator.
 
         Returns:
             Sum of all data from all processes.
@@ -295,7 +293,7 @@ class CommunicatorBase(six.with_metaclass(ABCMeta)):
         raise NotImplementedError()
 
     @abstractmethod
-    def allreduce_obj(self, obj):
+    def allreduce_obj(self, obj, op):
         '''Apply a reduce operation to all objects and spread the result.
 
         For example of integers and summation, equivalent local code is::
@@ -306,12 +304,10 @@ class CommunicatorBase(six.with_metaclass(ABCMeta)):
 
         The only operation currently supported is summation.
 
-        TODO(kuenishi): support other operations such as 'MAX', 'MIN'
-        and 'PROD' with ``op`` argument once we need any of them.
-
         Args:
            obj: An arbitrary object to apply reduce operation. Must have
                corresponding operation method e.g. ``__plus__()``.
+            op: reduce operator.
 
         Returns:
            The result of the operation applied to all objects.

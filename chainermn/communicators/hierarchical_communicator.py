@@ -53,10 +53,10 @@ class HierarchicalCommunicator(mpi_communicator_base.MpiCommunicatorBase):
     def multi_node_mean_grad(self, model, zero_fill=False):
         self._init_comms()
         stream = chainer.cuda.Stream.null
-        allreduce_grad_dtype = np.float32()
+        allreduce_grad_dtype = np.float32
 
         params = _memory_utility.extract_params_set_grad(model, zero_fill)
-        itemsize = allreduce_grad_dtype.itemsize
+        itemsize = np.dtype(allreduce_grad_dtype).itemsize
         n_elems_total = _memory_utility.count_elements(params, 'grad',
                                                        zero_fill)
         n_elems_per_node = int(math.ceil(n_elems_total / self.inter_size))
@@ -77,7 +77,7 @@ class HierarchicalCommunicator(mpi_communicator_base.MpiCommunicatorBase):
             stream.synchronize()
             array_a = self.gpu_buffer_a.array(n_elems_total)
             array_b = self.gpu_buffer_b.array(n_elems_total)
-            self.check_ready_to_allreduce(array_a, array_b)
+            self._check_ready_to_multi_node_mean(array_a, array_b)
 
         # Intra-node reduce
         self.intra_nccl_comm.reduce(
@@ -98,7 +98,7 @@ class HierarchicalCommunicator(mpi_communicator_base.MpiCommunicatorBase):
 
         if chainer.is_debug():
             stream.synchronize()
-            self.ensure_all_finite(self.gpu_buffer_b.array(n_elems_total))
+            self._ensure_all_finite(self.gpu_buffer_b.array(n_elems_total))
 
         _memory_utility.unpack_params_from_buffer(params, None,
                                                   self.gpu_buffer_b,

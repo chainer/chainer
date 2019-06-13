@@ -14,4 +14,4 @@ class NaiveCommunicator(mpi_communicator_base.MpiCommunicatorBase):
                 if param.data is None:
                     continue
                 param.grad = param.xp.zeros_like(param.data)
-            self.multi_node_mean(None, param.grad)
+            self._multi_node_mean(None, param.grad)

@@ -459,7 +459,7 @@ class MpiCommunicatorBase(communicator_base.CommunicatorBase):
 
         return tuple(ys)
 
-    def allreduce(self, x):
+    def allreduce(self, x, op=mpi4py.MPI.SUM):
         """A primitive of inter-process allreduce communication.
 
         This method tries to invoke allreduce communication within the
@@ -504,7 +504,7 @@ class MpiCommunicatorBase(communicator_base.CommunicatorBase):
             [chainer.utils.size_of_shape(shape)], dtype=msgtype.dtype)
         dbuf_buffer_obj = _memory_utility.array_to_buffer_object(
             dbuf, _get_mpi_type(msgtype))
-        self.mpi_comm.Allreduce(sbuf, dbuf_buffer_obj)
+        self.mpi_comm.Allreduce(sbuf, dbuf_buffer_obj, op=op)
 
         return dbuf.reshape(shape)
 
@@ -615,9 +615,9 @@ class MpiCommunicatorBase(communicator_base.CommunicatorBase):
     def gather_obj(self, obj, root=0):
         return self.mpi_comm.gather(obj, root=root)
 
-    def allreduce_obj(self, obj):
+    def allreduce_obj(self, obj, op=mpi4py.MPI.SUM):
         # Summation by default
-        return self.mpi_comm.allreduce(obj)
+        return self.mpi_comm.allreduce(obj, op)
 
     def bcast_data(self, model):
         for _, param in sorted(model.namedparams()):
@@ -640,7 +640,7 @@ class MpiCommunicatorBase(communicator_base.CommunicatorBase):
         self._inter_rank = my_ranks[3]
         self._inter_size = my_ranks[4]
 
-    def check_ready_to_allreduce(self, array_a, array_b):
+    def _check_ready_to_multi_node_mean(self, array_a, array_b):
         my_shapes = ((None if array_a is None else array_a.shape,
                       None if array_a is None else array_a.dtype),
                      array_b.shape,
@@ -653,41 +653,41 @@ class MpiCommunicatorBase(communicator_base.CommunicatorBase):
                                      ' at rank 0 while {} at rank {}'
                                      .format(my_shapes, shapes, rank))
 
-    def ensure_all_finite(self, array):
+    def _ensure_all_finite(self, array):
         xp = chainer.backend.get_array_module(array)
         if not xp.isfinite(array).all():
             raise ValueError('Parameters diverged after allreduce.')
 
-    def multi_node_mean(self, array_a, array_b):
+    def _multi_node_mean(self, sendbuf, recvbuf):
         # Performs allreduce and division by size, i.e. mean.
         # Sigma(a, all-procs)/n -> b or
-        # Sigma(b, all-procs)/n -> b if array_a is None
+        # Sigma(b, all-procs)/n -> b if sendbuf is None
         if chainer.is_debug():
-            self.check_ready_to_allreduce(array_a, array_b)
+            self._check_ready_to_multi_node_mean(sendbuf, recvbuf)
 
-        is_float16 = array_b.dtype == numpy.float16
-        if array_a is None:
+        is_float16 = recvbuf.dtype == numpy.float16
+        if sendbuf is None:
             buffer_a = mpi4py.MPI.IN_PLACE
         elif is_float16:
-            assert array_a.dtype == array_b.dtype
+            assert sendbuf.dtype == recvbuf.dtype
             buffer_a = _memory_utility.array_to_buffer_object(
-                array_a.astype(numpy.float32))
+                sendbuf.astype(numpy.float32))
         else:
-            buffer_a = _memory_utility.array_to_buffer_object(array_a)
+            buffer_a = _memory_utility.array_to_buffer_object(sendbuf)
 
         if is_float16:
-            array_b32 = array_b.astype(numpy.float32)
+            array_b32 = recvbuf.astype(numpy.float32)
         else:
-            array_b32 = array_b
+            array_b32 = recvbuf
         buffer_b = _memory_utility.array_to_buffer_object(array_b32)
 
         self.mpi_comm.Allreduce(buffer_a, buffer_b)
 
         if is_float16:
-            xp = chainer.backend.get_array_module(array_b)
-            xp.copyto(array_b, array_b32.astype(numpy.float16), casting='no')
+            xp = chainer.backend.get_array_module(recvbuf)
+            xp.copyto(recvbuf, array_b32.astype(numpy.float16), casting='no')
 
-        array_b *= 1.0 / self.mpi_comm.size
+        recvbuf *= 1.0 / self.mpi_comm.size
 
         if chainer.is_debug():
-            self.ensure_all_finite(array_b)
+            self._ensure_all_finite(recvbuf)
