@@ -109,7 +109,7 @@ class TestQR(op_utils.NumpyOpTest):
 
     def setup(self):
         device = chainerx.get_default_device()
-        if device.name == 'native:0':
+        if device.backend.name == 'native':
             pytest.skip('CPU QR is not implemented')
 
     def generate_inputs(self):
