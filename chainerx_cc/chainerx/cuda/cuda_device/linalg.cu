@@ -43,12 +43,8 @@ public:
         Dtype dtype = a.dtype();
         CudaSetDeviceScope scope{device.index()};
 
-        if (a.ndim() != 2) {
-            throw DimensionError{"ChainerX solve supports only 2-dimensional arrays."};
-        }
-        if (a.shape()[0] != a.shape()[1]) {
-            throw DimensionError{"Matrix is not square."};
-        }
+        CHAINERX_ASSERT(a.ndim() == 2);
+        CHAINERX_ASSERT(a.shape()[0] == a.shape()[1]);
 
         auto solve_impl = [&](auto pt, auto getrf_bufferSize, auto getrf, auto getrs) {
             using T = typename decltype(pt)::type;
@@ -116,12 +112,8 @@ public:
         Dtype dtype = a.dtype();
         CudaSetDeviceScope scope{device.index()};
 
-        if (a.ndim() != 2) {
-            throw DimensionError{"ChainerX inverse supports only 2-dimensional arrays."};
-        }
-        if (a.shape()[0] != a.shape()[1]) {
-            throw DimensionError{"Matrix is not square."};
-        }
+        CHAINERX_ASSERT(a.ndim() == 2);
+        CHAINERX_ASSERT(a.shape()[0] == a.shape()[1]);
 
         // There is LAPACK routine ``getri`` for computing the inverse of an LU-factored matrix,
         // but cuSOLVER does not have it implemented, therefore inverse is obtained with ``getrs``
