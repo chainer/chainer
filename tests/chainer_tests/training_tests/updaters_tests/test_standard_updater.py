@@ -232,26 +232,22 @@ class TestStandardUpdaterDeviceArgumentFallback(unittest.TestCase):
         # )
         # or None if an error is expected.
 
-        if device_arg is not None:
-            # device argument is given
+        # If device_arg is given and is GpuDevice, it will skip GPU-to-GPU
+        # transfer of the model (but not input).
+        if (device_arg is not None
+                and isinstance(device_arg, backend.GpuDevice)):
+            if isinstance(initial_model_device, backend.GpuDevice):
+                expected_model_device = initial_model_device
+            else:
+                expected_model_device = device_arg
 
-            # If device_arg is GpuDevice,  it will skip GPU-to-GPU transfer of
-            # the model (but not input).
-            if isinstance(device_arg, backend.GpuDevice):
-                if isinstance(initial_model_device, backend.GpuDevice):
-                    expected_model_device = initial_model_device
-                else:
-                    expected_model_device = device_arg
+            expected_input_device = device_arg
+            expected_device_attr = device_arg
 
-                expected_input_device = device_arg
-                expected_device_attr = device_arg
-
-                return (
-                    expected_device_attr,
-                    expected_model_device,
-                    expected_input_device)
-
-            # device argument is not GpuDevice: fallthrough
+            return (
+                expected_device_attr,
+                expected_model_device,
+                expected_input_device)
 
         # expect_table
         # Key:   (omit_device, omit_input_device)
@@ -352,14 +348,10 @@ class TestStandardUpdaterDeviceArgumentFallback(unittest.TestCase):
         # Check the model device
         if expected_model_device is None:
             # Model device is unchanged
-            # TODO(niboshi): model.device should be initial_model_device too.
-            assert model.p1.device == initial_model_device
-            assert model.p2.device == initial_model_device
-        else:
-            # Model is transferred
-            # TODO(niboshi): model.device should be expected_model_device too.
-            assert model.p1.device == expected_model_device
-            assert model.p2.device == expected_model_device
+            expected_model_device = initial_model_device
+        # TODO(niboshi): model.device should be expected_model_device too.
+        assert model.p1.device == expected_model_device
+        assert model.p2.device == expected_model_device
 
         # Process a batch
         updater.update_core()
