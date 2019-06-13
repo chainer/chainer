@@ -1,6 +1,5 @@
 #include "chainerx/cuda/cusolver.h"
 
-#include <cublas_v2.h>
 #include <cuda_runtime.h>
 #include <cusolverDn.h>
 
@@ -14,7 +13,7 @@ namespace chainerx {
 namespace cuda {
 namespace cuda_internal {
 
-CusolverHandle::~CusolverHandle() {
+CusolverDnHandle::~CusolverDnHandle() {
     if (handle_ != nullptr) {
         // NOTE: CudaSetDeviceScope is not available because it may throw
         int orig_index{0};
@@ -25,7 +24,7 @@ CusolverHandle::~CusolverHandle() {
     }
 }
 
-cusolverDnHandle_t CusolverHandle::handle() {
+cusolverDnHandle_t CusolverDnHandle::handle() {
     if (handle_ == nullptr) {
         CudaSetDeviceScope scope{device_index_};
         CheckCusolverError(cusolverDnCreate(&handle_));
@@ -53,8 +52,8 @@ std::string BuildErrorMessage(cusolverStatus_t error) {
         CHAINERX_MATCH_AND_RETURN_MSG(CUSOLVER_STATUS_INTERNAL_ERROR);
         CHAINERX_MATCH_AND_RETURN_MSG(CUSOLVER_STATUS_MATRIX_TYPE_NOT_SUPPORTED);
         CHAINERX_MATCH_AND_RETURN_MSG(CUSOLVER_STATUS_NOT_SUPPORTED);
-        CHAINERX_MATCH_AND_RETURN_MSG(CUSOLVER_STATUS_INVALID_LICENSE);
         CHAINERX_MATCH_AND_RETURN_MSG(CUSOLVER_STATUS_ZERO_PIVOT);
+        CHAINERX_MATCH_AND_RETURN_MSG(CUSOLVER_STATUS_INVALID_LICENSE);
 
 #undef CHAINERX_MATCH_AND_RETURN_MSG
     }
