@@ -66,12 +66,12 @@ public:
             CheckCudaError(cudaMalloc(&devInfo, sizeof(int)));
 
             int buffersize_geqrf = 0;
-            device_internals.cusolver_handle().Call(geqrf_bufferSize, m, n, r_ptr, n, &buffersize_geqrf);
+            device_internals.cusolverdn_handle().Call(geqrf_bufferSize, m, n, r_ptr, n, &buffersize_geqrf);
 
             Array work = Empty(Shape({buffersize_geqrf}), dtype, device);
             T* work_ptr = static_cast<T*>(internal::GetRawOffsetData(work));
 
-            device_internals.cusolver_handle().Call(geqrf, m, n, r_ptr, m, tau_ptr, work_ptr, buffersize_geqrf, devInfo);
+            device_internals.cusolverdn_handle().Call(geqrf, m, n, r_ptr, m, tau_ptr, work_ptr, buffersize_geqrf, devInfo);
 
             int devInfo_h = 0;
             CheckCudaError(cudaMemcpy(&devInfo_h, devInfo, sizeof(int), cudaMemcpyDeviceToHost));
@@ -102,11 +102,11 @@ public:
             T* q_ptr = static_cast<T*>(internal::GetRawOffsetData(Q));
 
             int buffersize_orgqr = 0;
-            device_internals.cusolver_handle().Call(orgqr_bufferSize, m, mc, mn, q_ptr, m, tau_ptr, &buffersize_orgqr);
+            device_internals.cusolverdn_handle().Call(orgqr_bufferSize, m, mc, mn, q_ptr, m, tau_ptr, &buffersize_orgqr);
 
             work = Empty(Shape({buffersize_orgqr}), dtype, device);
 
-            device_internals.cusolver_handle().Call(orgqr, m, mc, mn, q_ptr, m, tau_ptr, work_ptr, buffersize_orgqr, devInfo);
+            device_internals.cusolverdn_handle().Call(orgqr, m, mc, mn, q_ptr, m, tau_ptr, work_ptr, buffersize_orgqr, devInfo);
 
             CheckCudaError(cudaMemcpy(&devInfo_h, devInfo, sizeof(int), cudaMemcpyDeviceToHost));
             if (devInfo_h != 0) {
