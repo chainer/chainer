@@ -15,7 +15,6 @@
 #include "chainerx/graph.h"
 #include "chainerx/kernels/explog.h"
 #include "chainerx/routines/creation.h"
-#include "chainerx/routines/math.h"
 #include "chainerx/routines/misc.h"
 #include "chainerx/routines/type_util.h"
 
