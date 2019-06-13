@@ -76,9 +76,10 @@ public:
                 &work_size);
 
             // POTRF execution
-            T* work_space;
-            CheckCudaError(cudaMalloc(&work_space, work_size * sizeof(T)));
-            int *devInfo;
+            Array work = Empty(Shape({work_size}), dtype, device);
+            T* work_ptr = static_cast<T*>(internal::GetRawOffsetData(work));
+
+            int* devInfo;
             CheckCudaError(cudaMalloc(&devInfo, sizeof(int)));
             device_internals.cusolverdn_handle().Call(
                 solver_func,
@@ -86,7 +87,7 @@ public:
                 N,
                 out_ptr,
                 N,
-                work_space,
+                work_ptr,
                 work_size,
                 devInfo);
 
