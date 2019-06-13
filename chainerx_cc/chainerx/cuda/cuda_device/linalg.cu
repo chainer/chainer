@@ -120,14 +120,20 @@ public:
             return std::make_tuple(std::move(Q), std::move(R));
         };
 
-        if (a.dtype() == Dtype::kFloat32) {
-            return qr_impl(
+        switch (a.dtype()) {
+            case Dtype::kFloat16:
+                throw DtypeError{"Half-precision (float16) is not supported by QR decomposition"};
+                break;
+            case Dtype::kFloat32:
+                return qr_impl(
                     PrimitiveType<float>{}, cusolverDnSgeqrf_bufferSize, cusolverDnSorgqr_bufferSize, cusolverDnSgeqrf, cusolverDnSorgqr);
-        } else {
-            CHAINERX_ASSERT(a.dtype() == Dtype::kFloat64);
-            return qr_impl(
+                break;
+            case Dtype::kFloat64:
+                return qr_impl(
                     PrimitiveType<double>{}, cusolverDnDgeqrf_bufferSize, cusolverDnDorgqr_bufferSize, cusolverDnDgeqrf, cusolverDnDorgqr);
-        }
+                break;
+            default:
+                CHAINERX_NEVER_REACH();
     }
 };
 
