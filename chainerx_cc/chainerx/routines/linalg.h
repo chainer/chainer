@@ -1,6 +1,8 @@
 #pragma once
 
 #include <nonstd/optional.hpp>
+#include <string>
+#include <tuple>
 
 #include "chainerx/array.h"
 #include "chainerx/dtype.h"

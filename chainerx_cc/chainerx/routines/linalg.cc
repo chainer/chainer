@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <cassert>
 #include <cstdint>
+#include <string>
+#include <tuple>
 #include <utility>
 #include <vector>
 
