@@ -4,9 +4,9 @@
 #include <mutex>
 #include <type_traits>
 
-#include <cusolverDn.h>
 #include <cublas_v2.h>
 #include <cuda_runtime.h>
+#include <cusolverDn.h>
 #include <cuda_fp16.hpp>
 
 #include "chainerx/array.h"
@@ -14,9 +14,9 @@
 #include "chainerx/backend.h"
 #include "chainerx/backend_util.h"
 #include "chainerx/cuda/cublas.h"
-#include "chainerx/cuda/cusolver.h"
 #include "chainerx/cuda/cuda_runtime.h"
 #include "chainerx/cuda/cuda_set_device_scope.h"
+#include "chainerx/cuda/cusolver.h"
 #include "chainerx/cuda/data_type.cuh"
 #include "chainerx/cuda/float16.cuh"
 #include "chainerx/cuda/kernel_regist.h"
@@ -68,13 +68,7 @@ public:
             T* out_ptr = static_cast<T*>(internal::GetRawOffsetData(out_contiguous));
             int work_size = 0;
             const int N = a.shape()[0];
-            device_internals.cusolverdn_handle().Call(
-                bufsize_func,
-                uplo,
-                N,
-                out_ptr,
-                N,
-                &work_size);
+            device_internals.cusolverdn_handle().Call(bufsize_func, uplo, N, out_ptr, N, &work_size);
 
             // POTRF execution
             Array work = Empty(Shape({work_size}), dtype, device);
@@ -82,15 +76,7 @@ public:
 
             int* devInfo;
             CheckCudaError(cudaMalloc(&devInfo, sizeof(int)));
-            device_internals.cusolverdn_handle().Call(
-                solver_func,
-                uplo,
-                N,
-                out_ptr,
-                N,
-                work_ptr,
-                work_size,
-                devInfo);
+            device_internals.cusolverdn_handle().Call(solver_func, uplo, N, out_ptr, N, work_ptr, work_size, devInfo);
 
             int devInfo_h = 0;
             CheckCudaError(cudaMemcpy(&devInfo_h, devInfo, sizeof(int), cudaMemcpyDeviceToHost));

@@ -5,14 +5,14 @@
 #include <utility>
 
 #include <cublas_v2.h>
-#include <cusolverDn.h>
 #include <cuda_runtime.h>
 #include <cudnn.h>
+#include <cusolverDn.h>
 
 #include "chainerx/cuda/cublas.h"
-#include "chainerx/cuda/cusolver.h"
 #include "chainerx/cuda/cuda_runtime.h"
 #include "chainerx/cuda/cuda_set_device_scope.h"
+#include "chainerx/cuda/cusolver.h"
 
 namespace chainerx {
 namespace cuda {
