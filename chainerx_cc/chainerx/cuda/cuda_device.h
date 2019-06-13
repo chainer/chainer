@@ -16,10 +16,10 @@
 #include "chainerx/array.h"
 #include "chainerx/axes.h"
 #include "chainerx/cuda/cublas.h"
-#include "chainerx/cuda/cusolver.h"
 #include "chainerx/cuda/cuda_backend.h"
 #include "chainerx/cuda/cuda_conv.h"
 #include "chainerx/cuda/cudnn.h"
+#include "chainerx/cuda/cusolver.h"
 #include "chainerx/cuda/memory_pool.h"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
@@ -69,7 +69,8 @@ private:
 // These internals are exposed through `GetDeviceInternals` for CUDA internal usages.
 class DeviceInternals {
 public:
-    explicit DeviceInternals(int device_index) : cublas_handle_{device_index}, cudnn_handle_{device_index}, cusolver_handle_{device_index} {}
+    explicit DeviceInternals(int device_index)
+        : cublas_handle_{device_index}, cudnn_handle_{device_index}, cusolver_handle_{device_index} {}
 
     ~DeviceInternals() = default;
 

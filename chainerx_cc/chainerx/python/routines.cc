@@ -287,14 +287,8 @@ void InitChainerxCreation(pybind11::module& m) {
           py::arg("k") = 0,
           py::arg("dtype") = "float64",
           py::arg("device") = nullptr);
-    m.def("tril",
-          [](const ArrayBodyPtr& m, int64_t k) { return MoveArrayBody(Tril(Array{m}, k)); },
-          py::arg("m"),
-          py::arg("k") = 0);
-    m.def("triu",
-          [](const ArrayBodyPtr& m, int64_t k) { return MoveArrayBody(Triu(Array{m}, k)); },
-          py::arg("m"),
-          py::arg("k") = 0);
+    m.def("tril", [](const ArrayBodyPtr& m, int64_t k) { return MoveArrayBody(Tril(Array{m}, k)); }, py::arg("m"), py::arg("k") = 0);
+    m.def("triu", [](const ArrayBodyPtr& m, int64_t k) { return MoveArrayBody(Triu(Array{m}, k)); }, py::arg("m"), py::arg("k") = 0);
 }
 
 void InitChainerxIndexing(pybind11::module& m) {
@@ -356,29 +350,30 @@ void InitChainerxLinalg(pybind11::module& m) {
           py::arg("b"));
 
     pybind11::module mlinalg = m.def_submodule("linalg");
-    mlinalg.def("qr",
-                [](const ArrayBodyPtr& a, const std::string& mode) {
-                    Array a_array{a};
+    mlinalg.def(
+            "qr",
+            [](const ArrayBodyPtr& a, const std::string& mode) {
+                Array a_array{a};
 
-                    QRMode qrmode{};
-                    if (mode == "reduced") {
-                        qrmode = QRMode::reduced;
-                    } else if (mode == "complete") {
-                        qrmode = QRMode::complete;
-                    } else if (mode == "r") {
-                        qrmode = QRMode::r;
-                    } else if (mode == "raw") {
-                        qrmode = QRMode::raw;
-                    } else {
-                          throw py::value_error{"mode must be 'reduced', 'complete', 'r', or 'raw'"};
-                    }
-                    std::tuple<Array, Array> qr = QR(a_array, qrmode);
-                    Array q = std::get<0>(qr);
-                    Array r = std::get<1>(qr);
-                    return std::make_tuple(MoveArrayBody(Array{q}), MoveArrayBody(Array{r}));
-                },
-                py::arg("a"),
-                py::arg("mode") = "reduced");
+                QRMode qrmode{};
+                if (mode == "reduced") {
+                    qrmode = QRMode::reduced;
+                } else if (mode == "complete") {
+                    qrmode = QRMode::complete;
+                } else if (mode == "r") {
+                    qrmode = QRMode::r;
+                } else if (mode == "raw") {
+                    qrmode = QRMode::raw;
+                } else {
+                    throw py::value_error{"mode must be 'reduced', 'complete', 'r', or 'raw'"};
+                }
+                std::tuple<Array, Array> qr = QR(a_array, qrmode);
+                Array q = std::get<0>(qr);
+                Array r = std::get<1>(qr);
+                return std::make_tuple(MoveArrayBody(Array{q}), MoveArrayBody(Array{r}));
+            },
+            py::arg("a"),
+            py::arg("mode") = "reduced");
 }
 
 void InitChainerxLogic(pybind11::module& m) {

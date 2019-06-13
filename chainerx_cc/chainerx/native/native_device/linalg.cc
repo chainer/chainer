@@ -29,7 +29,6 @@ namespace native {
 class NativeQRKernel : public QRKernel {
 public:
     std::tuple<Array, Array> Call(const Array& a, QRMode mode = QRMode::reduced) override {
-
         if (a.ndim() != 2) {
             throw DimensionError{"ChainerX QR decomposition supports only 2-dimensional arrays."};
         }
