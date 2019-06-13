@@ -19,7 +19,6 @@
 #include "chainerx/graph.h"
 #include "chainerx/kernels/arithmetic.h"
 #include "chainerx/kernels/indexing.h"
-#include "chainerx/kernels/math.h"
 #include "chainerx/macro.h"
 #include "chainerx/routines/arithmetic.h"
 #include "chainerx/routines/creation.h"
