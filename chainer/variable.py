@@ -1065,11 +1065,16 @@ class Variable(object):
         return chainer.functions.transpose(self)
 
     def to_cpu(self):
-        """Copies the data and gradient arrays to CPU."""
+        """Copies the data and gradient arrays to CPU.
+
+        Note that the graph will be unchained.
+        """
         self.to_device(backend.CpuDevice())
 
     def to_gpu(self, device=None):
         """Copies the data and gradient arrays to specified GPU.
+
+        Note that the graph will be unchained.
 
         Args:
             device: Target device specifier. If omitted, the current device is
@@ -1084,6 +1089,8 @@ class Variable(object):
 
         If the array is not suited for intel64, it will be converted to
         :class:`numpy.ndarray`.
+
+        Note that the graph will be unchained.
         """
         intel64.check_ideep_available()
         self.to_device(intel64.Intel64Device())
@@ -1096,32 +1103,22 @@ class Variable(object):
         if the array held by the Variable object is already a ChainerX array.
         The new array is a view of the original one.
 
+        Note that the graph will be unchained.
         """
-        self._to_chx(allow_unchaining=False)
-
-    def _to_chx(self, allow_unchaining):
         if not chainerx.is_available():
             raise RuntimeError('ChainerX is not available.')
 
         if self._has_chainerx_array:
             return
 
-        if not allow_unchaining and self.creator is not None:
-            raise RuntimeError(
-                'A variable with a creator cannot be converted into ChainerX '
-                'array')
-
-        array = self.array
-        grad = self.grad
-        if array is None and grad is not None:
-            # TODO(hvy): Reconsider this possibly invalid state.
+        # TODO(hvy): Reconsider this possibly invalid state.
+        if self.array is None and self.grad is not None:
             raise RuntimeError(
                 'A variable without data but with a gradient cannot be '
                 'transferred to a ChainerX device.')
 
-        self._to_device(
-            backend.ChainerxDevice.from_fallback_device(self.device),
-            allow_unchaining)
+        self.to_device(
+            backend.ChainerxDevice.from_fallback_device(self.device))
 
     def from_chx(self):
         """Converts the array and gradient to non-ChainerX arrays without copy.
@@ -1134,96 +1131,83 @@ class Variable(object):
 
         Raises an error if such a conversion is not supported for the device.
 
+        Note that the graph will be unchained.
         """
-        self._from_chx(allow_unchaining=False)
-
-    def _from_chx(self, allow_unchaining):
         if not self._has_chainerx_array:
             return
-
-        if not allow_unchaining and self._data[0].is_backprop_required():
-            raise RuntimeError(
-                'Cannot convert from a Variable with a ChainerX array that is '
-                'connected to a graph.')
 
         self.to_device(self.device.fallback_device)
 
     def to_device(self, device):
         """Copies the data and gradient arrays to specified device.
 
+        Note that the graph will be unchained.
+
         Args:
             device: Target device specifier. See
                 :func:`~chainer.get_device` for available values.
 
         """
-        self._to_device(device, allow_unchaining=False)
-
-    def _to_device(self, device, allow_unchaining):
         device = chainer.get_device(device)
 
         was_chainerx = self._has_chainerx_array
         is_chainerx = device.xp is chainerx
 
-        if not allow_unchaining:
-            if was_chainerx and not is_chainerx:
-                chx_arr = self._data[0]
-                if chx_arr is not None and chx_arr.is_backprop_required():
-                    raise RuntimeError(
-                        'A variable of a ChainerX array which requires '
-                        'gradients cannot be copied into non-chainerx device '
-                        '({}).'.format(device))
-            elif not was_chainerx and is_chainerx:
-                arr = self._data[0]
-                if arr is not None and self.creator is not None:
-                    raise RuntimeError(
-                        'A variable of a non-ChainerX array which is '
-                        'connected to a graph cannot be copied to a ChainerX '
-                        'device ({}).'.format(device))
-
-        arr = self._data[0]
-        grad_var = self.grad_var
-
         if was_chainerx and not is_chainerx:
+            # ChainerX -> non-ChainerX.
             self._clear_chainerx()
             self._node = VariableNode(self, self._chainerx_name)
         elif not was_chainerx and is_chainerx:
+            # Non-ChainerX -> ChainerX.
             self._chainerx_name = self._node.name
 
-        self._device = device
-        self._has_chainerx_array = is_chainerx
+        arr = self._data[0]
+        if arr is not None and backend.get_device_from_array(arr) != device:
+            grad_var = self.grad_var
 
-        if arr is None:
-            return
-
-        if backend.get_device_from_array(arr) == device:
-            return
-
-        new_arr = device.send(arr)
-        if is_chainerx:
-            if grad_var is None:
-                new_grad = None
+            new_arr = device.send(arr)
+            if is_chainerx:
+                if grad_var is None:
+                    new_grad = None
+                else:
+                    new_grad = device.send(grad_var._data[0])
+                self._set_chainerx_array(new_arr, new_grad)
             else:
-                new_grad = device.send(grad_var._data[0])
-            self._set_chainerx_array(new_arr, new_grad)
-        else:
-            self._data = [new_arr]
-            if grad_var is not None:
-                grad_var._to_device(device, allow_unchaining=allow_unchaining)
-                # _grad has been invalidated by the line above.
-                self._grad = grad_var.array
+                self._data = [new_arr]
+                if grad_var is not None:
+                    grad_var.to_device(device)
+                    # _grad has been invalidated by the line above.
+                    self._grad = grad_var.array
 
-        # ensure that the node tracks the device migration
-        node = self._node
-        if is_chainerx:
-            # ChainerX itself has own node objects,
-            # ensure that the node is disconnected with this variable.
-            if node is not None:
-                # Disconnect by replacing with an alternative of dead weakref
-                node._variable = lambda: None
-                self._node = None
-        else:
-            if node._data is not None:
-                node.retain_data()
+            # ensure that the node tracks the device migration
+            node = self._node
+            if is_chainerx:
+                # ChainerX itself has own node objects,
+                # ensure that the node is disconnected with this variable.
+                if node is not None:
+                    # Disconnect by replacing with an alternative of dead
+                    # weakref
+                    node._variable = lambda: None
+                    self._node = None
+            else:
+                if node._data is not None:
+                    node.retain_data()
+
+        # TODO(hvy): Unchain.
+        # Non-ChainerX -> Non-ChainerX: unchain_backward.
+        # Non-ChainerX -> ChainerX: unchain_backward.
+        # ChainerX -> Non-ChainerX: Implicitly unchained.
+        # ChainerX -> ChainerX: chainerx.to_device with no backprop scope?
+
+        # Device transfer is not a backproppable operation and the graph will
+        # therefore be unchained backwards in order to prevent the variable
+        # from being in an invalid state, i.e. connected to a graph but with a
+        # different device.
+        # Note that we however cannot unchain the graph forwards meaning that
+        # we cannot ensure the graph to always be valid.
+
+        self._has_chainerx_array = is_chainerx
+        self._device = device
 
     def cleargrad(self):
         """Clears the gradient array."""
@@ -1704,7 +1688,7 @@ class Parameter(Variable):
             self._initial_device = backend.ChainerxDevice(
                 chainerx.get_device('cuda:{}'.format(device.device.id)))
 
-        super(Parameter, self)._to_chx(allow_unchaining=True)
+        super(Parameter, self).to_chx()
 
     def from_chx(self):
         if self.array is not None:
@@ -1720,7 +1704,7 @@ class Parameter(Variable):
                 self._initial_device = backend.GpuDevice.from_device_id(
                     device.device.index)
 
-        super(Parameter, self)._from_chx(allow_unchaining=True)
+        super(Parameter, self).from_chx()
 
     def to_device(self, device):
         device = chainer.get_device(device)
@@ -1728,7 +1712,7 @@ class Parameter(Variable):
             self._data = [None]  # Renew placeholder to break sharing
             self._has_chainerx_array = False
         self._initial_device = device
-        super(Parameter, self)._to_device(device, allow_unchaining=True)
+        super(Parameter, self).to_device(device)
 
     def cleargrad(self):
         super(Parameter, self).cleargrad()

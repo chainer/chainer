@@ -1051,11 +1051,10 @@ class TestVariableToCpu(unittest.TestCase):
 
     @attr.chainerx
     def test_to_cpu_from_chainerx_requiring_grad(self):
-        with self.assertRaises(RuntimeError):
-            self.check_to_cpu(
-                chainerx.array(self.x),
-                chainerx.array(self.gx),
-                requires_grad=True)
+        self.check_to_cpu(
+            chainerx.array(self.x),
+            chainerx.array(self.gx),
+            requires_grad=True)
 
 
 @testing.parameterize(
@@ -1139,11 +1138,10 @@ class TestVariableToGpu(unittest.TestCase):
 
     @attr.chainerx
     def test_to_gpu_from_chainerx_requiring_grad(self):
-        with self.assertRaises(RuntimeError):
-            self.check_to_gpu(
-                chainerx.array(self.x),
-                chainerx.array(self.gx),
-                requires_grad=True)
+        self.check_to_gpu(
+            chainerx.array(self.x),
+            chainerx.array(self.gx),
+            requires_grad=True)
 
 
 @testing.parameterize(
@@ -1167,6 +1165,14 @@ class TestVariableToChainerX(unittest.TestCase):
             return arrays[0].device
         assert False
 
+    def _check_chx(self, x_var, expected_device):
+        assert x_var.xp is chainerx
+        assert x_var._has_chainerx_array is True
+        with pytest.raises(RuntimeError):
+            x_var.node
+        assert isinstance(x_var.array, chainerx.ndarray)
+        assert x_var.array.device is expected_device
+
     def check_to_chx(self, x, gx, requires_grad=True):
         x_var = chainer.Variable(x, requires_grad=requires_grad)
         x_var.grad_var = chainer.Variable(gx, requires_grad=requires_grad)
@@ -1175,17 +1181,12 @@ class TestVariableToChainerX(unittest.TestCase):
 
         expected_device = self.infer_expected_device(x, gx)
 
-        assert x_var.xp is chainerx
-        assert x_var._has_chainerx_array is True
-        with pytest.raises(RuntimeError):
-            x_var.node
-        assert isinstance(x_var.array, chainerx.ndarray)
+        self._check_chx(x_var, expected_device)
+
         assert x.shape == x_var.shape
         assert x.dtype == x_var.dtype
-        assert x_var.data.device is expected_device
-        np.testing.assert_array_equal(
-            backend.CpuDevice().send(x_var.data), backend.CpuDevice().send(x))
 
+        # Check gradient.
         if requires_grad:
             assert isinstance(x_var.grad, chainerx.ndarray)
             assert gx.shape == x_var.grad.shape
@@ -1200,9 +1201,6 @@ class TestVariableToChainerX(unittest.TestCase):
         else:
             assert x_var.grad is None
             assert x_var.grad_var is None
-
-        assert x_var.xp is chainerx
-        assert x_var._has_chainerx_array is True
 
     def test_to_chx_from_numpy(self):
         self.check_to_chx(self.x, self.gx)
@@ -1228,16 +1226,16 @@ class TestVariableToChainerX(unittest.TestCase):
         self.check_to_chx(self.x, self.gx, requires_grad=False)
 
     def test_to_chx_with_creator(self):
-        x = chainer.Variable(self.x)
-        y = x * x
-        with self.assertRaises(RuntimeError):
-            y.to_chx()
+        x_var = chainer.Variable(self.x, requires_grad=True)
+        y_var = x_var * x_var
+        y_var.to_chx()
+        self._check_chx(y_var, chainerx.get_device('native', 0))
 
 
-@testing.parameterize(
-    {'x_shape': (10,)},
-    {'x_shape': ()},
-)
+@testing.parameterize(*testing.product({
+    'x_shape': [(10,), ()],
+    'requires_grad': [True, False],
+}))
 @chainer.testing.backend.inject_backend_tests(
     ['test_from_chx'],
     [
@@ -1273,12 +1271,13 @@ class TestVariableFromChainerX(unittest.TestCase):
 
     def test_from_chx(self, backend_config):
         x = backend_config.get_array(self.x)
-        x_var = chainer.Variable(x, requires_grad=False)
+        x_var = chainer.Variable(x, requires_grad=self.requires_grad)
         x_var.from_chx()
 
         expected_xp, expected_device = self.infer_expected_xp_and_device(x)
 
         assert x_var.xp is expected_xp
+        # TODO(hvy): Check without relying on private attributes.
         assert x_var._has_chainerx_array is (expected_xp is chainerx)
         assert x_var.node is not None
         assert isinstance(x_var.array, expected_xp.ndarray)
@@ -1289,11 +1288,6 @@ class TestVariableFromChainerX(unittest.TestCase):
         assert x_var.grad_var is None
         np.testing.assert_array_equal(
             backend.CpuDevice().send(x_var.array), backend.CpuDevice().send(x))
-
-    def test_invalid_from_chx_requires_grad(self):
-        x = chainer.Variable(self.x, requires_grad=True)
-        with self.assertRaises(RuntimeError):
-            x.from_chx()
 
 
 @testing.parameterize(
@@ -1330,11 +1324,10 @@ class TestVariableToDevice(unittest.TestCase):
         self.check_to_device(self.x, self.gx, 'native:0', chainerx)
 
 
-@testing.parameterize(*testing.product(
-    {
-        'x_shape': [(10,), (), None],
-        'requires_grad': [True, False],
-    }))
+@testing.parameterize(*testing.product({
+    'x_shape': [(10,), (), None],
+    'requires_grad': [True, False],
+}))
 @testing.backend.inject_backend_tests(None, _backend_params)
 @testing.backend.inject_backend_tests(None, _backend_params)
 class TestVariableToDeviceTwice(unittest.TestCase):
@@ -1354,30 +1347,18 @@ class TestVariableToDeviceTwice(unittest.TestCase):
         var.to_device(device1)
 
         # Transfer to device 2
-        should_fail = (
-            self.requires_grad
-            and self.x is not None
-            and device1.xp is chainerx
-            and device2.xp is not chainerx)
-        if should_fail:
-            # Non-ChainerX device to ChainerX device should fail if
-            # requires_grad
-            with pytest.raises(RuntimeError):
-                var.to_device(device2)
-        else:
-            # Should succeed
-            var.to_device(device2)
+        var.to_device(device2)
 
-            assert var.requires_grad == self.requires_grad
-            if self.x is None:
-                assert var.array is None
-                assert var.data is None
-            else:
-                assert isinstance(var.array, device2.xp.ndarray)
-                assert backend.get_device_from_array(var.array) == device2
-                np.testing.assert_array_equal(
-                    self.x,
-                    backend.CpuDevice().send(var.array))
+        assert var.requires_grad == self.requires_grad
+        if self.x is None:
+            assert var.array is None
+            assert var.data is None
+        else:
+            assert isinstance(var.array, device2.xp.ndarray)
+            assert backend.get_device_from_array(var.array) == device2
+            np.testing.assert_array_equal(
+                self.x,
+                backend.CpuDevice().send(var.array))
 
 
 class TestVariableBasic(unittest.TestCase):
