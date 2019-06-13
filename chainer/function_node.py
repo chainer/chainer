@@ -1223,9 +1223,12 @@ def _extract_apply_in_data(inputs):
                     typ = type(chainer.Variable()).__name__
                     if isinstance(x, variable.Variable):
                         typ += '(requires_grad={})'.format(x.requires_grad)
+                        device = x.device
+                    else:
+                        device = backend.get_device_from_array(x)
                     msg.append(
                         'input[{}]: {} on {}'.format(
-                            i, typ, x.device))
+                            i, typ, device))
                 raise NotImplementedError('\n'.join(msg))
             return True, tuple(backend.to_chx(arrays))
         else:
