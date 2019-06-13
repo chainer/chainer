@@ -112,6 +112,12 @@ else()
     add_library(chainerx SHARED ${chainerx_srcs})
 endif()
 
+get_third_party(abseil)
+include_directories("${CMAKE_CURRENT_BINARY_DIR}/abseil")
+add_subdirectory("${CMAKE_CURRENT_BINARY_DIR}/abseil" "${CMAKE_CURRENT_BINARY_DIR}/abseil-build")
+
+target_link_libraries(chainerx PUBLIC absl::failure_signal_handler)
+
 if(MSVC)
     target_link_libraries(chainerx
         PUBLIC
