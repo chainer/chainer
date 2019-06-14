@@ -771,8 +771,8 @@ class TestDifferentDtype(unittest.TestCase):
             chainer.testing.assert_allclose(x, y)
         self.teardown()
 
-    def check_allreduce(self, x, dtype, n):
-        x = self.communicator.allreduce(x)
+    def check_allreduce_sum(self, x, dtype, n):
+        x = self.communicator.allreduce(x, op=mpi4py.MPI.SUM)
 
         s = sum(range(self.communicator.size))
 
@@ -780,13 +780,13 @@ class TestDifferentDtype(unittest.TestCase):
         y = y.astype(dtype)
         chainer.testing.assert_allclose(y, x)
 
-    def test_allreduce_cpu(self):
+    def test_allreduce_sum_cpu(self):
         self.setup(False)
         for dtype in self.dtypes:
             for n in [1, 18, 32]:
                 x = np.arange(n) + self.communicator.rank
                 x = x.astype(dtype)
-                self.check_allreduce(x, dtype, n)
+                self.check_allreduce_sum(x, dtype, n)
 
             x = np.array(1).astype(dtype)
             y = self.communicator.allreduce(x)
@@ -795,13 +795,48 @@ class TestDifferentDtype(unittest.TestCase):
         self.teardown()
 
     @chainer.testing.attr.gpu
-    def test_allreduce_gpu(self):
+    def test_allreduce_sum_gpu(self):
         self.setup(True)
         for dtype in self.dtypes:
             x = np.arange(18) + self.communicator.rank
             x = x.astype(dtype)
             x = chainer.cuda.to_gpu(x, device=self.device)
-            self.check_allreduce(x, dtype, 18)
+            self.check_allreduce_sum(x, dtype, 18)
+
+            x = np.array(1).astype(dtype)
+            y = self.communicator.allreduce(x)
+            a = x * self.communicator.size
+            chainer.testing.assert_allclose(a, y)
+        self.teardown()
+
+    def check_allreduce_max(self, x, dtype, n):
+        x = self.communicator.allreduce(x, op=mpi4py.MPI.MAX)
+        y = np.arange(n) + self.communicator.size - 1
+        y = y.astype(dtype)
+        chainer.testing.assert_allclose(y, x)
+
+    def test_allreduce_max_cpu(self):
+        self.setup(False)
+        for dtype in self.dtypes:
+            for n in [1, 18, 32]:
+                x = np.arange(n) + self.communicator.rank
+                x = x.astype(dtype)
+                self.check_allreduce_max(x, dtype, n)
+
+            x = np.array(1).astype(dtype)
+            y = self.communicator.allreduce(x)
+            a = x * self.communicator.size
+            chainer.testing.assert_allclose(a, y)
+        self.teardown()
+
+    @chainer.testing.attr.gpu
+    def test_allreduce_max_gpu(self):
+        self.setup(True)
+        for dtype in self.dtypes:
+            x = np.arange(18) + self.communicator.rank
+            x = x.astype(dtype)
+            x = chainer.cuda.to_gpu(x, device=self.device)
+            self.check_allreduce_max(x, dtype, 18)
 
             x = np.array(1).astype(dtype)
             y = self.communicator.allreduce(x)
