@@ -31,7 +31,7 @@ namespace cuda {
 namespace cuda_internal {
 
 
-
+void *reserve;
 
 std::vector<std::vector<Array>> CudaRnn::n_step_rnn(
         CudaDevice& device,
@@ -147,7 +147,7 @@ std::vector<std::vector<Array>> CudaRnn::n_step_rnn(
         xs_desc_arr.data(),
         &reserve_size
     );
-    void *reserve;
+    
     cudaMallocManaged(&reserve, reserve_size);
 
     std::vector<CudnnTensorDescriptor> ys_desc;
@@ -176,7 +176,6 @@ std::vector<std::vector<Array>> CudaRnn::n_step_rnn(
     CudnnTensorDescriptor hy_desc{AsContiguous(hy)};
     CudnnTensorDescriptor cy_desc{AsContiguous(cy)};
     std::shared_ptr<void> workspace = device.Allocate(max_workspace_size);
-    throw DimensionError{"w:", w};
     handle.Call(
         cudnnRNNForwardTraining,
         rnn_desc,
@@ -418,7 +417,6 @@ std::vector<std::vector<Array>> CudaRnn::n_step_rnn_backward(
     Array dcx = Empty(cx.shape(), cx.dtype(), cx.device());
     CudnnTensorDescriptor dcx_desc{dcx};
     size_t reserve_size;
-    void* reserve;
     handle.Call(
         cudnnGetRNNTrainingReserveSize,
         rnn_desc,
@@ -426,7 +424,6 @@ std::vector<std::vector<Array>> CudaRnn::n_step_rnn_backward(
         xs_desc.data(),
         &reserve_size
     );
-    cudaMallocManaged(&reserve, reserve_size);
     std::shared_ptr<void> workspace = hx.device().Allocate(max_workspace_size);
     handle.Call(
         cudnnRNNBackwardData,
