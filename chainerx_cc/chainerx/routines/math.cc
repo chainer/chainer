@@ -16,7 +16,6 @@
 #include "chainerx/enum.h"
 #include "chainerx/error.h"
 #include "chainerx/graph.h"
-#include "chainerx/kernels/math.h"
 #include "chainerx/macro.h"
 #include "chainerx/routines/arithmetic.h"
 #include "chainerx/routines/creation.h"
@@ -42,26 +41,6 @@ Array Relu(const Array& x) {
     Dtype dtype = internal::GetMathResultDtype(x.dtype());
     const Array& x_cast = x.dtype() == dtype ? x : x.AsType(dtype);
     return Maximum(0, x_cast);
-}
-
-Array Ceil(const Array& x) {
-    Dtype dtype = internal::GetMathResultDtype(x.dtype());
-    Array out = Empty(x.shape(), dtype, x.device());
-    {
-        NoBackpropModeScope scope{};
-        x.device().backend().CallKernel<CeilKernel>(x, out);
-    }
-    return out;
-}
-
-Array Floor(const Array& x) {
-    Dtype dtype = internal::GetMathResultDtype(x.dtype());
-    Array out = Empty(x.shape(), dtype, x.device());
-    {
-        NoBackpropModeScope scope{};
-        x.device().backend().CallKernel<FloorKernel>(x, out);
-    }
-    return out;
 }
 
 }  // namespace chainerx

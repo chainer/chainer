@@ -6,7 +6,6 @@
 #include "chainerx/array.h"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
-#include "chainerx/kernels/math.h"
 #include "chainerx/kernels/misc.h"
 #include "chainerx/native/elementwise.h"
 #include "chainerx/native/kernel_regist.h"
@@ -24,10 +23,6 @@ CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_UNARY_KERNEL(SquareKernel, { out = x * x;
 CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(FabsKernel, { out = chainerx::Fabs(x); });
 
 CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_UNARY_KERNEL(SignKernel, { out = chainerx::Sign(x); }, VisitNumericDtype);
-
-CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(CeilKernel, { out = chainerx::Ceil(x); });
-
-CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(FloorKernel, { out = chainerx::Floor(x); });
 
 class NativeIfLessElseASSAKernel : public IfLessElseASSAKernel {
 public:
