@@ -172,7 +172,7 @@ class PureNcclCommunicator(mpi_communicator_base.MpiCommunicatorBase):
         self.nccl_comm.allReduce(gpu_buffer_a.ptr(),
                                  gpu_buffer_b.ptr(), n_elems,
                                  type_id, nccl.NCCL_SUM, stream.ptr)
-        div_by_size = chainer.cuda.cupy.ElementwiseKernel(
+        div_by_size = chainer.cuda.elementwise(
             '{} x'.format(dtype.name),
             '{} y'.format(dtype.name),
             'y = x*(1.0/{})'.format(self.size), 'div_by_size')
