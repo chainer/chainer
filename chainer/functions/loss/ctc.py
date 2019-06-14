@@ -356,7 +356,7 @@ class CudnnCTC(function.Function):
             t_type.ndim == 1,
             t_type.dtype == numpy.int32,
             x_type.ndim == 3,
-            x_type.dtype == numpy.float32,
+            x_type.dtype.kind == 'f',
         )
         n_batch = x_type.shape[1]
         type_check.expect(
@@ -483,20 +483,26 @@ def connectionist_temporal_classification(
         label_length = xp.full(len(t), t.shape[1], dtype=numpy.int32)
 
     x = chainer.functions.stack(x)
-    if blank_symbol != 0:
-        warnings.warn(
-            'For cuDNN CTC, you must use `blank_symbol` = 0', UserWarning)
+    if reduce not in ('mean', 'no'):
+        raise ValueError(
+            "only 'mean' and 'no' are valid "
+            "for 'reduce', but '%s' is given" % reduce)
 
     # when the length of labels is greater than 255, we cannot use cuDNN.
-    use_cudnn = chainer.should_use_cudnn('>=auto', 7000) \
-        and t.shape[1] <= 255 and blank_symbol == 0
+    use_cudnn = chainer.should_use_cudnn('>=auto', 7000)
+    if use_cudnn and t.shape[1] > 256:
+        warnings.warn("For cuDNN CTC, `t` must be less than 255", UserWarning)
+        use_cudnn = False
 
-    if xp is not numpy and use_cudnn:
-        if reduce not in ('mean', 'no'):
-            raise ValueError(
-                "only 'mean' and 'no' are valid "
-                "for 'reduce', but '%s' is given" % reduce)
+    if use_cudnn and blank_symbol != 0:
+        warnings.warn("For cuDNN CTC, `blank_symbol` must be 0", UserWarning)
+        use_cudnn = False
 
+    if use_cudnn and x.dtype != xp.float32:
+        warnings.warn("For cuDNN, you must use `xp.float32`", UserWarning)
+        use_cudnn = False
+
+    if use_cudnn and xp is not numpy:
         # For cuDNN CTC, you can set `deterministic`.
         deterministic = configuration.config.cudnn_deterministic
         if isinstance(label_length, chainer.Variable):
