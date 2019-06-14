@@ -1423,6 +1423,8 @@ class TestVariableBasic(unittest.TestCase):
 _set_data_backend_params = [
     # NumPy
     {},
+    # ideep
+    {'use_ideep': 'always'},
     # CuPy
     {'use_cuda': True, 'cuda_device': 0},
     {'use_cuda': True, 'cuda_device': 1},
@@ -1447,16 +1449,16 @@ class TestVariableSetArray(unittest.TestCase):
     def _gen_array(self, device, shape, requires_grad):
         if shape is None:
             return None
-        else:
-            a = device.send_array(
-                np.random.uniform(-1, 1, shape).astype(np.float32))
 
-        if a is not None and device.xp is chainerx and requires_grad:
+        a = device.send_array(
+            np.random.uniform(-1, 1, shape).astype(np.float32))
+
+        if device.xp is chainerx and requires_grad:
             return a.require_grad()
         else:
             return a
 
-    def test_set_data(self, backend_config1, backend_config2):
+    def test_set_array(self, backend_config1, backend_config2):
         device_x = backend_config1.device
         device_y = backend_config2.device
         xp_x = device_x.xp
