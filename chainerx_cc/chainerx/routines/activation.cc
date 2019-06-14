@@ -1,3 +1,4 @@
+#include "chainerx/routines/activation.h"
 
 #include <cmath>
 #include <cstdint>
@@ -13,7 +14,6 @@
 #include "chainerx/error.h"
 #include "chainerx/graph.h"
 #include "chainerx/macro.h"
-#include "chainerx/routines/activation.h"
 #include "chainerx/routines/arithmetic.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/explog.h"

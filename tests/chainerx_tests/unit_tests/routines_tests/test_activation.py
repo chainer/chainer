@@ -103,76 +103,27 @@ class TestRelu(UnaryMathTestBase, op_utils.NumpyOpTest):
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
-class TestSigmoid(op_utils.OpTest):
-
-    # TODO(imanishi): Dtype promotion is not supported yet.
-    def setup(self, shape, float_dtype):
-        self.shape = shape
-        self.dtype = float_dtype
-
-        if float_dtype == 'float16':
-            self.check_forward_options.update({'atol': 1e-4, 'rtol': 1e-3})
-            self.check_backward_options.update({'atol': 1e-2, 'rtol': 5e-2})
-            self.check_double_backward_options.update(
-                {'atol': 1e-2, 'rtol': 5e-2})
-
-    def generate_inputs(self):
-        shape = self.shape
-        dtype = self.dtype
-        x = array_utils.create_dummy_ndarray(numpy, shape, dtype)
-        return x,
-
-    def forward_chainerx(self, inputs):
-        x, = inputs
-        y = chainerx.sigmoid(x)
-        return y,
-
-    def forward_expected(self, inputs):
-        x, = inputs
-        y = numpy.asarray(numpy.reciprocal(1 + numpy.exp(-x))).astype(x.dtype)
-        return y,
-
-
-@op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
-    # Differentiable
+    # Special shapes
     chainer.testing.product({
-        'input': [
-            numpy.asarray(0.),
-            numpy.asarray(-1.),
-            numpy.asarray(1.),
-            numpy.asarray(10.),
-            numpy.full((), 2.),
-            numpy.full((0,), 2.),
-            numpy.full((2, 3), 2.)
-        ]})
-    +
-    # Nondifferentiable
-    chainer.testing.product({
-        'input': [
-            numpy.asarray(float('inf')),
-            numpy.asarray(float('nan')),
-        ],
+        'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
+        'in_dtypes,out_dtype': _in_out_dtypes_math_functions,
+        'input': [0, -1, 1, -2, 2, 10],
+        'contiguous': [None, 'C'],
+    })
+    # Special values
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,out_dtype': _in_out_float_dtypes_math_functions,
+        'input': [0, float('inf'), -float('inf'), float('nan')],
         'skip_backward_test': [True],
         'skip_double_backward_test': [True],
     })
 ))
-@pytest.mark.parametrize('contiguous', [None, 'C'])
-class TestSigmoidAlt(op_utils.NumpyOpTest):
+class TestSigmoid(UnaryMathTestBase, op_utils.NumpyOpTest):
 
-    def setup(self, contiguous, float_dtype):
-        self.dtype = float_dtype
-        self.contiguous = contiguous
-        self.check_forward_options = {'atol': 5e-3, 'rtol': 5e-3}
-
-        if float_dtype == 'float16':
-            self.check_backward_options = {'atol': 5e-4, 'rtol': 5e-3}
-            self.check_double_backward_options = {'atol': 5e-3, 'rtol': 5e-2}
-
-    def generate_inputs(self):
-        return self.input,
-
-    def forward_xp(self, inputs, xp):
+    def func(self, xp, a):
         if xp is numpy:
-            return 1 / (1 + numpy.exp(-inputs[0])),
-        return xp.sigmoid(inputs[0]),
+            return numpy.asarray(numpy.reciprocal(
+                                       1 + numpy.exp(-a))).astype(a.dtype)
+        return xp.sigmoid(a)
