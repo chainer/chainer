@@ -1,6 +1,5 @@
 import chainer
 import numpy
-import pytest
 
 import chainerx
 import chainerx.testing
