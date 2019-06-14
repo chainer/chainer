@@ -391,7 +391,14 @@ class Link(device_resident.DeviceResident):
         self._params.discard(name)
 
     @classmethod
-    def from_params(cls, W, b=None, **kwargs):
+    def from_params(cls, *args, **kwargs):
+        """Initialize link with given parameters.
+
+        This method initializes the link with given :ref:`ndarray`\\s.
+        Arguments includes
+            * some parameters for a specific link.
+            * arguments for non-parameter.
+        """
         raise NotImplementedError(
             'This link does not implement `from_params`.')
 

@@ -59,6 +59,13 @@ class EmbedID(link.Link):
 
     @classmethod
     def from_params(cls, W, ignore_label=None):
+        """Initialize `~chainer.links.EmbedID` with the given parameter.
+
+        Args:
+            W (:ref:`ndarray`): The weight parameter.
+            ignore_label (int or None): If ``ignore_label`` is an int value,
+                ``i``-th column of return value is filled with ``0``.
+        """
         in_size, out_size = W.shape
         link = cls(in_size, out_size, W, ignore_label)
         return link

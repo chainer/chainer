@@ -169,6 +169,33 @@ nobias=False, initialW=None, initial_bias=None, *, dilate=1, groups=1)
 
     @classmethod
     def from_params(cls, W, b=None, stride=1, pad=0, nobias=False, **kwargs):
+        """from_params(cls, W, b=None, stride=1, pad=0, nobias=False, \
+*, dilate=1, groups=1)
+
+        Initialize a :class:`~chainer.links.Convolution2D` with given parameters.
+
+        This method uses ``W`` and optional ``b`` to initialize
+        a 2D convolution layer.
+
+        Args:
+            W (:ref:`ndarray`): The weight parameter.
+            b (:ref:`ndarray` or ``None``): The bias parameter.
+            stride (int or pair of ints): Stride of filter applications.
+                ``stride=s`` and ``stride=(s, s)`` are equivalent.
+            pad (int or pair of ints): Spatial padding width for input arrays.
+                ``pad=p`` and ``pad=(p, p)`` are equivalent.
+            nobias (bool): If ``True``, then this link does not use
+                the bias term in spite of whether ``b`` is given or not.
+            dilate (int or pair of ints):
+                Dilation factor of filter applications.
+                ``dilate=d`` and ``dilate=(d, d)`` are equivalent.
+            groups (:class:`int`): Number of groups of channels. If the number
+                is greater than 1, input tensor :math:`W` is divided into some
+                blocks by this value channel-wise. For each tensor blocks,
+                convolution operation will be executed independently.
+                Input channel size ``in_channels`` and output channel size
+                ``out_channels`` must be exactly divisible by this value.
+        """
         out_channels, in_channels, kw, kh = W.shape
         if b is not None:
             if out_channels != b.size:

@@ -126,6 +126,16 @@ class Linear(link.Link):
 
     @classmethod
     def from_params(cls, W, b=None, nobias=False):
+        """Initialize a :class:`~chainer.links.Linear` with given parameters.
+
+        This method uses ``W`` and optional ``b`` to initialize a linear layer.
+
+        Args:
+            W (:ref:`ndarray`): The weight parameter.
+            b (:ref:`ndarray` or ``None``): The bias parameter.
+            nobias (bool): If ``True``, the argument of ``b`` is ignored
+                in spite of whether it's given or not.
+        """
         out_size, in_size = W.shape
         if b is not None:
             if out_size != b.size:
