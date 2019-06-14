@@ -1,3 +1,5 @@
+import numpy
+
 from chainer.functions.activation import sigmoid
 from chainer.functions.activation import tanh
 from chainer.functions.activation import tree_lstm
@@ -45,8 +47,8 @@ class ChildSumTreeLSTM(link.Chain):
         W_h_f (chainer.links.Linear): Linear layer of connections between
             forget gate :math:`f` and the output of each child.
 
-    See the paper for details: `Improved Semantic Representations From \
-    Tree-Structured Long Short-Term Memory Networks \
+    See the paper for details: `Improved Semantic Representations From
+    Tree-Structured Long Short-Term Memory Networks
     <https://www.aclweb.org/anthology/P15-1150>`_.
 
     """
@@ -120,7 +122,7 @@ class ChildSumTreeLSTM(link.Chain):
 
         return tree_lstm.tree_lstm(*(cs + (tree_lstm_in, )))
 
-    def _pad_zero_nodes(self, vs, shape, dtype='f'):
+    def _pad_zero_nodes(self, vs, shape, dtype=numpy.float32):
         if any(v is None for v in vs):
             zero = self.xp.zeros(shape, dtype=dtype)
             return tuple(zero if v is None else v for v in vs)
@@ -168,10 +170,10 @@ class NaryTreeLSTM(link.Chain):
             :math:`a`, input compound, equals to :math:`u` in
             the paper by Tai et al.
 
-    See the papers for details: `Improved Semantic Representations From \
-    Tree-Structured Long Short-Term Memory Networks \
+    See the papers for details: `Improved Semantic Representations From
+    Tree-Structured Long Short-Term Memory Networks
     <https://www.aclweb.org/anthology/P15-1150>`_, and
-    `A Fast Unified Model for Parsing and Sentence Understanding \
+    `A Fast Unified Model for Parsing and Sentence Understanding
     <https://arxiv.org/pdf/1603.06021.pdf>`_.
 
     Tai et al.'s N-Ary TreeLSTM is little extended in
@@ -241,7 +243,7 @@ class NaryTreeLSTM(link.Chain):
 
         return tree_lstm.tree_lstm(*(cs + (tree_lstm_in, )))
 
-    def _pad_zero_nodes(self, vs, shape, dtype='f'):
+    def _pad_zero_nodes(self, vs, shape, dtype=numpy.float32):
         if any(v is None for v in vs):
             zero = self.xp.zeros(shape, dtype=dtype)
             return tuple(zero if v is None else v for v in vs)

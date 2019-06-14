@@ -1,12 +1,10 @@
 import copy
-import functools
 import inspect
 
-from chainer import function
-from chainer import link
+from chainer import link as _link
 
 
-class Sequential(link.ChainList):
+class Sequential(_link.ChainList):
 
     """Sequential model which has a single-stream forward pass.
 
@@ -20,7 +18,7 @@ class Sequential(link.ChainList):
     :class:`Sequential` can take arbitrary number of any callable objects for
     the forward pass computation. A :class:`Sequential` calls the given
     callable objects sequentially inside of the :meth:`~Sequential.forward`
-    method in the same order as the given argments.
+    method in the same order as the given arguments.
     Therefore, you do not need to write the forward pass computation
     explicitly.
 
@@ -84,11 +82,13 @@ class Sequential(link.ChainList):
         You can check the structure of your model briefly using ``print``
         as following:
 
-        >>> print(model_C)  # doctest: +NORMALIZE_WHITESPACE
-        0       Linear  W(10, 10)       b(10,)
-        1       relu
-        2       Linear  W(10, 10)       b(10,)
-        3       sigmoid
+        >>> print(model_C)  # doctest: +ELLIPSIS
+        Sequential(
+          (0): Linear(in_size=10, out_size=10, nobias=False),
+          (1): <function relu at 0x...>,
+          (2): Linear(in_size=10, out_size=10, nobias=False),
+          (3): <function sigmoid at 0x...>,
+        )
 
         .. note::
 
@@ -145,9 +145,9 @@ class Sequential(link.ChainList):
 
     def __delitem__(self, i):
         layer = self._layers.pop(i)
-        if isinstance(layer, link.Link):
-            for i, _link in enumerate(self._children):
-                if _link.name == layer.name:
+        if isinstance(layer, _link.Link):
+            for i, link in enumerate(self._children):
+                if link.name == layer.name:
                     del self._children[i]
                     break
             for j, layer in enumerate(self._children[i:]):
@@ -190,7 +190,7 @@ class Sequential(link.ChainList):
 
         This method performs the forward pass computation by giving the input
         variable ``x`` to the layers registered in the constructor in the same
-        order as the order in which the argments are given to the constructor.
+        order as the order in which the arguments are given to the constructor.
 
         It should be noted that the input variable is given directly to the
         first layer and all intermediate outputs generated during the forward
@@ -205,6 +205,9 @@ class Sequential(link.ChainList):
             The output of the final layer in the given layers.
 
         """
+        if not self._layers:
+            raise RuntimeError('Sequential does not have any layer.')
+
         for layer in self._layers:
             if isinstance(x, tuple):
                 x = layer(*x)
@@ -230,40 +233,24 @@ class Sequential(link.ChainList):
         return super(Sequential, self).__reduce__()
 
     def __str__(self):
-        ret = ''
-        for i, layer in enumerate(self):
-            if isinstance(layer, Sequential):
-                name = layer.__class__.__name__
-                name += '\twhich has {} layers'.format(len(layer))
-            elif isinstance(layer, link.Chain):
-                name = layer.__class__.__name__
-                name += '\tThe structure behind a Chain is determined at '
-                name += 'runtime.'
-            elif isinstance(layer, link.ChainList):
-                name = layer.__class__.__name__
-                name += '\tThe structure behind a ChainList is determined at '
-                name += 'runtime.'
-            elif isinstance(layer, link.Link):
-                name = layer.__class__.__name__
-                param_info = '\t'
-                for param in sorted(layer.params(), key=lambda p: p.name):
-                    param_info += param.name
-                    if param._data[0] is not None:
-                        param_info += str(param._data[0].shape)
-                    else:
-                        param_info += '(None)'
-                    param_info += '\t'
-                name = name + param_info
-            elif isinstance(layer, function.Function):
-                name = layer.__class__.__name__
-            elif isinstance(layer, functools.partial):
-                name = repr(layer)
-            elif layer.__name__ == '<lambda>':
-                name = inspect.getsource(layer).strip()
+        reps = []
+        for index, layer in enumerate(self):
+            # Explore better representation by if-block.
+            if getattr(layer, '__name__', None) == '<lambda>':
+                rep = inspect.getsource(layer).strip().rstrip(',')
             else:
-                name = layer.__name__
-            ret += '{}\t{}\n'.format(i, name)
-        return ret
+                rep = str(layer)
+            # Add indentation to each line.
+            rep = '({index}): {rep},'.format(index=index, rep=rep)
+            for line in rep.splitlines():
+                reps.append('  {line}\n'.format(line=line))
+        reps = ''.join(reps)
+        if reps:  # No newline with no layers.
+            reps = '\n' + reps
+
+        return '{cls}({layers})'.format(
+            cls=self.__class__.__name__, layers=reps,
+        )
 
     def append(self, layer):
         self.insert(len(self), layer)
@@ -275,11 +262,11 @@ class Sequential(link.ChainList):
     def insert(self, i, layer):
         if not callable(layer):
             raise ValueError(
-                'All elements of the argment should be callable. But '
+                'All elements of the argument should be callable. But '
                 'given {} is not callable.'.format(layer))
 
         self._layers.insert(i, layer)
-        if isinstance(layer, link.Link):
+        if isinstance(layer, _link.Link):
             if i == 0:
                 self._children.insert(0, layer)
             else:
@@ -288,7 +275,7 @@ class Sequential(link.ChainList):
                 last_link_pos = 0
                 for j in range(i - 1, -1, -1):
                     # The last link before the given position
-                    if isinstance(self._layers[j], link.Link):
+                    if isinstance(self._layers[j], _link.Link):
                         last_link_pos = j
                 self._children.insert(last_link_pos + 1, layer)
             for i, layer in enumerate(self._children):
@@ -306,7 +293,7 @@ class Sequential(link.ChainList):
 
         This method removes layers from the Sequential object by the
         layer's class name or function name. If you want to remove a
-        :class:`~Link`, the argment ``type_name`` should be its class name,
+        :class:`~Link`, the argument ``type_name`` should be its class name,
         e.g., :class:`~links.Linear` or :class:`~links.Convolution2D`, etc.
         If you want to remove a :class:`~Function` class or any other callable
         objects, ``type_name`` should be the function name, e.g., ``relu`` or
@@ -319,7 +306,7 @@ class Sequential(link.ChainList):
 
         names = []
         for layer in self:
-            if isinstance(layer, link.Link):
+            if isinstance(layer, _link.Link):
                 name = layer.__class__.__name__
             else:
                 name = layer.__name__
@@ -349,7 +336,7 @@ class Sequential(link.ChainList):
         """Count the number of layers by layer type.
 
         This method counts the number of layers which have the name given by
-        the argment ``type_name``. For example, if you want to know the number
+        the argument ``type_name``. For example, if you want to know the number
         of :class:`~links.Linear` layers included in this model, ``type_name``
         should be ``Linear``. If you want to know the number of
         :class:`~Function` classes or user-defined functions which have a
@@ -364,7 +351,7 @@ class Sequential(link.ChainList):
 
         num = 0
         for layer in self._layers:
-            if isinstance(layer, link.Link):
+            if isinstance(layer, _link.Link):
                 if layer.__class__.__name__ == type_name:
                     num += 1
             else:
@@ -375,11 +362,19 @@ class Sequential(link.ChainList):
     def copy(self, mode='share'):
         ret = Sequential()
         for layer in self:
-            if isinstance(layer, link.Link):
+            if isinstance(layer, _link.Link):
                 ret.append(layer.copy(mode))
             else:
                 ret.append(copy.copy(layer))
         return ret
+
+    def copyparams(self, link, copy_persistent=True):
+        if not isinstance(link, Sequential):
+            raise ValueError('Objects other than Sequential object cannot be '
+                             'copied to a Sequential object.')
+        for idx, child in enumerate(self):
+            if isinstance(child, _link.Link):
+                child.copyparams(link[idx], copy_persistent)
 
     def flatten(self):
         """Flatten nested :class:`~chainer.Sequential` links.

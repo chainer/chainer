@@ -1,4 +1,4 @@
-from chainer.backends import cuda
+import chainer
 from chainer.functions.activation import sigmoid
 from chainer.functions.activation import tanh
 from chainer.functions.array import reshape
@@ -63,21 +63,12 @@ class StatefulPeepholeLSTM(link.Chain):
             self.peep_f = linear.Linear(out_size, out_size, nobias=True)
             self.peep_o = linear.Linear(out_size, out_size, nobias=True)
 
-    def to_cpu(self):
-        super(StatefulPeepholeLSTM, self).to_cpu()
+    def device_resident_accept(self, visitor):
+        super(StatefulPeepholeLSTM, self).device_resident_accept(visitor)
         if self.c is not None:
-            self.c.to_cpu()
+            visitor.visit_variable(self.c)
         if self.h is not None:
-            self.h.to_cpu()
-        return self
-
-    def to_gpu(self, device=None):
-        super(StatefulPeepholeLSTM, self).to_gpu(device)
-        if self.c is not None:
-            self.c.to_gpu(device)
-        if self.h is not None:
-            self.h.to_gpu(device)
-        return self
+            visitor.visit_variable(self.h)
 
     def reset_state(self):
         """Resets the internal states.
@@ -102,17 +93,16 @@ class StatefulPeepholeLSTM(link.Chain):
             lstm_in += self.lateral(self.h)
         if self.c is None:
             xp = self.xp
-            with cuda.get_device_from_id(self._device_id):
+            with chainer.using_device(self.device):
                 self.c = variable.Variable(
-                    xp.zeros((x.shape[0], self.state_size), dtype=x.dtype))
-        lstm_in = reshape.reshape(lstm_in, (len(lstm_in.data),
-                                            lstm_in.shape[1] // 4,
-                                            4))
+                    xp.zeros((len(x), self.state_size), dtype=x.dtype))
+        lstm_in = reshape.reshape(
+            lstm_in, (len(lstm_in), lstm_in.shape[1] // 4, 4))
         a, i, f, o = split_axis.split_axis(lstm_in, 4, 2)
-        a = reshape.reshape(a, (len(a.data), a.shape[1]))
-        i = reshape.reshape(i, (len(i.data), i.shape[1]))
-        f = reshape.reshape(f, (len(f.data), f.shape[1]))
-        o = reshape.reshape(o, (len(o.data), o.shape[1]))
+        a = reshape.reshape(a, a.shape[:2])
+        i = reshape.reshape(i, i.shape[:2])
+        f = reshape.reshape(f, f.shape[:2])
+        o = reshape.reshape(o, o.shape[:2])
         peep_in_i = self.peep_i(self.c)
         peep_in_f = self.peep_f(self.c)
         a = tanh.tanh(a)

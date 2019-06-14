@@ -19,21 +19,15 @@ After reading this section, you will be able to:
 * Write model-parallel computing in Chainer
 * Write data-parallel computing in Chainer
 
-.. testcode::
-   :hide:
+.. testsetup::
 
-   try:
-       with cupy.cuda.Device(1):
-           pass
-   except cupy.cuda.runtime.CUDARuntimeError:
-       raise RuntimeError('doctest in this documentation requires 2 GPUs') from None
+   import cupy
 
 Relationship between Chainer and CuPy
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. note::
 
-   From v2.0.0, CuPy is turned into a separate package and repository.
    Even if you have CUDA installed in your environment, you have to install CuPy separately to use GPUs.
    See :ref:`install_cuda` for the way to set up CUDA support.
 
@@ -73,6 +67,7 @@ The allocation takes place on the current device by default.
 The current device can be changed by :class:`cupy.cuda.Device` object as follows:
 
 .. testcode::
+   :skipif: doctest_helper.skipif_not_enough_cuda_devices(2)
 
    with cupy.cuda.Device(1):
        x_on_gpu1 = cupy.array([1, 2, 3, 4, 5])
@@ -84,6 +79,7 @@ Chainer provides some convenient functions to automatically switch and choose th
 For example, the :func:`chainer.backends.cuda.to_gpu` function copies a :class:`numpy.ndarray` object to a specified device:
 
 .. testcode::
+   :skipif: doctest_helper.skipif_not_enough_cuda_devices(2)
 
    x_cpu = np.ones((5, 4, 3), dtype=np.float32)
    x_gpu = cuda.to_gpu(x_cpu, device=1)
@@ -91,6 +87,7 @@ For example, the :func:`chainer.backends.cuda.to_gpu` function copies a :class:`
 It is equivalent to the following code using CuPy:
 
 .. testcode::
+   :skipif: doctest_helper.skipif_not_enough_cuda_devices(2)
 
    x_cpu = np.ones((5, 4, 3), dtype=np.float32)
    with cupy.cuda.Device(1):
@@ -99,12 +96,14 @@ It is equivalent to the following code using CuPy:
 Moving a device array to the host can be done by :func:`chainer.backends.cuda.to_cpu` as follows:
 
 .. testcode::
+   :skipif: doctest_helper.skipif_not_enough_cuda_devices(2)
 
    x_cpu = cuda.to_cpu(x_gpu)
 
 It is equivalent to the following code using CuPy:
 
 .. testcode::
+   :skipif: doctest_helper.skipif_not_enough_cuda_devices(2)
 
    with x_gpu.device:
        x_cpu = x_gpu.get()
@@ -126,6 +125,7 @@ The dummy device object also supports *with* statements like the above example b
 Here are some other examples:
 
 .. testcode::
+   :skipif: doctest_helper.skipif_not_enough_cuda_devices(2)
 
    cuda.get_device_from_id(1).use()
    x_gpu1 = cupy.empty((4, 3), dtype=cupy.float32)
@@ -161,10 +161,10 @@ Run Neural Networks on a Single GPU
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Single-GPU usage is very simple.
-What you have to do is transferring :class:`Link` and input arrays to the GPU beforehand.
+What you have to do is transferring :class:`~chainer.Link` and input arrays to the GPU beforehand.
 In this subsection, the code is based on :ref:`our first MNIST example in this tutorial <mnist_mlp_example>`.
 
-A :class:`Link` object can be transferred to the specified GPU using the :meth:`~Link.to_gpu` method.
+A :class:`~chainer.Link` object can be transferred to the specified GPU using the :meth:`~Link.to_gpu` method.
 
 .. testcode::
    :hide:
@@ -368,6 +368,7 @@ The :meth:`Link.to_gpu` method runs in place, so we cannot use it to make a copy
 In order to make a copy, we can use :meth:`Link.copy` method.
 
 .. testcode::
+   :skipif: doctest_helper.skipif_not_enough_cuda_devices(2)
 
    model_1 = model_0.copy()
    model_0.to_gpu(0)
@@ -379,6 +380,7 @@ The :meth:`Link.copy` method copies the link into another instance.
 Then, set up an optimizer:
 
 .. testcode::
+   :skipif: doctest_helper.skipif_not_enough_cuda_devices(2)
 
    optimizer = optimizers.SGD()
    optimizer.setup(model_0)
@@ -389,6 +391,7 @@ Before its update, gradients of ``model_1`` must be aggregated to those of ``mod
 Then, we can write a data-parallel learning loop as follows:
 
 .. testcode::
+   :skipif: doctest_helper.skipif_not_enough_cuda_devices(2)
 
    batchsize = 100
    datasize = len(x_train)
@@ -420,6 +423,7 @@ Then, we can write a data-parallel learning loop as follows:
 
 .. testoutput::
    :hide:
+   :skipif: doctest_helper.skipif_not_enough_cuda_devices(2)
 
    epoch 0
    ...

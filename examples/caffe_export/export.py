@@ -31,7 +31,7 @@ class DumpModel(chainer.Chain):
 
 def get_network_for_imagenet(arch_name):
     model = DumpModel(arch_name)
-    input_image = np.ones((1, 3, 224, 224), dtype='f')
+    input_image = np.ones((1, 3, 224, 224), dtype=np.float32)
     input = chainer.Variable(input_image)
     return model, input
 
@@ -57,10 +57,10 @@ def main():
     if not os.path.isdir(args.out_dir):
         raise ValueError(args.out_dir + ' exists but not a directory!')
 
-    print("load model")
+    print('load model')
     model, input = get_network_for_imagenet(args.arch)
 
-    print("convert to caffe model")
+    print('convert to caffe model')
     caffe.export(model, [input], args.out_dir, True)
 
 

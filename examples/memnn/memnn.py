@@ -61,7 +61,7 @@ def position_encode(embed, sentences):
     # Note that when the length is zero, its embedding is always zero and
     # is ignored.
     length = xp.maximum(
-        xp.sum((sentences != 0).astype('f'), axis=-1), 1)
+        xp.sum((sentences != 0).astype(xp.float32), axis=-1), 1)
     length = length.reshape((length.shape + (1, 1)))
     k = xp.arange(1, n_units + 1, dtype=numpy.float32) / n_units
     i = xp.arange(1, n_words + 1, dtype=numpy.float32)[:, None]
@@ -116,8 +116,8 @@ class Memory(object):
         tc = self.TC(inds)
         tm = F.broadcast_to(tm, self.m.shape)
         tc = F.broadcast_to(tc, self.c.shape)
-        p = F.softmax(F.batch_matmul(self.m + tm, u))
-        o = F.batch_matmul(F.swapaxes(self.c + tc, 2, 1), p)
+        p = F.softmax(F.matmul(self.m + tm, F.expand_dims(u, -1)))
+        o = F.matmul(F.swapaxes(self.c + tc, 2, 1), p)
         o = F.squeeze(o, -1)
         u = o + u
         return u
@@ -197,7 +197,7 @@ def convert_data(train_data, max_memory):
                 all_data.append({
                     'sentences': mem.copy(),
                     'question': query,
-                    'answer': numpy.array(sent.answer, 'i'),
+                    'answer': numpy.array(sent.answer, numpy.int32),
                 })
 
     return all_data

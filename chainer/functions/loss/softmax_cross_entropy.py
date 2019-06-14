@@ -2,11 +2,13 @@ import numpy
 import six
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer import function_node
 from chainer.functions.activation import log_softmax
 from chainer.utils import type_check
 from chainer import variable
+import chainerx
 
 
 def _broadcast_to(array, shape):
@@ -30,7 +32,7 @@ def _check_class_weight_option(class_weight):
 def _check_reduce_option(reduce):
     if reduce not in ('mean', 'no'):
         raise ValueError(
-            "only 'mean' and 'no' are valid for 'reduce', but '%s' is "
+            'only \'mean\' and \'no\' are valid for \'reduce\', but \'%s\' is '
             'given' % reduce)
 
 
@@ -48,12 +50,23 @@ def _check_input_values(x, t, ignore_label):
         raise ValueError(msg)
 
 
+def _reduction_dtype(x_dtype):
+    # Returns the dtype for accumulation and output of reduction.
+    # For float16 input, float32 is used.
+    # Otherwise the same dtype as the input is used.
+    if x_dtype == numpy.float16:
+        return numpy.float32
+    return x_dtype
+
+
 class SoftmaxCrossEntropy(function_node.FunctionNode):
 
     """Softmax activation followed by a cross entropy loss."""
 
     normalize = True
     y = None
+
+    # Coefficient of normalization. Only used if reduce='mean'.
     _coeff = None
 
     def __init__(self, normalize=True, cache_score=True, class_weight=None,
@@ -79,7 +92,39 @@ class SoftmaxCrossEntropy(function_node.FunctionNode):
             x_type.shape[2:] == t_type.shape[1:],
         )
 
+    def _is_chainerx_supported(self, input_arrays):
+        # Determines if the specified configuration of inputs and parameters
+        # are supported in `forward_chainerx` implementation.
+        # TODO(niboshi): Support these conditions.
+        if self.class_weight is not None:
+            return False
+        if self.ignore_label != -1:
+            return False
+        if self.reduce != 'mean':
+            return False
+
+        x, t = input_arrays
+
+        if x.ndim != 2:
+            return False
+
+        return True
+
+    def forward_chainerx(self, inputs):
+        # TODO(niboshi): Current implementation is only intended to support
+        # MNIST example.
+        x, t = inputs
+        num_classes = x.shape[1]
+        score = chainerx.log_softmax(x, axis=1)
+        mask = (t[:, chainerx.newaxis] == chainerx.arange(
+            num_classes, dtype=t.dtype, device=x.device)).astype(score.dtype)
+        # TODO(beam2d): implement mean
+        y = -(score * mask).sum() * (1 / x.shape[0])
+        return y,
+
     def forward_cpu(self, inputs):
+        class_weight = backend.from_chx(self.class_weight)
+
         self.retain_inputs((0, 1))
         x, t = inputs
         if chainer.is_debug():
@@ -88,9 +133,9 @@ class SoftmaxCrossEntropy(function_node.FunctionNode):
         log_y = log_softmax._log_softmax(x)
         if self.cache_score:
             self.y = numpy.exp(log_y)
-        if self.class_weight is not None:
+        if class_weight is not None:
             shape = [1 if d != 1 else -1 for d in six.moves.range(x.ndim)]
-            log_y *= _broadcast_to(self.class_weight.reshape(shape), x.shape)
+            log_y *= _broadcast_to(class_weight.reshape(shape), x.shape)
         log_yd = numpy.rollaxis(log_y, 1)
         log_yd = log_yd.reshape(len(log_yd), -1)
         t_valid = t != self.ignore_label
@@ -107,12 +152,18 @@ class SoftmaxCrossEntropy(function_node.FunctionNode):
                 count = len(x)
             self._coeff = 1.0 / max(count, 1)
 
-            y = log_p.sum(keepdims=True) * (-self._coeff)
+            # Perform reduction in a promoted dtype
+            reduc_dtype = _reduction_dtype(x.dtype)
+            y = log_p.sum(keepdims=True, dtype=reduc_dtype)
+            y = y * (-self._coeff)
+            y = y.astype(x.dtype, copy=False)
             return y.reshape(()),
         else:
             return -log_p.reshape(t.shape),
 
     def forward_gpu(self, inputs):
+        class_weight = backend.from_chx(self.class_weight)
+
         self.retain_inputs((0, 1))
         cupy = cuda.cupy
         x, t = inputs
@@ -130,26 +181,33 @@ class SoftmaxCrossEntropy(function_node.FunctionNode):
         log_y = log_softmax._log_softmax(x)
         if self.cache_score:
             self.y = cupy.exp(log_y)
-        if self.class_weight is not None:
+        if class_weight is not None:
             shape = [1 if d != 1 else -1 for d in six.moves.range(x.ndim)]
-            log_y *= cupy.broadcast_to(
-                self.class_weight.reshape(shape), x.shape)
-        if self.normalize:
-            coeff = cupy.maximum(1, (t != self.ignore_label).sum())
-        else:
-            coeff = max(1, len(t))
-        self._coeff = cupy.divide(1.0, coeff, dtype=x.dtype)
+            log_y *= cupy.broadcast_to(class_weight.reshape(shape), x.shape)
 
         log_y = cupy.rollaxis(log_y, 1, log_y.ndim)
+
         if self.reduce == 'mean':
+            # Reduction is performed in a promoted dtype
+            reduc_dtype = _reduction_dtype(x.dtype)
+            if self.normalize:
+                count = (t != self.ignore_label).sum(dtype=reduc_dtype)
+                count = cupy.maximum(1, count)
+                coeff = 1. / count
+            else:
+                coeff = cupy.array(1. / max(1, len(t)), dtype=reduc_dtype)
+            self._coeff = coeff
+
             ret = cuda.reduce(
-                'S t, raw T log_y, int32 n_channel, raw T coeff, '
+                'S t, raw T log_y, int32 n_channel, raw U coeff, '
                 'S ignore_label',
-                'T out',
+                'U out',
                 't == ignore_label ? T(0) : log_y[_j * n_channel + t]',
-                'a + b', 'out = a * -coeff[0]', '0', 'crossent_fwd'
+                'a + b', 'out = static_cast<U>(a * -coeff[0])', '0',
+                'crossent_fwd'
             )(t, log_y.reduced_view(), log_y.shape[-1],
               self._coeff, self.ignore_label)
+            ret = ret.astype(log_y.dtype, copy=False)
         else:
             ret = cuda.elementwise(
                 'S t, raw T log_y, int32 n_channel, T ignore', 'T out',
@@ -167,8 +225,7 @@ class SoftmaxCrossEntropy(function_node.FunctionNode):
 
     def backward(self, input_indexes, grad_outputs):
         func_grad = _SoftmaxCrossEntropyGrad_NoDoubleBackprop(
-            self.reduce, self.ignore_label, self.class_weight, self.y,
-            self._coeff)
+            self.ignore_label, self.class_weight, self.y, self._coeff)
         inputs = self.get_retained_inputs()
         return func_grad.apply(inputs + grad_outputs) + (None,)
 
@@ -176,8 +233,7 @@ class SoftmaxCrossEntropy(function_node.FunctionNode):
 class _SoftmaxCrossEntropyGrad_NoDoubleBackprop(function_node.FunctionNode):
     # A backward implementation which does not support double-backprop.
 
-    def __init__(self, reduce, ignore_label, class_weight, y, coeff):
-        self.reduce = reduce
+    def __init__(self, ignore_label, class_weight, y, coeff):
         self.ignore_label = ignore_label
         self.class_weight = class_weight
         self.y = y
@@ -221,13 +277,15 @@ class _SoftmaxCrossEntropyGrad_NoDoubleBackprop(function_node.FunctionNode):
                 gx *= _broadcast_to(c, gx.shape)
             gx *= t_valid.reshape((len(t), 1, -1))
             gx = gx.reshape(y.shape)
-        if self.reduce == 'mean':
+        if self.coeff is not None:
             gx *= gloss * self.coeff
         else:
             gx *= gloss[:, None]
         return gx,
 
     def forward_gpu(self, inputs_and_grad_outputs):
+        class_weight = cuda.to_gpu(self.class_weight)
+
         cupy = cuda.cupy
         x, t, gloss = inputs_and_grad_outputs
         if x.size == 0:
@@ -238,33 +296,44 @@ class _SoftmaxCrossEntropyGrad_NoDoubleBackprop(function_node.FunctionNode):
             y = log_softmax._log_softmax(x)
             cupy.exp(y, out=y)
         n_unit = t.size // len(t)
-        if self.reduce == 'mean':
-            coeff = gloss * self.coeff
+        if self.coeff is not None:
+            coeff = self.coeff
         else:
-            coeff = gloss[:, None, ...]
+            gloss = gloss[:, None, ...]
+            coeff = cupy.array(1, dtype=gloss.dtype)  # dtype does not matter
 
         if self.class_weight is None:
             gx = cuda.elementwise(
-                'T y, S t, T coeff, S n_channel, S n_unit, S ignore_label',
-                'T gx',
-                '''
-                    const int c = (i / n_unit % n_channel);
-                    gx = t == ignore_label ? 0 : coeff * (y - (c == t));
-                ''',
-                'softmax_crossent_bwd')(
-                    y, cupy.expand_dims(t, 1), coeff, x.shape[1],
-                    n_unit, self.ignore_label)
-        else:
-            gx = cuda.elementwise(
-                'T y, raw T w, S t, T coeff, S n_channel, S n_unit, '
+                'T y, S t, T gloss, U coeff, S n_channel, S n_unit, '
                 'S ignore_label',
                 'T gx',
                 '''
                     const int c = (i / n_unit % n_channel);
-                    gx = t == ignore_label ? 0 : coeff * (y - (c == t)) * w[t];
+                    if (t == ignore_label) {
+                        gx = T(0);
+                    } else {
+                        gx = static_cast<T>(gloss * coeff * (y - (c == t)));
+                    }
+                ''',
+                'softmax_crossent_bwd')(
+                    y, cupy.expand_dims(t, 1), gloss, coeff, x.shape[1],
+                    n_unit, self.ignore_label)
+        else:
+            gx = cuda.elementwise(
+                'T y, raw T w, S t, T gloss, U coeff, '
+                'S n_channel, S n_unit, S ignore_label',
+                'T gx',
+                '''
+                    const int c = (i / n_unit % n_channel);
+                    if (t == ignore_label) {
+                        gx = T(0);
+                    } else {
+                        gx = static_cast<T>(
+                            gloss * coeff * (y - (c == t)) * w[t]);
+                    }
                 ''',
                 'softmax_crossent_weight_bwd')(
-                    y, self.class_weight, cupy.expand_dims(t, 1), coeff,
+                    y, class_weight, cupy.expand_dims(t, 1), gloss, coeff,
                     x.shape[1], n_unit, self.ignore_label)
 
         return gx,
@@ -278,9 +347,11 @@ class _SoftmaxCrossEntropyGrad_NoDoubleBackprop(function_node.FunctionNode):
 
 
 def _double_backward_softmax_cross_entropy(x, t, normalize, class_weight,
-                                           ignore_label, reduce):
+                                           ignore_label, reduce, is_chainerx):
     if isinstance(t, variable.Variable):
         t = t.data
+
+    F = chainer.functions
 
     _check_class_weight_option(class_weight)
     _check_reduce_option(reduce)
@@ -291,33 +362,45 @@ def _double_backward_softmax_cross_entropy(x, t, normalize, class_weight,
 
     if class_weight is not None:
         shape = [1 if d != 1 else -1 for d in six.moves.range(x.ndim)]
-        class_weight = chainer.functions.broadcast_to(
-            class_weight.reshape(shape), x.shape)
+        class_weight = F.broadcast_to(class_weight.reshape(shape), x.shape)
+        # TODO(niboshi): Remove this workaround after ChainerX supports
+        # type promotion.
+        if is_chainerx:
+            class_weight = F.cast(class_weight, x.dtype)
         loss = loss * class_weight
 
     in_use = (t != ignore_label).astype(x.dtype)
 
-    loss = chainer.functions.rollaxis(loss, 1, loss.ndim)
-    loss = chainer.functions.reshape(loss, (-1, loss.shape[-1]))
+    loss = F.rollaxis(loss, 1, loss.ndim)
+    loss = F.reshape(loss, (-1, loss.shape[-1]))
 
     # Replace ignore_label value with one valid for F.select_item below.
     t = t.clip(0, loss.shape[1] - 1)
 
-    loss = chainer.functions.select_item(loss, t.ravel())
-    loss = chainer.functions.reshape(loss, t.shape)
+    loss = F.select_item(loss, t.ravel())
+    loss = F.reshape(loss, t.shape)
 
     loss = loss * in_use
 
     if reduce == 'mean':
+        reduc_dtype = _reduction_dtype(x.dtype)
         if normalize:
-            count = in_use.sum()
+            # TODO(niboshi): Use in_use.sum(dtype=reduc_dtype) once chainerx
+            # supports dtype argument.
+            count = in_use.astype(reduc_dtype, copy=False).sum()
         else:
             count = len(x)
         count = max(count, 1.)
-        loss = loss / count
-        return chainer.functions.sum(loss)
-    else:
-        return loss
+
+        if reduc_dtype == loss.dtype:
+            loss = F.sum(loss / count)
+        else:
+            # Sum in a promoted dtype
+            loss = F.cast(loss, reduc_dtype)
+            loss = F.sum(loss / count)
+            loss = F.cast(loss, x.dtype)
+
+    return loss
 
 
 def softmax_cross_entropy(
@@ -326,8 +409,7 @@ def softmax_cross_entropy(
     """Computes cross entropy loss for pre-softmax activations.
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
             Variable holding a multidimensional array whose element indicates
             unnormalized log probability: the first axis of the variable
             represents the number of samples, and the second axis represents
@@ -335,8 +417,7 @@ def softmax_cross_entropy(
             cross entropy if the number of dimensions is equal to 2, it
             computes a cross entropy of the replicated softmax if the number of
             dimensions is greater than 2.
-        t (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        t (:class:`~chainer.Variable` or :ref:`ndarray`):
             Variable holding a signed integer vector of ground truth
             labels. If ``t[i] == ignore_label``, corresponding ``x[i]`` is
             ignored.
@@ -349,8 +430,7 @@ def softmax_cross_entropy(
             If ``enable_double_backprop`` option is ``True``, this option
             is forcibly turned off and the function does not cache
             the intermediate value.
-        class_weight (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        class_weight (:ref:`ndarray`):
             An array that contains constant weights that will be multiplied
             with the loss values along with the second dimension. The shape of
             this array should be ``(x.shape[1],)``. If this is not ``None``,
@@ -377,7 +457,7 @@ def softmax_cross_entropy(
     Returns:
         ~chainer.Variable: A variable holding a scalar array of the cross
         entropy loss.  If ``reduce`` is ``'mean'``, it is a scalar array.
-        If ``reduce`` is ``'no'``, the shape is same as that of ``x``.
+        If ``reduce`` is ``'no'``, the shape is same as that of ``t``.
 
     .. note::
 
@@ -403,11 +483,23 @@ for row, column in enumerate(t)])
 
     """
 
-    if enable_double_backprop:
-        return _double_backward_softmax_cross_entropy(
-            x, t, normalize, class_weight, ignore_label, reduce)
-    else:
+    is_chainerx = (
+        chainerx.is_available() and backend.get_array_module(x) is chainerx)
+
+    if is_chainerx or not enable_double_backprop:
+        # Optimized implementation.
+        # For non-ChainerX, forward and backward are supported but
+        # double-backprop is not supported.
+        # For ChainerX, even forward is supported for only specific
+        # configuration of inputs and parameters, which is tested with
+        # `SoftmaxCrossEntropy._is_chainerx_supported()`.
         func = SoftmaxCrossEntropy(
             normalize, cache_score, class_weight, ignore_label, reduce)
-        loss, = func.apply((x, t))
-        return loss
+
+        if not is_chainerx or func._is_chainerx_supported((x, t)):
+            loss, = func.apply((x, t))
+            return loss
+
+    # Generic double-backprop-enabled but unoptimized implementation
+    return _double_backward_softmax_cross_entropy(
+        x, t, normalize, class_weight, ignore_label, reduce, is_chainerx)

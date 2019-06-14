@@ -3,7 +3,6 @@ import argparse
 import numpy
 
 import chainer
-from chainer import cuda
 import chainer.functions as F
 import chainer.links as L
 from chainer import reporter
@@ -72,32 +71,24 @@ def linearize_tree(vocab, root, xp=numpy):
     assert len(lefts) == len(words) - 1
 
     return {
-        'lefts': xp.array(lefts, 'i'),
-        'rights': xp.array(rights, 'i'),
-        'dests': xp.array(dests, 'i'),
-        'words': xp.array(words, 'i'),
-        'labels': xp.array(labels, 'i'),
-        'leaf_labels': xp.array(leaf_labels, 'i'),
+        'lefts': xp.array(lefts, xp.int32),
+        'rights': xp.array(rights, xp.int32),
+        'dests': xp.array(dests, xp.int32),
+        'words': xp.array(words, xp.int32),
+        'labels': xp.array(labels, xp.int32),
+        'leaf_labels': xp.array(leaf_labels, xp.int32),
     }
 
 
+@chainer.dataset.converter()
 def convert(batch, device):
-    if device is None:
-        def to_device(x):
-            return x
-    elif device < 0:
-        to_device = cuda.to_cpu
-    else:
-        def to_device(x):
-            return cuda.to_gpu(x, device, cuda.Stream.null)
-
     return tuple(
-        [to_device(d['lefts']) for d in batch] +
-        [to_device(d['rights']) for d in batch] +
-        [to_device(d['dests']) for d in batch] +
-        [to_device(d['labels']) for d in batch] +
-        [to_device(d['words']) for d in batch] +
-        [to_device(d['leaf_labels']) for d in batch]
+        [device.send(d['lefts']) for d in batch] +
+        [device.send(d['rights']) for d in batch] +
+        [device.send(d['dests']) for d in batch] +
+        [device.send(d['labels']) for d in batch] +
+        [device.send(d['words']) for d in batch] +
+        [device.send(d['leaf_labels']) for d in batch]
     )
 
 
@@ -145,11 +136,12 @@ class ThinStackRecursiveNet(chainer.Chain):
         count = 0
         correct = 0
 
-        stack = self.xp.zeros((batch, maxlen * 2, self.n_units), 'f')
+        stack = self.xp.zeros(
+            (batch, maxlen * 2, self.n_units), self.xp.float32)
         for i, (word, label) in enumerate(zip(sequences, leaf_labels)):
             batch = word.shape[0]
             es = self.leaf(word)
-            ds = self.xp.full((batch,), i, 'i')
+            ds = self.xp.full((batch,), i, self.xp.int32)
             y = self.label(es)
             loss += F.softmax_cross_entropy(y, label, normalize=False) * batch
             count += batch
@@ -180,8 +172,11 @@ class ThinStackRecursiveNet(chainer.Chain):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--gpu', '-g', default=-1, type=int,
-                        help='GPU ID (negative value indicates CPU)')
+    parser.add_argument('--device', '-d', type=str, default='-1',
+                        help='Device specifier. Either ChainerX device '
+                        'specifier or an integer. If non-negative integer, '
+                        'CuPy arrays with specified device id are used. If '
+                        'negative integer, NumPy arrays are used')
     parser.add_argument('--epoch', '-e', default=400, type=int,
                         help='number of epochs to learn')
     parser.add_argument('--unit', '-u', default=30, type=int,
@@ -194,6 +189,10 @@ def main():
                         help='number of epochs per evaluation')
     parser.add_argument('--test', dest='test', action='store_true')
     parser.set_defaults(test=False)
+    group = parser.add_argument_group('deprecated arguments')
+    group.add_argument('--gpu', '-g', dest='device',
+                       type=int, nargs='?', const=0,
+                       help='GPU ID (negative value indicates CPU)')
     args = parser.parse_args()
 
     vocab = {}
@@ -201,11 +200,9 @@ def main():
     train_trees = data.read_corpus('trees/train.txt', max_size)
     test_trees = data.read_corpus('trees/test.txt', max_size)
 
-    if args.gpu >= 0:
-        chainer.cuda.get_device(args.gpu).use()
-        xp = cuda.cupy
-    else:
-        xp = numpy
+    device = chainer.get_device(args.device)
+    device.use()
+    xp = device.xp
 
     train_data = [linearize_tree(vocab, t, xp) for t in train_trees]
     train_iter = chainer.iterators.SerialIterator(train_data, args.batchsize)
@@ -214,18 +211,17 @@ def main():
         test_data, args.batchsize, repeat=False, shuffle=False)
 
     model = ThinStackRecursiveNet(len(vocab), args.unit, args.label)
-
-    if args.gpu >= 0:
-        model.to_gpu()
+    model.to_device(device)
 
     optimizer = chainer.optimizers.AdaGrad(0.1)
     optimizer.setup(model)
 
     updater = training.StandardUpdater(
-        train_iter, optimizer, device=None, converter=convert)
+        train_iter, optimizer, converter=convert, device=device)
     trainer = training.Trainer(updater, (args.epoch, 'epoch'))
     trainer.extend(
-        extensions.Evaluator(test_iter, model, converter=convert, device=None),
+        extensions.Evaluator(
+            test_iter, model, converter=convert, device=device),
         trigger=(args.epocheval, 'epoch'))
     trainer.extend(extensions.LogReport())
 
@@ -238,6 +234,8 @@ def main():
     trainer.extend(extensions.PrintReport(
         ['epoch', 'main/loss', 'validation/main/loss',
          'main/accuracy', 'validation/main/accuracy', 'elapsed_time']))
+
+    trainer.extend(extensions.ProgressBar(update_interval=10))
 
     trainer.run()
 

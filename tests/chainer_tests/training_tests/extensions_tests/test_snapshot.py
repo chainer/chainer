@@ -2,25 +2,38 @@ import os
 import unittest
 
 import mock
+import pytest
 
 from chainer import testing
 from chainer import training
 from chainer.training import extensions
 
 
-class TestSnapshotObject(unittest.TestCase):
-
-    def test_trigger(self):
-        target = mock.MagicMock()
-        snapshot_object = extensions.snapshot_object(target, 'myfile.dat')
-        self.assertEqual(snapshot_object.trigger, (1, 'epoch',))
-
-
 class TestSnapshot(unittest.TestCase):
 
-    def test_trigger(self):
-        snapshot = extensions.snapshot()
-        self.assertEqual(snapshot.trigger, (1, 'epoch'))
+    def test_call(self):
+        t = mock.MagicMock()
+        c = mock.MagicMock(side_effect=[True, False])
+        w = mock.MagicMock()
+        snapshot = extensions.snapshot(target=t, condition=c, writer=w)
+        trainer = mock.MagicMock()
+        snapshot(trainer)
+        snapshot(trainer)
+
+        assert c.call_count == 2
+        assert w.call_count == 1
+
+    def test_savefun_and_writer_exclusive(self):
+        # savefun and writer arguments cannot be specified together.
+        def savefun(*args, **kwargs):
+            assert False
+        writer = extensions.snapshot_writers.SimpleWriter()
+        with pytest.raises(TypeError):
+            extensions.snapshot(savefun=savefun, writer=writer)
+
+        trainer = mock.MagicMock()
+        with pytest.raises(TypeError):
+            extensions.snapshot_object(trainer, savefun=savefun, writer=writer)
 
 
 class TestSnapshotSaveFile(unittest.TestCase):
@@ -35,7 +48,9 @@ class TestSnapshotSaveFile(unittest.TestCase):
             os.remove('myfile.dat')
 
     def test_save_file(self):
-        snapshot = extensions.snapshot_object(self.trainer, 'myfile.dat')
+        w = extensions.snapshot_writers.SimpleWriter()
+        snapshot = extensions.snapshot_object(self.trainer, 'myfile.dat',
+                                              writer=w)
         snapshot(self.trainer)
 
         self.assertTrue(os.path.exists('myfile.dat'))

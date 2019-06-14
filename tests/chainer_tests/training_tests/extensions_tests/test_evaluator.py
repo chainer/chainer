@@ -3,6 +3,8 @@ import unittest
 import numpy
 
 import chainer
+from chainer import backend
+from chainer.backends import _cpu
 from chainer import dataset
 from chainer import iterators
 from chainer import testing
@@ -30,7 +32,8 @@ class DummyModelTwoArgs(chainer.Chain):
 
     def forward(self, x, y):
         self.args.append((x, y))
-        chainer.report({'loss': x.sum() + y.sum()}, self)
+        with chainer.using_device(backend.get_device_from_array(x, y)):
+            chainer.report({'loss': x.sum() + y.sum()}, self)
 
 
 class DummyIterator(dataset.Iterator):
@@ -38,6 +41,10 @@ class DummyIterator(dataset.Iterator):
     def __init__(self, return_values):
         self.iterator = iter(return_values)
         self.finalized = False
+        self.return_values = return_values
+
+    def reset(self):
+        self.iterator = iter(self.return_values)
 
     def __next__(self):
         return next(self.iterator)
@@ -121,6 +128,17 @@ class TestEvaluator(unittest.TestCase):
         self.assertEqual(reporter.observation, mean)
 
 
+@chainer.testing.backend.inject_backend_tests(
+    None,
+    [
+        # NumPy
+        {},
+        # CuPy
+        {'use_cuda': True, 'cuda_device': 0},
+        {'use_cuda': True, 'cuda_device': 1},
+
+        # Custom converter is not supported for ChainerX.
+    ])
 class TestEvaluatorTupleData(unittest.TestCase):
 
     def setUp(self):
@@ -131,33 +149,48 @@ class TestEvaluatorTupleData(unittest.TestCase):
              numpy.random.uniform(-1, 1, (2, 3, 4)).astype('f'))
             for _ in range(2)]
 
-        self.iterator = DummyIterator(self.data)
-        self.converter = DummyConverter(self.batches)
-        self.target = DummyModelTwoArgs(self)
-        self.evaluator = extensions.Evaluator(
-            self.iterator, self.target, converter=self.converter, device=1)
+    def prepare(self, data, batches, device):
+        iterator = DummyIterator(data)
+        converter = DummyConverter(batches)
+        target = DummyModelTwoArgs(self)
+        evaluator = extensions.Evaluator(
+            iterator, target, converter=converter, device=device)
+        return iterator, converter, target, evaluator
 
-    def test_evaluate(self):
+    def test_evaluate(self, backend_config):
+        data = backend_config.get_array(self.data)
+        batches = [backend_config.get_array(b) for b in self.batches]
+        device = backend_config.device
+
+        iterator, converter, target, evaluator = (
+            self.prepare(data, batches, device))
+
         reporter = chainer.Reporter()
-        reporter.add_observer('target', self.target)
+        reporter.add_observer('target', target)
         with reporter:
-            mean = self.evaluator.evaluate()
+            mean = evaluator.evaluate()
 
         # The converter gets results of the iterator and the device number.
-        self.assertEqual(len(self.converter.args), len(self.data))
-        for i in range(len(self.data)):
+        self.assertEqual(len(converter.args), len(data))
+        if backend_config.use_cuda:
+            expected_device_arg = backend_config.cuda_device
+        else:
+            expected_device_arg = -1
+
+        for i in range(len(data)):
             numpy.testing.assert_array_equal(
-                self.converter.args[i]['batch'], self.data[i])
-            self.assertEqual(self.converter.args[i]['device'], 1)
+                _cpu._to_cpu(converter.args[i]['batch']), self.data[i])
+            self.assertEqual(converter.args[i]['device'], expected_device_arg)
 
         # The model gets results of converter.
-        self.assertEqual(len(self.target.args), len(self.batches))
-        for i in range(len(self.batches)):
+        self.assertEqual(len(target.args), len(batches))
+        for i in range(len(batches)):
             numpy.testing.assert_array_equal(
-                self.target.args[i], self.batches[i])
+                _cpu._to_cpu(target.args[i]), self.batches[i])
 
         expect_mean = numpy.mean([numpy.sum(x) for x in self.batches])
-        self.assertAlmostEqual(mean['target/loss'], expect_mean, places=4)
+        self.assertAlmostEqual(
+            _cpu._to_cpu(mean['target/loss']), expect_mean, places=4)
 
 
 class TestEvaluatorDictData(unittest.TestCase):
@@ -237,6 +270,25 @@ class TestEvaluatorRepeat(unittest.TestCase):
         if self.repeat:
             with testing.assert_warns(UserWarning):
                 extensions.Evaluator(iterator, {})
+
+
+class TestEvaluatorProgressBar(unittest.TestCase):
+
+    def setUp(self):
+        self.data = [
+            numpy.random.uniform(-1, 1, (3, 4)).astype('f') for _ in range(2)]
+
+        self.iterator = iterators.SerialIterator(
+            self.data, 1, repeat=False, shuffle=False)
+        self.target = DummyModel(self)
+        self.evaluator = extensions.Evaluator(
+            self.iterator, {}, eval_func=self.target, progress_bar=True)
+
+    def test_evaluator(self):
+        reporter = chainer.Reporter()
+        reporter.add_observer('target', self.target)
+        with reporter:
+            self.evaluator.evaluate()
 
 
 testing.run_module(__name__, __file__)

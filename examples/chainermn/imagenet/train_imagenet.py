@@ -26,12 +26,12 @@ import models.resnet50 as resnet50
 # which was introduced in Python 3.4
 major, minor, _, _, _ = sys.version_info
 if major <= 2 or (major == 3 and minor < 4):
-    sys.stderr.write("Error: ImageNet example uses "
-                     "chainer.iterators.MultiprocessIterator, "
-                     "which works only with Python >= 3.4. \n"
-                     "For more details, see "
-                     "http://chainermn.readthedocs.io/en/master/"
-                     "tutorial/tips_faqs.html#using-multiprocessiterator\n")
+    sys.stderr.write('Error: ImageNet example uses '
+                     'chainer.iterators.MultiprocessIterator, '
+                     'which works only with Python >= 3.4. \n'
+                     'For more details, see '
+                     'http://chainermn.readthedocs.io/en/master/'
+                     'tutorial/tips_faqs.html#using-multiprocessiterator\n')
     exit(-1)
 
 
@@ -39,7 +39,7 @@ class PreprocessedDataset(chainer.dataset.DatasetMixin):
 
     def __init__(self, path, root, mean, crop_size, random=True):
         self.base = chainer.datasets.LabeledImageDataset(path, root)
-        self.mean = mean.astype('f')
+        self.mean = mean.astype(np.float32)
         self.crop_size = crop_size
         self.random = random
 
@@ -92,7 +92,7 @@ def main():
     # Check if GPU is available
     # (ImageNet example does not support CPU execution)
     if not chainer.cuda.available:
-        raise RuntimeError("ImageNet requires GPU support.")
+        raise RuntimeError('ImageNet requires GPU support.')
 
     archs = {
         'alex': alex.Alex,
@@ -143,7 +143,7 @@ def main():
     # https://chainermn.readthedocs.io/en/stable/tutorial/tips_faqs.html#using-multiprocessiterator
     # This must be done *before* ``chainermn.create_communicator``!!!
     multiprocessing.set_start_method('forkserver')
-    p = multiprocessing.Process(target=lambda *x: x, args=())
+    p = multiprocessing.Process()
     p.start()
     p.join()
 
@@ -215,7 +215,7 @@ def main():
     # Some display and output extensions are necessary only for one worker.
     # (Otherwise, there would just be repeated outputs.)
     if comm.rank == 0:
-        trainer.extend(extensions.dump_graph('main/loss'))
+        trainer.extend(extensions.DumpGraph('main/loss'))
         trainer.extend(extensions.LogReport(trigger=log_interval))
         trainer.extend(extensions.observe_lr(), trigger=log_interval)
         trainer.extend(extensions.PrintReport([

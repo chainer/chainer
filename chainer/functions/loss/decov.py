@@ -13,8 +13,8 @@ class DeCov(function.Function):
         self.covariance = None
         if reduce not in ('half_squared_sum', 'no'):
             raise ValueError(
-                "only 'half_squared_sum' and 'no' are valid "
-                "for 'reduce', but '%s' is given" % reduce)
+                'only \'half_squared_sum\' and \'no\' are valid '
+                'for \'reduce\', but \'%s\' is given' % reduce)
         self.reduce = reduce
 
     def check_type_forward(self, in_types):
@@ -66,7 +66,8 @@ def decov(h, reduce='half_squared_sum'):
     to a vector) of the matrix.
 
     Args:
-        h (Variable): Variable holding a matrix where the first dimension
+        h (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Variable holding a matrix where the first dimension
             corresponds to the batches.
         recude (str): Reduction option. Its value must be either
             ``'half_squared_sum'`` or ``'no'``.

@@ -39,8 +39,7 @@ def space2depth(X, r):
     """Computes the space2depth transformation for subpixel calculations.
 
     Args:
-        X (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        X (:class:`~chainer.Variable` or :ref:`ndarray`):
             Variable holding a 4d array of shape
             ``(batch, channel, dim1 * r, dim2 * r)``.
         r (int): the downscaling factor.

@@ -10,8 +10,10 @@ from chainer.utils import type_check
 
 def _fbeta_score(precision, recall, beta):
     beta_square = beta * beta
-    return ((1 + beta_square) * precision * recall /
-            (beta_square * precision + recall)).astype(precision.dtype)
+    return (
+        (1 + beta_square) * precision * recall
+        / (beta_square * precision + recall)
+    ).astype(precision.dtype, copy=False)
 
 
 class ClassificationSummary(function.Function):
@@ -43,7 +45,7 @@ class ClassificationSummary(function.Function):
         xp = backend.get_array_module(*inputs)
         y, t = inputs
         # numpy.bincount requires int32 on Windows
-        t = t.astype('i', copy=False)
+        t = t.astype(xp.int32, copy=False)
 
         if self.label_num is None:
             label_num = xp.amax(t) + 1
@@ -73,12 +75,13 @@ def classification_summary(y, t, label_num=None, beta=1.0, ignore_label=-1):
     This function calculates the following quantities for each class.
 
     - Precision: :math:`\\frac{\\mathrm{tp}}{\\mathrm{tp} + \\mathrm{fp}}`
-    - Recall: :math:`\\frac{\\mathrm{tp}}{\\mathrm{tp} + \\mathrm{tn}}`
+    - Recall: :math:`\\frac{\\mathrm{tp}}{\\mathrm{tp} + \\mathrm{fn}}`
     - F beta Score: The weighted harmonic average of Precision and Recall.
     - Support: The number of instances of each ground truth label.
 
-    Here, ``tp``, ``fp``, and ``tn`` stand for the number of true positives,
-    false positives, and true negative, respectively.
+    Here, ``tp``, ``fp``, ``tn``, and ``fn`` stand for the number of true
+    positives, false positives, true negatives, and false negatives,
+    respectively.
 
     ``label_num`` specifies the number of classes, that is,
     each value in ``t`` must be an integer in the range of
@@ -97,9 +100,10 @@ def classification_summary(y, t, label_num=None, beta=1.0, ignore_label=-1):
     arrays do not contain correct quantities.
 
     Args:
-        y (~chainer.Variable): Variable holding a vector of scores.
-        t (~chainer.Variable): Variable holding a vector of
-            ground truth labels.
+        y (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Variable holding a vector of scores.
+        t (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Variable holding a vector of ground truth labels.
         label_num (int): The number of classes.
         beta (float): The parameter which determines the weight of
             precision in the F-beta score.

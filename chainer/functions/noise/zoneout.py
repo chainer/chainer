@@ -50,21 +50,15 @@ def zoneout(h, x, ratio=.5, **kwargs):
     instead sets dropping element to their previous variable. In testing mode ,
     it does nothing and just returns ``x``.
 
-    .. warning::
-
-       ``train`` argument is not supported anymore since v2.
-       Instead, use ``chainer.using_config('train', train)``.
-       See :func:`chainer.using_config`.
-
     Args:
-        h (~chainer.Variable): Previous variable.
-        x (~chainer.Variable): Input variable.
+        h (:class:`~chainer.Variable` or :ref:`ndarray`): Previous variable.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
         ratio (float): Zoneout ratio.
 
     Returns:
         ~chainer.Variable: Output variable.
 
-    See the paper: `Zoneout: Regularizing RNNs by Randomly Preserving Hidden \
+    See the paper: `Zoneout: Regularizing RNNs by Randomly Preserving Hidden
     Activations <https://arxiv.org/abs/1606.01305>`_.
 
     """

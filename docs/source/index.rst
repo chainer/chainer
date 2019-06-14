@@ -10,13 +10,26 @@ Chainer -- A flexible framework of neural networks
 
 .. toctree::
    :maxdepth: 2
-   :caption: Chainer Documents
+   :caption: Tutorials
 
    glance
-   install
    guides/index
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Examples
+
    examples/index
+   Colab Notebook Examples <https://chainer-colab-notebook.readthedocs.io/en/latest/>
+   Awesome Chainer <https://github.com/chainer-community/awesome-chainer>
+
+.. toctree::
+   :maxdepth: 2
+   :caption: References
+
    reference/index
+   install
+   chainerx/index
    chainermn/index
 
 .. toctree::
@@ -28,7 +41,6 @@ Chainer -- A flexible framework of neural networks
    tips
    performance
    upgrade
-   comparison
    license
 
 Indices and tables
@@ -44,5 +56,3 @@ Indices and tables
 
    Slack Chat <https://bit.ly/join-chainer-slack>
    Forums <https://groups.google.com/forum/#!forum/chainer>
-   Notebook Examples <https://chainer-colab-notebook.readthedocs.io/en/latest/>
-   Examples in Awesome Chainer <https://github.com/chainer-community/awesome-chainer>

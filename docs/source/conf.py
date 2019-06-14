@@ -345,16 +345,19 @@ intersphinx_mapping = {
 }
 
 doctest_global_setup = '''
+import os
 import numpy as np
-import cupy
 import chainer
 from chainer.backends import cuda
+from chainer.backends.cuda import cupy
 from chainer import Function, gradient_check, training, utils, Variable
 from chainer import datasets, iterators, optimizers, serializers
 from chainer import Link, Chain, ChainList
 import chainer.functions as F
 import chainer.links as L
+from chainer.testing import doctest_helper
 from chainer.training import extensions
+import chainerx
 np.random.seed(0)
 '''
 
@@ -447,6 +450,8 @@ def _get_sourcefile_and_linenumber(obj):
 
 def linkcode_resolve(domain, info):
     if domain != 'py' or not info['module']:
+        return None
+    if 1 == int(os.environ.get('CHAINER_DOCS_SKIP_LINKCODE', 0)):
         return None
 
     # Import the object from module path

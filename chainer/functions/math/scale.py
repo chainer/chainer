@@ -27,8 +27,10 @@ def scale(x, y, axis=1):
     argument ``axis``, whose meaning is different from numpy's ``axis``.
 
     Args:
-        x (~chainer.Variable): Input variable to be scaled.
-        y (~chainer.Variable): Input variable to scale, broadcasted.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Input variable to be scaled.
+        y (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Input variable to scale, broadcasted.
         axis (int): The first axis of ``x`` along which ``y`` is applied.
 
     Returns:

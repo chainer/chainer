@@ -1,4 +1,3 @@
-import numpy
 import six
 
 from chainer import backend
@@ -26,7 +25,7 @@ class TheanoFunction(function.Function):
             )
 
     def forward(self, inputs):
-        gpu = backend.get_array_module(*inputs) is not numpy
+        gpu = backend.get_array_module(*inputs) is cuda.cupy
         inputs = [cuda.to_cpu(x) for x in inputs]
 
         outputs = self.forward_func(*inputs)
@@ -40,7 +39,7 @@ class TheanoFunction(function.Function):
         return tuple(outputs)
 
     def backward(self, inputs, grads):
-        gpu = backend.get_array_module(*inputs) is not numpy
+        gpu = backend.get_array_module(*inputs) is cuda.cupy
 
         # TODO(unno): We can remove redundant gpu-cpu copy using
         # theano.sandbox.cuda.basic_ops.gpu_from_host

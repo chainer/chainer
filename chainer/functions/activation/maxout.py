@@ -11,8 +11,7 @@ def maxout(x, pool_size, axis=1):
     ``(M, pool_size)``, and takes maximum along the ``axis`` dimension.
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
             Input variable. A :math:`n`-dimensional (:math:`n \\ge` ``axis``)
             float array. In general, its first dimension is assumed to be the
             *minibatch dimension*. The other dimensions are treated as one

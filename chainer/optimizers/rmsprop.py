@@ -1,11 +1,26 @@
 import numpy
 
-from chainer import backend
+import chainer
 from chainer.backends import cuda
 from chainer import optimizer
+from chainer import types
 
 
-_default_hyperparam = optimizer.Hyperparameter()
+if types.TYPE_CHECKING:
+    import typing_extensions as tpe
+
+    class RMSpropHyperparameter(tpe.Protocol):
+        """Protocol class for hyperparameter of RMSprop.
+
+        This is only for PEP 544 compliant static type checkers.
+        """
+        lr = None  # type: float
+        alpha = None  # type: float
+        eps = None  # type: float
+        eps_inside_sqrt = None  # type: bool
+
+
+_default_hyperparam = optimizer.Hyperparameter()  # type: RMSpropHyperparameter # NOQA
 _default_hyperparam.lr = 0.01
 _default_hyperparam.alpha = 0.99
 _default_hyperparam.eps = 1e-8
@@ -50,9 +65,8 @@ class RMSpropRule(optimizer.UpdateRule):
             self.hyperparam.eps_inside_sqrt = eps_inside_sqrt
 
     def init_state(self, param):
-        xp = backend.get_array_module(param.data)
-        with cuda.get_device_from_array(param.data):
-            self.state['ms'] = xp.zeros_like(param.data)
+        with chainer.using_device(param.device):
+            self.state['ms'] = param.device.xp.zeros_like(param.data)
 
     def update_core_cpu(self, param):
         grad = param.grad

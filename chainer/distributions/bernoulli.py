@@ -6,9 +6,12 @@ from chainer.backends import cuda
 from chainer import distribution
 import chainer.distributions.utils
 from chainer.functions.activation import sigmoid
+from chainer.functions.array import where
 from chainer.functions.math import exponential
 from chainer.functions.math import logarithm_1p
+from chainer.functions.math import sum
 from chainer import utils
+from chainer.utils import cache
 
 
 class BernoulliLogProb(chainer.function_node.FunctionNode):
@@ -45,14 +48,13 @@ class BernoulliLogProb(chainer.function_node.FunctionNode):
         dlogit = x - 1. / (1. + exponential.exp(-logit))
 
         # extreme logit
-        nan_dlogit = xp.zeros_like(dlogit.array)
+        nan = xp.array(xp.nan).astype(dlogit.dtype)
+        logit_isinf = xp.bitwise_or(self.logit_ispinf, self.logit_isminf)
+        dlogit = where.where(logit_isinf, nan, dlogit)
         if self.binary_check:
-            nan_dlogit[self.invalid] = xp.nan
-        nan_dlogit[self.logit_ispinf] = xp.nan
-        nan_dlogit[self.logit_isminf] = xp.nan
-        dlogit += nan_dlogit
+            dlogit = where.where(self.invalid, nan, dlogit)
 
-        return gy * dlogit, None
+        return sum.sum_to(gy * dlogit, logit.shape), None
 
 
 def _bernoulli_log_prob(logit, x, binary_check=False):
@@ -71,13 +73,12 @@ class Bernoulli(distribution.Distribution):
         P(x = 0; p) = 1 - p
 
     Args:
-        p(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Parameter of distribution representing \
-        :math:`p`. Either `p` or `logit` (not both) must have a value.
-        logit(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Parameter of distribution representing \
-        :math:`\\log\\{p/(1-p)\\}`. Either `p` or `logit` (not both) must \
-        have a value.
+        p(:class:`~chainer.Variable` or :ref:`ndarray`): Parameter of
+            distribution representing :math:`p`. Either `p` or `logit` (not
+            both) must have a value.
+        logit(:class:`~chainer.Variable` or :ref:`ndarray`) Parameter of
+            distribution representing :math:`\\log\\{p/(1-p)\\}`. Either `p`
+            or `logit` (not both) must have a value.
 
     """
 
@@ -85,17 +86,25 @@ class Bernoulli(distribution.Distribution):
         super(Bernoulli, self).__init__()
         if not (p is None) ^ (logit is None):
             raise ValueError(
-                "Either `p` or `logit` (not both) must have a value.")
+                'Either `p` or `logit` (not both) must have a value.')
 
-        with chainer.using_config('enable_backprop', True):
-            if p is None:
-                self.logit = chainer.as_variable(logit)
-                self.p = sigmoid.sigmoid(self.logit)
-            else:
-                self.p = chainer.as_variable(p)
-                self.logit = exponential.log(self.p) \
-                    - logarithm_1p.log1p(-self.p)
+        self.__p = p
+        self.__logit = logit
         self.binary_check = binary_check
+
+    @cache.cached_property
+    def p(self):
+        if self.__p is not None:
+            return chainer.as_variable(self.__p)
+        else:
+            return sigmoid.sigmoid(self.logit)
+
+    @cache.cached_property
+    def logit(self):
+        if self.__logit is not None:
+            return chainer.as_variable(self.__logit)
+        else:
+            return exponential.log(self.p) - logarithm_1p.log1p(-self.p)
 
     @property
     def batch_shape(self):
@@ -119,9 +128,13 @@ class Bernoulli(distribution.Distribution):
     def log_prob(self, x):
         return _bernoulli_log_prob(self.logit, x, self.binary_check)
 
-    @property
+    @cache.cached_property
     def mean(self):
         return self.p
+
+    @property
+    def params(self):
+        return {'logit': self.logit}
 
     def prob(self, x):
         x = chainer.as_variable(x)
@@ -143,15 +156,15 @@ class Bernoulli(distribution.Distribution):
                 1, self.p.array, size=(n,)+self.p.shape)
         return chainer.Variable(eps)
 
-    @property
+    @cache.cached_property
     def stddev(self):
-        return (self.p * (1 - self.p)) ** 0.5
+        return self.variance ** 0.5
 
     @property
     def support(self):
         return '{0, 1}'
 
-    @property
+    @cache.cached_property
     def variance(self):
         return self.p * (1 - self.p)
 

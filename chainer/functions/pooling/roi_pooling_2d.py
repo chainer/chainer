@@ -32,7 +32,7 @@ import numpy
 import six
 
 from chainer.backends import cuda
-from chainer import function
+from chainer import function_node
 from chainer.utils import type_check
 
 
@@ -46,7 +46,7 @@ def _roi_pooling_slice(size, stride, max_size, roi_offset):
     return slice(start, end), end - start
 
 
-class ROIPooling2D(function.Function):
+class ROIPooling2D(function_node.FunctionNode):
 
     """RoI pooling over a set of 2d planes."""
 
@@ -191,8 +191,26 @@ class ROIPooling2D(function.Function):
 
         return top_data,
 
-    def backward_cpu(self, inputs, gy):
-        bottom_rois = inputs[1]
+    def backward(self, indexes, grad_outputs):
+        bottom_rois, = self.get_retained_inputs()
+        gtop_data, = grad_outputs
+
+        f = ROIPooling2DGrad(self.outh, self.outw, self.spatial_scale,
+                             self._bottom_data_shape, self.argmax_data)
+        return f.apply((bottom_rois, gtop_data))
+
+
+class ROIPooling2DGrad(function_node.FunctionNode):
+
+    def __init__(self, outh, outw, spatial_scale, bottom_data_shape,
+                 argmax_data):
+        self.outh, self.outw = outh, outw
+        self.spatial_scale = spatial_scale
+        self._bottom_data_shape = bottom_data_shape
+        self.argmax_data = argmax_data
+
+    def forward_cpu(self, inputs):
+        bottom_rois, gtop_data = inputs
         channels, height, width = self._bottom_data_shape[1:]
         n_rois = bottom_rois.shape[0]
         bottom_delta = numpy.zeros(self._bottom_data_shape, bottom_rois.dtype)
@@ -229,11 +247,11 @@ class ROIPooling2D(function.Function):
                             for c in six.moves.range(channels):
                                 if max_idx_tmp[c] == (h * width + w):
                                     bottom_delta[idx, c, h, w] += \
-                                        gy[0][i_roi, c, ph, pw]
+                                        gtop_data[i_roi, c, ph, pw]
         return bottom_delta, None
 
-    def backward_gpu(self, inputs, gy):
-        bottom_rois = inputs[1]
+    def forward_gpu(self, inputs):
+        bottom_rois, gtop_data = inputs
         channels, height, width = self._bottom_data_shape[1:]
         bottom_diff = cuda.cupy.zeros(
             self._bottom_data_shape, bottom_rois.dtype)
@@ -315,11 +333,15 @@ class ROIPooling2D(function.Function):
             }
             bottom_diff = gradient;
             ''', 'roi_pooling_2d_bwd'
-        )(gy[0], self.argmax_data, bottom_rois.shape[0], self.spatial_scale,
-          channels, height, width, self.outh, self.outw,
+        )(gtop_data, self.argmax_data, bottom_rois.shape[0],
+          self.spatial_scale, channels, height, width, self.outh, self.outw,
           bottom_rois, bottom_diff)
 
         return bottom_diff, None
+
+    def backward(self, indexes, grad_outputs):
+        # No trivial way to implement double-backward for this function.
+        raise NotImplementedError
 
 
 def roi_pooling_2d(x, rois, outh, outw, spatial_scale):
@@ -346,4 +368,4 @@ def roi_pooling_2d(x, rois, outh, outw, spatial_scale):
     `Fast R-CNN <https://arxiv.org/abs/1504.08083>`_.
 
     """
-    return ROIPooling2D(outh, outw, spatial_scale)(x, rois)
+    return ROIPooling2D(outh, outw, spatial_scale).apply((x, rois))[0]

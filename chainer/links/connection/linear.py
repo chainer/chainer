@@ -1,9 +1,10 @@
-import functools
-import operator
+import typing as tp  # NOQA
 
 from chainer.functions.connection import linear
 from chainer import initializers
 from chainer import link
+from chainer import types  # NOQA
+from chainer import utils
 from chainer import variable
 
 
@@ -95,20 +96,23 @@ class Linear(link.Link):
 
     def __init__(self, in_size, out_size=None, nobias=False,
                  initialW=None, initial_bias=None):
+        # type: (tp.Optional[int], tp.Optional[int], bool, tp.Optional[types.InitializerSpec], tp.Optional[types.InitializerSpec]) -> None # NOQA
+
         super(Linear, self).__init__()
 
         if out_size is None:
             in_size, out_size = None, in_size
+        self.in_size = in_size
         self.out_size = out_size
 
         with self.init_scope():
             W_initializer = initializers._get_initializer(initialW)
-            self.W = variable.Parameter(W_initializer)
+            self.W = variable.Parameter(W_initializer)  # type: variable.Variable  # NOQA
             if in_size is not None:
                 self._initialize_params(in_size)
 
             if nobias:
-                self.b = None
+                self.b = None  # type: tp.Optional[variable.Variable]
             else:
                 if initial_bias is None:
                     initial_bias = 0
@@ -116,9 +120,22 @@ class Linear(link.Link):
                 self.b = variable.Parameter(bias_initializer, out_size)
 
     def _initialize_params(self, in_size):
-        self.W.initialize((self.out_size, in_size))
+        # type: (int) -> None
+
+        self.W.initialize((self.out_size, in_size))  # type: ignore
+
+    @property
+    def printable_specs(self):
+        specs = [
+            ('in_size', self.in_size),
+            ('out_size', self.out_size),
+            ('nobias', self.b is None),
+        ]
+        for spec in specs:
+            yield spec
 
     def forward(self, x, n_batch_axes=1):
+        # type: (variable.Variable, int) -> variable.Variable
         """Applies the linear layer.
 
         Args:
@@ -132,7 +149,7 @@ class Linear(link.Link):
             ~chainer.Variable: Output of the linear layer.
 
         """
-        if self.W.data is None:
-            in_size = functools.reduce(operator.mul, x.shape[1:], 1)
+        if self.W.array is None:
+            in_size = utils.size_of_shape(x.shape[n_batch_axes:])
             self._initialize_params(in_size)
         return linear.linear(x, self.W, self.b, n_batch_axes=n_batch_axes)

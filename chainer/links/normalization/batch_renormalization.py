@@ -1,4 +1,4 @@
-from chainer.backends import cuda
+import chainer
 from chainer import configuration
 from chainer.functions.normalization import batch_normalization
 from chainer.functions.normalization import batch_renormalization
@@ -16,8 +16,8 @@ class BatchRenormalization(BatchNormalization):
     training and inference models generate the same outputs that depend on
     individual examples rather than the entire minibatch.
 
-    See: `Batch Renormalization: Towards Reducing Minibatch Dependence in \
-          Batch-Normalized Models <https://arxiv.org/abs/1702.03275>`_
+    See: `Batch Renormalization: Towards Reducing Minibatch Dependence in
+    Batch-Normalized Models <https://arxiv.org/abs/1702.03275>`_
 
     .. seealso::
        :func:`~chainer.functions.batch_renormalization`,
@@ -42,14 +42,14 @@ class BatchRenormalization(BatchNormalization):
         if self.gamma is not None:
             gamma = self.gamma
         else:
-            with cuda.get_device_from_id(self._device_id):
+            with chainer.using_device(self.device):
                 gamma = self.xp.ones(
                     self.avg_mean.shape, dtype=x.dtype)
 
         if self.beta is not None:
             beta = self.beta
         else:
-            with cuda.get_device_from_id(self._device_id):
+            with chainer.using_device(self.device):
                 beta = self.xp.zeros(
                     self.avg_mean.shape, dtype=x.dtype)
 
@@ -60,10 +60,26 @@ class BatchRenormalization(BatchNormalization):
             else:
                 decay = self.decay
 
+            avg_mean = self.avg_mean
+            avg_var = self.avg_var
+            update_statistics = True
+
+            if chainer.config.in_recomputing:
+                # Do not update statistics when extra forward computation is
+                # called.
+                if finetune:
+                    self.N -= 1  # Revert the count
+                avg_mean = self._prev_avg_mean
+                avg_var = self._prev_avg_var
+                update_statistics = False
+            elif chainer.config._will_recompute:
+                self._prev_avg_mean = avg_mean.copy()
+                self._prev_avg_var = avg_var.copy()
+
             ret = batch_renormalization.batch_renormalization(
                 x, gamma, beta, self.rmax, self.dmax,
-                self.eps, self.avg_mean, self.avg_var, decay,
-                update_statistics=True)
+                self.eps, avg_mean, avg_var, decay,
+                update_statistics=update_statistics)
         else:
             # Use running average statistics or fine-tuned statistics.
             mean = self.avg_mean

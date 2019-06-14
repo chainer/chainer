@@ -1,5 +1,12 @@
 .. module:: chainer.training
 
+
+.. snapshot_writers is referred to from within chainer.training.snapshot docstring.
+.. toctree::
+   :hidden:
+
+   snapshot_writers
+
 Training Tools
 =========================
 
@@ -54,9 +61,9 @@ Extensions
 ----------
 
 An extension is a callable object that can perform arbitrary actions during the training loop.
-Extensions can be registered to :class:`Trainer` by using :func:`Trainer.extend` method, and they are invoked when the :ref:`Trigger <triggers>` condition is satisfied.
+Extensions can be registered to :class:`~chainer.training.Trainer` by using :func:`Trainer.extend` method, and they are invoked when the :ref:`Trigger <triggers>` condition is satisfied.
 
-In addition to the built-in extensions listed below, you can define your own extension by implementing :class:`Extension` or using the :meth:`make_extension` decorator.
+In addition to the built-in extensions listed below, you can define your own extension by implementing :class:`~chainer.training.Extension` or using the :meth:`make_extension` decorator.
 See :doc:`../guides/extensions` for details.
 
 Common
@@ -123,7 +130,7 @@ These extensions provide features to perform reporting of metrics and various st
    chainer.training.extensions.PlotReport
    chainer.training.extensions.VariableStatisticsPlot
 
-   chainer.training.extensions.dump_graph
+   chainer.training.extensions.DumpGraph
 
 Snapshot
 ~~~~~~~~
@@ -137,6 +144,16 @@ These extensions provide features to take snapshots of models.
    chainer.training.extensions.snapshot
    chainer.training.extensions.snapshot_object
 
+Memory Release
+~~~~~~~~~~~~~~
+
+These extensions provide features to release memories.
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.training.extensions.unchain_variables
 
 .. _triggers:
 
@@ -158,5 +175,6 @@ It is mainly used to determine when to call an extension. It is also used to det
    chainer.training.triggers.ManualScheduleTrigger
    chainer.training.triggers.MaxValueTrigger
    chainer.training.triggers.MinValueTrigger
+   chainer.training.triggers.OnceTrigger
    chainer.training.triggers.TimeTrigger
 

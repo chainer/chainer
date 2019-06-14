@@ -46,9 +46,9 @@ class DotNode(object):
                 node.
         """
 
-        attributes = ["%s=\"%s\"" % (k, v) for (k, v)
+        attributes = ['%s="%s"' % (k, v) for (k, v)
                       in self.attribute.items()]
-        return "%s [%s];" % (self.id_, ",".join(attributes))
+        return '%s [%s];' % (self.id_, ','.join(attributes))
 
 
 class ComputationalGraph(object):
@@ -144,9 +144,9 @@ class ComputationalGraph(object):
             edge = (head_node.id_, tail_node.id_)
             if edge in drawn_edges:
                 continue
-            ret += "%s -> %s;" % edge
+            ret += '%s -> %s;' % edge
             drawn_edges.append(edge)
-        ret += "}"
+        ret += '}'
         return ret
 
     def dump(self, format='dot'):
@@ -196,7 +196,10 @@ def build_computational_graph(
     """Builds a graph of functions and variables backward-reachable from outputs.
 
     Args:
-        outputs(list): nodes from which the graph is constructed.
+        outputs (:class:`~chainer.Variable`, \
+        :class:`~chainer.variable.VariableNode`, \
+        :class:`~chainer.FunctionNode`, or :class:`list`): node(s) from which
+            the graph is constructed.
             Each element of outputs must be either :class:`~chainer.Variable`
             object, :class:`~chainer.variable.VariableNode` object, or
             :class:`~chainer.FunctionNode` object.
@@ -251,6 +254,18 @@ def build_computational_graph(
     """
     if not remove_split:
         raise ValueError('remove_split=False is not supported anymore')
+
+    output_types = (
+        variable.Variable, variable.VariableNode,
+        function_node.FunctionNode)
+
+    if isinstance(outputs, output_types):
+        outputs = [outputs]
+    else:
+        if not all(isinstance(o, output_types) for o in outputs):
+            raise TypeError(
+                'element of outputs must be either Variable, VariableNode, '
+                ' or FunctionNode.')
 
     cands = []
     seen_edges = set()

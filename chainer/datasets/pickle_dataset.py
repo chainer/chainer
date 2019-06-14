@@ -41,7 +41,8 @@ class PickleDatasetWriter(object):
         self._positions.append(position)
 
     def flush(self):
-        self._writer.flush()
+        if hasattr(self._writer, 'flush'):
+            self._writer.flush()
 
 
 class PickleDataset(dataset_mixin.DatasetMixin):
@@ -121,7 +122,7 @@ class PickleDataset(dataset_mixin.DatasetMixin):
 def open_pickle_dataset(path):
     """Opens a dataset stored in a given path.
 
-    This is a hepler funciton to open :class:`PickleDataset`. It opens a given
+    This is a helper function to open :class:`PickleDataset`. It opens a given
     file in binary mode, and creates a :class:`PickleDataset` instance.
 
     This method does not close the opened file. A user needs to call

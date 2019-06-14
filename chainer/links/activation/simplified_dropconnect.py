@@ -75,13 +75,13 @@ class SimplifiedDropconnect(link.Link):
         """Applies the simplified dropconnect layer.
 
         Args:
-            x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+            x (chainer.Variable or :ref:`ndarray`):
                 Batch of input vectors. Its first dimension ``n`` is assumed
                 to be the *minibatch dimension*.
             train (bool):
                 If ``True``, executes simplified dropconnect.
                 Otherwise, simplified dropconnect link works as a linear unit.
-            mask (None or chainer.Variable or numpy.ndarray or cupy.ndarray):
+            mask (None or chainer.Variable or :ref:`ndarray`):
                 If ``None``, randomized simplified dropconnect mask is
                 generated. Otherwise, The mask must be ``(n, M, N)`` or
                 ``(M, N)`` shaped array, and `use_batchwise_mask` is ignored.
@@ -95,8 +95,8 @@ class SimplifiedDropconnect(link.Link):
             ~chainer.Variable: Output of the simplified dropconnect layer.
 
         """
-        if self.W.data is None:
-            self._initialize_params(x.size // len(x.data))
+        if self.W.array is None:
+            self._initialize_params(x.size // len(x))
         if mask is not None and 'mask' not in self.__dict__:
             self.add_persistent('mask', mask)
         return simplified_dropconnect.simplified_dropconnect(

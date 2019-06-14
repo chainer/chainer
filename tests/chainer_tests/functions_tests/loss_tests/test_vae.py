@@ -14,7 +14,7 @@ from chainer.testing import condition
     *testing.product({
         'wrap_m': [True, False],
         'wrap_v': [True, False],
-        'reduce': ['no', 'sum']
+        'reduce': ['no', 'sum', 'mean']
     })
 )
 class TestGaussianKLDivergence(unittest.TestCase):
@@ -30,6 +30,8 @@ class TestGaussianKLDivergence(unittest.TestCase):
                  numpy.exp(self.ln_var)) * 0.5
         if self.reduce == 'sum':
             self.expect = numpy.sum(loss)
+        elif self.reduce == 'mean':
+            self.expect = numpy.mean(loss)
         elif self.reduce == 'no':
             self.expect = loss
 
@@ -79,7 +81,7 @@ class TestGaussianKLDivergenceInvalidReductionOption(unittest.TestCase):
     *testing.product({
         'wrap_x': [True, False],
         'wrap_y': [True, False],
-        'reduce': ['no', 'sum']
+        'reduce': ['no', 'sum', 'mean']
     })
 )
 class TestBernoulliNLL(unittest.TestCase):
@@ -95,6 +97,8 @@ class TestBernoulliNLL(unittest.TestCase):
                         (1 - self.x) * numpy.log(1 - p))
         if self.reduce == 'sum':
             self.expect = numpy.sum(self.expect)
+        elif self.reduce == 'mean':
+            self.expect = numpy.mean(self.expect)
 
     def check_bernoulli_nll(self, x, y):
         if self.wrap_x:
@@ -140,7 +144,7 @@ class TestBernoulliNLLInvalidReductionOption(unittest.TestCase):
         'wrap_x': [True, False],
         'wrap_m': [True, False],
         'wrap_v': [True, False],
-        'reduce': ['no', 'sum']
+        'reduce': ['no', 'sum', 'mean']
     })
 )
 class TestGaussianNLL(unittest.TestCase):
@@ -160,6 +164,8 @@ class TestGaussianNLL(unittest.TestCase):
                        x_d * x_d / var * 0.5)
         if self.reduce == 'sum':
             self.expect = numpy.sum(self.expect)
+        elif self.reduce == 'mean':
+            self.expect = numpy.mean(self.expect)
 
     def check_gaussian_nll(self, x, mean, ln_var):
         if self.wrap_x:

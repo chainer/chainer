@@ -1,9 +1,23 @@
 import numpy
 import six
 
+from chainer.backends import _cpu
 from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import serializer
+import chainerx
+
+
+# For historical reasons, NPZ serializers in Chainer allow pickle despite their
+# potential security issues. This behavior may be changed in future.
+
+# `numpy.save` and `numpy.load` have `allow_pickle` option. `numpy.savez` and
+# `numpy.savez_compressed` do not have an option to disable pickle.
+# Before NumPy 1.10, pickle was always allowed. Since NumPy 1.16.3, pickle is
+# not allowed by default.
+_allow_pickle_kwargs = {}
+if numpy.lib.NumpyVersion(numpy.__version__) >= '1.10.0':
+    _allow_pickle_kwargs['allow_pickle'] = True
 
 
 class DictionarySerializer(serializer.Serializer):
@@ -46,12 +60,24 @@ class DictionarySerializer(serializer.Serializer):
 
     def __call__(self, key, value):
         key = key.lstrip('/')
-        ret = value
-        if isinstance(value, cuda.ndarray):
-            value = value.get()
-        arr = numpy.asarray(value)
-        self.target[self.path + key] = arr
-        return ret
+        self.target[self.path + key] = (
+            _cpu._to_cpu(value) if value is not None
+            else numpy.asarray(None))
+        return value
+
+
+def serialize(obj):
+    """Serializes an object to a dictionary object.
+
+    Args:
+        obj: Object to be serialized. It must support serialization protocol.
+
+    Returns:
+        dict: Serialized object.
+    """
+    s = DictionarySerializer()
+    s.save(obj)
+    return s.target
 
 
 def save_npz(file, obj, compression=True):
@@ -62,6 +88,7 @@ def save_npz(file, obj, compression=True):
     Args:
         file (str or file-like): Target file to write to.
         obj: Object to be serialized. It must support serialization protocol.
+            If it is a dictionary object, the serialization will be skipped.
         compression (bool): If ``True``, compression in the resulting zip file
             is enabled.
 
@@ -74,12 +101,17 @@ def save_npz(file, obj, compression=True):
             save_npz(f, obj, compression)
         return
 
-    s = DictionarySerializer()
-    s.save(obj)
-    if compression:
-        numpy.savez_compressed(file, **s.target)
+    if isinstance(obj, dict):
+        target = obj
     else:
-        numpy.savez(file, **s.target)
+        s = DictionarySerializer()
+        s.save(obj)
+        target = s.target
+
+    if compression:
+        numpy.savez_compressed(file, **target)
+    else:
+        numpy.savez(file, **target)
 
 
 class NpzDeserializer(serializer.Deserializer):
@@ -143,9 +175,11 @@ class NpzDeserializer(serializer.Deserializer):
         dataset = self.npz[key]
         if dataset[()] is None:
             return None
-
         if value is None:
             return dataset
+        if isinstance(value, chainerx.ndarray):
+            value_view = chainerx.to_numpy(value, copy=False)
+            numpy.copyto(value_view, dataset)
         elif isinstance(value, numpy.ndarray):
             numpy.copyto(value, dataset)
         elif isinstance(value, cuda.ndarray):
@@ -156,6 +190,15 @@ class NpzDeserializer(serializer.Deserializer):
             value_type = type(value)
             dataset_arr = numpy.asarray(dataset)
             if (issubclass(dataset_arr.dtype.type, numpy.number)
+                    and not (issubclass(dataset_arr.dtype.type, numpy.integer)
+                             and value_type in six.integer_types)
+                    # Casting a `numpy.integer` scalar by `int()` case above is
+                    # safe as `int()` gives unlimited precision integer (it's
+                    # also true for `long()`/`int()` on Python 2). For such a
+                    # case, the check below may be too strict. For example,
+                    # `numpy.can_cast(numpy.int64, int)`, which checks cast-
+                    # ability to `dtype(int)`, gives `False` on a platform
+                    # whose `dtype(int)` is `numpy.int32` like Windows/x64.
                     and not numpy.can_cast(
                         dataset_arr.dtype, value_type, casting='safe')):
                 raise TypeError(
@@ -193,7 +236,7 @@ def load_npz(file, obj, path='', strict=True, ignore_names=None):
         :func:`chainer.serializers.save_npz`
 
     """
-    with numpy.load(file) as f:
+    with numpy.load(file, **_allow_pickle_kwargs) as f:
         d = NpzDeserializer(
             f, path=path, strict=strict, ignore_names=ignore_names)
         d.load(obj)

@@ -45,7 +45,7 @@ class DiscriminativeMarginBasedClusteringLoss(object):
         self.max_embedding_dim = max_embedding_dim
 
         if self.max_embedding_dim <= 0:
-            raise ValueError("Max number of embeddings has to be positive!")
+            raise ValueError('Max number of embeddings has to be positive!')
 
         # L1 or L2 norm is allowed only
         if norm == 1:
@@ -53,19 +53,18 @@ class DiscriminativeMarginBasedClusteringLoss(object):
         elif norm == 2:
             self.norm = lambda x, axis=None: sqrt(c_sum(x ** 2, axis=axis))
         else:
-            raise ValueError("For discriminative loss, "
-                             "norm can only be 1 or 2. "
-                             "Obtained the value : {}".format(norm))
+            raise ValueError('For discriminative loss, '
+                             'norm can only be 1 or 2. '
+                             'Obtained the value : {}'.format(norm))
 
     def __call__(self, embeddings, labels):
         """
         Args:
-            embeddings (:class:`~chainer.Variable` or :class:`numpy.ndarray` \
-            or :class:`cupy.ndarray`): \
+            embeddings (:class:`~chainer.Variable` or :ref:`ndarray`):
                 predicted embedding vectors
                 (batch size, max embedding dimensions, height, width)
 
-            labels (:class:`numpy.ndarray` or :class:`cupy.ndarray`): \
+            labels (:ref:`ndarray`):
                 instance segmentation ground truth
                 each unique value has to be denoting one instance
                 (batch size, height, width)
@@ -157,12 +156,11 @@ def discriminative_margin_based_clustering_loss(
         Small regularization loss to penalize weights against overfitting.
 
     Args:
-        embeddings (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): \
+        embeddings (:class:`~chainer.Variable` or :ref:`ndarray`):
             predicted embedding vectors
             (batch size, max embedding dimensions, height, width)
 
-        labels (:class:`numpy.ndarray` or :class:`cupy.ndarray`): \
+        labels (:ref:`ndarray`):
             instance segmentation ground truth
             each unique value has to be denoting one instance
             (batch size, height, width)

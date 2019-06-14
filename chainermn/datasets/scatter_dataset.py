@@ -12,7 +12,8 @@ def scatter_dataset(dataset, comm, root=0, shuffle=False,
                     seed=None, max_buf_len=256 * 1024 * 1024):
     """Scatter the given dataset to the workers in the communicator.
 
-    The dataset of worker 0 (i.e., the worker whose ``comm.rank`` is 0) is
+    The dataset of worker ``root``
+    (i.e., the worker whose ``comm.rank`` is ``root``) is
     scattered to all workers. The given dataset of other workers are ignored.
     The dataset is split to sub datasets of almost equal sizes and scattered
     to workers. To create a sub dataset, ``chainer.datasets.SubDataset`` is
@@ -45,10 +46,10 @@ def scatter_dataset(dataset, comm, root=0, shuffle=False,
             n_total_samples)
 
     data = None
-    if comm.rank == 0:
+    if comm.rank == root:
         data = (dataset, order)
 
-    data = comm.bcast_obj(data, max_buf_len=max_buf_len, root=0)
+    data = comm.bcast_obj(data, max_buf_len=max_buf_len, root=root)
     assert data is not None
     (dataset, order) = data
 

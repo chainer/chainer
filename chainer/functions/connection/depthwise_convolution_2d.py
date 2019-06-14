@@ -21,11 +21,11 @@ def depthwise_convolution_2d(x, W, b=None, stride=1, pad=0):
       respectively.
 
     Args:
-        x (chainer.Variable or :class:`numpy.ndarray` or cupy.ndarray):
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
             Input variable of shape :math:`(n, c_I, h, w)`.
-        W (~chainer.Variable): Weight variable of shape
-            :math:`(c_M, c_I, k_H, k_W)`.
-        b (~chainer.Variable):
+        W (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Weight variable of shape :math:`(c_M, c_I, k_H, k_W)`.
+        b (:class:`~chainer.Variable` or :ref:`ndarray`):
             Bias variable of length :math:`c_M * c_I` (optional).
         stride (int or pair of ints): Stride of filter applications.
             ``stride=s`` and ``stride=(s, s)`` are equivalent.
@@ -51,8 +51,8 @@ def depthwise_convolution_2d(x, W, b=None, stride=1, pad=0):
     If the bias vector is given, then it is added to all spatial locations of
     the output of convolution.
 
-    See: `L. Sifre. Rigid-motion scattering for image classification\
-          <https://www.di.ens.fr/data/publications/papers/phd_sifre.pdf>`_
+    See: `L. Sifre. Rigid-motion scattering for image classification
+    <https://www.di.ens.fr/data/publications/papers/phd_sifre.pdf>`_
 
     .. seealso:: :class:`~chainer.links.DepthwiseConvolution2D`
 

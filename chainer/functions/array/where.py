@@ -14,9 +14,12 @@ class Where(function_node.FunctionNode):
         self.condition = condition
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 2)
+        type_check._argname(in_types, ('x', 'y'))
         x_type, y_type = in_types
-        condition = self.condition
+        condition = type_check._make_variable_from_array(
+            # allow scalar `condition`
+            chainer.utils.force_array(self.condition),
+            'condition')
 
         type_check.expect(
             condition.dtype == numpy.bool_,
@@ -54,17 +57,14 @@ def where(condition, x, y):
     All ``condition``, ``x``, and ``y`` must have the same shape.
 
     Args:
-        condition (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        condition (:class:`~chainer.Variable` or :ref:`ndarray`):
             Input variable containing the condition.
             A :math:`(s_1, s_2, ..., s_N)` -shaped boolean array.
             Only boolean array is permitted.
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
             Input variable chosen when ``condition`` is ``True``.
             A :math:`(s_1, s_2, ..., s_N)` -shaped float array.
-        y (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        y (:class:`~chainer.Variable` or :ref:`ndarray`):
             Input variable chosen when ``condition`` is ``False``.
             A :math:`(s_1, s_2, ..., s_N)` -shaped float array.
 

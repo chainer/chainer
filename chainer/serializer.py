@@ -31,7 +31,7 @@ class AbstractSerializer(object):
         ``value`` argument. String values are treated like scalars.
 
         .. note::
-           As of v2.0.0, serializers and deserializers are required to
+           Serializers and deserializers are required to
            correctly handle the ``None`` value. When ``value`` is ``None``,
            serializers save it in format-dependent ways, and deserializers
            just return the loaded value. When the saved ``None`` value is

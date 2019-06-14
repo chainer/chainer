@@ -1,7 +1,6 @@
 import numpy
 
 import chainer
-from chainer.backends import cuda
 from chainer import configuration
 from chainer import functions
 from chainer import initializers
@@ -73,18 +72,22 @@ class BatchNormalization(link.Link):
         may have a slightly different behavior on inference. To emulate the
         old behavior, pass ``initial_avg_var=0`` for training.
 
-    See: `Batch Normalization: Accelerating Deep Network Training by Reducing\
-          Internal Covariate Shift <https://arxiv.org/abs/1502.03167>`_
+    See: `Batch Normalization: Accelerating Deep Network Training by Reducing
+    Internal Covariate Shift <https://arxiv.org/abs/1502.03167>`_
 
     .. seealso::
        :func:`~chainer.functions.batch_normalization`,
        :func:`~chainer.functions.fixed_batch_normalization`
 
     Attributes:
-        gamma (~chainer.Variable): Scaling parameter.
-        beta (~chainer.Variable): Shifting parameter.
-        avg_mean (numpy.ndarray or cupy.ndarray): Population mean.
-        avg_var (numpy.ndarray or cupy.ndarray): Population variance.
+        gamma (~chainer.Variable): Scaling parameter. In mixed16 mode, it is
+            initialized as float32 variable.
+        beta (~chainer.Variable): Shifting parameter. In mixed16 mode, it is
+            initialized as float32 variable.
+        avg_mean (:ref:`ndarray`): Population mean. In mixed16 mode, it is
+            initialized as float32 array.
+        avg_var (:ref:`ndarray`): Population variance. In mixed16 mode, it is
+            initialized as float32 array.
         N (int): Count of batches given for fine-tuning.
         decay (float): Decay rate of moving average. It is used on training.
         eps (float): Epsilon value for numerical stability. This value is added
@@ -199,6 +202,7 @@ class BatchNormalization(link.Link):
             raise RuntimeError('size or axis is required')
         self._initial_avg_mean = initial_avg_mean
         self._initial_avg_var = initial_avg_var
+
         self.N = 0
         self.register_persistent('N')
         self.decay = decay
@@ -206,7 +210,8 @@ class BatchNormalization(link.Link):
         if isinstance(axis, int):
             axis = (axis,)
         self.axis = axis
-        self._dtype = chainer.get_dtype(dtype)
+        self._highprec_dtype = chainer.get_dtype(
+            dtype, map_mixed16=numpy.float32)
 
         with self.init_scope():
             if use_gamma:
@@ -214,30 +219,50 @@ class BatchNormalization(link.Link):
                     initial_gamma = 1
                 gamma_initializer = \
                     initializers._get_initializer(initial_gamma)
-                gamma_initializer.dtype = self._dtype
+                gamma_initializer.dtype = self._highprec_dtype
                 self.gamma = variable.Parameter(gamma_initializer)
             if use_beta:
                 if initial_beta is None:
                     initial_beta = 0
                 beta_initializer = initializers._get_initializer(initial_beta)
-                beta_initializer.dtype = self._dtype
+                beta_initializer.dtype = self._highprec_dtype
                 self.beta = variable.Parameter(beta_initializer)
 
         if size is not None:
             self._initialize_params(size)
 
     def _initialize_params(self, shape):
-        dtype = self._dtype
-        self.avg_mean = _init_array(self._initial_avg_mean, 0, shape, dtype)
+        self.avg_mean = self._init_array(self._initial_avg_mean, 0, shape)
         self._initial_avg_mean = None
         self.register_persistent('avg_mean')
-        self.avg_var = _init_array(self._initial_avg_var, 1, shape, dtype)
+        self.avg_var = self._init_array(self._initial_avg_var, 1, shape)
         self._initial_avg_var = None
         self.register_persistent('avg_var')
         if self.gamma is not None:
             self.gamma.initialize(shape)
         if self.beta is not None:
             self.beta.initialize(shape)
+
+    def _init_array(self, initializer, default_value, size):
+        if initializer is None:
+            initializer = default_value
+        initializer = initializers._get_initializer(initializer)
+        return initializers.generate_array(
+            initializer, size, self.xp, dtype=self._highprec_dtype,
+            device=self.device)
+
+    @property
+    def printable_specs(self):
+        specs = [
+            ('size', self.avg_mean.shape[0]),
+            ('decay', self.decay),
+            ('eps', self.eps),
+            ('dtype', self.avg_mean.dtype),
+            ('use_gamma', hasattr(self, 'gamma')),
+            ('use_beta', hasattr(self, 'beta')),
+        ]
+        for spec in specs:
+            yield spec
 
     def forward(self, x, **kwargs):
         """forward(self, x, finetune=False)
@@ -248,14 +273,8 @@ class BatchNormalization(link.Link):
         mean and variance for evaluation during training, and normalizes the
         input using batch statistics.
 
-        .. warning::
-
-           ``test`` argument is not supported anymore since v2.
-           Instead, use ``chainer.using_config('train', False)``.
-           See :func:`chainer.using_config`.
-
         Args:
-            x (Variable): Input variable.
+            x (~chainer.Variable): Input variable.
             finetune (bool): If it is in the training mode and ``finetune`` is
                 ``True``, BatchNormalization runs in fine-tuning mode; it
                 accumulates the input array to compute population statistics
@@ -277,15 +296,15 @@ class BatchNormalization(link.Link):
 
         gamma = self.gamma
         if gamma is None:
-            with cuda.get_device_from_id(self._device_id):
+            with chainer.using_device(self.device):
                 gamma = self.xp.ones(
-                    self.avg_mean.shape, dtype=x.dtype)
+                    self.avg_mean.shape, dtype=self._highprec_dtype)
 
         beta = self.beta
         if beta is None:
-            with cuda.get_device_from_id(self._device_id):
+            with chainer.using_device(self.device):
                 beta = self.xp.zeros(
-                    self.avg_mean.shape, dtype=x.dtype)
+                    self.avg_mean.shape, dtype=self._highprec_dtype)
 
         if configuration.config.train:
             if finetune:
@@ -294,9 +313,20 @@ class BatchNormalization(link.Link):
             else:
                 decay = self.decay
 
+            avg_mean = self.avg_mean
+            avg_var = self.avg_var
+
+            if chainer.config.in_recomputing:
+                # Do not update statistics when extra forward computation is
+                # called.
+                if finetune:
+                    self.N -= 1  # Revert the count
+                avg_mean = None
+                avg_var = None
+
             ret = functions.batch_normalization(
-                x, gamma, beta, eps=self.eps, running_mean=self.avg_mean,
-                running_var=self.avg_var, decay=decay, axis=self.axis)
+                x, gamma, beta, eps=self.eps, running_mean=avg_mean,
+                running_var=avg_var, decay=decay, axis=self.axis)
         else:
             # Use running average statistics or fine-tuned statistics.
             mean = self.avg_mean
@@ -314,10 +344,3 @@ class BatchNormalization(link.Link):
 
         """
         self.N = 0
-
-
-def _init_array(initializer, default_value, size, dtype):
-    if initializer is None:
-        initializer = default_value
-    initializer = initializers._get_initializer(initializer)
-    return initializers.generate_array(initializer, size, numpy, dtype=dtype)

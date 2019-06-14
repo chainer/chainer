@@ -144,8 +144,8 @@ def tensordot(a, b, axes=2):
     are treated as one axis by reshaping.
 
     Args:
-        a (Variable): The first argument.
-        b (Variable): The second argument.
+        a (:class:`~chainer.Variable` or :ref:`ndarray`): The first argument.
+        b (:class:`~chainer.Variable` or :ref:`ndarray`): The second argument.
         axes:
             - If it is an integer, then ``axes`` axes at the last of ``a`` and
               the first of ``b`` are used.

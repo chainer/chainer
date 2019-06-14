@@ -1,6 +1,7 @@
 import chainer
 from chainer import backend
 from chainer import function_node
+from chainer import utils
 from chainer.utils import type_check
 
 
@@ -11,8 +12,8 @@ class HuberLoss(function_node.FunctionNode):
 
         if reduce not in ('sum_along_second_axis', 'no'):
             raise ValueError(
-                "Only 'sum_along_second_axis' and 'no' are valid "
-                "for 'reduce', but '%s' is given" % reduce)
+                'Only \'sum_along_second_axis\' and \'no\' are valid '
+                'for \'reduce\', but \'%s\' is given' % reduce)
 
         self.reduce = reduce
 
@@ -28,15 +29,17 @@ class HuberLoss(function_node.FunctionNode):
         self.retain_inputs((0, 1))
         xp = backend.get_array_module(*inputs)
         x0, x1 = inputs
-        diff = x0 - x1
-        delta = diff.dtype.type(self.delta)
+        dtype = x0.dtype
+        linear_part = utils.force_array(x0 - x1, dtype)
+        delta = dtype.type(self.delta)
 
-        xp.abs(diff, out=diff)
-        y = xp.square(diff)
-        diff -= delta
-        xp.maximum(diff, 0, dtype=diff.dtype, out=diff)
-        xp.square(diff, out=diff)
-        y -= diff
+        xp.abs(linear_part, out=linear_part)
+        square_part = utils.force_array(xp.square(linear_part), dtype)
+        linear_part *= 2 * delta
+        linear_part -= delta * delta
+        xp.maximum(linear_part, delta * delta, out=linear_part)
+        xp.minimum(square_part, linear_part, out=square_part)
+        y = square_part
         y *= 0.5
 
         if self.reduce == 'sum_along_second_axis':
@@ -48,8 +51,7 @@ class HuberLoss(function_node.FunctionNode):
         x0, x1 = self.get_retained_inputs()
         gy, = grad_outputs
         diff = x0 - x1
-        # `functions.clip` only accepts float value.
-        delta = float(self.delta)
+        delta = self.delta
 
         gx = chainer.functions.clip(diff, -delta, delta)
 
@@ -83,12 +85,12 @@ def huber_loss(x, t, delta, reduce='sum_along_second_axis'):
     See: `Huber loss - Wikipedia <https://en.wikipedia.org/wiki/Huber_loss>`_.
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Input variable.
-            The shape of ``x`` should be (:math:`N`, :math:`K`).
-        t (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Target variable for regression.
-            The shape of ``t`` should be (:math:`N`, :math:`K`).
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
+            The shape of ``x`` should be (:math:`N`, :math:`K`, ...) if
+            ``reduce='sum_along_second_axis'``.
+        t (:class:`~chainer.Variable` or :ref:`ndarray`): Target variable for
+            regression. The shape of ``t`` should be
+            (:math:`N`, :math:`K`, ...) if ``reduce='sum_along_second_axis'``.
         delta (float): Constant variable for Huber loss function
             as used in definition.
         reduce (str): Reduction option. Its value must be either

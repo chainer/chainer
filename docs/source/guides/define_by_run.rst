@@ -1,3 +1,5 @@
+.. _define_by_run:
+
 Define-by-Run
 -------------
 

@@ -1,3 +1,4 @@
+import os
 import sys
 import time
 
@@ -6,6 +7,16 @@ import numpy
 from chainer import backend
 from chainer.backends import cuda
 from chainer import function_hook
+
+
+# Select the best-resolution timer function
+try:
+    _get_time = time.perf_counter
+except AttributeError:
+    if os.name == 'nt':
+        _get_time = time.clock
+    else:
+        _get_time = time.time
 
 
 class TimerHook(function_hook.FunctionHook):
@@ -24,9 +35,9 @@ class TimerHook(function_hook.FunctionHook):
 
                    FunctionName  ElapsedTime  Occurrence
                  LinearFunction      1.24sec        3900
-                           ReLU     593.05ms        2600
-            SoftmaxCrossEntropy     824.11ms        1300
-                       Accuracy     176.54ms         700
+                           ReLU      0.59sec        2600
+            SoftmaxCrossEntropy      0.82sec        1300
+                       Accuracy      0.18sec         700
 
         where *FunctionName* is the name of function that calls the hook,
         and *ElapsedTime* is the elapsed time the function consumed,
@@ -38,6 +49,7 @@ class TimerHook(function_hook.FunctionHook):
     """
 
     name = 'TimerHook'
+    table = {'sec': 1, 'ms': 10 ** 3, 'us': 10 ** 6, 'ns': 10 ** 9}
 
     def __init__(self):
         self.call_history = []
@@ -47,7 +59,7 @@ class TimerHook(function_hook.FunctionHook):
 
     def _preprocess(self):
         if self.xp == numpy:
-            start = time.time()
+            start = _get_time()
             self._running_stack.append(start)
         else:
             start = cuda.Event()
@@ -67,7 +79,7 @@ class TimerHook(function_hook.FunctionHook):
     def _postprocess(self, function):
         if self.xp == numpy:
             start = self._running_stack.pop()
-            stop = time.time()
+            stop = _get_time()
             elapsed_time = stop - start
         else:
             start, stop = self._running_stack.pop()
@@ -102,7 +114,7 @@ class TimerHook(function_hook.FunctionHook):
 
         Returns:
             A summarized dictionary whose keys are function names and
-            values are dictionaries of `elapsed_time` and `occurrrence`.
+            values are dictionaries of `elapsed_time` and `occurrence`.
         """
         summary = {}
         for function_name, elapsed_time in self.call_history:
@@ -113,19 +125,38 @@ class TimerHook(function_hook.FunctionHook):
             record['occurrence'] += 1
         return summary
 
-    def _humanized_time(self, second):
-        """Returns a human readable time."""
+    def _choose_unit(self, second):
+        """Choose optimal unit."""
+        factor = 1
         for unit in ['sec', 'ms', 'us']:
-            if second >= 1:
-                return '%3.2f%s' % (second, unit)
-            second *= 1000.0
-        return '%.2f%s' % (second, 'ns')
+            if second * factor >= 1:
+                return factor, unit
+            factor *= 1000.0
+        return factor, 'ns'
 
-    def print_report(self, file=sys.stdout):
-        """Prints a summary report of time profiling in functions."""
+    def print_report(self, unit='auto', file=sys.stdout):
+        """Prints a summary report of time profiling in functions.
+
+        Args:
+            unit (str): Supplementary units used for computational times.
+                `sec`, `ms`, `us`, `ns`, `auto`(default) and `auto_foreach`
+                are supported. If `auto`, units of times are aligned to the
+                largest, and if `auto_foreach`, units of times are adjusted for
+                each element.
+        """
         entries = [['FunctionName', 'ElapsedTime', 'Occurrence']]
+        auto_foreach = (unit == 'auto_foreach')
+        if unit == 'auto':
+            max_time = max(
+                record['elapsed_time'] for record in self.summary().values())
+            factor, unit = self._choose_unit(max_time)
+        elif unit != 'auto_foreach':
+            factor = self.table[unit]
         for function_name, record in self.summary().items():
-            elapsed_time = self._humanized_time(record['elapsed_time'])
+            second = record['elapsed_time']
+            if auto_foreach:
+                factor, unit = self._choose_unit(second)
+            elapsed_time = '%3.2f%s' % (second * factor, unit)
             occurrence = str(record['occurrence'])
             entries.append([function_name, elapsed_time, occurrence])
         entry_widths = []
@@ -137,4 +168,5 @@ class TimerHook(function_hook.FunctionHook):
             line = template.format(function_name, elapsed_time, occurrence)
             file.write(line)
             file.write('\n')
-        file.flush()
+        if hasattr(file, 'flush'):
+            file.flush()

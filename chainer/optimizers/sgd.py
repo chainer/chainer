@@ -1,9 +1,21 @@
 from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import optimizer
+from chainer import types
 
 
-_default_hyperparam = optimizer.Hyperparameter()
+if types.TYPE_CHECKING:
+    import typing_extensions as tpe
+
+    class SGDHyperparameter(tpe.Protocol):
+        """Protocol class for hyperparameter of vanilla stochastic gradient descent.
+
+        This is only for PEP 544 compliant static type checkers.
+        """
+        lr = None  # type: float
+
+
+_default_hyperparam = optimizer.Hyperparameter()  # type: SGDHyperparameter # NOQA
 _default_hyperparam.lr = 0.01
 
 

@@ -40,7 +40,7 @@ class EmbedID(link.Link):
         >>> x
         array([2, 1], dtype=int32)
         >>> y = l(x)
-        >>> y.data
+        >>> y.array
         array([[2., 2., 2.],
                [1., 1., 1.]], dtype=float32)
 

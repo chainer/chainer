@@ -5,6 +5,8 @@ from chainer import backend
 from chainer.backends import cuda
 from chainer import distribution
 from chainer.functions.math import exponential
+from chainer.utils import cache
+
 
 LOGPROBC = - 0.5 * math.log(2 * math.pi)
 
@@ -20,31 +22,35 @@ class LogNormal(distribution.Distribution):
             \\exp\\left(-\\frac{(\\log{x}-\\mu)^2}{2\\sigma^2}\\right)
 
     Args:
-        mu(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Parameter of distribution :math:`\\mu`.
-        sigma(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Parameter of distribution :math:`\\sigma`.
+        mu(:class:`~chainer.Variable` or :ref:`ndarray`): Parameter of
+            distribution :math:`\\mu`.
+        sigma(:class:`~chainer.Variable` or :ref:`ndarray`): Parameter of
+            distribution :math:`\\sigma`.
     """
 
     def __init__(self, mu, sigma):
-        self.__mu = chainer.as_variable(mu)
-        self.__sigma = chainer.as_variable(sigma)
+        self.__mu = mu
+        self.__sigma = sigma
 
-    @property
+    @cache.cached_property
     def mu(self):
-        return self.__mu
+        return chainer.as_variable(self.__mu)
 
-    @property
+    @cache.cached_property
     def sigma(self):
-        return self.__sigma
+        return chainer.as_variable(self.__sigma)
+
+    @cache.cached_property
+    def _log_sigma(self):
+        return exponential.log(self.sigma)
 
     @property
     def batch_shape(self):
         return self.mu.shape
 
-    @property
+    @cache.cached_property
     def entropy(self):
-        return 0.5 - LOGPROBC + exponential.log(self.sigma) + self.mu
+        return 0.5 - LOGPROBC + self._log_sigma + self.mu
 
     @property
     def event_shape(self):
@@ -52,12 +58,16 @@ class LogNormal(distribution.Distribution):
 
     def log_prob(self, x):
         logx = exponential.log(x)
-        return LOGPROBC - exponential.log(self.sigma) - logx \
+        return LOGPROBC - self._log_sigma - logx \
             - (0.5 * (logx - self.mu) ** 2 / self.sigma ** 2)
 
-    @property
+    @cache.cached_property
     def mean(self):
         return exponential.exp(self.mu + 0.5 * self.sigma ** 2)
+
+    @property
+    def params(self):
+        return {'mu': self.mu, 'sigma': self.sigma}
 
     def sample_n(self, n):
         xp = backend.get_array_module(self.mu)
@@ -77,7 +87,7 @@ class LogNormal(distribution.Distribution):
     def support(self):
         return 'positive'
 
-    @property
+    @cache.cached_property
     def variance(self):
         return exponential.exp(2 * self.mu + self.sigma ** 2) \
             * (exponential.exp(self.sigma ** 2) - 1)
@@ -87,4 +97,4 @@ class LogNormal(distribution.Distribution):
 def _kl_log_normal_log_normal(dist1, dist2):
     return 0.5 * ((dist1.mu - dist2.mu) ** 2 +
                   dist1.sigma ** 2) / dist2.sigma ** 2 - 0.5 \
-        + exponential.log(dist2.sigma) - exponential.log(dist1.sigma)
+        + dist2._log_sigma - dist1._log_sigma

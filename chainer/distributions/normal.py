@@ -5,13 +5,13 @@ import numpy
 import chainer
 from chainer.backends import cuda
 from chainer import distribution
-from chainer.functions.array import expand_dims
-from chainer.functions.array import repeat
 from chainer.functions.math import exponential
 from chainer.functions.math import log_ndtr
 from chainer.functions.math import ndtr
 from chainer.functions.math import ndtri
 from chainer.utils import argument
+from chainer.utils import cache
+import chainerx
 
 
 ENTROPYC = 0.5 * math.log(2 * math.pi * math.e)
@@ -30,17 +30,15 @@ class Normal(distribution.Distribution):
             \\exp\\left(-\\frac{(x-\\mu)^2}{2\\sigma^2}\\right)
 
     Args:
-        loc(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Parameter of distribution representing the \
-        location :math:`\\mu`. This is the mean parameter.
-        scale(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Parameter of distribution representing the \
-        scale :math:`\\sigma`. Either `scale` or `log_scale` (not both) must \
-        have a value.
-        log_scale(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Parameter of distribution representing the \
-        scale :math:`\\log(\\sigma)`. Either `scale` or `log_scale` (not \
-        both) must have a value.
+        loc(:class:`~chainer.Variable` or :ref:`ndarray`): Parameter of
+            distribution representing the location :math:`\\mu`. This is the
+            mean parameter.
+        scale(:class:`~chainer.Variable` or :ref:`ndarray`): Parameter of
+            distribution representing the scale :math:`\\sigma`. Either `scale`
+            or `log_scale` (not both) must have a value.
+        log_scale(:class:`~chainer.Variable` or :ref:`ndarray`): Parameter of
+            distribution representing the scale :math:`\\log(\\sigma)`. Either
+            `scale` or `log_scale` (not both) must have a value.
 
     """
 
@@ -52,24 +50,33 @@ class Normal(distribution.Distribution):
                 kwargs, ('log_scale', log_scale))
         if not (scale is None) ^ (log_scale is None):
             raise ValueError(
-                "Either `scale` or `log_scale` (not both) must have a value.")
-        self.loc = chainer.as_variable(loc)
+                'Either `scale` or `log_scale` (not both) must have a value.')
 
-        with chainer.using_config('enable_backprop', True):
-            if scale is None:
-                self.__log_scale = chainer.as_variable(log_scale)
-                self.__scale = exponential.exp(self.log_scale)
-            else:
-                self.__scale = chainer.as_variable(scale)
-                self.__log_scale = exponential.log(self.scale)
+        self.__loc = loc
+        self.__scale = scale
+        self.__log_scale = log_scale
+        if isinstance(loc, chainer.Variable):
+            self.__device = loc.device
+        else:
+            self.__device = chainer.backend.get_device_from_array(loc)
 
-    @property
+    @cache.cached_property
+    def loc(self):
+        return chainer.as_variable(self.__loc)
+
+    @cache.cached_property
     def scale(self):
-        return self.__scale
+        if self.__scale is not None:
+            return chainer.as_variable(self.__scale)
+        else:
+            return exponential.exp(self.log_scale)
 
-    @property
+    @cache.cached_property
     def log_scale(self):
-        return self.__log_scale
+        if self.__log_scale is not None:
+            return chainer.as_variable(self.__log_scale)
+        else:
+            return exponential.log(self.scale)
 
     @property
     def batch_shape(self):
@@ -78,7 +85,7 @@ class Normal(distribution.Distribution):
     def cdf(self, x):
         return ndtr.ndtr((x - self.loc) / self.scale)
 
-    @property
+    @cache.cached_property
     def entropy(self):
         return self.log_scale + ENTROPYC
 
@@ -89,21 +96,17 @@ class Normal(distribution.Distribution):
     def icdf(self, x):
         return self.loc + self.scale * ndtri.ndtri(x)
 
-    @property
-    def _is_gpu(self):
-        return isinstance(self.loc.data, cuda.ndarray)
-
     def log_cdf(self, x):
         return log_ndtr.log_ndtr((x - self.loc) / self.scale)
 
     def log_prob(self, x):
         return LOGPROBC - self.log_scale \
-            - 0.5 * (x - self.loc) ** 2 / self.scale ** 2
+            - 0.5 * (x - self.loc) ** 2 / self.variance
 
     def log_survival_function(self, x):
         return log_ndtr.log_ndtr((self.loc - x) / self.scale)
 
-    @property
+    @cache.cached_property
     def mean(self):
         return self.loc
 
@@ -113,23 +116,28 @@ class Normal(distribution.Distribution):
 
     def prob(self, x):
         return (PROBC / self.scale) * exponential.exp(
-            - 0.5 * (x - self.loc) ** 2 / self.scale ** 2)
+            - 0.5 * (x - self.loc) ** 2 / self.variance)
 
     def sample_n(self, n):
-        if self._is_gpu:
-            eps = cuda.cupy.random.standard_normal(
-                (n,)+self.loc.shape, dtype=self.loc.dtype)
+        dtype = self.loc.dtype
+        shape = (n,) + self.loc.shape
+        device = self.__device
+        if device.xp is cuda.cupy:
+            if dtype == numpy.float16:
+                # cuRAND supports only FP32 and FP64
+                eps = cuda.cupy.random.standard_normal(
+                    shape, dtype=numpy.float32).astype(numpy.float16)
+            else:
+                eps = cuda.cupy.random.standard_normal(shape, dtype=dtype)
+        elif device.xp is chainerx:
+            # TODO(niboshi): Support random in ChainerX
+            eps = device.send(
+                numpy.random.standard_normal(shape).astype(dtype))
         else:
-            eps = numpy.random.standard_normal(
-                (n,)+self.loc.shape).astype(numpy.float32)
-        noise = repeat.repeat(
-            expand_dims.expand_dims(self.scale, axis=0), n, axis=0) * eps
-        noise += repeat.repeat(expand_dims.expand_dims(
-            self.loc, axis=0), n, axis=0)
+            eps = numpy.random.standard_normal(shape).astype(dtype)
+        return self.loc + self.scale * eps
 
-        return noise
-
-    @property
+    @cache.cached_property
     def stddev(self):
         return self.scale
 
@@ -140,7 +148,7 @@ class Normal(distribution.Distribution):
     def survival_function(self, x):
         return ndtr.ndtr((self.loc - x) / self.scale)
 
-    @property
+    @cache.cached_property
     def variance(self):
         return self.scale ** 2
 
@@ -148,5 +156,5 @@ class Normal(distribution.Distribution):
 @distribution.register_kl(Normal, Normal)
 def _kl_normal_normal(dist1, dist2):
     return dist2.log_scale - dist1.log_scale \
-        + 0.5 * (dist1.scale ** 2 + (dist1.loc - dist2.loc) ** 2) \
-        / dist2.scale ** 2 - 0.5
+        + 0.5 * (dist1.variance + (dist1.loc - dist2.loc) ** 2) \
+        / dist2.variance - 0.5

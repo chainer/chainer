@@ -39,6 +39,15 @@ def empty_like(x):
         return numpy.empty_like(x)
 
 
+def size_of_shape(shape):
+    size = 1
+    for i in shape:
+        size *= i
+
+    # should not return long in Python 2
+    return int(size)
+
+
 def sum_to(x, shape):
     if x.shape == shape:
         return x

@@ -11,7 +11,7 @@ If you want to use another image resolution, you need to change the network arch
 Below is an example learning result using cifar-10 dataset after 200 epoch, 
 where the model is trained using 4 GPUs with minibatch size 50 for each process.
 
-![example result](https://raw.githubusercontent.com/chainer/chainermn/master/examples/dcgan/example_image.png)
+![example result](./example_image.png)
 
 ## Implementation
 

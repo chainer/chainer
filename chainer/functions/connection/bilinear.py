@@ -225,12 +225,18 @@ def bilinear(e1, e2, W, V1=None, V2=None, b=None):
        (concatenation of matrices) by :math:`V`.
 
     Args:
-        e1 (~chainer.Variable): Left input variable.
-        e2 (~chainer.Variable): Right input variable.
-        W (~chainer.Variable): Quadratic weight variable.
-        V1 (~chainer.Variable): Left coefficient variable.
-        V2 (~chainer.Variable): Right coefficient variable.
-        b (~chainer.Variable): Bias variable.
+        e1 (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Left input variable.
+        e2 (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Right input variable.
+        W (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Quadratic weight variable.
+        V1 (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Left coefficient variable.
+        V2 (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Right coefficient variable.
+        b (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Bias variable.
 
     Returns:
         ~chainer.Variable: Output variable.

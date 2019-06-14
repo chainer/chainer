@@ -1,3 +1,5 @@
+.. _mnist_mlp_example:
+
 MNIST using Trainer
 ```````````````````
 
@@ -32,7 +34,7 @@ Load the MNIST dataset, which contains a training set of images and class labels
 
     a list of tuples like this can be used as a dataset.
 
-    There are many utility dataset classes defined in :mod:`~chainer.datasets`. It's recommended to utilize them in the actual applications.
+    There are many utility dataset classes defined in :mod:`~chainer.datasets`. It is recommended that you utilize them in the actual applications.
 
     For example, if your dataset consists of a number of image files, it would take a large amount of memory to load those data into a list like above. In that case, you can use :class:`~chainer.datasets.ImageDataset`, which just keeps the paths to image files. The actual image data will be loaded from the disk when the corresponding element is requested via ``[]`` accessor. Until then, no images are loaded to the memory to reduce memory use.
 
@@ -111,13 +113,13 @@ Now let's create the :class:`~chainer.training.Updater` object !
 
 .. note::
 
-    Here, the model defined above is passed to :class:`~chainer.links.Classifier` and changed to a new :class:`~chainer.Chain`. :class:`~chainer.links.Classifier`, which in fact inherits from the :class:`~chainer.Chain` class, keeps the given :class:`~chainer.Chain` model in its :attr:`~chainer.links.Classifier.predictor` attribute. Once you give the input data and the corresponding class labels to the model by the ``()`` operator,
+    Here, the model defined above is passed to :class:`~chainer.links.Classifier` and changed to a new :class:`~chainer.Chain`. :class:`~chainer.links.Classifier`, which in fact inherits from the :class:`~chainer.Chain` class, keeps the given :class:`~chainer.Chain` model in its ``predictor`` attribute. Once you give the input data and the corresponding class labels to the model by the ``()`` operator,
 
-    1. :meth:`~chainer.links.Classifier.forward` of the model is invoked. The data is then given to :attr:`~chainer.links.Classifier.predictor` to obtain the output ``y``.
-    2. Next, together with the given labels, the output ``y`` is passed to the loss function which is determined by :attr:`~chainer.links.Classifier.lossfun` argument in the constructor of :class:`~chainer.links.Classifier`.
+    1. :meth:`~chainer.links.Classifier.forward` of the model is invoked. The data is then given to ``predictor`` to obtain the output ``y``.
+    2. Next, together with the given labels, the output ``y`` is passed to the loss function which is determined by ``lossfun`` argument in the constructor of :class:`~chainer.links.Classifier`.
     3. The loss is returned as a :class:`~chainer.Variable`.
 
-    In :class:`~chainer.links.Classifier`, the :attr:`~chainer.links.Classifier.lossfun` is set to
+    In :class:`~chainer.links.Classifier`, the ``lossfun`` is set to
     :meth:`~chainer.functions.softmax_cross_entropy` as default.
 
     :class:`~chainer.training.updaters.StandardUpdater` is the simplest class among several updaters. There are also the :class:`~chainer.training.updaters.ParallelUpdater` and the :class:`~chainer.training.updaters.MultiprocessParallelUpdater` to utilize multiple GPUs. The :class:`~chainer.training.updaters.MultiprocessParallelUpdater` uses the NVIDIA NCCL library, so you need to install NCCL and re-install CuPy before using it.
@@ -125,14 +127,14 @@ Now let's create the :class:`~chainer.training.Updater` object !
 5. Setup Trainer
 ''''''''''''''''
 
-Lastly, we will setup :class:`~chainer.training.Trainer`. The only requirement for creating a :class:`~chainer.training.Trainer` is to pass the :class:`~chainer.training.Updater` object that we previously created above. You can also pass a :attr:`~chainer.training.Trainer.stop_trigger` to the second trainer argument as a tuple like ``(length, unit)`` to tell the trainer when to stop the training. The ``length`` is given as an integer and the ``unit`` is given as a string which should be either ``epoch`` or ``iteration``. Without setting :attr:`~chainer.training.Trainer.stop_trigger`, the training will never be stopped.
+Lastly, we will setup :class:`~chainer.training.Trainer`. The only requirement for creating a :class:`~chainer.training.Trainer` is to pass the :class:`~chainer.training.Updater` object that we previously created above. You can also pass a ``stop_trigger`` to the second trainer argument as a tuple like ``(length, unit)`` to tell the trainer when to stop the training. The ``length`` is given as an integer and the ``unit`` is given as a string which should be either ``epoch`` or ``iteration``. Without setting ``stop_trigger``, the training will never be stopped.
 
 .. testcode::
 
     # Setup a Trainer
     trainer = training.Trainer(updater, (max_epoch, 'epoch'), out='mnist_result')
 
-The :attr:`~chainer.training.Trainer.out` argument specifies an output directory used to save the
+The ``out`` argument specifies an output directory used to save the
 log files, the image files of plots to show the time progress of loss, accuracy, etc. when you use :class:`~chainer.training.extensions.PlotReport` extension. Next, we will explain how to display or save those information by using trainer :class:`~chainer.training.Extension`.
 
 6. Add Extensions to the Trainer object
@@ -145,7 +147,7 @@ The :class:`~chainer.training.Trainer` extensions provide the following capabili
 * Visualize the loss progress by plotting a graph periodically and save it as an image file (:class:`~chainer.training.extensions.PlotReport`)
 * Automatically serialize the state periodically (:meth:`~chainer.training.extensions.snapshot` / :meth:`~chainer.training.extensions.snapshot_object`)
 * Display a progress bar to the terminal to show the progress of training (:class:`~chainer.training.extensions.ProgressBar`)
-* Save the model architecture as a Graphviz's dot file (:meth:`~chainer.training.extensions.dump_graph`)
+* Save the model architecture as a Graphviz's dot file (:meth:`~chainer.training.extensions.DumpGraph`)
 
 To use these wide variety of tools for your training task, pass :class:`~chainer.training.Extension` objects to the :meth:`~chainer.training.Trainer.extend` method of your :class:`~chainer.training.Trainer` object.
 
@@ -172,22 +174,22 @@ To use these wide variety of tools for your training task, pass :class:`~chainer
     trainer.extend(extensions.PrintReport(['epoch', 'main/loss', 'main/accuracy', 'validation/main/loss', 'validation/main/accuracy', 'elapsed_time']))
     trainer.extend(extensions.PlotReport(['main/loss', 'validation/main/loss'], x_key='epoch', file_name='loss.png'))
     trainer.extend(extensions.PlotReport(['main/accuracy', 'validation/main/accuracy'], x_key='epoch', file_name='accuracy.png'))
-    trainer.extend(extensions.dump_graph('main/loss'))
+    trainer.extend(extensions.DumpGraph('main/loss'))
 
 :class:`~chainer.training.extensions.LogReport`
 ...............................................
 
-Collect ``loss`` and ``accuracy`` automatically every ``epoch`` or ``iteration`` and store the information under the ``log`` file in the directory specified by the :attr:`~chainer.training.Trainer.out` argument when you create a :class:`~chainer.training.Trainer` object.
+Collect ``loss`` and ``accuracy`` automatically every ``epoch`` or ``iteration`` and store the information under the ``log`` file in the directory specified by the ``out`` argument when you create a :class:`~chainer.training.Trainer` object.
 
 :meth:`~chainer.training.extensions.snapshot`
 .............................................
 
-The :meth:`~chainer.training.extensions.snapshot` method saves the :class:`~chainer.training.Trainer` object at the designated timing (default: every epoch) in the directory specified by :attr:`~chainer.training.Trainer.out`. The :class:`~chainer.training.Trainer` object, as mentioned before, has an :class:`~chainer.training.Updater` which contains an :class:`~chainer.Optimizer` and a model inside. Therefore, as long as you have the snapshot file, you can use it to come back to the training or make inferences using the previously trained model later.
+The :meth:`~chainer.training.extensions.snapshot` method saves the :class:`~chainer.training.Trainer` object at the designated timing (default: every epoch) in the directory specified by ``out``. The :class:`~chainer.training.Trainer` object, as mentioned before, has an :class:`~chainer.training.Updater` which contains an :class:`~chainer.Optimizer` and a model inside. Therefore, as long as you have the snapshot file, you can use it to come back to the training or make inferences using the previously trained model later.
 
 :meth:`~chainer.training.extensions.snapshot_object`
 ....................................................
 
-However, when you keep the whole :class:`~chainer.training.Trainer` object, in some cases, it is very tedious to retrieve only the inside of the model. By using :meth:`~chainer.training.extensions.snapshot_object`, you can save the particular object (in this case, the model wrapped by :class:`~chainer.links.Classifier`) as a separate snapshot. :class:`~chainer.links.Classifier` is a :class:`~chainer.Chain` object which keeps the model that is also a :class:`~chainer.Chain` object as its :attr:`~chainer.links.Classifier.predictor` property, and all the parameters are under the :attr:`~chainer.links.Classifier.predictor`, so taking the snapshot of :attr:`~chainer.links.Classifier.predictor` is enough to keep all the trained parameters.
+However, when you keep the whole :class:`~chainer.training.Trainer` object, in some cases, it is very tedious to retrieve only the inside of the model. By using :meth:`~chainer.training.extensions.snapshot_object`, you can save the particular object (in this case, the model wrapped by :class:`~chainer.links.Classifier`) as a separate snapshot. :class:`~chainer.links.Classifier` is a :class:`~chainer.Chain` object which keeps the model that is also a :class:`~chainer.Chain` object as its ``predictor`` property, and all the parameters are under the ``predictor``, so taking the snapshot of ``predictor`` is enough to keep all the trained parameters.
 
 This is a list of commonly used trainer extensions:
 
@@ -204,10 +206,10 @@ This is a list of commonly used trainer extensions:
   :meth:`~chainer.training.extensions.snapshot_object`
      :meth:`~chainer.training.extensions.snapshot` extension above saves the whole :class:`~chainer.training.Trainer` object. However, in some cases, it is tedious to retrieve only the inside of the model.
      By using :meth:`~chainer.training.extensions.snapshot_object`, you can save the particular object (in the example above, the model wrapped by :class:`~chainer.links.Classifier`) as a separeted snapshot.
-     Taking the snapshot of :attr:`~chainer.links.Classifier.predictor` is enough to keep all the trained parameters, because
-     :class:`~chainer.links.Classifier` (which is a subclass of :class:`~chainer.Chain`) keeps the model as its :attr:`~chainer.links.Classifier.predictor` property, and all the parameters are under this property.
+     Taking the snapshot of ``predictor`` is enough to keep all the trained parameters, because
+     :class:`~chainer.links.Classifier` (which is a subclass of :class:`~chainer.Chain`) keeps the model as its ``predictor`` property, and all the parameters are under this property.
 
-  :meth:`~chainer.training.extensions.dump_graph`
+  :meth:`~chainer.training.extensions.DumpGraph`
      This extension saves the structure of the computational graph of the model.
      The graph is saved in `Graphviz <http://www.graphviz.org/>`_ dot format under the output directory of the :class:`~chainer.training.Trainer`.
 
@@ -256,7 +258,7 @@ How about the accuracy?
 
 .. image:: ../../image/trainer/mnist_accuracy.png
 
-Furthermore, let's visualize the computational graph saved with :meth:`~chainer.training.extensions.dump_graph` using Graphviz.
+Furthermore, let's visualize the computational graph saved with :meth:`~chainer.training.extensions.DumpGraph` using Graphviz.
 
 ::
 
@@ -286,7 +288,7 @@ Evaluation using the snapshot of a model is as easy as what explained in the :do
 
     y = model(x[None, ...])
 
-    print('predicted_label:', y.data.argmax(axis=1)[0])
+    print('predicted_label:', y.array.argmax(axis=1)[0])
 
 .. image:: ../../image/trainer/mnist_output.png
 

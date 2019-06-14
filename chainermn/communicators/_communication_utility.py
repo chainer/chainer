@@ -1,4 +1,6 @@
+from chainermn import nccl
 import collections
+import numpy as np
 import pickle
 
 import mpi4py.MPI
@@ -147,7 +149,8 @@ def chunked_bcast_obj(obj, mpi_comm, max_buf_len=256 * 1024 * 1024,
     if (total_bytes % max_buf_len) > 0:
         total_chunk_num += 1
 
-    data = mpi_comm.bcast((total_chunk_num, max_buf_len, total_bytes))
+    data = mpi_comm.bcast((total_chunk_num, max_buf_len, total_bytes),
+                          root=root)
     assert data is not None
     (total_chunk_num, max_buf_len, total_bytes) = data
 
@@ -165,7 +168,19 @@ def chunked_bcast_obj(obj, mpi_comm, max_buf_len=256 * 1024 * 1024,
         if mpi_comm.rank != root:
             pickled_bytes[b:e] = buf
 
-    if mpi_comm.rank > root:
+    if mpi_comm.rank != root:
         obj = pickle.loads(pickled_bytes)
 
     return obj
+
+
+def _get_nccl_type_id(dtype):
+    if dtype == np.float16:
+        return nccl.NCCL_FLOAT16
+    elif dtype == np.float32:
+        return nccl.NCCL_FLOAT32
+    elif dtype == np.float64:
+        return nccl.NCCL_FLOAT64
+    else:
+        raise ValueError(
+            'dtype must be float16, float32, or float64.')

@@ -30,5 +30,12 @@ class Expm1(function_node.FunctionNode):
 
 
 def expm1(x):
-    """Elementwise exponential minus one function."""
+    """Elementwise exponential minus one function.
+
+    Args:
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
+
+    Returns:
+        ~chainer.Variable: Output variable.
+    """
     return Expm1().apply((x,))[0]

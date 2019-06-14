@@ -25,5 +25,6 @@ These examples are based on the `examples of Chainer <https://github.com/chainer
 
    installation/index
    tutorial/index
+   model_parallel/index
    reference/index
 

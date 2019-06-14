@@ -13,7 +13,7 @@ from chainer.utils import type_check
 def _inv_gpu(b):
     # We do a batched LU decomposition on the GPU to compute the inverse
     # Change the shape of the array to be size=1 minibatch if necessary
-    # Also copy the matrix as the elments will be modified in-place
+    # Also copy the matrix as the elements will be modified in-place
     a = matmul._as_batch_mat(b).copy()
     n = a.shape[1]
     n_matrices = len(a)
@@ -129,8 +129,8 @@ class BatchInv(function_node.FunctionNode):
 def inv(a):
     """Computes the inverse of square matrix.
 
-    Args:
-        a (Variable): Input array to compute the inverse for. Shape of
+        a (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Input array to compute the inverse for. Shape of
             the array should be ``(n, n)`` where ``n`` is the dimensionality of
             a square matrix.
 
@@ -144,7 +144,8 @@ def batch_inv(a):
     """Computes the inverse of a batch of square matrices.
 
     Args:
-        a (Variable): Input array to compute the inverse for. Shape of
+        a (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Input array to compute the inverse for. Shape of
             the array should be ``(m, n, n)`` where ``m`` is the number of
             matrices in the batch, and ``n`` is the dimensionality of a square
             matrix.

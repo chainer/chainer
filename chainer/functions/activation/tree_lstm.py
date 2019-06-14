@@ -233,7 +233,7 @@ def tree_lstm(*inputs):
         inputs (list of :class:`~chainer.Variable`): Variable arguments which
             include all cell vectors from child-nodes, and an input vector.
             Each of the cell vectors and the input vector is
-            :class:`~chainer.Variable`.
+            :class:`~chainer.Variable` or :ref:`ndarray`.
             The input vector must have the second dimension whose size
             is (N + 3) times of that of each cell,
             where N denotes the total number of cells.
@@ -242,10 +242,10 @@ def tree_lstm(*inputs):
         tuple: Two :class:`~chainer.Variable` objects ``c`` and ``h``. ``c`` is
         the updated cell state. ``h`` indicates the outgoing signal.
 
-    See the papers for details: `Improved Semantic Representations From \
-    Tree-Structured Long Short-Term Memory Networks \
+    See the papers for details: `Improved Semantic Representations From
+    Tree-Structured Long Short-Term Memory Networks
     <https://www.aclweb.org/anthology/P15-1150>`_ and
-    `A Fast Unified Model for Parsing and Sentence Understanding \
+    `A Fast Unified Model for Parsing and Sentence Understanding
     <https://arxiv.org/pdf/1603.06021.pdf>`_.
 
     Tai et al.'s N-Ary TreeLSTM is little extended in

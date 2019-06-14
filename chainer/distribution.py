@@ -81,7 +81,7 @@ class Distribution(object):
         """Returns the shape of a batch.
 
         Returns:
-            tuple: The shape of a sample that is not identical and indipendent.
+            tuple: The shape of a sample that is not identical and independent.
 
         """
         raise NotImplementedError
@@ -90,9 +90,8 @@ class Distribution(object):
         """Evaluates the cumulative distribution function at the given points.
 
         Args:
-            x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-            :class:`cupy.ndarray`): Data points in the domain of the
-                distribution
+            x (:class:`~chainer.Variable` or :ref:`ndarray`): Data points in
+                the domain of the distribution
 
         Returns:
             ~chainer.Variable: Cumulative distribution function value evaluated
@@ -134,9 +133,8 @@ class Distribution(object):
         """Evaluates the inverse cumulative distribution function at the given points.
 
         Args:
-            x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-            :class:`cupy.ndarray`): Data points in the domain of the
-                distribution
+            x (:class:`~chainer.Variable` or :ref:`ndarray`): Data points in
+                the domain of the distribution
 
         Returns:
             ~chainer.Variable: Inverse cumulative distribution function value
@@ -149,9 +147,8 @@ class Distribution(object):
         """Evaluates the log of cumulative distribution function at the given points.
 
         Args:
-            x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-            :class:`cupy.ndarray`): Data points in the domain of the
-                distribution
+            x (:class:`~chainer.Variable` or :ref:`ndarray`): Data points in
+                the domain of the distribution
 
         Returns:
             ~chainer.Variable: Logarithm of cumulative distribution function
@@ -164,9 +161,8 @@ class Distribution(object):
         """Evaluates the logarithm of probability at the given points.
 
         Args:
-            x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-            :class:`cupy.ndarray`): Data points in the domain of the
-                distribution
+            x (:class:`~chainer.Variable` or :ref:`ndarray`): Data points in
+                the domain of the distribution
 
         Returns:
             ~chainer.Variable: Logarithm of probability evaluated at `x`.
@@ -178,9 +174,8 @@ class Distribution(object):
         """Evaluates the logarithm of survival function at the given points.
 
         Args:
-            x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-            :class:`cupy.ndarray`): Data points in the domain of the
-                distribution
+            x (:class:`~chainer.Variable` or :ref:`ndarray`): Data points in
+                the domain of the distribution
 
         Returns:
             ~chainer.Variable: Logarithm of survival function value evaluated
@@ -223,9 +218,8 @@ class Distribution(object):
         """Evaluates the perplexity function at the given points.
 
         Args:
-            x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-            :class:`cupy.ndarray`): Data points in the domain of the
-                distribution
+            x (:class:`~chainer.Variable` or :ref:`ndarray`): Data points in
+                the domain of the distribution
 
         Returns:
             ~chainer.Variable: Perplexity function value evaluated at `x`.
@@ -237,9 +231,8 @@ class Distribution(object):
         """Evaluates probability at the given points.
 
         Args:
-            x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-            :class:`cupy.ndarray`): Data points in the domain of the
-                distribution
+            x (:class:`~chainer.Variable` or :ref:`ndarray`): Data points in
+                the domain of the distribution
 
         Returns:
             ~chainer.Variable: Probability evaluated at `x`.
@@ -252,8 +245,8 @@ class Distribution(object):
 
         This function calls `sample_n` and reshapes a result of `sample_n` to
         `sample_shape + batch_shape + event_shape`. On implementing sampling
-        code in an inherited ditribution class, it is not recommended to
-        override this function. Instead of doing this, it is preferable to
+        code in an inherited distribution class, it is not recommended that
+        you override this function. Instead of doing this, it is preferable to
         override `sample_n`.
 
         Args:
@@ -281,7 +274,7 @@ class Distribution(object):
 
         This function returns sampled points whose shape is
         `(n,) + batch_shape + event_shape`. When implementing sampling code in
-        a subclass, it is recommended to override this method.
+        a subclass, it is recommended that you override this method.
 
         Args:
             n(int): Sampling size.
@@ -315,9 +308,8 @@ class Distribution(object):
         """Evaluates the survival function at the given points.
 
         Args:
-            x(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-            :class:`cupy.ndarray`): Data points in the domain of the
-                distribution
+            x (:class:`~chainer.Variable` or :ref:`ndarray`): Data points in
+                the domain of the distribution
 
         Returns:
             ~chainer.Variable: Survival function value evaluated at `x`.

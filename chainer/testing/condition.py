@@ -42,10 +42,10 @@ def repeat_with_success_at_least(times, min_success):
             def fail():
                 msg = '\nFail: {0}, Success: {1}'.format(
                     failure_counter, success_counter)
-                if len(results) > 0:
+                if results:
                     first = results[0]
                     errs = first.failures + first.errors
-                    if len(errs) > 0:
+                    if errs:
                         err_msg = '\n'.join(fail[1] for fail in errs)
                         msg += '\n\nThe first error message:\n' + err_msg
                 instance.fail(msg)
@@ -64,8 +64,8 @@ def repeat_with_success_at_least(times, min_success):
                 result = QuietTestRunner().run(suite)
                 if len(result.skipped) == 1:
                     # "Skipped" is a special case of "Successful".
-                    # When the test has been skipped, immedeately quit the
-                    # test regardleess of `times` and `min_success` by raising
+                    # When the test has been skipped, immediately quit the
+                    # test regardless of `times` and `min_success` by raising
                     # SkipTest exception using the original reason.
                     instance.skipTest(result.skipped[0][1])
                 elif result.wasSuccessful():

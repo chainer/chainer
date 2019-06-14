@@ -61,7 +61,8 @@ class Extension(object):
             trainer (Trainer): Trainer object that calls this operator.
 
         """
-        pass
+        raise NotImplementedError(
+            'Extension implementation must override __call__.')
 
     def __getattr__(self, name):
         if name == 'invoke_before_training':

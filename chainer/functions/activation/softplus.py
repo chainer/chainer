@@ -97,8 +97,7 @@ def softplus(x, beta=1.0):
     and akin to ReLU as the :math:`\\beta` is increasing.
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
             Input variable. A :math:`(s_1, s_2, ..., s_N)`-shaped float array.
         beta (float): Parameter :math:`\\beta`.
 

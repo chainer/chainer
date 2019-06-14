@@ -8,6 +8,7 @@ from chainer.functions.math import digamma
 from chainer.functions.math import exponential
 from chainer.functions.math import lgamma
 from chainer.functions.math import sum as sum_mod
+from chainer.utils import cache
 
 
 def _lbeta(x):
@@ -27,18 +28,18 @@ class Dirichlet(distribution.Distribution):
             \\prod_{i=1}^{K} {x_i}^{\\alpha_i-1}
 
     Args:
-        alpha(:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Parameter of distribution.
+        alpha(:class:`~chainer.Variable` or :ref:`ndarray`): Parameter of
+            distribution.
     """
 
     def __init__(self, alpha):
-        self.__alpha = chainer.as_variable(alpha)
+        self.__alpha = alpha
 
-    @property
+    @cache.cached_property
     def alpha(self):
-        return self.__alpha
+        return chainer.as_variable(self.__alpha)
 
-    @property
+    @cache.cached_property
     def alpha0(self):
         return sum_mod.sum(self.alpha, axis=-1)
 
@@ -46,7 +47,7 @@ class Dirichlet(distribution.Distribution):
     def batch_shape(self):
         return self.alpha.shape[:-1]
 
-    @property
+    @cache.cached_property
     def entropy(self):
         return _lbeta(self.alpha) \
             + (self.alpha0 - self.event_shape[0]) \
@@ -62,10 +63,14 @@ class Dirichlet(distribution.Distribution):
         return - _lbeta(self.alpha) \
             + sum_mod.sum((self.alpha - 1) * exponential.log(x), axis=-1)
 
-    @property
+    @cache.cached_property
     def mean(self):
         alpha0 = expand_dims.expand_dims(self.alpha0, axis=-1)
         return self.alpha / alpha0
+
+    @property
+    def params(self):
+        return {'alpha': self.alpha}
 
     def sample_n(self, n):
         obo_alpha = self.alpha.data.reshape(-1, self.event_shape[0])
@@ -88,7 +93,7 @@ class Dirichlet(distribution.Distribution):
     def support(self):
         return '[0, 1]'
 
-    @property
+    @cache.cached_property
     def variance(self):
         alpha0 = expand_dims.expand_dims(self.alpha0, axis=-1)
         return self.alpha * (alpha0 - self.alpha) \

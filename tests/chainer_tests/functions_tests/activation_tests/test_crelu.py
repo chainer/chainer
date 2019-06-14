@@ -1,19 +1,7 @@
-import unittest
-
 import numpy
 
-import chainer
-from chainer.backends import cuda
 from chainer import functions
-from chainer import gradient_check
 from chainer import testing
-from chainer.testing import attr
-
-
-def _replace_near_zero_values(x):
-    # Replace near zero values in an array in order to avoid unstability of
-    # numerical grad
-    x[(-0.01 < x) & (x < 0.01)] = 0.5
 
 
 @testing.parameterize(*testing.product_dict(
@@ -37,67 +25,42 @@ def _replace_near_zero_values(x):
     ]
 ))
 @testing.fix_random()
-class TestCReLU(unittest.TestCase):
+@testing.inject_backend_tests(
+    None,
+    # CPU tests
+    [
+        {},
+    ]
+    # GPU tests
+    + testing.product({
+        'use_cuda': [True],
+        'cuda_device': [0, 1],
+    })
+    # ChainerX tests
+    + [
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
+    ])
+class TestCReLU(testing.FunctionTestCase):
 
-    def setUp(self):
-        self.x = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
-        _replace_near_zero_values(self.x)
-        self.gy = numpy.random.uniform(
-            -1, 1, self.y_shape).astype(self.dtype)
-        self.ggx = numpy.random.uniform(
-            -1, 1, self.shape).astype(self.dtype)
-        self.check_double_backward_options = {}
-        if self.dtype == numpy.float16:
-            self.check_double_backward_options = {'atol': 5e-4, 'rtol': 5e-3}
+    dodge_nondifferentiable = True
 
-    def check_forward(self, x_data):
-        x = chainer.Variable(x_data)
-        y = functions.crelu(x, axis=self.axis)
-        self.assertEqual(y.data.dtype, self.dtype)
-        self.assertEqual(y.data.shape, self.y_shape)
+    def generate_inputs(self):
+        x = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        return x,
 
-        expected_former = numpy.maximum(self.x, 0)
-        expected_latter = numpy.maximum(-self.x, 0)
+    def forward(self, inputs, device):
+        x, = inputs
+        return functions.crelu(x, axis=self.axis),
+
+    def forward_expected(self, inputs):
+        x, = inputs
+        expected_former = numpy.maximum(x, 0)
+        expected_latter = numpy.maximum(-x, 0)
         expected = numpy.concatenate(
             (expected_former, expected_latter), axis=self.axis)
-        testing.assert_allclose(expected, y.data)
-
-    def test_forward_cpu(self):
-        self.check_forward(self.x)
-
-    @attr.gpu
-    def test_forward_gpu(self):
-        self.check_forward(cuda.to_gpu(self.x))
-
-    def check_backward(self, x_data, y_grad):
-        def f(x):
-            return chainer.functions.crelu(x, self.axis)
-
-        gradient_check.check_backward(
-            f, x_data, y_grad, dtype=numpy.float64)
-
-    def test_backward_cpu(self):
-        self.check_backward(self.x, self.gy)
-
-    @attr.gpu
-    def test_backward_gpu(self):
-        self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
-
-    def check_double_backward(self, x_data, y_grad, x_grad_grad):
-        def f(x):
-            return chainer.functions.crelu(x, self.axis)
-
-        gradient_check.check_double_backward(
-            f, x_data, y_grad, x_grad_grad, dtype=numpy.float64,
-            **self.check_double_backward_options)
-
-    def test_double_backward_cpu(self):
-        self.check_double_backward(self.x, self.gy, self.ggx)
-
-    @attr.gpu
-    def test_double_backward_gpu(self):
-        self.check_double_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy),
-                                   cuda.to_gpu(self.ggx))
+        return expected,
 
 
 testing.run_module(__name__, __file__)

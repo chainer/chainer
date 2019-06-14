@@ -14,8 +14,8 @@ Chainer is a rapidly growing neural network platform. The strengths of Chainer a
 * Broad and deep support -- Chainer is actively used for most of the current approaches for neural nets (CNN, RNN, RL, etc.), aggressively adds new approaches as they're developed, and provides support for many kinds of hardware as well as parallelization for multiple GPUs
 
 
-Mushrooms -- tasty or deathly?
-------------------------------
+Mushrooms -- tasty or deadly?
+-----------------------------
 
 Let's take a look at a basic program of Chainer to see how it works. For a dataset, we'll work with `Kaggle's edible vs. poisonous mushroom dataset <https://www.kaggle.com/uciml/mushroom-classification>`_, which has over 8,000 examples of mushrooms, labelled by 22 categories including odor, cap color, habitat, etc., in a `mushrooms.csv file <https://raw.githubusercontent.com/chainer/chainer/master/examples/glance/mushrooms.csv>`_.
 
@@ -95,7 +95,7 @@ Next, we need to define the neural network for inclusion in our model. For our m
 
 As an activation function, we'll use standard Rectified Linear Units (:func:`~chainer.functions.relu`).
 
-Using the :class:`~chainer.Sequential` allows us to define the neural network model in a compact format.
+Using :class:`~chainer.Sequential` allows us to define the neural network model in a compact format.
 
 .. literalinclude:: ../../examples/glance/glance.py
    :language: python
@@ -110,6 +110,8 @@ Since mushrooms are either edible or poisonous (no information on psychedelic ef
    :linenos:
    :lines: 43-44
    :lineno-start: 43
+
+Note that in the two code snippets above we have not specified the size of the input layer. Once we start feeding the neural network with samples, Chainer will recognize the dimensionality of the input automatically and initialize the matrix for each layer with the appropriate shape. In the example above, that is 44×22 for the first hidden layer, 44×44 for the second hidden layer, and 1×44 for the output layer.
 
 Optimizer
 ~~~~~~~~~~~~
@@ -133,7 +135,7 @@ Updater
    :width: 835px
    :height: 353px
 
-Now that we have the training :class:`iterator <chainer.dataset.Iterator>` and :class:`optimizer <chainer.Optimizer>` set up, we link them both together into the :class:`updater <chainer.training.Updater>`. The :class:`updater <chainer.training.Updater>` uses the minibatches from the :class:`iterator <chainer.dataset.Iterator>`, and then does the forward and backward processing of the model, and updates the parameters of the model according to the :class:`optimizer <chainer.Optimizer>`. Setting the ``device=-1`` sets the device as the CPU. To use a GPU, set ``device`` equal to the number of the GPU, usually ``device=0``.
+Now that we have the training :class:`iterator <chainer.dataset.Iterator>` and :class:`optimizer <chainer.Optimizer>` set up, we link them both together into the :class:`updater <chainer.training.Updater>`. The :class:`updater <chainer.training.Updater>` uses the minibatches from the :class:`iterator <chainer.dataset.Iterator>`, does the forward and backward processing of the model, and updates the parameters of the model according to the :class:`optimizer <chainer.Optimizer>`. Setting the ``device=-1`` sets the device as the CPU. To use a GPU, set ``device`` equal to the number of the GPU, usually ``device=0``.
 
 .. literalinclude:: ../../examples/glance/glance.py
    :language: python
@@ -141,7 +143,7 @@ Now that we have the training :class:`iterator <chainer.dataset.Iterator>` and :
    :lines: 49-50
    :lineno-start: 49
 
-Set up the :class:`updater <chainer.training.Updater>` to be called after the training batches and set the number of batches per epoch to 100. The learning rate per epoch will be output to the directory ``result``.
+Finally we create a :class:`Trainer <chainer.training.Trainer>` object. The ``trainer`` processes minibatches using the ``updater`` defined above until a certain stop condition is met and allows the use of extensions during the training. We set it to run for 50 epochs and store all files created by the extensions (see below) in the ``result`` directory.
 
 .. literalinclude:: ../../examples/glance/glance.py
    :language: python
@@ -156,9 +158,9 @@ Extensions
    :width: 835px
    :height: 353px
 
-Use the testing :class:`iterator <chainer.dataset.Iterator>` defined above for an :class:`~chainer.training.extensions.Evaluator` extension to the trainer to provide test scores.
+Extensions can be used to execute code at certain events during the training, such as every epoch or every 1000 iterations. This mechanism is used in Chainer to evaluate models during training, print progress messages, or dump intermediate model files.
 
-If using a GPU instead of the CPU, set ``device`` to the ID of the GPU, usually ``0``.
+First, use the testing :class:`iterator <chainer.dataset.Iterator>` defined above for an :class:`~chainer.training.extensions.Evaluator` extension to the trainer to provide test scores. If using a GPU instead of the CPU, set ``device`` to the ID of the GPU, usually ``0``.
 
 .. literalinclude:: ../../examples/glance/glance.py
    :language: python
@@ -195,7 +197,7 @@ Save two plot images to the result directory.
 .. literalinclude:: ../../examples/glance/glance.py
    :language: python
    :linenos:
-   :lines: 66-74
+   :lines: 66-73
    :lineno-start: 66
 
 Print selected entries of the log to standard output.
@@ -203,16 +205,19 @@ Print selected entries of the log to standard output.
 .. literalinclude:: ../../examples/glance/glance.py
    :language: python
    :linenos:
-   :lines: 76-79
-   :lineno-start: 76
+   :lines: 75-78
+   :lineno-start: 75
 
-Run the training.
+Main Loop
+~~~~~~~~~
+
+Finally, with the ``trainer`` and all the extensions set up, we can add the line that actually starts the main loop:
 
 .. literalinclude:: ../../examples/glance/glance.py
    :language: python
    :linenos:
-   :lines: 81-82
-   :lineno-start: 81
+   :lines: 80-81
+   :lineno-start: 80
 
 Inference
 ~~~~~~~~~
@@ -222,8 +227,8 @@ Once the training is complete, only the model is necessary to make predictions. 
 .. literalinclude:: ../../examples/glance/glance.py
    :language: python
    :linenos:
-   :lines: 84-
-   :lineno-start: 84
+   :lines: 83-
+   :lineno-start: 83
 
 Output
 -------

@@ -3,6 +3,7 @@ from __future__ import division
 import numpy
 
 from chainer.dataset import iterator
+from chainer.iterators import _statemachine
 from chainer.iterators.order_samplers import ShuffleOrderSampler
 
 
@@ -34,7 +35,7 @@ class SerialIterator(iterator.Iterator):
             the behavior is the same as the case with ``shuffle=True``.
         order_sampler (callable): A callable that generates the order
             of the indices to sample in the next epoch when a epoch finishes.
-            This function should take two arguements: the current order
+            This function should take two arguments: the current order
             and the current position of the iterator.
             This should return the next order. The size of the order
             should remain constant.
@@ -66,48 +67,29 @@ class SerialIterator(iterator.Iterator):
         self.reset()
 
     def __next__(self):
-        if not self._repeat and self.epoch > 0:
+        self._previous_epoch_detail = self.epoch_detail
+        self._state, indices = _statemachine.iterator_statemachine(
+            self._state, self.batch_size, self.repeat, self.order_sampler,
+            len(self.dataset))
+        if indices is None:
             raise StopIteration
 
-        self._previous_epoch_detail = self.epoch_detail
-
-        i = self.current_position
-        i_end = i + self.batch_size
-        N = self._epoch_size
-
-        if self._order is None:
-            batch = self.dataset[i:i_end]
-        else:
-            batch = [self.dataset[index] for index in self._order[i:i_end]]
-
-        if i_end >= N:
-            if self._repeat:
-                rest = i_end - N
-                if self._order is not None:
-                    new_order = self.order_sampler(self._order, i)
-                    if len(self._order) != len(new_order):
-                        raise ValueError('The size of order does not match '
-                                         'the size of the previous order.')
-                    self._order = new_order
-                if rest > 0:
-                    if self._order is None:
-                        batch.extend(self.dataset[:rest])
-                    else:
-                        batch.extend([self.dataset[index]
-                                      for index in self._order[:rest]])
-                self.current_position = rest
-            else:
-                self.current_position = 0
-
-            self.epoch += 1
-            self.is_new_epoch = True
-        else:
-            self.is_new_epoch = False
-            self.current_position = i_end
-
+        batch = [self.dataset[index] for index in indices]
         return batch
 
     next = __next__
+
+    @property
+    def current_position(self):
+        return self._state.current_position
+
+    @property
+    def epoch(self):
+        return self._state.epoch
+
+    @property
+    def is_new_epoch(self):
+        return self._state.is_new_epoch
 
     @property
     def epoch_detail(self):
@@ -115,20 +97,24 @@ class SerialIterator(iterator.Iterator):
 
     @property
     def previous_epoch_detail(self):
+        # use -1 instead of None internally.
         if self._previous_epoch_detail < 0:
             return None
         return self._previous_epoch_detail
 
     def serialize(self, serializer):
-        self.current_position = serializer('current_position',
-                                           self.current_position)
-        self.epoch = serializer('epoch', self.epoch)
-        self.is_new_epoch = serializer('is_new_epoch', self.is_new_epoch)
-        if self._order is not None:
+        current_position = serializer('current_position',
+                                      self.current_position)
+        epoch = serializer('epoch', self.epoch)
+        is_new_epoch = serializer('is_new_epoch', self.is_new_epoch)
+        order = self._state.order
+        if order is not None:
             try:
-                serializer('order', self._order)
+                serializer('order', order)
             except KeyError:
-                serializer('_order', self._order)
+                serializer('_order', order)
+        self._state = _statemachine.IteratorState(
+            current_position, epoch, is_new_epoch, order)
         try:
             self._previous_epoch_detail = serializer(
                 'previous_epoch_detail', self._previous_epoch_detail)
@@ -143,24 +129,22 @@ class SerialIterator(iterator.Iterator):
                 self._previous_epoch_detail = -1.
 
     def reset(self):
-        self.current_position = 0
-        self.epoch = 0
-        self.is_new_epoch = False
-
-        # use -1 instead of None internally.
-        self._previous_epoch_detail = -1.
         if self.order_sampler:
-            self._order = self.order_sampler(
+            order = self.order_sampler(
                 numpy.arange(len(self.dataset)), 0)
         else:
-            self._order = None
+            order = None
+        self._state = _statemachine.IteratorState(0, 0, False, order)
+        self._previous_epoch_detail = -1.
 
     @property
     def _epoch_size(self):
-        if self._order is None:
-            return len(self.dataset)
+        order = self._state.order
+        if order is None:
+            epoch_size = len(self.dataset)
         else:
-            return len(self._order)
+            epoch_size = len(order)
+        return epoch_size
 
     @property
     def repeat(self):

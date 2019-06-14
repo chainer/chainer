@@ -30,11 +30,11 @@ The resulting ``y`` is also a Variable object, whose value can be extracted by a
 
    :attr:`~chainer.Variable` has two attributes to represent the underlying array: :attr:`~chainer.Variable.array` and :attr:`~chainer.Variable.data`.
    There is no difference between the two; both refer to exactly the same object.
-   However it is not recommended to use ``.data`` because it might be confused with :attr:`numpy.ndarray.data` attribute.
+   However it is not recommended that you use ``.data`` because it might be confused with :attr:`numpy.ndarray.data` attribute.
 
 What ``y`` holds is not only the result value.
 It also holds the history of computation (or computational graph), which enables us to compute its derivative.
-This is done by calling its :meth:`~Variable.backward` method:
+This is done by calling its :meth:`~chainer.Variable.backward` method:
 
 .. doctest::
 
@@ -60,7 +60,7 @@ In order to preserve gradient information, pass the ``retain_grad`` argument to 
    >>> z.grad
    array([-1.], dtype=float32)
 
-All these computations are can be generalized to a multi-element array input.
+All these computations can be generalized to a multi-element array input.
 While single-element arrays are automatically initialized to ``[1]``, to start backward computation from a variable holding a multi-element array, we must set the *initial error* manually.
 This is done simply by setting the :attr:`~chainer.Variable.grad` attribute of the output variable:
 

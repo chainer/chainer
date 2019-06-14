@@ -33,8 +33,7 @@ def expand_dims(x, axis):
     """Expands dimensions of an input variable without copy.
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Input variable.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
         axis (int):
             Position where new axis is to be inserted. The ``axis`` parameter
             is acceptable when :math:`-ndim - 1 \\leq axis \\leq ndim`.

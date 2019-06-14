@@ -15,13 +15,14 @@ if cuda.cudnn_enabled:
 class Dropout(function_node.FunctionNode):
 
     """Dropout regularization."""
-    _use_cudnn = False
 
-    def __init__(self, dropout_ratio, mask=None):
+    def __init__(self, dropout_ratio, mask=None, return_mask=False):
         if not 0.0 <= dropout_ratio < 1.0:
             raise ValueError('dropout_ratio must be in the range [0, 1)')
         self.dropout_ratio = dropout_ratio
         self.mask = mask
+        self.return_mask = return_mask
+        self._use_cudnn = False
 
     def check_type_forward(self, in_types):
         type_check._argname(in_types, ('x',))
@@ -45,19 +46,18 @@ class Dropout(function_node.FunctionNode):
     def forward_gpu(self, x):
         if (chainer.should_use_cudnn('==always', 5000)
                 and x[0].flags.c_contiguous
-                and self.mask is None):
+                and self.mask is None
+                and not self.return_mask):
             self._use_cudnn = True
-
-            handle = cudnn.get_handle()
 
             if hasattr(self, 'states'):
                 # if we already have a dropout mask,
                 # the forward operation is equal to backward.
                 return cuda.get_cudnn_dropout_states().backward(
-                    handle, x[0], self.dropout_ratio, self.states),
+                    None, x[0], self.dropout_ratio, self.states),
 
             self.states, y = cuda.get_cudnn_dropout_states().forward(
-                handle, x[0], self.dropout_ratio)
+                None, x[0], self.dropout_ratio)
             return y,
         else:
             if self.mask is not None:
@@ -120,9 +120,8 @@ class DropoutGradCuDNN(function_node.FunctionNode):
         self.dropout_ratio = dropout_ratio
 
     def forward(self, inputs):
-        handle = cudnn.get_handle()
         return cuda.get_cudnn_dropout_states().backward(
-            handle, inputs[0], self.dropout_ratio, self.states),
+            None, inputs[0], self.dropout_ratio, self.states),
 
     def backward(self, indexes, gy):
         return DropoutGradCuDNN(self.states, self.dropout_ratio).apply(gy)
@@ -138,19 +137,12 @@ def dropout(x, ratio=.5, **kwargs):
     mode (i.e., ``chainer.config.train`` is set to ``False``), it does nothing
     and just returns ``x``.
 
-    .. warning::
-
-       ``train`` argument is not supported anymore since v2.
-       Instead, use ``chainer.using_config('train', boolean)``.
-       See :func:`chainer.using_config`.
-
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
             Input variable. A :math:`(s_1, s_2, ..., s_N)` -shaped float array.
         ratio (float):
             Dropout ratio. The ``ratio`` must be ``0.0 <= ratio < 1.0``.
-        mask (`ndarray` or None):
+        mask (:ref:`ndarray` or None):
             The mask to be used for dropout.
             You do not have to specify this value, unless you need to make
             results deterministic.
@@ -172,11 +164,11 @@ def dropout(x, ratio=.5, **kwargs):
             When ``return_mask`` is ``False`` (default), returns the output
             variable.
             When ``True``, returns the tuple of the output variable and
-            mask (`ndarray`). The mask will be on the same device as the input.
-            The mask will become ``None`` when ``chainer.config.train`` is set
-            to ``False``.
+            mask (:ref:`ndarray`). The mask will be on the same device as the
+            input. The mask will become ``None`` when ``chainer.config.train``
+            is set to ``False``.
 
-    See the paper by G. Hinton: `Improving neural networks by preventing \
+    See the paper by G. Hinton: `Improving neural networks by preventing
     co-adaptation of feature detectors <https://arxiv.org/abs/1207.0580>`_.
 
     .. admonition:: Example
@@ -209,7 +201,7 @@ def dropout(x, ratio=.5, **kwargs):
                   'Use chainer.using_config')
 
     if configuration.config.train:
-        func = Dropout(ratio, mask)
+        func = Dropout(ratio, mask, return_mask)
         out, = func.apply((x,))
         mask = func.mask
     else:

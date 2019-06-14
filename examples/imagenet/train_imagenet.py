@@ -17,6 +17,7 @@ import chainer
 from chainer import dataset
 from chainer import training
 from chainer.training import extensions
+import chainerx
 
 import dali_util
 
@@ -32,7 +33,7 @@ class PreprocessedDataset(chainer.dataset.DatasetMixin):
 
     def __init__(self, path, root, mean, crop_size, random=True):
         self.base = chainer.datasets.LabeledImageDataset(path, root)
-        self.mean = mean.astype(np.float32)
+        self.mean = mean.astype(chainer.get_dtype())
         self.crop_size = crop_size
         self.random = random
 
@@ -72,13 +73,17 @@ class PreprocessedDataset(chainer.dataset.DatasetMixin):
 def main():
     archs = {
         'alex': alex.Alex,
-        'alex_fp16': alex.AlexFp16,
         'googlenet': googlenet.GoogLeNet,
         'googlenetbn': googlenetbn.GoogLeNetBN,
-        'googlenetbn_fp16': googlenetbn.GoogLeNetBNFp16,
         'nin': nin.NIN,
         'resnet50': resnet50.ResNet50,
         'resnext50': resnext50.ResNeXt50,
+    }
+
+    dtypes = {
+        'float16': np.float16,
+        'float32': np.float32,
+        'float64': np.float64,
     }
 
     parser = argparse.ArgumentParser(
@@ -89,10 +94,15 @@ def main():
                         help='Convnet architecture')
     parser.add_argument('--batchsize', '-B', type=int, default=32,
                         help='Learning minibatch size')
+    parser.add_argument('--dtype', choices=dtypes, help='Specify the dtype '
+                        'used. If not supplied, the default dtype is used')
     parser.add_argument('--epoch', '-E', type=int, default=10,
                         help='Number of epochs to train')
-    parser.add_argument('--gpu', '-g', type=int, default=-1,
-                        help='GPU ID (negative value indicates CPU')
+    parser.add_argument('--device', '-d', type=str, default='-1',
+                        help='Device specifier. Either ChainerX device '
+                        'specifier or an integer. If non-negative integer, '
+                        'CuPy arrays with specified device id are used. If '
+                        'negative integer, NumPy arrays are used')
     parser.add_argument('--initmodel',
                         help='Initialize the model from given file')
     parser.add_argument('--loaderjob', '-j', type=int,
@@ -111,23 +121,40 @@ def main():
     parser.set_defaults(test=False)
     parser.add_argument('--dali', action='store_true')
     parser.set_defaults(dali=False)
+    group = parser.add_argument_group('deprecated arguments')
+    group.add_argument('--gpu', '-g', dest='device',
+                       type=int, nargs='?', const=0,
+                       help='GPU ID (negative value indicates CPU)')
     args = parser.parse_args()
+
+    device = chainer.get_device(args.device)
+
+    # Set the dtype if supplied.
+    if args.dtype is not None:
+        chainer.config.dtype = args.dtype
+
+    print('Device: {}'.format(device))
+    print('Dtype: {}'.format(chainer.config.dtype))
+    print('# Minibatch-size: {}'.format(args.batchsize))
+    print('# epoch: {}'.format(args.epoch))
+    print('')
 
     # Initialize the model to train
     model = archs[args.arch]()
     if args.initmodel:
         print('Load model from {}'.format(args.initmodel))
         chainer.serializers.load_npz(args.initmodel, model)
-    if args.gpu >= 0:
-        chainer.backends.cuda.get_device_from_id(
-            args.gpu).use()  # Make the GPU current
-        model.to_gpu()
+    model.to_device(device)
+    device.use()
 
     # Load the mean file
     mean = np.load(args.mean)
     if args.dali:
         if not dali_util._dali_available:
             raise RuntimeError('DALI seems not available on your system.')
+        if device.xp is not chainer.backend.cuda.cupy:
+            raise RuntimeError('Using DALI requires GPU device. Please '
+                               'specify it with --device option.')
         num_threads = args.loaderjob
         if num_threads is None or num_threads <= 0:
             num_threads = 1
@@ -136,10 +163,10 @@ def main():
         # Setup DALI pipelines
         train_pipe = dali_util.DaliPipelineTrain(
             args.train, args.root, model.insize, args.batchsize,
-            num_threads, args.gpu, True, mean=ch_mean, std=ch_std)
+            num_threads, device.device.id, True, mean=ch_mean, std=ch_std)
         val_pipe = dali_util.DaliPipelineVal(
             args.val, args.root, model.insize, args.val_batchsize,
-            num_threads, args.gpu, False, mean=ch_mean, std=ch_std)
+            num_threads, device.device.id, False, mean=ch_mean, std=ch_std)
         train_iter = chainer.iterators.DaliIterator(train_pipe)
         val_iter = chainer.iterators.DaliIterator(val_pipe, repeat=False)
         # converter = dali_converter
@@ -163,15 +190,17 @@ def main():
 
     # Set up a trainer
     updater = training.updaters.StandardUpdater(
-        train_iter, optimizer, converter=converter, device=args.gpu)
+        train_iter, optimizer, converter=converter, device=device)
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), args.out)
 
     val_interval = (1 if args.test else 100000), 'iteration'
     log_interval = (1 if args.test else 1000), 'iteration'
 
     trainer.extend(extensions.Evaluator(val_iter, model, converter=converter,
-                                        device=args.gpu), trigger=val_interval)
-    trainer.extend(extensions.dump_graph('main/loss'))
+                                        device=device), trigger=val_interval)
+    # TODO(sonots): Temporarily disabled for chainerx. Fix it.
+    if device.xp is not chainerx:
+        trainer.extend(extensions.DumpGraph('main/loss'))
     trainer.extend(extensions.snapshot(), trigger=val_interval)
     trainer.extend(extensions.snapshot_object(
         model, 'model_iter_{.updater.iteration}'), trigger=val_interval)

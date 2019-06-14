@@ -8,9 +8,11 @@ from chainer import configuration
 from chainer import function_node
 from chainer.functions.connection import convolution_2d
 from chainer.functions.connection import convolution_nd
+from chainer import utils
 from chainer.utils import conv
 from chainer.utils import conv_nd
 from chainer.utils import type_check
+import chainerx
 
 
 class DeconvolutionND(function_node.FunctionNode):
@@ -54,13 +56,13 @@ class DeconvolutionND(function_node.FunctionNode):
         if type_check.eval(n_in) == 3:
             b_type = in_types[2]
             type_check.expect(
-                b_type.dtype == x_type.dtype,
+                b_type.dtype.kind == 'f',
                 b_type.ndim == 1,
                 # Need to consider the case that group count > 1.
                 # b_type.shape[0] == w_type.shape[1]
             )
 
-    def _use_cudnn(self, x, W):
+    def _use_cudnn(self, x, W, b):
         if ((cuda._cudnn_version < 6000
              or configuration.config.cudnn_deterministic)
                 and any(d != 1 for d in self.dilate)):
@@ -74,7 +76,8 @@ class DeconvolutionND(function_node.FunctionNode):
             chainer.should_use_cudnn('>=auto')
             and not self.cover_all
             and self.ndim > 1
-            and x.dtype == W.dtype)
+            and x.dtype == W.dtype
+            and (b is None or x.dtype == b.dtype))
 
     def _forward_xp(self, x, W, b, xp):
         if 1 < self.groups:
@@ -100,9 +103,9 @@ class DeconvolutionND(function_node.FunctionNode):
                             'a divisor of that of input channels')
 
         x = xp.rollaxis(x, 1)  # (xC, N, x_size...)
-        x = x.reshape(G, xCg, N * convolution_nd._prod(x_size))
+        x = x.reshape(G, xCg, N * utils.size_of_shape(x_size))
 
-        W = W.reshape(G, xCg, yCg * convolution_nd._prod(k_size))
+        W = W.reshape(G, xCg, yCg * utils.size_of_shape(k_size))
         W = W.transpose(0, 2, 1)  # (G, yCg*k_size, xCg)
 
         # (G, yCg*k_size, N*x_size) = (G, yCg*k_size, xCg) @ (G, xCg, N*x_size)
@@ -165,6 +168,25 @@ class DeconvolutionND(function_node.FunctionNode):
 
         return y,
 
+    def forward_chainerx(self, inputs):
+        # TODO(imanishi): Support it
+        if any(d != 1 for d in self.dilate):
+            return chainer.Fallback
+        # TODO(imanishi): Support it
+        if self.groups != 1:
+            return chainer.Fallback
+        # TODO(imanishi): Support it
+        if any(a.dtype != inputs[0].dtype for a in inputs):
+            return chainer.Fallback
+        # TODO(imanishi): Supporft it
+        if inputs[0].device.backend.name == 'cuda' and self.ndim < 2:
+            return chainer.Fallback
+
+        stride = self.stride
+        pad = self.pad
+
+        return chainerx.conv_transpose(*inputs, stride=stride, pad=pad),
+
     def forward(self, inputs):
         self.retain_inputs((0, 1))  # only retain x and W
         x, W = inputs[:2]
@@ -184,7 +206,7 @@ class DeconvolutionND(function_node.FunctionNode):
         xp = backend.get_array_module(*inputs)
         if xp is numpy:
             return self._forward_xp(x, W, b, numpy)
-        elif not self._use_cudnn(x, W):
+        elif not self._use_cudnn(x, W, b):
             return self._forward_xp(x, W, b, cuda.cupy)
         else:
             return self._forward_cudnn(x, W, b)
@@ -206,6 +228,8 @@ class DeconvolutionND(function_node.FunctionNode):
         if 2 in indexes:
             axis = (0,) + tuple(moves.range(2, gy.ndim))
             gb = chainer.functions.sum(gy, axis=axis)
+            if gb.dtype != self.inputs[2].dtype:
+                gb = chainer.functions.cast(gb, self.inputs[2].dtype)
             ret.append(gb)
 
         return ret
@@ -274,14 +298,11 @@ http://www.matthewzeiler.com/pubs/cvpr2010/cvpr2010.pdf
     To enable, set `chainer.using_config('autotune', True)`
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
             Input variable of shape :math:`(n, c_I, d_1, d_2, ..., d_N)`.
-        W (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        W (:class:`~chainer.Variable` or :ref:`ndarray`):
             Weight variable of shape :math:`(c_I, c_O, k_1, k_2, ..., k_N)`.
-        b (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        b (None or :class:`~chainer.Variable` or :ref:`ndarray`):
             One-dimensional bias variable with length :math:`c_O` (optional).
         stride (:class:`int` or :class:`tuple` of :class:`int` s):
             Stride of filter applications :math:`(s_1, s_2, ..., s_N)`.
@@ -290,7 +311,7 @@ http://www.matthewzeiler.com/pubs/cvpr2010/cvpr2010.pdf
             Spatial padding width for input arrays
             :math:`(p_1, p_2, ..., p_N)`. ``pad=p`` is equivalent to
             ``(p, p, ..., p)``.
-        outsize (:class:`tuple` of :class:`int` s):
+        outsize (None or :class:`tuple` of :class:`int` s):
             Expected output size of deconvolutional operation. It should be a
             tuple of ints :math:`(l_1, l_2, ..., l_N)`. Default value is
             ``None`` and the outsize is estimated by input size, stride and

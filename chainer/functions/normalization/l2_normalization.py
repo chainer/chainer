@@ -59,7 +59,6 @@ class NormalizeL2(function_node.FunctionNode):
 
         norm_noeps = F.sqrt(F.sum(F.square(x), axis=self.axis, keepdims=True))
         norm = norm_noeps + self.eps
-        norm = F.broadcast_to(norm, gy.shape)
 
         x_gy_reduced = F.sum((x * gy), axis=self.axis, keepdims=True)
 
@@ -70,7 +69,6 @@ class NormalizeL2(function_node.FunctionNode):
         x_gy_reduced, = _SetItemZero(mask).apply((
             x_gy_reduced[mask] / norm_noeps[mask],))
 
-        x_gy_reduced = F.broadcast_to(x_gy_reduced, gy.shape)
         gx = gy * norm - x_gy_reduced * x
         gx = gx / norm ** 2
 
@@ -78,10 +76,10 @@ class NormalizeL2(function_node.FunctionNode):
 
 
 def normalize(x, eps=1e-5, axis=1):
-    """L2 norm squared (a.k.a.\\  Euclidean norm).
+    """Normalize input by L2 norm.
 
-    This function implements L2 normalization on a vector along the given axis.
-    No reduction is done along the normalization axis.
+    This function implements L2 normalization on a sample along the given
+    axis/axes. No reduction is done along the normalization axis.
 
     In the case when :obj:`axis=1` and :math:`\\mathbf{x}` is a matrix of
     dimension :math:`(N, K)`, where :math:`N` and :math:`K` denote mini-batch
@@ -99,7 +97,8 @@ def normalize(x, eps=1e-5, axis=1):
     The default value of :obj:`axis` is determined for backward compatibility.
 
     Args:
-        x (~chainer.Variable): Two dimensional output variable. The first
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
+            multi-dimensional output variable. The first
             dimension is assumed to be the mini-batch dimension.
         eps (float): Epsilon value for numerical stability.
         axis (int or tuple of ints): Axis along which to normalize.

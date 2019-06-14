@@ -4,9 +4,11 @@ import unittest
 
 import mock
 import numpy
+import pytest
 import six
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import link
@@ -15,6 +17,7 @@ from chainer import optimizers
 from chainer.serializers import npz
 from chainer import testing
 from chainer.testing import attr
+import chainerx
 
 
 class TestDictionarySerializer(unittest.TestCase):
@@ -41,9 +44,13 @@ class TestDictionarySerializer(unittest.TestCase):
         self.assertEqual(dset.shape, data.shape)
         self.assertEqual(dset.size, data.size)
         self.assertEqual(dset.dtype, data.dtype)
-        numpy.testing.assert_array_equal(dset, cuda.to_cpu(data))
+        numpy.testing.assert_array_equal(dset, backend.CpuDevice().send(data))
 
         self.assertIs(ret, data)
+
+    @attr.chainerx
+    def test_serialize_chainerx(self):
+        self.check_serialize(chainerx.asarray(self.data), 'w')
 
     def test_serialize_cpu(self):
         self.check_serialize(self.data, 'w')
@@ -96,9 +103,14 @@ class TestNpzDeserializer(unittest.TestCase):
             savez = numpy.savez_compressed if self.compress else numpy.savez
             savez(
                 f, **{'x/': None, 'y': self.data, 'z': numpy.asarray(10),
+                      'zf32': numpy.array(-2**60, dtype=numpy.float32),
+                      'zi64': numpy.array(-2**60, dtype=numpy.int64),
                       'w': None})
 
-        self.npzfile = numpy.load(path)
+        try:
+            self.npzfile = numpy.load(path, allow_pickle=True)
+        except TypeError:
+            self.npzfile = numpy.load(path)
         self.deserializer = npz.NpzDeserializer(self.npzfile)
 
     def tearDown(self):
@@ -118,12 +130,19 @@ class TestNpzDeserializer(unittest.TestCase):
 
     def check_deserialize(self, y, query):
         ret = self.deserializer(query, y)
-        numpy.testing.assert_array_equal(cuda.to_cpu(y), self.data)
+        numpy.testing.assert_array_equal(
+            backend.CpuDevice().send(y), self.data)
         self.assertIs(ret, y)
 
     def check_deserialize_by_passing_none(self, y, query):
         ret = self.deserializer(query, None)
-        numpy.testing.assert_array_equal(cuda.to_cpu(ret), self.data)
+        numpy.testing.assert_array_equal(
+            backend.CpuDevice().send(ret), self.data)
+
+    @attr.chainerx
+    def test_deserialize_chainerx(self):
+        y = numpy.empty((2, 3), dtype=numpy.float32)
+        self.check_deserialize(chainerx.asarray(y), 'y')
 
     def test_deserialize_cpu(self):
         y = numpy.empty((2, 3), dtype=numpy.float32)
@@ -175,6 +194,21 @@ class TestNpzDeserializer(unittest.TestCase):
         z = 5
         ret = self.deserializer('z', z)
         self.assertEqual(ret, 10)
+
+    def test_deserialize_int64_to_int(self):
+        z = int(5)
+        ret = self.deserializer('zi64', z)
+        assert ret == -2**60
+
+    def test_deserialize_int64_to_uint32(self):
+        z = numpy.uint32(5)
+        with pytest.raises(TypeError):
+            self.deserializer('zi64', z)
+
+    def test_deserialize_float32_to_int(self):
+        z = int(5)
+        with pytest.raises(TypeError):
+            self.deserializer('zf32', z)
 
     def test_deserialize_none(self):
         ret = self.deserializer('w', None)
@@ -337,6 +371,18 @@ class TestNpzDeserializerNonStrictGroupHierachy(unittest.TestCase):
             target.child.linear2.W.data, target_child_W)
         numpy.testing.assert_array_equal(
             target.child.linear2.b.data, target_child_b)
+
+
+class TestSerialize(unittest.TestCase):
+
+    def test_serialize(self):
+        obj = mock.MagicMock()
+        target = npz.serialize(obj)
+
+        assert obj.serialize.call_count == 1
+        (serializer,), _ = obj.serialize.call_args
+        assert isinstance(serializer, npz.DictionarySerializer)
+        assert isinstance(target, dict)
 
 
 @testing.parameterize(

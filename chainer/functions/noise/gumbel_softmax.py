@@ -16,14 +16,13 @@ def gumbel_softmax(log_pi, tau=0.1, axis=1):
     :math:`g_i` s are samples drawn from
     Gumbel distribution :math:`Gumbel(0, 1)`
 
-    See `Categorical Reparameterization with Gumbel-Softmax \
+    See `Categorical Reparameterization with Gumbel-Softmax
     <https://arxiv.org/abs/1611.01144>`_.
 
     Args:
-        log_pi (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-            :class:`cupy.ndarray`): Input variable representing pre-normalized
-            log-probability :math:`\\log\\pi`.
-        tau (:class:`~float` or :class:`~chainer.Variable`): \
+        log_pi (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable
+            representing pre-normalized log-probability :math:`\\log\\pi`.
+        tau (:class:`~float` or :class:`~chainer.Variable` or :ref:`ndarray`):
             Input variable representing temperature :math:`\\tau`.
 
     Returns:

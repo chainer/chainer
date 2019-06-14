@@ -25,9 +25,17 @@ class CTCTestBase(object):
         self.l_length = numpy.full((len(self.t),), len(self.t[0]), dtype='i')
         self.use_length = True
         if self.reduce == 'mean':
-            self.gy = numpy.random.uniform(-1, 1, ()).astype(numpy.float32)
+            self.gy = numpy.random.uniform(-1, 1, ()).astype(self.dtype)
         else:
-            self.gy = numpy.random.uniform(-1, 1, (2,)).astype(numpy.float32)
+            self.gy = numpy.random.uniform(-1, 1, (2,)).astype(self.dtype)
+
+        if self.dtype == numpy.float16:
+            self.check_forward_options = {'atol': 1e-2}
+            self.check_backward_options = {
+                'atol': 1e-3, 'dtype': numpy.float64}
+        else:
+            self.check_forward_options = {}
+            self.check_backward_options = {'atol': 1e-4}
 
     # recursive forward computation.
     def alpha(self, x, l, t, u):
@@ -77,7 +85,7 @@ class CTCTestBase(object):
                 xt[b][t] = numpy.exp(xt[b][t]) / numpy.sum(numpy.exp(xt[b][t]))
         batch_size = xt.shape[0]
         path_length = 2 * l_length + 1
-        loss_expect = xp.zeros((batch_size,), dtype=xp.float32)
+        loss_expect = xp.zeros((batch_size,), dtype=self.dtype)
         for i in range(batch_size):
             xtb, lb, xlb, plb = xt[i], self.l[i], x_length[i], path_length[i]
             loss_expect[i] = -math.log(
@@ -85,7 +93,8 @@ class CTCTestBase(object):
                 self.alpha(xtb, lb, int(xlb - 1), int(plb - 2)))
         if self.reduce == 'mean':
             loss_expect = xp.mean(loss_expect)
-        testing.assert_allclose(loss_expect, loss)
+        testing.assert_allclose(
+            loss_expect, loss, **self.check_forward_options)
 
     def test_forward_cpu(self):
         self.check_forward(self.t, tuple(self.x),
@@ -120,7 +129,7 @@ class CTCTestBase(object):
 
         gradient_check.check_backward(
             f, (x_length, l_length, t_data) + xs_data, gy_data,
-            eps=1e-2, atol=1e-4)
+            eps=1e-2, **self.check_backward_options)
 
     @condition.retry(3)
     def test_backward_cpu(self):
@@ -140,6 +149,7 @@ class CTCTestBase(object):
 
 
 @testing.parameterize(*testing.product({
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'reduce': ['mean', 'no'],
     'use_cudnn': ['always', 'auto', 'never']
 }))
@@ -150,6 +160,7 @@ class TestCTC(unittest.TestCase, CTCTestBase):
 
 
 @testing.parameterize(*testing.product({
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'reduce': ['mean', 'no'],
     'use_cudnn': ['always', 'auto', 'never']
 }))
@@ -161,6 +172,7 @@ class TestCTCWithoutLength(unittest.TestCase, CTCTestBase):
 
 
 @testing.parameterize(*testing.product({
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'reduce': ['mean', 'no'],
     'use_cudnn': ['always', 'auto', 'never']
 }))
@@ -172,6 +184,7 @@ class TestCTCWithLabelPadding(unittest.TestCase, CTCTestBase):
 
 
 @testing.parameterize(*testing.product({
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'reduce': ['mean', 'no'],
     'use_cudnn': ['always', 'auto', 'never']
 }))
@@ -183,6 +196,7 @@ class TestCTCWithInputPadding(unittest.TestCase, CTCTestBase):
 
 
 @testing.parameterize(*testing.product({
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'reduce': ['mean', 'no'],
     'use_cudnn': ['always', 'auto', 'never']
 }))
@@ -196,6 +210,7 @@ class TestCTCWithAllPadding(unittest.TestCase, CTCTestBase):
 
 
 @testing.parameterize(*testing.product({
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'reduce': ['mean', 'no'],
     'use_cudnn': ['always', 'auto', 'never']
 }))
@@ -210,6 +225,7 @@ class TestCTCWithRepeatedLabel(unittest.TestCase, CTCTestBase):
 
 
 @testing.parameterize(*testing.product({
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'reduce': ['mean', 'no'],
     'use_cudnn': ['always', 'auto', 'never']
 }))

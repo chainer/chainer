@@ -2,6 +2,7 @@ from chainer import backend
 from chainer import function_node
 from chainer import utils
 from chainer.utils import type_check
+import chainerx
 
 
 class AbsoluteError(function_node.FunctionNode):
@@ -15,6 +16,11 @@ class AbsoluteError(function_node.FunctionNode):
             in_types[0].dtype == in_types[1].dtype,
             in_types[0].shape == in_types[1].shape
         )
+
+    def forward_chainerx(self, inputs):
+        x0, x1 = inputs
+        self.diff = x0 - x1
+        return chainerx.abs(self.diff),
 
     def forward(self, inputs):
         x0, x1 = inputs
@@ -38,11 +44,9 @@ def absolute_error(x0, x1):
         L = |x_0 - x_1|
 
     Args:
-        x0 (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-                :class:`cupy.ndarray`):
+        x0 (:class:`~chainer.Variable` or :ref:`ndarray`):
             First input variable.
-        x1 (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-                :class:`cupy.ndarray`):
+        x1 (:class:`~chainer.Variable` or :ref:`ndarray`):
             Second input variable.
 
     Returns:

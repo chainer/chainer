@@ -1,5 +1,3 @@
-import numpy
-
 from chainer.functions.activation import sigmoid
 from chainer.functions.activation import tanh
 from chainer.functions.math import linear_interpolate
@@ -143,17 +141,14 @@ class StatefulGRU(GRUBase):
         in_size(int): Dimension of input vector :math:`x`.
         out_size(int): Dimension of hidden vector :math:`h`.
         init: Initializer for GRU's input units (:math:`W`).
-            It is a callable that takes ``numpy.ndarray`` or
-            ``cupy.ndarray`` and edits its value.
+            It is a callable that takes :ref:`ndarray` and edits its value.
             If it is ``None``, the default initializer is used.
         inner_init: Initializer for the GRU's inner
             recurrent units (:math:`U`).
-            It is a callable that takes ``numpy.ndarray`` or
-            ``cupy.ndarray`` and edits its value.
+            It is a callable that takes :ref:`ndarray` and edits its value.
             If it is ``None``, the default initializer is used.
         bias_init: Bias initializer.
-            It is a callable that takes ``numpy.ndarray`` or
-            ``cupy.ndarray`` and edits its value.
+            It is a callable that takes :ref:`ndarray` and edits its value.
             If ``None``, the bias is set to zero.
 
     Attributes:
@@ -201,26 +196,15 @@ class StatefulGRU(GRUBase):
         self.state_size = out_size
         self.reset_state()
 
-    def to_cpu(self):
-        super(StatefulGRU, self).to_cpu()
+    def device_resident_accept(self, visitor):
+        super(StatefulGRU, self).device_resident_accept(visitor)
         if self.h is not None:
-            self.h.to_cpu()
-        return self
-
-    def to_gpu(self, device=None):
-        super(StatefulGRU, self).to_gpu(device)
-        if self.h is not None:
-            self.h.to_gpu(device)
-        return self
+            visitor.visit_variable(self.h)
 
     def set_state(self, h):
         assert isinstance(h, variable.Variable)
-        h_ = h
-        if self.xp == numpy:
-            h_.to_cpu()
-        else:
-            h_.to_gpu(self._device_id)
-        self.h = h_
+        h.to_device(self.device)
+        self.h = h
 
     def reset_state(self):
         self.h = None
@@ -248,19 +232,6 @@ class GRU(StatefulGRU):
 
     This is an alias of :class:`~chainer.links.StatefulGRU`.
 
-    .. warning::
-
-       In Chainer v1, ``GRU`` was *stateless*,
-       as opposed to the current implementation.
-       To align with LSTM links, we have changed
-       the naming convention from Chainer v2 so that the shorthand name
-       points the stateful links.
-       You can use :class:`~chainer.links.StatelessGRU` for stateless version,
-       whose implementation is identical to ``GRU`` in v1.
-
-       See issue `#2537 <https://github.com/chainer/chainer/issues/2537>`_
-       for details.
-
     """
 
     def forward(self, *args):
@@ -271,16 +242,16 @@ class GRU(StatefulGRU):
         """
 
         n_args = len(args)
-        msg = ("Invalid argument. The length of GRU.forward must be 1. "
-               "But %d is given. " % n_args)
+        msg = ('Invalid argument. The length of GRU.forward must be 1. '
+               'But %d is given. ' % n_args)
 
         if n_args == 0 or n_args >= 3:
             raise ValueError(msg)
         elif n_args == 2:
-            msg += ("In Chainer v2, chainer.links.GRU is changed "
-                    "from stateless to stateful. "
-                    "One possiblity is you assume GRU to be stateless. "
-                    "Use chainer.links.StatelessGRU instead.")
+            msg += ('In Chainer v2, chainer.links.GRU is changed '
+                    'from stateless to stateful. '
+                    'One possiblity is you assume GRU to be stateless. '
+                    'Use chainer.links.StatelessGRU instead.')
             raise ValueError(msg)
 
         return super(GRU, self).forward(args[0])

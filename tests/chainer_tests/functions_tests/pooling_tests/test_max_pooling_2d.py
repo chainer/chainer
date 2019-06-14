@@ -36,6 +36,11 @@ def _to_fcontiguous(arrays):
     + testing.product({
         'use_cuda': [True],
         'use_cudnn': ['never', 'always'],
+    })
+    # ChainerX tests
+    + testing.product({
+        'use_chainerx': [True],
+        'chainerx_device': ['native:0', 'cuda:0'],
     }))
 class TestMaxPooling2D(unittest.TestCase):
 
@@ -89,20 +94,24 @@ class TestMaxPooling2D(unittest.TestCase):
     def check_forward(self, inputs, backend_config):
         y_expect, = self.forward_cpu(inputs)
 
-        if backend_config.use_cuda:
+        # TODO(sonots): Cleanup to use testing.backend.get_array after
+        # chainerx.asfortranarray is implemented.
+        if (backend_config.use_cuda
+            or (backend_config.use_chainerx
+                and backend_config.chainerx_device.startswith('cuda:'))):
             inputs = cuda.to_gpu(inputs)
         if not self.c_contiguous:
             inputs = _to_fcontiguous(inputs)
+        if backend_config.use_chainerx:
+            inputs = chainer.backend.to_chx(inputs)
 
         with backend_config:
             x, = inputs
             y = functions.max_pooling_2d(x, 3, stride=2, pad=1,
                                          cover_all=self.cover_all)
-        assert y.data.dtype == self.dtype
-        y_data = cuda.to_cpu(y.data)
-
-        assert self.output_shape == y_data.shape
-        testing.assert_allclose(y_expect, y_data)
+        assert self.dtype == y.data.dtype
+        assert self.output_shape == y.data.shape
+        testing.assert_allclose(y_expect, y.data)
 
     def test_forward(self, backend_config):
         self.check_forward(self.inputs, backend_config)
@@ -113,33 +122,48 @@ class TestMaxPooling2D(unittest.TestCase):
         functions.max_pooling_2d(x, 6, stride=6, pad=0)
 
     def test_forward_output_size_zero(self, backend_config):
-        with six.assertRaisesRegex(
-                self, AssertionError,
-                'Height in the output should be positive.'):
+        with self.assertRaises(Exception):
             x = numpy.random.rand(4, 4, 1, 4).astype(self.dtype)
-            if backend_config.use_cuda:
+            # TODO(sonots): Cleanup to use testing.backend.get_array after
+            # chainerx.asfortranarray is implemented.
+            if (backend_config.use_cuda
+                or (backend_config.use_chainerx
+                    and backend_config.chainerx_device.startswith('cuda:'))):
                 x = cuda.to_gpu(x)
+            if backend_config.use_chainerx:
+                x = chainer.backend.to_chx(x)
             x = chainer.Variable(x)
             with backend_config:
                 functions.max_pooling_2d(x, 3, stride=2)
 
-        with six.assertRaisesRegex(
-                self, AssertionError,
-                'Width in the output should be positive.'):
+        with self.assertRaises(Exception):
             x = numpy.random.rand(4, 4, 4, 1).astype(self.dtype)
-            if backend_config.use_cuda:
+            # TODO(sonots): Cleanup to use testing.backend.get_array after
+            # chainerx.asfortranarray is implemented.
+            if (backend_config.use_cuda
+                or (backend_config.use_chainerx
+                    and backend_config.chainerx_device.startswith('cuda:'))):
                 x = cuda.to_gpu(x)
+            if backend_config.use_chainerx:
+                x = chainer.backend.to_chx(x)
             x = chainer.Variable(x)
             with backend_config:
                 functions.max_pooling_2d(x, 3, stride=2)
 
     def check_backward(self, inputs, grad_outputs, backend_config):
-        if backend_config.use_cuda:
+        # TODO(sonots): Cleanup to use testing.backend.get_array after
+        # chainerx.asfortranarray is implemented.
+        if (backend_config.use_cuda
+            or (backend_config.use_chainerx
+                and backend_config.chainerx_device.startswith('cuda:'))):
             inputs = cuda.to_gpu(inputs)
             grad_outputs = cuda.to_gpu(grad_outputs)
         if not self.c_contiguous:
             inputs = _to_fcontiguous(inputs)
             grad_outputs = _to_fcontiguous(grad_outputs)
+        if backend_config.use_chainerx:
+            inputs = chainer.backend.to_chx(inputs)
+            grad_outputs = chainer.backend.to_chx(grad_outputs)
 
         def f(x):
             return functions.max_pooling_2d(
@@ -162,7 +186,11 @@ class TestMaxPooling2D(unittest.TestCase):
 
     def check_double_backward(
             self, inputs, grad_outputs, grad_grad_inputs, backend_config):
-        if backend_config.use_cuda:
+        # TODO(sonots): Cleanup to use testing.backend.get_array after
+        # chainerx.asfortranarray is implemented.
+        if (backend_config.use_cuda
+            or (backend_config.use_chainerx
+                and backend_config.chainerx_device.startswith('cuda:'))):
             inputs = cuda.to_gpu(inputs)
             grad_outputs = cuda.to_gpu(grad_outputs)
             grad_grad_inputs = cuda.to_gpu(grad_grad_inputs)
@@ -170,6 +198,10 @@ class TestMaxPooling2D(unittest.TestCase):
             inputs = _to_fcontiguous(inputs)
             grad_outputs = _to_fcontiguous(grad_outputs)
             grad_grad_inputs = _to_fcontiguous(grad_grad_inputs)
+        if backend_config.use_chainerx:
+            inputs = chainer.backend.to_chx(inputs)
+            grad_outputs = chainer.backend.to_chx(grad_outputs)
+            grad_grad_inputs = chainer.backend.to_chx(grad_grad_inputs)
 
         def f(x):
             return functions.max_pooling_2d(
@@ -207,7 +239,7 @@ class TestMaxPooling2DCudnnCall(unittest.TestCase):
 
     def test_call_cudnn_forward(self):
         with chainer.using_config('use_cudnn', self.use_cudnn):
-            with testing.patch('cupy.cuda.cudnn.poolingForward') as func:
+            with testing.patch('cupy.cudnn.pooling_forward') as func:
                 self.forward()
                 self.assertEqual(func.called,
                                  chainer.should_use_cudnn('>=auto'))
@@ -218,7 +250,7 @@ class TestMaxPooling2DCudnnCall(unittest.TestCase):
             y = self.forward()
         # should be consistent to forward regardless of use_cudnn config
         y.grad = self.gy
-        with testing.patch('cupy.cuda.cudnn.poolingBackward') as func:
+        with testing.patch('cupy.cudnn.pooling_backward') as func:
             y.backward()
             self.assertEqual(func.called, expect)
 
@@ -248,7 +280,7 @@ class TestMaxPooling2DIndices(unittest.TestCase):
                     [xx[2:4, 0:2].ravel().argmax(),
                      xx[2:4, 2:4].ravel().argmax()],
                 ])
-        if out.xp is not numpy:
+        if out.xp is cuda.cupy:
             expect = cuda.to_gpu(expect)
         assert (expect == indices).all()
 

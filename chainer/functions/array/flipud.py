@@ -28,7 +28,7 @@ def flipud(a):
     """Flip array in the up/down direction.
 
     Args:
-        xs (~chainer.Variable): Input variable.
+        a (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
 
     Returns:
         ~chainer.Variable: Output variable.

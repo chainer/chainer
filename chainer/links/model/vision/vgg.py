@@ -164,13 +164,6 @@ class VGGLayers(link.Chain):
 
         Computes all the feature maps specified by ``layers``.
 
-        .. warning::
-
-           ``test`` argument is not supported anymore since v2.
-           Instead, use ``chainer.using_config('train', False)``
-           to run in test mode.
-           See :func:`chainer.using_config`.
-
         Args:
             x (~chainer.Variable): Input variable. It should be prepared by
                 ``prepare`` function.
@@ -198,7 +191,7 @@ class VGGLayers(link.Chain):
         activations = {}
         target_layers = set(layers)
         for key, funcs in self.functions.items():
-            if len(target_layers) == 0:
+            if not target_layers:
                 break
             for func in funcs:
                 h = func(h)
@@ -230,25 +223,6 @@ class VGGLayers(link.Chain):
              with chainer.using_config('train', False):
                  with chainer.using_config('enable_backprop', False):
                      feature = model.extract([image])
-
-        .. warning::
-
-           ``test`` and ``volatile`` arguments are not supported
-           anymore since v2. Instead, users should configure
-           training and volatile modes with ``train`` and
-           ``enable_backprop``, respectively.
-
-           Note that default behavior of this method is different
-           between v1 and later versions. Specifically,
-           the default values of ``test`` in v1 were ``True`` (test mode).
-           But that of ``chainer.config.train`` is also ``True``
-           (train mode). Therefore, users need to explicitly switch
-           ``train`` to ``False`` to run the code in test mode and
-           ``enable_backprop`` to ``False`` to turn off
-           coputational graph construction.
-
-           See the `upgrade guide <https://docs.chainer.org/en/stable\
-           /upgrade_v2.html#training-mode-is-configured-by-a-thread-local-flag>`_.
 
         Args:
             images (iterable of PIL.Image or numpy.ndarray): Input images.
@@ -307,8 +281,8 @@ class VGGLayers(link.Chain):
             x = Variable(self.xp.asarray(x))
             y = self(x, layers=['prob'])['prob']
             if oversample:
-                n = y.data.shape[0] // 10
-                y_shape = y.data.shape[1:]
+                n = len(y) // 10
+                y_shape = y.shape[1:]
                 y = reshape(y, (n, 10) + y_shape)
                 y = sum(y, axis=1) / 10
         return y

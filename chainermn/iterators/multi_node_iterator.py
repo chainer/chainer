@@ -44,9 +44,9 @@ class _MultiNodeIteratorMaster(chainer.dataset.iterator.Iterator):
             * len(self.actual_iterator.dataset)
         # TODO(tsutsumi): potential deadlock?
         self.communicator.bcast(_dataset_size, root=self.rank_master)
-        if self.actual_iterator._order is not None:
+        if self.actual_iterator._state.order is not None:
             self.communicator.bcast(
-                self.actual_iterator._order.astype(numpy.float32),
+                self.actual_iterator._state.order.astype(numpy.float32),
                 root=self.rank_master)
         else:
             # Without shuffle, order is None.

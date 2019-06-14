@@ -127,7 +127,7 @@ class Decoder(chainer.Chain):
         xs = [x[::-1] for x in xs]
         batch = len(xs)
 
-        eos = self.xp.zeros(1, 'i')
+        eos = self.xp.zeros(1, self.xp.int32)
         ys_in = [F.concat([eos, y], axis=0) for y in ys]
         ys_out = [F.concat([y, eos], axis=0) for y in ys]
 
@@ -154,7 +154,7 @@ class Decoder(chainer.Chain):
         with chainer.no_backprop_mode():
             with chainer.using_config('train', False):
                 result = []
-                ys = self.xp.zeros(batch, 'i')
+                ys = self.xp.zeros(batch, self.xp.int32)
                 eys = self.embed_y(ys)
                 eys = chainer.functions.split_axis(
                     eys, batch, 0, force_tuple=True)
@@ -164,7 +164,7 @@ class Decoder(chainer.Chain):
 
                 cys = chainer.functions.concat(ys, axis=0)
                 wy = self.W(cys)
-                ys = self.xp.argmax(wy.data, axis=1).astype('i')
+                ys = self.xp.argmax(wy.data, axis=1).astype(self.xp.int32)
                 result.append(ys)
 
                 # Recursively decode using the previously predicted token.
@@ -176,7 +176,7 @@ class Decoder(chainer.Chain):
                     h, c, ys = self.mn_decoder.actual_rnn(h, c, eys)
                     cys = chainer.functions.concat(ys, axis=0)
                     wy = self.W(cys)
-                    ys = self.xp.argmax(wy.data, axis=1).astype('i')
+                    ys = self.xp.argmax(wy.data, axis=1).astype(self.xp.int32)
                     result.append(ys)
 
         result = cuda.to_cpu(self.xp.stack(result).T)
@@ -200,7 +200,8 @@ def convert(batch, device):
         else:
             xp = cuda.cupy.get_array_module(*batch)
             concat = xp.concatenate(batch, axis=0)
-            sections = numpy.cumsum([len(x) for x in batch[:-1]], dtype='i')
+            sections = numpy.cumsum(
+                [len(x) for x in batch[:-1]], dtype=numpy.int32)
             concat_dev = chainer.dataset.to_device(device, concat)
             batch_dev = cuda.cupy.split(concat_dev, sections)
             return batch_dev
@@ -252,8 +253,8 @@ class BleuEvaluator(extensions.Evaluator):
         et = time.time()
 
         if self.comm.rank == 1:
-            print("BleuEvaluator(single)::evaluate(): "
-                  "took {:.3f} [s]".format(et - bt))
+            print('BleuEvaluator(single)::evaluate(): '
+                  'took {:.3f} [s]'.format(et - bt))
             sys.stdout.flush()
         return observation
 
@@ -274,21 +275,21 @@ def create_optimizer(opt_arg):
     args = m.group(2)
 
     names_dict = {
-        "adadelta": chainer.optimizers.AdaDelta,
-        "adagrad": chainer.optimizers.AdaGrad,
-        "adam": chainer.optimizers.Adam,
-        "momentumsgd": chainer.optimizers.MomentumSGD,
-        "nesterovag": chainer.optimizers.NesterovAG,
-        "rmsprop": chainer.optimizers.RMSprop,
-        "rmspropgraves": chainer.optimizers.RMSpropGraves,
-        "sgd": chainer.optimizers.SGD,
-        "smorms3": chainer.optimizers.SMORMS3,
+        'adadelta': chainer.optimizers.AdaDelta,
+        'adagrad': chainer.optimizers.AdaGrad,
+        'adam': chainer.optimizers.Adam,
+        'momentumsgd': chainer.optimizers.MomentumSGD,
+        'nesterovag': chainer.optimizers.NesterovAG,
+        'rmsprop': chainer.optimizers.RMSprop,
+        'rmspropgraves': chainer.optimizers.RMSpropGraves,
+        'sgd': chainer.optimizers.SGD,
+        'smorms3': chainer.optimizers.SMORMS3,
     }
 
     try:
         opt = names_dict[name]
     except KeyError:
-        raise RuntimeError("Unknown optimizer: '{}' in '{}'".format(
+        raise RuntimeError('Unknown optimizer: \'{}\' in \'{}\''.format(
             name, opt_arg))
 
     # positional arguments
@@ -298,7 +299,7 @@ def create_optimizer(opt_arg):
 
     args = args.strip()
 
-    if len(args) > 0:
+    if args:
         for a in re.split(r',\s*', args):
             if a.find('=') >= 0:
                 key, val = a.split('=')
@@ -330,7 +331,7 @@ def main():
     parser = argparse.ArgumentParser(description='Chainer example: seq2seq')
     parser.add_argument('--batchsize', '-b', type=int, default=64,
                         help='Number of images in each mini-batch')
-    parser.add_argument('--bleu', action="store_true", default=False,
+    parser.add_argument('--bleu', action='store_true', default=False,
                         help='Report BLEU score')
     parser.add_argument('--gpu', '-g', action='store_true',
                         help='Use GPU')
@@ -341,13 +342,13 @@ def main():
     parser.add_argument('--unit', '-u', type=int, default=1024,
                         help='Number of units')
     parser.add_argument('--communicator', default='hierarchical',
-                        help="Type of communicator")
-    parser.add_argument('--stop', '-s', type=str, default="15e",
+                        help='Type of communicator')
+    parser.add_argument('--stop', '-s', type=str, default='15e',
                         help='Stop trigger (ex. "500i", "15e")')
     parser.add_argument('--input', '-i', type=str, default='wmt',
                         help='Input directory')
-    parser.add_argument('--optimizer', type=str, default="adam()",
-                        help="Optimizer and its argument")
+    parser.add_argument('--optimizer', type=str, default='adam()',
+                        help='Optimizer and its argument')
     parser.add_argument('--out', '-o', default='result',
                         help='Directory to output the result')
     args = parser.parse_args()
@@ -389,7 +390,7 @@ def main():
         else:
             source_vocab, source_data = read_source(args.input, args.cache)
         et = time.time()
-        print("RD source done. {:.3f} [s]".format(et - bt))
+        print('RD source done. {:.3f} [s]'.format(et - bt))
         sys.stdout.flush()
 
         # Read target data
@@ -402,7 +403,7 @@ def main():
         else:
             target_vocab, target_data = read_target(args.input, args.cache)
         et = time.time()
-        print("RD target done. {:.3f} [s]".format(et - bt))
+        print('RD target done. {:.3f} [s]'.format(et - bt))
         sys.stdout.flush()
 
         print('Original training data size: %d' % len(source_data))
@@ -431,7 +432,7 @@ def main():
     # Print GPU id
     for i in range(0, comm.size):
         if comm.rank == i:
-            print("Rank {} GPU: {}".format(comm.rank, dev))
+            print('Rank {} GPU: {}'.format(comm.rank, dev))
         sys.stdout.flush()
         comm.mpi_comm.Barrier()
 
@@ -443,8 +444,8 @@ def main():
     source_words = {i: w for w, i in source_ids.items()}
 
     if comm.rank == 0:
-        print("target_words : {}".format(len(target_words)))
-        print("source_words : {}".format(len(source_words)))
+        print('target_words : {}'.format(len(target_words)))
+        print('source_words : {}'.format(len(source_words)))
 
     n_lstm_layers = 3
     if comm.rank == 0:
@@ -468,12 +469,12 @@ def main():
             trigger = (int(m.group(1)), 'iteration')
         else:
             if comm.rank == 0:
-                sys.stderr.write("Error: unknown stop trigger: {}".format(
+                sys.stderr.write('Error: unknown stop trigger: {}'.format(
                     args.stop))
             exit(-1)
 
     if comm.rank == 0:
-        print("Trigger: {}".format(trigger))
+        print('Trigger: {}'.format(trigger))
 
     optimizer = create_optimizer(args.optimizer)
     optimizer.setup(model)
@@ -495,7 +496,7 @@ def main():
         words = europal.split_sentence(source)
         print('# source : ' + ' '.join(words))
         x = model.xp.array(
-            [source_ids.get(w, 1) for w in words], 'i')
+            [source_ids.get(w, 1) for w in words], model.xp.int32)
         ys = model.translate([x])[0]
         words = [target_words[y] for y in ys]
         print('#  result : ' + ' '.join(words))

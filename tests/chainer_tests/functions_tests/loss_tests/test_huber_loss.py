@@ -8,25 +8,30 @@ from chainer import functions
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
+from chainer import utils
 
 
 @testing.parameterize(*testing.product_dict(
     [{'dtype': numpy.float16,
       'forward_options': {'rtol': 5e-3, 'atol': 5e-3},
-      'backward_options': {'eps': 1e-1, 'rtol': 1e0, 'atol': 1e0},
-      'double_backward_options': {'eps': 1e-1, 'rtol': 1e0, 'atol': 1e0}},
+      'backward_options': {'eps': 1e-1, 'rtol': 1e-1, 'atol': 1e-1},
+      'double_backward_options': {'eps': 1e-1, 'rtol': 1e-1, 'atol': 1e-1}},
      {'dtype': numpy.float32,
       'forward_options': {},
-      'backward_options': {'eps': 1e-2, 'rtol': 1e-2, 'atol': 1e-2},
-      'double_backward_options': {'eps': 1e-2, 'rtol': 1e-1, 'atol': 1e-1}},
+      'backward_options': {'eps': 1e-3, 'rtol': 1e-2, 'atol': 1e-2},
+      'double_backward_options': {'eps': 1e-3, 'rtol': 1e-2, 'atol': 1e-2}},
      {'dtype': numpy.float64,
       'forward_options': {},
-      'backward_options': {'eps': 1e-2, 'rtol': 1e-2, 'atol': 1e-2},
-      'double_backward_options': {'eps': 1e-2, 'rtol': 1e-1, 'atol': 1e-1}},
+      'backward_options': {'eps': 1e-3, 'rtol': 1e-2, 'atol': 1e-2},
+      'double_backward_options': {'eps': 1e-3, 'rtol': 1e-2, 'atol': 1e-2}},
      ],
-    [{'reduce': 'no'},
-     {'reduce': 'sum_along_second_axis'},
-     ],
+    testing.product({
+        'shape': [(), (3,)],
+        'reduce': ['no'],
+    }) + testing.product({
+        'shape': [(4, 10), (2, 5, 3, 3)],
+        'reduce': ['no', 'sum_along_second_axis'],
+    }),
 ))
 class TestHuberLoss(unittest.TestCase):
 
@@ -34,19 +39,18 @@ class TestHuberLoss(unittest.TestCase):
         self._config_user = chainer.using_config('dtype', self.dtype)
         self._config_user.__enter__()
 
-        self.shape = (4, 10)
-        self.x = (numpy.random.random(self.shape) - 0.5) * 20
-        self.x = self.x.astype(self.dtype)
-        self.t = numpy.random.random(self.shape).astype(self.dtype)
+        self.x = utils.force_array(
+            (numpy.random.random(self.shape) - 0.5) * 4, self.dtype)
+        self.t = utils.force_array(numpy.random.random(self.shape), self.dtype)
         if self.reduce == 'sum_along_second_axis':
-            gy_shape = self.shape[0]
+            gy_shape = self.shape[:1] + self.shape[2:]
         else:
             gy_shape = self.shape
-        self.gy = numpy.random.random(gy_shape).astype(self.dtype)
-        self.ggx = numpy.random.uniform(-1, 1, self.x.shape)
-        self.ggx = self.ggx.astype(self.dtype)
-        self.ggt = numpy.random.uniform(-1, 1, self.t.shape)
-        self.ggt = self.ggt.astype(self.dtype)
+        self.gy = utils.force_array(numpy.random.random(gy_shape), self.dtype)
+        self.ggx = utils.force_array(
+            numpy.random.uniform(-1, 1, self.x.shape), self.dtype)
+        self.ggt = utils.force_array(
+            numpy.random.uniform(-1, 1, self.t.shape), self.dtype)
 
     def tearDown(self):
         self._config_user.__exit__(None, None, None)
@@ -92,8 +96,16 @@ class TestHuberLoss(unittest.TestCase):
 
     def check_double_backward(self, x_data, t_data, y_grad, x_grad_grad,
                               t_grad_grad):
+
+        delta = 1
+        eps = self.double_backward_options['eps']
+        xp = chainer.backend.get_array_module(x_data)
+        mask = xp.abs(xp.abs(x_data - t_data) - delta) < eps
+        x_data[mask] = 0
+        t_data[mask] = 0
+
         def f(x, t):
-            return functions.huber_loss(x, t, delta=1, reduce=self.reduce)
+            return functions.huber_loss(x, t, delta=delta, reduce=self.reduce)
 
         gradient_check.check_double_backward(
             f, (x_data, t_data), y_grad, (x_grad_grad, t_grad_grad),

@@ -6,7 +6,8 @@ from chainer.utils import argument
 
 class MLPConvolution2D(link.ChainList):
 
-    """__init__(self, in_channels, out_channels, ksize=None, stride=1, pad=0, activation=relu.relu, conv_init=None, bias_init=None)
+    """__init__(self, in_channels, out_channels, ksize=None, stride=1, \
+pad=0, activation=relu.relu, conv_init=None, bias_init=None)
 
     Two-dimensional MLP convolution layer of Network in Network.
 
@@ -53,12 +54,6 @@ class MLPConvolution2D(link.ChainList):
             passed to the convolution layers. This option must be specified as
             a keyword argument.
 
-    .. note:
-        From v2, `conv_init` and `bias_init` arguments must be specified as
-        keyword arguments only. We impose this restriction to forbid
-        users to assume the API for v1 and specify `wscale` option,
-        that had been between `activation` and `conv_init` arguments in v1.
-
     See: `Network in Network <https://arxiv.org/abs/1312.4400v3>`_.
 
     Attributes:
@@ -66,7 +61,7 @@ class MLPConvolution2D(link.ChainList):
             Activation function.
             See the description in the arguments for details.
 
-    """  # NOQA
+    """
 
     def __init__(self, in_channels, out_channels, ksize=None, stride=1, pad=0,
                  activation=relu.relu, *args, **kwargs):

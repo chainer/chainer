@@ -60,7 +60,7 @@ class TestMultiNodeIterator(unittest.TestCase):
         self.communicator = chainermn.create_communicator('naive')
 
         if self.communicator.size < 2:
-            pytest.skip("This test is for multinode only")
+            pytest.skip('This test is for multinode only')
 
         self.N = 100
         if self.paired_dataset:
@@ -168,15 +168,16 @@ class TestMultiNodeIterator(unittest.TestCase):
             self.communicator,
             rank_master=rank_master)
 
-        order = iterator._order
-        new_order = np.roll(order, 1)
         target = dict()
         iterator.serialize(DummySerializer(target))
+        order = target['order']
+        new_order = np.roll(order, 1)
         target['order'] = new_order
         iterator.serialize(DummyDeserializer(target))
 
         if self.communicator.rank == rank_master:
-            self.assertEqual(iterator._order.tolist(), new_order.tolist())
+            self.assertEqual(iterator._state.order.tolist(),
+                             new_order.tolist())
         else:
             self.assertEqual(iterator._order.tolist(), order.tolist())
 
@@ -187,11 +188,11 @@ class TestMultiNodeIteratorDataType(unittest.TestCase):
         self.communicator = chainermn.create_communicator('naive')
 
         if self.communicator.size < 2:
-            pytest.skip("This test is for multinode only")
+            pytest.skip('This test is for multinode only')
 
     def test_invalid_type(self):
         self.N = 10
-        self.dataset = ["test"]*self.N
+        self.dataset = ['test']*self.N
 
         bs = 1
         iterator = chainermn.iterators.create_multi_node_iterator(

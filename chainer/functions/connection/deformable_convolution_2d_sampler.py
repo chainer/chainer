@@ -39,16 +39,19 @@ def deformable_convolution_2d_sampler(x, offset, W, b=None, stride=1, pad=0):
        w_O &= (w + 2p_W - k_W) / s_X + 1.
 
     Args:
-        x (~chainer.Variable): Input variable of shape :math:`(n, c_I, h, w)`.
-        offset (~chainer.Variable): Offset variable of shape
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Input variable of shape :math:`(n, c_I, h, w)`.
+        offset (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Offset variable of shape
             :math:`(n, 2 \\cdot k_H \\cdot k_W, h_O, w_O)`. The first
             :math:`k_H \\cdot k_W` index of the second axis corresponds to
             the offsets in the horizontal direction. The last
             :math:`k_H \\cdot k_W` index of the second axis corresponds to
             the offsets in the vertical direction.
-        W (~chainer.Variable): Weight variable of shape
-            :math:`(c_O, c_I, k_H, k_W)`.
-        b (~chainer.Variable): Bias variable of length :math:`c_O` (optional).
+        W (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Weight variable of shape :math:`(c_O, c_I, k_H, k_W)`.
+        b (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Bias variable of length :math:`c_O` (optional).
         stride (int or pair of ints): Stride of filter applications.
             ``stride=s`` and ``stride=(s, s)`` are equivalent.
         pad (int or pair of ints): Spatial padding width for input arrays.
@@ -61,9 +64,9 @@ def deformable_convolution_2d_sampler(x, offset, W, b=None, stride=1, pad=0):
     locations in the standard convolution. It enables free form deformation of
     the sampling grid.
 
-    See `Jifeng Dai, Haozhi Qi, Yuwen Xiong, Yi Li, Guodong Zhang, Han Hu, \
-        Yichen Wei. Deformable Convolutional Networks\
-        <https://arxiv.org/abs/1703.06211>`_
+    See `Jifeng Dai, Haozhi Qi, Yuwen Xiong, Yi Li, Guodong Zhang, Han Hu,
+    Yichen Wei. Deformable Convolutional Networks
+    <https://arxiv.org/abs/1703.06211>`_
 
     If the bias vector is given, then it is added to all spatial locations of
     the output of convolution.

@@ -9,8 +9,8 @@ from chainer.utils import type_check
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
-    libcudnn = cuda.cuda.cudnn
-    _sampler_type = libcudnn.CUDNN_SAMPLER_BILINEAR
+    libcudnn = cuda.libcudnn
+    _sampler_type = cuda.libcudnn.CUDNN_SAMPLER_BILINEAR
 
 
 class SpatialTransformerGrid(function.Function):
@@ -116,7 +116,7 @@ def spatial_transformer_grid(theta, output_shape, **kwargs):
     """2D Spatial Transformer grid.
 
     This function generates coordinates of the points sampled from an image
-    to perform warping described in `Spatial Transformer Networks \
+    to perform warping described in `Spatial Transformer Networks
     <https://arxiv.org/abs/1506.02025>`_.
 
     Given a coordinate in the warped image :math:`(x_i^t, y_i^t)`, the point
@@ -138,14 +138,15 @@ def spatial_transformer_grid(theta, output_shape, **kwargs):
             y_i^t \\\\
             1 \\end{matrix}\\right)
 
-    Notatition: here is a notation for dimensionalities.
+    Notation: here is a notation for dimensionalities.
 
     - :math:`n` is the batch size.
     - :math:`h_O` and :math:`w_O` are the height and the width of the output
       image.
 
     Args:
-        theta (~chainer.Variable):  An array of shape :math:`(n, 2, 3)`.
+        theta (:class:`~chainer.Variable` or :ref:`ndarray`):
+            An array of shape :math:`(n, 2, 3)`.
             This is a batch of :math:`2 \\times 3` matrix used for
             the warping described above.
         output_shape (tuple): A tuple of 2 elements: :math:`h_O, w_O`.
@@ -162,9 +163,9 @@ def spatial_transformer_grid(theta, output_shape, **kwargs):
     """
     if kwargs:
         argument.check_unexpected_kwargs(
-            kwargs, use_cudnn="The argument \"use_cudnn\" is not "
-            "supported anymore. "
-            "Use chainer.using_config('use_cudnn', value) "
-            "context where value can be `always`, `never`, or `auto`.")
+            kwargs, use_cudnn='The argument "use_cudnn" is not '
+            'supported anymore. '
+            'Use chainer.using_config(\'use_cudnn\', value) '
+            'context where value can be `always`, `never`, or `auto`.')
         argument.assert_kwargs_empty(kwargs)
     return SpatialTransformerGrid(output_shape)(theta)

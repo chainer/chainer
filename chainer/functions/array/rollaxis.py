@@ -63,7 +63,7 @@ def rollaxis(x, axis, start=0):
     See :func:`chainer.functions.moveaxis`.
 
     Args:
-        x (~chainer.Variable): Input variable.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
         axis (int): The axis to roll backwards.
         start (int): The place to which the axis is moved.
 

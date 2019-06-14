@@ -3,6 +3,7 @@ from chainer import backend
 from chainer import function_node
 from chainer import utils
 from chainer.utils import type_check
+import chainerx
 
 
 class LogSumExp(function_node.FunctionNode):
@@ -34,6 +35,9 @@ class LogSumExp(function_node.FunctionNode):
                     type_check.expect(
                         -axis - 1 < in_types[0].ndim,
                     )
+
+    def forward_chainerx(self, inputs):
+        return chainerx.logsumexp(inputs[0], self.axis),
 
     def forward(self, inputs):
         self.retain_inputs((0,))
@@ -78,7 +82,8 @@ def logsumexp(x, axis=None):
        y_i = \\log\\left(\\sum_j \\exp(x_{ij})\\right)
 
     Args:
-        x (~chainer.Variable): Elements to log-sum-exp.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Elements to log-sum-exp.
         axis (None, int, or tuple of int): Axis which a sum is performed.
             The default (axis = None) is perform a sum over all the dimensions
             of the input array.

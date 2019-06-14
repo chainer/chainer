@@ -68,8 +68,7 @@ def tile(x, reps):
 
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
             Input variable. Let the length of ``reps`` be ``d``. If
             ``x.ndim < d``, ``x`` is treated as ``d``-dimensional array by
             prepending new axes. For example, when the shape of ``x`` is

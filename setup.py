@@ -6,6 +6,8 @@ import sys
 
 from setuptools import setup
 
+import chainerx_build_helper
+
 
 if sys.version_info[:3] == (3, 5, 0):
     if not int(os.getenv('CHAINER_PYTHON_350_FORCE', '0')):
@@ -21,50 +23,47 @@ set CHAINER_PYTHON_350_FORCE environment variable to 1."""
 
 requirements = {
     'install': [
+        'setuptools',
+        'typing',
+        'typing_extensions',
         'filelock',
         'numpy>=1.9.0',
-        'protobuf>=3.0.0',
+        # protobuf 3.8.0rc1 causes CI errors.
+        # TODO(niboshi): Probably we should always use pip in CIs for
+        # installing chainer. It avoids pre-release dependencies by default.
+        # See also: https://github.com/pypa/setuptools/issues/855
+        'protobuf>=3.0.0,<3.8.0rc1',
         'six>=1.9.0',
     ],
     'stylecheck': [
-        'autopep8==1.3.5',
-        'flake8==3.5.0',
-        'pbr==4.0.4',
-        'pycodestyle==2.3.1',
+        'autopep8>=1.4.1,<1.5',
+        'flake8>=3.7,<3.8',
+        'pycodestyle>=2.5,<2.6',
     ],
     'test': [
-        'pytest',
+        'pytest<4.2.0',  # 4.2.0 is slow collecting tests and times out on CI.
         'mock',
     ],
     'doctest': [
-        'sphinx==1.7.9',
+        'sphinx==1.8.2',
         'matplotlib',
         'theano',
     ],
     'docs': [
-        'sphinx==1.7.9',
+        'sphinx==1.8.2',
         'sphinx_rtd_theme',
-    ],
-    'travis': [
-        '-r stylecheck',
-        '-r test',
-        '-r docs',
-        # pytest-timeout>=1.3.0 requires pytest>=3.6.
-        # TODO(niboshi): Consider upgrading pytest to >=3.6
-        'pytest-timeout<1.3.0',
-        'pytest-cov',
-        'theano',
-        'h5py',
-        'pillow',
     ],
     'appveyor': [
         '-r test',
         # pytest-timeout>=1.3.0 requires pytest>=3.6.
         # TODO(niboshi): Consider upgrading pytest to >=3.6
         'pytest-timeout<1.3.0',
-        'pytest-cov',
     ],
 }
+
+
+if sys.version_info >= (3, 4):  # mypy requires Python 3.4 or later
+    requirements['stylecheck'].append('mypy')
 
 
 def reduce_requirements(key):
@@ -86,8 +85,6 @@ for k in requirements.keys():
 
 
 extras_require = {k: v for k, v in requirements.items() if k != 'install'}
-
-
 setup_requires = []
 install_requires = requirements['install']
 tests_require = requirements['test']
@@ -117,7 +114,7 @@ here = os.path.abspath(os.path.dirname(__file__))
 exec(open(os.path.join(here, 'chainer', '_version.py')).read())
 
 
-setup(
+setup_kwargs = dict(
     name='chainer',
     version=__version__,  # NOQA
     description='A flexible framework of neural networks',
@@ -130,6 +127,7 @@ setup(
     packages=['chainer',
               'chainer.backends',
               'chainer.dataset',
+              'chainer.dataset.tabular',
               'chainer.datasets',
               'chainer.distributions',
               'chainer.exporters',
@@ -158,6 +156,7 @@ setup(
               'chainer.links.model.vision',
               'chainer.links.normalization',
               'chainer.links.theano',
+              'chainer.link_hooks',
               'chainer.graph_optimizations',
               'chainer.optimizers',
               'chainer.optimizer_hooks',
@@ -175,9 +174,24 @@ setup(
               'chainermn.functions',
               'chainermn.iterators',
               'chainermn.links'],
+    package_data={
+        'chainer': ['py.typed'],
+    },
     zip_safe=False,
     setup_requires=setup_requires,
     install_requires=install_requires,
     tests_require=tests_require,
     extras_require=extras_require,
 )
+
+
+build_chainerx = 0 != int(os.getenv('CHAINER_BUILD_CHAINERX', '0'))
+if (os.getenv('READTHEDOCS', None) == 'True'
+        and os.getenv('READTHEDOCS_PROJECT', None) == 'chainer'):
+    os.environ['MAKEFLAGS'] = '-j2'
+    build_chainerx = True
+
+chainerx_build_helper.config_setup_kwargs(setup_kwargs, build_chainerx)
+
+
+setup(**setup_kwargs)

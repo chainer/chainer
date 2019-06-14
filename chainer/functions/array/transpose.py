@@ -17,10 +17,13 @@ class Transpose(function_node.FunctionNode):
     def label(self):
         return 'Transpose'
 
+    def forward_chainerx(self, inputs):
+        x = inputs[0]
+        return x.transpose(self.axes),
+
     def forward(self, inputs):
         x = inputs[0]
-        y = x.transpose(self.axes)
-        return y,
+        return x.transpose(self.axes),
 
     def backward(self, indexes, grad_outputs):
         inv_axes = self.axes
@@ -34,8 +37,8 @@ def transpose(x, axes=None):
     """Permute the dimensions of an input variable without copy.
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Input variable to be transposed.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Input variable to be transposed.
             A :math:`(s_1, s_2, ..., s_N)` -shaped float array.
         axes (tuple of ints): By default, reverse the dimensions,
             otherwise permute the axes according to the values given.

@@ -191,7 +191,7 @@ class TestNStepLSTM(unittest.TestCase):
     def check_call_cudnn_forward_training(self, use_cudnn):
         with chainer.using_config('use_cudnn', use_cudnn):
             expect = chainer.should_use_cudnn('>=auto', 5000)
-            with testing.patch('cupy.cuda.cudnn.RNNForwardTraining') as func:
+            with testing.patch('cupy.cudnn.rnn_forward_training') as func:
                 self.call_forward(True)
             assert func.called == expect
 
@@ -204,7 +204,7 @@ class TestNStepLSTM(unittest.TestCase):
     def check_call_cudnn_forward_inference(self, use_cudnn):
         with chainer.using_config('use_cudnn', use_cudnn):
             expect = chainer.should_use_cudnn('>=auto', 5000)
-            with testing.patch('cupy.cuda.cudnn.RNNForwardInference') as func:
+            with testing.patch('cupy.cudnn.rnn_forward_inference') as func:
                 self.call_forward(False)
             assert func.called == expect
 
@@ -219,7 +219,7 @@ class TestNStepLSTM(unittest.TestCase):
             expect = chainer.should_use_cudnn('>=auto', 5000)
             hy, cy, ys = self.call_forward(True)
             hy.grad = _to_gpu(self.dhy)
-            with testing.patch('cupy.cuda.cudnn.RNNBackwardWeights') as func:
+            with testing.patch('cupy.cudnn.rnn_backward_weights') as func:
                 hy.backward()
             assert func.called == expect
 
@@ -228,6 +228,45 @@ class TestNStepLSTM(unittest.TestCase):
         self.check_call_cudnn_backward('always')
         self.check_call_cudnn_backward('never')
         self.check_call_cudnn_backward('auto')
+
+    def check_inconsistent_input_size(
+            self, h_data, c_data, xs_data, ws_data, bs_data):
+        h = _wrap_variable(h_data)
+        c = _wrap_variable(c_data)
+        xs = _wrap_variable(xs_data)
+        ws = _wrap_variable(ws_data)
+        bs = _wrap_variable(bs_data)
+        with self.assertRaises(ValueError):
+            functions.n_step_lstm(
+                self.n_layers, self.dropout, h, c, ws, bs, xs)
+
+    def test_inconsistent_input_size_cpu(self):
+        x_in_size = 4  # inconsistent in_size with that of ws.
+        xs = [numpy.random.uniform(-1, 1, (b, x_in_size)).astype('f')
+              for b in self.batches]
+        self.check_inconsistent_input_size(
+            self.hx, self.cx, xs, self.ws, self.bs)
+
+    def check_inconsistent_input_size_gpu(self, use_cudnn):
+        x_in_size = 4  # inconsistent in_size with that of ws.
+        xs = [numpy.random.uniform(-1, 1, (b, x_in_size)).astype('f')
+              for b in self.batches]
+
+        hx = _to_gpu(self.hx)
+        cx = _to_gpu(self.cx)
+        xs = _to_gpu(xs)
+        ws = _to_gpu(self.ws)
+        bs = _to_gpu(self.bs)
+        with chainer.using_config('use_cudnn', use_cudnn):
+            self.check_inconsistent_input_size(hx, cx, xs, ws, bs)
+
+    @attr.gpu
+    def test_inconsistent_input_size_gpu_cudnn_always(self):
+        self.check_inconsistent_input_size_gpu('always')
+
+    @attr.gpu
+    def test_inconsistent_input_size_gpu_cudnn_never(self):
+        self.check_inconsistent_input_size_gpu('never')
 
 
 class TestNStepBiLSTM(unittest.TestCase):
@@ -421,7 +460,7 @@ class TestNStepBiLSTM(unittest.TestCase):
     def check_call_cudnn_forward_training(self, use_cudnn):
         with chainer.using_config('use_cudnn', use_cudnn):
             expect = chainer.should_use_cudnn('>=auto', 5000)
-            with testing.patch('cupy.cuda.cudnn.RNNForwardTraining') as func:
+            with testing.patch('cupy.cudnn.rnn_forward_training') as func:
                 self.call_forward(True)
             assert func.called == expect
 
@@ -434,7 +473,7 @@ class TestNStepBiLSTM(unittest.TestCase):
     def check_call_cudnn_forward_inference(self, use_cudnn):
         with chainer.using_config('use_cudnn', use_cudnn):
             expect = chainer.should_use_cudnn('>=auto', 5000)
-            with testing.patch('cupy.cuda.cudnn.RNNForwardInference') as func:
+            with testing.patch('cupy.cudnn.rnn_forward_inference') as func:
                 self.call_forward(False)
             assert func.called == expect
 
@@ -449,7 +488,7 @@ class TestNStepBiLSTM(unittest.TestCase):
             expect = chainer.should_use_cudnn('>=auto', 5000)
             hy, cy, ys = self.call_forward(True)
             hy.grad = _to_gpu(self.dhy)
-            with testing.patch('cupy.cuda.cudnn.RNNBackwardWeights') as func:
+            with testing.patch('cupy.cudnn.rnn_backward_weights') as func:
                 hy.backward()
             assert func.called == expect
 
@@ -459,9 +498,48 @@ class TestNStepBiLSTM(unittest.TestCase):
         self.check_call_cudnn_backward('never')
         self.check_call_cudnn_backward('auto')
 
+    def check_inconsistent_input_size(
+            self, h_data, c_data, xs_data, ws_data, bs_data):
+        h = _wrap_variable(h_data)
+        c = _wrap_variable(c_data)
+        xs = _wrap_variable(xs_data)
+        ws = _wrap_variable(ws_data)
+        bs = _wrap_variable(bs_data)
+        with self.assertRaises(ValueError):
+            functions.n_step_bilstm(
+                self.n_layers, self.dropout, h, c, ws, bs, xs)
+
+    def test_inconsistent_input_size_cpu(self):
+        x_in_size = 4  # inconsistent in_size with that of ws.
+        xs = [numpy.random.uniform(-1, 1, (b, x_in_size)).astype('f')
+              for b in self.batches]
+        self.check_inconsistent_input_size(
+            self.hx, self.cx, xs, self.ws, self.bs)
+
+    def check_inconsistent_input_size_gpu(self, use_cudnn):
+        x_in_size = 4  # inconsistent in_size with that of ws.
+        xs = [numpy.random.uniform(-1, 1, (b, x_in_size)).astype('f')
+              for b in self.batches]
+
+        hx = _to_gpu(self.hx)
+        cx = _to_gpu(self.cx)
+        xs = _to_gpu(xs)
+        ws = _to_gpu(self.ws)
+        bs = _to_gpu(self.bs)
+        with chainer.using_config('use_cudnn', use_cudnn):
+            self.check_inconsistent_input_size(hx, cx, xs, ws, bs)
+
+    @attr.gpu
+    def test_inconsistent_input_size_gpu_cudnn_always(self):
+        self.check_inconsistent_input_size_gpu('always')
+
+    @attr.gpu
+    def test_inconsistent_input_size_gpu_cudnn_never(self):
+        self.check_inconsistent_input_size_gpu('never')
+
 
 def _stack_weight(ws):
-    # TODO(unno): Input of the current LSTM implementaiton is shuffled
+    # TODO(unno): Input of the current LSTM implementation is shuffled
     w = functions.stack(ws, axis=1)
     shape = w.shape
     return functions.reshape(w, (shape[0] * shape[1],) + shape[2:])

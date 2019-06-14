@@ -10,9 +10,10 @@ import chainer.functions
 from chainer.utils import argument
 from chainer.utils import conv
 from chainer.utils import type_check
+import chainerx
 
 if cuda.cudnn_enabled:
-    _cudnn_version = cuda.cuda.cudnn.getVersion()
+    _cudnn_version = cuda.cuda.cudnn.getVersion()  # type: ignore
 
 
 def _pair(x):
@@ -38,19 +39,23 @@ class Convolution2DFunction(function_node.FunctionNode):
     def __init__(self, stride=1, pad=0, cover_all=False, **kwargs):
         dilate, groups = argument.parse_kwargs(
             kwargs, ('dilate', 1), ('groups', 1),
-            deterministic="deterministic argument is not supported anymore. "
-            "Use chainer.using_config('cudnn_deterministic', value) context "
-            "where value is either `True` or `False`.",
-            requires_x_grad="requires_x_grad argument is not supported "
-            "anymore. Just remove the argument. Note that whether to compute "
-            "the gradient w.r.t. x is automatically decided during "
-            "backpropagation.")
+            deterministic='deterministic argument is not supported anymore. '
+            'Use chainer.using_config(\'cudnn_deterministic\', value) context '
+            'where value is either `True` or `False`.',
+            requires_x_grad='requires_x_grad argument is not supported '
+            'anymore. Just remove the argument. Note that whether to compute '
+            'the gradient w.r.t. x is automatically decided during '
+            'backpropagation.')
 
         self.sy, self.sx = _pair(stride)
         self.ph, self.pw = _pair(pad)
         self.cover_all = cover_all
         self.dy, self.dx = _pair(dilate)
         self.groups = groups
+
+        if self.dx < 1 or self.dy < 1:
+            raise ValueError('Dilate should be positive, but {} is '
+                             'supplied.'.format(dilate))
 
     def check_type_forward(self, in_types):
         n_in = in_types.size()
@@ -87,6 +92,23 @@ class Convolution2DFunction(function_node.FunctionNode):
         if out_w <= 0:
             raise RuntimeError('Width in the output should be positive.')
         return out_h, out_w
+
+    def forward_chainerx(self, inputs):
+        # TODO(hvy): Support mixed precision.
+        if any([arr.dtype != inputs[0].dtype for arr in inputs[1:]]):
+            return chainer.Fallback
+        # TODO(hvy): Support dilate > 1.
+        if self.dy > 1 or self.dx > 1:
+            return chainer.Fallback
+        # TODO(hvy): Support groups > 1.
+        if self.groups > 1:
+            return chainer.Fallback
+        if inputs[0].device.backend.name == 'cuda' and self.cover_all:
+            return chainer.Fallback
+
+        return chainerx.conv(
+            *inputs, stride=(self.sy, self.sx), pad=(self.ph, self.pw),
+            cover_all=self.cover_all),
 
     def forward_cpu(self, inputs):
         self.retain_inputs((0, 1))  # retain only x and W
@@ -422,7 +444,8 @@ class Convolution2DGradW(function_node.FunctionNode):
 
 
 def convolution_2d(x, W, b=None, stride=1, pad=0, cover_all=False, **kwargs):
-    """convolution_2d(x, W, b=None, stride=1, pad=0, cover_all=False, *, dilate=1, groups=1)
+    """convolution_2d(x, W, b=None, stride=1, pad=0, cover_all=False, *, \
+dilate=1, groups=1)
 
     Two-dimensional convolution function.
 
@@ -461,7 +484,7 @@ def convolution_2d(x, W, b=None, stride=1, pad=0, cover_all=False, **kwargs):
 
     If ``cover_all`` option is ``True``, the filter will cover the all
     spatial locations. So, if the last stride of filter does not cover the
-    end of spatial locations, an addtional stride will be applied to the end
+    end of spatial locations, an additional stride will be applied to the end
     part of spatial locations. In this case, the output size :math:`(h_O, w_O)`
     is determined by the following equations:
 
@@ -485,22 +508,13 @@ def convolution_2d(x, W, b=None, stride=1, pad=0, cover_all=False, **kwargs):
     When the dilation factor is greater than one, cuDNN is not used unless
     the version is 6.0 or higher.
 
-    .. warning::
-
-        ``deterministic`` argument is not supported anymore since v2.
-        Instead, use ``chainer.using_config('cudnn_deterministic', value)``
-        (value is either ``True`` or ``False``).
-        See :func:`chainer.using_config`.
-
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
             Input variable of shape :math:`(n, c_I, h_I, w_I)`.
-        W (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        W (:class:`~chainer.Variable` or :ref:`ndarray`):
             Weight variable of shape :math:`(c_O, c_I, h_K, w_K)`.
-        b (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Bias variable of length :math:`c_O` (optional).
+        b (None or :class:`~chainer.Variable` or :ref:`ndarray`):
+            Bias variable of length :math:`c_O` (optional).
         stride (:class:`int` or pair of :class:`int` s):
             Stride of filter applications. ``stride=s`` and ``stride=(s, s)``
             are equivalent.
@@ -556,12 +570,12 @@ cover_all=True)
         >>> y.shape == (n, c_o, h_o, w_o + 1)
         True
 
-    """  # NOQA
+    """
     dilate, groups = argument.parse_kwargs(
         kwargs, ('dilate', 1), ('groups', 1),
-        deterministic="deterministic argument is not supported anymore. "
-        "Use chainer.using_config('cudnn_deterministic', value) "
-        "context where value is either `True` or `False`.")
+        deterministic='deterministic argument is not supported anymore. '
+        'Use chainer.using_config(\'cudnn_deterministic\', value) '
+        'context where value is either `True` or `False`.')
 
     fnode = Convolution2DFunction(stride, pad, cover_all, dilate=dilate,
                                   groups=groups)

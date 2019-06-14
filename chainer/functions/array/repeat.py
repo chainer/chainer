@@ -1,8 +1,8 @@
-import numpy
 import six
 
 from chainer import backend
 from chainer import function_node
+from chainer import utils
 from chainer.utils import type_check
 
 
@@ -42,7 +42,7 @@ class Repeat(function_node.FunctionNode):
         xp = backend.get_array_module(x)
         repeats = self.repeats
 
-        # Workaroud for bug in NumPy 1.9 that specifying one element list to
+        # Workaround for bug in NumPy 1.9 that specifying one element list to
         # `repeats` fails to broadcast.
         if len(repeats) == 1:
             repeats = repeats[0]
@@ -89,7 +89,7 @@ class RepeatGrad(function_node.FunctionNode):
 
         if axis is None:
             pos = 0
-            gx = xp.zeros(int(numpy.prod(shape)), dtype)
+            gx = xp.zeros(utils.size_of_shape(shape), dtype)
             for (i, r) in enumerate(repeats):
                 gx[i] = xp.sum(gy[pos:pos + r])
                 pos += r
@@ -114,8 +114,7 @@ def repeat(x, repeats, axis=None):
     """Construct an array by repeating a given array.
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`):
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
             Input variable.
         repeats (:class:`int` or :class:`tuple` of :class:`int` s):
             The number of times which each element of ``x`` is repeated.

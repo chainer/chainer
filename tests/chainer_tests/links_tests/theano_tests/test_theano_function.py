@@ -2,6 +2,7 @@ import unittest
 import warnings
 
 import numpy
+import pytest
 
 import chainer
 from chainer.backends import cuda
@@ -12,7 +13,10 @@ from chainer.testing import attr
 from chainer.testing import condition
 
 
-@testing.with_requires('theano')
+@testing.with_requires('theano')  # TODO(niboshi): Remove me
+# chainer/chainer#5997
+@testing.without_requires('Theano<=1.0.3', 'numpy>=1.16.0')
+@pytest.mark.theano()
 class TheanoFunctionTestBase(object):
 
     forward_test_options = {}

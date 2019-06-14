@@ -1,16 +1,19 @@
+from __future__ import absolute_import
 import collections
 import copy
+import math
 import warnings
 
 import numpy
 import six
 
+import chainer
 from chainer import backend
-from chainer.backends import cuda
 from chainer import link as link_module
 from chainer import optimizer_hooks
 from chainer import serializer as serializer_module
 from chainer import variable
+import chainerx
 
 
 class Hyperparameter(object):
@@ -147,7 +150,8 @@ class UpdateRule(object):
         if not callable(hook):
             raise TypeError('hook function must be callable')
         if timing not in ('pre', 'post', 'auto'):
-            raise ValueError("timing must be one of ('pre', 'post', 'auto')")
+            raise ValueError(
+                'timing must be one of (\'pre\', \'post\', \'auto\')')
         if timing == 'auto':
             timing = getattr(hook, 'timing', 'pre')
 
@@ -230,8 +234,11 @@ class UpdateRule(object):
             param (~chainer.Variable): Variable to be updated.
 
         """
-        with cuda.get_device_from_array(param.data) as dev:
-            if int(dev) == -1:
+        device = param.device
+        with chainer.using_device(device):
+            if device.xp is chainerx:
+                self.update_core_chainerx(param)
+            elif device.xp is numpy:
                 self.update_core_cpu(param)
             else:
                 self.update_core_gpu(param)
@@ -257,6 +264,66 @@ class UpdateRule(object):
 
         """
         raise NotImplementedError
+
+    def update_core_chainerx(self, param):
+        """Updates the ChainerX parameter.
+
+        This method can be overridden to implement custom update logic.
+        The default implementation is to convert the parameter to a
+        memory-shared NumPy/CuPy parameter and call the corresponding update
+        method.
+
+        See :meth:`update_core` for details.
+
+        Args:
+            param (~chainer.Variable): Variable to be updated.
+
+        """
+        grad_array = param.grad
+        backend_name = param.array.device.backend.name
+        if backend_name not in ('native', 'cuda'):
+            raise RuntimeError(
+                'Default implementation of Optimizer.update_core_chainerx is '
+                'only provided for native or cuda backends (actual: {}). '
+                'Override Optimizer.update_core_chainerx() to implement '
+                'custom update logic.'.format(backend_name))
+
+        # Convert state arrays to NumPy/CuPy
+        chainerx_state_arrays = {}
+        for state_name, st in self.state.items():
+            st = self.state[state_name]
+            if isinstance(st, chainerx.ndarray):
+                fallback_arr = backend.from_chx(st)
+                self.state[state_name] = fallback_arr
+                chainerx_state_arrays[state_name] = (st, fallback_arr)
+
+        # Create a temporary parameter with memory-shared NumPy/CuPy array
+        # If the ChainerX parameter has a cached NumPy/CuPy copy, use the
+        # cache and avoid redundant conversion. Else, create the cache here
+        # and use it.
+        if param._chainerx_fallback_array is None:
+            param._chainerx_fallback_array = backend.from_chx(
+                param.array)
+
+        temp_param = variable.Variable._init_unchecked(
+            param._chainerx_fallback_array, is_chainerx_array=False)
+
+        if grad_array is not None:
+            temp_param._set_grad_without_check(
+                backend.from_chx(grad_array))
+
+        # Update
+        self.update_core(temp_param)
+
+        # Restore state arrays
+        for state_name, (arr, fallback_arr) in chainerx_state_arrays.items():
+            cur_arr = self.state[state_name]
+            if cur_arr is not fallback_arr:
+                # The optimizer altered the reference of the state, instead of
+                # updating it in-place. We need to convert the new state back
+                # to ChainerX.
+                arr = backend.to_chx(cur_arr)
+            self.state[state_name] = arr
 
     def init_state(self, param):
         """Initializes the state.
@@ -312,21 +379,17 @@ class UpdateRule(object):
                 self._state[key] = serializer(key, self._state[key])
 
     def _prepare(self, param):
-        with cuda.get_device_from_array(param.data) as device:
+        device = param.device
+        with chainer.using_device(device):
             state = self.state
             if state is None:
                 state = self._state = {}
                 self.init_state(param)
 
             for name, value in six.iteritems(state):
-                if not isinstance(value, (numpy.ndarray, cuda.ndarray)):
+                if not isinstance(value, chainer.get_array_types()):
                     continue
-                value_device = cuda.get_device_from_array(value)
-                if value_device.id != device.id:
-                    if device.id >= 0:
-                        state[name] = cuda.to_gpu(value)
-                    else:
-                        state[name] = cuda.to_cpu(value)
+                state[name] = device.send(value)
 
     def use_fp32_update(self, flag=True):
         """Enables use of parameter update in fp32.
@@ -343,7 +406,7 @@ class UpdateRule(object):
           3. copys the data of fp32 parameter variable to the data of original
              parameter variable, converting its data type from fp32 to fp16.
 
-        See meth:`update` for details.
+        See :meth:`update` for details.
         """
         self._use_fp32_update = flag
 
@@ -392,6 +455,8 @@ class Optimizer(object):
     _pre_update_hooks = None
     _post_update_hooks = None
     _loss_scale = None
+    _loss_scale_max = 65504  # max representable value with fp16
+    _loss_scaling_is_dynamic = False
     use_auto_new_epoch = False
 
     def setup(self, link):
@@ -517,12 +582,14 @@ class Optimizer(object):
         if self._pre_update_hooks is None or self._post_update_hooks is None:
             raise RuntimeError('call `setup` method before `add_hook` method')
         if timing not in ('pre', 'post', 'auto'):
-            raise ValueError("timing must be one of ('pre', 'post', 'auto')")
+            raise ValueError(
+                'timing must be one of (\'pre\', \'post\', \'auto\')')
         if timing == 'auto':
             timing = getattr(hook, 'timing', None)
             if timing not in ('pre', 'post'):
-                warnings.warn("Hook timing attribute not in ('pre', 'post'), "
-                              "defaulting timing to 'pre'.")
+                warnings.warn(
+                    'Hook timing attribute not in (\'pre\', \'post\'), '
+                    'defaulting timing to \'pre\'.')
                 timing = 'pre'
 
         if name is None:
@@ -550,7 +617,7 @@ class Optimizer(object):
     def call_hooks(self, timing='pre'):
         """Invokes hook functions in registration order."""
         if timing not in ('pre', 'post'):
-            raise ValueError("timing must be either 'pre' or 'post'")
+            raise ValueError('timing must be either \'pre\' or \'post\'')
         if timing == 'pre':
             hooks = self._pre_update_hooks
         else:
@@ -588,9 +655,62 @@ class Optimizer(object):
             if rule is not None:
                 rule.serialize(serializer[name])
 
+    def loss_scaling(self, interval=1000, scale=None):
+        """Configures the loss scaling algorithm.
+
+        Args:
+            interval (int): Number of iterations until scaling factor gets
+                doubled. This is effective when "dynamic" loss scaling is used.
+            scale (float): Loss scaling factor. If ``None``, "dynamic" loss
+                scaling is used, otherwise "static" loss scaling is used.
+        """
+        if scale is None:
+            self._loss_scaling_is_dynamic = True
+            if interval < 1:
+                raise ValueError('interval must be greater than or equal to 1.'
+                                 ' Actual: {}'.format(interval))
+            self._loss_scale = 1.0
+            self._loss_scaling_multiplier = math.pow(2.0, 1.0 / interval)
+            self._loss_scaling_isnan_ever = False
+        else:
+            if scale <= 0:
+                raise ValueError('loss_scale must be a positive number. '
+                                 'Actual: {}'.format(scale))
+            self._loss_scale = scale
+
     def set_loss_scale(self, loss_scale):
         """Sets loss scaling factor."""
-        self._loss_scale = loss_scale
+        self.loss_scaling(scale=loss_scale)
+
+    def check_nan_in_grads(self):
+        """Checks if there is NaN in grads when dynamic loss scaling used."""
+        self._loss_scaling_isnan = False
+        if not self._loss_scaling_is_dynamic:
+            return
+        for name, param in self.target.namedparams():
+            xp = param.device.xp
+            if not xp.all(xp.isfinite(param.grad)):
+                self._loss_scaling_isnan = True
+                self._loss_scaling_isnan_ever = True
+                warnings.warn(
+                    'Non finite number found in param.grad of {}'
+                    ' (iteration: {}, loss_scale: {})'
+                    ''.format(name, self.t, self._loss_scale))
+
+    def is_safe_to_update(self):
+        return not self._loss_scaling_isnan
+
+    def update_loss_scale(self):
+        if not self._loss_scaling_is_dynamic:
+            return
+        if self._loss_scaling_isnan:
+            multiplier = 0.5
+        elif self._loss_scaling_isnan_ever:
+            multiplier = self._loss_scaling_multiplier
+        else:
+            multiplier = 2.0
+        self._loss_scale = max(1, min(self._loss_scale_max,
+                                      self._loss_scale * multiplier))
 
 
 class GradientMethod(Optimizer):
@@ -608,9 +728,9 @@ class GradientMethod(Optimizer):
     This class also provides :attr:`hyperparam`, which is the hyperparameter
     used as the default configuration of each update rule. All built-in
     gradient method implementations also provide proxy properties that act
-    as aliases to the attributes of :attr:`hyperparam`. It is recommended to
-    provide such an alias to each attribute. It can be done by only adding one
-    line for each attribute using :class:`HyperparameterProxy`.
+    as aliases to the attributes of :attr:`hyperparam`. It is recommended that
+    you provide such an alias to each attribute. It can be done by only adding
+    one line for each attribute using :class:`HyperparameterProxy`.
 
     Attributes:
         hyperparam (Hyperparameter): The hyperparameter of the gradient
@@ -644,14 +764,14 @@ class GradientMethod(Optimizer):
         """
         for name, param in self.target.namedparams(False):
             if param.grad is None:
-                with cuda.get_device_from_array(param.data):
-                    xp = backend.get_array_module(param.data)
-                    param.grad = xp.zeros_like(param.data)
+                device = param.device
+                with chainer.using_device(device):
+                    param.grad = device.xp.zeros_like(param.data)
 
     def call_hooks(self, timing='pre'):
         """Invokes hook functions in registration order."""
         if timing not in ('pre', 'post'):
-            raise ValueError("timing must be either 'pre' or 'post'")
+            raise ValueError('timing must be either \'pre\' or \'post\'')
         if timing == 'pre':
             hooks = self._pre_update_hooks
         else:
@@ -686,16 +806,18 @@ class GradientMethod(Optimizer):
             del loss
 
         self.reallocate_cleared_grads()
-
+        self.check_nan_in_grads()
         self.call_hooks('pre')
 
         self.t += 1
-        for param in self.target.params():
-            param.update()
+        if self.is_safe_to_update():
+            for param in self.target.params():
+                param.update()
 
         self.reallocate_cleared_grads()
 
         self.call_hooks('post')
+        self.update_loss_scale()
 
     def use_cleargrads(self, use=True):
         """Enables or disables use of :func:`~chainer.Link.cleargrads` in `update`.
@@ -736,7 +858,7 @@ class GradientMethod(Optimizer):
     def use_fp32_update(self, flag=True):
         """Enables use of parameter update in fp32."""
         self._use_fp32_update = flag
-        link = getattr(self, "target", None)
+        link = getattr(self, 'target', None)
         if link is not None:
             for param in link.params():
                 param.update_rule.use_fp32_update()

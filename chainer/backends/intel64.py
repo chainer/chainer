@@ -1,6 +1,10 @@
 from __future__ import absolute_import
 
+import numpy
+
 import chainer
+from chainer import _backend
+from chainer.backends import _cpu
 from chainer.configuration import config
 
 
@@ -9,14 +13,66 @@ _error = None
 
 try:
     import ideep4py as ideep  # NOQA
-    from ideep4py import mdarray  # NOQA
+    from ideep4py import mdarray  # type: ignore # NOQA
     _ideep_version = 2 if hasattr(ideep, '__version__') else 1
 except ImportError as e:
     _error = e
     _ideep_version = None
 
-    class mdarray(object):
+    class mdarray(object):  # type: ignore
         pass  # for type testing
+
+
+class Intel64Device(_backend.Device):
+
+    """Device for Intel64 (Intel Architecture) backend with iDeep"""
+
+    def __init__(self):
+        check_ideep_available()
+        super(Intel64Device, self).__init__()
+
+    @property
+    def xp(self):
+        return numpy
+
+    @property
+    def supported_array_types(self):
+        return (numpy.ndarray, mdarray)
+
+    @staticmethod
+    def from_array(array):
+        if isinstance(array, mdarray):
+            return Intel64Device()
+        return None
+
+    def __eq__(self, other):
+        return isinstance(other, Intel64Device)
+
+    def __repr__(self):
+        return '<{}>'.format(self.__class__.__name__)
+
+    def __str__(self):
+        return '@intel64'
+
+    def send_array(self, array):
+        if isinstance(array, ideep.mdarray):
+            return array
+
+        if not isinstance(array, numpy.ndarray):
+            array = _cpu._to_cpu(array)  # to numpy.ndarray
+
+        if (isinstance(array, numpy.ndarray) and
+                array.ndim in (1, 2, 4) and
+                0 not in array.shape):
+            # TODO(kmaehashi): Remove ndim validation once iDeep has fixed.
+            # Currently iDeep only supports (1, 2, 4)-dim arrays.
+            # Note that array returned from `ideep.array` may not be an
+            # iDeep mdarray, e.g., when the dtype is not float32.
+            array = ideep.array(array, itype=ideep.wgt_array)
+        return array
+
+    def is_array_supported(self, array):
+        return isinstance(array, (numpy.ndarray, mdarray))
 
 
 # ------------------------------------------------------------------------------

@@ -36,7 +36,8 @@ class Forget(function_node.FunctionNode):
 
     def forward(self, inputs):
         self.retain_inputs(tuple(range(len(inputs))))
-        with function.no_backprop_mode():
+        with function.no_backprop_mode(),\
+                chainer.using_config('_will_recompute', True):
             xs = [variable.Variable(x) for x in inputs]
             outs = _call_func(self.func, xs)
         return tuple(out.data for out in outs)
@@ -51,16 +52,17 @@ class Forget(function_node.FunctionNode):
         # Create new variables that have no creators
         dummy_inputs = tuple([variable.Variable(inp.array) for inp in inputs])
 
-        with function.force_backprop_mode():
+        with function.force_backprop_mode(),\
+                chainer.using_config('in_recomputing', True):
             outs = _call_func(self.func, dummy_inputs)
             assert len(outs) == len(grad_outputs)
-            if len(outs) > 1:
-                # Avoid doing backward multiple times when `outs` is a tuple
-                outs = chainer.functions.identity(*outs)
 
+        output_tuples = []
         for out, grad_output in zip(outs, grad_outputs):
-            out.grad_var = grad_output
-        outs[0].backward()
+            if grad_output is not None:
+                output_tuples.append((out.node, grad_output))
+        # TODO(kataoka): use outer backward's `retain_grad` and `loss_scale`
+        chainer._backprop._backprop_to_all(output_tuples, False, None)
 
         return tuple([inp.grad_var for inp in dummy_inputs])
 
@@ -113,8 +115,8 @@ def forget(func, *xs):
 
     .. note::
 
-        In case input argument variables are of class :class:`numpy.ndarray` or
-        :class:`cupy.ndarray` objects, arguments will automatically be
+        In case input argument variables are of :ref:`ndarray` objects,
+        arguments will automatically be
         converted to :class:`~chainer.Variable`\\ s.
         This conversion takes place to ensure that this function is included
         in the computational graph to enable backward computations.
@@ -123,12 +125,23 @@ def forget(func, *xs):
 
         ``F.forget`` does not support double backpropagation.
 
+    .. note::
+
+        If you want to use ``F.forget`` to a link which updates the link's
+        internal information every time the forward computation is called,
+        please ensure that the information is updated just once in a single
+        iteration. You may use the ``chainer.config.in_recomputing`` flag to
+        check if the forward computation is the first call in an iteration.
+        Please see the implementation of
+        :class:`~chainer.links.BatchNormalization` for detail.
+
     Args:
         func (callable): A function to call. It needs to be called with
             :class:`~chainer.Variable` object(s) and to return a
             :class:`~chainer.Variable` object or a tuple of
             :class:`~chainer.Variable` objects.
-        xs (~chainer.Variable): Argument variables of the function.
+        xs (:class:`tuple` of :class:`~chainer.Variable` or :ref:`ndarray`):
+            Argument variables of the function.
 
     Returns:
         ~chainer.Variable: A variable ``func`` returns. If it returns a tuple,

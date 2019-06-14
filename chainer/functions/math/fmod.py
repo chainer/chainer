@@ -39,8 +39,8 @@ def fmod(x, divisor):
        y_i = x_i \\bmod \\mathrm{divisor}.
 
     Args:
-        x (~chainer.Variable): Input variable.
-        divisor (~chainer.Variable): Input divisor.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
+        divisor (:class:`~chainer.Variable` or :ref:`ndarray`): Input divisor.
     Returns:
         ~chainer.Variable: Output variable.
     """

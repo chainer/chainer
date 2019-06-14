@@ -5,6 +5,7 @@ Functions are either implemented as :class:`~chainer.Function`\\ s or
 """
 
 from chainer.functions.activation.clipped_relu import clipped_relu  # NOQA
+from chainer.functions.activation.clipped_relu import relu6  # NOQA
 from chainer.functions.activation.crelu import crelu  # NOQA
 from chainer.functions.activation.elu import elu  # NOQA
 from chainer.functions.activation.hard_sigmoid import hard_sigmoid  # NOQA
@@ -24,6 +25,7 @@ from chainer.functions.activation.swish import swish  # NOQA
 from chainer.functions.activation.tanh import tanh  # NOQA
 from chainer.functions.activation.tree_lstm import tree_lstm  # NOQA
 
+from chainer.functions.array.as_strided import as_strided  # NOQA
 from chainer.functions.array.broadcast import broadcast  # NOQA
 from chainer.functions.array.broadcast import broadcast_to  # NOQA
 from chainer.functions.array.cast import cast  # NOQA
@@ -117,6 +119,7 @@ from chainer.functions.loss.vae import bernoulli_nll  # NOQA
 from chainer.functions.loss.vae import gaussian_kl_divergence  # NOQA
 from chainer.functions.loss.vae import gaussian_nll  # NOQA
 
+from chainer.functions.math.arctanh import arctanh  # NOQA
 from chainer.functions.math.average import average  # NOQA
 from chainer.functions.math.basic_math import absolute  # NOQA
 from chainer.functions.math.basic_math import add  # NOQA
@@ -195,6 +198,8 @@ from chainer.functions.normalization.batch_normalization import batch_normalizat
 from chainer.functions.normalization.batch_normalization import fixed_batch_normalization  # NOQA
 from chainer.functions.normalization.batch_renormalization import batch_renormalization  # NOQA
 from chainer.functions.normalization.batch_renormalization import fixed_batch_renormalization  # NOQA
+from chainer.functions.normalization.decorrelated_batch_normalization import decorrelated_batch_normalization  # NOQA
+from chainer.functions.normalization.decorrelated_batch_normalization import fixed_decorrelated_batch_normalization  # NOQA
 from chainer.functions.normalization.group_normalization import group_normalization  # NOQA
 from chainer.functions.normalization.l2_normalization import normalize  # NOQA
 from chainer.functions.normalization.layer_normalization import layer_normalization  # NOQA
@@ -208,9 +213,10 @@ from chainer.functions.pooling.max_pooling_2d import max_pooling_2d  # NOQA
 from chainer.functions.pooling.max_pooling_nd import max_pooling_1d  # NOQA
 from chainer.functions.pooling.max_pooling_nd import max_pooling_3d  # NOQA
 from chainer.functions.pooling.max_pooling_nd import max_pooling_nd  # NOQA
-# TODO(kmaehashi) this alias should be removed in
-# https://github.com/chainer/chainer/pull/5198
 from chainer.functions.pooling.roi_average_align_2d import roi_average_align_2d  # NOQA
+from chainer.functions.pooling.roi_average_pooling_2d import roi_average_pooling_2d  # NOQA
+from chainer.functions.pooling.roi_max_align_2d import roi_max_align_2d  # NOQA
+from chainer.functions.pooling.roi_max_pooling_2d import roi_max_pooling_2d  # NOQA
 from chainer.functions.pooling.roi_pooling_2d import roi_pooling_2d  # NOQA
 from chainer.functions.pooling.spatial_pyramid_pooling_2d import spatial_pyramid_pooling_2d  # NOQA
 from chainer.functions.pooling.unpooling_2d import unpooling_2d  # NOQA

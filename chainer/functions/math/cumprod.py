@@ -110,8 +110,7 @@ def cumprod(x, axis=None):
     """Cumulative prod of array elements over a given axis.
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-           :class:`cupy.ndarray`):
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
             Elements to calculate the cumulative prod.
         axis (int or None):
             Axis along which the cumulative prod is taken.

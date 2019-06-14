@@ -675,7 +675,7 @@ if __name__ == '__main__':
         os.write(fd, six.b(code))
         os.close(fd)
 
-        if self.shared_mem is not None and dataset is 'infinite_wait':
+        if self.shared_mem is not None and dataset == 'infinite_wait':
             stdout = subprocess.PIPE
         else:
             stdout = None

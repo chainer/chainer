@@ -13,19 +13,25 @@ Distributions
 .. autosummary::
    :toctree: generated/
    :nosignatures:
-   
+
    chainer.distributions.Bernoulli
    chainer.distributions.Beta
    chainer.distributions.Categorical
+   chainer.distributions.Cauchy
+   chainer.distributions.Chisquare
    chainer.distributions.Dirichlet
    chainer.distributions.Exponential
    chainer.distributions.Gamma
+   chainer.distributions.Geometric
+   chainer.distributions.Gumbel
+   chainer.distributions.Independent
    chainer.distributions.Laplace
    chainer.distributions.LogNormal
    chainer.distributions.MultivariateNormal
    chainer.distributions.Normal
    chainer.distributions.OneHotCategorical
    chainer.distributions.Pareto
+   chainer.distributions.Poisson
    chainer.distributions.Uniform
 
 
@@ -37,7 +43,7 @@ Functionals of distribution
 .. autosummary::
   :toctree: generated/
   :nosignatures:
-  
+
   chainer.cross_entropy
   chainer.kl_divergence
   chainer.register_kl

@@ -1,38 +1,63 @@
-import collections
+from __future__ import absolute_import
 import copy
-import heapq
 import traceback
+import typing as tp  # NOQA
 import warnings
 import weakref
 
 import numpy
-import six
 
 import chainer
-from chainer import _backprop_utils
+from chainer import _backprop
 from chainer import backend
+from chainer.backends import _cpu
 from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import initializers
 from chainer.initializers import constant
+from chainer import types  # NOQA
+import chainer.utils._collections
 from chainer.utils import argument
+import chainerx
 
 
-def _check_grad_type(func, x, gx):
-    if x.data is None or gx is None:
-        # ``x.data is None`` implies that the data array is not retained
+def _check_grad_type(func, x, is_node_x, gx):
+    # TODO(niboshi): Write comment about is_node_x
+    assert gx is not None
+
+    # TODO(kataoka): avoid `isinstance`
+    x_data = None if isinstance(x, _ChainerxVariableNodeProps) else x.data
+
+    # TODO(kataoka): Make _update_data_info store the array module.
+    # ``is_node_x and x_data is None`` implies that the data array is not
+    # retained.
+    # ``not is_node_x and x_data is None`` implies that grad of uninitialized
+    # variable is checked here.
+
+    if x_data is None and not is_node_x:
+        # TODO(kataoka): This should be an error.
         return
-    if not chainer.is_arrays_compatible((gx, x.data)):
+    if x.dtype is None or x.shape is None:
+        # unretained Variable(None)
+        # TODO(kataoka): This should be an error.
+        return
+
+    if not isinstance(gx, chainer.get_array_types()):
+        msg = ('Type of grad is invalid:\n'
+               + 'Expected: Any of {}\n'.format(chainer.get_array_types())
+               + 'Actual: {}'.format(type(gx)))
+        typ = TypeError
+    elif x_data is not None and not chainer.is_arrays_compatible((gx, x_data)):
         msg = ('Type of data and grad mismatch\ngrad: %s != data: %s' %
-               (type(gx), type(x.data)))
+               (type(gx), type(x_data)))
         typ = TypeError
-    elif gx.dtype != x.data.dtype:
+    elif gx.dtype != x.dtype:
         msg = ('Dtype of data and grad mismatch\ngrad: %s != data: %s' %
-               (gx.dtype, x.data.dtype))
+               (gx.dtype, x.dtype))
         typ = TypeError
-    elif gx.shape != x.data.shape:
+    elif gx.shape != x.shape:
         msg = ('Shape of data and grad mismatch\ngrad: %s != data: %s' %
-               (gx.shape, x.data.shape))
+               (gx.shape, x.shape))
         typ = ValueError
     else:
         return
@@ -50,7 +75,7 @@ def _check_grad_type(func, x, gx):
 Please report this error to the issue tracker with the stack trace,
 the information of your environment, and your script:
 https://github.com/chainer/chainer/issues/new.
-'''.format(type(func).__name__, func.label)
+'''
 
     raise typ(detail + msg)
 
@@ -62,11 +87,7 @@ def variable_repr(var):
         var (~chainer.Variable): Input Variable.
     .. seealso:: numpy.array_repr
     """
-    xp = backend.get_array_module(var)
-    if xp is numpy:
-        arr = var.data
-    else:
-        arr = var.data.get()
+    arr = _cpu._to_cpu(var.array)
 
     if var.name:
         prefix = 'variable ' + var.name
@@ -90,11 +111,7 @@ def variable_str(var):
         var (~chainer.Variable): Input Variable.
     .. seealso:: numpy.array_str
     """
-    xp = backend.get_array_module(var)
-    if xp is numpy:
-        arr = var.data
-    else:
-        arr = var.data.get()
+    arr = _cpu._to_cpu(var.array)
 
     if var.name:
         prefix = 'variable ' + var.name
@@ -144,7 +161,7 @@ class VariableNode(object):
     :class:`~chainer.Variable`.
 
     Args:
-        variable (Variable): The corresponding variable object.
+        variable (~chainer.Variable): The corresponding variable object.
         name (str): Name of the variable node.
 
     Attributes:
@@ -155,13 +172,15 @@ class VariableNode(object):
     """
 
     _creator_node = None
-    _data = None
-    _rank = 0
+    _data = None  # type: types.NdArray
+    _rank = 0  # type: int
     # Name of the Function is assigned if this variable is a gradient generated
     # by an old-style Function
-    _old_style_grad_generator = None
+    _old_style_grad_generator = None  # type: str
 
     def __init__(self, variable, name, **kwargs):
+        # type: (Variable, tp.Optional[str], **tp.Any) -> None
+
         if kwargs:
             argument.check_unexpected_kwargs(
                 kwargs,
@@ -285,12 +304,12 @@ class VariableNode(object):
 
         """
         var = self._variable()
-        return None if var is None else var._grad_var
+        return None if var is None else var.grad_var
 
     def _set_grad_var_if_available(self, g):
         var = self._variable()
         if var is not None:
-            var._grad_var = g
+            var._set_grad_var_without_check(g)
 
     @property
     def label(self):
@@ -318,16 +337,17 @@ class VariableNode(object):
         this node object and returns it.
 
         Returns:
-            Variable: The variable object that refers this node.
+            ~chainer.Variable: The variable object that refers this node.
 
         """
         var = self._variable()
         if var is not None:
             return var
-
-        var = Variable(self.data, name=self.name,
-                       requires_grad=self._requires_grad)
-        var._node = self
+        var = Variable._init_unchecked(
+            self.data,
+            name=self.name,
+            requires_grad=self.requires_grad,
+            node=self)
         return var
 
     def get_variable_or_none(self):
@@ -338,7 +358,7 @@ class VariableNode(object):
         returns ``None``.
 
         Returns:
-            Variable: The variable object that refers this node.
+            ~chainer.Variable: The variable object that refers this node.
 
         """
         return self._variable()
@@ -412,9 +432,11 @@ class VariableNode(object):
                 self._old_style_grad_generator)
 
 
-def _create_variable(data, name, grad, requires_grad):
-    return Variable(
+def _create_variable(data, name, grad, requires_grad, device):
+    var = Variable(
         data, name=name, grad=grad, requires_grad=requires_grad)
+    var.to_device(device)
+    return var
 
 
 class Variable(object):
@@ -460,38 +482,105 @@ class Variable(object):
         * Negation (Arithmetic): ``- a`` (:meth:`__neg__`)
         * Absolute value: ``abs(a)`` (:meth:`__abs__`)
 
-    .. warning::
-
-       ``volatile`` argument is not supported anymore since v2.
-       Instead, use :func:`chainer.no_backprop_mode`.
-
     Args:
-        data (numpy.ndarray or cupy.ndarray): Initial data array.
+        data (:ref:`ndarray`): Initial data array.
         name (str): Name of the variable.
-        grad (numpy.ndarray or cupy.ndarray): Initial gradient array.
+        grad (:ref:`ndarray`): Initial gradient array.
         requires_grad (bool): Boolean indicating whether ``grad`` will be set
             in backward calculation.
 
-    """  # NOQA
+    """
+
+    # Cached value of `self.xp is chainerx`. It prevents from initializing
+    # self._device as much as possible because it is really costly.
+    _has_chainerx_array = False
+
+    # Cached grad-stopped view of chainerx array. This is the return value
+    # of `array` and `data` properties.
+    _chainerx_nobp_array_cache = None
+
+    # Cached grad-stopped view of the array returned by `grad` property.
+    # It's a 2-element tuple, where the first is the original grad array and
+    # the second is a grad-stopped view of the first. `grad` property returns
+    # the second element.
+    _chainerx_grad_cache = None
+
+    _chainerx_name = None  # type: tp.Optional[str]
+
+    # A NumPy, CuPy array cache to avoid redundant conversions between
+    # NumPy/CuPy and ChainerX.
+    # TODO(hvy): Avoid modifying this variable from outside this class.
+    _chainerx_fallback_array = None
+
+    # Used in non-ChainerX variables. The gradient array is stored in
+    # this attribute on Variable.grad setter to delay creation of grad_var
+    # instance.
+    _grad = None
 
     def __init__(self, data=None, **kwargs):
+        # type: (tp.Optional[types.NdArray], **tp.Any) -> None
+
         name, grad, requires_grad = argument.parse_kwargs(
             kwargs, ('name', None), ('grad', None), ('requires_grad', True),
             volatile='volatile argument is not supported anymore. '
-            'Use chainer.using_config')
-        if (data is not None and
-                not isinstance(data, chainer.get_array_types())):
-            msg = '''numpy.ndarray or cuda.ndarray are expected.
-Actual: {0}'''.format(type(data))
-            raise TypeError(msg)
+                     'Use chainer.using_config')
+        assert isinstance(requires_grad, bool)
+        if data is not None:
+            array_types = chainer.get_array_types()
+            if not isinstance(data, array_types):
+                msg = '{} or {} are expected. Actual: {}'.format(
+                    ', '.join([str(at) for at in array_types[:-1]]),
+                    array_types[-1], type(data))
+                raise TypeError(msg)
 
+        self._init_impl(data, None, name, grad, requires_grad, None, None)
+
+    @staticmethod
+    def _init_unchecked(data=None, device=None, name=None, grad=None,
+                        requires_grad=True, is_chainerx_array=None, node=None):
+        """Creates a new :class:`Variable` without the validations for
+        optimizing performance.
+        """
+
+        # Create a Variable without invoking __init__
+        var = Variable.__new__(Variable)
+        var._init_impl(
+            data, device, name, grad, requires_grad, is_chainerx_array, node)
+        return var
+
+    def _init_impl(self, data, device, name, grad, requires_grad,
+                   is_chainerx_array, node):
         # Use a list as a data structure to hold the data array indirectly to
         # abstract its initialized/uninitialized state.
-        self._data = [data]
-        self._requires_grad = requires_grad
-        self._node = VariableNode(self, name)
-        self._grad_var = None if grad is None else Variable(grad)
+
+        # `device` must be of type chainer.backend.Device.
+        # Check is skipped for performance.
+
+        self._requires_grad = requires_grad  # type: bool
         self._loss_scale = None
+        self._grad_var = None
+        self._device = device
+
+        if is_chainerx_array is None:
+            is_chainerx_array = isinstance(data, chainerx.ndarray)
+
+        if is_chainerx_array:
+            if not requires_grad and grad is not None:
+                raise ValueError(
+                    'Cannot initialize a variable with gradients if the '
+                    'require_grad argument is False.')
+            self._set_chainerx_array(data, grad)  # type: ignore
+
+            # ChainerX itself has own node objects, but not exposed to python.
+            self._node = None  # type: tp.Optional[VariableNode]
+            self._chainerx_name = name
+        else:
+            self._data = [data]  # type: tp.List[tp.Optional[types.NdArray]]
+            if node is None:
+                self._node = VariableNode(self, name)
+            else:
+                self._node = node
+            self._grad = grad
 
     def __copy__(self):
         return self._copy_to(Variable())
@@ -502,8 +591,9 @@ Actual: {0}'''.format(type(data))
         return target
 
     def __reduce__(self):
-        return _create_variable, (self.array, self.name, self.grad,
-                                  self._requires_grad)
+        args = (
+            self.array, self.name, self.grad, self._requires_grad, self.device)
+        return _create_variable, args
 
     def __repr__(self):
         return variable_repr(self)
@@ -511,22 +601,112 @@ Actual: {0}'''.format(type(data))
     def __str__(self):
         return variable_str(self)
 
+    def _clear_chainerx(self):
+        self._chainerx_nobp_array_cache = None
+        self._chainerx_grad_cache = None
+        self._chainerx_fallback_array = None
+
+    def _ensure_grad_var_up_to_date(self):
+        # For non-ChainerX, this method creates _grad_var if it's not yet
+        # created and _grad is set.
+        # For ChainerX, this method checks consistency between
+        # _grad_var._data[0] and self._data[0].grad and recreates _grad_var
+        # as necessary. (chainerx.ndarray.grad can be altered independently
+        # from chainer)
+        if self._has_chainerx_array:
+            self._grad = None
+            # Update gradient variable if it has not yet been initialized or
+            # it happens to be dirty w.r.t. the actual gradient of the
+            # underlying chainerx.ndarray.
+            arr = self._data[0]
+            actual_grad = (
+                arr.grad
+                if arr is not None and arr.is_grad_required()
+                else None)
+            if actual_grad is None:
+                self._grad_var = None
+            else:
+                grad_var = self._grad_var
+                old_grad = None if grad_var is None else grad_var._data[0]
+                if actual_grad is not old_grad:
+                    self._grad_var = Variable(
+                        actual_grad,
+                        requires_grad=actual_grad.is_backprop_required())
+            return
+
+        if self._grad_var is None:
+            if self._grad is not None:
+                self._grad_var = Variable(self._grad)
+
+    def _set_chainerx_array(self, array, grad):
+        # type: (tp.Optional[chainerx.ndarray], tp.Optional[chainerx.ndarray]) -> None # NOQA
+
+        # Sets chainerx array and grad.
+        assert array is None or isinstance(array, chainerx.ndarray)
+        requires_grad = self._requires_grad
+
+        self._grad = None
+
+        if (not requires_grad
+                and array is not None
+                and array.is_backprop_required()):
+            raise ValueError(
+                'Cannot initialize a variable to not require '
+                'gradients if the ChainerX array already requires '
+                'backprop.')
+
+        # Create a view of the given data to hold internally and modify.
+        if array is None:
+            self._data = [None]
+        else:
+            # If the array `array` is not connected to a graph, a view of it is
+            # created and kept, in order not to change the no-graph status of
+            # it. If the array is connected, the graph status is kept track of.
+            if not array.is_backprop_required():
+                array = array.view()
+            if requires_grad:
+                array.require_grad()
+                if grad is not None:
+                    array.set_grad(grad)
+            self._data = [array]
+
+        self._has_chainerx_array = True  # even if data is None
+        self._chainerx_nobp_array_cache = None
+        self._chainerx_grad_cache = None
+        self._chainerx_fallback_array = None
+
+    @property
+    def device(self):
+        """Device on which the data array of this variable reside."""
+        # lazy initialization for performance
+        if self._device is None:
+            if self._data[0] is None:
+                self._device = backend.CpuDevice()
+            else:
+                self._device = backend.get_device_from_array(self._data[0])
+        return self._device
+
     @property
     def xp(self):
-        """Array module for this variable.
-
-        Depending on which of CPU/GPU this variable is on, this property
-        returns :mod:`numpy` or :mod:`cupy`.
-
-        """
-        return backend.get_array_module(self)
+        # type: () -> tp.Optional[types.Xp]
+        """Array module for the data array of this variable."""
+        if self._has_chainerx_array:
+            return chainerx
+        else:
+            device = self.device
+            return None if device is None else device.xp
 
     @property
     def name(self):
+        if self._has_chainerx_array:
+            return self._chainerx_name
         return self._node.name
 
     @name.setter
     def name(self, n):
+        if self._has_chainerx_array:
+            self._chainerx_name = n
+            return
         self._node.name = n
 
     def summary(self):
@@ -549,8 +729,9 @@ Actual: {0}'''.format(type(data))
         stats_msg = 'mean={0:.8f}, std={1:.8f}'
 
         array = self.array
-        with cuda.get_device_from_array(array) as dev:
-            xp = numpy if int(dev) == -1 else cuda.cupy
+        device = self.device
+        with chainer.using_device(device):
+            xp = device.xp
 
             if array is None:
                 # `array` can be `None` if constructed without any arguments
@@ -592,6 +773,9 @@ Actual: {0}'''.format(type(data))
     @property
     def label(self):
         """Short text that represents the variable."""
+        if self._has_chainerx_array:
+            raise RuntimeError(
+                'A variable of ChainerX does not provide a node label.')
         return self._node.label
 
     @property
@@ -607,10 +791,16 @@ Actual: {0}'''.format(type(data))
         property returns that node object.
 
         """
+        if self._has_chainerx_array:
+            raise RuntimeError(
+                'A variable of ChainerX does not provide a creator.')
         return self._node.creator
 
     @creator.setter
     def creator(self, func):
+        if self._has_chainerx_array:
+            raise RuntimeError(
+                'A variable of ChainerX does not provide a creator.')
         self._node.creator = func
 
     @property
@@ -632,29 +822,79 @@ Actual: {0}'''.format(type(data))
            object.
 
         """
+        if self._has_chainerx_array:
+            raise RuntimeError(
+                'A variable of ChainerX does not provide a creator_node.')
         return self._node._creator_node
 
     @creator_node.setter
     def creator_node(self, func):
+        if self._has_chainerx_array:
+            raise RuntimeError(
+                'A variable of ChainerX does not provide a creator_node.')
         self._node.creator_node = func
 
     @property
     def array(self):
+        # type: () -> tp.Optional[types.NdArray]
         """The underlying data array.
 
         It is either :class:`numpy.ndarray` or :class:`cupy.ndarray` object,
         or ``None`` if the variable in in an uninitialized state.
 
         """
+        # For ChainerX, this property always returns a grad-stopped view.
+        # The view is cached to reduce potential overhead.
+        if self._has_chainerx_array:
+            if (self._chainerx_nobp_array_cache is None
+                    and self._data[0] is not None):
+                self._chainerx_nobp_array_cache = (
+                    self._data[0].as_grad_stopped())  # type: ignore
+            return self._chainerx_nobp_array_cache
+
         return self._data[0]
 
     @array.setter
     def array(self, d):
-        self._data[0] = d
-        self._node._update_data_info(d)
+        # type: (tp.Optional[types.NdArray]) -> None
+
+        if self._has_chainerx_array:
+            d_old = self._data[0]
+            if (d_old is not None
+                    and (d_old.is_backprop_required()  # type: ignore
+                         or d.is_backprop_required())):  # type: ignore
+                raise ValueError(
+                    'Cannot update the array of a Variable if either the '
+                    'existing or the new array requires backprop.')
+
+            self._set_chainerx_array(d, None)  # type: ignore
+        else:
+            self._node._update_data_info(d)  # type: ignore # _node doesn't have value when xp is chainerx # NOQA
+            self._data[0] = d
+            self._has_chainerx_array = False
+
+    @property
+    def chx_array(self):
+        """A view of the raw ChainerX array.
+
+        In contrary to :data:`Variable.array` which is always disconnected,
+        the array represented by this attribute may be connected to the
+        computational graph.
+
+        It is a view, so it has a distinct gradient from the original array.
+
+        If this attribute is queried on a :class:`Variable` with a non-ChainerX
+        array, :class:`ValueError` will be raised.
+        """
+        if not self._has_chainerx_array:
+            raise ValueError(
+                'chx_array is not available for Variable with '
+                'non-ChainerX array.')
+        return self._data[0].view()
 
     @property
     def data(self):
+        # type: () -> tp.Optional[types.NdArray]
         """The underlying data array (equivalent to :attr:`array`).
 
         Note that using this attribute directly is discouraged; use
@@ -664,39 +904,125 @@ Actual: {0}'''.format(type(data))
         ``.data``.
 
         """
-        return self._data[0]
+        return self.array
 
     @data.setter
     def data(self, d):
-        self._data[0] = d
-        self._node._update_data_info(d)
+        # type: (types.NdArray) -> None
+
+        self.array = d
+
+    def _set_chainerx_grad(self, g, from_grad_var):
+        # Assigns chainerx.ndarray.grad.
+        #
+        # If the main array is connected to the graph, in order to enable
+        # double-backprop, the grad will also be backprop-required
+        # (a view is created not to affect the given grad).
+        # If the given grad is from a grad_var, this operation is skipped,
+        # as the status of the given grad reflects the necessity of
+        # double-backprop.
+        assert self.xp is chainerx
+        if not self._requires_grad and g is not None:
+            raise RuntimeError(
+                'Cannot set the gradient of a variable that is flagged to not '
+                'require one.')
+        arr = self._data[0]
+        if arr is None:
+            if g is not None:
+                raise RuntimeError(
+                    'Cannot set a gradient to an empty variable')
+        elif arr.is_backprop_required():
+            # If g is grad-stopped, require grad on it.
+            # Make a view in order not to affect the input.
+            if (g is not None
+                    and not from_grad_var
+                    and not g.is_backprop_required()):
+                g = g.view().require_grad()
+            arr.set_grad(g)
+
+    def _set_grad_without_check(self, g):
+        if self._has_chainerx_array:
+            self._set_chainerx_grad(g, False)
+            self._grad_var = None
+            return
+
+        self._grad = g
+        self._grad_var = None
 
     @property
     def grad(self):
+        # type: () -> tp.Optional[types.NdArray]
         """Gradient array of this variable.
 
         Note that this property returns the underlying array of the gradient
         variable instead of the gradient variable itself; to get/set
         gradient variable, use :attr:`grad_var` instead.
 
+        If the underlying array is a :class:`chainerx.ndarray` and
+        requires_grad is false, trying to access the gradient will results in
+        and error.
+
         """
-        gv = self._grad_var
-        return None if gv is None else gv.array
+        if self._has_chainerx_array:
+            arr = self._data[0]
+            if arr is None or not arr.is_backprop_required():
+                self._chainerx_grad_cache = None
+                return None
+
+            actual_grad = arr.grad
+
+            if actual_grad is None:
+                self._chainerx_grad_cache = None
+                return None
+
+            # If grad is cached and the actual grad has not changed, return
+            # the cache.
+            if self._chainerx_grad_cache is not None:
+                orig_grad, grad_stopped_grad = self._chainerx_grad_cache
+                if orig_grad is actual_grad:
+                    return grad_stopped_grad
+
+            # Update the cache
+            grad_stopped_grad = actual_grad.as_grad_stopped()
+            self._chainerx_grad_cache = (actual_grad, grad_stopped_grad)
+
+            return grad_stopped_grad
+
+        if self._grad_var is not None:
+            return self._grad_var.array
+        return self._grad
 
     @grad.setter
     def grad(self, g):
-        self.grad_var = None if g is None else Variable(g)
+        # type: (tp.Optional[types.NdArray]) -> None
+        if g is not None:
+            _check_grad_type(None, self, False, g)
+        self._set_grad_without_check(g)
+
+    def _set_grad_var_without_check(self, gv):
+        if self._has_chainerx_array:
+            self._set_chainerx_grad(
+                None if gv is None else gv._data[0],
+                True)
+            self._grad_var = gv
+            return
+
+        self._grad_var = gv
+        self._grad = None if gv is None else gv.array
 
     @property
     def grad_var(self):
+        # type: () -> tp.Optional["Variable"]
         """Gradient variable."""
+        self._ensure_grad_var_up_to_date()
         return self._grad_var
 
     @grad_var.setter
     def grad_var(self, g):
+        # type: (tp.Optional["Variable"]) -> None
         if g is not None:
-            _check_grad_type(None, self, g.array)
-        self._grad_var = g
+            _check_grad_type(None, self, False, g.array)
+        self._set_grad_var_without_check(g)
 
     @property
     def shape(self):
@@ -716,10 +1042,16 @@ Actual: {0}'''.format(type(data))
 
     @property
     def rank(self):
+        if self._has_chainerx_array:
+            raise RuntimeError(
+                'A variable of ChainerX does not provide a node rank.')
         return self._node.rank
 
     @property
     def node(self):
+        if self._has_chainerx_array:
+            raise RuntimeError(
+                'A variable of ChainerX does not provide a node.')
         return self._node
 
     @property
@@ -734,24 +1066,7 @@ Actual: {0}'''.format(type(data))
 
     def to_cpu(self):
         """Copies the data and gradient arrays to CPU."""
-
-        array = self.array
-        if array is None:
-            return
-
-        if isinstance(array, cuda.ndarray):
-            # cupy.ndarray to numpy.ndarray
-            self._data = [cuda.to_cpu(array)]
-        elif isinstance(array, intel64.mdarray):
-            # ideep.mdarray to numpy.ndarray
-            self._data = [numpy.array(array)]
-
-        if self._grad_var is not None:
-            self._grad_var.to_cpu()
-        # ensure that the node tracks the device migration
-        node = self._node
-        if node._data is not None:
-            node.retain_data()
+        self.to_device(backend.CpuDevice())
 
     def to_gpu(self, device=None):
         """Copies the data and gradient arrays to specified GPU.
@@ -761,16 +1076,8 @@ Actual: {0}'''.format(type(data))
                 used.
 
         """
-        if self.array is None:
-            self._data = [None]  # Renew placeholder to break sharing
-        else:
-            self._data = [cuda.to_gpu(self.array, device)]
-            if self._grad_var is not None:
-                self._grad_var.to_gpu(device)
-            # ensure that the node tracks the device migration
-            node = self._node
-            if node._data is not None:
-                node.retain_data()
+        cuda.check_cuda_available()
+        self.to_device(cuda._get_device_or_current(device))
 
     def to_intel64(self):
         """Copies the data and gradient arrays to intel64 specific mdarray.
@@ -779,57 +1086,187 @@ Actual: {0}'''.format(type(data))
         :class:`numpy.ndarray`.
         """
         intel64.check_ideep_available()
-        array = self.array
-        if array is not None:
-            if isinstance(array, cuda.ndarray):
-                # cupy.ndarray to numpy.ndarray
-                array = array.get()
-            if (isinstance(array, numpy.ndarray) and array.ndim in (1, 2, 4)):
-                # TODO(kmaehashi): Remove ndim validation once iDeep has fixed.
-                # Currently iDeep only supports (1, 2, 4)-dim arrays.
-                # Note that array returned from `ideep.array` may not be an
-                # iDeep mdarray, e.g., when the dtype is not float32.
-                array = intel64.ideep.array(
-                    array, itype=intel64.ideep.wgt_array)
-            self._data = [array]
+        self.to_device(intel64.Intel64Device())
 
-        if self._grad_var is not None:
-            self._grad_var.to_intel64()
+    def to_chx(self):
+        """Converts the array and gradient to ChainerX arrays without copy.
+
+        This method converts the underlying array and gradient to
+        :class:`chainerx.ndarray` on the same physical device. It does nothing
+        if the array held by the Variable object is already a ChainerX array.
+        The new array is a view of the original one.
+
+        """
+        self._to_chx(allow_unchaining=False)
+
+    def _to_chx(self, allow_unchaining):
+        if not chainerx.is_available():
+            raise RuntimeError('ChainerX is not available.')
+
+        if self._has_chainerx_array:
+            return
+
+        if not allow_unchaining and self.creator is not None:
+            raise RuntimeError(
+                'A variable with a creator cannot be converted into ChainerX '
+                'array')
+
+        array = self.array
+        grad = self.grad
+        if array is None and grad is not None:
+            # TODO(hvy): Reconsider this possibly invalid state.
+            raise RuntimeError(
+                'A variable without data but with a gradient cannot be '
+                'transferred to a ChainerX device.')
+
+        self._to_device(
+            backend.ChainerxDevice.from_fallback_device(self.device),
+            allow_unchaining)
+
+    def from_chx(self):
+        """Converts the array and gradient to non-ChainerX arrays without copy.
+
+        This method converts the underlying ChainerX array and gradient
+        residing in either a ``native`` or ``cuda`` device to NumPy or CuPy
+        arrays respectively, on their same physical device. It does nothing
+        if the array held by the Variable object is not a ChainerX array. The
+        new array is a view of the original one.
+
+        Raises an error if such a conversion is not supported for the device.
+
+        """
+        self._from_chx(allow_unchaining=False)
+
+    def _from_chx(self, allow_unchaining):
+        if not self._has_chainerx_array:
+            return
+
+        if not allow_unchaining and self._data[0].is_backprop_required():
+            raise RuntimeError(
+                'Cannot convert from a Variable with a ChainerX array that is '
+                'connected to a graph.')
+
+        self.to_device(self.device.fallback_device)
+
+    def to_device(self, device):
+        """Copies the data and gradient arrays to specified device.
+
+        Args:
+            device: Target device specifier. See
+                :func:`~chainer.get_device` for available values.
+
+        """
+        self._to_device(device, allow_unchaining=False)
+
+    def _to_device(self, device, allow_unchaining):
+        device = chainer.get_device(device)
+
+        was_chainerx = self._has_chainerx_array
+        is_chainerx = device.xp is chainerx
+
+        if not allow_unchaining:
+            if was_chainerx and not is_chainerx:
+                chx_arr = self._data[0]
+                if chx_arr is not None and chx_arr.is_backprop_required():
+                    raise RuntimeError(
+                        'A variable of a ChainerX array which requires '
+                        'gradients cannot be copied into non-chainerx device '
+                        '({}).'.format(device))
+            elif not was_chainerx and is_chainerx:
+                arr = self._data[0]
+                if arr is not None and self.creator is not None:
+                    raise RuntimeError(
+                        'A variable of a non-ChainerX array which is '
+                        'connected to a graph cannot be copied to a ChainerX '
+                        'device ({}).'.format(device))
+
+        arr = self._data[0]
+        grad_var = self.grad_var
+
+        if was_chainerx and not is_chainerx:
+            self._clear_chainerx()
+            self._node = VariableNode(self, self._chainerx_name)
+        elif not was_chainerx and is_chainerx:
+            self._chainerx_name = self._node.name
+
+        self._device = device
+        self._has_chainerx_array = is_chainerx
+
+        if arr is None:
+            return
+
+        if backend.get_device_from_array(arr) == device:
+            return
+
+        new_arr = device.send(arr)
+        if is_chainerx:
+            if grad_var is None:
+                new_grad = None
+            else:
+                new_grad = device.send(grad_var._data[0])
+            self._set_chainerx_array(new_arr, new_grad)
+        else:
+            self._data = [new_arr]
+            if grad_var is not None:
+                grad_var._to_device(device, allow_unchaining=allow_unchaining)
+                # _grad has been invalidated by the line above.
+                self._grad = grad_var.array
+
         # ensure that the node tracks the device migration
         node = self._node
-        if node._data is not None:
-            node.retain_data()
+        if is_chainerx:
+            # ChainerX itself has own node objects,
+            # ensure that the node is disconnected with this variable.
+            if node is not None:
+                # Disconnect by replacing with an alternative of dead weakref
+                node._variable = lambda: None
+                self._node = None
+        else:
+            if node._data is not None:
+                node.retain_data()
 
     def cleargrad(self):
         """Clears the gradient array."""
-        self._grad_var = None
+        self.grad_var = None
 
     def zerograd(self):
         """Initializes the gradient array by zeros.
 
+
         Note that the gradient variable is unchained from the computational
-        graph by this method because this operation breaks the backprop
+        graph by this method, because this operation breaks the backprop
         validity.
 
         .. deprecated:: v1.15
-           Use :meth:`cleargrad` instead.
+           Use more efficient  :meth:`cleargrads` instead.
 
         """
         warnings.warn(
             'Variable.zerograd is deprecated. Use Variable.cleargrad instead.',
             DeprecationWarning)
 
-        if self.array is None:
+        arr = self.array
+        if arr is None:
             return
 
-        with cuda.get_device_from_array(self.array) as dev:
-            gv = self._grad_var
+        if self._has_chainerx_array:
+            gv = self.grad_var
             if gv is None:
-                xp = numpy if dev.id == -1 else cuda.cupy
-                self.grad = xp.zeros_like(self.array)
+                self.grad = chainerx.zeros_like(
+                    arr, device=self.device.device)
             else:
-                gv.unchain()
-                gv.array.fill(0)
+                gv._data[0].fill(0)
+        else:
+            with chainer.using_device(self.device):
+                xp = self.device.xp
+                if self._grad is None:
+                    self._grad = xp.zeros_like(arr)
+                    self._grad_var = None
+                else:
+                    gv = self._grad_var
+                    if gv is not None:
+                        gv.unchain()
+                    self._grad.fill(0)
 
     def copydata(self, var):
         """Copies the data array from given source variable.
@@ -844,7 +1281,7 @@ Actual: {0}'''.format(type(data))
         does nothing.
 
         Args:
-            var (Variable): Source variable.
+            var (~chainer.Variable): Source variable.
 
         """
         src = var.array
@@ -869,23 +1306,33 @@ Actual: {0}'''.format(type(data))
         then accumulates the gradient.
 
         Args:
-            var (Variable): Source variable.
+            var (~chainer.Variable): Source variable.
 
         """
-        src = var._grad_var
-        if src is None:
+        dst_device = self.device
+        is_chainerx = dst_device.xp is chainerx
+
+        if is_chainerx != (var.device.xp is chainerx):
+            raise RuntimeError(
+                'Variable.addgrad does not support addition between '
+                'gradients on non-ChainerX and ChainerX devices.\n'
+                'Adding gradient to: {}\n'
+                'Adding gradient from: {}'.format(
+                    dst_device, var.device))
+
+        if var.grad is None:
             return
+
+        src = var.grad_var
 
         if self.array is None:
             self.initialize(var.shape)
-        dst = self._grad_var
 
-        src_dev = cuda.get_device_from_array(src.array)
-        dst_dev = cuda.get_device_from_array(self.array)
-
-        if src_dev.id != dst_dev.id:
-            src = chainer.functions.copy(src, dst_dev.id)
-        self._grad_var = src if dst is None else src + dst
+        dst = self.grad_var
+        src_device = src.device
+        if src_device != dst_device:
+            src = chainer.functions.copy(src, dst_device)
+        self.grad_var = src if dst is None else src + dst
 
     def set_creator(self, gen_func):
         """Notifies the variable that the given function is its creator.
@@ -895,6 +1342,9 @@ Actual: {0}'''.format(type(data))
                 one of its outputs.
 
         """
+        if self._has_chainerx_array:
+            raise RuntimeError(
+                'A variable of ChainerX does not provide a creator.')
         self._node.set_creator(gen_func)
 
     def set_creator_node(self, fnode):
@@ -905,6 +1355,9 @@ Actual: {0}'''.format(type(data))
                 output.
 
         """
+        if self._has_chainerx_array:
+            raise RuntimeError(
+                'A variable of ChainerX does not provide a creator node.')
         self._node.set_creator_node(fnode)
 
     def backward(self, retain_grad=False, enable_double_backprop=False,
@@ -941,7 +1394,8 @@ Actual: {0}'''.format(type(data))
 
                 In most cases of training some models, the purpose of backprop
                 is to compute gradients of parameters, not of all variables,
-                and therefore it is recommended to set this flag ``False``.
+                and therefore it is recommended that this flag be set to
+                ``False``.
             enable_double_backprop (bool): *(Added in v3.0)* If ``True``,
                 computational trace of the whole backpropagation procedure is
                 recorded to the computational graph so that one can further do
@@ -959,116 +1413,56 @@ Actual: {0}'''.format(type(data))
                 parameters are divided by the factor just before the parameters
                 are to be updated.
         """
-        with chainer.using_config('enable_backprop', enable_double_backprop):
-            self._backward_main(retain_grad, loss_scale)
-
-    def _backward_main(self, retain_grad, loss_scale):
-        self._node._check_old_style_gradient()
-        if self.creator_node is None:
+        if self._has_chainerx_array:
+            if retain_grad:
+                raise RuntimeError(
+                    'retain_grad is not supported for ChainerX array.')
+            if loss_scale is not None:
+                raise RuntimeError(
+                    'loss_scale is not supported for ChainerX array.')
+            arr = self._data[0]
+            assert isinstance(arr, chainerx.ndarray)
+            chainerx.backward(
+                arr, enable_double_backprop=enable_double_backprop)
             return
 
-        cand_funcs = []
-        seen_set = set()
-        grads = _backprop_utils.GradTable(load_if_new=True)
-
         # Initialize error by 1, if this is a loss variable
-        if self.array.size == 1 and self._grad_var is None:
+        if self.array.size == 1 and self.grad_var is None:
             if self.array.ndim != 0:
                 warnings.warn(
-                    'Treating a scalar as a variable with only one element'
+                    'Treating a variable with only one element as a scalar'
                     ' in Variable.backward is deprecated. A scalar variable'
                     ' must be a 0-dimensional array. Apply'
                     ' chainer.functions.squeeze to obtain a scalar variable.'
                     ' If the size of this variable accidentally becomes one,'
                     ' set zero to grad.',
                     DeprecationWarning)
-            with cuda.get_device_from_array(self.array) as device:
-                if device is cuda.DummyDevice:
-                    self.grad = numpy.ones_like(self.array)
-                else:
-                    self.grad = cuda.cupy.ones_like(self.array)
+            with chainer.using_device(self.device):
+                self.grad = self.device.xp.ones_like(self.array)
             if loss_scale is not None:
                 self.grad *= loss_scale
-        grads[self._node] = self._grad_var
 
-        def add_cand(cand):
-            if cand not in seen_set:
-                # Negate since heapq is min-heap
-                heapq.heappush(cand_funcs, (-cand.rank, len(seen_set), cand))
-                seen_set.add(cand)
+        node = self.node
+        grad_var = self.grad_var
+        self.grad_var = None
 
-        add_cand(self.creator_node)
-        leaf_nodes = set()
+        with chainer.using_config('enable_backprop', enable_double_backprop):
+            # TODO(kataoka): The following line should not pass grad_var = None
+            # to _backprop_to_all, but it is working because grad_var is
+            # immediately popped away as None = _backprop_utils._reduce([None])
+            _backprop._backprop_to_all(
+                [(node, grad_var)], retain_grad, loss_scale)
 
-        while cand_funcs:
-            _, _, func = heapq.heappop(cand_funcs)
-            inputs = func.inputs
-            target_input_indexes = tuple([
-                i for i, x in enumerate(inputs) if x.requires_grad
-            ])
-            outputs = [y() for y in func.outputs]  # access via weak ref
-            out_grad = tuple([grads.pop(y) for y in outputs])
-            if not target_input_indexes:
-                continue
+    def item(self):
+        """Converts the variable with one element to a Python scalar.
 
-            in_data = tuple([x.data for x in inputs])
-            out_grad_array = tuple(
-                [None if g is None else g.array for g in out_grad])
-            hooks = chainer.get_function_hooks()
-            if func._n_local_function_hooks != 0:
-                hooks = collections.OrderedDict(hooks)
-                hooks.update(func.local_function_hooks)
-            hooks = hooks.values()  # avoid six for performance
+        This will incur host-device synchronization.
 
-            with cuda.get_device_from_array(*(in_data + out_grad_array)):
-                for hook in hooks:
-                    hook.backward_preprocess(func, in_data, out_grad_array)
+        Returns:
+            int or float: The element of the array.
 
-                # Collect the current input gradients.
-                target_inputs = [inputs[i] for i in target_input_indexes]
-                # Keep the order for the portability, rather than
-                # in_grad = {x: grads.get_as_list(x)
-                #            for x in set(target_inputs)}
-                in_grad = collections.OrderedDict()
-                for x in target_inputs:
-                    if x not in in_grad:
-                        in_grad[x] = grads.get_as_list(x)
-                        # to reduce memory usage
-                        x._set_grad_var_if_available(None)
-
-                _backprop_utils.backprop_step(
-                    func, target_input_indexes, out_grad, in_grad)
-
-                for hook in hooks:
-                    hook.backward_postprocess(func, in_data, out_grad_array)
-
-            for y, gy in six.moves.zip(outputs, out_grad):
-                if y is not None and y is not self.node:
-                    y._set_grad_var_if_available(
-                        gy if retain_grad else None)
-            del gy, out_grad  # to reduce memory usage
-
-            for x, gx in in_grad.items():
-                if not gx:  # gradient == None
-                    continue
-
-                for gx_elem in gx:
-                    _check_grad_type(func, x, gx_elem.array)
-                del gx_elem  # to reduce memory usage
-
-                if x.creator_node is None:  # leaf
-                    leaf_nodes.add(x)
-                else:
-                    add_cand(x.creator_node)
-            del gx, in_grad  # to reduce memory usage
-
-        for x in leaf_nodes:
-            x_var = x.get_variable_or_none()
-            gx = grads.pop(x)
-            if x_var is not None:
-                x_var._grad_var = gx
-                x_var._loss_scale = loss_scale
-        grads.assert_no_grads()
+        """
+        return self.array.item()
 
     def reshape(self, *shape):
         """Returns a variable of a different shape and the same content.
@@ -1105,6 +1499,9 @@ Actual: {0}'''.format(type(data))
         This method is equivalent to ``self.creator_node = None``.
 
         """
+        if self._has_chainerx_array:
+            raise RuntimeError(
+                'A variable of ChainerX does not provide an unchain method.')
         self.creator_node = None
 
     def unchain_backward(self):
@@ -1118,6 +1515,10 @@ Actual: {0}'''.format(type(data))
         this variable. This behavior is useful to implement truncated BPTT.
 
         """
+        if self._has_chainerx_array:
+            raise RuntimeError(
+                'A variable of ChainerX does not provide an unchain_backward '
+                'method.')
         cand_funcs = []
         seen_set = set()
 
@@ -1136,42 +1537,55 @@ Actual: {0}'''.format(type(data))
 
     def retain_data(self):
         """Lets the corresponding variable node keep the underlying array."""
+        if self._has_chainerx_array:
+            raise RuntimeError(
+                'A variable of ChainerX does not provide a retain_data '
+                'method.')
         self._node.data = self._data[0]
 
+    def _error_nobp_op(self, op):
+        raise TypeError(
+            'Variables do not support {} operator. '
+            'You could use `array` attribute instead.'.format(op))
+
     def __lt__(self, other):
-        """This operator is not defined for Variable."""
-        raise NotImplementedError()
+        """This operator is not supported in Variables."""
+        self._error_nobp_op('<')
 
     def __le__(self, other):
-        """This operator is not defined for Variable."""
-        raise NotImplementedError()
+        """This operator is not supported in Variables."""
+        self._error_nobp_op('<=')
 
     def __eq__(self, other):
-        """This operator is not defined for Variable."""
-        raise NotImplementedError()
+        """This operator is not supported in Variables."""
+        self._error_nobp_op('==')
 
     def __ne__(self, other):
-        """This operator is not defined for Variable."""
-        raise NotImplementedError()
+        """This operator is not supported in Variables."""
+        self._error_nobp_op('!=')
 
     def __gt__(self, other):
-        """This operator is not defined for Variable."""
-        raise NotImplementedError()
+        """This operator is not supported in Variables."""
+        self._error_nobp_op('>')
 
     def __ge__(self, other):
-        """This operator is not defined for Variable."""
-        raise NotImplementedError()
+        """This operator is not supported in Variables."""
+        self._error_nobp_op('>=')
 
     def __nonzero__(self):
-        """This operator is not defined for Variable."""
-        raise NotImplementedError()
+        """This operator is not supported in Variables."""
+        # Python 2.x
+        raise TypeError(
+            'Variables cannot be evaluated as Python bool.')
 
     def __bool__(self):
-        """This operator is not defined for Variable."""
-        raise NotImplementedError()
+        """This operator is not supported in Variables."""
+        # Python 3.x
+        raise TypeError(
+            'Variables cannot be evaluated as Python bool.')
 
-    __array_priority__ = 200
-    __hash__ = None
+    __array_priority__ = 200  # type: int
+    __hash__ = None  # type: tp.Callable[[object], int]
 
 
 class Parameter(Variable):
@@ -1195,7 +1609,7 @@ class Parameter(Variable):
     using its gradient array.
 
     Args:
-        initializer (~chainer.Initializer or numpy.ndarray or cupy.ndarray):
+        initializer (~chainer.Initializer or :ref:`ndarray`):
             Initializer of the data array. If ``shape`` is given, this
             initializer is immediately used to initialize the data array.
             Otherwise, if it is an array, it is immediately used as the data
@@ -1217,18 +1631,19 @@ class Parameter(Variable):
 
     """
 
-    initializer = None
-    _grad_initializer = None
-    _initial_backend = None
-    _initial_device = None
+    initializer = None  # type: tp.Optional[tp.Union[tp.Optional[types.AbstractInitializer], types.NdArray]] # NOQA
+    # TODO(okapies): fix the behavior when shape is None and remove NdArray
+    _grad_initializer = None  # type: tp.Optional[types.AbstractInitializer]
 
     def __init__(self, initializer=None, shape=None, name=None):
+        # type: (tp.Optional[types.InitializerSpec], tp.Optional[types.ShapeSpec], tp.Optional[str]) -> None # NOQA
+
         if initializer is None:
             initializer = constant.NaN()
         elif numpy.isscalar(initializer):
             initializer = constant.Constant(initializer)
         if shape is None:
-            if isinstance(initializer, (numpy.ndarray, cuda.ndarray)):
+            if isinstance(initializer, chainer.get_array_types()):
                 # parameter initialized by the initial array
                 super(Parameter, self).__init__(initializer, name=name)
             else:
@@ -1238,15 +1653,16 @@ class Parameter(Variable):
                 self._grad_initializer = constant.NaN(dtype)
         else:
             # parameter initialized with a given shape
-            if isinstance(initializer, (numpy.ndarray, cuda.ndarray)):
+            if isinstance(initializer, chainer.get_array_types()):
                 xp = backend.get_array_module(initializer)
                 initializer = constant.Constant(initializer)
             else:
                 xp = numpy
-            data = initializers.generate_array(initializer, shape, xp)
+            data = initializers.generate_array(initializer, shape, xp)  # type: ignore # NOQA
             grad = xp.full_like(data, numpy.nan)
             super(Parameter, self).__init__(data, name=name, grad=grad)
 
+        self._initial_device = backend.CpuDevice()
         self.update_rule = None
         self.initializer = initializer
 
@@ -1254,28 +1670,65 @@ class Parameter(Variable):
         return self._copy_to(Parameter())
 
     def __reduce__(self):
-        return _recover_parameter, (self.array, self.name, self.grad,
-                                    self.initializer, self.update_rule)
+        args = (
+            self.array, self.name, self.grad, self.initializer,
+            self.update_rule, self.device)
+        return _recover_parameter, args
 
     def to_cpu(self):
-        super(Parameter, self).to_cpu()
-        if self.array is None:
-            self._initial_backend = None
-            self._initial_device = None
+        return self.to_device(backend.CpuDevice())
 
     def to_gpu(self, device=None):
-        super(Parameter, self).to_gpu(device)
-        if self.array is None:
-            if device is None:
-                device = cuda.Device().id
-            self._initial_backend = 'cuda'
-            self._initial_device = device
+        device = chainer.get_device(cuda._get_device_or_current(device))
+        assert device.xp is cuda.cupy
+        self.to_device(device)
 
     def to_intel64(self):
-        super(Parameter, self).to_intel64()
-        if self.array is None:
-            self._initial_backend = 'intel64'
-            self._initial_device = None
+        self.to_device(intel64.Intel64Device())
+
+    def to_chx(self):
+        if not chainerx.is_available():
+            raise RuntimeError('ChainerX is not available.')
+
+        # Derive the target ChainerX device from the array if it is
+        # initialized. Otherwise, from the current initial device.
+        if self.array is not None:
+            device = backend.get_device_from_array(self.array)
+        else:
+            device = self._initial_device
+
+        if device.xp is numpy:
+            self._initial_device = backend.ChainerxDevice(
+                chainerx.get_device('native:0'))
+        elif device.xp is cuda.cupy:
+            self._initial_device = backend.ChainerxDevice(
+                chainerx.get_device('cuda:{}'.format(device.device.id)))
+
+        super(Parameter, self)._to_chx(allow_unchaining=True)
+
+    def from_chx(self):
+        if self.array is not None:
+            device = backend.get_device_from_array(self.array)
+        else:
+            device = self._initial_device
+
+        if device.xp is chainerx:
+            backend_name = device.device.backend.name
+            if backend_name == 'native':
+                self._initial_device = backend.CpuDevice()
+            elif backend_name == 'cuda':
+                self._initial_device = backend.GpuDevice.from_device_id(
+                    device.device.index)
+
+        super(Parameter, self)._from_chx(allow_unchaining=True)
+
+    def to_device(self, device):
+        device = chainer.get_device(device)
+        if self.data is None and self._initial_device != device:
+            self._data = [None]  # Renew placeholder to break sharing
+            self._has_chainerx_array = False
+        self._initial_device = device
+        super(Parameter, self)._to_device(device, allow_unchaining=True)
 
     def cleargrad(self):
         super(Parameter, self).cleargrad()
@@ -1299,19 +1752,22 @@ class Parameter(Variable):
             shape (tuple of int): Shape of the data array.
 
         """
-        xp = numpy if self._initial_backend != 'cuda' else cuda.cupy
-        with cuda.get_device_from_id(self._initial_device):
-            data = initializers.generate_array(self.initializer, shape, xp)
+        device = self._initial_device
+        assert device is not None
+        xp = device.xp
 
-            ginit = self._grad_initializer
-            grad = None if ginit is None else initializers.generate_array(
-                ginit, shape, xp)
+        data = initializers.generate_array(
+            self.initializer, shape, xp, device=device)
+        ginit = self._grad_initializer
+        grad = None if ginit is None else initializers.generate_array(
+            ginit, shape, xp, device=device)
 
         self.array = data
         self.grad = grad
 
         # Convert the array for iDeep.
-        if self._initial_backend == 'intel64':
+        # TODO(niboshi): This could be done in generate_array().
+        if isinstance(self._initial_device, intel64.Intel64Device):
             self.to_intel64()
 
     def update(self):
@@ -1338,7 +1794,7 @@ def as_variable(obj):
     you should use :class:`~chainer.Variable` directly.
 
     Args:
-        obj (numpy.ndarray or cupy.ndarray or ~chainer.Variable): An array or
+        obj (:ref:`ndarray` or ~chainer.Variable): An array or
             a variable that you want to convert to :class:`~chainer.Variable`.
 
     Returns:
@@ -1351,12 +1807,44 @@ def as_variable(obj):
     """
     if isinstance(obj, Variable):
         return obj
-    return Variable(obj, requires_grad=False)
+
+    if isinstance(obj, chainerx.ndarray):
+        requires_grad = obj.is_backprop_required()
+    else:
+        requires_grad = False
+    return Variable(obj, requires_grad=requires_grad)
 
 
-def _recover_parameter(data, name, grad, initializer, update_rule):
+def as_array(obj):
+    """Returns the underlying array from a variable or an array.
+
+    This is a convenient function to get the underlying array object
+    transparently from an object that could be either a variable or an array.
+
+    Args:
+        obj (:ref:`ndarray` or ~chainer.Variable): An array or a variable.
+
+    Returns:
+        :ref:`ndarray` or ~chainer.Variable:
+        The underlying array object of the argument.
+
+    """
+    if isinstance(obj, Variable):
+        return obj.array
+    return obj
+
+
+def _recover_parameter(data, name, grad, initializer, update_rule, device):
     p = Parameter(initializer=initializer, name=name)
     p.array = data
     p.grad = grad
     p.update_rule = update_rule
+    p.to_device(device)
     return p
+
+
+class _ChainerxVariableNodeProps(object):
+
+    def __init__(self, x):
+        self.shape = x.shape
+        self.dtype = x.dtype

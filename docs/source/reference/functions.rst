@@ -4,7 +4,9 @@ Functions
 .. module:: chainer.functions
 
 Chainer provides variety of built-in function implementations in :mod:`chainer.functions` package.
-These functions return a :class:`~chainer.Variable` object or a tuple of multiple :class:`~chainer.Variable` objects.
+These functions usually return a :class:`~chainer.Variable` object or a tuple of multiple :class:`~chainer.Variable` objects.
+For a :class:`~chainer.Variable` argument of a function, an :ref:`ndarray` can be passed if you do not need its gradient.
+Some functions additionally supports scalar arguments.
 
 .. note::
     Functions implemented in Chainer consists of the following two parts:
@@ -19,11 +21,6 @@ These functions return a :class:`~chainer.Variable` object or a tuple of multipl
     Some functions may not have the corresponding :class:`~chainer.FunctionNode` implementation; one example is :func:`chainer.functions.average`, which is defined in `chainer/functions/math/average.py <https://github.com/chainer/chainer/blob/master/chainer/functions/math/average.py>`__, which calls other wrapper functions to calculate average.
 
     If you are implementing your own functions, please see :doc:`../guides/functions`.
-
-.. note::
-   As of v1.5, the concept of parameterized functions are gone, and they are
-   replaced by corresponding :class:`~chainer.Link` implementations. They are
-   found in the :mod:`chainer.links` namespace.
 
 ..
    For contributors that want to update these lists:
@@ -67,6 +64,7 @@ Activation functions
    chainer.functions.prelu
    chainer.functions.rrelu
    chainer.functions.relu
+   chainer.functions.relu6
    chainer.functions.selu
    chainer.functions.sigmoid
    chainer.functions.slstm
@@ -83,6 +81,7 @@ Array manipulations
    :toctree: generated/
    :nosignatures:
 
+   chainer.functions.as_strided
    chainer.functions.broadcast
    chainer.functions.broadcast_to
    chainer.functions.cast
@@ -211,6 +210,7 @@ Mathematical functions
    chainer.functions.arcsin
    chainer.functions.arctan
    chainer.functions.arctan2
+   chainer.functions.arctanh
    chainer.functions.argmax
    chainer.functions.argmin
    chainer.functions.average
@@ -297,8 +297,10 @@ Normalization functions
 
    chainer.functions.batch_normalization
    chainer.functions.batch_renormalization
+   chainer.functions.decorrelated_batch_normalization
    chainer.functions.fixed_batch_normalization
    chainer.functions.fixed_batch_renormalization
+   chainer.functions.fixed_decorrelated_batch_normalization
    chainer.functions.group_normalization
    chainer.functions.layer_normalization
    chainer.functions.local_response_normalization
@@ -321,6 +323,9 @@ Spatial pooling
    chainer.functions.max_pooling_3d
    chainer.functions.max_pooling_nd
    chainer.functions.roi_average_align_2d
+   chainer.functions.roi_average_pooling_2d
+   chainer.functions.roi_max_align_2d
+   chainer.functions.roi_max_pooling_2d
    chainer.functions.roi_pooling_2d
    chainer.functions.spatial_pyramid_pooling_2d
    chainer.functions.unpooling_1d

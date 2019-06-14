@@ -1,17 +1,20 @@
+from __future__ import absolute_import
 import collections
 import contextlib
 import copy
 import json
+import typing as tp  # NOQA
 import warnings
 
 import numpy
 import six
 
+import chainer
 from chainer import backend
-from chainer.backends import cuda
 from chainer import configuration
 from chainer import serializer as serializer_module
 from chainer import variable
+import chainerx
 
 
 def _copy_variable(value):
@@ -139,7 +142,7 @@ class Reporter(object):
         observer object if given.
 
         .. note::
-           As of v2.0.0, if a value is of type :class:`~chainer.Variable`, the
+           If a value is of type :class:`~chainer.Variable`, the
            variable is copied without preserving the computational graph and
            the new variable object purged from the graph is stored to the
            observer. This behavior can be changed by setting
@@ -168,7 +171,7 @@ class Reporter(object):
             self.observation.update(values)
 
 
-_reporters = []
+_reporters = []  # type: tp.Optional[tp.List[Reporter]]
 
 
 def get_current_reporter():
@@ -248,13 +251,6 @@ def report_scope(observation):
     current.observation = old
 
 
-def _get_device(x):
-    if numpy.isscalar(x):
-        return cuda.DummyDevice
-    else:
-        return cuda.get_device_from_array(x)
-
-
 class Summary(object):
 
     """Online summarization of a sequence of scalars.
@@ -279,7 +275,12 @@ class Summary(object):
                 Default is 1 (integer).
 
         """
-        with _get_device(value):
+        if isinstance(value, chainerx.ndarray):
+            # ChainerX arrays does not support inplace assignment if it's
+            # connected to the backprop graph.
+            value = value.as_grad_stopped()
+
+        with chainer.using_device(backend.get_device_from_array(value)):
             self._x += weight * value
             self._x2 += weight * value * value
             self._n += weight
@@ -287,7 +288,7 @@ class Summary(object):
     def compute_mean(self):
         """Computes the mean."""
         x, n = self._x, self._n
-        with _get_device(x):
+        with chainer.using_device(backend.get_device_from_array(x)):
             return x / n
 
     def make_statistics(self):
@@ -299,7 +300,7 @@ class Summary(object):
         """
         x, n = self._x, self._n
         xp = backend.get_array_module(x)
-        with _get_device(x):
+        with chainer.using_device(backend.get_device_from_array(x)):
             mean = x / n
             var = self._x2 / n - mean * mean
             std = xp.sqrt(var)

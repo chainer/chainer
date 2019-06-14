@@ -36,6 +36,10 @@ class Reshape(function_node.FunctionNode):
             type_check.expect(
                 type_check.prod(x_type.shape) % size_var == 0)
 
+    def forward_chainerx(self, inputs):
+        x, = inputs
+        return x.reshape(self.shape),
+
     def forward(self, inputs):
         x, = inputs
         return x.reshape(self.shape),
@@ -49,8 +53,7 @@ def reshape(x, shape):
     """Reshapes an input variable without copy.
 
     Args:
-        x (:class:`~chainer.Variable` or :class:`numpy.ndarray` or \
-        :class:`cupy.ndarray`): Input variable.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
         shape (:class:`tuple` of :class:`int` s):
             Expected shape of the output array. The number of elements which
             the array of ``shape`` contains must be equal to that of input

@@ -23,7 +23,8 @@ def sign(x):
         unchains the computational graph.
 
     Args:
-        x (~chainer.Variable): Input variable for which the sign is computed.
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Input variable for which the sign is computed.
 
     Returns:
         ~chainer.Variable: Output variable.
