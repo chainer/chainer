@@ -75,7 +75,7 @@ class TestBcastDeadlock(unittest.TestCase):
 
         self.queue = queue.Queue(maxsize=1)
 
-    def teardown(self):
+    def tearDown(self):
         pass
 
     @chainer.testing.attr.gpu
@@ -101,5 +101,3 @@ class TestBcastDeadlock(unittest.TestCase):
         mpi_comm.barrier()
         self.queue.put(True)
         assert True
-
-        self.teardown()
