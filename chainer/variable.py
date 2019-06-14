@@ -683,7 +683,7 @@ class Variable(object):
         # lazy initialization for performance
         if self._device is None:
             if self._data[0] is None:
-                self._device = backend.CpuDevice()
+                return backend.CpuDevice()  # do not cache
             else:
                 self._device = backend.get_device_from_array(self._data[0])
         return self._device
@@ -861,14 +861,19 @@ class Variable(object):
         # type: (tp.Optional[types.NdArray]) -> None
 
         d_old = self._data[0]
-        if d_old is not None and d is not None:
-            old_device = self.device
-            if not old_device.is_array_supported(d):
-                new_device = backend.get_device_from_array(d)
+        if d is not None:
+            # Note: Use _device field in this place because device property has
+            # a chance to return CpuDevice() when d_old (= self._data[0]) is
+            # None AND the cache is not initialized
+            device_old = self._device
+            if d_old is not None and device_old is None:
+                device_old = backend.get_device_from_array(d_old)
+            if device_old is not None and not device_old.is_array_supported(d):
+                device_new = backend.get_device_from_array(d)
                 raise ValueError(
                     'Given array is not supported in the device of the '
                     'variable.\nVariable: {}\nArray: {}'.format(
-                        old_device, new_device))
+                        device_old, device_new))
 
         if self._has_chainerx_array:
             if (d_old is not None
