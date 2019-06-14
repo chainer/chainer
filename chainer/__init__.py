@@ -187,7 +187,9 @@ def is_arrays_compatible(arrays):
     if (chainerx.is_available()
             and any([isinstance(arr, chainerx.ndarray) for arr in arrays])):
         return not any([
-            isinstance(arr, backends.intel64.mdarray) for arr in arrays])
+            isinstance(arr, (backends.intel64.mdarray,
+                             backends.cuda.ndarray,
+                             backends._cpu.ndarray)) for arr in arrays])
 
     if isinstance(arrays[0], backends.cuda.ndarray):
         types = backends.cuda.ndarray
