@@ -5,8 +5,8 @@ install(FILES
     cuda_conv.h
     cuda_device.h
     cuda_set_device_scope.h
-    cuda_runtime.h
     cuda_rnn.h
+    cuda_runtime.h
     cudnn.h
     data_type.cuh
     elementwise.cuh
@@ -23,7 +23,6 @@ CUDA_ADD_LIBRARY(chainerx_cuda STATIC
     cublas.cc
     cuda.cc
     cuda_conv.cc
-    cuda_rnn.cc
     cuda_device.cc
     cuda_device/activation.cu
     cuda_device/arithmetic.cu
@@ -40,11 +39,12 @@ CUDA_ADD_LIBRARY(chainerx_cuda STATIC
     cuda_device/memory.cc
     cuda_device/misc.cu
     cuda_device/pool.cu
+    cuda_device/rnn.cc
     cuda_device/reduction.cu
     cuda_device/statistics.cu
     cuda_device/trigonometric.cu
-    cuda_device/rnn.cc
     cuda_backend.cc
+    cuda_rnn.cc
     cuda_runtime.cc
     cudnn.cc
     memory_pool.cc

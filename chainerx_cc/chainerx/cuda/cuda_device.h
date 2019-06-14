@@ -17,6 +17,7 @@
 #include "chainerx/cuda/cublas.h"
 #include "chainerx/cuda/cuda_backend.h"
 #include "chainerx/cuda/cuda_conv.h"
+#include "chainerx/cuda/cuda_rnn.h"
 #include "chainerx/cuda/cudnn.h"
 #include "chainerx/cuda/memory_pool.h"
 #include "chainerx/device.h"
@@ -81,6 +82,7 @@ public:
     cuda_internal::CudnnHandle& cudnn_handle() { return cudnn_handle_; }
 
     cuda_internal::CudaConv& cuda_conv() { return cuda_conv_; }
+    cuda_internal::CudaRnn& cuda_rnn() { return cuda_rnn_; }
 
 private:
     cuda_internal::CublasHandle cublas_handle_;
@@ -88,6 +90,7 @@ private:
     cuda_internal::CudnnHandle cudnn_handle_;
 
     cuda_internal::CudaConv cuda_conv_{};
+    cuda_internal::CudaRnn cuda_rnn_{};
 };
 
 DeviceInternals& GetDeviceInternals(CudaDevice& device);

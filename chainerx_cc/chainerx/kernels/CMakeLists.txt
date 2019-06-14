@@ -10,9 +10,9 @@ install(FILES
     misc.h
     normalization.h
     pooling.h
+    rnn.h
     sorting.h
     statistics.h
     trigonometric.h
-    rnn.h
     DESTINATION include/chainerx/kernels
     )
