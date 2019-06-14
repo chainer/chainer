@@ -76,7 +76,7 @@ class Gumbel(distribution.Distribution):
         return {'loc': self.loc, 'scale': self.scale}
 
     def sample_n(self, n):
-        xp = cuda.get_array_module(self.loc)
+        xp = chainer.backend.get_array_module(self.loc)
         if xp is cuda.cupy:
             eps = xp.random.gumbel(
                 size=(n,)+self.batch_shape, dtype=self.loc.dtype)

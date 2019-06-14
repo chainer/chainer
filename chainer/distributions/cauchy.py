@@ -77,7 +77,7 @@ class Cauchy(distribution.Distribution):
     def mean(self):
         warnings.warn('Mean of the cauchy distribution is undefined.',
                       RuntimeWarning)
-        xp = cuda.get_array_module(self.loc)
+        xp = chainer.backend.get_array_module(self.loc)
         return chainer.as_variable(xp.full_like(self.loc.data, xp.nan))
 
     @property
@@ -85,7 +85,7 @@ class Cauchy(distribution.Distribution):
         return {'loc': self.loc, 'scale': self.scale}
 
     def sample_n(self, n):
-        xp = cuda.get_array_module(self.loc)
+        xp = chainer.backend.get_array_module(self.loc)
         if xp is cuda.cupy:
             eps = xp.random.standard_cauchy(
                 (n,)+self.loc.shape, dtype=self.loc.dtype)
@@ -105,5 +105,5 @@ class Cauchy(distribution.Distribution):
     def variance(self):
         warnings.warn('Variance of the cauchy distribution is undefined.',
                       RuntimeWarning)
-        xp = cuda.get_array_module(self.loc)
+        xp = chainer.backend.get_array_module(self.loc)
         return chainer.as_variable(xp.full_like(self.loc.data, xp.nan))

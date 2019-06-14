@@ -62,7 +62,7 @@ class Poisson(distribution.Distribution):
         return {'lam': self.lam}
 
     def sample_n(self, n):
-        xp = cuda.get_array_module(self.lam)
+        xp = chainer.backend.get_array_module(self.lam)
         if xp is cuda.cupy:
             eps = xp.random.poisson(
                 self.lam.data, size=(n,)+self.batch_shape, dtype=xp.float32)
