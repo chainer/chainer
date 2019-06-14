@@ -1442,11 +1442,11 @@ _set_data_backend_params = [
     }))
 @testing.backend.inject_backend_tests(None, _set_data_backend_params)
 @testing.backend.inject_backend_tests(None, _set_data_backend_params)
-class TestVariableSetData(unittest.TestCase):
+class TestVariableSetArray(unittest.TestCase):
 
     def _gen_array(self, device, shape, requires_grad):
         if shape is None:
-            a = None
+            return None
         else:
             a = device.send_array(
                 np.random.uniform(-1, 1, shape).astype(np.float32))
@@ -1470,19 +1470,19 @@ class TestVariableSetData(unittest.TestCase):
 
         should_fail = (
             (
-                not device_x == device_y
-                and not device_x == intel64.Intel64Device) or
+                device_x != device_y
+                and not isinstance(device_x, intel64.Intel64Device)) or
             (xp_x is chainerx and (requires_grad_x or requires_grad_y)))
 
         if should_fail:
             # should not accept an array from a different device
             # or `x` or `y` is a chainerx array which requires gradient
             with pytest.raises(ValueError):
-                v.data = y
+                v.array = y
         else:
             # Should succeed
-            v.data = y
-            xp_x.testing.assert_array_equal(v.data, y)
+            v.array = y
+            xp_x.testing.assert_array_equal(v.array, y)
 
 
 class TestVariableDataAssign(unittest.TestCase):
