@@ -89,7 +89,7 @@ class TabularDataset(dataset_mixin.DatasetMixin):
     def mode(self):
         """Mode of representation.
 
-        This indicates the type of value returend
+        This indicates the type of value returned
         by :meth:`fetch` and :meth:`__getitem__`.
         :class:`tuple` and :class:`dict` are supported.
         """
@@ -118,7 +118,7 @@ class TabularDataset(dataset_mixin.DatasetMixin):
            keys (tuple of ints/strs): Requested columns.
 
         Returns:
-            A view of specifed range.
+            A view of specified range.
         """
         return chainer.dataset.tabular._slice._SliceHelper(self)
 
