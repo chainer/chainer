@@ -170,4 +170,40 @@ class TestOptimizerLossScaling(unittest.TestCase):
             self.optimizer.loss_scaling(scale=-1)
 
 
+@testing.backend.inject_backend_tests(
+    None,
+    [
+        # CPU
+        {},
+        # Intel
+        {'use_ideep': True},
+        # CUDA
+        {'use_cuda': True, 'cuda_device': 0},
+        # ChainerX
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+    ]
+)
+class TestAdamW(unittest.TestCase):
+
+    def test_adam_w(self, backend_config):
+        xp = backend_config.xp
+        device = backend_config.device
+
+        link = chainer.Link(x=(1,))
+        link.to_device(device)
+
+        opt = optimizers.Adam(eta=0.5, weight_decay_rate=0.1)
+        opt.setup(link)
+
+        link.x.data.fill(1)
+        link.x.grad = device.send(xp.ones_like(link.x.data))
+
+        opt.update()
+
+        # compare against the value computed with v5 impl
+        testing.assert_allclose(link.x.data, np.array([0.9495]),
+                                atol=1e-7, rtol=1e-7)
+
+
 testing.run_module(__name__, __file__)
