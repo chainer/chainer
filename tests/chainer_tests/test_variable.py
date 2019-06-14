@@ -1294,34 +1294,47 @@ class TestVariableFromChainerX(unittest.TestCase):
     {'x_shape': (10,)},
     {'x_shape': ()},
 )
-@attr.chainerx
+@testing.backend.inject_backend_tests(None, _backend_params)
+@testing.backend.inject_backend_tests(None, _backend_params)
 class TestVariableToDevice(unittest.TestCase):
 
     def setUp(self):
         self.x = np.zeros(self.x_shape, dtype=np.float32)
         self.gx = np.ones_like(self.x)
 
-    def check_to_device(self, x, gx, device_spec, expected_xp):
+    def test_to_device_with_grad(self, backend_config1, backend_config2):
+        x, gx = backend_config1.get_array((self.x, self.gx))
         x_var = chainer.Variable(x)
         x_var.grad_var = chainer.Variable(gx)
 
-        x_var.to_device(device_spec)
+        # TODO(hvy): Pass the device name instead of device object to also test
+        # the device specifier.
+        device = backend_config2.device
+        x_var.to_device(device)
 
+        expected_xp = device.xp
         assert x_var.xp is expected_xp
         assert x_var._has_chainerx_array is (expected_xp is chainerx)
         assert x_var.grad_var.xp is expected_xp
         assert x_var.grad_var._has_chainerx_array is (expected_xp is chainerx)
 
-    def test_to_device_numpy(self):
-        self.check_to_device(self.x, self.gx, '@numpy', np)
+    def test_to_device_with_graph_is_unchained(self, backend_config1, backend_config2):
+        # Variables should be unchained backwards when transferred to a device.
+        x = backend_config1.get_array(self.x)
 
-    @attr.gpu
-    def test_to_device_cupy(self):
-        self.check_to_device(self.x, self.gx, '@cupy:0', cuda.cupy)
+        x_var = chainer.Variable(x)
+        y_var = x_var * x_var
 
-    @attr.chainerx
-    def test_to_device_chainerx(self):
-        self.check_to_device(self.x, self.gx, 'native:0', chainerx)
+        device = backend_config2.device
+        y_var.to_device(device)
+
+        assert y_var.requires_grad
+
+        # Check that the graph is unchained.
+        if y_var.xp is not chainerx:
+            assert y_var.creator_node is None
+        y_var.backward()
+        assert x_var.grad_var is None
 
 
 @testing.parameterize(*testing.product({
