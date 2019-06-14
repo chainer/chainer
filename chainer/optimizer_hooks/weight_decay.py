@@ -41,9 +41,12 @@ class WeightDecay(object):
         if p is None or g is None:
             return
         with cuda.get_device_from_array(p) as dev:
+            rate = self.rate
+            if param._loss_scale is not None:
+                rate *= param._loss_scale
             if int(dev) == -1:
-                g += self.rate * p
+                g += rate * p
             else:
                 kernel = cuda.elementwise(
                     'T p, T decay', 'T g', 'g += decay * p', 'weight_decay')
-                kernel(p, self.rate, g)
+                kernel(p, rate, g)
