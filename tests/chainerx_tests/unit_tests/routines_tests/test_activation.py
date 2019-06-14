@@ -123,6 +123,6 @@ class TestSigmoid(UnaryMathTestBase, op_utils.NumpyOpTest):
 
     def func(self, xp, a):
         if xp is numpy:
-            return numpy.asarray(numpy.reciprocal(
-                                       1 + numpy.exp(-a))).astype(a.dtype)
+            return numpy.asarray(
+                numpy.reciprocal(1 + numpy.exp(-a))).astype(a.dtype)
         return xp.sigmoid(a)
