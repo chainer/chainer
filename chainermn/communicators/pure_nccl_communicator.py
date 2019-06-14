@@ -256,7 +256,7 @@ def _batched_unpack_params(params_data, buffer, dtype):
 
 
 def _cupy_batched_pack_params():
-    return chainer.cuda.cupy.RawKernel(r'''
+    return chainer.cuda.raw(r'''
 #include <cupy/carray.cuh>
 #define NCCL_FLOAT16  6
 #define NCCL_FLOAT32  7
@@ -309,7 +309,7 @@ def _cupy_batched_pack_params():
 
 
 def _cupy_batched_unpack_params():
-    return chainer.cuda.cupy.RawKernel(r'''
+    return chainer.cuda.raw(r'''
 #include <cupy/carray.cuh>
 #define NCCL_FLOAT16  6
 #define NCCL_FLOAT32  7
