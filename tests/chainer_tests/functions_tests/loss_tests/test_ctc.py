@@ -205,7 +205,6 @@ class TestCTCWithAllPadding(unittest.TestCase, CTCTestBase):
     def setUp(self):
         CTCTestBase.setUp(self)
         self.x_length[...] = 3
-        # self.x_length[0] = 3
         self.l_length[...] = 1
 
 
@@ -238,6 +237,30 @@ class TestCTCBlankSymbol(unittest.TestCase, CTCTestBase):
                               [0, 1, 0, 3, 0]]).astype(numpy.int32)
         self.t = numpy.array([[3, 1], [1, 3]]).astype(numpy.int32)
         self.blank_symbol = 0
+
+
+@testing.parameterize(*testing.product({
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'reduce': ['mean', 'no'],
+    'use_cudnn': ['always', 'auto', 'never']
+}))
+class TestCTCMaxXLength(unittest.TestCase, CTCTestBase):
+
+    def setUp(self):
+        CTCTestBase.setUp(self)
+        self.x_length = self.x_length - 1
+
+
+@testing.parameterize(*testing.product({
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'reduce': ['mean', 'no'],
+    'use_cudnn': ['always', 'auto', 'never']
+}))
+class TestCTCMaxLabelLength(unittest.TestCase, CTCTestBase):
+
+    def setUp(self):
+        CTCTestBase.setUp(self)
+        self.l_length = self.l_length - 1
 
 
 class TestCTCUseNoBackpropMode(unittest.TestCase):
