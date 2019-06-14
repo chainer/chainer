@@ -1,6 +1,7 @@
 import chainer
 import numpy
 
+from chainer import utils
 from chainerx_tests import array_utils
 from chainerx_tests import dtype_utils
 from chainerx_tests import op_utils
@@ -90,36 +91,16 @@ _in_out_dtypes_math_functions = _in_out_float_dtypes_math_functions + [
         'skip_double_backward_test': [True],
     })
 ))
-class TestClippedRelu(op_utils.ChainerOpTest):
+class TestClippedRelu(UnaryMathTestBase, op_utils.NumpyOpTest):
 
     z = 0.75
 
-    def setup(self):
-        dtype, = self.in_dtypes
-
-        if dtype == 'float16':
-            self.check_forward_options.update({'atol': 1e-4, 'rtol': 1e-3})
-            self.check_backward_options.update({'atol': 1e-2, 'rtol': 5e-2})
-            self.check_double_backward_options.update(
-                {'atol': 1e-2, 'rtol': 5e-2})
-
-        self.dtype = dtype
-
-    def generate_inputs(self):
-        shape = self.shape
-        dtype = self.dtype
-        x = array_utils.uniform(shape, dtype)
-        return x,
-
-    def forward_chainerx(self, inputs):
-        x, = inputs
-        y = chainerx.clipped_relu(x, self.z)
-        return y,
-
-    def forward_chainer(self, inputs):
-        x, = inputs
-        y = chainer.functions.clipped_relu(x, self.z)
-        return y,
+    def func(self, xp, a):
+        dtype = self.out_dtype
+        if xp is numpy:
+            y = utils.force_array(a.clip(0, self.z))
+            return y.astype(dtype)
+        return xp.clipped_relu(a, self.z)
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
@@ -140,36 +121,18 @@ class TestClippedRelu(op_utils.ChainerOpTest):
         'skip_double_backward_test': [True],
     })
 ))
-class TestCrelu(op_utils.ChainerOpTest):
+class TestCrelu(UnaryMathTestBase, op_utils.NumpyOpTest):
 
     axis = 1
 
-    def setup(self):
-        dtype, = self.in_dtypes
-
-        if dtype == 'float16':
-            self.check_forward_options.update({'atol': 1e-4, 'rtol': 1e-3})
-            self.check_backward_options.update({'atol': 1e-2, 'rtol': 5e-2})
-            self.check_double_backward_options.update(
-                {'atol': 1e-2, 'rtol': 5e-2})
-
-        self.dtype = dtype
-
-    def generate_inputs(self):
-        shape = self.shape
-        dtype = self.dtype
-        x = array_utils.uniform(shape, dtype)
-        return x,
-
-    def forward_chainerx(self, inputs):
-        x, = inputs
-        y = chainerx.crelu(x, self.axis)
-        return y,
-
-    def forward_chainer(self, inputs):
-        x, = inputs
-        y = chainer.functions.crelu(x, self.axis)
-        return y,
+    def func(self, xp, a):
+        if xp is numpy:
+            expected_former = numpy.maximum(a, 0)
+            expected_latter = numpy.maximum(-a, 0)
+            expected = numpy.concatenate(
+                (expected_former, expected_latter), axis=self.axis)
+            return expected,
+        return xp.crelu(a, self.axis)
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
