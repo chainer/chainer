@@ -39,6 +39,7 @@ Array CRelu(const Array& x, int8_t axis) {
     return Relu(concat);
 
 Array Elu(const Array& x, Scalar alpha) {
+    // TODO(aksub99): Replace x > zero with x > 0 when operator > supports scalars.
     Array zero = ZerosLike(x, x.device());
     return Where(x > zero, x, alpha * Expm1(x));
 }

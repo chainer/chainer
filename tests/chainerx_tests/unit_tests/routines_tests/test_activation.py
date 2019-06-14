@@ -1,3 +1,4 @@
+import random
 import chainer
 import numpy
 
@@ -81,6 +82,7 @@ _in_out_dtypes_math_functions = _in_out_float_dtypes_math_functions + [
         'in_dtypes,out_dtype': _in_out_dtypes_math_functions,
         'input': [-2, 2],
         'contiguous': [None, 'C'],
+        'alpha_range': [(-2.0, 0.0), 0.0, (0.0, 2.0)],
     })
     # Special values
     + chainer.testing.product({
@@ -89,6 +91,7 @@ _in_out_dtypes_math_functions = _in_out_float_dtypes_math_functions + [
         'input': [0, float('inf'), -float('inf'), float('nan')],
         'skip_backward_test': [True],
         'skip_double_backward_test': [True],
+        'alpha_range': [(-2.0, 0.0), 0.0, (0.0, 2.0)],
     })
 ))
 class TestClippedRelu(UnaryMathTestBase, op_utils.NumpyOpTest):
@@ -164,7 +167,12 @@ class TestCRelu(UnaryMathTestBase, op_utils.NumpyOpTest):
 ))
 class TestElu(UnaryMathTestBase, op_utils.NumpyOpTest):
 
-    alpha = 2.0
+    def setup(self):
+        if isinstance(self.alpha_range, tuple):
+            l, u = self.alpha_range
+            self.alpha = random.uniform(l, u)
+        else:
+            self.alpha = self.alpha_range
 
     def func(self, xp, a):
         if xp is numpy:
