@@ -7,23 +7,23 @@ from chainer.training.extensions import snapshot_writers
 from chainer.utils import argument
 
 
-def _find_snapshot_files(fmt, path, lister, get_ts):
+def _find_snapshot_files(fmt, path):
     # Only prefix and suffix match
 
     prefix = fmt.split('{')[0]
     suffix = fmt.split('}')[-1]
 
-    matched_files = (file for file in lister(path)
+    matched_files = (file for file in os.listdir(path)
                      if file.startswith(prefix) and file.endswith(suffix))
 
     def _prepend_mtime(f):
-        t = get_ts(path, f)
+        t = os.stat(os.path.join(path, f)).st_mtime
         return (t, f)
 
     return sorted(_prepend_mtime(file) for file in matched_files)
 
 
-def find_latest_snapshot(fmt, path, lister=os.listdir, get_ts=None):
+def find_latest_snapshot(fmt, path):
     """Finds the latest snapshots in a directory
 
     Args:
@@ -32,26 +32,16 @@ def find_latest_snapshot(fmt, path, lister=os.listdir, get_ts=None):
             only examined. Also, files' staleness is judged
             by timestamps. The default is metime.
         path (str): a directory path to search for snapshot files.
-        lister (callable): A function to find files from directory
-            path.
-        get_ts (callable): A function to get timestamp from path
-            and filename.
 
     """
-    if get_ts is None:
-        # TODO(kuenishi): expose get_ts as official optional argument
-        def get_ts(path, f):
-            return os.stat(os.path.join(path, f)).st_mtime
-
-    snapshot_files = _find_snapshot_files(fmt, path, lister, get_ts)
+    snapshot_files = _find_snapshot_files(fmt, path)
 
     if len(snapshot_files) > 0:
         _, filename = snapshot_files[-1]
         return filename
 
 
-def find_stale_snapshots(fmt, path, num_retain,
-                         lister=os.listdir, get_ts=None):
+def find_stale_snapshots(fmt, path, num_retain):
     """Finds stale snapshots in a directory
 
     Args:
@@ -62,17 +52,9 @@ def find_stale_snapshots(fmt, path, num_retain,
         path (str): a directory path to search for snapshot files.
         num_retain (int): Number of snapshot files to retain
             through the cleanup. Must be positive integer.
-        lister (callable): A function to find files from directory
-            path.
-        get_ts (callable): A function to get timestamp from path
-            and filename.
 
     """
-    if get_ts is None:
-        def get_ts(path, f):
-            return os.stat(os.path.join(path, f)).st_mtime
-
-    snapshot_files = _find_snapshot_files(fmt, path, lister, get_ts)
+    snapshot_files = _find_snapshot_files(fmt, path)
     num_remove = len(snapshot_files) - num_retain
     if num_remove > 0:
         for _, filename in snapshot_files[:num_remove]:
@@ -124,8 +106,6 @@ def snapshot_object(target, filename, savefun=None, **kwargs):
         num_retain (int): Number of snapshot files to retain
             through the cleanup. Must be positive integer. Automatic
             deletion of old snapshots only works when the filename is string.
-        lister (callable): A function to find files from Trainer output
-            directory.
         loadfun (callable): A function to load file content to the target.
         autoload (boolean): With this enabled, the extension automatically
             finds the latest snapshot and loads the data to the target.
@@ -196,8 +176,6 @@ def snapshot(savefun=None,
         num_retain (int): Number of snapshot files to retain
             through the cleanup. Must be positive integer. Automatic deletion
             of old snapshots only works when the filename is string.
-        lister (callable): A function to find files from Trainer output
-            directory.
         loadfun (callable): A function to load file content to the target.
         autoload (boolean): With this enabled, the extension automatically
             finds the latest snapshot and loads the data to the target.
@@ -254,11 +232,11 @@ ProcessQueueWriter`
         - :meth:`chainer.training.extensions.snapshot_object`
     """
     target, condition, writer, snapshot_on_error, num_retain,\
-        lister, loadfun, autoload = argument.parse_kwargs(
+        loadfun, autoload = argument.parse_kwargs(
             kwargs,
             ('target', None), ('condition', None), ('writer', None),
             ('snapshot_on_error', False), ('num_retain', -1),
-            ('lister', None), ('loadfun', None), ('autoload', False))
+            ('loadfun', None), ('autoload', False))
     argument.assert_kwargs_empty(kwargs)
 
     if savefun is not None and writer is not None:
@@ -273,7 +251,7 @@ ProcessQueueWriter`
     return _Snapshot(
         target=target, condition=condition, writer=writer, filename=filename,
         snapshot_on_error=snapshot_on_error, num_retain=num_retain,
-        lister=lister, loadfun=loadfun, autoload=autoload)
+        loadfun=loadfun, autoload=autoload)
 
 
 def _always_true():
@@ -301,7 +279,7 @@ class _Snapshot(extension.Extension):
             self, target=None, condition=None, writer=None,
             filename='snapshot_iter_{.updater.iteration}',
             snapshot_on_error=False, num_retain=-1,
-            lister=None, loadfun=None, autoload=False):
+            loadfun=None, autoload=False):
         if condition is None:
             condition = _always_true
         if writer is None:
@@ -312,9 +290,6 @@ class _Snapshot(extension.Extension):
         self.writer = writer
         self._snapshot_on_error = snapshot_on_error
         self.num_retain = num_retain
-        if lister is None:
-            lister = os.listdir
-        self.lister = lister
         if loadfun is None:
             loadfun = npz.load_npz
         self.loadfun = loadfun
@@ -326,8 +301,7 @@ class _Snapshot(extension.Extension):
             target = trainer if self._target is None else self._target
 
             outdir = trainer.out
-            filename = find_latest_snapshot(self.filename,
-                                            outdir, lister=self.lister)
+            filename = find_latest_snapshot(self.filename, outdir)
             if filename is None:
                 if chainer.is_debug():
                     print("No snapshot file that matches {} was found"

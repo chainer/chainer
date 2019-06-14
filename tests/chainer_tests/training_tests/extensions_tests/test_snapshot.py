@@ -2,6 +2,9 @@ import glob
 import itertools
 import os
 import random
+import shutil
+import tempfile
+import time
 import unittest
 
 import mock
@@ -107,28 +110,29 @@ class TestSnapshotOnError(unittest.TestCase):
                                  'snapshot_iter_{}.npz',
                                  '{}_snapshot_man_suffix.npz'])
 def test_find_snapshot_files(fmt):
-    files = dict((fmt.format(i), i) for i in range(1, 100))
-    noise = dict(('dummy-foobar-iter{}'.format(i), i) for i in range(10, 304))
-    noise2 = dict(('tmpsnapshot_iter_{}'.format(i), i) for i in range(10, 304))
+    files = (fmt.format(i) for i in range(1, 100))
+    noise = ('dummy-foobar-iter{}'.format(i) for i in range(10, 304))
+    noise2 = ('tmpsnapshot_iter_{}'.format(i) for i in range(10, 304))
     path = 'dummy'
 
-    def lister(path):
-        length = len(noise2) + len(noise) + len(files)
-        chained = itertools.chain(noise.keys(), files.keys(), noise2.keys())
-        return random.sample(list(chained), length)
+    try:
+        path = tempfile.mkdtemp()
 
-    def get_ts(path, f):
-        assert f not in noise
-        assert f not in noise2
-        return files[f]
+        for file in itertools.chain(noise, files, noise2):
+            file = os.path.join(path, file)
+            open(file, 'w').close()
 
-    snapshot_files = _find_snapshot_files(fmt, path, lister=lister,
-                                          get_ts=get_ts)
+        snapshot_files = _find_snapshot_files(fmt, path)
 
-    ans = [(i, fmt.format(i)) for i in range(1, 100)]
-    assert len(snapshot_files) == 99
-    for lhs, rhs in zip(ans, snapshot_files):
-        assert lhs == rhs
+        answer = [fmt.format(i) for i in range(1, 100)]
+        assert len(snapshot_files) == 99
+        timestamps, snapshot_files = zip(*snapshot_files)
+        answer.sort()
+        snapshot_files = sorted(list(snapshot_files))
+        for lhs, rhs in zip(answer, snapshot_files):
+            assert lhs == rhs
+    finally:
+        shutil.rmtree(path)
 
 
 @pytest.mark.parametrize('fmt', ['snapshot_iter_{}_{}',
@@ -136,69 +140,80 @@ def test_find_snapshot_files(fmt):
                                  '{}_snapshot_man_{}-suffix.npz',
                                  'snapshot_iter_{}.{}'])
 def test_find_snapshot_files2(fmt):
-    files = dict((fmt.format(i*10, j*10), j) for i, j
-                 in itertools.product(range(0, 10), range(0, 10)))
-    noise = dict(('tmpsnapshot_iter_{}.{}'.format(i, j), j)
-                 for i, j in zip(range(10, 304), range(10, 200)))
+    files = (fmt.format(i*10, j*10) for i, j
+             in itertools.product(range(0, 10), range(0, 10)))
+    noise = ('tmpsnapshot_iter_{}.{}'.format(i, j)
+             for i, j in zip(range(10, 304), range(10, 200)))
     path = 'dummy'
 
-    def lister(path):
-        length = len(noise) + len(files)
-        chained = itertools.chain(noise.keys(), files.keys())
-        return random.sample(list(chained), length)
+    try:
+        path = tempfile.mkdtemp()
 
-    def get_ts(path, f):
-        assert f in files
-        return files[f]
+        for file in itertools.chain(noise, files):
+            file = os.path.join(path, file)
+            open(file, 'w').close()
 
-    snapshot_files = _find_snapshot_files(fmt, path, lister=lister,
-                                          get_ts=get_ts)
+        snapshot_files = _find_snapshot_files(fmt, path)
 
-    ans = ((j, fmt.format(i*10, j*10))
-           for i, j in itertools.product(range(0, 10), range(0, 10)))
+        answer = [fmt.format(i*10, j*10)
+                  for i, j in itertools.product(range(0, 10), range(0, 10))]
 
-    for lhs, rhs in zip(sorted(ans), sorted(snapshot_files)):
-        assert lhs == rhs
+        timestamps, snapshot_files = zip(*snapshot_files)
+        answer.sort()
+        snapshot_files = sorted(list(snapshot_files))
+        for lhs, rhs in zip(answer, snapshot_files):
+            assert lhs == rhs
+    finally:
+        shutil.rmtree(path)
 
 
 def test_find_latest_snapshot():
     fmt = 'snapshot_iter_{}'
-    files = dict((fmt.format(i), i) for i in range(1, 100))
+    files =[fmt.format(i) for i in range(1, 100)]
     path = 'dummy'
 
-    def lister(path):
-        return files.keys()
+    try:
+        path = tempfile.mkdtemp()
 
-    def get_ts(path, f):
-        assert f in files
-        return files[f]
+        for file in files[:-1]:
+            file = os.path.join(path, file)
+            open(file, 'w').close()
+        time.sleep(10e-3)
+        file = os.path.join(path, files[-1])
+        open(file, 'w').close()
 
-    assert 'snapshot_iter_99' == find_latest_snapshot(fmt, path,
-                                                      lister=lister,
-                                                      get_ts=get_ts)
+        assert 'snapshot_iter_99' == find_latest_snapshot(fmt, path)
+    finally:
+        shutil.rmtree(path)
 
 
 @pytest.mark.parametrize('length,retain', [(100, 30), (10, 30), (1, 1000),
                                            (1000, 1), (1, 1), (1, 3), (2, 3)])
 def test_find_stale_snapshot(length, retain):
     fmt = 'snapshot_iter_{}'
-    files = dict(random.sample([(fmt.format(i), i) for i in range(0, length)],
-                               length))
+    files = random.sample([fmt.format(i) for i in range(0, length)],
+                          length)
     path = 'dummy'
 
-    def lister(path):
-        return files.keys()
+    try:
+        path = tempfile.mkdtemp()
 
-    def get_ts(path, f):
-        return files[f]
+        for file in files[:-1]:
+            file = os.path.join(path, file)
+            open(file, 'w').close()
+        time.sleep(10e-3)
+        file = os.path.join(path, files[-1])
+        open(file, 'w').close()
 
-    stale = list(find_stale_snapshots(fmt, path, retain,
-                                      lister=lister, get_ts=get_ts))
-    assert max(length-retain, 0) == len(list(stale))
+        stale = list(find_stale_snapshots(fmt, path, retain))
+        assert max(length-retain, 0) == len(list(stale))
+        stales = [fmt.format(i) for i in range(0, max(length-retain, 0))]
+        for lhs, rhs in zip(stales, stale):
+            lhs == rhs
 
-    stales = [fmt.format(i) for i in range(0, max(length-retain, 0))]
-    for lhs, rhs in zip(stales, stale):
-        lhs == rhs
+    finally:
+        shutil.rmtree(path)
+
 
 
 def test_remove_stale_snapshots():
