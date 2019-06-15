@@ -1265,3 +1265,63 @@ def test_moveaxis_invalid(xp, shape, source, dst):
     a = array_utils.uniform(shape, 'float')
     a = xp.array(a)
     return xp.moveaxis(a, source, dst)
+
+
+same_dtypes = [
+    dtypes for dtypes in dtype_utils.result_dtypes_two_arrays
+    if dtypes[0][0] == dtypes[0][1]]
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize_pytest('dst_shape,src_shape,cond_shape', [
+    # Same Shapes
+    ((2, 3), (2, 3), (2, 3)),
+    # Broadcast Shapes
+    ((2, 3), (1, 3), (1, 3)),
+    ((2, 3), (2, 1), (1, 3)),
+    ((2, 3), (2, 3), (1, 3)),
+    ((4, 5), (4, 1), (1, 5)),
+    ((1, 4, 5), (1, 4, 1), (1, 1, 5)),
+])
+@chainer.testing.parameterize_pytest(
+    'in_dtypes,out_dtype', same_dtypes
+)
+@chainer.testing.parameterize_pytest(
+    'condition_dtype', chainerx.testing.all_dtypes)
+class TestCopyTo(op_utils.NumpyOpTest):
+
+    check_numpy_strides_compliance = False
+
+    def setup(self):
+        (x_dtype, y_dtype) = self.in_dtypes
+        if numpy.dtype(x_dtype).kind != 'f' or \
+           numpy.dtype(y_dtype).kind != 'f':
+            self.skip_backward_test = True
+            self.skip_double_backward_test = True
+
+        if x_dtype == 'float16' or y_dtype == 'float16':
+            self.check_backward_options.update({'rtol': 1e-3, 'atol': 1e-3})
+
+    def generate_inputs(self):
+        (x_dtype, y_dtype) = self.in_dtypes
+
+        # self.dst as input arrays can't change.
+        self.dst = array_utils.uniform(self.dst_shape, x_dtype)
+        src = array_utils.uniform(self.src_shape, y_dtype)
+        condition = numpy.random.uniform(0, 1, size=self.cond_shape)
+        self.condition = (condition > 0.5).astype(self.condition_dtype)
+        return src,
+
+    def forward_xp(self, inputs, xp):
+        src, = inputs
+        condition = xp.array(self.condition)
+        src = xp.array(src)
+        dst = xp.array(self.dst)
+
+        print(src.dtype, dst.dtype, self.in_dtypes)
+        if xp is numpy:
+            xp.copyto(dst, src, where=condition)
+        else:
+            xp.copyto(dst, src, condition)
+        o = dtype_utils.cast_if_numpy_array(xp, dst, self.out_dtype)
+        return o,

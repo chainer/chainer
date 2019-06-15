@@ -616,6 +616,13 @@ void InitChainerxManipulation(pybind11::module& m) {
           "a"_a,
           "source"_a = nullptr,
           "destination"_a = nullptr);
+    m.def("copyto",
+          [](const ArrayBodyPtr& dst, const ArrayBodyPtr& src, const ArrayBodyPtr& condition) {
+              CopyTo(Array{dst}, Array{src}, Array{condition});
+          },
+          "dst"_a,
+          "src"_a,
+          "condition"_a);
 }
 
 void InitChainerxMath(pybind11::module& m) {
