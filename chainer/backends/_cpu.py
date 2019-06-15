@@ -10,6 +10,8 @@ import chainerx
 
 class CpuDevice(_backend.Device):
 
+    """Device for CPU (NumPy) backend"""
+
     @property
     def xp(self):
         return numpy
@@ -35,6 +37,9 @@ class CpuDevice(_backend.Device):
 
     def send_array(self, array):
         return _array_to_cpu(array)
+
+    def is_array_supported(self, array):
+        return isinstance(array, numpy.ndarray)
 
 
 def _to_cpu(array):

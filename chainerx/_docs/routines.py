@@ -471,6 +471,28 @@ Note:
 .. seealso:: :func:`numpy.take`
 """)
 
+    _docs.set_doc(
+        chainerx.where,
+        """where(condition, x, y)
+Return elements chosen from ``x`` or ``y`` depending on condition.
+
+Args:
+    condition (~chainerx.ndarray): Where True, yield ``x``, otherwise
+    yield ``y``.
+    x (~chainerx.ndarray): Values from which to choose.
+    y (~chainerx.ndarray): Values from which to choose.
+
+Returns:
+    :func:`~chainerx.ndarray`: An array with elements
+    from ``x`` where condition is True, and elements from ``y`` elsewhere.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``x`` and ``y``.
+
+.. seealso:: :func:`numpy.where`
+""")
+
 
 def _docs_linalg():
     _docs.set_doc(
@@ -855,6 +877,102 @@ Note:
 """)
 
     _docs.set_doc(
+        chainerx.hstack,
+        """hstack(arrays)
+Stack arrays in sequence horizontally (column wise).
+
+Args:
+    arrays (sequence of :class:`~chainerx.ndarray`\\ s): Arrays to be stacked.
+
+Returns:
+    ~chainerx.ndarray: Stacked array.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input arrays in ``arrays``.
+
+.. seealso:: :func:`numpy.hstack`
+""")
+
+    _docs.set_doc(
+        chainerx.vstack,
+        """vstack(arrays)
+Stack arrays in sequence vertically (row wise).
+
+Args:
+    arrays (sequence of :class:`~chainerx.ndarray`\\ s): Arrays to be stacked.
+
+Returns:
+    ~chainerx.ndarray: Stacked array.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input arrays in ``arrays``.
+
+.. seealso:: :func:`numpy.vstack`
+""")
+
+    _docs.set_doc(
+        chainerx.dstack,
+        """dstack(arrays)
+Stack arrays in sequence depth wise (along third axis).
+
+Args:
+    arrays (sequence of :class:`~chainerx.ndarray`\\ s): Arrays to be stacked.
+
+Returns:
+    ~chainerx.ndarray: Stacked array.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input arrays in ``arrays``.
+
+.. seealso:: :func:`numpy.dstack`
+""")
+
+    _docs.set_doc(
+        chainerx.atleast_2d,
+        """atleast_2d(a)
+View inputs as arrays with at least two dimensions.
+
+Args:
+    a (~chainerx.ndarray): Array.
+
+Returns:
+    ~chainerx.ndarray: An array with a.ndim >= 2.
+    Copies are avoided where possible, and views with
+    two or more dimensions are returned.
+
+Note:
+    * Arrays that already have two or more dimensions are preserved.
+    * During backpropagation, this function propagates the gradient of the
+      output array to the input arrays in ``a``.
+
+.. seealso:: :func:`numpy.atleast_2d`
+""")
+
+    _docs.set_doc(
+        chainerx.atleast_3d,
+        """atleast_3d(a)
+View inputs as arrays with at least three dimensions.
+
+Args:
+    a (~chainerx.ndarray): Array.
+
+Returns:
+    ~chainerx.ndarray: An array with a.ndim >= 3.
+    Copies are avoided where possible, and views with
+    three or more dimensions are returned.
+
+Note:
+    * Arrays that already have three or more dimensions are preserved.
+    * During backpropagation, this function propagates the gradient of the
+      output array to the input arrays in ``a``.
+
+.. seealso:: :func:`numpy.atleast_3d`
+""")
+
+    _docs.set_doc(
         chainerx.split,
         """split(ary, indices_or_sections, axis=0)
 Splits an array into multiple sub arrays along a given axis.
@@ -988,6 +1106,32 @@ Note:
 
 
 .. seealso:: :func:`numpy.flipud`
+""")
+
+    _docs.set_doc(
+        chainerx.moveaxis,
+        """moveaxis(a, source, destination)
+Move axes of an array to new positions.
+
+Other axes remain in their original order.
+
+Args:
+    a (~chainerx.ndarray): Input Array.
+    source (int or tuple of ints): Original positions of the axes to move.
+    These must be unique.
+    destintation (int or tuple of ints): Destination positions for each of
+    the original axes. These must also be unique.
+
+Returns:
+    ~chainerx.ndarray: Array with moved axes. This array is a view of the
+    input array.
+
+Note:
+    * During backpropagation, this function propagates the gradients of the
+      output arrays to the input array ``a``.
+
+
+.. seealso:: :func:`numpy.moveaxis`
 """)
 
 
@@ -1186,6 +1330,42 @@ Note:
     output array to the input array ``x``.
 
 .. seealso:: :data:`numpy.log10`
+""")
+
+    _docs.set_doc(
+        chainerx.log2,
+        """log2(x)
+Base 2 logarithm, element-wise.
+
+Args:
+    x (~chainerx.ndarray): Input array.
+
+Returns:
+    :class:`~chainerx.ndarray`: Returned array: :math:`y = \\log_{2} x`.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``x``.
+
+.. seealso:: :data:`numpy.log2`
+""")
+
+    _docs.set_doc(
+        chainerx.log1p,
+        """log1p(x)
+Natural logarithm of one plus the input, element-wise.
+
+Args:
+    x (~chainerx.ndarray): Input array.
+
+Returns:
+    :class:`~chainerx.ndarray`: Returned array: :math:`y = \\log(1 + x)`.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``x``.
+
+.. seealso:: :data:`numpy.log1p`
 """)
 
     _docs.set_doc(
@@ -1535,6 +1715,31 @@ Note:
 """)
 
     _docs.set_doc(
+        chainerx.fabs,
+        """fabs(x)
+Compute the absolute values element-wise.
+Args:
+    x (~chainerx.ndarray): Input array.
+Returns:
+    :class:`~chainerx.ndarray`: The absolute values of x, the returned values
+    are always floats.
+.. seealso:: :data:`numpy.fabs`
+""")
+
+    _docs.set_doc(
+        chainerx.sign,
+        """sign(x)
+Returns an element-wise indication of the sign of a number.
+The sign function returns :math:`-1 if x < 0, 0 if x==0, 1 if x > 0`.
+``nan`` is returned for ``nan`` inputs.
+Args:
+    x (~chainerx.ndarray): Input array.
+Returns:
+    :class:`~chainerx.ndarray`: The sign of x.
+.. seealso:: :data:`numpy.sign`
+""")
+
+    _docs.set_doc(
         chainerx.floor,
         """floor(x)
 Return the floor of the input, element-wise.
@@ -1608,13 +1813,13 @@ Args:
     x2 (~chainerx.ndarray or scalar): Input array of integers.
 
 Returns:
-    :class:`~chainerx.ndarray`: Returned array: :math:`y = x_1 \& x_2`
+    :class:`~chainerx.ndarray`: Returned array: :math:`y = x_1 \\& x_2`
 
 Note:
     During backpropagation, this function does not propagate gradients.
 
 .. seealso:: :data:`numpy.bitwise_and`
-""")  # NOQA
+""")
 
     _docs.set_doc(
         chainerx.bitwise_or,
@@ -1644,13 +1849,13 @@ Args:
     x2 (~chainerx.ndarray or scalar): Input array of integers.
 
 Returns:
-    :class:`~chainerx.ndarray`: Returned array: :math:`y = x_1 \oplus x_2`
+    :class:`~chainerx.ndarray`: Returned array: :math:`y = x_1 \\oplus x_2`
 
 Note:
     During backpropagation, this function does not propagate gradients.
 
 .. seealso:: :data:`numpy.bitwise_xor`
-""")  # NOQA
+""")
 
 
 def _docs_sorting():
@@ -2096,7 +2301,8 @@ Note:
 def _docs_normalization():
     _docs.set_doc(
         chainerx.batch_norm,
-        """batch_norm(x, gamma, beta, running_mean, running_var, eps=2e-5, decay=0.9, axis=None)
+        """batch_norm(x, gamma, beta, running_mean, running_var, eps=2e-5, \
+decay=0.9, axis=None)
 Batch normalization function.
 
 It takes the input array ``x`` and two parameter arrays ``gamma`` and
@@ -2129,7 +2335,7 @@ Note:
 
 See: `Batch Normalization: Accelerating Deep Network Training by Reducing\
       Internal Covariate Shift <https://arxiv.org/abs/1502.03167>`_
-""")  # NOQA
+""")
 
     _docs.set_doc(
         chainerx.fixed_batch_norm,

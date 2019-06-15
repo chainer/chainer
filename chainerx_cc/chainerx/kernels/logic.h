@@ -76,4 +76,25 @@ public:
     virtual void Call(const Array& a, const Axes& axis, const Array& out) = 0;
 };
 
+class IsNanKernel : public Kernel {
+public:
+    static const char* name() { return "IsNan"; }
+
+    virtual void Call(const Array& x, const Array& out) = 0;
+};
+
+class IsInfKernel : public Kernel {
+public:
+    static const char* name() { return "IsInf"; }
+
+    virtual void Call(const Array& x, const Array& out) = 0;
+};
+
+class IsFiniteKernel : public Kernel {
+public:
+    static const char* name() { return "IsFinite"; }
+
+    virtual void Call(const Array& x, const Array& out) = 0;
+};
+
 }  // namespace chainerx

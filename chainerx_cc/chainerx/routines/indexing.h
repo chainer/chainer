@@ -35,4 +35,12 @@ Array AddAt(const Array& a, const Array& indices, int8_t axis, const Array& b);
 
 Array Take(const Array& a, const Array& indices, int8_t axis);
 
+Array Where(const Array& condition, const Array& x, const Array& y);
+
+Array Where(const Array& condition, const Array& x, Scalar y);
+
+Array Where(const Array& condition, Scalar x, const Array& y);
+
+Array Where(const Array& condition, Scalar x, Scalar y);
+
 }  // namespace chainerx

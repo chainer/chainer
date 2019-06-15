@@ -21,7 +21,6 @@
 #include "chainerx/kernels/creation.h"
 #include "chainerx/kernels/misc.h"
 #include "chainerx/macro.h"
-#include "chainerx/routines/math.h"
 #include "chainerx/routines/type_util.h"
 #include "chainerx/scalar.h"
 #include "chainerx/shape.h"
@@ -210,8 +209,6 @@ Array Eye(int64_t n, nonstd::optional<int64_t> m, nonstd::optional<int64_t> k, n
     return out;
 }
 
-namespace internal {
-
 Array AsContiguous(const Array& a, Dtype dtype) {
     if (a.IsContiguous() && a.dtype() == dtype) {
         return a;
@@ -240,8 +237,6 @@ Array AsContiguous(const Array& a, Dtype dtype) {
     return out;
 }
 
-}  // namespace internal
-
 Array AsContiguousArray(const Array& a, const nonstd::optional<Dtype>& dtype) {
     Dtype src_dt = a.dtype();
     Dtype dt = dtype.value_or(src_dt);
@@ -253,7 +248,7 @@ Array AsContiguousArray(const Array& a, const nonstd::optional<Dtype>& dtype) {
         return a;
     }
 
-    Array out = internal::AsContiguous(a, dt);
+    Array out = AsContiguous(a, dt);
     if (a.ndim() == 0) {
         out = out.Reshape({1});
     }

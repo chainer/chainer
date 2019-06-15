@@ -10,6 +10,8 @@ import chainerx
 
 class ChainerxDevice(_backend.Device):
 
+    """Device for ChainerX backend"""
+
     def __init__(self, device):
         # type: (chainerx.Device) -> None
 
@@ -33,6 +35,12 @@ class ChainerxDevice(_backend.Device):
 
     @staticmethod
     def from_fallback_device(device):
+        """Returns a :class:`~chainer.backend.ChainerxDevice` corresponding \
+to the fallback device.
+
+        .. seealso::
+            :data:`~chainer.backend.ChainerxDevice.fallback_device`
+        """
         # TODO(niboshi): Write unit test
         assert isinstance(device, _backend.Device)
         if isinstance(device, _cpu.CpuDevice):
@@ -46,6 +54,17 @@ class ChainerxDevice(_backend.Device):
 
     @property
     def fallback_device(self):
+        """Fallback device.
+
+        A fallback device is either a :class:`~chainer.backend.CpuDevice` or
+        a :class:`~chainer.backend.GpuDevice` which shares the same physical
+        device with the original ChainerX device.
+
+        For example, the fallback device of ``native:0`` ChainerX device is
+        :class:`~chainer.backend.CpuDevice`. The fallback device of ``cuda:1``
+        ChainerX device is :class:`~chainer.backend.GpuDevice` with device ID
+        1.
+        """
         # TODO(niboshi): Write unit test
         backend_name = self.device.backend.name
         if backend_name == 'native':
@@ -82,6 +101,11 @@ class ChainerxDevice(_backend.Device):
 
     def use(self):
         chainerx.set_default_device(self.device)
+
+    def is_array_supported(self, array):
+        return (
+            isinstance(array, chainerx.ndarray)
+            and self.device == array.device)
 
 
 def to_chx(array):

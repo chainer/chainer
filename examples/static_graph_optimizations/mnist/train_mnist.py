@@ -8,6 +8,9 @@ the code is mostly unchanged except for the addition of the
 from __future__ import print_function
 
 import argparse
+import warnings
+
+import numpy
 
 import chainer
 import chainer.functions as F
@@ -16,6 +19,10 @@ from chainer import static_code
 from chainer import static_graph
 from chainer import training
 from chainer.training import extensions
+import chainerx
+
+import matplotlib
+matplotlib.use('Agg')
 
 
 # Network definition
@@ -84,8 +91,11 @@ def main():
                         help='Number of sweeps over the dataset to train')
     parser.add_argument('--frequency', '-f', type=int, default=-1,
                         help='Frequency of taking a snapshot')
-    parser.add_argument('--gpu', '-g', type=int, default=-1,
-                        help='GPU ID (negative value indicates CPU)')
+    parser.add_argument('--device', '-d', type=str, default='-1',
+                        help='Device specifier. Either ChainerX device '
+                        'specifier or an integer. If non-negative integer, '
+                        'CuPy arrays with specified device id are used. If '
+                        'negative integer, NumPy arrays are used')
     parser.add_argument('--out', '-o', default='result',
                         help='Directory to output the result')
     parser.add_argument('--model', '-m', default='MLP',
@@ -94,15 +104,25 @@ def main():
                         help='Resume the training from snapshot')
     parser.add_argument('--unit', '-u', type=int, default=1000,
                         help='Number of units')
-    parser.add_argument('--noplot', dest='plot', action='store_false',
-                        help='Disable PlotReport extension')
+    group = parser.add_argument_group('deprecated arguments')
+    group.add_argument('--gpu', '-g', dest='device',
+                       type=int, nargs='?', const=0,
+                       help='GPU ID (negative value indicates CPU)')
     args = parser.parse_args()
 
-    print('GPU: {}'.format(args.gpu))
+    if chainer.get_dtype() == numpy.float16:
+        warnings.warn(
+            'This example may cause NaN in FP16 mode.', RuntimeWarning)
+
+    device = chainer.get_device(args.device)
+
+    print('Device: {}'.format(device))
     print('# unit: {}'.format(args.unit))
     print('# Minibatch-size: {}'.format(args.batchsize))
     print('# epoch: {}'.format(args.epoch))
     print('')
+
+    device.use()
 
     # Set up a neural network to train
     # Classifier reports softmax cross entropy loss and accuracy at every
@@ -111,10 +131,8 @@ def main():
         model = L.Classifier(MLP(args.unit, 10))
     elif args.model == 'MLPSideEffect':
         model = L.Classifier(MLPSideEffect(args.unit, 10))
-    if args.gpu >= 0:
-        # Make a specified GPU current
-        chainer.cuda.get_device_from_id(args.gpu).use()
-        model.to_gpu()  # Copy the model to the GPU
+
+    model.to_device(device)
 
     # Setup an optimizer
     optimizer = chainer.optimizers.Adam()
@@ -129,15 +147,17 @@ def main():
 
     # Set up a trainer
     updater = training.updaters.StandardUpdater(
-        train_iter, optimizer, device=args.gpu)
+        train_iter, optimizer, device=device)
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.out)
 
     # Evaluate the model with the test dataset for each epoch
-    trainer.extend(extensions.Evaluator(test_iter, model, device=args.gpu))
+    trainer.extend(extensions.Evaluator(test_iter, model, device=device))
 
     # Dump a computational graph from 'loss' variable at the first iteration
     # The "main" refers to the target link of the "main" optimizer.
-    trainer.extend(extensions.DumpGraph('main/loss'))
+    # TODO(hvy): Temporarily disabled for chainerx. Fix it.
+    if device.xp is not chainerx:
+        trainer.extend(extensions.DumpGraph('main/loss'))
 
     # Take a snapshot for each specified epoch
     frequency = args.epoch if args.frequency == -1 else max(1, args.frequency)
@@ -147,14 +167,13 @@ def main():
     trainer.extend(extensions.LogReport())
 
     # Save two plot images to the result dir
-    if args.plot and extensions.PlotReport.available():
-        trainer.extend(
-            extensions.PlotReport(['main/loss', 'validation/main/loss'],
-                                  'epoch', file_name='loss.png'))
-        trainer.extend(
-            extensions.PlotReport(
-                ['main/accuracy', 'validation/main/accuracy'],
-                'epoch', file_name='accuracy.png'))
+    trainer.extend(
+        extensions.PlotReport(['main/loss', 'validation/main/loss'],
+                              'epoch', file_name='loss.png'))
+    trainer.extend(
+        extensions.PlotReport(
+            ['main/accuracy', 'validation/main/accuracy'],
+            'epoch', file_name='accuracy.png'))
 
     # Print selected entries of the log to stdout
     # Here "main" refers to the target link of the "main" optimizer again, and
@@ -173,7 +192,14 @@ def main():
         chainer.serializers.load_npz(args.resume, trainer)
 
     # Run the training
-    trainer.run()
+    if device.xp is not chainerx:
+        trainer.run()
+    else:
+        warnings.warn(
+            'Static subgraph optimization does not support ChainerX and will'
+            ' be disabled.', UserWarning)
+        with chainer.using_config('use_static_graph', False):
+            trainer.run()
 
 
 if __name__ == '__main__':
