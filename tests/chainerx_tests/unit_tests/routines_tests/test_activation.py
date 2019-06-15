@@ -93,6 +93,7 @@ _in_out_dtypes_math_functions = _in_out_float_dtypes_math_functions + [
 class TestLeakyRelu(UnaryMathTestBase, op_utils.NumpyOpTest):
 
     slope = 0.2
+    check_numpy_strides_compliance = False
 
     def func(self, xp, a):
         if xp is numpy:
