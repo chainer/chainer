@@ -881,14 +881,14 @@ void CopyTo(const Array& dst, const Array& src, const Array& condition) {
         bt.Define([condition, dtype = dst.dtype()](BackwardContext& bctx) {
             const Array& gout = *bctx.output_grad();
             // TODO(kshitij12345): Use Scalar-Array kernel when implemented.
-            bctx.input_grad() = Where(condition, gout, ZerosLike(gout)).AsType(dtype);
+            bctx.input_grad() = Where(condition, ZerosLike(gout), gout).AsType(dtype);
         });
     }
     if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
         bt.Define([condition, dtype = src.dtype()](BackwardContext& bctx) {
             const Array& gout = *bctx.output_grad();
             // TODO(kshitij12345): Use Scalar-Array kernel when implemented.
-            bctx.input_grad() = Where(condition, ZerosLike(gout), gout).AsType(dtype);
+            bctx.input_grad() = Where(condition, gout, ZerosLike(gout)).AsType(dtype);
         });
     }
     bb.Finalize();
