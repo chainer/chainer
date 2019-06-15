@@ -30,11 +30,17 @@ Array LeakyRelu(const Array& x, Scalar slope) {
     return Where(x_cast >= zero, x_cast, slope * x_cast);
 }
 
-Array ClippedRelu(const Array& x, Scalar z) { return Minimum(Maximum(0, x), z); }
+Array ClippedRelu(const Array& x, Scalar z) {
+    Dtype dtype = internal::GetMathResultDtype(x.dtype());
+    const Array& x_cast = x.dtype() == dtype ? x : x.AsType(dtype);
+    return Minimum(Maximum(0, x_cast), z);
+}
 
 Array Crelu(const Array& x, int8_t axis) {
     // TODO(aksub99): Optimize implementation to use a single memory allocation.
-    std::vector<Array> c{x, Negative(x)};
+    Dtype dtype = internal::GetMathResultDtype(x.dtype());
+    const Array& x_cast = x.dtype() == dtype ? x : x.AsType(dtype);
+    std::vector<Array> c{x_cast, Negative(x_cast)};
     Array concat = Concatenate(c, axis);
     return Relu(concat);
 }

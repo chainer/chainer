@@ -99,7 +99,7 @@ class TestClippedRelu(UnaryMathTestBase, op_utils.NumpyOpTest):
         dtype = self.out_dtype
         if xp is numpy:
             y = utils.force_array(a.clip(0, self.z))
-            return y.astype(dtype)
+            return numpy.asarray(y.astype(dtype))
         return xp.clipped_relu(a, self.z)
 
 
@@ -131,7 +131,7 @@ class TestCrelu(UnaryMathTestBase, op_utils.NumpyOpTest):
             expected_latter = numpy.maximum(-a, 0)
             expected = numpy.concatenate(
                 (expected_former, expected_latter), axis=self.axis)
-            return expected,
+            return expected
         return xp.crelu(a, self.axis)
 
 

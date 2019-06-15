@@ -1013,14 +1013,8 @@ void InitChainerxActivation(pybind11::module& m) {
           [](const ArrayBodyPtr& x, Scalar slope) { return MoveArrayBody(LeakyRelu(Array{x}, slope)); },
           "x"_a,
           "slope"_a = 0.2);
-    m.def("clipped_relu",
-          [](const ArrayBodyPtr& x, Scalar z) { return MoveArrayBody(ClippedRelu(Array{x}, z)); },
-          "x"_a,
-          "z"_a = 20.0);
-    m.def("crelu",
-          [](const ArrayBodyPtr& x, int8_t axis) { return MoveArrayBody(Crelu(Array{x}, axis)); },
-          "x"_a,
-          "axis"_a = 1);
+    m.def("clipped_relu", [](const ArrayBodyPtr& x, Scalar z) { return MoveArrayBody(ClippedRelu(Array{x}, z)); }, "x"_a, "z"_a = 20.0);
+    m.def("crelu", [](const ArrayBodyPtr& x, int8_t axis) { return MoveArrayBody(Crelu(Array{x}, axis)); }, "x"_a, "axis"_a = 1);
 }
 
 }  // namespace
