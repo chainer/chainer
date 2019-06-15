@@ -617,6 +617,46 @@ class TestSplit(op_utils.NumpyOpTest):
         return tuple(b)
 
 
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize_pytest('shape,indices_or_sections', [
+    ((2, 4, 6), []),
+    ((2, 4, 6), [2, 4]),
+    ((2, 4, 6), [2, -3]),
+    ((2, 4, 6), [2, 8]),
+    ((2, 4, 6), [4, 2]),
+    ((2, 4, 6), [1, 3]),
+    ((2, 4, 5), [1, -3]),
+    ((2, 4, 8), [2, 5]),
+    ((2, 4, 10), [1, 4]),
+    ((2, 4, 6), numpy.array([1, 2])),  # indices with 1-d numpy array
+    ((2, 4, 6), numpy.array([2])),  # indices with (1,)-shape numpy array
+    ((2, 4, 8), numpy.array(2)),  # sections numpy scalar
+    ((2, 4, 6, 8), numpy.array(2.0)),  # sections with numpy scalar, float
+    ((2, 4, 6, 8), 2.0),  # float type sections, without fraction
+    # indices with empty numpy indices
+    ((2, 4, 8, 10), numpy.array([], numpy.int32)),
+    ((2, 4, 5, 10), numpy.array([], numpy.float64)),
+])
+class TestDSplit(op_utils.NumpyOpTest):
+
+    def setup(self):
+        indices_or_sections = self.indices_or_sections
+        if (isinstance(indices_or_sections, list) and
+                sorted(indices_or_sections) != indices_or_sections):
+            self.skip_backward_test = True
+            self.skip_double_backward_test = True
+
+    def generate_inputs(self):
+        a = array_utils.create_dummy_ndarray(numpy, self.shape, 'float32')
+        return a,
+
+    def forward_xp(self, inputs, xp):
+        a, = inputs
+        b = xp.dsplit(a, self.indices_or_sections)
+        assert isinstance(b, list)
+        return tuple(b)
+
+
 @chainerx.testing.numpy_chainerx_array_equal(
     accept_error=(
         chainerx.DimensionError, IndexError, ValueError, TypeError,
