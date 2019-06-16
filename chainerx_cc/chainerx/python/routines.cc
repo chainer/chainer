@@ -1037,6 +1037,14 @@ void InitChainerxLoss(pybind11::module& m) {
 
 }  // namespace
 
+void InitChainerxLoss(pybind11::module& m) {
+    m.def("sigmoid_cross_entropy",
+          [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2, bool normalize) { return MoveArrayBody(SigmoidCrossEntropy(Array{x1}, Array{x2}, normalize)); },
+          "x1"_a,
+          "x2"_a,
+          "normalize"_a = true);
+}
+
 void InitChainerxRoutines(pybind11::module& m) {
     InitChainerxCreation(m);
     InitChainerxIndexing(m);
