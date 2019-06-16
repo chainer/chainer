@@ -1,4 +1,3 @@
-import numpy as np
 
 import chainer
 from chainer import link_hook
@@ -21,8 +20,8 @@ def optimized_temp_SNNL(x, y, initial_temp, cos_distance):
     :returns: A tensor for the Soft Nearest Neighbor Loss of the points
               in x with labels y, optimized for temperature.
     """
-    t_np = np.asarray([1], dtype=np.float32)
-    t = Variable(t_np)
+    xp = x.xp
+    t = Variable(xp.asarray([1], dtype=xp.float32))
 
     def inverse_temp(t):
         # pylint: disable=missing-docstring

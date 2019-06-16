@@ -1,7 +1,7 @@
-import numpy as np
+import numpy
 
 import chainer.functions as F
-
+from chainer.backends import cuda
 
 STABILITY_EPS = 0.00001
 
@@ -77,15 +77,17 @@ def pick_probability(x, temp, cos_distance):
 
     """
 
+    tmp_matrix = numpy.ones((x.data.shape[0], x.data.shape[0]), dtype=numpy.float32) - numpy.eye(x.data.shape[0], dtype=numpy.float32)
     xp = x.xp
-    f = fits(x, x, temp, cos_distance) * (
-        xp.ones((x.data.shape[0], x.data.shape[0]), dtype=xp.float32) -
-        xp.eye(x.data.shape[0], dtype=xp.float32))
+
+    if xp != numpy:
+        tmp_matrix = cuda.to_gpu(tmp_matrix)
+    f = fits(x, x, temp, cos_distance) * tmp_matrix
     return f / (
         STABILITY_EPS + F.expand_dims(F.sum(f, 1), 1))
 
 
-def same_label_mask(y, y2):
+def same_label_mask(y, y2, xp):
     """Masking matrix such that element i,j is 1 iff y[i] == y2[i].
 
     :param y: a list of labels
@@ -93,8 +95,8 @@ def same_label_mask(y, y2):
 
     :returns: A tensor for the masking matrix.
     """
-    xp = np
-    return xp.squeeze(xp.equal(y.data, xp.expand_dims(y2.data, 1)))
+    return xp.squeeze(xp.equal(y, xp.expand_dims(y2, 1)))
+#    return xp.squeeze(xp.equal(y.data, xp.expand_dims(y2.data, 1)))
 
 
 def masked_pick_probability(x, y, temp, cos_distance):
@@ -108,7 +110,8 @@ def masked_pick_probability(x, y, temp, cos_distance):
 
     :returns: A tensor for the pairwise sampling probabilities.
     """
-    return pick_probability(x, temp, cos_distance) * same_label_mask(y, y)
+
+    return pick_probability(x, temp, cos_distance) * same_label_mask(y, y, x.xp)
 
 
 def soft_nearest_neighbor_loss(x, y, temp, cos_distance):
