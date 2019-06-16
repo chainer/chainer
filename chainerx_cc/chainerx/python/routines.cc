@@ -277,6 +277,18 @@ void InitChainerxCreation(pybind11::module& m) {
           "device"_a = nullptr);
 }
 
+void InitChainerxEvaluation(pybind11::module& m) {
+    // Evaluation routines
+    m.def("accuracy",
+          [](const ArrayBodyPtr& x1, const ArrayBody& x2, const nonstd::optional<ArrayBodyPtr>& ignore_label) {
+              return MoveArrayBody(Accuracy(
+                      Array{x1}, Array{x2}, ignore_label.has_value() ? nonstd::optional<Array>{Array{*ignore_label}} : nonstd::nullopt));
+          },
+          "x1"_a,
+          "x2"_a,
+          "ignore_label"_a = py::none());
+}
+
 void InitChainerxIndexing(pybind11::module& m) {
     // indexing routines
     m.def("take",
@@ -1064,6 +1076,7 @@ void InitChainerxLoss(pybind11::module& m) {
 
 void InitChainerxRoutines(pybind11::module& m) {
     InitChainerxCreation(m);
+    InitChainerxEvaluation(m);
     InitChainerxIndexing(m);
     InitChainerxLinalg(m);
     InitChainerxLogic(m);
