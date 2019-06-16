@@ -18,15 +18,14 @@
 #include "chainerx/error.h"
 #include "chainerx/graph.h"
 #include "chainerx/kernel_registry.h"
+#include "chainerx/kernels/arithmetic.h"
 #include "chainerx/kernels/connection.h"
 #include "chainerx/kernels/linalg.h"
-#include "chainerx/kernels/math.h"
 #include "chainerx/macro.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/linalg.h"
 #include "chainerx/routines/reduction.h"
 #include "chainerx/routines/type_util.h"
-#include "chainerx/stack_vector.h"
 
 namespace chainerx {
 namespace internal {
@@ -57,13 +56,7 @@ int64_t GetConvTransposeOutDim(int64_t in_dim, int64_t kernel_size, int64_t stri
 namespace {
 
 Array ConvGradWeight(
-        Dtype w_dtype,
-        const Shape& w_shape,
-        const Array& x,
-        const Array& gy,
-        const StackVector<int64_t, kMaxNdim>& stride,
-        const StackVector<int64_t, kMaxNdim>& pad,
-        bool cover_all) {
+        Dtype w_dtype, const Shape& w_shape, const Array& x, const Array& gy, const Dims& stride, const Dims& pad, bool cover_all) {
     CHAINERX_ASSERT(x.ndim() == w_shape.ndim());
     CHAINERX_ASSERT(gy.ndim() == w_shape.ndim());
     CHAINERX_ASSERT(stride.size() == static_cast<size_t>(w_shape.ndim() - 2));
@@ -83,7 +76,7 @@ Array ConvGradWeight(
             bt.Define([x_shape = x.shape(), x_dtype = x.dtype(), gy_tok = bb.RetainInput(1), stride, pad](BackwardContext& bctx) {
                 const Array& gy = bctx.GetRetainedInput(gy_tok);
                 const Array& gout = *bctx.output_grad();
-                StackVector<int64_t, kMaxNdim> out_size{x_shape.begin() + 2, x_shape.end()};
+                Dims out_size{x_shape.begin() + 2, x_shape.end()};
                 CHAINERX_ASSERT(out_size.size() == stride.size());
                 bctx.input_grad() = ConvTranspose(gy, gout, nonstd::nullopt, stride, pad, out_size, x_dtype);
             });
@@ -102,8 +95,7 @@ Array ConvGradWeight(
     return out;
 }
 
-void ConvCheckNdim(
-        const Array& x, const Array& w, const StackVector<int64_t, kMaxNdim>& stride, const StackVector<int64_t, kMaxNdim>& pad) {
+void ConvCheckNdim(const Array& x, const Array& w, const Dims& stride, const Dims& pad) {
     if (w.ndim() != x.ndim()) {
         throw DimensionError{"Mismatched number of dimensions between input ", x.ndim(), " and weights ", w.ndim(), "."};
     }
@@ -128,8 +120,8 @@ Array Conv(
         const Array& x,
         const Array& w,
         const nonstd::optional<Array>& b,
-        const StackVector<int64_t, kMaxNdim>& stride,
-        const StackVector<int64_t, kMaxNdim>& pad,
+        const Dims& stride,
+        const Dims& pad,
         bool cover_all,
         nonstd::optional<Dtype> out_dtype) {
     ConvCheckNdim(x, w, stride, pad);
@@ -162,7 +154,7 @@ Array Conv(
             bt.Define([x_shape = x.shape(), x_dtype = x.dtype(), w_tok = bb.RetainInput(1), stride, pad](BackwardContext& bctx) {
                 const Array& w = bctx.GetRetainedInput(w_tok);
                 const Array& gout = *bctx.output_grad();
-                StackVector<int64_t, kMaxNdim> out_size{x_shape.begin() + 2, x_shape.end()};
+                Dims out_size{x_shape.begin() + 2, x_shape.end()};
                 bctx.input_grad() = ConvTranspose(gout, w, nonstd::nullopt, stride, pad, out_size, x_dtype);
             });
         }
@@ -198,9 +190,9 @@ Array ConvTranspose(
         const Array& x,
         const Array& w,
         const nonstd::optional<Array>& b,
-        const StackVector<int64_t, kMaxNdim>& stride,
-        const StackVector<int64_t, kMaxNdim>& pad,
-        const nonstd::optional<StackVector<int64_t, kMaxNdim>>& out_size,
+        const Dims& stride,
+        const Dims& pad,
+        const nonstd::optional<Dims>& out_size,
         nonstd::optional<Dtype> out_dtype) {
     ConvCheckNdim(x, w, stride, pad);
     if (x.shape()[1] != w.shape()[0]) {
@@ -216,7 +208,7 @@ Array ConvTranspose(
     bool cover_all = false;
 
     // Compute out_size if not specified
-    StackVector<int64_t, kMaxNdim> real_out_size;
+    Dims real_out_size;
     if (out_size.has_value()) {
         real_out_size = *out_size;
 
@@ -274,7 +266,7 @@ Array ConvTranspose(
             bt.Define([x_shape = x.shape(), x_dtype = x.dtype(), w_tok = bb.RetainInput(1), stride, pad, cover_all](BackwardContext& bctx) {
                 const Array& w = bctx.GetRetainedInput(w_tok);
                 const Array& gout = *bctx.output_grad();
-                StackVector<int64_t, kMaxNdim> out_size{x_shape.begin() + 2, x_shape.end()};
+                Dims out_size{x_shape.begin() + 2, x_shape.end()};
                 bctx.input_grad() = Conv(gout, w, nonstd::nullopt, stride, pad, cover_all, x_dtype);
             });
         }
