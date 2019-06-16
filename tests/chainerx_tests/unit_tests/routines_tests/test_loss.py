@@ -161,4 +161,4 @@ class TestSigmoidCrossEntropy(LossBase):
             out = xp.sigmoid_cross_entropy(x.astype, t, self.normalize)
         else:
             out = xp.sigmoid_cross_entropy(x, t, self.normalize, reduce='no')
-        return out,    
+        return out,

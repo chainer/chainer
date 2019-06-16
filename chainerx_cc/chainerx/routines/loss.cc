@@ -3,7 +3,6 @@
 #include "chainerx/array.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/explog.h"
-#include "chainerx/routines/indexing.h"
 #include "chainerx/routines/logic.h"
 #include "chainerx/routines/misc.h"
 #include "chainerx/scalar.h"
@@ -32,15 +31,12 @@ Array SigmoidCrossEntropy(const Array& x1, const Array& x2, bool normalize) {
 
     // Replace with appropriate method to find len of Array
     Scalar len = x1.GetTotalSize() / x1.GetItemSize();
-    
-    Array loss = -(
-              ignore_mask *
-              (x1 * (x2 - (GreaterEqual(x2, ZerosLike(x2)))) - Log1p(Exp(-Fabs(x1)))));
-    
-    if(normalize == true) {
-        count = Maximum(OnesLike(x1, x1.device()), Sum(ignore_label));        
-    }
-    else {
+
+    Array loss = -(ignore_mask * (x1 * (x2 - (GreaterEqual(x2, ZerosLike(x2)))) - Log1p(Exp(-Fabs(x1)))));
+
+    if (normalize == true) {
+        count = Maximum(OnesLike(x1, x1.device()), Sum(ignore_label));
+    } else {
         count = Maximum(OnesLike(x1, x1.device()), len);
     }
 
