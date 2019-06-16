@@ -1,7 +1,12 @@
 import numpy
 
-import chainer.functions as F
+import chainer
+from chainer import backend
 from chainer.backends import cuda
+from chainer import functions as F
+from chainer import utils
+from chainer.utils import argument
+from chainer.utils import type_check
 
 STABILITY_EPS = 0.00001
 
@@ -95,6 +100,7 @@ def same_label_mask(y, y2, xp):
 
     :returns: A tensor for the masking matrix.
     """
+    print("dtype={}".format(y.dtype))
     return xp.squeeze(xp.equal(y, xp.expand_dims(y2, 1)))
 #    return xp.squeeze(xp.equal(y.data, xp.expand_dims(y2.data, 1)))
 
