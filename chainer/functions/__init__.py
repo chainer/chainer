@@ -110,6 +110,7 @@ from chainer.functions.loss.triplet import triplet  # NOQA
 from chainer.functions.loss.vae import bernoulli_nll  # NOQA
 from chainer.functions.loss.vae import gaussian_kl_divergence  # NOQA
 from chainer.functions.loss.vae import gaussian_nll  # NOQA
+from chainer.functions.loss.soft_nearest_neighbor_loss import soft_nearest_neighbor_loss  # NOQA
 
 from chainer.functions.math.arctanh import arctanh  # NOQA
 from chainer.functions.math.average import average  # NOQA
