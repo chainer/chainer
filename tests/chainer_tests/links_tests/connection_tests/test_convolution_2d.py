@@ -215,26 +215,27 @@ class TestConvolution2DParameterShapePlaceholder(testing.LinkTestCase):
         testing.assert_allclose(y_data1, y_data2, atol=0, rtol=0)
 
 
-@testing.parameterize([
-    {'nobias': True},
-    {'nobias': False}
-])
+@testing.parameterize(*testing.product({
+    'nobias': [True, False],
+    'groups': [1, 5],
+}))
 class TestConvolution2DFromParams(unittest.TestCase):
 
     def setUp(self):
-        self.in_channels, self.out_channels = 3, 10
+        self.in_channels, self.out_channels = 5, 10
         self.k = 3
 
     def test_from_params(self):
         link1 = links.Convolution2D(
             self.in_channels, self.out_channels, self.k, 1, 1,
-            nobias=self.nobias)
+            nobias=self.nobias, groups=self.groups)
+        link2 = links.Convolution2D.from_params(
+            link1.W, link1.b, 1, 1, nobias=self.nobias, groups=self.groups)
 
-        link2 = links.Convolution2D(link1.W, link1.b, 1, 1, nobias=self.nobias)
         assert link2.W.shape == link1.W.shape
-        assert (link2.b is None) == (not self.nobias)
+        assert (link2.b is None) == self.nobias
         if not self.nobias:
-            assert link2.b.shape == link2.b.shape
+            assert link2.b.shape == link1.b.shape
 
 
 testing.run_module(__name__, __file__)

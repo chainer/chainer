@@ -172,14 +172,17 @@ nobias=False, initialW=None, initial_bias=None, *, dilate=1, groups=1)
         """from_params(cls, W, b=None, stride=1, pad=0, nobias=False, \
 *, dilate=1, groups=1)
 
-        Initialize a :class:`~chainer.links.Convolution2D` with given parameters.
+        Initialize a :class:`~chainer.links.Convolution2D` with given
+        parameters.
 
         This method uses ``W`` and optional ``b`` to initialize
         a 2D convolution layer.
 
         Args:
-            W (:ref:`ndarray`): The weight parameter.
-            b (:ref:`ndarray` or ``None``): The bias parameter.
+            W (:class:`~chainer.Variable` or :ref:`ndarray`):
+                The weight parameter.
+            b (:class:`~chainer.Variable`, :ref:`ndarray`, or ``None``):
+                The bias parameter.
             stride (int or pair of ints): Stride of filter applications.
                 ``stride=s`` and ``stride=(s, s)`` are equivalent.
             pad (int or pair of ints): Spatial padding width for input arrays.
@@ -196,14 +199,19 @@ nobias=False, initialW=None, initial_bias=None, *, dilate=1, groups=1)
                 Input channel size ``in_channels`` and output channel size
                 ``out_channels`` must be exactly divisible by this value.
         """
-        out_channels, in_channels, kw, kh = W.shape
+        dilate, groups = argument.parse_kwargs(
+            kwargs, ('dilate', 1), ('groups', 1))
+        out_channels, _in_channels, kw, kh = W.shape
+        in_channels = _in_channels * groups
         if b is not None:
             if out_channels != b.size:
                 raise ValueError(
                     '`out_channels` does not match the size of `b`')
 
         link = cls(
-            in_channels, out_channels, (kw, kh), stride, pad, nobias, **kwargs)
+            in_channels, out_channels, (kw, kh), stride, pad, nobias,
+            initialW=variable.as_array(W), initial_bias=variable.as_array(b),
+            dilate=dilate, groups=groups)
         return link
 
     def forward(self, x):

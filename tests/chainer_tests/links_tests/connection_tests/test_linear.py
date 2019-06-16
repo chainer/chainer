@@ -191,7 +191,7 @@ class TestInvalidLinear(unittest.TestCase):
             self.link(chainer.Variable(self.x))
 
 
-@testing.parameterize([
+@testing.parameterize(*[
     {'nobias': True},
     {'nobias': False},
 ])
@@ -203,15 +203,13 @@ class TestLinearFromParams(unittest.TestCase):
 
     def test_from_params(self):
         link1 = links.Linear(
-            self.out_size, self.in_size, nobias=self.nobias)
-        W = link1.W
-        b = link1.b
-        link2 = links.Linear.from_params(W, b)
+            self.in_size, self.out_size, nobias=self.nobias)
+        link2 = links.Linear.from_params(link1.W, link1.b, nobias=self.nobias)
 
         assert link1.W.shape == link2.W.shape
-        assert (link2.b is None) == (not self.nobias)
+        assert (link2.b is None) == self.nobias
         if not self.nobias:
-            assert link2.b.shape == link2.b.shape
+            assert link2.b.shape == link1.b.shape
 
 
 testing.run_module(__name__, __file__)

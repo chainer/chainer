@@ -131,8 +131,10 @@ class Linear(link.Link):
         This method uses ``W`` and optional ``b`` to initialize a linear layer.
 
         Args:
-            W (:ref:`ndarray`): The weight parameter.
-            b (:ref:`ndarray` or ``None``): The bias parameter.
+            W (:class:`~chainer.Variable` or :ref:`ndarray`):
+                The weight parameter.
+            b (:class:`~chainer.Variable`, :ref:`ndarray`, or ``None``):
+                The bias parameter.
             nobias (bool): If ``True``, the argument of ``b`` is ignored
                 in spite of whether it's given or not.
         """
@@ -140,7 +142,9 @@ class Linear(link.Link):
         if b is not None:
             if out_size != b.size:
                 raise ValueError('`out_size` does not match the size of `b`')
-        link = cls(in_size, out_size, nobias, initialW=W, initial_bias=b)
+        link = cls(
+            in_size, out_size, nobias,
+            initialW=variable.as_array(W), initial_bias=variable.as_array(b))
         return link
 
     @property
