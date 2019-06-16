@@ -196,4 +196,28 @@ class TestConvolutionNDWrappers(unittest.TestCase):
         testing.assert_allclose(link_nd(x).data, link_3d(x).data)
 
 
+@testing.parameterize(*testing.product({
+    'ndim': [1, 3],
+    'nobias': [True, False],
+    'groups': [1, 5],
+}))
+class TestConvolutionNDFromParams(unittest.TestCase):
+
+    def setUp(self):
+        self.in_channels, self.out_channels = 5, 10
+        self.k = 3
+
+    def test_from_params(self):
+        link1 = convolution_nd.ConvolutionND(
+            self.ndim, self.in_channels, self.out_channels,
+            self.k, 1, 1, nobias=self.nobias, groups=self.groups)
+        link2 = convolution_nd.ConvolutionND.from_params(
+            link1.W, link1.b, 1, 1, self.nobias, groups=self.groups)
+
+        assert link2.W.shape == link1.W.shape
+        assert (link2.b is None) == self.nobias
+        if not self.nobias:
+            assert link2.b.shape == link1.b.shape
+
+
 testing.run_module(__name__, __file__)
