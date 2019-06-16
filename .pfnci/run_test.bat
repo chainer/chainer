@@ -18,6 +18,11 @@ if %GPU_LIMIT% gtr 0 (
     set PYTEST_ATTR=not gpu and not cudnn and %PYTEST_ATTR%
 )
 
+rem protobuf==3.7.1 with python3.7 causes "DeprecationWarning"
+rem to avoid the warning, install specific version
+rem see https://github.com/chainer/chainer/issues/7523
+pip install protobuf==3.6.1
+
 pip install -e .[test] -vvv
 pip install scipy
 
