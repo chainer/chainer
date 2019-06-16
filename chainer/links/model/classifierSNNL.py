@@ -2,7 +2,7 @@ from chainer.functions.evaluation import accuracy
 from chainer.functions.loss import softmax_cross_entropy
 from chainer import link
 from chainer import reporter
-
+from chainer import config
 from chainer.link_hooks.soft_nearest_neighbor_loss import SNNL_hook
 
 
@@ -23,6 +23,12 @@ class ClassifierSNNL(link.Chain):
 
         self.snnl_hooks = []
 
+        with self.init_scope():
+            self.predictor = predictor
+
+        if config.train == False:
+            return
+
         if link_names is None:
             for l in list(predictor.children())[:-1]:
                 hook = SNNL_hook()
@@ -37,8 +43,6 @@ class ClassifierSNNL(link.Chain):
                     l.add_hook(hook)
                     self.snnl_hooks.append(hook)
 
-        with self.init_scope():
-            self.predictor = predictor
 
     def forward(self, x, t):
         for snnl_hook in self.snnl_hooks:
