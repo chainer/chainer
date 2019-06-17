@@ -74,6 +74,7 @@ keys=None, trigger=(1, 'epoch'), postprocess=None, filename='log')
         self._trigger = trigger_module.get_trigger(trigger)
         self._postprocess = postprocess
         self._log = []
+        self._log_str = bytearray()
         self._log_paths = {}
 
         log_name, = argument.parse_kwargs(
@@ -120,20 +121,24 @@ keys=None, trigger=(1, 'epoch'), postprocess=None, filename='log')
                 log_name = self._log_name.format(**stats_cpu)
 
                 if self._file_format == 'jsonl':
-                    path = os.path.join(trainer.out, log_name)
-
-                    # empty the log file (if exists) at first time
-                    if path not in self._log_paths:
-                        with open(path, 'w'):
-                            pass
-                        self._log_paths[path] = True
-
-                    # write the stats as a JSON object without CR/LF chars
+                    # append the stats as a JSON object without CR/LF chars
                     # and an LF as a delimiter
-                    with open(path, 'a', newline='\n') as f:
-                        json.dump(stats_cpu, f, indent=None,
-                                  separators=(',', ':'))
-                        f.write('\n')
+                    stats_str = (json.dumps(stats_cpu, indent=None,
+                                            separators=(',', ':')) + '\n')
+                    self._log_str += stats_str.encode('utf-8')
+
+                    path = os.path.join(trainer.out, log_name)
+                    if path not in self._log_paths:
+                        # renew the log file (if exists) at first time
+                        # it also does when resuming (_log_paths will not be
+                        # serialized)
+                        with open(path, 'wb') as f:
+                            f.write(self._log_str)
+                        self._log_paths[path] = True
+                    else:
+                        # open a writable file without truncating
+                        with open(path, 'rb+') as f:
+                            f.write(self._log_str)
 
                 else:
                     with utils.tempdir(prefix=log_name,
@@ -167,9 +172,13 @@ keys=None, trigger=(1, 'epoch'), postprocess=None, filename='log')
         if isinstance(serializer, serializer_module.Serializer):
             log = json.dumps(self._log)
             serializer('_log', log)
+            log_str = self._log_str.decode('utf-8')
+            serializer('_log_str', log_str)
         else:
             log = serializer('_log', '')
             self._log = json.loads(log)
+            log_str = serializer('_log_str', '')
+            self._log_str = log_str.encode('utf-8')
 
     def _init_summary(self):
         self._summary = reporter.DictSummary()
