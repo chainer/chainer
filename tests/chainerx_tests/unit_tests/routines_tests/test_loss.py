@@ -74,6 +74,9 @@ class TestMSE(LossBase):
 ))
 class TestMAE(LossBase):
 
+    # Absolute is non-differentiable at zero.
+    dodge_nondifferentiable = True
+
     def forward_xp(self, inputs, xp):
         x1, x2 = inputs
         return xp.mean_absolute_error(x1, x2),
@@ -121,6 +124,9 @@ class TestGaussianKLDivergence(LossBase):
     ])
 ))
 class TestHuberLoss(LossBase):
+
+    # Absolute is non-differentiable at zero.
+    dodge_nondifferentiable = True
 
     def forward_xp(self, inputs, xp):
         x, t = inputs
