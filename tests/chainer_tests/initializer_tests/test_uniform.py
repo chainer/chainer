@@ -1,14 +1,16 @@
 import math
 import unittest
+import pytest
 
 import numpy
 
-from chainer import backend
+from chainer import backend, using_device
 from chainer.backends import cuda
 from chainer import initializers
 from chainer import testing
 from chainer.testing import attr
 from chainer.testing import condition
+import chainerx
 
 
 default_scale = {
@@ -69,6 +71,18 @@ class TestUniform(unittest.TestCase):
         w = cuda.cupy.empty(self.shape, dtype=self.dtype)
         self.check_initializer(w)
 
+    @attr.chainerx
+    def test_initializer_chainerx_with_default(self):
+        w = chainerx.empty(self.shape, dtype=self.dtype, device='native:0')
+        self.check_initializer(w)
+
+    @attr.chainerx
+    @attr.gpu
+    @pytest.mark.xfail(strict=True)
+    def test_initializer_chainerx_with_cuda(self):
+        w = chainerx.empty(self.shape, dtype=self.dtype, device='cuda:0')
+        self.check_initializer(w)
+
     def check_shaped_initializer(self, xp):
         initializer = self.target(dtype=self.dtype, **self.target_kwargs)
         w = initializers.generate_array(initializer, self.shape, xp)
@@ -82,6 +96,17 @@ class TestUniform(unittest.TestCase):
     @attr.gpu
     def test_shaped_initializer_gpu(self):
         self.check_shaped_initializer(cuda.cupy)
+
+    @attr.chainerx
+    def test_shaped_initializer_chainerx_with_default(self):
+        with using_device('native:0'):
+            self.check_shaped_initializer(chainerx)
+
+    @attr.chainerx
+    @attr.gpu
+    def test_shaped_initializer_chainerx_with_cuda(self):
+        with using_device('cuda:0'):
+            self.check_shaped_initializer(chainerx)
 
     def check_initializer_statistics(self, xp, n):
         from scipy import stats
@@ -124,6 +149,21 @@ class TestUniform(unittest.TestCase):
     def test_initializer_statistics_gpu(self):
         self.check_initializer_statistics(cuda.cupy, 100)
 
+    @attr.chainerx
+    @testing.with_requires('scipy')
+    @condition.retry(3)
+    def test_initializer_statistics_chainerx_default(self):
+        with using_device('native:0'):
+            self.check_initializer_statistics(chainerx, 100)
+
+    @attr.chainerx
+    @attr.gpu
+    @testing.with_requires('scipy')
+    @condition.retry(3)
+    def test_initializer_statistics_chainerx_cuda(self):
+        with using_device('cuda:0'):
+            self.check_initializer_statistics(chainerx, 100)
+
     @attr.slow
     @testing.with_requires('scipy')
     @condition.repeat_with_success_at_least(5, 3)
@@ -136,6 +176,28 @@ class TestUniform(unittest.TestCase):
     @condition.repeat_with_success_at_least(5, 3)
     def test_initializer_statistics_slow_gpu(self):
         self.check_initializer_statistics(cuda.cupy, 10000)
+
+    @attr.slow
+    @attr.gpu
+    @testing.with_requires('scipy')
+    @condition.repeat_with_success_at_least(5, 3)
+    def test_initializer_statistics_slow_chainerx(self):
+        self.check_initializer_statistics(chainerx, 10000)
+
+    @attr.chainerx
+    @testing.with_requires('scipy')
+    @condition.repeat_with_success_at_least(5, 3)
+    def test_initializer_statistics_slow_chainerx_default(self):
+        with using_device('native:0'):
+            self.check_initializer_statistics(chainerx, 10000)
+
+    @attr.chainerx
+    @attr.gpu
+    @testing.with_requires('scipy')
+    @condition.repeat_with_success_at_least(5, 3)
+    def test_initializer_statistics_slow_chainerx_cuda(self):
+        with using_device('cuda:0'):
+            self.check_initializer_statistics(chainerx, 10000)
 
 
 testing.run_module(__name__, __file__)

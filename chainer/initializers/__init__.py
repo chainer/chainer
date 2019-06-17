@@ -65,16 +65,7 @@ def generate_array(initializer, shape, xp, dtype=None, device=None):
             raise ValueError('xp and device arguments are inconsistent.')
 
     if xp is chainerx:
-        # Initialize with NumPy/CuPy array that shares memory with the
-        # ChainerX array.
-        # TODO(sonots): Directly use initializer after ChainerX
-        # supports random.
-        chx_device = backend_device.device
-        array = chainerx.empty(shape, dtype=dtype, device=chx_device)
-        fallback_device = backend_device.fallback_device
-        with chainer.using_device(fallback_device):
-            initializer(fallback_device.send(array))
-        return array
+        backend_device = backend_device.device
 
     with chainer.using_device(backend_device):
         array = xp.empty(shape, dtype=dtype)

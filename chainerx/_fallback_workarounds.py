@@ -108,7 +108,14 @@ def _populate_module_functions():
             ret = xp.asarray(ret)
         return _to_chx(ret)
 
+    def _fill_diagonal(arr, scale):
+        xp, dev, arr = _from_chx(arr)
+        with dev:
+            xp.fill_diagonal(arr, scale)
+        return _to_chx(arr)
+
     chainerx.fix = _fix
+    chainerx.fill_diagonal = _fill_diagonal
 
 
 def _populate_ndarray():

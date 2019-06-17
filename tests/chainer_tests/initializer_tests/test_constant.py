@@ -1,11 +1,12 @@
 import unittest
 
-from chainer import backend
+from chainer import backend, using_device
 from chainer.backends import cuda
 from chainer import initializers
 from chainer import testing
 from chainer.testing import attr
 import numpy
+import chainerx
 
 
 @testing.parameterize(*testing.product({
@@ -37,6 +38,17 @@ class TestIdentity(unittest.TestCase):
         w = cuda.cupy.empty(self.shape, dtype=self.dtype)
         self.check_initializer(w)
 
+    @attr.chainerx
+    def test_initializer_chainerx_with_default(self):
+        w = chainerx.empty(self.shape, dtype=self.dtype, device='native:0')
+        self.check_initializer(w)
+
+    @attr.chainerx
+    @attr.gpu
+    def test_initializer_chainerx_with_cuda(self):
+        w = chainerx.empty(self.shape, dtype=self.dtype, device='cuda:0')
+        self.check_initializer(w)
+
     def check_shaped_initializer(self, xp):
         initializer = initializers.Identity(
             scale=self.scale, dtype=self.dtype)
@@ -54,6 +66,18 @@ class TestIdentity(unittest.TestCase):
     @attr.gpu
     def test_shaped_initializer_gpu(self):
         self.check_shaped_initializer(cuda.cupy)
+
+    @attr.chainerx
+    @attr.gpu
+    def test_shaped_initializer_chainerx_with_default(self):
+        with using_device('native:0'):
+            self.check_shaped_initializer(chainerx)
+
+    @attr.chainerx
+    @attr.gpu
+    def test_shaped_initializer_chainerx_with_cuda(self):
+        with using_device('cuda:0'):
+            self.check_shaped_initializer(chainerx)
 
 
 @testing.parameterize(
@@ -101,6 +125,17 @@ class TestConstant(unittest.TestCase):
         w = cuda.cupy.empty(self.shape, dtype=self.dtype)
         self.check_initializer(w)
 
+    @attr.gpu
+    def test_initializer_chainerx_with_default(self):
+        w = chainerx.empty(self.shape, dtype=self.dtype, device='native:0')
+        self.check_initializer(w)
+
+    @attr.chainerx
+    @attr.gpu
+    def test_initializer_chainerx_with_cuda(self):
+        w = chainerx.empty(self.shape, dtype=self.dtype, device='cuda:0')
+        self.check_initializer(w)
+
     def check_shaped_initializer(self, xp):
         initializer = initializers.Constant(
             fill_value=self.fill_value, dtype=self.dtype)
@@ -118,6 +153,18 @@ class TestConstant(unittest.TestCase):
     @attr.gpu
     def test_shaped_initializer_gpu(self):
         self.check_shaped_initializer(cuda.cupy)
+
+    @attr.chainerx
+    @attr.gpu
+    def test_shaped_initializer_chainerx_with_default(self):
+        with using_device('native:0'):
+            self.check_shaped_initializer(chainerx)
+
+    @attr.chainerx
+    @attr.gpu
+    def test_shaped_initializer_chainerx_with_cuda(self):
+        with using_device('cuda:0'):
+            self.check_shaped_initializer(chainerx)
 
 
 testing.run_module(__name__, __file__)
