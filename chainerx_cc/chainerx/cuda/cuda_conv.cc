@@ -416,7 +416,7 @@ Array CudaConv::ConvTranspose(
 
     // out_shape = (batch_size, out_channels, out_1, out_2, ..., out_N)
     // (Note that cover_all is not supported in cuDNN implementation.)
-    Shape out_shape{batch_size, out_channels};
+    Shape out_shape{batch_size, out_channels * groups};
     std::copy(out_size.begin(), out_size.end(), std::back_inserter(out_shape));
 
     ConvDtypes dtypes = GetBestConvDtypes(out_dtype);
