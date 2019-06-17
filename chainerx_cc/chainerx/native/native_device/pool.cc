@@ -28,7 +28,6 @@
 #include "chainerx/routines/connection.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/indexing.h"
-#include "chainerx/routines/math.h"
 #include "chainerx/routines/pooling.h"
 #include "chainerx/scalar.h"
 #include "chainerx/shape.h"

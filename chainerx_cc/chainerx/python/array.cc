@@ -30,7 +30,6 @@
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/indexing.h"
 #include "chainerx/routines/manipulation.h"
-#include "chainerx/routines/math.h"
 #include "chainerx/routines/misc.h"
 #include "chainerx/routines/sorting.h"
 #include "chainerx/shape.h"
