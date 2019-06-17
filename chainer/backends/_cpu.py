@@ -1,7 +1,5 @@
 import numpy
 
-from numpy import ndarray
-
 from chainer import _backend
 # TODO(kmaehashi): `from chainer.backends import cuda` causes circular imports.
 # Surprisingly, `import chianer.backends` works as a workaround to avoid, but
