@@ -56,11 +56,11 @@ public:
 
         if (groups > 1) {
             // Run grouped convolution.
-            int64_t const G = groups;
-            int64_t const N = x.shape()[0], iC = x.shape()[1];
-            int64_t const oC = w.shape()[0];
-            int64_t const iCg = iC / G;
-            int64_t const oCg = oC / G;
+            const int64_t G = groups;
+            const int64_t N = x.shape()[0], iC = x.shape()[1];
+            const int64_t oC = w.shape()[0];
+            const int64_t iCg = iC / G;
+            const int64_t oCg = oC / G;
             if (iC % G != 0) {
                 throw ChainerxError("The number of groups(", G, ") must be a divisor of that of input channels(", iC, ")");
             }
@@ -70,10 +70,10 @@ public:
 
             // Convert to colum representation of shape (batch_size, channel, k_1, k_2, ..., k_n, out_1, out_2, ..., out_n).
             Array nx = native_internal::Im2Col(x, kernel_size, stride, pad, cover_all, 0);
-            Dims const o_size(nx.shape().end() - ndim, nx.shape().end());
+            const Dims o_size(nx.shape().end() - ndim, nx.shape().end());
 
             nx = RollAxis(nx, 0, ndim + 2);
-            int64_t const mul_len = iCg * std::accumulate(kernel_size.begin(), kernel_size.end(), 1, std::multiplies<int64_t>());
+            const int64_t mul_len = iCg * std::accumulate(kernel_size.begin(), kernel_size.end(), 1, std::multiplies<int64_t>());
             nx = nx.Reshape({G, mul_len, N * std::accumulate(o_size.begin(), o_size.end(), 1, std::multiplies<int64_t>())});
             Array W = w.Reshape({G, oCg, mul_len});
 
@@ -160,7 +160,7 @@ public:
             int64_t G = groups;
             int64_t N = x.shape()[0], iC = x.shape()[1];
             int64_t oC = gy.shape()[1];
-            Shape const o_size(gy.shape().begin() + 2, gy.shape().end());
+            const Shape o_size(gy.shape().begin() + 2, gy.shape().end());
             int64_t o_size_prod = std::accumulate(o_size.begin(), o_size.end(), 1, std::multiplies<int64_t>());
             int64_t iCg = iC / G;
             int64_t oCg = oC / G;
