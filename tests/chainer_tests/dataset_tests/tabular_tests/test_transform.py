@@ -174,27 +174,27 @@ class TestTransformInvalid(unittest.TestCase):
 class TestTransformConvert(unittest.TestCase):
 
     def test_transfrom_convert(self):
-        def converter(d, e):
+        def converter(alpha, beta):
             return 'converted'
 
         dataset = dummy_dataset.DummyDataset().with_converter(converter)
-        view = dataset.transform(('d', 'e'), self.transform)
+        view = dataset.transform(('alpha', 'beta'), self.transform)
         self.assertEqual(view.convert(view.fetch()), 'converted')
 
     def test_transfrom_batch_convert(self):
-        def converter(d, e):
+        def converter(alpha, beta):
             return 'converted'
 
         dataset = dummy_dataset.DummyDataset(
             return_array=True).with_converter(converter)
-        view = dataset.transform_batch(('d', 'e'), self.transform)
+        view = dataset.transform_batch(('alpha', 'beta'), self.transform)
         self.assertEqual(view.convert(view.fetch()), 'converted')
 
     def transform(self, a, b, c):
         if self.mode is tuple:
-            return a + b, b - c
+            return a + b, b + c
         elif self.mode is dict:
-            return {'d': a + b, 'e': b - c}
+            return {'alpha': a + b, 'beta': b + c}
 
 
 testing.run_module(__name__, __file__)
