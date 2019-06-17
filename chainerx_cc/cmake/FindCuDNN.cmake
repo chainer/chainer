@@ -15,46 +15,56 @@
 include(FindPackageHandleStandardArgs)
 
 # Determine CUDNN_ROOT_DIR
-if(DEFINED ENV{CUDNN_ROOT_DIR})
-  set(CUDNN_ROOT_DIR $ENV{CUDNN_ROOT_DIR})
-else()
-  set(CUDNN_ROOT_DIR "" CACHE PATH "Folder contains NVIDIA cuDNN")
+if(NOT DEFINED CUDNN_ROOT_DIR)
+  if(DEFINED ENV{CUDNN_ROOT_DIR})
+    set(CUDNN_ROOT_DIR $ENV{CUDNN_ROOT_DIR})
+  else()
+    set(CUDNN_ROOT_DIR "" CACHE PATH "Folder contains NVIDIA cuDNN")
+  endif()
 endif()
 
 # Determine CUDNN_INCLUDE_DIR
-if(DEFINED ENV{CUDNN_INCLUDE_DIR})
-  set(CUDNN_INCLUDE_DIR $ENV{CUDNN_INCLUDE_DIR})
-else()
-  find_path(CUDNN_INCLUDE_DIR cudnn.h
-    HINTS ${CUDNN_ROOT_DIR} ${CUDA_TOOLKIT_ROOT_DIR}
-    PATH_SUFFIXES cuda/include include)
+if(NOT DEFINED CUDNN_INCLUDE_DIR)
+  if(DEFINED ENV{CUDNN_INCLUDE_DIR})
+    set(CUDNN_INCLUDE_DIR $ENV{CUDNN_INCLUDE_DIR})
+  else()
+    find_path(CUDNN_INCLUDE_DIR cudnn.h
+      HINTS ${CUDNN_ROOT_DIR} ${CUDA_TOOLKIT_ROOT_DIR}
+      PATH_SUFFIXES cuda/include include)
+  endif()
 endif()
 
 # Determine CUDNN_LIB_DIR
-if(DEFINED ENV{CUDNN_LIB_DIR})
-  set(CUDNN_LIB_DIR $ENV{CUDNN_LIB_DIR})
+if(NOT DEFINED CUDNN_LIB_DIR)
+  if(DEFINED ENV{CUDNN_LIB_DIR})
+    set(CUDNN_LIB_DIR $ENV{CUDNN_LIB_DIR})
+  endif()
 endif()
 
 # Determine CUDNN_LIBNAME
-if(DEFINED ENV{CUDNN_LIBNAME})
-  # libname from envvar
-  set(CUDNN_LIBNAME $ENV{CUDNN_LIBNAME})
-elseif(DEFINED ENV{USE_STATIC_CUDNN})
-  # Static library
-  MESSAGE(STATUS "USE_STATIC_CUDNN detected. Linking against static CUDNN library")
-  set(CUDNN_LIBNAME "libcudnn_static.a")
-else()
-  # Dynamic library
-  set(CUDNN_LIBNAME "cudnn")
+if(NOT DEFINED CUDNN_LIBNAME)
+  if(DEFINED ENV{CUDNN_LIBNAME})
+    # libname from envvar
+    set(CUDNN_LIBNAME $ENV{CUDNN_LIBNAME})
+  elseif(DEFINED ENV{USE_STATIC_CUDNN})
+    # Static library
+    MESSAGE(STATUS "USE_STATIC_CUDNN detected. Linking against static CUDNN library")
+    set(CUDNN_LIBNAME "libcudnn_static.a")
+  else()
+    # Dynamic library
+    set(CUDNN_LIBNAME "cudnn")
+  endif()
 endif()
 
 # Determine CUDNN_LIBRARY
-if(DEFINED ENV{CUDNN_LIBRARY})
-  SET(CUDNN_LIBRARY $ENV{CUDNN_LIBRARY})
-else()
-  find_library(CUDNN_LIBRARY ${CUDNN_LIBNAME}
-    HINTS ${CUDNN_LIB_DIR} ${CUDNN_ROOT_DIR} ${CUDA_TOOLKIT_ROOT_DIR}
-    PATH_SUFFIXES lib lib64 cuda/lib cuda/lib64 lib/x64)
+if(NOT DEFINED CUDNN_LIBRARY)
+  if(DEFINED ENV{CUDNN_LIBRARY})
+    SET(CUDNN_LIBRARY $ENV{CUDNN_LIBRARY})
+  else()
+    find_library(CUDNN_LIBRARY ${CUDNN_LIBNAME}
+      HINTS ${CUDNN_LIB_DIR} ${CUDNN_ROOT_DIR} ${CUDA_TOOLKIT_ROOT_DIR}
+      PATH_SUFFIXES lib lib64 cuda/lib cuda/lib64 lib/x64)
+  endif()
 endif()
 
 # Misc.
