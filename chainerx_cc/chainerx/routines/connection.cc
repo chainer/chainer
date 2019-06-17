@@ -209,7 +209,7 @@ Array ConvTranspose(
     if (x.shape()[1] != w.shape()[0]) {
         throw DimensionError{"Mismatched number of input channels in input ", x.shape(), " and weights ", w.shape(), "."};
     }
-    if (b.has_value() && (b->ndim() != 1 || b->shape()[0] != w.shape()[1])) {
+    if (b.has_value() && (b->ndim() != 1 || b->shape()[0] != w.shape()[1] * groups)) {
         throw DimensionError{"Mismatched bias shape ", b->shape(), " for weights ", w.shape(), "."};
     }
     int8_t ndim = x.ndim() - 2;  // Number of spatial dimensions
