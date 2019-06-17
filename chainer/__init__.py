@@ -182,7 +182,7 @@ def is_arrays_compatible(arrays):
 
     # If there's at least one chainerx.ndarray, all other arrays
     # will be converted to memory-shared chainerx.ndarrays.
-    are_chainerx = [isinstance(arr, chainerx.ndarray) for arr in arrays] 
+    are_chainerx = [isinstance(arr, chainerx.ndarray) for arr in arrays]
     if chainerx.is_available() and any(are_chainerx):
         return all(are_chainerx)
 
