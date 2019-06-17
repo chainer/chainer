@@ -176,7 +176,7 @@ public:
             nx = nx.Reshape({G, mul_len, N * o_size_prod});
             nx = nx.Transpose({0, 2, 1});  // (G, N*o_size, iCg*k_size)
 
-            chainerx::Array ngy = RollAxis(ngy, 1);  // (oC, N, o_size...)
+            chainerx::Array ngy = RollAxis(gy, 1, 0);  // (oC, N, o_size...)
             ngy = ngy.Reshape({G, oCg, N * o_size_prod});
 
             // (G, oCg, iCg*k_size) = (G, oCg, N*o_size) @ (G, N*o_size, iCg*k_size)
