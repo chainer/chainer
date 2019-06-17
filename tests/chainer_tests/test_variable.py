@@ -1314,11 +1314,14 @@ class TestVariableToDevice(unittest.TestCase):
 
         expected_xp = device.xp
         assert x_var.xp is expected_xp
+        assert x_var.requires_grad
         assert x_var._has_chainerx_array is (expected_xp is chainerx)
         assert x_var.grad_var.xp is expected_xp
+        assert x_var.grad_var.requires_grad
         assert x_var.grad_var._has_chainerx_array is (expected_xp is chainerx)
 
-    def test_to_device_with_graph_is_unchained(self, backend_config1, backend_config2):
+    def test_to_device_with_graph_is_unchained(
+            self, backend_config1, backend_config2):
         # Variables should be unchained backwards when transferred to a device.
         x = backend_config1.get_array(self.x)
 
@@ -1328,6 +1331,7 @@ class TestVariableToDevice(unittest.TestCase):
         device = backend_config2.device
         y_var.to_device(device)
 
+        # Since it used to require gradients before device transfer.
         assert y_var.requires_grad
 
         # Check that the graph is unchained.
@@ -1335,6 +1339,32 @@ class TestVariableToDevice(unittest.TestCase):
             assert y_var.creator_node is None
         y_var.backward()
         assert x_var.grad_var is None
+
+    def test_to_device_with_grad_graph_is_unchained(
+            self, backend_config1, backend_config2):
+        # Variables should be unchained backwards when transferred to a device.
+        x = backend_config1.get_array(self.x)
+        g = backend_config1.xp.ones_like(x)
+        g = backend_config1.get_array(g)
+
+        x_var = chainer.Variable(x)
+
+        g_var = chainer.Variable(g)
+        gx_var = g_var * g_var
+
+        x_var.grad_var = gx_var
+
+        device = backend_config2.device
+        x_var.to_device(device)
+
+        # Since it used to require gradients before device transfer.
+        assert x_var.grad_var.requires_grad
+
+        # Check that the graph is unchained.
+        if x_var.grad_var.xp is not chainerx:
+            assert x_var.grad_var.creator_node is None
+        x_var.grad_var.backward()
+        assert g_var.grad_var is None
 
 
 @testing.parameterize(*testing.product({

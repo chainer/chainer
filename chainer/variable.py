@@ -1174,73 +1174,25 @@ class Variable(object):
         if not was_chainerx:
             self.unchain()
 
+        # Transfer gradient variable if any.
+        grad_var = self.grad_var
+        if grad_var is not None:
+            grad_var.to_device(device)
+
+        # Transfer data.
         arr = self._data[0]
         if arr is not None:
-            # Transfer with no_backprop_mode to unchain the graph in case of
-            # `was_chainerx`. If it is a transfer between different ChainerX
-            # devices, the graph is unchained in `device.send`, otherwise, it
-            # is unchained in `self._set_chainerx_array`.
-            '''
-            grad_var = self.grad_var
-
-            with chainer.no_backprop_mode():
-                new_arr = device.send(arr)
-                if is_chainerx:
-                    if grad_var is None:
-                        new_grad = None
-                    else:
-                        new_grad = device.send(grad_var._data[0])
-                    self._set_chainerx_array(new_arr, new_grad)
-                else:
-                    self._data = [new_arr]
-                    if grad_var is not None:
-                        grad_var.to_device(device)
-                        # _grad has been invalidated by the line above.
-                        self._grad = grad_var.array
-
-                # ensure that the node tracks the device migration
-                node = self._node
-                if is_chainerx:
-                    # ChainerX itself has own node objects,
-                    # ensure that the node is disconnected with this variable.
-                    if node is not None:
-                        # Disconnect by replacing with an alternative of dead
-                        # weakref
-                        node._variable = lambda: None
-                        self._node = None
-                else:
-                    if node._data is not None:
-                        node.retain_data()
-            '''
             if was_chainerx:
                 arr = arr.as_grad_stopped(copy=False)
             new_arr = device.send(arr)
+            if is_chainerx and self.requires_grad:
+                new_arr.require_grad()
 
-            grad_var = self.grad_var
-
-            if is_chainerx:
-                if grad_var is None:
-                    new_grad = None
-                else:
-                    new_grad = grad_var._data[0]
-                    if was_chainerx:
-                        # TODO(hvy): Check if old gradient used to require
-                        # grad, if so, we need to require gradients again after
-                        # self._set_chainerx_array. We don't want to alter the
-                        # is_backprop_required_state, just unchain the graph!
-                        #
-                        # Additionally, since array and grad become leaf nodes,
-                        # they should explicitly both be set to require gradient to follow
-                        # Chainer's convention that leaf nodes require grad.
-                        new_grad = new_grad.as_grad_stopped(copy=False)
-                    new_grad = device.send(new_grad)
-                self._set_chainerx_array(new_arr, new_grad)
+                # Gradient is updated torwards the end of this method and is
+                # therefore passed as `None`.
+                self._set_chainerx_array(new_arr, None)
             else:
                 self._data = [new_arr]
-                if grad_var is not None:
-                    grad_var.to_device(device)
-                    # _grad has been invalidated by the line above.
-                    self._grad = grad_var.array
 
             # ensure that the node tracks the device migration
             node = self._node
@@ -1257,6 +1209,19 @@ class Variable(object):
                     node.retain_data()
 
         self._has_chainerx_array = is_chainerx
+
+        # Refer to transferred gradients from `self`, now that the data is
+        # transferred.
+        if grad_var is not None:
+            if is_chainerx and not self.requires_grad:
+                # If `self` is flagged not to require any gradients but has
+                # gradients, when being transferring to a ChainerX device,
+                # the gradients are lost.
+                # This is a rather rare case but might not be obvious.
+                self.grad_var = None
+            else:
+                self.grad_var = grad_var
+
         self._device = device
 
     def cleargrad(self):
