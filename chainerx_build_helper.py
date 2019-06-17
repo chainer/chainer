@@ -56,7 +56,7 @@ class CMakeBuild(build_ext.build_ext):
             os.path.dirname(self.get_ext_fullpath(ext.name)))
         cmake_args = [
             '-DCHAINERX_BUILD_PYTHON=1',
-            '-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=' + extdir,
+            '-DCMAKE_INSTALL_PREFIX=' + extdir,
             '-DPYTHON_EXECUTABLE=' + sys.executable,
             '-DCHAINERX_BUILD_TEST=OFF',
             '-DCMAKE_BUILD_TYPE=' + build_type,
@@ -115,6 +115,6 @@ def config_setup_kwargs(setup_kwargs, build_chainerx):
         cmdclass={'build_ext': CMakeBuild},
         ext_modules=[CMakeExtension(
             name='chainerx._core',
-            build_targets=['_core.so'],
+            build_targets=['_core.so', 'install'],
             sourcedir='chainerx_cc')],
     ))

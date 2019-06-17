@@ -161,7 +161,10 @@ else()
     target_link_libraries(chainerx PRIVATE -Wl,--no-whole-archive)
 endif()
 
-install(TARGETS chainerx DESTINATION lib)
+install(TARGETS chainerx LIBRARY DESTINATION lib)
+if(${CHAINERX_BUILD_PYTHON})
+  install(TARGETS chainerx LIBRARY DESTINATION .)
+endif()
 
 if(${CHAINERX_BUILD_TEST})
     add_subdirectory(backend_testdata)

@@ -31,6 +31,7 @@ if(MSVC)
 endif()
 
 pybind11_add_module(${module_name} MODULE ${srcs})
+install(TARGETS ${module_name} LIBRARY DESTINATION .)
 
 # CUDA specific bindings.
 if(${CUDA_FOUND})
