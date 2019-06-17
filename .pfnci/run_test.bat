@@ -9,7 +9,7 @@ set PATH=%CUDA_PATH%\bin;%CUDA_PATH%\libnvvp;%PY_PATH%;%PY_PATH%\Scripts\%PATH%
 
 set PYTEST_ATTR=not slow and not ideep
 
-curl -o xpytest.exe -L https://github.com/disktnk/xpytest/releases/download/v0.0.1/xpytest.exe
+curl -o xpytest.exe -L https://github.com/chainer/xpytest/releases/download/v0.1.0/xpytest-windows.exe
 
 if %GPU_LIMIT% gtr 0 (
     rem cannot set variable within if block, so use subroutine
