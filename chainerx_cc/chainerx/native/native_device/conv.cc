@@ -83,7 +83,6 @@ public:
                 y_data.push_back(W.At({i}).Dot(nx.At({i})));
             }
             Array y = Concatenate(y_data);
-            // Array y = TensorDot(W, nx, {2}, {1}, nx.dtype());
             Shape new_shape{oC, N};
             new_shape.insert(new_shape.end(), o_size.begin(), o_size.end());
             y = y.Reshape(new_shape);
@@ -186,7 +185,11 @@ public:
                 out_axes.emplace_back(int64_t{2 + i});
                 col_axes.emplace_back(int64_t{2 + ndim + i});
             }
-            chainerx::Array gW = TensorDot(ngy, nx, out_axes, col_axes, w_dtype);
+            std::vector<Array> gW_data;
+            for (int64_t i = 0; i < G; ++i) {
+                gW_data.push_back(ngy.At({i}).Dot(nx.At({i})));
+            }
+            chainerx::Array gW = Concatenate(gW_data);
             Shape gw_nsize;
             gw_nsize.push_back(oC);
             gw_nsize.push_back(iCg);
