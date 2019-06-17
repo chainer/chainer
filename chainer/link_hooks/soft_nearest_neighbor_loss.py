@@ -1,9 +1,7 @@
-
 import chainer
+from chainer import variable
 from chainer import link_hook
-from chainer import Variable
-from chainer.functions.loss.soft_nearest_neighbor_loss \
-    import soft_nearest_neighbor_loss as SNNL
+import chainer.functions as F
 
 
 def optimized_temp_SNNL(x, y, initial_temp, cos_distance):
@@ -21,14 +19,14 @@ def optimized_temp_SNNL(x, y, initial_temp, cos_distance):
               in x with labels y, optimized for temperature.
     """
     xp = x.xp
-    t = Variable(xp.asarray([1], dtype=xp.float32))
+    t = variable.Variable(xp.asarray([1], dtype=xp.float32))
 
     def inverse_temp(t):
         # pylint: disable=missing-docstring
         # we use inverse_temp because it was observed to be more stable
         # when optimizing.
         return initial_temp / t
-    ent_loss = SNNL(x, y, inverse_temp(t), cos_distance)
+    ent_loss = F.soft_nearest_neighbor_loss(x, y, inverse_temp(t), cos_distance)
 
     grad_t = chainer.grad([ent_loss], [t])[0]
     if grad_t is not None:
@@ -38,7 +36,7 @@ def optimized_temp_SNNL(x, y, initial_temp, cos_distance):
 
     inverse_t = inverse_temp(updated_t).data
 
-    return SNNL(x, y, inverse_t, cos_distance)
+    return F.soft_nearest_neighbor_loss(x, y, inverse_t, cos_distance)
 
 
 class SNNL_hook(link_hook.LinkHook):
@@ -59,7 +57,7 @@ class SNNL_hook(link_hook.LinkHook):
             self.loss = optimized_temp_SNNL(
                 out, self.t, self.temperature, self.cos_distance)
         else:
-            self.loss = SNNL(
+            self.loss = F.soft_nearest_neighbor_loss(
                 out, self.t, self.temperature, self.cos_distance)
 
     def get_loss(self):
