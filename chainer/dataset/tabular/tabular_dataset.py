@@ -23,7 +23,7 @@ class TabularDataset(dataset_mixin.DatasetMixin):
     Since an example can be represented by both tuple and dict (
     :obj:`(a[i], b[i], c[i])` and :obj:`{'a': a[i], 'b': b[i], 'c': c[i]}`),
     this class uses :attr:`mode` to indicate which representation will be used.
-    If there is only one column. an example also can be represented by a value
+    If there is only one column, an example also can be represented by a value
     (:obj:`a[i]`). In this case, :attr:`mode` is :obj:`None`.
 
     An inheritance should implement
