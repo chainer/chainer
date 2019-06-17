@@ -167,4 +167,34 @@ class TestTransformInvalid(unittest.TestCase):
             view.get_examples(None, None)
 
 
+@testing.parameterize(
+    {'mode': tuple},
+    {'mode': dict},
+)
+class TestTransformConvert(unittest.TestCase):
+
+    def test_transfrom_convert(self):
+        def converter(d, e):
+            return 'converted'
+
+        dataset = dummy_dataset.DummyDataset().with_converter(converter)
+        view = dataset.transform(('d', 'e'), self.transform)
+        self.assertEqual(view.convert(view.fetch()), 'converted')
+
+    def test_transfrom_batch_convert(self):
+        def converter(d, e):
+            return 'converted'
+
+        dataset = dummy_dataset.DummyDataset(
+            return_array=True).with_converter(converter)
+        view = dataset.transform_batch(('d', 'e'), self.transform)
+        self.assertEqual(view.convert(view.fetch()), 'converted')
+
+    def transform(self, a, b, c):
+        if self.mode is tuple:
+            return a + b, b - c
+        elif self.mode is dict:
+            return {'d': a + b, 'e': b - c}
+
+
 testing.run_module(__name__, __file__)
