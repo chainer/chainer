@@ -29,6 +29,12 @@ void CheckInplaceBitwiseDtypes(DtypeKind out_kind, DtypeKind in_kind) {
     }
 }
 
+void CheckShiftDtypes(DtypeKind kind1, DtypeKind kind2) {
+    if (kind1 == DtypeKind::kFloat || kind1 == DtypeKind::kBool || kind2 == DtypeKind::kFloat || kind2 == DtypeKind::kBool) {
+        throw DtypeError{"Shift operations don't support Float or Bool types"};
+    }
+}
+
 void CheckBitwiseDtypes(const Array& x1, const Array& x2) { CheckBitwiseDtypes(GetKind(x1.dtype()), GetKind(x2.dtype())); }
 
 void CheckBitwiseDtypes(const Array& x1, const Scalar& x2) { CheckBitwiseDtypes(GetKind(x1.dtype()), x2.kind()); }
@@ -36,6 +42,10 @@ void CheckBitwiseDtypes(const Array& x1, const Scalar& x2) { CheckBitwiseDtypes(
 void CheckInplaceBitwiseDtypes(const Array& x1, const Array& x2) { CheckInplaceBitwiseDtypes(GetKind(x1.dtype()), GetKind(x2.dtype())); }
 
 void CheckInplaceBitwiseDtypes(const Array& x1, const Scalar& x2) { CheckInplaceBitwiseDtypes(GetKind(x1.dtype()), x2.kind()); }
+
+void CheckShiftDtypes(const Array& x1, const Array& x2) { CheckShiftDtypes(GetKind(x1.dtype()), GetKind(x2.dtype())); }
+
+void CheckShiftDtypes(const Array& x1, const Scalar& x2) { CheckShiftDtypes(GetKind(x1.dtype()), x2.kind()); }
 
 template <typename Impl>
 void BitwiseImpl(const Array& x1, const Array& x2, const Array& out) {
@@ -149,33 +159,33 @@ Array BitwiseXor(const Array& x1, Scalar x2) {
 Array BitwiseXor(Scalar x1, const Array& x2) { return BitwiseXor(x2, x1); }
 
 Array LeftShift(const Array& x1, const Array& x2) {
-    CheckBitwiseDtypes(x1, x2);
-    return internal::BroadcastBinary(BitwiseImpl<LeftShiftKernel>, x1, x2, ResultType(x1, x2));
+    CheckShiftDtypes(x1, x2);
+    return internal::BroadcastBinary(BitwiseImpl<LeftShiftKernel>, x1, x2, Dtype::kInt64);
 }
 
 Array LeftShift(const Array& x1, Scalar x2) {
-    CheckBitwiseDtypes(x1, x2);
-    return internal::Binary(BitwiseASImpl<LeftShiftASKernel>, x1, x2, ResultType(x1, x2));
+    CheckShiftDtypes(x1, x2);
+    return internal::Binary(BitwiseASImpl<LeftShiftASKernel>, x1, x2, Dtype::kInt64);
 }
 
 Array LeftShift(Scalar x1, const Array& x2) { 
-    CheckBitwiseDtypes(x2, x1);
-    return internal::Binary(BitwiseSAImpl<LeftShiftSAKernel>, x1, x2, ResultType(x1, x2));
+    CheckShiftDtypes(x2, x1);
+    return internal::Binary(BitwiseSAImpl<LeftShiftSAKernel>, x1, x2, Dtype::kInt64);
 }
 
 Array RightShift(const Array& x1, const Array& x2) {
-    CheckBitwiseDtypes(x1, x2);
-    return internal::BroadcastBinary(BitwiseImpl<RightShiftKernel>, x1, x2, ResultType(x1, x2));
+    CheckShiftDtypes(x1, x2);
+    return internal::BroadcastBinary(BitwiseImpl<RightShiftKernel>, x1, x2, Dtype::kInt64);
 }
 
 Array RightShift(const Array& x1, Scalar x2) {
-    CheckBitwiseDtypes(x1, x2);
-    return internal::Binary(BitwiseASImpl<RightShiftASKernel>, x1, x2, ResultType(x1, x2));
+    CheckShiftDtypes(x1, x2);
+    return internal::Binary(BitwiseASImpl<RightShiftASKernel>, x1, x2, Dtype::kInt64);
 }
 
 Array RightShift(Scalar x1, const Array& x2) { 
-    CheckBitwiseDtypes(x2, x1);
-    return internal::Binary(BitwiseSAImpl<RightShiftSAKernel>, x1, x2, ResultType(x1, x2));
+    CheckShiftDtypes(x2, x1);
+    return internal::Binary(BitwiseSAImpl<RightShiftSAKernel>, x1, x2, Dtype::kInt64);
 }
 
 }  // namespace chainerx

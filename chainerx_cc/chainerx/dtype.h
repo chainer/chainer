@@ -212,8 +212,6 @@ auto VisitIntegralDtype(Dtype dtype, F&& f, Args&&... args) {
 template <typename F, typename... Args>
 auto VisitShiftDtype(Dtype dtype, F&& f, Args&&... args) {
     switch (dtype) {
-        case Dtype::kBool:
-            return std::forward<F>(f)(PrimitiveType<int64_t>{}, std::forward<Args>(args)...);
         case Dtype::kInt8:
             return std::forward<F>(f)(PrimitiveType<int8_t>{}, std::forward<Args>(args)...);
         case Dtype::kInt16:

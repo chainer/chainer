@@ -97,7 +97,7 @@ public:
 
 CHAINERX_CUDA_REGISTER_KERNEL(BitwiseXorASKernel, CudaBitwiseXorASKernel);
 
-CHAINERX_CUDA_REGISTER_ELTWISE_DTYPE_BINARY_KERNEL(LeftShiftKernel, { out = x1 << x2; }, VisitIntegralDtype);
+CHAINERX_CUDA_REGISTER_ELTWISE_DTYPE_BINARY_KERNEL(LeftShiftKernel, { out = x1 << x2; }, VisitShiftDtype);
 
 template <typename T>
 struct LeftShiftASImpl {
@@ -147,12 +147,12 @@ public:
 
 CHAINERX_CUDA_REGISTER_KERNEL(LeftShiftSAKernel, CudaLeftShiftSAKernel);
 
-CHAINERX_CUDA_REGISTER_ELTWISE_DTYPE_BINARY_KERNEL(RightShiftKernel, { out = x1 << x2; }, VisitIntegralDtype);
+CHAINERX_CUDA_REGISTER_ELTWISE_DTYPE_BINARY_KERNEL(RightShiftKernel, { out = x1 >> x2; }, VisitShiftDtype);
 
 template <typename T>
 struct RightShiftASImpl {
     using CudaType = cuda_internal::DataType<T>;
-    __device__ void operator()(int64_t /*i*/, CudaType x1, CudaType& out) { out = x1 << x2; }
+    __device__ void operator()(int64_t /*i*/, CudaType x1, CudaType& out) { out = x1 >> x2; }
     CudaType x2;
 };
 
@@ -176,7 +176,7 @@ CHAINERX_CUDA_REGISTER_KERNEL(RightShiftASKernel, CudaRightShiftASKernel);
 template <typename T>
 struct RightShiftSAImpl {
     using CudaType = cuda_internal::DataType<T>;
-    __device__ void operator()(int64_t /*i*/, CudaType x2, CudaType& out) { out = x1 << x2; }
+    __device__ void operator()(int64_t /*i*/, CudaType x2, CudaType& out) { out = x1 >> x2; }
     CudaType x1;
 };
 
