@@ -1,12 +1,7 @@
 #pragma once
 
-#include <cstdint>
-#include <string>
-
-#include <nonstd/optional.hpp>
-
 #include "chainerx/array.h"
-#include "chainerx/constant.h"
+#include "chainerx/scalar.h"
 
 namespace chainerx {
 

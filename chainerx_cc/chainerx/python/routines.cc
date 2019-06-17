@@ -990,25 +990,25 @@ void InitChainerxActivation(pybind11::module& m) {
 void InitChainerxLoss(pybind11::module& m) {
     m.def("mean_absolute_error",
           [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return MoveArrayBody(MeanAbsoluteError(Array{x1}, Array{x2})); },
-          py::arg("x1"),
-          py::arg("x2"));
+          "x1"_a,
+          "x2"_a);
     m.def("mean_squared_error",
           [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return MoveArrayBody(MeanSquaredError(Array{x1}, Array{x2})); },
-          py::arg("x1"),
-          py::arg("x2"));
+          "x1"_a,
+          "x2"_a);
     m.def("gaussian_kl_divergence",
           [](const ArrayBodyPtr& mean, const ArrayBodyPtr& ln_var) {
               return MoveArrayBody(GaussianKLDivergence(Array{mean}, Array{ln_var}));
           },
-          py::arg("mean"),
-          py::arg("ln_var"));
+          "mean"_a,
+          "ln_var"_a);
     m.def("huber_loss",
           [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2, Scalar delta) {
               return MoveArrayBody(HuberLoss(Array{x1}, Array{x2}, delta));
           },
-          py::arg("x1"),
-          py::arg("x2"),
-          py::arg("delta"));
+          "x1"_a,
+          "x2"_a,
+          "delta"_a);
 }
 
 }  // namespace
