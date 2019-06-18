@@ -40,19 +40,21 @@ class _TimeoutThread(threading.Thread):
                 m = re.search(r'ompi:version:full:(\S+)', out)
                 version = m.group(1)
 
-                msg = "\n\n***** ERROR: " \
-                      "It looks like you are using " \
-                      "Open MPI version {}.\n" \
-                      "***** It is known that the following Open MPI " \
-                      "versions have a bug \n" \
+                msg = "\n\n" \
+                      "***** ERROR: bcast test deadlocked. " \
+                      "One of the processes " \
+                      "***** crashed or you encountered a known bug of " \
+                      "Open MPI." \
+                      "***** The following Open MPI versions have a bug \n" \
                       "***** that cause MPI_Bcast() deadlock " \
                       "when GPUDirect is used: \n" \
-                      "***** 3.0.0, 3.0.1, 3.0.2, 3.1.0, 3.1.1, 3.1.2\n"
+                      "***** 3.0.0, 3.0.1, 3.0.2, 3.1.0, 3.1.1, 3.1.2\n" \
+                      "***** Your Open MPI version: {}\n".format(version)
                 if self.rank == 1:
-                    # Rank 1 prints the error message,
-                    # Rank 0 may finish Bcast() immediately without deadlock,
-                    # depending on the timing,
-                    # because rank 0 is the root of Bcast().
+                    # Rank 1 prints the error message.
+                    # This is because rank 0 is the root of Bcast(), and it
+                    # may finish Bcast() immediately
+                    # without deadlock, depending on the timing.
                     print(msg.format(version))
                     sys.stdout.flush()
 
