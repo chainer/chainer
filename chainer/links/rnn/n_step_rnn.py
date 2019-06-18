@@ -39,6 +39,15 @@ class NStepRNNBase(link.ChainList):
         in_size (int): Dimensionality of input vectors.
         out_size (int): Dimensionality of hidden states and output vectors.
         dropout (float): Dropout ratio.
+        initialW (:ref:`initializer <initializer>`): Initializer to
+            initialize the weight.
+        initial_bias (:ref:`initializer <initializer>`): Initializer to
+            initialize the bias.
+
+    .. note::
+
+        In Chainer v7, the uniform distribution will be used instead of the
+        normal distribution to initialize the weight.
 
     .. seealso::
         :func:`chainer.links.NStepRNNReLU`
