@@ -102,6 +102,10 @@ std::tuple<Array, Array> QR(const Array& a, QRMode mode) {
     Array q{};
     Array r{};
 
+    if (a.ndim() != 2) {
+        throw DimensionError{"ChainerX QR supports only 2-dimensional arrays."};
+    }
+
     {
         NoBackpropModeScope scope{};
         std::tie(q, r) = a.device().backend().CallKernel<QRKernel>(a, mode);
