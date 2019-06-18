@@ -16,23 +16,6 @@ from chainer import utils
 import chainerx
 
 
-def _warn_to_gpu(arr, dst):
-    skip = isinstance(dst, cuda.GpuDevice) and isinstance(arr, cuda.ndarray)
-    if skip:
-        src_id = arr.device.id
-        dst_id = dst.device.id
-        if src_id != dst_id:
-            warnings.warn('''\
-You are trying to transfer a DeviceResident to GPU-{dst} which is already on \
-GPU-{src}.
-`DeviceResident.to_gpu` does nothing if the DeviceResident is already on GPU.
-
-You can use `DeviceResident.to_device()` method to perform inter-GPU transfer.
-'''.format(dst=dst_id, src=src_id), RuntimeWarning)
-
-    return skip
-
-
 class DeviceResident(utils.enable_final(meta_base=abc.ABCMeta)):
 
     """A base class of objects with multi-device hierarchy."""
@@ -302,7 +285,7 @@ class _ToDeviceVisitor(DeviceResidentsVisitor):
     def visit_array(self, arr):
         assert isinstance(arr, chainer.get_array_types())
         if self._skip_between_cupy_devices:
-            skip = _warn_to_gpu(arr, self._device)
+            skip = self._warn_to_gpu(arr, self._device)
             if skip:
                 return arr
         return self._device.send(arr)
@@ -310,10 +293,29 @@ class _ToDeviceVisitor(DeviceResidentsVisitor):
     def visit_variable(self, param):
         assert isinstance(param, chainer.Variable)
         if self._skip_between_cupy_devices:
-            skip = _warn_to_gpu(param.array, self._device)
+            skip = self._warn_to_gpu(param.array, self._device)
             if skip:
                 return
         param.to_device(self._device)
+
+    @staticmethod
+    def _warn_to_gpu(arr, dst):
+        skip = (
+            isinstance(dst, cuda.GpuDevice)
+            and isinstance(arr, cuda.ndarray))
+        if skip:
+            src_id = arr.device.id
+            dst_id = dst.device.id
+            if src_id != dst_id:
+                warnings.warn('''\
+You are trying to transfer a DeviceResident to GPU-{dst} which is already on \
+GPU-{src}.
+`DeviceResident.to_gpu` does nothing if the DeviceResident is already on GPU.
+
+You can use `DeviceResident.to_device()` method to perform inter-GPU transfer.
+'''.format(dst=dst_id, src=src_id), RuntimeWarning)
+
+        return skip
 
 
 class _ToChxVisitor(DeviceResidentsVisitor):
