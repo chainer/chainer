@@ -71,12 +71,11 @@ public:
             Array work = Empty(Shape({work_size}), dtype, device);
             T* work_ptr = static_cast<T*>(internal::GetRawOffsetData(work));
 
-            int* devInfo;
-            CheckCudaError(cudaMalloc(&devInfo, sizeof(int)));
-            device_internals.cusolverdn_handle().Call(solver_func, uplo, N, out_ptr, N, work_ptr, work_size, devInfo);
+            std::shared_ptr<void> devInfo = device.Allocate(sizeof(int));
+            device_internals.cusolverdn_handle().Call(solver_func, uplo, N, out_ptr, N, work_ptr, work_size, (int*)devInfo.get());
 
             int devInfo_h = 0;
-            CheckCudaError(cudaMemcpy(&devInfo_h, devInfo, sizeof(int), cudaMemcpyDeviceToHost));
+            CheckCudaError(cudaMemcpy(&devInfo_h, devInfo.get(), sizeof(int), cudaMemcpyDeviceToHost));
             if (devInfo_h != 0) {
                 throw ChainerxError{"Unsuccessfull potrf (Cholesky) execution. Info = ", devInfo_h};
             }
