@@ -107,11 +107,6 @@ def test_dot_invalid(is_module, xp, device, a_shape, b_shape, dtype):
 ))
 class TestQR(op_utils.NumpyOpTest):
 
-    def setup(self):
-        device = chainerx.get_default_device()
-        if device.backend.name == 'native':
-            pytest.skip('CPU QR is not implemented')
-
     def generate_inputs(self):
         a = numpy.random.random(self.shape).astype(self.in_dtypes)
         return a,
