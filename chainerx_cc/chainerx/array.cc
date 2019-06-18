@@ -42,7 +42,6 @@
 #include "chainerx/routines/linalg.h"
 #include "chainerx/routines/logic.h"
 #include "chainerx/routines/manipulation.h"
-#include "chainerx/routines/math.h"
 #include "chainerx/routines/reduction.h"
 #include "chainerx/routines/routines_util.h"
 #include "chainerx/routines/sorting.h"
@@ -359,8 +358,8 @@ Array Array::ToDevice(Device& dst_device) const {
 }
 
 Array Array::ToNative() const {
-    Context& context = device().backend().context();
-    Device& native_device = context.GetNativeBackend().GetDevice(0);
+    Backend& backend = device().backend();
+    Device& native_device = backend.IsNative() ? device() : backend.context().GetNativeBackend().GetDevice(0);
     return ToDevice(native_device);
 }
 

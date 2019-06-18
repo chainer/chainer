@@ -1,6 +1,12 @@
 #pragma once
 
+#include <cstdint>
+
+#include "chainerx/array.h"
+#include "chainerx/device.h"
+#include "chainerx/dtype.h"
 #include "chainerx/kernel_registry.h"
+#include "chainerx/native/elementwise.h"
 #include "chainerx/native/native_backend.h"
 
 // Register an kernel statically in NativeBackend.
