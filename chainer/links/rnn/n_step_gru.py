@@ -4,21 +4,19 @@ from chainer.links.rnn import n_step_rnn
 
 class NStepGRUBase(n_step_rnn.NStepRNNBase):
 
-    """__init__(self, n_layers, in_size, out_size, dropout, use_bi_direction)
+    """__init__(self, n_layers, in_size, out_size, dropout)
 
     Base link class for Stacked GRU/BiGRU links.
 
-    This link is base link class for :func:`chainer.links.NStepGRU` and
-    :func:`chainer.links.NStepBiGRU`.
-    This link's behavior depends on argument, ``use_bi_direction``.
+    This link is base link class for :func:`chainer.links.NStepRNN` and
+    :func:`chainer.links.NStepBiRNN`.
 
     Args:
         n_layers (int): Number of layers.
         in_size (int): Dimensionality of input vectors.
         out_size (int): Dimensionality of hidden states and output vectors.
         dropout (float): Dropout ratio.
-        use_bi_direction (bool): if ``True``, use Bi-directional GRU.
-            if ``False``, use Uni-directional GRU.
+
     .. seealso::
         :func:`chainer.links.NStepGRU`
         :func:`chainer.links.NStepBiGRU`
