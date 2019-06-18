@@ -44,6 +44,13 @@ else()
 endif()
 option(CHAINERX_ENABLE_BLAS "Use BLAS if available" ${DEFAULT_CHAINERX_ENABLE_BLAS})
 
+if(DEFINED ENV{CHAINERX_ENABLE_LAPACK})
+    set(DEFAULT_CHAINERX_ENABLE_LAPACK $ENV{CHAINERX_ENABLE_LAPACK})
+else()
+    set(DEFAULT_CHAINERX_ENABLE_LAPACK ON)
+endif()
+option(CHAINERX_ENABLE_LAPACK "Use LAPACK if available" ${DEFAULT_CHAINERX_ENABLE_LAPACK})
+
 # Set CMAKE_BUILD_TYPE (defaults to Release).
 # CMake's specification is case-insensitive, but we only accept capitalized ones.
 if(NOT CMAKE_BUILD_TYPE)
@@ -96,6 +103,16 @@ if(${CHAINERX_ENABLE_BLAS})
         message(STATUS "Found BLAS (library: ${BLAS_LIBRARIES})")
     else()
         message(STATUS "BLAS not found")
+    endif()
+endif()
+
+# LAPACK
+if(${CHAINERX_ENABLE_LAPACK})
+    find_package(LAPACK QUIET)
+    if (${LAPACK_FOUND})
+        message(STATUS "Found LAPACK (library: ${LAPACK_LIBRARIES})")
+    else()
+        message(STATUS "LAPACK not found")
     endif()
 endif()
 
