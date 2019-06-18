@@ -49,5 +49,19 @@ def squared_error(x0, x1):
             A variable holding an array representing the squared error of
             two inputs.
 
+    .. admonition:: Example
+
+        >>> x1 = np.arange(6).astype(np.float32)
+        >>> x1
+        array([0., 1., 2., 3., 4., 5.], dtype=float32)
+        >>> x2 = np.array([5, 4, 3, 2, 1, 0]).astype(np.float32)
+        >>> x2
+        array([5., 4., 3., 2., 1., 0.], dtype=float32)
+        >>> y = F.squared_error(x1, x2)
+        >>> y.shape
+        (6,)
+        >>> y.array
+        array([25.,  9.,  1.,  1.,  9., 25.], dtype=float32)
+
     """
     return SquaredError().apply((x0, x1))[0]

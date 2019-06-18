@@ -176,7 +176,6 @@ from chainer.functions.math.sparse_matmul import sparse_matmul  # NOQA
 from chainer.functions.math.sqrt import rsqrt  # NOQA
 from chainer.functions.math.sqrt import sqrt  # NOQA
 from chainer.functions.math.square import square  # NOQA
-from chainer.functions.math.squared_difference import squared_difference  # NOQA
 from chainer.functions.math.sum import sum  # NOQA
 from chainer.functions.math.sum import sum_to  # NOQA
 from chainer.functions.math.tensordot import tensordot  # NOQA
@@ -229,3 +228,4 @@ from chainer.functions.util.forget import forget  # NOQA
 
 # Aliases
 from chainer.functions.math.average import average as mean  # NOQA
+squared_difference = squared_error  # NOQA
