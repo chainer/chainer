@@ -391,17 +391,17 @@ class TestFunctionNodeMixChainerxAndXpArrays(unittest.TestCase):
 
     @attr.chainerx
     def test_mix_numpy_variable(self):
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(RuntimeError):
             self.check_mix_xp_variable(numpy, True, True)
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(RuntimeError):
             self.check_mix_xp_variable(numpy, True, False)
 
     @attr.chainerx
     @attr.gpu
     def test_mix_cupy_variable(self):
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(RuntimeError):
             self.check_mix_xp_variable(cuda.cupy, True, True)
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(RuntimeError):
             self.check_mix_xp_variable(cuda.cupy, True, False)
 
     @attr.chainerx
@@ -437,13 +437,13 @@ class TestFunctionNodeMixChainerxAndXpArrays(unittest.TestCase):
 
     @attr.chainerx
     def test_mix_numpy_variable_array(self):
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(RuntimeError):
             self.check_mix_xp_variable_array(numpy, True)
 
     @attr.chainerx
     @attr.gpu
     def test_mix_cupy_variable_array(self):
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(RuntimeError):
             self.check_mix_xp_variable(cuda.cupy, True)
 
 

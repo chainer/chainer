@@ -1229,7 +1229,7 @@ def _extract_apply_in_data(inputs):
                     msg.append(
                         'input[{}]: {} on {}'.format(
                             i, typ, device))
-                raise NotImplementedError('\n'.join(msg))
+                raise RuntimeError('\n'.join(msg))
             return True, tuple(backend.to_chx(arrays))
         else:
             return False, tuple(arrays)
