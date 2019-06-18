@@ -21,7 +21,6 @@
 #include "chainerx/macro.h"
 #include "chainerx/numeric_limits.h"
 #include "chainerx/reduction_kernel_arg.h"
-#include "chainerx/routines/math.h"
 #include "chainerx/shape.h"
 
 namespace chainerx {

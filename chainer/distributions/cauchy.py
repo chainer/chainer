@@ -51,8 +51,10 @@ class Cauchy(distribution.Distribution):
         return self.loc.shape
 
     def cdf(self, x):
-        return 1 / numpy.pi * trigonometric.arctan(
-            (x - self.loc) / self.scale) + 0.5
+        return (
+            (1 / numpy.pi
+             * trigonometric.arctan((x - self.loc) / self.scale))
+            + 0.5)
 
     @cache.cached_property
     def entropy(self):
@@ -70,8 +72,10 @@ class Cauchy(distribution.Distribution):
         return isinstance(self.loc.data, cuda.ndarray)
 
     def log_prob(self, x):
-        return - numpy.log(numpy.pi) + exponential.log(self.scale) \
-            - exponential.log((x - self.loc)**2 + self.scale**2)
+        return (
+            - numpy.log(numpy.pi)
+            + exponential.log(self.scale)
+            - exponential.log((x - self.loc)**2 + self.scale**2))
 
     @cache.cached_property
     def mean(self):
