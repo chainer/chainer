@@ -355,4 +355,50 @@ class TestDeconvolution2DFunctionCudnnDeterministic(unittest.TestCase):
         return x, W, b, y
 
 
+class TestDeconvolution2DInvalidDilation(unittest.TestCase):
+
+    n_batches = 2
+    in_channels = 3
+    out_channels = 2
+    dilate = 0
+    x_shape = (n_batches, in_channels, 10, 10)
+    w_shape = (in_channels, out_channels, 3, 3)
+
+    def check_invalid_dilation(self, x_data, w_data):
+        x = chainer.Variable(x_data)
+        w = chainer.Variable(w_data)
+        F.deconvolution_2d(x, w, dilate=self.dilate)
+
+    def test_invalid_dilation_cpu(self):
+        x = numpy.ones(self.x_shape, numpy.float32)
+        w = numpy.ones(self.w_shape, numpy.float32)
+        with self.assertRaises(ValueError):
+            with chainer.using_config('use_ideep', 'never'):
+                self.check_invalid_dilation(x, w)
+
+    @attr.ideep
+    def test_invalid_dilation_cpu_ideep(self):
+        x = numpy.ones(self.x_shape, numpy.float32)
+        w = numpy.ones(self.w_shape, numpy.float32)
+        with self.assertRaises(ValueError):
+            with chainer.using_config('use_ideep', 'always'):
+                self.check_invalid_dilation(x, w)
+
+    @attr.gpu
+    def test_invalid_dilation_gpu(self):
+        x = cuda.cupy.ones(self.x_shape, numpy.float32)
+        w = cuda.cupy.ones(self.w_shape, numpy.float32)
+        with self.assertRaises(ValueError):
+            with chainer.using_config('use_cudnn', 'never'):
+                self.check_invalid_dilation(x, w)
+
+    @attr.cudnn
+    def test_invalid_dilation_gpu_cudnn(self):
+        x = cuda.cupy.ones(self.x_shape, numpy.float32)
+        w = cuda.cupy.ones(self.w_shape, numpy.float32)
+        with self.assertRaises(ValueError):
+            with chainer.using_config('use_cudnn', 'cudnn'):
+                self.check_invalid_dilation(x, w)
+
+
 testing.run_module(__name__, __file__)

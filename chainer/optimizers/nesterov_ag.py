@@ -1,4 +1,4 @@
-from chainer import backend
+import chainer
 from chainer.backends import cuda
 from chainer import optimizer
 from chainer import types
@@ -46,8 +46,8 @@ class NesterovAGRule(optimizer.UpdateRule):
             self.hyperparam.momentum = momentum
 
     def init_state(self, param):
-        xp = backend.get_array_module(param.data)
-        with cuda.get_device_from_array(param.data):
+        with chainer.using_device(param.device):
+            xp = param.device.xp
             self.state['v'] = xp.zeros_like(param.data)
 
     def update_core_cpu(self, param):

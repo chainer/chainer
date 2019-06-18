@@ -124,9 +124,11 @@ step_chainer_install_from_sdist() {
 
     # Install from sdist
     local envs=(
-        MAKEFLAGS=-j"$DEFAULT_JOBS"
         CHAINERX_BUILD_TYPE=Debug
     )
+    if [ -z "$MAKEFLAGS" ] ; then
+        envs+=(MAKEFLAGS=-j"$DEFAULT_JOBS")
+    fi
 
     if [[ $SKIP_CHAINERX != 1 ]]; then
         envs+=(CHAINER_BUILD_CHAINERX=1)
@@ -143,12 +145,12 @@ step_chainer_tests() {
         mark="$mark and not theano"
     fi
 
-    pytest -m "$mark" "$REPO_DIR"/tests/chainer_tests
+    pytest -rfEX -m "$mark" "$REPO_DIR"/tests/chainer_tests
 }
 
 
 step_chainerx_python_tests() {
-    pytest "$REPO_DIR"/tests/chainerx_tests
+    pytest -rfEX "$REPO_DIR"/tests/chainerx_tests
 }
 
 

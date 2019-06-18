@@ -30,11 +30,11 @@ The resulting ``y`` is also a Variable object, whose value can be extracted by a
 
    :attr:`~chainer.Variable` has two attributes to represent the underlying array: :attr:`~chainer.Variable.array` and :attr:`~chainer.Variable.data`.
    There is no difference between the two; both refer to exactly the same object.
-   However it is not recommended to use ``.data`` because it might be confused with :attr:`numpy.ndarray.data` attribute.
+   However it is not recommended that you use ``.data`` because it might be confused with :attr:`numpy.ndarray.data` attribute.
 
 What ``y`` holds is not only the result value.
 It also holds the history of computation (or computational graph), which enables us to compute its derivative.
-This is done by calling its :meth:`~Variable.backward` method:
+This is done by calling its :meth:`~chainer.Variable.backward` method:
 
 .. doctest::
 

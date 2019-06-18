@@ -3,6 +3,7 @@ import unittest
 import numpy
 
 import chainer
+from chainer import backend
 from chainer.backends import cuda
 from chainer import functions
 from chainer import links
@@ -47,7 +48,8 @@ class TestLSTM(unittest.TestCase):
         xp = self.link.xp
         x1 = chainer.Variable(x1_data) if self.input_variable else x1_data
         h1 = self.link(x1)
-        with cuda.get_device_from_array(x1_data):
+        device = backend.get_device_from_array(x1_data)
+        with chainer.using_device(device):
             c0 = chainer.Variable(xp.zeros((len(self.x1), self.out_size),
                                            dtype=self.x1.dtype))
             c1_expect, h1_expect = functions.lstm(c0, self.link.upward(x1))
@@ -60,7 +62,8 @@ class TestLSTM(unittest.TestCase):
         h1_in, h1_rest = functions.split_axis(
             self.link.h.data, [batch], axis=0)
         y2 = self.link(x2)
-        with cuda.get_device_from_array(x1):
+        device = backend.get_device_from_array(x1)
+        with chainer.using_device(device):
             c2_expect, y2_expect = \
                 functions.lstm(c1_expect,
                                self.link.upward(x2) + self.link.lateral(h1_in))
@@ -293,7 +296,8 @@ class TestStatelessLSTM(unittest.TestCase):
         xp = self.link.xp
         x = chainer.Variable(x_data) if self.input_variable else x_data
         c1, h1 = self.link(None, None, x)
-        with cuda.get_device_from_array(x_data):
+        device = backend.get_device_from_array(x_data)
+        with chainer.using_device(device):
             c0 = chainer.Variable(xp.zeros((len(self.x), self.out_size),
                                            dtype=self.x.dtype))
             c1_expect, h1_expect = functions.lstm(c0, self.link.upward(x))

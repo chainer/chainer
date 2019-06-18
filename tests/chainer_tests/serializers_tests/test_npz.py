@@ -107,7 +107,10 @@ class TestNpzDeserializer(unittest.TestCase):
                       'zi64': numpy.array(-2**60, dtype=numpy.int64),
                       'w': None})
 
-        self.npzfile = numpy.load(path)
+        try:
+            self.npzfile = numpy.load(path, allow_pickle=True)
+        except TypeError:
+            self.npzfile = numpy.load(path)
         self.deserializer = npz.NpzDeserializer(self.npzfile)
 
     def tearDown(self):
@@ -207,14 +210,10 @@ class TestNpzDeserializer(unittest.TestCase):
         with pytest.raises(TypeError):
             self.deserializer('zf32', z)
 
-    # TODO(kataoka): fix (de)serializing issues with allow_pickle=False
-    @testing.with_requires('numpy<1.16.3')
     def test_deserialize_none(self):
         ret = self.deserializer('w', None)
         self.assertIs(ret, None)
 
-    # TODO(kataoka): fix (de)serializing issues with allow_pickle=False
-    @testing.with_requires('numpy<1.16.3')
     def test_deserialize_by_passing_array(self):
         y = numpy.empty((1,), dtype=numpy.float32)
         ret = self.deserializer('w', y)

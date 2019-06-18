@@ -10,6 +10,7 @@
 #include "chainerx/cuda/data_type.cuh"
 #include "chainerx/cuda/elementwise.cuh"
 #include "chainerx/cuda/kernel_regist.h"
+#include "chainerx/cuda/numeric.cuh"
 #include "chainerx/cuda/reduce.cuh"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
@@ -185,6 +186,30 @@ public:
 
 CHAINERX_CUDA_REGISTER_KERNEL(LogicalOrKernel, CudaLogicalOrKernel);
 
+template <typename T>
+struct LogicalXorImpl {
+    using CudaType = cuda_internal::DataType<T>;
+    __device__ void operator()(int64_t /*i*/, CudaType x1, CudaType x2, bool& out) { out = !x1 != !x2; }
+};
+
+class CudaLogicalXorKernel : public LogicalXorKernel {
+public:
+    void Call(const Array& x1, const Array& x2, const Array& out) override {
+        Device& device = x1.device();
+        device.CheckDevicesCompatible(x1, x2, out);
+        Dtype dtype = PromoteTypes(x1.dtype(), x2.dtype());
+        const Array& x1_cast = x1.dtype() == dtype ? x1 : x1.AsType(dtype);
+        const Array& x2_cast = x2.dtype() == dtype ? x2 : x2.AsType(dtype);
+        CudaSetDeviceScope scope{device.index()};
+        VisitDtype(dtype, [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            Elementwise<const T, const T, bool>(LogicalXorImpl<T>{}, x1_cast, x2_cast, out);
+        });
+    }
+};
+
+CHAINERX_CUDA_REGISTER_KERNEL(LogicalXorKernel, CudaLogicalXorKernel);
+
 template <typename In>
 struct AllImpl {
     using InCudaType = cuda_internal::DataType<In>;
@@ -240,6 +265,69 @@ public:
 };
 
 CHAINERX_CUDA_REGISTER_KERNEL(AnyKernel, CudaAnyKernel);
+
+template <typename T>
+struct IsNanImpl {
+    using CudaType = cuda_internal::DataType<T>;
+    __device__ void operator()(int64_t /*i*/, CudaType x, bool& out) { out = cuda::IsNan(x); }
+};
+
+class CudaIsNanKernel : public IsNanKernel {
+public:
+    void Call(const Array& x, const Array& out) override {
+        Device& device = x.device();
+        device.CheckDevicesCompatible(x, out);
+        CudaSetDeviceScope scope{device.index()};
+        VisitDtype(x.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            Elementwise<const T, bool>(IsNanImpl<T>{}, x, out);
+        });
+    }
+};
+
+CHAINERX_CUDA_REGISTER_KERNEL(IsNanKernel, CudaIsNanKernel);
+
+template <typename T>
+struct IsInfImpl {
+    using CudaType = cuda_internal::DataType<T>;
+    __device__ void operator()(int64_t /*i*/, CudaType x, bool& out) { out = cuda::IsInf(x); }
+};
+
+class CudaIsInfKernel : public IsInfKernel {
+public:
+    void Call(const Array& x, const Array& out) override {
+        Device& device = x.device();
+        device.CheckDevicesCompatible(x, out);
+        CudaSetDeviceScope scope{device.index()};
+        VisitDtype(x.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            Elementwise<const T, bool>(IsInfImpl<T>{}, x, out);
+        });
+    }
+};
+
+CHAINERX_CUDA_REGISTER_KERNEL(IsInfKernel, CudaIsInfKernel);
+
+template <typename T>
+struct IsFiniteImpl {
+    using CudaType = cuda_internal::DataType<T>;
+    __device__ void operator()(int64_t /*i*/, CudaType x, bool& out) { out = !(cuda::IsInf(x) || cuda::IsNan(x)); }
+};
+
+class CudaIsFiniteKernel : public IsFiniteKernel {
+public:
+    void Call(const Array& x, const Array& out) override {
+        Device& device = x.device();
+        device.CheckDevicesCompatible(x, out);
+        CudaSetDeviceScope scope{device.index()};
+        VisitDtype(x.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            Elementwise<const T, bool>(IsFiniteImpl<T>{}, x, out);
+        });
+    }
+};
+
+CHAINERX_CUDA_REGISTER_KERNEL(IsFiniteKernel, CudaIsFiniteKernel);
 
 }  // namespace
 }  // namespace cuda

@@ -511,13 +511,13 @@ Invalid operation is performed in: {0} (Forward)
 def _argname(in_types, names):
     """Assigns user friendly names for the input types.
 
-    This function also asserts that lenghts of in_types and names are the
+    This function also asserts that lengths of in_types and names are the
     same.
 
     Args:
         in_types (tuple of TypeInfoTuple): Tuple of type information to assign
             name to.
-        names (tuple of str): Human-readabel names of ``in_types``.
+        names (tuple of str): Human-readable names of ``in_types``.
     """
     if len(in_types) != len(names):
         raise InvalidType(
@@ -574,6 +574,18 @@ def make_variable(value, name):
         return value
     else:
         return Variable(value, name)
+
+
+def _make_variable_from_array(array, name):
+    if not isinstance(array, chainer.get_array_types()):
+        raise InvalidType(
+            'isinstance({}, ndarray)'.format(name),
+            'type({}) == {}'.format(name, type(array)),
+        )
+    if in_light_mode():
+        return array
+    else:
+        return Variable(TypeInfo(array.shape, array.dtype), name)
 
 
 class LightMode(object):

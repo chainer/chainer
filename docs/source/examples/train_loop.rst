@@ -70,7 +70,7 @@ Although this is an optional step, we'd like to introduce the :class:`~chainer.d
 Here, we use :class:`~chainer.iterators.SerialIterator`, which is also a subclass of :class:`~chainer.dataset.Iterator` in the example code below. The :class:`~chainer.iterators.SerialIterator` can provide mini-batches with or without shuffling the order of data in the given dataset.
 
 All :class:`~chainer.dataset.Iterator`\s produce a new mini-batch by calling its :meth:`~chainer.dataset.Iterator.next` method. All
-:class:`~chainer.dataset.Iterator`\s also have properties to know how many times we have taken all the data from the given dataset (:attr:`~chainer.dataset.Iterator.epoch`) and whether the next mini-batch will be the start of a new epoch (:attr:`~chainer.dataset.Iterator.is_new_epoch`), and so on.
+:class:`~chainer.dataset.Iterator`\s also have properties to know how many times we have taken all the data from the given dataset (``epoch``) and whether the next mini-batch will be the start of a new epoch (``is_new_epoch``), and so on.
 
 The code below shows how to create a :class:`~chainer.iterators.SerialIterator` object from a dataset object.
 
@@ -96,7 +96,7 @@ The code below shows how to create a :class:`~chainer.iterators.SerialIterator` 
 
 .. note::
 
-    :class:`~chainer.dataset.iterator`\ s can take a built-in Python list as a given dataset. It means that the example code below is able to work,
+    :class:`~chainer.dataset.Iterator`\ s can take a built-in Python list as a given dataset. It means that the example code below is able to work,
 
     .. code-block:: python
 
@@ -130,7 +130,7 @@ The main steps are twofold:
 
 1. Register the network components which have trainable parameters to the subclass. Each of them must be instantiated and assigned to a property in the scope specified by :meth:`~chainer.Chain.init_scope`:
 
-2. Define a :meth:`~chainer.Chain.forward` method that represents the actual **forward computation** of your network. This method takes one or more :class:`~chainer.Variable`, :class:`numpy.array`, or :class:`cupy.array` as its inputs and calculates the forward pass using them.
+2. Define a ``forward()`` method that represents the actual **forward computation** of your network. This method takes one or more :class:`~chainer.Variable`, :class:`numpy.ndarray`, or :class:`cupy.ndarray` as its inputs and calculates the forward pass using them.
 
     .. testcode::
 
@@ -154,7 +154,7 @@ The main steps are twofold:
         if gpu_id >= 0:
             model.to_gpu(gpu_id)
 
-:class:`~chainer.Link`, :class:`~chainer.Chain`, :class:`~chainer.ChainList`, and those subclass objects which contain trainable parameters should be registered to the model by assigning it as a property inside the :meth:`~chainer.Chain.init_scope`. For example, a :class:`~chainer.FunctionNode` does not contain any trainable parameters, so there is no need to keep the object as a property of your network. When you want to use :meth:`~chainer.functions.relu` in your network, using it as a function in :meth:`~chainer.Chain.forward` works correctly.
+:class:`~chainer.Link`, :class:`~chainer.Chain`, :class:`~chainer.ChainList`, and those subclass objects which contain trainable parameters should be registered to the model by assigning it as a property inside the :meth:`~chainer.Chain.init_scope`. For example, a :class:`~chainer.FunctionNode` does not contain any trainable parameters, so there is no need to keep the object as a property of your network. When you want to use :meth:`~chainer.functions.relu` in your network, using it as a function in ``forward()`` works correctly.
 
 In Chainer, the Python code that implements the forward computation itself represents the network. In other words, we can conceptually think of the computation graph for our network being constructed dynamically as this forward computation code executes. This allows Chainer to describe networks in which different computations can be performed in each iteration, such as branched networks, intuitively and with a high degree of flexibility. This is the key feature of Chainer that we call **Define-by-Run**.
 
@@ -163,7 +163,7 @@ In Chainer, the Python code that implements the forward computation itself repre
 4. Select an optimization algorithm
 '''''''''''''''''''''''''''''''''''
 
-Chainer provides a wide variety of optimization algorithms that can be used to optimize the network parameters during training. They are located in :mod:`~chainear.optimizers` module.
+Chainer provides a wide variety of optimization algorithms that can be used to optimize the network parameters during training. They are located in :mod:`~chainer.optimizers` module.
 
 Here, we are going to use the stochastic gradient descent (SGD) method with momentum, which is implemented by :class:`~chainer.optimizers.MomentumSGD`. To use the optimizer, we give the network object (typically it's a :class:`~chainer.Chain` or :class:`~chainer.ChainList`) to the :meth:`~chainer.Optimizer.setup` method of the optimizer object to register it. In this way, the :class:`~chainer.Optimizer` can automatically find the model parameters and update them during training.
 
@@ -215,7 +215,7 @@ We now show how to write the training loop. Since we are working on a digit clas
 Our training loop will be structured as follows.
 
 1. We will first get a mini-batch of examples from the training dataset.
-2. We will then feed the batch into our network by calling it (a :class:`~chainer.Chain` object) like a function. This will execute the forward-pass code that are written in the :meth:`~chainer.Chain.forward` method.
+2. We will then feed the batch into our network by calling it (a :class:`~chainer.Chain` object) like a function. This will execute the forward-pass code that are written in the ``forward()`` method.
 3. This will return the network output that represents class label predictions. We supply it to the loss function along with the true (that is, target) values. The loss function will output the loss as a :class:`~chainer.Variable` object.
 4. We then clear any previous gradients in the network and perform the backward pass by calling the :meth:`~chainer.Variable.backward` method on the loss variable which computes the parameter gradients. We need to clear the gradients first because the :meth:`~chainer.Variable.backward` method accumulates gradients instead of overwriting the previous values.
 5. Since the optimizer already has a reference to the network, it has access to the parameters and the computed gradients so that we can now call the :meth:`~chainer.Optimizer.update` method of the optimizer which will update the model parameters.
@@ -261,8 +261,7 @@ The training loop code is as follows:
 
             test_losses = []
             test_accuracies = []
-            while True:
-                test_batch = test_iter.next()
+            for test_batch in test_iter:
                 image_test, target_test = concat_examples(test_batch, gpu_id)
 
                 # Forward the test data
@@ -277,12 +276,7 @@ The training loop code is as follows:
                 accuracy.to_cpu()
                 test_accuracies.append(accuracy.array)
 
-                if test_iter.is_new_epoch:
-                    test_iter.epoch = 0
-                    test_iter.current_position = 0
-                    test_iter.is_new_epoch = False
-                    test_iter._pushed_position = None
-                    break
+            test_iter.reset()
 
             print('val_loss:{:.04f} val_accuracy:{:.04f}'.format(
                 np.mean(test_losses), np.mean(test_accuracies)))
