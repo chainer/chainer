@@ -106,11 +106,6 @@ def test_dot_invalid(is_module, xp, device, a_shape, b_shape, dtype):
 ))
 class TestSolve(op_utils.NumpyOpTest):
 
-    def setup(self):
-        device = chainerx.get_default_device()
-        if device.backend.name == 'native':
-            pytest.skip('CPU Solve is not implemented')
-
     def generate_inputs(self):
         a = numpy.random.random(self.shape).astype(self.in_dtypes)
         b = numpy.random.random(self.shape[0]).astype(self.in_dtypes)
@@ -137,11 +132,6 @@ class TestSolveFailing(op_utils.NumpyOpTest):
     forward_accept_errors = (numpy.linalg.LinAlgError,
                              chainerx.DimensionError)
 
-    def setup(self):
-        device = chainerx.get_default_device()
-        if device.backend.name == 'native':
-            pytest.skip('CPU Solve is not implemented')
-
     def generate_inputs(self):
         a = numpy.random.random(self.shape).astype(self.in_dtypes)
         b = numpy.random.random(self.shape).astype(self.in_dtypes)
@@ -163,11 +153,6 @@ class TestSolveFailing(op_utils.NumpyOpTest):
     })
 ))
 class TestInverse(op_utils.NumpyOpTest):
-
-    def setup(self):
-        device = chainerx.get_default_device()
-        if device.backend.name == 'native':
-            pytest.skip('CPU inv is not implemented')
 
     def generate_inputs(self):
         a = numpy.random.random(self.shape).astype(self.in_dtypes)
@@ -193,11 +178,6 @@ class TestInverseFailing(op_utils.NumpyOpTest):
 
     forward_accept_errors = (numpy.linalg.LinAlgError,
                              chainerx.DimensionError)
-
-    def setup(self):
-        device = chainerx.get_default_device()
-        if device.backend.name == 'native':
-            pytest.skip('CPU inv is not implemented')
 
     def generate_inputs(self):
         a = numpy.random.random(self.shape).astype(self.in_dtypes)
