@@ -1,3 +1,5 @@
+from __future__ import division
+
 import unittest
 
 import numpy as np
@@ -6,7 +8,7 @@ import chainer
 import chainer.testing
 from chainer.training import extension
 import chainermn
-from chainermn.extensions.observation_aggregator import observation_aggregator
+from chainermn.extensions import ObservationAggregator
 
 
 class DummyChain(chainer.Chain):
@@ -42,20 +44,20 @@ class TestObservationAggregator(unittest.TestCase):
         trainer = chainer.training.Trainer(updater, (1, 'epoch'))
 
         @extension.make_extension(
-            trigger=(2, 'iteration'), priority=extension.PRIORITY_WRITER)
+            trigger=(1, 'iteration'), priority=extension.PRIORITY_WRITER)
         def rank_reporter(trainer):
             trainer.observation['rank'] = comm.rank
 
         @extension.make_extension(
-            trigger=(2, 'iteration'), priority=extension.PRIORITY_READER)
+            trigger=(1, 'iteration'), priority=extension.PRIORITY_READER)
         def aggregated_rank_checker(trainer):
             actual = trainer.observation['rank-aggregated']
-            expected = (comm.size - 1) / 2.0
+            expected = (comm.size - 1) / 2
             chainer.testing.assert_allclose(actual,
                                             expected)
 
         trainer.extend(rank_reporter)
-        trainer.extend(observation_aggregator(comm, 'rank', 'rank-aggregated'))
+        trainer.extend(ObservationAggregator(comm, 'rank', 'rank-aggregated', comm_trigger=(1, 'iteration')))
         trainer.extend(aggregated_rank_checker)
 
         trainer.run()
