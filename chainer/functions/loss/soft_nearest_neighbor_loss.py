@@ -1,7 +1,7 @@
 import numpy
 
 from chainer.backends import cuda
-from chainer import functions as F
+import chainer.functions
 
 STABILITY_EPS = 0.00001
 
@@ -15,6 +15,7 @@ def pairwise_euclid_distance(A, B):
 
     """
 
+    F = chainer.functions
     batchA = A.data.shape[0]
     batchB = B.data.shape[0]
 
@@ -37,6 +38,7 @@ def pairwise_cos_distance(A, B):
 
     """
 
+    F = chainer.functions
     normalized_A = F.normalize(A, axis=1)
     normalized_B = F.normalize(B, axis=1)
     prod = F.matmul(normalized_A, normalized_B, transb=True)
@@ -60,7 +62,7 @@ def fits(A, B, temp, cos_distance):
         distance_matrix = pairwise_cos_distance(A, B)
     else:
         distance_matrix = pairwise_euclid_distance(A, B)
-    return F.exp(-(distance_matrix / temp))
+    return chainer.functions.exp(-(distance_matrix / temp))
 
 
 def pick_probability(x, temp, cos_distance):
@@ -77,6 +79,7 @@ def pick_probability(x, temp, cos_distance):
 
     """
 
+    F = chainer.functions
     batch = x.data.shape[0]
     dtype = numpy.float32
     tmp_matrix = numpy.ones((batch, batch), dtype=dtype) - \
@@ -129,6 +132,7 @@ def soft_nearest_neighbor_loss(x, y, temp, cos_distance):
     :returns: A tensor for the Soft Nearest Neighbor Loss of the points
               in x with labels y.
     """
+    F = chainer.functions
     summed_masked_pick_prob = F.sum(
         masked_pick_probability(x, y, temp, cos_distance), 1)
 #    tmp = np.log(STABILITY_EPS + summed_masked_pick_prob.data)

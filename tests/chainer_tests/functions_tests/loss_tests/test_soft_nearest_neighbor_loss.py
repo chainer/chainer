@@ -91,8 +91,4 @@ class TestSoftNearestNeiborLoss(testing.FunctionTestCase):
         return loss,
 
 
-
-x = numpy.asarray([[1,2,3],[4,5,6],[-1,-2,-3],[-4,-5,6]])
-y = numpy.asarray([1,1,2,2])
-temp = 100.
-print(_soft_nearest_neighbor_loss(x,y,temp))
+testing.run_module(__name__, __file__)
