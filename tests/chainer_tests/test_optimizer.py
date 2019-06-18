@@ -499,6 +499,125 @@ class TestGradientMethod(unittest.TestCase):
         self.check_update()
 
 
+@testing.backend.inject_backend_tests(
+    None,
+    [
+        # NumPy
+        {},
+        # CuPy
+        {'use_cuda': True, 'cuda_device': 0},
+        {'use_cuda': True, 'cuda_device': 1},
+        # ChainerX
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
+    ])
+@testing.parameterize(*testing.product({
+    'override_pattern': [
+        'generic',  # only update_core() is overridden
+        'cpu_gpu',  # update_core_{cpu,gpu} are overridden
+        'cpu_gpu_chx',  # update_core_{cpu,gpu,chainerx} are overridden
+    ],
+}))
+class TestGradientMethodUpdate(unittest.TestCase):
+    """Ensures UpdateRule's appropriate methods are called, for various
+    override patterns and parameters with various conditions."""
+
+    def create(self, device):
+
+        class MyLink(chainer.Link):
+            def __init__(self):
+                super(MyLink, self).__init__()
+                with self.init_scope():
+                    self.p1 = chainer.Parameter()  # uninitialized
+
+                    self.p2 = chainer.Parameter(  # initialized, with grad
+                        np.array([3, 2], np.float32))
+                    self.p2.grad = np.array([13, 12], np.float32)
+
+                    self.p3 = chainer.Parameter(  # initialized, without grad
+                        np.array([5, 7], np.float32))
+
+        call_record = []
+        override_pattern = self.override_pattern
+
+        class MyUpdateRule(optimizer.UpdateRule):
+            if override_pattern == 'generic':
+                def update_core(self, param):
+                    call_record.append(('update_core', param))
+
+            elif override_pattern == 'cpu_gpu':
+                def update_core_cpu(self, param):
+                    call_record.append(('update_core_cpu', param))
+
+                def update_core_gpu(self, param):
+                    call_record.append(('update_core_gpu', param))
+
+            elif override_pattern == 'cpu_gpu_chx':
+                def update_core_cpu(self, param):
+                    call_record.append(('update_core_cpu', param))
+
+                def update_core_gpu(self, param):
+                    call_record.append(('update_core_gpu', param))
+
+                def update_core_chainerx(self, param):
+                    call_record.append(('update_core_chainerx', param))
+
+            else:
+                assert False, override_pattern
+
+        class MyOptimizer(optimizer.GradientMethod):
+            def create_update_rule(self):
+                return MyUpdateRule()
+
+        optimizer_ = MyOptimizer()
+        target = MyLink()
+        target.to_device(device)
+        optimizer_.setup(target)
+
+        return optimizer_, call_record
+
+    def test_update(self, backend_config):
+        device = backend_config.device
+        override_pattern = self.override_pattern
+        optimizer, call_record = self.create(device)
+
+        optimizer.update()
+
+        self.assertEqual(len(call_record), 3)
+
+        # Detemine the expected method name that was called.
+        if override_pattern == 'generic':
+            method_name = 'update_core'
+        elif override_pattern == 'cpu_gpu':
+            if isinstance(device, backend.ChainerxDevice):
+                xp = device.fallback_device.xp
+            else:
+                xp = device.xp
+
+            if xp is np:
+                method_name = 'update_core_cpu'
+            else:
+                assert xp is cuda.cupy
+                method_name = 'update_core_gpu'
+        elif override_pattern == 'cpu_gpu_chx':
+            if isinstance(device, backend.ChainerxDevice):
+                method_name = 'update_core_chainerx'
+            elif device.xp is np:
+                method_name = 'update_core_cpu'
+            else:
+                assert device.xp is cuda.cupy
+                method_name = 'update_core_gpu'
+        else:
+            assert False, override_pattern
+
+        # Check call record.
+        # TODO(niboshi): Check the param argument as well.
+        self.assertEqual(call_record[0][0], method_name)
+        self.assertEqual(call_record[1][0], method_name)
+        self.assertEqual(call_record[2][0], method_name)
+
+
 @testing.parameterize(*testing.product({
     'shape': [(4, 3, 2)],
     'dtype': [np.float16, np.float32, np.float64],

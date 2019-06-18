@@ -71,24 +71,10 @@ Array TrueDivide(Scalar x1, const Array& x2);
 
 Array Reciprocal(const Array& x);
 
-Array Sigmoid(const Array& x);
-
-Array Relu(const Array& x);
-
 Array Power(const Array& x1, const Array& x2);
 
 Array Power(const Array& x1, Scalar x2);
 
 Array Power(Scalar x1, const Array& x2);
-
-Array IsNan(const Array& x);
-
-Array IsInf(const Array& x);
-
-Array IsFinite(const Array& x);
-
-Array Ceil(const Array& x);
-
-Array Floor(const Array& x);
 
 }  // namespace chainerx

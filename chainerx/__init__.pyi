@@ -298,7 +298,7 @@ class ndarray:
 
     def __init__(
             self,
-            shape: tp.Tuple[int, ...],
+            shape: tp.Union[int, tp.Sequence[int]],
             dtype: tp.Any,
             device: tp.Optional[Device]=None) -> None: ...
 
@@ -324,7 +324,7 @@ class ndarray:
 
     def __or__(self, arg0: tp.Any) -> ndarray: ...
 
-    def __pow__(self, arg0: tp:Any) -> ndarray: ...
+    def __pow__(self, arg0: tp.Any) -> ndarray: ...
 
     def __radd__(self, arg0: tp.Any) -> ndarray: ...
 
@@ -420,17 +420,14 @@ class ndarray:
             backprop_id: tp.Optional[BackpropId]=None) -> ndarray: ...
 
     @tp.overload
-    def reshape(self, arg0: tp.Tuple[int, ...]) -> ndarray: ...
-
-    @tp.overload
-    def reshape(self, arg0: tp.List[int]) -> ndarray: ...
+    def reshape(self, arg0: tp.Union[int, tp.Sequence[int]]) -> ndarray: ...
 
     @tp.overload
     def reshape(self, *args: tp.Any) -> ndarray: ...
 
     def set_grad(
             self,
-            grad: ndarray,
+            grad: tp.Optional[ndarray],
             backprop_id: tp.Optional[BackpropId]=None) -> None: ...
 
     @tp.overload
@@ -473,6 +470,9 @@ class ndarray:
 
 
 # chainerx_cc/chainerx/python/routines.cc
+def abs(x: ndarray) -> ndarray: ...
+
+
 def add(x1: tp.Any, x2: tp.Any) -> ndarray: ...
 
 
@@ -545,6 +545,9 @@ def ascontiguousarray(
 def atleast_2d(x: ndarray) -> ndarray: ...
 
 
+def atleast_3d(x: ndarray) -> ndarray: ...
+
+
 def average_pool(
         x: ndarray,
         ksize: tp.Union[int, tp.Tuple[int, ...]],
@@ -613,9 +616,6 @@ def copy(a: ndarray) -> ndarray: ...
 
 def cos(x: ndarray) -> ndarray: ...
 
-
-def abs(x: ndarray) -> ndarray: ...
-
 def cosh(x: ndarray) -> ndarray: ...
 
 def diag(v: ndarray, k: int=..., device: tp.Optional[Device]=None) -> ndarray: ...
@@ -631,6 +631,9 @@ def divide(x1: tp.Any, x2: tp.Any) -> ndarray: ...
 
 
 def dot(a: ndarray, b: ndarray) -> ndarray: ...
+
+
+def dstack(arrays: tp.List[ndarray]) -> ndarray: ...
 
 
 def empty(
@@ -765,6 +768,9 @@ def log(x: ndarray) -> ndarray: ...
 def log10(x: ndarray) -> ndarray: ...
 
 
+def log2(x: ndarray) -> ndarray: ...
+
+
 def log1p(x: ndarray) -> ndarray: ...
 
 
@@ -803,6 +809,10 @@ def maximum(x1: tp.Any, x2: tp.Any) -> ndarray: ...
 def minimum(x1: tp.Any, x2: tp.Any) -> ndarray: ...
 
 
+def moveaxis(a: ndarray, source: tp.Union[int, tp.Tuple[int, ...]],
+             destination: tp.Union[int, tp.Tuple[int, ...]]) -> ndarray: ...
+
+
 def multiply(x1: tp.Any, x2: tp.Any) -> ndarray: ...
 
 
@@ -812,7 +822,7 @@ def negative(x: ndarray) -> ndarray: ...
 def not_equal(x1: ndarray, x2: ndarray) -> ndarray: ...
 
 
-def ones(shape: tp.Union[int, tp.Tuple[int, ...]],
+def ones(shape: tp.Union[int, tp.Sequence[int]],
          dtype: tp.Optional[tp.Any]=None,
          device: tp.Optional[Device]=None) -> ndarray: ...
 
@@ -820,16 +830,9 @@ def ones(shape: tp.Union[int, tp.Tuple[int, ...]],
 def ones_like(a: ndarray, device: tp.Optional[Device]=None) -> ndarray: ...
 
 
-@tp.overload
 def reshape(
         a: ndarray,
-        newshape: tp.Union[int, tp.Tuple[int, ...]]) -> ndarray: ...
-
-
-@tp.overload
-def reshape(
-        a: ndarray,
-        newshape: tp.Union[int, tp.List[int]]) -> ndarray: ...
+        newshape: tp.Union[int, tp.Sequence[int]]) -> ndarray: ...
 
 
 @tp.overload
@@ -919,7 +922,7 @@ def where(cond: ndarray, x: ndarray, y: ndarray) -> ndarray: ...
 
 
 def zeros(
-        shape: tp.Union[int, tp.Tuple[int, ...]],
+        shape: tp.Union[int, tp.Sequence[int]],
         dtype: tp.Optional[tp.Any]=None,
         device: tp.Optional[Device]=None) -> ndarray: ...
 
@@ -953,7 +956,7 @@ def fromfile(
 
 def fromfunction(
         function: tp.Callable[..., tp.Any],
-        shape: tp.Tuple[int, ...],
+        shape: tp.Union[int, tp.Sequence[int]],
         **kwargs: tp.Any) -> ndarray: ...
 
 
@@ -991,7 +994,4 @@ def ravel(a: ndarray) -> ndarray: ...
 
 
 # chainerx/math/misc.py
-def square(x: ndarray) -> ndarray: ...
-
-
 def clip(a: ndarray, a_min: tp.Any, a_max: tp.Any) -> ndarray: ...

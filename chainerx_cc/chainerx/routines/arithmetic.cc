@@ -1,4 +1,4 @@
-#include "chainerx/routines/math.h"
+#include "chainerx/routines/arithmetic.h"
 
 #include <cmath>
 #include <cstdint>
@@ -16,7 +16,7 @@
 #include "chainerx/enum.h"
 #include "chainerx/error.h"
 #include "chainerx/graph.h"
-#include "chainerx/kernels/math.h"
+#include "chainerx/kernels/arithmetic.h"
 #include "chainerx/macro.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/explog.h"
@@ -425,18 +425,6 @@ Array Divide(Scalar x1, const Array& x2) { return TrueDivide(x1, x2); }
 
 Array Reciprocal(const Array& x) { return Scalar{1, GetKind(x.dtype())} / x; }
 
-Array Sigmoid(const Array& x) {
-    Dtype dtype = internal::GetMathResultDtype(x.dtype());
-    const Array& x_cast = x.dtype() == dtype ? x : x.AsType(dtype);
-    return Reciprocal(1 + Exp(-x_cast));
-}
-
-Array Relu(const Array& x) {
-    Dtype dtype = internal::GetMathResultDtype(x.dtype());
-    const Array& x_cast = x.dtype() == dtype ? x : x.AsType(dtype);
-    return Maximum(0, x_cast);
-}
-
 void PowerImpl(const Array& x1, const Array& x2, const Array& out) {
     {
         NoBackpropModeScope scope{};
@@ -502,52 +490,5 @@ Array Power(const Array& x1, const Array& x2) { return internal::BroadcastBinary
 Array Power(const Array& x1, Scalar x2) { return internal::Binary(&PowerASImpl, x1, x2, GetArithmeticResultDtype(x1, x2)); }
 
 Array Power(Scalar x1, const Array& x2) { return internal::Binary(&PowerSAImpl, x1, x2, GetArithmeticResultDtype(x1, x2)); }
-
-Array Ceil(const Array& x) {
-    Dtype dtype = internal::GetMathResultDtype(x.dtype());
-    Array out = Empty(x.shape(), dtype, x.device());
-    {
-        NoBackpropModeScope scope{};
-        x.device().backend().CallKernel<CeilKernel>(x, out);
-    }
-    return out;
-}
-
-Array Floor(const Array& x) {
-    Dtype dtype = internal::GetMathResultDtype(x.dtype());
-    Array out = Empty(x.shape(), dtype, x.device());
-    {
-        NoBackpropModeScope scope{};
-        x.device().backend().CallKernel<FloorKernel>(x, out);
-    }
-    return out;
-}
-
-Array IsNan(const Array& x) {
-    Array out = Empty(x.shape(), Dtype::kBool, x.device());
-    {
-        NoBackpropModeScope scope{};
-        x.device().backend().CallKernel<IsNanKernel>(x, out);
-    }
-    return out;
-}
-
-Array IsInf(const Array& x) {
-    Array out = Empty(x.shape(), Dtype::kBool, x.device());
-    {
-        NoBackpropModeScope scope{};
-        x.device().backend().CallKernel<IsInfKernel>(x, out);
-    }
-    return out;
-}
-
-Array IsFinite(const Array& x) {
-    Array out = Empty(x.shape(), Dtype::kBool, x.device());
-    {
-        NoBackpropModeScope scope{};
-        x.device().backend().CallKernel<IsFiniteKernel>(x, out);
-    }
-    return out;
-}
 
 }  // namespace chainerx

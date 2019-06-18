@@ -468,13 +468,13 @@ def test_asanyarray_with_device(device):
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @chainerx.testing.parametrize_dtype_specifier(
     'dtype_spec', additional_args=(None, Unspecified))
-def test_empty(xp, shape_as_tuple_or_int, dtype_spec, device):
+def test_empty(xp, shape_as_sequence_or_int, dtype_spec, device):
     if xp is numpy and isinstance(dtype_spec, chainerx.dtype):
         dtype_spec = dtype_spec.name
     if dtype_spec is Unspecified:
-        a = xp.empty(shape_as_tuple_or_int)
+        a = xp.empty(shape_as_sequence_or_int)
     else:
-        a = xp.empty(shape_as_tuple_or_int, dtype_spec)
+        a = xp.empty(shape_as_sequence_or_int, dtype_spec)
     a.fill(0)
     if dtype_spec in (None, Unspecified):
         a = dtype_utils.cast_if_numpy_array(xp, a, 'float32')
@@ -515,13 +515,13 @@ def test_empty_like_with_device(device):
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @chainerx.testing.parametrize_dtype_specifier(
     'dtype_spec', additional_args=(None, Unspecified))
-def test_zeros(xp, shape_as_tuple_or_int, dtype_spec, device):
+def test_zeros(xp, shape_as_sequence_or_int, dtype_spec, device):
     if xp is numpy and isinstance(dtype_spec, chainerx.dtype):
         dtype_spec = dtype_spec.name
     if dtype_spec is Unspecified:
-        out = xp.zeros(shape_as_tuple_or_int)
+        out = xp.zeros(shape_as_sequence_or_int)
     else:
-        out = xp.zeros(shape_as_tuple_or_int, dtype_spec)
+        out = xp.zeros(shape_as_sequence_or_int, dtype_spec)
     if dtype_spec in (None, Unspecified):
         out = dtype_utils.cast_if_numpy_array(xp, out, 'float32')
     return out
@@ -557,13 +557,13 @@ def test_zeros_like_with_device(device):
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @chainerx.testing.parametrize_dtype_specifier(
     'dtype_spec', additional_args=(None, Unspecified))
-def test_ones(xp, shape_as_tuple_or_int, dtype_spec, device):
+def test_ones(xp, shape_as_sequence_or_int, dtype_spec, device):
     if xp is numpy and isinstance(dtype_spec, chainerx.dtype):
         dtype_spec = dtype_spec.name
     if dtype_spec is Unspecified:
-        out = xp.ones(shape_as_tuple_or_int)
+        out = xp.ones(shape_as_sequence_or_int)
     else:
-        out = xp.ones(shape_as_tuple_or_int, dtype_spec)
+        out = xp.ones(shape_as_sequence_or_int, dtype_spec)
     if dtype_spec in (None, Unspecified):
         out = dtype_utils.cast_if_numpy_array(xp, out, 'float32')
     return out
@@ -599,8 +599,8 @@ def test_ones_like_with_device(shape, device):
 @pytest.mark.parametrize(
     'value', [True, False, -2, 0, 1, 2, 2.3, float('inf'), float('nan')])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_full(xp, shape_as_tuple_or_int, value, device):
-    out = xp.full(shape_as_tuple_or_int, value)
+def test_full(xp, shape_as_sequence_or_int, value, device):
+    out = xp.full(shape_as_sequence_or_int, value)
     return dtype_utils.cast_if_numpy_array(xp, out, _get_default_dtype(value))
 
 
@@ -1155,8 +1155,9 @@ def test_fromstring(xp, count, sep, dtype_spec, device):
 
 @chainerx.testing.numpy_chainerx_array_equal()
 @pytest.mark.parametrize('device', ['native:0', 'cuda:0'])
+@pytest.mark.parametrize('shape', [(2, 2), [2, 2]])
 @chainerx.testing.parametrize_dtype_specifier('dtype_spec')
-def test_fromfunction(xp, dtype_spec, device):
+def test_fromfunction(xp, shape, dtype_spec, device):
     if xp is numpy and isinstance(dtype_spec, chainerx.dtype):
         dtype_spec = dtype_spec.name
 
@@ -1164,7 +1165,7 @@ def test_fromfunction(xp, dtype_spec, device):
         return i * j + addend
 
     # addend should be passed as a keyword argument to function.
-    return xp.fromfunction(function, (2, 2), dtype=dtype_spec, addend=2)
+    return xp.fromfunction(function, shape, dtype=dtype_spec, addend=2)
 
 
 @chainerx.testing.numpy_chainerx_array_equal()

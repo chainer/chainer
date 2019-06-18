@@ -147,7 +147,7 @@ def check_cuda_available():
         check_cuda_available._already_warned = True
 
 
-class DummyDeviceType(Device):
+class DummyDeviceType(object):
 
     """Dummy device class that does nothing with cupy.cuda.Device interface.
 
@@ -257,6 +257,9 @@ to the CUDA device ID.
 
     def use(self):
         self.device.use()
+
+    def is_array_supported(self, array):
+        return isinstance(array, ndarray) and self.device == array.device
 
 
 # ------------------------------------------------------------------------------

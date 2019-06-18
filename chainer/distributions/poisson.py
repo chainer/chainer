@@ -67,8 +67,9 @@ class Poisson(distribution.Distribution):
             eps = xp.random.poisson(
                 self.lam.data, size=(n,)+self.batch_shape, dtype=xp.float32)
         else:
-            eps = xp.random.poisson(
-                self.lam.data, size=(n,)+self.batch_shape).astype(xp.float32)
+            eps = (
+                xp.random.poisson(self.lam.data, size=(n,)+self.batch_shape)
+                .astype(xp.float32))
         noise = chainer.Variable(eps)
         return noise
 
@@ -83,5 +84,7 @@ class Poisson(distribution.Distribution):
 
 @distribution.register_kl(Poisson, Poisson)
 def _kl_poisson_poisson(dist1, dist2):
-    return dist1.lam * (dist1._log_lam
-                        - dist2._log_lam) - dist1.lam + dist2.lam
+    return (
+        dist1.lam * (dist1._log_lam - dist2._log_lam)
+        - dist1.lam
+        + dist2.lam)
