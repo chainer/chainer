@@ -108,11 +108,6 @@ def test_dot_invalid(is_module, xp, device, a_shape, b_shape, dtype):
 ))
 class TestSVD(op_utils.NumpyOpTest):
 
-    def setup(self):
-        device = chainerx.get_default_device()
-        if device.backend.name == 'native':
-            pytest.skip('CPU SVD is not implemented')
-
     def generate_inputs(self):
         a = numpy.random.random(self.shape).astype(self.in_dtypes)
         return a,
@@ -147,11 +142,6 @@ class TestSVD(op_utils.NumpyOpTest):
 ))
 class TestPseudoInverse(op_utils.NumpyOpTest):
 
-    def setup(self):
-        device = chainerx.get_default_device()
-        if device.backend.name == 'native':
-            pytest.skip('CPU pinv is not implemented')
-
     def generate_inputs(self):
         a = numpy.random.random(self.shape).astype(self.in_dtypes)
         return a,
@@ -177,11 +167,6 @@ class TestPseudoInverseFailing(op_utils.NumpyOpTest):
     forward_accept_errors = (numpy.linalg.LinAlgError,
                              chainerx.ChainerxError,
                              chainerx.DimensionError)
-
-    def setup(self):
-        device = chainerx.get_default_device()
-        if device.backend.name == 'native':
-            pytest.skip('CPU pinv is not implemented')
 
     def generate_inputs(self):
         a = numpy.random.random(self.shape).astype(self.in_dtypes)
