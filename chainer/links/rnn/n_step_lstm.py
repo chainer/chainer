@@ -59,6 +59,16 @@ class NStepLSTMBase(n_step_rnn.NStepRNNBase):
         bias_init = kwargs.pop("bias_init", None)
         forget_bias_init = kwargs.pop("forget_bias_init", 1)
 
+        if (kwargs.get('initialW', None) is not None and
+                (lateral_init is not None or upward_init is not None)):
+            raise ValueError('initialW and lateral_init/upward_init '
+                             'cannot be specified together')
+
+        if (kwargs.get('initial_bias', None) is not None and
+                (bias_init is not None or forget_bias_init is not None)):
+            raise ValueError('initial_bias and bias_init/forget_bias_init '
+                             'cannot be specified together')
+
         super(NStepLSTMBase, self).__init__(*args, **kwargs)
 
         if lateral_init is not None:
