@@ -134,6 +134,7 @@ public:
                 break;
             default:
                 CHAINERX_NEVER_REACH();
+        }
     }
 };
 
