@@ -68,13 +68,16 @@ Array manipulation routines
    chainerx.stack
    chainerx.hstack
    chainerx.vstack
+   chainerx.dstack
    chainerx.atleast_2d
+   chainerx.atleast_3d
    chainerx.split
    chainerx.swapaxes
    chainerx.expand_dims
    chainerx.flip
    chainerx.fliplr
    chainerx.flipud
+   chainerx.moveaxis
 
 Indexing routines
 -----------------
@@ -140,6 +143,7 @@ Mathematical functions
    chainerx.exp
    chainerx.log
    chainerx.log10
+   chainerx.log2
    chainerx.log1p
    chainerx.logsumexp
    chainerx.log_softmax

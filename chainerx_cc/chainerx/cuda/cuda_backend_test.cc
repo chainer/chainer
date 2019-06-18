@@ -78,6 +78,11 @@ TEST(CudaBackendTest, GetDeviceCount) {
     EXPECT_EQ(count, CudaBackend(ctx).GetDeviceCount());
 }
 
+TEST(NativeBackendTest, IsNative) {
+    Context ctx;
+    EXPECT_FALSE(CudaBackend{ctx}.IsNative());
+}
+
 TEST(CudaBackendTest, GetDeviceCountGetNameThreadSafe) {
     Context ctx;
     CudaBackend backend{ctx};

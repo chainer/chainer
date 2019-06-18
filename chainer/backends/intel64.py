@@ -71,6 +71,9 @@ class Intel64Device(_backend.Device):
             array = ideep.array(array, itype=ideep.wgt_array)
         return array
 
+    def is_array_supported(self, array):
+        return isinstance(array, (numpy.ndarray, mdarray))
+
 
 # ------------------------------------------------------------------------------
 # ideep configuration

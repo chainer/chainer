@@ -26,12 +26,10 @@
 #include "chainerx/float16.h"
 #include "chainerx/kernels/creation.h"
 #include "chainerx/kernels/linalg.h"
-#include "chainerx/kernels/math.h"
 #include "chainerx/kernels/misc.h"
 #include "chainerx/macro.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/linalg.h"
-#include "chainerx/routines/math.h"
 
 namespace chainerx {
 namespace cuda {

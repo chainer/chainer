@@ -68,7 +68,8 @@ class Categorical(distribution.Distribution):
 
     def log_prob(self, x):
         mg = numpy.meshgrid(
-            *tuple(range(i) for i in self.batch_shape), indexing='ij')
+            *(range(i) for i in self.batch_shape),
+            indexing='ij')
         if isinstance(x, chainer.Variable):
             return self.log_p[mg + [x.data.astype(numpy.int32)]]
         else:
@@ -81,8 +82,8 @@ class Categorical(distribution.Distribution):
     def sample_n(self, n):
         xp = backend.get_array_module(self.p)
         onebyone_p = self.p.data.reshape(-1, self.p.shape[-1])
-        eps = [xp.random.choice(
-            one_p.shape[0], size=(n,), p=one_p) for one_p in onebyone_p]
+        eps = [xp.random.choice(one_p.shape[0], size=(n,), p=one_p)
+               for one_p in onebyone_p]
         eps = xp.vstack(eps).T.reshape((n,)+self.batch_shape)
         noise = chainer.Variable(eps)
         return noise
