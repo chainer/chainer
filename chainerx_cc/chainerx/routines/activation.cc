@@ -38,10 +38,12 @@ Array CRelu(const Array& x, int8_t axis) {
     Array concat = Concatenate(c, axis);
     return Relu(concat);
 
-Array Elu(const Array& x, Scalar alpha) {
+Array Elu(const Array& x, float_t alpha) {
+    Dtype dtype = internal::GetMathResultDtype(x.dtype());
+    const Array& x_cast = x.dtype() == dtype ? x : x.AsType(dtype);
     // TODO(aksub99): Replace x > zero with x > 0 when operator > supports scalars.
-    Array zero = ZerosLike(x, x.device());
-    return Where(x > zero, x, alpha * Expm1(x));
+    Array zero = ZerosLike(x_cast, x_cast.device());
+    return Where(x_cast > zero, x_cast, alpha * Expm1(x_cast));
 }
 
 Array Sigmoid(const Array& x) {

@@ -8,6 +8,11 @@ from chainerx_tests import dtype_utils
 from chainerx_tests import op_utils
 
 
+# A special parameter object used to represent an unspecified argument.
+class Unspecified(object):
+    pass
+
+
 class IgnoreNumpyFloatingPointError(object):
 
     def __enter__(self):
@@ -82,7 +87,7 @@ _in_out_dtypes_math_functions = _in_out_float_dtypes_math_functions + [
         'in_dtypes,out_dtype': _in_out_dtypes_math_functions,
         'input': [-2, 2],
         'contiguous': [None, 'C'],
-        'alpha_range': [(-2.0, 0.0), 0.0, (0.0, 2.0)],
+        'alpha_range': [(-2.0, 0.0), 0.0, (0.0, 2.0), Unspecified],
     })
     # Special values
     + chainer.testing.product({
@@ -91,7 +96,7 @@ _in_out_dtypes_math_functions = _in_out_float_dtypes_math_functions + [
         'input': [0, float('inf'), -float('inf'), float('nan')],
         'skip_backward_test': [True],
         'skip_double_backward_test': [True],
-        'alpha_range': [(-2.0, 0.0), 0.0, (0.0, 2.0)],
+        'alpha_range': [(-2.0, 0.0), 0.0, (0.0, 2.0), Unspecified],
     })
 ))
 class TestClippedRelu(UnaryMathTestBase, op_utils.NumpyOpTest):
@@ -171,6 +176,8 @@ class TestElu(UnaryMathTestBase, op_utils.NumpyOpTest):
         if isinstance(self.alpha_range, tuple):
             l, u = self.alpha_range
             self.alpha = random.uniform(l, u)
+        elif self.alpha_range in (None, Unspecified):
+            self.alpha = 1.0
         else:
             self.alpha = self.alpha_range
 
@@ -180,7 +187,10 @@ class TestElu(UnaryMathTestBase, op_utils.NumpyOpTest):
             negzero_indices = y <= 0
             y[negzero_indices] = self.alpha * numpy.expm1(y[negzero_indices])
             return y
-        return xp.elu(a, self.alpha)
+        elif self.alpha_range in (None, Unspecified):
+            return xp.elu(a)
+        else:
+            return xp.elu(a, self.alpha)
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])

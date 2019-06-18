@@ -9,7 +9,7 @@ Array ClippedRelu(const Array& x, Scalar z);
 
 Array CRelu(const Array& x, int8_t axis);
 
-Array Elu(const Array& x, Scalar z);
+Array Elu(const Array& x, float_t alpha = 1.0);
 
 Array Sigmoid(const Array& x);
 
