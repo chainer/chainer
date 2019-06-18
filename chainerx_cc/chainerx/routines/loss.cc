@@ -13,7 +13,7 @@ Array MeanAbsoluteError(const Array& x1, const Array& x2) { return Absolute(x1 -
 
 Array MeanSquaredError(const Array& x1, const Array& x2) { return SquaredDifference(x1, x2).Mean(); }
 
-Array GaussianKLDivergence(const Array& mu, const Array& ln_var) { return (Square(mu) + Exp(ln_var) - ln_var - 1) * 0.5; }
+Array GaussianKLDivergence(const Array& mean, const Array& ln_var) { return (Square(mean) + Exp(ln_var) - ln_var - 1) * 0.5; }
 
 Array HuberLoss(const Array& x1, const Array& x2, Scalar delta) {
     Array a = x1 - x2;
