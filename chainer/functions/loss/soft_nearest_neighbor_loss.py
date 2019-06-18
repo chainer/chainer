@@ -1,12 +1,7 @@
 import numpy
 
-import chainer
-from chainer import backend
 from chainer.backends import cuda
 from chainer import functions as F
-from chainer import utils
-from chainer.utils import argument
-from chainer.utils import type_check
 
 STABILITY_EPS = 0.00001
 
@@ -82,7 +77,10 @@ def pick_probability(x, temp, cos_distance):
 
     """
 
-    tmp_matrix = numpy.ones((x.data.shape[0], x.data.shape[0]), dtype=numpy.float32) - numpy.eye(x.data.shape[0], dtype=numpy.float32)
+    batch = x.data.shape[0]
+    dtype = numpy.float32
+    tmp_matrix = numpy.ones((batch, batch), dtype=dtype) - \
+        numpy.eye(batch, dtype=dtype)
     xp = x.xp
 
     if xp != numpy:
@@ -116,7 +114,8 @@ def masked_pick_probability(x, y, temp, cos_distance):
     :returns: A tensor for the pairwise sampling probabilities.
     """
 
-    return pick_probability(x, temp, cos_distance) * same_label_mask(y, y, x.xp)
+    return pick_probability(x, temp, cos_distance) * \
+        same_label_mask(y, y, x.xp)
 
 
 def soft_nearest_neighbor_loss(x, y, temp, cos_distance):

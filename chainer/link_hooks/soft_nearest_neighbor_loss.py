@@ -26,7 +26,8 @@ def optimized_temp_SNNL(x, y, initial_temp, cos_distance):
         # we use inverse_temp because it was observed to be more stable
         # when optimizing.
         return initial_temp / t
-    ent_loss = F.soft_nearest_neighbor_loss(x, y, inverse_temp(t), cos_distance)
+    ent_loss = F.soft_nearest_neighbor_loss(
+        x, y, inverse_temp(t), cos_distance)
 
     grad_t = chainer.grad([ent_loss], [t])[0]
     if grad_t is not None:
