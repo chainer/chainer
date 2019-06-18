@@ -45,8 +45,8 @@ class ParameterStatistics(extension.Extension):
             function mappings.
             The name is a string and is used as a part of the report key. The
             function is responsible for generating the statistics.
-            If the special value ``'default'`` is specified, use the default
-            statistics functions.
+            If the special value ``'default'`` is specified, the default
+            statistics functions will be used.
         report_params (bool): If ``True``, report statistics for parameter
             values such as weights and biases.
         report_grads (bool): If ``True``, report statistics for parameter

@@ -66,11 +66,11 @@ class ComputationalGraph(object):
              :class:`VariableNode` object or :class:`FunctionNode` object.
         edges (list): List of edges. Each edge consists of pair of nodes.
         variable_style (dict or `'default'`): Dot node style for variable.
-            If the special value ``'default'`` is specified, use the default
-            configuration.
+            If the special value ``'default'`` is specified, the default
+            configuration will be used.
         function_style (dict or `default`): Dot node style for function.
-            If the special value ``'default'`` is specified, use the default
-            configuration.
+            If the special value ``'default'`` is specified, the default
+            configuration will be used.
         rankdir (str): Direction of the graph that must be
             TB (top to bottom), BT (bottom to top), LR (left to right)
             or RL (right to left).
@@ -232,12 +232,12 @@ def build_computational_graph(
             backward compatibility.
         variable_style(dict or 'default'): Dot node style for variable.
             Possible keys are 'shape', 'color', 'fillcolor', 'style' etc.
-            If the special value ``'default'`` is specified, use the default
-            configuration.
+            If the special value ``'default'`` is specified, the default
+            configuration will be used.
         function_style(dict or 'default'): Dot node style for function.
             Possible keys are 'shape', 'color', 'fillcolor', 'style' etc.
-            If the special value ``'default'`` is specified, use the default
-            configuration.
+            If the special value ``'default'`` is specified, the default
+            configuration will be used.
         rankdir (str): Direction of the graph that must be
             TB (top to bottom), BT (bottom to top), LR (left to right)
             or RL (right to left).
