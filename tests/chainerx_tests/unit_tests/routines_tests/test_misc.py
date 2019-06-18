@@ -46,14 +46,16 @@ class TestSqrt(math_utils.UnaryMathTestBase, op_utils.NumpyOpTest):
     # Special shapes
     chainer.testing.product({
         'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
-        'in_dtypes,out_dtype': math_utils.in_out_float_dtypes_math_functions,
-        'input': [-2, 0, 2],
+        'in_dtypes,out_dtype': dtype_utils.make_same_in_out_dtypes(
+            1, chainerx.testing.numeric_dtypes),
+        'input': ['random'],
         'contiguous': [None, 'C'],
     })
     # Special values
     + chainer.testing.product({
         'shape': [(2, 3)],
-        'in_dtypes,out_dtype': math_utils.in_out_float_dtypes_math_functions,
+        'in_dtypes,out_dtype': dtype_utils.make_same_in_out_dtypes(
+            1, chainerx.testing.float_dtypes),
         'input': [float('inf'), -float('inf'), float('nan')],
         'skip_backward_test': [True],
         'skip_double_backward_test': [True],
@@ -63,6 +65,14 @@ class TestSquare(math_utils.UnaryMathTestBase, op_utils.NumpyOpTest):
 
     def func(self, xp, a):
         return xp.square(a)
+
+
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_square_invalid_dtypes(device):
+    shape = (3, 2)
+    bool_array = chainerx.array(array_utils.uniform(shape, 'bool_'))
+    with pytest.raises(chainerx.DtypeError):
+        chainerx.square(bool_array)
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
@@ -125,6 +135,7 @@ class TestSquaredDifference(op_utils.OpTest):
         'in_dtypes,out_dtype': math_utils.in_out_float_dtypes_math_functions,
         'input': ['random'],
         'contiguous': [None, 'C'],
+        'is_module': [True, False],
     })
     + chainer.testing.product({
         'shape': [(2, 3)],
@@ -132,6 +143,7 @@ class TestSquaredDifference(op_utils.OpTest):
         'input': [float('inf'), -float('inf'), float('nan')],
         'skip_backward_test': [True],
         'skip_double_backward_test': [True],
+        'is_module': [True, False],
     })
 ))
 class TestAbs(math_utils.UnaryMathTestBase, op_utils.NumpyOpTest):
@@ -139,8 +151,14 @@ class TestAbs(math_utils.UnaryMathTestBase, op_utils.NumpyOpTest):
     dodge_nondifferentiable = True
 
     def func(self, xp, a):
+        # Check correct alias.
         assert chainerx.abs is chainerx.absolute
-        return xp.abs(a)
+
+        # Check computed result.
+        if self.is_module:
+            return xp.abs(a)
+        else:
+            return abs(a)
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])

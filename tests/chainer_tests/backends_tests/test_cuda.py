@@ -573,4 +573,34 @@ class TestGpuDeviceUse(unittest.TestCase):
             assert device.device == cuda.Device()
 
 
+@testing.backend.inject_backend_tests(  # backend_config2
+    None,
+    [
+        {},
+        {'use_cuda': True, 'cuda_device': 0},
+        {'use_cuda': True, 'cuda_device': 1},
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+    ])
+@testing.backend.inject_backend_tests(  # backend_config1
+    None,
+    [
+        {'use_cuda': True, 'cuda_device': 0},
+        {'use_cuda': True, 'cuda_device': 1},
+    ])
+class TestGpuIsArraySupported(unittest.TestCase):
+
+    def test_is_array_supported(self, backend_config1, backend_config2):
+        target = backend_config1.device  # backend.GpuDevice
+
+        arr = backend_config2.get_array(numpy.ndarray((2,), numpy.float32))
+        device = backend_config2.device
+
+        if (isinstance(device, backend.GpuDevice)
+                and device.device == target.device):
+            assert target.is_array_supported(arr)
+        else:
+            assert not target.is_array_supported(arr)
+
+
 testing.run_module(__name__, __file__)

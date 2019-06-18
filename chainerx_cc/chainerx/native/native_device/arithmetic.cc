@@ -7,11 +7,11 @@
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
 #include "chainerx/float16.h"
-#include "chainerx/kernels/math.h"
+#include "chainerx/kernels/arithmetic.h"
 #include "chainerx/native/elementwise.h"
 #include "chainerx/native/kernel_regist.h"
 #include "chainerx/numeric.h"
-#include "chainerx/routines/math.h"
+#include "chainerx/routines/arithmetic.h"
 #include "chainerx/scalar.h"
 
 namespace chainerx {
