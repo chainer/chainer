@@ -8,14 +8,11 @@ class NStepLSTMBase(n_step_rnn.NStepRNNBase):
     This link is base link class for :func:`chainer.links.NStepLSTM` and
     :func:`chainer.links.NStepBiLSTM`.
 
-    This link's behavior depends on argument, ``use_bi_direction``.
-
     Args:
         n_layers (int): Number of layers.
         in_size (int): Dimensionality of input vectors.
         out_size (int): Dimensionality of hidden states and output vectors.
         dropout (float): Dropout ratio.
-        use_bi_direction (bool): if ``True``, use Bi-directional LSTM.
 
     .. seealso::
         :func:`chainer.functions.n_step_lstm`

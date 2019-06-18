@@ -34,8 +34,6 @@ class NStepRNNBase(link.ChainList):
     This link is base link class for :func:`chainer.links.NStepRNN` and
     :func:`chainer.links.NStepBiRNN`.
 
-    This link's behavior depends on argument, ``use_bi_direction``.
-
     Args:
         n_layers (int): Number of layers.
         in_size (int): Dimensionality of input vectors.
