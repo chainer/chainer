@@ -28,6 +28,7 @@
 #include "chainerx/kernels/linalg.h"
 #include "chainerx/kernels/misc.h"
 #include "chainerx/macro.h"
+#include "chainerx/native/native_device.h"
 #include "chainerx/routines/creation.h"
 
 namespace chainerx {
@@ -75,7 +76,8 @@ public:
             device_internals.cusolverdn_handle().Call(solver_func, uplo, N, out_ptr, N, work_ptr, work_size, (int*)devInfo.get());
 
             int devInfo_h = 0;
-            CheckCudaError(cudaMemcpy(&devInfo_h, devInfo.get(), sizeof(int), cudaMemcpyDeviceToHost));
+            Device& native_device = dynamic_cast<native::NativeDevice&>(GetDefaultContext().GetDevice({"native", 0}));
+            device.MemoryCopyTo(&devInfo_h, devInfo.get(), sizeof(int), native_device);
             if (devInfo_h != 0) {
                 throw ChainerxError{"Unsuccessfull potrf (Cholesky) execution. Info = ", devInfo_h};
             }
