@@ -73,7 +73,7 @@ public:
             T* work_ptr = static_cast<T*>(internal::GetRawOffsetData(work));
 
             std::shared_ptr<void> devInfo = device.Allocate(sizeof(int));
-            device_internals.cusolverdn_handle().Call(solver_func, uplo, N, out_ptr, N, work_ptr, work_size, (int*)devInfo.get());
+            device_internals.cusolverdn_handle().Call(solver_func, uplo, N, out_ptr, N, work_ptr, work_size, static_cast<int*>(devInfo.get()));
 
             int devInfo_h = 0;
             Device& native_device = dynamic_cast<native::NativeDevice&>(GetDefaultContext().GetDevice({"native", 0}));
