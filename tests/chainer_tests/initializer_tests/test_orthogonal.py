@@ -2,6 +2,7 @@ import unittest
 
 import numpy
 
+import chainer
 from chainer import backend
 from chainer.backends import cuda
 from chainer import initializers
@@ -29,13 +30,13 @@ import chainerx
 @testing.backend.inject_backend_tests(
     None,
     [
-        # CPU
         {},
-        # CUDA
+        {'use_ideep': 'always'},
         {'use_cuda': True, 'cuda_device': 0},
-        # ChainerX
+        {'use_cuda': True, 'cuda_device': 1},
         {'use_chainerx': True, 'chainerx_device': 'native:0'},
         {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
     ]
 )
 class OrthogonalBase(unittest.TestCase):
@@ -59,18 +60,22 @@ class OrthogonalBase(unittest.TestCase):
         self.assertEqual(w.dtype, self.dtype)
 
     def test_initializer(self, backend_config):
-        w = backend_config.xp.empty(self.shape, dtype=self.dtype)
-        self.check_initializer(w)
+        w = numpy.empty(self.shape, dtype=self.dtype)
+        w = backend_config.get_array(w)
+        with chainer.using_device(backend_config.device):
+            self.check_initializer(w)
 
-    def check_shaped_initializer(self, xp):
+    def check_shaped_initializer(self, backend_config):
         initializer = self.target(dtype=self.dtype, **self.target_kwargs)
-        w = initializers.generate_array(initializer, self.shape, xp)
+        xp = backend_config.xp
+        with chainer.using_device(backend_config.device):
+            w = initializers.generate_array(initializer, self.shape, xp)
         self.assertIs(backend.get_array_module(w), xp)
         self.assertTupleEqual(w.shape, self.shape)
         self.assertEqual(w.dtype, self.dtype)
 
     def test_shaped_initializer(self, backend_config):
-        self.check_shaped_initializer(backend_config.xp)
+        self.check_shaped_initializer(backend_config)
 
     def check_orthogonality(self, w):
         initializer = self.target(**self.target_kwargs)
@@ -88,44 +93,48 @@ class OrthogonalBase(unittest.TestCase):
             **self.check_options)
 
     def test_orthogonality(self, backend_config):
-        w = backend_config.xp.empty(self.shape, dtype=self.dtype)
-        self.check_orthogonality(w)
+        with chainer.using_device(backend_config.device):
+            w = numpy.empty(self.shape, dtype=self.dtype)
+            w = backend_config.get_array(w)
+            self.check_orthogonality(w)
 
-    def check_initializer_statistics(self, xp, n):
+    def check_initializer_statistics(self, backend_config, n):
         from scipy import stats
+        xp = backend_config.xp
+        with chainer.using_device(backend_config.device):
+            ws = numpy.empty((n,) + self.shape, dtype=self.dtype)
+            ws = backend_config.get_array(ws)
+            for i in range(n):
+                initializer = self.target(**self.target_kwargs)
+                initializer(xp.squeeze(ws[i:i+1], axis=0))
 
-        ws = xp.empty((n,) + self.shape, dtype=self.dtype)
-        for i in range(n):
-            initializer = self.target(**self.target_kwargs)
-            initializer(xp.squeeze(ws[i:i+1], axis=0))
+            expected_scale = self.scale or 1.1
+            sampless = cuda.to_cpu(ws.reshape(n, -1).T)
+            alpha = 0.01 / len(sampless)
 
-        expected_scale = self.scale or 1.1
-        sampless = cuda.to_cpu(ws.reshape(n, -1).T)
-        alpha = 0.01 / len(sampless)
+            larger_dim = max(self.dim_out, self.dim_in)
 
-        larger_dim = max(self.dim_out, self.dim_in)
+            ab = 0.5 * (larger_dim - 1)
 
-        ab = 0.5 * (larger_dim - 1)
-
-        for samples in sampless:
-            if larger_dim == 1:
-                numpy.testing.assert_allclose(abs(samples), expected_scale)
-                _, p = stats.chisquare((numpy.sign(samples) + 1) // 2)
-            else:
-                _, p = stats.kstest(
-                    samples,
-                    stats.beta(
-                        ab, ab,
-                        loc=-expected_scale,
-                        scale=2*expected_scale
-                    ).cdf
-                )
-            assert p >= alpha
+            for samples in sampless:
+                if larger_dim == 1:
+                    numpy.testing.assert_allclose(abs(samples), expected_scale)
+                    _, p = stats.chisquare((numpy.sign(samples) + 1) // 2)
+                else:
+                    _, p = stats.kstest(
+                        samples,
+                        stats.beta(
+                            ab, ab,
+                            loc=-expected_scale,
+                            scale=2*expected_scale
+                        ).cdf
+                    )
+                assert p >= alpha
 
     @testing.with_requires('scipy')
     @condition.retry(3)
     def test_initializer_statistics(self, backend_config):
-        self.check_initializer_statistics(backend_config.xp, 100)
+        self.check_initializer_statistics(backend_config, 100)
 
     @testing.with_requires('scipy')
     @condition.repeat_with_success_at_least(5, 3)

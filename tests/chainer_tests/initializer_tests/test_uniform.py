@@ -3,6 +3,7 @@ import unittest
 
 import numpy
 
+import chainer
 from chainer import backend
 from chainer.backends import cuda
 from chainer import initializers
@@ -46,13 +47,13 @@ default_fan = {
 @testing.backend.inject_backend_tests(
     None,
     [
-        # CPU
         {},
-        # CUDA
+        {'use_ideep': 'always'},
         {'use_cuda': True, 'cuda_device': 0},
-        # ChainerX
+        {'use_cuda': True, 'cuda_device': 1},
         {'use_chainerx': True, 'chainerx_device': 'native:0'},
         {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
     ]
 )
 class TestUniform(unittest.TestCase):
@@ -72,58 +73,65 @@ class TestUniform(unittest.TestCase):
         self.assertEqual(w.dtype, self.dtype)
 
     def test_initializer(self, backend_config):
-        w = backend_config.xp.empty(self.shape, dtype=self.dtype)
-        self.check_initializer(w)
+        w = numpy.empty(self.shape, dtype=self.dtype)
+        w = backend_config.get_array(w)
+        with chainer.using_device(backend_config.device):
+            self.check_initializer(w)
 
-    def check_shaped_initializer(self, xp):
+    def check_shaped_initializer(self, backend_config):
         initializer = self.target(dtype=self.dtype, **self.target_kwargs)
-        w = initializers.generate_array(initializer, self.shape, xp)
+        xp = backend_config.xp
+        with chainer.using_device(backend_config.device):
+            w = initializers.generate_array(initializer, self.shape, xp)
         self.assertIs(backend.get_array_module(w), xp)
         self.assertTupleEqual(w.shape, self.shape)
         self.assertEqual(w.dtype, self.dtype)
 
     def test_shaped_initializer(self, backend_config):
-        self.check_shaped_initializer(backend_config.xp)
+        self.check_shaped_initializer(backend_config)
 
-    def check_initializer_statistics(self, xp, n):
+    def check_initializer_statistics(self, backend_config, n):
         from scipy import stats
 
-        ws = xp.empty((n,) + self.shape, dtype=self.dtype)
-        for i in range(n):
-            initializer = self.target(**self.target_kwargs)
-            initializer(xp.squeeze(ws[i:i+1], axis=0))
+        xp = backend_config.xp
+        ws = numpy.empty((n,) + self.shape, dtype=self.dtype)
+        ws = backend_config.get_array(ws)
+        with chainer.using_device(backend_config.device):
+            for i in range(n):
+                initializer = self.target(**self.target_kwargs)
+                initializer(xp.squeeze(ws[i:i+1], axis=0))
 
-        fan = self.fan_option or default_fan.get(self.target)
-        expected_max = self.scale or default_scale.get(self.target) or 1.
-        expected_max *= default_coeff.get(self.target) or 1.
-        if fan is not None:
-            if fan == 'fan_in':
-                expected_max *= math.sqrt(1. / self.fans[0])
-            elif fan == 'fan_out':
-                expected_max *= math.sqrt(1. / self.fans[1])
-            elif fan == 'fan_avg':
-                expected_max *= math.sqrt(2. / sum(self.fans))
-            else:
-                assert False
+            fan = self.fan_option or default_fan.get(self.target)
+            expected_max = self.scale or default_scale.get(self.target) or 1.
+            expected_max *= default_coeff.get(self.target) or 1.
+            if fan is not None:
+                if fan == 'fan_in':
+                    expected_max *= math.sqrt(1. / self.fans[0])
+                elif fan == 'fan_out':
+                    expected_max *= math.sqrt(1. / self.fans[1])
+                elif fan == 'fan_avg':
+                    expected_max *= math.sqrt(2. / sum(self.fans))
+                else:
+                    assert False
 
-        sampless = cuda.to_cpu(ws.reshape(n, -1).T)
-        alpha = 0.01 / len(sampless)
-        for samples in sampless:
-            _, p = stats.kstest(
-                samples,
-                stats.uniform(-expected_max, 2*expected_max).cdf
-            )
-            assert p >= alpha
+            sampless = cuda.to_cpu(ws.reshape(n, -1).T)
+            alpha = 0.01 / len(sampless)
+            for samples in sampless:
+                _, p = stats.kstest(
+                    samples,
+                    stats.uniform(-expected_max, 2*expected_max).cdf
+                )
+                assert p >= alpha
 
     @testing.with_requires('scipy')
     @condition.retry(3)
     def test_initializer_statistics(self, backend_config):
-        self.check_initializer_statistics(backend_config.xp, 100)
+        self.check_initializer_statistics(backend_config, 100)
 
     @testing.with_requires('scipy')
     @condition.repeat_with_success_at_least(5, 3)
     def test_initializer_statistics_slow(self, backend_config):
-        self.check_initializer_statistics(backend_config.xp, 10000)
+        self.check_initializer_statistics(backend_config, 10000)
 
 
 testing.run_module(__name__, __file__)
