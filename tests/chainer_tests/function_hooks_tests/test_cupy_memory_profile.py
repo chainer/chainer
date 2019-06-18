@@ -197,6 +197,7 @@ class TestCupyMemoryProfilerStatistics(TestCupyMemoryProfileReportBase):
     {'unit': 'auto'},
     {'unit': 'auto_foreach'},
 )
+@attr.gpu
 class TestCupyMemoryProfileReportPrintUnit(TestCupyMemoryProfileReportBase):
 
     def test_print_report(self):
@@ -229,6 +230,7 @@ class TestCupyMemoryProfileReportPrintUnit(TestCupyMemoryProfileReportBase):
 
     {'unit': 'ZB', 'denomi': 1024 ** 7, 'bytes': 1024 ** 8},
 )
+@attr.gpu
 class TestCupyMemoryProfileReportChooseUnit(unittest.TestCase):
 
     def test_choose_unit(self):
