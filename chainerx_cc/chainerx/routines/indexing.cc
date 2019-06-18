@@ -293,4 +293,16 @@ Array Where(const Array& condition, Scalar x, Scalar y) {
     return out;
 }
 
+Array Nonzero(const Array& a) {
+    Array condition = a != 0.0;
+    // Initialize out with appropriate shape
+
+    {
+        NoBackpropModeScope scope{};
+        a.device().backend().CallKernel<NonzeroKernel>(a, out);
+    }
+
+    return out;
+}
+
 }  // namespace chainerx
