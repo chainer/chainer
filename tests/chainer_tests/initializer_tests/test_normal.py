@@ -87,14 +87,6 @@ class NormalBase(unittest.TestCase):
     def test_shaped_initializer(self, backend_config):
         self.check_shaped_initializer(backend_config.xp)
 
-    # @attr.chainerx
-    # @attr.gpu
-    # @pytest.mark.xfail(strict=True)
-    # def test_initializer_chainerx_with_cuda(self):
-    #     # ValueError: non-scalar numpy.ndarray cannot be used for fill
-    #     w = chainerx.empty(self.shape, dtype=self.dtype, device='cuda:0')
-    #     self.check_initializer(w)
-
     def check_initializer_statistics(self, xp, n):
         from scipy import stats
 
