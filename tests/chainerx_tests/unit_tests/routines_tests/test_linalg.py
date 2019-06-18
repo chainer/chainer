@@ -107,11 +107,6 @@ def test_dot_invalid(is_module, xp, device, a_shape, b_shape, dtype):
 ))
 class TestEigh(op_utils.NumpyOpTest):
 
-    def setup(self):
-        device = chainerx.get_default_device()
-        if device.backend.name == 'native':
-            pytest.skip('CPU Eigh is not implemented')
-
     def generate_inputs(self):
         a = numpy.random.random(self.shape).astype(self.in_dtypes)
         return a,
@@ -137,11 +132,6 @@ class TestEighFailing(op_utils.NumpyOpTest):
     forward_accept_errors = (numpy.linalg.LinAlgError,
                              chainerx.DimensionError)
 
-    def setup(self):
-        device = chainerx.get_default_device()
-        if device.backend.name == 'native':
-            pytest.skip('CPU Eigh is not implemented')
-
     def generate_inputs(self):
         a = numpy.random.random(self.shape).astype(self.in_dtypes)
         return a,
@@ -163,11 +153,6 @@ class TestEighFailing(op_utils.NumpyOpTest):
     })
 ))
 class TestEigvalsh(op_utils.NumpyOpTest):
-
-    def setup(self):
-        device = chainerx.get_default_device()
-        if device.backend.name == 'native':
-            pytest.skip('CPU Eigvalsh is not implemented')
 
     def generate_inputs(self):
         a = numpy.random.random(self.shape).astype(self.in_dtypes)
@@ -193,11 +178,6 @@ class TestEigvalshFailing(op_utils.NumpyOpTest):
 
     forward_accept_errors = (numpy.linalg.LinAlgError,
                              chainerx.DimensionError)
-
-    def setup(self):
-        device = chainerx.get_default_device()
-        if device.backend.name == 'native':
-            pytest.skip('CPU Eigvalsh is not implemented')
 
     def generate_inputs(self):
         a = numpy.random.random(self.shape).astype(self.in_dtypes)
