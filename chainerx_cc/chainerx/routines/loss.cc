@@ -18,11 +18,10 @@ Array GaussianKLDivergence(const Array& mean, const Array& ln_var) { return (Squ
 Array HuberLoss(const Array& x1, const Array& x2, Scalar delta) {
     Array a = x1 - x2;
     Array abs_a = Absolute(a);
-    Array delta_a = EmptyLike(a);
-    delta_a.Fill(delta);
+    Array delta_array = chainerx::FullLike(a, delta, a.device());
 
     // TODO(kshitij12345) : use Array < Scalar when implemented.
-    return Where(abs_a < delta_a, 0.5 * Square(a), delta * (abs_a - Scalar{0.5} * delta));
+    return Where(abs_a < delta_array, 0.5 * Square(a), delta * (abs_a - Scalar{0.5} * delta));
 }
 
 }  // namespace chainerx
