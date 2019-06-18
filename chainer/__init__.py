@@ -16,6 +16,7 @@ from chainer import functions  # NOQA
 from chainer import graph_optimizations  # NOQA
 from chainer import initializers  # NOQA
 from chainer import iterators  # NOQA
+from chainer import link_hooks  # NOQA
 from chainer import links  # NOQA
 from chainer import optimizers  # NOQA
 from chainer import serializers  # NOQA
