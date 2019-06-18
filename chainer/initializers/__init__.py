@@ -5,7 +5,6 @@ import numpy
 import chainer
 from chainer import backend
 from chainer.backends import _chainerx  # NOQA
-import chainerx
 
 # import class and function
 from chainer.initializers.constant import Constant
@@ -63,9 +62,6 @@ def generate_array(initializer, shape, xp, dtype=None, device=None):
         backend_device = chainer.get_device(device)
         if xp != backend_device.xp:
             raise ValueError('xp and device arguments are inconsistent.')
-
-    if xp is chainerx:
-        backend_device = backend_device.device
 
     with chainer.using_device(backend_device):
         array = xp.empty(shape, dtype=dtype)

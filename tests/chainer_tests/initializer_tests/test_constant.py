@@ -1,17 +1,26 @@
 import unittest
 
-from chainer import backend, using_device
-from chainer.backends import cuda
+from chainer import backend
 from chainer import initializers
 from chainer import testing
-from chainer.testing import attr
 import numpy
-import chainerx
 
 
 @testing.parameterize(*testing.product({
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
 }))
+@testing.backend.inject_backend_tests(
+    None,
+    [
+        # CPU
+        {},
+        # CUDA
+        {'use_cuda': True, 'cuda_device': 0},
+        # ChainerX
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+    ]
+)
 class TestIdentity(unittest.TestCase):
 
     scale = 0.1
@@ -29,24 +38,8 @@ class TestIdentity(unittest.TestCase):
             w, self.scale * numpy.identity(len(self.shape)),
             **self.check_options)
 
-    def test_initializer_cpu(self):
-        w = numpy.empty(self.shape, dtype=self.dtype)
-        self.check_initializer(w)
-
-    @attr.gpu
-    def test_initializer_gpu(self):
-        w = cuda.cupy.empty(self.shape, dtype=self.dtype)
-        self.check_initializer(w)
-
-    @attr.chainerx
-    def test_initializer_chainerx_with_default(self):
-        w = chainerx.empty(self.shape, dtype=self.dtype, device='native:0')
-        self.check_initializer(w)
-
-    @attr.chainerx
-    @attr.gpu
-    def test_initializer_chainerx_with_cuda(self):
-        w = chainerx.empty(self.shape, dtype=self.dtype, device='cuda:0')
+    def test_initializer(self, backend_config):
+        w = backend_config.xp.empty(self.shape, dtype=self.dtype)
         self.check_initializer(w)
 
     def check_shaped_initializer(self, xp):
@@ -60,24 +53,8 @@ class TestIdentity(unittest.TestCase):
             w, self.scale * numpy.identity(len(self.shape)),
             **self.check_options)
 
-    def test_shaped_initializer_cpu(self):
-        self.check_shaped_initializer(numpy)
-
-    @attr.gpu
-    def test_shaped_initializer_gpu(self):
-        self.check_shaped_initializer(cuda.cupy)
-
-    @attr.chainerx
-    @attr.gpu
-    def test_shaped_initializer_chainerx_with_default(self):
-        with using_device('native:0'):
-            self.check_shaped_initializer(chainerx)
-
-    @attr.chainerx
-    @attr.gpu
-    def test_shaped_initializer_chainerx_with_cuda(self):
-        with using_device('cuda:0'):
-            self.check_shaped_initializer(chainerx)
+    def test_shaped_initializer(self, backend_config):
+        self.check_shaped_initializer(backend_config.xp)
 
 
 @testing.parameterize(
@@ -99,6 +76,18 @@ class TestIdentityInvalid(unittest.TestCase):
 @testing.parameterize(*testing.product({
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
 }))
+@testing.backend.inject_backend_tests(
+    None,
+    [
+        # CPU
+        {},
+        # CUDA
+        {'use_cuda': True, 'cuda_device': 0},
+        # ChainerX
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+    ]
+)
 class TestConstant(unittest.TestCase):
 
     fill_value = 0.1
@@ -116,24 +105,8 @@ class TestConstant(unittest.TestCase):
             w, numpy.full(self.shape, self.fill_value),
             **self.check_options)
 
-    def test_initializer_cpu(self):
-        w = numpy.empty(self.shape, dtype=self.dtype)
-        self.check_initializer(w)
-
-    @attr.gpu
-    def test_initializer_gpu(self):
-        w = cuda.cupy.empty(self.shape, dtype=self.dtype)
-        self.check_initializer(w)
-
-    @attr.gpu
-    def test_initializer_chainerx_with_default(self):
-        w = chainerx.empty(self.shape, dtype=self.dtype, device='native:0')
-        self.check_initializer(w)
-
-    @attr.chainerx
-    @attr.gpu
-    def test_initializer_chainerx_with_cuda(self):
-        w = chainerx.empty(self.shape, dtype=self.dtype, device='cuda:0')
+    def test_initializer(self, backend_config):
+        w = backend_config.xp.empty(self.shape, dtype=self.dtype)
         self.check_initializer(w)
 
     def check_shaped_initializer(self, xp):
@@ -147,24 +120,8 @@ class TestConstant(unittest.TestCase):
             w, numpy.full(self.shape, self.fill_value),
             **self.check_options)
 
-    def test_shaped_initializer_cpu(self):
-        self.check_shaped_initializer(numpy)
-
-    @attr.gpu
-    def test_shaped_initializer_gpu(self):
-        self.check_shaped_initializer(cuda.cupy)
-
-    @attr.chainerx
-    @attr.gpu
-    def test_shaped_initializer_chainerx_with_default(self):
-        with using_device('native:0'):
-            self.check_shaped_initializer(chainerx)
-
-    @attr.chainerx
-    @attr.gpu
-    def test_shaped_initializer_chainerx_with_cuda(self):
-        with using_device('cuda:0'):
-            self.check_shaped_initializer(chainerx)
+    def test_shaped_initializer(self, backend_config):
+        self.check_shaped_initializer(backend_config.xp)
 
 
 testing.run_module(__name__, __file__)

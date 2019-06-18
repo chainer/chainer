@@ -1,10 +1,8 @@
 import numpy
-
+import chainer
 from chainer import backend
-from chainer.backends import cuda
 from chainer import initializer
 from chainer import types  # NOQA
-import chainerx
 
 
 class Identity(initializer.Initializer):
@@ -41,8 +39,7 @@ class _Constant(initializer.Initializer):
     fill_value = None  # type: types.ScalarValue
 
     def __init__(self, dtype=None):
-        if not (isinstance(self.fill_value, (numpy.ndarray, cuda.ndarray,
-                                             chainerx.ndarray)) or
+        if not (isinstance(self.fill_value, chainer.get_array_types()) or
                 numpy.isscalar(self.fill_value)):
             raise ValueError(
                 'fill_value must be either scalar, numpy.ndarray or '
