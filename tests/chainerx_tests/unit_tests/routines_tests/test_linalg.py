@@ -108,11 +108,6 @@ def test_dot_invalid(is_module, xp, device, a_shape, b_shape, dtype):
 ))
 class TestCholesky(op_utils.NumpyOpTest):
 
-    def setup(self):
-        device = chainerx.get_default_device()
-        if device.backend.name == 'native':
-            pytest.skip('CPU Cholesky is not implemented')
-
     def generate_inputs(self):
         a = numpy.random.random(self.shape).astype(self.in_dtypes)
         # Make random square matrix a symmetric positive semi-definite one
@@ -141,11 +136,6 @@ class TestCholeskyFailing(op_utils.NumpyOpTest):
     forward_accept_errors = (numpy.linalg.LinAlgError,
                              chainerx.ChainerxError,
                              chainerx.DimensionError)
-
-    def setup(self):
-        device = chainerx.get_default_device()
-        if device.backend.name == 'native':
-            pytest.skip('CPU Cholesky is not implemented')
 
     def generate_inputs(self):
         a = numpy.random.random(self.shape).astype(self.in_dtypes)
