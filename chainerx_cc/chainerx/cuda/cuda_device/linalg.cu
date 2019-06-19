@@ -28,6 +28,7 @@
 #include "chainerx/kernels/linalg.h"
 #include "chainerx/kernels/misc.h"
 #include "chainerx/macro.h"
+#include "chainerx/native/native_device.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/indexing.h"
 #include "chainerx/routines/linalg.h"
@@ -90,8 +91,7 @@ public:
             T* u_ptr = static_cast<T*>(internal::GetRawOffsetData(u));
             T* vt_ptr = static_cast<T*>(internal::GetRawOffsetData(vt));
 
-            int* devInfo;
-            CheckCudaError(cudaMalloc(&devInfo, sizeof(int)));
+            std::shared_ptr<void> devInfo = device.Allocate(sizeof(int));
 
             int buffersize = 0;
             device_internals.cusolverdn_handle().Call(gesvd_bufferSize, m, n, &buffersize);
@@ -107,10 +107,11 @@ public:
             }
 
             device_internals.cusolverdn_handle().Call(
-                    gesvd, job, job, m, n, x_ptr, m, s_ptr, u_ptr, m, vt_ptr, n, work_ptr, buffersize, nullptr, devInfo);
+                    gesvd, job, job, m, n, x_ptr, m, s_ptr, u_ptr, m, vt_ptr, n, work_ptr, buffersize, nullptr, static_cast<int*>(devInfo.get()));
 
             int devInfo_h = 0;
-            CheckCudaError(cudaMemcpy(&devInfo_h, devInfo, sizeof(int), cudaMemcpyDeviceToHost));
+            Device& native_device = dynamic_cast<native::NativeDevice&>(GetDefaultContext().GetDevice({"native", 0}));
+            device.MemoryCopyTo(&devInfo_h, devInfo.get(), sizeof(int), native_device);
             if (devInfo_h != 0) {
                 throw ChainerxError{"Unsuccessfull gesvd (SVD) execution. Info = ", devInfo_h};
             }
