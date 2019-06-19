@@ -87,13 +87,11 @@ class ObservationAggregator(extension.Extension):
         if not self.comm_trigger(trainer):
             return None
 
-        internal_summary = self.internal_aggregator(self.observation_history)
+        observation_history_gathered = self.comm.gather_obj(self.observation_history)
         self.observation_history = []
 
-        internal_summary_gathered = self.comm.gather_obj(internal_summary)
-
         if self.comm.rank == 0:
-            global_summary = self.global_aggregator(internal_summary_gathered)
+            global_summary = self.aggregator(observation_history_gathered)
             self.comm.bcast_obj(global_summary)
         else:
             global_summary = self.comm.bcast_obj(None)
