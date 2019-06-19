@@ -46,6 +46,10 @@ def _exclusive_scan(array, dtype=None):
 
 
 def shuffle_data_chunks(comm, data_chunks, force_equal_length='copy', chunk_size=10000):
+    if force_equal_length not in ['copy', 'drop', None, False]:
+        raise ValueError('Wrong value for `force_equal_length`:'
+                         ' {}'.format(force_equal_length))
+
     data_chunks = iter(data_chunks)
     data = []
 
@@ -83,7 +87,7 @@ def shuffle_data_chunks(comm, data_chunks, force_equal_length='copy', chunk_size
 
         # offset of sendcounts
         offset = _exclusive_scan(count_table[comm.rank, :])
-        print("Rank {}: pairs = {}".format(comm.rank, pairs))
+        # print("Rank {}: pairs = {}".format(comm.rank, pairs))
 
         for send_rank, recv_rank in pairs:
             count = count_table[send_rank, recv_rank]
@@ -100,16 +104,23 @@ def shuffle_data_chunks(comm, data_chunks, force_equal_length='copy', chunk_size
                 beg = offset[recv_rank]
                 end = beg + count
                 comm.send(chunk[beg:end], dest=recv_rank, tag=0)
-                print("Rank {}: {} --> {}, data={}".format(comm.rank, send_rank,
-                                                  recv_rank, chunk[beg:end]), flush=True)
+                # print("Rank {}: {} --> {}, data={}".format(comm.rank, send_rank, recv_rank, chunk[beg:end]), flush=True)
             elif recv_rank == comm.rank:
                 recv_data = comm.recv(source=send_rank, tag=0)
                 data += recv_data
 
             comm.mpi_comm.barrier()
 
-    print("Rank {}: data={}".format(comm.rank, data))
+    # print("Rank {}: data={}".format(comm.rank, data))
+    length_all = [x[0] for x in comm.allgather(np.array([len(data)]))]
+    if force_equal_length == 'drop':
+        shortest = min(length_all)
+        data = data[:shortest]
+    elif force_equal_length == 'copy':
+        raise NotImplemented()
+
     return data
+
 
 
 def test_count_table():
@@ -159,26 +170,28 @@ def test_send_recv_pairs():
     assert_array_equal(_send_recv_pairs(4), answer)
 
 
-
 if __name__ == '__main__':
     import numpy as np
     import chainermn
+    import time
+    import random
     comm = chainermn.communicators.create_communicator()
 
-    r = range(comm.rank * 10, comm.rank * 10 + (comm.rank + 5) * 2)
+    r = range(comm.rank * 10, comm.rank * 10 + (comm.rank + 5) * 100 + random.randint(10, 500))
 
     for i in range(comm.size):
         if i == comm.rank:
             if i == 0:
                 print("------------------------------")
 
-            print(list(r))
+            print(len(r))
         comm.mpi_comm.barrier()
 
     chunks = [np.array([i]) for i in r]
-    print("Start shuffle_data_chunks: Rank {} chunks = {}".format(comm.rank, chunks), flush=True)
-    data = shuffle_data_chunks(comm, chunks)
+    data = shuffle_data_chunks(comm, chunks, force_equal_length='drop')
     data = [x[0] for x in data]
+
+    time.sleep(0.5)
 
     for i in range(comm.size):
         if i == comm.rank:
@@ -189,4 +202,15 @@ if __name__ == '__main__':
             print("{}".format(len(data)), flush=True)
         comm.mpi_comm.barrier()
 
-    print()
+    max_len = comm.allreduce
+
+    time.sleep(0.5)
+
+    length_all = [x[0] for x in comm.allgather(np.array([len(data)]))]
+    if comm.rank == 0:
+        print()
+        print(length_all)
+        print("max = {}".format(max(length_all)))
+        print("min = {}".format(min(length_all)))
+        print("dif = {}".format(max(length_all) - min(length_all)))
+
