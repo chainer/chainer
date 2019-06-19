@@ -57,7 +57,8 @@ class TestObservationAggregator(unittest.TestCase):
                                             expected)
 
         trainer.extend(rank_reporter)
-        trainer.extend(ObservationAggregator(comm, 'rank', 'rank-aggregated', comm_trigger=(1, 'iteration')))
+        trainer.extend(ObservationAggregator(
+            comm, 'rank', 'rank-aggregated', comm_trigger=(1, 'iteration')))
         trainer.extend(aggregated_rank_checker)
 
         trainer.run()
@@ -83,7 +84,8 @@ class TestObservationAggregator(unittest.TestCase):
         @extension.make_extension(
             trigger=(1, 'iteration'), priority=extension.PRIORITY_WRITER)
         def rank_reporter(trainer):
-            trainer.observation['rank'] = comm.rank + trainer.updater.iteration % 2
+            trainer.observation['rank'] = comm.rank + \
+                trainer.updater.iteration % 2
 
         @extension.make_extension(
             trigger=(1, 'iteration'), priority=extension.PRIORITY_READER)
@@ -95,7 +97,8 @@ class TestObservationAggregator(unittest.TestCase):
                                                 expected)
 
         trainer.extend(rank_reporter)
-        trainer.extend(ObservationAggregator(comm, 'rank', 'rank-aggregated', comm_trigger=(2, 'iteration')))
+        trainer.extend(ObservationAggregator(
+            comm, 'rank', 'rank-aggregated', comm_trigger=(2, 'iteration')))
         trainer.extend(aggregated_rank_checker)
 
         trainer.run()

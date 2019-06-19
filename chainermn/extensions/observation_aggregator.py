@@ -57,7 +57,8 @@ class ObservationAggregator(extension.Extension):
          observation values for aggregation.
          aggregator (function): Function to compute summarization from
          individual values. It takes a list of lists of observed values.
-         Each list contains all the observed values since the last communication.
+         Each list contains all the observed values since
+         the last communication.
     """
 
     trigger = 1, 'iteration'
@@ -87,7 +88,8 @@ class ObservationAggregator(extension.Extension):
         if not self.comm_trigger(trainer):
             return None
 
-        observation_history_gathered = self.comm.gather_obj(self.observation_history)
+        observation_history_gathered = self.comm.gather_obj(
+            self.observation_history)
         self.observation_history = []
 
         if self.comm.rank == 0:
