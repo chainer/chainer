@@ -728,12 +728,13 @@ Note:
 
 def _docs_loss():
     _docs.set_doc(
-        chainerx.mean_absolute_error,
-        """Mean absolute error function.
+        chainerx.absolute_error,
+        """Element-wise absolute error function.
 
-The function computes the mean absolute error between two variables. The
-mean is taken over the minibatch. Args ``x0`` and ``x1`` must have the
-same dimensions. Note that the error is not scaled by 1/2.
+Computes the element-wise absolute error :math:`L` between two inputs
+:math:`x_0` and :math:`x_1` defined as follows.
+.. math::
+    L = |x_0 - x_1|
 
 Args:
     x0 (~chainerx.ndarray): Input variable.
@@ -741,18 +742,20 @@ Args:
 
 Returns:
     :class:`~chainerx.ndarray`: A variable holding an array representing
-    the mean absolute error of two inputs.
+    the absolute error of two inputs.
 
-.. seealso:: :func:`chainer.functions.mean_absolute_error`
+.. seealso:: :func:`chainer.functions.absolute_error`
 """)
 
     _docs.set_doc(
-        chainerx.mean_squared_error,
-        """Mean squared error function.
+        chainerx.squared_error,
+        """Element-wise squared error function.
 
-The function computes the mean squared error between two variables. The
-mean is taken over the minibatch. Args ``x0`` and ``x1`` must have the
-same dimensions. Note that the error is not scaled by 1/2.
+Computes the squared error between two variables:
+.. math::
+    (x_0 - x_1)^2
+where operation is done in elementwise manner.
+Note that the error is not scaled by 1/2:
 
 Args:
     x0 (~chainerx.ndarray): Input variable.
@@ -760,9 +763,9 @@ Args:
 
 Returns:
     :class:`~chainerx.ndarray`: A variable holding an array representing
-    the mean squared error of two inputs.
+    the squared error of two inputs.
 
-.. seealso:: :func:`chainer.functions.mean_squared_error`
+.. seealso:: :func:`chainer.functions.squared_error`
 """)
 
     _docs.set_doc(

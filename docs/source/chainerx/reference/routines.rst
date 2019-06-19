@@ -130,8 +130,8 @@ Loss functions
    :toctree: generated/
    :nosignatures:
 
-   chainerx.mean_absolute_error
-   chainerx.mean_squared_error
+   chainerx.absolute_error
+   chainerx.squared_error
    chainerx.huber_loss
    chainerx.gaussian_kl_divergence
 
