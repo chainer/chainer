@@ -133,11 +133,13 @@ class MultiprocessParallelUpdater(standard_updater.StandardUpdater):
             # The context is not initialized, it will be fine.
             _cuda_initialized = False
         if _cuda_initialized:
-            raise RuntimeError(
-                'The CUDA context has been already initialized. '
-                'MultiprocessParallelUpdater assumes the context is '
-                'uninitialized. Please do not call CUDA API before '
-                'MultiprocessParallelUpdater creates processes.')
+            if multiprocessing.get_start_method() != 'spawn':
+                raise RuntimeError(
+                    'The CUDA context has been already initialized. '
+                    'MultiprocessParallelUpdater assumes the context is '
+                    'uninitialized. Please do not call CUDA API before '
+                    'MultiprocessParallelUpdater creates processes '
+                    'or use multiprocessing.set_start_method(spawn)')
 
         assert len(iterators) == len(devices)
         for iterator in iterators[1:]:

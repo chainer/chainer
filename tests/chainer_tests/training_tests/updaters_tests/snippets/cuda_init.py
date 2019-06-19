@@ -1,3 +1,5 @@
+import multiprocessing
+
 import numpy
 
 import chainer
@@ -31,6 +33,7 @@ def test():
 
 
 if __name__ == '__main__':
+    multiprocessing.set_start_method('fork')
     test()
 
 
