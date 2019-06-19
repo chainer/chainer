@@ -28,6 +28,7 @@
 #include "chainerx/kernels/linalg.h"
 #include "chainerx/kernels/misc.h"
 #include "chainerx/macro.h"
+#include "chainerx/native/native_device.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/linalg.h"
 
@@ -58,8 +59,7 @@ public:
             T* r_ptr = static_cast<T*>(internal::GetRawOffsetData(R));
             T* tau_ptr = static_cast<T*>(internal::GetRawOffsetData(tau));
 
-            int* devInfo;
-            CheckCudaError(cudaMalloc(&devInfo, sizeof(int)));
+            std::shared_ptr<void> devInfo = device.Allocate(sizeof(int));
 
             int buffersize_geqrf = 0;
             device_internals.cusolverdn_handle().Call(geqrf_bufferSize, m, n, r_ptr, n, &buffersize_geqrf);
@@ -67,10 +67,11 @@ public:
             Array work = Empty(Shape({buffersize_geqrf}), dtype, device);
             T* work_ptr = static_cast<T*>(internal::GetRawOffsetData(work));
 
-            device_internals.cusolverdn_handle().Call(geqrf, m, n, r_ptr, m, tau_ptr, work_ptr, buffersize_geqrf, devInfo);
+            device_internals.cusolverdn_handle().Call(geqrf, m, n, r_ptr, m, tau_ptr, work_ptr, buffersize_geqrf, static_cast<int*>(devInfo.get()));
 
             int devInfo_h = 0;
-            CheckCudaError(cudaMemcpy(&devInfo_h, devInfo, sizeof(int), cudaMemcpyDeviceToHost));
+            Device& native_device = dynamic_cast<native::NativeDevice&>(GetDefaultContext().GetDevice({"native", 0}));
+            device.MemoryCopyTo(&devInfo_h, devInfo.get(), sizeof(int), native_device);
             if (devInfo_h != 0) {
                 throw ChainerxError{"Unsuccessfull geqrf (QR) execution. Info = ", devInfo_h};
             }
@@ -102,9 +103,9 @@ public:
 
             work = Empty(Shape({buffersize_orgqr}), dtype, device);
 
-            device_internals.cusolverdn_handle().Call(orgqr, m, mc, mn, q_ptr, m, tau_ptr, work_ptr, buffersize_orgqr, devInfo);
+            device_internals.cusolverdn_handle().Call(orgqr, m, mc, mn, q_ptr, m, tau_ptr, work_ptr, buffersize_orgqr, static_cast<int*>(devInfo.get()));
 
-            CheckCudaError(cudaMemcpy(&devInfo_h, devInfo, sizeof(int), cudaMemcpyDeviceToHost));
+            device.MemoryCopyTo(&devInfo_h, devInfo.get(), sizeof(int), native_device);
             if (devInfo_h != 0) {
                 throw ChainerxError{"Unsuccessfull orgqr (QR) execution. Info = ", devInfo_h};
             }
