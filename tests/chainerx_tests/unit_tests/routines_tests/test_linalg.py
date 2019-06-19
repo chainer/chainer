@@ -100,11 +100,13 @@ def test_dot_invalid(is_module, xp, device, a_shape, b_shape, dtype):
     chainer.testing.product({
         'shape': [(1, 1), (3, 3), (6, 6)],
         'in_dtypes': ['float32', 'float64'],
-        'skip_backward_test': [True],
-        'skip_double_backward_test': [True],
     })
 ))
 class TestSolve(op_utils.NumpyOpTest):
+
+    def setup(self):
+        self.check_backward_options.update({'rtol': 1e-2})
+        self.check_double_backward_options.update({'rtol': 1e-1})
 
     def generate_inputs(self):
         a = numpy.random.random(self.shape).astype(self.in_dtypes)
@@ -123,8 +125,6 @@ class TestSolve(op_utils.NumpyOpTest):
     chainer.testing.product({
         'shape': [(2, 3), (3, 2)],
         'in_dtypes': ['float32', 'float64'],
-        'skip_backward_test': [True],
-        'skip_double_backward_test': [True]
     })
 ))
 class TestSolveFailing(op_utils.NumpyOpTest):
@@ -151,6 +151,10 @@ class TestSolveFailing(op_utils.NumpyOpTest):
     })
 ))
 class TestInverse(op_utils.NumpyOpTest):
+
+    def setup(self):
+        self.check_backward_options.update({'rtol': 1e-2})
+        self.check_double_backward_options.update({'rtol': 1e-1})
 
     def generate_inputs(self):
         a = numpy.random.random(self.shape).astype(self.in_dtypes)

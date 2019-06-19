@@ -115,6 +115,30 @@ Array Solve(const Array& a, const Array& b) {
         a.device().backend().CallKernel<SolveKernel>(a, b, out);
     }
 
+    // Reference:
+    // https://people.maths.ox.ac.uk/gilesm/files/NA-08-01.pdf
+    // Sec. 2.3.1 Matrix inverse product
+    {
+        BackwardBuilder bb{"solve", {a, b}, out};
+        if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+            bt.Define([out_tok = bb.RetainOutput(0), a_tok = bb.RetainInput(0), a_dtype = a.dtype()](BackwardContext& bctx) {
+                const Array& a = bctx.GetRetainedInput(a_tok);
+                const Array& out = bctx.GetRetainedOutput(out_tok);
+                const Array& gout = *bctx.output_grad();
+                bctx.input_grad() = -Dot(Solve(a.Transpose(), gout).At(std::vector<ArrayIndex>{Slice{}, NewAxis{}}),
+                                         out.At(std::vector<ArrayIndex>{Slice{}, NewAxis{}}).Transpose(), a_dtype);
+            });
+        }
+        if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
+            bt.Define([a_tok = bb.RetainInput(0)](BackwardContext& bctx) {
+                const Array& a = bctx.GetRetainedInput(a_tok);
+                const Array& gout = *bctx.output_grad();
+                bctx.input_grad() = Solve(a.Transpose(), gout);
+            });
+        }
+        bb.Finalize();
+    }
+
     return out;
 }
 
