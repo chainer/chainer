@@ -5,9 +5,9 @@
 
 namespace chainerx {
 
-Array MeanAbsoluteError(const Array& x1, const Array& x2);
+Array AbsoluteError(const Array& x1, const Array& x2);
 
-Array MeanSquaredError(const Array& x1, const Array& x2);
+Array SquaredError(const Array& x1, const Array& x2);
 
 Array GaussianKLDivergence(const Array& mean, const Array& ln_var);
 

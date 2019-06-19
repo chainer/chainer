@@ -988,12 +988,12 @@ void InitChainerxActivation(pybind11::module& m) {
 }
 
 void InitChainerxLoss(pybind11::module& m) {
-    m.def("mean_absolute_error",
-          [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return MoveArrayBody(MeanAbsoluteError(Array{x1}, Array{x2})); },
+    m.def("absolute_error",
+          [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return MoveArrayBody(AbsoluteError(Array{x1}, Array{x2})); },
           "x1"_a,
           "x2"_a);
-    m.def("mean_squared_error",
-          [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return MoveArrayBody(MeanSquaredError(Array{x1}, Array{x2})); },
+    m.def("squared_error",
+          [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return MoveArrayBody(SquaredError(Array{x1}, Array{x2})); },
           "x1"_a,
           "x2"_a);
     m.def("gaussian_kl_divergence",
