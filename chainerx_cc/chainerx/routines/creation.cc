@@ -217,7 +217,8 @@ Array AsContiguous(const Array& a, Dtype dtype) {
     Array out = Empty(a.shape(), dtype, a.device());
     {
         NoBackpropModeScope scope{};
-        a.device().backend().CallKernel<AsTypeKernel>(a.AsGradStopped(), out);
+        // Note: In CopyKernel, Input Array Elements are casted to the type of Output Array.
+        a.device().backend().CallKernel<CopyKernel>(a.AsGradStopped(), out);
     }
 
     if (GetKind(dtype) == DtypeKind::kFloat) {

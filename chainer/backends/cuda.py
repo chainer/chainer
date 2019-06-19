@@ -204,6 +204,9 @@ class GpuDevice(_backend.Device):
 
     """Device for GPU (CuPy) backend"""
 
+    xp = cupy
+    supported_array_types = (ndarray,)
+
     def __init__(self, device):
         check_cuda_available()
         assert isinstance(device, Device)
@@ -229,23 +232,16 @@ to the CUDA device ID.
             return GpuDevice(array.device)
         return None
 
+    @property
+    def name(self):
+        return '@cupy:{}'.format(self.device.id)
+
     def __eq__(self, other):
         return isinstance(other, GpuDevice) and other.device == self.device
 
     def __repr__(self):
         return '<{} (cupy):{}>'.format(
             self.__class__.__name__, self.device.id)
-
-    def __str__(self):
-        return '@cupy:{}'.format(self.device.id)
-
-    @property
-    def xp(self):
-        return cupy
-
-    @property
-    def supported_array_types(self):
-        return (ndarray,)
 
     def create_context(self):
         # Creates a new cuda.Device instance because a single cuda.Device
