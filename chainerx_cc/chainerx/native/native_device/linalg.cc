@@ -19,16 +19,16 @@
 #include "chainerx/shape.h"
 
 // gesv
-extern "C" void dgesv_(int *n, int *nrhs, double *a, int *lda, int *ipiv, double *b, int *ldb, int *info);
-extern "C" void sgesv_(int *n, int *nrhs, float *a, int *lda, int *ipiv, float *b, int *ldb, int *info);
+extern "C" void dgesv_(int* n, int* nrhs, double* a, int* lda, int* ipiv, double* b, int* ldb, int* info);
+extern "C" void sgesv_(int* n, int* nrhs, float* a, int* lda, int* ipiv, float* b, int* ldb, int* info);
 
 // getrf
-extern "C" void dgetrf_(int *m, int *n, double *a, int *lda, int *ipiv, int *info);
-extern "C" void sgetrf_(int *m, int *n, float *a, int *lda, int *ipiv, int *info);
+extern "C" void dgetrf_(int* m, int* n, double* a, int* lda, int* ipiv, int* info);
+extern "C" void sgetrf_(int* m, int* n, float* a, int* lda, int* ipiv, int* info);
 
 // getri
-extern "C" void dgetri_(int *n, double *a, int *lda, int *ipiv, double *work, int *lwork, int *info);
-extern "C" void sgetri_(int *n, float *a, int *lda, int *ipiv, float *work, int *lwork, int *info);
+extern "C" void dgetri_(int* n, double* a, int* lda, int* ipiv, double* work, int* lwork, int* info);
+extern "C" void sgetri_(int* n, float* a, int* lda, int* ipiv, float* work, int* lwork, int* info);
 
 namespace chainerx {
 namespace native {

@@ -78,7 +78,8 @@ public:
             device.backend().CallKernel<CopyKernel>(b, out);
             T* out_ptr = static_cast<T*>(internal::GetRawOffsetData(out));
 
-            device_internals.cusolverdn_handle().Call(getrs, CUBLAS_OP_N, m, m, lu_ptr, m, ipiv_ptr, out_ptr, m, static_cast<int*>(devInfo.get()));
+            device_internals.cusolverdn_handle().Call(
+                    getrs, CUBLAS_OP_N, m, m, lu_ptr, m, ipiv_ptr, out_ptr, m, static_cast<int*>(devInfo.get()));
 
             device.MemoryCopyTo(&devInfo_h, devInfo.get(), sizeof(int), native_device);
             if (devInfo_h != 0) {
