@@ -1,15 +1,17 @@
 install(FILES
+    arithmetic.h
     binary.h
     connection.h
     creation.h
+    explog.h
     hyperbolic.h
     indexing.h
     linalg.h
     logic.h
-    math.h
     misc.h
     normalization.h
     pooling.h
+    rounding.h
     sorting.h
     statistics.h
     trigonometric.h

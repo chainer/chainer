@@ -89,7 +89,7 @@ class TabularDataset(dataset_mixin.DatasetMixin):
     def mode(self):
         """Mode of representation.
 
-        This indicates the type of value returend
+        This indicates the type of value returned
         by :meth:`fetch` and :meth:`__getitem__`.
         :class:`tuple` and :class:`dict` are supported.
         """
@@ -118,9 +118,9 @@ class TabularDataset(dataset_mixin.DatasetMixin):
            keys (tuple of ints/strs): Requested columns.
 
         Returns:
-            A view of specifed range.
+            A view of specified range.
         """
-        return chainer.dataset.tabular.slice.SliceHelper(self)
+        return chainer.dataset.tabular._slice._SliceHelper(self)
 
     def fetch(self):
         """Fetch data.
@@ -148,7 +148,7 @@ class TabularDataset(dataset_mixin.DatasetMixin):
         Returns:
             A view whose :attr:`mode` is :class:`tuple`.
         """
-        return chainer.dataset.tabular.as_mode.AsTuple(self)
+        return chainer.dataset.tabular._as_mode._AsTuple(self)
 
     def as_dict(self):
         """Return a view with dict mode.
@@ -156,7 +156,65 @@ class TabularDataset(dataset_mixin.DatasetMixin):
         Returns:
             A view whose :attr:`mode` is :class:`dict`.
         """
-        return chainer.dataset.tabular.as_mode.AsDict(self)
+        return chainer.dataset.tabular._as_mode._AsDict(self)
+
+    def concat(self, *datasets):
+        """Stack datasets along rows.
+
+        Args:
+            datasets (iterable of :class:`TabularDataset`):
+                Datasets to be concatenated.
+                All datasets must have the same :attr:`keys`.
+
+        Returns:
+            A concatenated dataset.
+        """
+        return chainer.dataset.tabular._concat._Concat(self, *datasets)
+
+    def join(self, *datasets):
+        """Stack datasets along columns.
+
+        Args:
+            datasets (iterable of :class:`TabularDataset`):
+                Datasets to be concatenated.
+                All datasets must have the same length
+
+        Returns:
+            A joined dataset.
+        """
+        return chainer.dataset.tabular._join._Join(self, *datasets)
+
+    def transform(self, keys, transform):
+        """Apply a transform to each example.
+
+        Args:
+            keys (tuple of strs): The keys of transformed examples.
+            transform (callable): A callable that takes an example
+                and returns transformed example. :attr:`mode` of
+                transformed dataset is determined by the transformed
+                examples.
+
+        Returns:
+            A transfromed dataset.
+        """
+        return chainer.dataset.tabular._transform._Transform(
+            self, keys, transform)
+
+    def transform_batch(self, keys, transform_batch):
+        """Apply a transform to examples.
+
+        Args:
+            keys (tuple of strs): The keys of transformed examples.
+            transform_batch (callable): A callable that takes examples
+                and returns transformed examples. :attr:`mode` of
+                transformed dataset is determined by the transformed
+                examples.
+
+        Returns:
+            A transfromed dataset.
+        """
+        return chainer.dataset.tabular._transform._TransformBatch(
+            self, keys, transform_batch)
 
     def get_example(self, i):
         example = self.get_examples([i], None)

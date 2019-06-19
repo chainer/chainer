@@ -42,9 +42,12 @@ class WeightDecay(object):
         if p is None or g is None:
             return
         with chainer.using_device(param.device):
+            rate = self.rate
+            if param._loss_scale is not None:
+                rate *= param._loss_scale
             if param.device.xp is cuda.cupy:
                 kernel = cuda.elementwise(
                     'T p, T decay', 'T g', 'g += decay * p', 'weight_decay')
-                kernel(p, self.rate, g)
+                kernel(p, rate, g)
             else:
-                g += self.rate * p
+                g += rate * p
