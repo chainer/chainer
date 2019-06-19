@@ -45,6 +45,7 @@
 #include "chainerx/python/common.h"
 #include "chainerx/python/device.h"
 #include "chainerx/python/dtype.h"
+#include "chainerx/python/kwarg.h"
 #include "chainerx/python/shape.h"
 #include "chainerx/python/stack_vector.h"
 #include "chainerx/python/strides.h"
@@ -156,14 +157,8 @@ void InitChainerxCreation(pybind11::module& m) {
     m.def("zeros",
           [](py::handle shape, py::handle dtype, py::kwargs kwargs) {
               py::none None;
-              py::handle device{None};
-              if (kwargs.size()) {
-                  if (kwargs.size() != 1 || !kwargs.contains("device")) {
-                      throw ChainerxError{"Only 'device' is a valid keyword argument"};
-                  }
-
-                  device = kwargs["device"];
-              }
+              py::handle device;
+              std::tie(device) = GetKwargs(kwargs, "device");
               return MoveArrayBody(Zeros(ToShape(shape), dtype.is_none() ? Dtype::kFloat32 : GetDtype(dtype), GetDevice(device)));
           },
           "shape"_a,
@@ -171,14 +166,8 @@ void InitChainerxCreation(pybind11::module& m) {
     m.def("zeros",
           [](py::int_ dim, py::handle dtype, py::kwargs kwargs) {
               py::none None;
-              py::handle device{None};
-              if (kwargs.size()) {
-                  if (kwargs.size() != 1 || !kwargs.contains("device")) {
-                      throw ChainerxError{"Only 'device' is a valid keyword argument"};
-                  }
-
-                  device = kwargs["device"];
-              }
+              py::handle device;
+              std::tie(device) = GetKwargs(kwargs, "device");
               return MoveArrayBody(Zeros(Shape{dim}, dtype.is_none() ? Dtype::kFloat32 : GetDtype(dtype), GetDevice(device)));
           },
           "shape"_a,
