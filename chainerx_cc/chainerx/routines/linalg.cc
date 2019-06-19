@@ -157,6 +157,9 @@ Array Inverse(const Array& a) {
         a.device().backend().CallKernel<InverseKernel>(a, out);
     }
 
+    // Reference:
+    // https://people.maths.ox.ac.uk/gilesm/files/NA-08-01.pdf
+    // Sec. 2.2.3 Inverse
     {
         BackwardBuilder bb{"inv", a, out};
         if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
