@@ -88,10 +88,11 @@ class TestObservationAggregator(unittest.TestCase):
         @extension.make_extension(
             trigger=(1, 'iteration'), priority=extension.PRIORITY_READER)
         def aggregated_rank_checker(trainer):
-            actual = trainer.observation['rank-aggregated']
-            expected = (comm.size - 1) / 2 + 1 / 2
-            chainer.testing.assert_allclose(actual,
-                                            expected)
+            if trainer.updater.iteration % 2 == 0:
+                actual = trainer.observation['rank-aggregated']
+                expected = (comm.size - 1) / 2 + 1 / 2
+                chainer.testing.assert_allclose(actual,
+                                                expected)
 
         trainer.extend(rank_reporter)
         trainer.extend(ObservationAggregator(comm, 'rank', 'rank-aggregated', comm_trigger=(2, 'iteration')))
