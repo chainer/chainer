@@ -757,6 +757,9 @@ Computes the squared error between two variables:
 where operation is done in elementwise manner.
 Note that the error is not scaled by 1/2:
 
+Can be used to compute Mean Squared Error by just calling `mean()`
+on the output array.
+
 Args:
     x0 (~chainerx.ndarray): Input variable.
     x1 (~chainerx.ndarray): Input variable.
