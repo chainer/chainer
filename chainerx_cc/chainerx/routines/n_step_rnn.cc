@@ -227,19 +227,73 @@ std::vector<std::vector<Array>> n_step_lstm(
 
 
             BackwardBuilder bb{"lstm_backward", inp, out_grad};
+
             std::vector<size_t> ind;
             for(uint i = 0; i < inp.size(); i++) {
                 ind.push_back(i);
             }
             if(BackwardBuilder::Target bt = bb.CreateTarget(ind)) {
-                bt.Define([&](BackwardContext& bctx) {
-                    Array dhy = *bctx.output_grad(0);
-                    Array dcy = *bctx.output_grad(1);
-                    std::vector<Array> dout;
-                    for(uint i = 2; i < xs.size()+2; i++) {
-                        dout.push_back(*bctx.output_grad(i));
+                
+                std::vector<size_t> out_retain;
+                for(uint i = 2; i < xs.size() + 2; i++) {
+                    out_retain.push_back(i);
+                }
+                bt.Define([timesteps = xs.size(), input_toks = bb.RetainInput(ind), out_toks = bb.RetainOutput(out_retain), n_layers](BackwardContext& bctx) {
+                    Array hx = bctx.GetRetainedInput(input_toks[0]);
+                    Array cx = bctx.GetRetainedInput(input_toks[1]);
+                    std::vector<std::vector<Array>> ws;
+                    std::vector<std::vector<Array>> bs;
+                    int cnt = 2;
+                    for(int i = 0; i < n_layers; i++) {
+                        std::vector<Array> ws_i;
+                        std::vector<Array> bs_i;
+                        for(int j = 0; j < 8; j++) {
+                            ws_i.push_back(bctx.GetRetainedInput(input_toks[cnt++]));
+                            bs_i.push_back(bctx.GetRetainedInput(input_toks[cnt++]));
+                        }
+                        ws.push_back(ws_i);
+                        bs.push_back(bs_i);
                     }
-                    std::vector<std::vector<Array>> grad = hx.device().backend().CallKernel<RnnBackwardKernel>((int)n_layers, hx, cx, ws, bs, xs, dhy, dcy, out[1], dout, 0, 1);
+                    std::vector<Array> xs;
+                    for(uint i = cnt; i < cnt + timesteps; i++) {
+                        xs.push_back(bctx.GetRetainedInput(input_toks[i]));
+                    }
+
+                    std::vector<Array> out;
+                    for(uint i = 0; i < timesteps; i++) {
+                        out.push_back(bctx.GetRetainedOutput(out_toks[i]));
+                    }
+                    const nonstd::optional<Array> dhy_n = bctx.output_grad(0);
+                    Array dhy;
+                    if(dhy_n.has_value()) {
+
+                        dhy = *dhy_n;
+                    } else{
+
+                        dhy = Zeros(hx.shape(), hx.dtype(), hx.device());
+                    }
+                    const nonstd::optional<Array> dcy_n = bctx.output_grad(1);
+                    Array dcy;
+                    if(dcy_n.has_value()) {
+                        dcy = *dcy_n;
+                    } else {
+                        dcy = Zeros(cx.shape(), cx.dtype(), cx.device());
+                    }
+                    std::vector<Array> dout;
+
+
+                    for(uint i = 2; i < xs.size()+2; i++) {
+
+                        const nonstd::optional<Array> temp_n = bctx.output_grad(i);
+                        Array temp;
+                        if(temp_n.has_value()) {
+                            temp = *temp_n;
+                        } else {
+                            temp = Zeros({xs[i-2].shape()[0], hx.shape()[2]}, hx.dtype(), hx.device());
+                        }
+                        dout.push_back(temp);
+                    }
+                    std::vector<std::vector<Array>> grad = hx.device().backend().CallKernel<RnnBackwardKernel>((int)n_layers, hx, cx, ws, bs, xs, dhy, dcy, out, dout, 0, 1);
                     bctx.input_grad(0) = grad[0][0];
                     bctx.input_grad(1) = grad[0][1];
                     int grad_ind = 2;
@@ -247,9 +301,13 @@ std::vector<std::vector<Array>> n_step_lstm(
                         for(int64_t j = 0; j <  8; j++) {
                             bctx.input_grad(grad_ind) = grad[2][grad_ind - 2];
                             grad_ind++;
+                            bctx.input_grad(grad_ind) = grad[2][grad_ind - 2];
+                            grad_ind++;
                         }
                     }
+
                     for(uint i = 0; i < xs.size(); i++) {
+
                         bctx.input_grad(grad_ind++) = grad[1][i];
                     }
                 });

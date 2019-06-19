@@ -43,6 +43,7 @@ class TestNStepLstm(op_utils.ChainerOpTest):
                 'rtol': 1e-2, 'atol': 1e-2})
         self.check_double_backward_options.update({
             'rtol': 5e-3, 'atol': 5e-2})
+        self.skip_double_backward_test = True
 
     def generate_inputs(self):
         h_shape = (self.n_layers, self.batches[0], self.hidden_size)
