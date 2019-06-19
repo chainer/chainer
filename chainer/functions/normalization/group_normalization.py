@@ -62,7 +62,7 @@ class GroupNormalization(function_node.FunctionNode):
         var += self.eps
         self.inv_std = var
         del var
-        xp.sqrt(self.inv_std, out=self.inv_std)
+        xp.sqrt(self.inv_std, out=self.inv_std, dtype=x.dtype)
         xp.reciprocal(self.inv_std, out=self.inv_std)
         x_hat *= self.inv_std[:, None]
 
@@ -89,13 +89,13 @@ class GroupNormalization(function_node.FunctionNode):
         cudnn_shape = (1, batch_size * groups, -1, 1)
         x = x.reshape(cudnn_shape)
 
-        with cuda.get_device_from_array(x):
+        with x.device:
             dummy_beta = xp.zeros(batch_size * groups, dtype=x.dtype)
             self.dummy_gamma = xp.ones_like(dummy_beta)
         x_hat, self.mean, self.inv_std = \
             cudnn.batch_normalization_forward_training(
-                x, self.dummy_gamma, dummy_beta, dummy_beta, dummy_beta,
-                self.eps, 1.0, True, libcudnn.CUDNN_BATCHNORM_SPATIAL,
+                x, self.dummy_gamma, dummy_beta, dummy_beta, dummy_beta, None,
+                None, self.eps, 1.0, True, libcudnn.CUDNN_BATCHNORM_SPATIAL,
                 configuration.config.debug)
 
         y = x_hat.reshape((batch_size, channels, -1))
@@ -362,7 +362,6 @@ def group_normalization(x, groups, gamma, beta, eps=1e-5):
     the mean and variance, then normalize by these statistics,
     scales and shifts them.
 
-
     Args:
         x (:class:`~chainer.Variable` or :ref:`ndarray`): Batch tensors.
             First dimension of this value must be the size of minibatch and
@@ -377,7 +376,6 @@ def group_normalization(x, groups, gamma, beta, eps=1e-5):
         beta (:class:`~chainer.Variable` or :ref:`ndarray`):
             Shifting parameter.
         eps (float): Epsilon value for numerical stability of normalization.
-
 
     Returns:
         ~chainer.Variable: The output variable which has the same shape

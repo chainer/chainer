@@ -41,6 +41,8 @@ std::shared_ptr<ArrayBody> CreateArrayBody(ArrayBody::Params params) {
     return CreateArrayBody(params.shape, params.strides, params.dtype, params.device, std::move(params.data), params.offset);
 }
 
+const std::shared_ptr<ArrayNode> ArrayBody::kNullArrayNode{nullptr};
+
 ArrayBody::ArrayBody(
         const Shape& shape,  // NOLINT(modernize-pass-by-value)
         const Strides& strides,  // NOLINT(modernize-pass-by-value)

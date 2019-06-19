@@ -1,0 +1,16 @@
+{% extends "sphinx_rtd_theme/search.html" %}
+
+{% block footer %}
+
+{{ super() }}
+
+<script type="text/javascript">
+  jQuery(function() {
+    if ("undefined" != typeof Search && Search.query_fallback) {
+      console.log("Overriding search feature of ReadTheDocs");
+      Search.query = Search.query_fallback;
+    }
+  });
+</script>
+
+{% endblock %}

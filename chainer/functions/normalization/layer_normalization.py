@@ -4,17 +4,6 @@ import chainer.functions
 from chainer.utils import type_check
 
 
-def _broadcast_to(xp, x, shape):
-    # xp: numpy, cupy, or chainer.functions
-    if hasattr(xp, 'broadcast_to'):
-        return xp.broadcast_to(x, shape)
-    else:
-        # numpy 1.9 doesn't support broadcast_to method
-        dummy = xp.empty(shape)
-        bx, _ = xp.broadcast_arrays(x, dummy)
-        return bx
-
-
 class LayerNormalization(function_node.FunctionNode):
 
     """Layer normalization"""
@@ -39,12 +28,12 @@ class LayerNormalization(function_node.FunctionNode):
     def _compute(self, xp, x):
         # xp: numpy, cupy, or chainer.functions
         mu = xp.mean(x, axis=1, keepdims=True)
-        x_mu = x - _broadcast_to(xp, mu, x.shape)
+        x_mu = x - mu
         squ_x_mu = xp.square(x_mu)
         var = xp.mean(squ_x_mu, axis=1, keepdims=True)
         std = xp.sqrt(var + self.eps)
         inv_std = 1. / std
-        x_hat = x_mu * _broadcast_to(xp, inv_std, x_mu.shape)
+        x_hat = x_mu * inv_std
         return x_mu, var, inv_std, x_hat
 
     def forward(self, inputs):
@@ -67,22 +56,22 @@ class LayerNormalization(function_node.FunctionNode):
         g_scaled_x = gy
 
         g_gamma = F.sum(g_scaled_x * x_hat, axis=0)
-        g_x_hat = g_scaled_x * F.broadcast_to(gamma, g_scaled_x.shape)
+        g_x_hat = g_scaled_x * gamma
 
         g_inv_std = F.sum(g_x_hat * x_mu, axis=1, keepdims=True)
-        g_x_mu_1 = g_x_hat * F.broadcast_to(inv_std, g_x_hat.shape)
+        g_x_mu_1 = g_x_hat * inv_std
 
         g_std = g_inv_std * (- 1. / (var + self.eps))
         g_var = g_std * 0.5 * inv_std
 
         n_units = x.shape[1]
-        g_squ_x_mu = F.broadcast_to(g_var * (1. / n_units), x.shape)
+        g_squ_x_mu = g_var * (1. / n_units)
         g_x_mu_2 = g_squ_x_mu * 2 * x_mu
 
         g_x_1 = g_x_mu_1 + g_x_mu_2
         g_mu = F.sum(g_x_1, axis=1, keepdims=True) * (- 1.)
 
-        g_x_2 = F.broadcast_to(g_mu * (1. / n_units), x.shape)
+        g_x_2 = g_mu * (1. / n_units)
 
         g_x = g_x_1 + g_x_2
 

@@ -12,15 +12,15 @@
 
 #include "chainerx/axes.h"
 #include "chainerx/constant.h"
+#include "chainerx/dims.h"
 #include "chainerx/error.h"
-#include "chainerx/stack_vector.h"
 
 namespace chainerx {
 
 class Strides;
 
-class Shape : public StackVector<int64_t, kMaxNdim> {
-    using BaseVector = StackVector<int64_t, kMaxNdim>;
+class Shape : public Dims {
+    using BaseVector = Dims;
 
 public:
     using const_iterator = BaseVector::const_iterator;
@@ -28,6 +28,8 @@ public:
     // TODO(niboshi): Declare other types required for this class to be a container.
 
     Shape() = default;
+
+    ~Shape() = default;
 
     // by iterators
     template <typename InputIt>
@@ -62,14 +64,14 @@ public:
         if (!(0 <= index && static_cast<size_t>(index) < size())) {
             throw DimensionError{"Shape index ", index, " out of bounds for shape with ", size(), " size."};
         }
-        return this->StackVector::operator[](index);
+        return this->Dims::operator[](index);
     }
 
     int64_t& operator[](int8_t index) {
         if (!(0 <= index && static_cast<size_t>(index) < size())) {
             throw DimensionError{"Shape index ", index, " out of bounds for shape with ", size(), " size."};
         }
-        return this->StackVector::operator[](index);
+        return this->Dims::operator[](index);
     }
 
     // span
@@ -101,7 +103,7 @@ Shape TransposeShape(const Shape& shape, const Axes& axes);
 
 }  // namespace internal
 
-std::ostream& operator<<(std::ostream&, const Shape&);
+std::ostream& operator<<(std::ostream& os, const Shape& shape);
 
 void CheckEqual(const Shape& lhs, const Shape& rhs);
 

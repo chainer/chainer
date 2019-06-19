@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-import sys
-
 import numpy
 
 import chainer
@@ -27,17 +25,15 @@ except ImportError as e:
 
 class Intel64Device(_backend.Device):
 
+    """Device for Intel64 (Intel Architecture) backend with iDeep"""
+
+    xp = numpy
+    name = '@intel64'
+    supported_array_types = (numpy.ndarray, mdarray)
+
     def __init__(self):
         check_ideep_available()
         super(Intel64Device, self).__init__()
-
-    @property
-    def xp(self):
-        return numpy
-
-    @property
-    def supported_array_types(self):
-        return (numpy.ndarray, mdarray)
 
     @staticmethod
     def from_array(array):
@@ -68,14 +64,8 @@ class Intel64Device(_backend.Device):
             array = ideep.array(array, itype=ideep.wgt_array)
         return array
 
-
-def _get_device(device_spec):
-    # Called from chainer.backend.get_device
-    if not is_ideep_available():
-        return None
-    if device_spec is sys.modules[__name__]:
-        return Intel64Device()
-    return None
+    def is_array_supported(self, array):
+        return isinstance(array, (numpy.ndarray, mdarray))
 
 
 # ------------------------------------------------------------------------------

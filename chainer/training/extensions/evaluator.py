@@ -1,11 +1,10 @@
 import copy
+import datetime
 import warnings
 
-import numpy
 import six
 
 from chainer import backend
-from chainer.backends import cuda
 from chainer import configuration
 from chainer.dataset import convert
 from chainer.dataset import iterator as iterator_module
@@ -14,11 +13,16 @@ from chainer import iterators
 from chainer import link
 from chainer import reporter as reporter_module
 from chainer.training import extension
+from chainer.training.extensions import util
+from chainer.utils import argument
 
 
 class Evaluator(extension.Extension):
 
-    """Trainer extension to evaluate models on a validation set.
+    """__init__(self, iterator, target, converter=convert.concat_examples, \
+device=None, eval_hook=None, eval_func=None, *, progress_bar=False)
+
+    Trainer extension to evaluate models on a validation set.
 
     This extension evaluates the current models by a given evaluation function.
     It creates a :class:`~chainer.Reporter` object to store values observed in
@@ -65,6 +69,15 @@ class Evaluator(extension.Extension):
             object is passed at each call.
         eval_func: Evaluation function called at each iteration. The target
             link to evaluate as a callable is used by default.
+        progress_bar: Boolean flag to show a progress bar while training,
+            which is similar to
+            :class:`~chainer.training.extensions.ProgressBar`.
+            (default: ``False``)
+
+    .. warning::
+
+        The argument ``progress_bar`` is experimental.
+        The interface can change in the future.
 
     Attributes:
         converter: Converter function.
@@ -80,9 +93,11 @@ class Evaluator(extension.Extension):
     name = None
 
     def __init__(self, iterator, target, converter=convert.concat_examples,
-                 device=None, eval_hook=None, eval_func=None):
+                 device=None, eval_hook=None, eval_func=None, **kwargs):
+        progress_bar, = argument.parse_kwargs(kwargs, ('progress_bar', False))
+
         if device is not None:
-            device = backend._get_device_compat(device)
+            device = backend.get_device(device)
 
         if isinstance(iterator, iterator_module.Iterator):
             iterator = {'main': iterator}
@@ -96,6 +111,8 @@ class Evaluator(extension.Extension):
         self.device = device
         self.eval_hook = eval_hook
         self.eval_func = eval_func
+
+        self._progress_bar = progress_bar
 
         for key, iter in six.iteritems(iterator):
             if (isinstance(iter, (iterators.SerialIterator,
@@ -211,10 +228,14 @@ class Evaluator(extension.Extension):
 
         summary = reporter_module.DictSummary()
 
+        if self._progress_bar:
+            pbar = _IteratorProgressBar(iterator=it)
+
         for batch in it:
             observation = {}
             with reporter_module.report_scope(observation):
-                in_arrays = self._call_converter(batch, self.device)
+                in_arrays = convert._call_converter(
+                    self.converter, batch, self.device)
                 with function.no_backprop_mode():
                     if isinstance(in_arrays, tuple):
                         eval_func(*in_arrays)
@@ -225,26 +246,13 @@ class Evaluator(extension.Extension):
 
             summary.add(observation)
 
-        return summary.compute_mean()
+            if self._progress_bar:
+                pbar.update()
 
-    def _call_converter(self, batch, device):
-        # TODO(niboshi): This is a temporary workaround to keep backward
-        # compatibility about user-defined custom converters. Existing
-        # converters expect int values as the `device` argument, so they
-        # can't handle ChainerX devices. We should either break backward
-        # compatibility at some time or introduce a sparate API.
-        converter = self.converter
-        if converter is convert.concat_examples:
-            return converter(batch, device)
-        else:
-            if device is None:
-                return converter(batch, None)
-            if device.xp is numpy:
-                return converter(batch, -1)
-            if device.xp is cuda.cupy:
-                return converter(batch, device.device.id)
-            raise NotImplementedError(
-                'Currently only `concat_examples` supports ChainerX.')
+        if self._progress_bar:
+            pbar.close()
+
+        return summary.compute_mean()
 
     def finalize(self):
         """Finalizes the evaluator object.
@@ -256,3 +264,42 @@ class Evaluator(extension.Extension):
         """
         for iterator in six.itervalues(self._iterators):
             iterator.finalize()
+
+
+class _IteratorProgressBar(util.ProgressBar):
+
+    def __init__(self, iterator, bar_length=None, out=None):
+        if not (hasattr(iterator, 'current_position') and
+                hasattr(iterator, 'epoch_detail')):
+            raise TypeError('Iterator must have the following attributes '
+                            'to enable a progress bar: '
+                            'current_position, epoch_detail')
+        self._iterator = iterator
+
+        super(_IteratorProgressBar, self).__init__(
+            bar_length=bar_length, out=out)
+
+    def get_lines(self):
+        iteration = self._iterator.current_position
+        epoch_detail = self._iterator.epoch_detail
+        epoch_size = getattr(self._iterator, '_epoch_size', None)
+
+        lines = []
+
+        rate = epoch_detail
+        marks = '#' * int(rate * self._bar_length)
+        lines.append('validation [{}{}] {:6.2%}\n'.format(
+                     marks, '.' * (self._bar_length - len(marks)), rate))
+
+        if epoch_size:
+            lines.append('{:10} / {} iterations\n'
+                         .format(iteration, epoch_size))
+        else:
+            lines.append('{:10} iterations\n'.format(iteration))
+
+        speed_t, speed_e = self.update_speed(iteration, epoch_detail)
+        estimated_time = (1.0 - epoch_detail) / speed_e
+        lines.append('{:10.5g} iters/sec. Estimated time to finish: {}.\n'
+                     .format(speed_t,
+                             datetime.timedelta(seconds=estimated_time)))
+        return lines

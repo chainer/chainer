@@ -69,6 +69,10 @@ class Exponential(distribution.Distribution):
     def mean(self):
         return 1 / self.lam
 
+    @property
+    def params(self):
+        return {'lam': self.lam}
+
     def sample_n(self, n):
         xp = cuda.get_array_module(self.lam)
         if xp is cuda.cupy:
@@ -91,5 +95,8 @@ class Exponential(distribution.Distribution):
 
 @distribution.register_kl(Exponential, Exponential)
 def _kl_exponential_exponential(dist1, dist2):
-    return dist1._log_lam - dist2._log_lam \
-        + dist2.lam / dist1.lam - 1.
+    return (
+        dist1._log_lam
+        - dist2._log_lam
+        + dist2.lam / dist1.lam
+        - 1.)

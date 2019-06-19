@@ -143,7 +143,7 @@ def main():
     # https://chainermn.readthedocs.io/en/stable/tutorial/tips_faqs.html#using-multiprocessiterator
     # This must be done *before* ``chainermn.create_communicator``!!!
     multiprocessing.set_start_method('forkserver')
-    p = multiprocessing.Process(target=lambda *x: x, args=())
+    p = multiprocessing.Process()
     p.start()
     p.join()
 

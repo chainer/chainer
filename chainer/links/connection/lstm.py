@@ -1,7 +1,6 @@
 import six
 
 import chainer
-from chainer.backends import cuda
 from chainer.functions.activation import lstm
 from chainer.functions.array import concat
 from chainer.functions.array import split_axis
@@ -238,23 +237,12 @@ class LSTM(LSTMBase):
             forget_bias_init)
         self.reset_state()
 
-    def _to_device(self, device, skip_between_cupy_devices=False):
-        # Overrides Link._to_device
-        # TODO(niboshi): Avoid forcing concrete links to override _to_device
-        device = chainer.get_device(device)
-        super(LSTM, self)._to_device(
-            device, skip_between_cupy_devices=skip_between_cupy_devices)
+    def device_resident_accept(self, visitor):
+        super(LSTM, self).device_resident_accept(visitor)
         if self.c is not None:
-            if not (skip_between_cupy_devices
-                    and device.xp is cuda.cupy
-                    and isinstance(self.c, cuda.ndarray)):
-                self.c.to_device(device)
+            visitor.visit_variable(self.c)
         if self.h is not None:
-            if not (skip_between_cupy_devices
-                    and device.xp is cuda.cupy
-                    and isinstance(self.h, cuda.ndarray)):
-                self.h.to_device(device)
-        return self
+            visitor.visit_variable(self.h)
 
     def set_state(self, c, h):
         """Sets the internal state.

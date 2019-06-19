@@ -6,7 +6,7 @@
 
 #include "chainerx/array.h"
 #include "chainerx/constant.h"
-#include "chainerx/stack_vector.h"
+#include "chainerx/dims.h"
 
 namespace chainerx {
 namespace internal {
@@ -31,17 +31,19 @@ Array Conv(
         const Array& x,
         const Array& w,
         const nonstd::optional<Array>& b,
-        const StackVector<int64_t, kMaxNdim>& stride,
-        const StackVector<int64_t, kMaxNdim>& pad,
-        bool cover_all = false);
+        const Dims& stride,
+        const Dims& pad,
+        bool cover_all = false,
+        nonstd::optional<Dtype> out_dtype = nonstd::nullopt);
 
 Array ConvTranspose(
         const Array& x,
         const Array& w,
         const nonstd::optional<Array>& b,
-        const StackVector<int64_t, kMaxNdim>& stride,
-        const StackVector<int64_t, kMaxNdim>& pad,
-        const nonstd::optional<StackVector<int64_t, kMaxNdim>>& out_size = nonstd::nullopt);
+        const Dims& stride,
+        const Dims& pad,
+        const nonstd::optional<Dims>& out_size = nonstd::nullopt,
+        nonstd::optional<Dtype> out_dtype = nonstd::nullopt);
 
 Array Linear(const Array& x, const Array& w, const nonstd::optional<Array>& b = nonstd::nullopt, uint8_t n_batch_axes = 1);
 

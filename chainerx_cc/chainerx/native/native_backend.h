@@ -3,8 +3,11 @@
 #include <memory>
 #include <string>
 
+#include <gsl/gsl>
+
 #include "chainerx/backend.h"
 #include "chainerx/device.h"
+#include "chainerx/kernel_registry.h"
 
 namespace chainerx {
 namespace native {
@@ -32,7 +35,17 @@ public:
 
     int GetDeviceCount() const override;
 
+    bool IsNative() const override { return true; }
+
     bool SupportsTransfer(Device& src_device, Device& dst_device) override;
+
+    static KernelRegistry& GetGlobalKernelRegistry() {
+        static gsl::owner<KernelRegistry*> global_kernel_registry = new KernelRegistry{};
+        return *global_kernel_registry;
+    }
+
+protected:
+    KernelRegistry& GetParentKernelRegistry() override { return GetGlobalKernelRegistry(); }
 
 private:
     std::unique_ptr<Device> CreateDevice(int index) override;

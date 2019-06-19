@@ -48,7 +48,7 @@ class NStepRNNBase(link.ChainList):
         :func:`chainer.links.NStepBiRNNReLU`
         :func:`chainer.links.NStepBiRNNTanh`
 
-    """  # NOQA
+    """
 
     def __init__(self, n_layers, in_size, out_size, dropout, **kwargs):
         if kwargs:
@@ -98,6 +98,14 @@ class NStepRNNBase(link.ChainList):
         self.dropout = dropout
         self.out_size = out_size
         self.direction = direction
+
+    def copy(self, mode='share'):
+        ret = super(NStepRNNBase, self).copy(mode)
+        ret.ws = [[getattr(layer, 'w%d' % i)
+                   for i in six.moves.range(ret.n_weights)] for layer in ret]
+        ret.bs = [[getattr(layer, 'b%d' % i)
+                   for i in six.moves.range(ret.n_weights)] for layer in ret]
+        return ret
 
     def init_hx(self, xs):
         shape = (self.n_layers * self.direction, len(xs), self.out_size)

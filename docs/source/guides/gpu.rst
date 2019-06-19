@@ -161,10 +161,10 @@ Run Neural Networks on a Single GPU
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Single-GPU usage is very simple.
-What you have to do is transferring :class:`Link` and input arrays to the GPU beforehand.
+What you have to do is transferring :class:`~chainer.Link` and input arrays to the GPU beforehand.
 In this subsection, the code is based on :ref:`our first MNIST example in this tutorial <mnist_mlp_example>`.
 
-A :class:`Link` object can be transferred to the specified GPU using the :meth:`~Link.to_gpu` method.
+A :class:`~chainer.Link` object can be transferred to the specified GPU using the :meth:`~Link.to_gpu` method.
 
 .. testcode::
    :hide:

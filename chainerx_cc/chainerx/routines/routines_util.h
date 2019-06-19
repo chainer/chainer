@@ -6,6 +6,7 @@
 
 #include "chainerx/array.h"
 #include "chainerx/error.h"
+#include "chainerx/routines/creation.h"
 
 namespace chainerx {
 namespace internal {
@@ -47,6 +48,59 @@ void MakeViewForForwardBackwardOutput(std::array<Array, N>& outputs) {
 }
 
 inline void MakeViewForForwardBackwardOutput(Array& output) { output = output.MakeView(); }
+
+// Called from Add, Subtract, Multiply, Divide, etc. to handle broadcasting.
+template <typename Impl>
+Array BroadcastBinary(Impl&& impl, const Array& x1, const Array& x2, Dtype dtype) {
+    auto func = [&impl, dtype](const Array& x1, const Array& x2) -> Array {
+        Array out = Empty(x1.shape(), dtype, x1.device());
+        impl(x1, x2, out);
+        return out;
+    };
+
+    if (x1.shape() == x2.shape()) {
+        return func(x1, x2);
+    }
+    Shape result_shape = internal::BroadcastShapes(x1.shape(), x2.shape());
+    if (x1.shape() == result_shape) {
+        return func(x1, x2.BroadcastTo(result_shape));
+    }
+    if (x2.shape() == result_shape) {
+        return func(x1.BroadcastTo(result_shape), x2);
+    }
+    return func(x1.BroadcastTo(result_shape), x2.BroadcastTo(result_shape));
+}
+
+// Called from IAdd, ISubtract, IMultiply, IDivide, etc. to handle broadcasting.
+template <typename Impl>
+void BroadcastBinaryInplace(Impl&& impl, const Array& x1, const Array& x2) {
+    internal::CheckNoUnsafeInplace(x1, {x1, x2});
+    if (x1.shape() == x2.shape()) {
+        impl(x1, x2, x1);
+    } else {
+        impl(x1, x2.BroadcastTo(x1.shape()), x1);
+    }
+}
+
+template <typename Impl>
+Array Binary(Impl&& impl, const Array& x1, Scalar x2, Dtype dtype) {
+    Array out = Empty(x1.shape(), dtype, x1.device());
+    impl(x1, x2, out);
+    return out;
+}
+
+template <typename Impl>
+Array Binary(Impl&& impl, Scalar x1, const Array& x2, Dtype dtype) {
+    Array out = Empty(x2.shape(), dtype, x2.device());
+    impl(x1, x2, out);
+    return out;
+}
+
+template <typename Impl>
+void BinaryInplace(Impl&& impl, const Array& x1, Scalar x2) {
+    internal::CheckNoUnsafeInplace(x1, {x1});
+    impl(x1, x2, x1);
+}
 
 }  // namespace internal
 }  // namespace chainerx

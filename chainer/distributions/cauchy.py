@@ -51,8 +51,10 @@ class Cauchy(distribution.Distribution):
         return self.loc.shape
 
     def cdf(self, x):
-        return 1 / numpy.pi * trigonometric.arctan(
-            (x - self.loc) / self.scale) + 0.5
+        return (
+            (1 / numpy.pi
+             * trigonometric.arctan((x - self.loc) / self.scale))
+            + 0.5)
 
     @cache.cached_property
     def entropy(self):
@@ -70,8 +72,10 @@ class Cauchy(distribution.Distribution):
         return isinstance(self.loc.data, cuda.ndarray)
 
     def log_prob(self, x):
-        return - numpy.log(numpy.pi) + exponential.log(self.scale) \
-            - exponential.log((x - self.loc)**2 + self.scale**2)
+        return (
+            - numpy.log(numpy.pi)
+            + exponential.log(self.scale)
+            - exponential.log((x - self.loc)**2 + self.scale**2))
 
     @cache.cached_property
     def mean(self):
@@ -79,6 +83,10 @@ class Cauchy(distribution.Distribution):
                       RuntimeWarning)
         xp = cuda.get_array_module(self.loc)
         return chainer.as_variable(xp.full_like(self.loc.data, xp.nan))
+
+    @property
+    def params(self):
+        return {'loc': self.loc, 'scale': self.scale}
 
     def sample_n(self, n):
         xp = cuda.get_array_module(self.loc)

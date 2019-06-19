@@ -205,7 +205,7 @@ class TupleDataChild(chainermn.MultiNodeChainList):
 
 def create_communicator(gpu):
     if gpu:
-        communicator = chainermn.create_communicator('hierarchical')
+        communicator = chainermn.create_communicator('flat')
         chainer.cuda.get_device_from_id(communicator.intra_rank).use()
     else:
         communicator = chainermn.create_communicator('naive')

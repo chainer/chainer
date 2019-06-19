@@ -13,7 +13,7 @@ def _simple_group_normalization(x, groups, gamma, beta, eps=1e-5):
 
     mean = numpy.mean(x_reshape, axis=(2, 3), keepdims=True)
     var = numpy.var(x_reshape, axis=(2, 3), keepdims=True)
-    std = numpy.sqrt(var + eps)
+    std = numpy.sqrt(var + eps, dtype=x.dtype)
 
     x_hat = (x_reshape - mean) / std
     x_hat = x_hat.reshape(x.shape)
@@ -29,7 +29,7 @@ def _simple_group_normalization(x, groups, gamma, beta, eps=1e-5):
 @testing.parameterize(*(testing.product({
     'shape': [(1, 4, 5, 5), (5, 4, 15)],
     'groups': [1, 2, 4],
-    'dtype': [numpy.float32],
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'eps': [1e-5, 1e-1],
 })))
 @testing.inject_backend_tests(
@@ -56,6 +56,11 @@ class TestGroupNormalization(testing.FunctionTestCase):
         self.check_forward_options.update({'atol': 1e-4, 'rtol': 1e-3})
         self.check_backward_options.update({'atol': 1e-3, 'rtol': 1e-2})
         self.check_double_backward_options.update({'atol': 1e-3, 'rtol': 1e-2})
+        if self.dtype == numpy.float16:
+            self.check_forward_options.update({'atol': 1e-2, 'rtol': 1e-2})
+            self.check_backward_options.update({'atol': 1e-2, 'rtol': 1e-2})
+            self.check_double_backward_options.update(
+                {'atol': 1e-2, 'rtol': 1e-2})
 
     def generate_inputs(self):
         x = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
