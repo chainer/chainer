@@ -94,7 +94,7 @@ class TestObservationAggregator(unittest.TestCase):
                                             expected)
 
         trainer.extend(rank_reporter)
-        trainer.extend(ObservationAggregator(comm, 'rank', 'rank-aggregated', comm_trigger=(1, 'iteration')))
+        trainer.extend(ObservationAggregator(comm, 'rank', 'rank-aggregated', comm_trigger=(2, 'iteration')))
         trainer.extend(aggregated_rank_checker)
 
         trainer.run()
