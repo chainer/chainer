@@ -51,11 +51,11 @@ class LossBase(op_utils.ChainerOpTest):
             'in_dtypes,out_dtype', _in_out_loss_dtypes)
     ])
 ))
-class TestMSE(LossBase):
+class TestSquaredError(LossBase):
 
     def forward_xp(self, inputs, xp):
         x1, x2 = inputs
-        return xp.mean_squared_error(x1, x2),
+        return xp.squared_error(x1, x2),
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
@@ -72,14 +72,14 @@ class TestMSE(LossBase):
             'in_dtypes,out_dtype', _in_out_loss_dtypes)
     ])
 ))
-class TestMAE(LossBase):
+class TestAbsoluteError(LossBase):
 
     # Absolute is non-differentiable at zero.
     dodge_nondifferentiable = True
 
     def forward_xp(self, inputs, xp):
         x1, x2 = inputs
-        return xp.mean_absolute_error(x1, x2),
+        return xp.absolute_error(x1, x2),
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
