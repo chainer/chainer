@@ -24,23 +24,8 @@ Array HuberLoss(const Array& x1, const Array& x2, Scalar delta) {
     return Where(abs_a < delta_array, 0.5 * Square(a), delta * (abs_a - Scalar{0.5} * delta));
 }
 
-Array SigmoidCrossEntropy(const Array& x1, const Array& x2, bool normalize) {
-    Array ignore_label = -OnesLike(x1);
-    Array count = EmptyLike(x1, x1.device());
-    Array ignore_mask = NotEqual(x2, ignore_label);
-
-    // Replace with appropriate method to find len of Array
-    Scalar len = x1.GetTotalSize() / x1.GetItemSize();
-
-    Array loss = -(ignore_mask * (x1 * (x2 - (GreaterEqual(x2, ZerosLike(x2)))) - Log1p(Exp(-Fabs(x1)))));
-
-    if (normalize == true) {
-        count = Maximum(OnesLike(x1, x1.device()), Sum(ignore_label));
-    } else {
-        count = Maximum(OnesLike(x1, x1.device()), len);
-    }
-
-    return Divide(Sum(loss), count);
+Array SigmoidCrossEntropy(const Array& x1, const Array& x2) {
+    return -(x1 * (x2 - (GreaterEqual(x2, ZerosLike(x2)))) - Log1p(Exp(-Fabs(x1))));
 }
 
 }  // namespace chainerx
