@@ -67,7 +67,8 @@ public:
             Array work = Empty(Shape({buffersize_geqrf}), dtype, device);
             T* work_ptr = static_cast<T*>(internal::GetRawOffsetData(work));
 
-            device_internals.cusolverdn_handle().Call(geqrf, m, n, r_ptr, m, tau_ptr, work_ptr, buffersize_geqrf, static_cast<int*>(devInfo.get()));
+            device_internals.cusolverdn_handle().Call(
+                    geqrf, m, n, r_ptr, m, tau_ptr, work_ptr, buffersize_geqrf, static_cast<int*>(devInfo.get()));
 
             int devInfo_h = 0;
             Device& native_device = dynamic_cast<native::NativeDevice&>(GetDefaultContext().GetDevice({"native", 0}));
@@ -103,7 +104,8 @@ public:
 
             work = Empty(Shape({buffersize_orgqr}), dtype, device);
 
-            device_internals.cusolverdn_handle().Call(orgqr, m, mc, mn, q_ptr, m, tau_ptr, work_ptr, buffersize_orgqr, static_cast<int*>(devInfo.get()));
+            device_internals.cusolverdn_handle().Call(
+                    orgqr, m, mc, mn, q_ptr, m, tau_ptr, work_ptr, buffersize_orgqr, static_cast<int*>(devInfo.get()));
 
             device.MemoryCopyTo(&devInfo_h, devInfo.get(), sizeof(int), native_device);
             if (devInfo_h != 0) {
@@ -123,11 +125,19 @@ public:
                 break;
             case Dtype::kFloat32:
                 return qr_impl(
-                    PrimitiveType<float>{}, cusolverDnSgeqrf_bufferSize, cusolverDnSorgqr_bufferSize, cusolverDnSgeqrf, cusolverDnSorgqr);
+                        PrimitiveType<float>{},
+                        cusolverDnSgeqrf_bufferSize,
+                        cusolverDnSorgqr_bufferSize,
+                        cusolverDnSgeqrf,
+                        cusolverDnSorgqr);
                 break;
             case Dtype::kFloat64:
                 return qr_impl(
-                    PrimitiveType<double>{}, cusolverDnDgeqrf_bufferSize, cusolverDnDorgqr_bufferSize, cusolverDnDgeqrf, cusolverDnDorgqr);
+                        PrimitiveType<double>{},
+                        cusolverDnDgeqrf_bufferSize,
+                        cusolverDnDorgqr_bufferSize,
+                        cusolverDnDgeqrf,
+                        cusolverDnDorgqr);
                 break;
             default:
                 CHAINERX_NEVER_REACH();

@@ -19,12 +19,12 @@
 #include "chainerx/shape.h"
 
 // geqrf
-extern "C" void dgeqrf_(int *m, int *n, double *a, int *lda, double *tau, double *work, int *lwork, int *info);
-extern "C" void sgeqrf_(int *m, int *n, float *a, int *lda, float *tau, float *work, int *lwork, int *info);
+extern "C" void dgeqrf_(int* m, int* n, double* a, int* lda, double* tau, double* work, int* lwork, int* info);
+extern "C" void sgeqrf_(int* m, int* n, float* a, int* lda, float* tau, float* work, int* lwork, int* info);
 
 // orgqr
-extern "C" void dorgqr_(int *m, int *n, int *k, double *a, int *lda, double *tau, double *work, int *lwork, int *info);
-extern "C" void sorgqr_(int *m, int *n, int *k, float *a, int *lda, float *tau, float *work, int *lwork, int *info);
+extern "C" void dorgqr_(int* m, int* n, int* k, double* a, int* lda, double* tau, double* work, int* lwork, int* info);
+extern "C" void sorgqr_(int* m, int* n, int* k, float* a, int* lda, float* tau, float* work, int* lwork, int* info);
 
 namespace chainerx {
 namespace native {
@@ -114,12 +114,10 @@ public:
                 throw DtypeError{"Half-precision (float16) is not supported by QR decomposition"};
                 break;
             case Dtype::kFloat32:
-                return qr_impl(
-                    PrimitiveType<float>{}, sgeqrf_, sorgqr_);
+                return qr_impl(PrimitiveType<float>{}, sgeqrf_, sorgqr_);
                 break;
             case Dtype::kFloat64:
-                return qr_impl(
-                    PrimitiveType<double>{}, dgeqrf_, dorgqr_);
+                return qr_impl(PrimitiveType<double>{}, dgeqrf_, dorgqr_);
                 break;
             default:
                 CHAINERX_NEVER_REACH();
