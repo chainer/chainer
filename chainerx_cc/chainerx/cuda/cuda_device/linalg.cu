@@ -28,6 +28,7 @@
 #include "chainerx/kernels/linalg.h"
 #include "chainerx/kernels/misc.h"
 #include "chainerx/macro.h"
+#include "chainerx/native/native_device.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/linalg.h"
 
@@ -63,13 +64,13 @@ public:
             Array work = Empty(Shape({buffersize}), dtype, device);
             T* work_ptr = static_cast<T*>(internal::GetRawOffsetData(work));
 
-            int* devInfo;
-            CheckCudaError(cudaMalloc(&devInfo, sizeof(int)));
+            std::shared_ptr<void> devInfo = device.Allocate(sizeof(int));
 
-            device_internals.cusolverdn_handle().Call(getrf, m, m, lu_ptr, m, work_ptr, ipiv_ptr, devInfo);
+            device_internals.cusolverdn_handle().Call(getrf, m, m, lu_ptr, m, work_ptr, ipiv_ptr, static_cast<int*>(devInfo.get()));
 
             int devInfo_h = 0;
-            CheckCudaError(cudaMemcpy(&devInfo_h, devInfo, sizeof(int), cudaMemcpyDeviceToHost));
+            Device& native_device = dynamic_cast<native::NativeDevice&>(GetDefaultContext().GetDevice({"native", 0}));
+            device.MemoryCopyTo(&devInfo_h, devInfo.get(), sizeof(int), native_device);
             if (devInfo_h != 0) {
                 throw ChainerxError{"Unsuccessfull getrf (LU) execution. Info = ", devInfo_h};
             }
@@ -77,9 +78,9 @@ public:
             device.backend().CallKernel<CopyKernel>(b, out);
             T* out_ptr = static_cast<T*>(internal::GetRawOffsetData(out));
 
-            device_internals.cusolverdn_handle().Call(getrs, CUBLAS_OP_N, m, m, lu_ptr, m, ipiv_ptr, out_ptr, m, devInfo);
+            device_internals.cusolverdn_handle().Call(getrs, CUBLAS_OP_N, m, m, lu_ptr, m, ipiv_ptr, out_ptr, m, static_cast<int*>(devInfo.get()));
 
-            CheckCudaError(cudaMemcpy(&devInfo_h, devInfo, sizeof(int), cudaMemcpyDeviceToHost));
+            device.MemoryCopyTo(&devInfo_h, devInfo.get(), sizeof(int), native_device);
             if (devInfo_h != 0) {
                 throw ChainerxError{"Unsuccessfull getrs (Solve) execution. Info = ", devInfo_h};
             }
