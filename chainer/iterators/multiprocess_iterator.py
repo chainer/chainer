@@ -14,7 +14,6 @@ from chainer.dataset import iterator
 from chainer.iterators import _statemachine
 from chainer.iterators.order_samplers import ShuffleOrderSampler
 
-
 _response_time = 0.1
 
 
@@ -129,7 +128,10 @@ class MultiprocessIterator(iterator.Iterator):
                 order_sampler = ShuffleOrderSampler()
         self.order_sampler = order_sampler
 
-        self._comm = _Communicator(self.n_prefetch, dataset_timeout)
+        self.initialize_loop()
+
+    def initialize_loop(self):
+        self._comm = _Communicator(self.n_prefetch, self.dataset_timeout)
         self.reset()
 
         self._prefetch_loop = _PrefetchLoop(
@@ -261,6 +263,40 @@ class MultiprocessIterator(iterator.Iterator):
             epoch_size = len(order)
         return epoch_size
 
+    def __getstate__(self):
+        # We trick the serializer to fill a dict for us
+        # this allows us to use the same code for both
+        # chainer and pickle serializers
+        state = {}
+        self.serialize(lambda k, v: state.__setitem__(k, v))
+        self._reset_state(self.current_position, self.epoch,
+                          self.is_new_epoch, state['order'])
+
+        # Unpickling resets the instance without calling __init__
+        # Chainer serializers dumps the state in an existing
+        # object hence we need to save the initial parameters too
+        init = self.__dict__.copy()
+        del init['_comm']
+        del init['_state']
+        del init['_prefetch_loop']
+
+        # TODO: when pickling in one process and restoring in other
+        # dataset is copied too, this may result in large memory consumption
+        # if the data is entirely in memory at the time of processes span
+
+        state['init'] = init
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state['init'])
+
+        self.initialize_loop()
+        # Iterator state is restored after initialization
+        self._reset_state(state['current_position'], state['epoch'],
+                          state['is_new_epoch'], state['order'])
+
+        self._previous_epoch_detail = state['previous_epoch_detail']
+
 
 class _Communicator(object):
 
@@ -334,29 +370,6 @@ class _Communicator(object):
             if reset_count == self._reset_count:
                 self._batch_queue.append((batch, prefetch_state))
                 self._not_empty_cond.notify()
-
-    def __getstate__(self):
-        # We modify the object serialization using pickle
-        # since the lock can't be pickled.
-        # This object is pickled and unpickled due to the
-        # MultiprocessParallelUpdater firing several
-        # Workers with this object as a parameter
-        state = self.__dict__.copy()
-        # Dont pickle the lock, lets just rebuild it later
-        state['_lock'] = None
-        state['_not_empty_cond'] = None
-        state['_not_full_cond'] = None
-
-        return state
-
-    def __setstate__(self, state):
-        # When unpickling, reconstruct the lock.
-        # This only happens on initialization so conditions vars
-        # Are ensured to be clean
-        self.__dict__.update(state)
-        self._lock = threading.Lock()
-        self._not_empty_cond = threading.Condition(self._lock)
-        self._not_full_cond = threading.Condition(self._lock)
 
 
 class _PrefetchLoop(object):
