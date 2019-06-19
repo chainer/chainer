@@ -49,6 +49,12 @@ def squared_error(x0, x1):
             A variable holding an array representing the squared error of
             two inputs.
 
+    .. note::
+
+        :func:`~chainer.functions.squared_error` and
+        :func:`~chainer.functions.squared_difference` are identical functions.
+        They are both kept for backward compatibility.
+
     .. admonition:: Example
 
         >>> x1 = np.arange(6).astype(np.float32)
@@ -57,7 +63,7 @@ def squared_error(x0, x1):
         >>> x2 = np.array([5, 4, 3, 2, 1, 0]).astype(np.float32)
         >>> x2
         array([5., 4., 3., 2., 1., 0.], dtype=float32)
-        >>> y = F.squared_error(x1, x2)
+        >>> y = F.squared_error(x1, x2)  # Or F.squared_difference(x1, x2)
         >>> y.shape
         (6,)
         >>> y.array
