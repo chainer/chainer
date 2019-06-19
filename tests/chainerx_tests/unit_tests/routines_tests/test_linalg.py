@@ -148,8 +148,6 @@ class TestSolveFailing(op_utils.NumpyOpTest):
     chainer.testing.product({
         'shape': [(1, 1), (3, 3), (6, 6)],
         'in_dtypes': ['float32', 'float64'],
-        'skip_backward_test': [True],
-        'skip_double_backward_test': [True],
     })
 ))
 class TestInverse(op_utils.NumpyOpTest):
@@ -170,8 +168,6 @@ class TestInverse(op_utils.NumpyOpTest):
     chainer.testing.product({
         'shape': [(2, 3), (3, 2)],
         'in_dtypes': ['float32', 'float64'],
-        'skip_backward_test': [True],
-        'skip_double_backward_test': [True]
     })
 ))
 class TestInverseFailing(op_utils.NumpyOpTest):

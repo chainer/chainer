@@ -133,6 +133,18 @@ Array Inverse(const Array& a) {
         a.device().backend().CallKernel<InverseKernel>(a, out);
     }
 
+    {
+        BackwardBuilder bb{"inv", a, out};
+        if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+            bt.Define([out_tok = bb.RetainOutput(0), a_dtype = a.dtype()](BackwardContext& bctx) {
+                const Array& out = bctx.GetRetainedOutput(out_tok);
+                const Array& gout = *bctx.output_grad();
+                bctx.input_grad() = -Dot(Dot(out.Transpose(), gout, a_dtype), out.Transpose(), a_dtype);
+            });
+        }
+        bb.Finalize();
+    }
+
     return out;
 }
 
