@@ -3,6 +3,7 @@ import copy
 import errno
 import os
 import platform
+import pickle
 import signal
 import subprocess
 import sys
@@ -369,6 +370,34 @@ class TestMultiprocessIterator(
 class TestMultiprocessIteratorSlow(
         BaseTestMultiprocessIterator, unittest.TestCase):
     pass
+
+
+# TODO (emcastill) : pickle fails when using order_sampler as lambda function
+@testing.parameterize(*testing.product({
+    'n_prefetch': [1, 2],
+    'shared_mem': [None, 1000000],
+    'order_sampler': [None]
+}))
+class TestMultiprocessIteratorPickle(unittest.TestCase):
+
+    def setUp(self):
+        self.n_processes = 2
+        self.options = {'n_processes': self.n_processes,
+                        'n_prefetch': self.n_prefetch,
+                        'shared_mem': self.shared_mem}
+        if self.order_sampler is not None:
+            self.options.update(
+                {'shuffle': None, 'order_sampler': self.order_sampler})
+
+    def test_iterator_pickle(self):
+        dataset = [1, 2, 3, 4, 5, 6]
+        it = iterators.MultiprocessIterator(dataset, 2, **self.options)
+
+        self.assertEqual(it.epoch, 0)
+        self.assertAlmostEqual(it.epoch_detail, 0 / 6)
+        self.assertIsNone(it.previous_epoch_detail)
+        pickled_it = pickle.dumps(it)
+        it = pickle.loads(pickled_it)
 
 
 @testing.parameterize(*testing.product({

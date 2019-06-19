@@ -335,6 +335,29 @@ class _Communicator(object):
                 self._batch_queue.append((batch, prefetch_state))
                 self._not_empty_cond.notify()
 
+    def __getstate__(self):
+        # We modify the object serialization using pickle
+        # since the lock can't be pickled.
+        # This object is pickled and unpickled due to the
+        # MultiprocessParallelUpdater firing several
+        # Workers with this object as a parameter
+        state = self.__dict__.copy()
+        # Dont pickle the lock, lets just rebuild it later
+        state['_lock'] = None
+        state['_not_empty_cond'] = None
+        state['_not_full_cond'] = None
+
+        return state
+
+    def __setstate__(self, state):
+        # When unpickling, reconstruct the lock.
+        # This only happens on initialization so conditions vars
+        # Are ensured to be clean
+        self.__dict__.update(state)
+        self._lock = threading.Lock()
+        self._not_empty_cond = threading.Condition(self._lock)
+        self._not_full_cond = threading.Condition(self._lock)
+
 
 class _PrefetchLoop(object):
 
@@ -354,8 +377,6 @@ class _PrefetchLoop(object):
         self._comm = comm
         self.order_sampler = order_sampler
         self.maxtasksperchild = maxtasksperchild
-
-        self._allocate_shared_memory()
 
         self._interruption_testing = _interruption_testing
 
@@ -425,6 +446,12 @@ class _PrefetchLoop(object):
                 sharedctypes.RawArray('b', self.batch_size * self.mem_size)
 
     def launch_thread(self):
+        # Defer memory allocation due to pickling issues.
+        # This object can be pickled when using MultiprocessParallelUpdater
+        # with multiprocessing.set_start_method(spawn).
+        # This avoids failing on pickle
+        self._allocate_shared_memory()
+
         self._pool = multiprocessing.Pool(
             processes=self.n_processes,
             initializer=_fetch_setup,
