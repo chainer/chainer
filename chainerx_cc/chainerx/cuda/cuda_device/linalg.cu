@@ -107,7 +107,22 @@ public:
             }
 
             device_internals.cusolverdn_handle().Call(
-                    gesvd, job, job, m, n, x_ptr, m, s_ptr, u_ptr, m, vt_ptr, n, work_ptr, buffersize, nullptr, static_cast<int*>(devInfo.get()));
+                    gesvd,
+                    job,
+                    job,
+                    m,
+                    n,
+                    x_ptr,
+                    m,
+                    s_ptr,
+                    u_ptr,
+                    m,
+                    vt_ptr,
+                    n,
+                    work_ptr,
+                    buffersize,
+                    nullptr,
+                    static_cast<int*>(devInfo.get()));
 
             int devInfo_h = 0;
             Device& native_device = dynamic_cast<native::NativeDevice&>(GetDefaultContext().GetDevice({"native", 0}));
