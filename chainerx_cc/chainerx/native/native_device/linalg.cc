@@ -34,6 +34,10 @@ public:
 
         CHAINERX_ASSERT(a.ndim() == 2);
 
+#ifndef CHAINERX_LAPACK_AVAILABLE
+        throw ChainerxError{"LAPACK is not linked to ChainerX."};
+#endif  // CHAINERX_LAPACK_AVAILABLE
+
         int n = a.shape()[0];
         int m = a.shape()[1];
 
