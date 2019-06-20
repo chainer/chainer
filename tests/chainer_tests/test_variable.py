@@ -1475,7 +1475,7 @@ class TestVariableSetArray(unittest.TestCase):
             should_fail = device_x != device_y
         elif isinstance(device_x, backend.ChainerxDevice):
             should_fail = (
-                    device_x != device_y or requires_grad_x or requires_grad_y)
+                device_x != device_y or requires_grad_x or requires_grad_y)
         elif (isinstance(device_x, backend.Intel64Device)
               or isinstance(device_y, backend.Intel64Device)):
             # Check the array type because Intel64Device.send_array() may
