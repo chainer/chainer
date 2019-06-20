@@ -916,6 +916,11 @@ def sum(a: ndarray,
         keepdims: bool=...) -> ndarray: ...
 
 
+def cumsum(
+        x: ndarray,
+        axis: tp.Optional[tp.Union[int, tp.List[int]]]=None) -> ndarray: ...
+
+
 def swapaxes(a: ndarray, axis1: int, axis2: int) -> ndarray: ...
 
 

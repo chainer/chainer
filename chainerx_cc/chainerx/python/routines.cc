@@ -760,6 +760,12 @@ void InitChainerxReduction(pybind11::module& m) {
           "a"_a,
           "axis"_a = nullptr,
           "keepdims"_a = false);
+    m.def("cumsum",
+          [](const ArrayBodyPtr& a, const nonstd::optional<std::vector<int8_t>>& axis) {
+              return MoveArrayBody(Cumsum(Array{a}, ToAxes(axis)));
+          },
+          "a"_a,
+          "axis"_a = nullptr);
     m.def("logsumexp",
           [](const ArrayBodyPtr& x, int8_t axis, bool keepdims) { return MoveArrayBody(LogSumExp(Array{x}, Axes{axis}, keepdims)); },
           "x"_a,
