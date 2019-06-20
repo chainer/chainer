@@ -34,6 +34,10 @@ public:
         CHAINERX_ASSERT(out.ndim() == 2);
         CHAINERX_ASSERT(a.shape()[0] == a.shape()[1]);
 
+#ifndef CHAINERX_LAPACK_AVAILABLE
+        throw ChainerxError{"LAPACK is not linked to ChainerX."};
+#endif  // CHAINERX_LAPACK_AVAILABLE
+
         // potrf (cholesky) stores result in-place, therefore copy ``a`` to ``out`` and then pass ``out`` to the routine
         device.backend().CallKernel<CopyKernel>(a, out);
 
