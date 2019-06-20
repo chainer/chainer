@@ -126,6 +126,24 @@ Array PseudoInverse(const Array& a, float rcond) {
         a.device().backend().CallKernel<PseudoInverseKernel>(a, out, rcond);
     }
 
+    {
+        BackwardBuilder bb{"pinv", a, out};
+        if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+            bt.Define([a_tok = bb.RetainInput(0), out_tok = bb.RetainOutput(0),
+                       a_dtype = a.dtype(), & a_device = a.device()](BackwardContext& bctx) {
+                const Array& a = bctx.GetRetainedInput(a_tok);
+                const Array& out = bctx.GetRetainedOutput(out_tok);
+                const Array& gout = *bctx.output_grad();
+                Array I_a = Identity(a.shape()[0], a_dtype, a_device);
+                Array I_out = Identity(out.shape()[0], a_dtype, a_device);
+                bctx.input_grad() = (-Dot(Dot(out, gout.Transpose()), out)
+                    + Dot(Dot(Dot(out, out.Transpose()), gout), I_a - Dot(a, out))
+                    + Dot(Dot(Dot(I_out - Dot(out, a), gout), out.Transpose()), out)).Transpose();
+            });
+        }
+        bb.Finalize();
+    }
+
     return out;
 }
 

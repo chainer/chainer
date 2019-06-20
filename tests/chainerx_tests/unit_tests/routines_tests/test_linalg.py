@@ -135,12 +135,14 @@ class TestSVD(op_utils.NumpyOpTest):
     chainer.testing.product({
         'shape': [(1, 1), (2, 3), (3, 2), (6, 6)],
         'rcond': [1e-15, 1e-9, 1e-6, 1e-3],
-        'in_dtypes': ['float32', 'float64'],
-        'skip_backward_test': [True],
-        'skip_double_backward_test': [True],
+        'in_dtypes': ['float32', 'float64']
     })
 ))
 class TestPseudoInverse(op_utils.NumpyOpTest):
+
+    def setup(self):
+        self.check_backward_options.update({'rtol': 5e-3})
+        self.check_double_backward_options.update({'rtol': 5e-3})
 
     def generate_inputs(self):
         a = numpy.random.random(self.shape).astype(self.in_dtypes)
@@ -157,9 +159,7 @@ class TestPseudoInverse(op_utils.NumpyOpTest):
     chainer.testing.product({
         'shape': [(), ],
         'rcond': [1e-15, 1e-9, 1e-6, 1e-3],
-        'in_dtypes': ['float32', 'float64'],
-        'skip_backward_test': [True],
-        'skip_double_backward_test': [True],
+        'in_dtypes': ['float32', 'float64']
     })
 ))
 class TestPseudoInverseFailing(op_utils.NumpyOpTest):
