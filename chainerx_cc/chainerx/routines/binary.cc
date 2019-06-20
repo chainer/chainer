@@ -168,7 +168,7 @@ Array LeftShift(const Array& x1, Scalar x2) {
     return internal::Binary(BitwiseASImpl<LeftShiftASKernel>, x1, x2, x1.dtype());
 }
 
-Array LeftShift(Scalar x1, const Array& x2) { 
+Array LeftShift(Scalar x1, const Array& x2) {
     CheckShiftDtypes(x2, x1);
     return internal::Binary(BitwiseSAImpl<LeftShiftSAKernel>, x1, x2, Dtype::kInt64);
 }
@@ -183,7 +183,7 @@ Array RightShift(const Array& x1, Scalar x2) {
     return internal::Binary(BitwiseASImpl<RightShiftASKernel>, x1, x2, x1.dtype());
 }
 
-Array RightShift(Scalar x1, const Array& x2) { 
+Array RightShift(Scalar x1, const Array& x2) {
     CheckShiftDtypes(x2, x1);
     return internal::Binary(BitwiseSAImpl<RightShiftSAKernel>, x1, x2, Dtype::kInt64);
 }

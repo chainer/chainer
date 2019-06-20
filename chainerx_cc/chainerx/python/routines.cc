@@ -810,26 +810,14 @@ void InitChainerxTrigonometric(pybind11::module& m) {
           [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return MoveArrayBody(LeftShift(Array{x1}, Array{x2})); },
           "x1"_a,
           "x2"_a);
-    m.def("left_shift",
-          [](const ArrayBodyPtr& x1, Scalar x2) { return MoveArrayBody(LeftShift(Array{x1}, x2)); },
-          "x1"_a,
-          "x2"_a);
-    m.def("left_shift",
-          [](Scalar x1, const ArrayBodyPtr& x2) { return MoveArrayBody(LeftShift(x1, Array{x2})); },
-          "x1"_a,
-          "x2"_a);
+    m.def("left_shift", [](const ArrayBodyPtr& x1, Scalar x2) { return MoveArrayBody(LeftShift(Array{x1}, x2)); }, "x1"_a, "x2"_a);
+    m.def("left_shift", [](Scalar x1, const ArrayBodyPtr& x2) { return MoveArrayBody(LeftShift(x1, Array{x2})); }, "x1"_a, "x2"_a);
     m.def("right_shift",
           [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return MoveArrayBody(RightShift(Array{x1}, Array{x2})); },
           "x1"_a,
           "x2"_a);
-    m.def("right_shift",
-          [](const ArrayBodyPtr& x1, Scalar x2) { return MoveArrayBody(RightShift(Array{x1}, x2)); },
-          "x1"_a,
-          "x2"_a);
-    m.def("right_shift",
-          [](Scalar x1, const ArrayBodyPtr& x2) { return MoveArrayBody(RightShift(x1, Array{x2})); },
-          "x1"_a,
-          "x2"_a);
+    m.def("right_shift", [](const ArrayBodyPtr& x1, Scalar x2) { return MoveArrayBody(RightShift(Array{x1}, x2)); }, "x1"_a, "x2"_a);
+    m.def("right_shift", [](Scalar x1, const ArrayBodyPtr& x2) { return MoveArrayBody(RightShift(x1, Array{x2})); }, "x1"_a, "x2"_a);
 }
 
 void InitChainerxSorting(pybind11::module& m) {
