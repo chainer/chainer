@@ -37,6 +37,10 @@ public:
 
         CHAINERX_ASSERT(a.ndim() == 2);
 
+#ifndef CHAINERX_LAPACK_AVAILABLE
+        throw ChainerxError{"LAPACK is not linked to ChainerX."};
+#endif  // CHAINERX_LAPACK_AVAILABLE
+
         int m = a.shape()[0];
         int n = a.shape()[1];
         int mn = std::min(m, n);
