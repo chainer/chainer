@@ -718,3 +718,15 @@ def test_array_deepcopy(device):
     chainerx.testing.assert_array_equal(
         arr2,
         chainerx.array([1, 2], chainerx.float32))
+
+
+def test_is_unchained():
+    arr = chainerx.array([1, 2], chainerx.float32)
+    with pytest.raises(chainerx.ChainerxError):
+        arr.is_unchained()
+
+    arr.require_grad()
+    assert arr.is_unchained()
+
+    arr2 = 2 * arr
+    assert not arr2.is_unchained()

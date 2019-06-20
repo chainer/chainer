@@ -464,6 +464,14 @@ bool Array::IsGradRequired(const nonstd::optional<BackpropId>& backprop_id) cons
     return body_->IsGradRequired(actual_backprop_id);
 }
 
+bool Array::IsUnchained(const nonstd::optional<BackpropId>& backprop_id) const {
+    BackpropId actual_backprop_id = internal::GetArrayBackpropId(*this, backprop_id);
+    if (!body_->HasArrayNode(actual_backprop_id)) {
+        throw ChainerxError{"Array is constant with respect to the computation for backprop ID: '", actual_backprop_id, "'."};
+    }
+    return body_->IsUnchained(actual_backprop_id);
+}
+
 template <typename T>
 T& Array::RequireGradImpl(T& array, const nonstd::optional<BackpropId>& backprop_id) {
     if (GetKind(array.dtype()) != DtypeKind::kFloat) {

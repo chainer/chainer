@@ -55,6 +55,12 @@ ArrayBody::ArrayBody(
 ArrayBody::ArrayBody(Params params)
     : ArrayBody{params.shape, params.strides, params.dtype, params.device, std::move(params.data), params.offset} {}
 
+bool ArrayBody::IsUnchained(const BackpropId& backprop_id) const {
+    backprop_id.CheckValid();
+    CHAINERX_ASSERT(HasArrayNode(backprop_id));
+    return GetArrayNode(backprop_id)->creator_op_node() == nullptr;
+}
+
 const std::shared_ptr<ArrayNode>& ArrayBody::AddNode(const std::shared_ptr<ArrayBody>& body, std::shared_ptr<ArrayNode> array_node) {
     body->AssertConsistency();
 

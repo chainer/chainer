@@ -533,6 +533,9 @@ void InitChainerxArray(pybind11::module& m) {
     c.def("is_backprop_required",
           [](const ArrayBodyPtr& self, AnyGraph any_graph) { return Array{self}.IsBackpropRequired(any_graph); },
           "backprop_id"_a);
+    c.def("is_unchained",
+          [](const ArrayBodyPtr& self, const nonstd::optional<BackpropId>& backprop_id) { return Array{self}.IsUnchained(backprop_id); },
+          "backprop_id"_a = nullptr);
     c.def("get_grad",
           [](const ArrayBodyPtr& self, const nonstd::optional<BackpropId>& backprop_id) -> ConstArrayBodyPtr {
               const nonstd::optional<Array>& grad = Array{self}.GetGrad(backprop_id);
