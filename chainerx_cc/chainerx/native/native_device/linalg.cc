@@ -19,8 +19,10 @@
 #include "chainerx/routines/linalg.h"
 #include "chainerx/shape.h"
 
-extern "C" void dsyevd_(char *jobz, char *uplo, int *n, double *a, int *lda, double *w, double *work, int *lwork, int *iwork, int *liwork, int *info);
-extern "C" void ssyevd_(char *jobz, char *uplo, int *n, float *a, int *lda, float *w, float *work, int *lwork, int *iwork, int *liwork, int *info);
+extern "C" void dsyevd_(
+        char* jobz, char* uplo, int* n, double* a, int* lda, double* w, double* work, int* lwork, int* iwork, int* liwork, int* info);
+extern "C" void ssyevd_(
+        char* jobz, char* uplo, int* n, float* a, int* lda, float* w, float* work, int* lwork, int* iwork, int* liwork, int* info);
 
 namespace chainerx {
 namespace native {
