@@ -126,6 +126,8 @@ Array PseudoInverse(const Array& a, float rcond) {
         a.device().backend().CallKernel<PseudoInverseKernel>(a, out, rcond);
     }
 
+    // Reference:
+    // https://mathoverflow.net/questions/25778/analytical-formula-for-numerical-derivative-of-the-matrix-pseudo-inverse
     {
         BackwardBuilder bb{"pinv", a, out};
         if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
