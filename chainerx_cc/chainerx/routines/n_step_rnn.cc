@@ -198,7 +198,7 @@ std::vector<std::vector<Array>> n_step_lstm(
         const std::vector<std::vector<Array>>& ws,
         const std::vector<std::vector<Array>>& bs,
         std::vector<Array>& xs) {
-    // assuming that all arrays in the a list should belong to the same device
+    // assuming that all arrays in a list should belong to the same device
     hx.device().CheckDevicesCompatible(hx, cx, ws[0][0], bs[0][0], xs[0]); 
     if(hx.device().backend().GetName() == "cuda")
     {

@@ -15,6 +15,7 @@ install(FILES
     memory_pool.h
     numeric.cuh
     numeric_limits.cuh
+    copy_data.cuh
     reduce.cuh
     DESTINATION include/chainerx/cuda
     )
@@ -44,7 +45,7 @@ CUDA_ADD_LIBRARY(chainerx_cuda STATIC
     cuda_device/statistics.cu
     cuda_device/trigonometric.cu
     cuda_backend.cc
-    cuda_rnn.cc
+    cuda_rnn.cu
     cuda_runtime.cc
     cudnn.cc
     memory_pool.cc

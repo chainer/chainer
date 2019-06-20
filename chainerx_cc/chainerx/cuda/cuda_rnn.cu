@@ -60,7 +60,7 @@ void weights_forward(
                     layer,
                     x_desc,
                     w_desc,
-                    internal::GetRawOffsetData(w),
+                    internal::GetRawOffsetData(AsContiguous(w)),
                     lin_layer_id,
                     linlayermatdesc,
                     (void**)&m_offset         
@@ -69,6 +69,8 @@ void weights_forward(
                 cudnnTensorFormat_t format;
                 int nbDims;
                 int filterDimA[3];
+
+
                 cudnnGetFilterNdDescriptor(
                 linlayermatdesc,
                 3,
@@ -77,11 +79,11 @@ void weights_forward(
                 &nbDims,
                 filterDimA
                 );
-                
-                initGPUData(m_offset, filterDimA[0] * filterDimA[1] * filterDimA[2], (float*)ws[index][lin_layer_id].raw_data());
+                //throw DimensionError{"biohdfk:", filterDimA[0], " ", filterDimA[1], " ", filterDimA[2]};
+                initGPUData(m_offset, filterDimA[0] * filterDimA[1] * filterDimA[2], (float*)internal::GetRawOffsetData(AsContiguous(ws[index][lin_layer_id])));
                 cudnnDestroyFilterDescriptor(linlayermatdesc);
                 
-               
+
                 cudnnFilterDescriptor_t linlayerbiasdesc;
                 cudnnCreateFilterDescriptor(&linlayerbiasdesc);
                 float* b_offset;
@@ -91,7 +93,7 @@ void weights_forward(
                     layer,
                     x_desc,
                     w_desc,
-                    internal::GetRawOffsetData(w),
+                    internal::GetRawOffsetData(AsContiguous(w)),
                     lin_layer_id,
                     linlayerbiasdesc,
                     (void**)&b_offset
@@ -104,11 +106,12 @@ void weights_forward(
                                         &nbDims,
                                         filterDimA
                                         );
-                initGPUData(b_offset, filterDimA[0] * filterDimA[1] * filterDimA[2], (float*)bs[index][lin_layer_id].raw_data());
+                initGPUData(b_offset, filterDimA[0] * filterDimA[1] * filterDimA[2], (float*)internal::GetRawOffsetData(AsContiguous(bs[index][lin_layer_id])));
                 cudnnDestroyFilterDescriptor(linlayerbiasdesc);
             }
         }
     }
+
 }   
 
 std::vector<cudnnTensorDescriptor_t> descriptor_array(std::vector<Array> xs) {
@@ -217,7 +220,7 @@ std::vector<std::vector<Array>> CudaRnn::n_step_rnn(
 
     
     Array w = Empty({(int)weight_size / 4, 1, 1}, hx.dtype(), hx.device());
-    CudnnFilterDescriptor wDesc{w};
+    CudnnFilterDescriptor wDesc{AsContiguous(w)};
    
     weights_forward(handle, rnn_desc, ws, bs, n_layers, num_directions, x_desc[0], *wDesc, w);
     
@@ -233,38 +236,37 @@ std::vector<std::vector<Array>> CudaRnn::n_step_rnn(
     cudaMalloc((void**)&workspace, workSize);
     Array hy = Empty(hx.shape(), hx.dtype(), hx.device());
     Array cy = Empty(cx.shape(), cx.dtype(), cx.device());
-    CudnnTensorDescriptor hxDesc{hx};
-    CudnnTensorDescriptor cxDesc{cx};
+    CudnnTensorDescriptor hxDesc{AsContiguous(hx)};
+    CudnnTensorDescriptor cxDesc{AsContiguous(cx)};
 
-    CudnnTensorDescriptor hyDesc{hy};
-    CudnnTensorDescriptor cyDesc{cy};
-    
+    CudnnTensorDescriptor hyDesc{AsContiguous(hy)};
+    CudnnTensorDescriptor cyDesc{AsContiguous(cy)};
     
     handle.Call(
         cudnnRNNForwardTraining,
         rnn_desc,
         xs.size(),
         x_desc,
-        internal::GetRawOffsetData(x),
+        internal::GetRawOffsetData(AsContiguous(x)),
         *hxDesc,
-        hx.raw_data(),
+        internal::GetRawOffsetData(AsContiguous(hx)),
         *cxDesc,
-        cx.raw_data(),
+        internal::GetRawOffsetData(AsContiguous(cx)),
         *wDesc,
-        internal::GetRawOffsetData(w),
+        internal::GetRawOffsetData(AsContiguous(w)),
         y_desc,
-        internal::GetRawOffsetData(y),
+        internal::GetRawOffsetData(AsContiguous(y)),
         *hyDesc,
-        internal::GetRawOffsetData(hy),
+        internal::GetRawOffsetData(AsContiguous(hy)),
         *cyDesc,
-        internal::GetRawOffsetData(cy),
+        internal::GetRawOffsetData(AsContiguous(cy)),
         workspace,
         workSize,
         reserve,
         reserveSize
     );
     std::vector<int64_t> split_indices;
-    for(uint i = 0; i < xs.size(); i++){
+    for(uint i = 0; i < xs.size() - 1; i++){
         if ( i != 0 ) {
             split_indices.push_back(split_indices[i-1] + xs[i].shape()[0]);
         } else {

@@ -8,12 +8,12 @@ from chainerx_tests import op_utils
 
 n_step_lstm_dtypes_valid = dtype_utils._permutate_dtype_mapping([
     # Floats.
-    (('float16', 'float16', 'float16', 'float16', 'float16'),
-     ('float16', 'float16', 'float16')),
+    #(('float16', 'float16', 'float16', 'float16', 'float16'),
+    # ('float16', 'float16', 'float16')),
     (('float32', 'float32', 'float32', 'float32', 'float32'),
      ('float32', 'float32', 'float32')),
-    (('float64', 'float64', 'float64', 'float64', 'float64'),
-     ('float64', 'float64', 'float64')),
+    #(('float64', 'float64', 'float64', 'float64', 'float64'),
+    # ('float64', 'float64', 'float64')),
 ])
 
 
@@ -32,14 +32,13 @@ n_step_lstm_dtypes_valid = dtype_utils._permutate_dtype_mapping([
             'in_dtypes,out_dtype', n_step_lstm_dtypes_valid)
     ])
 ))
-@chainer.testing.parameterize_pytest('cover_all', [True, False])
 class TestNStepLstm(op_utils.ChainerOpTest):
 
     def setup(self):
-        if (self.in_dtypes[0] == 'float16'):
-            self.check_forward_options.update({
+        #if (self.in_dtypes[0] == 'float16'):
+        self.check_forward_options.update({
                 'rtol': 1e-2, 'atol': 1e-2})
-            self.check_backward_options.update({
+        self.check_backward_options.update({
                 'rtol': 1e-2, 'atol': 1e-2})
         self.check_double_backward_options.update({
             'rtol': 5e-3, 'atol': 5e-2})
