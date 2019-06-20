@@ -69,6 +69,7 @@ set(chainerx_srcs
     array.cc
     array_body.cc
     array_body_leak_detection.cc
+    array_index.cc
     array_repr.cc
     axes.cc
     backend.cc
