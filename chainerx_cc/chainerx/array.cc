@@ -532,6 +532,9 @@ Array operator-(Scalar lhs, const Array& rhs) { return Subtract(lhs, rhs); }
 Array operator*(Scalar lhs, const Array& rhs) { return Multiply(lhs, rhs); }
 Array operator/(Scalar lhs, const Array& rhs) { return Divide(lhs, rhs); }
 
+Array operator<<(Scalar lhs, const Array& rhs) { return LeftShift(lhs, rhs); }
+Array operator>>(Scalar lhs, const Array& rhs) { return RightShift(lhs, rhs); }
+
 namespace {
 
 using internal::ArrayNode;

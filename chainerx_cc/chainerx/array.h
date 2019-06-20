@@ -326,6 +326,9 @@ Array operator-(Scalar lhs, const Array& rhs);
 Array operator*(Scalar lhs, const Array& rhs);
 Array operator/(Scalar lhs, const Array& rhs);
 
+Array operator<<(Scalar lhs, const Array& rhs);
+Array operator>>(Scalar lhs, const Array& rhs);
+
 namespace internal {
 
 inline const std::shared_ptr<ArrayBody>& GetArrayBody(const Array& array) { return array.body_; }
