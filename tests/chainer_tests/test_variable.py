@@ -1452,6 +1452,7 @@ class TestVariableSetArray(unittest.TestCase):
 
         a = device.send_array(
             np.random.uniform(-1, 1, shape).astype(np.float32))
+        assert device.is_array_supported(a)
 
         if device.xp is chainerx and requires_grad:
             return a.require_grad()
@@ -1470,11 +1471,21 @@ class TestVariableSetArray(unittest.TestCase):
 
         v = chainer.Variable(x, requires_grad=requires_grad_x)
 
-        should_fail = (
-            (
-                device_x != device_y
-                and not isinstance(device_x, intel64.Intel64Device)) or
-            (xp_x is chainerx and (requires_grad_x or requires_grad_y)))
+        if isinstance(device_x, backend.GpuDevice):
+            should_fail = device_x != device_y
+        elif isinstance(device_x, backend.ChainerxDevice):
+            should_fail = (
+                    device_x != device_y or requires_grad_x or requires_grad_y)
+        elif (isinstance(device_x, backend.Intel64Device)
+              or isinstance(device_y, backend.Intel64Device)):
+            # Check the array type because Intel64Device.send_array() may
+            # return numpy.ndarray when its shape doesn't match
+            if isinstance(x, intel64.mdarray):
+                should_fail = not isinstance(y, (np.ndarray, intel64.mdarray))
+            else:
+                should_fail = type(x) != type(y)
+        else:
+            should_fail = device_x != device_y
 
         if should_fail:
             # should not accept an array from a different device
@@ -1920,6 +1931,43 @@ class TestUninitializedParameter(unittest.TestCase):
         y = copy.copy(x)
         x.initialize((3, 2))
         assert x.data is y.data
+
+    def test_set_array_numpy(self):
+        # This test intends the use case of unpickling Parameter
+        x = chainer.Parameter()
+        x.array = np.array([1], np.float32)
+        assert x.device == backend.CpuDevice()
+
+    @attr.gpu
+    def test_set_array_gpu(self):
+        # This test intends the use case of unpickling Parameter
+        x = chainer.Parameter()
+        x.array = cuda.cupy.array([1], np.float32)
+        assert x.device == backend.GpuDevice(cuda.Device(0))
+
+    @attr.ideep
+    def test_set_array_intel64(self):
+        # This test intends the use case of unpickling Parameter
+        x = chainer.Parameter()
+        x.array = intel64.ideep.array(np.array([1], np.float32))
+        assert x.device == backend.Intel64Device()
+
+    @attr.chainerx
+    def test_set_array_chainerx_native(self):
+        # This test intends the use case of unpickling Parameter
+        x = chainer.Parameter()
+        chx_device = chainerx.get_device("native", 0)
+        x.array = chainerx.array([1], np.float32, device=chx_device)
+        assert x.device == backend.ChainerxDevice(chx_device)
+
+    @attr.chainerx
+    @attr.gpu
+    def test_set_array_chainerx_cuda(self):
+        # This test intends the use case of unpickling Parameter
+        x = chainer.Parameter()
+        chx_device = chainerx.get_device("cuda", 0)
+        x.array = chainerx.array([1], np.float32, device=chx_device)
+        assert x.device == backend.ChainerxDevice(chx_device)
 
     def test_cleargrad(self):
         x = chainer.Parameter()
