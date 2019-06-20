@@ -42,6 +42,10 @@ public:
         CHAINERX_ASSERT(a.ndim() == 2);
         CHAINERX_ASSERT(a.shape()[0] == a.shape()[1]);
 
+#ifndef CHAINERX_LAPACK_AVAILABLE
+        throw ChainerxError{"LAPACK is not linked to ChainerX."};
+#endif  // CHAINERX_LAPACK_AVAILABLE
+
         auto solve_impl = [&](auto pt, auto gesv) {
             using T = typename decltype(pt)::type;
 
@@ -95,6 +99,10 @@ public:
 
         CHAINERX_ASSERT(a.ndim() == 2);
         CHAINERX_ASSERT(a.shape()[0] == a.shape()[1]);
+
+#ifndef CHAINERX_LAPACK_AVAILABLE
+        throw ChainerxError{"LAPACK is not linked to ChainerX."};
+#endif  // CHAINERX_LAPACK_AVAILABLE
 
         auto solve_impl = [&](auto pt, auto getrf, auto getri) {
             using T = typename decltype(pt)::type;

@@ -60,6 +60,12 @@ if(${BLAS_FOUND})
     endif()
 endif()
 
+# LAPACK
+if(${LAPACK_FOUND})
+MESSAGE( STATUS "LAPACK is found, defining CHAINERX_LAPACK_AVAILABLE variable.")
+add_definitions(-DCHAINERX_LAPACK_AVAILABLE=${LAPACK_FOUND})
+endif()
+
 if(${CHAINERX_BUILD_TEST})
   add_executable(chainerx_native_test
       native_backend_test.cc
