@@ -18,8 +18,8 @@
 #include "chainerx/routines/creation.h"
 #include "chainerx/shape.h"
 
-extern "C" void dpotrf_(char *uplo, int *n, double *a, int *lda, int *info);
-extern "C" void spotrf_(char *uplo, int *n, float *a, int *lda, int *info);
+extern "C" void dpotrf_(char* uplo, int* n, double* a, int* lda, int* info);
+extern "C" void spotrf_(char* uplo, int* n, float* a, int* lda, int* info);
 
 namespace chainerx {
 namespace native {
