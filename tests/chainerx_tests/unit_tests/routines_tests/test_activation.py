@@ -107,23 +107,32 @@ class TestClippedRelu(UnaryMathTestBase, op_utils.NumpyOpTest):
 @chainer.testing.parameterize(*(
     # Special shapes
     chainer.testing.product({
-        'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
+        'shape,axis': [
+            ((5, 4), 0),
+            ((5, 4), 1),
+            ((5, 4), -1),
+            ((5, 4), -2),
+            ((5, 4, 3, 2), 0),
+            ((5, 4, 3, 2), 1),
+            ((5, 4, 3, 2), 2),
+            ((5, 4, 3, 2), 3),
+            ((5, 4, 3, 2), -1),
+            ((5, 4, 3, 2), -2),
+            ((5, 4, 3, 2), -3),
+            ((5, 4, 3, 2), -4),
+        ],
         'in_dtypes,out_dtype': _in_out_dtypes_math_functions,
-        'input': [-2, 2],
-        'contiguous': [None, 'C'],
-    })
-    # Special values
-    + chainer.testing.product({
-        'shape': [(2, 3)],
-        'in_dtypes,out_dtype': _in_out_float_dtypes_math_functions,
-        'input': [0, float('inf'), -float('inf'), float('nan')],
-        'skip_backward_test': [True],
-        'skip_double_backward_test': [True],
     })
 ))
 class TestCrelu(UnaryMathTestBase, op_utils.NumpyOpTest):
 
-    axis = 1
+    check_numpy_strides_compliance = False
+    dodge_nondifferentiable = True
+
+    def generate_inputs(self):
+        in_dtype, = self.in_dtypes
+        a = array_utils.uniform(self.shape, in_dtype)
+        return a,
 
     def func(self, xp, a):
         if xp is numpy:
