@@ -33,6 +33,10 @@ public:
 
         CHAINERX_ASSERT(a.ndim() == 2);
 
+#ifndef CHAINERX_LAPACK_AVAILABLE
+        throw ChainerxError{"LAPACK is not linked to ChainerX."};
+#endif  // CHAINERX_LAPACK_AVAILABLE
+
         Array v = Empty(a.shape(), dtype, device);
         device.backend().CallKernel<CopyKernel>(a.Transpose(), v);
 
