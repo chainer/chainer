@@ -5,7 +5,7 @@ from chainermn.extensions import ObservationAggregator
 
 
 def _random_suffix(n):
-    return ''.join(random.choices(string.ascii_letters, k=n))
+    return ''.join([random.choice(string.ascii_letters) for i in range(n)])
 
 
 class MultiNodeEarlyStoppingTrigger(object):
