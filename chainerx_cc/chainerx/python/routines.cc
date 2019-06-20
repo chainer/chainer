@@ -622,6 +622,8 @@ void InitChainerxManipulation(pybind11::module& m) {
 }
 
 void InitChainerxActivation(pybind11::module& m) {
+    m.def("clipped_relu", [](const ArrayBodyPtr& x, Scalar z) { return MoveArrayBody(ClippedRelu(Array{x}, z)); }, "x"_a, "z"_a = 20.0);
+    m.def("crelu", [](const ArrayBodyPtr& x, int8_t axis) { return MoveArrayBody(Crelu(Array{x}, axis)); }, "x"_a, "axis"_a = 1);
     m.def("sigmoid", [](const ArrayBodyPtr& x) { return MoveArrayBody(Sigmoid(Array{x})); }, "x"_a);
     m.def("relu", [](const ArrayBodyPtr& x) { return MoveArrayBody(Relu(Array{x})); }, "x"_a);
     m.def("leaky_relu",
@@ -1006,15 +1008,6 @@ void InitChainerxPooling(pybind11::module& m) {
           "stride"_a = py::none(),
           "pad"_a = 0,
           "pad_mode"_a = "ignore");
-}
-
-void InitChainerxActivation(pybind11::module& m) {
-    m.def("leaky_relu",
-          [](const ArrayBodyPtr& x, Scalar slope) { return MoveArrayBody(LeakyRelu(Array{x}, slope)); },
-          "x"_a,
-          "slope"_a = 0.2);
-    m.def("clipped_relu", [](const ArrayBodyPtr& x, Scalar z) { return MoveArrayBody(ClippedRelu(Array{x}, z)); }, "x"_a, "z"_a = 20.0);
-    m.def("crelu", [](const ArrayBodyPtr& x, int8_t axis) { return MoveArrayBody(Crelu(Array{x}, axis)); }, "x"_a, "axis"_a = 1);
 }
 
 }  // namespace

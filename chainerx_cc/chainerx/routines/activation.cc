@@ -23,13 +23,6 @@
 
 namespace chainerx {
 
-Array LeakyRelu(const Array& x, Scalar slope) {
-    Dtype dtype = internal::GetMathResultDtype(x.dtype());
-    const Array& x_cast = x.dtype() == dtype ? x : x.AsType(dtype);
-    Array zero = ZerosLike(x_cast, x_cast.device());
-    return Where(x_cast >= zero, x_cast, slope * x_cast);
-}
-
 Array ClippedRelu(const Array& x, Scalar z) {
     Dtype dtype = internal::GetMathResultDtype(x.dtype());
     const Array& x_cast = x.dtype() == dtype ? x : x.AsType(dtype);
@@ -55,6 +48,13 @@ Array Relu(const Array& x) {
     Dtype dtype = internal::GetMathResultDtype(x.dtype());
     const Array& x_cast = x.dtype() == dtype ? x : x.AsType(dtype);
     return Maximum(0, x_cast);
+}
+
+Array LeakyRelu(const Array& x, Scalar slope) {
+    Dtype dtype = internal::GetMathResultDtype(x.dtype());
+    const Array& x_cast = x.dtype() == dtype ? x : x.AsType(dtype);
+    Array zero = ZerosLike(x_cast, x_cast.device());
+    return Where(x_cast >= zero, x_cast, slope * x_cast);
 }
 
 }  // namespace chainerx
