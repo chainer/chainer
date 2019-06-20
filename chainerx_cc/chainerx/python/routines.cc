@@ -156,7 +156,6 @@ void InitChainerxCreation(pybind11::module& m) {
           "device"_a = nullptr);
     m.def("zeros",
           [](py::handle shape, py::handle dtype, py::kwargs kwargs) {
-              py::none None;
               py::handle device;
               std::tie(device) = GetKwargs(kwargs, "device");
               return MoveArrayBody(Zeros(ToShape(shape), dtype.is_none() ? Dtype::kFloat32 : GetDtype(dtype), GetDevice(device)));
@@ -165,7 +164,6 @@ void InitChainerxCreation(pybind11::module& m) {
           "dtype"_a = nullptr);
     m.def("zeros",
           [](py::int_ dim, py::handle dtype, py::kwargs kwargs) {
-              py::none None;
               py::handle device;
               std::tie(device) = GetKwargs(kwargs, "device");
               return MoveArrayBody(Zeros(Shape{dim}, dtype.is_none() ? Dtype::kFloat32 : GetDtype(dtype), GetDevice(device)));
