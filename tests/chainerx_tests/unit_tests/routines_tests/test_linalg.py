@@ -104,9 +104,11 @@ def test_dot_invalid(is_module, xp, device, a_shape, b_shape, dtype):
 ))
 class TestSolve(op_utils.NumpyOpTest):
 
-    def setup(self):
-        self.check_backward_options.update({'rtol': 1e-2})
-        self.check_double_backward_options.update({'rtol': 1e-1})
+    dodge_nondifferentiable = True
+
+    # def setup(self):
+    #     self.check_backward_options.update({'rtol': 1e-2})
+    #     self.check_double_backward_options.update({'rtol': 1e-1})
 
     def generate_inputs(self):
         a = numpy.random.random(self.shape).astype(self.in_dtypes)
@@ -152,9 +154,7 @@ class TestSolveFailing(op_utils.NumpyOpTest):
 ))
 class TestInverse(op_utils.NumpyOpTest):
 
-    def setup(self):
-        self.check_backward_options.update({'rtol': 1e-2})
-        self.check_double_backward_options.update({'rtol': 1e-1})
+    dodge_nondifferentiable = True
 
     def generate_inputs(self):
         a = numpy.random.random(self.shape).astype(self.in_dtypes)
