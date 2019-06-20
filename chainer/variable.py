@@ -864,11 +864,11 @@ class Variable(object):
         # TODO(okapies): handle the case when `self._data[0] is None` AND
         #  `self._device == CpuDevice()` (e.g., reassign a non-numpy array
         #  after assigning None)
-        if d is not None:
+        if d_old is not None and d is not None:
             # Use the cached value instead of retrieving via self.device
             # property to avoid getting CpuDevice() incorrectly
             device_old = self._device
-            if device_old is None and d_old is not None:
+            if device_old is None:  # d_old is not None
                 device_old = backend.get_device_from_array(d_old)
             if device_old is not None and not device_old.is_array_supported(d):
                 device_new = backend.get_device_from_array(d)
