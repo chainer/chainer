@@ -114,7 +114,14 @@ endif()
 
 get_third_party(abseil)
 include_directories("${CMAKE_CURRENT_BINARY_DIR}/abseil")
+# TODO(take-cheeze): Remove this hack for CI warning checks
+if (CHAINERX_WARNINGS_AS_ERRORS)
+    list(REMOVE_ITEM CMAKE_CXX_FLAGS "${CHAINERX_WARNINGS_AS_ERRORS_FLAGS}")
+endif()
 add_subdirectory("${CMAKE_CURRENT_BINARY_DIR}/abseil" "${CMAKE_CURRENT_BINARY_DIR}/abseil-build")
+if (CHAINERX_WARNINGS_AS_ERRORS)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CHAINERX_WARNINGS_AS_ERRORS_FLAGS}")
+endif()
 
 target_link_libraries(chainerx PUBLIC absl::failure_signal_handler)
 
