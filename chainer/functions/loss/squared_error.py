@@ -52,8 +52,8 @@ def squared_error(x0, x1):
     .. note::
 
         :func:`~chainer.functions.squared_error` and
-        :func:`~chainer.functions.squared_difference` are identical functions.
-        Only with different argument names.
+        :func:`~chainer.functions.squared_difference` are identical functions,
+        aside from the different argument names.
         They are both kept for backward compatibility.
 
     .. seealso:: :func:`~chainer.functions.squared_difference`
