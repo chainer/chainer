@@ -14,14 +14,20 @@ Environment variables
 
 Configure the following environment variables before installing Chainer.
 
-========================== ================================================================================================
-Environment variable       Description
-========================== ================================================================================================
-``CHAINER_BUILD_CHAINERX`` ``1`` to build the ``chainerx`` package along with ``chainer``. ``0`` to skip. Default is ``0``.
-``CHAINERX_BUILD_CUDA``    ``1`` to build ``chainerx`` with CUDA support. ``0`` to skip. Default is ``0``.
-``CUDNN_ROOT_DIR``         Path to your cuDNN installation. Required when ``CHAINERX_BUILD_CUDA=1``.
-``CHAINERX_ENABLE_BLAS``   ``1`` to make BLAS enabled. ``0`` to disabled. Default is ``1``.
-========================== ================================================================================================
+=========================== ========================================================================================================
+Environment variable        Description
+=========================== ========================================================================================================
+``CHAINER_BUILD_CHAINERX``  ``1`` to build the ``chainerx`` package along with ``chainer``. ``0`` to skip. Default is ``0``.
+``CHAINERX_BUILD_CUDA``     ``1`` to build ``chainerx`` with CUDA support. ``0`` to skip. Default is ``0``.
+``CUDNN_ROOT_DIR``          Path to your cuDNN installation. Required when ``CHAINERX_BUILD_CUDA=1``.
+``CHAINERX_CUDNN_USE_CUPY`` ``1`` to search for cuDNN library and include files in existing `CuPy <https://docs-cupy.chainer.org/>`_
+                            installation.
+                            Only applicable for CuPy installed via wheel (binary) distribution.
+                            Other variables related to cuDNN paths (such as ``CUDNN_ROOT_DIR``) are ignored.
+                            Be warned that the resulting executable will be invalidated if CuPy is uninstalled, moved or
+                            replaced.
+``CHAINERX_ENABLE_BLAS``    ``1`` to make BLAS enabled. ``0`` to disabled. Default is ``1``.
+=========================== ========================================================================================================
 
 Installing from source
 ----------------------
