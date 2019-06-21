@@ -1,9 +1,6 @@
 import chainer
 import numpy
 
-import chainerx
-import chainerx.testing
-
 from chainerx_tests import array_utils
 from chainerx_tests import dtype_utils
 from chainerx_tests import op_utils
@@ -93,6 +90,36 @@ _in_out_dtypes_math_functions = _in_out_float_dtypes_math_functions + [
         'skip_double_backward_test': [True],
     })
 ))
+class TestLeakyRelu(UnaryMathTestBase, op_utils.NumpyOpTest):
+
+    slope = 0.2
+    check_numpy_strides_compliance = False
+
+    def func(self, xp, a):
+        if xp is numpy:
+            expected = numpy.where(a >= 0, a, a * self.slope)
+            return expected
+        return xp.leaky_relu(a, self.slope)
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    # Special shapes
+    chainer.testing.product({
+        'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
+        'in_dtypes,out_dtype': _in_out_dtypes_math_functions,
+        'input': [-2, 2],
+        'contiguous': [None, 'C'],
+    })
+    # Special values
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,out_dtype': _in_out_float_dtypes_math_functions,
+        'input': [0, float('inf'), -float('inf'), float('nan')],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True],
+    })
+))
 class TestRelu(UnaryMathTestBase, op_utils.NumpyOpTest):
 
     def func(self, xp, a):
@@ -102,31 +129,27 @@ class TestRelu(UnaryMathTestBase, op_utils.NumpyOpTest):
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
-class TestSigmoid(op_utils.OpTest):
+@chainer.testing.parameterize(*(
+    # Special shapes
+    chainer.testing.product({
+        'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
+        'in_dtypes,out_dtype': _in_out_dtypes_math_functions,
+        'input': [0, -1, 1, -2, 2, 10],
+        'contiguous': [None, 'C'],
+    })
+    # Special values
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,out_dtype': _in_out_float_dtypes_math_functions,
+        'input': [0, float('inf'), -float('inf'), float('nan')],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True],
+    })
+))
+class TestSigmoid(UnaryMathTestBase, op_utils.NumpyOpTest):
 
-    # TODO(imanishi): Dtype promotion is not supported yet.
-    def setup(self, shape, float_dtype):
-        self.shape = shape
-        self.dtype = float_dtype
-
-        if float_dtype == 'float16':
-            self.check_forward_options.update({'atol': 1e-4, 'rtol': 1e-3})
-            self.check_backward_options.update({'atol': 1e-2, 'rtol': 5e-2})
-            self.check_double_backward_options.update(
-                {'atol': 1e-2, 'rtol': 5e-2})
-
-    def generate_inputs(self):
-        shape = self.shape
-        dtype = self.dtype
-        x = array_utils.create_dummy_ndarray(numpy, shape, dtype)
-        return x,
-
-    def forward_chainerx(self, inputs):
-        x, = inputs
-        y = chainerx.sigmoid(x)
-        return y,
-
-    def forward_expected(self, inputs):
-        x, = inputs
-        y = numpy.asarray(numpy.reciprocal(1 + numpy.exp(-x))).astype(x.dtype)
-        return y,
+    def func(self, xp, a):
+        if xp is numpy:
+            return numpy.asarray(
+                numpy.reciprocal(1 + numpy.exp(-a))).astype(a.dtype)
+        return xp.sigmoid(a)
