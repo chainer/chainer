@@ -10,9 +10,30 @@ from chainer.backends import cuda
 
 class Converter(object):
 
-    """Base class of converters."""
+    """Base class of converters.
+
+    Converters receive batched data retrieved from iterators and perform
+    arbitrary transforms as well as device transfer.
+
+    Converters are required have a ``__call__`` method.
+
+    .. seealso::
+        :meth:`chainer.dataset.converter` --- a decorator to turn a converter
+        function into a ``Converter`` instance.
+
+    """
 
     def __call__(self, batch, device):
+        """Performs conversion.
+
+        Args:
+            batch:
+                A batch. The type and value are arbitrary, depending on usage.
+            device(~chainer.backend.Device):
+                Device to which the converter is expected to send the batch.
+
+        Returns: A converted batch.
+        """
         raise NotImplementedError(
             'Concrete class must implement __call__.')
 
@@ -45,10 +66,19 @@ class _ArbitraryCallableConverter(Converter):
 
 
 def converter():
-    """Decorator to make a converter function.
+    """Decorator to make a converter.
 
-    The target converter must be a callable that accepts two positional
-    arguments: a batch and a device, and returns a converted batch.
+    This decorator turns a converter function into a
+    :class:`chainer.dataset.Converter` class instance, which also is a
+    callable.
+    This is required to use the converter function from an old module that
+    does not support :class:`chainer.backend.Device` instances
+    (See the **Device argument conversion** section below).
+
+    .. rubric:: Requirements of the target function
+
+    The target converter function must accept two positional arguments:
+    a batch and a device, and return a converted batch.
 
     The type of the device argument is :class:`chainer.backend.Device`.
 
@@ -64,9 +94,9 @@ def converter():
         ...     # do something with batch...
         ...     return device.send(batch)
 
-    This decorator puts a mark on the target converter function so that
-    Chainer can recognize that it accepts :class:`chainer.backend.Device` as
-    the device argument. For backward compatibility, the decorator also wraps
+    .. rubric:: Device argument conversion
+
+    For backward compatibility, the decorator wraps
     the function so that if the converter is called with the device argument
     with ``int`` type, it is converted to a :class:`chainer.backend.Device`
     instance before calling the original function. The ``int`` value indicates
