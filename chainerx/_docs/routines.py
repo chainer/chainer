@@ -529,7 +529,8 @@ Args:
     a (~chainerx.ndarray): Real symmetric matrix whose eigenvalues
         and eigenvectors are to be computed.
     UPLO (string): Specifies whether the calculation is done with the lower
-        triangular part of a (‘L’, default) or the upper triangular part (‘U’). (optional).
+        triangular part of a (‘L’, default) or the upper triangular part (‘U’).
+        (optional).
 
 Returns:
     w (~chainerx.ndarray): The eigenvalues in ascending order, each repeated
