@@ -22,10 +22,10 @@ n_step_lstm_dtypes_valid = dtype_utils._permutate_dtype_mapping([
     chainer.testing.product([
         chainer.testing.from_pytest_parameterize(
             'n_layers,hidden_size,input_size,batches', [
-                (1, 2, 1, (1, 1, 1)),
-                (2, 6, 8, (4, 2, 2)),
-                (3, 8, 4, (4, 2, 1)),
-                (4, 12, 4, (4, 3, 2)),
+                #(2, 2, 1, (1, 1, 1)),
+                (1, 2, 2, (2, 2, 2, 2)),
+                #(3, 8, 4, (4, 2, 1)),
+                #(4, 12, 4, (4, 3, 2)),
 
             ]),
         chainer.testing.from_pytest_parameterize(
@@ -40,9 +40,11 @@ class TestNStepLstm(op_utils.ChainerOpTest):
                 'rtol': 1e-2, 'atol': 1e-2})
         self.check_backward_options.update({
                 'rtol': 1e-2, 'atol': 1e-2})
-        self.check_double_backward_options.update({
-            'rtol': 5e-3, 'atol': 5e-2})
+        #self.check_double_backward_options.update({
+        #    'rtol': 5e-3, 'atol': 5e-2})
+        #self.skip_forward_test = True
         self.skip_double_backward_test = True
+        #self.skip_backward_test = True
 
     def generate_inputs(self):
         h_shape = (self.n_layers, self.batches[0], self.hidden_size)

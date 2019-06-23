@@ -2,7 +2,8 @@
 #include "chainerx/cuda/cuda.h"
 #include "chainerx/cuda/cuda_runtime.h"
 #include <cuda.h>
-
+#include <iostream>
+#include <stdio.h>
 #include <cuda_runtime_api.h>
 #include <cuda_runtime.h>
 
@@ -14,6 +15,7 @@ __global__ void initGPUData_ker(float *data, int numElements, float* value) {
    int tid = blockIdx.x * blockDim.x + threadIdx.x;
    if (tid < numElements) {
       data[tid] = value[tid];
+      
    }
 }
 

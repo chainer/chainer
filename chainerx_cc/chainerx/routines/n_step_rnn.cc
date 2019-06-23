@@ -5,6 +5,7 @@
 #include <functional>
 #include <utility>
 #include <vector>
+#include <iostream>
 
 #include <nonstd/optional.hpp>
 
@@ -238,16 +239,17 @@ std::vector<std::vector<Array>> n_step_lstm(
                 for(uint i = 2; i < xs.size() + 2; i++) {
                     out_retain.push_back(i);
                 }
-                bt.Define([timesteps = xs.size(), input_toks = bb.RetainInput(ind), out_toks = bb.RetainOutput(out_retain), n_layers](BackwardContext& bctx) {
+                bt.Define([w_size = ws[0].size(), timesteps = xs.size(), input_toks = bb.RetainInput(ind), out_toks = bb.RetainOutput(out_retain), n_layers](BackwardContext& bctx) {
                     Array hx = bctx.GetRetainedInput(input_toks[0]);
                     Array cx = bctx.GetRetainedInput(input_toks[1]);
+
                     std::vector<std::vector<Array>> ws;
                     std::vector<std::vector<Array>> bs;
                     int cnt = 2;
                     for(int i = 0; i < n_layers; i++) {
                         std::vector<Array> ws_i;
                         std::vector<Array> bs_i;
-                        for(int j = 0; j < 8; j++) {
+                        for(uint j = 0; j < w_size; j++) {
                             ws_i.push_back(bctx.GetRetainedInput(input_toks[cnt++]));
                             bs_i.push_back(bctx.GetRetainedInput(input_toks[cnt++]));
                         }
@@ -263,33 +265,33 @@ std::vector<std::vector<Array>> n_step_lstm(
                     for(uint i = 0; i < timesteps; i++) {
                         out.push_back(bctx.GetRetainedOutput(out_toks[i]));
                     }
+
                     const nonstd::optional<Array> dhy_n = bctx.output_grad(0);
                     Array dhy;
                     if(dhy_n.has_value()) {
-
                         dhy = *dhy_n;
-                    } else{
+                    } else {
 
-                        dhy = Zeros(hx.shape(), hx.dtype(), hx.device());
+                        dhy = Empty(hx.shape(), hx.dtype(), hx.device());
                     }
                     const nonstd::optional<Array> dcy_n = bctx.output_grad(1);
                     Array dcy;
                     if(dcy_n.has_value()) {
                         dcy = *dcy_n;
                     } else {
-                        dcy = Zeros(cx.shape(), cx.dtype(), cx.device());
+                       dcy = Empty(cx.shape(), cx.dtype(), cx.device());
                     }
                     std::vector<Array> dout;
 
 
-                    for(uint i = 2; i < xs.size()+2; i++) {
+                    for(uint i = 2; i < timesteps + 2; i++) {
 
                         const nonstd::optional<Array> temp_n = bctx.output_grad(i);
                         Array temp;
                         if(temp_n.has_value()) {
                             temp = *temp_n;
                         } else {
-                            temp = Zeros({xs[i-2].shape()[0], hx.shape()[2]}, hx.dtype(), hx.device());
+                            temp = Empty({xs[i - 2].shape()[0], hx.shape()[2]}, hx.dtype(), hx.device());
                         }
                         dout.push_back(temp);
                     }
@@ -299,23 +301,25 @@ std::vector<std::vector<Array>> n_step_lstm(
                     int grad_ind = 2;
                     for(int64_t i = 0; i <  n_layers; i++) {
                         for(int64_t j = 0; j <  8; j++) {
-                            bctx.input_grad(grad_ind) = grad[2][grad_ind - 2];
+                            bctx.input_grad(grad_ind) = grad[1][grad_ind - 2];
                             grad_ind++;
-                            bctx.input_grad(grad_ind) = grad[2][grad_ind - 2];
+                            bctx.input_grad(grad_ind) = grad[1][grad_ind - 2];
                             grad_ind++;
                         }
                     }
 
-                    for(uint i = 0; i < xs.size(); i++) {
+                    for(uint i = 0; i < timesteps; i++) {
 
-                        bctx.input_grad(grad_ind++) = grad[1][i];
+                        bctx.input_grad(grad_ind++) = grad[2][i];
                     }
+
                 });
             }
+            bb.Finalize();
         }
         return out;
     } else {
-    return n_step_rnn_impl(&_lstm, n_layers, hx, nonstd::optional<Array>{cx}, ws, bs, xs, 0);
+        return n_step_rnn_impl(&_lstm, n_layers, hx, nonstd::optional<Array>{cx}, ws, bs, xs, 0);
     }
 }
 
@@ -330,6 +334,4 @@ std::vector<std::vector<Array>> n_step_bilstm(
     return n_step_rnn_impl(&_lstm, n_layers, hx, nonstd::optional<Array>{cx}, ws, bs, xs, 1);
     
 }
-
-
 }  // namespace chainerx
