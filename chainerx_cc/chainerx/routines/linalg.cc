@@ -125,8 +125,10 @@ Array Solve(const Array& a, const Array& b) {
                 const Array& a = bctx.GetRetainedInput(a_tok);
                 const Array& out = bctx.GetRetainedOutput(out_tok);
                 const Array& gout = *bctx.output_grad();
-                bctx.input_grad() = -Dot(Solve(a.Transpose(), gout).At(std::vector<ArrayIndex>{Slice{}, NewAxis{}}),
-                                         out.At(std::vector<ArrayIndex>{Slice{}, NewAxis{}}).Transpose(), a_dtype);
+                bctx.input_grad() =
+                        -Dot(Solve(a.Transpose(), gout).At(std::vector<ArrayIndex>{Slice{}, NewAxis{}}),
+                             out.At(std::vector<ArrayIndex>{Slice{}, NewAxis{}}).Transpose(),
+                             a_dtype);
             });
         }
         if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
