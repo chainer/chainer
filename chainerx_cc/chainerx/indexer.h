@@ -49,6 +49,8 @@ public:
         return IndexIterator<kNdim>{shape_, total_size_, start, step};
     }
 
+    CHAINERX_HOST_DEVICE IndexIterator<kNdim> It(int64_t start) const { return IndexIterator<kNdim>{shape_, total_size_, start}; }
+
     CHAINERX_HOST_DEVICE constexpr int8_t ndim() const { return kNdim; }
 
     CHAINERX_HOST_DEVICE int64_t total_size() const { return total_size_; }
@@ -71,6 +73,8 @@ public:
 
     CHAINERX_HOST_DEVICE IndexIterator<0> It(int64_t start, int64_t step = 1) const { return IndexIterator<0>{start, step}; }
 
+    CHAINERX_HOST_DEVICE IndexIterator<0> It(int64_t start) const { return IndexIterator<0>{start}; }
+
     CHAINERX_HOST_DEVICE static constexpr int8_t ndim() { return 0; }
 
     CHAINERX_HOST_DEVICE static constexpr int64_t total_size() { return 1; }
@@ -85,6 +89,8 @@ public:
     explicit Indexer(const Shape& shape) : total_size_{shape[0]} { CHAINERX_ASSERT(1 == shape.ndim()); }
 
     CHAINERX_HOST_DEVICE IndexIterator<1> It(int64_t start, int64_t step = 1) const { return IndexIterator<1>{total_size_, start, step}; }
+
+    CHAINERX_HOST_DEVICE IndexIterator<1> It(int64_t start) const { return IndexIterator<1>{total_size_, start}; }
 
     CHAINERX_HOST_DEVICE static constexpr int8_t ndim() { return 1; }
 
@@ -106,6 +112,10 @@ public:
 
     CHAINERX_HOST_DEVICE IndexIterator<kDynamicNdim> It(int64_t start, int64_t step = 1) const {
         return IndexIterator<kDynamicNdim>{shape_, ndim_, total_size_, start, step};
+    }
+
+    CHAINERX_HOST_DEVICE IndexIterator<kDynamicNdim> It(int64_t start) const {
+        return IndexIterator<kDynamicNdim>{shape_, ndim_, total_size_, start};
     }
 
     CHAINERX_HOST_DEVICE int8_t ndim() const { return ndim_; }
