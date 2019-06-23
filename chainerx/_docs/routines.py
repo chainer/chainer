@@ -565,7 +565,8 @@ Note:
 Returns the Cholesky decomposition for the square matrix ``a``.
 
 Args:
-    a (~chainerx.ndarray): Hermitian (symmetric if all elements are real), positive-definite input matrix.
+    a (~chainerx.ndarray): Hermitian (symmetric if all elements are real),
+        positive-definite input matrix.
 
 Returns:
     :class:`~chainerx.ndarray`: Output array. Cholesky factor of ``a``.
