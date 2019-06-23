@@ -106,35 +106,6 @@ public:
 
 CHAINERX_NATIVE_REGISTER_KERNEL(SumKernel, NativeSumKernel);
 
-class NativeCumsumKernel : public CumsumKernel {
-public:
-    void Call(const Array& a, const Axes& axis, const Array& out) override {
-        a.device().CheckDevicesCompatible(a, out);
-
-        auto do_cumsum = [&a, &axis, &out](auto pt) {
-            using T = typename decltype(pt)::type;
-            Reduce<In, Out>(a, axis, out, Impl{});
-            IndexableArray<const T> a_iarray{a};
-            IndexableArray<const T> out_iarray{out};
-
-            Indexer<> a_indexer{a.shape()};
-            Indexer<> out_indexer{out.shape()};
-
-            auto it_a = a_indexer.It(1);
-            auto it_out = out_indexer.It(0);
-
-            for (auto it = a_indexer.It(1); it; ++it) {
-                it_out.Restart(it.raw_index() - 1);
-                out_iarray[it_out] = a_iarray[it] + a_iarray[it - 1];
-            }
-        };
-
-        VisitDtype(out.dtype(), [a_dtype = a.dtype(), &do_cumsum](auto pt) { VisitDtype(a_dtype, do_cumsum, pt); });
-    }
-};
-
-CHAINERX_NATIVE_REGISTER_KERNEL(CumsumKernel, NativeCumsumKernel);
-
 }  // namespace
 }  // namespace native
 }  // namespace chainerx
