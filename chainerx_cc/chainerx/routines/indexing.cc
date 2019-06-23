@@ -293,4 +293,27 @@ Array Where(const Array& condition, Scalar x, Scalar y) {
     return out;
 }
 
+Array Cumsum(const Array& a, int8_t axis) {
+    int8_t axis_norm = internal::NormalizeAxis(axis, a.ndim());
+
+    Shape out_shape = a.shape();
+    Array out = Empty(out_shape, a.dtype(), a.device());
+
+    {
+        NoBackpropModeScope scope{};
+        a.device().backend().CallKernel<CumsumKernel>(a, axis_norm, out);
+    }
+
+    BackwardBuilder bb{"cumsum", a, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([axis_norm, a_shape = a.shape()](BackwardContext& bctx) {
+            const Array& gout = *bctx.output_grad();
+            // Not implemented yet.
+        });
+    }
+    bb.Finalize();
+
+    return out;
+}
+
 }  // namespace chainerx

@@ -43,4 +43,6 @@ Array Where(const Array& condition, Scalar x, const Array& y);
 
 Array Where(const Array& condition, Scalar x, Scalar y);
 
+Array Cumsum(const Array& a, const OptionalAxes& axis = nonstd::nullopt);
+
 }  // namespace chainerx
