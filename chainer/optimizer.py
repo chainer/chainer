@@ -192,6 +192,10 @@ class UpdateRule(object):
 
         self.t += 1
 
+        with chainer.using_device(param.device):
+            self.__update(param)
+
+    def __update(self, param):
         if self._use_fp32_update and param.dtype == numpy.float16:
             if self._fp32_param is None:
                 self._fp32_param = variable.Variable(
