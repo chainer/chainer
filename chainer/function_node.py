@@ -1011,39 +1011,36 @@ def grad(outputs, inputs, grad_outputs=None, grad_inputs=None, set_grad=False,
 
     # Check if all the inputs are chainerx arrays and if so
     # Relies in chainerx.grad function
-    chx_inputs = sum(map(lambda x: x._has_chainerx_array
-                         if x is not None else False, inputs))
-    if chx_inputs == len(inputs):
-        # Need to access the arrays to invoke the chainer grad function
-        if grad_inputs is not None:
-            grad_inputs_chx = list(map(lambda x: x._data[0], grad_inputs))
-        else:
-            grad_inputs_chx = []
-        if grad_outputs is not None:
-            grad_outs_chx = list(map(lambda x: x._data[0], grad_outputs))
-        else:
-            grad_outs_chx = []
-        if retain_grad:
-            raise ValueError(
-                'retain_grad is not supported on chainerx.grad interface')
+    n_chx_inputs = sum([False if x is None else x._has_chainerx_array
+                        for x in inputs])
+    if n_chx_inputs == len(inputs):
         if loss_scale is not None:
             raise ValueError(
                 'loss_scale is not supported on chainerx.grad interface')
 
-        outputs_chx = list(map(lambda x: x._data[0], outputs))
-        inputs_chx = list(map(lambda x: x._data[0], inputs))
+        # Need to access the arrays to invoke the chainer grad function
+        if grad_inputs:
+            grad_inputs_chx = [x._data[0] for x in grad_inputs]
+        else:
+            grad_inputs_chx = []
+        if grad_outputs:
+            grad_outputs_chx = [x._data[0] for x in grad_outputs]
+        else:
+            grad_outputs_chx = []
+        outputs_chx = [x._data[0] for x in outputs]
+        inputs_chx = [x._data[0] for x in inputs]
         grads = chainerx.grad(outputs_chx, inputs_chx,
                               backprop_id=None,
                               enable_double_backprop=enable_double_backprop,
                               set_grad=set_grad,
+                              retain_grad=retain_grad,
                               grad_inputs=grad_inputs_chx,
-                              grad_outputs=grad_outs_chx)
-        ret_vars = [variable.Variable(g, requires_grad=False) for g in grads]
-        if set_grad:
-            for x, g in zip(inputs, ret_vars):
-                x.grad_var = g
+                              grad_outputs=grad_outputs_chx)
+        ret_vars = [variable.Variable(g,
+                                      requires_grad=g.is_backprop_required())
+                    for g in grads]
         return ret_vars
-    elif chx_inputs > 0:
+    elif n_chx_inputs > 0:
         raise TypeError(
             'Mixing chainerx and non-chainerx variables is not allowed')
 

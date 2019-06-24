@@ -883,8 +883,6 @@ class GradTestBase(object):
         for name in names:
             v = chainer.Variable(
                 numpy.random.randint(-4, 6, self.shape).astype('f'), name=name)
-            if self.extend_graph_x:
-                v *= 1.
             ret.append(v)
             setattr(self, name, v)
         return ret
@@ -920,6 +918,11 @@ class GradTestBase(object):
             if isinstance(value, chainer.Variable):
                 value.to_gpu()
 
+    def use_chainerx(self, device='native:1'):
+        for value in six.itervalues(self.__dict__):
+            if isinstance(value, chainer.Variable):
+                value.to_device(backend.get_device(device))
+
     def forward(self):
         raise NotImplementedError
 
@@ -943,6 +946,13 @@ class GradTestBase(object):
         ys = [getattr(self, name) for name in self.y_names]
         if self.extend_graph_y:
             self._ys = [v * 1. for v in ys]
+
+        # graph_x extension should be done here
+        # to avoid chainer/chainerx mixed graph
+        if self.extend_graph_x:
+            for v in self.xs:
+                v *= 1.
+
         gxs = chainer.grad(ys, self.xs, self.gys, self.gxs,
                            loss_scale=self.loss_scale)
 
@@ -960,13 +970,28 @@ class GradTestBase(object):
             self._print_variables('gxs (expected)', expected)
             raise
 
+    def chainerx_grad(self, device):
+        if self.loss_scale:
+            pytest.skip('Unsupported configurations')
+        self.use_chainerx(device)
+        self.check_grad()
+
     def test_grad_cpu(self):
         self.check_grad()
+
+    @attr.chainerx
+    def test_grad_chainerx_cpu(self):
+        self.chainerx_grad('native:1')
 
     @attr.gpu
     def test_grad_gpu(self):
         self.use_gpu()
         self.check_grad()
+
+    @attr.chainerx
+    @attr.gpu
+    def test_grad_chainerx_gpu(self):
+        self.chainerx_grad('cuda:0')
 
     def check_double_grad(self):
         self.forward()
@@ -992,10 +1017,25 @@ class GradTestBase(object):
     def test_double_grad_cpu(self):
         self.check_double_grad()
 
+    def double_chainerx_grad(self, device):
+        if self.loss_scale:
+            pytest.skip('Unsupported configurations')
+        self.use_chainerx(device)
+        self.check_double_grad()
+
+    @attr.chainerx
+    def test_double_grad_chainerx_cpu(self):
+        self.double_chainerx_grad('native:1')
+
     @attr.gpu
     def test_double_grad_gpu(self):
         self.use_gpu()
         self.check_double_grad()
+
+    @attr.chainerx
+    @attr.gpu
+    def test_double_grad_chainerx_gpu(self):
+        self.double_chainerx_grad('cuda:0')
 
 
 @testing.parameterize(*testing.product({
