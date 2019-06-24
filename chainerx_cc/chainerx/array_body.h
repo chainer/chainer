@@ -76,8 +76,6 @@ public:
                std::find(grad_required_backprop_ids_.begin(), grad_required_backprop_ids_.end(), backprop_id);
     }
 
-    bool IsUnchained(const BackpropId& backprop_id) const;
-
     // Mark the gradient of the specified backprop ID as required.
     // This does not take backprop mode into account.
     static void RequireGrad(const std::shared_ptr<ArrayBody>& body, const BackpropId& backprop_id) {

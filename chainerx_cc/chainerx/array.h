@@ -257,10 +257,6 @@ public:
     // This function ignores no/force-backprop mode.
     bool IsGradRequired(const nonstd::optional<BackpropId>& backprop_id = nonstd::nullopt) const;
 
-    // Returns true if the array is unchained, i.e. is a leaf node in the computational graph corresponding to the given backprop id, false
-    // otherwise.
-    bool IsUnchained(const nonstd::optional<BackpropId>& backprop_id = nonstd::nullopt) const;
-
     // Flags the array to compute the gradient during backprop.
     // If the array is constant with respect to the computation of the backprop ID, this function makes the array non-constant.
     //

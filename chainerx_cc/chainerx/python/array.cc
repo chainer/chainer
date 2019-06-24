@@ -12,6 +12,7 @@
 #include <nonstd/optional.hpp>
 
 #include "chainerx/array.h"
+#include "chainerx/array_body.h"
 #include "chainerx/array_index.h"
 #include "chainerx/axes.h"
 #include "chainerx/backend_util.h"
@@ -533,9 +534,6 @@ void InitChainerxArray(pybind11::module& m) {
     c.def("is_backprop_required",
           [](const ArrayBodyPtr& self, AnyGraph any_graph) { return Array{self}.IsBackpropRequired(any_graph); },
           "backprop_id"_a);
-    c.def("is_unchained",
-          [](const ArrayBodyPtr& self, const nonstd::optional<BackpropId>& backprop_id) { return Array{self}.IsUnchained(backprop_id); },
-          "backprop_id"_a = nullptr);
     c.def("get_grad",
           [](const ArrayBodyPtr& self, const nonstd::optional<BackpropId>& backprop_id) -> ConstArrayBodyPtr {
               const nonstd::optional<Array>& grad = Array{self}.GetGrad(backprop_id);
@@ -638,6 +636,16 @@ void InitChainerxArray(pybind11::module& m) {
 
         return list;
     });
+    c.def("_is_chained",
+          [](const ArrayBodyPtr& self, const nonstd::optional<BackpropId>& backprop_id) {
+              BackpropId actual_backprop_id = internal::GetArrayBackpropId(Array{self}, backprop_id);
+              actual_backprop_id.CheckValid();
+              if (!self->HasArrayNode(actual_backprop_id)) {
+                  throw ChainerxError{"Array is constant with respect to the computation for backprop ID: '", actual_backprop_id, "'."};
+              }
+              return self->GetArrayNode(actual_backprop_id)->creator_op_node() != nullptr;
+          },
+          "backprop_id"_a = nullptr);
 }
 
 }  // namespace python_internal
