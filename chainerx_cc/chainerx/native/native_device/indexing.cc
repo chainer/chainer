@@ -282,7 +282,7 @@ public:
             auto it_a = a_indexer.It(0);
             auto it_prev = prev_indexer.It(0);
 
-            for (auto it = indices_indexer.It(0); it; ++it) {
+            for (auto it = indices_indexer.It(1); it; ++it) {
                 int64_t index = it.raw_index();
                 it_axis.Restart(index);
 
