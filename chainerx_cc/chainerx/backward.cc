@@ -592,6 +592,7 @@ std::vector<nonstd::optional<Array>> Grad(
         const std::vector<ConstArrayRef>& inputs,
         const nonstd::optional<BackpropId>& backprop_id,
         DoubleBackpropOption double_backprop,
+        bool set_grad,
         const std::vector<ConstArrayRef>& grad_inputs,
         const std::vector<ConstArrayRef>& grad_outputs){
 
@@ -615,7 +616,7 @@ std::vector<nonstd::optional<Array>> Grad(
     // Initialize the grad map with newly created gradient arrays of the inputs.
     // The existing gradients of the inputs are thus not modified.
     std::unordered_map<ArrayNode*, internal::GradRef> array_node_grad_map;
-    for (size_t i=0; i<inputs.size();i++){
+    for (size_t i=0; i<inputs.size();i++) {
         const std::shared_ptr<ArrayBody>& array_body = internal::GetArrayBody(inputs[i]);
         if (const std::shared_ptr<ArrayNode>& input_array_node = array_body->GetArrayNode(actual_backprop_id)) {
             input_grads.emplace_back(grad_inputs.size()? nonstd::optional<Array>{grad_inputs[i]} : nonstd::optional<Array>{});
@@ -626,7 +627,7 @@ std::vector<nonstd::optional<Array>> Grad(
     }
 
     // Push initial output grads, Run assigns to 1 in other case 
-    for (size_t i=0; i<grad_outputs.size();i++){
+    for (size_t i=0; i<grad_outputs.size();i++) {
         const std::shared_ptr<ArrayBody>& array_body = internal::GetArrayBody(outputs[i]);
         if (const std::shared_ptr<ArrayNode>& array_node = array_body->GetArrayNode(actual_backprop_id)) {
             output_grads.emplace_back(grad_outputs[i]);
@@ -636,11 +637,17 @@ std::vector<nonstd::optional<Array>> Grad(
 
     BackwardImpl{inputs, outputs, actual_backprop_id, double_backprop, std::move(array_node_grad_map)}.Run();
 
+    size_t i = 0;
     // input_grads may contain unmodified array bodies (nullptr) for arrays that are not included in the graph.
     // Those grads are returned as nullopt.
     for (nonstd::optional<Array>& grad : input_grads) {
-        if (grad.has_value() && internal::GetArrayBody(*grad) == nullptr) {
-            grad = nonstd::nullopt;
+        if (grad.has_value()) {
+            if (internal::GetArrayBody(*grad) == nullptr) {
+                grad = nonstd::nullopt;
+            }
+            if (set_grad) {
+                inputs[i++].get().SetGrad(grad.value(), backprop_id);
+            }
         }
     }
 

@@ -1028,6 +1028,7 @@ def grad(outputs, inputs, grad_outputs=None, grad_inputs=None, set_grad=False,
         grads = chainerx.grad(outputs_chx, inputs_chx,
                               backprop_id=None,
                               enable_double_backprop=enable_double_backprop,
+                              set_grad=set_grad,
                               grad_inputs=grad_inputs_chx,
                               grad_outputs=grad_outs_chx)
         ret_vars = [variable.Variable(g, requires_grad=False) for g in grads]

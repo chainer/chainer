@@ -62,6 +62,7 @@ void InitChainerxBackward(pybind11::module& m) {
              const std::vector<ArrayBodyPtr>& inputs,
              const nonstd::optional<BackpropId>& backprop_id,
              bool enable_double_backprop,
+             bool set_grad,
              const std::vector<ArrayBodyPtr>& grad_inputs,
              const std::vector<ArrayBodyPtr>& grad_outputs){
               std::vector<Array> output_arrays = ConvertToArrays(outputs);
@@ -76,15 +77,16 @@ void InitChainerxBackward(pybind11::module& m) {
                            {input_arrays.begin(), input_arrays.end()},
                            backprop_id,
                            double_backprop,
+                           set_grad,
                            std::vector<ConstArrayRef>{grad_input_arrays.begin(), grad_input_arrays.end()},
                            std::vector<ConstArrayRef>{grad_output_arrays.begin(), grad_output_arrays.end()});
-                           //out_grads});
               return internal::MoveArrayBodies(std::move(grads));
           },
           py::arg(),  // outputs
           py::arg(),  // inputs
           py::arg("backprop_id") = nullptr,
           py::arg("enable_double_backprop") = false,
+          py::arg("set_grad") = false,
           py::arg("grad_inputs") = std::vector<ArrayBodyPtr>{},
           py::arg("grad_outputs") = std::vector<ArrayBodyPtr>{});
 }

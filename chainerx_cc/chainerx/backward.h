@@ -50,6 +50,7 @@ std::vector<nonstd::optional<Array>> Grad(
         const std::vector<ConstArrayRef>& inputs,
         const nonstd::optional<BackpropId>& backprop_id = nonstd::nullopt,
         DoubleBackpropOption double_backprop = DoubleBackpropOption::kDisable,
+        bool set_grad = false,
         const std::vector<ConstArrayRef>& grad_inputs = {},
         const std::vector<ConstArrayRef>& grad_outputs = {});
 
