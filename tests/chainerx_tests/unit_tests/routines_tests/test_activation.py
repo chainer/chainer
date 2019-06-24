@@ -124,7 +124,7 @@ class TestClippedRelu(UnaryMathTestBase, op_utils.NumpyOpTest):
         'in_dtypes,out_dtype': _in_out_dtypes_math_functions,
     })
 ))
-class TestCrelu(UnaryMathTestBase, op_utils.NumpyOpTest):
+class TestCRelu(UnaryMathTestBase, op_utils.NumpyOpTest):
 
     check_numpy_strides_compliance = False
     dodge_nondifferentiable = True

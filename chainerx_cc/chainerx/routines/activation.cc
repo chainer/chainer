@@ -29,7 +29,7 @@ Array ClippedRelu(const Array& x, Scalar z) {
     return Minimum(Maximum(0, x_cast), z);
 }
 
-Array Crelu(const Array& x, int8_t axis) {
+Array CRelu(const Array& x, int8_t axis) {
     // TODO(aksub99): Optimize implementation to use a single memory allocation.
     Dtype dtype = internal::GetMathResultDtype(x.dtype());
     const Array& x_cast = x.dtype() == dtype ? x : x.AsType(dtype);
