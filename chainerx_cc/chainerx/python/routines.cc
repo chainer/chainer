@@ -623,6 +623,8 @@ void InitChainerxManipulation(pybind11::module& m) {
 }
 
 void InitChainerxActivation(pybind11::module& m) {
+    m.def("clipped_relu", [](const ArrayBodyPtr& x, Scalar z) { return MoveArrayBody(ClippedRelu(Array{x}, z)); }, "x"_a, "z"_a = 20.0);
+    m.def("crelu", [](const ArrayBodyPtr& x, int8_t axis) { return MoveArrayBody(CRelu(Array{x}, axis)); }, "x"_a, "axis"_a = 1);
     m.def("sigmoid", [](const ArrayBodyPtr& x) { return MoveArrayBody(Sigmoid(Array{x})); }, "x"_a);
     m.def("relu", [](const ArrayBodyPtr& x) { return MoveArrayBody(Relu(Array{x})); }, "x"_a);
     m.def("leaky_relu",
