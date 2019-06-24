@@ -636,6 +636,7 @@ void InitChainerxArray(pybind11::module& m) {
 
         return list;
     });
+    // TODO(hvy): Rename `_is_chained` to a less ambiguous function name.
     c.def("_is_chained",
           [](const ArrayBodyPtr& self, const nonstd::optional<BackpropId>& backprop_id) {
               BackpropId actual_backprop_id = internal::GetArrayBackpropId(Array{self}, backprop_id);
