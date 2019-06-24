@@ -586,11 +586,15 @@ void Backward(
     BackwardImpl{{}, outputs, actual_backprop_id, double_backprop}.Run();
 }
 
+
 std::vector<nonstd::optional<Array>> Grad(
         const std::vector<ConstArrayRef>& outputs,
         const std::vector<ConstArrayRef>& inputs,
         const nonstd::optional<BackpropId>& backprop_id,
-        DoubleBackpropOption double_backprop) {
+        DoubleBackpropOption double_backprop,
+        const std::vector<ConstArrayRef>& grad_inputs,
+        const std::vector<ConstArrayRef>& grad_outputs){
+
     if (inputs.empty()) {
         return {};
     }
@@ -598,21 +602,35 @@ std::vector<nonstd::optional<Array>> Grad(
         return std::vector<nonstd::optional<Array>>(inputs.size(), nonstd::nullopt);
     }
 
+    CHAINERX_ASSERT(!grad_inputs.size() || (inputs.size() == grad_inputs.size()));
+    CHAINERX_ASSERT(!grad_outputs.size() || (outputs.size() == grad_outputs.size()));
+
     std::vector<nonstd::optional<Array>> input_grads;
+    std::vector<nonstd::optional<Array>> output_grads;
     input_grads.reserve(inputs.size());
+    output_grads.reserve(outputs.size());
 
     BackpropId actual_backprop_id = internal::GetArrayBackpropId(outputs.front().get(), backprop_id);
-
+    
     // Initialize the grad map with newly created gradient arrays of the inputs.
     // The existing gradients of the inputs are thus not modified.
     std::unordered_map<ArrayNode*, internal::GradRef> array_node_grad_map;
-    for (const Array& input : inputs) {
-        const std::shared_ptr<ArrayBody>& array_body = internal::GetArrayBody(input);
+    for (size_t i=0; i<inputs.size();i++){
+        const std::shared_ptr<ArrayBody>& array_body = internal::GetArrayBody(inputs[i]);
         if (const std::shared_ptr<ArrayNode>& input_array_node = array_body->GetArrayNode(actual_backprop_id)) {
-            input_grads.emplace_back(nonstd::optional<Array>{});
+            input_grads.emplace_back(grad_inputs.size()? nonstd::optional<Array>{grad_inputs[i]} : nonstd::optional<Array>{});
             array_node_grad_map.emplace(input_array_node.get(), internal::GradRef{&input_grads.back()});
         } else {
             input_grads.emplace_back(nonstd::nullopt);
+        }
+    }
+
+    // Push initial output grads, Run assigns to 1 in other case 
+    for (size_t i=0; i<grad_outputs.size();i++){
+        const std::shared_ptr<ArrayBody>& array_body = internal::GetArrayBody(outputs[i]);
+        if (const std::shared_ptr<ArrayNode>& array_node = array_body->GetArrayNode(actual_backprop_id)) {
+            output_grads.emplace_back(grad_outputs[i]);
+            array_node_grad_map.emplace(array_node.get(), internal::GradRef{&output_grads.back()});
         }
     }
 

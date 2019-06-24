@@ -61,21 +61,32 @@ void InitChainerxBackward(pybind11::module& m) {
           [](const std::vector<ArrayBodyPtr>& outputs,
              const std::vector<ArrayBodyPtr>& inputs,
              const nonstd::optional<BackpropId>& backprop_id,
-             bool enable_double_backprop) {
+             bool enable_double_backprop,
+             const std::vector<ArrayBodyPtr>& grad_inputs,
+             const std::vector<ArrayBodyPtr>& grad_outputs){
               std::vector<Array> output_arrays = ConvertToArrays(outputs);
               std::vector<Array> input_arrays = ConvertToArrays(inputs);
+
+              std::vector<Array> grad_input_arrays = ConvertToArrays(grad_inputs);
+              std::vector<Array> grad_output_arrays = ConvertToArrays(grad_outputs);
+
               auto double_backprop = enable_double_backprop ? DoubleBackpropOption::kEnable : DoubleBackpropOption::kDisable;
               std::vector<nonstd::optional<Array>> grads =
                       Grad({output_arrays.begin(), output_arrays.end()},
                            {input_arrays.begin(), input_arrays.end()},
                            backprop_id,
-                           double_backprop);
+                           double_backprop,
+                           std::vector<ConstArrayRef>{grad_input_arrays.begin(), grad_input_arrays.end()},
+                           std::vector<ConstArrayRef>{grad_output_arrays.begin(), grad_output_arrays.end()});
+                           //out_grads});
               return internal::MoveArrayBodies(std::move(grads));
           },
           py::arg(),  // outputs
           py::arg(),  // inputs
           py::arg("backprop_id") = nullptr,
-          py::arg("enable_double_backprop") = false);
+          py::arg("enable_double_backprop") = false,
+          py::arg("grad_inputs") = std::vector<ArrayBodyPtr>{},
+          py::arg("grad_outputs") = std::vector<ArrayBodyPtr>{});
 }
 
 }  // namespace python_internal

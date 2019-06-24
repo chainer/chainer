@@ -1001,6 +1001,7 @@ def grad(outputs, inputs, grad_outputs=None, grad_inputs=None, set_grad=False,
                 'grad_inputs must be of the same length as inputs.\n'
                 'len(inputs) = {}, len(grad_inputs) = {}'
                 .format(len(inputs), len(grad_inputs)))
+
     # Check if all the inputs are chainerx arrays and if so
     # Relies in chainerx.grad function
     chx_inputs = sum(map(lambda x: x._has_chainerx_array
@@ -1008,21 +1009,27 @@ def grad(outputs, inputs, grad_outputs=None, grad_inputs=None, set_grad=False,
     if chx_inputs == len(inputs):
         # Need to access the arrays to invoke the chainer grad function
         if grad_inputs is not None:
-            raise ValueError(
-                'grad_inputs is not supported on chainerx.grad interface')
+            grad_inputs_chx = list(map(lambda x: x._data[0], grad_inputs))
+        else:
+            grad_inputs_chx = []
         if grad_outputs is not None:
-            raise ValueError(
-                'grad_outputs is not supported on chainerx.grad interface')
+            grad_outs_chx = list(map(lambda x: x._data[0], grad_outputs))
+        else:
+            grad_outs_chx = []
         if retain_grad:
             raise ValueError(
                 'retain_grad is not supported on chainerx.grad interface')
         if loss_scale is not None:
             raise ValueError(
                 'loss_scale is not supported on chainerx.grad interface')
+
         outputs_chx = list(map(lambda x: x._data[0], outputs))
         inputs_chx = list(map(lambda x: x._data[0], inputs))
-        grads = chainerx.grad(
-            outputs_chx, inputs_chx, None, enable_double_backprop)
+        grads = chainerx.grad(outputs_chx, inputs_chx,
+                              backprop_id=None,
+                              enable_double_backprop=enable_double_backprop,
+                              grad_inputs=grad_inputs_chx,
+                              grad_outputs=grad_outs_chx)
         ret_vars = [variable.Variable(g, requires_grad=False) for g in grads]
         if set_grad:
             for x, g in zip(inputs, ret_vars):
