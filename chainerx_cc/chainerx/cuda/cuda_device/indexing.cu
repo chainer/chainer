@@ -394,20 +394,19 @@ __global__ void CumsumCudaKernel(
         // As of now implemented using naive scan algorithm. Can later be modified to work efficient implementation.
 
         extern __shared__ __align__(sizeof(T)) unsigned char temp[];
-        T *temp = reinterpret_cast<T *>(temp);
+        T* temp = reinterpret_cast<T*>(temp);
 
         int pout = 0, pin = 1, n = a_indexer.total_size();
         it_prev.Restart(it.raw_index() - 1);
         temp[pout * n + it.raw_index()] = it.raw_index() > 0 ? a_iarray[it_prev];
         __syncthreads();
 
-        for(int offset = 1; offset < n; offset *= 2) {
+        for (int offset = 1; offset < n; offset *= 2) {
             pout = 1 - pout;
             pin = 1 - pout;
-            if(it.raw_index() >= offset) {
+            if (it.raw_index() >= offset) {
                 temp[pout * n + it.raw_index()] = temp[pin * n + it.raw_index()] + temp[pin * n + it.raw_index() - offset];
-            }
-            else {
+            } else {
                 temp[pout * n + it.raw_index()] = temp[pin * n + it.raw_index()];
             }
             __syncthreads();
