@@ -50,4 +50,11 @@ public:
     virtual void Call(const Array& condition, Scalar x, Scalar y, const Array& out) = 0;
 };
 
+class CumsumKernel : public Kernel {
+public:
+    static const char* name() { return "Cumsum"; }
+
+    virtual void Call(const Array& a, int8_t axis, const Array& out) = 0;
+};
+
 }  // namespace chainerx
