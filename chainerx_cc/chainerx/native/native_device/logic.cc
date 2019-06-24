@@ -9,6 +9,7 @@
 #include "chainerx/native/elementwise.h"
 #include "chainerx/native/kernel_regist.h"
 #include "chainerx/native/reduce.h"
+#include "chainerx/numeric.h"
 #include "chainerx/routines/logic.h"
 
 namespace chainerx {
@@ -216,6 +217,54 @@ public:
 };
 
 CHAINERX_NATIVE_REGISTER_KERNEL(AnyKernel, NativeAnyKernel);
+
+class NativeIsNanKernel : public IsNanKernel {
+public:
+    void Call(const Array& x, const Array& out) override {
+        x.device().CheckDevicesCompatible(x, out);
+        VisitDtype(x.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            struct Impl {
+                void operator()(int64_t /*i*/, T x, bool& out) { out = chainerx::IsNan(x); }
+            };
+            Elementwise<const T, bool>(Impl{}, x, out);
+        });
+    }
+};
+
+CHAINERX_NATIVE_REGISTER_KERNEL(IsNanKernel, NativeIsNanKernel);
+
+class NativeIsInfKernel : public IsInfKernel {
+public:
+    void Call(const Array& x, const Array& out) override {
+        x.device().CheckDevicesCompatible(x, out);
+        VisitDtype(x.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            struct Impl {
+                void operator()(int64_t /*i*/, T x, bool& out) { out = chainerx::IsInf(x); }
+            };
+            Elementwise<const T, bool>(Impl{}, x, out);
+        });
+    }
+};
+
+CHAINERX_NATIVE_REGISTER_KERNEL(IsInfKernel, NativeIsInfKernel);
+
+class NativeIsFiniteKernel : public IsFiniteKernel {
+public:
+    void Call(const Array& x, const Array& out) override {
+        x.device().CheckDevicesCompatible(x, out);
+        VisitDtype(x.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            struct Impl {
+                void operator()(int64_t /*i*/, T x, bool& out) { out = !(chainerx::IsInf(x) || chainerx::IsNan(x)); }
+            };
+            Elementwise<const T, bool>(Impl{}, x, out);
+        });
+    }
+};
+
+CHAINERX_NATIVE_REGISTER_KERNEL(IsFiniteKernel, NativeIsFiniteKernel);
 
 }  // namespace
 }  // namespace native
