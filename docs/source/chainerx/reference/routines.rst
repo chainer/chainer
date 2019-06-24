@@ -124,7 +124,7 @@ Logic functions
    chainerx.not_equal
 
 Loss functions
----------------
+--------------
 
 .. autosummary::
    :toctree: generated/
