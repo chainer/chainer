@@ -19,14 +19,6 @@ public:
         }
     }
 
-    explicit CHAINERX_HOST_DEVICE IndexIterator(const int64_t* shape, int64_t total_size, int64_t start)
-        : shape_{shape}, total_size_{total_size}, raw_index_{0}, start_{start}, index_{} {
-        CHAINERX_ASSERT(start >= 0);  // backward iteration is not supported in order to omit lower-bound check for performance.
-        if (total_size > 0) {
-            Set(start);
-        }
-    }
-
     CHAINERX_HOST_DEVICE IndexIterator<kNdim>& operator++() {
         Set(raw_index_ + step_);
         return *this;
@@ -34,11 +26,6 @@ public:
 
     CHAINERX_HOST_DEVICE IndexIterator<kNdim>& operator--() {
         Set(raw_index_ - step_);
-        return *this;
-    }
-
-    CHAINERX_HOST_DEVICE IndexIterator<kNdim>& operator*=(int64_t multiple) {
-        Set(raw_index_ * multiple);
         return *this;
     }
 
@@ -101,13 +88,6 @@ public:
         CHAINERX_ASSERT(total_size == 1);
     }
 
-    explicit CHAINERX_HOST_DEVICE IndexIterator(const int64_t* shape, int64_t total_size, int64_t start) : IndexIterator<0>{start} {
-        (void)shape;  // unused
-        CHAINERX_ASSERT(total_size == 1);
-    }
-
-    explicit CHAINERX_HOST_DEVICE IndexIterator(int64_t start) : raw_index_{start} { CHAINERX_ASSERT(start >= 0); }
-
     explicit CHAINERX_HOST_DEVICE IndexIterator(int64_t start, int64_t step) : raw_index_{start} {
         CHAINERX_ASSERT(start >= 0);
         CHAINERX_ASSERT(step > 0);  // backward iteration is not supported in order to omit lower-bound check for performance.
@@ -120,11 +100,6 @@ public:
 
     CHAINERX_HOST_DEVICE IndexIterator<0>& operator--() {
         --raw_index_;
-        return *this;
-    }
-
-    CHAINERX_HOST_DEVICE IndexIterator<0>& operator*=(int64_t multiple) {
-        raw_index_ *= multiple;
         return *this;
     }
 
@@ -166,16 +141,6 @@ public:
         CHAINERX_ASSERT(shape[0] == total_size);
     }
 
-    explicit CHAINERX_HOST_DEVICE IndexIterator(const int64_t* shape, int64_t total_size, int64_t start)
-        : IndexIterator<1>{total_size, start} {
-        CHAINERX_ASSERT(shape[0] == total_size);
-    }
-
-    explicit CHAINERX_HOST_DEVICE IndexIterator(int64_t total_size, int64_t start)
-        : total_size_{total_size}, raw_index_{start}, start_{start} {
-        CHAINERX_ASSERT(start >= 0);
-    }
-
     explicit CHAINERX_HOST_DEVICE IndexIterator(int64_t total_size, int64_t start, int64_t step)
         : total_size_{total_size}, raw_index_{start}, start_{start}, step_{step} {
         CHAINERX_ASSERT(start >= 0);
@@ -189,11 +154,6 @@ public:
 
     CHAINERX_HOST_DEVICE IndexIterator<1>& operator--() {
         raw_index_ -= step_;
-        return *this;
-    }
-
-    CHAINERX_HOST_DEVICE IndexIterator<1>& operator*=(int64_t multiple) {
-        raw_index_ *= multiple;
         return *this;
     }
 
@@ -243,14 +203,6 @@ public:
         }
     }
 
-    explicit CHAINERX_HOST_DEVICE IndexIterator(const int64_t* shape, int8_t ndim, int64_t total_size, int64_t start)
-        : shape_{shape}, ndim_{ndim}, total_size_{total_size}, raw_index_{0}, start_{start}, index_{} {
-        CHAINERX_ASSERT(start >= 0);
-        if (total_size > 0) {
-            Set(start);
-        }
-    }
-
     CHAINERX_HOST_DEVICE IndexIterator<kDynamicNdim>& operator++() {
         Set(raw_index_ + step_);
         return *this;
@@ -258,11 +210,6 @@ public:
 
     CHAINERX_HOST_DEVICE IndexIterator<kDynamicNdim>& operator--() {
         Set(raw_index_ - step_);
-        return *this;
-    }
-
-    CHAINERX_HOST_DEVICE IndexIterator<kDynamicNdim>& operator*=(int64_t multiple) {
-        raw_index_ *= multiple;
         return *this;
     }
 
