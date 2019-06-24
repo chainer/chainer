@@ -35,6 +35,8 @@ public:
 
     int GetDeviceCount() const override;
 
+    bool IsNative() const override { return true; }
+
     bool SupportsTransfer(Device& src_device, Device& dst_device) override;
 
     static KernelRegistry& GetGlobalKernelRegistry() {

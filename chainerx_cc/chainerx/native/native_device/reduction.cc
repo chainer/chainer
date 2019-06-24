@@ -13,7 +13,6 @@
 #include "chainerx/native/reduce.h"
 #include "chainerx/numeric.h"
 #include "chainerx/numeric_limits.h"
-#include "chainerx/routines/math.h"
 #include "chainerx/shape.h"
 
 namespace chainerx {

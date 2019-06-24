@@ -1,4 +1,4 @@
-#include "chainerx/routines/math.h"
+#include "chainerx/routines/activation.h"
 
 #include <cmath>
 #include <cstdint>
@@ -9,9 +9,6 @@
 #include <nonstd/optional.hpp>
 
 #include "chainerx/array.h"
-#include "chainerx/backprop_mode.h"
-#include "chainerx/backward_builder.h"
-#include "chainerx/backward_context.h"
 #include "chainerx/dtype.h"
 #include "chainerx/enum.h"
 #include "chainerx/error.h"
@@ -20,11 +17,8 @@
 #include "chainerx/routines/arithmetic.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/explog.h"
-#include "chainerx/routines/logic.h"
-#include "chainerx/routines/manipulation.h"
+#include "chainerx/routines/indexing.h"
 #include "chainerx/routines/misc.h"
-#include "chainerx/routines/routines_util.h"
-#include "chainerx/routines/statistics.h"
 #include "chainerx/routines/type_util.h"
 #include "chainerx/scalar.h"
 #include "chainerx/shape.h"
@@ -41,6 +35,13 @@ Array Relu(const Array& x) {
     Dtype dtype = internal::GetMathResultDtype(x.dtype());
     const Array& x_cast = x.dtype() == dtype ? x : x.AsType(dtype);
     return Maximum(0, x_cast);
+}
+
+Array LeakyRelu(const Array& x, Scalar slope) {
+    Dtype dtype = internal::GetMathResultDtype(x.dtype());
+    const Array& x_cast = x.dtype() == dtype ? x : x.AsType(dtype);
+    Array zero = ZerosLike(x_cast, x_cast.device());
+    return Where(x_cast >= zero, x_cast, slope * x_cast);
 }
 
 }  // namespace chainerx

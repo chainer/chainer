@@ -22,7 +22,6 @@
 #include "chainerx/macro.h"
 #include "chainerx/routines/arithmetic.h"
 #include "chainerx/routines/creation.h"
-#include "chainerx/routines/math.h"
 #include "chainerx/routines/type_util.h"
 #include "chainerx/shape.h"
 #include "chainerx/slice.h"

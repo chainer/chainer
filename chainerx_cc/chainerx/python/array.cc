@@ -12,6 +12,7 @@
 #include <nonstd/optional.hpp>
 
 #include "chainerx/array.h"
+#include "chainerx/array_body.h"
 #include "chainerx/array_index.h"
 #include "chainerx/axes.h"
 #include "chainerx/backend_util.h"
@@ -30,7 +31,6 @@
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/indexing.h"
 #include "chainerx/routines/manipulation.h"
-#include "chainerx/routines/math.h"
 #include "chainerx/routines/misc.h"
 #include "chainerx/routines/sorting.h"
 #include "chainerx/shape.h"
@@ -636,6 +636,17 @@ void InitChainerxArray(pybind11::module& m) {
 
         return list;
     });
+    // TODO(hvy): Rename `_is_chained` to a less ambiguous function name.
+    c.def("_is_chained",
+          [](const ArrayBodyPtr& self, const nonstd::optional<BackpropId>& backprop_id) {
+              BackpropId actual_backprop_id = internal::GetArrayBackpropId(Array{self}, backprop_id);
+              actual_backprop_id.CheckValid();
+              if (!self->HasArrayNode(actual_backprop_id)) {
+                  throw ChainerxError{"Array is constant with respect to the computation for backprop ID: '", actual_backprop_id, "'."};
+              }
+              return self->GetArrayNode(actual_backprop_id)->creator_op_node() != nullptr;
+          },
+          "backprop_id"_a = nullptr);
 }
 
 }  // namespace python_internal

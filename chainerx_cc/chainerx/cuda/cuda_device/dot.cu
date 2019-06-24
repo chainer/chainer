@@ -28,7 +28,6 @@
 #include "chainerx/kernels/reduction.h"
 #include "chainerx/macro.h"
 #include "chainerx/routines/creation.h"
-#include "chainerx/routines/math.h"
 
 namespace chainerx {
 namespace cuda {
