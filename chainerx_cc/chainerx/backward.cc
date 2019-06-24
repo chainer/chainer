@@ -518,7 +518,7 @@ private:
     }
 
     void PushCreatorOpNode(const std::shared_ptr<ArrayNode>& array_node) {
-        // When double backprop is enabled, array_node releases the pointer to the creator op node here. After this operation, array_node
+        // When double backprop is disabled, array_node releases the pointer to the creator op node here. After this operation, array_node
         // will look like a leaf node of the graph. Note that this move does not invalidates the array_node object itself; it is guaranteed
         // by the standard that shared_ptr becomes null after move-assigned to another.
         std::shared_ptr<OpNode> creator_op_node =

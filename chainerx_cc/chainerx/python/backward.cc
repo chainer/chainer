@@ -19,6 +19,7 @@ namespace python {
 namespace python_internal {
 
 namespace py = pybind11;
+using py::literals::operator""_a;
 
 using ArrayBodyPtr = std::shared_ptr<internal::ArrayBody>;
 
@@ -44,8 +45,8 @@ void InitChainerxBackward(pybind11::module& m) {
               Backward(array, backprop_id, double_backprop);
           },
           py::arg(),
-          py::arg("backprop_id") = nullptr,
-          py::arg("enable_double_backprop") = false);
+          "backprop_id"_a = nullptr,
+          "enable_double_backprop"_a = false);
 
     m.def("backward",
           [](const std::vector<ArrayBodyPtr>& outputs, const nonstd::optional<BackpropId>& backprop_id, bool enable_double_backprop) {
@@ -54,8 +55,8 @@ void InitChainerxBackward(pybind11::module& m) {
               Backward({arrays.begin(), arrays.end()}, backprop_id, double_backprop);
           },
           py::arg(),
-          py::arg("backprop_id") = nullptr,
-          py::arg("enable_double_backprop") = false);
+          "backprop_id"_a = nullptr,
+          "enable_double_backprop"_a = false);
 
     m.def("grad",
           [](const std::vector<ArrayBodyPtr>& outputs,
@@ -84,11 +85,11 @@ void InitChainerxBackward(pybind11::module& m) {
           },
           py::arg(),  // outputs
           py::arg(),  // inputs
-          py::arg("backprop_id") = nullptr,
-          py::arg("enable_double_backprop") = false,
-          py::arg("set_grad") = false,
-          py::arg("grad_inputs") = std::vector<ArrayBodyPtr>{},
-          py::arg("grad_outputs") = std::vector<ArrayBodyPtr>{});
+          "backprop_id"_a = nullptr,
+          "enable_double_backprop"_a = false,
+          "set_grad"_a = false,
+          "grad_inputs"_a = std::vector<ArrayBodyPtr>{},
+          "grad_outputs"_a = std::vector<ArrayBodyPtr>{});
 }
 
 }  // namespace python_internal

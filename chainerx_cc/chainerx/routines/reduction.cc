@@ -22,7 +22,6 @@
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/explog.h"
 #include "chainerx/routines/manipulation.h"
-#include "chainerx/routines/math.h"
 #include "chainerx/routines/routines_util.h"
 #include "chainerx/routines/statistics.h"
 #include "chainerx/routines/type_util.h"

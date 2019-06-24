@@ -47,6 +47,9 @@ public:
     // Throws out_of_range exception if index >= GetDeviceCount().
     Device& GetDevice(int index);
 
+    // Returns whether the backend is a native device.
+    virtual bool IsNative() const { return false; }
+
     // Queries if the backend supports data transfer between two devices.
     virtual bool SupportsTransfer(Device& src_device, Device& dst_device) = 0;
 
