@@ -98,8 +98,11 @@ class Gumbel(distribution.Distribution):
 @distribution.register_kl(Gumbel, Gumbel)
 def _kl_gumbel_gumbel(dist1, dist2):
     scale_1d2 = dist1.scale / dist2.scale
-    return dist2._log_scale - dist1._log_scale \
-        + EULER * (scale_1d2 - 1.) \
+    return (
+        dist2._log_scale
+        - dist1._log_scale
+        + EULER * (scale_1d2 - 1.)
         + exponential.exp((dist2.loc - dist1.loc) / dist2.scale
-                          + lgamma.lgamma(scale_1d2 + 1.)) \
-        - 1 + (dist1.loc - dist2.loc) / dist2.scale
+                          + lgamma.lgamma(scale_1d2 + 1.))
+        - 1
+        + (dist1.loc - dist2.loc) / dist2.scale)

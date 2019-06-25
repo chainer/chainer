@@ -447,7 +447,8 @@ Array ConcatenateImpl(const std::vector<Array>& arrays, int8_t axis) {
             Array sliced_out = internal::MakeArray(shape, strides, out_dtype, device, out.data(), out_offset);
             Dtype in_dtype = array.dtype();
             in_dtypes.emplace_back(in_dtype);
-            device.backend().CallKernel<AsTypeKernel>(array, sliced_out);
+            // Note: In CopyKernel, Input Array Elements are casted to the type of Output Array.
+            device.backend().CallKernel<CopyKernel>(array, sliced_out);
             array_refs.emplace_back(ConstArrayRef{array});
             out_offset += strides[axis] * shape[axis];
         }

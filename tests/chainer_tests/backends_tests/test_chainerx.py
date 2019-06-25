@@ -17,7 +17,35 @@ import chainerx
         {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
         {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
     ])
-class TestChainerxDeviceFromArray(unittest.TestCase):
+class TestChainerxDevice(unittest.TestCase):
+
+    def check_device(self, device, backend_config):
+        assert isinstance(device, backend.ChainerxDevice)
+        assert device.xp is chainerx
+        assert device.supported_array_types == (chainerx.ndarray,)
+        assert device.name == backend_config.chainerx_device
+        assert str(device) == backend_config.chainerx_device
+
+        # fallback_device
+        chainerx_device_comps = backend_config.chainerx_device.split(':')
+        if chainerx_device_comps[0] == 'native':
+            assert isinstance(device.fallback_device, backend.CpuDevice)
+        elif chainerx_device_comps[0] == 'cuda':
+            assert isinstance(device.fallback_device, backend.GpuDevice)
+            assert (
+                device.fallback_device.device.id
+                == int(chainerx_device_comps[1]))
+        else:
+            # Currently no such ChainerX device is known in Chainer
+            assert False
+
+    def test_init(self, backend_config):
+        name = backend_config.chainerx_device
+        chx_device = chainerx.get_device(name)
+
+        device = backend.ChainerxDevice(chx_device)
+        self.check_device(device, backend_config)
+        assert device.device is chx_device
 
     def test_from_array(self, backend_config):
         arr = backend_config.get_array(numpy.ndarray((2,), numpy.float32))
@@ -26,11 +54,26 @@ class TestChainerxDeviceFromArray(unittest.TestCase):
 
         expected_device = backend_config.device
 
+        # ChainerxDevice.from_array
         device = backend.ChainerxDevice.from_array(arr)
+        self.check_device(device, backend_config)
         assert device == expected_device
 
+        # backend.get_device_from_array
         device = backend.get_device_from_array(arr)
+        self.check_device(device, backend_config)
         assert device == expected_device
+
+    def test_from_fallback_device(self, backend_config):
+        # Preparation: it depends on ChainerxDevice.fallback_device
+        tmp_device = backend.ChainerxDevice(
+            chainerx.get_device(backend_config.chainerx_device))
+        fallback_device = tmp_device.fallback_device
+
+        # Test
+        device = backend.ChainerxDevice.from_fallback_device(fallback_device)
+        self.check_device(device, backend_config)
+        assert device.fallback_device == fallback_device
 
 
 @testing.inject_backend_tests(

@@ -31,6 +31,7 @@
 #include "chainerx/dtype.h"
 #include "chainerx/error.h"
 #include "chainerx/graph.h"
+#include "chainerx/kernels/creation.h"
 #include "chainerx/kernels/misc.h"
 #include "chainerx/macro.h"
 #include "chainerx/native/native_backend.h"
@@ -358,8 +359,8 @@ Array Array::ToDevice(Device& dst_device) const {
 }
 
 Array Array::ToNative() const {
-    Context& context = device().backend().context();
-    Device& native_device = context.GetNativeBackend().GetDevice(0);
+    Backend& backend = device().backend();
+    Device& native_device = backend.IsNative() ? device() : backend.context().GetNativeBackend().GetDevice(0);
     return ToDevice(native_device);
 }
 
@@ -395,7 +396,8 @@ Array Array::AsType(Dtype dtype, bool copy) const {
     }
 
     Array out = Empty(shape(), dtype, device());
-    device().backend().CallKernel<AsTypeKernel>(*this, out);
+    // Note: In CopyKernel, Input Array Elements are casted to the type of Output Array.
+    device().backend().CallKernel<CopyKernel>(*this, out);
 
     if (GetKind(dtype) == DtypeKind::kFloat) {
         BackwardBuilder bb{"astype", *this, out};

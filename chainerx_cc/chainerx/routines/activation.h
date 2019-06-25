@@ -5,6 +5,10 @@
 
 namespace chainerx {
 
+Array ClippedRelu(const Array& x, Scalar z);
+
+Array CRelu(const Array& x, int8_t axis);
+
 Array Sigmoid(const Array& x);
 
 Array Relu(const Array& x);
