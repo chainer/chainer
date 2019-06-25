@@ -9,7 +9,9 @@ Variable classes and utilities
    :nosignatures:
 
    chainer.Variable
+   chainer.as_array
    chainer.as_variable
+   chainer.backward
    chainer.Parameter
    chainer.variable.VariableNode
 

@@ -10,7 +10,6 @@ from chainer import backend
 from chainer.backends import _cpu
 from chainer.backends import cuda
 from chainer import configuration
-from chainer import FunctionNode
 from chainer import testing
 from chainer import utils
 from chainer import variable
@@ -33,10 +32,9 @@ def _copy_arrays(xs):
 
 
 def _ones_like(arr):
-    device = cuda.get_device_from_array(arr)
-    xp = backend.get_array_module(arr)
-    with device:
-        return xp.ones_like(arr)
+    device = backend.get_device_from_array(arr)
+    with chainer.using_device(device):
+        return device.xp.ones_like(arr)
 
 
 def _make_outputs_props_in_error_message(outputs, grad_outputs):
@@ -601,11 +599,7 @@ class _CheckBackward(object):
     def _directional_backward_gradients(self, xs, ys, params, directions):
         no_gxs = self.no_gxs
 
-        # We need to start backprop from a single variable,
-        # so a dummy function `_GradientSetter` is inserted at the end of the
-        # computational graph.
-        y_backward = _apply_grad_setter_func(
-            ys,
+        gys = (
             [None if gy is None
              # Copy is needed to avoid being updated during backprop, which
              # would affect the numerical gradient.
@@ -614,7 +608,7 @@ class _CheckBackward(object):
              for gy in self.gys])
 
         # Backward
-        y_backward.backward()
+        chainer.backward(ys, gys)
 
         for no_gx, x in six.moves.zip(no_gxs, xs):
             if no_gx and x.grad is not None:
@@ -976,11 +970,7 @@ def check_double_backward(func, x_data, y_grad, x_grad_grad, params=(),
         ys = _as_tuple(func(*xs))
         _check_outputs_and_grad_outputs(ys, gys)
 
-        # Let all elements of y share the same creator.
-        # See the comment in check_backward.
-        y_backward = _apply_grad_setter_func(ys, gys)
-
-        y_backward.backward(enable_double_backprop=True)
+        chainer.backward(ys, gys, enable_double_backprop=True)
 
         gxs = []
         errors = []
@@ -1035,36 +1025,3 @@ def check_double_backward(func, x_data, y_grad, x_grad_grad, params=(),
         f.write('\n')
         f.write(str(e))
         utils._raise_from(AssertionError, f.getvalue(), e)
-
-
-class _GradientSetter(FunctionNode):
-    def __init__(self, grad):
-        self.grad = grad
-
-    def forward(self, inputs):
-        # output a dummy array.
-        xp = backend.get_array_module(inputs[0])
-        return xp.empty((0,), dtype=numpy.float32),
-
-    def backward(self, inputs, grad_outputs):
-        return self.grad
-
-
-def _apply_grad_setter_func(ys, gys):
-    # Applies the `_GradientSetter` function.
-    # The gradient setter function accepts any number of upstream outputs as
-    # its inputs, and returns a single output variable with dummy data.
-    # This variable will be later backward()ed and during backprop, this
-    # function returns the given gradients (`y_grad`) on its backward.
-    assert len(ys) == len(gys)
-    assert all(y is None or isinstance(y, chainer.Variable) for y in ys)
-    assert all(gy is None or isinstance(gy, chainer.Variable) for gy in gys)
-    # y is None => gy is None
-    assert all(gy is None for y, gy in zip(ys, gys) if y is None)
-
-    ys_ = [y for y in ys if y is not None]
-    gys_ = [gy for y, gy in zip(ys, gys) if y is not None]
-    assert len(ys_) == len(gys_)
-    grad_setter = _GradientSetter(gys_)
-    y, = grad_setter.apply(ys_)
-    return y

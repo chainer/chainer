@@ -3,12 +3,13 @@ import unittest
 import numpy
 import pytest
 
-from chainerx_tests import array_utils
 import chainer.testing
 import chainerx
 import chainerx.testing
 
+from chainerx_tests import array_utils
 from chainerx_tests import dtype_utils
+from chainerx_tests import math_utils
 from chainerx_tests import op_utils
 
 
@@ -205,50 +206,52 @@ class TestTake(op_utils.NumpyOpTest):
         return b,
 
 
+def _random_condition(shape, dtype):
+    size = int(numpy.prod(shape))
+    mask = numpy.random.randint(0, 1, size).astype('bool_').reshape(shape)
+    pos = array_utils.uniform(shape, dtype)
+    pos[numpy.logical_not(pos)] = True  # All elements are True
+    return pos * mask
+
+
 @op_utils.op_test(['native:0', 'cuda:0'])
-@chainer.testing.parameterize_pytest('cond_shape,x_shape,y_shape', [
-    # Same Shapes
-    ((2, 3), (2, 3), (2, 3)),
-    # Broadcast Shapes
-    ((2, 3), (1, 3), (1, 3)),
-    ((2, 3), (2, 1), (1, 3)),
-    ((2, 3), (2, 3), (1, 3)),
-    ((4, 5), (3, 4, 1), (1, 5)),
-    ((1, 4, 5), (3, 4, 1), (3, 1, 5)),
-])
-@chainer.testing.parameterize_pytest(
-    'in_dtypes,out_dtype', dtype_utils.result_dtypes_two_arrays
-)
-@chainer.testing.parameterize_pytest(
-    'condition_dtype', chainerx.testing.all_dtypes)
-class TestWhere(op_utils.NumpyOpTest):
+@chainer.testing.parameterize(*(
+    # Special shapes
+    chainer.testing.product({
+        'cond_shape,in_shapes': [
+            # Same Shapes
+            ((2, 3), ((2, 3), (2, 3))),
+            # Broadcast Shapes
+            ((2, 3), ((1, 3), (1, 3))),
+            ((2, 3), ((2, 1), (1, 3))),
+            ((2, 3), ((2, 3), (1, 3))),
+            ((4, 5), ((3, 4, 1), (1, 5))),
+            ((1, 4, 5), ((3, 4, 1), (3, 1, 5))),
+        ],
+        'cond_dtype': ['bool_'],
+        'in_dtypes,out_dtype': dtype_utils.result_dtypes_two_arrays,
+    })
+    # Dtype combinations
+    + chainer.testing.product({
+        'cond_shape,in_shapes': [((2, 3), ((2, 3), (2, 3)))],
+        'cond_dtype': chainerx.testing.all_dtypes,
+        'in_dtypes,out_dtype': dtype_utils.result_dtypes_two_arrays,
+    })
+))
+class TestWhere(math_utils.BinaryMathTestBase, op_utils.NumpyOpTest):
 
     check_numpy_strides_compliance = False
-
-    def setup(self):
-        (x_dtype, y_dtype) = self.in_dtypes
-        if numpy.dtype(x_dtype).kind != 'f' or \
-           numpy.dtype(y_dtype).kind != 'f':
-            self.skip_backward_test = True
-            self.skip_double_backward_test = True
-
-        if x_dtype == 'float16' or y_dtype == 'float16':
-            self.check_backward_options.update({'rtol': 1e-3, 'atol': 1e-3})
+    dodge_nondifferentiable = True
+    input_lhs = 'random'
+    input_rhs = 'random'
 
     def generate_inputs(self):
-        (x_dtype, y_dtype) = self.in_dtypes
-        x = array_utils.uniform(self.x_shape, x_dtype)
-        y = array_utils.uniform(self.y_shape, y_dtype)
-        condition = numpy.random.uniform(0, 1, size=self.cond_shape)
-        self.condition = (condition > 0.5).astype(self.condition_dtype)
-        return (x, y)
+        self.condition = _random_condition(self.cond_shape, self.cond_dtype)
+        return super().generate_inputs()
 
-    def forward_xp(self, inputs, xp):
-        x, y = inputs
+    def func(self, xp, x, y):
         condition = xp.array(self.condition)
-        o = xp.where(condition, x, y)
-        o = dtype_utils.cast_if_numpy_array(xp, o, self.out_dtype)
-        return o,
+        return xp.where(condition, x, y)
 
 
 @chainerx.testing.numpy_chainerx_array_equal(
@@ -264,3 +267,66 @@ def test_where_invalid_shapes(xp, cond_shape, x_shape, y_shape):
     y = array_utils.create_dummy_ndarray(xp, y_shape, 'float32')
     c = array_utils.create_dummy_ndarray(xp, cond_shape, 'float32')
     return xp.where(c, x, y)
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    # Special shapes
+    chainer.testing.product({
+        'cond_shape,shape': math_utils.shapes_combination_inplace_binary,
+        'cond_dtype': ['bool_'],
+        'in_dtypes,scalar_type,out_dtype': (
+            dtype_utils.result_dtypes_array_scalar),
+        'is_scalar_rhs': [True, False],
+    })
+    # Dtype combinations
+    + chainer.testing.product({
+        'cond_shape,shape': [((2, 3), (2, 3))],
+        'cond_dtype': chainerx.testing.all_dtypes,
+        'in_dtypes,scalar_type,out_dtype': (
+            dtype_utils.result_dtypes_array_scalar),
+        'is_scalar_rhs': [True, False],
+    })
+))
+class TestWhereScalar(math_utils.MathScalarTestBase, op_utils.NumpyOpTest):
+
+    check_numpy_strides_compliance = False
+    input = 'random'
+    scalar_value = 3
+
+    def generate_inputs(self):
+        self.condition = _random_condition(self.cond_shape, self.cond_dtype)
+        return super().generate_inputs()
+
+    def func_scalar(self, xp, a, scalar):
+        condition = xp.array(self.condition)
+        if self.is_scalar_rhs:
+            return xp.where(condition, a, scalar)
+        else:
+            return xp.where(condition, scalar, a)
+
+
+_in_out_dtypes_where_scalar = [
+    ((bool, bool), 'bool_'),
+    ((bool, int), 'int32'),
+    ((bool, float), 'float32'),
+    ((int, bool), 'int32'),
+    ((int, int), 'int32'),
+    ((int, float), 'float32'),
+    ((float, bool), 'float32'),
+    ((float, int), 'float32'),
+    ((float, float), 'float32'),
+]
+
+
+@chainerx.testing.numpy_chainerx_array_equal()
+@pytest.mark.parametrize('cond_shape', [(2, 3)])
+@pytest.mark.parametrize('cond_dtype', chainerx.testing.all_dtypes)
+@pytest.mark.parametrize('in_types,out_dtype', _in_out_dtypes_where_scalar)
+def test_where_scalar_scalar(xp, cond_shape, cond_dtype, in_types, out_dtype):
+    cond = xp.array(_random_condition(cond_shape, cond_dtype))
+    x_type, y_type = in_types
+    x = x_type(0)
+    y = y_type(2)
+    out = xp.where(cond, x, y)
+    return dtype_utils.cast_if_numpy_array(xp, out, out_dtype)

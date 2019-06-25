@@ -56,32 +56,32 @@ namespace internal {
 
 void IBitwiseAnd(const Array& x1, const Array& x2) {
     CheckInplaceBitwiseDtypes(x1, x2);
-    internal::BroadcastBinaryInPlace(BitwiseImpl<BitwiseAndKernel>, x1, x2);
+    internal::BroadcastBinaryInplace(BitwiseImpl<BitwiseAndKernel>, x1, x2);
 }
 
 void IBitwiseAnd(const Array& x1, Scalar x2) {
     CheckInplaceBitwiseDtypes(x1, x2);
-    internal::BinaryInPlace(BitwiseASImpl<BitwiseAndASKernel>, x1, x2);
+    internal::BinaryInplace(BitwiseASImpl<BitwiseAndASKernel>, x1, x2);
 }
 
 void IBitwiseOr(const Array& x1, const Array& x2) {
     CheckInplaceBitwiseDtypes(x1, x2);
-    internal::BroadcastBinaryInPlace(BitwiseImpl<BitwiseOrKernel>, x1, x2);
+    internal::BroadcastBinaryInplace(BitwiseImpl<BitwiseOrKernel>, x1, x2);
 }
 
 void IBitwiseOr(const Array& x1, Scalar x2) {
     CheckInplaceBitwiseDtypes(x1, x2);
-    internal::BinaryInPlace(BitwiseASImpl<BitwiseOrASKernel>, x1, x2);
+    internal::BinaryInplace(BitwiseASImpl<BitwiseOrASKernel>, x1, x2);
 }
 
 void IBitwiseXor(const Array& x1, const Array& x2) {
     CheckInplaceBitwiseDtypes(x1, x2);
-    internal::BroadcastBinaryInPlace(BitwiseImpl<BitwiseXorKernel>, x1, x2);
+    internal::BroadcastBinaryInplace(BitwiseImpl<BitwiseXorKernel>, x1, x2);
 }
 
 void IBitwiseXor(const Array& x1, Scalar x2) {
     CheckInplaceBitwiseDtypes(x1, x2);
-    internal::BinaryInPlace(BitwiseASImpl<BitwiseXorASKernel>, x1, x2);
+    internal::BinaryInplace(BitwiseASImpl<BitwiseXorASKernel>, x1, x2);
 }
 
 }  // namespace internal

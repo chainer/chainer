@@ -123,7 +123,10 @@ _shapes = [
     (2, 0, 3),
 ]
 
-_shapes_as_tuple_or_int = _shapes + [0, 1, 5]
+_shapes_as_sequence_or_int = (
+    _shapes
+    + [[], [0]]  # shape as a list instead of tuple
+    + [0, 1, 5])
 
 
 @pytest.fixture(params=_shapes)
@@ -131,6 +134,6 @@ def shape(request):
     return request.param
 
 
-@pytest.fixture(params=_shapes_as_tuple_or_int)
-def shape_as_tuple_or_int(request):
+@pytest.fixture(params=_shapes_as_sequence_or_int)
+def shape_as_sequence_or_int(request):
     return request.param

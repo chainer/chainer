@@ -30,4 +30,13 @@ def clip(a, a_min, a_max):
     .. seealso:: :func:`numpy.clip`
 
     """
-    return -chainerx.maximum(-chainerx.maximum(a, a_min), -a_max)
+    if a_min is None and a_max is None:
+        raise ValueError('Must set either a_min or a_max.')
+
+    if a_min is not None:
+        a = chainerx.maximum(a, a_min)
+
+    if a_max is not None:
+        a = chainerx.minimum(a, a_max)
+
+    return a

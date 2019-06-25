@@ -176,7 +176,10 @@ class TestBatchNormalization(unittest.TestCase):
                     if link_name == 'bn':
                         self.link = links.BatchNormalization(3)
                     elif link_name == 'brn':
-                        self.link = links.BatchRenormalization(3)
+                        # defaults rmax=1, dmax=0 are so trivial that BRN
+                        # becomes BN
+                        self.link = links.BatchRenormalization(
+                            3, rmax=2.0, dmax=1.0)
                     elif link_name == 'dbn':
                         self.link = links.DecorrelatedBatchNormalization(
                             3, groups=3)
@@ -192,16 +195,23 @@ class TestBatchNormalization(unittest.TestCase):
                     return self.link(x, finetune=self.finetune)
 
         x = numpy.random.uniform(-1, 1, (4, 3)).astype(numpy.float32)
+        gy = numpy.random.uniform(-1, 1, (4, 3)).astype(numpy.float32)
 
         model1 = Model(self.link_name, self.finetune, forget=False)
         model2 = Model(self.link_name, self.finetune, forget=True)
 
         # Update the models' internal statistics
-        y = model1(x)
-        functions.sum(y).backward()
+        x1 = chainer.Variable(x)
+        y = model1(x1)
+        y.grad = gy
+        y.backward()
 
-        y = model2(x)
-        functions.sum(y).backward()
+        x2 = chainer.Variable(x)
+        y = model2(x2)
+        y.grad = gy
+        y.backward()
+
+        numpy.testing.assert_almost_equal(x1.grad, x2.grad)
 
         # Check if the outputs of the models are the same during test time
         with chainer.using_config('train', False):

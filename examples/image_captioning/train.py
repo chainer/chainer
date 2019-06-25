@@ -11,6 +11,9 @@ from chainer.training import extensions
 import datasets
 from model import ImageCaptionModel
 
+import matplotlib
+matplotlib.use('Agg')
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -37,11 +40,23 @@ def main():
     parser.add_argument('--rnn', type=str, default='nsteplstm',
                         choices=['nsteplstm', 'lstm'],
                         help='Language model layer type')
-    parser.add_argument('--gpu', type=int, default=0,
-                        help='GPU ID (negative value indicates CPU)')
+    parser.add_argument('--device', '-d', type=str, default='-1',
+                        help='Device specifier. Either ChainerX device '
+                        'specifier or an integer. If non-negative integer, '
+                        'CuPy arrays with specified device id are used. If '
+                        'negative integer, NumPy arrays are used')
     parser.add_argument('--max-caption-length', type=int, default=30,
                         help='Maxium caption length when using LSTM layer')
+    group = parser.add_argument_group('deprecated arguments')
+    group.add_argument('--gpu', '-g', dest='device',
+                       type=int, nargs='?', const=0,
+                       help='GPU ID (negative value indicates CPU)')
     args = parser.parse_args()
+
+    device = chainer.get_device(args.device)
+
+    print('Device: {}'.format(device))
+    print()
 
     # Load the MSCOCO dataset. Assumes that the dataset has been downloaded
     # already using e.g. the `download.py` script
@@ -60,10 +75,7 @@ def main():
     # NStepLSTM layers
     model = ImageCaptionModel(
         vocab_size, dropout_ratio=args.dropout_ratio, rnn=args.rnn)
-
-    if args.gpu >= 0:
-        chainer.backends.cuda.get_device_from_id(args.gpu).use()
-        model.to_gpu()
+    model.to_device(device)
 
     def transform(in_data):
         # Called for each sample and applies necessary preprocessing to the
@@ -85,6 +97,7 @@ def main():
     optimizer = optimizers.Adam()
     optimizer.setup(model)
 
+    @chainer.dataset.converter()
     def converter(batch, device):
         # The converted receives a batch of input samples any may modify it if
         # necessary. In our case, we need to align the captions depending on if
@@ -99,7 +112,7 @@ def main():
             batch, device, max_caption_length=max_caption_length)
 
     updater = training.updater.StandardUpdater(
-        train_iter, optimizer=optimizer, device=args.gpu, converter=converter)
+        train_iter, optimizer=optimizer, device=device, converter=converter)
 
     trainer = training.Trainer(
         updater, out=args.out, stop_trigger=(args.max_iters, 'iteration'))
@@ -108,7 +121,7 @@ def main():
             val_iter,
             target=model,
             converter=converter,
-            device=args.gpu
+            device=device,
         ),
         trigger=(args.val_iter, 'iteration')
     )

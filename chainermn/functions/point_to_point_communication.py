@@ -87,7 +87,7 @@ class Recv(chainer.Function):
         if inputs == ():
             dummy_var = tuple([xp.array([], dtype=xp.float32)])
         else:
-            dummy_var = tuple([xp.zeros(x.shape, dtype=xp.float32)
+            dummy_var = tuple([xp.zeros_like(x)
                                for x in inputs])
 
         return dummy_var

@@ -29,6 +29,8 @@ class GlobalConfig(object):
     cudnn_fast_batch_normalization = None  # type: bool
     dtype = None  # type: numpy.dtype
     in_recomputing = None  # type: bool
+    use_static_graph = None  # type: bool
+    _will_recompute = None  # type: bool
 
     """The plain object that represents the global configuration of Chainer."""
 

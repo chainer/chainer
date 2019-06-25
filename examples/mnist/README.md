@@ -6,6 +6,10 @@ This is a common routine to write a learning process of networks with dataset th
 
 If you want to run this example on the N-th GPU, pass `--gpu=N` to the script.
 
+## Requirements
+
+- matplotlib
+
 ## Training
 
 There are 4 training scripts for the same model.

@@ -51,7 +51,7 @@ Configuration Keys
    You can change the default value by setting ``CHAINER_DTYPE`` environment variable to ``mixed16``, ``float16``, ``float32``, ``float64``.
 
    .. note::
-      If you want to use float16 for better performance, it is recommended to use ``mixed16`` instead of ``float16``.
+      If you want to use float16 for better performance, it is recommended that you use ``mixed16`` instead of ``float16``.
 
 * ``enable_backprop`` (default: ``True``)
    Flag to enable backpropagation support.
@@ -76,7 +76,7 @@ Configuration Keys
    give a warning when executed. For functions that can take a seed argument, such as
    :func:`~chainer.datasets.split_dataset_random`, setting the seed should be done when the function is called and will not
    be flagged by this setting.
-   
+
    Note that this feature is provided as best-effort. It cannot assure that every nondeterministic function can be detected.  For example, SSE computations in CPU mode may cause non-deterministic behavior that would not raise a warning.
 
    Also, determinisitic outputs may still result, even if this flag produces a non-deterministic warning. For example, reduction on 1-dim axis should always be deterministic, but it may raise a warning.
@@ -163,6 +163,11 @@ Configuration Keys
    You can use this flag when implementing your own Link to avoid updating the internal states during recomputation done by :func:`chainer.functions.forget`.
    See the documentation of :func:`chainer.functions.forget` for details.
 
+* ``use_static_graph`` (default: ``True``)
+   Flag to configure whether or not to use the static subgraph optimization feature.
+   Where the static subgraph optimization decorator is used, we generally assume that the feature should be used and the default value is thus ``True``.
+   However, if you would want to run the same code without the feature, you can simply set the flag to ``False`` instead of removing the decorators.
+   This is useful when for instance running your model with ChainerX, since ChainerX is not supported by the static subgraph optimization feature.
 
 User-defined Keys
 -----------------
@@ -171,7 +176,7 @@ Users can also define their own configurations.
 There are two ways:
 
 1. Use Chainer's configuration objects.
-   In this case, **it is strongly recommended to prefix the name by "user_"** to avoid name conflicts with configurations introduced to Chainer in the future.
+   In this case, **it is strongly recommended that the name be prefixed by "user_"** to avoid name conflicts with configurations introduced to Chainer in the future.
 2. Use your own configuration objects.
    Users can define their own configuration objects using :class:`chainer.configuration.GlobalConfig` and :class:`chainer.configuration.LocalConfig`.
    In this case, there is no need to take care of the name conflicts.

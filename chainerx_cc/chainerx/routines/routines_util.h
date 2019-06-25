@@ -73,7 +73,7 @@ Array BroadcastBinary(Impl&& impl, const Array& x1, const Array& x2, Dtype dtype
 
 // Called from IAdd, ISubtract, IMultiply, IDivide, etc. to handle broadcasting.
 template <typename Impl>
-void BroadcastBinaryInPlace(Impl&& impl, const Array& x1, const Array& x2) {
+void BroadcastBinaryInplace(Impl&& impl, const Array& x1, const Array& x2) {
     internal::CheckNoUnsafeInplace(x1, {x1, x2});
     if (x1.shape() == x2.shape()) {
         impl(x1, x2, x1);
@@ -97,7 +97,7 @@ Array Binary(Impl&& impl, Scalar x1, const Array& x2, Dtype dtype) {
 }
 
 template <typename Impl>
-void BinaryInPlace(Impl&& impl, const Array& x1, Scalar x2) {
+void BinaryInplace(Impl&& impl, const Array& x1, Scalar x2) {
     internal::CheckNoUnsafeInplace(x1, {x1});
     impl(x1, x2, x1);
 }
