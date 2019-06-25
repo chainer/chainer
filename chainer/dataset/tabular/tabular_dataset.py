@@ -223,3 +223,6 @@ class TabularDataset(dataset_mixin.DatasetMixin):
             return example
         elif self.mode is dict:
             return dict(six.moves.zip(self.keys, example))
+
+    def __iter__(self):
+        return (self.get_example(i) for i in six.moves.range(len(self)))
