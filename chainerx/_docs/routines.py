@@ -508,7 +508,7 @@ where ``a`` is a square and full rank matrix.
 
 Args:
     a (~chainerx.ndarray): Coefficient matrix.
-    a (~chainerx.ndarray): "dependent variable" values.
+    b (~chainerx.ndarray): "dependent variable" values.
 
 Returns:
     :class:`~chainerx.ndarray`: Solution to the system ``ax = b``.
