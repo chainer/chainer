@@ -99,9 +99,8 @@ class Bcast(chainer.Function):
         if inputs == ():
             # Without dummy variable, this function does not "require_grad",
             # thus back propagation will not be invoked.
-            # dummy_var = chainer.Variable(xp.array([], dtype=xp.float32))
-            dummy_var = chainer.Variable(
-                xp.array([], dtype=chainer.config.dtype))
+            dummy_var = chainer.Variable(xp.array([],
+                                         dtype=chainer.config.dtype))
             dummy_var.name = 'dummy_var'
             return super(Bcast, self).__call__(dummy_var)
 
@@ -208,7 +207,6 @@ class Scatter(chainer.Function):
         if inputs == ():
             # Without dummy variable, this function does not "require_grad",
             # thus back propagation will not be invoked.
-            # dummy_var = chainer.Variable(xp.array([], dtype=xp.float32))
             dummy_var = chainer.Variable(
                 xp.array([], dtype=chainer.config.dtype))
             dummy_var.name = 'dummy_var'
@@ -257,9 +255,7 @@ class Scatter(chainer.Function):
             if inputs == ():
                 dummy_var = tuple([xp.array([], dtype=xp.float32)])
             else:
-                dummy_var = tuple([xp.zeros(x.shape,
-                                            dtype=chainer.config.dtype)
-                                   for x in inputs])
+                dummy_var = tuple([xp.zeros_like(x) for x in inputs])
             return dummy_var
 
 
