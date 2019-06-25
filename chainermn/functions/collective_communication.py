@@ -12,24 +12,24 @@ class AllGather(chainer.Function):
 
     def forward(self, inputs):
         x, = inputs
-        config_dtype = x.dtype
+        x_dtype = x.dtype
 
         # convert to float32 for communication
-        if np.float32 != config_dtype:
+        if np.float16 == x_dtype:
             x = x.astype(np.float32)
         ret = self.comm.allgather(x)
 
         # convert back
-        if np.float32 != config_dtype:
-            ret = tuple([item.astype(config_dtype) for item in ret])
+        if np.float16 == x_dtype:
+            ret = tuple([item.astype(x_dtype) for item in ret])
         return ret
 
     def backward(self, inputs, grad_outputs):
         xp = backend.get_array_module(*inputs)
-        config_dtype = chainer.config.dtype
+        grad_dtype = grad_outputs[0].dtype
 
         # convert to float32 for communication
-        if np.float32 != config_dtype:
+        if np.float16 == grad_dtype:
             grad_outputs = tuple([item.astype(np.float32)
                                   for item in grad_outputs])
         gxs = self.comm.alltoall(grad_outputs)
@@ -37,8 +37,8 @@ class AllGather(chainer.Function):
         gx = xp.stack(gxs).sum(axis=0)
 
         # convert back
-        if np.float32 != config_dtype:
-            gx = gx.astype(config_dtype)
+        if np.float16 == grad_dtype:
+            gx = gx.astype(grad_dtype)
         return gx,
 
 
@@ -53,35 +53,35 @@ class AllToAll(chainer.Function):
         if len(inputs) != self.comm.size:
             raise ValueError(
                 'The length of inputs must be same as communicator size.')
-        config_dtype = chainer.config.dtype
+        xs_dtype = inputs[0].dtype
 
         # convert to float32 for communication
-        if np.float32 != config_dtype:
+        if np.float16 == xs_dtype:
             xs = tuple([x.astype(np.float32) for x in inputs])
         else:
             xs = tuple([x for x in inputs])
         ret = self.comm.alltoall(xs)
 
         # convert back
-        if np.float32 != config_dtype:
-            ret = tuple([item.astype(config_dtype) for item in ret])
+        if np.float16 == xs_dtype:
+            ret = tuple([item.astype(xs_dtype) for item in ret])
         return ret
 
     def backward(self, inputs, grad_outputs):
         assert self.comm.size == len(grad_outputs)
 
-        config_dtype = chainer.config.dtype
+        xs_dtype = inputs[0].dtype
 
         # convert to float32 for communication
-        if np.float32 != config_dtype:
+        if np.float16 == xs_dtype:
             gys = tuple([gy.astype(np.float32) for gy in grad_outputs])
         else:
             gys = tuple([gy for gy in grad_outputs])
 
         ret = self.comm.alltoall(gys)
         # convert back
-        if np.float32 != config_dtype:
-            ret = tuple([item.astype(config_dtype) for item in ret])
+        if np.float16 == xs_dtype:
+            ret = tuple([item.astype(xs_dtype) for item in ret])
         return ret
 
 
@@ -109,12 +109,13 @@ class Bcast(chainer.Function):
             return super(Bcast, self).__call__(*inputs)
 
     def forward(self, inputs):
-        config_dtype = chainer.config.dtype
+        x_dtype = inputs[0].dtype
+
         if self.comm.rank == self.root:
             x, = inputs
 
             # convert to float32 for communication
-            if np.float32 != config_dtype:
+            if np.float16 == x_dtype:
                 x = x.astype(np.float32)
         else:
             x = None
@@ -122,16 +123,16 @@ class Bcast(chainer.Function):
         x = self.comm.bcast(x, self.root),
 
         # convert back
-        if np.float32 != config_dtype:
-            x = tuple([item.astype(config_dtype) for item in x])
+        if np.float16 == x_dtype:
+            x = tuple([item.astype(x_dtype) for item in x])
 
         return x
 
     def backward(self, inputs, grad_outputs):
         gx, = grad_outputs
-        config_dtype = chainer.config.dtype
+        gx_dtype = gx.dtype
         # convert to float32 for communication
-        if np.float32 != config_dtype:
+        if np.float16 == gx_dtype:
             gx = gx.astype(np.float32)
 
         gxs = self.comm.gather(gx, self.root)
@@ -142,8 +143,8 @@ class Bcast(chainer.Function):
             _sum = gxs.sum(axis=0),
 
             # convert back
-            if np.float32 != config_dtype:
-                _sum = tuple([item.astype(config_dtype) for item in _sum])
+            if np.float16 == gx_dtype:
+                _sum = tuple([item.astype(gx_dtype) for item in _sum])
             return _sum
         else:
             return None,
@@ -162,34 +163,33 @@ class Gather(chainer.Function):
         x, = inputs
 
         # convert to float32 for communication
-        config_dtype = chainer.config.dtype
-        if np.float32 != config_dtype:
+        x_dtype = x.dtype
+        if np.float16 == x_dtype:
             x = x.astype(np.float32)
         ys = self.comm.gather(x, self.root)
 
         if self.comm.rank == self.root:
 
             # convert back
-            if np.float32 != config_dtype:
-                ys = tuple([item.astype(config_dtype) for item in ys])
+            if np.float16 == x_dtype:
+                ys = tuple([item.astype(x_dtype) for item in ys])
             return ys
 
         else:
             # Return an empty variable, which serves as "delegate_variable."
-            return xp.array([], dtype=config_dtype),
+            return xp.array([], dtype=x_dtype),
 
     def backward(self, inputs, grad_outputs):
-        config_dtype = chainer.config.dtype
-
         # convert to float32 for communication
-        if self.comm.rank == self.root and np.float32 != config_dtype:
+        input_dtype = inputs[0].dtype
+        if self.comm.rank == self.root and np.float16 == input_dtype:
             grad_outputs = tuple([item.astype(np.float32)
-                                  for item in grad_outputs])
+                                 for item in grad_outputs])
         ret = self.comm.scatter(grad_outputs, self.root),
 
         # convert back
-        if np.float32 != config_dtype:
-            ret = tuple([item.astype(config_dtype) for item in ret])
+        if np.float16 == input_dtype:
+            ret = tuple([item.astype(input_dtype) for item in ret])
 
         return ret
 
@@ -218,29 +218,29 @@ class Scatter(chainer.Function):
             return super(Scatter, self).__call__(*inputs)
 
     def forward(self, inputs):
-        config_dtype = chainer.config.dtype
+        input_dtype = inputs[0].dtype
         if self.comm.rank == self.root:
 
             # convert to float32 for communication
-            if np.float32 != config_dtype:
+            if np.float16 == input_dtype:
                 inputs = tuple([item.astype(np.float32) for item in inputs])
             y = self.comm.scatter(inputs, self.root)
         else:
             y = self.comm.scatter(None, self.root)
 
         # convert back
-        if np.float32 != config_dtype:
-            y = y.astype(config_dtype)
+        if np.float16 == input_dtype:
+            y = y.astype(input_dtype)
 
         return y,
 
     def backward(self, inputs, grad_outputs):
         xp = backend.get_array_module(*inputs)
         gy, = grad_outputs
-        config_dtype = chainer.config.dtype
+        gy_dtype = gy.dtype
 
         # convert to float32 for communication
-        if np.float32 != config_dtype:
+        if np.float16 == gy_dtype:
             gy = gy.astype(np.float32)
 
         gxs = self.comm.gather(gy, self.root)
@@ -248,8 +248,8 @@ class Scatter(chainer.Function):
         if self.comm.rank == self.root:
 
             # convert back
-            if np.float32 != config_dtype:
-                gxs = tuple([item.astype(config_dtype) for item in gxs])
+            if np.float16 == gy_dtype:
+                gxs = tuple([item.astype(gy_dtype) for item in gxs])
             return gxs
 
         else:
