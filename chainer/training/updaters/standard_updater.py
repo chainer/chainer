@@ -108,6 +108,13 @@ loss_func=None, loss_scale=None, auto_new_epoch=True, *, input_device=None)
                 else:
                     optimizer.target.to_device(device)
 
+        if converter == convert.concat_examples:
+            try:
+                self._iterators['main'].enable_convert()
+                converter = None
+            except RuntimeError:
+                pass
+
         self.converter = converter
         self.loss_func = loss_func
         self.iteration = 0
@@ -208,8 +215,11 @@ loss_func=None, loss_scale=None, auto_new_epoch=True, *, input_device=None)
     def update_core(self):
         iterator = self._iterators['main']
         batch = iterator.next()
-        in_arrays = convert._call_converter(
-            self.converter, batch, self.input_device)
+        if self.converter is None:
+            in_arrays = _to_device_any(batch, self.input_device)
+        else:
+            in_arrays = convert._call_converter(
+                self.converter, batch, self.input_device)
 
         optimizer = self._optimizers['main']
         loss_func = self.loss_func or optimizer.target
@@ -234,3 +244,17 @@ loss_func=None, loss_scale=None, auto_new_epoch=True, *, input_device=None)
             optimizer.target.serialize(serializer['model:' + name])
 
         self.iteration = serializer('iteration', self.iteration)
+
+
+def _to_device_any(device, value):
+    if isinstance(value, chainer.get_array_types()):
+        return chainer.dataset.to_device(device, value)
+    elif isinstance(value, list):
+        return [_to_device_any(device, v) for v in value]
+    elif isinstance(value, tuple):
+        return tuple(_to_device_any(device, v) for v in value)
+    elif isinstance(value, dict):
+        return {k: _to_device_any(device, v)
+                for k, v in six.iteritems(value)}
+    else:
+        return value
