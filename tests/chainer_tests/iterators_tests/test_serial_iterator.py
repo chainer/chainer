@@ -424,11 +424,24 @@ class TestSerialIteratorInvalidOrderSampler(unittest.TestCase):
     {'mode': tuple},
     {'mode': dict},
 )
-class TestSerialIteratorTabularDataset(unittest.TestCase):
+class TestSerialIteratorConvert(unittest.TestCase):
 
-    def test_iterator_tabular_dataset(self):
+    def test_compat(self):
         dataset = dummy_dataset.DummyDataset(mode=self.mode)
         it = iterators.SerialIterator(dataset, 2, shuffle=False)
+        output = it.next()
+
+        if self.mode is tuple:
+            expected = [tuple(d) for d in dataset.data.transpose()[[0, 1]]]
+        elif self.mode is dict:
+            expected = [dict(zip(('a', 'b', 'c'), d))
+                        for d in dataset.data.transpose()[[0, 1]]]
+        numpy.testing.assert_equal(output, expected)
+
+    def test_convert(self):
+        dataset = dummy_dataset.DummyDataset(mode=self.mode)
+        it = iterators.SerialIterator(dataset, 2, shuffle=False)
+        it.enable_convert()
         output = it.next()
 
         if self.mode is tuple:
@@ -441,6 +454,12 @@ class TestSerialIteratorTabularDataset(unittest.TestCase):
             output = output.values()
         for out in output:
             self.assertIsInstance(out, numpy.ndarray)
+
+    def test_normal_dataset(self):
+        dataset = [1, 2, 3, 4, 5, 6]
+        it = iterators.SerialIterator(dataset, 2, shuffle=False)
+        with self.assertRaises(ValueError):
+            it.enable_convert()
 
 
 testing.run_module(__name__, __file__)

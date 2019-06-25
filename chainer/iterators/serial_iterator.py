@@ -47,8 +47,6 @@ class SerialIterator(iterator.Iterator):
     def __init__(self, dataset, batch_size,
                  repeat=True, shuffle=None, order_sampler=None):
         self.dataset = dataset
-        self._is_tabular = isinstance(
-            self.dataset, chainer.dataset.TabularDataset)
         self.batch_size = batch_size
         self._repeat = repeat
         self._shuffle = shuffle
@@ -69,6 +67,8 @@ class SerialIterator(iterator.Iterator):
 
         self.reset()
 
+        self._enable_convert = False
+
     def __next__(self):
         self._previous_epoch_detail = self.epoch_detail
         self._state, indices = _statemachine.iterator_statemachine(
@@ -77,7 +77,7 @@ class SerialIterator(iterator.Iterator):
         if indices is None:
             raise StopIteration
 
-        if self._is_tabular:
+        if self._enable_convert:
             return self.dataset.convert(self.dataset.slice[indices].fetch())
 
         batch = [self.dataset[index] for index in indices]
@@ -155,3 +155,9 @@ class SerialIterator(iterator.Iterator):
     @property
     def repeat(self):
         return self._repeat
+
+    def enable_convert(self):
+        if isinstance(self.dataset, chainer.dataset.TabularDataset):
+            self._enable_convert = True
+        else:
+            raise ValueError('The dataset does not support convert')

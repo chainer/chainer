@@ -429,12 +429,26 @@ class TestMultithreadIteratorInvalidOrderSampler(unittest.TestCase):
     'mode': [tuple, dict],
     'n_threads': [1, 2],
 }))
-class TestMultithreadIteratorTabularDataset(unittest.TestCase):
+class TestMultithreadIteratorConvert(unittest.TestCase):
 
-    def test_iterator_tabular_dataset(self):
+    def test_compat(self):
         dataset = dummy_dataset.DummyDataset(mode=self.mode)
         it = iterators.MultithreadIterator(
             dataset, 2, shuffle=False, n_threads=self.n_threads)
+        output = it.next()
+
+        if self.mode is tuple:
+            expected = [tuple(d) for d in dataset.data.transpose()[[0, 1]]]
+        elif self.mode is dict:
+            expected = [dict(zip(('a', 'b', 'c'), d))
+                        for d in dataset.data.transpose()[[0, 1]]]
+        numpy.testing.assert_equal(output, expected)
+
+    def test_convert(self):
+        dataset = dummy_dataset.DummyDataset(mode=self.mode)
+        it = iterators.MultithreadIterator(
+            dataset, 2, shuffle=False, n_threads=self.n_threads)
+        it.enable_convert()
         output = it.next()
 
         if self.mode is tuple:
@@ -448,18 +462,12 @@ class TestMultithreadIteratorTabularDataset(unittest.TestCase):
         for out in output:
             self.assertIsInstance(out, numpy.ndarray)
 
-    def test_iterator_tabular_dataset_converter(self):
-        main_thread = threading.current_thread()
-
-        def converter(a, b, c):
-            self.assertNotEqual(threading.current_thread(), main_thread)
-            return 'converted'
-
-        dataset = dummy_dataset.DummyDataset(
-            mode=self.mode).with_converter(converter)
+    def test_normal_dataset(self):
+        dataset = [1, 2, 3, 4, 5, 6]
         it = iterators.MultithreadIterator(
             dataset, 2, shuffle=False, n_threads=self.n_threads)
-        self.assertEqual(it.next(), 'converted')
+        with self.assertRaises(ValueError):
+            it.enable_convert()
 
 
 testing.run_module(__name__, __file__)

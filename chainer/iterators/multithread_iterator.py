@@ -47,8 +47,6 @@ class MultithreadIterator(iterator.Iterator):
     def __init__(self, dataset, batch_size, repeat=True, shuffle=None,
                  n_threads=1, order_sampler=None):
         self.dataset = dataset
-        self._is_tabular = isinstance(
-            self.dataset, chainer.dataset.TabularDataset)
         self.batch_size = batch_size
         self._repeat = repeat
         self._shuffle = shuffle
@@ -71,6 +69,8 @@ class MultithreadIterator(iterator.Iterator):
         self._pool = None
 
         self.reset()
+
+        self._enable_convert = False
 
     def reset(self):
         if self.order_sampler is None:
@@ -163,7 +163,7 @@ class MultithreadIterator(iterator.Iterator):
             args = [(self.dataset, index) for index in indices]
             self._next = self._pool.map_async(MultithreadIterator._read, args)
 
-            if self._is_tabular:
+            if self._enable_convert:
                 self._next = self._pool.apply_async(
                     MultithreadIterator._convert,
                     (self.dataset.convert, self._next))
@@ -180,7 +180,7 @@ class MultithreadIterator(iterator.Iterator):
         while not next.ready():
             next.wait(0.5)  # To avoid interruption bug in Python2
 
-        if self._is_tabular:
+        if self._enable_convert:
             return next.get()
 
         batch = [data for data in next.get()]
@@ -198,3 +198,12 @@ class MultithreadIterator(iterator.Iterator):
     @property
     def repeat(self):
         return self._repeat
+
+    def enable_convert(self):
+        if self._next is not None:
+            raise RuntimeError(
+                'enable_convert must be called before calling next')
+        elif isinstance(self.dataset, chainer.dataset.TabularDataset):
+            self._enable_convert = True
+        else:
+            raise ValueError('The dataset does not support convert')
