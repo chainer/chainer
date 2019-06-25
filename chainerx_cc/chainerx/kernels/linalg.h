@@ -4,7 +4,6 @@
 
 #include "chainerx/array.h"
 #include "chainerx/kernel.h"
-#include "chainerx/routines/linalg.h"
 
 namespace chainerx {
 
