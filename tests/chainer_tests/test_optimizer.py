@@ -91,7 +91,7 @@ class DummyDeserializer(serializer.Deserializer):
         return value
 
 
-def _create_update_rule(has_states=False):
+def _create_update_rule(has_states):
     class SimpleUpdateRule(optimizer.UpdateRule):
         def update_core_cpu(self, param):
             pass
@@ -134,7 +134,7 @@ def _create_var():
 class TestUpdateRule(unittest.TestCase):
 
     def setUp(self):
-        self.update_rule = _create_update_rule()
+        self.update_rule = _create_update_rule(has_states=False)
         self.var = _create_var()
 
     def check_update(self, backend_config):
