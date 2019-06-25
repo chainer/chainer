@@ -85,7 +85,7 @@ class _NcclBackend(_MultiNodeBatchNormalizationBackend):
                                        gpu_buffer_b,
                                        gpu_buffer_n_elems,
                                        gamma.dtype)
-        gpu_buffer_a_array = gpu_buffer_a.array(
+        gpu_buffer_a_array = gpu_buffer_b.array(
             gpu_buffer_n_elems,
             dtype=gamma.dtype)
 
@@ -111,7 +111,7 @@ class _NcclBackend(_MultiNodeBatchNormalizationBackend):
                                        gpu_buffer_b,
                                        gpu_buffer_n_elems,
                                        gamma.dtype)
-        gpu_buffer_a_array = gpu_buffer_a.array(
+        gpu_buffer_a_array = gpu_buffer_b.array(
             gpu_buffer_n_elems,
             dtype=gamma.dtype)
 

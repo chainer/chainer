@@ -71,11 +71,11 @@ class PureNcclCommunicator(mpi_communicator_base.MpiCommunicatorBase):
         _memory_utility.unpack_params(
             params, 'data', self.gpu_tmp_buffer, data_dtype, False, stream)
 
-    def allreduce_grad(self, model, zero_fill=False):
+    def multi_node_mean_grad(self, model, zero_fill=False):
         stream = chainer.cuda.Stream.null
-        self._allreduce_grad_async(model, zero_fill, stream)
+        self._multi_node_mean_grad_async(model, zero_fill, stream)
 
-    def _allreduce_grad_async(self, model, zero_fill, stream):
+    def _multi_node_mean_grad_async(self, model, zero_fill, stream):
         self._init_comms()
         params = _memory_utility.extract_params_set_grad(model, zero_fill)
 
@@ -154,36 +154,34 @@ class PureNcclCommunicator(mpi_communicator_base.MpiCommunicatorBase):
                 params, 'grad', self.gpu_buffer_a,
                 allreduce_grad_dtype, zero_fill, stream)
 
-    def multi_node_mean_nccl(self, gpu_buffer_a, gpu_buffer_b,
+    def multi_node_mean_nccl(self, sendbuf, recvbuf,
                              n_elems, dtype, stream=None):
-        # Performs allreduce and division by size, i.e. mean.
-        # gpu_buffer_a = Sigma(gpu_buffer_a, all-procs) / self.size
-        # b is just used as buffer
+        # The name is allreduce but actually a mean
+        # Sigma(a, all-procs)/n -> b or
         if chainer.is_debug():
             stream.synchronize()
-            array_a = gpu_buffer_a.array(n_elems, dtype=dtype)
-            array_b = gpu_buffer_b.array(n_elems, dtype=dtype)
-            self.check_ready_to_allreduce(array_a, array_b)
+            array_a = sendbuf.array(n_elems, dtype=dtype)
+            array_b = recvbuf.array(n_elems, dtype=dtype)
+            self._check_ready_to_allreduce(array_a, array_b)
 
         if stream is None:
             stream = chainer.cuda.Stream.null
         self._init_comms()
         type_id = _communication_utility._get_nccl_type_id(dtype)
-        self.nccl_comm.allReduce(gpu_buffer_a.ptr(),
-                                 gpu_buffer_b.ptr(), n_elems,
+        self.nccl_comm.allReduce(sendbuf.ptr(),
+                                 recvbuf.ptr(), n_elems,
                                  type_id, nccl.NCCL_SUM, stream.ptr)
         div_by_size = chainer.cuda.cupy.ElementwiseKernel(
             '{} x'.format(dtype.name),
             '{} y'.format(dtype.name),
-            'y = x*(1.0/{})'.format(self.size), 'div_by_size')
+            'x *= (1.0/{})'.format(self.size), 'div_by_size')
         div_by_size(
-            gpu_buffer_b.array(n_elems, dtype=dtype),
-            gpu_buffer_a.array(n_elems, dtype=dtype),
+            recvbuf.array(n_elems, dtype=dtype),
             stream=stream)
 
         if chainer.is_debug():
             stream.synchronize()
-            self.ensure_all_finite(gpu_buffer_a.array(n_elems, dtype=dtype))
+            self._ensure_all_finite(sendbuf.array(n_elems, dtype=dtype))
 
 
 def _get_converting_kernel(src_dtype, dst_dtype, kernel_name):
