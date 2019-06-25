@@ -271,9 +271,11 @@ class MultiprocessIterator(iterator.Iterator):
         return epoch_size
 
     def enable_convert(self):
+        if self._enable_convert:
+            return
+
         if self._prefetch_loop is not None:
-            raise RuntimeError(
-                'enable_convert must be called before calling next')
+            raise RuntimeError('Cannot enable convert after next is called')
         elif isinstance(self.dataset, chainer.dataset.TabularDataset):
             self._enable_convert = True
         else:
