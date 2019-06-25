@@ -134,15 +134,22 @@ class MultiprocessIterator(iterator.Iterator):
         self._comm = _Communicator(self.n_prefetch, dataset_timeout)
         self.reset()
 
-        self._prefetch_loop = _PrefetchLoop(
-            self.dataset, self.batch_size, self.repeat,
-            self.n_processes, self.n_prefetch, self.shared_mem,
-            self._comm, self.order_sampler,
-            self._interruption_testing, self._maxtasksperchild)
-        # defer launching prefetch thread until creating the worker pool,
-        # not to leave a background thread in forked processes.
+        self._prefetch_loop = None
+
+        self._enable_convert = False
+
 
     def __next__(self):
+        if self._prefetch_loop is None:
+            self._prefetch_loop = _PrefetchLoop(
+                self.dataset, self.batch_size, self.repeat,
+                self.n_processes, self.n_prefetch, self.shared_mem,
+                self._comm, self.order_sampler,
+                self._interruption_testing, self._maxtasksperchild,
+                self._enable_convert)
+            # defer launching prefetch thread until creating the worker pool,
+            # not to leave a background thread in forked processes.
+
         measure_mode = False
         if self._prefetch_loop.thread is None:
             if self._prefetch_loop.measure_required():
@@ -263,6 +270,15 @@ class MultiprocessIterator(iterator.Iterator):
             epoch_size = len(order)
         return epoch_size
 
+    def enable_convert(self):
+        if self._prefetch_loop is not None:
+            raise RuntimeError(
+                'enable_convert must be called before calling next')
+        elif isinstance(self.dataset, chainer.dataset.TabularDataset):
+            self._enable_convert = True
+        else:
+            raise ValueError('The dataset does not support convert')
+
 
 class _Communicator(object):
 
@@ -347,10 +363,9 @@ class _PrefetchLoop(object):
     def __init__(self, dataset, batch_size, repeat,
                  n_processes, n_prefetch, mem_size, comm,
                  order_sampler,
-                 _interruption_testing, maxtasksperchild):
+                 _interruption_testing, maxtasksperchild,
+                 enable_convert):
         self.dataset = dataset
-        self._is_tabular = isinstance(
-            self.dataset, chainer.dataset.TabularDataset)
         self.batch_size = batch_size
         self.repeat = repeat
         self.n_processes = n_processes
@@ -362,6 +377,8 @@ class _PrefetchLoop(object):
         self._allocate_shared_memory()
 
         self._interruption_testing = _interruption_testing
+
+        self._enable_convert = enable_convert
 
     def terminate(self):
         self._terminating = True
@@ -419,7 +436,7 @@ class _PrefetchLoop(object):
             self.mem_size = max(map(_measure, batch))
             self._allocate_shared_memory()
 
-            if self._is_tabular:
+            if self._enable_convert:
                 batch = self.dataset.convert(_transpose.transpose(batch))
 
         return batch, self.prefetch_state
@@ -488,7 +505,7 @@ class _PrefetchLoop(object):
                     break
             batch = [_unpack(data, self.mem_bulk) for data in data_all]
 
-            if self._is_tabular:
+            if self._enable_convert:
                 batch = self.dataset.convert(_transpose.transpose(batch))
 
         self._comm.put(batch, self.prefetch_state, reset_count)

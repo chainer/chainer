@@ -822,17 +822,34 @@ class TestMultiprocessIteratorStalledDatasetDetection(unittest.TestCase):
     'n_prefetch': [1, 2],
     'shared_mem': [None, 1000000],
 }))
-class TestMultiprocessIteratorTabularDataset(unittest.TestCase):
+class TestMultiprocessIteratorConvert(unittest.TestCase):
 
     n_processes = 2
 
-    def test_iterator_tabular_dataset(self):
+    def test_compat(self):
         dataset = dummy_dataset.DummyDataset(mode=self.mode)
         it = iterators.MultiprocessIterator(
             dataset, 2, shuffle=False,
             n_processes=self.n_processes,
             n_prefetch=self.n_prefetch,
             shared_mem=self.shared_mem)
+        output = it.next()
+
+        if self.mode is tuple:
+            expected = [tuple(d) for d in dataset.data.transpose()[[0, 1]]]
+        elif self.mode is dict:
+            expected = [dict(zip(('a', 'b', 'c'), d))
+                        for d in dataset.data.transpose()[[0, 1]]]
+        numpy.testing.assert_equal(output, expected)
+
+    def test_convert(self):
+        dataset = dummy_dataset.DummyDataset(mode=self.mode)
+        it = iterators.MultiprocessIterator(
+            dataset, 2, shuffle=False,
+            n_processes=self.n_processes,
+            n_prefetch=self.n_prefetch,
+            shared_mem=self.shared_mem)
+        it.enable_convert()
         output = it.next()
 
         if self.mode is tuple:
@@ -846,22 +863,15 @@ class TestMultiprocessIteratorTabularDataset(unittest.TestCase):
         for out in output:
             self.assertIsInstance(out, numpy.ndarray)
 
-    def test_iterator_tabular_dataset_converter(self):
-        main_thread = threading.current_thread()
-
-        def converter(a, b, c):
-            if self.shared_mem is not None:
-                self.assertNotEqual(threading.current_thread(), main_thread)
-            return 'converted'
-
-        dataset = dummy_dataset.DummyDataset(
-            mode=self.mode).with_converter(converter)
+    def test_normal_dataset(self):
+        dataset = [1, 2, 3, 4, 5, 6]
         it = iterators.MultiprocessIterator(
             dataset, 2, shuffle=False,
             n_processes=self.n_processes,
             n_prefetch=self.n_prefetch,
             shared_mem=self.shared_mem)
-        self.assertEqual(it.next(), 'converted')
+        with self.assertRaises(ValueError):
+            it.enable_convert()
 
 
 testing.run_module(__name__, __file__)
