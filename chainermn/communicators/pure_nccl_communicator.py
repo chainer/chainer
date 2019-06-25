@@ -146,12 +146,12 @@ class PureNcclCommunicator(mpi_communicator_base.MpiCommunicatorBase):
                 self.params_data = None
             else:
                 params_data = _ParamsData(params, 'grad', zero_fill)
-            _batched_unpack_params(params_data, self.gpu_buffer_a,
+            _batched_unpack_params(params_data, self.gpu_buffer_b,
                                    allreduce_grad_dtype)
             return
         else:
             _memory_utility.unpack_params(
-                params, 'grad', self.gpu_buffer_a,
+                params, 'grad', self.gpu_buffer_b,
                 allreduce_grad_dtype, zero_fill, stream)
 
     def multi_node_mean_nccl(self, sendbuf, recvbuf,
@@ -181,7 +181,7 @@ class PureNcclCommunicator(mpi_communicator_base.MpiCommunicatorBase):
 
         if chainer.is_debug():
             stream.synchronize()
-            self._ensure_all_finite(sendbuf.array(n_elems, dtype=dtype))
+            self._ensure_all_finite(recvbuf.array(n_elems, dtype=dtype))
 
 
 def _get_converting_kernel(src_dtype, dst_dtype, kernel_name):
