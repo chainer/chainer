@@ -521,11 +521,11 @@ Returns:
         """inv(a)
 Computes the inverse of a matrix.
 
-This function computes matrix ``a_inv`` from n-dimensional regular matrix
-``a`` such that ``dot(a, a_inv) == eye(n)``.
+This function computes matrix ``a_inv`` from square matrix
+``a`` such that ``dot(a, a_inv) = dot(a_inv, a) = eye(a.shape[0])``.
 
 Args:
-    a (~chainerx.ndarray): The regular matrix.
+    a (~chainerx.ndarray): The matrix to be inverted.
 
 Returns:
     :class:`~chainerx.ndarray`: The inverse of a matrix.
