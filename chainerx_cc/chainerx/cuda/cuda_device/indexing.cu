@@ -385,20 +385,20 @@ __global__ void CumsumCudaKernel(
         TIndex common_total_size,
         TIndex axis_dim) {
     static_assert(std::is_same<TIndex, int64_t>::value || std::is_same<TIndex, int32_t>::value, "");
-    Indexer<> prev_indexer;
-    it_prev = prev_indexer.It(0);
+    Shape prev_shape{axis_dim};
+    Indexer<> prev_indexer{prev_shape};
+    auto it_prev = prev_indexer.It(0);
     for (auto it = out_indexer.It(blockIdx.x * blockDim.x + threadIdx.x, blockDim.x * gridDim.x); it; ++it) {
         TIndex indices_pos = static_cast<TIndex>(it.raw_index()) / common_total_size;
         TIndex common_pos = static_cast<TIndex>(it.raw_index()) % common_total_size;
 
         // As of now implemented using naive scan algorithm. Can later be modified to work efficient implementation.
 
-        extern __shared__ __align__(sizeof(T)) unsigned char temp[];
-        T* temp = reinterpret_cast<T*>(temp);
+        extern __shared__ T temp[];
 
         int pout = 0, pin = 1, n = a_indexer.total_size();
         it_prev.Restart(it.raw_index() - 1);
-        temp[pout * n + it.raw_index()] = it.raw_index() > 0 ? a_iarray[it_prev];
+        temp[pout * n + it.raw_index()] = it.raw_index() > 0 ? a_iarray[it_prev] : 0;
         __syncthreads();
 
         for (int offset = 1; offset < n; offset *= 2) {
@@ -443,7 +443,9 @@ void CumsumImpl(Device& device, const Array& a, int8_t axis, const Array& out) {
         out_iarray.Permute(out_perm);
         Shape out_shape = internal::TransposeShape(out.shape(), out_perm);
         Indexer<> out_indexer{out_shape};
-        Indexer<> indices_indexer{a.shape()[axis]};
+
+        Shape indices_shape{a.shape()[0]};
+        Indexer<> indices_indexer{indices_shape};
 
         // size of (Ni..., Nj...) part
         TIndex common_total_size = gsl::narrow<TIndex>(a_indexer.total_size() / a_shape[0]);
