@@ -1,5 +1,7 @@
 import six
 
+import chainer
+
 
 def create_multi_node_evaluator(actual_evaluator, communicator):
     """Create a multi node evaluator from a normal evaluator.
@@ -26,6 +28,10 @@ def create_multi_node_evaluator(actual_evaluator, communicator):
 
     def new_evaluate(self):
         local_mean_dict = self._mn_original_evaluate()
+
+        for key in local_mean_dict.keys():
+            local_mean_dict[key] = chainer.backend.from_chx(local_mean_dict[key])
+
         global_mean_dict = {
             name:
             self._mn_communicator.allreduce_obj(
