@@ -71,5 +71,3 @@ class TestCreateMnBnModel(unittest.TestCase):
             isinstance(mnbn_model[1],
                        chainermn.links.MultiNodeBatchNormalization))
         self.assertTrue(mnbn_model[2] == chainer.functions.relu)
-
-
