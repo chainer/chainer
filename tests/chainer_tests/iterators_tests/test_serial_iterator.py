@@ -455,6 +455,16 @@ class TestSerialIteratorConvert(unittest.TestCase):
         for out in output:
             self.assertIsInstance(out, numpy.ndarray)
 
+    def test_convert_with_converter(self):
+        def converter(a, b, c):
+            return 'converted'
+
+        dataset = dummy_dataset.DummyDataset(
+            mode=self.mode).with_converter(converter)
+        it = iterators.SerialIterator(dataset, 2, shuffle=False)
+        it.enable_convert()
+        self.assertEqual(it.next(), 'converted')
+
     def test_normal_dataset(self):
         dataset = [1, 2, 3, 4, 5, 6]
         it = iterators.SerialIterator(dataset, 2, shuffle=False)

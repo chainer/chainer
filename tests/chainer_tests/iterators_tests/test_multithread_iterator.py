@@ -474,7 +474,7 @@ class TestMultithreadIteratorConvert(unittest.TestCase):
         it = iterators.MultithreadIterator(
             dataset, 2, shuffle=False, n_threads=self.n_threads)
         it.enable_convert()
-        self.assertEquals(it.next(), 'converted')
+        self.assertEqual(it.next(), 'converted')
 
     def test_normal_dataset(self):
         dataset = [1, 2, 3, 4, 5, 6]

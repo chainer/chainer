@@ -879,7 +879,7 @@ class TestMultiprocessIteratorConvert(unittest.TestCase):
             n_prefetch=self.n_prefetch,
             shared_mem=self.shared_mem)
         it.enable_convert()
-        self.assertEquals(it.next(), 'converted')
+        self.assertEqual(it.next(), 'converted')
 
     def test_normal_dataset(self):
         dataset = [1, 2, 3, 4, 5, 6]
