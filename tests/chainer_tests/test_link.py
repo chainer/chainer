@@ -542,6 +542,8 @@ class TestLink(LinkTestBase, unittest.TestCase):
         l.x.grad.fill(1)
         l.y.grad.fill(2)
         l.u.grad.fill(3)
+        # TODO(niboshi): Remove this line after #7140
+        l.v.cleargrad()
 
         self.link.x.grad.fill(-1)
         self.link.y.grad.fill(-2)
