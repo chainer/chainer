@@ -55,12 +55,12 @@ class TestUpsampling2D(unittest.TestCase):
                 testing.assert_allclose(up_y, 0)
 
     def test_forward_cpu(self):
-        self.pooled_y.to_cpu()
+        self.pooled_y.to_cpu(unchain=True)
         self.check_forward(self.pooled_y)
 
     @attr.gpu
     def test_forward_gpu(self):
-        self.pooled_y.to_gpu()
+        self.pooled_y.to_gpu(unchain=True)
         self.check_forward(self.pooled_y)
 
     def check_backward(self, x_data, y_grad):
