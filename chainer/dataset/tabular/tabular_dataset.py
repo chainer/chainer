@@ -276,4 +276,4 @@ def _as_array(data):
     else:
         device = chainer.backend.get_device_from_array(data[0])
         with chainer.using_device(device):
-            return device.xp.stack(data)
+            return device.xp.asarray(data)
