@@ -589,8 +589,8 @@ class Variable(object):
             self._node = None  # type: tp.Optional[VariableNode]
             self._chainerx_name = name
         else:
-            # Use a list as a data structure to hold the data array indirectly to
-            # abstract its initialized/uninitialized state.
+            # Use a list as a data structure to hold the data array indirectly
+            # to abstract its initialized/uninitialized state.
             self._data = [data]  # type: tp.List[tp.Optional[types.NdArray]]
             if node is None:
                 self._node = VariableNode(self, name)
