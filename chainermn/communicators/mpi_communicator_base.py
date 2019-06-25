@@ -615,7 +615,6 @@ class MpiCommunicatorBase(communicator_base.CommunicatorBase):
     def gather_obj(self, obj, root=0):
         return self.mpi_comm.gather(obj, root=root)
 
-
     def allreduce_obj(self, obj):
         # Summation by default
         return self.mpi_comm.allreduce(obj)

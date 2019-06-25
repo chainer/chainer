@@ -312,12 +312,10 @@ class CommunicatorBase(six.with_metaclass(ABCMeta)):
 
     @abstractmethod
     def multi_node_mean_grad(self, model, zero_fill=False):
-        '''mean Chainer model gradients
-        '''
+        '''mean Chainer model gradients'''
         raise NotImplementedError()
 
     def allreduce_grad(self, model, zero_fill=False):
         warnings.warn('multi_node_mean_grad() is deprecated.',
                       DeprecationWarning)
         self.multi_node_mean_grad(model, zero_fill)
-
