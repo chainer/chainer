@@ -172,8 +172,8 @@ class PureNcclCommunicator(mpi_communicator_base.MpiCommunicatorBase):
                                  recvbuf.ptr(), n_elems,
                                  type_id, nccl.NCCL_SUM, stream.ptr)
         div_by_size = chainer.cuda.cupy.ElementwiseKernel(
+            '',
             '{} x'.format(dtype.name),
-            '{} y'.format(dtype.name),
             'x *= (1.0/{})'.format(self.size), 'div_by_size')
         div_by_size(
             recvbuf.array(n_elems, dtype=dtype),
