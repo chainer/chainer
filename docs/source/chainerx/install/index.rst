@@ -33,7 +33,7 @@ See :ref:`Examples <chainerx-install-cuda-support>` below.
 CUDA support
 ------------
 
-When installing with the CUDA support, you also need to specify the cuDNN installation path since CUDA without cuDNN is currently not supported.
+When installing with the CUDA support, you also need to specify the cuDNN installation path.
 
 You can specify either of the following environment variables to specify where to look for cuDNN installation.
 
