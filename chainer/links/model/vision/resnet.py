@@ -477,11 +477,11 @@ class ResNet152Layers(ResNetLayers):
 
 
 def prepare(image, size=(224, 224)):
-    """Converts the given image to the numpy array for ResNets.
+    """Converts the given image to a numpy array for ResNet.
 
-    Note that you have to call this method before ``forward``
-    because the pre-trained resnet model requires to resize the given
-    image, covert the RGB to the BGR, subtract the mean,
+    Note that this method must be called before calling ``forward``,
+    because the pre-trained resnet model will resize the given
+    image, convert from RGB to BGR, subtract the mean,
     and permute the dimensions before calling.
 
     Args:
