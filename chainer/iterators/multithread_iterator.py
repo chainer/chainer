@@ -208,4 +208,4 @@ class MultithreadIterator(iterator.Iterator):
         elif isinstance(self.dataset, chainer.dataset.TabularDataset):
             self._enable_convert = True
         else:
-            raise ValueError('The dataset does not support convert')
+            raise RuntimeError('The dataset does not support convert')

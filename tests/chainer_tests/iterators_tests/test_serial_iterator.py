@@ -458,7 +458,7 @@ class TestSerialIteratorConvert(unittest.TestCase):
     def test_normal_dataset(self):
         dataset = [1, 2, 3, 4, 5, 6]
         it = iterators.SerialIterator(dataset, 2, shuffle=False)
-        with self.assertRaises(ValueError):
+        with self.assertRaises(RuntimeError):
             it.enable_convert()
 
 

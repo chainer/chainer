@@ -84,3 +84,6 @@ class Iterator(object):
 
         """
         pass
+
+    def enable_convert(self):
+        raise RuntimeError('Not supported')

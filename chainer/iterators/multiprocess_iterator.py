@@ -138,7 +138,6 @@ class MultiprocessIterator(iterator.Iterator):
 
         self._enable_convert = False
 
-
     def __next__(self):
         if self._prefetch_loop is None:
             self._prefetch_loop = _PrefetchLoop(
@@ -279,7 +278,7 @@ class MultiprocessIterator(iterator.Iterator):
         elif isinstance(self.dataset, chainer.dataset.TabularDataset):
             self._enable_convert = True
         else:
-            raise ValueError('The dataset does not support convert')
+            raise RuntimeError('The dataset does not support convert')
 
 
 class _Communicator(object):

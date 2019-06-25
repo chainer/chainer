@@ -863,6 +863,24 @@ class TestMultiprocessIteratorConvert(unittest.TestCase):
         for out in output:
             self.assertIsInstance(out, numpy.ndarray)
 
+    def test_convert_with_converter(self):
+        main_thread = threading.current_thread()
+
+        def converter(a, b, c):
+            if self.shared_mem is not None:
+                self.assertNotEqual(threading.current_thread(), main_thread)
+            return 'converted'
+
+        dataset = dummy_dataset.DummyDataset(
+            mode=self.mode).with_converter(converter)
+        it = iterators.MultiprocessIterator(
+            dataset, 2, shuffle=False,
+            n_processes=self.n_processes,
+            n_prefetch=self.n_prefetch,
+            shared_mem=self.shared_mem)
+        it.enable_convert()
+        self.assertEquals(it.next(), 'converted')
+
     def test_normal_dataset(self):
         dataset = [1, 2, 3, 4, 5, 6]
         it = iterators.MultiprocessIterator(
@@ -870,7 +888,7 @@ class TestMultiprocessIteratorConvert(unittest.TestCase):
             n_processes=self.n_processes,
             n_prefetch=self.n_prefetch,
             shared_mem=self.shared_mem)
-        with self.assertRaises(ValueError):
+        with self.assertRaises(RuntimeError):
             it.enable_convert()
 
 
