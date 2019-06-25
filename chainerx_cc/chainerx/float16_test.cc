@@ -235,5 +235,28 @@ TEST(NativeFloat16Test, Float16DivideI) {
     }
 }
 
+TEST(NativeFloat16Test, FloatComparison) {
+    for (Float16 x : GetFloat16Values()) {
+        for (Float16 y : GetFloat16Values()) {
+#define CHECK_COMPARISION_OPERATOR(op)                                       \
+    {                                                                        \
+        /* NOLINTNEXTLINE(misc-macro-parentheses) */                         \
+        EXPECT_EQ(static_cast<double>(x) op static_cast<double>(y), x op y); \
+        /* NOLINTNEXTLINE(misc-macro-parentheses) */                         \
+        EXPECT_EQ(static_cast<double>(y) op static_cast<double>(x), y op x); \
+    }
+
+            CHECK_COMPARISION_OPERATOR(==);
+            CHECK_COMPARISION_OPERATOR(!=);
+            CHECK_COMPARISION_OPERATOR(<);  // NOLINT(whitespace/operators)
+            CHECK_COMPARISION_OPERATOR(>);  // NOLINT(whitespace/operators)
+            CHECK_COMPARISION_OPERATOR(<=);
+            CHECK_COMPARISION_OPERATOR(>=);
+
+#undef CHECK_COMPARISION_OPERATOR
+        }
+    }
+}
+
 }  // namespace
 }  // namespace chainerx

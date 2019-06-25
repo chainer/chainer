@@ -1,5 +1,6 @@
 import os
 import sys
+import warnings
 
 
 if sys.version_info[0] < 3:
@@ -14,6 +15,12 @@ else:
 
 if _available:
     from numpy import dtype  # NOQA
+    from numpy import (  # NOQA
+        Inf, Infinity, NAN, NINF, NZERO, NaN, PINF, PZERO,
+        e, euler_gamma,
+        inf, infty, nan,
+        newaxis,
+        pi)
     from numpy import (
         bool_, int8, int16, int32, int64, uint8, float16, float32, float64)  # NOQA
     all_dtypes = (
@@ -70,3 +77,9 @@ else:
 
 def is_available():
     return _available
+
+
+if _available and _core._is_debug():
+    # Warn if the ChainerX core binary is built in debug mode
+    warnings.warn(
+        'ChainerX core binary is built in debug mode.', stacklevel=2)

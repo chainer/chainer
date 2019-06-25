@@ -209,8 +209,6 @@ Array Eye(int64_t n, nonstd::optional<int64_t> m, nonstd::optional<int64_t> k, n
     return out;
 }
 
-namespace internal {
-
 Array AsContiguous(const Array& a, Dtype dtype) {
     if (a.IsContiguous() && a.dtype() == dtype) {
         return a;
@@ -219,7 +217,8 @@ Array AsContiguous(const Array& a, Dtype dtype) {
     Array out = Empty(a.shape(), dtype, a.device());
     {
         NoBackpropModeScope scope{};
-        a.device().backend().CallKernel<AsTypeKernel>(a.AsGradStopped(), out);
+        // Note: In CopyKernel, Input Array Elements are casted to the type of Output Array.
+        a.device().backend().CallKernel<CopyKernel>(a.AsGradStopped(), out);
     }
 
     if (GetKind(dtype) == DtypeKind::kFloat) {
@@ -239,8 +238,6 @@ Array AsContiguous(const Array& a, Dtype dtype) {
     return out;
 }
 
-}  // namespace internal
-
 Array AsContiguousArray(const Array& a, const nonstd::optional<Dtype>& dtype) {
     Dtype src_dt = a.dtype();
     Dtype dt = dtype.value_or(src_dt);
@@ -252,7 +249,7 @@ Array AsContiguousArray(const Array& a, const nonstd::optional<Dtype>& dtype) {
         return a;
     }
 
-    Array out = internal::AsContiguous(a, dt);
+    Array out = AsContiguous(a, dt);
     if (a.ndim() == 0) {
         out = out.Reshape({1});
     }

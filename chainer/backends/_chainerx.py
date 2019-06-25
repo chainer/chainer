@@ -10,20 +10,17 @@ import chainerx
 
 class ChainerxDevice(_backend.Device):
 
+    """Device for ChainerX backend"""
+
+    xp = chainerx
+    supported_array_types = (chainerx.ndarray,)
+
     def __init__(self, device):
         # type: (chainerx.Device) -> None
 
         assert isinstance(device, chainerx.Device)
         super(ChainerxDevice, self).__init__()
         self.device = device  # type: chainerx.Device
-
-    @property
-    def xp(self):
-        return chainerx
-
-    @property
-    def supported_array_types(self):
-        return (chainerx.ndarray,)
 
     @staticmethod
     def from_array(array):
@@ -33,7 +30,12 @@ class ChainerxDevice(_backend.Device):
 
     @staticmethod
     def from_fallback_device(device):
-        # TODO(niboshi): Write unit test
+        """Returns a :class:`~chainer.backend.ChainerxDevice` corresponding \
+to the fallback device.
+
+        .. seealso::
+            :data:`~chainer.backend.ChainerxDevice.fallback_device`
+        """
         assert isinstance(device, _backend.Device)
         if isinstance(device, _cpu.CpuDevice):
             return ChainerxDevice(chainerx.get_device('native', 0))
@@ -45,8 +47,22 @@ class ChainerxDevice(_backend.Device):
             'Actual: {}'.format(device))
 
     @property
+    def name(self):
+        return self.device.name
+
+    @property
     def fallback_device(self):
-        # TODO(niboshi): Write unit test
+        """Fallback device.
+
+        A fallback device is either a :class:`~chainer.backend.CpuDevice` or
+        a :class:`~chainer.backend.GpuDevice` which shares the same physical
+        device with the original ChainerX device.
+
+        For example, the fallback device of ``native:0`` ChainerX device is
+        :class:`~chainer.backend.CpuDevice`. The fallback device of ``cuda:1``
+        ChainerX device is :class:`~chainer.backend.GpuDevice` with device ID
+        1.
+        """
         backend_name = self.device.backend.name
         if backend_name == 'native':
             return _cpu.CpuDevice()
@@ -65,9 +81,6 @@ class ChainerxDevice(_backend.Device):
         return '<{} {}>'.format(
             self.__class__.__name__, self.device.name)
 
-    def __str__(self):
-        return self.device.name
-
     def create_context(self):
         # Returns a context that sets the default device.
         return chainerx.using_device(self.device)
@@ -82,6 +95,11 @@ class ChainerxDevice(_backend.Device):
 
     def use(self):
         chainerx.set_default_device(self.device)
+
+    def is_array_supported(self, array):
+        return (
+            isinstance(array, chainerx.ndarray)
+            and self.device == array.device)
 
 
 def to_chx(array):

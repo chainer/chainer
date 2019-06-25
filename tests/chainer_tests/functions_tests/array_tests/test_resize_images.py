@@ -11,6 +11,8 @@ from chainer.testing import attr
 
 @testing.parameterize(*testing.product({
     'in_shape': [(2, 3, 8, 6), (2, 1, 4, 6)],
+    'mode': ['bilinear', 'nearest'],
+    'align_corners': [True, False],
 }))
 @testing.inject_backend_tests(
     None,
@@ -44,13 +46,16 @@ class TestResizeImagesForwardIdentity(testing.FunctionTestCase):
     def forward(self, inputs, device):
         x, = inputs
         output_shape = self.in_shape[2:]
-        y = functions.resize_images(x, output_shape)
+        y = functions.resize_images(
+            x, output_shape, self.mode, align_corners=self.align_corners)
         return y,
 
 
 @testing.parameterize(*testing.product({
     'in_shape': [(2, 2, 4, 4)],
     'output_shape': [(2, 2, 2, 2)],
+    'mode': ['bilinear', 'nearest'],
+    'align_corners': [True, False],
 }))
 @testing.inject_backend_tests(
     None,
@@ -91,13 +96,15 @@ class TestResizeImagesForwardDownScale(testing.FunctionTestCase):
     def forward(self, inputs, device):
         x, = inputs
         output_shape = self.output_shape[2:]
-        y = functions.resize_images(x, output_shape)
+        y = functions.resize_images(
+            x, output_shape, self.mode, self.align_corners)
         return y,
 
 
 @testing.parameterize(*testing.product({
     'in_shape': [(1, 1, 2, 2)],
-    'output_shape': [(1, 1, 3, 3)]
+    'output_shape': [(1, 1, 3, 3)],
+    'align_corners': [True, False],
 }))
 @testing.inject_backend_tests(
     None,
@@ -117,7 +124,7 @@ class TestResizeImagesForwardDownScale(testing.FunctionTestCase):
         'chainerx_device': ['native:0', 'cuda:0', 'cuda:1'],
     })
 )
-class TestResizeImagesForwardUpScale(testing.FunctionTestCase):
+class TestResizeImagesForwardUpScaleBilnear(testing.FunctionTestCase):
 
     def generate_inputs(self):
         x = numpy.zeros(self.in_shape, dtype=numpy.float32)
@@ -139,11 +146,12 @@ class TestResizeImagesForwardUpScale(testing.FunctionTestCase):
     def forward(self, inputs, device):
         x, = inputs
         output_shape = self.output_shape[2:]
-        y = functions.resize_images(x, output_shape)
+        y = functions.resize_images(
+            x, output_shape, align_corners=self.align_corners)
         return y,
 
 
-class TestResizeImagesForwardMultiLines(unittest.TestCase):
+class TestResizeImagesForwardMultiLinesAlignCorners(unittest.TestCase):
 
     in_shape = (1, 1, 987, 123)
     output_shape = (1, 1, 765, 345)
@@ -171,7 +179,9 @@ class TestResizeImagesForwardMultiLines(unittest.TestCase):
 
 @testing.parameterize(*testing.product({
     'in_shape': [(2, 3, 8, 6), (2, 1, 4, 6)],
-    'output_shape': [(10, 5), (3, 4)]
+    'output_shape': [(10, 5), (3, 4)],
+    'mode': ['bilinear', 'nearest'],
+    'align_corners': [False, True],
 }))
 class TestResizeImagesBackward(unittest.TestCase):
 
@@ -186,7 +196,8 @@ class TestResizeImagesBackward(unittest.TestCase):
 
     def check_backward(self, x, output_shape, gy):
         def f(x):
-            return functions.resize_images(x, output_shape)
+            return functions.resize_images(
+                x, output_shape, self.mode, self.align_corners)
 
         gradient_check.check_backward(
             f, x, gy, dtype='d', atol=1e-2, rtol=1e-3, eps=1e-5)
@@ -201,7 +212,8 @@ class TestResizeImagesBackward(unittest.TestCase):
 
     def check_double_backward(self, x, output_shape, gy, ggx):
         def f(x):
-            return functions.resize_images(x, output_shape)
+            return functions.resize_images(
+                x, output_shape, self.mode, self.align_corners)
 
         gradient_check.check_double_backward(
             f, x, gy, ggx, atol=1e-2, rtol=1e-3)

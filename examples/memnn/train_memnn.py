@@ -2,9 +2,12 @@
 
 import argparse
 import collections
+import warnings
 
 import chainer
 from chainer.training import extensions
+
+import numpy
 
 import babi
 import memnn
@@ -94,6 +97,10 @@ def main():
                        type=int, nargs='?', const=0,
                        help='GPU ID (negative value indicates CPU)')
     args = parser.parse_args()
+
+    if chainer.get_dtype() == numpy.float16:
+        warnings.warn(
+            'This example may cause NaN in FP16 mode.', RuntimeWarning)
 
     train(args.TRAIN_DATA, args.TEST_DATA, args)
 
