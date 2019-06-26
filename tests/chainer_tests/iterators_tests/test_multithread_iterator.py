@@ -426,7 +426,7 @@ class TestMultithreadIteratorInvalidOrderSampler(unittest.TestCase):
 
 
 @testing.parameterize(*testing.product({
-    'mode': [tuple, dict],
+    'mode': [tuple, dict, None],
     'n_threads': [1, 2],
 }))
 class TestMultithreadIteratorConvert(unittest.TestCase):
@@ -442,6 +442,8 @@ class TestMultithreadIteratorConvert(unittest.TestCase):
         elif self.mode is dict:
             expected = [dict(zip(('a', 'b', 'c'), d))
                         for d in dataset.data.transpose()[[0, 1]]]
+        elif self.mode is None:
+            expected = dataset.data[0, [0, 1]]
         numpy.testing.assert_equal(output, expected)
 
     def test_convert(self):
@@ -455,19 +457,28 @@ class TestMultithreadIteratorConvert(unittest.TestCase):
             expected = tuple(dataset.data[:, [0, 1]])
         elif self.mode is dict:
             expected = dict(zip(('a', 'b', 'c'), dataset.data[:, [0, 1]]))
+        elif self.mode is None:
+            expected = dataset.data[0, [0, 1]]
         numpy.testing.assert_equal(output, expected)
 
         if self.mode is dict:
             output = output.values()
+        elif self.mode is None:
+            output = output,
         for out in output:
             self.assertIsInstance(out, numpy.ndarray)
 
     def test_convert_with_converter(self):
         main_thread = threading.current_thread()
 
-        def converter(a, b, c):
-            self.assertNotEqual(threading.current_thread(), main_thread)
-            return 'converted'
+        if self.mode in {tuple, dict}:
+            def converter(a, b, c):
+                self.assertNotEqual(threading.current_thread(), main_thread)
+                return 'converted'
+        elif self.mode is None:
+            def converter(a):
+                self.assertNotEqual(threading.current_thread(), main_thread)
+                return 'converted'
 
         dataset = dummy_dataset.DummyDataset(
             mode=self.mode).with_converter(converter)
