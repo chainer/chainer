@@ -107,35 +107,28 @@ def muladd(a, b, c):
 _numpy_device = backend.CpuDevice()
 
 
-_nonchainerx_backend_params = [
-    # NumPy
+_numpy_backend_params = [
     {},
-    # CuPy
+]
+
+
+_cupy_backend_params = [
     {'use_cuda': True, 'cuda_device': 0},
     {'use_cuda': True, 'cuda_device': 1},
 ]
 
 
 _chainerx_backend_params = [
-    # ChainerX
     {'use_chainerx': True, 'chainerx_device': 'native:0'},
     {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
     {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
 ]
 
 
-_backend_params = [
-    # NumPy
-    {},
-    # CuPy
-    {'use_cuda': True, 'cuda_device': 0},
-    {'use_cuda': True, 'cuda_device': 1},
-    # ChainerX
-    {'use_chainerx': True, 'chainerx_device': 'native:0'},
-    {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
-    {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
-]
+_nonchainerx_backend_params = _numpy_backend_params + _cupy_backend_params
 
+
+_backend_params = _nonchainerx_backend_params + _chainerx_backend_params
 
 @testing.parameterize(*(
     testing.product({
@@ -983,388 +976,319 @@ class TestVariableChainerXInitRequiresGrad(unittest.TestCase):
             assert v().requires_grad is self.expected
 
 
-@testing.parameterize(
-    {'x_shape': (10,)},
-    {'x_shape': ()},
-)
-class TestVariableToCpu(unittest.TestCase):
+# TODO(hvy): Classes deriving this base class should test all backends
+# including intel64.
+class VariableToDeviceFamilyBase(object):
 
-    def setUp(self):
-        self.x = np.zeros(self.x_shape, dtype=np.float32)
-        self.gx = np.ones_like(self.x)
+    x_shape = None
+    x_with_grad = True
+    x_with_graph = True
 
-    def check_to_cpu(self, x, gx, requires_grad=True):
-        x_var = chainer.Variable(x, requires_grad=requires_grad)
+    def setup(self, src_backend_config):
+        x = np.zeros(self.x_shape, dtype=np.float32)
+        gx = np.ones_like(x)
 
-        set_grad_var = requires_grad or not isinstance(x, chainerx.ndarray)
-        if set_grad_var:
-            x_var.grad_var = chainer.Variable(gx, requires_grad=requires_grad)
+        x, gx = src_backend_config.get_array((x, gx))
 
-        x_var.to_cpu()
+        # *_src arrays are kept for the post transfer checks.
+        self.x_src = x
+        self.gx_src = gx
 
-        assert x_var.xp is np
-        assert x_var._has_chainerx_array is False
-        assert x_var.node is not None
-        assert isinstance(x_var.data, np.ndarray)
-        assert x.shape == x_var.shape
-        assert x.dtype == x_var.dtype
+        x = chainer.Variable(x)
+        gx = chainer.Variable(gx)
+
+        if self.x_with_graph:
+            x = 2 * x
+
+        if self.x_with_grad:
+            x.grad_var = gx
+
+        self.x = x
+        self.gx = gx
+
+    def to_device_meth(self, dst_device, allow_unchain):
+        # Call `self.x.to_device`, `self.x.from_chx`, etc.
+        raise NotImplementedError('Must be overridden.')
+
+    def check_to_device_meth_devices(self, src_device, dst_device):
+        # Called after the device transfer, check `self.x`, etc.
+        raise NotImplementedError('Must be overridden.')
+
+    def check_to_device_meth_ndarrays(self):
+        x = self.x
+
+        # Check x.
+        x_src = self.x_src
+        assert x.shape == x_src.shape
+        assert x.dtype == x_src.dtype
         np.testing.assert_array_equal(
-            backend.CpuDevice().send(x_var.data), backend.CpuDevice().send(x))
+            backend.CpuDevice().send(x.array),
+            backend.CpuDevice().send(x_src))
 
-        if set_grad_var:
-            assert isinstance(x_var.grad, np.ndarray)
-            assert gx.shape == x_var.grad.shape
-            assert gx.dtype == x_var.grad.dtype
+        # Check gx.
+        gx_src = self.gx_src
+        if self.x_with_grad:
+            assert x.grad.shape == gx_src.shape
+            assert x.grad.dtype == gx_src.dtype
+            assert x.grad_var.shape == gx_src.shape
+            assert x.grad_var.dtype == gx_src.dtype
             np.testing.assert_array_equal(
-                backend.CpuDevice().send(x_var.grad),
-                backend.CpuDevice().send(gx))
-            assert x_var.grad_var is not None
-            assert x_var.grad_var.node is not None
+                backend.CpuDevice().send(x.grad),
+                backend.CpuDevice().send(gx_src))
         else:
-            assert x_var.grad is None
-            assert x_var.grad_var is None
+            assert x.grad is None
+            assert x.grad_var is None
 
-        orig_xp = backend.get_array_module(x, gx)
-        if orig_xp is np:
-            assert x_var.data is x
-            assert x_var.grad is gx
-        else:
-            assert x_var.data is not x
-            assert not set_grad_var or x_var.grad is not gx
+    def test_to_device_meth_allow_unchain(
+            self, src_backend_config, dst_backend_config):
+        self.setup(src_backend_config)
 
-        assert x_var.xp is not chainerx
-        assert x_var._has_chainerx_array is False
+        self.to_device_meth(dst_backend_config.device, True)
 
-    def test_to_cpu_from_cpu(self):
-        self.check_to_cpu(self.x, self.gx)
+        self.check_to_device_meth_devices(
+            src_backend_config.device, dst_backend_config.device)
+        self.check_to_device_meth_ndarrays()
 
-    @attr.gpu
-    def test_to_cpu_from_gpu(self):
-        self.check_to_cpu(cuda.to_gpu(self.x), cuda.to_gpu(self.gx))
+    def test_to_device_meth_not_allow_unchain(
+            self, src_backend_config, dst_backend_config):
+        self.setup(src_backend_config)
 
-    @attr.chainerx
-    def test_to_cpu_from_chainerx(self):
-        self.check_to_cpu(
-            chainerx.array(self.x),
-            chainerx.array(self.gx),
-            requires_grad=False)
-
-    @attr.chainerx
-    def test_to_cpu_from_chainerx_requiring_grad(self):
-        self.check_to_cpu(
-            chainerx.array(self.x),
-            chainerx.array(self.gx),
-            requires_grad=True)
-
-
-@testing.parameterize(
-    {'x_shape': (10,)},
-    {'x_shape': ()},
-)
-@attr.gpu
-class TestVariableToGpu(unittest.TestCase):
-
-    def setUp(self):
-        self.x = np.zeros(self.x_shape, dtype=np.float32)
-        self.gx = np.ones_like(self.x)
-
-    def check_to_gpu(self, x, gx, device_id=None, requires_grad=True):
-        x_var = chainer.Variable(x, requires_grad=requires_grad)
-
-        set_grad_var = requires_grad or not isinstance(x, chainerx.ndarray)
-        if set_grad_var:
-            x_var.grad_var = chainer.Variable(gx, requires_grad=requires_grad)
-
-        x_var.to_gpu(device_id)
-
-        if device_id is None:
-            expected_device_id = cuda.cupy.cuda.runtime.getDevice()
-        else:
-            expected_device_id = device_id
-        expected_device = cuda.GpuDevice.from_device_id(expected_device_id)
-
-        assert x_var.xp is cuda.cupy
-        assert x_var._has_chainerx_array is False
-        assert x_var.node is not None
-        assert isinstance(x_var.data, cuda.cupy.ndarray)
-        assert x_var.data.device.id == expected_device_id
-        assert x_var.device == expected_device
-        assert x.shape == x_var.shape
-        assert x.dtype == x_var.dtype
-        np.testing.assert_array_equal(
-            backend.CpuDevice().send(x_var.data), backend.CpuDevice().send(x))
-
-        if set_grad_var:
-            assert isinstance(x_var.grad, cuda.cupy.ndarray)
-            assert x_var.grad.device.id == expected_device_id
-            assert x_var.grad_var.device == expected_device
-            assert gx.shape == x_var.grad.shape
-            assert gx.dtype == x_var.grad.dtype
-            np.testing.assert_array_equal(
-                backend.CpuDevice().send(x_var.grad),
-                backend.CpuDevice().send(gx))
-            assert x_var.grad_var is not None
-            assert x_var.grad_var.node is not None
-        else:
-            assert x_var.grad is None
-            assert x_var.grad_var is None
-
-        orig_device = backend.get_device_from_array(x)
-        if orig_device == expected_device:
-            assert x_var.data is x
-            assert x_var.grad is gx
-        else:
-            assert x_var.data is not x
-            assert not set_grad_var or x_var.grad is not gx
-
-        assert x_var.xp is not chainerx
-
-    def test_to_gpu_from_cpu(self):
-        self.check_to_gpu(self.x, self.gx)
-
-    def test_to_gpu_from_gpu(self):
-        self.check_to_gpu(cuda.to_gpu(self.x), cuda.to_gpu(self.gx))
-
-    @attr.multi_gpu(2)
-    def test_to_gpu_from_another_gpu(self):
-        self.check_to_gpu(cuda.to_gpu(self.x), cuda.to_gpu(self.gx), 1)
-
-    @attr.chainerx
-    def test_to_gpu_from_chainerx(self):
-        self.check_to_gpu(
-            chainerx.array(self.x),
-            chainerx.array(self.gx),
-            requires_grad=False)
-
-    @attr.chainerx
-    def test_to_gpu_from_chainerx_requiring_grad(self):
-        self.check_to_gpu(
-            chainerx.array(self.x),
-            chainerx.array(self.gx),
-            requires_grad=True)
-
-
-@testing.parameterize(
-    {'x_shape': (10,)},
-    {'x_shape': ()},
-)
-@attr.chainerx
-class TestVariableToChainerX(unittest.TestCase):
-
-    def setUp(self):
-        self.x = np.zeros(self.x_shape, dtype=np.float32)
-        self.gx = np.ones_like(self.x)
-
-    def infer_expected_device(self, *arrays):
-        xp = backend.get_array_module(*arrays)
-        if xp is np:
-            return chainerx.get_device('native', 0)
-        elif xp is cuda.cupy:
-            return chainerx.get_device('cuda', arrays[0].device.id)
-        elif xp is chainerx:
-            return arrays[0].device
-        assert False
-
-    def _check_chx(self, x_var, expected_device):
-        assert x_var.xp is chainerx
-        assert x_var._has_chainerx_array is True
-        with pytest.raises(RuntimeError):
-            x_var.node
-        assert isinstance(x_var.array, chainerx.ndarray)
-        assert x_var.array.device is expected_device
-
-    def check_to_chx(self, x, gx, requires_grad=True):
-        x_var = chainer.Variable(x, requires_grad=requires_grad)
-        x_var.grad_var = chainer.Variable(gx, requires_grad=requires_grad)
-
-        x_var.to_chx()
-
-        expected_device = self.infer_expected_device(x, gx)
-
-        self._check_chx(x_var, expected_device)
-
-        assert x.shape == x_var.shape
-        assert x.dtype == x_var.dtype
-
-        # Check gradient.
-        if requires_grad:
-            assert isinstance(x_var.grad, chainerx.ndarray)
-            assert gx.shape == x_var.grad.shape
-            assert gx.dtype == x_var.grad.dtype
-            assert x_var.grad.device is expected_device
-            np.testing.assert_array_equal(
-                backend.CpuDevice().send(x_var.grad),
-                backend.CpuDevice().send(gx))
-            assert x_var.grad_var is not None
+        if self.x_with_graph:
             with pytest.raises(RuntimeError):
-                x_var.grad_var.node
+                self.to_device_meth(dst_backend_config.device, False)
         else:
-            assert x_var.grad is None
-            assert x_var.grad_var is None
+            # Check that nothing is raised.
+            self.to_device_meth(dst_backend_config.device, False)
 
-    def test_to_chx_from_numpy(self):
-        self.check_to_chx(self.x, self.gx)
+    def test_to_device_meth_unspecified_allow_unchain(
+            self, src_backend_config, dst_backend_config):
+        self.setup(src_backend_config)
 
-    @attr.gpu
-    def test_to_chx_from_cupy(self):
-        self.check_to_chx(cuda.to_gpu(self.x), cuda.to_gpu(self.gx))
-
-    # TODO(hvy): Write test when implemented.
-    @attr.ideep
-    def test_ideep_to_chx(self):
-        raise unittest.SkipTest('Not yet supported')
-
-    def test_to_chx_from_chx(self):
-        self.check_to_chx(
-            chainerx.array(self.x), chainerx.array(self.gx))
-
-    def test_to_chx_from_another_device(self):
-        self.check_to_chx(
-            chainerx.array(self.x), chainerx.array(self.gx))
-
-    def test_to_chx_not_requiring_grad(self):
-        self.check_to_chx(self.x, self.gx, requires_grad=False)
-
-    def test_to_chx_with_creator(self):
-        x_var = chainer.Variable(self.x, requires_grad=True)
-        y_var = x_var * x_var
-        y_var.to_chx(allow_unchain=True)
-        self._check_chx(y_var, chainerx.get_device('native', 0))
+        if self.x_with_graph:
+            with pytest.warns(DeprecationWarning):
+                self.to_device_meth(dst_backend_config.device, None)
+        else:
+            # Check that nothing is warned.
+            self.to_device_meth(dst_backend_config.device, None)
 
 
 @testing.parameterize(*testing.product({
     'x_shape': [(10,), ()],
-    'requires_grad': [True, False],
+    'x_with_grad': [True, False],
+    'x_with_graph': [True, False],
 }))
-@chainer.testing.backend.inject_backend_tests(
-    ['test_from_chx'],
-    [
-        # NumPy
-        {},
-        # CuPy
-        {'use_cuda': True, 'cuda_device': 0},
-        {'use_cuda': True, 'cuda_device': 1},
-        # ChainerX
-        {'use_chainerx': True, 'chainerx_device': 'native:0'},
-        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
-        {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
-    ])
+@testing.backend.inject_backend_tests(None, _numpy_backend_params)
+@testing.backend.inject_backend_tests(None, _backend_params)
+class TestVariableToCpu(VariableToDeviceFamilyBase, unittest.TestCase):
+
+    def to_device_meth(self, _, allow_unchain):
+        self.x.to_cpu(allow_unchain=allow_unchain)
+
+    def check_to_device_meth_devices(self, src_device, _):
+        x = self.x
+
+        assert x.xp is np
+        assert x.node is not None
+        assert isinstance(x.array, np.ndarray)
+
+        if self.x_with_grad:
+            assert x.grad_var.xp is np
+            assert x.grad_var.node is not None
+            assert isinstance(x.grad, np.ndarray)
+        else:
+            assert x.grad is None
+            assert x.grad_var is None
+
+        no_copy = src_device.xp is np and not self.x_with_graph
+        if no_copy:
+            assert x.array is self.x_src
+            if self.x_with_grad:
+                assert x.grad is self.gx_src
+
+
+@testing.parameterize(*testing.product({
+    'x_shape': [(10,), ()],
+    'x_with_grad': [True, False],
+    'x_with_graph': [True, False],
+}))
+@testing.backend.inject_backend_tests(None, _cupy_backend_params)
+@testing.backend.inject_backend_tests(None, _backend_params)
+@attr.gpu
+class TestVariableToGpu(VariableToDeviceFamilyBase, unittest.TestCase):
+
+    def to_device_meth(self, device, allow_unchain):
+        # Device is `None` or a `GpuDevice`.
+        if device is not None:
+            assert device.xp is cuda.cupy
+            device = device.device.id
+        self.x.to_gpu(device, allow_unchain=allow_unchain)
+
+    def check_to_device_meth_devices(self, src_device, dst_device):
+        assert isinstance(dst_device, backend.GpuDevice)
+        x = self.x
+
+        assert x.xp is cuda.cupy
+        assert x.node is not None
+        assert x.device == dst_device
+        assert isinstance(x.array, cuda.cupy.ndarray)
+        assert x.array.device.id == dst_device.device.id
+
+        if self.x_with_grad:
+            assert x.grad_var.xp is cuda.cupy
+            assert x.grad_var.node is not None
+            assert x.grad_var.device == dst_device
+            assert isinstance(x.grad, cuda.cupy.ndarray)
+            assert x.grad.device.id == dst_device.device.id
+        else:
+            assert x.grad is None
+            assert x.grad_var is None
+
+        no_copy = (
+            src_device.xp is cuda.cupy
+            and src_device.device.id == dst_device.device.id
+            and not self.x_with_graph)
+        if no_copy:
+            assert x.array is self.x_src
+            if self.x_with_grad:
+                assert x.grad is self.gx_src
+
+    def test_to_device_meth_allow_unchain_none_device(
+            self, src_backend_config, dst_backend_config):
+        self.setup(src_backend_config)
+
+        self.to_device_meth(None, True)
+
+        self.check_to_device_meth_devices(
+            src_backend_config.device, backend.GpuDevice.from_device_id(
+                cuda.cupy.cuda.runtime.getDevice()))
+        self.check_to_device_meth_ndarrays()
+
+
+@testing.parameterize(*testing.product({
+    'x_shape': [(10,), ()],
+    'x_with_grad': [True, False],
+    'x_with_graph': [True, False],
+}))
+@testing.backend.inject_backend_tests(None, _numpy_backend_params)
+@testing.backend.inject_backend_tests(None, _backend_params)
 @attr.chainerx
-class TestVariableFromChainerX(unittest.TestCase):
+class TestVariableToChainerX(VariableToDeviceFamilyBase, unittest.TestCase):
 
-    def setUp(self):
-        self.x = chainerx.zeros(self.x_shape, dtype=np.float32)
+    def to_device_meth(self, _, allow_unchain):
+        self.x.to_chx(allow_unchain=allow_unchain)
 
-    def infer_expected_xp_and_device(self, x):
-        xp = backend.get_array_module(x)
-        if xp is np:
-            return xp, None
-        elif xp is cuda.cupy:
-            return xp, x.device
-        elif xp is chainerx:
-            backend_name = x.device.backend.name
-            if backend_name == 'native':
-                return np, None
-            elif backend_name == 'cuda':
-                return cuda.cupy, cuda.cupy.cuda.Device(x.device.index)
-        assert False
+    def check_to_device_meth_devices(self, src_device, _):
+        x = self.x
 
-    def test_from_chx(self, backend_config):
-        x = backend_config.get_array(self.x)
-        x_var = chainer.Variable(x, requires_grad=self.requires_grad)
-        x_var.from_chx()
+        if src_device.xp is chainerx:
+            dst_device = src_device
+        else:
+            dst_device = backend.ChainerxDevice.from_fallback_device(
+                src_device)
 
-        expected_xp, expected_device = self.infer_expected_xp_and_device(x)
+        assert x.xp is chainerx
+        with pytest.raises(RuntimeError):
+            x.node
+        assert x.device == dst_device
+        assert isinstance(x.array, chainerx.ndarray)
+        assert x.array.device == dst_device.device
 
-        assert x_var.xp is expected_xp
-        # TODO(hvy): Check without relying on private attributes.
-        assert x_var._has_chainerx_array is (expected_xp is chainerx)
-        assert x_var.node is not None
-        assert isinstance(x_var.array, expected_xp.ndarray)
-        assert expected_device is None or x_var.array.device == expected_device
-        assert x.shape == x_var.shape
-        assert x.dtype == x_var.dtype
-        assert x_var.grad is None
-        assert x_var.grad_var is None
-        np.testing.assert_array_equal(
-            backend.CpuDevice().send(x_var.array), backend.CpuDevice().send(x))
+        if self.x_with_grad:
+            assert x.grad_var.xp is chainerx
+            with pytest.raises(RuntimeError):
+                x.grad_var.node
+            assert x.grad_var.device == dst_device
+            assert isinstance(x.grad, chainerx.ndarray)
+            assert x.grad.device == dst_device.device
+        else:
+            assert x.grad is None
+            assert x.grad_var is None
 
 
-@testing.parameterize(
-    {'x_shape': (10,)},
-    {'x_shape': ()},
-)
+@testing.parameterize(*testing.product({
+    'x_shape': [(10,), ()],
+    'x_with_grad': [True, False],
+    'x_with_graph': [True, False],
+}))
+@testing.backend.inject_backend_tests(None, _numpy_backend_params)
+@testing.backend.inject_backend_tests(None, _backend_params)
+@attr.chainerx
+class TestVariableFromChainerX(VariableToDeviceFamilyBase, unittest.TestCase):
+
+    def to_device_meth(self, _, allow_unchain):
+        self.x.from_chx(allow_unchain=allow_unchain)
+
+    def check_to_device_meth_devices(self, src_device, _):
+        x = self.x
+
+        if src_device.xp is chainerx:
+            dst_device = src_device.fallback_device
+        else:
+            dst_device = src_device
+
+        assert x.xp is dst_device.xp
+        assert x.node is not None
+        assert x.device == dst_device
+        assert isinstance(x.array, dst_device.xp.ndarray)
+
+        if self.x_with_grad:
+            assert x.grad_var.xp is dst_device.xp
+            assert x.grad_var.node is not None
+            assert x.grad_var.device == dst_device
+            assert isinstance(x.grad, dst_device.xp.ndarray)
+        else:
+            assert x.grad is None
+            assert x.grad_var is None
+
+        no_copy = src_device.xp is not chainerx and not self.x_with_graph
+        if no_copy:
+            assert x.array is self.x_src
+            if self.x_with_grad:
+                assert x.grad is self.gx_src
+
+
+@testing.parameterize(*testing.product({
+    'x_shape': [(10,), ()],
+    'x_with_grad': [True, False],
+    'x_with_graph': [True, False],
+}))
 @testing.backend.inject_backend_tests(None, _backend_params)
 @testing.backend.inject_backend_tests(None, _backend_params)
-class TestVariableToDevice(unittest.TestCase):
+class TestVariableToDevice(VariableToDeviceFamilyBase, unittest.TestCase):
 
-    def setUp(self):
-        self.x = np.zeros(self.x_shape, dtype=np.float32)
-        self.gx = np.ones_like(self.x)
+    def to_device_meth(self, dst_device, allow_unchain):
+        self.x.to_device(dst_device, allow_unchain=allow_unchain)
 
-    def test_to_device_with_grad(self, backend_config1, backend_config2):
-        x, gx = backend_config1.get_array((self.x, self.gx))
-        x_var = chainer.Variable(x)
-        x_var.grad_var = chainer.Variable(gx)
+    def check_to_device_meth_devices(self, src_device, dst_device):
+        x = self.x
 
-        # TODO(hvy): Pass the device name instead of device object to also test
-        # the device specifier.
-        device = backend_config2.device
-        x_var.to_device(device)
+        assert x.xp is dst_device.xp
+        if dst_device.xp is chainerx:
+            with pytest.raises(RuntimeError):
+                x.node
+        else:
+            assert x.node is not None
+        assert x.device == dst_device
+        assert isinstance(x.array, dst_device.xp.ndarray)
 
-        expected_xp = device.xp
-        assert x_var.xp is expected_xp
-        assert x_var.requires_grad
-        assert x_var._has_chainerx_array is (expected_xp is chainerx)
-        assert x_var.grad_var.xp is expected_xp
-        assert x_var.grad_var.requires_grad
-        assert x_var.grad_var._has_chainerx_array is (expected_xp is chainerx)
+        if self.x_with_grad:
+            assert x.grad_var.xp is dst_device.xp
+            if dst_device.xp is chainerx:
+                with pytest.raises(RuntimeError):
+                    x.grad_var.node
+            else:
+                assert x.grad_var.node is not None
+            assert x.grad_var.device == dst_device
+            assert isinstance(x.grad, dst_device.xp.ndarray)
+        else:
+            assert x.grad is None
+            assert x.grad_var is None
 
-    def test_to_device_with_graph_is_unchained(
-            self, backend_config1, backend_config2):
-        # Variables should be unchained backwards when transferred to a device.
-        x = backend_config1.get_array(self.x)
-
-        x_var = chainer.Variable(x)
-        y_var = x_var * x_var
-
-        device = backend_config2.device
-        y_var.to_device(device, allow_unchain=True)
-
-        # Since it used to require gradients before device transfer.
-        assert y_var.requires_grad
-
-        # Check that the graph is unchained.
-        if y_var.xp is not chainerx:
-            assert y_var.creator_node is None
-        y_var.backward()
-        assert x_var.grad_var is None
-
-    def test_to_device_with_grad_graph_is_unchained(
-            self, backend_config1, backend_config2):
-        # Variables should be unchained backwards when transferred to a device.
-        x = backend_config1.get_array(self.x)
-        g = backend_config1.xp.ones_like(x)
-        g = backend_config1.get_array(g)
-
-        x_var = chainer.Variable(x)
-
-        g_var = chainer.Variable(g)
-        gx_var = g_var * g_var
-
-        x_var.grad_var = gx_var
-
-        device = backend_config2.device
-        x_var.to_device(device, allow_unchain=True)
-
-        # Since it used to require gradients before device transfer.
-        assert x_var.grad_var.requires_grad
-
-        # Check that the graph is unchained.
-        if x_var.grad_var.xp is not chainerx:
-            assert x_var.grad_var.creator_node is None
-        x_var.grad_var.backward()
-        assert g_var.grad_var is None
+        no_copy = src_device is dst_device and not self.x_with_graph
+        if no_copy:
+            assert x.array is self.x_src
+            if self.x_with_grad:
+                assert x.grad is self.gx_src
 
 
 @testing.parameterize(*testing.product({
