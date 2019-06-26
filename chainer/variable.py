@@ -983,9 +983,9 @@ class Variable(object):
         """
         if not self._grad_valid:
             raise RuntimeError(
-                'Cannot retrieve Variable.grad because it\'s not valid. '
-                'Either it must be set beforehand or Variable.cleargrad() '
-                'must be called.')
+                'Cannot retrieve Variable.grad. '
+                'Either it must be set manually or Variable.cleargrad() '
+                'must be called beforehand.')
 
         if self._has_chainerx_array:
             arr = self._data[0]
