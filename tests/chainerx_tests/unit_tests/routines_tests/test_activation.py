@@ -173,6 +173,7 @@ class TestCRelu(UnaryMathTestBase, op_utils.NumpyOpTest):
 class TestElu(UnaryMathTestBase, op_utils.NumpyOpTest):
 
     def setup(self):
+        in_dtype, = self.in_dtypes
         if isinstance(self.alpha_range, tuple):
             l, u = self.alpha_range
             self.alpha = random.uniform(l, u)
@@ -180,6 +181,16 @@ class TestElu(UnaryMathTestBase, op_utils.NumpyOpTest):
             self.alpha = 1.0
         else:
             self.alpha = self.alpha_range
+
+        if numpy.dtype(in_dtype).kind != 'f':
+            self.skip_backward_test = True
+            self.skip_double_backward_test = True
+
+        if in_dtype == 'float16':
+            self.check_forward_options.update({'rtol': 1e-3, 'atol': 1e-3})
+            self.check_backward_options.update({'rtol': 2e-3, 'atol': 2e-3})
+            self.check_double_backward_options.update(
+                {'rtol': 1e-2, 'atol': 1e-2})
 
     def func(self, xp, a):
         if xp is numpy:
