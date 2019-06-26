@@ -50,9 +50,9 @@ public:
     virtual void Call(const Array& x1, Scalar x2, const Array& out) = 0;
 };
 
-class LeftShiftKernel : public Kernel {
+class LeftShiftAAKernel : public Kernel {
 public:
-    static const char* name() { return "LeftShift"; }
+    static const char* name() { return "LeftShiftAA"; }
 
     virtual void Call(const Array& x1, const Array& x2, const Array& out) = 0;
 };
@@ -71,9 +71,9 @@ public:
     virtual void Call(Scalar x1, const Array& x2, const Array& out) = 0;
 };
 
-class RightShiftKernel : public Kernel {
+class RightShiftAAKernel : public Kernel {
 public:
-    static const char* name() { return "RightShift"; }
+    static const char* name() { return "RightShiftAA"; }
 
     virtual void Call(const Array& x1, const Array& x2, const Array& out) = 0;
 };

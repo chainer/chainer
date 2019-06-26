@@ -97,7 +97,7 @@ public:
 
 CHAINERX_CUDA_REGISTER_KERNEL(BitwiseXorASKernel, CudaBitwiseXorASKernel);
 
-CHAINERX_CUDA_REGISTER_ELTWISE_DTYPE_BINARY_KERNEL(LeftShiftKernel, { out = x1 << x2; }, VisitShiftDtype);
+CHAINERX_CUDA_REGISTER_ELTWISE_DTYPE_BINARY_KERNEL(LeftShiftAAKernel, { out = x1 << x2; }, VisitShiftDtype);
 
 template <typename T>
 struct LeftShiftASImpl {
@@ -147,7 +147,7 @@ public:
 
 CHAINERX_CUDA_REGISTER_KERNEL(LeftShiftSAKernel, CudaLeftShiftSAKernel);
 
-CHAINERX_CUDA_REGISTER_ELTWISE_DTYPE_BINARY_KERNEL(RightShiftKernel, { out = x1 >> x2; }, VisitShiftDtype);
+CHAINERX_CUDA_REGISTER_ELTWISE_DTYPE_BINARY_KERNEL(RightShiftAAKernel, { out = x1 >> x2; }, VisitShiftDtype);
 
 template <typename T>
 struct RightShiftASImpl {

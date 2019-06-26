@@ -102,7 +102,7 @@ void IBitwiseXor(const Array& x1, Scalar x2) {
 
 void ILeftShift(const Array& x1, const Array& x2) {
     CheckShiftDtypes(x1, x2);
-    internal::BroadcastBinaryInplace(BitwiseImpl<LeftShiftKernel>, x1, x2);
+    internal::BroadcastBinaryInplace(BitwiseImpl<LeftShiftAAKernel>, x1, x2);
 }
 
 void ILeftShift(const Array& x1, Scalar x2) {
@@ -112,7 +112,7 @@ void ILeftShift(const Array& x1, Scalar x2) {
 
 void IRightShift(const Array& x1, const Array& x2) {
     CheckShiftDtypes(x1, x2);
-    internal::BroadcastBinaryInplace(BitwiseImpl<RightShiftKernel>, x1, x2);
+    internal::BroadcastBinaryInplace(BitwiseImpl<RightShiftAAKernel>, x1, x2);
 }
 
 void IRightShift(const Array& x1, Scalar x2) {
@@ -160,7 +160,7 @@ Array BitwiseXor(Scalar x1, const Array& x2) { return BitwiseXor(x2, x1); }
 
 Array LeftShift(const Array& x1, const Array& x2) {
     CheckShiftDtypes(x1, x2);
-    return internal::BroadcastBinary(BitwiseImpl<LeftShiftKernel>, x1, x2, x1.dtype());
+    return internal::BroadcastBinary(BitwiseImpl<LeftShiftAAKernel>, x1, x2, x1.dtype());
 }
 
 Array LeftShift(const Array& x1, Scalar x2) {
@@ -175,7 +175,7 @@ Array LeftShift(Scalar x1, const Array& x2) {
 
 Array RightShift(const Array& x1, const Array& x2) {
     CheckShiftDtypes(x1, x2);
-    return internal::BroadcastBinary(BitwiseImpl<RightShiftKernel>, x1, x2, x1.dtype());
+    return internal::BroadcastBinary(BitwiseImpl<RightShiftAAKernel>, x1, x2, x1.dtype());
 }
 
 Array RightShift(const Array& x1, Scalar x2) {

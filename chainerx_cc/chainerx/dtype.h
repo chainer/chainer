@@ -209,6 +209,7 @@ auto VisitIntegralDtype(Dtype dtype, F&& f, Args&&... args) {
 
 // Invokes a function by passing PrimitiveType<T> corresponding to given Integral dtype value.
 // See VisitDtype for more detail.
+// TODO(sky58): Rename this to VisitIntegralDtype and current VisitIntegralDtype to something else.
 template <typename F, typename... Args>
 auto VisitShiftDtype(Dtype dtype, F&& f, Args&&... args) {
     switch (dtype) {
