@@ -278,8 +278,6 @@ class UpdateRule(object):
             param (~chainer.Variable): Variable to be updated.
 
         """
-        grad_array = param.grad
-
         device = param.device
         fallback_device = device.fallback_device
 
@@ -306,9 +304,10 @@ class UpdateRule(object):
             device=fallback_device,
             is_chainerx_array=False)
 
-        if grad_array is not None:
+        # TODO(niboshi): Avoid accessing private attribute
+        if param._grad_valid:
             temp_param._set_grad_without_check(
-                fallback_device.send(grad_array))
+                fallback_device.send(param.grad))
 
         # Update
         self.update_core(temp_param)

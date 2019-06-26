@@ -1,3 +1,4 @@
+import random
 import chainer
 import numpy
 
@@ -5,6 +6,11 @@ from chainer import utils
 from chainerx_tests import array_utils
 from chainerx_tests import dtype_utils
 from chainerx_tests import op_utils
+
+
+# A special parameter object used to represent an unspecified argument.
+class Unspecified(object):
+    pass
 
 
 class IgnoreNumpyFloatingPointError(object):
@@ -81,6 +87,7 @@ _in_out_dtypes_math_functions = _in_out_float_dtypes_math_functions + [
         'in_dtypes,out_dtype': _in_out_dtypes_math_functions,
         'input': [-2, 2],
         'contiguous': [None, 'C'],
+        'alpha_range': [(-2.0, 0.0), 0.0, (0.0, 2.0), Unspecified],
     })
     # Special values
     + chainer.testing.product({
@@ -89,6 +96,7 @@ _in_out_dtypes_math_functions = _in_out_float_dtypes_math_functions + [
         'input': [0, float('inf'), -float('inf'), float('nan')],
         'skip_backward_test': [True],
         'skip_double_backward_test': [True],
+        'alpha_range': [(-2.0, 0.0), 0.0, (0.0, 2.0), Unspecified],
     })
 ))
 class TestClippedRelu(UnaryMathTestBase, op_utils.NumpyOpTest):
@@ -142,6 +150,60 @@ class TestCRelu(UnaryMathTestBase, op_utils.NumpyOpTest):
                 (expected_former, expected_latter), axis=self.axis)
             return expected
         return xp.crelu(a, self.axis)
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    # Special shapes
+    chainer.testing.product({
+        'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
+        'in_dtypes,out_dtype': _in_out_dtypes_math_functions,
+        'input': [-2, 2],
+        'contiguous': [None, 'C'],
+        'alpha_range': [(-2.0, 0.0), 0.0, (0.0, 2.0), Unspecified],
+    })
+    # Special values
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,out_dtype': _in_out_float_dtypes_math_functions,
+        'input': [0, float('inf'), -float('inf'), float('nan')],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True],
+        'alpha_range': [(-2.0, 0.0), 0.0, (0.0, 2.0), Unspecified],
+    })
+))
+class TestElu(UnaryMathTestBase, op_utils.NumpyOpTest):
+
+    def setup(self):
+        in_dtype, = self.in_dtypes
+        if isinstance(self.alpha_range, tuple):
+            l, u = self.alpha_range
+            self.alpha = random.uniform(l, u)
+        elif self.alpha_range is Unspecified:
+            self.alpha = 1.0
+        else:
+            self.alpha = self.alpha_range
+
+        if numpy.dtype(in_dtype).kind != 'f':
+            self.skip_backward_test = True
+            self.skip_double_backward_test = True
+
+        if in_dtype == 'float16':
+            self.check_forward_options.update({'rtol': 1e-3, 'atol': 1e-3})
+            self.check_backward_options.update({'rtol': 2e-3, 'atol': 2e-3})
+            self.check_double_backward_options.update(
+                {'rtol': 1e-2, 'atol': 1e-2})
+
+    def func(self, xp, a):
+        if xp is numpy:
+            y = a.copy()
+            negzero_indices = y <= 0
+            y[negzero_indices] = self.alpha * numpy.expm1(y[negzero_indices])
+            return y
+        elif self.alpha_range is Unspecified:
+            return xp.elu(a)
+        else:
+            return xp.elu(a, self.alpha)
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
