@@ -216,7 +216,7 @@ loss_func=None, loss_scale=None, auto_new_epoch=True, *, input_device=None)
         iterator = self._iterators['main']
         batch = iterator.next()
         if self.converter is None:
-            in_arrays = _to_device_any(batch, self.input_device)
+            in_arrays = _to_device(self.input_device, batch)
         else:
             in_arrays = convert._call_converter(
                 self.converter, batch, self.input_device)
@@ -246,15 +246,15 @@ loss_func=None, loss_scale=None, auto_new_epoch=True, *, input_device=None)
         self.iteration = serializer('iteration', self.iteration)
 
 
-def _to_device_any(device, value):
+def _to_device(device, value):
     if isinstance(value, chainer.get_array_types()):
         return chainer.dataset.to_device(device, value)
     elif isinstance(value, list):
-        return [_to_device_any(device, v) for v in value]
+        return [_to_device(device, v) for v in value]
     elif isinstance(value, tuple):
-        return tuple(_to_device_any(device, v) for v in value)
+        return tuple(_to_device(device, v) for v in value)
     elif isinstance(value, dict):
-        return {k: _to_device_any(device, v)
+        return {k: _to_device(device, v)
                 for k, v in six.iteritems(value)}
     else:
         return value

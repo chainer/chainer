@@ -34,7 +34,7 @@ class DummyIterator(dataset.Iterator):
     def __next__(self):
         self.next_called += 1
         if self._enable_convert:
-            return self.next_data_converted
+            return self._next_data_converted
         else:
             return self.next_data
 
@@ -42,7 +42,7 @@ class DummyIterator(dataset.Iterator):
         self.serialize_called.append(serializer)
 
     def enable_convert(self):
-        if self._next_data_converted:
+        if self._next_data_converted is not None:
             self._enable_convert = True
         else:
             super(DummyIterator, self).enable_convert()
@@ -710,6 +710,66 @@ class TestStandardUpdaterCustomConverter(unittest.TestCase):
 
         assert loss is optimizer.target
         assert v1 is converter_out
+
+
+@testing.parameterize(
+    {'next_data_converted': (numpy.array([0, 1]), numpy.array([2, 3]))},
+    {'next_data_converted':
+     {'a': numpy.array([0, 1]), 'b': numpy.array([2, 3])}},
+    {'next_data_converted': numpy.array([0, 1])},
+    {'next_data_converted': (
+        [numpy.array([0]),
+         {'a': numpy.array([1, 2]), 'b': numpy.array([3, 4, 5])}],
+        numpy.array([6, 7, 8, 9]))}
+)
+@chainer.testing.backend.inject_backend_tests(None, [
+    {},
+    {'use_cuda': True, 'cuda_device': 0},
+    {'use_cuda': True, 'cuda_device': 1},
+    {'use_chainerx': True, 'chainerx_device': 'native:0'},
+    {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+    {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
+])
+class TestStandardUpdaterIteratorConverter(unittest.TestCase):
+
+    def _to_cpu(self, value, expected_device):
+        if isinstance(value, chainer.get_array_types()):
+            self.assertEqual(
+                backend.get_device_from_array(value), expected_device)
+            return chainer.dataset.to_device(_cpu.CpuDevice(), value)
+        elif isinstance(value, list):
+            return [self._to_cpu(v, expected_device) for v in value]
+        elif isinstance(value, tuple):
+            return tuple(self._to_cpu(v, expected_device) for v in value)
+        elif isinstance(value, dict):
+            return {k: self._to_cpu(v, expected_device)
+                    for k, v in value.items()}
+        else:
+            return value
+
+    def test_iterator_converter(self, backend_config):
+        iterator = DummyIterator(
+            'raw', next_data_converted=self.next_data_converted)
+        target = chainer.Link()
+        optimizer = DummyOptimizer()
+        optimizer.setup(target)
+        updater = training.updaters.StandardUpdater(
+            iterator, optimizer, device=backend_config.device)
+        updater.update_core()
+
+        args, kwargs = optimizer.update.call_args
+        args = self._to_cpu(args[1:], backend_config.device)
+        kwargs = self._to_cpu(kwargs, backend_config.device)
+
+        if isinstance(self.next_data_converted, tuple):
+            numpy.testing.assert_equal(args, self.next_data_converted)
+            numpy.testing.assert_equal(kwargs, {})
+        elif isinstance(self.next_data_converted, dict):
+            numpy.testing.assert_equal(args, ())
+            numpy.testing.assert_equal(kwargs, self.next_data_converted)
+        else:
+            numpy.testing.assert_equal(args, (self.next_data_converted,))
+            numpy.testing.assert_equal(kwargs, {})
 
 
 testing.run_module(__name__, __file__)
