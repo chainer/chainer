@@ -11,7 +11,6 @@ import chainerx.testing
 @testing.parameterize(*testing.product_dict(
     [
         {'shape': (3, 4)},
-        {'shape': (2, 0, 3)},
         {'shape': ()},
     ],
     [
