@@ -167,9 +167,10 @@ def save_images(device, encoder, decoder, train, test, prior, out_dir):
 
     # Draw images from 9 randomly sampled values of z
     z = prior().sample(9)
-    with chainer.no_backprop_mode():
-        y = decoder(z, inference=True).mean
-        y = y.array
+    with chainer.using_config('train', False):
+        with chainer.no_backprop_mode():
+            y = decoder(z, inference=True).mean
+            y = y.array
     save3x3(y, os.path.join(out_dir, 'sampled'))
 
 
