@@ -56,13 +56,22 @@ class DeviceResident(utils.enable_final(meta_base=abc.ABCMeta)):
             return None
         return device.xp
 
-    def to_cpu(self):
-        # type: () -> 'DeviceResident'
+    def to_cpu(
+            self,
+            allow_unchain=None,  # type: tp.Optional[bool]
+    ):
+        # type: (...) -> 'DeviceResident'
         """Copies parameter variables and persistent values to CPU.
 
         This method does not handle non-registered attributes. If some of such
         attributes must be copied to CPU, the link implementation should
         override :meth:`~DeviceResident.device_resident_accept` to do so.
+
+        Args:
+            allow_unchain (bool): If ``True``, always unchains the graph. If
+                ``False``, stops and raises an error in case a graph would be
+                unchained. If ``None``, defaults to ``True`` but with a
+                warning.
 
         Returns: self
 
@@ -71,13 +80,15 @@ class DeviceResident(utils.enable_final(meta_base=abc.ABCMeta)):
             backend.CpuDevice(),
             entry_method_info=('to_cpu', {}),
             skip_between_cupy_devices=True,
-            starting_device_resident=self)
+            starting_device_resident=self,
+            allow_unchain=allow_unchain)
         self.__to_device(visitor)
         return self
 
     def to_gpu(
             self,
             device=None,  # type: tp.Optional[types.CudaDeviceSpec]
+            allow_unchain=None,  # type: tp.Optional[bool]
     ):
         # type: (...) -> 'DeviceResident'
         """Copies parameter variables and persistent values to GPU.
@@ -89,10 +100,15 @@ class DeviceResident(utils.enable_final(meta_base=abc.ABCMeta)):
         Args:
             device: Target device specifier. If omitted, the current device is
                 used.
+            allow_unchain (bool): If ``True``, always unchains the graph. If
+                ``False``, stops and raises an error in case a graph would be
+                unchained. If ``None``, defaults to ``True`` but with a
+                warning.
 
         Returns: self
 
         """
+        print('to_gpu', allow_unchain)
         cuda.check_cuda_available()
         cuda_device = cuda._get_device_or_current(device)
         device = chainer.backends.cuda.GpuDevice(cuda_device)
@@ -100,23 +116,42 @@ class DeviceResident(utils.enable_final(meta_base=abc.ABCMeta)):
             device,
             entry_method_info=('to_gpu', {'device': device.device}),
             skip_between_cupy_devices=True,
-            starting_device_resident=self)
+            starting_device_resident=self,
+            allow_unchain=allow_unchain)
         self.__to_device(visitor)
         return self
 
-    def to_intel64(self):
-        # type: () -> 'DeviceResident'
-        """Copies parameter variables and persistent values to CPU."""
+    def to_intel64(
+            self,
+            allow_unchain=None,  # type: tp.Optional[bool]
+    ):
+        # type: (...) -> 'DeviceResident'
+        """Copies parameter variables and persistent values to CPU.
+
+        Args:
+            allow_unchain (bool): If ``True``, always unchains the graph. If
+                ``False``, stops and raises an error in case a graph would be
+                unchained. If ``None``, defaults to ``True`` but with a
+                warning.
+
+        Returns: self
+
+        """
         intel64.check_ideep_available()
         visitor = _ToDeviceVisitor(
             chainer.get_device(intel64.Intel64Device()),
             entry_method_info=('to_intel64', {}),
-            starting_device_resident=self)
+            starting_device_resident=self,
+            allow_unchain=allow_unchain)
         self.__to_device(visitor)
         return self
 
     @utils.final
-    def to_chx(self):
+    def to_chx(
+            self,
+            allow_unchain=None,  # type: tp.Optional[bool]
+    ):
+        # type: (...) -> 'DeviceResident'
         """Converts parameter variables and persistent values to ChainerX \
 without any copy.
 
@@ -124,7 +159,14 @@ without any copy.
         attributes must be copied to ChainerX, the link implementation must
         override this method to do so.
 
+        Args:
+            allow_unchain (bool): If ``True``, always unchains the graph. If
+                ``False``, stops and raises an error in case a graph would be
+                unchained. If ``None``, defaults to ``True`` but with a
+                warning.
+
         Returns: self
+
         """
         if not chainerx.is_available():
             raise RuntimeError('ChainerX is not available.')
@@ -132,17 +174,33 @@ without any copy.
         if self.xp is chainerx:
             return self
 
-        self.device_resident_accept(_ToChxVisitor())
+        visitor = _ToChxVisitor(allow_unchain=allow_unchain)
+        self.device_resident_accept(visitor)
         return self
 
     @utils.final
-    def from_chx(self):
+    def from_chx(
+            self,
+            allow_unchain=None,  # type: tp.Optional[bool]
+    ):
+        # type: (...) -> 'DeviceResident'
         """Converts parameter variables and persistent values from ChainerX \
-to NumPy/CuPy devices without any copy."""
+to NumPy/CuPy devices without any copy.
+
+        Args:
+            allow_unchain (bool): If ``True``, always unchains the graph. If
+                ``False``, stops and raises an error in case a graph would be
+                unchained. If ``None``, defaults to ``True`` but with a
+                warning.
+
+        Returns: self
+
+        """
         if self._device.xp is chainerx:
             self._device = self._device.fallback_device
 
-        self.device_resident_accept(_FromChxVisitor())
+        visitor = _FromChxVisitor(allow_unchain=allow_unchain)
+        self.device_resident_accept(visitor)
         return self
 
     def __to_device(self, to_device_visitor):
@@ -151,7 +209,8 @@ to NumPy/CuPy devices without any copy."""
     @utils.final
     def to_device(
             self,
-            device  # type: types.DeviceSpec
+            device,  # type: types.DeviceSpec
+            allow_unchain=None,  # type: tp.Optional[bool]
     ):
         # type: (...) -> 'DeviceResident'
         """Copies parameter variables and persistent values to the specified \
@@ -164,12 +223,18 @@ device.
         Args:
             device: Target device specifier. See
                 :func:`~chainer.get_device` for available values.
+            allow_unchain (bool): If ``True``, always unchains the graph. If
+                ``False``, stops and raises an error in case a graph would be
+                unchained. If ``None``, defaults to ``True`` but with a
+                warning.
+
 
         Returns: self
 
         """
         device = chainer.get_device(device)
-        self.__to_device(_ToDeviceVisitor(device))
+        visitor = _ToDeviceVisitor(device, allow_unchain=allow_unchain)
+        self.__to_device(visitor)
         return self
 
 
@@ -220,7 +285,8 @@ class _ToDeviceVisitor(DeviceResidentsVisitor):
     def __init__(
             self, device, entry_method_info=None,
             skip_between_cupy_devices=False,
-            starting_device_resident=None):
+            starting_device_resident=None,
+            allow_unchain=None):
 
         assert isinstance(device, chainer.backend.Device)
 
@@ -246,6 +312,7 @@ class _ToDeviceVisitor(DeviceResidentsVisitor):
         self._entry_method_info = entry_method_info
         self._skip_between_cupy_devices = skip_between_cupy_devices
         self._starting_device_resident = starting_device_resident
+        self._allow_unchain = allow_unchain
 
     def visit_device_resident(self, device_resident):
         device_resident._device = self._device
@@ -300,15 +367,19 @@ class _ToDeviceVisitor(DeviceResidentsVisitor):
         if not (self._skip_between_cupy_devices
                 and self._device.xp is cuda.cupy
                 and param.device.xp is cuda.cupy):
-            param.to_device(self._device)
+            param.to_device(self._device, allow_unchain=self._allow_unchain)
 
 
 class _ToChxVisitor(DeviceResidentsVisitor):
     # A visitor that recursively calls to_chx().
 
+    def __init__(self, allow_unchain):
+        self._allow_unchain = allow_unchain
+
     def visit_device_resident(self, device_resident):
         device_resident._device = backend.ChainerxDevice.from_fallback_device(
             device_resident._device)
+        device_resident._allow_unchain = self._allow_unchain
 
     def visit_array(self, arr):
         assert isinstance(arr, chainer.get_array_types())
@@ -316,15 +387,19 @@ class _ToChxVisitor(DeviceResidentsVisitor):
 
     def visit_variable(self, param):
         assert isinstance(param, chainer.Variable)
-        param.to_chx()
+        param.to_chx(allow_unchain=self._allow_unchain)
 
 
 class _FromChxVisitor(DeviceResidentsVisitor):
     # A visitor that recursively calls from_chx().
 
+    def __init__(self, allow_unchain):
+        self._allow_unchain = allow_unchain
+
     def visit_device_resident(self, device_resident):
         if isinstance(device_resident._device, backend.ChainerxDevice):
             device_resident._device = device_resident._device.fallback_device
+        device_resident._allow_unchain = self._allow_unchain
 
     def visit_array(self, arr):
         assert isinstance(arr, chainer.get_array_types())
@@ -332,4 +407,4 @@ class _FromChxVisitor(DeviceResidentsVisitor):
 
     def visit_variable(self, param):
         assert isinstance(param, chainer.Variable)
-        param.from_chx()
+        param.from_chx(allow_unchain=self._allow_unchain)

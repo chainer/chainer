@@ -165,9 +165,9 @@ class TestLSTMToCPUToGPU(unittest.TestCase):
             numpy.random.uniform(-1, 1, (3, 5)).astype(numpy.float32))
 
     def check_to_cpu(self, s):
-        self.link.to_cpu()
+        self.link.to_cpu(allow_unchain=True)
         self.assertIsInstance(s.data, self.link.xp.ndarray)
-        self.link.to_cpu()
+        self.link.to_cpu(allow_unchain=True)
         self.assertIsInstance(s.data, self.link.xp.ndarray)
 
     def test_to_cpu_cpu(self):
@@ -184,11 +184,14 @@ class TestLSTMToCPUToGPU(unittest.TestCase):
         self.check_to_cpu(self.link.h)
 
     def check_to_cpu_to_gpu(self, s):
-        self.link.to_gpu()
+        # If `self.link` already resides on the GPU, the first `to_gpu` calls
+        # do nothing and the first device transfer occurs at the first
+        # `to_cpu`. We must therefore pass `allow_unchain=True` there.
+        self.link.to_gpu(allow_unchain=True)
         self.assertIsInstance(s.data, self.link.xp.ndarray)
         self.link.to_gpu()
         self.assertIsInstance(s.data, self.link.xp.ndarray)
-        self.link.to_cpu()
+        self.link.to_cpu(allow_unchain=True)
         self.assertIsInstance(s.data, self.link.xp.ndarray)
         self.link.to_gpu()
         self.assertIsInstance(s.data, self.link.xp.ndarray)
