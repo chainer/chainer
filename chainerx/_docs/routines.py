@@ -2006,7 +2006,7 @@ Args:
     x2 (~chainerx.ndarray or scalar): Input array of integers.
 
 Returns:
-    :class:`~chainerx.ndarray`: Returned array: :math:`y = x_1 << x_2`
+    :class:`~chainerx.ndarray`: Return `x1` with bits shifted `x2` times to the left. This is a scalar if both `x1` and `x2` are scalars.
 
 Note:
     During backpropagation, this function does not propagate gradients.
@@ -2024,7 +2024,7 @@ Args:
     x2 (~chainerx.ndarray or scalar): Input array of integers.
 
 Returns:
-    :class:`~chainerx.ndarray`: Returned array: :math:`y = x_1 >> x_2`
+    :class:`~chainerx.ndarray`: Return `x1` with bits shifted `x2` times to the right. This is a scalar if both `x1` and `x2` are scalars.
 
 Note:
     During backpropagation, this function does not propagate gradients.
