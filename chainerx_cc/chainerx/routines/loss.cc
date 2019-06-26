@@ -25,7 +25,9 @@ Array HuberLoss(const Array& x1, const Array& x2, Scalar delta) {
 }
 
 Array SigmoidCrossEntropy(const Array& x1, const Array& x2) {
-    return -(x1 * (x2 - (GreaterEqual(x2, ZerosLike(x2)))) - Log1p(Exp(-Fabs(x1))));
+    Array ignore_label = -OnesLike(x2, x2.device());
+    Array ignore_mask = NotEqual(x2, ignore_label);
+    return -(ignore_mask * (x1 * (x2 - (GreaterEqual(x1, ZerosLike(x1, x1.device()))).AsType(x1.dtype())) - Log1p(Exp(-Absolute(x1)))));
 }
 
 }  // namespace chainerx

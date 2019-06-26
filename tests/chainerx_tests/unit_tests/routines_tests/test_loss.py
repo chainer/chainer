@@ -149,16 +149,15 @@ class TestHuberLoss(LossBase):
             ]),
         chainer.testing.from_pytest_parameterize(
             'in_dtypes,out_dtype', _in_out_loss_dtypes),
-        chainer.testing.from_pytest_parameterize(
-            'normalize', [True, False])
     ])
 ))
 class TestSigmoidCrossEntropy(LossBase):
 
     def forward_xp(self, inputs, xp):
         x, t = inputs
-        if xp is chainerx:    
-            out = xp.sigmoid_cross_entropy(x.astype, t, self.normalize)
+        t = t.astype(numpy.int64)
+        if xp is chainerx:
+            out = xp.sigmoid_cross_entropy(x, t)
         else:
-            out = xp.sigmoid_cross_entropy(x, t, self.normalize, reduce='no')
+            out = xp.sigmoid_cross_entropy(x, t, normalize=False, reduce='no')
         return out,
