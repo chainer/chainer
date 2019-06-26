@@ -3,6 +3,7 @@
 #include "chainerx/array.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/explog.h"
+#include "chainerx/routines/indexing.h"
 #include "chainerx/routines/logic.h"
 #include "chainerx/routines/misc.h"
 #include "chainerx/scalar.h"
