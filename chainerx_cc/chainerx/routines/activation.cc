@@ -37,6 +37,7 @@ Array CRelu(const Array& x, int8_t axis) {
     std::vector<Array> c{x_cast, Negative(x_cast)};
     Array concat = Concatenate(c, axis);
     return Relu(concat);
+}
 
 Array Elu(const Array& x, float_t alpha) {
     Dtype dtype = internal::GetMathResultDtype(x.dtype());

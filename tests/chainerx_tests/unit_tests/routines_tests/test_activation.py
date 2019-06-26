@@ -160,6 +160,7 @@ class TestCRelu(UnaryMathTestBase, op_utils.NumpyOpTest):
         'in_dtypes,out_dtype': _in_out_dtypes_math_functions,
         'input': [-2, 2],
         'contiguous': [None, 'C'],
+        'alpha_range': [(-2.0, 0.0), 0.0, (0.0, 2.0), Unspecified],
     })
     # Special values
     + chainer.testing.product({
@@ -168,6 +169,7 @@ class TestCRelu(UnaryMathTestBase, op_utils.NumpyOpTest):
         'input': [0, float('inf'), -float('inf'), float('nan')],
         'skip_backward_test': [True],
         'skip_double_backward_test': [True],
+        'alpha_range': [(-2.0, 0.0), 0.0, (0.0, 2.0), Unspecified],
     })
 ))
 class TestElu(UnaryMathTestBase, op_utils.NumpyOpTest):
