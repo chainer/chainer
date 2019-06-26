@@ -1228,7 +1228,7 @@ class TestVariableToChainerX(unittest.TestCase):
     def test_to_chx_with_creator(self):
         x_var = chainer.Variable(self.x, requires_grad=True)
         y_var = x_var * x_var
-        y_var.to_chx(unchain=True)
+        y_var.to_chx(allow_unchain=True)
         self._check_chx(y_var, chainerx.get_device('native', 0))
 
 
@@ -1329,7 +1329,7 @@ class TestVariableToDevice(unittest.TestCase):
         y_var = x_var * x_var
 
         device = backend_config2.device
-        y_var.to_device(device, unchain=True)
+        y_var.to_device(device, allow_unchain=True)
 
         # Since it used to require gradients before device transfer.
         assert y_var.requires_grad
@@ -1355,7 +1355,7 @@ class TestVariableToDevice(unittest.TestCase):
         x_var.grad_var = gx_var
 
         device = backend_config2.device
-        x_var.to_device(device, unchain=True)
+        x_var.to_device(device, allow_unchain=True)
 
         # Since it used to require gradients before device transfer.
         assert x_var.grad_var.requires_grad
