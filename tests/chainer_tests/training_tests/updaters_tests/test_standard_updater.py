@@ -19,21 +19,33 @@ class DummyIterator(dataset.Iterator):
     epoch = 1
     is_new_epoch = True
 
-    def __init__(self, next_data):
+    def __init__(self, next_data, next_data_converted=None):
         self.finalize_called = 0
         self.next_called = 0
         self.next_data = next_data
         self.serialize_called = []
+
+        self._enable_convert = False
+        self._next_data_converted = next_data_converted
 
     def finalize(self):
         self.finalize_called += 1
 
     def __next__(self):
         self.next_called += 1
-        return self.next_data
+        if self._enable_convert:
+            return self.next_data_converted
+        else:
+            return self.next_data
 
     def serialize(self, serializer):
         self.serialize_called.append(serializer)
+
+    def enable_convert(self):
+        if self._next_data_converted:
+            self._enable_convert = True
+        else:
+            super(DummyIterator, self).enable_convert()
 
 
 class DummyOptimizer(chainer.Optimizer):
@@ -464,9 +476,10 @@ class TestStandardUpdaterDataTypes(unittest.TestCase):
         assert iterator.next_called == 1
 
 
-@testing.parameterize(
-    {'converter_style': 'old'},
-    {'converter_style': 'new'})
+@testing.parameterize(*testing.product({
+    'converter_style': ['old', 'new'],
+    'next_data_converted': [None, 'converted'],
+}))
 @chainer.testing.backend.inject_backend_tests(
     ['test_converter_given_device'],
     [
@@ -566,7 +579,8 @@ class TestStandardUpdaterCustomConverter(unittest.TestCase):
             assert received_device_arg is device_arg
 
     def check_converter_in_arrays(self, device_arg):
-        iterator = DummyIterator([(numpy.array(1), numpy.array(2))])
+        iterator = DummyIterator([(numpy.array(1), numpy.array(2))],
+                                 next_data_converted=self.next_data_converted)
         optimizer = self.create_optimizer()
 
         called = [0]
@@ -596,7 +610,8 @@ class TestStandardUpdaterCustomConverter(unittest.TestCase):
     def check_converter_in_obj(self, device_arg):
         obj1 = object()
         obj2 = object()
-        iterator = DummyIterator([obj1, obj2])
+        iterator = DummyIterator([obj1, obj2],
+                                 next_data_converted=self.next_data_converted)
         optimizer = self.create_optimizer()
 
         called = [0]
@@ -619,7 +634,8 @@ class TestStandardUpdaterCustomConverter(unittest.TestCase):
         assert called[0] == 1
 
     def check_converter_out_tuple(self, device_arg):
-        iterator = DummyIterator([object()])
+        iterator = DummyIterator([object()],
+                                 next_data_converted=self.next_data_converted)
         optimizer = self.create_optimizer()
         converter_out = (object(), object())
 
@@ -644,7 +660,8 @@ class TestStandardUpdaterCustomConverter(unittest.TestCase):
         assert v2 is converter_out[1]
 
     def check_converter_out_dict(self, device_arg):
-        iterator = DummyIterator([object()])
+        iterator = DummyIterator([object()],
+                                 next_data_converted=self.next_data_converted)
         optimizer = self.create_optimizer()
         converter_out = {'x': object(), 'y': object()}
 
@@ -670,7 +687,8 @@ class TestStandardUpdaterCustomConverter(unittest.TestCase):
         assert kwargs['y'] is converter_out['y']
 
     def check_converter_out_obj(self, device_arg):
-        iterator = DummyIterator([object()])
+        iterator = DummyIterator([object()],
+                                 next_data_converted=self.next_data_converted)
         optimizer = self.create_optimizer()
         converter_out = object()
 
