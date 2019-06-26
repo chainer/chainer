@@ -8,7 +8,7 @@ class DummyDataset(chainer.dataset.TabularDataset):
 
     def __init__(
             self, size=10, keys=('a', 'b', 'c'), mode=tuple,
-            return_array=False, callback=None, convert=None):
+            return_array=False, callback=None, convert=False):
         if mode is None:
             keys = keys[0],
 
