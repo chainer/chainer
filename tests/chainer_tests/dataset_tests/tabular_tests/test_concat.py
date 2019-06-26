@@ -44,7 +44,8 @@ class TestConcat(unittest.TestCase):
         dataset_a = dummy_dataset.DummyDataset(
             keys=('a', 'b', 'c') if self.mode_b else ('a',),
             mode=self.mode_a,
-            return_array=self.return_array, callback=callback_a)
+            return_array=self.return_array, callback=callback_a,
+            convert=True)
 
         def callback_b(indices, key_indices):
             self.assertEqual(indices, self.expected_indices_b)
@@ -77,6 +78,8 @@ class TestConcat(unittest.TestCase):
             else:
                 self.assertIsInstance(out, list)
 
+        self.assertEqual(view.convert(output), 'converted')
+
 
 class TestConcatInvalid(unittest.TestCase):
 
@@ -93,23 +96,6 @@ class TestConcatInvalid(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             dataset_a.concat(dataset_b)
-
-
-@testing.parameterize(
-    {'mode': tuple},
-    {'mode': dict},
-)
-class TestConcatConvert(unittest.TestCase):
-
-    def test_concat_convert(self):
-        def converter(a, b, c):
-            return 'converted'
-
-        dataset_a = dummy_dataset.DummyDataset(
-            mode=self.mode).with_converter(converter)
-        dataset_b = dummy_dataset.DummyDataset()
-        view = dataset_a.concat(dataset_b)
-        self.assertEqual(view.convert(view.fetch()), 'converted')
 
 
 testing.run_module(__name__, __file__)

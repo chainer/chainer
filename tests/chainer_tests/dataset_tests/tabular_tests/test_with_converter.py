@@ -32,7 +32,8 @@ class TestWithConverter(unittest.TestCase):
         self.assertEqual(len(view), len(dataset))
         self.assertEqual(view.keys, dataset.keys)
         self.assertEqual(view.mode, dataset.mode)
-
+        self.assertEqual(
+            view.get_examples(None, None), dataset.get_examples(None, None))
         self.assertEqual(view.convert(view.fetch()), 'converted')
 
 

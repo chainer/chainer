@@ -58,7 +58,8 @@ class TestJoin(unittest.TestCase):
 
         dataset_a = dummy_dataset.DummyDataset(
             mode=self.mode_a,
-            return_array=self.return_array, callback=callback_a)
+            return_array=self.return_array, callback=callback_a,
+            convert=True)
 
         def callback_b(indices, key_indices):
             self.assertIsNone(indices)
@@ -87,6 +88,8 @@ class TestJoin(unittest.TestCase):
             else:
                 self.assertIsInstance(out, list)
 
+        self.assertEqual(view.convert(output), 'converted')
+
 
 class TestJoinInvalid(unittest.TestCase):
 
@@ -103,23 +106,6 @@ class TestJoinInvalid(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             dataset_a.join(dataset_b)
-
-
-@testing.parameterize(
-    {'mode': tuple},
-    {'mode': dict},
-)
-class TestJoinConvert(unittest.TestCase):
-
-    def test_join_convert(self):
-        def converter(a, b, c, d, e):
-            return 'converted'
-
-        dataset_a = dummy_dataset.DummyDataset(
-            mode=self.mode).with_converter(converter)
-        dataset_b = dummy_dataset.DummyDataset(keys=('d', 'e'))
-        view = dataset_a.join(dataset_b)
-        self.assertEqual(view.convert(view.fetch()), 'converted')
 
 
 testing.run_module(__name__, __file__)

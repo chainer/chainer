@@ -31,7 +31,7 @@ class TestTransform(unittest.TestCase):
 
     def test_transform(self):
         dataset = dummy_dataset.DummyDataset(
-            mode=self.in_mode, return_array=True)
+            mode=self.in_mode, return_array=True, convert=True)
 
         def transform(*args, **kwargs):
             if self.in_mode is tuple:
@@ -107,6 +107,8 @@ class TestTransform(unittest.TestCase):
             else:
                 self.assertIsInstance(out, list)
 
+        self.assertEqual(view.convert(view.fetch()), 'converted')
+
 
 @testing.parameterize(
     {'mode': tuple},
@@ -165,36 +167,6 @@ class TestTransformInvalid(unittest.TestCase):
         view = dataset.transform_batch(('a',), transform_batch)
         with self.assertRaises(ValueError):
             view.get_examples(None, None)
-
-
-@testing.parameterize(
-    {'mode': tuple},
-    {'mode': dict},
-)
-class TestTransformConvert(unittest.TestCase):
-
-    def _transform(self, a, b, c):
-        if self.mode is tuple:
-            return a + b, b + c
-        elif self.mode is dict:
-            return {'alpha': a + b, 'beta': b + c}
-
-    def test_transfrom_convert(self):
-        def converter(alpha, beta):
-            return 'converted'
-
-        dataset = dummy_dataset.DummyDataset().with_converter(converter)
-        view = dataset.transform(('alpha', 'beta'), self._transform)
-        self.assertEqual(view.convert(view.fetch()), 'converted')
-
-    def test_transfrom_batch_convert(self):
-        def converter(alpha, beta):
-            return 'converted'
-
-        dataset = dummy_dataset.DummyDataset(
-            return_array=True).with_converter(converter)
-        view = dataset.transform_batch(('alpha', 'beta'), self._transform)
-        self.assertEqual(view.convert(view.fetch()), 'converted')
 
 
 testing.run_module(__name__, __file__)

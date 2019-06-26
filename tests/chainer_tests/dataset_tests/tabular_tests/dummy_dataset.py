@@ -8,7 +8,7 @@ class DummyDataset(chainer.dataset.TabularDataset):
 
     def __init__(
             self, size=10, keys=('a', 'b', 'c'), mode=tuple,
-            return_array=False, callback=None):
+            return_array=False, callback=None, convert=None):
         if mode is None:
             keys = keys[0],
 
@@ -16,6 +16,7 @@ class DummyDataset(chainer.dataset.TabularDataset):
         self._mode = mode
         self._return_array = return_array
         self._callback = callback
+        self._convert = convert
 
         self.data = np.random.uniform(size=(len(keys), size))
 
@@ -44,6 +45,12 @@ class DummyDataset(chainer.dataset.TabularDataset):
             return tuple(data)
         else:
             return tuple(list(d) for d in data)
+
+    def convert(self, data):
+        if self._convert:
+            return 'converted'
+        else:
+            return super(DummyDataset, self).convert(data)
 
 
 # tests/chainer_tests/test_runnable.py
