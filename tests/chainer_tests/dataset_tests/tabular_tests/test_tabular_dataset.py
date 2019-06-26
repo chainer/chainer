@@ -65,6 +65,8 @@ class TestTabularDataset(unittest.TestCase):
                 expected = tuple(dataset.data[:, i])
             elif self.mode is dict:
                 expected = dict(zip(('a', 'b', 'c'), dataset.data[:, i]))
+            elif self.mode is None:
+                expected = dataset.data[0, i]
 
             self.assertEqual(next(it), expected)
 
