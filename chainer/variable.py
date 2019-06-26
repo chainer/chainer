@@ -1199,52 +1199,42 @@ class Variable(object):
 
         arr = self._data[0]
 
-        # Will this device transfer result in an unchained graph?
-        # If yes, we should to check the ``unchain`` argument and raise
-        # an appropriate safety warning/error.
-        if was_chainerx:
-            has_graph = (
-                arr is not None
-                and arr.is_backprop_required()
-                and arr._is_chained())
-        else:
-            has_graph = self.creator is not None
-
-        if has_graph:
-            if allow_unchain is None:
-                # The caller is most likely not aware of the ``unchain``
-                # argument and should be warned.
-                warnings.warn(
-                    'Device transfer should be explicit about whether'
-                    ' unchaining is allowed or not. If not specified, it will'
-                    ' be treated as if not allowed in the future, leading to'
-                    ' an error.',
-                    DeprecationWarning)
-            elif not allow_unchain:
-                raise RuntimeError(
-                    'Device transfer results in unchaining the graph. Make'
-                    ' sure that the variable is not connected to a graph'
-                    ' before the device transfer or specify `unchain=True`.')
-
-            # The graph will be cut since ``unchain`` is ``True``.
+        if not allow_unchain:
+            # `allow_unchain` is either `None` or `False`.
+            if was_chainerx:
+                is_unchain_required = (
+                    arr is not None
+                    and arr.is_backprop_required()
+                    and arr._is_chained())
+            else:
+                is_unchain_required = self.creator is not None
+            if is_unchain_required:
+                if allow_unchain is None:
+                    warnings.warn(
+                        'Device transfer should be explicit about whether'
+                        ' unchaining is allowed or not. If not specified, it'
+                        ' will be treated as if not allowed in the future,'
+                        ' leading to an error.',
+                        DeprecationWarning)
+                elif not allow_unchain:
+                    raise RuntimeError(
+                        'Device transfer results in unchaining the graph. Make'
+                        ' sure that the variable is not connected to a graph'
+                        ' before the device transfer or specify `unchain=True`'
+                        '.')
 
         if was_chainerx and not is_chainerx:
-            # ChainerX -> non-ChainerX.
             self._clear_chainerx()
             self._node = VariableNode(self, self._chainerx_name)
         elif not was_chainerx and is_chainerx:
-            # Non-ChainerX -> ChainerX.
             self._chainerx_name = self._node.name
 
-        # Device transfer is not a backproppable operation and the graph will
-        # therefore be unchained in order to prevent the variable from being in
-        # an invalid state, i.e. connected to a graph but with a different
-        # device.
+        # How the graph is unchained.
         #
-        # - Non-ChainerX -> Non-ChainerX: Call unchain.
-        # - Non-ChainerX -> ChainerX: Call unchain.
+        # - Non-ChainerX -> Non-ChainerX: Calling `unchain`.
+        # - Non-ChainerX -> ChainerX: Calling `unchain`.
         # - ChainerX -> Non-ChainerX: Implicitly unchained.
-        # - ChainerX -> ChainerX: Rely on no backprop scope.
+        # - ChainerX -> ChainerX: Calling `as_grad_stopped`.
 
         if not was_chainerx:
             self.unchain()

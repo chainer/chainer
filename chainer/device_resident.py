@@ -108,7 +108,6 @@ class DeviceResident(utils.enable_final(meta_base=abc.ABCMeta)):
         Returns: self
 
         """
-        print('to_gpu', allow_unchain)
         cuda.check_cuda_available()
         cuda_device = cuda._get_device_or_current(device)
         device = chainer.backends.cuda.GpuDevice(cuda_device)
@@ -379,7 +378,6 @@ class _ToChxVisitor(DeviceResidentsVisitor):
     def visit_device_resident(self, device_resident):
         device_resident._device = backend.ChainerxDevice.from_fallback_device(
             device_resident._device)
-        device_resident._allow_unchain = self._allow_unchain
 
     def visit_array(self, arr):
         assert isinstance(arr, chainer.get_array_types())
@@ -399,7 +397,6 @@ class _FromChxVisitor(DeviceResidentsVisitor):
     def visit_device_resident(self, device_resident):
         if isinstance(device_resident._device, backend.ChainerxDevice):
             device_resident._device = device_resident._device.fallback_device
-        device_resident._allow_unchain = self._allow_unchain
 
     def visit_array(self, arr):
         assert isinstance(arr, chainer.get_array_types())
