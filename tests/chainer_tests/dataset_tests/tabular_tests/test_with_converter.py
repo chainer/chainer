@@ -10,6 +10,7 @@ from chainer_tests.dataset_tests.tabular_tests import dummy_dataset
 @testing.parameterize(
     {'mode': tuple},
     {'mode': dict},
+    {'mode': None},
 )
 class TestWithConverter(unittest.TestCase):
 
@@ -24,6 +25,9 @@ class TestWithConverter(unittest.TestCase):
                 self.assertEqual(args, ())
                 np.testing.assert_equal(
                     kwargs, dict(zip(('a', 'b', 'c'), dataset.data)))
+            elif self.mode is None:
+                np.testing.assert_equal(args, tuple(dataset.data))
+                self.assertEqual(kwargs, {})
 
             return 'converted'
 

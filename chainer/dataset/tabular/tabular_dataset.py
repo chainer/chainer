@@ -166,6 +166,8 @@ class TabularDataset(dataset_mixin.DatasetMixin):
             return tuple(_as_array(d) for d in data)
         elif isinstance(data, dict):
             return {k: _as_array(v) for k, v in data.items()}
+        else:
+            return _as_array(data)
 
     def as_tuple(self):
         """Return a view with tuple mode.

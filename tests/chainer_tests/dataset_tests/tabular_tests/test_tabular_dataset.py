@@ -48,10 +48,14 @@ class TestTabularDataset(unittest.TestCase):
             expected = tuple(dataset.data)
         elif self.mode is dict:
             expected = dict(zip(('a', 'b', 'c'), dataset.data))
+        elif self.mode is None:
+            expected = dataset.data[0]
         np.testing.assert_equal(output, expected)
 
         if self.mode is dict:
             output = output.values()
+        elif self.mode is None:
+            output = output,
         for out in output:
             self.assertIsInstance(out, np.ndarray)
 

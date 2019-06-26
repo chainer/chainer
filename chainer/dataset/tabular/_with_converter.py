@@ -26,3 +26,5 @@ class _WithConverter(tabular_dataset.TabularDataset):
             return self._converter(*data)
         elif isinstance(data, dict):
             return self._converter(**data)
+        else:
+            return self._converter(data)
