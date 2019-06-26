@@ -5,7 +5,12 @@ import numpy
 import chainer
 from chainer import functions
 from chainer import testing
-import chainerx.testing
+from chainer.testing import attr
+import chainerx
+
+
+if chainerx.is_available():
+    import chainerx.testing
 
 
 @testing.parameterize(*testing.product_dict(
@@ -53,6 +58,7 @@ import chainerx.testing
         {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
     ]
 )
+@attr.chainerx
 class TestCast(testing.FunctionTestCase):
 
     def _skip_chainerx_unsupported_dtype(self):
