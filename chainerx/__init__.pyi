@@ -861,6 +861,11 @@ def split(
         indices_or_sections: tp.Union[int, tp.List[int]],
         axis: int=...) -> tp.List[ndarray]: ...
 
+def dsplit(
+        ary: ndarray,
+        indices_or_sections: tp.Union[int, tp.List[int]],
+        ) -> tp.List[ndarray]: ...
+
 
 def square(x: ndarray) -> ndarray: ...
 
