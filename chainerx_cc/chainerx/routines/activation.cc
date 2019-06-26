@@ -39,7 +39,7 @@ Array CRelu(const Array& x, int8_t axis) {
     return Relu(concat);
 }
 
-Array Elu(const Array& x, float_t alpha) {
+Array Elu(const Array& x, double alpha) {
     Dtype dtype = internal::GetMathResultDtype(x.dtype());
     const Array& x_cast = x.dtype() == dtype ? x : x.AsType(dtype);
     // TODO(aksub99): Replace x > zero with x > 0 when operator > supports scalars.

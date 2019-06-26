@@ -179,7 +179,7 @@ class TestElu(UnaryMathTestBase, op_utils.NumpyOpTest):
         if isinstance(self.alpha_range, tuple):
             l, u = self.alpha_range
             self.alpha = random.uniform(l, u)
-        elif self.alpha_range in (None, Unspecified):
+        elif self.alpha_range is Unspecified:
             self.alpha = 1.0
         else:
             self.alpha = self.alpha_range
@@ -200,7 +200,7 @@ class TestElu(UnaryMathTestBase, op_utils.NumpyOpTest):
             negzero_indices = y <= 0
             y[negzero_indices] = self.alpha * numpy.expm1(y[negzero_indices])
             return y
-        elif self.alpha_range in (None, Unspecified):
+        elif self.alpha_range is Unspecified:
             return xp.elu(a)
         else:
             return xp.elu(a, self.alpha)
