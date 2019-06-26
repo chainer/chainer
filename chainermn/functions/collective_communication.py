@@ -99,8 +99,8 @@ class Bcast(chainer.Function):
         if inputs == ():
             # Without dummy variable, this function does not "require_grad",
             # thus back propagation will not be invoked.
-            dummy_var = chainer.Variable(xp.array([],
-                                         dtype=chainer.config.dtype))
+            dummy_var = chainer.Variable(
+                xp.array([], dtype=chainer.config.dtype))
             dummy_var.name = 'dummy_var'
             return super(Bcast, self).__call__(dummy_var)
 
@@ -183,7 +183,7 @@ class Gather(chainer.Function):
         input_dtype = inputs[0].dtype
         if self.comm.rank == self.root and np.float16 == input_dtype:
             grad_outputs = tuple([item.astype(np.float32)
-                                 for item in grad_outputs])
+                                  for item in grad_outputs])
         ret = self.comm.scatter(grad_outputs, self.root),
 
         # convert back
