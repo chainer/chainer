@@ -2305,6 +2305,114 @@ class TestToDevice(unittest.TestCase):
         assert link.device.device == chainerx.get_device('native:0')
 
 
+class StatefulLink(chainer.Link):
+    # Maintains a state `s` that upon calling forward extends the computational
+    # graph, similar to e.g. the LSTM link.
+
+    def __init__(self):
+        # Pass any shape as the shape is not important.
+        super(StatefulLink, self).__init__(s=(2, 3))
+
+    def forward(self):
+        # Just update the state.
+        self.s = 2 * self.s
+
+    def device_resident_accept(self, visitor):
+        super(StatefulLink, self).device_resident_accept(visitor)
+        visitor.visit_variable(self.s)
+
+
+class TestToDeviceStatefulLink(unittest.TestCase):
+
+    def setUp(self):
+        self.link = StatefulLink()
+        self.link()
+
+    def test_to_device_allow_unchain_true(self):
+        self.link.to_device('@numpy', allow_unchain=True)
+
+    def test_to_device_allow_unchain_false(self):
+        with pytest.raises(RuntimeError):
+            self.link.to_device('@numpy', allow_unchain=False)
+
+    def test_to_device_allow_unchain_none(self):
+        with pytest.warns(DeprecationWarning):
+            self.link.to_device('@numpy')
+
+    def test_to_cpu_allow_unchain_true(self):
+        self.link.to_cpu(allow_unchain=True)
+
+    def test_to_cpu_allow_unchain_false(self):
+        with pytest.raises(RuntimeError):
+            self.link.to_cpu(allow_unchain=False)
+
+    def test_to_cpu_allow_unchain_none(self):
+        with pytest.warns(DeprecationWarning):
+            self.link.to_cpu()
+
+    @attr.gpu
+    def test_to_gpu_allow_unchain_true(self):
+        self.link.to_gpu(allow_unchain=True)
+
+    @attr.gpu
+    def test_to_gpu_allow_unchain_false(self):
+        with pytest.raises(RuntimeError):
+            self.link.to_gpu(allow_unchain=False)
+
+    @attr.gpu
+    def test_to_gpu_allow_unchain_none(self):
+        with pytest.warns(DeprecationWarning):
+            self.link.to_gpu()
+
+    @attr.ideep
+    def test_to_intel64_allow_unchain_true(self):
+        self.link.to_intel64(allow_unchain=True)
+
+    @attr.ideep
+    def test_to_intel64_allow_unchain_false(self):
+        with pytest.raises(RuntimeError):
+            self.link.to_intel64(allow_unchain=False)
+
+    @attr.ideep
+    def test_to_intel64_allow_unchain_none(self):
+        with pytest.warns(DeprecationWarning):
+            self.link.to_intel64()
+
+    @attr.chainerx
+    def test_to_chx_allow_unchain_true(self):
+        self.link.to_chx(allow_unchain=True)
+
+    @attr.chainerx
+    def test_to_chx_allow_unchain_false(self):
+        with pytest.raises(RuntimeError):
+            self.link.to_chx(allow_unchain=False)
+
+    @attr.chainerx
+    def test_to_chx_allow_unchain_none(self):
+        with pytest.warns(DeprecationWarning):
+            self.link.to_chx()
+
+    @attr.chainerx
+    def test_from_chx_allow_unchain_true(self):
+        self.link.to_chx(allow_unchain=True)
+        self.link()
+        self.link.from_chx(allow_unchain=True)
+
+    @attr.chainerx
+    def test_from_chx_allow_unchain_false(self):
+        self.link.to_chx(allow_unchain=True)
+        self.link()
+        with pytest.raises(RuntimeError):
+            self.link.from_chx(allow_unchain=False)
+
+    @attr.chainerx
+    def test_from_chx_allow_unchain_none(self):
+        self.link.to_chx(allow_unchain=True)
+        self.link()
+        with pytest.warns(DeprecationWarning):
+            self.link.from_chx()
+
+
 class TestCallMethod(unittest.TestCase):
 
     def setUp(self):
