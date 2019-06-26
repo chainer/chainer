@@ -8,6 +8,7 @@ from chainer_tests.dataset_tests.tabular_tests import dummy_dataset
 @testing.parameterize(
     {'mode': tuple},
     {'mode': dict},
+    {'mode': None},
 )
 class TestAsTuple(unittest.TestCase):
 
@@ -23,6 +24,7 @@ class TestAsTuple(unittest.TestCase):
 @testing.parameterize(
     {'mode': tuple},
     {'mode': dict},
+    {'mode': None},
 )
 class TestAsDict(unittest.TestCase):
 

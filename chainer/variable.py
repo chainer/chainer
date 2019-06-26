@@ -520,10 +520,13 @@ class Variable(object):
     def __init__(self, data=None, **kwargs):
         # type: (tp.Optional[types.NdArray], **tp.Any) -> None
 
-        name, grad, requires_grad = argument.parse_kwargs(
+        name, grad, requires_grad, grad_valid = argument.parse_kwargs(
             kwargs, ('name', None), ('grad', None), ('requires_grad', True),
+            ('_grad_valid', True),
             volatile='volatile argument is not supported anymore. '
                      'Use chainer.using_config')
+        # _grad_valid is for internal use, hence the prefix _.
+
         assert isinstance(requires_grad, bool)
         if data is not None:
             array_types = chainer.get_array_types()
@@ -533,11 +536,13 @@ class Variable(object):
                     array_types[-1], type(data))
                 raise TypeError(msg)
 
-        self._init_impl(data, None, name, grad, requires_grad, None, None)
+        self._init_impl(
+            data, None, name, grad, grad_valid, requires_grad, None, None)
 
     @staticmethod
-    def _init_unchecked(data=None, device=None, name=None, grad=None,
-                        requires_grad=True, is_chainerx_array=None, node=None):
+    def _init_unchecked(
+            data=None, device=None, name=None, grad=None, grad_valid=True,
+            requires_grad=True, is_chainerx_array=None, node=None):
         """Creates a new :class:`Variable` without the validations for
         optimizing performance.
         """
@@ -545,10 +550,11 @@ class Variable(object):
         # Create a Variable without invoking __init__
         var = Variable.__new__(Variable)
         var._init_impl(
-            data, device, name, grad, requires_grad, is_chainerx_array, node)
+            data, device, name, grad, grad_valid, requires_grad,
+            is_chainerx_array, node)
         return var
 
-    def _init_impl(self, data, device, name, grad, requires_grad,
+    def _init_impl(self, data, device, name, grad, grad_valid, requires_grad,
                    is_chainerx_array, node):
         # Use a list as a data structure to hold the data array indirectly to
         # abstract its initialized/uninitialized state.
@@ -560,6 +566,14 @@ class Variable(object):
         self._loss_scale = None
         self._grad_var = None
         self._device = device
+        # A flag to prevent grad from being used before calling cleargrad().
+        # It becomes True when either
+        # - cleargrad() is called, or
+        # - zerograd() is called, or
+        # - grad is set.
+        # Note that it won't be True by merely initializing an uninitialized
+        # Parameter.
+        self._grad_valid = grad_valid
 
         if is_chainerx_array is None:
             is_chainerx_array = isinstance(data, chainerx.ndarray)
@@ -575,6 +589,8 @@ class Variable(object):
             self._node = None  # type: tp.Optional[VariableNode]
             self._chainerx_name = name
         else:
+            # Use a list as a data structure to hold the data array indirectly
+            # to abstract its initialized/uninitialized state.
             self._data = [data]  # type: tp.List[tp.Optional[types.NdArray]]
             if node is None:
                 self._node = VariableNode(self, name)
@@ -944,10 +960,12 @@ class Variable(object):
         if self._has_chainerx_array:
             self._set_chainerx_grad(g, False)
             self._grad_var = None
+            self._grad_valid = True
             return
 
         self._grad = g
         self._grad_var = None
+        self._grad_valid = True
 
     @property
     def grad(self):
@@ -963,6 +981,12 @@ class Variable(object):
         and error.
 
         """
+        if not self._grad_valid:
+            raise RuntimeError(
+                'Cannot retrieve Variable.grad. '
+                'Either it must be set manually or Variable.cleargrad() '
+                'must be called beforehand.')
+
         if self._has_chainerx_array:
             arr = self._data[0]
             if arr is None or not arr.is_backprop_required():
@@ -1128,12 +1152,6 @@ class Variable(object):
         if self._has_chainerx_array:
             return
 
-        # TODO(hvy): Reconsider this possibly invalid state.
-        if self.array is None and self.grad is not None:
-            raise RuntimeError(
-                'A variable without data but with a gradient cannot be '
-                'transferred to a ChainerX device.')
-
         self.to_device(
             backend.ChainerxDevice.from_fallback_device(self.device),
             allow_unchain=allow_unchain)
@@ -1283,6 +1301,7 @@ class Variable(object):
     def cleargrad(self):
         """Clears the gradient array."""
         self.grad_var = None
+        self._grad_valid = True
 
     def zerograd(self):
         """Initializes the gradient array by zeros.
@@ -1302,6 +1321,7 @@ class Variable(object):
 
         arr = self.array
         if arr is None:
+            self._grad_valid = True
             return
 
         if self._has_chainerx_array:
@@ -1322,6 +1342,7 @@ class Variable(object):
                     if gv is not None:
                         gv.unchain()
                     self._grad.fill(0)
+        self._grad_valid = True
 
     def copydata(self, var):
         """Copies the data array from given source variable.
@@ -1703,7 +1724,7 @@ class Parameter(Variable):
                 super(Parameter, self).__init__(initializer, name=name)
             else:
                 # uninitialized parameter
-                super(Parameter, self).__init__(name=name)
+                super(Parameter, self).__init__(name=name, _grad_valid=False)
                 dtype = getattr(initializer, 'dtype', None)
                 self._grad_initializer = constant.NaN(dtype)
         else:
@@ -1726,8 +1747,8 @@ class Parameter(Variable):
 
     def __reduce__(self):
         args = (
-            self.array, self.name, self.grad, self.initializer,
-            self.update_rule, self.device)
+            self.array, self.name, self._grad, self._grad_valid,
+            self.initializer, self.update_rule, self.device)
         return _recover_parameter, args
 
     def to_cpu(self, allow_unchain=None):
@@ -1889,10 +1910,20 @@ def as_array(obj):
     return obj
 
 
-def _recover_parameter(data, name, grad, initializer, update_rule, device):
+def _recover_parameter(*args):
+    if len(args) == 7:
+        # latest
+        data, name, grad, grad_valid, initializer, update_rule, device = args
+    elif len(args) == 6:
+        data, name, grad, initializer, update_rule, device = args
+        grad_valid = True
+    else:
+        assert False, len(args)
+
     p = Parameter(initializer=initializer, name=name)
     p.array = data
-    p.grad = grad
+    p._grad = grad
+    p._grad_valid = grad_valid
     p.update_rule = update_rule
     p.to_device(device)
     return p
