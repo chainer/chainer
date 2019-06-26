@@ -99,8 +99,11 @@ class SimpleDataset(tabular_dataset.TabularDataset):
 
     @mode.setter
     def mode(self, mode):
-        if mode not in {tuple, dict}:
-            raise ValueError('Unknown mode: {}', mode)
+        if mode not in {tuple, dict, None}:
+            raise ValueError('Unknown mode: {}'.format(mode))
+        if mode is None and len(self._columns) > 1:
+            raise ValueError(
+                'Unary mode does not work with multiple columns')
         self._mode = mode
 
     def get_examples(self, indices, key_indices):
