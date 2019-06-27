@@ -42,7 +42,6 @@ class SimpleDataset(tabular_dataset.TabularDataset):
     """
 
     def __init__(self):
-        self._len = None
         self._columns = []
         self._dataset = None
 
