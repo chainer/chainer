@@ -395,7 +395,7 @@ void InitChainerxLogic(pybind11::module& m) {
     m.def("isfinite", [](const ArrayBodyPtr& x) { return MoveArrayBody(IsFinite(Array{x})); }, "x"_a);
 }
 
-std::vector<ArrayBodyPtr> _split(
+std::vector<ArrayBodyPtr> SwitchBySplitArgs(
         auto& split_sections, auto& split_indices, const ArrayBodyPtr& ary, py::handle indices_or_sections, int8_t axis) {
     // TODO(niboshi): Perhaps we would want more general approach to handle multi-type arguments like indices_or_sections to
     // provide more helpful error message for users.
@@ -473,24 +473,24 @@ std::vector<ArrayBodyPtr> _split(
     throw py::type_error{std::string{"indices_or_sections not understood: "} + py::cast<std::string>(py::repr(indices_or_sections))};
 }
 
-std::vector<ArrayBodyPtr> split(const ArrayBodyPtr& ary, py::handle indices_or_sections, int8_t axis) {
+std::vector<ArrayBodyPtr> SplitByIndicesOrSections(const ArrayBodyPtr& ary, py::handle indices_or_sections, int8_t axis) {
     auto split_sections = [](const ArrayBodyPtr& ary, int64_t sections, int8_t axis) {
         return MoveArrayBodies(Split(Array{ary}, sections, axis));
     };
     auto split_indices = [](const ArrayBodyPtr& ary, const std::vector<int64_t>& indices, int8_t axis) {
         return MoveArrayBodies(Split(Array{ary}, indices, axis));
     };
-    return _split(split_sections, split_indices, ary, indices_or_sections, axis);
+    return SwitchBySplitArgs(split_sections, split_indices, ary, indices_or_sections, axis);
 }
 
-std::vector<ArrayBodyPtr> dsplit(const ArrayBodyPtr& ary, py::handle indices_or_sections) {
+std::vector<ArrayBodyPtr> DSplitByIndicesOrSections(const ArrayBodyPtr& ary, py::handle indices_or_sections) {
     auto split_sections = [](const ArrayBodyPtr& ary, int64_t sections, int8_t /*axis*/) {
         return MoveArrayBodies(DSplit(Array{ary}, sections));
     };
     auto split_indices = [](const ArrayBodyPtr& ary, const std::vector<int64_t>& indices, int8_t /*axis*/) {
         return MoveArrayBodies(DSplit(Array{ary}, indices));
     };
-    return _split(split_sections, split_indices, ary, indices_or_sections, 2);
+    return SwitchBySplitArgs(split_sections, split_indices, ary, indices_or_sections, 2);
 }
 
 void InitChainerxManipulation(pybind11::module& m) {
@@ -608,8 +608,8 @@ void InitChainerxManipulation(pybind11::module& m) {
               return MoveArrayBody(DStack(xs));
           },
           "arrays"_a);
-    m.def("split", &split, "ary"_a, "indices_or_sections"_a, "axis"_a = 0);
-    m.def("dsplit", &dsplit, "ary"_a, "indices_or_sections"_a);
+    m.def("split", &SplitByIndicesOrSections, "ary"_a, "indices_or_sections"_a, "axis"_a = 0);
+    m.def("dsplit", &DSplitByIndicesOrSections, "ary"_a, "indices_or_sections"_a);
     m.def("moveaxis",
           [](const ArrayBodyPtr& a, const std::vector<int8_t>& source, const std::vector<int8_t>& destination) {
               return MoveArrayBody(Moveaxis(Array{a}, Axes{source.begin(), source.end()}, Axes{destination.begin(), destination.end()}));
