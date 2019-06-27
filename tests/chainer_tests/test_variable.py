@@ -854,49 +854,6 @@ class TestVariableZerogad(unittest.TestCase):
         xp.testing.assert_array_equal(a.grad, xp.zeros_like(a.grad))
 
 
-class VariableAddgradTestBase(object):
-
-    def check_addgrad(
-            self, should_succeed,
-            src_backend_config, dst_backend_config, current_backend_config):
-        src_device = src_backend_config.device
-        dst_device = dst_backend_config.device
-
-        src_np = np.full(3, 10, dtype=np.float32)
-        dst_np = np.full(3, 20, dtype=np.float32)
-        if self.clear_src_grad:
-            expect_np = np.full(3, 20, dtype=np.float32)
-        elif self.clear_dst_grad:
-            expect_np = np.full(3, 10, dtype=np.float32)
-        else:
-            expect_np = np.full(3, 30, dtype=np.float32)
-
-        src = src_device.send(src_np)
-        dst = dst_device.send(dst_np)
-
-        a = chainer.Variable(src)
-        a.grad = src
-        b = chainer.Variable(dst)
-        b.grad = dst
-        if self.clear_src_grad:
-            a.cleargrad()
-        if self.clear_dst_grad:
-            b.cleargrad()
-
-        with current_backend_config:
-            if should_succeed:
-                b.addgrad(a)
-            else:
-                with pytest.raises(RuntimeError):
-                    b.addgrad(a)
-
-        if should_succeed:
-            np.testing.assert_array_equal(
-                _numpy_device.send(b.grad), expect_np)
-            assert backend.get_device_from_array(b.data) == dst_device
-            assert backend.get_device_from_array(b.grad) == dst_device
-
-
 addgrad_test_parameterize = testing.parameterize(*testing.product(
     {
         'clear_src_grad,clear_dst_grad': [
