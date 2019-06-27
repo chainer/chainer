@@ -62,14 +62,14 @@ public:
 
     const int64_t& operator[](int8_t index) const {
         if (!(0 <= index && static_cast<size_t>(index) < size())) {
-            throw DimensionError{"Shape index ", index, " out of bounds for shape with ", size(), " size."};
+            throw IndexError{"Shape index ", index, " out of bounds for shape with ", size(), " size."};
         }
         return this->Dims::operator[](index);
     }
 
     int64_t& operator[](int8_t index) {
         if (!(0 <= index && static_cast<size_t>(index) < size())) {
-            throw DimensionError{"Shape index ", index, " out of bounds for shape with ", size(), " size."};
+            throw IndexError{"Shape index ", index, " out of bounds for shape with ", size(), " size."};
         }
         return this->Dims::operator[](index);
     }
