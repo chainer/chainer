@@ -1,5 +1,6 @@
 import chainer
 from chainer import backend
+import numpy as np
 
 
 class AllGather(chainer.Function):
@@ -11,12 +12,33 @@ class AllGather(chainer.Function):
 
     def forward(self, inputs):
         x, = inputs
-        return self.comm.allgather(x)
+        x_dtype = x.dtype
+
+        # convert to float32 for communication
+        if np.float16 == x_dtype:
+            x = x.astype(np.float32)
+        ret = self.comm.allgather(x)
+
+        # convert back
+        if np.float16 == x_dtype:
+            ret = tuple([item.astype(x_dtype) for item in ret])
+        return ret
 
     def backward(self, inputs, grad_outputs):
         xp = backend.get_array_module(*inputs)
+        grad_dtype = grad_outputs[0].dtype
+
+        # convert to float32 for communication
+        if np.float16 == grad_dtype:
+            grad_outputs = tuple([item.astype(np.float32)
+                                  for item in grad_outputs])
         gxs = self.comm.alltoall(grad_outputs)
+
         gx = xp.stack(gxs).sum(axis=0)
+
+        # convert back
+        if np.float16 == grad_dtype:
+            gx = gx.astype(grad_dtype)
         return gx,
 
 
@@ -31,15 +53,36 @@ class AllToAll(chainer.Function):
         if len(inputs) != self.comm.size:
             raise ValueError(
                 'The length of inputs must be same as communicator size.')
+        xs_dtype = inputs[0].dtype
 
-        xs = tuple([x for x in inputs])
-        return self.comm.alltoall(xs)
+        # convert to float32 for communication
+        if np.float16 == xs_dtype:
+            xs = tuple([x.astype(np.float32) for x in inputs])
+        else:
+            xs = tuple([x for x in inputs])
+        ret = self.comm.alltoall(xs)
+
+        # convert back
+        if np.float16 == xs_dtype:
+            ret = tuple([item.astype(xs_dtype) for item in ret])
+        return ret
 
     def backward(self, inputs, grad_outputs):
         assert self.comm.size == len(grad_outputs)
 
-        gys = tuple([gy for gy in grad_outputs])
-        return self.comm.alltoall(gys)
+        xs_dtype = inputs[0].dtype
+
+        # convert to float32 for communication
+        if np.float16 == xs_dtype:
+            gys = tuple([gy.astype(np.float32) for gy in grad_outputs])
+        else:
+            gys = tuple([gy for gy in grad_outputs])
+
+        ret = self.comm.alltoall(gys)
+        # convert back
+        if np.float16 == xs_dtype:
+            ret = tuple([item.astype(xs_dtype) for item in ret])
+        return ret
 
 
 class Bcast(chainer.Function):
@@ -56,7 +99,8 @@ class Bcast(chainer.Function):
         if inputs == ():
             # Without dummy variable, this function does not "require_grad",
             # thus back propagation will not be invoked.
-            dummy_var = chainer.Variable(xp.array([], dtype=xp.float32))
+            dummy_var = chainer.Variable(
+                xp.array([], dtype=chainer.config.dtype))
             dummy_var.name = 'dummy_var'
             return super(Bcast, self).__call__(dummy_var)
 
@@ -64,20 +108,43 @@ class Bcast(chainer.Function):
             return super(Bcast, self).__call__(*inputs)
 
     def forward(self, inputs):
+        x_dtype = inputs[0].dtype
+
         if self.comm.rank == self.root:
             x, = inputs
+
+            # convert to float32 for communication
+            if np.float16 == x_dtype:
+                x = x.astype(np.float32)
         else:
             x = None
-        return self.comm.bcast(x, self.root),
+
+        x = self.comm.bcast(x, self.root),
+
+        # convert back
+        if np.float16 == x_dtype:
+            x = tuple([item.astype(x_dtype) for item in x])
+
+        return x
 
     def backward(self, inputs, grad_outputs):
         gx, = grad_outputs
+        gx_dtype = gx.dtype
+        # convert to float32 for communication
+        if np.float16 == gx_dtype:
+            gx = gx.astype(np.float32)
+
         gxs = self.comm.gather(gx, self.root)
 
         if self.comm.rank == self.root:
             xp = backend.get_array_module(*gxs)
             gxs = xp.stack(gxs)
-            return gxs.sum(axis=0),
+            _sum = gxs.sum(axis=0),
+
+            # convert back
+            if np.float16 == gx_dtype:
+                _sum = tuple([item.astype(gx_dtype) for item in _sum])
+            return _sum
         else:
             return None,
 
@@ -93,17 +160,37 @@ class Gather(chainer.Function):
     def forward(self, inputs):
         xp = backend.get_array_module(*inputs)
         x, = inputs
+
+        # convert to float32 for communication
+        x_dtype = x.dtype
+        if np.float16 == x_dtype:
+            x = x.astype(np.float32)
         ys = self.comm.gather(x, self.root)
 
         if self.comm.rank == self.root:
+
+            # convert back
+            if np.float16 == x_dtype:
+                ys = tuple([item.astype(x_dtype) for item in ys])
             return ys
 
         else:
             # Return an empty variable, which serves as "delegate_variable."
-            return xp.array([], dtype=xp.float32),
+            return xp.array([], dtype=x_dtype),
 
     def backward(self, inputs, grad_outputs):
-        return self.comm.scatter(grad_outputs, self.root),
+        # convert to float32 for communication
+        input_dtype = inputs[0].dtype
+        if self.comm.rank == self.root and np.float16 == input_dtype:
+            grad_outputs = tuple([item.astype(np.float32)
+                                  for item in grad_outputs])
+        ret = self.comm.scatter(grad_outputs, self.root),
+
+        # convert back
+        if np.float16 == input_dtype:
+            ret = tuple([item.astype(input_dtype) for item in ret])
+
+        return ret
 
 
 class Scatter(chainer.Function):
@@ -120,7 +207,8 @@ class Scatter(chainer.Function):
         if inputs == ():
             # Without dummy variable, this function does not "require_grad",
             # thus back propagation will not be invoked.
-            dummy_var = chainer.Variable(xp.array([], dtype=xp.float32))
+            dummy_var = chainer.Variable(
+                xp.array([], dtype=chainer.config.dtype))
             dummy_var.name = 'dummy_var'
             return super(Scatter, self).__call__(dummy_var)
 
@@ -128,19 +216,38 @@ class Scatter(chainer.Function):
             return super(Scatter, self).__call__(*inputs)
 
     def forward(self, inputs):
+        input_dtype = inputs[0].dtype
         if self.comm.rank == self.root:
+
+            # convert to float32 for communication
+            if np.float16 == input_dtype:
+                inputs = tuple([item.astype(np.float32) for item in inputs])
             y = self.comm.scatter(inputs, self.root)
         else:
             y = self.comm.scatter(None, self.root)
+
+        # convert back
+        if np.float16 == input_dtype:
+            y = y.astype(input_dtype)
 
         return y,
 
     def backward(self, inputs, grad_outputs):
         xp = backend.get_array_module(*inputs)
         gy, = grad_outputs
+        gy_dtype = gy.dtype
+
+        # convert to float32 for communication
+        if np.float16 == gy_dtype:
+            gy = gy.astype(np.float32)
+
         gxs = self.comm.gather(gy, self.root)
 
         if self.comm.rank == self.root:
+
+            # convert back
+            if np.float16 == gy_dtype:
+                gxs = tuple([item.astype(gy_dtype) for item in gxs])
             return gxs
 
         else:
@@ -148,8 +255,7 @@ class Scatter(chainer.Function):
             if inputs == ():
                 dummy_var = tuple([xp.array([], dtype=xp.float32)])
             else:
-                dummy_var = tuple([xp.zeros(x.shape, dtype=xp.float32)
-                                   for x in inputs])
+                dummy_var = tuple([xp.zeros_like(x) for x in inputs])
             return dummy_var
 
 
