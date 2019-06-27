@@ -793,3 +793,17 @@ def get_cudnn_dropout_states_core(thread_id):
 
     seed += numpy.uint64(states_id)
     return cudnn.DropoutStates(None, seed)
+
+
+def _get_cudnn_tensor_layout_x(x_layout):
+    if x_layout == chainer.memory_layouts.CUDNN_CHANNEL_FIRST_X:
+        return cuda.cudnn.CUDNN_TENSOR_NCHW
+    assert x_layout == chainer.memory_layouts.CUDNN_CHANNEL_LAST_X
+    return cuda.cudnn.CUDNN_TENSOR_NHWC
+
+
+def _get_cudnn_tensor_layout_w(w_layout):
+    if w_layout == chainer.memory_layouts.CUDNN_CHANNEL_FIRST_W:
+        return cuda.cudnn.CUDNN_TENSOR_NCHW
+    assert w_layout == chainer.memory_layouts.CUDNN_CHANNEL_LAST_W
+    return cuda.cudnn.CUDNN_TENSOR_NHWC

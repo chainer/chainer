@@ -32,6 +32,8 @@ class SGDRule(optimizer.UpdateRule):
         lr (float): Learning rate.
 
     """
+    is_elementwise = True
+
     _kernel = None
 
     def __init__(self, parent_hyperparam=None, lr=None):

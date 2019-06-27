@@ -1,6 +1,7 @@
 import unittest
 
 import numpy
+import pytest
 import six
 
 import chainer
@@ -9,6 +10,7 @@ from chainer.backends import cuda
 from chainer import gradient_check
 from chainer import initializers
 from chainer import links
+from chainer import memory_layouts
 from chainer import testing
 from chainer.testing import attr
 from chainer.testing import condition
@@ -698,6 +700,91 @@ class TestSerialize(unittest.TestCase):
         testing.assert_allclose(link2.beta.array, link1.beta.array)
         testing.assert_allclose(link2.gamma.array, link1.gamma.array)
         assert link2.N == link1.N
+
+
+@testing.inject_backend_tests(
+    [
+        'test_param_layout_to_device',
+        'test_forward',
+    ],
+    # CPU tests
+    [{}]
+    # GPU tests
+    + testing.product({
+        'use_cuda': [True],
+        'use_cudnn': ['never', 'always'],
+    }))
+class TestBatchNormalizationMemoryLayouts(unittest.TestCase):
+    batch = 2
+    channels = 3
+    height = 13
+    width = 11
+    axis = None
+    dtype = numpy.float32
+
+    def create_link(self):
+        channel_dims = (self.channels,)
+        link = links.BatchNormalization(
+            channel_dims,
+            axis=self.axis)
+        return link
+
+    def create_input_array(self):
+        x_shape = (self.batch, self.height, self.width, self.channels)
+        x = cuda.cupy.ones(x_shape, self.dtype)
+        return x
+
+    def test_param_layout(self):
+        with chainer.using_config('compute_mode', 'cudnn_fast'):
+            link = self.create_link()
+        assert link.gamma.layout is None
+        assert link.beta.layout is None
+
+    def test_param_layout_to_device(self, backend_config):
+        with chainer.using_config('compute_mode', 'cudnn_fast'):
+            link = self.create_link()
+        assert link.gamma.device == chainer.get_device('@numpy')
+        assert link.beta.device == chainer.get_device('@numpy')
+        link.to_device(backend_config.device)
+        assert link.gamma.device == backend_config.device
+        assert link.beta.device == backend_config.device
+        assert link.gamma.layout is None
+        assert link.beta.layout is None
+
+    def test_forward(self, backend_config):
+        if not backend_config.use_cuda:
+            raise unittest.SkipTest(
+                'forward with non-standard layout is only supported with '
+                'cupy arrays.')
+        with chainer.using_config('compute_mode', 'cudnn_fast'):
+            link = self.create_link()
+        link.to_device(backend_config.device)
+
+        x = self.create_input_array()
+        x = chainer.Variable(x, layout=memory_layouts.CUDNN_CHANNEL_LAST_X)
+        x.to_device(backend_config.device)
+        y = link(x)
+
+        assert link.gamma.device == backend_config.device
+        assert link.beta.device == backend_config.device
+        assert y.layout == memory_layouts.CUDNN_CHANNEL_LAST_X
+        assert y.shape == (
+            self.batch,
+            self.channels,
+            self.height,
+            self.width)
+
+    def test_forward_invalid_backend(self):
+        with chainer.using_config('compute_mode', 'cudnn_fast'):
+            link = self.create_link()
+        link.to_device('@numpy')
+
+        x = self.create_input_array()
+        x = chainer.Variable(x, layout=memory_layouts.CUDNN_CHANNEL_LAST_X)
+        x.to_device('@numpy')
+
+        with pytest.raises(RuntimeError):
+            link(x)
 
 
 testing.run_module(__name__, __file__)

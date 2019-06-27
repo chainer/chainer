@@ -494,7 +494,7 @@ class Link(device_resident.DeviceResident):
         """
         d = self.__dict__  # type: tp.Dict[str, chainer.Parameter]
         for name in sorted(self._params):
-            if include_uninit or d[name].data is not None:
+            if include_uninit or d[name].is_initialized:
                 yield '/' + name, d[name]
 
     def links(self, skipself: bool = False) -> tp.Iterator['Link']:

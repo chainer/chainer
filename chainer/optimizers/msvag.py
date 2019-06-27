@@ -54,6 +54,7 @@ class MSVAGRule(optimizer.UpdateRule):
         weight_decay_rate (float): Weight decay rate.
 
     """
+    is_elementwise = True
 
     def __init__(self, parent_hyperparam=None,
                  lr=None, beta=None,

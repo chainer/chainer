@@ -163,7 +163,7 @@ def backprop_step(
             raise ValueError(func._get_error_message(msg))
 
     for i, gx in six.moves.zip(target_input_indexes, gxs):
-        if gx is None or gx.array is None:
+        if gx is None or gx.raw_array is None:
             continue
 
         grad_inputs[func.inputs[i]].append(gx)

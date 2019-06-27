@@ -198,7 +198,7 @@ def _backprop_to_all(outputs, retain_grad, loss_scale):
             continue
 
         in_data = [x.data for x in inputs]
-        out_grad_array = [None if g is None else g.array for g in out_grad]
+        out_grad_array = [None if g is None else g.raw_array for g in out_grad]
         if func._n_local_function_hooks != 0:
             local_hooks = collections.OrderedDict(chainer.get_function_hooks())
             local_hooks.update(func.local_function_hooks)
@@ -245,7 +245,7 @@ def _backprop_to_all(outputs, retain_grad, loss_scale):
             for gx_elem in gx:
                 if gx_elem is not None:
                     chainer.variable._check_grad_type(
-                        func, x, True, gx_elem.array)
+                        func, x, True, gx_elem.raw_array)
             del gx_elem  # to reduce memory usage
 
             if x.creator_node is None:  # leaf
