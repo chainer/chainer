@@ -712,6 +712,9 @@ def flipud(a: ndarray) -> ndarray: ...
 def floor(x: ndarray) -> ndarray: ...
 
 
+def fmod(x1: ndarray, x2: ndarray) -> ndarray: ...
+
+
 def frombuffer(
         buffer: tp.Any,
         dtype: tp.Optional[tp.Any]=...,
