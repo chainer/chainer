@@ -14,7 +14,7 @@ class BnChain(chainer.Chain):
             self.bn = chainer.links.BatchNormalization(size)
 
     def forward(self, x):
-        return self.bn(self.conv(x))
+        return chainer.functions.relu(self.bn(self.conv(x)))
 
 
 class BnChainList(chainer.ChainList):
@@ -27,7 +27,7 @@ class BnChainList(chainer.ChainList):
         )
 
     def forward(self, x):
-        return self[1](self[0](x))
+        return chainer.functions.relu(self[1](self[0](x)))
 
 
 class TestCreateMnBnModel(unittest.TestCase):
@@ -61,6 +61,7 @@ class TestCreateMnBnModel(unittest.TestCase):
             chainer.links.Convolution2D(
                 None, size, 1, 1, 1, nobias=True),
             chainer.links.BatchNormalization(size),
+            chainer.functions.relu
         )
         mnbn_model = chainermn.links.create_mnbn_model(model,
                                                        self.communicator)
@@ -69,3 +70,4 @@ class TestCreateMnBnModel(unittest.TestCase):
         self.assertTrue(
             isinstance(mnbn_model[1],
                        chainermn.links.MultiNodeBatchNormalization))
+        self.assertTrue(mnbn_model[2] == chainer.functions.relu)
