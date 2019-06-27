@@ -1033,6 +1033,13 @@ void InitChainerxLoss(pybind11::module& m) {
           "x1"_a,
           "x2"_a,
           "delta"_a);
+    m.def("hinge",
+          [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2, const std::string& norm) {
+              return MoveArrayBody(Hinge(Array{x1}, Array{x2}, norm));
+          },
+          "x1"_a,
+          "x2"_a,
+          "norm"_a = "L1");
 }
 
 }  // namespace
