@@ -1150,20 +1150,19 @@ class Variable(object):
             raise RuntimeError('ChainerX is not available.')
 
         if self._has_chainerx_array:
-            return
+            device = self.device
+        else:
+            device = backend.ChainerxDevice.from_fallback_device(self.device)
 
-        self.to_device(
-            backend.ChainerxDevice.from_fallback_device(self.device),
-            allow_unchain=allow_unchain)
+        self.to_device(device, allow_unchain=allow_unchain)
 
     def from_chx(self, allow_unchain=None):
         """Converts the array and gradient to non-ChainerX arrays without copy.
 
         This method converts the underlying ChainerX array and gradient
         residing in either a ``native`` or ``cuda`` device to NumPy or CuPy
-        arrays respectively, on their same physical device. It does nothing
-        if the array held by the Variable object is not a ChainerX array. The
-        new array is a view of the original one.
+        arrays respectively, on their same physical device.
+        The new array is a view of the original one.
 
         Raises an error if such a conversion is not supported for the device.
 
@@ -1174,11 +1173,12 @@ class Variable(object):
                 warning.
 
         """
-        if not self._has_chainerx_array:
-            return
+        if self._has_chainerx_array:
+            device = self.device.fallback_device
+        else:
+            device = self.device
 
-        self.to_device(
-            self.device.fallback_device, allow_unchain=allow_unchain)
+        self.to_device(device, allow_unchain=allow_unchain)
 
     def to_device(self, device, allow_unchain=None):
         """Copies the data and gradient arrays to specified device.
