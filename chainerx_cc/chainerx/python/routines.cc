@@ -395,8 +395,9 @@ void InitChainerxLogic(pybind11::module& m) {
     m.def("isfinite", [](const ArrayBodyPtr& x) { return MoveArrayBody(IsFinite(Array{x})); }, "x"_a);
 }
 
+template <class T1, class T2>
 std::vector<ArrayBodyPtr> _split(
-        auto& split_sections, auto& split_indices, const ArrayBodyPtr& ary, py::handle indices_or_sections, int8_t axis) {
+        T1& split_sections, T2& split_indices, const ArrayBodyPtr& ary, py::handle indices_or_sections, int8_t axis) {
     // TODO(niboshi): Perhaps we would want more general approach to handle multi-type arguments like indices_or_sections to
     // provide more helpful error message for users.
 
