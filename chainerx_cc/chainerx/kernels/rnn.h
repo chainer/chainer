@@ -1,7 +1,13 @@
 #pragma once
 
+#include <algorithm>
 #include <cstdint>
+#include <functional>
+#include <utility>
 #include <vector>
+#include <iostream>
+#include <memory>
+#include <tuple>
 
 #include <nonstd/optional.hpp>
 
@@ -10,14 +16,27 @@
 #include "chainerx/kernel.h"
 #include "chainerx/stack_vector.h"
 
+
 namespace chainerx {
+
+class RnnGradState {
+public:
+    RnnGradState() = default;
+
+    virtual ~RnnGradState() = default;
+
+    RnnGradState(const RnnGradState&) = default;
+    RnnGradState(RnnGradState&&) = default;
+    RnnGradState& operator=(const RnnGradState&) = default;
+    RnnGradState& operator=(RnnGradState&&) = default;
+};
 
 
 class RnnKernel : public Kernel {
 public:
     static const char* name() { return "Rnn"; }
 
-    virtual std::vector<std::vector<Array>> Call(
+    virtual std::tuple<std::vector<std::vector<Array>>, std::unique_ptr<RnnGradState>> Call(
             int64_t n_layers,
             Array hx,
             Array cx,
@@ -44,7 +63,8 @@ public:
         std::vector<Array> ys,
         std::vector<Array> dys,
         const int8_t bidirectional,
-        const int8_t mode) = 0;
+        const int8_t mode,
+        const std::shared_ptr<RnnGradState>& state) = 0;
 };
 
 }  // namespace chainerx

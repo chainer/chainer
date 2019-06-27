@@ -23,7 +23,7 @@ n_step_lstm_dtypes_valid = dtype_utils._permutate_dtype_mapping([
         chainer.testing.from_pytest_parameterize(
             'n_layers,hidden_size,input_size,batches', [
                 #(2, 2, 1, (1, 1, 1)),
-                (1, 2, 2, (2, 2, 2, 2)),
+                (2, 2, 3, (3, 2, 1)),
                 #(3, 8, 4, (4, 2, 1)),
                 #(4, 12, 4, (4, 3, 2)),
 

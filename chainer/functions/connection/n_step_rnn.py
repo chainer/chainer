@@ -321,26 +321,6 @@ class BaseNStepRNN(function.Function):
             dhy = cuda.cupy.zeros_like(hx)
         if dys is None:
             dys = cuda.cupy.zeros_like(ys)
-        print('fdshcskjbdslkj')
-        print('---------------')
-        print(hx)
-        print('---------------')
-        print(cx)
-        print('---------------')
-        print(w)
-        print('---------------')
-        print(xs)
-        print('---------------')
-        print(ys)
-        print('---------------')
-        print(dhy)
-        print('---------------')
-        print(dcy)
-        print('---------------')
-        print(dys)
-        print('----------------')
-        print(self.lengths)
-        print('----------------')
         dhx, dcx, dxs = cudnn.rnn_backward_data(
             self.states, self.rnn_dir, self.rnn_mode,
             hx, cx, w, xs, ys, self.reserve_space,

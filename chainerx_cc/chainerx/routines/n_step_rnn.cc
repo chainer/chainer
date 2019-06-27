@@ -203,10 +203,13 @@ std::vector<std::vector<Array>> n_step_lstm(
     hx.device().CheckDevicesCompatible(hx, cx, ws[0][0], bs[0][0], xs[0]); 
     if(hx.device().backend().GetName() == "cuda")
     {
+        
         std::vector<std::vector<Array>> out;
+        std::shared_ptr<RnnGradState> state{};
         {
             NoBackpropModeScope scope{};
-            out = hx.device().backend().CallKernel<RnnKernel>(n_layers, hx, cx, ws, bs, xs, 0, 1);
+            std::tie(out, state) = hx.device().backend().CallKernel<RnnKernel>(n_layers, hx, cx, ws, bs, xs, 0, 1);
+
         }
         {
             std::vector<ConstArrayRef> inp;
@@ -226,20 +229,22 @@ std::vector<std::vector<Array>> n_step_lstm(
                 out_grad.push_back(out[1][i]);
             }
 
-
+           
             BackwardBuilder bb{"lstm_backward", inp, out_grad};
 
             std::vector<size_t> ind;
             for(uint i = 0; i < inp.size(); i++) {
                 ind.push_back(i);
             }
+            std::vector<size_t> out_retain;
+            for(uint i = 2; i < xs.size() + 2; i++) {
+                    out_retain.push_back(i);
+            }
+
             if(BackwardBuilder::Target bt = bb.CreateTarget(ind)) {
                 
-                std::vector<size_t> out_retain;
-                for(uint i = 2; i < xs.size() + 2; i++) {
-                    out_retain.push_back(i);
-                }
-                bt.Define([w_size = ws[0].size(), timesteps = xs.size(), input_toks = bb.RetainInput(ind), out_toks = bb.RetainOutput(out_retain), n_layers](BackwardContext& bctx) {
+                
+                bt.Define([state = std::move(state), w_size = ws[0].size(), timesteps = xs.size(), input_toks = bb.RetainInput(ind), out_toks = bb.RetainOutput(out_retain), n_layers](BackwardContext& bctx) {
                     Array hx = bctx.GetRetainedInput(input_toks[0]);
                     Array cx = bctx.GetRetainedInput(input_toks[1]);
 
@@ -255,7 +260,9 @@ std::vector<std::vector<Array>> n_step_lstm(
                         }
                         ws.push_back(ws_i);
                         bs.push_back(bs_i);
-                    }
+                    }   
+                    
+
                     std::vector<Array> xs;
                     for(uint i = cnt; i < cnt + timesteps; i++) {
                         xs.push_back(bctx.GetRetainedInput(input_toks[i]));
@@ -265,24 +272,23 @@ std::vector<std::vector<Array>> n_step_lstm(
                     for(uint i = 0; i < timesteps; i++) {
                         out.push_back(bctx.GetRetainedOutput(out_toks[i]));
                     }
-
+                    
                     const nonstd::optional<Array> dhy_n = bctx.output_grad(0);
                     Array dhy;
                     if(dhy_n.has_value()) {
                         dhy = *dhy_n;
                     } else {
 
-                        dhy = Empty(hx.shape(), hx.dtype(), hx.device());
+                        dhy = Zeros(hx.shape(), hx.dtype(), hx.device());
                     }
                     const nonstd::optional<Array> dcy_n = bctx.output_grad(1);
                     Array dcy;
                     if(dcy_n.has_value()) {
                         dcy = *dcy_n;
                     } else {
-                       dcy = Empty(cx.shape(), cx.dtype(), cx.device());
+                       dcy = Zeros(cx.shape(), cx.dtype(), cx.device());
                     }
                     std::vector<Array> dout;
-
 
                     for(uint i = 2; i < timesteps + 2; i++) {
 
@@ -291,11 +297,12 @@ std::vector<std::vector<Array>> n_step_lstm(
                         if(temp_n.has_value()) {
                             temp = *temp_n;
                         } else {
-                            temp = Empty({xs[i - 2].shape()[0], hx.shape()[2]}, hx.dtype(), hx.device());
+                            temp = Zeros({xs[i - 2].shape()[0], hx.shape()[2]}, hx.dtype(), hx.device());
                         }
                         dout.push_back(temp);
                     }
-                    std::vector<std::vector<Array>> grad = hx.device().backend().CallKernel<RnnBackwardKernel>((int)n_layers, hx, cx, ws, bs, xs, dhy, dcy, out, dout, 0, 1);
+
+                    std::vector<std::vector<Array>> grad = hx.device().backend().CallKernel<RnnBackwardKernel>((int)n_layers, hx, cx, ws, bs, xs, dhy, dcy, out, dout, 0, 1, state);
                     bctx.input_grad(0) = grad[0][0];
                     bctx.input_grad(1) = grad[0][1];
                     int grad_ind = 2;
