@@ -340,19 +340,6 @@ _scalar_params_shift_scalar_array = (
         'is_module': [True, False],
         'is_scalar_rhs': [False],
     })
-    # Special values
-    + chainer.testing.product({
-        'shape': [(2, 3)],
-        'in_dtypes,scalar_type,out_dtype':
-            _in_out_dtypes_shift_scalar_array,
-        'input': [float('inf'), -float('inf'), float('nan')],
-        'scalar_value': [
-            0, -1, 1, 2],
-        'is_module': [False],
-        'is_scalar_rhs': [False],
-        'skip_backward_test': [True],
-        'skip_double_backward_test': [True],
-    })
 )
 
 _scalar_params_shift_array_scalar = (
@@ -383,19 +370,6 @@ _scalar_params_shift_array_scalar = (
         'is_module': [True, False],
         'is_scalar_rhs': [True],
     })
-    # Special values
-    + chainer.testing.product({
-        'shape': [(2, 3)],
-        'in_dtypes,scalar_type,out_dtype':
-            _in_out_dtypes_shift_array_scalar,
-        'input': [float('inf'), -float('inf'), float('nan')],
-        'scalar_value': [
-            0, -1, 1, 2],
-        'is_module': [False],
-        'is_scalar_rhs': [True],
-        'skip_backward_test': [True],
-        'skip_double_backward_test': [True],
-    })
 )
 
 _inplace_scalar_params_shift = (
@@ -414,15 +388,6 @@ _inplace_scalar_params_shift = (
             _in_out_dtypes_shift_array_scalar,
         'input': [0, 1, 3],
         'scalar_value': [1],
-    })
-    # Special values
-    + chainer.testing.product({
-        'shape': [(2, 3)],
-        'in_dtypes,scalar_type,out_dtype':
-            _in_out_dtypes_shift_array_scalar,
-        'input': [float('inf'), -float('inf'), float('nan')],
-        'scalar_value': [
-            0, -1, 1, 2],
     })
 )
 
