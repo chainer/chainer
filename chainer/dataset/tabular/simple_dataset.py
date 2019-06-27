@@ -43,7 +43,6 @@ class SimpleDataset(tabular_dataset.TabularDataset):
 
     def __init__(self):
         self._len = None
-        self._mode = tuple
         self._columns = []
         self._dataset = None
 
@@ -58,15 +57,12 @@ class SimpleDataset(tabular_dataset.TabularDataset):
         self._dataset = None
 
     def __len__(self):
-        if self._len is None:
-            for _, value in self._columns:
-                if isinstance(value, chainer.get_array_types() + (list,)):
-                    self._len = len(value)
-                    break
-        if self._len is not None:
-            return self._len
-        else:
-            raise NotImplementedError
+        if self._dataset:
+            return len(self._dataset)
+        for _, value in self._columns:
+            if isinstance(value, chainer.get_array_types() + (list,)):
+                return len(value)
+        raise NotImplementedError
 
     def _get_dataset(self):
         if self._dataset is None:
@@ -95,16 +91,21 @@ class SimpleDataset(tabular_dataset.TabularDataset):
 
     @property
     def mode(self):
-        return self._mode
+        return self._get_dataset().mode
 
     @mode.setter
     def mode(self, mode):
-        if mode not in {tuple, dict, None}:
+        if mode is tuple:
+            self._dataset = self._get_dataset().as_tuple()
+        elif mode is dict:
+            self._dataset = self._get_dataset().as_dict()
+        elif mode is None:
+            if len(self.keys) == 1:
+                self._dataset = self._get_dataset().slice[:, self.keys[0]]
+            else:
+                raise ValueError('Unary mode requires just one column')
+        else:
             raise ValueError('Unknown mode: {}'.format(mode))
-        if mode is None and len(self._columns) > 1:
-            raise ValueError(
-                'Unary mode does not work with multiple columns')
-        self._mode = mode
 
     def get_examples(self, indices, key_indices):
         return self._get_dataset().get_examples(indices, key_indices)

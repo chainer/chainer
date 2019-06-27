@@ -10,18 +10,17 @@ from chainer.dataset import tabular
 class DatasetDataOnly(tabular.SimpleDataset):
 
     def __init__(self, mode):
-        super().__init__()
+        super(DatasetDataOnly, self).__init__()
         self.add_column('a', np.arange(10))
         self.add_column('b', [3, 1, 4, 5, 9, 2, 6, 8, 7, 0])
 
-        if mode:
-            self.mode = mode
+        self.mode = mode
 
 
 class DatasetDataOnlyWithWrongLen(tabular.SimpleDataset):
 
     def __init__(self):
-        super().__init__()
+        super(DatasetDataOnlyWithWrongLen, self).__init__()
         self.add_column('a', np.arange(10))
         self.add_column('b', [3, 1, 4, 5, 9, 2, 6, 8, 7, 0])
 
@@ -32,13 +31,12 @@ class DatasetDataOnlyWithWrongLen(tabular.SimpleDataset):
 class DatasetCallableOnly(tabular.SimpleDataset):
 
     def __init__(self, mode):
-        super().__init__()
+        super(DatasetCallableOnly, self).__init__()
         self.add_column('a', self.get_a)
         self.add_column(('b', 'c'), self.get_bc)
         self.add_column(('d', 'e'), self.get_de)
 
-        if mode:
-            self.mode = mode
+        self.mode = mode
 
     def __len__(self):
         return 10
@@ -56,7 +54,7 @@ class DatasetCallableOnly(tabular.SimpleDataset):
 class DatasetCallableOnlyWithoutLen(tabular.SimpleDataset):
 
     def __init__(self):
-        super().__init__()
+        super(DatasetCallableOnlyWithoutLen, self).__init__()
         self.add_column('a', self.get_a)
         self.add_column(('b', 'c'), self.get_bc)
         self.add_column(('d', 'e'), self.get_de)
@@ -74,14 +72,13 @@ class DatasetCallableOnlyWithoutLen(tabular.SimpleDataset):
 class DatasetMixed(tabular.SimpleDataset):
 
     def __init__(self, mode):
-        super().__init__()
+        super(DatasetMixed, self).__init__()
         self.add_column('a', np.arange(10))
         self.add_column('b', self.get_b)
         self.add_column('c', [3, 1, 4, 5, 9, 2, 6, 8, 7, 0])
         self.add_column(('d', 'e'), self.get_de)
 
-        if mode:
-            self.mode = mode
+        self.mode = mode
 
     def get_b(self, i):
         return 'b[{}]'.format(i)
@@ -93,15 +90,59 @@ class DatasetMixed(tabular.SimpleDataset):
 class DatasetOverrideKeys(tabular.SimpleDataset):
 
     def __init__(self, mode):
-        super().__init__()
+        super(DatasetOverrideKeys, self).__init__()
         self.add_column('a', np.arange(10))
         self.add_column('b', self.get_b)
         self.add_column('c', [3, 1, 4, 5, 9, 2, 6, 8, 7, 0])
         self.add_column(('d', 'e'), self.get_de)
 
         self.keys = ('a', 'e')
-        if mode:
-            self.mode = mode
+        self.mode = mode
+
+    def get_b(self, i):
+        return 'b[{}]'.format(i)
+
+    def get_de(self, i):
+        return {'d': 'd[{}]'.format(i), 'e': 'e[{}]'.format(i)}
+
+
+class DatasetUnaryKeys(tabular.SimpleDataset):
+
+    def __init__(self):
+        super(DatasetUnaryKeys, self).__init__()
+        self.add_column('a', np.arange(10))
+        self.add_column('b', self.get_b)
+        self.add_column('c', [3, 1, 4, 5, 9, 2, 6, 8, 7, 0])
+        self.add_column(('d', 'e'), self.get_de)
+
+        self.keys = 'b'
+
+    def get_b(self, i):
+        return 'b[{}]'.format(i)
+
+    def get_de(self, i):
+        return {'d': 'd[{}]'.format(i), 'e': 'e[{}]'.format(i)}
+
+
+class DatasetUnaryMode(tabular.SimpleDataset):
+
+    def __init__(self):
+        super(DatasetUnaryMode, self).__init__()
+        self.add_column('a', np.arange(10))
+
+        self.mode = None
+
+
+class DatasetUnaryModeWithMultipleColumns(tabular.SimpleDataset):
+
+    def __init__(self):
+        super(DatasetUnaryModeWithMultipleColumns, self).__init__()
+        self.add_column('a', np.arange(10))
+        self.add_column('b', self.get_b)
+        self.add_column('c', [3, 1, 4, 5, 9, 2, 6, 8, 7, 0])
+        self.add_column(('d', 'e'), self.get_de)
+
+        self.mode = None
 
     def get_b(self, i):
         return 'b[{}]'.format(i)
@@ -113,7 +154,6 @@ class DatasetOverrideKeys(tabular.SimpleDataset):
 @testing.parameterize(
     {'mode': tuple},
     {'mode': dict},
-    {'mode': None},
 )
 class TestSimpleDataset(unittest.TestCase):
 
@@ -123,7 +163,7 @@ class TestSimpleDataset(unittest.TestCase):
         self.assertIsInstance(dataset, chainer.dataset.TabularDataset)
         self.assertEqual(len(dataset), 10)
         self.assertEqual(dataset.keys, ('a', 'b'))
-        self.assertEqual(dataset.mode, self.mode or tuple)
+        self.assertEqual(dataset.mode, self.mode)
 
         output = dataset.get_examples([1, 3], None)
         np.testing.assert_equal(output, ([1, 3], [1, 5]))
@@ -142,7 +182,7 @@ class TestSimpleDataset(unittest.TestCase):
         self.assertIsInstance(dataset, chainer.dataset.TabularDataset)
         self.assertEqual(len(dataset), 10)
         self.assertEqual(dataset.keys, ('a', 'b', 'c', 'd', 'e'))
-        self.assertEqual(dataset.mode, self.mode or tuple)
+        self.assertEqual(dataset.mode, self.mode)
 
         output = dataset.get_examples([1, 3], None)
         np.testing.assert_equal(output, (
@@ -168,7 +208,7 @@ class TestSimpleDataset(unittest.TestCase):
         self.assertIsInstance(dataset, chainer.dataset.TabularDataset)
         self.assertEqual(len(dataset), 10)
         self.assertEqual(dataset.keys, ('a', 'b', 'c', 'd', 'e'))
-        self.assertEqual(dataset.mode, self.mode or tuple)
+        self.assertEqual(dataset.mode, self.mode)
 
         output = dataset.get_examples([1, 3], None)
         np.testing.assert_equal(output, (
@@ -189,7 +229,7 @@ class TestSimpleDataset(unittest.TestCase):
         self.assertIsInstance(dataset, chainer.dataset.TabularDataset)
         self.assertEqual(len(dataset), 10)
         self.assertEqual(dataset.keys, ('a', 'e'))
-        self.assertEqual(dataset.mode, self.mode or tuple)
+        self.assertEqual(dataset.mode, self.mode)
 
         output = dataset.get_examples([1, 3], None)
         np.testing.assert_equal(output, (
@@ -197,6 +237,37 @@ class TestSimpleDataset(unittest.TestCase):
             ['e[1]', 'e[3]']))
         self.assertIsInstance(output[0], np.ndarray)
         self.assertIsInstance(output[1], list)
+
+
+class TestSimpleDatasetUnary(unittest.TestCase):
+
+    def test_unary_keys(self):
+        dataset = DatasetUnaryKeys()
+
+        self.assertIsInstance(dataset, chainer.dataset.TabularDataset)
+        self.assertEqual(len(dataset), 10)
+        self.assertEqual(dataset.keys, ('b',))
+        self.assertIsNone(dataset.mode)
+
+        output = dataset.get_examples([1, 3], None)
+        np.testing.assert_equal(output, (['b[1]', 'b[3]'],))
+        self.assertIsInstance(output[0], list)
+
+    def test_unary_mode(self):
+        dataset = DatasetUnaryMode()
+
+        self.assertIsInstance(dataset, chainer.dataset.TabularDataset)
+        self.assertEqual(len(dataset), 10)
+        self.assertEqual(dataset.keys, ('a',))
+        self.assertIsNone(dataset.mode)
+
+        output = dataset.get_examples([1, 3], None)
+        np.testing.assert_equal(output, ([1, 3],))
+        self.assertIsInstance(output[0], np.ndarray)
+
+    def test_unary_mode_with_multiple_columns(self):
+        with self.assertRaises(ValueError):
+            DatasetUnaryModeWithMultipleColumns()
 
 
 testing.run_module(__name__, __file__)
