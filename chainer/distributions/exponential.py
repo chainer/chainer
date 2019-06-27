@@ -95,5 +95,8 @@ class Exponential(distribution.Distribution):
 
 @distribution.register_kl(Exponential, Exponential)
 def _kl_exponential_exponential(dist1, dist2):
-    return dist1._log_lam - dist2._log_lam \
-        + dist2.lam / dist1.lam - 1.
+    return (
+        dist1._log_lam
+        - dist2._log_lam
+        + dist2.lam / dist1.lam
+        - 1.)

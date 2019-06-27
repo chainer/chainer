@@ -15,7 +15,6 @@ from chainer import backend
 from chainer.backends import cuda
 from chainer import testing
 from chainer.testing import attr
-import chainer.testing.backend
 
 
 class TestDummyDeviceType(unittest.TestCase):
@@ -475,7 +474,23 @@ class TestToGPUScalar(unittest.TestCase):
         {'use_cuda': True, 'cuda_device': 0},
         {'use_cuda': True, 'cuda_device': 1},
     ])
-class TestGpuDeviceFromArray(unittest.TestCase):
+class TestGpuDevice(unittest.TestCase):
+
+    def check_device(self, device, backend_config):
+        device_id = backend_config.cuda_device
+        assert isinstance(device, backend.GpuDevice)
+        assert isinstance(device.device, cuda.cupy.cuda.Device)
+        assert device.device.id == device_id
+
+        assert device.xp is cuda.cupy
+        assert device.supported_array_types == (cuda.ndarray,)
+        assert device.name == '@cupy:{}'.format(device_id)
+        assert str(device) == '@cupy:{}'.format(device_id)
+
+    def test_init(self, backend_config):
+        cuda_device = cuda.cupy.cuda.Device(backend_config.cuda_device)
+        device = backend.GpuDevice(cuda_device)
+        self.check_device(device, backend_config)
 
     def test_from_array(self, backend_config):
         with cuda.Device(backend_config.cuda_device):
@@ -484,7 +499,7 @@ class TestGpuDeviceFromArray(unittest.TestCase):
         assert arr.device.id == backend_config.cuda_device
 
         device = backend.GpuDevice.from_array(arr)
-        assert isinstance(device, backend.GpuDevice)
+        self.check_device(device, backend_config)
         assert device == backend.GpuDevice.from_device_id(
             backend_config.cuda_device)
 
@@ -497,9 +512,11 @@ class TestGpuDeviceFromArray(unittest.TestCase):
         expected_device = backend_config.device
 
         device = backend.GpuDevice.from_array(arr)
+        self.check_device(device, backend_config)
         assert device == expected_device
 
         device = backend.get_device_from_array(arr)
+        self.check_device(device, backend_config)
         assert device == expected_device
 
 

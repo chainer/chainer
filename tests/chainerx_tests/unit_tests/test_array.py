@@ -718,3 +718,15 @@ def test_array_deepcopy(device):
     chainerx.testing.assert_array_equal(
         arr2,
         chainerx.array([1, 2], chainerx.float32))
+
+
+def test_is_chained():
+    arr = chainerx.array([1, 2], chainerx.float32)
+    with pytest.raises(chainerx.ChainerxError):
+        arr._is_chained()
+
+    arr.require_grad()
+    assert not arr._is_chained()
+
+    arr2 = 2 * arr
+    assert arr2._is_chained()

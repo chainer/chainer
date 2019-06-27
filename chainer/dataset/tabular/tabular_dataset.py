@@ -23,6 +23,8 @@ class TabularDataset(dataset_mixin.DatasetMixin):
     Since an example can be represented by both tuple and dict (
     :obj:`(a[i], b[i], c[i])` and :obj:`{'a': a[i], 'b': b[i], 'c': c[i]}`),
     this class uses :attr:`mode` to indicate which representation will be used.
+    If there is only one column, an example also can be represented by a value
+    (:obj:`a[i]`). In this case, :attr:`mode` is :obj:`None`.
 
     An inheritance should implement
     :meth:`__len__`, :attr:`keys`, :attr:`mode` and :meth:`get_examples`.
@@ -91,7 +93,7 @@ class TabularDataset(dataset_mixin.DatasetMixin):
 
         This indicates the type of value returned
         by :meth:`fetch` and :meth:`__getitem__`.
-        :class:`tuple` and :class:`dict` are supported.
+        :class:`tuple`, :class:`dict`, and :obj:`None` are supported.
         """
         raise NotImplementedError
 
@@ -115,7 +117,7 @@ class TabularDataset(dataset_mixin.DatasetMixin):
 
         Args:
            indices (list/array of ints/bools or slice): Requested rows.
-           keys (tuple of ints/strs): Requested columns.
+           keys (tuple of ints/strs or int or str): Requested columns.
 
         Returns:
             A view of specified range.
@@ -127,8 +129,9 @@ class TabularDataset(dataset_mixin.DatasetMixin):
 
         This method fetches all data of the dataset/view.
         Note that this method returns a column-major data
-        (i.e. :obj:`([a[0], ..., a[3]], ..., [c[0], ... c[3]])` or
-        :obj:`{'a': [a[0], ..., a[3]], ..., 'c': [c[0], ..., c[3]]}`).
+        (i.e. :obj:`([a[0], ..., a[3]], ..., [c[0], ... c[3]])`,
+        :obj:`{'a': [a[0], ..., a[3]], ..., 'c': [c[0], ..., c[3]]}`, or
+        :obj:`[a[0], ..., a[3]]`).
 
         Returns:
             If :attr:`mode` is :class:`tuple`,
@@ -141,6 +144,8 @@ class TabularDataset(dataset_mixin.DatasetMixin):
             return examples
         elif self.mode is dict:
             return dict(six.moves.zip(self.keys, examples))
+        elif self.mode is None:
+            return examples[0]
 
     def as_tuple(self):
         """Return a view with tuple mode.
@@ -223,3 +228,5 @@ class TabularDataset(dataset_mixin.DatasetMixin):
             return example
         elif self.mode is dict:
             return dict(six.moves.zip(self.keys, example))
+        elif self.mode is None:
+            return example[0]
