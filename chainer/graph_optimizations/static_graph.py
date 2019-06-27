@@ -174,7 +174,7 @@ class ArrayInfo(object):
         self.shape = array.shape
         self.dtype = array.dtype
         # either numpy or cupy
-        self.ndarray_module = cuda.get_array_module(array)
+        self.ndarray_module = chainer.backend.get_array_module(array)
         if self.ndarray_module is cuda.cupy:
             # device id, if available.
             self.device = cuda.get_device_from_array(array)

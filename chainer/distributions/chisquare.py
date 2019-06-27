@@ -67,7 +67,7 @@ class Chisquare(distribution.Distribution):
         return {'k': self.k}
 
     def sample_n(self, n):
-        xp = cuda.get_array_module(self.k)
+        xp = chainer.backend.get_array_module(self.k)
         if xp is cuda.cupy:
             eps = xp.random.chisquare(
                 self.k.data, (n,)+self.k.shape, dtype=self.k.dtype)
