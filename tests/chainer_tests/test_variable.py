@@ -932,7 +932,7 @@ class TestVariableAddgrad(unittest.TestCase):
             dst.cleargrad()
             dst_val = 0
 
-        # Determine expected errror
+        # Determine expected error
 
         if (src_device.xp is chainerx) != (dst_device.xp is chainerx):
             expected_error = RuntimeError  # Incompatible devices
