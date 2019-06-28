@@ -1,3 +1,5 @@
+import io
+import multiprocessing.util as mputil
 import threading
 
 import six
@@ -94,6 +96,11 @@ class PickleDataset(dataset_mixin.DatasetMixin):
             self._positions.append(position)
 
         self._lock = threading.RLock()
+        mputil.register_after_fork(self, PickleDataset._after_fork)
+
+    def _after_fork(self):
+        if callable(getattr(self._reader, 'after_fork', None)):
+            self._reader.after_fork()
 
     def close(self):
         """Closes a file reader.
@@ -119,6 +126,45 @@ class PickleDataset(dataset_mixin.DatasetMixin):
             return pickle.load(self._reader)
 
 
+class _FileReader(io.RawIOBase):
+    def __init__(self, path):
+        super(_FileReader, self).__init__()
+        self._path = path
+        self._fp = None
+        self._open()
+
+    def _open(self):
+        self._fp = open(self._path, 'rb')
+
+    def after_fork(self):
+        """ re-open file avoid race condition """
+        self.close()
+        self._open()
+
+    # file-like interface
+
+    def flush(self):
+        self._fp.flush()
+
+    def close(self):
+        self._fp.close()
+
+    def fileno(self):
+        return self._fp.fileno()
+
+    def seekable(self):
+        return self._fp.seekable()
+
+    def seek(self, offset, whence=io.SEEK_SET):
+        return self._fp.seek(offset, whence)
+
+    def tell(self):
+        return self._fp.tell()
+
+    def readinto(self, b):
+        return self._fp.readinto(b)
+
+
 def open_pickle_dataset(path):
     """Opens a dataset stored in a given path.
 
@@ -142,7 +188,7 @@ def open_pickle_dataset(path):
     .. seealso: chainer.datasets.PickleDataset
 
     """
-    reader = open(path, 'rb')
+    reader = _FileReader(path)
     return PickleDataset(reader)
 
 
