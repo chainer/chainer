@@ -315,14 +315,14 @@ class CommunicatorBase(six.with_metaclass(ABCMeta)):
         '''mean Chainer model gradients.
 
         Args:
-           link (~chainer.Link): Link object.
-           zero_fill: A knob to control whether to fill gradients of
-             initialized and unused Link (which is None internally) with
-             zero-valued array, because the all gradients must be an array
-             among processes for performing all-reduce, which might be an array
-             or None after backward computation. Gradients of uninitialized
-             Link are skipped. If it is False, gradients of unused Link are
-             just skipped.
+            link (~chainer.Link): Link object.
+            zero_fill: A knob to control whether to fill gradients of
+              initialized and unused Link (which is None internally) with
+              zero-valued array, because the all gradients must be an array
+              among processes for performing all-reduce, which might be an array
+              or None after backward computation. Gradients of uninitialized
+              Link are skipped. If it is False, gradients of unused Link are
+              just skipped.
 
         '''
         raise NotImplementedError()
@@ -331,18 +331,18 @@ class CommunicatorBase(six.with_metaclass(ABCMeta)):
         '''mean Chainer model gradients.
 
         .. deprecated:: v7.0.0
-        This API is deprecated. Please use
-        :func:`~chainermn.CommunicatorBase.multi_node_mean_grad` instead.
+            This API is deprecated. Please use
+            :func:`~chainermn.CommunicatorBase.multi_node_mean_grad` instead.
 
         Args:
-           link (~chainer.Link): Link object.
-           zero_fill: A knob to control whether to fill gradients of
-             initialized and unused Link (which is None internally) with
-             zero-valued array, because the all gradients must be an array
-             among processes for performing all-reduce, which might be an array
-             or None after backward computation. Gradients of uninitialized
-             Link are skipped. If it is False, gradients of unused Link are
-             just skipped.
+            link (~chainer.Link): Link object.
+            zero_fill: A knob to control whether to fill gradients of
+              initialized and unused Link (which is None internally) with
+              zero-valued array, because the all gradients must be an array
+              among processes for performing all-reduce, which might be an array
+              or None after backward computation. Gradients of uninitialized
+              Link are skipped. If it is False, gradients of unused Link are
+              just skipped.
 
         '''
         warnings.warn('allreduce_grad() is deprecated.',
