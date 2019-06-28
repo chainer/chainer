@@ -15,7 +15,7 @@ class Concat(function_node.FunctionNode):
 
     # concat along the channel dimension by default
     def __init__(self, axis=1):
-        if not isinstance(axis, int):
+        if not isinstance(axis, six.integer_types):
             raise TypeError('axis must be int')
 
         self.axis = axis
