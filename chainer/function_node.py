@@ -1196,7 +1196,7 @@ def _extract_apply_in_data(inputs):
     #
     # If at least one of the arrays is a ChainerX array, all other NumPy/CuPy
     # arrays are converted to ChainerX arrays without copy.
-    if not inputs:
+    if len(inputs) == 0:
         return False, ()
 
     if chainerx.is_available():
