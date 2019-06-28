@@ -277,7 +277,10 @@ def linear(x, W, b=None, n_batch_axes=1):
         ~chainer.Variable: Output variable. A float array with shape
         of :math:`(s_1, ..., s_{\\rm n\\_batch\\_axes}, M)`.
 
-    .. seealso:: :class:`~chainer.links.Linear`
+    .. seealso::
+
+        :class:`~chainer.links.Linear` to manage the model parameters
+        ``W`` and ``b``.
 
     .. admonition:: Example
 

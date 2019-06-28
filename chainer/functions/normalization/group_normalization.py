@@ -382,5 +382,11 @@ def group_normalization(x, groups, gamma, beta, eps=1e-5):
         as :math:`x`.
 
     See: `Group Normalization <https://arxiv.org/abs/1803.08494>`_
+
+    .. seealso::
+
+        :class:`~chainer.links.GroupNormalization` to manage the model
+        parameters ``gamma`` and ``beta``.
+
     """
     return GroupNormalization(groups, eps).apply((x, gamma, beta))[0]
