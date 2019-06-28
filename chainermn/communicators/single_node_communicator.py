@@ -88,7 +88,7 @@ class SingleNodeCommunicator(mpi_communicator_base.MpiCommunicatorBase):
             array_b = self.gpu_buffer_b.array(n_elems_total)
             self._check_ready_to_allreduce(array_a, array_b)
 
-        # Same as PureNcclCommunicator's multi_node_mean but leave as it is
+        # Same as PureNcclCommunicator's _multi_node_mean but leave as it is
         self.intra_nccl_comm.allReduce(
             self.gpu_buffer_a.ptr(), self.gpu_buffer_b.ptr(), n_elems_total,
             _communication_utility._get_nccl_type_id(dtype),

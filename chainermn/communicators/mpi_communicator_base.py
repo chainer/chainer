@@ -631,7 +631,34 @@ class MpiCommunicatorBase(communicator_base.CommunicatorBase):
                 if is_float16:
                     param.data = data.astype(numpy.float16)
 
-    def multi_node_mean(self, sendbuf, recvbuf):
+    # Private methods
+    def _init_ranks(self):
+        my_ranks = _communication_utility.init_ranks(self.mpi_comm)
+        assert my_ranks[0] == self.mpi_comm.rank
+        self._intra_rank = my_ranks[1]
+        self._intra_size = my_ranks[2]
+        self._inter_rank = my_ranks[3]
+        self._inter_size = my_ranks[4]
+
+    def _check_ready_to_allreduce(self, array_a, array_b):
+        my_shapes = ((None if array_a is None else array_a.shape,
+                      None if array_a is None else array_a.dtype),
+                     array_b.shape,
+                     array_b.dtype)
+        all_shapes = self.gather_obj((self.rank, my_shapes))
+        if self.rank == 0:
+            for rank, shapes in all_shapes:
+                if my_shapes != shapes:
+                    raise ValueError('Shape does not match: {}'
+                                     ' at rank 0 while {} at rank {}'
+                                     .format(my_shapes, shapes, rank))
+
+    def _ensure_all_finite(self, array):
+        xp = chainer.backend.get_array_module(array)
+        if not xp.isfinite(array).all():
+            raise ValueError('Parameters diverged after allreduce.')
+
+    def _multi_node_mean(self, sendbuf, recvbuf):
         """Compute mean of each element on each processes.
 
         The function compute mean of each element in ``sendbuf`` on each
@@ -676,30 +703,3 @@ class MpiCommunicatorBase(communicator_base.CommunicatorBase):
 
         if chainer.is_debug():
             self._ensure_all_finite(recvbuf)
-
-    # Private methods
-    def _init_ranks(self):
-        my_ranks = _communication_utility.init_ranks(self.mpi_comm)
-        assert my_ranks[0] == self.mpi_comm.rank
-        self._intra_rank = my_ranks[1]
-        self._intra_size = my_ranks[2]
-        self._inter_rank = my_ranks[3]
-        self._inter_size = my_ranks[4]
-
-    def _check_ready_to_allreduce(self, array_a, array_b):
-        my_shapes = ((None if array_a is None else array_a.shape,
-                      None if array_a is None else array_a.dtype),
-                     array_b.shape,
-                     array_b.dtype)
-        all_shapes = self.gather_obj((self.rank, my_shapes))
-        if self.rank == 0:
-            for rank, shapes in all_shapes:
-                if my_shapes != shapes:
-                    raise ValueError('Shape does not match: {}'
-                                     ' at rank 0 while {} at rank {}'
-                                     .format(my_shapes, shapes, rank))
-
-    def _ensure_all_finite(self, array):
-        xp = chainer.backend.get_array_module(array)
-        if not xp.isfinite(array).all():
-            raise ValueError('Parameters diverged after allreduce.')

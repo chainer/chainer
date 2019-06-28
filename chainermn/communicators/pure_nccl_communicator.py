@@ -101,9 +101,9 @@ class PureNcclCommunicator(mpi_communicator_base.MpiCommunicatorBase):
 
         # Allreduce from buffer A -> buffer B
         # div by comm_size from buffer B -> buffer A
-        self.multi_node_mean_nccl(self.gpu_buffer_a, self.gpu_buffer_b,
-                                  n_elems,
-                                  allreduce_grad_dtype, stream)
+        self._multi_node_mean_nccl(self.gpu_buffer_a, self.gpu_buffer_b,
+                                   n_elems,
+                                   allreduce_grad_dtype, stream)
 
         # unpack params from buffer A -> params
         self._unpack_params_from_buffer(params, allreduce_grad_dtype,
@@ -154,8 +154,8 @@ class PureNcclCommunicator(mpi_communicator_base.MpiCommunicatorBase):
                 params, 'grad', self.gpu_buffer_b,
                 allreduce_grad_dtype, zero_fill, stream)
 
-    def multi_node_mean_nccl(self, sendbuf, recvbuf,
-                             n_elems, dtype, stream=None):
+    def _multi_node_mean_nccl(self, sendbuf, recvbuf,
+                              n_elems, dtype, stream=None):
         """Compute mean of each element on each processes with NCCL.
 
         The function compute mean of each element in ``sendbuf`` on each

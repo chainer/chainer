@@ -330,8 +330,9 @@ class CommunicatorBase(six.with_metaclass(ABCMeta)):
     def allreduce_grad(self, model, zero_fill=False):
         '''mean Chainer model gradients.
 
-        This function is deprecated. Please use ``multi_node_mean_grad()``
-        instead of ``allreduce_grad()``.
+        .. deprecated:: v7.0.0
+        This API is deprecated. Please use
+        :func:`~chainermn.CommunicatorBase.multi_node_mean_grad` instead.
 
         Args:
            link (~chainer.Link): Link object.

@@ -26,8 +26,8 @@ class FlatCommunicator(mpi_communicator_base.MpiCommunicatorBase):
         _memory_utility.pack_params(
             params, 'grad', self.gpu_buffer_a, allreduce_grad_dtype, zero_fill)
 
-        self.multi_node_mean(self.gpu_buffer_a.array(n_elems_total),
-                             self.gpu_buffer_b.array(n_elems_total))
+        self._multi_node_mean(self.gpu_buffer_a.array(n_elems_total),
+                              self.gpu_buffer_b.array(n_elems_total))
 
         _memory_utility.unpack_params(
             params, 'grad', self.gpu_buffer_b, allreduce_grad_dtype, zero_fill)
