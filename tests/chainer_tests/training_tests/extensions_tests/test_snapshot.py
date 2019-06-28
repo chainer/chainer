@@ -169,7 +169,7 @@ def test_find_snapshot_files2(fmt):
 
 def test_find_latest_snapshot():
     fmt = 'snapshot_iter_{}'
-    files =[fmt.format(i) for i in range(1, 100)]
+    files = [fmt.format(i) for i in range(1, 100)]
     path = 'dummy'
 
     try:
@@ -213,7 +213,6 @@ def test_find_stale_snapshot(length, retain):
 
     finally:
         shutil.rmtree(path)
-
 
 
 def test_remove_stale_snapshots():
