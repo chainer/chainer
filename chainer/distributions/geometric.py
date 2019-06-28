@@ -52,7 +52,7 @@ class Geometric(distribution.Distribution):
         return {'p': self.p}
 
     def sample_n(self, n):
-        xp = cuda.get_array_module(self.p)
+        xp = chainer.backend.get_array_module(self.p)
         if xp is cuda.cupy:
             eps = xp.random.geometric(
                 self.p.data,
