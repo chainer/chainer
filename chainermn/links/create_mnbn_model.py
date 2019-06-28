@@ -63,5 +63,4 @@ def create_mnbn_model(link, comm, communication_backend='auto'):
             new_link._children[i] = new_child
         return new_link
     else:
-        assert isinstance(link, chainer.Link)
         return copy.deepcopy(link)

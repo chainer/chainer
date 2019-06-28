@@ -300,7 +300,7 @@ the optimizers.
     Note that the type of arrays on CPU  is ``numpy.ndarray``, while the type
     of arrays on GPU is ``cupy.ndarray``. However, users do not need to write
     ``if`` condition explicitly, because the appropriate array module can be
-    obtained by ``xp = chainer.backends.cuda.get_array_module(variable.array)``.
+    obtained by ``xp = chainer.backend.get_array_module(variable.array)``.
     If ``variable`` is on GPU, ``cupy`` is assigned to ``xp``, otherwise
     ``numpy`` is assigned to ``xp``.
 

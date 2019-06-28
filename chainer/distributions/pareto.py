@@ -88,7 +88,7 @@ class Pareto(distribution.Distribution):
         return {'scale': self.scale, 'alpha': self.alpha}
 
     def sample_n(self, n):
-        xp = cuda.get_array_module(self.scale)
+        xp = chainer.backend.get_array_module(self.scale)
         if xp is cuda.cupy:
             eps = xp.random.pareto(
                 self.alpha.data, (n,)+self.batch_shape, dtype=self.alpha.dtype)
