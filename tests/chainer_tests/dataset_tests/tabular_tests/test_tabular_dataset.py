@@ -56,5 +56,22 @@ class TestTabularDataset(unittest.TestCase):
 
         self.assertEqual(dataset.get_example(3), expected)
 
+    def test_iter(self):
+        dataset = dummy_dataset.DummyDataset(
+            mode=self.mode, return_array=self.return_array)
+        it = iter(dataset)
+        for i in range(10):
+            if self.mode is tuple:
+                expected = tuple(dataset.data[:, i])
+            elif self.mode is dict:
+                expected = dict(zip(('a', 'b', 'c'), dataset.data[:, i]))
+            elif self.mode is None:
+                expected = dataset.data[0, i]
+
+            self.assertEqual(next(it), expected)
+
+        with self.assertRaises(StopIteration):
+            next(it)
+
 
 testing.run_module(__name__, __file__)
