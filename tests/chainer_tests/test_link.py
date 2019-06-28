@@ -345,7 +345,9 @@ class TestLink(LinkTestBase, unittest.TestCase):
         self.assertIs(self.link.y.data, y)
         self.assertIs(self.link.y.grad, gy)
         self.assertIsNone(self.link.u.data)
-        self.assertIsNone(self.link.u.grad)
+        u = self.link.u
+        with pytest.raises(RuntimeError):
+            u.grad
         self.assertIs(self.link.p, p)
 
     @attr.gpu
@@ -359,7 +361,9 @@ class TestLink(LinkTestBase, unittest.TestCase):
         self.assertIsInstance(self.link.y.data, numpy.ndarray)
         self.assertIsInstance(self.link.y.grad, numpy.ndarray)
         self.assertIsNone(self.link.u.data)
-        self.assertIsNone(self.link.u.grad)
+        u = self.link.u
+        with pytest.raises(RuntimeError):
+            u.grad
         self.assertIsInstance(self.link.v.data, numpy.ndarray)
         self.assertIsInstance(self.link.v.grad, numpy.ndarray)
         self.assertIsInstance(self.link.p, numpy.ndarray)
@@ -375,7 +379,9 @@ class TestLink(LinkTestBase, unittest.TestCase):
         self.assertIsInstance(self.link.y.data, cupy.ndarray)
         self.assertIsInstance(self.link.y.grad, cupy.ndarray)
         self.assertIsNone(self.link.u.data)
-        self.assertIsNone(self.link.u.grad)
+        u = self.link.u
+        with pytest.raises(RuntimeError):
+            u.grad
         self.assertIsInstance(self.link.v.data, cupy.ndarray)
         self.assertIsInstance(self.link.v.grad, cupy.ndarray)
         self.assertIsInstance(self.link.p, cupy.ndarray)
@@ -530,11 +536,14 @@ class TestLink(LinkTestBase, unittest.TestCase):
             l.x = chainer.Parameter(shape=(2, 3),
                                     initializer=initializers.NaN('d'))
             l.y = chainer.Parameter(shape=2)
-            l.u = chainer.Parameter(shape=(2, 3))
+            l.u = chainer.Parameter(shape=(2, 3),
+                                    initializer=initializers.NaN('d'))
             l.v = chainer.Parameter()
         l.x.grad.fill(1)
         l.y.grad.fill(2)
         l.u.grad.fill(3)
+        # TODO(niboshi): Remove this line after #7140
+        l.v.cleargrad()
 
         self.link.x.grad.fill(-1)
         self.link.y.grad.fill(-2)
@@ -548,7 +557,10 @@ class TestLink(LinkTestBase, unittest.TestCase):
         numpy.testing.assert_array_equal(self.link.x.grad, gx_expect)
         numpy.testing.assert_array_equal(self.link.y.grad, gy_expect)
         numpy.testing.assert_array_equal(self.link.u.grad, gu_expect)
-        self.assertIsNone(self.link.v.grad, None)
+
+        v = self.link.v
+        with pytest.raises(RuntimeError):
+            v.grad
 
     def test_serialize(self):
         serializer = mock.MagicMock(return_value=3)
@@ -807,7 +819,7 @@ class CountParameter(chainer.Parameter):
     def __init__(self, v):
         super(CountParameter, self).__init__(v.data, name=v.name)
         self.data = v.data
-        self.grad = v.grad
+        self.grad = v.grad if v.data is not None else None
         self.count_zerograd = 0
 
     def zerograd(self):
@@ -971,7 +983,9 @@ Chain(
         self.assertIsNot(c2.l3, self.l3)
         self.assertIsNot(c2.l3.x, self.l3.x)
         self.assertIs(c2.l3.x.data, self.l3.x.data)
-        self.assertIs(c2.l3.x.grad, None)
+        x = c2.l3.x
+        with pytest.raises(RuntimeError):
+            x.grad
 
     def test_copy_with_init_mode(self):
         self.l1.x.initializer = initializers.Normal(
@@ -1013,8 +1027,9 @@ Chain(
         self.assertIsNot(c2.l3.x, self.l3.x)
         self.assertIs(c2.l3.x.data, self.l3.x.data)
         # A Parameter constructed with shape argument but not initialized
-        # has None in grad
-        self.assertIs(c2.l3.x.grad, None)
+        # has invalid grad
+        with pytest.raises(RuntimeError):
+            c2.l3.x.grad
 
     def test_to_cpu_on_cpu(self):
         x1 = self.l1.x.data
@@ -1022,7 +1037,6 @@ Chain(
         x2 = self.l2.x.data
         gx2 = self.l2.x.grad
         x3 = self.l3.x.data
-        gx3 = self.l3.x.grad
 
         self.c2.to_cpu()
         self.assertIs(self.l1.x.data, x1)
@@ -1030,7 +1044,8 @@ Chain(
         self.assertIs(self.l2.x.data, x2)
         self.assertIs(self.l2.x.grad, gx2)
         self.assertIs(self.l3.x.data, x3)
-        self.assertIs(self.l3.x.grad, gx3)
+        with pytest.raises(RuntimeError):
+            self.l3.x.grad
 
     @attr.gpu
     def test_to_cpu(self):
@@ -2464,6 +2479,46 @@ class TestLinkOverrideToDeviceMethods(unittest.TestCase):
         l = cls()
         l.to_intel64()
         assert l.child.to_method_called == 1
+
+
+@testing.backend.inject_backend_tests(
+    None,
+    [
+        # CPU
+        {},
+        # CUDA
+        {'use_cuda': True, 'cuda_device': 0},
+        {'use_cuda': True, 'cuda_device': 1},
+        # ChainerX
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
+    ])
+class TestSerialize(unittest.TestCase):
+    def setUp(self):
+        self.array = numpy.array([1, 2, 3], dtype=numpy.float32)
+        self.serializer = mock.MagicMock(return_value=self.array)
+
+        link = chainer.Link()
+        with link.init_scope():
+            link.x = chainer.Parameter()
+            link.y = chainer.Parameter()
+        link.add_persistent('z', None)
+        self.link = link
+
+    def test_serialize_numpy(self, backend_config):
+        array = self.array
+        link = self.link
+        serializer = self.serializer
+
+        link.to_device(backend_config.device)
+        link.serialize(serializer)
+
+        self.assertEqual(serializer.call_count, 3)
+        cpu_device = chainer.backend.CpuDevice()
+        numpy.testing.assert_array_equal(cpu_device.send(link.x.array), array)
+        numpy.testing.assert_array_equal(cpu_device.send(link.y.array), array)
+        numpy.testing.assert_array_equal(cpu_device.send(link.z), array)
 
 
 testing.run_module(__name__, __file__)

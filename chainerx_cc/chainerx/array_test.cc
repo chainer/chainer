@@ -1054,37 +1054,6 @@ TEST_P(ArrayTest, AsTypeDoubleBackward) {
             {a_eps, go_eps});
 }
 
-TEST_P(ArrayTest, ToNative) {
-    using T = float;
-    Array a = (*testing::BuildArray({2, 3}).WithLinearData<T>().WithPadding(1)).RequireGrad();
-
-    Array b = a.ToNative();
-    EXPECT_EQ("native:0", b.device().name());
-    EXPECT_EQ(&a.device().backend().context(), &b.device().backend().context());
-    EXPECT_NE(internal::GetArrayBody(a), internal::GetArrayBody(b));
-
-    EXPECT_EQ(a.dtype(), b.dtype());
-    EXPECT_EQ(a.shape(), b.shape());
-    EXPECT_ARRAY_EQ(a.ToNative(), b.ToNative());
-
-    if (a.device().name() == "native:0") {
-        // Between the same device
-        EXPECT_EQ(&a.device(), &b.device());
-        EXPECT_EQ(a.data().get(), b.data().get());
-        EXPECT_EQ(a.strides(), b.strides());
-    } else {
-        // Between different devices
-        EXPECT_NE(&a.data(), &b.data());
-        EXPECT_TRUE(b.IsContiguous());
-    }
-
-    // Graph
-    ASSERT_TRUE(!a.GetGrad().has_value());
-    Backward(b);
-    ASSERT_TRUE(a.GetGrad().has_value());
-    EXPECT_EQ(&a.device(), &a.GetGrad()->device());
-}
-
 TEST_P(ArrayTest, MultipleGraphsRequireGradDefault) {
     Array a = testing::BuildArray({1}).WithData<float>({2.0f});
 
@@ -1214,6 +1183,67 @@ INSTANTIATE_TEST_CASE_P(
                 std::string{"cuda"},
 #endif  // CHAINERX_ENABLE_CUDA
                 std::string{"native"}));
+
+class ArrayToNativeTest : public ::testing::TestWithParam<::testing::tuple<std::string, int>> {
+protected:
+    void SetUp() override {
+        backend_name_ = std::get<0>(GetParam());
+        device_index_ = std::get<1>(GetParam());
+        device_session_.emplace(DeviceId{backend_name_, device_index_});
+    }
+
+    void TearDown() override { device_session_.reset(); }
+
+protected:
+    std::string backend_name_{};
+    int device_index_{};
+
+private:
+    nonstd::optional<testing::DeviceSession> device_session_;
+};
+
+TEST_P(ArrayToNativeTest, ToNative) {
+    using T = float;
+    Array a = (*testing::BuildArray({2, 3}).WithLinearData<T>().WithPadding(1)).RequireGrad();
+
+    Array b = a.ToNative();
+    EXPECT_EQ("native", b.device().backend().GetName());
+    EXPECT_EQ(&a.device().backend().context(), &b.device().backend().context());
+    EXPECT_NE(internal::GetArrayBody(a), internal::GetArrayBody(b));
+
+    EXPECT_EQ(a.dtype(), b.dtype());
+    EXPECT_EQ(a.shape(), b.shape());
+    EXPECT_ARRAY_EQ(a.ToNative(), b.ToNative());
+
+    if (backend_name_ == "native") {
+        // Native-to-native
+        EXPECT_EQ(device_index_, b.device().index());
+        EXPECT_EQ(&a.device(), &b.device());
+        EXPECT_EQ(a.data().get(), b.data().get());
+        EXPECT_EQ(a.strides(), b.strides());
+    } else {
+        // Otherwise
+        EXPECT_EQ(0, b.device().index());
+        EXPECT_NE(&a.data(), &b.data());
+        EXPECT_TRUE(b.IsContiguous());
+    }
+
+    // Graph
+    ASSERT_TRUE(!a.GetGrad().has_value());
+    Backward(b);
+    ASSERT_TRUE(a.GetGrad().has_value());
+    EXPECT_EQ(&a.device(), &a.GetGrad()->device());
+}
+
+INSTANTIATE_TEST_CASE_P(
+        ForEachDevice,
+        ArrayToNativeTest,
+        ::testing::Values(
+#ifdef CHAINERX_ENABLE_CUDA
+                std::make_tuple<std::string, int>("cuda", 0),
+#endif  // CHAINERX_ENABLE_CUDA
+                std::make_tuple<std::string, int>("native", 0),
+                std::make_tuple<std::string, int>("native", 1)));
 
 TEST(ArrayGradTest, SetGradFlagsIsGradRequired) {
     testing::ContextSession context_session{};
@@ -1402,6 +1432,26 @@ TEST(ArrayArgMaxTest, ArgMaxAllAxes) {
     EXPECT_ARRAY_EQ(e, b);
 }
 
+TEST(ArrayArgMinTest, ArgMin) {
+    using T = float;
+    testing::ContextSession context_session{};
+
+    Array a = testing::BuildArray({2, 3}).WithData<T>({1, 4, 3, 0, 1, 4});
+    Array b = a.ArgMin(0);
+    Array e = testing::BuildArray({3}).WithData<int64_t>({1, 1, 0});
+    EXPECT_ARRAY_EQ(e, b);
+}
+
+TEST(ArrayArgMinTest, ArgMinAllAxes) {
+    using T = float;
+    testing::ContextSession context_session{};
+
+    Array a = testing::BuildArray({2, 3}).WithData<T>({1, 4, 3, 0, 1, 4});
+    Array b = a.ArgMin();
+    Array e = testing::BuildArray({}).WithData<int64_t>({3});
+    EXPECT_ARRAY_EQ(e, b);
+}
+
 TEST(ArraySumTest, Sum) {
     using T = float;
     testing::ContextSession context_session{};
@@ -1463,6 +1513,35 @@ TEST(ArrayMaxTest, MaxKeepDims) {
     EXPECT_EQ(0, b.strides()[1]);
     EXPECT_EQ(0, b.strides()[3]);
     Array e = testing::BuildArray({2, 1, 2, 1}).WithData<float>({19.f, 23.f, 43.f, 47.f});
+    EXPECT_ARRAY_EQ(e, b);
+}
+
+TEST(ArrayMinTest, Min) {
+    testing::ContextSession context_session;
+    Array a = testing::BuildArray({2, 3, 4, 3}).WithLinearData<float>().WithPadding(1);
+    Array b = a.Min(Axes{2, 0, -1});
+    EXPECT_EQ(Shape{3}, b.shape());
+    Array e = testing::BuildArray({3}).WithData<float>({0.f, 12.f, 24.f});
+    EXPECT_ARRAY_EQ(e, b);
+}
+
+TEST(ArrayMinTest, MinAllAxes) {
+    testing::ContextSession context_session;
+    Array a = testing::BuildArray({2, 3, 3}).WithLinearData<float>().WithPadding(1);
+    Array b = a.Min();
+    EXPECT_EQ(Shape{}, b.shape());
+    Array e = testing::BuildArray({}).WithData<float>({0.f});
+    EXPECT_ARRAY_EQ(e, b);
+}
+
+TEST(ArrayMinTest, MinKeepDims) {
+    testing::ContextSession context_session;
+    Array a = testing::BuildArray({2, 3, 2, 4}).WithLinearData<float>().WithPadding(1);
+    Array b = a.Min(Axes{-1, 1}, true);
+    EXPECT_EQ(Shape({2, 1, 2, 1}), b.shape());
+    EXPECT_EQ(0, b.strides()[1]);
+    EXPECT_EQ(0, b.strides()[3]);
+    Array e = testing::BuildArray({2, 1, 2, 1}).WithData<float>({0.f, 4.f, 24.f, 28.f});
     EXPECT_ARRAY_EQ(e, b);
 }
 

@@ -17,12 +17,13 @@
 #include "chainerx/cuda/cuda_set_device_scope.h"
 #include "chainerx/cuda/cudnn.h"
 #include "chainerx/cuda/data_type.cuh"
-#include "chainerx/cuda/op_regist.h"
+#include "chainerx/cuda/kernel_regist.h"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
 #include "chainerx/error.h"
 #include "chainerx/indexable_array.h"
 #include "chainerx/indexer.h"
+#include "chainerx/kernels/pooling.h"
 #include "chainerx/macro.h"
 #include "chainerx/numeric_limits.h"
 #include "chainerx/routines/connection.h"
@@ -36,10 +37,8 @@ namespace cuda {
 namespace {
 
 // Struct that allows passing StackVectors to CUDA kernels.
-struct CudaStackVector {
-    explicit CudaStackVector(const StackVector<int64_t, kMaxNdim>& stack_vector) {
-        std::copy_n(stack_vector.begin(), stack_vector.size(), data);
-    }
+struct CudaDims {
+    explicit CudaDims(const Dims& stack_vector) { std::copy_n(stack_vector.begin(), stack_vector.size(), data); }
     int64_t data[kMaxNdim];
 };
 
@@ -55,8 +54,8 @@ __global__ void MaxPoolDoubleBackwardKernel(
         Indexer<> x_indexer,
         Indexer<> out_indexer,
         Indexer<> kernel_indexer,
-        CudaStackVector stride,
-        CudaStackVector pad) {
+        CudaDims stride,
+        CudaDims pad) {
     auto it_kernel = kernel_indexer.It(kernel_indexer.total_size() - 1);
     auto it_x = x_indexer.It(0);
 
@@ -84,9 +83,9 @@ __global__ void MaxPoolDoubleBackwardKernel(
 Array Pool(
         cudnnPoolingMode_t cudnn_pooling_mode,
         const Array& x,
-        StackVector<int64_t, kMaxNdim> kernel_size,
-        StackVector<int64_t, kMaxNdim> stride,
-        StackVector<int64_t, kMaxNdim> pad,
+        Dims kernel_size,
+        Dims stride,
+        Dims pad,
         bool cover_all,
         const nonstd::optional<Array>& out) {
     CHAINERX_ASSERT(kernel_size.size() == static_cast<size_t>(x.ndim() - 2));
@@ -143,9 +142,9 @@ Array PoolGrad(
         const Array& x,
         const Array& out,
         const Array& gout,
-        StackVector<int64_t, kMaxNdim> kernel_size,
-        StackVector<int64_t, kMaxNdim> stride,
-        StackVector<int64_t, kMaxNdim> pad,
+        Dims kernel_size,
+        Dims stride,
+        Dims pad,
         const nonstd::optional<Array>& gx) {
     CHAINERX_ASSERT(out.shape() == gout.shape());
     CHAINERX_ASSERT(kernel_size.size() == static_cast<size_t>(x.ndim() - 2));
@@ -199,13 +198,7 @@ Array PoolGrad(
 }
 
 Array MaxPoolGradGrad(
-        const Array& x,
-        const Array& out,
-        const Array& ggx,
-        StackVector<int64_t, kMaxNdim> kernel_size,
-        StackVector<int64_t, kMaxNdim> stride,
-        StackVector<int64_t, kMaxNdim> pad,
-        const nonstd::optional<Array>& ggout) {
+        const Array& x, const Array& out, const Array& ggx, Dims kernel_size, Dims stride, Dims pad, const nonstd::optional<Array>& ggout) {
     CHAINERX_ASSERT(x.shape() == ggx.shape());
     CHAINERX_ASSERT(kernel_size.size() == static_cast<size_t>(x.ndim() - 2));
     CHAINERX_ASSERT(stride.size() == static_cast<size_t>(x.ndim() - 2));
@@ -244,30 +237,17 @@ Array MaxPoolGradGrad(
         int64_t block_size = std::min<int64_t>(total_size, kMaxBlockSize);
 
         MaxPoolDoubleBackwardKernel<<<grid_size, block_size>>>(
-                ggx_iarray,
-                x_iarray,
-                out_iarray,
-                ggout_iarray,
-                x_indexer,
-                out_indexer,
-                kernel_indexer,
-                CudaStackVector{stride},
-                CudaStackVector{pad});
+                ggx_iarray, x_iarray, out_iarray, ggout_iarray, x_indexer, out_indexer, kernel_indexer, CudaDims{stride}, CudaDims{pad});
     });
 
     return actual_ggout;
 }
 
-class CudaMaxPoolOp : public MaxPoolOp {
+class CudaMaxPoolKernel : public MaxPoolKernel {
 public:
     std::tuple<Array, std::unique_ptr<MaxPoolGradState>> Call(
-            const Array& x,
-            StackVector<int64_t, kMaxNdim> kernel_size,
-            StackVector<int64_t, kMaxNdim> stride,
-            StackVector<int64_t, kMaxNdim> pad,
-            bool cover_all,
-            bool return_state,
-            const nonstd::optional<Array>& out) override {
+            const Array& x, Dims kernel_size, Dims stride, Dims pad, bool cover_all, bool return_state, const nonstd::optional<Array>& out)
+            override {
         CHAINERX_ASSERT(internal::GetArrayBody(x)->nodes().empty());
 
         Array actual_out = Pool(CUDNN_POOLING_MAX, x, kernel_size, stride, pad, cover_all, out);
@@ -278,15 +258,15 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(MaxPoolOp, CudaMaxPoolOp);
+CHAINERX_CUDA_REGISTER_KERNEL(MaxPoolKernel, CudaMaxPoolKernel);
 
-class CudaMaxPoolGradOp : public MaxPoolGradOp {
+class CudaMaxPoolGradKernel : public MaxPoolGradKernel {
 public:
     std::tuple<Array, std::unique_ptr<MaxPoolGradGradState>> Call(
             const Array& gout,
-            StackVector<int64_t, kMaxNdim> kernel_size,
-            StackVector<int64_t, kMaxNdim> stride,
-            StackVector<int64_t, kMaxNdim> pad,
+            const Dims& kernel_size,
+            const Dims& stride,
+            const Dims& pad,
             const std::shared_ptr<MaxPoolGradState>& state,
             bool return_state,
             const nonstd::optional<Array>& gx) override {
@@ -305,15 +285,15 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(MaxPoolGradOp, CudaMaxPoolGradOp);
+CHAINERX_CUDA_REGISTER_KERNEL(MaxPoolGradKernel, CudaMaxPoolGradKernel);
 
-class CudaMaxPoolGradGradOp : public MaxPoolGradGradOp {
+class CudaMaxPoolGradGradKernel : public MaxPoolGradGradKernel {
 public:
     Array Call(
             const Array& ggx,
-            StackVector<int64_t, kMaxNdim> kernel_size,
-            StackVector<int64_t, kMaxNdim> stride,
-            StackVector<int64_t, kMaxNdim> pad,
+            const Dims& kernel_size,
+            const Dims& stride,
+            const Dims& pad,
             bool /*cover_all*/,
             const std::shared_ptr<MaxPoolGradGradState>& state,
             const nonstd::optional<Array>& ggout) override {
@@ -328,7 +308,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(MaxPoolGradGradOp, CudaMaxPoolGradGradOp);
+CHAINERX_CUDA_REGISTER_KERNEL(MaxPoolGradGradKernel, CudaMaxPoolGradGradKernel);
 
 cudnnPoolingMode_t GetCudnnPoolingMode(AveragePoolPadMode pad_mode) {
     switch (pad_mode) {
@@ -341,13 +321,13 @@ cudnnPoolingMode_t GetCudnnPoolingMode(AveragePoolPadMode pad_mode) {
     }
 }
 
-class CudaAveragePoolOp : public AveragePoolOp {
+class CudaAveragePoolKernel : public AveragePoolKernel {
 public:
     std::tuple<Array, std::unique_ptr<AveragePoolGradState>> Call(
             const Array& x,
-            StackVector<int64_t, kMaxNdim> kernel_size,
-            StackVector<int64_t, kMaxNdim> stride,
-            StackVector<int64_t, kMaxNdim> pad,
+            const Dims& kernel_size,
+            const Dims& stride,
+            const Dims& pad,
             AveragePoolPadMode pad_mode,
             bool return_state,
             const nonstd::optional<Array>& out) override {
@@ -361,15 +341,15 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(AveragePoolOp, CudaAveragePoolOp);
+CHAINERX_CUDA_REGISTER_KERNEL(AveragePoolKernel, CudaAveragePoolKernel);
 
-class CudaAveragePoolGradOp : public AveragePoolGradOp {
+class CudaAveragePoolGradKernel : public AveragePoolGradKernel {
 public:
     Array Call(
             const Array& gout,
-            StackVector<int64_t, kMaxNdim> kernel_size,
-            StackVector<int64_t, kMaxNdim> stride,
-            StackVector<int64_t, kMaxNdim> pad,
+            const Dims& kernel_size,
+            const Dims& stride,
+            const Dims& pad,
             AveragePoolPadMode pad_mode,
             const std::shared_ptr<AveragePoolGradState>& state,
             const nonstd::optional<Array>& gx) override {
@@ -384,7 +364,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(AveragePoolGradOp, CudaAveragePoolGradOp);
+CHAINERX_CUDA_REGISTER_KERNEL(AveragePoolGradKernel, CudaAveragePoolGradKernel);
 
 }  // namespace
 }  // namespace cuda

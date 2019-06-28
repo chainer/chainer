@@ -5,48 +5,30 @@
 #include "chainerx/array.h"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
+#include "chainerx/kernels/explog.h"
 #include "chainerx/native/elementwise.h"
-#include "chainerx/native/op_regist.h"
+#include "chainerx/native/kernel_regist.h"
 #include "chainerx/numeric.h"
-#include "chainerx/routines/math.h"
 
 namespace chainerx {
 namespace native {
 namespace {
 
-class NativeExpOp : public ExpOp {
-public:
-    void Call(const Array& x, const Array& out) override {
-        x.device().CheckDevicesCompatible(x, out);
-        const Array& x_cast = x.dtype() == out.dtype() ? x : x.AsType(out.dtype());
-        VisitFloatingPointDtype(out.dtype(), [&x_cast, &out](auto pt) {
-            using T = typename decltype(pt)::type;
-            struct Impl {
-                void operator()(int64_t /*i*/, T x, T& out) { out = chainerx::Exp(x); }
-            };
-            Elementwise<const T, T>(Impl{}, x_cast, out);
-        });
-    }
-};
+CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(ErfKernel, { out = chainerx::Erf(x); });
 
-CHAINERX_REGISTER_OP_NATIVE(ExpOp, NativeExpOp);
+CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(ExpKernel, { out = chainerx::Exp(x); });
 
-class NativeLogOp : public LogOp {
-public:
-    void Call(const Array& x, const Array& out) override {
-        x.device().CheckDevicesCompatible(x, out);
-        const Array& x_cast = x.dtype() == out.dtype() ? x : x.AsType(out.dtype());
-        VisitFloatingPointDtype(out.dtype(), [&x_cast, &out](auto pt) {
-            using T = typename decltype(pt)::type;
-            struct Impl {
-                void operator()(int64_t /*i*/, T x, T& out) { out = chainerx::Log(x); }
-            };
-            Elementwise<const T, T>(Impl{}, x_cast, out);
-        });
-    }
-};
+CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(Expm1Kernel, { out = chainerx::Expm1(x); });
 
-CHAINERX_REGISTER_OP_NATIVE(LogOp, NativeLogOp);
+CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(Exp2Kernel, { out = chainerx::Exp2(x); });
+
+CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(LogKernel, { out = chainerx::Log(x); });
+
+CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(Log10Kernel, { out = chainerx::Log10(x); });
+
+CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(Log2Kernel, { out = chainerx::Log2(x); });
+
+CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(Log1pKernel, { out = chainerx::Log1p(x); });
 
 }  // namespace
 }  // namespace native

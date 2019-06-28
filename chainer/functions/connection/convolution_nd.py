@@ -399,7 +399,7 @@ def convolution_nd(x, W, b=None, stride=1, pad=0, cover_all=False,
 
     If ``cover_all`` option is ``True``, the filter will cover the all
     spatial locations. So, if the last stride of filter does not cover the
-    end of spatial locations, an addtional stride will be applied to the end
+    end of spatial locations, an additional stride will be applied to the end
     part of spatial locations. In this case, the output size is determined by
     the following equations:
 
@@ -453,7 +453,12 @@ def convolution_nd(x, W, b=None, stride=1, pad=0, cover_all=False,
     can provide a significant performance boost for fixed neural nets.
     To enable, set `chainer.using_config('autotune', True)`
 
-    .. seealso:: :class:`~chainer.links.ConvolutionND`, :func:`convolution_2d`
+    .. seealso::
+
+        :class:`~chainer.links.ConvolutionND` to manage the model parameters
+        ``W`` and ``b``.
+
+    .. seealso:: :func:`convolution_2d`
 
     .. admonition:: Example
 

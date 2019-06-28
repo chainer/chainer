@@ -70,7 +70,7 @@ y(i, j, k, ...)`.
             if the true label is ``ignore_label``.
 
     Returns:
-        Variable: A variable holding a scalar array of the accuracy.
+        ~chainer.Variable: A variable holding a scalar array of the accuracy.
 
     .. note:: This function is non-differentiable.
 

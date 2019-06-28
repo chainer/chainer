@@ -4,6 +4,7 @@ bugprone-*,\
 cert-*,\
 cppcoreguidelines-*,\
 -cppcoreguidelines-pro-bounds-pointer-arithmetic,\
+-cppcoreguidelines-pro-type-union-access,\
 clang-analyzer-*,\
 google-*,\
 -google-runtime-references,\
@@ -14,5 +15,5 @@ performance-*,\
 readability-*,\
 "
 WarningsAsErrors: '*'
-HeaderFilterRegex: '^chainerx/chainerx/.*'
+HeaderFilterRegex: 'chainerx/.*'
 AnalyzeTemporaryDtors: false

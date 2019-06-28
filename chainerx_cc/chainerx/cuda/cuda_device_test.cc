@@ -13,7 +13,7 @@
 #include "chainerx/cuda/cuda_backend.h"
 #include "chainerx/cuda/cuda_runtime.h"
 #include "chainerx/device.h"
-#include "chainerx/routines/linalg.h"
+#include "chainerx/kernels/linalg.h"
 #include "chainerx/testing/array.h"
 #include "chainerx/testing/array_check.h"
 #include "chainerx/testing/device_session.h"
@@ -161,7 +161,7 @@ TEST(CudaDeviceTest, DotNonContiguousOut) {
     Array a = testing::BuildArray({2, 3}).WithLinearData(1.f);
     Array b = testing::BuildArray({3, 2}).WithData<float>({1.f, 2.f, -1.f, -3.f, 2.f, 4.f});
     Array c = testing::BuildArray({2, 2}).WithData<float>({0.f, 0.f, 0.f, 0.f}).WithPadding(1);
-    a.device().backend().CallOp<DotOp>(a, b, c);
+    a.device().backend().CallKernel<DotKernel>(a, b, c);
 
     Array e = testing::BuildArray({2, 2}).WithData<float>({5.f, 8.f, 11.f, 17.f});
     EXPECT_ARRAY_EQ(e, c);

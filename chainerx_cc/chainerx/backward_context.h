@@ -33,9 +33,11 @@ public:
     explicit GradRef(ArrayNode& array_node);
 
     // Initialize with a temporary grad without value.
-    explicit GradRef(nonstd::nullopt_t);
+    explicit GradRef(nonstd::nullopt_t nullopt);
 
     explicit GradRef(nonstd::optional<Array>* grad);
+
+    ~GradRef() = default;
 
     GradRef(const GradRef&) = delete;
     GradRef(GradRef&&) = default;
@@ -69,7 +71,7 @@ class BackwardContext {
 public:
     // Ctor
     //
-    // `input_grads_storage` is where input gradients returned by backward functions will be stored.
+    // `input_grads` is where input gradients returned by backward functions will be stored.
     // Its size must be equal to the number of input arrays whose gradients are to be returned in this single backward function (1 in most
     // ordinary functions).
     BackwardContext(

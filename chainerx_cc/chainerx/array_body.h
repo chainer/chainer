@@ -34,8 +34,12 @@ public:
         int64_t offset;
     };
 
+    ~ArrayBody() = default;
+
     ArrayBody(const ArrayBody&) = delete;
+    ArrayBody(ArrayBody&&) = default;
     ArrayBody& operator=(const ArrayBody&) = delete;
+    ArrayBody& operator=(ArrayBody&&) = delete;
 
     const Shape& shape() const { return shape_; }
 

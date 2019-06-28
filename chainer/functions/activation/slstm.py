@@ -261,7 +261,7 @@ def slstm_grad_grad(c_prev1, a1, i1, f1,
                     o, c, gc, gh,
                     ggc_prev1, gga1, ggi1, ggf1, ggo1,
                     ggc_prev2, gga2, ggi2, ggf2, ggo2):
-    xp = cuda.get_array_module(a1)
+    xp = backend.get_array_module(a1)
     sig_o = _sigmoid(o, xp)
     gsig_o = _grad_sigmoid(sig_o)
     ggsig_o = _grad_grad_sigmoid(sig_o)
@@ -378,7 +378,7 @@ def slstm(c_prev1, c_prev2, x1, x2):
         tuple: Two :class:`~chainer.Variable` objects ``c`` and ``h``. ``c`` is
         the cell state. ``h`` indicates the outgoing signal.
 
-    See detail in paper: `Long Short-Term Memory Over Tree Structures \
+    See detail in paper: `Long Short-Term Memory Over Tree Structures
     <https://arxiv.org/abs/1503.04881>`_.
 
     .. admonition:: Example

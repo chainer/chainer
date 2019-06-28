@@ -1,8 +1,8 @@
 import collections
-
 import heapq
-import numpy
 import os
+
+import numpy
 import six
 
 import chainer

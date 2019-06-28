@@ -1,74 +1,11 @@
 #pragma once
 
+#include <nonstd/optional.hpp>
+
 #include "chainerx/array.h"
-#include "chainerx/backend.h"
-#include "chainerx/device.h"
-#include "chainerx/op.h"
+#include "chainerx/axes.h"
 
 namespace chainerx {
-
-class EqualOp : public Op {
-public:
-    static const char* name() { return "Equal"; }
-
-    virtual void Call(const Array& x1, const Array& x2, const Array& out) = 0;
-};
-
-class NotEqualOp : public Op {
-public:
-    static const char* name() { return "NotEqual"; }
-
-    virtual void Call(const Array& x1, const Array& x2, const Array& out) = 0;
-};
-
-class GreaterOp : public Op {
-public:
-    static const char* name() { return "Greater"; }
-
-    virtual void Call(const Array& x1, const Array& x2, const Array& out) = 0;
-};
-
-class GreaterEqualOp : public Op {
-public:
-    static const char* name() { return "GreaterEqual"; }
-
-    virtual void Call(const Array& x1, const Array& x2, const Array& out) = 0;
-};
-
-class LogicalNotOp : public Op {
-public:
-    static const char* name() { return "LogicalNot"; }
-
-    virtual void Call(const Array& x, const Array& out) = 0;
-};
-
-class LogicalAndOp : public Op {
-public:
-    static const char* name() { return "LogicalAnd"; }
-
-    virtual void Call(const Array& x1, const Array& x2, const Array& out) = 0;
-};
-
-class LogicalOrOp : public Op {
-public:
-    static const char* name() { return "LogicalOr"; }
-
-    virtual void Call(const Array& x1, const Array& x2, const Array& out) = 0;
-};
-
-class AllOp : public Op {
-public:
-    static const char* name() { return "All"; }
-
-    virtual void Call(const Array& a, const Axes& axis, const Array& out) = 0;
-};
-
-class AnyOp : public Op {
-public:
-    static const char* name() { return "Any"; }
-
-    virtual void Call(const Array& a, const Axes& axis, const Array& out) = 0;
-};
 
 // Returns an elementwise equality array.
 //
@@ -105,10 +42,24 @@ Array LogicalNot(const Array& x);
 
 Array LogicalAnd(const Array& x1, const Array& x2);
 
+// TODO(imanishi): Add python binding
+Array LogicalAnd(const Array& x1, Scalar x2);
+
 Array LogicalOr(const Array& x1, const Array& x2);
+
+// TODO(imanishi): Add python binding
+Array LogicalOr(const Array& x1, Scalar x2);
+
+Array LogicalXor(const Array& x1, const Array& x2);
 
 Array All(const Array& a, const OptionalAxes& axis = nonstd::nullopt, bool keepdims = false);
 
 Array Any(const Array& a, const OptionalAxes& axis = nonstd::nullopt, bool keepdims = false);
+
+Array IsNan(const Array& x);
+
+Array IsInf(const Array& x);
+
+Array IsFinite(const Array& x);
 
 }  // namespace chainerx

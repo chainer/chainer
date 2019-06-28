@@ -17,6 +17,10 @@ from chainer.utils import force_array
         (-0.75, 1.53),
         (numpy.float32(-0.75), numpy.float32(1.53)),
         (-1, 2),
+        (None, 2),
+        (-1, None),
+        (None, numpy.float32(1.53)),
+        (numpy.float32(-0.75), None),
     ]
 }))
 @testing.fix_random()
@@ -44,8 +48,8 @@ class TestClip(testing.FunctionTestCase):
         # Avoid values around x_min and x_max for stability of numerical
         # gradient
         x_min, x_max = self.x_min_max
-        x_min = float(x_min)
-        x_max = float(x_max)
+        x_min = float(x_min) if x_min is not None else self.x.min()
+        x_max = float(x_max) if x_max is not None else self.x.max()
         eps = 0.01
         for ind in numpy.ndindex(x.shape):
             if x_min - eps < x[ind] < x_min + eps:
@@ -76,6 +80,10 @@ class TestClipInvalidInterval(unittest.TestCase):
     def test_invalid_interval(self):
         with self.assertRaises(ValueError):
             functions.clip(self.x, 1.0, -1.0)
+
+    def test_max_min_none(self):
+        with self.assertRaises(ValueError):
+            functions.clip(self.x, None, None)
 
 
 @testing.parameterize(*testing.product({

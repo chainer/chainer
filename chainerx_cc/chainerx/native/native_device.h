@@ -13,6 +13,7 @@
 #include "chainerx/dtype.h"
 #include "chainerx/indexable_array.h"
 #include "chainerx/indexer.h"
+#include "chainerx/kernels/pooling.h"
 #include "chainerx/native/native_backend.h"
 #include "chainerx/routines/pooling.h"
 #include "chainerx/scalar.h"
@@ -89,7 +90,7 @@ protected:
     NativeDevice(NativeBackend& backend, int index) : Device(backend, index) {}
 
 private:
-    friend NativeDevice* native_internal::CreateDevice(NativeBackend&, int);
+    friend NativeDevice* native_internal::CreateDevice(NativeBackend& backend, int index);
 };
 
 }  // namespace native

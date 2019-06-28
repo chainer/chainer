@@ -147,7 +147,7 @@ def check_cuda_available():
         check_cuda_available._already_warned = True
 
 
-class DummyDeviceType(Device):
+class DummyDeviceType(object):
 
     """Dummy device class that does nothing with cupy.cuda.Device interface.
 
@@ -202,6 +202,11 @@ _integer_types = six.integer_types + (numpy.integer,)
 # ------------------------------------------------------------------------------
 class GpuDevice(_backend.Device):
 
+    """Device for GPU (CuPy) backend"""
+
+    xp = cupy
+    supported_array_types = (ndarray,)
+
     def __init__(self, device):
         check_cuda_available()
         assert isinstance(device, Device)
@@ -211,6 +216,9 @@ class GpuDevice(_backend.Device):
 
     @staticmethod
     def from_device_id(device_id):
+        """Returns a :class:`~chainer.backend.GpuDevice` corresponding \
+to the CUDA device ID.
+        """
         check_cuda_available()
 
         if not (isinstance(device_id, _integer_types) and device_id >= 0):
@@ -224,20 +232,16 @@ class GpuDevice(_backend.Device):
             return GpuDevice(array.device)
         return None
 
+    @property
+    def name(self):
+        return '@cupy:{}'.format(self.device.id)
+
     def __eq__(self, other):
         return isinstance(other, GpuDevice) and other.device == self.device
 
     def __repr__(self):
         return '<{} (cupy):{}>'.format(
             self.__class__.__name__, self.device.id)
-
-    @property
-    def xp(self):
-        return cupy
-
-    @property
-    def supported_array_types(self):
-        return (ndarray,)
 
     def create_context(self):
         # Creates a new cuda.Device instance because a single cuda.Device
@@ -249,6 +253,9 @@ class GpuDevice(_backend.Device):
 
     def use(self):
         self.device.use()
+
+    def is_array_supported(self, array):
+        return isinstance(array, ndarray) and self.device == array.device
 
 
 # ------------------------------------------------------------------------------
@@ -276,7 +283,7 @@ def get_device_from_array(*arrays):
     .. deprecated:: v6.0.0
 
         This API is deprecated. Please use
-        :func:`~chainer.backend.get_device_from_array` instead.
+        :func:`chainer.backend.get_device_from_array` instead.
 
     The device on which the given CuPy array reside is returned.
 
@@ -417,17 +424,7 @@ def _array_to_gpu(array, device, stream):
         # the array interface.
         if array.device.backend.name == 'cuda':
             # Convert to cupy.ndarray on the same device as source array
-            array = cupy.ndarray(
-                array.shape,
-                array.dtype,
-                cupy.cuda.MemoryPointer(
-                    cupy.cuda.UnownedMemory(
-                        array.data_ptr + array.offset,
-                        array.data_size,
-                        array,
-                        array.device.index),
-                    0),
-                strides=array.strides)
+            array = chainerx._to_cupy(array)
         else:
             array = chainerx.to_numpy(array)
     elif isinstance(array, (numpy.number, numpy.bool_)):

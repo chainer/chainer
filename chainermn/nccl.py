@@ -10,5 +10,5 @@ try:
     from cupy.cuda.nccl import NcclCommunicator  # NOQA
     from cupy.cuda.nccl import NcclError  # NOQA
     _available = True
-except ImportError:
+except Exception:
     _available = False

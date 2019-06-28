@@ -1,6 +1,3 @@
-import functools
-import operator
-
 import numpy
 
 from chainer.backend import cuda
@@ -8,8 +5,9 @@ from chainer import distribution
 from chainer.functions.array import repeat
 from chainer.functions.array import reshape
 from chainer.functions.array import transpose
-from chainer.functions.math import sum as sum_mod
 from chainer.functions.math import prod
+from chainer.functions.math import sum as sum_mod
+from chainer.utils import array
 from chainer.utils import cache
 
 
@@ -30,19 +28,21 @@ class Independent(distribution.Distribution):
         super(Independent, self).__init__()
         self.__distribution = distribution
         if reinterpreted_batch_ndims is None:
-            reinterpreted_batch_ndims = \
-                self._get_default_reinterpreted_batch_ndims(distribution)
+            reinterpreted_batch_ndims = (
+                self._get_default_reinterpreted_batch_ndims(distribution))
         elif reinterpreted_batch_ndims > len(distribution.batch_shape):
             raise ValueError(
                 'reinterpreted_batch_ndims must be less than or equal to the '
                 'number of dimensions of `distribution.batch_shape`.')
         self.__reinterpreted_batch_ndims = reinterpreted_batch_ndims
 
-        batch_ndim = \
-            len(self.distribution.batch_shape) - self.reinterpreted_batch_ndims
+        batch_ndim = (
+            len(self.distribution.batch_shape)
+            - self.reinterpreted_batch_ndims)
         self.__batch_shape = distribution.batch_shape[:batch_ndim]
-        self.__event_shape = \
-            distribution.batch_shape[batch_ndim:] + distribution.event_shape
+        self.__event_shape = (
+            distribution.batch_shape[batch_ndim:]
+            + distribution.event_shape)
 
     @property
     def distribution(self):
@@ -60,10 +60,11 @@ class Independent(distribution.Distribution):
     def event_shape(self):
         return self.__event_shape
 
-    @property
+    @cache.cached_property
     def covariance(self):
-        '''Returns the covariance of the distribution based on the original
-        i.i.d. distribution. By definition, the covariance of the new
+        """ The covariance of the independent distribution.
+
+        By definition, the covariance of the new
         distribution becomes block diagonal matrix. Let
         :math:`\\Sigma_{\\mathbf{x}}` be the covariance matrix of the original
         random variable :math:`\\mathbf{x} \\in \\mathbb{R}^d`, and
@@ -82,11 +83,13 @@ class Independent(distribution.Distribution):
 
         Note that this relationship holds only if the covariance matrix of the
         original distribution is given analytically.
-        '''
-        num_repeat = functools.reduce(
-            operator.mul,
-            self.distribution.batch_shape[-self.reinterpreted_batch_ndims:], 1)
-        dim = functools.reduce(operator.mul, self.distribution.event_shape, 1)
+
+        Returns:
+            ~chainer.Variable: The covariance of the distribution.
+        """
+        num_repeat = array.size_of_shape(
+            self.distribution.batch_shape[-self.reinterpreted_batch_ndims:])
+        dim = array.size_of_shape(self.distribution.event_shape)
         cov = repeat.repeat(
             reshape.reshape(
                 self.distribution.covariance,
@@ -110,7 +113,9 @@ class Independent(distribution.Distribution):
         return self._reduce(prod.prod, self.distribution.cdf(x))
 
     def icdf(self, x):
-        '''Cumulative distribution function for multivariate variable is not
+        """The inverse cumulative distribution function for multivariate variable.
+
+        Cumulative distribution function for multivariate variable is not
         invertible. This function always raises :class:`RuntimeError`.
 
         Args:
@@ -119,7 +124,7 @@ class Independent(distribution.Distribution):
 
         Raises:
             :class:`RuntimeError`
-        '''
+        """
 
         raise RuntimeError(
             'Cumulative distribution function for multivariate variable '
@@ -176,8 +181,7 @@ class Independent(distribution.Distribution):
         return self.distribution.xp
 
     def _reduce(self, op, stat):
-        range_ = tuple(
-            (-1 - numpy.arange(self.reinterpreted_batch_ndims)).tolist())
+        range_ = tuple(range(-self.reinterpreted_batch_ndims, 0))
         return op(stat, axis=range_)
 
     def _get_default_reinterpreted_batch_ndims(self, distribution):
@@ -186,10 +190,9 @@ class Independent(distribution.Distribution):
 
     @cache.cached_property
     def _block_indicator(self):
-        num_repeat = functools.reduce(
-            operator.mul,
-            self.distribution.batch_shape[-self.reinterpreted_batch_ndims:], 1)
-        dim = functools.reduce(operator.mul, self.distribution.event_shape, 1)
+        num_repeat = array.size_of_shape(
+            self.distribution.batch_shape[-self.reinterpreted_batch_ndims:])
+        dim = array.size_of_shape(self.distribution.event_shape)
         block_indicator = numpy.fromfunction(
             lambda i, j: i // dim == j // dim,
             (num_repeat * dim, num_repeat * dim)).astype(int)
@@ -200,8 +203,7 @@ class Independent(distribution.Distribution):
 
 @distribution.register_kl(Independent, Independent)
 def _kl_independent_independent(dist1, dist2):
-    '''Batched KL divergence :math:`\\mathrm{KL}(\\mathrm{dist1} ||
-    \\mathrm{dist2})` for Independent distributions.
+    """Computes Kullback-Leibler divergence for independent distributions.
 
     We can leverage the fact that
     .. math::
@@ -223,7 +225,7 @@ def _kl_independent_independent(dist1, dist2):
     Raises:
         :class:`ValueError`: If the event space for ``dist1`` and ``dist2``,
             or their underlying distributions don't match.
-    '''
+    """
 
     p = dist1.distribution
     q = dist2.distribution

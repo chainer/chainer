@@ -14,10 +14,11 @@
 #include "chainerx/backend_util.h"
 #include "chainerx/cuda/cuda_set_device_scope.h"
 #include "chainerx/cuda/cudnn.h"
-#include "chainerx/cuda/op_regist.h"
+#include "chainerx/cuda/kernel_regist.h"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
 #include "chainerx/error.h"
+#include "chainerx/kernels/normalization.h"
 #include "chainerx/macro.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/normalization.h"
@@ -70,7 +71,7 @@ cuda_internal::CudnnTensorDescriptor DeriveBatchNormTensorDescriptor(
     return derive_desc;
 }
 
-class CudaBatchNormOp : public BatchNormOp {
+class CudaBatchNormKernel : public BatchNormKernel {
 public:
     std::tuple<Array, std::unique_ptr<BatchNormGradState>> Call(
             const Array& x,
@@ -120,15 +121,15 @@ public:
         CudaDevice& device = dynamic_cast<CudaDevice&>(x.device());
         CudaSetDeviceScope scope{device.index()};
 
-        Array x_cont = internal::AsContiguous(x);
+        Array x_cont = AsContiguous(x);
         cuda_internal::CudnnTensorDescriptor x_desc{x_cont};
 
         cudnnBatchNormMode_t mode = GetBatchNormMode(axis);
         cuda_internal::CudnnTensorDescriptor gamma_beta_mean_var_desc = DeriveBatchNormTensorDescriptor(x_desc, mode);
         Dtype gamma_beta_mean_var_dtype = gamma_beta_mean_var_desc.GetDtype();
 
-        Array gamma_casted_cont = internal::AsContiguous(gamma, gamma_beta_mean_var_dtype);
-        Array beta_casted_cont = internal::AsContiguous(beta, gamma_beta_mean_var_dtype);
+        Array gamma_casted_cont = AsContiguous(gamma, gamma_beta_mean_var_dtype);
+        Array beta_casted_cont = AsContiguous(beta, gamma_beta_mean_var_dtype);
 
         CHAINERX_ASSERT(running_mean.IsContiguous());
         CHAINERX_ASSERT(running_var.IsContiguous());
@@ -183,9 +184,9 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(BatchNormOp, CudaBatchNormOp);
+CHAINERX_CUDA_REGISTER_KERNEL(BatchNormKernel, CudaBatchNormKernel);
 
-class CudaBatchNormGradOp : public BatchNormGradOp {
+class CudaBatchNormGradKernel : public BatchNormGradKernel {
 public:
     std::tuple<Array, Array, Array> Call(
             const Array& x,
@@ -236,7 +237,7 @@ public:
         CudaDevice& device = dynamic_cast<CudaDevice&>(x.device());
         CudaSetDeviceScope scope{device.index()};
 
-        Array gout_cont = internal::AsContiguous(gout);
+        Array gout_cont = AsContiguous(gout);
         Array actual_gx = EmptyLike(x, device);
         cuda_internal::CudnnTensorDescriptor x_desc{x_cont};
 
@@ -249,7 +250,7 @@ public:
         Dtype gamma_beta_mean_var_dtype = gamma_beta_mean_var_desc.GetDtype();
         Shape gamma_beta_mean_var_shape = internal::ReduceShape(x_cont.shape(), axis, true);
 
-        Array gamma_casted_cont = internal::AsContiguous(gamma, gamma_beta_mean_var_dtype);
+        Array gamma_casted_cont = AsContiguous(gamma, gamma_beta_mean_var_dtype);
         Array actual_ggamma = Empty(gamma_beta_mean_var_shape, gamma_beta_mean_var_dtype, device);
         Array actual_gbeta = Empty(gamma_beta_mean_var_shape, gamma_beta_mean_var_dtype, device);
 
@@ -294,9 +295,9 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(BatchNormGradOp, CudaBatchNormGradOp);
+CHAINERX_CUDA_REGISTER_KERNEL(BatchNormGradKernel, CudaBatchNormGradKernel);
 
-class CudaFixedBatchNormOp : public FixedBatchNormOp {
+class CudaFixedBatchNormKernel : public FixedBatchNormKernel {
 public:
     Array Call(
             const Array& x,
@@ -337,7 +338,7 @@ public:
         CudaDevice& device = dynamic_cast<CudaDevice&>(x.device());
         CudaSetDeviceScope scope{device.index()};
 
-        Array x_cont = internal::AsContiguous(x);
+        Array x_cont = AsContiguous(x);
         cuda_internal::CudnnTensorDescriptor x_desc{x_cont};
 
         cudnnBatchNormMode_t mode = GetBatchNormMode(axis);
@@ -345,10 +346,10 @@ public:
         cuda_internal::CudnnTensorDescriptor gamma_beta_mean_var_desc = DeriveBatchNormTensorDescriptor(x_desc, mode);
         Dtype gamma_beta_mean_var_dtype = gamma_beta_mean_var_desc.GetDtype();
 
-        Array gamma_casted_cont = internal::AsContiguous(gamma, gamma_beta_mean_var_dtype);
-        Array beta_casted_cont = internal::AsContiguous(beta, gamma_beta_mean_var_dtype);
-        Array mean_casted_cont = internal::AsContiguous(mean, gamma_beta_mean_var_dtype);
-        Array var_casted_cont = internal::AsContiguous(var, gamma_beta_mean_var_dtype);
+        Array gamma_casted_cont = AsContiguous(gamma, gamma_beta_mean_var_dtype);
+        Array beta_casted_cont = AsContiguous(beta, gamma_beta_mean_var_dtype);
+        Array mean_casted_cont = AsContiguous(mean, gamma_beta_mean_var_dtype);
+        Array var_casted_cont = AsContiguous(var, gamma_beta_mean_var_dtype);
 
         Dtype dtype = x_cont.dtype();
 
@@ -376,7 +377,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(FixedBatchNormOp, CudaFixedBatchNormOp);
+CHAINERX_CUDA_REGISTER_KERNEL(FixedBatchNormKernel, CudaFixedBatchNormKernel);
 
 }  // namespace
 }  // namespace cuda

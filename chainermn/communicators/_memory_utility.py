@@ -7,7 +7,7 @@ import chainer.backends
 try:
     import cupy as cp
     _cupy_avail = True
-except ImportError:
+except Exception:
     _cupy_avail = False
 
 
@@ -89,13 +89,24 @@ def extract_params_set_data(model):
             if param.data is not None]
 
 
-def extract_params_set_grad(model):
-    return [param for _, param in sorted(model.namedparams())
-            if param.grad is not None]
+def extract_params_set_grad(model, zero_fill):
+    if zero_fill:
+        return [param for _, param in sorted(model.namedparams())
+                if param.data is not None]
+    else:
+        return [param for _, param in sorted(model.namedparams())
+                if param.data is not None and param.grad is not None]
+
+
+def count_grad_elements(params, zero_fill):
+    if zero_fill:
+        return sum(param.data.size for param in params)
+    else:
+        return sum(param.grad.size for param in params)
 
 
 def pack_params(params, attr_name, buffer,
-                transfer_dtype, stream=None):
+                transfer_dtype, zero_fill, stream=None):
     if len(params) == 0:
         return
 
@@ -103,6 +114,8 @@ def pack_params(params, attr_name, buffer,
     offset = 0
     for param in params:
         v = getattr(param, attr_name)
+        if attr_name == 'grad' and v is None and zero_fill:
+            v = param.xp.zeros_like(param.data)
         size = v.size * np.dtype(transfer_dtype).itemsize
         if v.dtype != transfer_dtype:
             tmp = v.astype(transfer_dtype)
@@ -114,7 +127,7 @@ def pack_params(params, attr_name, buffer,
 
 
 def unpack_params(params, attr_name, buffer,
-                  transfer_dtype, stream=None):
+                  transfer_dtype, zero_fill, stream=None):
     """Pack parameters into a single CuPy array for efficient communication."""
     if len(params) == 0:
         return
@@ -122,6 +135,9 @@ def unpack_params(params, attr_name, buffer,
     offset = 0
     for param in params:
         v = getattr(param, attr_name)
+        if attr_name == 'grad' and v is None and zero_fill:
+            v = param.xp.empty_like(param.data)
+            setattr(param, attr_name, v)
         size = v.size * np.dtype(transfer_dtype).itemsize
         grad_dtype = v.dtype
         if grad_dtype != transfer_dtype:
