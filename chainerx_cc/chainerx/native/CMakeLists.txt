@@ -64,6 +64,8 @@ endif()
 if(${LAPACK_FOUND})
 MESSAGE( STATUS "LAPACK is found, defining CHAINERX_ENABLE_LAPACK variable.")
 add_definitions(-DCHAINERX_ENABLE_LAPACK=${LAPACK_FOUND})
+include_directories(${LAPACK_INCLUDE_DIRS})
+target_link_libraries(chainerx_native ${LAPACK_LIBRARIES})
 endif()
 
 if(${CHAINERX_BUILD_TEST})
