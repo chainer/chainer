@@ -106,9 +106,11 @@ class TestSolve(op_utils.NumpyOpTest):
 
     dodge_nondifferentiable = True
 
-    # def setup(self):
-    #     self.check_backward_options.update({'rtol': 1e-2})
-    #     self.check_double_backward_options.update({'rtol': 1e-1})
+    def setup(self):
+        device = chainerx.get_default_device()
+        if (device.name == 'native:0'
+                and not chainerx.linalg._is_lapack_available()):
+            pytest.skip('LAPACK is not linked to ChainerX')
 
     def generate_inputs(self):
         a = numpy.random.random(self.shape).astype(self.in_dtypes)
@@ -134,6 +136,12 @@ class TestSolveFailing(op_utils.NumpyOpTest):
     forward_accept_errors = (numpy.linalg.LinAlgError,
                              chainerx.DimensionError)
 
+    def setup(self):
+        device = chainerx.get_default_device()
+        if (device.name == 'native:0'
+                and not chainerx.linalg._is_lapack_available()):
+            pytest.skip('LAPACK is not linked to ChainerX')
+
     def generate_inputs(self):
         a = numpy.random.random(self.shape).astype(self.in_dtypes)
         b = numpy.random.random(self.shape).astype(self.in_dtypes)
@@ -155,6 +163,12 @@ class TestSolveFailing(op_utils.NumpyOpTest):
 class TestInverse(op_utils.NumpyOpTest):
 
     dodge_nondifferentiable = True
+
+    def setup(self):
+        device = chainerx.get_default_device()
+        if (device.name == 'native:0'
+                and not chainerx.linalg._is_lapack_available()):
+            pytest.skip('LAPACK is not linked to ChainerX')
 
     def generate_inputs(self):
         a = numpy.random.random(self.shape).astype(self.in_dtypes)
@@ -178,6 +192,12 @@ class TestInverseFailing(op_utils.NumpyOpTest):
 
     forward_accept_errors = (numpy.linalg.LinAlgError,
                              chainerx.DimensionError)
+
+    def setup(self):
+        device = chainerx.get_default_device()
+        if (device.name == 'native:0'
+                and not chainerx.linalg._is_lapack_available()):
+            pytest.skip('LAPACK is not linked to ChainerX')
 
     def generate_inputs(self):
         a = numpy.random.random(self.shape).astype(self.in_dtypes)
