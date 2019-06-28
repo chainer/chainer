@@ -73,6 +73,7 @@ Array manipulation routines
    chainerx.atleast_3d
    chainerx.split
    chainerx.dsplit
+   chainerx.vsplit
    chainerx.swapaxes
    chainerx.expand_dims
    chainerx.flip
