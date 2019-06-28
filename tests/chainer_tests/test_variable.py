@@ -130,6 +130,7 @@ _nonchainerx_backend_params = _numpy_backend_params + _cupy_backend_params
 
 _backend_params = _nonchainerx_backend_params + _chainerx_backend_params
 
+
 @testing.parameterize(*(
     testing.product({
         'var_mapping': [(0, 1, 2)],  # distinct
