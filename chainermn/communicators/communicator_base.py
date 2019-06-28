@@ -319,10 +319,10 @@ class CommunicatorBase(six.with_metaclass(ABCMeta)):
             zero_fill: A knob to control whether to fill gradients of
               initialized and unused Link (which is None internally) with
               zero-valued array, because the all gradients must be an array
-              among processes for performing all-reduce, which might be an array
-              or None after backward computation. Gradients of uninitialized
-              Link are skipped. If it is False, gradients of unused Link are
-              just skipped.
+              among processes for performing all-reduce, which might be an
+              array or None after backward computation. Gradients of
+              uninitialized Link are skipped. If it is False, gradients of
+              unused Link are just skipped.
 
         '''
         raise NotImplementedError()
@@ -339,10 +339,10 @@ class CommunicatorBase(six.with_metaclass(ABCMeta)):
             zero_fill: A knob to control whether to fill gradients of
               initialized and unused Link (which is None internally) with
               zero-valued array, because the all gradients must be an array
-              among processes for performing all-reduce, which might be an array
-              or None after backward computation. Gradients of uninitialized
-              Link are skipped. If it is False, gradients of unused Link are
-              just skipped.
+              among processes for performing all-reduce, which might be an
+              array or None after backward computation. Gradients of
+              uninitialized Link are skipped. If it is False, gradients of
+              unused Link are just skipped.
 
         '''
         warnings.warn('allreduce_grad() is deprecated.',
