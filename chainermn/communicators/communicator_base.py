@@ -312,10 +312,38 @@ class CommunicatorBase(six.with_metaclass(ABCMeta)):
 
     @abstractmethod
     def multi_node_mean_grad(self, model, zero_fill=False):
-        '''mean Chainer model gradients'''
+        '''mean Chainer model gradients.
+
+        Args:
+           link (~chainer.Link): Link object.
+           zero_fill: A knob to control whether to fill gradients of
+             initialized and unused Link (which is None internally) with
+             zero-valued array, because the all gradients must be an array
+             among processes for performing all-reduce, which might be an array
+             or None after backward computation. Gradients of uninitialized
+             Link are skipped. If it is False, gradients of unused Link are
+             just skipped.
+
+        '''
         raise NotImplementedError()
 
     def allreduce_grad(self, model, zero_fill=False):
-        warnings.warn('multi_node_mean_grad() is deprecated.',
+        '''mean Chainer model gradients.
+
+        This function is deprecated. Please use ``multi_node_mean_grad()``
+        instead of ``allreduce_grad()``.
+
+        Args:
+           link (~chainer.Link): Link object.
+           zero_fill: A knob to control whether to fill gradients of
+             initialized and unused Link (which is None internally) with
+             zero-valued array, because the all gradients must be an array
+             among processes for performing all-reduce, which might be an array
+             or None after backward computation. Gradients of uninitialized
+             Link are skipped. If it is False, gradients of unused Link are
+             just skipped.
+
+        '''
+        warnings.warn('allreduce_grad() is deprecated.',
                       DeprecationWarning)
         self.multi_node_mean_grad(model, zero_fill)

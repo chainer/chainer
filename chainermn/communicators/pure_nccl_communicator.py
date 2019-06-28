@@ -156,8 +156,20 @@ class PureNcclCommunicator(mpi_communicator_base.MpiCommunicatorBase):
 
     def multi_node_mean_nccl(self, sendbuf, recvbuf,
                              n_elems, dtype, stream=None):
-        # The name is allreduce but actually a mean
-        # Sigma(a, all-procs)/n -> b or
+        """Compute mean of each element on each processes with NCCL.
+
+        The function compute mean of each element in ``sendbuf`` on each
+        processes. The result is stored in ``recvbuf``. NCCL is used for
+        communication.
+
+        Args:
+            sendbuf (numpy/cupy array): Input arrays.
+            recvbuf (numpy/cupy array): Output arrays.
+            n_elems (int): the number of elements in `sendbuf`.
+            dtype: Data type of elements used in All-Reduce.
+            stream: CUDA stream used for All-Reduce.
+
+        """
         if chainer.is_debug():
             stream.synchronize()
             array_a = sendbuf.array(n_elems, dtype=dtype)
