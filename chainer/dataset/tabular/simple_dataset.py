@@ -68,9 +68,9 @@ class SimpleDataset(tabular_dataset.TabularDataset):
             datasets = []
             for key, value in self._columns:
                 if isinstance(value, chainer.get_array_types()):
-                    datasets.append(_wrappers._Array(key, value, tuple))
+                    datasets.append(_wrappers._Array(key, value))
                 elif isinstance(value, list):
-                    datasets.append(_wrappers._List(key, value, tuple))
+                    datasets.append(_wrappers._List(key, value))
                 elif callable(value):
                     datasets.append(_Index(len(self)).transform(key, value))
             self._dataset = datasets[0].join(*datasets[1:])
@@ -124,7 +124,7 @@ class _Index(tabular_dataset.TabularDataset):
 
     @property
     def mode(self):
-        return tuple
+        return None
 
     def get_examples(self, indices, key_indices):
         if indices is None:
