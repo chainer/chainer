@@ -57,9 +57,9 @@ class Writer(object):
             savefun(tmppath, target)
             shutil.move(tmppath, os.path.join(outdir, filename))
 
-        self.post_save(filename, outdir, target, savefun, **kwds)
+        self._post_save(filename, outdir, target, savefun, **kwds)
 
-    def add_hook(self, hook_fun):
+    def _add_cleanup_hook(self, hook_fun):
         """Adds post-save hook function.
 
         Arbitrary user-defined hook to be called after saving snapshot
@@ -71,13 +71,13 @@ class Writer(object):
                 right after save is done.
 
         """
-        if not hasattr(self, 'post_save_hooks'):
-            self.post_save_hooks = []
-        self.post_save_hooks.append(hook_fun)
+        if not hasattr(self, '_post_save_hooks'):
+            self._post_save_hooks = []
+        self._post_save_hooks.append(hook_fun)
 
-    def post_save(self, *args):
-        if hasattr(self, 'post_save_hooks'):
-            for hook in self.post_save_hooks:
+    def _post_save(self, *args):
+        if hasattr(self, '_post_save_hooks'):
+            for hook in self._post_save_hooks:
                 hook(*args)
 
 
