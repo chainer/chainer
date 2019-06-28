@@ -102,7 +102,7 @@ class TestROIMaxAlign2D(unittest.TestCase):
                 x, rois, roi_indices, outsize=self.outsize,
                 spatial_scale=self.spatial_scale,
                 sampling_ratio=self.sampling_ratio)
-            xp = cuda.get_array_module(y)
+            xp = chainer.backend.get_array_module(y)
             y = functions.where(
                 xp.isinf(y.array), xp.zeros(y.shape, dtype=y.dtype), y)
             return y

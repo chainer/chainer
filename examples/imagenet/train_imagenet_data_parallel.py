@@ -13,6 +13,7 @@ Please see https://github.com/nvidia/nccl#build--run .
 
 """
 import argparse
+import sys
 
 import numpy as np
 
@@ -20,6 +21,7 @@ import chainer
 from chainer import training
 from chainer.training import extensions
 from chainer.training import updaters
+import chainerx
 
 import alex
 import googlenet
@@ -50,8 +52,12 @@ def main():
                         help='Learning minibatch size')
     parser.add_argument('--epoch', '-E', type=int, default=10,
                         help='Number of epochs to train')
-    parser.add_argument('--gpus', '-g', type=int, nargs='*',
-                        default=[0, 1, 2, 3])
+    parser.add_argument('--devices', '-d', type=str, nargs='*',
+                        default=['0', '1', '2', '3'],
+                        help='Device specifiers. Either ChainerX device '
+                        'specifiers or integers. If non-negative integer, '
+                        'CuPy arrays with specified device id are used. If '
+                        'negative integer, NumPy arrays are used')
     parser.add_argument('--initmodel',
                         help='Initialize the model from given file')
     parser.add_argument('--loaderjob', '-j', type=int,
@@ -68,7 +74,16 @@ def main():
                         help='Validation minibatch size')
     parser.add_argument('--test', action='store_true')
     parser.set_defaults(test=False)
+    group = parser.add_argument_group('deprecated arguments')
+    group.add_argument('--gpus', '-g', dest='devices',
+                       type=int, nargs='?', const=0,
+                       help='GPU IDs (negative value indicates CPU)')
     args = parser.parse_args()
+
+    devices = tuple([chainer.get_device(d) for d in args.devices])
+    if any(device.xp is chainerx for device in devices):
+        sys.stderr.write('This example does not support ChainerX devices.\n')
+        sys.exit(1)
 
     # Initialize the model to train
     model = archs[args.arch]()
@@ -84,8 +99,6 @@ def main():
         args.val, args.root, mean, model.insize, False)
     # These iterators load the images with subprocesses running in parallel to
     # the training/validation.
-    devices = tuple(args.gpus)
-
     train_iters = [
         chainer.iterators.MultiprocessIterator(i,
                                                args.batchsize,
@@ -110,7 +123,7 @@ def main():
         val_interval = 100000, 'iteration'
         log_interval = 1000, 'iteration'
 
-    trainer.extend(extensions.Evaluator(val_iter, model, device=args.gpus[0]),
+    trainer.extend(extensions.Evaluator(val_iter, model, device=devices[0]),
                    trigger=val_interval)
     trainer.extend(extensions.DumpGraph('main/loss'))
     trainer.extend(extensions.snapshot(), trigger=val_interval)

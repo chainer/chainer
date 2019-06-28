@@ -6,14 +6,13 @@
 #include "chainerx/axes.h"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
-#include "chainerx/kernels/math.h"
+#include "chainerx/kernels/reduction.h"
 #include "chainerx/kernels/sorting.h"
 #include "chainerx/macro.h"
 #include "chainerx/native/kernel_regist.h"
 #include "chainerx/native/reduce.h"
 #include "chainerx/numeric.h"
 #include "chainerx/numeric_limits.h"
-#include "chainerx/routines/math.h"
 #include "chainerx/shape.h"
 
 namespace chainerx {

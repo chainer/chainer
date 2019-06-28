@@ -1,10 +1,11 @@
 import unittest
 
-from chainer import testing, Variable, grad, cuda
-
 import numpy as np
 
-from chainer.functions import as_strided
+import chainer
+from chainer import cuda
+from chainer import testing
+import chainer.functions as F
 from chainer.functions.array.as_strided import _stride_array
 
 
@@ -107,8 +108,8 @@ class TestStrideArray(unittest.TestCase):
 class TestAsStridedForward(unittest.TestCase):
     def check_flip_forward(self, xp):
         x = xp.arange(4, dtype=self.dtype)
-        v = Variable(x)
-        y = as_strided(v, (4,), (-1,), 3)
+        v = chainer.Variable(x)
+        y = F.as_strided(v, (4,), (-1,), 3)
         y_expected = x[::-1]
         testing.assert_allclose(y.array, y_expected)
 
@@ -121,8 +122,8 @@ class TestAsStridedForward(unittest.TestCase):
 
     def check_broadcast_forward(self, xp):
         x = xp.arange(12, dtype=self.dtype).reshape((3, 4)).copy()
-        v = Variable(x)
-        y = as_strided(v, (2, 3, 4), (0, 4, 1), 0)
+        v = chainer.Variable(x)
+        y = F.as_strided(v, (2, 3, 4), (0, 4, 1), 0)
         y_expected = _broadcast_to(xp, x, (2, 3, 4))
         testing.assert_allclose(y.array, y_expected)
 
@@ -135,8 +136,8 @@ class TestAsStridedForward(unittest.TestCase):
 
     def check_unstride_forward(self, xp):
         x = xp.arange(12, dtype=self.dtype).reshape((3, 4))[::-1]
-        v = Variable(x)
-        y = as_strided(v, (12,), (1,), 0)
+        v = chainer.Variable(x)
+        y = F.as_strided(v, (12,), (1,), 0)
         y_expected = xp.arange(12, dtype=self.dtype)
         testing.assert_allclose(y.array, y_expected)
 
@@ -150,8 +151,8 @@ class TestAsStridedForward(unittest.TestCase):
     def check_general_stride(self, xp):
         x = _stride_array(xp.arange(8, dtype=self.dtype), (3, 3), (-1, 2), 3)
         # [[3., 5., 7.], [2., 4., 6.], [1., 3., 5.]]
-        v = Variable(x)
-        y = as_strided(v, (3, 3), (1, 2), 0)
+        v = chainer.Variable(x)
+        y = F.as_strided(v, (3, 3), (1, 2), 0)
         # [[0., 2., 4.], [1., 3., 5.,], [2., 4., 6.]]
         y_expected = _stride_array(xp.arange(8, dtype=self.dtype),
                                    (3, 3), (1, 2), 0)
@@ -173,10 +174,10 @@ class TestAsStridedForward(unittest.TestCase):
 class TestAsStridedBackward(unittest.TestCase):
     def check_flip_backward(self, xp):
         x = xp.arange(4, dtype=self.dtype)
-        v = Variable(x)
-        y = as_strided(v, (4,), (-1,), 3)
+        v = chainer.Variable(x)
+        y = F.as_strided(v, (4,), (-1,), 3)
         y.grad = xp.ones((4,), dtype=self.dtype)
-        gx, = grad((y,), (v,))
+        gx, = chainer.grad((y,), (v,))
         testing.assert_allclose(gx.array, xp.ones((4,), dtype=self.dtype))
 
     def test_flip_backward_cpu(self):
@@ -188,10 +189,10 @@ class TestAsStridedBackward(unittest.TestCase):
 
     def check_broadcast_backward(self, xp):
         x = xp.arange(12, dtype=self.dtype).reshape((3, 4)).copy()
-        v = Variable(x)
-        y = as_strided(v, (2, 3, 4), (0, 4, 1), 0)
+        v = chainer.Variable(x)
+        y = F.as_strided(v, (2, 3, 4), (0, 4, 1), 0)
         y.grad = xp.ones((2, 3, 4), dtype=self.dtype)
-        gx, = grad((y,), (v,))
+        gx, = chainer.grad((y,), (v,))
         testing.assert_allclose(gx.array,
                                 xp.ones(x.shape, dtype=self.dtype) * 2)
 
@@ -204,10 +205,10 @@ class TestAsStridedBackward(unittest.TestCase):
 
     def check_unstride_backward(self, xp):
         x = xp.arange(12, dtype=self.dtype).reshape((3, 4))[::-1]
-        v = Variable(x)
-        y = as_strided(v, (12,), (1,), 0)
+        v = chainer.Variable(x)
+        y = F.as_strided(v, (12,), (1,), 0)
         y.grad = xp.ones((12,), dtype=self.dtype)
-        gx, = grad((y,), (v,))
+        gx, = chainer.grad((y,), (v,))
         testing.assert_allclose(gx.array, xp.ones(x.shape, dtype=self.dtype))
 
     def test_unstride_backward_cpu(self):
@@ -220,11 +221,11 @@ class TestAsStridedBackward(unittest.TestCase):
     def check_general_stride_backward(self, xp):
         x = _stride_array(xp.arange(8, dtype=self.dtype), (3, 3), (-1, 2), 3)
         # [[3., 5., 7.], [2., 4., 6.], [1., 3., 5.]]
-        v = Variable(x)
-        y = as_strided(v, (3, 3), (1, 2), 0)
+        v = chainer.Variable(x)
+        y = F.as_strided(v, (3, 3), (1, 2), 0)
         # [[0., 2., 4.], [1., 3., 5.,], [2., 4., 6.]]
         y.grad = xp.ones(y.shape, dtype=self.dtype)
-        gx, = grad((y,), (v,))
+        gx, = chainer.grad((y,), (v,))
         testing.assert_allclose(gx.array,
                                 xp.array([
                                     [0.5, 0.5, 0.],
@@ -249,11 +250,11 @@ class TestAsStridedBackward(unittest.TestCase):
 class TestAsStridedBackwardInvalidType(unittest.TestCase):
     def check_flip_backward(self, xp):
         x = xp.arange(4, dtype=self.dtype)
-        v = Variable(x)
-        y = as_strided(v, (4,), (-1,), 3)
+        v = chainer.Variable(x)
+        y = F.as_strided(v, (4,), (-1,), 3)
         y.grad = xp.ones((4,), dtype=self.dtype)
         with self.assertRaises(TypeError):
-            gx, = grad((y,), (v,))
+            gx, = chainer.grad((y,), (v,))
 
     def test_flip_backward_cpu(self):
         self.check_flip_backward(np)
@@ -264,11 +265,11 @@ class TestAsStridedBackwardInvalidType(unittest.TestCase):
 
     def check_broadcast_backward(self, xp):
         x = xp.arange(12, dtype=self.dtype).reshape((3, 4)).copy()
-        v = Variable(x)
-        y = as_strided(v, (2, 3, 4), (0, 4, 1), 0)
+        v = chainer.Variable(x)
+        y = F.as_strided(v, (2, 3, 4), (0, 4, 1), 0)
         y.grad = xp.ones((2, 3, 4), dtype=self.dtype)
         with self.assertRaises(TypeError):
-            gx, = grad((y,), (v,))
+            gx, = chainer.grad((y,), (v,))
 
     def test_broadcast_backward_cpu(self):
         self.check_broadcast_backward(np)
@@ -279,11 +280,11 @@ class TestAsStridedBackwardInvalidType(unittest.TestCase):
 
     def check_unstride_backward(self, xp):
         x = xp.arange(12, dtype=self.dtype).reshape((3, 4))[::-1]
-        v = Variable(x)
-        y = as_strided(v, (12,), (1,), 0)
+        v = chainer.Variable(x)
+        y = F.as_strided(v, (12,), (1,), 0)
         y.grad = xp.ones((12,), dtype=self.dtype)
         with self.assertRaises(TypeError):
-            gx, = grad((y,), (v,))
+            gx, = chainer.grad((y,), (v,))
 
     def test_unstride_backward_cpu(self):
         self.check_unstride_backward(np)
@@ -295,12 +296,12 @@ class TestAsStridedBackwardInvalidType(unittest.TestCase):
     def check_general_stride_backward(self, xp):
         x = _stride_array(xp.arange(8, dtype=self.dtype), (3, 3), (-1, 2), 3)
         # [[3., 5., 7.], [2., 4., 6.], [1., 3., 5.]]
-        v = Variable(x)
-        y = as_strided(v, (3, 3), (1, 2), 0)
+        v = chainer.Variable(x)
+        y = F.as_strided(v, (3, 3), (1, 2), 0)
         # [[0., 2., 4.], [1., 3., 5.,], [2., 4., 6.]]
         y.grad = xp.ones(y.shape, dtype=self.dtype)
         with self.assertRaises(TypeError):
-            gx, = grad((y,), (v,))
+            gx, = chainer.grad((y,), (v,))
 
     def test_general_stride_backward_cpu(self):
         self.check_general_stride_backward(np)

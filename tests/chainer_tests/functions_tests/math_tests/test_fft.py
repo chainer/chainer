@@ -1,7 +1,7 @@
 import numpy
 
-from chainer import testing
 from chainer import functions
+from chainer import testing
 
 
 @testing.parameterize(*testing.product({

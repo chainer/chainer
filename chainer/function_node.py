@@ -21,10 +21,15 @@ from chainer import variable
 import chainerx
 
 
-def _to_variable_with_chainerx_fallback_array(chainerx_array, fallback_array):
+def _to_variable_with_chainerx_fallback_array(
+        chainerx_device, chainerx_array, fallback_array):
     # chainerx_array can be None.
-    var = variable.Variable(
+    assert (
+        chainerx_array is None
+        or chainerx_array.device == chainerx_device.device)
+    var = variable.Variable._init_unchecked(
         chainerx_array,
+        device=chainerx_device,
         requires_grad=(
             False if chainerx_array is None
             else chainerx_array.is_backprop_required()))
@@ -348,6 +353,7 @@ Use apply() method instead.\
 
         if self._is_chainerx_fallback_mode:
             ret = self._chainerx_apply_fallback_postprocess(
+                chainerx_device,
                 chainerx_in_data, inputs, outputs)
 
         else:
@@ -441,11 +447,11 @@ Use apply() method instead.\
         return chainerx_in_data, in_data, device
 
     def _chainerx_apply_fallback_postprocess(
-            self, chainerx_in_data, inputs, outputs):
+            self, chainerx_device, chainerx_in_data, inputs, outputs):
 
         # TODO(hvy): Take configuration.config.enable_backprop into
         # account?
-        chainerx_out_data = backend.to_chx(outputs)
+        chainerx_out_data = chainerx_device.send(outputs)
 
         # Insert a ChainerX op-node that calls FunctionNode.backward in
         # backprop. Note that chainerx_out_data may not require gradients.
@@ -462,6 +468,7 @@ Use apply() method instead.\
 
         ret = tuple([
             _to_variable_with_chainerx_fallback_array(
+                chainerx_device,
                 chainerx_out_array, out_array)
             for chainerx_out_array, out_array
             in six.moves.zip(chainerx_out_data, outputs)])
@@ -867,11 +874,15 @@ Use apply() method instead.\
 
     def unchain(self):
         """Purges in/out nodes and this function node itself from the graph."""
+        if self._is_chainerx_fallback_mode:
+            raise NotImplementedError(
+                'Unchaining is not yet supported in ChainerX fallback mode.')
         for y in self.outputs:
             y_ref = y()
             if y_ref is not None:
                 y_ref.unchain()
         self.inputs = None
+        self.outputs = None
 
     def add_hook(self, hook, name=None):
         """Registers a function hook.
