@@ -196,7 +196,11 @@ def batch_renormalization(x, gamma, beta, rmax, dmax, eps=2e-5,
     See: `Batch Renormalization: Towards Reducing Minibatch Dependence in
     Batch-Normalized Models <https://arxiv.org/abs/1702.03275>`_
 
-    .. seealso:: :class:`~chainer.links.BatchRenormalization`
+    .. seealso::
+
+        :class:`~chainer.links.BatchRenormalization` to manage the model
+        parameters (``gamma``, ``beta``) and the statistics (``running_mean``,
+        ``running_var``).
 
     """
     if running_mean is None:
