@@ -19,19 +19,17 @@
 #include "chainerx/error.h"
 #include "chainerx/graph.h"
 #include "chainerx/kernel_registry.h"
+#include "chainerx/kernels/arithmetic.h"
 #include "chainerx/kernels/connection.h"
-#include "chainerx/kernels/rnn.h"
 #include "chainerx/kernels/linalg.h"
-#include "chainerx/kernels/math.h"
+#include "chainerx/kernels/rnn.h"
 #include "chainerx/macro.h"
-#include "chainerx/routines/connection.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/linalg.h"
-#include "chainerx/routines/manipulation.h"
-#include "chainerx/routines/math.h"
+#include "chainerx/routines/reduction.h"
 #include "chainerx/routines/type_util.h"
-#include "chainerx/stack_vector.h"
-
+#include "chainerx/routines/manipulation.h"
+#include "chainerx/routines/connection.h"
 namespace chainerx {
 
 Array _stack_weight(const std::vector<Array>& ws) {
