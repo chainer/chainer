@@ -339,11 +339,11 @@ Use apply() method instead.\
 
         # NaN check of output values
         if is_debug:
-            if any(chainer.backend._contains_nan(out)
-                   for out in outputs):
-                msg = ('NaN is detected on forward computation of '
-                       '{}'.format(self.label))
-                raise RuntimeError(msg)
+            for out in outputs:
+                if out is not None and chainer.backend._contains_nan(out):
+                    msg = ('NaN is detected on forward computation of '
+                           '{}'.format(self.label))
+                    raise RuntimeError(msg)
 
         self._output_count = len(outputs)
 
