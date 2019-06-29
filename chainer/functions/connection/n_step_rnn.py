@@ -62,8 +62,10 @@ if cuda.cudnn_enabled and _cudnn_version >= 5000:
 class CudnnRNNWeightConcat(function.Function):
 
     """Concatenates weight matrices for cuDNN's RNN.
+
     This function concatenates weight matrices for RNNs into one large array.
     Its format is defined in cuDNN's API.
+
     """
 
     def __init__(self, n_layers, states, rnn_dir, rnn_mode):
@@ -369,30 +371,39 @@ class NStepBiRNNReLU(BaseNStepRNN):
 def n_step_rnn(
         n_layers, dropout_ratio, hx, ws, bs, xs, activation='tanh', **kwargs):
     """n_step_rnn(n_layers, dropout_ratio, hx, ws, bs, xs, activation='tanh')
+
     Stacked Uni-directional RNN function for sequence inputs.
+
     This function calculates stacked Uni-directional RNN with sequences.
     This function gets an initial hidden state :math:`h_0`,
     an initial cell state :math:`c_0`, an input sequence :math:`x`,
     weight matrices :math:`W`, and bias vectors :math:`b`.
     This function calculates hidden states :math:`h_t` and :math:`c_t` for each
     time :math:`t` from input :math:`x_t`.
+
     .. math::
        h_t = f(W_0 x_t + W_1 h_{t-1} + b_0 + b_1)
+
     where :math:`f` is an activation function.
+
     Weight matrices :math:`W` contains two matrices :math:`W_0` and
     :math:`W_1`. :math:`W_0` is a parameter for an input sequence.
     :math:`W_1` is a parameter for a hidden state.
     Bias matrices :math:`b` contains two matrices :math:`b_0` and :math:`b_1`.
     :math:`b_0` is a parameter for an input sequence.
     :math:`b_1` is a parameter for a hidden state.
+
+
     As the function accepts a sequence, it calculates :math:`h_t` for all
     :math:`t` with one call. Two weight matrices and two bias vectors are
     required for each layer. So, when :math:`S` layers exist, you need to
     prepare :math:`2S` weight matrices and :math:`2S` bias vectors.
+
     If the number of layers ``n_layers`` is greather than :math:`1`, input
     of ``k``-th layer is hidden state ``h_t`` of ``k-1``-th layer.
     Note that all input variables except first layer may have different shape
     from the first layer.
+
     Args:
         n_layers(int): Number of layers.
         dropout_ratio(float): Dropout ratio.
@@ -428,15 +439,18 @@ def n_step_rnn(
             ``xs[t].shape[0] >= xs[t + 1].shape[0]``.
         activation (str): Activation function name.
             Please select ``tanh`` or ``relu``.
+
     Returns:
         tuple: This function returns a tuple containing three elements,
         ``hy`` and ``ys``.
+
         - ``hy`` is an updated hidden states whose shape is same as ``hx``.
         - ``ys`` is a list of :class:`~chainer.Variable` . Each element
           ``ys[t]`` holds hidden states of the last layer corresponding
           to an input ``xs[t]``. Its shape is ``(B_t, N)`` where ``B_t`` is
           mini-batch size for time ``t``, and ``N`` is size of hidden
           units. Note that ``B_t`` is the same value as ``xs[t]``.
+
     """
     return n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs,
                            activation, use_bi_direction=False, **kwargs)
@@ -445,38 +459,48 @@ def n_step_rnn(
 def n_step_birnn(
         n_layers, dropout_ratio, hx, ws, bs, xs, activation='tanh', **kwargs):
     """n_step_birnn(n_layers, dropout_ratio, hx, ws, bs, xs, activation='tanh')
+
     Stacked Bi-directional RNN function for sequence inputs.
+
     This function calculates stacked Bi-directional RNN with sequences.
     This function gets an initial hidden state :math:`h_0`, an initial
     cell state :math:`c_0`, an input sequence :math:`x`,
     weight matrices :math:`W`, and bias vectors :math:`b`.
     This function calculates hidden states :math:`h_t` and :math:`c_t` for each
     time :math:`t` from input :math:`x_t`.
+
     .. math::
         h^{f}_t &=& f(W^{f}_0 x_t + W^{f}_1 h_{t-1} + b^{f}_0 + b^{f}_1), \\\\
         h^{b}_t &=& f(W^{b}_0 x_t + W^{b}_1 h_{t-1} + b^{b}_0 + b^{b}_1), \\\\
         h_t  &=& [h^{f}_t; h^{f}_t], \\\\
+
     where :math:`f` is an activation function.
+
     Weight matrices :math:`W` contains two matrices :math:`W^{f}` and
     :math:`W^{b}`. :math:`W^{f}` is weight matrices for forward directional
     RNN. :math:`W^{b}` is weight matrices for backward directional RNN.
+
     :math:`W^{f}` contains :math:`W^{f}_0` for an input sequence and
     :math:`W^{f}_1` for a hidden state.
     :math:`W^{b}` contains :math:`W^{b}_0` for an input sequence and
     :math:`W^{b}_1` for a hidden state.
+
     Bias matrices :math:`b` contains two matrices :math:`b^{f}` and
     :math:`b^{f}`. :math:`b^{f}` contains :math:`b^{f}_0` for an input sequence
     and :math:`b^{f}_1` for a hidden state.
     :math:`b^{b}` contains :math:`b^{b}_0` for an input sequence and
     :math:`b^{b}_1` for a hidden state.
+
     As the function accepts a sequence, it calculates :math:`h_t` for all
     :math:`t` with one call. Two weight matrices and two bias vectors are
     required for each layer. So, when :math:`S` layers exist, you need to
     prepare :math:`2S` weight matrices and :math:`2S` bias vectors.
+
     If the number of layers ``n_layers`` is greather than :math:`1`, input
     of ``k``-th layer is hidden state ``h_t`` of ``k-1``-th layer.
     Note that all input variables except first layer may have different shape
     from the first layer.
+
     Args:
         n_layers(int): Number of layers.
         dropout_ratio(float): Dropout ratio.
@@ -519,15 +543,18 @@ def n_step_birnn(
             ``xs[t].shape[0] >= xs[t + 1].shape[0]``.
         activation (str): Activation function name.
             Please select ``tanh`` or ``relu``.
+
     Returns:
         tuple: This function returns a tuple containing three elements,
         ``hy`` and ``ys``.
+
         - ``hy`` is an updated hidden states whose shape is same as ``hx``.
         - ``ys`` is a list of :class:`~chainer.Variable` . Each element
           ``ys[t]`` holds hidden states of the last layer corresponding
           to an input ``xs[t]``. Its shape is ``(B_t, N)`` where ``B_t``
           is mini-batch size for time ``t``, and ``N`` is size of hidden
           units. Note that ``B_t`` is the same value as ``xs[t]``.
+
     """
     return n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs,
                            activation, use_bi_direction=True)
@@ -537,11 +564,14 @@ def n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs,
                     activation, use_bi_direction, **kwargs):
     """n_step_rnn_base(n_layers, dropout_ratio, hx, ws, bs, xs, activation, \
 use_bi_direction)
+
     Base function for Stack RNN/BiRNN functions.
+
     This function is used at  :func:`chainer.functions.n_step_birnn` and
     :func:`chainer.functions.n_step_rnn`.
     This function's behavior depends on following arguments,
     ``activation`` and ``use_bi_direction``.
+
     Args:
         n_layers(int): Number of layers.
         dropout_ratio(float): Dropout ratio.
@@ -579,18 +609,22 @@ use_bi_direction)
             Please select ``tanh`` or ``relu``.
         use_bi_direction (bool): If ``True``, this function uses
             Bi-directional RNN.
+
     Returns:
         tuple: This function returns a tuple containing three elements,
             ``hy`` and ``ys``.
+
             - ``hy`` is an updated hidden states whose shape is same as ``hx``.
             - ``ys`` is a list of :class:`~chainer.Variable` . Each element
               ``ys[t]`` holds hidden states of the last layer corresponding
               to an input ``xs[t]``. Its shape is ``(B_t, N)`` where ``B_t``
               is mini-batch size for time ``t``, and ``N`` is size of hidden
               units. Note that ``B_t`` is the same value as ``xs[t]``.
+
     .. seealso::
        :func:`chainer.functions.n_step_rnn`
        :func:`chainer.functions.n_step_birnn`
+
     """
     if kwargs:
         argument.check_unexpected_kwargs(

@@ -178,7 +178,7 @@ std::vector<RetainedOutputToken> BackwardBuilder::RetainOutput(std::vector<size_
         token.push_back({internal::GetArrayBody(gsl::at(outputs_, i))->GetParams(), i});
     }
     return token;
- }
+}
 
 void BackwardBuilder::Finalize() {
     CHAINERX_ASSERT(!is_finalized_);

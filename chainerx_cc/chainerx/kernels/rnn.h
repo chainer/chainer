@@ -45,7 +45,6 @@ public:
             const int8_t mode) = 0;
 };
 
-
 class RnnBackwardKernel : public Kernel {
 public:
     static const char* name() { return "RnnBackward"; }

@@ -30,7 +30,6 @@
 #include "chainerx/routines/reduction.h"
 #include "chainerx/routines/type_util.h"
 
-
 namespace chainerx {
 namespace internal {
 

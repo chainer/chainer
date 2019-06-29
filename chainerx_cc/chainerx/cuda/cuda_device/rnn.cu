@@ -56,7 +56,7 @@ void initGPUData(float* data, int numElements, float* value) {
 }
 
 void weights_forward(
-    cuda_internal::DeviceInternals& device_internals,
+        cuda_internal::DeviceInternals& device_internals,
         cudnnRNNDescriptor_t rnn_desc,
         std::vector<std::vector<Array>> ws,
         std::vector<std::vector<Array>> bs,
@@ -99,7 +99,7 @@ void weights_forward(
                 cudnnCreateFilterDescriptor(&linlayerbiasdesc);
                 float* b_offset;
                 device_internals.cudnn_handle().Call(
-                     cudnnGetRNNLinLayerBiasParams,
+                        cudnnGetRNNLinLayerBiasParams,
                         rnn_desc,
                         index,
                         x_desc,
@@ -305,7 +305,7 @@ public:
                 reserve_size);
 
         std::vector<int64_t> split_indices;
-         for (uint i = 0; i < xs.size() - 1; i++) {
+        for (uint i = 0; i < xs.size() - 1; i++) {
             if (i != 0) {
                 split_indices.push_back(split_indices[i - 1] + xs[i].shape()[0]);
             } else {
