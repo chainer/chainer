@@ -1,4 +1,5 @@
 import argparse
+import warnings
 
 import numpy
 
@@ -196,6 +197,10 @@ def main():
     parser.add_argument('--test', dest='test', action='store_true')
     parser.set_defaults(test=False)
     args = parser.parse_args()
+
+    if chainer.get_dtype() == numpy.float16:
+        warnings.warn(
+            'This example may cause NaN in FP16 mode.', RuntimeWarning)
 
     vocab = {}
     max_size = None
