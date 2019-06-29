@@ -108,7 +108,7 @@ class TestSolve(op_utils.NumpyOpTest):
 
     def setup(self):
         device = chainerx.get_default_device()
-        if (device.name == 'native:0'
+        if (device.backend.name == 'native'
                 and not chainerx.linalg._is_lapack_available()):
             pytest.skip('LAPACK is not linked to ChainerX')
 
@@ -138,7 +138,7 @@ class TestSolveFailing(op_utils.NumpyOpTest):
 
     def setup(self):
         device = chainerx.get_default_device()
-        if (device.name == 'native:0'
+        if (device.backend.name == 'native'
                 and not chainerx.linalg._is_lapack_available()):
             pytest.skip('LAPACK is not linked to ChainerX')
 
@@ -166,7 +166,7 @@ class TestInverse(op_utils.NumpyOpTest):
 
     def setup(self):
         device = chainerx.get_default_device()
-        if (device.name == 'native:0'
+        if (device.backend.name == 'native'
                 and not chainerx.linalg._is_lapack_available()):
             pytest.skip('LAPACK is not linked to ChainerX')
 
@@ -195,7 +195,7 @@ class TestInverseFailing(op_utils.NumpyOpTest):
 
     def setup(self):
         device = chainerx.get_default_device()
-        if (device.name == 'native:0'
+        if (device.backend.name == 'native'
                 and not chainerx.linalg._is_lapack_available()):
             pytest.skip('LAPACK is not linked to ChainerX')
 
