@@ -59,7 +59,7 @@ public:
                 nrhs = b.shape()[1];
             }
 
-            Array ipiv = Empty(Shape({n}), Dtype::kInt32, device);
+            Array ipiv = Empty(Shape{n}, Dtype::kInt32, device);
             int* ipiv_ptr = static_cast<int*>(internal::GetRawOffsetData(ipiv));
 
             device.backend().CallKernel<CopyKernel>(b, out);
@@ -112,7 +112,7 @@ public:
 
             int n = a.shape()[0];
 
-            Array ipiv = Empty(Shape({n}), Dtype::kInt32, device);
+            Array ipiv = Empty(Shape{n}, Dtype::kInt32, device);
             int* ipiv_ptr = static_cast<int*>(internal::GetRawOffsetData(ipiv));
 
             int info;
@@ -125,7 +125,7 @@ public:
             T work_size;
             getri(&n, out_ptr, &n, ipiv_ptr, &work_size, &buffersize, &info);
             buffersize = static_cast<int>(work_size);
-            Array work = Empty(Shape({buffersize}), dtype, device);
+            Array work = Empty(Shape{buffersize}, dtype, device);
             T* work_ptr = static_cast<T*>(internal::GetRawOffsetData(work));
 
             getri(&n, out_ptr, &n, ipiv_ptr, work_ptr, &buffersize, &info);

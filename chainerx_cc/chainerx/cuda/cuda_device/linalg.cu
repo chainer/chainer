@@ -55,13 +55,13 @@ public:
 
             int m = a.shape()[0];
 
-            Array ipiv = Empty(Shape({m}), Dtype::kInt32, device);
+            Array ipiv = Empty(Shape{m}, Dtype::kInt32, device);
             int* ipiv_ptr = static_cast<int*>(internal::GetRawOffsetData(ipiv));
 
             int buffersize = 0;
             device_internals.cusolverdn_handle().Call(getrf_bufferSize, m, m, lu_ptr, m, &buffersize);
 
-            Array work = Empty(Shape({buffersize}), dtype, device);
+            Array work = Empty(Shape{buffersize}, dtype, device);
             T* work_ptr = static_cast<T*>(internal::GetRawOffsetData(work));
 
             std::shared_ptr<void> devInfo = device.Allocate(sizeof(int));
