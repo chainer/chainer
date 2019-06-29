@@ -1,6 +1,5 @@
 install(FILES
     cublas.h
-    cusolver.h
     cuda.h
     cuda_backend.h
     cuda_conv.h
@@ -8,6 +7,7 @@ install(FILES
     cuda_set_device_scope.h
     cuda_runtime.h
     cudnn.h
+    cusolver.h
     data_type.cuh
     elementwise.cuh
     float16.cuh
@@ -21,7 +21,6 @@ install(FILES
 
 CUDA_ADD_LIBRARY(chainerx_cuda STATIC
     cublas.cc
-    cusolver.cc
     cuda.cc
     cuda_conv.cc
     cuda_device.cc
@@ -47,6 +46,7 @@ CUDA_ADD_LIBRARY(chainerx_cuda STATIC
     cuda_backend.cc
     cuda_runtime.cc
     cudnn.cc
+    cusolver.cc
     memory_pool.cc
     )
 
