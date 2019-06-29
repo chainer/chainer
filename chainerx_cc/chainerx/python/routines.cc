@@ -732,6 +732,11 @@ void InitChainerxMisc(pybind11::module& m) {
           [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return MoveArrayBody(Minimum(Array{x1}, Array{x2})); },
           "x1"_a,
           "x2"_a);
+    m.def("clip",
+          [](const ArrayBodyPtr& a, Scalar a_min, Scalar a_max) { return MoveArrayBody(Clip(Array{a}, a_min, a_max)); },
+          "a"_a,
+          "a_min"_a,
+          "a_max"_a);
 }
 
 void InitChainerxReduction(pybind11::module& m) {

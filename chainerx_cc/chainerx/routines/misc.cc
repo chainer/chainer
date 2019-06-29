@@ -237,4 +237,10 @@ Array Minimum(const Array& x1, const Array& x2) {
     return internal::BroadcastBinary(&MinimumImpl, x1, x2, dtype);  // x1 > x2 ? x2 : x1
 }
 
+Array Clip(const Array& a, Scalar a_min, Scalar a_max) {
+    Array max = Maximum(a, a_min);
+    Array min = Minimum(max, a_max);
+    return min;
+}
+
 }  // namespace chainerx
