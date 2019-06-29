@@ -6,7 +6,7 @@
 #include <utility>
 #include <vector>
 
-#include <nonstd/optional.hpp>
+#include <absl/types/optional.h>
 
 #include "chainerx/array.h"
 #include "chainerx/axes.h"
@@ -24,7 +24,7 @@
 
 namespace chainerx {
 
-Array Dot(const Array& a, const Array& b, nonstd::optional<Dtype> out_dtype) {
+Array Dot(const Array& a, const Array& b, absl::optional<Dtype> out_dtype) {
     Dtype real_out_dtype = out_dtype.has_value() ? *out_dtype : ResultType(a, b);
 
     if (a.ndim() == 0 || b.ndim() == 0) {

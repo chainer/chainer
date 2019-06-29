@@ -14,8 +14,8 @@
 #include <utility>
 #include <vector>
 
+#include <absl/types/optional.h>
 #include <gsl/gsl>
-#include <nonstd/optional.hpp>
 
 #include "chainerx/array_body.h"
 #include "chainerx/array_node.h"
@@ -52,7 +52,7 @@
 namespace chainerx {
 namespace internal {
 
-BackpropId GetArrayBackpropId(const Array& array, const nonstd::optional<BackpropId>& backprop_id) {
+BackpropId GetArrayBackpropId(const Array& array, const absl::optional<BackpropId>& backprop_id) {
     return backprop_id.has_value() ? *backprop_id : array.device().context().default_backprop_id();
 }
 
@@ -69,10 +69,10 @@ std::vector<std::shared_ptr<ArrayBody>> MoveArrayBodies(std::vector<Array>&& arr
     return array_body_ptrs;
 }
 
-std::vector<std::shared_ptr<ArrayBody>> MoveArrayBodies(std::vector<nonstd::optional<Array>>&& arrays) {
+std::vector<std::shared_ptr<ArrayBody>> MoveArrayBodies(std::vector<absl::optional<Array>>&& arrays) {
     std::vector<std::shared_ptr<ArrayBody>> array_body_ptrs;
     array_body_ptrs.reserve(arrays.size());
-    for (nonstd::optional<Array>& array : arrays) {
+    for (absl::optional<Array>& array : arrays) {
         if (array.has_value()) {
             array_body_ptrs.emplace_back(MoveArrayBody(std::move(*array)));
         } else {
@@ -416,19 +416,19 @@ void Array::Fill(Scalar value) const {
     device().backend().CallKernel<FillKernel>(*this, value);
 }
 
-const nonstd::optional<Array>& Array::GetGrad(const nonstd::optional<BackpropId>& backprop_id) const {
+const absl::optional<Array>& Array::GetGrad(const absl::optional<BackpropId>& backprop_id) const {
     BackpropId actual_backprop_id = internal::GetArrayBackpropId(*this, backprop_id);
     if (!IsGradRequired(actual_backprop_id)) {
         throw ChainerxError{"Array is not flagged as requiring gradient for backprop id: '", actual_backprop_id, "'."};
     }
-    const nonstd::optional<Array>* grad = body_->GetGrad(actual_backprop_id);
+    const absl::optional<Array>* grad = body_->GetGrad(actual_backprop_id);
     CHAINERX_ASSERT(grad != nullptr);
     return *grad;
 }
 
-void Array::SetGrad(Array grad, const nonstd::optional<BackpropId>& backprop_id) const {
+void Array::SetGrad(Array grad, const absl::optional<BackpropId>& backprop_id) const {
     BackpropId actual_backprop_id = internal::GetArrayBackpropId(*this, backprop_id);
-    nonstd::optional<Array>* target_grad = body_->GetGrad(actual_backprop_id);
+    absl::optional<Array>* target_grad = body_->GetGrad(actual_backprop_id);
     if (target_grad == nullptr) {
         throw ChainerxError{"Array is constant with respect to the computation for backprop ID: '", actual_backprop_id, "'."};
     }
@@ -439,7 +439,7 @@ void Array::SetGrad(Array grad, const nonstd::optional<BackpropId>& backprop_id)
     internal::SetGrad(*target_grad, std::move(grad), shape(), dtype(), device());
 }
 
-void Array::ClearGrad(const nonstd::optional<BackpropId>& backprop_id) const {
+void Array::ClearGrad(const absl::optional<BackpropId>& backprop_id) const {
     BackpropId actual_backprop_id = internal::GetArrayBackpropId(*this, backprop_id);
     if (!body_->HasArrayNode(actual_backprop_id)) {
         throw ChainerxError{"Array is constant with respect to the computation for backprop ID: '", actual_backprop_id, "'."};
@@ -447,7 +447,7 @@ void Array::ClearGrad(const nonstd::optional<BackpropId>& backprop_id) const {
     body_->ClearGrad(actual_backprop_id);
 }
 
-bool Array::IsBackpropRequired(const nonstd::optional<BackpropId>& backprop_id) const {
+bool Array::IsBackpropRequired(const absl::optional<BackpropId>& backprop_id) const {
     BackpropId actual_backprop_id = internal::GetArrayBackpropId(*this, backprop_id);
     return body_->HasArrayNode(actual_backprop_id) && chainerx::IsBackpropRequired(actual_backprop_id);
 }
@@ -459,13 +459,13 @@ bool Array::IsBackpropRequired(AnyGraph /*any_graph*/) const {
     });
 }
 
-bool Array::IsGradRequired(const nonstd::optional<BackpropId>& backprop_id) const {
+bool Array::IsGradRequired(const absl::optional<BackpropId>& backprop_id) const {
     BackpropId actual_backprop_id = internal::GetArrayBackpropId(*this, backprop_id);
     return body_->IsGradRequired(actual_backprop_id);
 }
 
 template <typename T>
-T& Array::RequireGradImpl(T& array, const nonstd::optional<BackpropId>& backprop_id) {
+T& Array::RequireGradImpl(T& array, const absl::optional<BackpropId>& backprop_id) {
     if (GetKind(array.dtype()) != DtypeKind::kFloat) {
         throw DtypeError{"Array with integral dtype (", GetDtypeName(array.dtype()), ") cannot compute gradient"};
     }
@@ -474,8 +474,8 @@ T& Array::RequireGradImpl(T& array, const nonstd::optional<BackpropId>& backprop
     return array;
 }
 
-template const Array& Array::RequireGradImpl<const Array>(const Array& array, const nonstd::optional<BackpropId>& backprop_id);
-template Array& Array::RequireGradImpl<Array>(Array& array, const nonstd::optional<BackpropId>& backprop_id);
+template const Array& Array::RequireGradImpl<const Array>(const Array& array, const absl::optional<BackpropId>& backprop_id);
+template Array& Array::RequireGradImpl<Array>(Array& array, const absl::optional<BackpropId>& backprop_id);
 
 std::string Array::ToString() const { return ArrayRepr(*this); }
 
@@ -551,7 +551,7 @@ public:
                     os_ << Indent(indent + 2) << "body=(gone)" << std::endl;
                 } else {
                     os_ << Indent(indent + 2) << "body=" << body.get() << std::endl;
-                    const nonstd::optional<Array>* grad = body->GetGrad(array_node.backprop_id());
+                    const absl::optional<Array>* grad = body->GetGrad(array_node.backprop_id());
                     CHAINERX_ASSERT(grad != nullptr);
                     if (grad->has_value()) {
                         os_ << Indent(indent + 2) << "grad=<shape=" << (*grad)->shape() << " dtype=" << GetDtypeName((*grad)->dtype())
@@ -589,7 +589,7 @@ private:
 void DebugDumpComputationalGraph(
         std::ostream& os,
         const Array& array,
-        const nonstd::optional<BackpropId>& backprop_id,
+        const absl::optional<BackpropId>& backprop_id,
         int indent,
         const std::vector<std::pair<ConstArrayRef, std::string>>& array_name_map) {
     PrintComputationalGraphImpl impl{os};
