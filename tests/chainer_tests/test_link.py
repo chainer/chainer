@@ -911,7 +911,7 @@ Chain(
     def test_delete_link(self):
         del self.c1.l1
         self.assertFalse(hasattr(self.c1, 'l1'))
-        self.assertNotIn('l1', self.c1._children)
+        self.assertNotIn('l1', self.c1.children())
 
     def test_copy_with_share_mode(self):
         self.l1.x.initializer = initializers.Normal(
@@ -923,10 +923,8 @@ Chain(
 
         c2 = self.c2.copy(mode='share')
         self.assertIs(c2.name, None)
-        self.assertIsInstance(c2._children, set)
         self.assertTrue(hasattr(c2, 'c1'))
         self.assertEqual(c2.c1.name, 'c1')
-        self.assertIsInstance(c2.c1._children, set)
         self.assertIsNot(c2.c1, self.c1)
         self.assertEqual(c2.c1.l1.name, 'l1')
         self.assertIsNot(c2.c1.l1, self.l1)
@@ -958,10 +956,8 @@ Chain(
 
         c2 = self.c2.copy(mode='copy')
         self.assertIs(c2.name, None)
-        self.assertIsInstance(c2._children, set)
         self.assertTrue(hasattr(c2, 'c1'))
         self.assertEqual(c2.c1.name, 'c1')
-        self.assertIsInstance(c2.c1._children, set)
         self.assertIsNot(c2.c1, self.c1)
         self.assertEqual(c2.c1.l1.name, 'l1')
         self.assertIsNot(c2.c1.l1, self.l1)
@@ -997,10 +993,8 @@ Chain(
 
         c2 = self.c2.copy(mode='init')
         self.assertIs(c2.name, None)
-        self.assertIsInstance(c2._children, set)
         self.assertTrue(hasattr(c2, 'c1'))
         self.assertEqual(c2.c1.name, 'c1')
-        self.assertIsInstance(c2.c1._children, set)
         self.assertIsNot(c2.c1, self.c1)
         self.assertEqual(c2.c1.l1.name, 'l1')
         self.assertIsNot(c2.c1.l1, self.l1)
@@ -1541,10 +1535,8 @@ ChainList(
         self.l2.x.initialize(self.l2.x.shape)
 
         self.assertIs(c2.name, None)
-        self.assertIsInstance(c2._children, list)
         self.assertIsNot(c2[0], self.c1)
         self.assertEqual(c2[0].name, '0')
-        self.assertIsInstance(c2[0]._children, list)
         self.assertIsNot(c2[0][0], self.l1)
         self.assertEqual(c2[0][0].name, '0')
         self.assertIsNot(c2[0][0].x, self.l1.x)
@@ -1573,9 +1565,7 @@ ChainList(
 
         c2 = self.c2.copy(mode='copy')
         self.assertIs(c2.name, None)
-        self.assertIsInstance(c2._children, list)
         self.assertEqual(c2[0].name, '0')
-        self.assertIsInstance(c2[0]._children, list)
         self.assertIsNot(c2[0][0], self.l1)
         self.assertEqual(c2[0][0].name, '0')
         self.assertIsNot(c2[0][0].x, self.l1.x)
@@ -1607,9 +1597,7 @@ ChainList(
 
         c2 = self.c2.copy(mode='init')
         self.assertIs(c2.name, None)
-        self.assertIsInstance(c2._children, list)
         self.assertEqual(c2[0].name, '0')
-        self.assertIsInstance(c2[0]._children, list)
         self.assertIsNot(c2[0][0], self.l1)
         self.assertEqual(c2[0][0].name, '0')
         self.assertIsNot(c2[0][0].x, self.l1.x)

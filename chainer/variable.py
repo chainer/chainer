@@ -491,6 +491,8 @@ class Variable(object):
 
     """
 
+    name = None
+
     # Cached value of `self.xp is chainerx`. It prevents from initializing
     # self._device as much as possible because it is really costly.
     _has_chainerx_array = False

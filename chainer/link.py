@@ -36,17 +36,6 @@ def _is_shape(value):
         return False
 
 
-def _ensure_shape_dtype(value):
-    # type: (tp.Optional[tp.Any]) -> tp.Tuple[tp.Optional[types.ShapeSpec], types.DTypeSpec] # NOQA
-
-    # Return value paired with dtype FP32 if it is a shape.
-    if _is_shape(value):
-        return value, numpy.float32
-    # Otherwise, returns it with assuming a shape-dtype pair.
-    else:
-        return value  # type: ignore
-
-
 class Link(device_resident.DeviceResident):
 
     """Building block of model definitions.
@@ -143,22 +132,41 @@ class Link(device_resident.DeviceResident):
     _local_link_hooks = None  # type: tp.Optional[collections.OrderedDict[str, chainer.LinkHook]] # NOQA
     __init_done = False
 
-    def __init__(self, **params):
+    def __init__(self, **childs):
         # type: (**tp.Any) -> None
 
         super(Link, self).__init__()
 
-        self._params = set()  # type: tp.Set[str]
-        self._persistent = set()  # type: tp.Set[str]
-        self._within_init_scope = False  # type: bool
-        self.name = None  # type: tp.Optional[str]
+        self._params = set()  # Parameters
+        self._persistent = set()  # Persistents
+        self._links = set()  # Child links
+        self._within_init_scope = False
+        self.name = None
 
         # This flag has to be set before calling add_param().
         self.__init_done = True
 
-        for name, value in six.iteritems(params):
-            shape, dtype = _ensure_shape_dtype(value)
-            self.add_param(name, shape, dtype=dtype)
+        # Classify child objects.
+        params = []
+        links = []
+        for name, c in six.iteritems(childs):
+            if isinstance(c, Link):
+                links.append((name, c))
+            else:
+                param = self.__as_parameter(c, name=name)
+                if param is not None:
+                    params.append(param)
+                else:
+                    raise TypeError()
+
+        with self.init_scope():
+            # Add parameters.
+            for param in params:
+                self._add_param(param)
+
+            # Add links.
+            for name, link in links:
+                self.add_link(name, link)
 
     def __check_init_done(self):
         if not self.__init_done:
@@ -171,6 +179,44 @@ class Link(device_resident.DeviceResident):
         return '{cls}({specs})'.format(
             cls=self.__class__.__name__, specs=specs,
         )
+
+    def __as_parameter(self, value, initializer=None, name=None):
+        # Returns a `chainer.Parameter` instance given arguments.
+        # `value` can be either `Parameter`, a shape, or a tuple of shape and
+        # dtype.
+
+        if isinstance(value, chainer.Parameter):
+            # Parameter is given
+            assert initializer is None
+            param = value
+            if param.name is None:
+                param.name = name
+            elif param.name != name:
+                raise ValueError(
+                    'Parameter name mismatch. '
+                    'parameter: {!r}, given: {!r}'.format(param.name, name))
+            return param
+
+        if _is_shape(value):
+            # Shape is given
+            shape, dtype = value, None
+        elif len(value) == 2 and _is_shape(value[0]):
+            # Tuple (shape, dtype) is given
+            shape, dtype = value
+        else:
+            raise TypeError(
+                'The given value cannot be interpreted as a parameter: ',
+                '{!r}'.format(value))
+
+        # If initializer is not given, it defaults to NaN initializer, whose
+        # dtype defaults to numpy.float32.
+        if initializer is None:
+            if dtype is None:
+                dtype = numpy.float32
+            initializer = initializers.NaN(dtype)
+
+        param = variable.Parameter(initializer, shape=shape, name=name)
+        return param
 
     @property
     def local_link_hooks(self):
@@ -302,13 +348,28 @@ class Link(device_resident.DeviceResident):
 
         return out
 
+    def __getitem__(self, name):
+        # type: (str) -> tp.Any
+        """Equivalent to getattr."""
+        return getattr(self, name)
+
     def __setattr__(self, name, value):
         # type: (str, tp.Any) -> None
 
-        if self.within_init_scope and isinstance(value, variable.Parameter):
-            value.name = name
-            self._params.add(name)
-            self._persistent.discard(name)
+        if self.within_init_scope:
+            if isinstance(value, variable.Parameter):
+                if value.name is None:
+                    value.name = name
+                elif value.name != name:
+                    raise ValueError()
+                self._params.add(name)
+                self._persistent.discard(name)
+            elif isinstance(value, Link):
+                if hasattr(self, name):
+                    raise AttributeError(
+                        'cannot register a new link %s: attribute exists' % name)
+                value.name = name
+                self._links.add(name)
         super(Link, self).__setattr__(name, value)
 
     def __delattr__(self, name):
@@ -316,10 +377,13 @@ class Link(device_resident.DeviceResident):
 
         self._params.discard(name)
         self._persistent.discard(name)
+        self._links.discard(name)
         super(Link, self).__delattr__(name)
 
-    def add_param(self, name, shape=None, dtype=numpy.float32,
-                  initializer=None):
+    def _add_param(self, param):
+        setattr(self, param.name, param)
+
+    def add_param(self, name, shape=None, dtype=None, initializer=None):
         # type: (str, tp.Optional[types.ShapeSpec], types.DTypeSpec, tp.Optional[types.InitializerSpec]) -> None # NOQA
         """Registers a parameter to the link.
 
@@ -328,7 +392,9 @@ class Link(device_resident.DeviceResident):
                 attribute name.
             shape (int or tuple of ints): Shape of the parameter array. If it
                 is omitted, the parameter variable is left uninitialized.
+                Ignored if ``initializer`` is given.
             dtype: Data type of the parameter array.
+                Ignored if ``initializer`` is given.
             initializer (:ref:`initializer <initializer>`): If it is not
                 ``None``, the data is initialized with the given initializer.
                 If it is an array, the data is directly initialized by it. If
@@ -342,11 +408,12 @@ class Link(device_resident.DeviceResident):
             raise AttributeError(
                 'cannot register a new parameter %s: attribute exists'
                 % name)
-        if initializer is None:
-            initializer = initializers.NaN(dtype)
-        param = variable.Parameter(initializer, shape)
+
+        param = self.__as_parameter(
+            (shape, dtype), initializer=initializer, name=name)
+
         with self.init_scope():
-            setattr(self, name, param)
+            self._add_param(param)
 
     def add_persistent(self, name, value):
         # type: (str, tp.Any) -> None
@@ -390,6 +457,24 @@ class Link(device_resident.DeviceResident):
         self._persistent.add(name)
         self._params.discard(name)
 
+    def add_link(self, name, link):
+        # type: (str, Link) -> None
+        """Registers a child link to this chain.
+
+        Args:
+            name (str): Name of the child link. This name is also used as the
+                attribute name.
+            link (Link): The link object to be registered.
+
+        """
+        if name in self.__dict__:
+            raise AttributeError(
+                'cannot register a new link %s: attribute exists' % name)
+        if not isinstance(link, Link):
+            raise TypeError('cannot register a non-link object as a child')
+        with self.init_scope():
+            setattr(self, name, link)
+
     def copy(self, mode='share'):
         # type: (str) -> 'Link'
         """Copies the link hierarchy to new one.
@@ -430,29 +515,41 @@ class Link(device_resident.DeviceResident):
             for name in ret._params:
                 d[name] = copy.copy(d[name])
                 d[name].grad = None
-            return ret
         elif mode == 'copy':
-            return copy.deepcopy(self)
+            ret = copy.deepcopy(self)
         elif mode == 'init':
             ret = copy.deepcopy(self)
             for param in ret.params(include_uninit=False):
                 param.initialize(param.shape)
-            return ret
         else:
             raise ValueError(
                 'The \'mode\' argument should be either \'init\','
                 '\'copy\', or \'share\'. But {} was given.'.format(mode))
 
+        # Copy child links.
+        ret._links = set(ret._links)
+        d = ret.__dict__
+        for name in ret._links:
+            copied = d[name].copy(mode)  # recurse
+            copied.name = name
+            d[name] = copied
+        return ret
+
     def device_resident_accept(self, visitor):
         super(Link, self).device_resident_accept(visitor)
         d = self.__dict__
+        # Parameters
         for name in self._params:
             x = d[name]
             visitor.visit_variable(x)
+        # Persistents
         for name in self._persistent:
             x = d[name]
             if isinstance(x, chainer.get_array_types()):
                 d[name] = visitor.visit_array(x)
+        # Links
+        for name in self._links:
+            d[name].device_resident_accept(visitor)
 
     def params(self, include_uninit=True):
         # type: (bool) -> tp.Iterator[chainer.Parameter]
@@ -466,10 +563,17 @@ class Link(device_resident.DeviceResident):
             A generator object that generates all parameters.
 
         """
-        d = self.__dict__  # type: tp.Dict[str, chainer.Parameter]
+        d = self.__dict__
+
+        # Direct parameters
         for name in sorted(self._params):
             if include_uninit or d[name].data is not None:
                 yield d[name]
+
+        # Parameters from descendants
+        for name in sorted(self._links):
+            for param in d[name].params(include_uninit):
+                yield param
 
     def namedparams(self, include_uninit=True):
         # type: (bool) -> tp.Iterator[tp.Tuple[str, chainer.Parameter]]
@@ -484,10 +588,18 @@ class Link(device_resident.DeviceResident):
             paths are relative from this link.
 
         """
-        d = self.__dict__  # type: tp.Dict[str, chainer.Parameter]
+        d = self.__dict__
+
+        # Direct parameters
         for name in sorted(self._params):
             if include_uninit or d[name].data is not None:
                 yield '/' + name, d[name]
+
+        # Parameters from descendants
+        for name in sorted(self._links):
+            prefix = '/' + name
+            for path, param in d[name].namedparams(include_uninit):
+                yield prefix + path, param
 
     def links(self, skipself=False):
         # type: (bool) -> tp.Iterator['Link']
@@ -504,6 +616,11 @@ class Link(device_resident.DeviceResident):
         if not skipself:
             yield self
 
+        d = self.__dict__
+        for name in sorted(self._links):
+            for link in d[name].links():
+                yield link
+
     def namedlinks(self, skipself=False):
         # type: (bool) -> tp.Iterator[tp.Tuple[str, 'Link']]
         """Returns a generator of all (path, link) pairs under the hierarchy.
@@ -519,6 +636,15 @@ class Link(device_resident.DeviceResident):
         if not skipself:
             yield '/', self
 
+        d = self.__dict__
+
+        for name in sorted(self._links):
+            child = d[name]
+            prefix = '/' + name
+            yield prefix, child
+            for path, link in d[name].namedlinks(True):
+                yield prefix + path, link
+
     def children(self):
         # type: () -> tp.Iterator['Link']
         """Returns a generator of all child links.
@@ -527,8 +653,9 @@ class Link(device_resident.DeviceResident):
             A generator object that generates all child links.
 
         """
-        if 0:
-            yield
+        d = self.__dict__
+        for name in sorted(self._links):
+            yield d[name]
 
     def copyparams(self, link, copy_persistent=True):
         # type: ('Link', bool) -> None
@@ -552,6 +679,8 @@ class Link(device_resident.DeviceResident):
         """
         src = link.__dict__
         dst = self.__dict__
+
+        # Direct parameters and persistents
         for name in self._params:
             dst[name].copydata(src[name])
         if copy_persistent:
@@ -563,6 +692,10 @@ class Link(device_resident.DeviceResident):
                     backend.copyto(d, s)
                 else:
                     dst[name] = copy.deepcopy(s)
+
+        # Descendants
+        for name in self._links:
+            dst[name].copyparams(src[name], copy_persistent)
 
     def cleargrads(self):
         # type: () -> None
@@ -604,8 +737,12 @@ class Link(device_resident.DeviceResident):
         """
         src = link.__dict__
         dst = self.__dict__
+        # Parameters
         for name in self._params:
             dst[name].addgrad(src[name])
+        # Links
+        for name in self._links:
+            dst[name].addgrads(src[name])
 
     def enable_update(self):
         # type: () -> None
@@ -651,16 +788,24 @@ class Link(device_resident.DeviceResident):
             serializer (~chainer.AbstractSerializer): Serializer object.
 
         """
-        d = self.__dict__  # type: tp.Dict[str, chainer.Parameter]
+        d = self.__dict__
+
+        # Parameters
         for name in self._params:
             param = d[name]
-            data = serializer(name, param.data)  # type: types.NdArray
+            data = serializer(name, param.data)
             if param.data is None and data is not None:
                 # Initialize the parameter here
                 param.initialize(data.shape)
                 param.data[:] = param.device.send(data)
+
+        # Persistents
         for name in self._persistent:
             d[name] = serializer(name, d[name])
+
+        # Links
+        for name in self._links:
+            d[name].serialize(serializer[name])
 
     def repeat(self, n_repeat, mode='init'):
         # type: (int, str) -> chainer.Sequential
@@ -872,15 +1017,6 @@ class Chain(Link):
 
     """
 
-    def __init__(self, **links):
-        # type: (**Link) -> None
-
-        super(Chain, self).__init__()
-        self._children = set()  # type: tp.Set[str]
-
-        for name, link in six.iteritems(links):
-            self.add_link(name, link)
-
     def __str__(self):
         reps = []
         for child in self.children():
@@ -897,142 +1033,6 @@ class Chain(Link):
         return '{cls}({children})'.format(
             cls=self.__class__.__name__, children=reps,
         )
-
-    def __getitem__(self, name):
-        # type: (str) -> tp.Any
-        """Equivalent to getattr."""
-        return getattr(self, name)
-
-    def __setattr__(self, name, value):
-        # type: (str, tp.Any) -> None
-
-        if self.within_init_scope and isinstance(value, Link):
-            if hasattr(self, name):
-                raise AttributeError(
-                    'cannot register a new link %s: attribute exists' % name)
-            value.name = name
-            self._children.add(name)
-        super(Chain, self).__setattr__(name, value)
-
-    def __delattr__(self, name):
-        # type: (str) -> None
-
-        self._children.discard(name)
-        super(Chain, self).__delattr__(name)
-
-    def add_link(self, name, link):
-        # type: (str, Link) -> None
-        """Registers a child link to this chain.
-
-        Args:
-            name (str): Name of the child link. This name is also used as the
-                attribute name.
-            link (Link): The link object to be registered.
-
-        """
-        if name in self.__dict__:
-            raise AttributeError(
-                'cannot register a new link %s: attribute exists' % name)
-        if not isinstance(link, Link):
-            raise TypeError('cannot register a non-link object as a child')
-        with self.init_scope():
-            setattr(self, name, link)
-
-    def copy(self, mode='share'):
-        # type: (str) -> 'Chain'
-
-        ret = super(Chain, self).copy()  # type: ignore # should be Chain
-        ret._children = set(ret._children)  # type: ignore
-        d = ret.__dict__  # type: tp.Dict[str, Link]
-        for name in ret._children:  # type: ignore
-            # copy child links recursively
-            copied = d[name].copy(mode)
-            copied.name = name
-            d[name] = copied
-        return ret  # type: ignore
-
-    def device_resident_accept(self, visitor):
-        super(Chain, self).device_resident_accept(visitor)
-        d = self.__dict__
-        for name in self._children:
-            d[name].device_resident_accept(visitor)
-
-    def params(self, include_uninit=True):
-        # type: (bool) -> tp.Iterator[chainer.Parameter]
-
-        for param in super(Chain, self).params(include_uninit):
-            yield param
-        d = self.__dict__  # type: tp.Dict[str, Link]
-        for name in sorted(self._children):
-            for param in d[name].params(include_uninit):
-                yield param
-
-    def namedparams(self, include_uninit=True):
-        # type: (bool) -> tp.Iterator[tp.Tuple[str, chainer.Parameter]]
-
-        for ret in super(Chain, self).namedparams(include_uninit):
-            yield ret
-        d = self.__dict__  # type: tp.Dict[str, Link]
-        for name in sorted(self._children):
-            prefix = '/' + name
-            for path, param in d[name].namedparams(include_uninit):
-                yield prefix + path, param
-
-    def links(self, skipself=False):
-        # type: (bool) -> tp.Iterator[Link]
-
-        if not skipself:
-            yield self
-        d = self.__dict__  # type: tp.Dict[str, Link]
-        for name in sorted(self._children):
-            for link in d[name].links():
-                yield link
-
-    def namedlinks(self, skipself=False):
-        # type: (bool) -> tp.Iterator[tp.Tuple[str, Link]]
-
-        if not skipself:
-            yield '/', self
-        d = self.__dict__  # type: tp.Dict[str, Link]
-        for name in sorted(self._children):
-            child = d[name]
-            prefix = '/' + name
-            yield prefix, child
-            for path, link in d[name].namedlinks(True):
-                yield prefix + path, link
-
-    def children(self):
-        # type: () -> tp.Iterator[Link]
-
-        d = self.__dict__  # type: tp.Dict[str, Link]
-        for name in sorted(self._children):
-            yield d[name]
-
-    def copyparams(self, link, copy_persistent=True):
-        # type: (Link, bool) -> None
-
-        super(Chain, self).copyparams(link, copy_persistent)
-        src = link.__dict__
-        dst = self.__dict__
-        for name in self._children:
-            dst[name].copyparams(src[name], copy_persistent)
-
-    def addgrads(self, link):
-        # type: (Link) -> None
-
-        super(Chain, self).addgrads(link)
-        src = link.__dict__
-        dst = self.__dict__
-        for name in self._children:
-            dst[name].addgrads(src[name])
-
-    def serialize(self, serializer):
-        # type: (chainer.AbstractSerializer) -> None
-
-        super(Chain, self).serialize(serializer)
-        d = self.__dict__  # type: tp.Dict[str, Link]
-        for name in self._children:
-            d[name].serialize(serializer[name])
 
 
 class ChainList(Link, collections_abc.MutableSequence):

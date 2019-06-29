@@ -42,7 +42,7 @@ def create_mnbn_model(link, comm, communication_backend='auto'):
         new_children = [
             (child_name, create_mnbn_model(link.__dict__[child_name], comm,
                                            communication_backend))
-            for child_name in link._children
+            for child_name in link.children()
         ]
         new_link = copy.deepcopy(link)
         for name, new_child in new_children:
