@@ -52,9 +52,3 @@ set_target_properties(${module_name}
     PREFIX "${PYTHON_MODULE_PREFIX}"
     SUFFIX "${PYTHON_MODULE_SUFFIX}"
     CXX_VISIBILITY_PRESET "default")
-
-# LAPACK
-if(${LAPACK_FOUND})
-MESSAGE( STATUS "LAPACK is found, defining CHAINERX_ENABLE_LAPACK variable.")
-add_definitions(-DCHAINERX_ENABLE_LAPACK=1)
-endif()
