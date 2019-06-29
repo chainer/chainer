@@ -333,9 +333,9 @@ void InitChainerxLinalg(pybind11::module& m) {
     mlinalg.def(
             "solve",
             [](const ArrayBodyPtr& a, const ArrayBodyPtr& b) { return MoveArrayBody(Solve(Array{a}, Array{b})); },
-            py::arg("a"),
-            py::arg("b"));
-    mlinalg.def("inv", [](const ArrayBodyPtr& a) { return MoveArrayBody(Inverse(Array{a})); }, py::arg("a"));
+            "a"_a,
+            "b"_a);
+    mlinalg.def("inv", [](const ArrayBodyPtr& a) { return MoveArrayBody(Inverse(Array{a})); }, "a"_a);
 }
 
 void InitChainerxLogic(pybind11::module& m) {
