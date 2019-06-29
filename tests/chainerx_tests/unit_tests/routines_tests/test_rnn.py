@@ -8,12 +8,9 @@ from chainerx_tests import op_utils
 
 n_step_lstm_dtypes_valid = dtype_utils._permutate_dtype_mapping([
     # Floats.
-    #(('float16', 'float16', 'float16', 'float16', 'float16'),
-    # ('float16', 'float16', 'float16')),
-    (('float32', 'float32', 'float32', 'float32', 'float32'),
-     ('float32', 'float32', 'float32')),
-    #(('float64', 'float64', 'float64', 'float64', 'float64'),
-    # ('float64', 'float64', 'float64')),
+    (('float16', ), ()),
+    (('float32', ), ()),
+    (('float64', ), ()),
 ])
 
 
@@ -22,41 +19,40 @@ n_step_lstm_dtypes_valid = dtype_utils._permutate_dtype_mapping([
     chainer.testing.product([
         chainer.testing.from_pytest_parameterize(
             'n_layers,hidden_size,input_size,batches', [
-                #(2, 2, 1, (1, 1, 1)),
+                (2, 2, 1, (1, 1, 1)),
                 (2, 2, 3, (3, 2, 1)),
-                #(3, 8, 4, (4, 2, 1)),
-                #(4, 12, 4, (4, 3, 2)),
+                (3, 8, 4, (4, 2, 1)),
+                (4, 12, 4, (4, 3, 2)),
 
             ]),
         chainer.testing.from_pytest_parameterize(
-            'in_dtypes,out_dtype', n_step_lstm_dtypes_valid)
+            'in_dtypes, out_dtype', n_step_lstm_dtypes_valid)
     ])
 ))
 class TestNStepLstm(op_utils.ChainerOpTest):
 
     def setup(self):
-        #if (self.in_dtypes[0] == 'float16'):
         self.check_forward_options.update({
                 'rtol': 1e-2, 'atol': 1e-2})
         self.check_backward_options.update({
                 'rtol': 1e-2, 'atol': 1e-2})
-        #self.check_double_backward_options.update({
-        #    'rtol': 5e-3, 'atol': 5e-2})
-        #self.skip_forward_test = True
-        self.skip_double_backward_test = True
-        #self.skip_backward_test = True
+        self.check_double_backward_options.update({
+            'rtol': 5e-3, 'atol': 5e-2})
+        device = chainerx.get_default_device()
+        if device.backend.name == 'cuda':
+            if self.in_dtypes[0] != 'float32':
+                self.skip_backward_test = True       
+            self.skip_double_backward_test = True
 
     def generate_inputs(self):
         h_shape = (self.n_layers, self.batches[0], self.hidden_size)
-        h_dtype = self.in_dtypes[0]
-        ws_dtype = self.in_dtypes[2]
-        bs_dtype = self.in_dtypes[3]
+        dtype = self.in_dtypes[0]
 
-        h = array_utils.uniform(h_shape, h_dtype)
-        c = array_utils.uniform(h_shape, h_dtype)
+        h = array_utils.uniform(h_shape, dtype)
+        c = array_utils.uniform(h_shape, dtype)
         in_size = self.input_size
         out_size = self.hidden_size
-        xs = [array_utils.uniform((self.batches[b], in_size), ws_dtype)
+        xs = [array_utils.uniform((self.batches[b], in_size), dtype)
               for b in range(len(self.batches))]
 
         def w_in(i, j):
@@ -71,9 +67,9 @@ class TestNStepLstm(op_utils.ChainerOpTest):
         for n in range(self.n_layers):
             for i in range(8):
                 inputs.append(array_utils.uniform(
-                    (out_size, w_in(n, i)), ws_dtype))
+                    (out_size, w_in(n, i)), dtype))
             for i in range(8):
-                inputs.append(array_utils.uniform((out_size,), bs_dtype))
+                inputs.append(array_utils.uniform((out_size,), dtype))
         return tuple(inputs)
 
     def process_input(self, inputs):
@@ -118,9 +114,9 @@ class TestNStepLstm(op_utils.ChainerOpTest):
         chainer.testing.from_pytest_parameterize(
             'n_layers,hidden_size,input_size,batches', [
                 (1, 2, 1, (1, 1, 1)),
-                (2, 6, 8, (4, 2, 2)),
-                (3, 8, 4, (4, 2, 1)),
-                (4, 12, 4, (4, 3, 2)),
+                #(2, 6, 8, (4, 2, 2)),
+                #(3, 8, 4, (4, 2, 1)),
+                #(4, 12, 4, (4, 3, 2)),
 
             ]),
         chainer.testing.from_pytest_parameterize(
@@ -131,25 +127,28 @@ class TestNStepLstm(op_utils.ChainerOpTest):
 class TestNStepBiLstm(op_utils.ChainerOpTest):
 
     def setup(self):
-        if (self.in_dtypes[0] == 'float16'):
-            self.check_forward_options.update({
-                'rtol': 1e-2, 'atol': 1e-2})
-            self.check_backward_options.update({
-                'rtol': 1e-2, 'atol': 1e-2})
+        
+        self.check_forward_options.update({
+           'rtol': 1e-2, 'atol': 1e-2})
+        self.check_backward_options.update({
+            'rtol': 1e-2, 'atol': 1e-2})
         self.check_double_backward_options.update({
             'rtol': 5e-3, 'atol': 5e-2})
+        device = chainerx.get_default_device()
+        if device.backend.name == 'cuda':
+            if self.in_dtypes[0] != 'float32':
+                self.skip_backward_test = True       
+            self.skip_double_backward_test = True
 
     def generate_inputs(self):
         h_shape = (self.n_layers * 2, self.batches[0], self.hidden_size)
-        h_dtype = self.in_dtypes[0]
-        ws_dtype = self.in_dtypes[2]
-        bs_dtype = self.in_dtypes[3]
+        dtype = self.in_dtypes[0]
 
-        h = array_utils.uniform(h_shape, h_dtype)
-        c = array_utils.uniform(h_shape, h_dtype)
+        h = array_utils.uniform(h_shape, dtype)
+        c = array_utils.uniform(h_shape, dtype)
         in_size = self.input_size
         out_size = self.hidden_size
-        xs = [array_utils.uniform((self.batches[b], in_size), ws_dtype)
+        xs = [array_utils.uniform((self.batches[b], in_size), dtype)
               for b in range(len(self.batches))]
 
         def w_in(i, j):
@@ -170,9 +169,9 @@ class TestNStepBiLstm(op_utils.ChainerOpTest):
             for direction in (0, 1):
                 for i in range(8):
                     inputs.append(array_utils.uniform(
-                        (out_size, w_in(n, i)), ws_dtype))
+                        (out_size, w_in(n, i)), dtype))
                 for i in range(8):
-                    inputs.append(array_utils.uniform((out_size,), bs_dtype))
+                    inputs.append(array_utils.uniform((out_size,), dtype))
         return tuple(inputs)
 
     def process_input(self, inputs):

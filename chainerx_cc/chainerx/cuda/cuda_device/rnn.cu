@@ -310,7 +310,7 @@ void weights_forward(
                 device_internals.cudnn_handle().Call(
                     cudnnGetRNNLinLayerMatrixParams,
                     rnn_desc,
-                    layer,
+                    index,
                     x_desc,
                     w_desc,
                     internal::GetRawOffsetData(w),
@@ -343,7 +343,7 @@ void weights_forward(
                 device_internals.cudnn_handle().Call(
                     cudnnGetRNNLinLayerBiasParams,
                     rnn_desc,
-                    layer,
+                    index,
                     x_desc,
                     w_desc,
                     internal::GetRawOffsetData(w),
@@ -394,7 +394,7 @@ std::vector<Array> weights_backward(
                 device_internals.cudnn_handle().Call(
                     cudnnGetRNNLinLayerMatrixParams,
                     rnn_desc,
-                    layer,
+                    index,
                     dummy_x_desc,
                     w_desc,
                     internal::GetRawOffsetData(w),
@@ -403,7 +403,7 @@ std::vector<Array> weights_backward(
                     (void**)&m_offset
                 );
                 
-                Array m = AsContiguous(Zeros(ws[index][lin_layer_id].shape(), ws[index][lin_layer_id].dtype(), ws[index][lin_layer_id].device()));
+                Array m = AsContiguous(Zeros(ws[index][lin_layer_id].shape(), type, ws[index][lin_layer_id].device()));
                 cudnnDataType_t dataType;
                 cudnnTensorFormat_t format;
                 int nbDims;
@@ -428,7 +428,7 @@ std::vector<Array> weights_backward(
                 device_internals.cudnn_handle().Call(
                     cudnnGetRNNLinLayerBiasParams,
                     rnn_desc,
-                    layer,
+                    index,
                     dummy_x_desc,
                     w_desc,
                     internal::GetRawOffsetData(w),
@@ -437,7 +437,7 @@ std::vector<Array> weights_backward(
                     (void**)&b_offset
                 );
                 
-                Array b = AsContiguous(Zeros(bs[index][lin_layer_id].shape(), bs[index][lin_layer_id].dtype(), bs[index][lin_layer_id].device()));
+                Array b = AsContiguous(Zeros(bs[index][lin_layer_id].shape(), type, bs[index][lin_layer_id].device()));
                 cudnnGetFilterNdDescriptor(
                                         linlayerbiasdesc,
                                         3,
@@ -453,8 +453,6 @@ std::vector<Array> weights_backward(
             }
         }
     }
-            std::cout<<type;
-
     return ret;
 }
 
@@ -464,10 +462,10 @@ public:
     std::tuple<std::vector<std::vector<Array>>, std::unique_ptr<chainerx::RnnGradState>> Call(
         int64_t n_layers,
         Array hx,
-        Array cx,
+        nonstd::optional<Array> cx,
         const std::vector<std::vector<Array>>& ws,
         const std::vector<std::vector<Array>>& bs,
-        std::vector<Array>& xs,
+        const std::vector<Array>& xs,
         const int8_t bidirectional,
         const int8_t mode) override {
 
@@ -525,19 +523,20 @@ public:
         std::vector<cuda_internal::CudnnTensorDescriptor> xs_desc;
         std::vector<cuda_internal::CudnnTensorDescriptor> ys_desc;
         std::vector<Array> ys;
+        std::vector<Array> xs_cont;
         for(uint i = 0; i < xs.size(); i++) {
             Shape xs_shape{xs[i].shape()[0], xs[i].shape()[1], 1};
             Shape ys_shape{xs[i].shape()[0], num_directions * hidden_dim, 1};
-            xs[i] = AsContiguous(xs[i].AsType(Dtype::kFloat32));
-            ys.push_back(AsContiguous(Zeros({xs[i].shape()[0], num_directions * hidden_dim}, xs[i].dtype(), xs[i].device())));
-            xs_desc.push_back(cuda_internal::CudnnTensorDescriptor(reshape(xs[i], xs_shape)));
+            xs_cont.push_back(AsContiguous(xs[i].AsType(Dtype::kFloat32)));
+            ys.push_back(AsContiguous(Zeros({xs_cont[i].shape()[0], num_directions * hidden_dim}, xs_cont[i].dtype(), xs_cont[i].device())));
+            xs_desc.push_back(cuda_internal::CudnnTensorDescriptor(reshape(xs_cont[i], xs_shape)));
             ys_desc.push_back(cuda_internal::CudnnTensorDescriptor(reshape(ys[i], ys_shape)));
             x_desc[i] = *xs_desc[i];
             y_desc[i] = *ys_desc[i];
         }
 
         
-        Array x = concatenate(xs, 0);
+        Array x = concatenate(xs_cont, 0);
         Array y = concatenate(ys, 0);
 
 
@@ -568,15 +567,20 @@ public:
         device_internals.cudnn_handle().Call(cudnnGetRNNTrainingReserveSize, rnn_desc, xs.size(), x_desc, &reserve_size);
         Array reserve = AsContiguous(Zeros({(long)reserve_size}, hx.dtype(), hx.device()));
         hx = AsContiguous(hx.AsType(Dtype::kFloat32));
-        cx = AsContiguous(cx.AsType(Dtype::kFloat32));
+        
         Array hy = AsContiguous(Zeros(hx.shape(), hx.dtype(), hx.device()));
-        Array cy = AsContiguous(Zeros(cx.shape(), cx.dtype(), cx.device()));
+        Array cy = AsContiguous(Zeros(hx.shape(), hx.dtype(), hx.device()));
         cuda_internal::CudnnTensorDescriptor hxDesc{hx};
-        cuda_internal::CudnnTensorDescriptor cxDesc{cx};
-
+        
+        if(cx.has_value())
+        {
+            *cx = AsContiguous((*cx).AsType(Dtype::kFloat32));
+        } else {
+            *cx = Zeros(hx.shape(), hx.dtype(), hx.device());
+        }
+        cuda_internal::CudnnTensorDescriptor cxDesc{*cx};
         cuda_internal::CudnnTensorDescriptor hyDesc{hy};
         cuda_internal::CudnnTensorDescriptor cyDesc{cy};
-
         device_internals.cudnn_handle().Call(
             cudnnRNNForwardTraining,
             rnn_desc,
@@ -586,7 +590,7 @@ public:
             *hxDesc,
             internal::GetRawOffsetData(hx),
             *cxDesc,
-            internal::GetRawOffsetData(cx),
+            internal::GetRawOffsetData(*cx),
             *wDesc,
             internal::GetRawOffsetData(w),
             y_desc,
@@ -616,7 +620,10 @@ public:
 
         std::vector<Array> out_states;
         out_states.push_back(hy.AsType(type));
-        out_states.push_back(cy.AsType(type));
+        if(cx.has_value())
+        {
+            out_states.push_back(cy.AsType(type));    
+        }
         std::vector<std::vector<Array>> ret;
         ret.push_back(out_states);
         ret.push_back(ys);
@@ -631,19 +638,17 @@ public:
     std::vector<std::vector<Array>> Call(
         int64_t n_layers,
         Array hx,
-        Array cx,
+        nonstd::optional<Array> cx,
         const std::vector<std::vector<Array>>& ws,
         const std::vector<std::vector<Array>>& bs,
-        std::vector<Array>& xs,
+        const std::vector<Array>& xs,
         Array dhy,
-        Array dcy,
+        nonstd::optional<Array> dcy,
         std::vector<Array> ys,
         std::vector<Array> dys,
         const int8_t bidirectional,
-        const int8_t mode,
         const std::shared_ptr<chainerx::RnnGradState>& state
         ) override {
-        
         CudaDevice& device = dynamic_cast<CudaDevice&>(hx.device());
         CudaSetDeviceScope scope{device.index()};
 
@@ -653,11 +658,7 @@ public:
         const auto input_dim = xs[0].shape()[1];
         const auto hidden_dim = hx.shape()[2];
         const auto num_directions = bidirectional == 1 ? 2 : 1;
-        const auto num_layers = n_layers;
-        const auto rnn_direction = bidirectional == 1 ? CUDNN_BIDIRECTIONAL : CUDNN_UNIDIRECTIONAL;
-        const auto rnn_mode = mode == 1 ? CUDNN_LSTM : CUDNN_GRU;
-        const auto rnn_input = CUDNN_LINEAR_INPUT;
-
+        
 
         cudnnRNNDescriptor_t rnn_desc = cuda_state.rnn_desc();
        
@@ -667,19 +668,19 @@ public:
         cudnnTensorDescriptor_t *dxs_desc = (cudnnTensorDescriptor_t*)malloc(xs.size() * sizeof(cudnnTensorDescriptor_t));
         cudnnTensorDescriptor_t *ys_desc = (cudnnTensorDescriptor_t*)malloc(xs.size() * sizeof(cudnnTensorDescriptor_t));
         cudnnTensorDescriptor_t *dys_desc = (cudnnTensorDescriptor_t*)malloc(xs.size() * sizeof(cudnnTensorDescriptor_t)); 
-
+        std::vector<Array> xs_cont;
         for(uint i = 0; i < xs.size(); i++) {
             Shape xs_shape{xs[i].shape()[0], xs[i].shape()[1], 1};
             Shape ys_shape{ys[i].shape()[0], ys[i].shape()[1], 1};
 
-            xs[i] = AsContiguous(xs[i].AsType(Dtype::kFloat32));
+            xs_cont.push_back(AsContiguous(xs[i].AsType(Dtype::kFloat32)));
             ys[i] = AsContiguous(ys[i].AsType(Dtype::kFloat32));
             dys[i] = AsContiguous(dys[i].AsType(Dtype::kFloat32));
             
-            xsDesc.push_back(cuda_internal::CudnnTensorDescriptor(reshape(xs[i], xs_shape)));
+            xsDesc.push_back(cuda_internal::CudnnTensorDescriptor(reshape(xs_cont[i], xs_shape)));
             xs_desc[i] = *xsDesc[i];
             
-            dxs.push_back(AsContiguous(Zeros(xs[i].shape(), xs[i].dtype(), xs[i].device())));
+            dxs.push_back(AsContiguous(Zeros(xs_cont[i].shape(), xs_cont[i].dtype(), xs_cont[i].device())));
             
             dxsDesc.push_back(cuda_internal::CudnnTensorDescriptor(reshape(dxs[i], xs_shape)));
             
@@ -690,7 +691,7 @@ public:
             dys_desc[i] = *dysDesc[i];
         }
         Array dx = AsContiguous(concatenate(dxs, 0));
-        Array x = AsContiguous(concatenate(xs, 0));
+        Array x = AsContiguous(concatenate(xs_cont, 0));
         Array y = AsContiguous(concatenate(ys, 0));
         Array dy = AsContiguous(concatenate(dys, 0));
         cudnnFilterDescriptor_t wDesc = cuda_state.wDesc();
@@ -700,22 +701,29 @@ public:
         size_t reserve_size = reserve.shape()[0];
         size_t workSize = workspace.shape()[0];
         hx = AsContiguous(hx.AsType(Dtype::kFloat32));
-        cx = AsContiguous(cx.AsType(Dtype::kFloat32));
+        
         dhy = AsContiguous(dhy.AsType(Dtype::kFloat32));
-        dcy = AsContiguous(dcy.AsType(Dtype::kFloat32));
+        
 
         cuda_internal::CudnnTensorDescriptor hx_desc{hx};
-        cuda_internal::CudnnTensorDescriptor cx_desc{cx};
+        
+        if(cx.has_value()) {
+            *cx = AsContiguous((*cx).AsType(Dtype::kFloat32));
+            *dcy = AsContiguous((*dcy).AsType(Dtype::kFloat32));
+        } else {
+            *cx = Zeros(hx.shape(), hx.dtype(), hx.device());
+            *dcy = Zeros(hx.shape(), hx.dtype(), hx.device());
+        }
+        cuda_internal::CudnnTensorDescriptor cx_desc{*cx};
+        cuda_internal::CudnnTensorDescriptor dcy_desc{*dcy};
         cuda_internal::CudnnTensorDescriptor dhy_desc{dhy};
-        cuda_internal::CudnnTensorDescriptor dcy_desc{dcy};
         Array dhx = AsContiguous(Zeros(hx.shape(), hx.dtype(), hx.device()));
         cuda_internal::CudnnTensorDescriptor dhx_desc{dhx};
-        Array dcx = AsContiguous(Zeros(cx.shape(), cx.dtype(), cx.device()));
+        Array dcx = AsContiguous(Zeros(hx.shape(), hx.dtype(), hx.device()));
         cuda_internal::CudnnTensorDescriptor dcx_desc{dcx};
         reserve = AsContiguous(reserve);
         
 
-        //std::cout<<"fjds\n"<<hx<<"\n--------------\n"<<cx<<"\n-------------\n"<<w<<"\n------------\n"<<x<<"\n------------------\n"<<y<<"\n---------------\n"<<dhy<<"\n------------\n"<<dcy<<"\n-----------------\n"<<dy<<"\n--------";
         device_internals.cudnn_handle().Call(
             cudnnRNNBackwardData,
             rnn_desc,
@@ -727,13 +735,13 @@ public:
             *dhy_desc,
             internal::GetRawOffsetData(dhy),
             *dcy_desc,
-            internal::GetRawOffsetData(dcy),
+            internal::GetRawOffsetData(*dcy),
             wDesc,
             internal::GetRawOffsetData(w),
             *hx_desc,
             internal::GetRawOffsetData(hx),
             *cx_desc,
-            internal::GetRawOffsetData(cx),
+            internal::GetRawOffsetData(*cx),
             dxs_desc,
             internal::GetRawOffsetData(dx),
             *dhx_desc,
@@ -749,7 +757,6 @@ public:
         Array dw = AsContiguous(Zeros(w.shape(), hx.dtype(), hx.device()));
         cuda_internal::CudnnFilterDescriptor dwDesc{dw};
         
-        //std::cout<<"-------------------\n";
         device_internals.cudnn_handle().Call(
             cudnnRNNBackwardWeights,
             rnn_desc,
@@ -776,12 +783,17 @@ public:
                 split_indices.push_back(xs[i].shape()[0]);
             }
         }
-        std::cout<<type;
-        //dx = dx.AsType(type);
+        dx = dx.AsType(type);
         dxs = split(dx, split_indices, 0);
         std::vector<Array> dstate;
-        dstate.push_back(dhx);
-        dstate.push_back(dcx);
+        dstate.push_back(dhx.AsType(type));
+
+
+        if(cx.has_value())
+        {
+            dstate.push_back(dcx.AsType(type));    
+        }
+        
         std::vector<std::vector<Array>> ret;
         ret.push_back(dstate);
         ret.push_back(weights_backward(device, rnn_desc, dxs_desc[0], *dwDesc, dw, ws, bs, n_layers, num_directions, type));
