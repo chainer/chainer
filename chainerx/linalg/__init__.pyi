@@ -1,6 +1,3 @@
-import typing as tp
-
-
 def inv(a: ndarray) -> ndarray: ...
 
 
