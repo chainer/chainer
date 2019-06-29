@@ -152,6 +152,7 @@ public:
         CheckCudnnError(func(handle(), args...));
     }
     cudnnHandle_t handle();
+
 private:
     int device_index_;
     std::mutex handle_mutex_{};

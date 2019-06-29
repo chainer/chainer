@@ -22,13 +22,13 @@
 #include "chainerx/kernels/connection.h"
 #include "chainerx/kernels/linalg.h"
 #include "chainerx/macro.h"
+#include "chainerx/routines/activation.h"
 #include "chainerx/routines/creation.h"
+#include "chainerx/routines/hyperbolic.h"
 #include "chainerx/routines/linalg.h"
+#include "chainerx/routines/manipulation.h"
 #include "chainerx/routines/reduction.h"
 #include "chainerx/routines/type_util.h"
-#include "chainerx/routines/manipulation.h"
-#include "chainerx/routines/activation.h"
-#include "chainerx/routines/hyperbolic.h"
 
 
 namespace chainerx {
