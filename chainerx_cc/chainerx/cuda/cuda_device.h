@@ -113,7 +113,7 @@ private:
 };
 
 struct GenericRnnGradState : public RnnGradState {
-    GenericRnnGradState(cudnnRNNDescriptor_t rnn_desc, cudnnFilterDescriptor_t wDesc, Array w, Array reserve, Array workspace) : 
+    GenericRnnGradState(cudnnRNNDescriptor_t rnn_desc, cudnnFilterDescriptor_t wDesc, Array w, Array reserve, Array workspace) :
     rnn_desc_{rnn_desc}, wDesc_{wDesc}, w_{w}, reserve_{reserve}, workspace_{workspace} {}
     cudnnRNNDescriptor_t rnn_desc() {return rnn_desc_;}
     cudnnFilterDescriptor_t wDesc() {return wDesc_;}

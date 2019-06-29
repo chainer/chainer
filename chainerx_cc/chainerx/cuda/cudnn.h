@@ -153,8 +153,6 @@ public:
     }
     cudnnHandle_t handle();
 private:
-    
-
     int device_index_;
     std::mutex handle_mutex_{};
     cudnnHandle_t handle_{};

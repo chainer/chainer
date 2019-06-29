@@ -156,7 +156,7 @@ RetainedInputToken BackwardBuilder::RetainInput(size_t input_index) {
 
 std::vector<RetainedInputToken> BackwardBuilder::RetainInput(std::vector<size_t> indices) {
     std::vector<RetainedInputToken> token;
-    for(size_t i : indices) {
+    for (size_t i : indices) {
         CHAINERX_ASSERT(i < inputs_.size());
         input_retention_record_.Record(i);
         token.push_back({internal::GetArrayBody(gsl::at(inputs_, i))->GetParams(), i});
@@ -172,7 +172,7 @@ RetainedOutputToken BackwardBuilder::RetainOutput(size_t output_index) {
 
 std::vector<RetainedOutputToken> BackwardBuilder::RetainOutput(std::vector<size_t> indices) {
     std::vector<RetainedOutputToken> token;
-    for(size_t i : indices) {
+    for (size_t i : indices) {
         CHAINERX_ASSERT(i < outputs_.size());
         output_retention_record_.Record(i);
         token.push_back({internal::GetArrayBody(gsl::at(outputs_, i))->GetParams(), i});
