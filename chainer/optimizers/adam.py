@@ -25,8 +25,6 @@ if types.TYPE_CHECKING:
         eps = None  # type: float
         eta = None  # type: float
         weight_decay_rate = None  # type: float
-        amsgrad = None  # type: bool
-        adabound = None  # type: bool
         final_lr = None  # type: float
         gamma = None  # type: float
 
@@ -38,8 +36,6 @@ _default_hyperparam.beta2 = 0.999
 _default_hyperparam.eps = 1e-8
 _default_hyperparam.eta = 1.0
 _default_hyperparam.weight_decay_rate = 0
-_default_hyperparam.amsgrad = False
-_default_hyperparam.adabound = False
 _default_hyperparam.final_lr = 0.1
 _default_hyperparam.gamma = 1e-3
 
@@ -100,6 +96,8 @@ class AdamRule(optimizer.UpdateRule):
     of the hyperparameters.
 
     Args:
+        amsgrad (bool): Whether to use the AMSGrad variant of Adam.
+        adabound (bool): Whether to use the AdaBound variant of Adam.
         parent_hyperparam (~chainer.optimizer.Hyperparameter): Hyperparameter
             that provides the default values.
         alpha (float): Coefficient of learning rate.
@@ -108,8 +106,6 @@ class AdamRule(optimizer.UpdateRule):
         eps (float): Small value for the numerical stability.
         eta (float): Schedule multiplier, can be used for warm restarts.
         weight_decay_rate (float): Weight decay rate.
-        amsgrad (bool): Whether to use the AMSGrad variant of Adam.
-        adabound (bool): Whether to use the AdaBound variant of Adam.
         final_lr (float): Final (SGD) learning rate in AdaBound.
         gamma (float): Convergence speed of the bound functions in AdaBound.
 
@@ -143,23 +139,21 @@ class AdamRule(optimizer.UpdateRule):
             self.hyperparam.eta = eta
         if weight_decay_rate is not None:
             self.hyperparam.weight_decay_rate = weight_decay_rate
-        if amsgrad is not None:
-            self.hyperparam.amsgrad = amsgrad
-        if adabound is not None:
-            self.hyperparam.adabound = adabound
         if final_lr is not None:
             self.hyperparam.final_lr = final_lr
         if gamma is not None:
             self.hyperparam.gamma = gamma
-        if self.hyperparam.adabound:
+        if adabound:
             self.initial_alpha = self.hyperparam.alpha
+        self.amsgrad = amsgrad
+        self.adabound = adabound
 
     def init_state(self, param):
         with chainer.using_device(param.device):
             xp = param.device.xp
             self.state['m'] = xp.zeros_like(param.data)
             self.state['v'] = xp.zeros_like(param.data)
-            if self.hyperparam.amsgrad:
+            if self.amsgrad:
                 self.state['vhat'] = xp.zeros_like(param.data)
 
         # For iDeep
@@ -168,7 +162,7 @@ class AdamRule(optimizer.UpdateRule):
                 self.state['m'], itype=intel64.ideep.wgt_array)
             self.state['v'] = intel64.ideep.array(
                 self.state['v'], itype=intel64.ideep.wgt_array)
-            if self.hyperparam.amsgrad:
+            if self.amsgrad:
                 self.state['vhat'] = intel64.ideep.array(
                     self.state['vhat'], itype=intel64.ideep.wgt_array)
 
@@ -200,7 +194,7 @@ class AdamRule(optimizer.UpdateRule):
         # v += (1 - beta2) * (grad * grad - v)
         _inplace_axpby(v, 1.0, 1.0 - hp.beta2, grad*grad - v)
 
-        if hp.amsgrad:
+        if self.amsgrad:
             vhat = self.state['vhat']
             # For iDeep
             if isinstance(vhat, intel64.mdarray):
@@ -211,7 +205,7 @@ class AdamRule(optimizer.UpdateRule):
             vhat = v
         vhat = vhat.astype(dtype, copy=False)
         step = self.alpha_t / (numpy.sqrt(vhat) + hp.eps)
-        if hp.adabound:
+        if self.adabound:
             lower, upper = self.bounds
             step = numpy.clip(step, lower, upper)
         # param -=
@@ -230,9 +224,9 @@ class AdamRule(optimizer.UpdateRule):
         if self._dummy is None:
             self._dummy = cuda.cupy.empty((0,), dtype=dtype)
 
-        if hp.adabound:
+        if self.adabound:
             lower, upper = self.bounds
-        if hp.amsgrad and hp.adabound:
+        if self.amsgrad and self.adabound:
             if AdamRule._amsbound_kernel is None:
                 AdamRule._amsbound_kernel = cuda.elementwise(
                     'P grad, T alpha_t, T one_minus_beta1, T one_minus_beta2, '
@@ -253,7 +247,7 @@ class AdamRule(optimizer.UpdateRule):
                 hp.eta, hp.weight_decay_rate, self._dummy,
                 param.data, self.state['m'], self.state['v'],
                 self.state['vhat'])
-        elif hp.adabound:
+        elif self.adabound:
             if AdamRule._adabound_kernel is None:
                 AdamRule._adabound_kernel = cuda.elementwise(
                     'P grad, T alpha_t, T one_minus_beta1, T one_minus_beta2, '
@@ -272,7 +266,7 @@ class AdamRule(optimizer.UpdateRule):
                 1 - hp.beta2, lower, upper, hp.eps,
                 hp.eta, hp.weight_decay_rate, self._dummy,
                 param.data, self.state['m'], self.state['v'])
-        elif hp.amsgrad:
+        elif self.amsgrad:
             if AdamRule._amsgrad_kernel is None:
                 AdamRule._amsgrad_kernel = cuda.elementwise(
                     'P grad, T alpha_t, T one_minus_beta1, T one_minus_beta2, '
@@ -372,14 +366,14 @@ class Adam(optimizer.GradientMethod):
     AdaBound paper.
 
     Args:
+        amsgrad (bool): Whether to use AMSGrad variant of Adam.
+        adabound (bool): Whether to use the AdaBound variant of Adam.
         alpha (float): Coefficient of learning rate.
         beta1 (float): Exponential decay rate of the first order moment.
         beta2 (float): Exponential decay rate of the second order moment.
         eps (float): Small value for the numerical stability.
         eta (float): Schedule multiplier, can be used for warm restarts.
         weight_decay_rate (float): Weight decay rate.
-        amsgrad (bool): Whether to use AMSGrad variant of Adam.
-        adabound (bool): Whether to use the AdaBound variant of Adam.
         final_lr (float): Final (SGD) learning rate in AdaBound.
         gamma (float): Convergence speed of the bound functions in AdaBound.
 
@@ -392,8 +386,8 @@ class Adam(optimizer.GradientMethod):
                  eps=_default_hyperparam.eps,
                  eta=_default_hyperparam.eta,
                  weight_decay_rate=_default_hyperparam.weight_decay_rate,
-                 amsgrad=_default_hyperparam.amsgrad,
-                 adabound=_default_hyperparam.adabound,
+                 amsgrad=False,
+                 adabound=False,
                  final_lr=_default_hyperparam.final_lr,
                  gamma=_default_hyperparam.gamma):
         super(Adam, self).__init__()
@@ -403,10 +397,10 @@ class Adam(optimizer.GradientMethod):
         self.hyperparam.eps = eps
         self.hyperparam.eta = eta
         self.hyperparam.weight_decay_rate = weight_decay_rate
-        self.hyperparam.amsgrad = amsgrad
-        self.hyperparam.adabound = adabound
         self.hyperparam.final_lr = final_lr
         self.hyperparam.gamma = gamma
+        self.amsgrad = amsgrad
+        self.adabound = adabound
 
     alpha = optimizer.HyperparameterProxy('alpha')
     beta1 = optimizer.HyperparameterProxy('beta1')
@@ -414,8 +408,6 @@ class Adam(optimizer.GradientMethod):
     eps = optimizer.HyperparameterProxy('eps')
     eta = optimizer.HyperparameterProxy('eta')
     weight_decay_rate = optimizer.HyperparameterProxy('weight_decay_rate')
-    amsgrad = optimizer.HyperparameterProxy('amsgrad')
-    adabound = optimizer.HyperparameterProxy('adabound')
     final_lr = optimizer.HyperparameterProxy('final_lr')
     gamma = optimizer.HyperparameterProxy('gamma')
 
@@ -491,8 +483,8 @@ class AMSGrad(Adam):
                  eps=_default_hyperparam.eps,
                  eta=_default_hyperparam.eta):
         super(AMSGrad, self).__init__(
-            alpha=alpha, beta1=beta1, beta2=beta2, eps=eps, eta=eta,
-            amsgrad=True)
+            amsgrad=True,
+            alpha=alpha, beta1=beta1, beta2=beta2, eps=eps, eta=eta)
 
 
 class AdaBound(Adam):
@@ -523,8 +515,9 @@ class AdaBound(Adam):
                  eps=_default_hyperparam.eps,
                  eta=_default_hyperparam.eta):
         super(AdaBound, self).__init__(
+            adabound=True,
             alpha=alpha, beta1=beta1, beta2=beta2, eps=eps, eta=eta,
-            amsgrad=False, adabound=True, final_lr=final_lr, gamma=gamma)
+            final_lr=final_lr, gamma=gamma)
 
 
 class AMSBound(Adam):
@@ -555,5 +548,6 @@ class AMSBound(Adam):
                  eps=_default_hyperparam.eps,
                  eta=_default_hyperparam.eta):
         super(AMSBound, self).__init__(
+            amsgrad=True, adabound=True,
             alpha=alpha, beta1=beta1, beta2=beta2, eps=eps, eta=eta,
-            amsgrad=True, adabound=True, final_lr=final_lr, gamma=gamma)
+            final_lr=final_lr, gamma=gamma)
