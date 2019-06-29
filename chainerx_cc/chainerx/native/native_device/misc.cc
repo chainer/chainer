@@ -24,8 +24,6 @@ CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(FabsKernel, { out = chainerx
 
 CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_UNARY_KERNEL(SignKernel, { out = chainerx::Sign(x); }, VisitNumericDtype);
 
-CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_BINARY_KERNEL(FmodKernel, { out = chainerx::Fmod(x1, x2); });
-
 class NativeIfLessElseASSAKernel : public IfLessElseASSAKernel {
 public:
     void Call(const Array& x1, Scalar x2, Scalar pos, const Array& neg, const Array& out) override {

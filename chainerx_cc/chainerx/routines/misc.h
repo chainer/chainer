@@ -23,6 +23,4 @@ Array Minimum(const Array& x1, Scalar x2);
 Array Minimum(Scalar x1, const Array& x2);
 Array Minimum(const Array& x1, const Array& x2);
 
-Array Fmod(const Array& x1, const Array& x2);
-
 }  // namespace chainerx

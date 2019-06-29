@@ -88,8 +88,6 @@ __device__ inline float Exp2(float x) { return std::exp2f(x); }
 
 __device__ inline cuda::Float16 Exp2(cuda::Float16 x) { return cuda::Float16{std::exp2f(static_cast<float>(x))}; }
 
-__device__ inline double Fmod(double x1, double x2) { return std::fmod(x1, x2); }
-
 __device__ inline float Fmod(float x1, float x2) { return std::fmod(x1, x2); }
 
 __device__ inline cuda::Float16 Fmod(cuda::Float16 x1, cuda::Float16 x2) {

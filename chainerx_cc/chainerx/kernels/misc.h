@@ -66,11 +66,4 @@ public:
     virtual void Call(const Array& x1, const Array& x2, const Array& pos, const Array& neg, const Array& out) = 0;
 };
 
-class FmodKernel : public Kernel {
-public:
-    static const char* name() { return "Fmod"; }
-
-    virtual void Call(const Array& x1, const Array& x2, const Array& out) = 0;
-};
-
 }  // namespace chainerx

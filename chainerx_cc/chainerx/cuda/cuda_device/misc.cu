@@ -28,8 +28,6 @@ CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(FabsKernel, { out = cuda::Fabs
 
 CHAINERX_CUDA_REGISTER_ELTWISE_DTYPE_UNARY_KERNEL(SignKernel, { out = cuda::Sign(x); }, VisitNumericDtype);
 
-CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_BINARY_KERNEL(FmodKernel, { out = cuda::Fmod(x1, x2); });
-
 template <typename In, typename Out>
 struct IfLessElseASSAImpl {
     using InCudaType = cuda_internal::DataType<In>;

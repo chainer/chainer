@@ -236,34 +236,4 @@ Array Minimum(const Array& x1, const Array& x2) {
     return internal::BroadcastBinary(&MinimumImpl, x1, x2, dtype);  // x1 > x2 ? x2 : x1
 }
 
-Array Fmod(const Array& x1, const Array& x2) {
-    CheckEqual(x1.shape(), x2.shape());
-    Array out = Empty(x1.shape(), x1.dtype(), x1.device());
-
-    {
-        NoBackpropModeScope scope{};
-        x1.device().backend().CallKernel<FmodKernel>(x1, x2, out);
-    }
-
-    {
-        BackwardBuilder bb{"fmod", x1, x2};
-        if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-            bt.Define([dtype = x1.dtype()](BackwardContext& bctx) {
-                const Array& gx = *bctx.output_grad();
-                bctx.input_grad() = dtype == gx.dtype() ? std::move(gx) : gx.AsType(dtype);
-            });
-        }
-        if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
-            bt.Define([x1_tok = bb.RetainInput(0), x2_tok = bb.RetainInput(1), dtype = x2.dtype()](BackwardContext& bctx) {
-                const Array& x1 = bctx.GetRetainedInput(x1_tok);
-                const Array& x2 = bctx.GetRetainedInput(x2_tok);
-                const Array& gx = -*bctx.output_grad() * FloorDivide(x1, x2);
-                bctx.input_grad() = dtype == gx.dtype() ? std::move(gx) : gx.AsType(dtype);
-            });
-        }
-        bb.Finalize();
-    }
-    return out;
-}
-
 }  // namespace chainerx
