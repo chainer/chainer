@@ -19,6 +19,7 @@
 #include "chainerx/graph.h"
 #include "chainerx/kernels/linalg.h"
 #include "chainerx/routines/creation.h"
+#include "chainerx/routines/manipulation.h"
 #include "chainerx/routines/type_util.h"
 #include "chainerx/shape.h"
 
@@ -125,10 +126,7 @@ Array Solve(const Array& a, const Array& b) {
                 const Array& a = bctx.GetRetainedInput(a_tok);
                 const Array& out = bctx.GetRetainedOutput(out_tok);
                 const Array& gout = *bctx.output_grad();
-                bctx.input_grad() =
-                        -Dot(Solve(a.Transpose(), gout).At(std::vector<ArrayIndex>{Slice{}, NewAxis{}}),
-                             out.At(std::vector<ArrayIndex>{Slice{}, NewAxis{}}).Transpose(),
-                             a_dtype);
+                bctx.input_grad() = -Dot(ExpandDims(Solve(a.Transpose(), gout), 1), ExpandDims(out, 0), a_dtype);
             });
         }
         if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
