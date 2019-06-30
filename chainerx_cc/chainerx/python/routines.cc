@@ -282,8 +282,8 @@ void InitChainerxEvaluation(pybind11::module& m) {
     // evaluation routines
     m.def("accuracy",
           [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2, const nonstd::optional<ArrayBodyPtr>& ignore_label) {
-              return MoveArrayBody(
-                      Accuracy(Array{x1}, Array{x2}, ignore_label.has_value() ? nonstd::optional<Array>{Array{*ignore_label}} : nonstd::nullopt));
+              return MoveArrayBody(Accuracy(
+                      Array{x1}, Array{x2}, ignore_label.has_value() ? nonstd::optional<Array>{Array{*ignore_label}} : nonstd::nullopt));
           },
           "x1"_a,
           "x2"_a,

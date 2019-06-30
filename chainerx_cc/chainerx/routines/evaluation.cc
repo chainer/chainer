@@ -29,6 +29,7 @@
 #include "chainerx/routines/manipulation.h"
 #include "chainerx/routines/misc.h"
 #include "chainerx/routines/reduction.h"
+#include "chainerx/routines/sorting.h"
 #include "chainerx/routines/statistics.h"
 #include "chainerx/routines/type_util.h"
 #include "chainerx/scalar.h"
@@ -48,11 +49,11 @@ Array Accuracy(const Array& x1, const Array& x2, const nonstd::optional<Array>& 
         if (total == 0.0) {
             return Array{0};
         } else {
-            return count / total;
+            return Divide(count, total);
         }
     } else {
-        Array pred = AMax(x2, 1).Reshape(x2.shape());
-        return Mean(Equal(pred, x2));
+        Array pred = ArgMax(x1, 1).Reshape(x2.shape());
+        return Mean(Equal(pred, x2).AsType(x1.dtype()));
     }
 }
 

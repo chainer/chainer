@@ -21,9 +21,10 @@ _in_out_eval_dtypes = dtype_utils._permutate_dtype_mapping([
 class EvalBase(op_utils.ChainerOpTest):
 
     def generate_inputs(self):
-        y = numpy.random.normal(loc=0, scale=1.0, size=self.shape)
-        targ = numpy.random.normal(loc=0, scale=1.0, size=self.shape) + \
-            numpy.random.normal(loc=0, scale=0.5, size=self.shape)
+        x_dtype, t_dtype = self.in_dtypes
+        y = numpy.random.uniform(-1, 1, self.x_shape).astype(x_dtype)
+        targ = numpy.random.randint(
+            3, size=self.t_shape).astype(t_dtype)
         return y, targ
 
     def forward_chainerx(self, inputs):
@@ -41,11 +42,14 @@ class EvalBase(op_utils.ChainerOpTest):
 @chainer.testing.parameterize(*(
     chainer.testing.product([
         chainer.testing.from_pytest_parameterize(
-            'shape', [
-                (2, 2),
-                (3, 3, 3),
-                (5, 5, 5),
-                (4, 1, 2, 4)
+            'x_shape,t_shape', [
+                ((10, 3), (10,)),
+                ((10, 3, 1), (10,)),
+                ((10, 3, 1, 1), (10,)),
+                ((10, 3, 5), (10, 5)),
+                ((10, 3, 5, 4), (10, 5, 4)),
+                ((10, 3, 5, 4, 1), (10, 5, 4)),
+                ((10, 3, 5, 4, 1, 1), (10, 5, 4))
             ]),
         chainer.testing.from_pytest_parameterize(
             'in_dtypes,out_dtype', _in_out_eval_dtypes),
