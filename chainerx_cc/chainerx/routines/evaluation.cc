@@ -1,4 +1,4 @@
-#include "chainerx/routines/eval.h"
+#include "chainerx/routines/evaluation.h"
 
 #include <algorithm>
 #include <cmath>
@@ -38,21 +38,21 @@
 namespace chainerx {
 
 Array Accuracy(const Array& x1, const Array& x2, const nonstd::optional<Array>& ignore_label) {
-    Array mask = Equal(x2, ignore_label);
-    const Array ignore_cnt = Sum(mask);
     if (ignore_label.has_value()) {
-        Array pred = Where(mask, ignore_label, AMax(x1, axis = 1).Reshape(x2.shape()));
-
+        Array mask = Equal(x2, *ignore_label);
+        Array ignore_cnt = Sum(mask);
+        Array pred = Where(mask, *ignore_label, AMax(x1, 1).Reshape(x2.shape()));
         Array count = Sum(Equal(pred, x2)) - ignore_cnt;
-        Array total = (x2.GetTotalSize / x2.GetItemSize) - ignore_cnt;
+        Scalar size{x2.GetTotalSize()};
+        Scalar total = size - AsScalar(ignore_cnt);
         if (total == 0.0) {
-            return AsContiguousArray(0.0, x2.dtype();)
+            return Array{0};
         } else {
-            return AsContiguousArray(Divide(count, total), x2.dtype());
+            return count / total;
         }
     } else {
-        Array pred = AMax(x2, axis = 1).Reshape(x2.shape());
-        return AsContiguousArray(Mean(Equal(pred, x2)));
+        Array pred = AMax(x2, 1).Reshape(x2.shape());
+        return Mean(Equal(pred, x2));
     }
 }
 

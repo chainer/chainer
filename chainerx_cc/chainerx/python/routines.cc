@@ -23,6 +23,7 @@
 #include "chainerx/routines/binary.h"
 #include "chainerx/routines/connection.h"
 #include "chainerx/routines/creation.h"
+#include "chainerx/routines/evaluation.h"
 #include "chainerx/routines/explog.h"
 #include "chainerx/routines/hyperbolic.h"
 #include "chainerx/routines/indexing.h"
@@ -278,15 +279,15 @@ void InitChainerxCreation(pybind11::module& m) {
 }
 
 void InitChainerxEvaluation(pybind11::module& m) {
-    // Evaluation routines
+    // evaluation routines
     m.def("accuracy",
-          [](const ArrayBodyPtr& x1, const ArrayBody& x2, const nonstd::optional<ArrayBodyPtr>& ignore_label) {
-              return MoveArrayBody(Accuracy(
-                      Array{x1}, Array{x2}, ignore_label.has_value() ? nonstd::optional<Array>{Array{*ignore_label}} : nonstd::nullopt));
+          [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2, const nonstd::optional<ArrayBodyPtr>& ignore_label) {
+              return MoveArrayBody(
+                      Accuracy(Array{x1}, Array{x2}, ignore_label.has_value() ? nonstd::optional<Array>{Array{*ignore_label}} : nonstd::nullopt));
           },
           "x1"_a,
           "x2"_a,
-          "ignore_label"_a = py::none());
+          "ignore_label"_a = nullptr);
 }
 
 void InitChainerxIndexing(pybind11::module& m) {

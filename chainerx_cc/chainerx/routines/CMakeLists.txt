@@ -4,6 +4,7 @@ add_library(chainerx_routines STATIC
     binary.cc
     connection.cc
     creation.cc
+    evaluation.cc
     explog.cc
     hyperbolic.cc
     indexing.cc
@@ -28,6 +29,7 @@ install(FILES
     binary.h
     connection.h
     creation.h
+    evaluation.h
     explog.h
     hyperbolic.h
     indexing.h

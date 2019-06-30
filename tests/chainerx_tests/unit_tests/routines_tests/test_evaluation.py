@@ -57,6 +57,7 @@ class TestAccuracy(EvalBase):
 
     def forward_xp(self, inputs, xp):
         x, t = inputs
+        t = t.astype(numpy.int64)
         if xp is chainerx:
             out = xp.accuracy(x, t, self.ignore_label)
         else:
