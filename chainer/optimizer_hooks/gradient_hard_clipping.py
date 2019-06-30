@@ -1,4 +1,5 @@
 import chainer
+from chainer import backend
 
 
 class GradientHardClipping(object):
@@ -47,4 +48,7 @@ class GradientHardClipping(object):
             return
         with chainer.using_device(param.device):
             xp = param.device.xp
-            xp.clip(grad, self.lower_bound, self.upper_bound, out=grad)
+            if xp is backend.chainerx:
+                param.grad = xp.clip(grad, self.lower_bound, self.upper_bound)
+            else:
+                xp.clip(grad, self.lower_bound, self.upper_bound, out=grad)
