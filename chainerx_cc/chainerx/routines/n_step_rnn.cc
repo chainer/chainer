@@ -47,6 +47,27 @@ Array _stack_weight(const std::vector<Array>& ws) {
     return w;
 }
 
+std::vector<Array> _gru(
+         const Array& x, const Array& h, const nonstd::optional<Array>& c, const std::vector<Array>& ws, const std::vector<Array>& bs) {
+    Array xw = Concatenate({ws[0], ws[1], ws[2]}, 0);
+    Array hw = Concatenate({ws[3], ws[4], ws[5]}, 0);
+    Array xb = Concatenate({bs[0], bs[1], bs[2]}, 0);
+    Array hb = Concatenate({bs[3], bs[4], bs[5]}, 0);
+
+    Array gru_x = Linear(x, xw, xb);
+    Array gru_h = Linear(h, hw, hb);
+
+    std::vector<Array> split_w = Split(gru_x, 3, 1);
+    std::vector<Array> split_h = Split(gru_h, 3, 1);
+    Array r = Sigmoid(split_w[0] + split_h[0]);
+    Array z = Sigmoid(split_w[1] + split_h[1]);
+    Array h_bar = Tanh(split_w[2] + r * split_h[2]);
+    std::vector<Array> out{};
+    out.push_back((Array)NULL);
+    out.push_back((1 - z) * h_bar + z * h);
+    return out;
+}
+
 std::vector<Array> _lstm(
         const Array& x, const Array& h, const nonstd::optional<Array>& c, const std::vector<Array>& ws, const std::vector<Array>& bs) {
     std::vector<Array> ws_0_4{ws[2], ws[0], ws[1], ws[3]};
