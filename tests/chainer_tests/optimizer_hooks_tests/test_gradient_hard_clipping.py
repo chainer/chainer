@@ -10,14 +10,14 @@ from chainer import testing
 _backend_params = [
     # NumPy
     {},
-    # {'use_ideep': 'always'},
+    {'use_ideep': 'always'},
     # CuPy
     {'use_cuda': True, 'cuda_device': 0},
-    # {'use_cuda': True, 'cuda_device': 1},
+    {'use_cuda': True, 'cuda_device': 1},
     # ChainerX
     {'use_chainerx': True, 'chainerx_device': 'native:0'},
     {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
-    # {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
+    {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
 ]
 
 
