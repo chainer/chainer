@@ -160,7 +160,7 @@ public:
         CHAINERX_ASSERT(a.ndim() == 2);
         CHAINERX_ASSERT(a.shape()[0] == a.shape()[1]);
 
-        VisitDtype(a.dtype(), [&](auto pt) {
+        VisitFloatingPointDtype(a.dtype(), [&](auto pt) {
             using T = typename decltype(pt)::type;
             SolveImpl<T>(a, b, out);
         });
@@ -181,7 +181,7 @@ public:
         CHAINERX_ASSERT(a.ndim() == 2);
         CHAINERX_ASSERT(a.shape()[0] == a.shape()[1]);
 
-        VisitDtype(a.dtype(), [&](auto pt) {
+        VisitFloatingPointDtype(a.dtype(), [&](auto pt) {
             using T = typename decltype(pt)::type;
             InverseImpl<T>(a, out);
         });
