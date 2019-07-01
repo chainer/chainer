@@ -19,17 +19,19 @@
 #include "chainerx/shape.h"
 
 #ifdef CHAINERX_ENABLE_LAPACK
+extern "C" {
 // gesv
-extern "C" void dgesv_(int* n, int* nrhs, double* a, int* lda, int* ipiv, double* b, int* ldb, int* info);
-extern "C" void sgesv_(int* n, int* nrhs, float* a, int* lda, int* ipiv, float* b, int* ldb, int* info);
+void dgesv_(int* n, int* nrhs, double* a, int* lda, int* ipiv, double* b, int* ldb, int* info);
+void sgesv_(int* n, int* nrhs, float* a, int* lda, int* ipiv, float* b, int* ldb, int* info);
 
 // getrf
-extern "C" void dgetrf_(int* m, int* n, double* a, int* lda, int* ipiv, int* info);
-extern "C" void sgetrf_(int* m, int* n, float* a, int* lda, int* ipiv, int* info);
+void dgetrf_(int* m, int* n, double* a, int* lda, int* ipiv, int* info);
+void sgetrf_(int* m, int* n, float* a, int* lda, int* ipiv, int* info);
 
 // getri
-extern "C" void dgetri_(int* n, double* a, int* lda, int* ipiv, double* work, int* lwork, int* info);
-extern "C" void sgetri_(int* n, float* a, int* lda, int* ipiv, float* work, int* lwork, int* info);
+void dgetri_(int* n, double* a, int* lda, int* ipiv, double* work, int* lwork, int* info);
+void sgetri_(int* n, float* a, int* lda, int* ipiv, float* work, int* lwork, int* info);
+}
 #endif  // CHAINERX_ENABLE_LAPACK
 
 namespace chainerx {
