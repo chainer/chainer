@@ -331,10 +331,7 @@ void InitChainerxLinalg(pybind11::module& m) {
     pybind11::module mlinalg = m.def_submodule("linalg");
     mlinalg.def("_is_lapack_available", []() -> bool { return CHAINERX_ENABLE_LAPACK; });
     mlinalg.def(
-            "solve",
-            [](const ArrayBodyPtr& a, const ArrayBodyPtr& b) { return MoveArrayBody(Solve(Array{a}, Array{b})); },
-            "a"_a,
-            "b"_a);
+            "solve", [](const ArrayBodyPtr& a, const ArrayBodyPtr& b) { return MoveArrayBody(Solve(Array{a}, Array{b})); }, "a"_a, "b"_a);
     mlinalg.def("inv", [](const ArrayBodyPtr& a) { return MoveArrayBody(Inverse(Array{a})); }, "a"_a);
 }
 
