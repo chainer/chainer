@@ -57,6 +57,12 @@ from chainerx_tests import op_utils
     ((6,), slice(0, 6, 2)),
     ((6,), slice(1, 6, 2)),
     ((6,), slice(5, None, -2)),
+    ((6,), slice(4, 10)),
+    ((6,), slice(10, 5, -1)),
+    ((6,), slice(5, -1)),
+    ((6,), slice(5, -1, -1)),
+    ((6,), slice(-1, 5)),
+    ((6,), slice(-1, 5, -1)),
     # slice indexing - tuple indexing
     ((3,), (slice(None),)),
     ((3,), (slice(2),)),
@@ -125,6 +131,21 @@ class TestGetitem(op_utils.NumpyOpTest):
         x, = inputs
         y = x[self.indices]
         return y,
+
+
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('shape,indices', [
+    ((), 0),
+    ((), (1,)),
+    ((), (1, 0)),
+    ((3,), 3),
+    ((3,), (0, 1)),
+    ((2, 3,), (2, 0)),
+])
+def test_getitem_index_error(device, shape, indices):
+    a = array_utils.create_dummy_ndarray(chainerx, shape, 'float32')
+    with pytest.raises(IndexError):
+        a[indices]
 
 
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
