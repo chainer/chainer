@@ -1091,11 +1091,16 @@ class Variable(object):
     def to_cpu(self, allow_unchain=False):
         """Copies the data and gradient arrays to CPU.
 
+        .. note::
+
+            This method will raise an error in the future instead of a warning
+            when the object is connected to a graph but `allow_unchain` is not
+            `True`.
+
         Args:
-            allow_unchain (bool): If ``True``, always unchains the graph. If
-                ``False``, stops and raises an error in case a graph would be
-                unchained. If ``None``, defaults to ``True`` but with a
-                warning.
+            allow_unchain (bool): If ``True``, always unchains the graph.
+                Otherwise, raises a warning in case it is connected to a
+                graph.
 
         """
         self.to_device(backend.CpuDevice(), allow_unchain=allow_unchain)
@@ -1103,13 +1108,18 @@ class Variable(object):
     def to_gpu(self, device=None, allow_unchain=False):
         """Copies the data and gradient arrays to specified GPU.
 
+        .. note::
+
+            This method will raise an error in the future instead of a warning
+            when the object is connected to a graph but `allow_unchain` is not
+            `True`.
+
         Args:
             device: Target device specifier. If omitted, the current device is
                 used.
-            allow_unchain (bool): If ``True``, always unchains the graph. If
-                ``False``, stops and raises an error in case a graph would be
-                unchained. If ``None``, defaults to ``True`` but with a
-                warning.
+            allow_unchain (bool): If ``True``, always unchains the graph.
+                Otherwise, raises a warning in case it is connected to a
+                graph.
 
         """
         cuda.check_cuda_available()
@@ -1122,11 +1132,17 @@ class Variable(object):
         If the array is not suited for intel64, it will be converted to
         :class:`numpy.ndarray`.
 
+        .. note::
+
+            This method will raise an error in the future instead of a warning
+            when the object is connected to a graph but `allow_unchain` is not
+            `True`.
+
         Args:
-            allow_unchain (bool): If ``True``, always unchains the graph. If
-                ``False``, stops and raises an error in case a graph would be
-                unchained. If ``None``, defaults to ``True`` but with a
-                warning.
+            allow_unchain (bool): If ``True``, always unchains the graph.
+                Otherwise, raises a warning in case it is connected to a
+                graph.
+
         """
         intel64.check_ideep_available()
         self.to_device(intel64.Intel64Device(), allow_unchain=allow_unchain)
@@ -1139,11 +1155,16 @@ class Variable(object):
         if the array held by the Variable object is already a ChainerX array.
         The new array is a view of the original one.
 
+        .. note::
+
+            This method will raise an error in the future instead of a warning
+            when the object is connected to a graph but `allow_unchain` is not
+            `True`.
+
         Args:
-            allow_unchain (bool): If ``True``, always unchains the graph. If
-                ``False``, stops and raises an error in case a graph would be
-                unchained. If ``None``, defaults to ``True`` but with a
-                warning.
+            allow_unchain (bool): If ``True``, always unchains the graph.
+                Otherwise, raises a warning in case it is connected to a
+                graph.
 
         """
         if not chainerx.is_available():
@@ -1166,11 +1187,16 @@ class Variable(object):
 
         Raises an error if such a conversion is not supported for the device.
 
+        .. note::
+
+            This method will raise an error in the future instead of a warning
+            when the object is connected to a graph but `allow_unchain` is not
+            `True`.
+
         Args:
-            allow_unchain (bool): If ``True``, always unchains the graph. If
-                ``False``, stops and raises an error in case a graph would be
-                unchained. If ``None``, defaults to ``True`` but with a
-                warning.
+            allow_unchain (bool): If ``True``, always unchains the graph.
+                Otherwise, raises a warning in case it is connected to a
+                graph.
 
         """
         if self._has_chainerx_array:
@@ -1183,13 +1209,18 @@ class Variable(object):
     def to_device(self, device, allow_unchain=False):
         """Copies the data and gradient arrays to specified device.
 
+        .. note::
+
+            This method will raise an error in the future instead of a warning
+            when the object is connected to a graph but `allow_unchain` is not
+            `True`.
+
         Args:
             device: Target device specifier. See
                 :func:`~chainer.get_device` for available values.
-            allow_unchain (bool): If ``True``, always unchains the graph. If
-                ``False``, stops and raises an error in case a graph would be
-                unchained. If ``None``, defaults to ``True`` but with a
-                warning.
+            allow_unchain (bool): If ``True``, always unchains the graph.
+                Otherwise, raises a warning in case it is connected to a
+                graph.
 
         """
         device = chainer.get_device(device)

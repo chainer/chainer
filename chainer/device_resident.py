@@ -67,11 +67,16 @@ class DeviceResident(utils.enable_final(meta_base=abc.ABCMeta)):
         attributes must be copied to CPU, the link implementation should
         override :meth:`~DeviceResident.device_resident_accept` to do so.
 
+        .. note::
+
+            This method will raise an error in the future instead of a warning
+            when the object is connected to a graph but `allow_unchain` is not
+            `True`.
+
         Args:
-            allow_unchain (bool): If ``True``, always unchains the graph. If
-                ``False``, stops and raises an error in case a graph would be
-                unchained. If ``None``, defaults to ``True`` but with a
-                warning.
+            allow_unchain (bool): If ``True``, always unchains the graph.
+                Otherwise, raises a warning in case it is connected to a
+                graph.
 
         Returns: self
 
@@ -97,13 +102,18 @@ class DeviceResident(utils.enable_final(meta_base=abc.ABCMeta)):
         attributes must be copied to GPU, the link implementation must
         override :meth:`~DeviceResident.device_resident_accept` to do so.
 
+        .. note::
+
+            This method will raise an error in the future instead of a warning
+            when the object is connected to a graph but `allow_unchain` is not
+            `True`.
+
         Args:
             device: Target device specifier. If omitted, the current device is
                 used.
-            allow_unchain (bool): If ``True``, always unchains the graph. If
-                ``False``, stops and raises an error in case a graph would be
-                unchained. If ``None``, defaults to ``True`` but with a
-                warning.
+            allow_unchain (bool): If ``True``, always unchains the graph.
+                Otherwise, raises a warning in case it is connected to a
+                graph.
 
         Returns: self
 
@@ -127,11 +137,16 @@ class DeviceResident(utils.enable_final(meta_base=abc.ABCMeta)):
         # type: (...) -> 'DeviceResident'
         """Copies parameter variables and persistent values to CPU.
 
+        .. note::
+
+            This method will raise an error in the future instead of a warning
+            when the object is connected to a graph but `allow_unchain` is not
+            `True`.
+
         Args:
-            allow_unchain (bool): If ``True``, always unchains the graph. If
-                ``False``, stops and raises an error in case a graph would be
-                unchained. If ``None``, defaults to ``True`` but with a
-                warning.
+            allow_unchain (bool): If ``True``, always unchains the graph.
+                Otherwise, raises a warning in case it is connected to a
+                graph.
 
         Returns: self
 
@@ -158,11 +173,16 @@ without any copy.
         attributes must be copied to ChainerX, the link implementation must
         override this method to do so.
 
+        .. note::
+
+            This method will raise an error in the future instead of a warning
+            when the object is connected to a graph but `allow_unchain` is not
+            `True`.
+
         Args:
-            allow_unchain (bool): If ``True``, always unchains the graph. If
-                ``False``, stops and raises an error in case a graph would be
-                unchained. If ``None``, defaults to ``True`` but with a
-                warning.
+            allow_unchain (bool): If ``True``, always unchains the graph.
+                Otherwise, raises a warning in case it is connected to a
+                graph.
 
         Returns: self
 
@@ -186,11 +206,16 @@ without any copy.
         """Converts parameter variables and persistent values from ChainerX \
 to NumPy/CuPy devices without any copy.
 
+        .. note::
+
+            This method will raise an error in the future instead of a warning
+            when the object is connected to a graph but `allow_unchain` is not
+            `True`.
+
         Args:
-            allow_unchain (bool): If ``True``, always unchains the graph. If
-                ``False``, stops and raises an error in case a graph would be
-                unchained. If ``None``, defaults to ``True`` but with a
-                warning.
+            allow_unchain (bool): If ``True``, always unchains the graph.
+                Otherwise, raises a warning in case it is connected to a
+                graph.
 
         Returns: self
 
@@ -219,13 +244,18 @@ device.
         attributes must be copied to the device, the link implementation must
         override this method to do so.
 
+        .. note::
+
+            This method will raise an error in the future instead of a warning
+            when the object is connected to a graph but `allow_unchain` is not
+            `True`.
+
         Args:
             device: Target device specifier. See
                 :func:`~chainer.get_device` for available values.
-            allow_unchain (bool): If ``True``, always unchains the graph. If
-                ``False``, stops and raises an error in case a graph would be
-                unchained. If ``None``, defaults to ``True`` but with a
-                warning.
+            allow_unchain (bool): If ``True``, always unchains the graph.
+                Otherwise, raises a warning in case it is connected to a
+                graph.
 
 
         Returns: self
