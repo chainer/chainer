@@ -71,7 +71,10 @@ def deformable_convolution_2d_sampler(x, offset, W, b=None, stride=1, pad=0):
     If the bias vector is given, then it is added to all spatial locations of
     the output of convolution.
 
-    .. seealso:: :class:`~chainer.links.DeformableConvolution2D`
+    .. seealso::
+
+        :class:`~chainer.links.DeformableConvolution2D` to manage the model
+        parameters ``W`` and ``b``.
 
     .. admonition:: Example
 

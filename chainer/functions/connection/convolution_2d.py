@@ -538,7 +538,10 @@ dilate=1, groups=1)
         ~chainer.Variable:
             Output variable of shape :math:`(n, c_O, h_O, w_O)`.
 
-    .. seealso:: :class:`~chainer.links.Convolution2D`
+    .. seealso::
+
+        :class:`~chainer.links.Convolution2D` to manage the model parameters
+        ``W`` and ``b``.
 
     .. admonition:: Example
 
