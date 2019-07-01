@@ -116,6 +116,14 @@ class TestIntervalTrigger(unittest.TestCase):
                 trainer.updater.update()
                 self.assertEqual(trigger(trainer), expected)
 
+    def test_str(self):
+        trigger = training.triggers.IntervalTrigger(*self.interval)
+
+        expected = 'IntervalTrigger(%d, \'%s\')' % tuple(self.interval)
+        actual = str(trigger)
+
+        self.assertEqual(expected, actual)
+
 
 class TestInvalidIntervalTrigger(unittest.TestCase):
 
