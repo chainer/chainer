@@ -556,9 +556,6 @@ class Variable(object):
 
     def _init_impl(self, data, device, name, grad, grad_valid, requires_grad,
                    is_chainerx_array, node):
-        # Use a list as a data structure to hold the data array indirectly to
-        # abstract its initialized/uninitialized state.
-
         # `device` must be of type chainer.backend.Device.
         # Check is skipped for performance.
 
