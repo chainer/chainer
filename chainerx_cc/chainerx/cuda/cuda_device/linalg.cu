@@ -42,12 +42,23 @@ cusolverStatus_t GetrfBuffersize(cusolverDnHandle_t /*handle*/, int /*m*/, int /
 }
 
 template <typename T>
-cusolverStatus_t Getrf(cusolverDnHandle_t /*handle*/, int /*m*/, int /*n*/, T* /*a*/, int /*lda*/, T* /*workspace*/, int* /*devipiv*/, int* /*devinfo*/) {
+cusolverStatus_t Getrf(
+        cusolverDnHandle_t /*handle*/, int /*m*/, int /*n*/, T* /*a*/, int /*lda*/, T* /*workspace*/, int* /*devipiv*/, int* /*devinfo*/) {
     throw DtypeError{"Only Arrays of float or double type are supported by getrf (LU)"};
 }
 
 template <typename T>
-cusolverStatus_t Getrs(cusolverDnHandle_t /*handle*/, cublasOperation_t /*trans*/, int /*n*/, int /*nrhs*/, T* /*a*/, int /*lda*/, int* /*devipiv*/, T* /*b*/, int /*ldb*/, int* /*devinfo*/) {
+cusolverStatus_t Getrs(
+        cusolverDnHandle_t /*handle*/,
+        cublasOperation_t /*trans*/,
+        int /*n*/,
+        int /*nrhs*/,
+        T* /*a*/,
+        int /*lda*/,
+        int* /*devipiv*/,
+        T* /*b*/,
+        int /*ldb*/,
+        int* /*devinfo*/) {
     throw DtypeError{"Only Arrays of float or double type are supported by getrs (Solve)"};
 }
 
@@ -72,12 +83,32 @@ cusolverStatus_t Getrf<float>(cusolverDnHandle_t handle, int m, int n, float* a,
 }
 
 template <>
-cusolverStatus_t Getrs<double>(cusolverDnHandle_t handle, cublasOperation_t trans, int n, int nrhs, double* a, int lda, int* devipiv, double* b, int ldb, int* devinfo) {
+cusolverStatus_t Getrs<double>(
+        cusolverDnHandle_t handle,
+        cublasOperation_t trans,
+        int n,
+        int nrhs,
+        double* a,
+        int lda,
+        int* devipiv,
+        double* b,
+        int ldb,
+        int* devinfo) {
     return cusolverDnDgetrs(handle, trans, n, nrhs, a, lda, devipiv, b, ldb, devinfo);
 }
 
 template <>
-cusolverStatus_t Getrs<float>(cusolverDnHandle_t handle, cublasOperation_t trans, int n, int nrhs, float* a, int lda, int* devipiv, float* b, int ldb, int* devinfo) {
+cusolverStatus_t Getrs<float>(
+        cusolverDnHandle_t handle,
+        cublasOperation_t trans,
+        int n,
+        int nrhs,
+        float* a,
+        int lda,
+        int* devipiv,
+        float* b,
+        int ldb,
+        int* devinfo) {
     return cusolverDnSgetrs(handle, trans, n, nrhs, a, lda, devipiv, b, ldb, devinfo);
 }
 
