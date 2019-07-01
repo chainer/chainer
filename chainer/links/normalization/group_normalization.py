@@ -1,4 +1,8 @@
+import numpy
+
+import chainer
 from chainer.functions.normalization import group_normalization
+from chainer import initializers
 from chainer import link
 from chainer import variable
 
@@ -49,11 +53,18 @@ class GroupNormalization(link.Link):
         if initial_beta is None:
             initial_beta = 0
 
+        self.groups = groups
+        self.eps = eps
+        self._highprec_dtype = chainer.get_dtype(
+            None, map_mixed16=numpy.float32)
+
         with self.init_scope():
-            self.groups = groups
-            self.gamma = variable.Parameter(initial_gamma)
-            self.beta = variable.Parameter(initial_beta)
-            self.eps = eps
+            gamma_initializer = initializers._get_initializer(initial_gamma)
+            gamma_initializer.dtype = self._highprec_dtype
+            self.gamma = variable.Parameter(gamma_initializer)
+            beta_initializer = initializers._get_initializer(initial_beta)
+            beta_initializer.dtype = self._highprec_dtype
+            self.beta = variable.Parameter(beta_initializer)
 
         if size is not None:
             self._initialize_params(size)
