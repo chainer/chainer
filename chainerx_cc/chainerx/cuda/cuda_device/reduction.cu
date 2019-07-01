@@ -133,7 +133,7 @@ CHAINERX_CUDA_REGISTER_KERNEL(SumKernel, CudaSumKernel);
 
 class CudaCumsumKernel : public CumsumKernel {
 public:
-    void Call(const Array& a, int8_t axis, const Array& out) override {
+    void Call(const Array& /* a */, int8_t /* axis */, const Array& /* out */) override {
         throw NotImplementedError{"CUDA Implementation is not yet supported."};
     }
 };
