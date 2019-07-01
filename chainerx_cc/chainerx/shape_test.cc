@@ -79,8 +79,8 @@ TEST(ShapeTest, Subscript) {
     EXPECT_EQ(2, shape[0]);
     EXPECT_EQ(3, shape[1]);
     EXPECT_EQ(4, shape[2]);
-    EXPECT_THROW(shape[-1], DimensionError);
-    EXPECT_THROW(shape[3], DimensionError);
+    EXPECT_THROW(shape[-1], IndexError);
+    EXPECT_THROW(shape[3], IndexError);
 }
 
 TEST(ShapeTest, Compare) {

@@ -112,6 +112,9 @@ else()
     add_library(chainerx SHARED ${chainerx_srcs})
 endif()
 
+# abseil
+target_link_libraries(chainerx PUBLIC absl::failure_signal_handler)
+
 if(MSVC)
     target_link_libraries(chainerx
         PUBLIC

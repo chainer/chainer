@@ -92,10 +92,10 @@ def extract_params_set_data(model):
 def extract_params_set_grad(model, zero_fill):
     if zero_fill:
         return [param for _, param in sorted(model.namedparams())
-                if param.grad is not None or param.data is not None]
+                if param.data is not None]
     else:
         return [param for _, param in sorted(model.namedparams())
-                if param.grad is not None]
+                if param.data is not None and param.grad is not None]
 
 
 def count_grad_elements(params, zero_fill):

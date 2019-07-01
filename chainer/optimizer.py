@@ -278,8 +278,6 @@ class UpdateRule(object):
             param (~chainer.Variable): Variable to be updated.
 
         """
-        grad_array = param.grad
-
         device = param.device
         fallback_device = device.fallback_device
 
@@ -306,9 +304,10 @@ class UpdateRule(object):
             device=fallback_device,
             is_chainerx_array=False)
 
-        if grad_array is not None:
+        # TODO(niboshi): Avoid accessing private attribute
+        if param._grad_valid:
             temp_param._set_grad_without_check(
-                fallback_device.send(grad_array))
+                fallback_device.send(param.grad))
 
         # Update
         self.update_core(temp_param)
@@ -616,21 +615,23 @@ class Optimizer(object):
 
     def call_hooks(self, timing='pre'):
         """Invokes hook functions in registration order."""
-        if timing not in ('pre', 'post'):
-            raise ValueError('timing must be either \'pre\' or \'post\'')
-        if timing == 'pre':
-            hooks = self._pre_update_hooks
-        else:
-            hooks = self._post_update_hooks
+        hooks = self._get_hooks(timing)
         for hook in six.itervalues(hooks):
-            self._call_hook(hook)
+            self.call_hook(hook)
 
-    def _call_hook(self, hook):
+    def call_hook(self, hook):
         if getattr(hook, 'call_for_each_param', False):
             for param in self.target.params():
                 hook(param.update_rule, param)
         else:
             hook(self)
+
+    def _get_hooks(self, timing):
+        if timing == 'pre':
+            return self._pre_update_hooks
+        elif timing == 'post':
+            return self._post_update_hooks
+        raise ValueError('timing must be either \'pre\' or \'post\'')
 
     def serialize(self, serializer):
         """Serializes or deserializes the optimizer.
@@ -768,17 +769,9 @@ class GradientMethod(Optimizer):
                 with chainer.using_device(device):
                     param.grad = device.xp.zeros_like(param.data)
 
-    def call_hooks(self, timing='pre'):
-        """Invokes hook functions in registration order."""
-        if timing not in ('pre', 'post'):
-            raise ValueError('timing must be either \'pre\' or \'post\'')
-        if timing == 'pre':
-            hooks = self._pre_update_hooks
-        else:
-            hooks = self._post_update_hooks
-        for hook in six.itervalues(hooks):
-            self._call_hook(hook)
-            self.reallocate_cleared_grads()
+    def call_hook(self, hook):
+        super(GradientMethod, self).call_hook(hook)
+        self.reallocate_cleared_grads()
 
     def update(self, lossfun=None, *args, **kwds):
         """Updates parameters based on a loss function or computed gradients.
