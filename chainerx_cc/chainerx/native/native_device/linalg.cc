@@ -36,44 +36,50 @@ namespace chainerx {
 namespace native {
 namespace {
 
-template<typename T>
+template <typename T>
 void Gesv(int /*n*/, int /*nrhs*/, T* /*a*/, int /*lda*/, int* /*ipiv*/, T* /*b*/, int /*ldb*/, int* /*info*/) {
     throw DtypeError{"Only Arrays of float or double type are supported by gesv (Solve)"};
 }
 
-template<typename T>
+template <typename T>
 void Getrf(int /*m*/, int /*n*/, T* /*a*/, int /*lda*/, int* /*ipiv*/, int* /*info*/) {
     throw DtypeError{"Only Arrays of float or double type are supported by getri (LU)"};
 }
 
-template<typename T>
+template <typename T>
 void Getri(int /*n*/, T* /*a*/, int /*lda*/, int* /*ipiv*/, T* /*work*/, int /*lwork*/, int* /*info*/) {
     throw DtypeError{"Only Arrays of float or double type are supported by getri (Inverse LU)"};
 }
 
 #ifdef CHAINERX_ENABLE_LAPACK
-template<> void Gesv<double>(int n, int nrhs, double* a, int lda, int* ipiv, double* b, int ldb, int* info) {
-  dgesv_(&n, &nrhs, a, &lda, ipiv, b, &ldb, info);
+template <>
+void Gesv<double>(int n, int nrhs, double* a, int lda, int* ipiv, double* b, int ldb, int* info) {
+    dgesv_(&n, &nrhs, a, &lda, ipiv, b, &ldb, info);
 }
 
-template<> void Gesv<float>(int n, int nrhs, float* a, int lda, int* ipiv, float* b, int ldb, int* info) {
-  sgesv_(&n, &nrhs, a, &lda, ipiv, b, &ldb, info);
+template <>
+void Gesv<float>(int n, int nrhs, float* a, int lda, int* ipiv, float* b, int ldb, int* info) {
+    sgesv_(&n, &nrhs, a, &lda, ipiv, b, &ldb, info);
 }
 
-template<> void Getrf<double>(int m, int n, double* a, int lda, int* ipiv, int* info) {
-  dgetrf_(&m, &n, a, &lda, ipiv, info);
+template <>
+void Getrf<double>(int m, int n, double* a, int lda, int* ipiv, int* info) {
+    dgetrf_(&m, &n, a, &lda, ipiv, info);
 }
 
-template<> void Getrf<float>(int m, int n, float* a, int lda, int* ipiv, int* info) {
-  sgetrf_(&m, &n, a, &lda, ipiv, info);
+template <>
+void Getrf<float>(int m, int n, float* a, int lda, int* ipiv, int* info) {
+    sgetrf_(&m, &n, a, &lda, ipiv, info);
 }
 
-template<> void Getri<double>(int n, double* a, int lda, int* ipiv, double* work, int lwork, int* info) {
-  dgetri_(&n, a, &lda, ipiv, work, &lwork, info);
+template <>
+void Getri<double>(int n, double* a, int lda, int* ipiv, double* work, int lwork, int* info) {
+    dgetri_(&n, a, &lda, ipiv, work, &lwork, info);
 }
 
-template<> void Getri<float>(int n, float* a, int lda, int* ipiv, float* work, int lwork, int* info) {
-  sgetri_(&n, a, &lda, ipiv, work, &lwork, info);
+template <>
+void Getri<float>(int n, float* a, int lda, int* ipiv, float* work, int lwork, int* info) {
+    sgetri_(&n, a, &lda, ipiv, work, &lwork, info);
 }
 #endif
 
