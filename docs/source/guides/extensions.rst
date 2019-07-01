@@ -164,7 +164,7 @@ The learning rate will be dropped according to the curve below with :math:`{\rm 
 .. code-block:: python
 
     stop_trigger = (10000, 'iteration')
-    trainer.extend(PolynomialShift('lr', 0.5, stop_trigger)
+    trainer.extend(PolynomialShift('lr', 0.5, stop_trigger))
 
 This extension ``PolynomialShift`` takes five arguments.
 
