@@ -30,7 +30,7 @@ extern "C" void sgetrf_(int* m, int* n, float* a, int* lda, int* ipiv, int* info
 // getri
 extern "C" void dgetri_(int* n, double* a, int* lda, int* ipiv, double* work, int* lwork, int* info);
 extern "C" void sgetri_(int* n, float* a, int* lda, int* ipiv, float* work, int* lwork, int* info);
-#endif
+#endif  // CHAINERX_ENABLE_LAPACK
 
 namespace chainerx {
 namespace native {
@@ -81,7 +81,7 @@ template <>
 void Getri<float>(int n, float* a, int lda, int* ipiv, float* work, int lwork, int* info) {
     sgetri_(&n, a, &lda, ipiv, work, &lwork, info);
 }
-#endif
+#endif  // CHAINERX_ENABLE_LAPACK
 
 template <typename T>
 void SolveImpl(const Array& a, const Array& b, const Array& out) {
@@ -154,7 +154,7 @@ public:
         (void)b;  // unused
         (void)out;  // unused
         throw ChainerxError{"LAPACK is not linked to ChainerX."};
-#else
+#else  // CHAINERX_ENABLE_LAPACK
         CHAINERX_ASSERT(a.ndim() == 2);
         CHAINERX_ASSERT(a.shape()[0] == a.shape()[1]);
 
@@ -175,7 +175,7 @@ public:
         (void)a;  // unused
         (void)out;  // unused
         throw ChainerxError{"LAPACK is not linked to ChainerX."};
-#else
+#else  // CHAINERX_ENABLE_LAPACK
         CHAINERX_ASSERT(a.ndim() == 2);
         CHAINERX_ASSERT(a.shape()[0] == a.shape()[1]);
 
