@@ -2332,23 +2332,15 @@ class TestToDeviceStatefulLink(unittest.TestCase):
         self.link.to_device('@numpy', allow_unchain=True)
 
     def test_to_device_allow_unchain_false(self):
-        with pytest.raises(RuntimeError):
-            self.link.to_device('@numpy', allow_unchain=False)
-
-    def test_to_device_allow_unchain_none(self):
         with pytest.warns(DeprecationWarning):
-            self.link.to_device('@numpy')
+            self.link.to_device('@numpy', allow_unchain=False)
 
     def test_to_cpu_allow_unchain_true(self):
         self.link.to_cpu(allow_unchain=True)
 
     def test_to_cpu_allow_unchain_false(self):
-        with pytest.raises(RuntimeError):
-            self.link.to_cpu(allow_unchain=False)
-
-    def test_to_cpu_allow_unchain_none(self):
         with pytest.warns(DeprecationWarning):
-            self.link.to_cpu()
+            self.link.to_cpu(allow_unchain=False)
 
     @attr.gpu
     def test_to_gpu_allow_unchain_true(self):
@@ -2356,13 +2348,8 @@ class TestToDeviceStatefulLink(unittest.TestCase):
 
     @attr.gpu
     def test_to_gpu_allow_unchain_false(self):
-        with pytest.raises(RuntimeError):
-            self.link.to_gpu(allow_unchain=False)
-
-    @attr.gpu
-    def test_to_gpu_allow_unchain_none(self):
         with pytest.warns(DeprecationWarning):
-            self.link.to_gpu()
+            self.link.to_gpu(allow_unchain=False)
 
     @attr.ideep
     def test_to_intel64_allow_unchain_true(self):
@@ -2370,13 +2357,8 @@ class TestToDeviceStatefulLink(unittest.TestCase):
 
     @attr.ideep
     def test_to_intel64_allow_unchain_false(self):
-        with pytest.raises(RuntimeError):
-            self.link.to_intel64(allow_unchain=False)
-
-    @attr.ideep
-    def test_to_intel64_allow_unchain_none(self):
         with pytest.warns(DeprecationWarning):
-            self.link.to_intel64()
+            self.link.to_intel64(allow_unchain=False)
 
     @attr.chainerx
     def test_to_chx_allow_unchain_true(self):
@@ -2384,13 +2366,8 @@ class TestToDeviceStatefulLink(unittest.TestCase):
 
     @attr.chainerx
     def test_to_chx_allow_unchain_false(self):
-        with pytest.raises(RuntimeError):
-            self.link.to_chx(allow_unchain=False)
-
-    @attr.chainerx
-    def test_to_chx_allow_unchain_none(self):
         with pytest.warns(DeprecationWarning):
-            self.link.to_chx()
+            self.link.to_chx(allow_unchain=False)
 
     @attr.chainerx
     def test_from_chx_allow_unchain_true(self):
@@ -2402,15 +2379,8 @@ class TestToDeviceStatefulLink(unittest.TestCase):
     def test_from_chx_allow_unchain_false(self):
         self.link.to_chx(allow_unchain=True)
         self.link()
-        with pytest.raises(RuntimeError):
-            self.link.from_chx(allow_unchain=False)
-
-    @attr.chainerx
-    def test_from_chx_allow_unchain_none(self):
-        self.link.to_chx(allow_unchain=True)
-        self.link()
         with pytest.warns(DeprecationWarning):
-            self.link.from_chx()
+            self.link.from_chx(allow_unchain=False)
 
 
 class TestCallMethod(unittest.TestCase):

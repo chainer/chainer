@@ -1055,22 +1055,11 @@ class VariableToDeviceFamilyBase(object):
         self.setup(src_backend_config)
 
         if self.x_with_graph:
-            with pytest.raises(RuntimeError):
+            with pytest.warns(DeprecationWarning):
                 self.to_device_meth(dst_backend_config.device, False)
         else:
-            # Check that nothing is raised.
-            self.to_device_meth(dst_backend_config.device, False)
-
-    def test_to_device_meth_unspecified_allow_unchain(
-            self, src_backend_config, dst_backend_config):
-        self.setup(src_backend_config)
-
-        if self.x_with_graph:
-            with pytest.warns(DeprecationWarning):
-                self.to_device_meth(dst_backend_config.device, None)
-        else:
             # Check that nothing is warned.
-            self.to_device_meth(dst_backend_config.device, None)
+            self.to_device_meth(dst_backend_config.device, False)
 
 
 @testing.parameterize(*testing.product({

@@ -1088,7 +1088,7 @@ class Variable(object):
         """Transposition of this variable."""
         return chainer.functions.transpose(self)
 
-    def to_cpu(self, allow_unchain=None):
+    def to_cpu(self, allow_unchain=False):
         """Copies the data and gradient arrays to CPU.
 
         Args:
@@ -1100,7 +1100,7 @@ class Variable(object):
         """
         self.to_device(backend.CpuDevice(), allow_unchain=allow_unchain)
 
-    def to_gpu(self, device=None, allow_unchain=None):
+    def to_gpu(self, device=None, allow_unchain=False):
         """Copies the data and gradient arrays to specified GPU.
 
         Args:
@@ -1116,7 +1116,7 @@ class Variable(object):
         self.to_device(
             cuda._get_device_or_current(device), allow_unchain=allow_unchain)
 
-    def to_intel64(self, allow_unchain=None):
+    def to_intel64(self, allow_unchain=False):
         """Copies the data and gradient arrays to intel64 specific mdarray.
 
         If the array is not suited for intel64, it will be converted to
@@ -1131,7 +1131,7 @@ class Variable(object):
         intel64.check_ideep_available()
         self.to_device(intel64.Intel64Device(), allow_unchain=allow_unchain)
 
-    def to_chx(self, allow_unchain=None):
+    def to_chx(self, allow_unchain=False):
         """Converts the array and gradient to ChainerX arrays without copy.
 
         This method converts the underlying array and gradient to
@@ -1156,7 +1156,7 @@ class Variable(object):
 
         self.to_device(device, allow_unchain=allow_unchain)
 
-    def from_chx(self, allow_unchain=None):
+    def from_chx(self, allow_unchain=False):
         """Converts the array and gradient to non-ChainerX arrays without copy.
 
         This method converts the underlying ChainerX array and gradient
@@ -1180,7 +1180,7 @@ class Variable(object):
 
         self.to_device(device, allow_unchain=allow_unchain)
 
-    def to_device(self, device, allow_unchain=None):
+    def to_device(self, device, allow_unchain=False):
         """Copies the data and gradient arrays to specified device.
 
         Args:
@@ -1208,20 +1208,16 @@ class Variable(object):
                     and arr._is_chained())
             else:
                 is_unchain_required = self.creator is not None
+
             if is_unchain_required:
-                if allow_unchain is None:
-                    warnings.warn(
-                        'Device transfer should be explicit about whether'
-                        ' unchaining is allowed or not. If not specified, it'
-                        ' will be treated as if not allowed in the future,'
-                        ' leading to an error.',
-                        DeprecationWarning)
-                elif not allow_unchain:
-                    raise RuntimeError(
-                        'Device transfer results in unchaining the graph. Make'
-                        ' sure that the variable is not connected to a graph'
-                        ' before the device transfer or specify `unchain=True`'
-                        '.')
+                warnings.warn(
+                    'Device transfer that does not pass allow_unchain as True'
+                    ' for a variable that is connected to a graph will result'
+                    ' in an error in the future. It is recommended that you'
+                    ' pass allow_unchain=True if you do not care about any'
+                    ' existing graphs after the device transfer, or that you'
+                    ' unchain the graph beforehand if one exists.',
+                    DeprecationWarning)
 
         if was_chainerx and not is_chainerx:
             self._clear_chainerx()
@@ -1741,18 +1737,18 @@ class Parameter(Variable):
             self.initializer, self.update_rule, self.device)
         return _recover_parameter, args
 
-    def to_cpu(self, allow_unchain=None):
+    def to_cpu(self, allow_unchain=False):
         return self.to_device(backend.CpuDevice(), allow_unchain=allow_unchain)
 
-    def to_gpu(self, device=None, allow_unchain=None):
+    def to_gpu(self, device=None, allow_unchain=False):
         device = chainer.get_device(cuda._get_device_or_current(device))
         assert device.xp is cuda.cupy
         self.to_device(device, allow_unchain=allow_unchain)
 
-    def to_intel64(self, allow_unchain=None):
+    def to_intel64(self, allow_unchain=False):
         self.to_device(intel64.Intel64Device(), allow_unchain=allow_unchain)
 
-    def to_chx(self, allow_unchain=None):
+    def to_chx(self, allow_unchain=False):
         if not chainerx.is_available():
             raise RuntimeError('ChainerX is not available.')
 
@@ -1772,7 +1768,7 @@ class Parameter(Variable):
 
         super(Parameter, self).to_chx(allow_unchain=allow_unchain)
 
-    def from_chx(self, allow_unchain=None):
+    def from_chx(self, allow_unchain=False):
         if self.array is not None:
             device = backend.get_device_from_array(self.array)
         else:
@@ -1788,7 +1784,7 @@ class Parameter(Variable):
 
         super(Parameter, self).from_chx(allow_unchain=allow_unchain)
 
-    def to_device(self, device, allow_unchain=None):
+    def to_device(self, device, allow_unchain=False):
         device = chainer.get_device(device)
         if self.data is None and self._initial_device != device:
             self._data = [None]  # Renew placeholder to break sharing

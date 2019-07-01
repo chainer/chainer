@@ -58,7 +58,7 @@ class DeviceResident(utils.enable_final(meta_base=abc.ABCMeta)):
 
     def to_cpu(
             self,
-            allow_unchain=None,  # type: tp.Optional[bool]
+            allow_unchain=False,  # type: tp.Optional[bool]
     ):
         # type: (...) -> 'DeviceResident'
         """Copies parameter variables and persistent values to CPU.
@@ -88,7 +88,7 @@ class DeviceResident(utils.enable_final(meta_base=abc.ABCMeta)):
     def to_gpu(
             self,
             device=None,  # type: tp.Optional[types.CudaDeviceSpec]
-            allow_unchain=None,  # type: tp.Optional[bool]
+            allow_unchain=False,  # type: tp.Optional[bool]
     ):
         # type: (...) -> 'DeviceResident'
         """Copies parameter variables and persistent values to GPU.
@@ -122,7 +122,7 @@ class DeviceResident(utils.enable_final(meta_base=abc.ABCMeta)):
 
     def to_intel64(
             self,
-            allow_unchain=None,  # type: tp.Optional[bool]
+            allow_unchain=False,  # type: tp.Optional[bool]
     ):
         # type: (...) -> 'DeviceResident'
         """Copies parameter variables and persistent values to CPU.
@@ -148,7 +148,7 @@ class DeviceResident(utils.enable_final(meta_base=abc.ABCMeta)):
     @utils.final
     def to_chx(
             self,
-            allow_unchain=None,  # type: tp.Optional[bool]
+            allow_unchain=False,  # type: tp.Optional[bool]
     ):
         # type: (...) -> 'DeviceResident'
         """Converts parameter variables and persistent values to ChainerX \
@@ -180,7 +180,7 @@ without any copy.
     @utils.final
     def from_chx(
             self,
-            allow_unchain=None,  # type: tp.Optional[bool]
+            allow_unchain=False,  # type: tp.Optional[bool]
     ):
         # type: (...) -> 'DeviceResident'
         """Converts parameter variables and persistent values from ChainerX \
@@ -209,7 +209,7 @@ to NumPy/CuPy devices without any copy.
     def to_device(
             self,
             device,  # type: types.DeviceSpec
-            allow_unchain=None,  # type: tp.Optional[bool]
+            allow_unchain=False,  # type: tp.Optional[bool]
     ):
         # type: (...) -> 'DeviceResident'
         """Copies parameter variables and persistent values to the specified \
@@ -285,7 +285,7 @@ class _ToDeviceVisitor(DeviceResidentsVisitor):
             self, device, entry_method_info=None,
             skip_between_cupy_devices=False,
             starting_device_resident=None,
-            allow_unchain=None):
+            allow_unchain=False):
 
         assert isinstance(device, chainer.backend.Device)
 
