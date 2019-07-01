@@ -281,7 +281,7 @@ To build the documentation, you need to install `Sphinx <http://www.sphinx-doc.o
    Docstrings (documentation comments in the source code) are collected from the installed Chainer module.
    If you have edited docstrings in checked-out source files and want to see those changes reflected in the generated html,
    Chainer must be installed in develop mode to see those changes reflected in the generated documentation.
-   To do this use `pip install -e .` from the the top of the Chainer directory.
+   To do this use ``pip install -e .`` from the the top of the Chainer directory.
 
 Then you can build the documentation in HTML format locally::
 
