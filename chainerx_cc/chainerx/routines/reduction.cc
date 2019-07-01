@@ -98,4 +98,18 @@ Array LogSoftmax(const Array& x, const OptionalAxes& axis) {
     return x_cast - LogSumExp(x_cast, axis.has_value() ? axis : OptionalAxes{1}, true);
 }
 
+Array Cumsum(const Array& a, int8_t axis) {
+    int8_t axis_norm = internal::NormalizeAxis(axis, a.ndim());
+
+    Shape out_shape = a.shape();
+    Array out = Empty(out_shape, a.dtype(), a.device());
+
+    {
+        NoBackpropModeScope scope{};
+        a.device().backend().CallKernel<CumsumKernel>(a, axis_norm, out);
+    }
+    // Backward not implemented yet
+    return out;
+}
+
 }  // namespace chainerx

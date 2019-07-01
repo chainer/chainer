@@ -106,6 +106,67 @@ public:
 
 CHAINERX_NATIVE_REGISTER_KERNEL(SumKernel, NativeSumKernel);
 
+class NativeCumsumKernel : public CumsumKernel {
+public:
+    void Call(const Array& a, int8_t axis, const Array& out) override {
+        a.device().CheckDevicesCompatible(a, out);
+
+        VisitDtype(out.dtype(), [&a, axis, &out](auto pt) {
+            using T = typename decltype(pt)::type;
+
+            IndexableArray<const T> a_iarray{a};
+            IndexableArray<T> out_iarray{out};
+            Indexer<> a_indexer{a.shape()};
+            Indexer<> out_indexer{out.shape()};
+            Indexer<> prev_indexer{a.shape()};
+
+            int64_t axis_dim = a.shape()[axis];
+
+            // left: set of input dimensions lower than the axis
+            // right: set of input dimensions higher than the axis
+            Shape left_shape{a.shape().begin(), a.shape().begin() + axis};
+            Shape right_shape{a.shape().begin() + (axis + 1), a.shape().end()};
+            Shape axis_shape{axis_dim};  // always ndim==1
+            Shape indices_shape{axis_dim};
+
+            Indexer<> left_indexer{left_shape};
+            Indexer<> right_indexer{right_shape};
+            Indexer<> axis_indexer{axis_shape};
+            Indexer<> indices_indexer{indices_shape};
+
+            auto it_left = left_indexer.It(0);
+            auto it_right = right_indexer.It(0);
+            auto it_axis = axis_indexer.It(0);
+            auto it_out = out_indexer.It(0);
+            auto it_a = a_indexer.It(0);
+            auto it_prev = prev_indexer.It(0);
+
+            for (auto it = indices_indexer.It(1); it; ++it) {
+                int64_t index = it.raw_index();
+                it_axis.Restart(index);
+
+                it_out.CopyIndex(it, it_left.ndim());
+                it_a.CopyIndex(it_axis, it_left.ndim());
+
+                for (it_left.Restart(); it_left; ++it_left) {
+                    it_out.CopyIndex(it_left);
+                    it_a.CopyIndex(it_left);
+
+                    for (it_right.Restart(); it_right; ++it_right) {
+                        it_out.CopyIndex(it_right, it_left.ndim() + it.ndim());
+                        it_a.CopyIndex(it_right, it_left.ndim() + it_axis.ndim());
+                        it_prev.CopyIndex(it_right, it_left.ndim() + it_axis.ndim());
+                        it_prev.index()[axis] -= 1;
+                        out_iarray[it_out] = a_iarray[it_a] + a_iarray[it_prev];
+                    }
+                }
+            }
+        });
+    }
+};
+
+CHAINERX_NATIVE_REGISTER_KERNEL(CumsumKernel, NativeCumsumKernel);
+
 }  // namespace
 }  // namespace native
 }  // namespace chainerx

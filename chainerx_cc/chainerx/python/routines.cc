@@ -326,12 +326,6 @@ void InitChainerxIndexing(pybind11::module& m) {
           "condition"_a,
           "x"_a,
           "y"_a);
-    m.def("cumsum",
-          [](const ArrayBodyPtr& a, const nonstd::optional<std::vector<int8_t>>& axis) {
-              return MoveArrayBody(Cumsum(Array{a}, ToAxes(axis)));
-          },
-          "a"_a,
-          "axis"_a = nullptr);
 }
 
 void InitChainerxLinalg(pybind11::module& m) {
@@ -794,6 +788,12 @@ void InitChainerxReduction(pybind11::module& m) {
               return MoveArrayBody(Softmax(Array{x}, ToAxes(axis)));
           },
           "x"_a,
+          "axis"_a = nullptr);
+    m.def("cumsum",
+          [](const ArrayBodyPtr& a, const nonstd::optional<std::vector<int8_t>>& axis) {
+              return MoveArrayBody(Cumsum(Array{a}, ToAxes(axis)));
+          },
+          "a"_a,
           "axis"_a = nullptr);
 }
 
