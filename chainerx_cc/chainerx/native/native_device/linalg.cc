@@ -150,6 +150,9 @@ class NativeSolveKernel : public SolveKernel {
 public:
     void Call(const Array& a, const Array& b, const Array& out) override {
 #ifndef CHAINERX_ENABLE_LAPACK
+        (void)a;  // unused
+        (void)b;  // unused
+        (void)out;  // unused
         throw ChainerxError{"LAPACK is not linked to ChainerX."};
 #else
         CHAINERX_ASSERT(a.ndim() == 2);
@@ -169,6 +172,8 @@ class NativeInverseKernel : public InverseKernel {
 public:
     void Call(const Array& a, const Array& out) override {
 #ifndef CHAINERX_ENABLE_LAPACK
+        (void)a;  // unused
+        (void)out;  // unused
         throw ChainerxError{"LAPACK is not linked to ChainerX."};
 #else
         CHAINERX_ASSERT(a.ndim() == 2);
