@@ -42,7 +42,7 @@ def expand_dims(x, axis):
             :math:`ndim + 1 - |axis|`.
 
     Returns:
-        ~chainer.Variable: Variable that holds a expanded input. The ``ndim``
+        ~chainer.Variable: Variable that holds an expanded input. The ``ndim``
         of output is one grater than that of ``x``.
 
     .. admonition:: Example
