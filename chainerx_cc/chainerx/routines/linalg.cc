@@ -99,13 +99,25 @@ Array Dot(const Array& a, const Array& b, nonstd::optional<Dtype> out_dtype) {
     return out_matrix.Reshape(out_shape);
 }
 
-Array Solve(const Array& a, const Array& b) {
+namespace {
+
+void CheckRankTwoArray(const Array& a) {
     if (a.ndim() != 2) {
         throw DimensionError{"ChainerX solve supports only 2-dimensional arrays."};
     }
+}
+
+void CheckSquareMatrix(const Array& a) {
     if (a.shape()[0] != a.shape()[1]) {
         throw DimensionError{"Matrix is not square."};
     }
+}
+
+}  // namespace
+
+Array Solve(const Array& a, const Array& b) {
+    CheckRankTwoArray(a);
+    CheckSquareMatrix(a);
     CheckEqual(a.device(), b.device());
     CheckEqual(a.dtype(), b.dtype());
     Dtype dtype = internal::GetMathResultDtype(b.dtype());
@@ -143,12 +155,8 @@ Array Solve(const Array& a, const Array& b) {
 }
 
 Array Inverse(const Array& a) {
-    if (a.ndim() != 2) {
-        throw DimensionError{"ChainerX inverse supports only 2-dimensional arrays."};
-    }
-    if (a.shape()[0] != a.shape()[1]) {
-        throw DimensionError{"Matrix is not square."};
-    }
+    CheckRankTwoArray(a);
+    CheckSquareMatrix(a);
     Dtype dtype = internal::GetMathResultDtype(a.dtype());
     Array out = Empty(a.shape(), dtype, a.device());
 
