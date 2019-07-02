@@ -420,8 +420,8 @@ std::vector<Array> lstm(const Array& c, const Array& x) {
     indices.push_back(x.shape()[0]);
     indices.push_back(h.shape()[0]);
     std::vector<Array> h_new = Split(h, indices, 0);
-    out.push_back(new_c);
     out.push_back(h_new[0]);
+    out.push_back(new_c);
     return out;
 }
 

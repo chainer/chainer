@@ -63,7 +63,6 @@ lstm_dtypes_invalid = dtype_utils._permutate_dtype_mapping([
     (('bool_', 'float64'), ('bool_', 'float64')),
 ])
 
-
 def _create_lstm_args(xp, device, c_shape, x_shape, float_dtype):
     c = array_utils.create_dummy_ndarray(xp, c_shape, float_dtype[0])
     x = array_utils.create_dummy_ndarray(xp, x_shape, float_dtype[1])
@@ -617,7 +616,7 @@ class TestLstm(op_utils.ChainerOpTest):
 
     def forward_chainerx(self, inputs):
         c, x = inputs
-        c, h = chainerx.lstm(c, x)
+        h, c = chainerx.lstm(c, x)
         return c, h,
 
     def forward_chainer(self, inputs):

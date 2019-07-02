@@ -26,6 +26,8 @@
 #include "chainerx/macro.h"
 #include "chainerx/routines/connection.h"
 #include "chainerx/routines/creation.h"
+#include "chainerx/routines/hyperbolic.h"
+#include "chainerx/routines/activation.h"
 #include "chainerx/routines/linalg.h"
 #include "chainerx/routines/manipulation.h"
 #include "chainerx/routines/reduction.h"
@@ -49,6 +51,8 @@ Array _stack_weight(const std::vector<Array>& ws) {
 
 std::vector<Array> _gru(
          const Array& x, const Array& h, const nonstd::optional<Array>& c, const std::vector<Array>& ws, const std::vector<Array>& bs) {
+    nonstd::optional<Array> zero_grad_ = nonstd::nullopt;
+
     Array xw = Concatenate({ws[0], ws[1], ws[2]}, 0);
     Array hw = Concatenate({ws[3], ws[4], ws[5]}, 0);
     Array xb = Concatenate({bs[0], bs[1], bs[2]}, 0);
@@ -63,7 +67,9 @@ std::vector<Array> _gru(
     Array z = Sigmoid(split_w[1] + split_h[1]);
     Array h_bar = Tanh(split_w[2] + r * split_h[2]);
     std::vector<Array> out{};
-    out.push_back((Array)NULL);
+    if(c.has_value()) {
+        out.push_back(*c);
+    }
     out.push_back((1 - z) * h_bar + z * h);
     return out;
 }
@@ -112,7 +118,6 @@ std::vector<std::vector<Array>> _one_directional_loop(
         std::vector<Array> h_split = Split(h, indices_h, 0);
         std::vector<Array> c_split;
         std::vector<Array> h_c;
-
         if (c.has_value()) {
             std::vector<int64_t> indices_c;
             indices_c.push_back(x_t.shape()[0]);
@@ -123,10 +128,10 @@ std::vector<std::vector<Array>> _one_directional_loop(
             h_c = impl(xs[i], h_split[0], nonstd::nullopt, ws, b);
         }
 
-        h_list.push_back(h_c[1]);
-        h_split[0] = h_c[1];
+        h_list.push_back(h_c[0]);
+        h_split[0] = h_c[0];
         if (c.has_value()) {
-            c_split[0] = h_c[0];
+            c_split[0] = h_c[1];
             c = Concatenate(c_split, 0);
         }
         h = Concatenate(h_split, 0);
@@ -134,7 +139,9 @@ std::vector<std::vector<Array>> _one_directional_loop(
     std::vector<std::vector<Array>> out;
     std::vector<Array> state;
     state.push_back(h);
-    state.push_back(*c);
+    if(c.has_value()) {
+        state.push_back(*c);
+    }
     out.push_back(state);
     out.push_back(h_list);
 
@@ -302,15 +309,23 @@ std::vector<std::vector<Array>> n_step_rnn_impl(
         }
         return out;
     } else {
+        nonstd::optional<Array> zero_grad_ = nonstd::nullopt;
         std::vector<Array> hx_list = Split(hx, hx.shape()[0], 0);
-        std::vector<Array> cx_list;
+        std::vector<nonstd::optional<Array>> cx_list;
         if (cx.has_value()) {
-            cx_list = Split(*cx, cx->shape()[0], 0);
+            std::vector<Array> cx_list_temp;
+            cx_list_temp = Split(*cx, cx->shape()[0], 0);
+            for (Array a : cx_list_temp) {
+                cx_list.push_back(nonstd::optional<Array>{a});
+            }
         } else {
+
             for (int64_t i = 0; i < hx.shape()[0]; i++) {
-                cx_list.push_back((Array)NULL);
+                cx_list.push_back(zero_grad_);
             }
         }
+                    
+
         std::vector<Array> xs_next = xs;
         std::vector<Array> hy;
         std::vector<Array> cy;
@@ -321,12 +336,15 @@ std::vector<std::vector<Array>> n_step_rnn_impl(
             std::vector<std::vector<Array>> one_directional_out_fw =
                     _one_directional_loop(impl, xs, hx_list[idx], cx_list[idx], ws[idx], bs[idx]);
             hy.push_back(one_directional_out_fw[0][0]);
-            cy.push_back(one_directional_out_fw[0][1]);
+            if(cx.has_value()) {
+                cy.push_back(one_directional_out_fw[0][1]);
+            }
             std::vector<Array> h_forward = one_directional_out_fw[1];
             if (use_bidirection) {
                 idx = direction * layer + 1;
                 xs = xs_next;
                 std::reverse(xs.begin(), xs.end());
+
                 std::vector<std::vector<Array>> one_directional_out_bw =
                         _one_directional_loop(impl, xs, hx_list[idx], cx_list[idx], ws[idx], bs[idx]);
                 std::reverse(one_directional_out_bw[1].begin(), one_directional_out_bw[1].end());
@@ -339,7 +357,9 @@ std::vector<std::vector<Array>> n_step_rnn_impl(
                     xs_next.push_back(Concatenate(h_f_b, 1));
                 }
                 hy.push_back(one_directional_out_bw[0][0]);
-                cy.push_back(one_directional_out_bw[0][1]);
+                if(cx.has_value()) {
+                    cy.push_back(one_directional_out_bw[0][1]);
+                }
             } else {
                 xs_next = h_forward;
             }
@@ -349,8 +369,6 @@ std::vector<std::vector<Array>> n_step_rnn_impl(
         Array c;
         if (cx.has_value()) {
             c = Stack(cy, 0);
-        } else {
-            c = (Array)NULL;
         }
         std::vector<Array> state;
         state.push_back(h);
@@ -384,5 +402,28 @@ std::vector<std::vector<Array>> n_step_bilstm(
         std::vector<Array>& xs) {
     hx.device().CheckDevicesCompatible(hx, cx, ws[0][0], bs[0][0], xs[0]);
     return n_step_rnn_impl(&_lstm, n_layers, hx, nonstd::optional<Array>{cx}, ws, bs, xs, 1);
+}
+
+std::vector<std::vector<Array>> n_step_gru(
+        int64_t n_layers,
+        Array hx,
+        const std::vector<std::vector<Array>>& ws,
+        const std::vector<std::vector<Array>>& bs,
+        std::vector<Array>& xs) {
+    hx.device().CheckDevicesCompatible(hx, ws[0][0], bs[0][0], xs[0]);
+
+
+    return n_step_rnn_impl(&_gru, n_layers, hx, nonstd::nullopt, ws, bs, xs, 0);
+}
+
+std::vector<std::vector<Array>> n_step_bigru(
+        int64_t n_layers,
+        Array hx,
+        const std::vector<std::vector<Array>>& ws,
+        const std::vector<std::vector<Array>>& bs,
+        std::vector<Array>& xs) {
+    hx.device().CheckDevicesCompatible(hx, ws[0][0], bs[0][0], xs[0]);
+
+    return n_step_rnn_impl(&_gru, n_layers, hx, nonstd::nullopt, ws, bs, xs, 1);
 }
 }  // namespace chainerx
