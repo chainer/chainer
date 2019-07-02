@@ -193,7 +193,7 @@ void InitChainerxArray(pybind11::module& m) {
     c.def("__len__", [](const ArrayBodyPtr& self) -> size_t {
         // TODO(hvy): Do bounds cheking. For reference, Chainer throws an AttributeError.
         if (self->ndim() == 0) {
-            throw pybind11::type_error("len() of unsized object");
+            throw pybind11::type_error{"len() of unsized object"};
         }
         return self->shape().front();
     });
@@ -270,7 +270,7 @@ void InitChainerxArray(pybind11::module& m) {
     });
     c.def("reshape", [](const ArrayBodyPtr& self, py::args args) {
         if (args.size() == 0) {
-            throw ChainerxError("Reshape takes exactly 1 argument (0 given).");
+            throw ChainerxError{"Reshape takes exactly 1 argument (0 given)."};
         }
         return MoveArrayBody(Array{self}.Reshape(ToShape(args)));
     });

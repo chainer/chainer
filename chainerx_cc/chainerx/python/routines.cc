@@ -533,7 +533,7 @@ void InitChainerxManipulation(pybind11::module& m) {
     m.def("reshape",
           [](const ArrayBodyPtr& a, py::args args) {
               if (args.size() == 0) {
-                  throw ChainerxError("Reshape is missing shape argument.");
+                  throw ChainerxError{"Reshape is missing shape argument."};
               }
               return MoveArrayBody(Reshape(Array{a}, ToShape(args)));
           },
