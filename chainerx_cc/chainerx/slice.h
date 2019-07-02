@@ -13,7 +13,7 @@ namespace chainerx {
 class Slice {
 public:
     Slice(absl::optional<int64_t> start, absl::optional<int64_t> stop, const absl::optional<int64_t>& step)
-        : start_{std::move(start)}, stop_{std::move(stop)}, step_{step.value_or(1)} {
+        : start_{start}, stop_{stop}, step_{step.value_or(1)} {
         if (step_ == 0) {
             throw DimensionError{"Step must not be zero."};
         }
