@@ -2360,6 +2360,61 @@ class TestItem(unittest.TestCase):
 
 
 @testing.parameterize(*testing.product({
+    'axis': [None, 0, 1, -1, (0, 2)],
+    'keepdims': [False, True],
+}))
+class TestMean(unittest.TestCase):
+
+    shape = (2, 3, 4, 5)
+
+    def setUp(self):
+        if self.axis is None:
+            w_shape = self.shape
+        elif isinstance(self.axis, int):
+            axis = self.axis
+            if axis < 0:
+                ndim = len(self.shape)
+                axis += ndim
+            w_shape = self.shape[axis],
+        else:
+            w_shape = tuple(self.shape[a] for a in self.axis)
+        self.w = np.random.uniform(-2, 2, w_shape).astype(np.float32)
+        self.x = np.random.uniform(-1, 1, self.shape).astype(np.float32)
+
+    def check_forward(self, x_data, w_data):
+        x = chainer.Variable(x_data)
+        y_gt = F.mean(x, self.axis, w_data, self.keepdims)
+        y = x.mean(self.axis, w_data, self.keepdims)
+        assert y.data.dtype == y_gt.dtype
+        testing.assert_allclose(y_gt.data, y.data)
+
+    def test_forward_cpu(self):
+        self.check_forward(self.x, self.w)
+
+    @attr.gpu
+    def test_forward_gpu(self):
+        self.check_forward(cuda.to_gpu(self.x), cuda.to_gpu(self.w))
+
+    def check_backward(self, x_data, w_data):
+        x_gt = chainer.Variable(x_data)
+        y_gt = F.mean(x_gt, self.axis, w_data, self.keepdims)
+        y_gt.backward()
+
+        x = chainer.Variable(x_data)
+        y = x.mean(self.axis, w_data, self.keepdims)
+        y.backward()
+
+        testing.assert_allclose(x_gt.grad, x.grad, atol=0, rtol=0)
+
+    def test_backward_cpu(self):
+        self.check_backward(self.x, self.w)
+
+    @attr.gpu
+    def test_backward_gpu(self):
+        self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.w))
+
+
+@testing.parameterize(*testing.product({
     'in_shape': [(4, 3, 2)],
     'axes': [[], [(-1, 0, 1)], [[-1, 0, 1]], [None], [-1, 0, 1]],
     'dtype': [np.float16, np.float32, np.float32],
