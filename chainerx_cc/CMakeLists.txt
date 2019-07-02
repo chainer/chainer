@@ -216,10 +216,6 @@ if(${CUDA_FOUND})
     list(APPEND CUDA_NVCC_FLAGS "-Dgsl_api=")
 endif()
 
-# optional-lite
-get_third_party(optional-lite)
-include_directories(${CMAKE_CURRENT_BINARY_DIR}/optional-lite/include)
-
 # abseil
 get_third_party(abseil)
 include_directories("${CMAKE_CURRENT_BINARY_DIR}/abseil")

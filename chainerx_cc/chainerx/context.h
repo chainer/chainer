@@ -7,7 +7,7 @@
 #include <utility>
 #include <vector>
 
-#include <nonstd/optional.hpp>
+#include <absl/types/optional.h>
 
 #include "chainerx/backend.h"
 #include "chainerx/device.h"
@@ -136,7 +136,7 @@ private:
 
         // If this member has a value, it indicates that this Backprop ID is prohibited for further backprop.
         // Its value is the backprop ID which caused the prohibition.
-        nonstd::optional<BackpropOrdinal> prohibiting_ordinal{nonstd::nullopt};
+        absl::optional<BackpropOrdinal> prohibiting_ordinal{absl::nullopt};
     };
 
     // Finds the BackpropSetItem instance.

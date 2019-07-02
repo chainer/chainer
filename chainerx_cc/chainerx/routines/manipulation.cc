@@ -11,7 +11,7 @@
 #include <utility>
 #include <vector>
 
-#include <nonstd/optional.hpp>
+#include <absl/types/optional.h>
 
 #include "chainerx/array.h"
 #include "chainerx/axes.h"
@@ -323,7 +323,7 @@ Array BroadcastTo(const Array& array, const Shape& shape) {
         int64_t out_dim = shape[i_out];
         // If this dimension is to be broadcasted, nonbroadcast_stride is unset.
         // Otherwise, it holds the new stride.
-        nonstd::optional<int64_t> nonbroadcast_stride{};
+        absl::optional<int64_t> nonbroadcast_stride{};
         if (i_in >= 0) {
             int64_t in_dim = in_shape[i_in];
             if (in_dim == 1) {
@@ -481,7 +481,7 @@ Array ConcatenateImpl(const std::vector<Array>& arrays, int8_t axis) {
 
 Array Concatenate(const std::vector<Array>& arrays) { return ConcatenateImpl(arrays, 0); }
 
-Array Concatenate(const std::vector<Array>& arrays, nonstd::optional<int8_t> axis) {
+Array Concatenate(const std::vector<Array>& arrays, absl::optional<int8_t> axis) {
     if (!axis.has_value()) {
         // Special case, making input arrays 1-dimensional and concatenating along the first axis.
         std::vector<Array> raveled_arrays;
@@ -524,7 +524,7 @@ void DefineSplitBackward(const Array& ary, const std::vector<Array>& out, int8_t
             std::vector<Array> output_grads;
             output_grads.reserve(bctx.output_count());
             for (size_t i = 0; i < bctx.output_count(); ++i) {
-                const nonstd::optional<Array>& gy = bctx.output_grad(i);
+                const absl::optional<Array>& gy = bctx.output_grad(i);
                 output_grads.emplace_back(gy.has_value() ? *gy : Zeros(shapes[i], dtype, device));
             }
             bctx.input_grad() = ConcatenateImpl(output_grads, axis_norm);

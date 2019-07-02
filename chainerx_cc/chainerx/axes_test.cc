@@ -4,10 +4,9 @@
 #include <tuple>
 #include <vector>
 
+#include <absl/types/optional.h>
 #include <absl/types/span.h>
 #include <gtest/gtest.h>
-#include <gsl/gsl>
-#include <nonstd/optional.hpp>
 
 #include "chainerx/error.h"
 
@@ -179,7 +178,7 @@ class GetSortedAxesOrAllTest : public ::testing::TestWithParam<GetSortedAxesOrAl
 TEST_P(GetSortedAxesOrAllTest, All) {
     int8_t axis = std::get<0>(GetParam());
     const Axes& expect = std::get<1>(GetParam());
-    EXPECT_EQ(expect, internal::GetSortedAxesOrAll(nonstd::nullopt, axis));
+    EXPECT_EQ(expect, internal::GetSortedAxesOrAll(absl::nullopt, axis));
 }
 
 INSTANTIATE_TEST_CASE_P(

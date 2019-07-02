@@ -113,7 +113,11 @@ else()
 endif()
 
 # abseil
-target_link_libraries(chainerx PUBLIC absl::failure_signal_handler)
+target_link_libraries(
+    chainerx
+    PUBLIC
+    absl::failure_signal_handler
+    absl::bad_optional_access)
 
 if(MSVC)
     target_link_libraries(chainerx
