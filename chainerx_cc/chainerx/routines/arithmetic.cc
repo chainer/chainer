@@ -504,7 +504,7 @@ Array Fmod(const Array& x1, const Array& x2) {
         BackwardBuilder bb{"fmod", {x1, x2}, out};
         if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
             bt.Define([dtype = x1.dtype()](BackwardContext& bctx) {
-                const Array& gx = *bctx.output_grad();
+                Array gx = *bctx.output_grad();
                 bctx.input_grad() = dtype == gx.dtype() ? std::move(gx) : gx.AsType(dtype);
             });
         }
