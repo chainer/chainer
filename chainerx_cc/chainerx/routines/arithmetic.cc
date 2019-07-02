@@ -512,7 +512,7 @@ Array Fmod(const Array& x1, const Array& x2) {
             bt.Define([x1_tok = bb.RetainInput(0), x2_tok = bb.RetainInput(1), dtype = x2.dtype()](BackwardContext& bctx) {
                 const Array& x1 = bctx.GetRetainedInput(x1_tok);
                 const Array& x2 = bctx.GetRetainedInput(x2_tok);
-                const Array& gx = -*bctx.output_grad() * FloorDivide(x1, x2);
+                Array gx = -*bctx.output_grad() * FloorDivide(x1, x2);
                 bctx.input_grad() = dtype == gx.dtype() ? std::move(gx) : gx.AsType(dtype);
             });
         }
