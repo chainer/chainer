@@ -231,6 +231,10 @@ endif()
 get_third_party(optional-lite)
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/optional-lite/include)
 
+# abseil
+get_third_party(abseil)
+include_directories("${CMAKE_CURRENT_BINARY_DIR}/abseil")
+add_subdirectory("${CMAKE_CURRENT_BINARY_DIR}/abseil" "${CMAKE_CURRENT_BINARY_DIR}/abseil-build")
 
 # gtest
 
