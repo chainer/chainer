@@ -8,7 +8,6 @@ import numpy
 import six
 
 import chainer
-from chainer import backend
 from chainer import link as link_module
 from chainer import optimizer_hooks
 from chainer import serializer as serializer_module
@@ -279,51 +278,51 @@ class UpdateRule(object):
             param (~chainer.Variable): Variable to be updated.
 
         """
-        grad_array = param.grad
-        backend_name = param.array.device.backend.name
-        if backend_name not in ('native', 'cuda'):
-            raise RuntimeError(
-                'Default implementation of Optimizer.update_core_chainerx is '
-                'only provided for native or cuda backends (actual: {}). '
-                'Override Optimizer.update_core_chainerx() to implement '
-                'custom update logic.'.format(backend_name))
+        device = param.device
+        fallback_device = device.fallback_device
 
         # Convert state arrays to NumPy/CuPy
-        chainerx_state_arrays = {}
-        for state_name, st in self.state.items():
-            st = self.state[state_name]
-            if isinstance(st, chainerx.ndarray):
-                fallback_arr = backend.from_chx(st)
-                self.state[state_name] = fallback_arr
-                chainerx_state_arrays[state_name] = (st, fallback_arr)
+        chainerx_state_arrays = None
+        state = self.state
+        if state is not None:
+            chainerx_state_arrays = {}
+            for state_name, st in state.items():
+                if isinstance(st, chainerx.ndarray):
+                    fallback_arr = fallback_device.send(st)
+                    state[state_name] = fallback_arr
+                    chainerx_state_arrays[state_name] = (st, fallback_arr)
 
         # Create a temporary parameter with memory-shared NumPy/CuPy array
         # If the ChainerX parameter has a cached NumPy/CuPy copy, use the
         # cache and avoid redundant conversion. Else, create the cache here
         # and use it.
         if param._chainerx_fallback_array is None:
-            param._chainerx_fallback_array = backend.from_chx(
-                param.array)
+            param._chainerx_fallback_array = fallback_device.send(param.array)
 
         temp_param = variable.Variable._init_unchecked(
-            param._chainerx_fallback_array, is_chainerx_array=False)
+            param._chainerx_fallback_array,
+            device=fallback_device,
+            is_chainerx_array=False)
 
-        if grad_array is not None:
+        # TODO(niboshi): Avoid accessing private attribute
+        if param._grad_valid:
             temp_param._set_grad_without_check(
-                backend.from_chx(grad_array))
+                fallback_device.send(param.grad))
 
         # Update
         self.update_core(temp_param)
 
         # Restore state arrays
-        for state_name, (arr, fallback_arr) in chainerx_state_arrays.items():
-            cur_arr = self.state[state_name]
-            if cur_arr is not fallback_arr:
-                # The optimizer altered the reference of the state, instead of
-                # updating it in-place. We need to convert the new state back
-                # to ChainerX.
-                arr = backend.to_chx(cur_arr)
-            self.state[state_name] = arr
+        if chainerx_state_arrays:
+            for state_name, (arr, fallback_arr) in (
+                    chainerx_state_arrays.items()):
+                cur_arr = state[state_name]
+                if cur_arr is not fallback_arr:
+                    # The optimizer altered the reference of the state, instead
+                    # of updating it in-place. We need to convert the new state
+                    # back to ChainerX.
+                    arr = device.send(cur_arr)
+                state[state_name] = arr
 
     def init_state(self, param):
         """Initializes the state.
@@ -616,21 +615,23 @@ class Optimizer(object):
 
     def call_hooks(self, timing='pre'):
         """Invokes hook functions in registration order."""
-        if timing not in ('pre', 'post'):
-            raise ValueError('timing must be either \'pre\' or \'post\'')
-        if timing == 'pre':
-            hooks = self._pre_update_hooks
-        else:
-            hooks = self._post_update_hooks
+        hooks = self._get_hooks(timing)
         for hook in six.itervalues(hooks):
-            self._call_hook(hook)
+            self.call_hook(hook)
 
-    def _call_hook(self, hook):
+    def call_hook(self, hook):
         if getattr(hook, 'call_for_each_param', False):
             for param in self.target.params():
                 hook(param.update_rule, param)
         else:
             hook(self)
+
+    def _get_hooks(self, timing):
+        if timing == 'pre':
+            return self._pre_update_hooks
+        elif timing == 'post':
+            return self._post_update_hooks
+        raise ValueError('timing must be either \'pre\' or \'post\'')
 
     def serialize(self, serializer):
         """Serializes or deserializes the optimizer.
@@ -768,17 +769,9 @@ class GradientMethod(Optimizer):
                 with chainer.using_device(device):
                     param.grad = device.xp.zeros_like(param.data)
 
-    def call_hooks(self, timing='pre'):
-        """Invokes hook functions in registration order."""
-        if timing not in ('pre', 'post'):
-            raise ValueError('timing must be either \'pre\' or \'post\'')
-        if timing == 'pre':
-            hooks = self._pre_update_hooks
-        else:
-            hooks = self._post_update_hooks
-        for hook in six.itervalues(hooks):
-            self._call_hook(hook)
-            self.reallocate_cleared_grads()
+    def call_hook(self, hook):
+        super(GradientMethod, self).call_hook(hook)
+        self.reallocate_cleared_grads()
 
     def update(self, lossfun=None, *args, **kwds):
         """Updates parameters based on a loss function or computed gradients.

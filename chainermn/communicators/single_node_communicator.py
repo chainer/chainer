@@ -66,7 +66,7 @@ class SingleNodeCommunicator(mpi_communicator_base.MpiCommunicatorBase):
         _memory_utility.unpack_params(params, 'data', self.gpu_buffer_a, dtype,
                                       False)
 
-    def allreduce_grad(self, model, zero_fill=False):
+    def multi_node_mean_grad(self, model, zero_fill=False):
         self._init_comms()
         stream = chainer.cuda.Stream.null
         params = _memory_utility.extract_params_set_grad(model, zero_fill)
@@ -86,9 +86,9 @@ class SingleNodeCommunicator(mpi_communicator_base.MpiCommunicatorBase):
             stream.synchronize()
             array_a = self.gpu_buffer_a.array(n_elems_total)
             array_b = self.gpu_buffer_b.array(n_elems_total)
-            self.check_ready_to_allreduce(array_a, array_b)
+            self._check_ready_to_allreduce(array_a, array_b)
 
-        # Same as PureNcclCommunicator's multi_node_mean but leave as it is
+        # Same as PureNcclCommunicator's _multi_node_mean but leave as it is
         self.intra_nccl_comm.allReduce(
             self.gpu_buffer_a.ptr(), self.gpu_buffer_b.ptr(), n_elems_total,
             _communication_utility._get_nccl_type_id(dtype),
@@ -99,7 +99,7 @@ class SingleNodeCommunicator(mpi_communicator_base.MpiCommunicatorBase):
 
         if chainer.is_debug():
             stream.synchronize()
-            self.ensure_all_finite(arr)
+            self._ensure_all_finite(arr)
 
         _memory_utility.unpack_params(params, 'grad', self.gpu_buffer_b, dtype,
                                       zero_fill)

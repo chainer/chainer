@@ -261,7 +261,7 @@ def slstm_grad_grad(c_prev1, a1, i1, f1,
                     o, c, gc, gh,
                     ggc_prev1, gga1, ggi1, ggf1, ggo1,
                     ggc_prev2, gga2, ggi2, ggf2, ggo2):
-    xp = cuda.get_array_module(a1)
+    xp = backend.get_array_module(a1)
     sig_o = _sigmoid(o, xp)
     gsig_o = _grad_sigmoid(sig_o)
     ggsig_o = _grad_grad_sigmoid(sig_o)

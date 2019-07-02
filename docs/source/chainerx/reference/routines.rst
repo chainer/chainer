@@ -72,6 +72,7 @@ Array manipulation routines
    chainerx.atleast_2d
    chainerx.atleast_3d
    chainerx.split
+   chainerx.dsplit
    chainerx.swapaxes
    chainerx.expand_dims
    chainerx.flip
@@ -122,6 +123,18 @@ Logic functions
    chainerx.less_equal
    chainerx.equal
    chainerx.not_equal
+
+Loss functions
+---------------
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainerx.absolute_error
+   chainerx.squared_error
+   chainerx.huber_loss
+   chainerx.gaussian_kl_divergence
 
 Mathematical functions
 ----------------------

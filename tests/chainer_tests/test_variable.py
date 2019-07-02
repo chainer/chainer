@@ -417,7 +417,7 @@ class TestVariable(unittest.TestCase):
 
     # TODO(kataoka): Variable.backward with ChainerX backend unexpectedly
     # behaves like retain_grad=True
-    @unittest.expectedFailure
+    @pytest.mark.xfail(strict=True)
     @attr.chainerx
     def test_backward_chainerx(self):
         ret = self.create_linear_chain(2, chainerx)
@@ -1740,7 +1740,8 @@ class TestUninitializedParameter(unittest.TestCase):
     def test_init_without_data(self):
         x = chainer.Parameter()
         assert x.data is None
-        assert x.grad is None
+        with pytest.raises(RuntimeError):
+            x.grad
 
     def test_initialize(self):
         x = chainer.Parameter()
