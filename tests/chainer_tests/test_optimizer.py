@@ -224,7 +224,7 @@ class TestUpdateRule(unittest.TestCase):
 
     def test_add_hook_duplicated_name(self):
         self.update_rule.add_hook(mock.MagicMock(), name='foo')
-        with self.assertRaises(ValueError):
+        with self.assertRaises(KeyError):
             self.update_rule.add_hook(mock.MagicMock(), name='foo')
 
     def test_remove_hook_not_exist(self):
@@ -443,6 +443,7 @@ class TestOptimizerHook(unittest.TestCase):
             self.optimizer.add_hook(lambda s: None, 'h1', timing='pre')
 
     def test_invalid_hook(self):
+        self.optimizer.setup(self.target)
         with self.assertRaises(TypeError):
             self.optimizer.add_hook(1)
 
