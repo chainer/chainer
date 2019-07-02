@@ -38,6 +38,18 @@ _invalid_logsumexp_params = [
 ]
 
 
+_cumsum_params = [
+    ((1,), 0),
+    ((2, 3, 4), 0),
+    ((2, 3, 4), 1),
+    ((2, 3, 4), 2),
+    ((2, 3, 4), -3),
+    ((2, 3, 4), -2),
+    ((2, 3, 4), -1),
+    ((2, 3, 4), None),
+]
+
+
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize_pytest('in_dtypes,out_dtype', [
     (('bool_',), 'int64'),
@@ -247,3 +259,27 @@ def test_log_softmax_invalid(device, a_shape, axis, dtype):
     a = array_utils.create_dummy_ndarray(chainerx, a_shape, dtype)
     with pytest.raises(chainerx.DimensionError):
         return chainerx.log_softmax(a, axis=axis)
+
+
+@op_utils.op_test(['native:0'])
+@chainer.testing.parameterize_pytest(
+    'in_dtypes,out_dtype', math_utils.in_out_dtypes_math_functions)
+@chainer.testing.parameterize_pytest('shape,axis', _cumsum_params)
+class TestCumsum(math_utils.UnaryMathTestBase, op_utils.NumpyOpTest):
+
+    input = 'random'
+
+    def setup(self):
+        super().setup()
+        if self.in_dtypes == 'float16':
+            # TODO(imanishi): Support device implementation and remove this.
+            self.check_forward_options.update({'rtol': 3e-3, 'atol': 3e-3})
+
+    def forward_xp(self, inputs, xp):
+        x, = inputs
+        axis = self.axis
+        if xp is chainerx:
+            return chainerx.cumsum(x, axis=axis),
+        x = x.astype(self.out_dtype)
+        expected = numpy.cumsum(x, axis=self.axis)
+        return expected,
