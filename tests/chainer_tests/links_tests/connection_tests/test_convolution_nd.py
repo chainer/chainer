@@ -200,6 +200,13 @@ class TestConvolutionNDWrappers(unittest.TestCase):
     'ndim': [1, 3],
     'nobias': [True, False],
     'groups': [1, 5],
+    'device': [
+        '@numpy',
+        '@intel64',
+        '@cupy:0',
+        'native:0',
+        'cuda:0',
+    ]
 }))
 class TestConvolutionNDFromParams(unittest.TestCase):
 

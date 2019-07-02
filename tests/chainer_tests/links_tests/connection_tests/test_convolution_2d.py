@@ -218,6 +218,13 @@ class TestConvolution2DParameterShapePlaceholder(testing.LinkTestCase):
 @testing.parameterize(*testing.product({
     'nobias': [True, False],
     'groups': [1, 5],
+    'device': [
+        '@numpy',
+        '@intel64',
+        '@cupy:0',
+        'native:0',
+        'cuda:0',
+    ]
 }))
 class TestConvolution2DFromParams(unittest.TestCase):
 

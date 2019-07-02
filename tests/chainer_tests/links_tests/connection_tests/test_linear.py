@@ -191,10 +191,16 @@ class TestInvalidLinear(unittest.TestCase):
             self.link(chainer.Variable(self.x))
 
 
-@testing.parameterize(*[
-    {'nobias': True},
-    {'nobias': False},
-])
+@testing.parameterize(*testing.product({
+    'nobias': [True, False],
+    'device': [
+        '@numpy',
+        '@intel64',
+        '@cupy:0',
+        'native:0',
+        'cuda:0',
+    ]
+}))
 class TestLinearFromParams(unittest.TestCase):
 
     def setUp(self):

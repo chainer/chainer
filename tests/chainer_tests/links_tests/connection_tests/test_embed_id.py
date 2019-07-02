@@ -132,6 +132,15 @@ class TestEmbedIDUnpickleOldFile(unittest.TestCase):
         self.assertEqual(y.data.shape, (2, 4))
 
 
+@testing.parameterize(*testing.product({
+    'device': [
+        '@numpy',
+        '@intel64',
+        '@cupy:0',
+        'native:0',
+        'cuda:0',
+    ]
+}))
 class TestEmbedIDFromParams(unittest.TestCase):
 
     def setUp(self):
