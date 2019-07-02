@@ -8,6 +8,7 @@
 #include <utility>
 #include <vector>
 
+#include <absl/types/span.h>
 #include <gsl/gsl>
 #include <nonstd/optional.hpp>
 
@@ -67,8 +68,8 @@ nonstd::optional<Array>& GradRef::get() {
 BackwardContext::BackwardContext(
         const std::shared_ptr<OpNode>& op_node,
         const internal::OpNodeBackwardEntry& backward_entry,
-        gsl::span<std::shared_ptr<ArrayNode>> output_array_nodes,
-        gsl::span<internal::GradRef*> output_grads,
+        absl::Span<std::shared_ptr<ArrayNode>> output_array_nodes,
+        absl::Span<internal::GradRef*> output_grads,
         std::vector<Array>& input_grads,
         DoubleBackpropOption double_backprop_option)
     : op_node_{op_node},
