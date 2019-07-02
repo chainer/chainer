@@ -684,6 +684,15 @@ void InitChainerxArithmetic(pybind11::module& m) {
           "x2"_a);
     m.def("power", [](const ArrayBodyPtr& x1, Scalar x2) { return MoveArrayBody(Power(Array{x1}, x2)); }, "x1"_a, "x2"_a);
     m.def("power", [](Scalar x1, const ArrayBodyPtr& x2) { return MoveArrayBody(Power(x1, Array{x2})); }, "x1"_a, "x2"_a);
+    m.def("mod", [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return MoveArrayBody(Mod(Array{x1}, Array{x2})); }, "x1"_a, "x2"_a);
+    m.def("mod", [](const ArrayBodyPtr& x1, Scalar x2) { return MoveArrayBody(Mod(Array{x1}, x2)); }, "x1"_a, "x2"_a);
+    m.def("mod", [](Scalar x1, const ArrayBodyPtr& x2) { return MoveArrayBody(Mod(x1, Array{x2})); }, "x1"_a, "x2"_a);
+    m.def("remainder",
+          [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return MoveArrayBody(Mod(Array{x1}, Array{x2})); },
+          "x1"_a,
+          "x2"_a);
+    m.def("remainder", [](const ArrayBodyPtr& x1, Scalar x2) { return MoveArrayBody(Mod(Array{x1}, x2)); }, "x1"_a, "x2"_a);
+    m.def("remainder", [](Scalar x1, const ArrayBodyPtr& x2) { return MoveArrayBody(Mod(x1, Array{x2})); }, "x1"_a, "x2"_a);
 }
 
 void InitChainerxBinary(pybind11::module& m) {

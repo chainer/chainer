@@ -148,6 +148,7 @@ Mathematical functions
    chainerx.subtract
    chainerx.multiply
    chainerx.divide
+   chainerx.mod
    chainerx.sum
    chainerx.maximum
    chainerx.exp

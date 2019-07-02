@@ -141,6 +141,16 @@ Array& Array::operator/=(Scalar rhs) {
     return *this;
 }
 
+Array& Array::operator%=(const Array& rhs) {
+    internal::IMod(*this, rhs);
+    return *this;
+}
+
+Array& Array::operator%=(Scalar rhs) {
+    internal::IMod(*this, rhs);
+    return *this;
+}
+
 Array& Array::operator&=(const Array& rhs) {
     internal::IBitwiseAnd(*this, rhs);
     return *this;
@@ -231,6 +241,16 @@ const Array& Array::operator/=(Scalar rhs) const {
     return *this;
 }
 
+const Array& Array::operator%=(const Array& rhs) const {
+    internal::IMod(*this, rhs);
+    return *this;
+}
+
+const Array& Array::operator%=(Scalar rhs) const {
+    internal::IMod(*this, rhs);
+    return *this;
+}
+
 const Array& Array::operator&=(const Array& rhs) const {
     internal::IBitwiseAnd(*this, rhs);
     return *this;
@@ -296,6 +316,10 @@ Array Array::operator*(Scalar rhs) const { return Multiply(*this, rhs); }
 Array Array::operator/(const Array& rhs) const { return chainerx::Divide(*this, rhs); }
 
 Array Array::operator/(Scalar rhs) const { return chainerx::Divide(*this, rhs); }
+
+Array Array::operator%(const Array& rhs) const { return chainerx::Mod(*this, rhs); }
+
+Array Array::operator%(Scalar rhs) const { return chainerx::Mod(*this, rhs); }
 
 Array Array::operator&(const Array& rhs) const { return chainerx::BitwiseAnd(*this, rhs); }
 
@@ -531,6 +555,7 @@ Array operator+(Scalar lhs, const Array& rhs) { return Add(lhs, rhs); }
 Array operator-(Scalar lhs, const Array& rhs) { return Subtract(lhs, rhs); }
 Array operator*(Scalar lhs, const Array& rhs) { return Multiply(lhs, rhs); }
 Array operator/(Scalar lhs, const Array& rhs) { return Divide(lhs, rhs); }
+Array operator%(Scalar lhs, const Array& rhs) { return Mod(lhs, rhs); }
 
 Array operator<<(Scalar lhs, const Array& rhs) { return LeftShift(lhs, rhs); }
 Array operator>>(Scalar lhs, const Array& rhs) { return RightShift(lhs, rhs); }

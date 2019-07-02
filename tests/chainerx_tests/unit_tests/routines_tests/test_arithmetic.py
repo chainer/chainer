@@ -1404,3 +1404,201 @@ class TestReciprocal(math_utils.UnaryMathTestBase, op_utils.NumpyOpTest):
 
     def func(self, xp, a):
         return xp.reciprocal(a)
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    # Special shapes
+    chainer.testing.product({
+        'in_shapes': math_utils.shapes_combination_binary,
+        'in_dtypes,out_dtype': (
+            dtype_utils.make_same_in_out_dtypes(
+                2, chainerx.testing.numeric_dtypes)),
+        'input_lhs': ['random'],
+        'input_rhs': ['random'],
+        'is_module': [False],
+    })
+    # Dtype combinations
+    + chainer.testing.product({
+        'in_shapes': [((2, 3), (2, 3))],
+        'in_dtypes,out_dtype': _in_out_dtypes_arithmetic,
+        'input_lhs': ['random'],
+        'input_rhs': ['random'],
+        'is_module': [False],
+    })
+    # is_module
+    + chainer.testing.product({
+        'in_shapes': [((2, 3), (2, 3))],
+        'in_dtypes,out_dtype': (
+            dtype_utils.make_same_in_out_dtypes(
+                2, chainerx.testing.numeric_dtypes)),
+        'input_lhs': ['random'],
+        'input_rhs': ['random'],
+        'is_module': [True, False],
+    })
+    # Remove special values test since chainerx.remainder returns nan when numpy.remainder returns inf
+))
+class TestRemainder(math_utils.BinaryMathTestBase, op_utils.NumpyOpTest):
+    dodge_nondifferentiable = True
+
+    def generate_inputs(self):
+        a, b = super().generate_inputs()
+        if self.input_lhs == 'random':
+            # Avoid (-0.3, 0.3) interval
+            with math_utils.IgnoreNumpyFloatingPointError():
+                b[numpy.logical_and(-0.3 < b, b < 0.3)] = 1
+        return a, b
+
+    def func(self, xp, a, b):
+        print(a)
+        print(b)
+        if self.is_module:
+            return xp.remainder(a, b)
+        else:
+            return a % b
+
+
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('dtypes', _in_out_dtypes_arithmetic_invalid)
+def test_remainder_invalid_dtypes(device, dtypes, is_module):
+    (in_dtype1, in_dtype2), _ = dtypes
+    shape = (2, 3)
+    a = chainerx.array(array_utils.uniform(shape, in_dtype1))
+    b = chainerx.array(array_utils.uniform(shape, in_dtype2))
+    with pytest.raises(chainerx.DtypeError):
+        if is_module:
+            a % b
+        else:
+            chainerx.remainder(a, b)
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    # Special shapes
+    chainer.testing.product({
+        'in_shapes': math_utils.shapes_combination_inplace_binary,
+        'in_dtypes,out_dtype': (
+            dtype_utils.make_same_in_out_dtypes(
+                2, chainerx.testing.numeric_dtypes)),
+        'input_lhs': ['random'],
+        'input_rhs': ['random'],
+    })
+    # Dtype combinations
+    + chainer.testing.product({
+        'in_shapes': [((2, 3), (2, 3))],
+        'in_dtypes,out_dtype': _in_out_dtypes_inplace_arithmetic,
+        'input_lhs': ['random'],
+        'input_rhs': ['random'],
+    })
+    # Remove special values test since chainerx.remainder returns nan when numpy.remainder returns inf
+))
+class TestIRemainder(math_utils.InplaceBinaryMathTestBase, op_utils.NumpyOpTest):
+    dodge_nondifferentiable = True
+
+    def generate_inputs(self):
+        a, b = super().generate_inputs()
+        if self.input_lhs == 'random':
+            # Avoid (-0.3, 0.3) interval
+            with math_utils.IgnoreNumpyFloatingPointError():
+                b[numpy.logical_and(-0.3 < b, b < 0.3)] = 1
+        return a, b
+
+    def func(self, xp, a, b):
+        a %= b
+
+
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('dtypes', _in_out_dtypes_inplace_arithmetic_invalid)
+def test_iremainder_invalid_dtypes(device, dtypes):
+    (in_dtype1, in_dtype2), _ = dtypes
+    shape = (2, 3)
+    a = chainerx.array(array_utils.uniform(shape, in_dtype1))
+    b = chainerx.array(array_utils.uniform(shape, in_dtype2))
+    with pytest.raises(chainerx.DtypeError):
+        a %= b
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    # Special shapes
+    chainer.testing.product({
+        'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
+        'in_dtypes,scalar_type,out_dtype': _in_out_dtypes_arithmetic_scalar,
+        'input': ['random'],
+        'scalar_value': [1],
+        'is_module': [False],
+        'is_scalar_rhs': [False],
+    })
+    # Type combinations
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,scalar_type,out_dtype': _in_out_dtypes_arithmetic_scalar,
+        'input': ['random'],
+        'scalar_value': [1],
+        'is_module': [False],
+        'is_scalar_rhs': [True, False],
+    })
+    # is_module
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,scalar_type,out_dtype': _in_out_dtypes_arithmetic_scalar,
+        'input': ['random'],
+        'scalar_value': [1],
+        'is_module': [True, False],
+        'is_scalar_rhs': [True, False],
+    })
+    # Remove special values test since chainerx.remainder returns nan when numpy.remainder returns inf
+))
+class TestRemainderScalar(math_utils.MathScalarTestBase, op_utils.NumpyOpTest):
+    dodge_nondifferentiable = True
+
+    def generate_inputs(self):
+        # Do not divide by small number to avoid ridiculously large outputs.
+        if not self.is_scalar_rhs and self.input == 'random':
+            in_dtype, = self.in_dtypes
+            low = -5 if numpy.dtype(in_dtype).kind != 'u' else 2
+            high = 5
+            x = array_utils.uniform(self.shape, in_dtype, low=low, high=high)
+            x[(-1 < x) & (x < 0)] = -2
+            x[(0 <= x) & (x < 1)] = 2
+            return x,
+        return super().generate_inputs()
+
+    def func_scalar(self, xp, a, scalar):
+        if self.is_module:
+            if self.is_scalar_rhs:
+                return a % scalar
+            else:
+                return scalar % a
+        else:
+            if self.is_scalar_rhs:
+                return xp.remainder(a, scalar)
+            else:
+                return xp.remainder(scalar, a)
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    # Special shapes
+    chainer.testing.product({
+        'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
+        'in_dtypes,scalar_type,out_dtype':
+            _in_out_dtypes_inplace_arithmetic_scalar,
+        'input': ['random'],
+        'scalar_value': [1],
+    })
+    # Dtype combinations
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,scalar_type,out_dtype':
+            _in_out_dtypes_inplace_arithmetic_scalar,
+        'input': ['random'],
+        'scalar_value': [1],
+    })
+    # Remove special values test since chainerx.remainder returns nan when numpy.remainder returns inf
+))
+class TestIRemainderScalar(
+        math_utils.InplaceMathScalarTestBase, op_utils.NumpyOpTest):
+    dodge_nondifferentiable = True
+
+    def func_scalar(self, xp, a, scalar):
+        a %= scalar
