@@ -8,7 +8,7 @@
 #include <utility>
 #include <vector>
 
-#include <gsl/gsl>
+#include <absl/types/span.h>
 #include <nonstd/optional.hpp>
 
 #include "chainerx/array_body.h"
@@ -212,9 +212,9 @@ public:
 
     // Creates a copy or a view. It will be disconnected from the specified graphs.
     // If `kind` is `CopyKind::kCopy`, the returned array will be always C-contiguous.
-    Array AsGradStopped(gsl::span<const BackpropId> backprop_ids, CopyKind kind = CopyKind::kView) const;
+    Array AsGradStopped(absl::Span<const BackpropId> backprop_ids, CopyKind kind = CopyKind::kView) const;
     Array AsGradStopped(std::initializer_list<const BackpropId> backprop_ids, CopyKind kind = CopyKind::kView) const {
-        return AsGradStopped(gsl::span<const BackpropId>{backprop_ids.begin(), backprop_ids.end()}, kind);
+        return AsGradStopped(absl::MakeConstSpan(backprop_ids.begin(), backprop_ids.end()), kind);
     }
 
     // Casts to a specified type.
