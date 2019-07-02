@@ -9,7 +9,7 @@
 #include <vector>
 
 #include <absl/types/optional.h>
-#include <gsl/gsl>
+#include <absl/types/span.h>
 
 #include "chainerx/array_body.h"
 #include "chainerx/array_fwd.h"
@@ -110,9 +110,9 @@ public:
 
     const std::vector<std::shared_ptr<ArrayNode>>& input_array_nodes() const;
 
-    gsl::span<OpNodeBackwardEntry> backward_entries() { return backward_entries_; }
+    absl::Span<OpNodeBackwardEntry> backward_entries() { return absl::MakeSpan(backward_entries_); }
 
-    gsl::span<const OpNodeBackwardEntry> backward_entries() const { return backward_entries_; }
+    absl::Span<const OpNodeBackwardEntry> backward_entries() const { return absl::MakeConstSpan(backward_entries_); }
 
     size_t input_array_node_count() const { return input_array_nodes_.size(); }
 

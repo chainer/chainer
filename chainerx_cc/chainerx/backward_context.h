@@ -5,7 +5,7 @@
 #include <vector>
 
 #include <absl/types/optional.h>
-#include <gsl/gsl>
+#include <absl/types/span.h>
 
 #include "chainerx/array_fwd.h"
 #include "chainerx/backward_builder.h"
@@ -77,8 +77,8 @@ public:
     BackwardContext(
             const std::shared_ptr<internal::OpNode>& op_node,
             const internal::OpNodeBackwardEntry& backward_entry,
-            gsl::span<std::shared_ptr<internal::ArrayNode>> output_array_nodes,
-            gsl::span<internal::GradRef*> output_grads,
+            absl::Span<std::shared_ptr<internal::ArrayNode>> output_array_nodes,
+            absl::Span<internal::GradRef*> output_grads,
             std::vector<Array>& input_grads,
             DoubleBackpropOption double_backprop_option);
 
@@ -132,9 +132,9 @@ private:
 
     // Output array nodes of the op node.
     // Null if the array node is gone (the weak pointer is dead).
-    gsl::span<std::shared_ptr<internal::ArrayNode>> output_array_nodes_;
+    absl::Span<std::shared_ptr<internal::ArrayNode>> output_array_nodes_;
 
-    gsl::span<internal::GradRef*> output_grads_;
+    absl::Span<internal::GradRef*> output_grads_;
 
     // A reference to the storage of input gradient arrays.
     // Gradient passed in input_grad() will be put into this storage.

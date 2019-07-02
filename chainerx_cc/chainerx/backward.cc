@@ -10,7 +10,7 @@
 #include <vector>
 
 #include <absl/types/optional.h>
-#include <gsl/gsl>
+#include <absl/types/span.h>
 
 #include "chainerx/array.h"
 #include "chainerx/array_body.h"
@@ -378,7 +378,7 @@ private:
         // TODO(niboshi): View is needed to make new nodes. Come up with a solution to avoid extra backward insertion.
         for (auto it = input_grads.begin(); it != input_grads.end(); ++it) {
             if (it->has_value() &&
-                IsGradientIdenticalToAnyOfOtherGradients(**it, output_array_nodes, gsl::make_span(&*input_grads.begin(), &*it))) {
+                IsGradientIdenticalToAnyOfOtherGradients(**it, output_array_nodes, absl::MakeSpan(&*input_grads.begin(), &*it))) {
                 **it = (*it)->MakeView();
             }
         }
@@ -421,7 +421,12 @@ private:
         std::vector<Array> computed_input_grads(input_grads.size());
 
         // Call backward.
-        BackwardContext bctx{op_node, backward_entry, output_array_nodes, output_grads, computed_input_grads, double_backprop_};
+        BackwardContext bctx{op_node,
+                             backward_entry,
+                             absl::MakeSpan(output_array_nodes),
+                             absl::MakeSpan(output_grads),
+                             computed_input_grads,
+                             double_backprop_};
         {
             NoBackpropModeScope scope{backprop_ids_to_stop_gradient_};
             backward_entry.backward_func()(bctx);
@@ -468,7 +473,7 @@ private:
     bool IsGradientIdenticalToAnyOfOtherGradients(
             const Array& input_grad,
             const std::vector<std::shared_ptr<ArrayNode>>& output_array_nodes,
-            gsl::span<absl::optional<Array>> other_input_grads) {
+            absl::Span<absl::optional<Array>> other_input_grads) {
         // TODO(niboshi): Check node identity instead of body identity.
         return std::any_of(
                        output_array_nodes.begin(),
@@ -493,7 +498,7 @@ private:
     }
 
     void AccumulateInputGradients(const OpNode& op_node, std::vector<absl::optional<Array>> gxs) {
-        gsl::span<const std::shared_ptr<ArrayNode>> input_array_nodes = op_node.input_array_nodes();
+        absl::Span<const std::shared_ptr<ArrayNode>> input_array_nodes = op_node.input_array_nodes();
         CHAINERX_ASSERT(input_array_nodes.size() == gxs.size());
         for (size_t i = 0; i < input_array_nodes.size(); ++i) {
             absl::optional<Array>& gx = gxs[i];

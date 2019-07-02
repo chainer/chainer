@@ -77,7 +77,7 @@ Array At(const Array& a, const std::vector<ArrayIndex>& indices) {
             case ArrayIndexTag::kSingleElement: {
                 int64_t dim = a.shape()[i_in];
                 if (index.index() < -dim || dim <= index.index()) {
-                    throw DimensionError{"Index ", index.index(), " is out of bounds for axis ", i_in, " with size ", dim};
+                    throw IndexError{"Index ", index.index(), " is out of bounds for axis ", i_in, " with size ", dim};
                 }
                 if (!is_a_empty) {
                     out_offset += a.strides()[i_in] * ((index.index() + dim) % dim);

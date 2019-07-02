@@ -15,7 +15,7 @@
 #include <vector>
 
 #include <absl/types/optional.h>
-#include <gsl/gsl>
+#include <absl/types/span.h>
 
 #include "chainerx/array_body.h"
 #include "chainerx/array_node.h"
@@ -384,7 +384,7 @@ Array Array::AsGradStopped(CopyKind kind) const {
     return CopyOrMakeView(*this, kind);
 }
 
-Array Array::AsGradStopped(gsl::span<const BackpropId> backprop_ids, CopyKind kind) const {
+Array Array::AsGradStopped(absl::Span<const BackpropId> backprop_ids, CopyKind kind) const {
     NoBackpropModeScope scope{std::vector<BackpropId>{backprop_ids.begin(), backprop_ids.end()}};
     return CopyOrMakeView(*this, kind);
 }
