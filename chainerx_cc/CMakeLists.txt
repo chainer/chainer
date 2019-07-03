@@ -132,7 +132,7 @@ endif()
 if(${CHAINERX_BUILD_CUDA})
     find_package(CUDA QUIET)
     if(${CUDA_FOUND})
-        list(APPEND CUDA_NVCC_FLAGS -std=c++14)
+        list(APPEND CUDA_NVCC_FLAGS "-std=c++${CMAKE_CXX_STANDARD}")
 
         # CUDA_cublas_device_LIBRARY is required for CUDA > 9.2 with cmake < to 3.12.2.
         # This is because cublas_device was deprecated in CUDA 9.2, but FindCUDA supported it in 3.12.2.
