@@ -32,12 +32,7 @@ class Identity(initializer.Initializer):
                              'for 2D squared matrices.')
 
         device = backend.get_device_from_array(array)
-        # ideep64 does not support fill_diagonal
-        if isinstance(device, chainer.backends.intel64.Intel64Device):
-            array[...] = device.xp.identity(shape[0]) * self.scale
-        else:
-            array[...] = 0
-            device.xp.fill_diagonal(array, self.scale)
+        array[...] = device.xp.identity(shape[0]) * self.scale
 
 
 class _Constant(initializer.Initializer):
