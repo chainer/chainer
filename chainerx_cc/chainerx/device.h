@@ -4,7 +4,7 @@
 #include <memory>
 #include <string>
 
-#include <nonstd/optional.hpp>
+#include <absl/types/optional.h>
 
 #include "chainerx/axes.h"
 #include "chainerx/backend.h"
