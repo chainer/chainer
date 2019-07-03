@@ -656,7 +656,7 @@ std::vector<absl::optional<Array>> Grad(
     for (absl::optional<Array>& grad : input_grads) {
         if (grad.has_value()) {
             if (internal::GetArrayBody(*grad) == nullptr) {
-                grad = nonstd::nullopt;
+                grad = absl::nullopt;
             }
             if (set_grad) {
                 inputs[i++].get().SetGrad(grad.value(), backprop_id);
