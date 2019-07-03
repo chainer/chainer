@@ -52,7 +52,6 @@ std::vector<nonstd::optional<Array>> Grad(
         DoubleBackpropOption double_backprop = DoubleBackpropOption::kDisable,
         bool set_grad = false,
         bool retain_grad = false,
-        const std::vector<ConstArrayRef>& grad_inputs = {},
         const std::vector<ConstArrayRef>& grad_outputs = {});
 
 }  // namespace chainerx

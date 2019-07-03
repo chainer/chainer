@@ -602,7 +602,6 @@ std::vector<nonstd::optional<Array>> Grad(
         DoubleBackpropOption double_backprop,
         bool set_grad,
         bool retain_grad,
-        const std::vector<ConstArrayRef>& grad_inputs,
         const std::vector<ConstArrayRef>& grad_outputs) {
     if (inputs.empty()) {
         return {};
@@ -611,9 +610,6 @@ std::vector<nonstd::optional<Array>> Grad(
         return std::vector<nonstd::optional<Array>>(inputs.size(), nonstd::nullopt);
     }
 
-    if (!grad_inputs.empty() && inputs.size() != grad_inputs.size()) {
-        throw GradientError{"Grad inputs and inputs must have the same size"};
-    }
     if (!grad_outputs.empty() && outputs.size() != grad_outputs.size()) {
         throw GradientError{"Grad_outputs and outputs must have the same size"};
     }
@@ -631,7 +627,7 @@ std::vector<nonstd::optional<Array>> Grad(
     for (size_t i = 0; i < inputs.size(); i++) {
         const std::shared_ptr<ArrayBody>& array_body = internal::GetArrayBody(inputs[i]);
         if (const std::shared_ptr<ArrayNode>& input_array_node = array_body->GetArrayNode(actual_backprop_id)) {
-            input_grads.emplace_back(!grad_inputs.empty() ? nonstd::optional<Array>{grad_inputs[i]} : nonstd::optional<Array>{});
+            input_grads.emplace_back(nonstd::optional<Array>{});
             array_node_grad_map.emplace(input_array_node.get(), internal::GradRef{&input_grads.back()});
         } else {
             input_grads.emplace_back(nonstd::nullopt);

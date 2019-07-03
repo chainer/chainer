@@ -1019,10 +1019,6 @@ def grad(outputs, inputs, grad_outputs=None, grad_inputs=None, set_grad=False,
                 'loss_scale is not supported on chainerx.grad interface')
 
         # Need to access the arrays to invoke the chainer grad function
-        if grad_inputs:
-            grad_inputs_chx = [x._data[0] for x in grad_inputs]
-        else:
-            grad_inputs_chx = []
         if grad_outputs:
             grad_outputs_chx = [x._data[0] for x in grad_outputs]
         else:
@@ -1034,12 +1030,14 @@ def grad(outputs, inputs, grad_outputs=None, grad_inputs=None, set_grad=False,
                               enable_double_backprop=enable_double_backprop,
                               set_grad=set_grad,
                               retain_grad=retain_grad,
-                              grad_inputs=grad_inputs_chx,
                               grad_outputs=grad_outputs_chx)
-        ret_vars = [variable.Variable(g,
-                                      requires_grad=g.is_backprop_required())
-                    for g in grads]
-        return ret_vars
+
+        if grad_inputs:
+            grads = [g+gi._data[0] for g, gi in zip(grads, grad_inputs)]
+
+        return [variable.Variable(g, requires_grad=g.is_backprop_required())
+                for g in grads]
+
     elif n_chx_inputs > 0:
         raise TypeError(
             'Mixing chainerx and non-chainerx variables is not allowed')
