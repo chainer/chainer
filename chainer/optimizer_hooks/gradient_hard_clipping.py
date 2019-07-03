@@ -49,6 +49,15 @@ class GradientHardClipping(object):
         with chainer.using_device(param.device):
             xp = param.device.xp
             if xp is backend.chainerx:
+                # TODO(kshitij12345): remove when chainerx.clip supports
+                # kwarg `out`.
                 param.grad = xp.clip(grad, self.lower_bound, self.upper_bound)
             else:
+                if isinstance(grad, backend.intel64.mdarray):
+                    # Since np.clip doesn't support mdarray
+                    param.grad[param.grad <
+                               self.lower_bound] = self.lower_bound
+                    param.grad[param.grad >
+                               self.upper_bound] = self.upper_bound
+                    return
                 xp.clip(grad, self.lower_bound, self.upper_bound, out=grad)
