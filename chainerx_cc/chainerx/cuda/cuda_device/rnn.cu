@@ -58,8 +58,8 @@ void initGPUData(float* data, int numElements, float* value) {
 void weights_forward(
         cuda_internal::DeviceInternals& device_internals,
         cudnnRNNDescriptor_t rnn_desc,
-        std::vector<std::vector<Array>> ws,
-        std::vector<std::vector<Array>> bs,
+        const std::vector<std::vector<Array>> ws,
+        const std::vector<std::vector<Array>> bs,
         int n_layers,
         int num_directions,
         cudnnTensorDescriptor_t x_desc,
@@ -88,11 +88,11 @@ void weights_forward(
                 int filterDimA[3];
 
                 cudnnGetFilterNdDescriptor(linlayermatdesc, 3, &dataType, &format, &nbDims, filterDimA);
-                ws[index][lin_layer_id] = AsContiguous(ws[index][lin_layer_id].AsType(Dtype::kFloat32));
+                Array w_temp = AsContiguous(ws[index][lin_layer_id].AsType(Dtype::kFloat32));
                 initGPUData(
                         m_offset,
                         filterDimA[0] * filterDimA[1] * filterDimA[2],
-                        reinterpret_cast<float*>(internal::GetRawOffsetData(ws[index][lin_layer_id])));
+                        reinterpret_cast<float*>(internal::GetRawOffsetData(w_temp)));
                 cudnnDestroyFilterDescriptor(linlayermatdesc);
 
                 cudnnFilterDescriptor_t linlayerbiasdesc;
@@ -109,11 +109,11 @@ void weights_forward(
                         linlayerbiasdesc,
                         reinterpret_cast<void**>(&b_offset));
                 cudnnGetFilterNdDescriptor(linlayerbiasdesc, 3, &dataType, &format, &nbDims, filterDimA);
-                bs[index][lin_layer_id] = AsContiguous(bs[index][lin_layer_id].AsType(Dtype::kFloat32));
+                Array b_temp = AsContiguous(bs[index][lin_layer_id].AsType(Dtype::kFloat32));
                 initGPUData(
                         b_offset,
                         filterDimA[0] * filterDimA[1] * filterDimA[2],
-                        reinterpret_cast<float*>(internal::GetRawOffsetData(bs[index][lin_layer_id])));
+                        reinterpret_cast<float*>(internal::GetRawOffsetData(b_temp)));
                 cudnnDestroyFilterDescriptor(linlayerbiasdesc);
             }
         }
@@ -273,12 +273,13 @@ public:
         Array hy = AsContiguous(Zeros(hx.shape(), hx.dtype(), hx.device()));
         Array cy = AsContiguous(Zeros(hx.shape(), hx.dtype(), hx.device()));
         cuda_internal::CudnnTensorDescriptor hxDesc{hx};
+        Array _cx;
         if (cx.has_value()) {
-            *cx = AsContiguous((*cx).AsType(Dtype::kFloat32));
+            _cx = AsContiguous((*cx).AsType(Dtype::kFloat32));
         } else {
-            *cx = Zeros(hx.shape(), hx.dtype(), hx.device());
+            _cx = Zeros(hx.shape(), hx.dtype(), hx.device());
         }
-        cuda_internal::CudnnTensorDescriptor cxDesc{*cx};
+        cuda_internal::CudnnTensorDescriptor cxDesc{_cx};
         cuda_internal::CudnnTensorDescriptor hyDesc{hy};
         cuda_internal::CudnnTensorDescriptor cyDesc{cy};
         device_internals.cudnn_handle().Call(
@@ -290,7 +291,7 @@ public:
                 *hxDesc,
                 internal::GetRawOffsetData(hx),
                 *cxDesc,
-                internal::GetRawOffsetData(*cx),
+                internal::GetRawOffsetData(_cx),
                 *wDesc,
                 internal::GetRawOffsetData(w),
                 y_desc,
@@ -303,7 +304,6 @@ public:
                 workSize,
                 internal::GetRawOffsetData(reserve),
                 reserve_size);
-
         std::vector<int64_t> split_indices;
         for (uint i = 0; i < xs.size() - 1; i++) {
             if (i != 0) {
@@ -395,15 +395,17 @@ public:
         dhy = AsContiguous(dhy.AsType(Dtype::kFloat32));
 
         cuda_internal::CudnnTensorDescriptor hx_desc{hx};
+        Array _cx;
+        Array _dcy;
         if (cx.has_value()) {
-            *cx = AsContiguous((*cx).AsType(Dtype::kFloat32));
-            *dcy = AsContiguous((*dcy).AsType(Dtype::kFloat32));
+            _cx = AsContiguous((*cx).AsType(Dtype::kFloat32));
+            _dcy = AsContiguous((*dcy).AsType(Dtype::kFloat32));
         } else {
-            *cx = Zeros(hx.shape(), hx.dtype(), hx.device());
-            *dcy = Zeros(hx.shape(), hx.dtype(), hx.device());
+            _cx = Zeros(hx.shape(), hx.dtype(), hx.device());
+            _dcy = Zeros(hx.shape(), hx.dtype(), hx.device());
         }
-        cuda_internal::CudnnTensorDescriptor cx_desc{*cx};
-        cuda_internal::CudnnTensorDescriptor dcy_desc{*dcy};
+        cuda_internal::CudnnTensorDescriptor cx_desc{_cx};
+        cuda_internal::CudnnTensorDescriptor dcy_desc{_dcy};
         cuda_internal::CudnnTensorDescriptor dhy_desc{dhy};
         Array dhx = AsContiguous(Zeros(hx.shape(), hx.dtype(), hx.device()));
         cuda_internal::CudnnTensorDescriptor dhx_desc{dhx};
@@ -422,13 +424,13 @@ public:
                 *dhy_desc,
                 internal::GetRawOffsetData(dhy),
                 *dcy_desc,
-                internal::GetRawOffsetData(*dcy),
+                internal::GetRawOffsetData(_dcy),
                 wDesc,
                 internal::GetRawOffsetData(w),
                 *hx_desc,
                 internal::GetRawOffsetData(hx),
                 *cx_desc,
-                internal::GetRawOffsetData(*cx),
+                internal::GetRawOffsetData(_cx),
                 dxs_desc,
                 internal::GetRawOffsetData(dx),
                 *dhx_desc,

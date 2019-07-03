@@ -51,8 +51,6 @@ Array _stack_weight(const std::vector<Array>& ws) {
 
 std::vector<Array> _gru(
          const Array& x, const Array& h, const nonstd::optional<Array>& c, const std::vector<Array>& ws, const std::vector<Array>& bs) {
-    nonstd::optional<Array> zero_grad_ = nonstd::nullopt;
-
     Array xw = Concatenate({ws[0], ws[1], ws[2]}, 0);
     Array hw = Concatenate({ws[3], ws[4], ws[5]}, 0);
     Array xb = Concatenate({bs[0], bs[1], bs[2]}, 0);
@@ -67,10 +65,11 @@ std::vector<Array> _gru(
     Array z = Sigmoid(split_w[1] + split_h[1]);
     Array h_bar = Tanh(split_w[2] + r * split_h[2]);
     std::vector<Array> out{};
-    if(c.has_value()) {
+    Array f = (1 - z) * h_bar + z * h;
+    out.push_back(f);
+    if (c.has_value()) {
         out.push_back(*c);
     }
-    out.push_back((1 - z) * h_bar + z * h);
     return out;
 }
 
@@ -139,7 +138,7 @@ std::vector<std::vector<Array>> _one_directional_loop(
     std::vector<std::vector<Array>> out;
     std::vector<Array> state;
     state.push_back(h);
-    if(c.has_value()) {
+    if (c.has_value()) {
         state.push_back(*c);
     }
     out.push_back(state);
@@ -157,18 +156,20 @@ std::vector<std::vector<Array>> n_step_rnn_impl(
         const std::vector<std::vector<Array>>& ws,
         const std::vector<std::vector<Array>>& bs,
         std::vector<Array>& xs,
-        const int8_t use_bidirection) {
+        const int8_t use_bidirection,
+        const int8_t mode) {
     int8_t direction = use_bidirection ? 2 : 1;
     if (hx.device().backend().GetName() == "cuda") {
         std::vector<std::vector<Array>> out;
         std::shared_ptr<RnnGradState> state{};
         {
             NoBackpropModeScope scope{};
-            std::tie(out, state) = hx.device().backend().CallKernel<RnnKernel>(n_layers, hx, cx, ws, bs, xs, use_bidirection, 1);
+            std::tie(out, state) = hx.device().backend().CallKernel<RnnKernel>(n_layers, hx, cx, ws, bs, xs, use_bidirection, mode);
         }
         {
             std::vector<ConstArrayRef> inp;
             inp.push_back(hx);
+
             if (cx.has_value()) {
                 inp.push_back(*cx);
             }
@@ -181,22 +182,22 @@ std::vector<std::vector<Array>> n_step_rnn_impl(
                     }
                 }
             }
+
             std::vector<ConstArrayRef> out_grad;
             out_grad.push_back(out[0][0]);
             if (cx.has_value()) {
                 out_grad.push_back(out[0][1]);
             }
             for (uint i = 0; i < xs.size(); i++) {
-                inp.push_back(ConstArrayRef{xs[i]});
+                inp.push_back(xs[i]);
                 out_grad.push_back(out[1][i]);
             }
-
-            BackwardBuilder bb{"rnn_backward", inp, out_grad};
-
             std::vector<size_t> ind;
             for (uint i = 0; i < inp.size(); i++) {
                 ind.push_back(i);
             }
+            BackwardBuilder bb{"rnn_backward", std::move(inp), out_grad};
+
             std::vector<size_t> out_retain;
             uint start = 1;
             if (cx.has_value()) {
@@ -238,6 +239,7 @@ std::vector<std::vector<Array>> n_step_rnn_impl(
                             bs.push_back(bs_i);
                         }
                     }
+
                     std::vector<Array> xs;
                     for (uint i = cnt; i < cnt + timesteps; i++) {
                         xs.push_back(bctx.GetRetainedInput(input_toks[i]));
@@ -265,21 +267,19 @@ std::vector<std::vector<Array>> n_step_rnn_impl(
                         }
                     }
                     std::vector<Array> dout;
-
                     for (uint i = out_grad_start; i < timesteps + out_grad_start; i++) {
                         const nonstd::optional<Array> temp_n = bctx.output_grad(i);
                         Array temp;
                         if (temp_n.has_value()) {
                             temp = *temp_n;
                         } else {
-                            temp = Zeros({xs[i - 2].shape()[0], hx.shape()[2] * direction}, hx.dtype(), hx.device());
+                            temp = Zeros({xs[i - out_grad_start].shape()[0], hx.shape()[2] * direction}, hx.dtype(), hx.device());
                         }
                         dout.push_back(temp);
                     }
 
                     std::vector<std::vector<Array>> grad = hx.device().backend().CallKernel<RnnBackwardKernel>(
                             n_layers, hx, cx, ws, bs, xs, dhy, dcy, out, dout, use_bidirection, state);
-
                     bctx.input_grad(0) = grad[0][0];
                     int grad_ind = 1;
 
@@ -319,12 +319,10 @@ std::vector<std::vector<Array>> n_step_rnn_impl(
                 cx_list.push_back(nonstd::optional<Array>{a});
             }
         } else {
-
             for (int64_t i = 0; i < hx.shape()[0]; i++) {
                 cx_list.push_back(zero_grad_);
             }
         }
-                    
 
         std::vector<Array> xs_next = xs;
         std::vector<Array> hy;
@@ -336,7 +334,7 @@ std::vector<std::vector<Array>> n_step_rnn_impl(
             std::vector<std::vector<Array>> one_directional_out_fw =
                     _one_directional_loop(impl, xs, hx_list[idx], cx_list[idx], ws[idx], bs[idx]);
             hy.push_back(one_directional_out_fw[0][0]);
-            if(cx.has_value()) {
+            if (cx.has_value()) {
                 cy.push_back(one_directional_out_fw[0][1]);
             }
             std::vector<Array> h_forward = one_directional_out_fw[1];
@@ -357,7 +355,7 @@ std::vector<std::vector<Array>> n_step_rnn_impl(
                     xs_next.push_back(Concatenate(h_f_b, 1));
                 }
                 hy.push_back(one_directional_out_bw[0][0]);
-                if(cx.has_value()) {
+                if (cx.has_value()) {
                     cy.push_back(one_directional_out_bw[0][1]);
                 }
             } else {
@@ -390,7 +388,7 @@ std::vector<std::vector<Array>> n_step_lstm(
         const std::vector<std::vector<Array>>& bs,
         std::vector<Array>& xs) {
     hx.device().CheckDevicesCompatible(hx, cx, ws[0][0], bs[0][0], xs[0]);
-    return n_step_rnn_impl(&_lstm, n_layers, hx, nonstd::optional<Array>{cx}, ws, bs, xs, 0);
+    return n_step_rnn_impl(&_lstm, n_layers, hx, nonstd::optional<Array>{cx}, ws, bs, xs, 0, 1);
 }
 
 std::vector<std::vector<Array>> n_step_bilstm(
@@ -401,7 +399,7 @@ std::vector<std::vector<Array>> n_step_bilstm(
         const std::vector<std::vector<Array>>& bs,
         std::vector<Array>& xs) {
     hx.device().CheckDevicesCompatible(hx, cx, ws[0][0], bs[0][0], xs[0]);
-    return n_step_rnn_impl(&_lstm, n_layers, hx, nonstd::optional<Array>{cx}, ws, bs, xs, 1);
+    return n_step_rnn_impl(&_lstm, n_layers, hx, nonstd::optional<Array>{cx}, ws, bs, xs, 1, 1);
 }
 
 std::vector<std::vector<Array>> n_step_gru(
@@ -413,7 +411,7 @@ std::vector<std::vector<Array>> n_step_gru(
     hx.device().CheckDevicesCompatible(hx, ws[0][0], bs[0][0], xs[0]);
 
 
-    return n_step_rnn_impl(&_gru, n_layers, hx, nonstd::nullopt, ws, bs, xs, 0);
+    return n_step_rnn_impl(&_gru, n_layers, hx, nonstd::nullopt, ws, bs, xs, 0, 0);
 }
 
 std::vector<std::vector<Array>> n_step_bigru(
@@ -424,6 +422,6 @@ std::vector<std::vector<Array>> n_step_bigru(
         std::vector<Array>& xs) {
     hx.device().CheckDevicesCompatible(hx, ws[0][0], bs[0][0], xs[0]);
 
-    return n_step_rnn_impl(&_gru, n_layers, hx, nonstd::nullopt, ws, bs, xs, 1);
+    return n_step_rnn_impl(&_gru, n_layers, hx, nonstd::nullopt, ws, bs, xs, 1, 0);
 }
 }  // namespace chainerx

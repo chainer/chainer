@@ -123,7 +123,6 @@ class TestNStepLstm(op_utils.ChainerOpTest):
             'in_dtypes,out_dtype', n_step_lstm_dtypes_valid)
     ])
 ))
-@chainer.testing.parameterize_pytest('cover_all', [True, False])
 class TestNStepBiLstm(op_utils.ChainerOpTest):
 
     def setup(self):
@@ -220,7 +219,7 @@ class TestNStepBiLstm(op_utils.ChainerOpTest):
                 (2, 2, 1, (1, 1, 1)),
                 (2, 2, 3, (3, 2, 1)),
                 (3, 8, 4, (4, 2, 1)),
-                (4, 12, 4, (4, 3, 2)),
+                (4, 6, 4, (4, 3, 2)),
 
             ]),
         chainer.testing.from_pytest_parameterize(
@@ -247,7 +246,7 @@ class TestNStepGru(op_utils.ChainerOpTest):
         dtype = self.in_dtypes[0]
 
         h = array_utils.uniform(h_shape, dtype)
-        
+
         in_size = self.input_size
         out_size = self.hidden_size
         xs = [array_utils.uniform((self.batches[b], in_size), dtype)
@@ -302,14 +301,14 @@ class TestNStepGru(op_utils.ChainerOpTest):
         return tuple(rets)
 
 
-@op_utils.op_test(['native:0'])
+@op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
     chainer.testing.product([
         chainer.testing.from_pytest_parameterize(
             'n_layers,hidden_size,input_size,batches', [
-                (1, 2, 1, (1, 1, 1)),
-                (2, 6, 8, (4, 2, 2)),
-                (3, 7, 4, (4, 2, 1)),
+                (2, 2, 1, (1, 1, 1)),
+                (2, 2, 3, (3, 2, 1)),
+                (3, 4, 4, (4, 2, 1)),
                 (4, 5, 4, (4, 3, 2)),
 
             ]),
@@ -317,7 +316,6 @@ class TestNStepGru(op_utils.ChainerOpTest):
             'in_dtypes,out_dtype', n_step_lstm_dtypes_valid)
     ])
 ))
-@chainer.testing.parameterize_pytest('cover_all', [True, False])
 class TestNStepBiGRU(op_utils.ChainerOpTest):
 
     def setup(self):
