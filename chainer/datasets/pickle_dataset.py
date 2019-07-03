@@ -1,5 +1,5 @@
 import io
-import multiprocessing.util as mputil
+import multiprocessing.util
 import threading
 
 import six
@@ -96,7 +96,8 @@ class PickleDataset(dataset_mixin.DatasetMixin):
             self._positions.append(position)
 
         self._lock = threading.RLock()
-        mputil.register_after_fork(self, PickleDataset._after_fork)
+        multiprocessing.util.register_after_fork(
+            self, PickleDataset._after_fork)
 
     def _after_fork(self):
         if callable(getattr(self._reader, 'after_fork', None)):
