@@ -88,7 +88,7 @@ class GradientLARS(object):
         with chainer.using_device(param.device):
             xp = param.device.xp
             if xp is backend.chainerx:
-                # TODO norm in chainerx
+                # TODO(ecastill): norm in chainerx
                 p_norm = xp.sqrt(xp.sum(p*p))
                 g_norm = xp.sqrt(xp.sum(g*g))
             else:
