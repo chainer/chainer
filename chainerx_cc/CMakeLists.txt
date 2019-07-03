@@ -88,9 +88,6 @@ if("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU|Clang|Intel")
     endif()
     set(CMAKE_CXX_FLAGS_RELEASE "-O2 -DNDEBUG")  # cmake -DCMAKE_BUILD_TYPE=Release
     set(CMAKE_CXX_FLAGS_DEBUG "-O0")  # cmake -DCMAKE_BUILD_TYPE=Debug
-    if (${CUDA_FOUND})
-        list(APPEND CUDA_NVCC_FLAGS -std=c++14)
-    endif()
 
     # cmake -DCHAINERX_ENABLE_COVERAGE=ON|OFF
     if(CHAINERX_ENABLE_COVERAGE)
@@ -135,6 +132,8 @@ endif()
 if(${CHAINERX_BUILD_CUDA})
     find_package(CUDA QUIET)
     if(${CUDA_FOUND})
+        list(APPEND CUDA_NVCC_FLAGS -std=c++14)
+
         # CUDA_cublas_device_LIBRARY is required for CUDA > 9.2 with cmake < to 3.12.2.
         # This is because cublas_device was deprecated in CUDA 9.2, but FindCUDA supported it in 3.12.2.
         set(CUDA_cublas_device_LIBRARY ${CUDA_LIBRARIES})
