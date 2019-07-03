@@ -50,7 +50,7 @@ Array _stack_weight(const std::vector<Array>& ws) {
 }
 
 std::vector<Array> _gru(
-         const Array& x, const Array& h, const nonstd::optional<Array>& c, const std::vector<Array>& ws, const std::vector<Array>& bs) {
+        const Array& x, const Array& h, const nonstd::optional<Array>& c, const std::vector<Array>& ws, const std::vector<Array>& bs) {
     Array xw = Concatenate({ws[0], ws[1], ws[2]}, 0);
     Array hw = Concatenate({ws[3], ws[4], ws[5]}, 0);
     Array xb = Concatenate({bs[0], bs[1], bs[2]}, 0);
@@ -409,7 +409,6 @@ std::vector<std::vector<Array>> n_step_gru(
         const std::vector<std::vector<Array>>& bs,
         std::vector<Array>& xs) {
     hx.device().CheckDevicesCompatible(hx, ws[0][0], bs[0][0], xs[0]);
-
 
     return n_step_rnn_impl(&_gru, n_layers, hx, nonstd::nullopt, ws, bs, xs, 0, 0);
 }
