@@ -287,3 +287,56 @@ class TestLeakyRelu(UnaryMathTestBase, op_utils.NumpyOpTest):
             expected = numpy.where(a >= 0, a, a * self.slope)
             return expected
         return xp.leaky_relu(a, self.slope)
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    # Special shapes
+    chainer.testing.product({
+        'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
+        'in_dtypes,out_dtype': _in_out_dtypes_math_functions,
+        'input': [-2, 2],
+        'contiguous': [None, 'C'],
+        'beta_range': [(-2.0, 0.0), 0.0, (0.0, 2.0), Unspecified],
+    })
+    # Special values
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,out_dtype': _in_out_float_dtypes_math_functions,
+        'input': [0, float('inf'), -float('inf'), float('nan')],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True],
+        'beta_range': [(-2.0, 0.0), 0.0, (0.0, 2.0), Unspecified],
+    })
+))
+class TestSoftplus(UnaryMathTestBase, op_utils.NumpyOpTest):
+
+    def setup(self):
+        in_dtype, = self.in_dtypes
+        if isinstance(self.beta_range, tuple):
+            l, u = self.beta_range
+            self.beta = random.uniform(l, u)
+        elif self.beta_range is Unspecified:
+            self.beta = 1.0
+        else:
+            self.beta = self.beta_range
+
+        if numpy.dtype(in_dtype).kind != 'f':
+            self.skip_backward_test = True
+            self.skip_double_backward_test = True
+
+        if in_dtype == 'float16':
+            self.check_forward_options.update({'rtol': 2e-3, 'atol': 2e-3})
+            self.check_backward_options.update({'rtol': 2e-3, 'atol': 2e-3})
+            self.check_double_backward_options.update(
+                {'rtol': 1e-2, 'atol': 1e-2})
+
+    def func(self, xp, a):
+        in_dtype, = self.in_dtypes
+        if xp is numpy:
+            y = numpy.log(1 + numpy.exp(self.beta * a)) / self.beta
+            return y
+        elif self.beta_range is Unspecified:
+            return xp.softplus(a)
+        else:
+            return xp.softplus(a, self.beta)
