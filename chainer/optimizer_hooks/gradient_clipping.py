@@ -18,7 +18,7 @@ def _sum_sqnorm_grads(params):
     # If there are multiple devices, accumulation is done on each device
     # first, and the total sum is returned as a python float.
 
-    assert len(params) > 0
+    # TODO(niboshi): Support and test len(params) == 0
 
     params_grouped = collections.defaultdict(list)
     devices_map = {}
@@ -89,6 +89,7 @@ class GradientClipping(object):
 
         with chainer.using_device(device):
             norm = device.xp.sqrt(sqnorm)
+            # TODO(niboshi): Could be inf if norm == 0
             rate = self.threshold / norm
             # When no clipping is needed, skip the clipping on CPU and
             # multiply 1.0 on the device otherwise.
