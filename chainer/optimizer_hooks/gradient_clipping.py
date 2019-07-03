@@ -91,8 +91,9 @@ class GradientClipping(object):
             norm = device.xp.sqrt(sqnorm)
             # TODO(niboshi): Could be inf if norm == 0
             rate = self.threshold / norm
-            # When no clipping is needed, skip the clipping on CPU and
-            # multiply 1.0 on the device otherwise.
+            # In NumPy backend, `rate` is already available on CPU and thus
+            # can be compared against 1 without extra overhead.
+            # Otherwise `clip` is used to avoid synchronization.
             if device.xp is numpy:
                 if rate >= 1:
                     return
