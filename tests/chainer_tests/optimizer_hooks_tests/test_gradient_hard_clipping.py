@@ -76,15 +76,8 @@ class TestGradientHardClipping(unittest.TestCase):
         for expect, param in zip(expects, target.params()):
             testing.assert_allclose(expect, param.array)
 
-    def test_hardclipping_cpu(self, backend_config0,
-                              backend_config1, backend_config2):
-        self.check_hardclipping(
-            [backend_config0, backend_config1, backend_config2])
-
-    @testing.attr.gpu
-    def test_hardclipping_gpu(self, backend_config0,
-                              backend_config1, backend_config2):
-        self.target.to_gpu()
+    def test_hardclipping(self, backend_config0,
+                          backend_config1, backend_config2):
         self.check_hardclipping(
             [backend_config0, backend_config1, backend_config2])
 
