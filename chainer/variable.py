@@ -1094,8 +1094,8 @@ class Variable(object):
         .. note::
 
             This method will raise an error in the future instead of a warning
-            when the object is connected to a graph but `allow_unchain` is not
-            `True`.
+            when the object is connected to a graph but ``allow_unchain`` is
+            not ``True``.
 
         Args:
             allow_unchain (bool): If ``True``, always unchains the graph.
@@ -1111,8 +1111,8 @@ class Variable(object):
         .. note::
 
             This method will raise an error in the future instead of a warning
-            when the object is connected to a graph but `allow_unchain` is not
-            `True`.
+            when the object is connected to a graph but ``allow_unchain`` is
+            not ``True``.
 
         Args:
             device: Target device specifier. If omitted, the current device is
@@ -1135,8 +1135,8 @@ class Variable(object):
         .. note::
 
             This method will raise an error in the future instead of a warning
-            when the object is connected to a graph but `allow_unchain` is not
-            `True`.
+            when the object is connected to a graph but ``allow_unchain`` is
+            not ``True``.
 
         Args:
             allow_unchain (bool): If ``True``, always unchains the graph.
@@ -1158,8 +1158,8 @@ class Variable(object):
         .. note::
 
             This method will raise an error in the future instead of a warning
-            when the object is connected to a graph but `allow_unchain` is not
-            `True`.
+            when the object is connected to a graph but ``allow_unchain`` is
+            not ``True``.
 
         Args:
             allow_unchain (bool): If ``True``, always unchains the graph.
@@ -1190,8 +1190,8 @@ class Variable(object):
         .. note::
 
             This method will raise an error in the future instead of a warning
-            when the object is connected to a graph but `allow_unchain` is not
-            `True`.
+            when the object is connected to a graph but ``allow_unchain`` is
+            not ``True``.
 
         Args:
             allow_unchain (bool): If ``True``, always unchains the graph.
@@ -1212,8 +1212,8 @@ class Variable(object):
         .. note::
 
             This method will raise an error in the future instead of a warning
-            when the object is connected to a graph but `allow_unchain` is not
-            `True`.
+            when the object is connected to a graph but ``allow_unchain`` is
+            not ``True``.
 
         Args:
             device: Target device specifier. See
