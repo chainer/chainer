@@ -113,6 +113,7 @@ def shuffle_data_chunks(comm, data_chunks, force_equal_length='copy', chunk_size
 
     # print("Rank {}: data={}".format(comm.rank, data))
     length_all = [x[0] for x in comm.allgather(np.array([len(data)]))]
+
     if force_equal_length == 'drop':
         shortest = min(length_all)
         data = data[:shortest]
@@ -120,7 +121,6 @@ def shuffle_data_chunks(comm, data_chunks, force_equal_length='copy', chunk_size
         raise NotImplemented()
 
     return data
-
 
 
 def test_count_table():
