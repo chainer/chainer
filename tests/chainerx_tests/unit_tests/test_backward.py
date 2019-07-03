@@ -59,7 +59,7 @@ def _check_backward(fprop, xs, expected_gxs, gys=None, backprop_id=None):
 
 def _check_grad(
         fprop, xs, expected_gxs, gys=None, backprop_id=None, xs_indices=None,
-        ys_indices=None, grad_inputs=[], grad_outputs=[],
+        ys_indices=None, grad_outputs=[],
         set_grad=False, retain_grad=False):
     # Checks for test validity.
     assert callable(fprop)
@@ -94,7 +94,7 @@ def _check_grad(
     else:
         actual_ys = ys
     gxs = chainerx.grad(actual_ys, actual_xs, backprop_id,
-                        grad_inputs=grad_inputs, grad_outputs=grad_outputs,
+                        grad_outputs=grad_outputs,
                         set_grad=set_grad, retain_grad=retain_grad)
 
     # Check gradients.
@@ -562,50 +562,6 @@ def test_grad_not_all_inputs_outputs_in_graph(xs_indices, ys_indices):
     _check_grad(
         fprop, xs, tuple(expected_gxs), xs_indices=xs_indices,
         ys_indices=ys_indices)
-
-
-def test_grad_with_grad_inputs():
-    shape = (1,)
-    dtype = chainerx.float32
-
-    xs = (
-        chainerx.full(shape, 3, dtype).require_grad(),
-        chainerx.full(shape, 5, dtype).require_grad(),)
-
-    gxsi = (
-        chainerx.full(shape, 10, dtype).require_grad(),
-        chainerx.full(shape, 20, dtype).require_grad(),)
-
-    expected_gxs = (
-        chainerx.full(shape, 16, dtype),
-        chainerx.full(shape, 24, dtype),)
-
-    def fprop(x0, x1):
-        return x0 + x1, x0 * x1
-
-    _check_grad(fprop, xs, expected_gxs, grad_inputs=gxsi)
-
-
-def test_grad_with_invalid_grad_inputs():
-    shape = (1,)
-    dtype = chainerx.float32
-
-    xs = (
-        chainerx.full(shape, 3, dtype).require_grad(),
-        chainerx.full(shape, 5, dtype).require_grad(),)
-
-    gxsi = (
-        chainerx.full(shape, 10, dtype).require_grad(),)
-
-    expected_gxs = (
-        chainerx.full(shape, 16, dtype),
-        chainerx.full(shape, 24, dtype),)
-
-    def fprop(x0, x1):
-        return x0 + x1, x0 * x1
-
-    with pytest.raises(chainerx.GradientError):
-        _check_grad(fprop, xs, expected_gxs, grad_inputs=gxsi)
 
 
 def test_grad_with_grad_outputs():
