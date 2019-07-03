@@ -75,14 +75,8 @@ class TestLasso(unittest.TestCase):
         for expect, param in zip(expects, target.params()):
             testing.assert_allclose(expect, param.array)
 
-    def test_lasso_cpu(self, backend_config0,
-                       backend_config1, backend_config2):
-        self.check_lasso([backend_config0, backend_config1, backend_config2])
-
-    @testing.attr.gpu
-    def test_lasso_gpu(self, backend_config0,
-                       backend_config1, backend_config2):
-        self.target.to_gpu()
+    def test_lasso(self, backend_config0,
+                   backend_config1, backend_config2):
         self.check_lasso([backend_config0, backend_config1, backend_config2])
 
 
