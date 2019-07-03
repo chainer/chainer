@@ -52,6 +52,9 @@ default_fan = {
         {'use_ideep': 'always'},
         {'use_cuda': True, 'cuda_device': 0},
         {'use_cuda': True, 'cuda_device': 1},
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
     ]
 )
 class TestUniform(unittest.TestCase):

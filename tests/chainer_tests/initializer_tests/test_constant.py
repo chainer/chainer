@@ -1,5 +1,4 @@
 import unittest
-
 import chainer
 from chainer import backend
 from chainer import initializers
@@ -17,6 +16,9 @@ import numpy
         {'use_ideep': 'always'},
         {'use_cuda': True, 'cuda_device': 0},
         {'use_cuda': True, 'cuda_device': 1},
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
     ]
 )
 class TestIdentity(unittest.TestCase):
@@ -85,6 +87,9 @@ class TestIdentityInvalid(unittest.TestCase):
         {'use_ideep': 'always'},
         {'use_cuda': True, 'cuda_device': 0},
         {'use_cuda': True, 'cuda_device': 1},
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
     ]
 )
 class TestConstant(unittest.TestCase):

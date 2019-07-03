@@ -9,6 +9,7 @@ from chainer import initializers
 from chainer import testing
 from chainer.testing import attr
 from chainer.testing import condition
+import chainerx
 
 
 @testing.parameterize(*testing.product_dict(
@@ -33,6 +34,9 @@ from chainer.testing import condition
         {'use_ideep': 'always'},
         {'use_cuda': True, 'cuda_device': 0},
         {'use_cuda': True, 'cuda_device': 1},
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
     ]
 )
 class OrthogonalBase(unittest.TestCase):
@@ -158,6 +162,12 @@ class TestEmpty(unittest.TestCase):
     def test_gpu(self):
         self.check_assert(cuda.to_gpu(self.w))
 
+    @attr.chainerx
+    @attr.gpu
+    def test_chainerx(self):
+        w = chainerx.empty(0, dtype='float32')
+        self.check_assert(w.to_device('cuda:0'))
+
 
 @testing.parameterize(*(testing.product({
     'shape': [(3,), (4, 3), (21, 4, 5)],
@@ -182,6 +192,12 @@ class TestOrthogonalMode(unittest.TestCase):
     @attr.gpu
     def test_invalid_gpu(self):
         self.check_invalid(cuda.to_gpu(self.w))
+
+    @attr.chainerx
+    @attr.gpu
+    def test_invalid_chainerx(self):
+        w = chainerx.empty(self.shape, dtype='float32')
+        self.check_invalid(w.to_device('cuda:0'))
 
 
 testing.run_module(__name__, __file__)
