@@ -99,27 +99,27 @@ gpu_params = [Param(p) for p in [
         'model_dtype': np.float16,
         'multi_node': True,
     }, {
-        'communicator_class': HierarchicalCommunicator,
-        'multi_node': True,
-    }, {
-        'communicator_class': HierarchicalCommunicator,
-        'model_dtype': np.float16,
-        'multi_node': True,
-    }, {
-        'communicator_class': TwoDimensionalCommunicator,
-        'multi_node': True,
-    }, {
-        'communicator_class': TwoDimensionalCommunicator,
-        'model_dtype': np.float16,
-        'multi_node': True,
-    }, {
-        'communicator_class': SingleNodeCommunicator,
-        'multi_node': False,
-    }, {
-        'communicator_class': SingleNodeCommunicator,
-        'model_dtype': np.float16,
-        'multi_node': False,
-    }, {
+    #     'communicator_class': HierarchicalCommunicator,
+    #     'multi_node': True,
+    # }, {
+    #     'communicator_class': HierarchicalCommunicator,
+    #     'model_dtype': np.float16,
+    #     'multi_node': True,
+    # }, {
+    #     'communicator_class': TwoDimensionalCommunicator,
+    #     'multi_node': True,
+    # }, {
+    #     'communicator_class': TwoDimensionalCommunicator,
+    #     'model_dtype': np.float16,
+    #     'multi_node': True,
+    # }, {
+    #     'communicator_class': SingleNodeCommunicator,
+    #     'multi_node': False,
+    # }, {
+    #     'communicator_class': SingleNodeCommunicator,
+    #     'model_dtype': np.float16,
+    #     'multi_node': False,
+    # }, {
         'communicator_class': NonCudaAwareCommunicator,
         'multi_node': True,
     }, {
