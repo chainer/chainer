@@ -13,7 +13,7 @@ from chainer.testing import condition
 
 
 @testing.parameterize(*(testing.product({
-    'shape': [(1, 4, 5, 5), (5, 4, 15), (3, 8)],
+    'shape': [(1, 4, 5, 3), (5, 4, 7), (3, 20)],
     'groups': [1, 2, 4],
     'dtype': [numpy.float32],
 })))
