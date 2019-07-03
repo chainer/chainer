@@ -96,6 +96,8 @@ class PickleDataset(dataset_mixin.DatasetMixin):
             self._positions.append(position)
 
         self._lock = threading.RLock()
+
+        # TODO: Avoid using undocumented feature
         multiprocessing.util.register_after_fork(
             self, PickleDataset._after_fork)
 
@@ -128,6 +130,14 @@ class PickleDataset(dataset_mixin.DatasetMixin):
 
 
 class _FileReader(io.RawIOBase):
+    """A file-like class implemented `after_fork()` hook
+
+    The method :meth:`after_fork` is called in the child process after forking,
+    and it closes and reopens the file object to avoid race condition caused by
+    open file description.
+    See: https://www.securecoding.cert.org/confluence/x/ZQG7AQ
+    """
+
     def __init__(self, path):
         super(_FileReader, self).__init__()
         self._path = path
