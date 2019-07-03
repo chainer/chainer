@@ -63,10 +63,4 @@ class Orthogonal(initializer.Initializer):
             # cupy.linalg.qr requires cusolver in CUDA 8+
             q, r = numpy.linalg.qr(a.T)
             q *= numpy.copysign(self.scale, numpy.diag(r))
-<<<<<<< HEAD
-            array[...] = xp.asarray(q.T.reshape(array.shape))
-=======
-            if transpose:
-                q = q.T
-            array[...] = device.xp.asarray(q.reshape(array.shape))
->>>>>>> d0e5b37f5... Merge pull request #7548 from emcastillo/fix_initializers_device_id
+            array[...] = device.xp.asarray(q.T.reshape(array.shape))

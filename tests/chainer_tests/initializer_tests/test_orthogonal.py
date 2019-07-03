@@ -75,20 +75,9 @@ class OrthogonalBase(unittest.TestCase):
     def check_orthogonality(self, w):
         initializer = self.target(**self.target_kwargs)
         initializer(w)
-<<<<<<< HEAD
         n = self.dim_out
         w = w.astype(numpy.float64).reshape(n, -1)
         dots = w.dot(w.T)
-=======
-        w = w.astype(numpy.float64).reshape(self.dim_out, self.dim_in)
-
-        if self.dim_in >= self.dim_out:
-            n = self.dim_out
-            dots = w.dot(w.T)
-        else:
-            n = self.dim_in
-            dots = w.T.dot(w)
->>>>>>> d0e5b37f5... Merge pull request #7548 from emcastillo/fix_initializers_device_id
         expected_scale = self.scale or 1.1
         testing.assert_allclose(
             dots, numpy.identity(n) * expected_scale**2,
