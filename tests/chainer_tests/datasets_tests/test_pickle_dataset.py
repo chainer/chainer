@@ -4,7 +4,8 @@ import multiprocessing
 import os
 import sys
 import unittest
-from unittest.mock import patch, mock_open
+
+import mock
 
 from chainer import datasets
 from chainer import testing
@@ -90,8 +91,8 @@ class TestPickleDatasetHelper(unittest.TestCase):
             assert dataset[0] == 1
 
     def test_file_reader_after_fork(self):
-        m = mock_open()
-        with patch('chainer.datasets.pickle_dataset.open', m):
+        m = mock.mock_open()
+        with mock.patch('chainer.datasets.pickle_dataset.open', m):
             r = _FileReader(self.path)
 
             m.assert_called_once_with(self.path, 'rb')
@@ -101,7 +102,7 @@ class TestPickleDatasetHelper(unittest.TestCase):
             r.after_fork()
 
             m.assert_called_once_with(self.path, 'rb')
-            m().close.assert_called_once()
+            m().close.assert_called_once_with()
 
 
 testing.run_module(__name__, __file__)
