@@ -137,7 +137,7 @@ class _FileReader(io.RawIOBase):
         self._fp = open(self._path, 'rb')
 
     def after_fork(self):
-        """ re-open file avoid race condition """
+        """Reopens the file to avoid race condition."""
         self.close()
         self._open()
 
