@@ -104,27 +104,6 @@ def create_communicator(
             import FlatCommunicator
         return FlatCommunicator(mpi_comm=mpi_comm)
 
-    elif communicator_name == 'hierarchical':
-        from chainermn.communicators.hierarchical_communicator \
-            import HierarchicalCommunicator
-        warnings.warn('hierarchical communicator is deprecated.',
-                      DeprecationWarning)
-        return HierarchicalCommunicator(mpi_comm=mpi_comm)
-
-    elif communicator_name == 'two_dimensional':
-        from chainermn.communicators.two_dimensional_communicator \
-            import TwoDimensionalCommunicator
-        warnings.warn('two_dimensional communicator is deprecated.',
-                      DeprecationWarning)
-        return TwoDimensionalCommunicator(mpi_comm=mpi_comm)
-
-    elif communicator_name == 'single_node':
-        warnings.warn('single_node communicator is deprecated.',
-                      DeprecationWarning)
-        from chainermn.communicators.single_node_communicator \
-            import SingleNodeCommunicator
-        return SingleNodeCommunicator(mpi_comm=mpi_comm)
-
     elif communicator_name == 'non_cuda_aware':
         from chainermn.communicators.non_cuda_aware_communicator \
             import NonCudaAwareCommunicator

@@ -14,18 +14,12 @@ import chainermn
 from chainermn.communicators import _communication_utility
 from chainermn.communicators.flat_communicator \
     import FlatCommunicator
-from chainermn.communicators.hierarchical_communicator \
-    import HierarchicalCommunicator
 from chainermn.communicators.naive_communicator \
     import NaiveCommunicator
 from chainermn.communicators.non_cuda_aware_communicator \
     import NonCudaAwareCommunicator
 from chainermn.communicators.pure_nccl_communicator \
     import PureNcclCommunicator
-from chainermn.communicators.single_node_communicator \
-    import SingleNodeCommunicator
-from chainermn.communicators.two_dimensional_communicator \
-    import TwoDimensionalCommunicator
 from chainermn import nccl
 
 
@@ -99,27 +93,6 @@ gpu_params = [Param(p) for p in [
         'model_dtype': np.float16,
         'multi_node': True,
     }, {
-    #     'communicator_class': HierarchicalCommunicator,
-    #     'multi_node': True,
-    # }, {
-    #     'communicator_class': HierarchicalCommunicator,
-    #     'model_dtype': np.float16,
-    #     'multi_node': True,
-    # }, {
-    #     'communicator_class': TwoDimensionalCommunicator,
-    #     'multi_node': True,
-    # }, {
-    #     'communicator_class': TwoDimensionalCommunicator,
-    #     'model_dtype': np.float16,
-    #     'multi_node': True,
-    # }, {
-    #     'communicator_class': SingleNodeCommunicator,
-    #     'multi_node': False,
-    # }, {
-    #     'communicator_class': SingleNodeCommunicator,
-    #     'model_dtype': np.float16,
-    #     'multi_node': False,
-    # }, {
         'communicator_class': NonCudaAwareCommunicator,
         'multi_node': True,
     }, {
@@ -186,17 +159,8 @@ gpu_mixed_dtype_params = [Param(p) for p in [
         'communicator_class': NaiveCommunicator,
         'multi_node': True,
     }, {
-        'communicator_class': TwoDimensionalCommunicator,
-        'multi_node': True,
-    }, {
-        'communicator_class': HierarchicalCommunicator,
-        'multi_node': True,
-    }, {
         'communicator_class': FlatCommunicator,
         'multi_node': True,
-    }, {
-        'communicator_class': SingleNodeCommunicator,
-        'multi_node': False,
     }
 ]]
 for global_dtype in [np.float32, np.float16, chainer.mixed16, None]:
