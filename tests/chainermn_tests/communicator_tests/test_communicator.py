@@ -896,23 +896,3 @@ class TestMpiCommunicatorBase(unittest.TestCase):
         self.check_send_recv_obj(5, tag=5, use_any_recv=False, use_status=True)
 
         self.teardown()
-
-
-@chainer.testing.attr.gpu
-def test_deprecation():
-    with chainer.testing.assert_warns(DeprecationWarning):
-        chainermn.create_communicator('hierarchical')
-
-    with chainer.testing.assert_warns(DeprecationWarning):
-        chainermn.create_communicator('two_dimensional')
-
-
-@chainer.testing.attr.gpu
-def test_deprecation_single():
-    ranks = _communication_utility.init_ranks(mpi_comm)
-    inter_size = ranks[4]
-    if inter_size > 1:
-        pytest.skip('This test is for single node only')
-
-    with chainer.testing.assert_warns(DeprecationWarning):
-        chainermn.create_communicator('single_node')
