@@ -179,7 +179,7 @@ struct ArrayReprImpl {
         }
 
         os << "array(";
-        ArrayReprRecursive<T>(array, formatter, 7, os);
+        ArrayReprRecursive<T>(array, formatter, 7, os, array.GetTotalSize() > kThreshold);
 
         // Print the footer
         os << ", shape=" << array.shape();
@@ -201,17 +201,17 @@ struct ArrayReprImpl {
 
 private:
     static constexpr int kMaxItemNumPerLine = 10;
+    static constexpr int64_t kThreshold = 1000;
+    static constexpr int64_t kEdgeItems = 3;
 
     template <typename T>
-    void ArrayReprRecursive(const Array& array, Formatter<T>& formatter, size_t indent, std::ostream& os) const {
+    void ArrayReprRecursive(const Array& array, Formatter<T>& formatter, size_t indent, std::ostream& os, bool abbreviate = false) const {
         const uint8_t ndim = array.ndim();
         if (ndim == 0) {
             formatter.Print(os, static_cast<T>(AsScalar(array)));
             return;
         }
-        os << "[";
-        int64_t size = array.shape().front();
-        for (int64_t i = 0; i < size; ++i) {
+        auto print_indent = [ndim, indent, &os](int64_t i) {
             if (i != 0) {
                 os << ",";
                 if (ndim > 1 || i % kMaxItemNumPerLine == 0) {
@@ -221,7 +221,26 @@ private:
                     os << ' ';
                 }
             }
-            ArrayReprRecursive<T>(internal::At(array, {ArrayIndex{i}}), formatter, indent + 1, os);
+        };
+        os << "[";
+        int64_t size = array.shape().front();
+        if (abbreviate && size > kEdgeItems * 2) {
+            for (int64_t i = 0; i < kEdgeItems; ++i) {
+                print_indent(i);
+                ArrayReprRecursive<T>(internal::At(array, {ArrayIndex{i}}), formatter, indent + 1, os, abbreviate);
+            }
+            print_indent(1);
+            os << "...";
+            print_indent(1);
+            for (int64_t i = 0; i < kEdgeItems; ++i) {
+                print_indent(i);
+                ArrayReprRecursive<T>(internal::At(array, {ArrayIndex{i - kEdgeItems}}), formatter, indent + 1, os, abbreviate);
+            }
+        } else {
+            for (int64_t i = 0; i < size; ++i) {
+                print_indent(i);
+                ArrayReprRecursive<T>(internal::At(array, {ArrayIndex{i}}), formatter, indent + 1, os, abbreviate);
+            }
         }
         os << "]";
     }
