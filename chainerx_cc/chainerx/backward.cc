@@ -650,19 +650,20 @@ std::vector<absl::optional<Array>> Grad(
 
     BackwardImpl{inputs, outputs, actual_backprop_id, double_backprop, std::move(array_node_grad_map), retain_grad}.Run();
 
-    for (size_t i = 0; i < input_grads.size(); ++i) {
-        absl::optional<Array>& input_grad = input_grads[i]; 
-        if (input_grad.has_value()) {
-            // If the allocated input_grad was not used during calculation due to a not connected graph
-            // the body was never initialized and it remains as null
-            if (internal::GetArrayBody(*input_grad) == nullptr) {
-                input_grad = absl::nullopt;
-            // Explicitly assign the grad to the input array if specified
-            // Input grads are not set by default during Backward run
+    size_t i = 0;
+    for (absl::optional<Array>& grad : input_grads) {
+        if (grad.has_value()) {
+            if (internal::GetArrayBody(*grad) == nullptr) {
+                // If the allocated input_grad was not used during calculation due to a not connected graph
+                // the body was never initialized and it remains as null
+                grad = absl::nullopt;
             } else if (set_grad) {
-                inputs[i].get().SetGrad(input_grad.value(), backprop_id);
+                // Explicitly assign the grad to the input array if specified
+                // Input grads are not set by default during Backward run
+                inputs[i].get().SetGrad(grad.value(), backprop_id);
             }
         }
+        ++i;
     }
 
     return input_grads;

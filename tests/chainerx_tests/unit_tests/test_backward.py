@@ -638,12 +638,13 @@ def test_grad_with_retain_grad():
     expected_gxs = (
         chainerx.full(shape, 4, dtype),)
 
-    # If variables go out of scope
-    # then intermediate grads are wiped.
-    # We need to do all the computations here
-    a = xs[0]*2
-    b = a+xs[1]
-    c = a+b
+    # This test can't use _check_grad
+    # because when using a forward function
+    # it is not possible to easily expose the intermediate
+    # values of the graph to verify the gradients
+    a = xs[0] * 2
+    b = a + xs[1]
+    c = a + b
     expected_retain = (
         chainerx.full(shape, 1, dtype),
         chainerx.full(shape, 2, dtype),)
