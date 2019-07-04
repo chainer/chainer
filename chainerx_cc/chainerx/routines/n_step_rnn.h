@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <vector>
 
-#include <nonstd/optional.hpp>
+#include <absl/types/optional.hpp>
 
 #include "chainerx/array.h"
 
