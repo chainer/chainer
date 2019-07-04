@@ -916,7 +916,7 @@ class GradTestBase(object):
     def use_device(self, device):
         for value in six.itervalues(self.__dict__):
             if isinstance(value, chainer.Variable):
-                value.to_device(backend.get_device(device))
+                value.to_device(device)
 
     def forward(self):
         raise NotImplementedError
@@ -969,8 +969,7 @@ class GradTestBase(object):
         if self.loss_scale and backend_config.xp is chainerx:
             pytest.skip('chainerx.grad does not support loss_scale')
         self.use_device(backend_config.device)
-        with chainer.using_device(backend_config.device):
-            self.check_grad()
+        self.check_grad()
 
     def check_double_grad(self):
         self.forward()
@@ -997,8 +996,7 @@ class GradTestBase(object):
         if self.loss_scale and backend_config.xp is chainerx:
             pytest.skip('chainerx.grad does not support loss_scale')
         self.use_device(backend_config.device)
-        with chainer.using_device(backend_config.device):
-            self.check_double_grad()
+        self.check_double_grad()
 
 
 @testing.parameterize(*testing.product({

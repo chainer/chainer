@@ -639,7 +639,7 @@ std::vector<absl::optional<Array>> Grad(
         }
     }
 
-    // Push initial output grads, Run assigns to 1 in other case
+    // Push initial output grads, Run() assigns to 1 in other case
     for (size_t i = 0; i < grad_outputs.size(); ++i) {
         const std::shared_ptr<ArrayBody>& array_body = internal::GetArrayBody(outputs[i]);
         if (const std::shared_ptr<ArrayNode>& array_node = array_body->GetArrayNode(actual_backprop_id)) {
@@ -650,15 +650,17 @@ std::vector<absl::optional<Array>> Grad(
 
     BackwardImpl{inputs, outputs, actual_backprop_id, double_backprop, std::move(array_node_grad_map), retain_grad}.Run();
 
-    // input_grads may contain unmodified array bodies (nullptr) for arrays that are not included in the graph.
-    // Those grads are returned as nullopt.
     for (size_t i = 0; i < input_grads.size(); ++i) {
-        if (input_grads[i].has_value()) {
-            if (internal::GetArrayBody(*input_grads[i]) == nullptr) {
-                input_grads[i] = absl::nullopt;
-            }
-            if (set_grad) {
-                inputs[i].get().SetGrad(input_grads[i].value(), backprop_id);
+        absl::optional<Array>& input_grad = input_grads[i]; 
+        if (input_grad.has_value()) {
+            // If the allocated input_grad was not used during calculation due to a not connected graph
+            // the body was never initialized and it remains as null
+            if (internal::GetArrayBody(*input_grad) == nullptr) {
+                input_grad = absl::nullopt;
+            // Explicitly assign the grad to the input array if specified
+            // Input grads are not set by default during Backward run
+            } else if (set_grad) {
+                inputs[i].get().SetGrad(input_grad.value(), backprop_id);
             }
         }
     }
