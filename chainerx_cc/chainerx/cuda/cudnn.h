@@ -1,7 +1,7 @@
 #pragma once
 
+#include <absl/types/optional.h>
 #include <cudnn.h>
-#include <nonstd/optional.hpp>
 
 #include "chainerx/array.h"
 #include "chainerx/dims.h"
@@ -90,8 +90,7 @@ private:
 
 class CudnnConvolutionDescriptor {
 public:
-    explicit CudnnConvolutionDescriptor(
-            Dtype dtype, const Dims& pad, const Dims& stride, const nonstd::optional<Dims>& dilation, int groups);
+    explicit CudnnConvolutionDescriptor(Dtype dtype, const Dims& pad, const Dims& stride, const absl::optional<Dims>& dilation, int groups);
 
     ~CudnnConvolutionDescriptor();
 

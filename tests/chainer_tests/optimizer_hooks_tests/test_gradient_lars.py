@@ -3,49 +3,92 @@ import unittest
 import numpy as np
 
 import chainer
-from chainer import backend
-import chainer.initializers as I
 from chainer import optimizer_hooks
 from chainer import optimizers
 from chainer import testing
-from chainer.testing import attr
+
+
+_backend_params = [
+    # NumPy
+    {},
+    {'use_ideep': 'always'},
+    # CuPy
+    {'use_cuda': True, 'cuda_device': 0},
+    {'use_cuda': True, 'cuda_device': 1},
+    # ChainerX
+    {'use_chainerx': True, 'chainerx_device': 'native:0'},
+    {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+    {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
+]
 
 
 class SimpleLink(chainer.Link):
 
-    def __init__(self, w, g):
+    def __init__(self, params):
         super(SimpleLink, self).__init__()
         with self.init_scope():
-            self.param = chainer.Parameter(I.Zero(), w.shape)
-        self.param.data = w
-        self.param.grad = g
+            for i, p in enumerate(params):
+                setattr(self, 'p{}'.format(i), p)
 
 
+@testing.backend.inject_backend_tests(None, _backend_params)
+@testing.backend.inject_backend_tests(None, _backend_params)
+@testing.backend.inject_backend_tests(None, _backend_params)
 class TestGradientLARS(unittest.TestCase):
 
     def setUp(self):
-        self.target = chainer.ChainList(
-            SimpleLink(np.arange(6).astype(np.float32).reshape(2, 3),
-                       np.arange(3, -3, -1).astype(np.float32).reshape(2, 3)),
-            SimpleLink(np.arange(6).astype(np.float32).reshape(2, 3) * 0.0001,
-                       np.arange(3, -3, -1).astype(np.float32).reshape(2, 3))
-        )
+        num_params = 3
+        arrs = [
+            np.random.uniform(-3, 3, (2, 3)).astype(np.float32)
+            for _ in range(num_params)]
+        grads = [
+            np.random.uniform(-3, 3, (2, 3)).astype(np.float32)
+            for _ in range(num_params)]
+        params_0 = []
+        for arr, grad in zip(arrs, grads):
+            param = chainer.Parameter(arr)
+            param.grad = grad
+            params_0.append(param)
 
-    def check_LARS(self):
-        w0 = self.target[0].param.data
-        g0 = self.target[0].param.grad
-        w1 = self.target[1].param.data
-        g1 = self.target[1].param.grad
-        xp = backend.get_array_module(w0)
+        arrs = [
+            np.random.uniform(-3, 3, (2, 3)).astype(np.float32) * 0.0001
+            for _ in range(num_params)]
+        grads = [
+            np.random.uniform(-3, 3, (2, 3)).astype(np.float32)
+            for _ in range(num_params)]
+        params_1 = []
+        for arr, grad in zip(arrs, grads):
+            param = chainer.Parameter(arr)
+            param.grad = grad
+            params_1.append(param)
+
+        self.target = chainer.ChainList(
+            SimpleLink(params_0),
+            SimpleLink(params_1))
+
+    def check_LARS(self, backend_configs):
+        target = self.target
+        devices = [bc.device for bc in backend_configs]
+        assert len(backend_configs) == len(list(target[0].params()))
+        assert len(backend_configs) == len(list(target[1].params()))
         threshold = 1e-2
         weight_decay = 0.2
         eps = 1e-9
 
-        p0_norm = xp.linalg.norm(w0)
-        g0_norm = xp.linalg.norm(g0)
-        clip_rate = p0_norm / (eps + g0_norm + weight_decay * p0_norm)
-        expect0 = w0 - clip_rate * (g0 + weight_decay * w0)
-        expect1 = w1 - 1.0 * (g1 + weight_decay * w1)
+        expects0 = []
+        expects1 = []
+        # Compute expected
+        for param, device in zip(target[0].params(), devices):
+            p0_norm = np.linalg.norm(param.array)
+            g0_norm = np.linalg.norm(param.grad)
+            clip_rate = p0_norm / (eps + g0_norm + weight_decay * p0_norm)
+            expects0.append(param.array - clip_rate
+                            * (param.grad + weight_decay * param.array))
+            param.to_device(device)
+
+        for param, device in zip(target[1].params(), devices):
+            expects1.append(param.array - 1.0
+                            * (param.grad + weight_decay * param.array))
 
         opt = optimizers.SGD(lr=1)
         opt.setup(self.target)
@@ -53,17 +96,15 @@ class TestGradientLARS(unittest.TestCase):
                                                   weight_decay=weight_decay,
                                                   eps=eps))
         opt.update()
+        for expect, param in zip(expects0, target[0].params()):
+            testing.assert_allclose(expect, param.array)
+        for expect, param in zip(expects1, target[1].params()):
+            testing.assert_allclose(expect, param.array)
 
-        testing.assert_allclose(expect0, w0)
-        testing.assert_allclose(expect1, w1)
-
-    def test_LARS_cpu(self):
-        self.check_LARS()
-
-    @attr.gpu
-    def test_LARS_gpu(self):
-        self.target.to_gpu()
-        self.check_LARS()
+    def test_LARS(self, backend_config0,
+                  backend_config1, backend_config2):
+        self.check_LARS(
+            [backend_config0, backend_config1, backend_config2])
 
 
 testing.run_module(__name__, __file__)

@@ -7,7 +7,7 @@
 #include <utility>
 #include <vector>
 
-#include <nonstd/optional.hpp>
+#include <absl/types/optional.h>
 
 #include "chainerx/array.h"
 #include "chainerx/axes.h"
@@ -48,6 +48,7 @@
 #include "chainerx/python/common.h"
 #include "chainerx/python/device.h"
 #include "chainerx/python/dtype.h"
+#include "chainerx/python/kwarg.h"
 #include "chainerx/python/shape.h"
 #include "chainerx/python/stack_vector.h"
 #include "chainerx/python/strides.h"
@@ -90,7 +91,7 @@ ArrayBodyPtr MakeArrayFromBuffer(py::buffer buffer, py::handle dtype, int64_t co
     Shape shape{count};
     std::shared_ptr<void> data{info.ptr, [](void*) {}};
 
-    return MoveArrayBody(chainerx::FromData(shape, GetDtype(dtype), data, nonstd::nullopt, offset, GetDevice(device)));
+    return MoveArrayBody(chainerx::FromData(shape, GetDtype(dtype), data, absl::nullopt, offset, GetDevice(device)));
 }
 
 void InitChainerxCreation(pybind11::module& m) {
@@ -157,19 +158,21 @@ void InitChainerxCreation(pybind11::module& m) {
           "fill_value"_a,
           "device"_a = nullptr);
     m.def("zeros",
-          [](py::handle shape, py::handle dtype, py::handle device) {
+          [](py::handle shape, py::handle dtype, py::kwargs kwargs) {
+              py::handle device;
+              std::tie(device) = GetKwargs(kwargs, "device");
               return MoveArrayBody(Zeros(ToShape(shape), dtype.is_none() ? Dtype::kFloat32 : GetDtype(dtype), GetDevice(device)));
           },
           "shape"_a,
-          "dtype"_a = nullptr,
-          "device"_a = nullptr);
+          "dtype"_a = nullptr);
     m.def("zeros",
-          [](py::int_ dim, py::handle dtype, py::handle device) {
+          [](py::int_ dim, py::handle dtype, py::kwargs kwargs) {
+              py::handle device;
+              std::tie(device) = GetKwargs(kwargs, "device");
               return MoveArrayBody(Zeros(Shape{dim}, dtype.is_none() ? Dtype::kFloat32 : GetDtype(dtype), GetDevice(device)));
           },
           "shape"_a,
-          "dtype"_a = nullptr,
-          "device"_a = nullptr);
+          "dtype"_a = nullptr);
     m.def("ones",
           [](py::handle shape, py::handle dtype, py::handle device) {
               return MoveArrayBody(Ones(ToShape(shape), dtype.is_none() ? Dtype::kFloat32 : GetDtype(dtype), GetDevice(device)));
@@ -186,8 +189,8 @@ void InitChainerxCreation(pybind11::module& m) {
           "device"_a = nullptr);
     m.def("arange",
           [](Scalar start_or_stop,
-             const nonstd::optional<Scalar>& maybe_stop,
-             const nonstd::optional<Scalar>& maybe_step,
+             const absl::optional<Scalar>& maybe_stop,
+             const absl::optional<Scalar>& maybe_step,
              py::handle dtype,
              py::handle device) {
               DtypeKind start_or_stop_dtype_kind = start_or_stop.kind();
@@ -237,7 +240,7 @@ void InitChainerxCreation(pybind11::module& m) {
           "dtype"_a = nullptr,
           "device"_a = nullptr);
     m.def("eye",
-          [](int64_t n, nonstd::optional<int64_t> m, int64_t k, py::handle dtype, py::handle device) {
+          [](int64_t n, absl::optional<int64_t> m, int64_t k, py::handle dtype, py::handle device) {
               if (!m.has_value()) {
                   m = n;
               }
@@ -265,7 +268,7 @@ void InitChainerxCreation(pybind11::module& m) {
                       stop,
                       num,
                       endpoint,
-                      dtype.is_none() ? nonstd::optional<Dtype>{nonstd::nullopt} : nonstd::optional<Dtype>{GetDtype(dtype)},
+                      dtype.is_none() ? absl::optional<Dtype>{absl::nullopt} : absl::optional<Dtype>{GetDtype(dtype)},
                       GetDevice(device)));
           },
           "start"_a,
@@ -279,7 +282,7 @@ void InitChainerxCreation(pybind11::module& m) {
 void InitChainerxIndexing(pybind11::module& m) {
     // indexing routines
     m.def("take",
-          [](const ArrayBodyPtr& a, py::handle indices, const nonstd::optional<int8_t>& axis) {
+          [](const ArrayBodyPtr& a, py::handle indices, const absl::optional<int8_t>& axis) {
               if (!axis.has_value()) {
                   throw NotImplementedError{"axis=None is not yet supported for chainerx.take."};
               }
@@ -287,7 +290,7 @@ void InitChainerxIndexing(pybind11::module& m) {
                   return MoveArrayBody(Take(Array{a}, Array{py::cast<ArrayBodyPtr>(indices)}, axis.value()));
               }
               if (py::isinstance<py::sequence>(indices)) {
-                  nonstd::optional<Dtype> dtype = Dtype::kInt64;
+                  absl::optional<Dtype> dtype = Dtype::kInt64;
                   return MoveArrayBody(Take(Array{a}, Array{MakeArray(indices, dtype, false, a->device())}, axis.value()));
               }
               if (py::isinstance<py::array>(indices)) {
@@ -374,7 +377,7 @@ void InitChainerxLogic(pybind11::module& m) {
           "axis"_a,
           "keepdims"_a = false);
     m.def("all",
-          [](const ArrayBodyPtr& a, const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) {
+          [](const ArrayBodyPtr& a, const absl::optional<std::vector<int8_t>>& axis, bool keepdims) {
               return MoveArrayBody(All(Array{a}, ToAxes(axis), keepdims));
           },
           "a"_a,
@@ -386,7 +389,7 @@ void InitChainerxLogic(pybind11::module& m) {
           "axis"_a,
           "keepdims"_a = false);
     m.def("any",
-          [](const ArrayBodyPtr& a, const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) {
+          [](const ArrayBodyPtr& a, const absl::optional<std::vector<int8_t>>& axis, bool keepdims) {
               return MoveArrayBody(Any(Array{a}, ToAxes(axis), keepdims));
           },
           "a"_a,
@@ -499,7 +502,7 @@ std::vector<ArrayBodyPtr> DSplitByIndicesOrSections(const ArrayBodyPtr& ary, py:
 void InitChainerxManipulation(pybind11::module& m) {
     // manipulation routines
     m.def("transpose",
-          [](const ArrayBodyPtr& a, const nonstd::optional<std::vector<int8_t>>& axes) {
+          [](const ArrayBodyPtr& a, const absl::optional<std::vector<int8_t>>& axes) {
               return MoveArrayBody(Transpose(Array{a}, ToAxes(axes)));
           },
           "a"_a,
@@ -509,7 +512,7 @@ void InitChainerxManipulation(pybind11::module& m) {
           "a"_a,
           "axes"_a = nullptr);
     m.def("flip",
-          [](const ArrayBodyPtr& m, const nonstd::optional<std::vector<int8_t>>& axes) {
+          [](const ArrayBodyPtr& m, const absl::optional<std::vector<int8_t>>& axes) {
               return MoveArrayBody(Flip(Array{m}, ToAxes(axes)));
           },
           "m"_a,
@@ -535,13 +538,13 @@ void InitChainerxManipulation(pybind11::module& m) {
     m.def("reshape",
           [](const ArrayBodyPtr& a, py::args args) {
               if (args.size() == 0) {
-                  throw ChainerxError("Reshape is missing shape argument.");
+                  throw ChainerxError{"Reshape is missing shape argument."};
               }
               return MoveArrayBody(Reshape(Array{a}, ToShape(args)));
           },
           "a"_a);
     m.def("squeeze",
-          [](const ArrayBodyPtr& a, const nonstd::optional<std::vector<int8_t>>& axis) {
+          [](const ArrayBodyPtr& a, const absl::optional<std::vector<int8_t>>& axis) {
               return MoveArrayBody(Squeeze(Array{a}, ToAxes(axis)));
           },
           "a"_a,
@@ -558,7 +561,7 @@ void InitChainerxManipulation(pybind11::module& m) {
           "array"_a,
           "shape"_a);
     m.def("concatenate",
-          [](py::sequence arrays, nonstd::optional<int8_t> axis) {
+          [](py::sequence arrays, absl::optional<int8_t> axis) {
               std::vector<Array> xs;
               xs.reserve(arrays.size());
               std::transform(arrays.begin(), arrays.end(), std::back_inserter(xs), [](const auto& item) {
@@ -726,10 +729,6 @@ void InitChainerxHyperbolic(pybind11::module& m) {
 
 void InitChainerxMisc(pybind11::module& m) {
     m.def("square", [](const ArrayBodyPtr& x) { return MoveArrayBody(Square(Array{x})); }, "x"_a);
-    m.def("squared_difference",
-          [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return MoveArrayBody(SquaredDifference(Array{x1}, Array{x2})); },
-          "x1"_a,
-          "x2"_a);
     m.def("sqrt", [](const ArrayBodyPtr& x) { return MoveArrayBody(Sqrt(Array{x})); }, "x"_a);
     m.def("abs", [](const ArrayBodyPtr& x) { return MoveArrayBody(Absolute(Array{x})); }, "x"_a);
     m.attr("absolute") = m.attr("abs");
@@ -756,7 +755,7 @@ void InitChainerxReduction(pybind11::module& m) {
           "axis"_a,
           "keepdims"_a = false);
     m.def("sum",
-          [](const ArrayBodyPtr& a, const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) {
+          [](const ArrayBodyPtr& a, const absl::optional<std::vector<int8_t>>& axis, bool keepdims) {
               return MoveArrayBody(Sum(Array{a}, ToAxes(axis), keepdims));
           },
           "a"_a,
@@ -768,7 +767,7 @@ void InitChainerxReduction(pybind11::module& m) {
           "axis"_a,
           "keepdims"_a = false);
     m.def("logsumexp",
-          [](const ArrayBodyPtr& x, const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) {
+          [](const ArrayBodyPtr& x, const absl::optional<std::vector<int8_t>>& axis, bool keepdims) {
               return MoveArrayBody(LogSumExp(Array{x}, ToAxes(axis), keepdims));
           },
           "x"_a,
@@ -779,14 +778,14 @@ void InitChainerxReduction(pybind11::module& m) {
           "x"_a,
           "axis"_a);
     m.def("log_softmax",
-          [](const ArrayBodyPtr& x, const nonstd::optional<std::vector<int8_t>>& axis) {
+          [](const ArrayBodyPtr& x, const absl::optional<std::vector<int8_t>>& axis) {
               return MoveArrayBody(LogSoftmax(Array{x}, ToAxes(axis)));
           },
           "x"_a,
           "axis"_a = nullptr);
     m.def("softmax", [](const ArrayBodyPtr& x, int8_t axis) { return MoveArrayBody(Softmax(Array{x}, Axes{axis})); }, "x"_a, "axis"_a);
     m.def("softmax",
-          [](const ArrayBodyPtr& x, const nonstd::optional<std::vector<int8_t>>& axis) {
+          [](const ArrayBodyPtr& x, const absl::optional<std::vector<int8_t>>& axis) {
               return MoveArrayBody(Softmax(Array{x}, ToAxes(axis)));
           },
           "x"_a,
@@ -809,16 +808,28 @@ void InitChainerxTrigonometric(pybind11::module& m) {
           [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return MoveArrayBody(Arctan2(Array{x1}, Array{x2})); },
           "x1"_a,
           "x2"_a);
+    m.def("left_shift",
+          [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return MoveArrayBody(LeftShift(Array{x1}, Array{x2})); },
+          "x1"_a,
+          "x2"_a);
+    m.def("left_shift", [](const ArrayBodyPtr& x1, Scalar x2) { return MoveArrayBody(LeftShift(Array{x1}, x2)); }, "x1"_a, "x2"_a);
+    m.def("left_shift", [](Scalar x1, const ArrayBodyPtr& x2) { return MoveArrayBody(LeftShift(x1, Array{x2})); }, "x1"_a, "x2"_a);
+    m.def("right_shift",
+          [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return MoveArrayBody(RightShift(Array{x1}, Array{x2})); },
+          "x1"_a,
+          "x2"_a);
+    m.def("right_shift", [](const ArrayBodyPtr& x1, Scalar x2) { return MoveArrayBody(RightShift(Array{x1}, x2)); }, "x1"_a, "x2"_a);
+    m.def("right_shift", [](Scalar x1, const ArrayBodyPtr& x2) { return MoveArrayBody(RightShift(x1, Array{x2})); }, "x1"_a, "x2"_a);
 }
 
 void InitChainerxSorting(pybind11::module& m) {
     // sorting routines
     m.def("argmax",
-          [](const ArrayBodyPtr& a, const nonstd::optional<int8_t>& axis) { return MoveArrayBody(ArgMax(Array{a}, ToAxes(axis))); },
+          [](const ArrayBodyPtr& a, const absl::optional<int8_t>& axis) { return MoveArrayBody(ArgMax(Array{a}, ToAxes(axis))); },
           "a"_a,
           "axis"_a = nullptr);
     m.def("argmin",
-          [](const ArrayBodyPtr& a, const nonstd::optional<int8_t>& axis) { return MoveArrayBody(ArgMin(Array{a}, ToAxes(axis))); },
+          [](const ArrayBodyPtr& a, const absl::optional<int8_t>& axis) { return MoveArrayBody(ArgMin(Array{a}, ToAxes(axis))); },
           "a"_a,
           "axis"_a = nullptr);
 }
@@ -831,7 +842,7 @@ void InitChainerxStatistics(pybind11::module& m) {
           "axis"_a,
           "keepdims"_a = false);
     m.def("amax",
-          [](const ArrayBodyPtr& a, const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) {
+          [](const ArrayBodyPtr& a, const absl::optional<std::vector<int8_t>>& axis, bool keepdims) {
               return MoveArrayBody(AMax(Array{a}, ToAxes(axis), keepdims));
           },
           "a"_a,
@@ -844,7 +855,7 @@ void InitChainerxStatistics(pybind11::module& m) {
           "axis"_a,
           "keepdims"_a = false);
     m.def("amin",
-          [](const ArrayBodyPtr& a, const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) {
+          [](const ArrayBodyPtr& a, const absl::optional<std::vector<int8_t>>& axis, bool keepdims) {
               return MoveArrayBody(AMin(Array{a}, ToAxes(axis), keepdims));
           },
           "a"_a,
@@ -857,7 +868,7 @@ void InitChainerxStatistics(pybind11::module& m) {
           "axis"_a,
           "keepdims"_a = false);
     m.def("mean",
-          [](const ArrayBodyPtr& a, const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) {
+          [](const ArrayBodyPtr& a, const absl::optional<std::vector<int8_t>>& axis, bool keepdims) {
               return MoveArrayBody(Mean(Array{a}, ToAxes(axis), keepdims));
           },
           "a"_a,
@@ -869,7 +880,7 @@ void InitChainerxStatistics(pybind11::module& m) {
           "axis"_a,
           "keepdims"_a = false);
     m.def("var",
-          [](const ArrayBodyPtr& a, const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) {
+          [](const ArrayBodyPtr& a, const absl::optional<std::vector<int8_t>>& axis, bool keepdims) {
               return MoveArrayBody(Var(Array{a}, ToAxes(axis), keepdims));
           },
           "a"_a,
@@ -882,7 +893,7 @@ void InitChainerxConnection(pybind11::module& m) {
     m.def("conv",
           [](const ArrayBodyPtr& x,
              const ArrayBodyPtr& w,
-             const nonstd::optional<ArrayBodyPtr>& b,
+             const absl::optional<ArrayBodyPtr>& b,
              py::handle stride,
              py::handle pad,
              bool cover_all) {
@@ -892,7 +903,7 @@ void InitChainerxConnection(pybind11::module& m) {
               return MoveArrayBody(
                       Conv(x_array,
                            Array{w},
-                           b.has_value() ? nonstd::optional<Array>{Array{*b}} : nonstd::nullopt,
+                           b.has_value() ? absl::optional<Array>{Array{*b}} : absl::nullopt,
                            ToStackVector<int64_t>(stride, ndim),
                            ToStackVector<int64_t>(pad, ndim),
                            cover_all));
@@ -906,20 +917,20 @@ void InitChainerxConnection(pybind11::module& m) {
     m.def("conv_transpose",
           [](const ArrayBodyPtr& x,
              const ArrayBodyPtr& w,
-             const nonstd::optional<ArrayBodyPtr>& b,
+             const absl::optional<ArrayBodyPtr>& b,
              py::handle stride,
              py::handle pad,
-             const nonstd::optional<py::tuple>& outsize) {
+             const absl::optional<py::tuple>& outsize) {
               // Create an Array from x to compute the image dimensions and the expected number of stride and padding elements.
               Array x_array{x};
               int8_t ndim = x_array.ndim() - 2;
               return MoveArrayBody(ConvTranspose(
                       x_array,
                       Array{w},
-                      b.has_value() ? nonstd::optional<Array>{Array{*b}} : nonstd::nullopt,
+                      b.has_value() ? absl::optional<Array>{Array{*b}} : absl::nullopt,
                       ToStackVector<int64_t>(stride, ndim),
                       ToStackVector<int64_t>(pad, ndim),
-                      outsize.has_value() ? nonstd::optional<Dims>{ToStackVector<int64_t>(*outsize, ndim)} : nonstd::nullopt));
+                      outsize.has_value() ? absl::optional<Dims>{ToStackVector<int64_t>(*outsize, ndim)} : absl::nullopt));
           },
           "x"_a,
           "w"_a,
@@ -928,9 +939,9 @@ void InitChainerxConnection(pybind11::module& m) {
           "pad"_a = 0,
           "outsize"_a = nullptr);
     m.def("linear",
-          [](const ArrayBodyPtr& x, const ArrayBodyPtr& w, const nonstd::optional<ArrayBodyPtr>& b, int8_t n_batch_axes) {
+          [](const ArrayBodyPtr& x, const ArrayBodyPtr& w, const absl::optional<ArrayBodyPtr>& b, int8_t n_batch_axes) {
               return MoveArrayBody(
-                      Linear(Array{x}, Array{w}, b.has_value() ? nonstd::optional<Array>{Array{*b}} : nonstd::nullopt, n_batch_axes));
+                      Linear(Array{x}, Array{w}, b.has_value() ? absl::optional<Array>{Array{*b}} : absl::nullopt, n_batch_axes));
           },
           "x"_a,
           "w"_a,
@@ -952,7 +963,7 @@ void InitChainerxNormalization(pybind11::module& m) {
              const ArrayBodyPtr& running_var,
              Scalar eps,
              Scalar decay,
-             const nonstd::optional<std::vector<int8_t>>& axis) {
+             const absl::optional<std::vector<int8_t>>& axis) {
               return MoveArrayBody(
                       BatchNorm(Array{x}, Array{gamma}, Array{beta}, Array{running_mean}, Array{running_var}, eps, decay, ToAxes(axis)));
           },
@@ -971,7 +982,7 @@ void InitChainerxNormalization(pybind11::module& m) {
              const ArrayBodyPtr& mean,
              const ArrayBodyPtr& var,
              Scalar eps,
-             const nonstd::optional<std::vector<int8_t>>& axis) {
+             const absl::optional<std::vector<int8_t>>& axis) {
               return MoveArrayBody(FixedBatchNorm(Array{x}, Array{gamma}, Array{beta}, Array{mean}, Array{var}, eps, ToAxes(axis)));
           },
           "x"_a,

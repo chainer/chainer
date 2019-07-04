@@ -556,9 +556,6 @@ class Variable(object):
 
     def _init_impl(self, data, device, name, grad, grad_valid, requires_grad,
                    is_chainerx_array, node):
-        # Use a list as a data structure to hold the data array indirectly to
-        # abstract its initialized/uninitialized state.
-
         # `device` must be of type chainer.backend.Device.
         # Check is skipped for performance.
 
@@ -1482,6 +1479,15 @@ class Variable(object):
 
         """
         return self.array.item()
+
+    def mean(self, axis=None, weights=None, keepdims=False):
+        """Calculate weighted average of array elements over a given axis.
+
+        .. seealso::
+           :func:`chainer.functions.average` for full documentation,
+
+        """
+        return chainer.functions.average(self, axis, weights, keepdims)
 
     def reshape(self, *shape):
         """Returns a variable of a different shape and the same content.

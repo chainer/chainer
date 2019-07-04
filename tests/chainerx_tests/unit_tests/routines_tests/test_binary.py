@@ -78,6 +78,56 @@ _scalar_invalid_bitwise = [
     (('float16',), numpy.int64, 'float16'),
 ]
 
+_in_out_dtypes_shift = [
+    (('int8', 'int8'), 'int8'),
+    (('int16', 'int16'), 'int16'),
+    (('int32', 'int32'), 'int32'),
+    (('int64', 'int64'), 'int64'),
+    (('uint8', 'uint8'), 'uint8'),
+    (('int8', 'int16'), 'int8'),
+    (('int8', 'int32'), 'int8'),
+    (('int8', 'int64'), 'int8'),
+    (('int8', 'uint8'), 'int8'),
+    (('int16', 'int32'), 'int16'),
+    (('int16', 'int64'), 'int16'),
+    (('int16', 'uint8'), 'int16'),
+    (('int32', 'int64'), 'int32'),
+    (('int32', 'uint8'), 'int32'),
+    (('int64', 'uint8'), 'int64'),
+]
+
+_in_out_dtypes_shift_array_scalar = [
+    (('int8',), int, 'int8'),
+    (('int16',), int, 'int16'),
+    (('int32',), int, 'int32'),
+    (('int64',), int, 'int64'),
+    (('uint8',), int, 'uint8'),
+    (('int16',), numpy.int16, 'int16'),
+    (('uint8',), numpy.int8, 'uint8'),
+]
+
+_in_out_dtypes_shift_scalar_array = [
+    (('int8',), int, 'int64'),
+    (('int16',), int, 'int64'),
+    (('int32',), int, 'int64'),
+    (('int64',), int, 'int64'),
+    (('uint8',), int, 'int64'),
+    (('int16',), numpy.int16, 'int64'),
+    (('uint8',), numpy.int8, 'int64'),
+]
+
+_in_out_dtypes_shift_invalid = [
+    (('bool_', 'int8'), 'int8'),
+    (('bool_', 'int16'), 'int16'),
+    (('bool_', 'int32'), 'int32'),
+    (('bool_', 'int64'), 'int64'),
+    (('bool_', 'uint8'), 'uint8'),
+    (('float', 'int8'), 'int8'),
+    (('float', 'int16'), 'int16'),
+    (('float', 'int32'), 'int32'),
+    (('float', 'int64'), 'int64'),
+    (('float', 'uint8'), 'uint8'),
+]
 
 _params_bitwise = (
     # Special shapes
@@ -212,6 +262,135 @@ _inplace_scalar_params_bitwise = (
     })
 )
 
+_params_shift = (
+    # Special shapes
+    chainer.testing.product({
+        'in_shapes': math_utils.shapes_combination_binary,
+        'in_dtypes,out_dtype': (
+            dtype_utils.make_same_in_out_dtypes(
+                2, chainerx.testing.integral_dtypes)),
+        'input_lhs': ['random'],
+        'input_rhs': [0, 1, 3],
+        'is_module': [False],
+    })
+    # Dtype combinations
+    + chainer.testing.product({
+        'in_shapes': [((2, 3), (2, 3))],
+        'in_dtypes,out_dtype': _in_out_dtypes_shift,
+        'input_lhs': ['random'],
+        'input_rhs': [0, 1, 3],
+        'is_module': [False],
+    })
+    # is_module
+    + chainer.testing.product({
+        'in_shapes': [((2, 3), (2, 3))],
+        'in_dtypes,out_dtype': (
+            dtype_utils.make_same_in_out_dtypes(
+                2, chainerx.testing.integral_dtypes)),
+        'input_lhs': ['random'],
+        'input_rhs': [0, 1, 3],
+        'is_module': [True, False],
+    })
+)
+
+_inplace_params_shift = (
+    # Special shapes
+    chainer.testing.product({
+        'in_shapes': math_utils.shapes_combination_inplace_binary,
+        'in_dtypes,out_dtype': (
+            dtype_utils.make_same_in_out_dtypes(
+                2, chainerx.testing.integral_dtypes)),
+        'input_lhs': ['random'],
+        'input_rhs': [0, 1, 3],
+    })
+    # Dtype combinations
+    + chainer.testing.product({
+        'in_shapes': [((2, 3), (2, 3))],
+        'in_dtypes,out_dtype': _in_out_dtypes_shift,
+        'input_lhs': ['random'],
+        'input_rhs': [0, 1, 3],
+    })
+)
+
+_scalar_params_shift_scalar_array = (
+    # Special shapes
+    chainer.testing.product({
+        'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
+        'in_dtypes,scalar_type,out_dtype': _in_out_dtypes_shift_scalar_array,
+        'input': [0, 1, 3],
+        'scalar_value': [1],
+        'is_module': [False],
+        'is_scalar_rhs': [False],
+    })
+    # Type combinations
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,scalar_type,out_dtype': _in_out_dtypes_shift_scalar_array,
+        'input': [0, 1, 3],
+        'scalar_value': [1],
+        'is_module': [False],
+        'is_scalar_rhs': [False],
+    })
+    # is_module
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,scalar_type,out_dtype': _in_out_dtypes_shift_scalar_array,
+        'input': [0, 1, 3],
+        'scalar_value': [1],
+        'is_module': [True, False],
+        'is_scalar_rhs': [False],
+    })
+)
+
+_scalar_params_shift_array_scalar = (
+    # Special shapes
+    chainer.testing.product({
+        'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
+        'in_dtypes,scalar_type,out_dtype': _in_out_dtypes_shift_array_scalar,
+        'input': [0, 1, 3],
+        'scalar_value': [1],
+        'is_module': [False],
+        'is_scalar_rhs': [True],
+    })
+    # Type combinations
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,scalar_type,out_dtype': _in_out_dtypes_shift_array_scalar,
+        'input': [0, 1, 3],
+        'scalar_value': [1],
+        'is_module': [False],
+        'is_scalar_rhs': [True],
+    })
+    # is_module
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,scalar_type,out_dtype': _in_out_dtypes_shift_array_scalar,
+        'input': [0, 1, 3],
+        'scalar_value': [1],
+        'is_module': [True, False],
+        'is_scalar_rhs': [True],
+    })
+)
+
+_inplace_scalar_params_shift = (
+    # Special shapes
+    chainer.testing.product({
+        'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
+        'in_dtypes,scalar_type,out_dtype':
+            _in_out_dtypes_shift_array_scalar,
+        'input': [0, 1, 3],
+        'scalar_value': [1],
+    })
+    # Dtype combinations
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,scalar_type,out_dtype':
+            _in_out_dtypes_shift_array_scalar,
+        'input': [0, 1, 3],
+        'scalar_value': [1],
+    })
+)
+
 
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*_params_bitwise)
@@ -247,6 +426,28 @@ class TestBitwiseXor(math_utils.BinaryMathTestBase, op_utils.NumpyOpTest):
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*_params_shift)
+class TestLeftShift(math_utils.BinaryMathTestBase, op_utils.NumpyOpTest):
+
+    def func(self, xp, a, b):
+        if self.is_module:
+            return xp.left_shift(a, b)
+        else:
+            return a << b
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*_params_shift)
+class TestRightShift(math_utils.BinaryMathTestBase, op_utils.NumpyOpTest):
+
+    def func(self, xp, a, b):
+        if self.is_module:
+            return xp.right_shift(a, b)
+        else:
+            return a >> b
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*_inplace_params_bitwise)
 class TestIBitwiseAnd(
         math_utils.InplaceBinaryMathTestBase, op_utils.NumpyOpTest):
@@ -271,6 +472,24 @@ class TestIBitwiseXor(
 
     def func(self, xp, a, b):
         a ^= b
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*_inplace_params_shift)
+class TestILeftShift(
+        math_utils.InplaceBinaryMathTestBase, op_utils.NumpyOpTest):
+
+    def func(self, xp, a, b):
+        a <<= b
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*_inplace_params_shift)
+class TestIRightShift(
+        math_utils.InplaceBinaryMathTestBase, op_utils.NumpyOpTest):
+
+    def func(self, xp, a, b):
+        a >>= b
 
 
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
@@ -304,6 +523,28 @@ def test_ixor_invalid_dtypes(device, dtypes):
     b = chainerx.array(array_utils.uniform(shape, in_dtype2))
     with pytest.raises(chainerx.DtypeError):
         a ^= b
+
+
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('dtypes', _in_out_dtypes_shift_invalid)
+def test_ileftshift_invalid_dtypes(device, dtypes):
+    (in_dtype1, in_dtype2), _ = dtypes
+    shape = (2, 3)
+    a = chainerx.array(array_utils.uniform(shape, in_dtype1))
+    b = chainerx.array(array_utils.uniform(shape, in_dtype2))
+    with pytest.raises(chainerx.DtypeError):
+        a << b
+
+
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('dtypes', _in_out_dtypes_shift_invalid)
+def test_irightshift_invalid_dtypes(device, dtypes):
+    (in_dtype1, in_dtype2), _ = dtypes
+    shape = (2, 3)
+    a = chainerx.array(array_utils.uniform(shape, in_dtype1))
+    b = chainerx.array(array_utils.uniform(shape, in_dtype2))
+    with pytest.raises(chainerx.DtypeError):
+        a >> b
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
@@ -361,6 +602,54 @@ class TestBitwiseXorScalar(
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*_scalar_params_shift_scalar_array)
+class TestLeftShiftScalarArray(
+        math_utils.MathScalarTestBase, op_utils.NumpyOpTest):
+
+    def func_scalar(self, xp, a, scalar):
+        if self.is_module:
+            return scalar << a
+        else:
+            return xp.left_shift(scalar, a)
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*_scalar_params_shift_array_scalar)
+class TestLeftShiftArrayScalar(
+        math_utils.MathScalarTestBase, op_utils.NumpyOpTest):
+
+    def func_scalar(self, xp, a, scalar):
+        if self.is_module:
+            return a << scalar
+        else:
+            return xp.left_shift(a, scalar)
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*_scalar_params_shift_scalar_array)
+class TestRightShiftScalarArray(
+        math_utils.MathScalarTestBase, op_utils.NumpyOpTest):
+
+    def func_scalar(self, xp, a, scalar):
+        if self.is_module:
+            return scalar >> a
+        else:
+            return xp.right_shift(scalar, a)
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*_scalar_params_shift_array_scalar)
+class TestRightShiftArrayScalar(
+        math_utils.MathScalarTestBase, op_utils.NumpyOpTest):
+
+    def func_scalar(self, xp, a, scalar):
+        if self.is_module:
+            return a >> scalar
+        else:
+            return xp.right_shift(a, scalar)
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*_inplace_scalar_params_bitwise)
 class TestIBitwiseAndScalar(
         math_utils.InplaceMathScalarTestBase, op_utils.NumpyOpTest):
@@ -385,3 +674,21 @@ class TestIBitwiseXorScalar(
 
     def func_scalar(self, xp, a, scalar):
         a ^= scalar
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*_scalar_params_shift_array_scalar)
+class TestILeftShiftScalar(
+        math_utils.InplaceMathScalarTestBase, op_utils.NumpyOpTest):
+
+    def func_scalar(self, xp, a, scalar):
+        a <<= scalar
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*_scalar_params_shift_array_scalar)
+class TestIRightShiftScalar(
+        math_utils.InplaceMathScalarTestBase, op_utils.NumpyOpTest):
+
+    def func_scalar(self, xp, a, scalar):
+        a >>= scalar

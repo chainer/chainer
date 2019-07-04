@@ -5,7 +5,7 @@
 #include <tuple>
 #include <utility>
 
-#include <nonstd/optional.hpp>
+#include <absl/types/optional.h>
 
 #include "chainerx/array.h"
 #include "chainerx/axes.h"
@@ -54,17 +54,17 @@ private:
 
 class NativeAveragePoolGradState : public AveragePoolGradState {
 public:
-    NativeAveragePoolGradState(Array x, Shape gcol_shape, nonstd::optional<Array> width_ignore)
+    NativeAveragePoolGradState(Array x, Shape gcol_shape, absl::optional<Array> width_ignore)
         : x_{std::move(x)}, gcol_shape_{std::move(gcol_shape)}, width_ignore_{std::move(width_ignore)} {}
 
     const Array& x() const { return x_; }
     const Shape& gcol_shape() const { return gcol_shape_; }
-    const nonstd::optional<Array>& width_ignore() const { return width_ignore_; }
+    const absl::optional<Array>& width_ignore() const { return width_ignore_; }
 
 private:
     Array x_;
     Shape gcol_shape_;
-    nonstd::optional<Array> width_ignore_;
+    absl::optional<Array> width_ignore_;
 };
 
 class NativeDevice : public Device {

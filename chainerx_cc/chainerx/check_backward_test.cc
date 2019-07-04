@@ -7,10 +7,10 @@
 #include <unordered_map>
 #include <vector>
 
+#include <absl/types/optional.h>
 #include <gtest/gtest-spi.h>
 #include <gtest/gtest.h>
 #include <gsl/gsl>
-#include <nonstd/optional.hpp>
 
 #include "chainerx/array.h"
 #include "chainerx/backprop_scope.h"
@@ -94,7 +94,7 @@ protected:
     }
 
 private:
-    nonstd::optional<testing::DeviceSession> device_session_;
+    absl::optional<testing::DeviceSession> device_session_;
 };
 
 class CheckDoubleBackwardTest : public ::testing::Test {
@@ -134,7 +134,7 @@ protected:
     }
 
 private:
-    nonstd::optional<testing::DeviceSession> device_session_;
+    absl::optional<testing::DeviceSession> device_session_;
 };
 
 TEST_F(CheckBackwardTest, CorrectBackward) {

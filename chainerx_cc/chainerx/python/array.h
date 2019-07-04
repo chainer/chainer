@@ -8,7 +8,7 @@
 #include <utility>
 #include <vector>
 
-#include <nonstd/optional.hpp>
+#include <absl/types/optional.h>
 
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
@@ -30,7 +30,7 @@ using ConstArrayBodyPtr = std::shared_ptr<const ArrayBody>;
 
 ArrayBodyPtr MakeArray(pybind11::handle object, pybind11::handle dtype, bool copy, pybind11::handle device);
 
-ArrayBodyPtr MakeArray(pybind11::handle object, const nonstd::optional<Dtype>& dtype, bool copy, Device& device);
+ArrayBodyPtr MakeArray(pybind11::handle object, const absl::optional<Dtype>& dtype, bool copy, Device& device);
 
 pybind11::tuple ToTuple(const std::vector<Array>& ary);
 
