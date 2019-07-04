@@ -37,7 +37,7 @@ public:
     virtual std::tuple<std::vector<std::vector<Array>>, std::unique_ptr<RnnGradState>> Call(
             int64_t n_layers,
             Array hx,
-            nonstd::optional<Array> cx,
+            absl::optional<Array> cx,
             const std::vector<std::vector<Array>>& ws,
             const std::vector<std::vector<Array>>& bs,
             const std::vector<Array>& xs,
@@ -51,12 +51,12 @@ public:
     virtual std::vector<std::vector<Array>> Call(
             int64_t n_layers,
             Array hx,
-            nonstd::optional<Array> cx,
+            absl::optional<Array> cx,
             const std::vector<std::vector<Array>>& ws,
             const std::vector<std::vector<Array>>& bs,
             const std::vector<Array>& xs,
             Array dhy,
-            nonstd::optional<Array> dcy,
+            absl::optional<Array> dcy,
             std::vector<Array> ys,
             std::vector<Array> dys,
             const int8_t bidirectional,
