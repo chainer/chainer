@@ -727,10 +727,6 @@ void InitChainerxHyperbolic(pybind11::module& m) {
 
 void InitChainerxMisc(pybind11::module& m) {
     m.def("square", [](const ArrayBodyPtr& x) { return MoveArrayBody(Square(Array{x})); }, "x"_a);
-    m.def("squared_difference",
-          [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return MoveArrayBody(SquaredDifference(Array{x1}, Array{x2})); },
-          "x1"_a,
-          "x2"_a);
     m.def("sqrt", [](const ArrayBodyPtr& x) { return MoveArrayBody(Sqrt(Array{x})); }, "x"_a);
     m.def("abs", [](const ArrayBodyPtr& x) { return MoveArrayBody(Absolute(Array{x})); }, "x"_a);
     m.attr("absolute") = m.attr("abs");
