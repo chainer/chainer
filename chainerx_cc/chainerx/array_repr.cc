@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "chainerx/array.h"
+#include "chainerx/array_index.h"
 #include "chainerx/array_node.h"
 #include "chainerx/constant.h"
 #include "chainerx/device.h"
@@ -19,6 +20,8 @@
 #include "chainerx/indexer.h"
 #include "chainerx/native/data_type.h"
 #include "chainerx/numeric.h"
+#include "chainerx/routines/indexing.h"
+#include "chainerx/routines/manipulation.h"
 #include "chainerx/shape.h"
 
 namespace chainerx {
@@ -165,59 +168,17 @@ struct ArrayReprImpl {
         Array native_array = array.AsGradStopped().ToNative();
         Formatter<T> formatter;
 
+        // array should be already synchronized
         // Let formatter scan all elements to print.
-        VisitElements<T>(native_array, [&formatter](const IndexableArray<const T, Ndim>& iarray, const IndexIterator<Ndim>& it) {
+        Indexer<Ndim> indexer{array.shape()};
+        IndexableArray<const T, Ndim> iarray{array};
+        for (auto it = indexer.It(0); it; ++it) {
             T value = native::StorageToDataType<const T>(iarray[it]);
             formatter.Scan(value);
-        });
-
-        // Print values using the formatter.
-        const int8_t ndim = array.ndim();
-        int cur_line_size = 0;
-        VisitElements<T>(
-                native_array,
-                [ndim, &cur_line_size, &formatter, &os](const IndexableArray<const T, Ndim>& iarray, const IndexIterator<Ndim>& it) {
-                    int8_t trailing_zeros = 0;
-                    if (ndim > 0) {
-                        for (int8_t i = ndim; --i >= 0;) {
-                            if (it.index()[i] == 0) {
-                                ++trailing_zeros;
-                            } else {
-                                break;
-                            }
-                        }
-                    }
-                    if (trailing_zeros == ndim) {
-                        // This is the first iteration, so print the header
-                        os << "array(";
-                        PrintNTimes(os, '[', ndim);
-                    } else if (trailing_zeros > 0) {
-                        PrintNTimes(os, ']', trailing_zeros);
-                        os << ',';
-                        PrintNTimes(os, '\n', trailing_zeros);
-                        PrintNTimes(os, ' ', 6 + ndim - trailing_zeros);
-                        PrintNTimes(os, '[', trailing_zeros);
-                        cur_line_size = 0;
-                    } else {
-                        if (cur_line_size == 10) {
-                            os << ",\n";
-                            PrintNTimes(os, ' ', 6 + ndim);
-                            cur_line_size = 0;
-                        } else {
-                            os << ", ";
-                        }
-                    }
-                    T value = native::StorageToDataType<const T>(iarray[it]);
-                    formatter.Print(os, value);
-                    ++cur_line_size;
-                });
-
-        if (array.GetTotalSize() == 0) {
-            // In case of an empty Array, print the header here
-            os << "array([]";
-        } else {
-            PrintNTimes(os, ']', ndim);
         }
+
+        os << "array(";
+        ArrayReprRecursive<T>(array, formatter, 7, os);
 
         // Print the footer
         os << ", shape=" << array.shape();
@@ -238,16 +199,24 @@ struct ArrayReprImpl {
     }
 
 private:
-    template <typename T, typename Visitor>
-    void VisitElements(const Array& array, Visitor&& visitor) const {
-        // array should be already synchronized
-
-        Indexer<Ndim> indexer{array.shape()};
-        IndexableArray<const T, Ndim> iarray{array};
-
-        for (auto it = indexer.It(0); it; ++it) {
-            visitor(iarray, it);
+    template <typename T>
+    void ArrayReprRecursive(const Array& array, Formatter<T>& formatter, size_t indent, std::ostream& os) const {
+        const uint8_t ndim = array.ndim();
+        if (ndim == 0) {
+            formatter.Print(os, static_cast<T>(AsScalar(array)));
+            return;
         }
+        os << "[";
+        std::string delimiter = ",";
+        delimiter += ndim == 1 ? " " : std::string(static_cast<size_t>(ndim) - 1, '\n') + std::string(indent, ' ');
+        int64_t size = array.shape().front();
+        for (int64_t i = 0; i < size; ++i) {
+            if (i != 0) {
+                os << delimiter;
+            }
+            ArrayReprRecursive<T>(internal::At(array, {ArrayIndex{i}}), formatter, indent + 1, os);
+        }
+        os << "]";
     }
 };
 
