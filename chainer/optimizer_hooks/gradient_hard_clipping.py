@@ -48,6 +48,8 @@ class GradientHardClipping(object):
             return
         with chainer.using_device(param.device):
             xp = param.device.xp
+            # TODO(kshitij12345): Fix when chainerx.clip
+            # supports kwarg `out`.
             if xp == backend.chainerx \
                     or isinstance(param.grad, backend.intel64.mdarray):
                 param.grad = grad.clip(self.lower_bound, self.upper_bound)
