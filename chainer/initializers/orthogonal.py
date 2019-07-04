@@ -46,7 +46,7 @@ class Orthogonal(initializer.Initializer):
     def __call__(self, array):
         if self.dtype is not None:
             assert array.dtype == self.dtype
-        xp = backend.get_array_module(array)
+        device = backend.get_device_from_array(array)
         if not array.shape:  # 0-dim case
             array[...] = self.scale * (2 * numpy.random.randint(2) - 1)
         elif not array.size:
@@ -63,4 +63,4 @@ class Orthogonal(initializer.Initializer):
             # cupy.linalg.qr requires cusolver in CUDA 8+
             q, r = numpy.linalg.qr(a.T)
             q *= numpy.copysign(self.scale, numpy.diag(r))
-            array[...] = xp.asarray(q.T.reshape(array.shape))
+            array[...] = device.xp.asarray(q.T.reshape(array.shape))
