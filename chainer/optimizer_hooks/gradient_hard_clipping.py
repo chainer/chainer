@@ -1,4 +1,5 @@
 import chainer
+from chainer import backend
 
 
 class GradientHardClipping(object):
@@ -46,4 +47,11 @@ class GradientHardClipping(object):
         if grad is None:
             return
         with chainer.using_device(param.device):
-            param.grad = param.grad.clip(self.lower_bound, self.upper_bound)
+            xp = param.device.xp
+            if xp == backend.chainerx \
+                    or isinstance(param.grad, backend.intel64.mdarray):
+                param.grad = grad.clip(self.lower_bound, self.upper_bound)
+            else:
+                # Save on new object allocation when using numpy and cupy
+                # using kwarg `out`
+                xp.clip(grad, self.lower_bound, self.upper_bound, out=grad)
