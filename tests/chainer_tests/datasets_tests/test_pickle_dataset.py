@@ -10,7 +10,7 @@ import mock
 from chainer import datasets
 from chainer import testing
 from chainer import utils
-from chainer.datasets.pickle_dataset import _FileReader
+from chainer.datasets import pickle_dataset
 
 
 class ReaderMock(object):
@@ -93,7 +93,7 @@ class TestPickleDatasetHelper(unittest.TestCase):
     def test_file_reader_after_fork(self):
         m = mock.mock_open()
         with mock.patch('chainer.datasets.pickle_dataset.open', m):
-            r = _FileReader(self.path)
+            r = pickle_dataset._FileReader(self.path)
 
             m.assert_called_once_with(self.path, 'rb')
             m().close.assert_not_called()
