@@ -1065,8 +1065,8 @@ def grad(outputs, inputs, grad_outputs=None, grad_inputs=None, set_grad=False,
                 else:
                     gy_data = cuda.cupy.ones_like(y.data)
                 gy = variable.Variable(gy_data, requires_grad=False)
-            if loss_scale is not None:
-                gy.data *= loss_scale
+                if loss_scale is not None:
+                    gy.data *= loss_scale
         grads[y.node] = gy
 
     if grad_inputs is not None:
