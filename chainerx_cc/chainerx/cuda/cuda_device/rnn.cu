@@ -10,7 +10,7 @@
 
 #include <cuda.h>
 #include <cudnn.h>
-#include <absl/types/optional.hpp>
+#include <absl/types/optional.h>
 
 #include "chainerx/array.h"
 #include "chainerx/backend_util.h"

@@ -7,7 +7,7 @@
 #include <utility>
 #include <vector>
 
-#include <absl/types/optional.hpp>
+#include <absl/types/optional.h>
 
 #include "chainerx/array.h"
 #include "chainerx/backprop_mode.h"
