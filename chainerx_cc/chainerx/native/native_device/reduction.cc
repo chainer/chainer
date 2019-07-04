@@ -145,6 +145,10 @@ public:
 
             for (auto it = indices_indexer.It(1); it; ++it) {
                 int64_t index = it.raw_index();
+                index = index % axis_dim;
+                CHAINERX_ASSERT(0 <= index);
+                CHAINERX_ASSERT(index < axis_dim);
+
                 it_axis.Restart(index);
 
                 it_out.CopyIndex(it, it_left.ndim());
