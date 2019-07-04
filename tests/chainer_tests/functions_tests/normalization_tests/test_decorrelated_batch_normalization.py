@@ -68,6 +68,9 @@ def _calc_projection(x, mean, eps, groups):
 )
 class TestDecorrelatedBatchNormalization(testing.FunctionTestCase):
 
+    # TODO(kataoka): WIP
+    skip_backward_test = True
+
     # TODO(crcrpar): Delete this line once double backward of
     # :func:`~chainer.functions.decorrelated_batch_normalization` is
     # implemented.
@@ -99,16 +102,21 @@ class TestDecorrelatedBatchNormalization(testing.FunctionTestCase):
 
     def forward_expected(self, inputs):
         x, = inputs
-        C = self.n_channels // self.groups
+        xs = numpy.split(x, self.groups, axis=1)
+        return numpy.hstack(
+            [self.one_group_forward_expected(xi) for xi in xs]),
+
+    def one_group_forward_expected(self, x):
+        C = x.shape[1]
         head_ndim = 2
         spatial_axis = tuple(range(head_ndim, x.ndim))
-        x_hat = x.reshape((5 * self.groups, C) + x.shape[2:])
+        x_hat = x.reshape((5, C) + x.shape[2:])
         x_hat = x_hat.transpose((1, 0) + spatial_axis).reshape(C, -1)
         mean = x_hat.mean(axis=1)
-        projection = _calc_projection(x, mean, self.eps, self.groups)
+        projection = _calc_projection(x, mean, self.eps, 1)
 
         return _decorrelated_batch_normalization(
-            x, mean, projection, self.groups),
+            x, mean, projection, 1)
 
 
 @testing.parameterize(*(testing.product({

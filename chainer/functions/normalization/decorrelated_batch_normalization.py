@@ -1,11 +1,51 @@
+import numpy
+
 from chainer import backend
 from chainer import function_node
 from chainer.utils import argument
 from chainer.utils import type_check
 
 
+# {numpy: True, cupy: False}
+_xp_supports_batch_eigh = {}
+
+
+# routines for batched matrices
+def _eigh(a, xp):
+    if xp not in _xp_supports_batch_eigh:
+        try:
+            xp.linalg.eigh(xp.ones((2, 2, 2), xp.float32))
+        except ValueError:
+            _xp_supports_batch_eigh[xp] = False
+        else:
+            _xp_supports_batch_eigh[xp] = True
+    if _xp_supports_batch_eigh[xp]:
+        return xp.linalg.eigh(a)
+    ws = []
+    vs = []
+    for ai in a:
+        w, v = xp.linalg.eigh(ai)
+        ws.append(w)
+        vs.append(v)
+    return xp.stack(ws), xp.stack(vs)
+
+
+def _matmul(a, b, xp):
+    if hasattr(xp, 'matmul'):  # numpy.matmul is supported from version 1.10.0
+        return xp.matmul(a, b)
+    else:
+        return xp.einsum('bij,bjk->bik', a, b)
+
+
+def _diag(a, xp):
+    s0, s1 = a.shape
+    ret = xp.zeros((s0, s1, s1), a.dtype)
+    ret[:, numpy.arange(s1), numpy.arange(s1)] = a
+    return ret
+
+
 def _calc_axis_and_m(x_shape, batch_size, groups):
-    m = batch_size * groups
+    m = batch_size
     spatial_ndim = len(x_shape) - 2
     spatial_axis = tuple(range(2, 2 + spatial_ndim))
     for i in spatial_axis:
@@ -47,25 +87,28 @@ class DecorrelatedBatchNormalization(function_node.FunctionNode):
         C = c // g
         spatial_axis, m = _calc_axis_and_m(x_shape, b, g)
 
-        if g > 1:
-            x = x.reshape((b * g, C) + x.shape[2:])
-        x_hat = x.transpose((1, 0) + spatial_axis).reshape(C, -1)
-
-        mean = x_hat.mean(axis=1)
-        x_hat = x_hat - mean[:, None]
+        # (g, C, m)
+        x_hat = x.transpose((1, 0) + spatial_axis).reshape(g, C, m)
+        mean = x_hat.mean(axis=2, keepdims=True)
+        x_hat = x_hat - mean
         self.eps = x.dtype.type(self.eps)
 
         eps_matrix = self.eps * xp.eye(C, dtype=x.dtype)
-        cov = x_hat.dot(x_hat.T) / x.dtype.type(m) + eps_matrix
-        self.eigvals, self.eigvectors = xp.linalg.eigh(cov)
-        U = xp.diag(self.eigvals ** -0.5).dot(self.eigvectors.T)
-        self.y_hat_pca = U.dot(x_hat)  # PCA whitening
-        y_hat = self.eigvectors.dot(self.y_hat_pca)  # ZCA whitening
+        cov = _matmul(
+            x_hat, x_hat.transpose(0, 2, 1),
+            xp) / x.dtype.type(m) + eps_matrix
+        # (g, C), (g, C, C)
+        self.eigvals, self.eigvectors = _eigh(cov, xp)
+        U = _matmul(
+            _diag(self.eigvals ** -0.5, xp),
+            self.eigvectors.transpose(0, 2, 1),
+            xp)
+        self.y_hat_pca = _matmul(U, x_hat, xp)  # PCA whitening
+        # ZCA whitening
+        y_hat = _matmul(self.eigvectors, self.y_hat_pca, xp)
 
-        y = y_hat.reshape((C, b * g,) + x.shape[2:]).transpose(
+        y = y_hat.reshape((c, b) + x_shape[2:]).transpose(
             (1, 0) + spatial_axis)
-        if self.groups > 1:
-            y = y.reshape((-1, c) + x.shape[2:])
 
         # Update running statistics
         if self.running_mean is not None:
