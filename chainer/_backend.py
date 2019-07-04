@@ -90,6 +90,9 @@ class Device(object):
     def __ne__(self, other):
         return not (self == other)
 
+    def __hash__(self):
+        return hash(self.name)
+
     def create_context(self):
         """Returns a context manager in which the device is made current.
 

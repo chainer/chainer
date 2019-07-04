@@ -6,6 +6,12 @@ from chainer import backend
 from chainer import testing
 
 
+class TestCpuDevice(unittest.TestCase):
+
+    def test_hashable(self):
+        assert isinstance(hash(backend.CpuDevice()), int)
+
+
 class TestCpuDeviceFromArray(unittest.TestCase):
 
     def check_device(self, device):

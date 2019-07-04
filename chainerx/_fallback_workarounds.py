@@ -118,10 +118,8 @@ def _populate_ndarray():
     old_getitem = ndarray.__getitem__
 
     def __getitem__(arr, key):
-        try:
+        if not isinstance(key, chainerx.ndarray):
             return old_getitem(arr, key)
-        except (IndexError, chainerx.DimensionError):
-            pass
 
         is_backprop_required = arr.is_backprop_required()
 
