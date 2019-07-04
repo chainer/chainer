@@ -115,7 +115,7 @@ public:
             using T = typename decltype(pt)::type;
 
             IndexableArray<const T> a_iarray{a};
-            IndexableArray<T> out_iarray{a};
+            IndexableArray<T> out_iarray{out};
             Indexer<> out_indexer{out.shape()};
             Indexer<> prev_indexer{a.shape()};
 
@@ -130,12 +130,18 @@ public:
             Indexer<> left_indexer{left_shape};
             Indexer<> right_indexer{right_shape};
             Indexer<> axis_indexer{axis_shape};
+            Indexer<> indices_indexer{axis_shape};
 
             auto it_left = left_indexer.It(0);
             auto it_right = right_indexer.It(0);
             auto it_axis = axis_indexer.It(0);
             auto it_out = out_indexer.It(0);
             auto it_prev = prev_indexer.It(0);
+
+            // Copy
+            for (auto it = out_indexer.It(0); it; ++it) {
+                out_iarray[it] = a_iarray[it];
+            }
 
             for (auto it = indices_indexer.It(1); it; ++it) {
                 int64_t index = it.raw_index();
@@ -152,7 +158,7 @@ public:
                         it_out.CopyIndex(it_right, it_left.ndim() + it.ndim());
                         it_prev.CopyIndex(it_right, it_left.ndim() + it_axis.ndim());
                         it_prev.index()[axis] -= 1;
-                        out_iarray[it_out] += a_iarray[it_prev];
+                        out_iarray[it_out] += out_iarray[it_prev];
                         it_prev.index()[axis] += 1;
                     }
                 }
