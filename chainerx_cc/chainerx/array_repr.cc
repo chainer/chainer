@@ -13,6 +13,7 @@
 #include "chainerx/array.h"
 #include "chainerx/array_index.h"
 #include "chainerx/array_node.h"
+#include "chainerx/backprop_mode.h"
 #include "chainerx/constant.h"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
@@ -226,6 +227,7 @@ std::ostream& operator<<(std::ostream& os, const Array& array) {
     // TODO(hvy): We need to determine the output specification of this function, whether or not to align with Python repr specification,
     // and also whether this functionality should be defined in C++ layer or Python layer.
     // TODO(hvy): Consider using a static dimensionality.
+    NoBackpropModeScope scope{};
     VisitDtype(array.dtype(), [&os, &array](auto pt) { ArrayReprImpl<kDynamicNdim>{}.operator()<typename decltype(pt)::type>(array, os); });
     return os;
 }
