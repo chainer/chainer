@@ -149,37 +149,44 @@ class DecorrelatedBatchNormalizationGrad(function_node.FunctionNode):
         C = c // g
         spatial_axis, m = _calc_axis_and_m(gy_shape, b, g)
 
-        if g > 1:
-            gy = gy.reshape((b * g, C) + gy.shape[2:])
-        gy_hat = gy.transpose((1, 0) + spatial_axis).reshape(C, -1)
+        gy_hat = gy.transpose((1, 0) + spatial_axis).reshape(g, C, m)
 
         eigvectors = self.eigvectors
         eigvals = self.eigvals
         y_hat_pca = self.y_hat_pca
-        gy_hat_pca = eigvectors.T.dot(gy_hat)
-        f = gy_hat_pca.mean(axis=1)
+        gy_hat_pca = _matmul(eigvectors.transpose(0, 2, 1), gy_hat, xp)
+        f = gy_hat_pca.mean(axis=2, keepdims=True)
 
-        K = eigvals[:, None] - eigvals[None, :]
+        diag_indices = slice(None), numpy.arange(C), numpy.arange(C)
+
+        K = eigvals[:, :, None] - eigvals[:, None, :]
         valid = K != 0
-        K[valid] = 1 / K[valid]
-        xp.fill_diagonal(K, 0)
+        K[valid] = xp.reciprocal(K[valid])
 
-        V = xp.diag(eigvals)
-        V_sqrt = xp.diag(eigvals ** 0.5)
-        V_invsqrt = xp.diag(eigvals ** -0.5)
+        V = _diag(eigvals, xp)
+        V_sqrt = _diag(eigvals ** 0.5, xp)
+        V_invsqrt = _diag(eigvals ** -0.5, xp)
 
-        F_c = gy_hat_pca.dot(y_hat_pca.T) / gy.dtype.type(m)
-        M = xp.diag(xp.diag(F_c))
+        F_c = _matmul(
+            gy_hat_pca, y_hat_pca.transpose(0, 2, 1),
+            xp) / gy.dtype.type(m)
+        M = xp.zeros_like(F_c)
+        M[diag_indices] = F_c[diag_indices]
 
-        mat = K.T * (V.dot(F_c.T) + V_sqrt.dot(F_c).dot(V_sqrt))
-        S = mat + mat.T
-        R = gy_hat_pca - f[:, None] + (S - M).T.dot(y_hat_pca)
-        gx_hat = R.T.dot(V_invsqrt).dot(eigvectors.T).T
+        mat = K.transpose(0, 2, 1) * (
+            _matmul(V, F_c.transpose(0, 2, 1), xp)
+            + _matmul(_matmul(V_sqrt, F_c, xp), V_sqrt, xp)
+        )
+        S = mat + mat.transpose(0, 2, 1)
+        R = gy_hat_pca - f + _matmul(
+            (S - M).transpose(0, 2, 1), y_hat_pca, xp)
+        gx_hat = _matmul(
+            _matmul(R.transpose(0, 2, 1), V_invsqrt, xp),
+            eigvectors.transpose(0, 2, 1), xp
+        ).transpose(0, 2, 1)
 
-        gx = gx_hat.reshape((C, b * g,) + gy.shape[2:]).transpose(
+        gx = gx_hat.reshape((c, b) + gy_shape[2:]).transpose(
             (1, 0) + spatial_axis)
-        if g > 1:
-            gx = gx.reshape((-1, c, ) + gy.shape[2:])
 
         self.retain_outputs(())
         return gx,

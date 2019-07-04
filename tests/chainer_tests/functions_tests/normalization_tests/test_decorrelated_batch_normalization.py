@@ -68,9 +68,6 @@ def _calc_projection(x, mean, eps, groups):
 )
 class TestDecorrelatedBatchNormalization(testing.FunctionTestCase):
 
-    # TODO(kataoka): WIP
-    skip_backward_test = True
-
     # TODO(crcrpar): Delete this line once double backward of
     # :func:`~chainer.functions.decorrelated_batch_normalization` is
     # implemented.
