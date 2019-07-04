@@ -93,12 +93,7 @@ std::vector<Array> _lstm(
 
 template <typename Impl>
 std::vector<std::vector<Array>> _one_directional_loop(
-        Impl&& impl,
-        std::vector<Array>& xs,
-        Array h,
-        absl::optional<Array> c,
-        const std::vector<Array>& ws,
-        const std::vector<Array>& b) {
+        Impl&& impl, std::vector<Array>& xs, Array h, absl::optional<Array> c, const std::vector<Array>& ws, const std::vector<Array>& b) {
     Shape h_shape{h.shape()[1], h.shape()[2]};
     h = Reshape(h, h_shape);
     if (c.has_value()) {
