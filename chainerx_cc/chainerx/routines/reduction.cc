@@ -6,7 +6,7 @@
 #include <utility>
 #include <vector>
 
-#include <nonstd/optional.hpp>
+#include <absl/types/optional.h>
 
 #include "chainerx/array.h"
 #include "chainerx/axes.h"
@@ -22,7 +22,6 @@
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/explog.h"
 #include "chainerx/routines/manipulation.h"
-#include "chainerx/routines/math.h"
 #include "chainerx/routines/routines_util.h"
 #include "chainerx/routines/statistics.h"
 #include "chainerx/routines/type_util.h"

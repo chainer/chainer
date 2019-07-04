@@ -1,16 +1,14 @@
 import os
-import sys
 import warnings
 
+from chainerx import _build_info
 
-if sys.version_info[0] < 3:
-    _available = False
+
+if _build_info.build_chainerx:
+    from chainerx import _core
+    _available = True
 else:
-    try:
-        from chainerx import _core
-        _available = True
-    except Exception:
-        _available = False
+    _available = False
 
 
 if _available:

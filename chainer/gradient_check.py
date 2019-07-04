@@ -968,6 +968,14 @@ def check_double_backward(func, x_data, y_grad, x_grad_grad, params=(),
         gys = inputs[n_x:]
 
         ys = _as_tuple(func(*xs))
+
+        # `gys` (inputs to `first_order_grad` forward function) may have been
+        # casted to float64 by `numerical_grad`. For certain functions demoting
+        # the dtypes (e.g. `F.cast` that casts to float16), the dtypes of `ys`
+        # (e.g. outputs of `F.cast`) and `gys` (e.g. given by `numerical_grad`)
+        # may mismatch and we need to align those dtypes here.
+        gys = [chainer.functions.cast(gy, y.dtype) for y, gy in zip(ys, gys)]
+
         _check_outputs_and_grad_outputs(ys, gys)
 
         chainer.backward(ys, gys, enable_double_backprop=True)

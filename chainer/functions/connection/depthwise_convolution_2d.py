@@ -54,7 +54,10 @@ def depthwise_convolution_2d(x, W, b=None, stride=1, pad=0):
     See: `L. Sifre. Rigid-motion scattering for image classification
     <https://www.di.ens.fr/data/publications/papers/phd_sifre.pdf>`_
 
-    .. seealso:: :class:`~chainer.links.DepthwiseConvolution2D`
+    .. seealso::
+
+        :class:`~chainer.links.DepthwiseConvolution2D`
+        to manage the model parameters ``W`` and ``b``.
 
     .. admonition:: Example
 

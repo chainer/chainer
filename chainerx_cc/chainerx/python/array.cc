@@ -8,10 +8,11 @@
 #include <utility>
 #include <vector>
 
+#include <absl/types/optional.h>
 #include <pybind11/operators.h>
-#include <nonstd/optional.hpp>
 
 #include "chainerx/array.h"
+#include "chainerx/array_body.h"
 #include "chainerx/array_index.h"
 #include "chainerx/axes.h"
 #include "chainerx/backend_util.h"
@@ -30,7 +31,6 @@
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/indexing.h"
 #include "chainerx/routines/manipulation.h"
-#include "chainerx/routines/math.h"
 #include "chainerx/routines/misc.h"
 #include "chainerx/routines/sorting.h"
 #include "chainerx/shape.h"
@@ -119,13 +119,13 @@ py::object MakeCupyArrayFromArray(const py::module& m, py::handle self) {
 }  // namespace
 
 ArrayBodyPtr MakeArray(py::handle object, py::handle dtype, bool copy, py::handle device) {
-    nonstd::optional<Dtype> dtype_ = dtype.is_none() ? nonstd::nullopt : nonstd::optional<Dtype>(GetDtype(dtype));
+    absl::optional<Dtype> dtype_ = dtype.is_none() ? absl::nullopt : absl::optional<Dtype>(GetDtype(dtype));
     Device& dev = GetDevice(device);
 
     return MakeArray(object, dtype_, copy, dev);
 }
 
-ArrayBodyPtr MakeArray(py::handle object, const nonstd::optional<Dtype>& dtype, bool copy, Device& device) {
+ArrayBodyPtr MakeArray(py::handle object, const absl::optional<Dtype>& dtype, bool copy, Device& device) {
     // object is chainerx.ndarray
     if (py::isinstance<ArrayBody>(object)) {
         Array a = Array{py::cast<ArrayBodyPtr>(object)};
@@ -193,7 +193,7 @@ void InitChainerxArray(pybind11::module& m) {
     c.def("__len__", [](const ArrayBodyPtr& self) -> size_t {
         // TODO(hvy): Do bounds cheking. For reference, Chainer throws an AttributeError.
         if (self->ndim() == 0) {
-            throw pybind11::type_error("len() of unsized object");
+            throw pybind11::type_error{"len() of unsized object"};
         }
         return self->shape().front();
     });
@@ -239,7 +239,7 @@ void InitChainerxArray(pybind11::module& m) {
     c.def("copy", [](const ArrayBodyPtr& self) { return MoveArrayBody(Array{self}.Copy()); });
     c.def("__getitem__", [](const ArrayBodyPtr& self, py::handle key) { return MoveArrayBody(Array{self}.At(MakeArrayIndices(key))); });
     c.def("take",
-          [](const ArrayBodyPtr& self, py::handle indices, const nonstd::optional<int8_t>& axis) {
+          [](const ArrayBodyPtr& self, py::handle indices, const absl::optional<int8_t>& axis) {
               if (!axis.has_value()) {
                   throw NotImplementedError{"axis=None is not yet supported for chainerx.ndarray.take."};
               }
@@ -247,7 +247,7 @@ void InitChainerxArray(pybind11::module& m) {
                   return MoveArrayBody(Array{self}.Take(Array{py::cast<ArrayBodyPtr>(indices)}, axis.value()));
               }
               if (py::isinstance<py::sequence>(indices)) {
-                  nonstd::optional<Dtype> dtype = Dtype::kInt64;
+                  absl::optional<Dtype> dtype = Dtype::kInt64;
                   return MoveArrayBody(Array{self}.Take(Array{MakeArray(indices, dtype, false, self->device())}, axis.value()));
               }
               if (py::isinstance<py::array>(indices)) {
@@ -259,7 +259,7 @@ void InitChainerxArray(pybind11::module& m) {
           "indices"_a,
           "axis"_a = nullptr);
     c.def("transpose",
-          [](const ArrayBodyPtr& self, const nonstd::optional<std::vector<int8_t>>& axes) {
+          [](const ArrayBodyPtr& self, const absl::optional<std::vector<int8_t>>& axes) {
               return MoveArrayBody(Array{self}.Transpose(ToAxes(axes)));
           },
           "axes"_a = nullptr);
@@ -270,12 +270,12 @@ void InitChainerxArray(pybind11::module& m) {
     });
     c.def("reshape", [](const ArrayBodyPtr& self, py::args args) {
         if (args.size() == 0) {
-            throw ChainerxError("Reshape takes exactly 1 argument (0 given).");
+            throw ChainerxError{"Reshape takes exactly 1 argument (0 given)."};
         }
         return MoveArrayBody(Array{self}.Reshape(ToShape(args)));
     });
     c.def("squeeze",
-          [](const ArrayBodyPtr& self, const nonstd::optional<std::vector<int8_t>>& axis) {
+          [](const ArrayBodyPtr& self, const absl::optional<std::vector<int8_t>>& axis) {
               return MoveArrayBody(Array{self}.Squeeze(ToAxes(axis)));
           },
           "axis"_a = nullptr);
@@ -439,7 +439,7 @@ void InitChainerxArray(pybind11::module& m) {
           "axis"_a,
           "keepdims"_a = false);
     c.def("sum",
-          [](const ArrayBodyPtr& self, const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) {
+          [](const ArrayBodyPtr& self, const absl::optional<std::vector<int8_t>>& axis, bool keepdims) {
               return MoveArrayBody(Array{self}.Sum(ToAxes(axis), keepdims));
           },
           "axis"_a = nullptr,
@@ -449,7 +449,7 @@ void InitChainerxArray(pybind11::module& m) {
           "axis"_a,
           "keepdims"_a = false);
     c.def("max",
-          [](const ArrayBodyPtr& self, const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) {
+          [](const ArrayBodyPtr& self, const absl::optional<std::vector<int8_t>>& axis, bool keepdims) {
               return MoveArrayBody(Array{self}.Max(ToAxes(axis), keepdims));
           },
           "axis"_a = nullptr,
@@ -459,7 +459,7 @@ void InitChainerxArray(pybind11::module& m) {
           "axis"_a,
           "keepdims"_a = false);
     c.def("min",
-          [](const ArrayBodyPtr& self, const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) {
+          [](const ArrayBodyPtr& self, const absl::optional<std::vector<int8_t>>& axis, bool keepdims) {
               return MoveArrayBody(Array{self}.Min(ToAxes(axis), keepdims));
           },
           "axis"_a = nullptr,
@@ -469,7 +469,7 @@ void InitChainerxArray(pybind11::module& m) {
           "axis"_a,
           "keepdims"_a = false);
     c.def("mean",
-          [](const ArrayBodyPtr& self, const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) {
+          [](const ArrayBodyPtr& self, const absl::optional<std::vector<int8_t>>& axis, bool keepdims) {
               return MoveArrayBody(Array{self}.Mean(ToAxes(axis), keepdims));
           },
           "axis"_a = nullptr,
@@ -479,7 +479,7 @@ void InitChainerxArray(pybind11::module& m) {
           "axis"_a,
           "keepdims"_a = false);
     c.def("var",
-          [](const ArrayBodyPtr& self, const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) {
+          [](const ArrayBodyPtr& self, const absl::optional<std::vector<int8_t>>& axis, bool keepdims) {
               return MoveArrayBody(Array{self}.Var(ToAxes(axis), keepdims));
           },
           "axis"_a = nullptr,
@@ -489,7 +489,7 @@ void InitChainerxArray(pybind11::module& m) {
           "axis"_a,
           "keepdims"_a = false);
     c.def("all",
-          [](const ArrayBodyPtr& self, const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) {
+          [](const ArrayBodyPtr& self, const absl::optional<std::vector<int8_t>>& axis, bool keepdims) {
               return MoveArrayBody(Array{self}.All(ToAxes(axis), keepdims));
           },
           "axis"_a = nullptr,
@@ -499,16 +499,16 @@ void InitChainerxArray(pybind11::module& m) {
           "axis"_a,
           "keepdims"_a = false);
     c.def("any",
-          [](const ArrayBodyPtr& self, const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) {
+          [](const ArrayBodyPtr& self, const absl::optional<std::vector<int8_t>>& axis, bool keepdims) {
               return MoveArrayBody(Array{self}.Any(ToAxes(axis), keepdims));
           },
           "axis"_a = nullptr,
           "keepdims"_a = false);
     c.def("argmax",
-          [](const ArrayBodyPtr& self, const nonstd::optional<int8_t>& axis) { return MoveArrayBody(ArgMax(Array{self}, ToAxes(axis))); },
+          [](const ArrayBodyPtr& self, const absl::optional<int8_t>& axis) { return MoveArrayBody(ArgMax(Array{self}, ToAxes(axis))); },
           "axis"_a = nullptr);
     c.def("argmin",
-          [](const ArrayBodyPtr& self, const nonstd::optional<int8_t>& axis) { return MoveArrayBody(ArgMin(Array{self}, ToAxes(axis))); },
+          [](const ArrayBodyPtr& self, const absl::optional<int8_t>& axis) { return MoveArrayBody(ArgMin(Array{self}, ToAxes(axis))); },
           "axis"_a = nullptr);
     c.def("dot", [](const ArrayBodyPtr& self, const ArrayBodyPtr& b) { return MoveArrayBody(Array{self}.Dot(Array{b})); }, "b"_a);
     c.def("fill",
@@ -519,15 +519,15 @@ void InitChainerxArray(pybind11::module& m) {
           "value"_a);
 
     c.def("require_grad",
-          [](const ArrayBodyPtr& self, const nonstd::optional<BackpropId>& backprop_id) {
+          [](const ArrayBodyPtr& self, const absl::optional<BackpropId>& backprop_id) {
               return MoveArrayBody(std::move(Array{self}.RequireGrad(backprop_id)));
           },
           "backprop_id"_a = nullptr);
     c.def("is_grad_required",
-          [](const ArrayBodyPtr& self, const nonstd::optional<BackpropId>& backprop_id) { return Array{self}.IsGradRequired(backprop_id); },
+          [](const ArrayBodyPtr& self, const absl::optional<BackpropId>& backprop_id) { return Array{self}.IsGradRequired(backprop_id); },
           "backprop_id"_a = nullptr);
     c.def("is_backprop_required",
-          [](const ArrayBodyPtr& self, const nonstd::optional<BackpropId>& backprop_id) {
+          [](const ArrayBodyPtr& self, const absl::optional<BackpropId>& backprop_id) {
               return Array{self}.IsBackpropRequired(backprop_id);
           },
           "backprop_id"_a = nullptr);
@@ -535,8 +535,8 @@ void InitChainerxArray(pybind11::module& m) {
           [](const ArrayBodyPtr& self, AnyGraph any_graph) { return Array{self}.IsBackpropRequired(any_graph); },
           "backprop_id"_a);
     c.def("get_grad",
-          [](const ArrayBodyPtr& self, const nonstd::optional<BackpropId>& backprop_id) -> ConstArrayBodyPtr {
-              const nonstd::optional<Array>& grad = Array{self}.GetGrad(backprop_id);
+          [](const ArrayBodyPtr& self, const absl::optional<BackpropId>& backprop_id) -> ConstArrayBodyPtr {
+              const absl::optional<Array>& grad = Array{self}.GetGrad(backprop_id);
               if (!grad.has_value()) {
                   return nullptr;
               }
@@ -544,7 +544,7 @@ void InitChainerxArray(pybind11::module& m) {
           },
           "backprop_id"_a = nullptr);
     c.def("set_grad",
-          [](const ArrayBodyPtr& self, const ArrayBodyPtr& grad, const nonstd::optional<BackpropId>& backprop_id) {
+          [](const ArrayBodyPtr& self, const ArrayBodyPtr& grad, const absl::optional<BackpropId>& backprop_id) {
               Array array{self};
               if (grad) {
                   array.SetGrad(Array{grad}, backprop_id);
@@ -555,21 +555,21 @@ void InitChainerxArray(pybind11::module& m) {
           "grad"_a,
           "backprop_id"_a = nullptr);
     c.def("backward",
-          [](const ArrayBodyPtr& self, const nonstd::optional<BackpropId>& backprop_id, bool enable_double_backprop) {
+          [](const ArrayBodyPtr& self, const absl::optional<BackpropId>& backprop_id, bool enable_double_backprop) {
               auto double_backprop = enable_double_backprop ? DoubleBackpropOption::kEnable : DoubleBackpropOption::kDisable;
               Backward(Array{self}, backprop_id, double_backprop);
           },
           "backprop_id"_a = nullptr,
           "enable_double_backprop"_a = false);
     c.def("_debug_dump_computational_graph",
-          [](const ArrayBodyPtr& self, const nonstd::optional<BackpropId>& backprop_id) {
+          [](const ArrayBodyPtr& self, const absl::optional<BackpropId>& backprop_id) {
               DebugDumpComputationalGraph(std::cout, Array{self}, backprop_id);
           },
           "backprop_id"_a = nullptr);
     c.def_property(
             "grad",
             [](const ArrayBodyPtr& self) -> ConstArrayBodyPtr {
-                const nonstd::optional<Array>& grad = Array{self}.GetGrad(nonstd::nullopt);
+                const absl::optional<Array>& grad = Array{self}.GetGrad(absl::nullopt);
                 if (!grad.has_value()) {
                     return nullptr;
                 }
@@ -578,13 +578,13 @@ void InitChainerxArray(pybind11::module& m) {
             [](const ArrayBodyPtr& self, const ArrayBodyPtr& grad) {
                 Array array{self};
                 if (grad) {
-                    array.SetGrad(Array{grad}, nonstd::nullopt);
+                    array.SetGrad(Array{grad}, absl::nullopt);
                 } else {
-                    array.ClearGrad(nonstd::nullopt);
+                    array.ClearGrad(absl::nullopt);
                 }
             });
     c.def("cleargrad",
-          [](const ArrayBodyPtr& self, const nonstd::optional<BackpropId>& backprop_id) { Array{self}.ClearGrad(backprop_id); },
+          [](const ArrayBodyPtr& self, const absl::optional<BackpropId>& backprop_id) { Array{self}.ClearGrad(backprop_id); },
           "backprop_id"_a = nullptr);
     c.def_property_readonly(
             "device", [](const ArrayBodyPtr& self) -> Device& { return self->device(); }, py::return_value_policy::reference);
@@ -636,6 +636,17 @@ void InitChainerxArray(pybind11::module& m) {
 
         return list;
     });
+    // TODO(hvy): Rename `_is_chained` to a less ambiguous function name.
+    c.def("_is_chained",
+          [](const ArrayBodyPtr& self, const absl::optional<BackpropId>& backprop_id) {
+              BackpropId actual_backprop_id = internal::GetArrayBackpropId(Array{self}, backprop_id);
+              actual_backprop_id.CheckValid();
+              if (!self->HasArrayNode(actual_backprop_id)) {
+                  throw ChainerxError{"Array is constant with respect to the computation for backprop ID: '", actual_backprop_id, "'."};
+              }
+              return self->GetArrayNode(actual_backprop_id)->creator_op_node() != nullptr;
+          },
+          "backprop_id"_a = nullptr);
 }
 
 }  // namespace python_internal
