@@ -200,6 +200,8 @@ struct ArrayReprImpl {
     }
 
 private:
+    static constexpr int kMaxItemNumPerLine = 10;
+
     template <typename T>
     void ArrayReprRecursive(const Array& array, Formatter<T>& formatter, size_t indent, std::ostream& os) const {
         const uint8_t ndim = array.ndim();
@@ -208,12 +210,16 @@ private:
             return;
         }
         os << "[";
-        std::string delimiter = ",";
-        delimiter += ndim == 1 ? " " : std::string(static_cast<size_t>(ndim) - 1, '\n') + std::string(indent, ' ');
         int64_t size = array.shape().front();
         for (int64_t i = 0; i < size; ++i) {
             if (i != 0) {
-                os << delimiter;
+                os << ",";
+                if (ndim > 1 || i % kMaxItemNumPerLine == 0) {
+                    PrintNTimes(os, '\n', ndim - 1);
+                    PrintNTimes(os, ' ', indent);
+                } else {
+                    os << ' ';
+                }
             }
             ArrayReprRecursive<T>(internal::At(array, {ArrayIndex{i}}), formatter, indent + 1, os);
         }
