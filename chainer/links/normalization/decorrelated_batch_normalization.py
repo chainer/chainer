@@ -62,9 +62,12 @@ class DecorrelatedBatchNormalization(link.Link):
     def __init__(self, size, groups=16, decay=0.9, eps=2e-5,
                  dtype=numpy.float32):
         super(DecorrelatedBatchNormalization, self).__init__()
-        self.avg_mean = numpy.zeros(size // groups, dtype=dtype)
+        C = size // groups
+        self.avg_mean = numpy.zeros((groups, C), dtype=dtype)
         self.register_persistent('avg_mean')
-        self.avg_projection = numpy.eye(size // groups, dtype=dtype)
+        avg_projection = numpy.zeros((groups, C, C), dtype=dtype)
+        avg_projection[:, numpy.arange(C), numpy.arange(C)] = 1
+        self.avg_projection = avg_projection
         self.register_persistent('avg_projection')
         self.N = 0
         self.register_persistent('N')

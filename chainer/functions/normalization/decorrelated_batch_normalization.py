@@ -112,12 +112,13 @@ class DecorrelatedBatchNormalization(function_node.FunctionNode):
 
         # Update running statistics
         if self.running_mean is not None:
+            mean = mean.squeeze(axis=2)
             self.running_mean *= self.decay
             self.running_mean += (1 - self.decay) * mean
         if self.running_projection is not None:
             adjust = m / max(m - 1., 1.)  # unbiased estimation
             self.running_projection *= self.decay
-            projection = self.eigvectors.dot(U)
+            projection = _matmul(self.eigvectors, U, xp)
             self.running_projection += (1 - self.decay) * adjust * projection
 
         return y,
@@ -209,22 +210,20 @@ class FixedDecorrelatedBatchNormalization(function_node.FunctionNode):
     def forward(self, inputs):
         self.retain_inputs((0, 1, 2))
         x, mean, projection = inputs
+        xp = backend.get_array_module(x)
         x_shape = x.shape
         b, c = x_shape[:2]
         g = self.groups
         C = c // g
         spatial_axis, m = _calc_axis_and_m(x_shape, b, g)
 
-        if g > 1:
-            x = x.reshape((b * g, C) + x.shape[2:])
-        x_hat = x.transpose((1, 0) + spatial_axis).reshape(C, -1)
+        x_hat = x.transpose((1, 0) + spatial_axis).reshape(g, C, m)
+        x_hat = x_hat - xp.expand_dims(mean, axis=2)
 
-        y_hat = projection.dot(x_hat - mean[:, None])
+        y_hat = _matmul(projection, x_hat, xp)
 
-        y = y_hat.reshape((C, b * g) + x.shape[2:]).transpose(
+        y = y_hat.reshape((c, b) + x_shape[2:]).transpose(
             (1, 0) + spatial_axis)
-        if g > 1:
-            y = y.reshape((-1, c) + x.shape[2:])
 
         return y,
 
