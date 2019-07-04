@@ -46,6 +46,7 @@
 #include "chainerx/python/common.h"
 #include "chainerx/python/device.h"
 #include "chainerx/python/dtype.h"
+#include "chainerx/python/kwarg.h"
 #include "chainerx/python/shape.h"
 #include "chainerx/python/stack_vector.h"
 #include "chainerx/python/strides.h"
@@ -155,19 +156,21 @@ void InitChainerxCreation(pybind11::module& m) {
           "fill_value"_a,
           "device"_a = nullptr);
     m.def("zeros",
-          [](py::handle shape, py::handle dtype, py::handle device) {
+          [](py::handle shape, py::handle dtype, py::kwargs kwargs) {
+              py::handle device;
+              std::tie(device) = GetKwargs(kwargs, "device");
               return MoveArrayBody(Zeros(ToShape(shape), dtype.is_none() ? Dtype::kFloat32 : GetDtype(dtype), GetDevice(device)));
           },
           "shape"_a,
-          "dtype"_a = nullptr,
-          "device"_a = nullptr);
+          "dtype"_a = nullptr);
     m.def("zeros",
-          [](py::int_ dim, py::handle dtype, py::handle device) {
+          [](py::int_ dim, py::handle dtype, py::kwargs kwargs) {
+              py::handle device;
+              std::tie(device) = GetKwargs(kwargs, "device");
               return MoveArrayBody(Zeros(Shape{dim}, dtype.is_none() ? Dtype::kFloat32 : GetDtype(dtype), GetDevice(device)));
           },
           "shape"_a,
-          "dtype"_a = nullptr,
-          "device"_a = nullptr);
+          "dtype"_a = nullptr);
     m.def("ones",
           [](py::handle shape, py::handle dtype, py::handle device) {
               return MoveArrayBody(Ones(ToShape(shape), dtype.is_none() ? Dtype::kFloat32 : GetDtype(dtype), GetDevice(device)));
