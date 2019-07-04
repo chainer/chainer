@@ -1,3 +1,5 @@
+include_directories("${PROJECT_SOURCE_DIR}")
+
 add_subdirectory(kernels)
 add_subdirectory(routines)
 add_subdirectory(native)
