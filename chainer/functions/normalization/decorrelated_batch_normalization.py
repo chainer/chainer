@@ -249,25 +249,21 @@ class FixedDecorrelatedBatchNormalizationGrad(function_node.FunctionNode):
     def forward(self, inputs):
         self.retain_inputs(())
         x, mean, projection, gy = inputs
+        xp = backend.get_array_module(x)
         gy_shape = gy.shape
         b, c = gy_shape[:2]
         g = self.groups
         C = c // g
         spatial_axis, m = _calc_axis_and_m(gy_shape, b, g)
 
-        if g > 1:
-            gy = gy.reshape((b * g, C) + gy.shape[2:])
-            x = x.reshape((b * g, C) + x.shape[2:])
-        x_hat = x.transpose((1, 0) + spatial_axis).reshape(C, -1)
-        gy_hat = gy.transpose((1, 0) + spatial_axis).reshape(C, -1)
-        gy_hat_pca = projection.T.dot(gy_hat)
-        gx = gy_hat_pca.reshape(
-            (C, b * g) + gy.shape[2:]).transpose((1, 0) + spatial_axis)
-        if g > 1:
-            gx = gx.reshape((-1, c) + gy.shape[2:])
-        rhs = x_hat - mean[Ellipsis, None]
-        gprojection = (x_hat - rhs).T.dot(gy_hat)
-        gmean = -gx[:, 0]
+        gy_hat = gy.transpose((1, 0) + spatial_axis).reshape(g, C, m)
+        x_hat = x.transpose((1, 0) + spatial_axis).reshape(g, C, m)
+        gy_hat_pca = _matmul(projection.transpose(0, 2, 1), gy_hat, xp)
+        gx = gy_hat_pca.reshape((c, b) + gy_shape[2:]).transpose(
+            (1, 0) + spatial_axis)
+        rhs = x_hat - xp.expand_dims(mean, axis=2)
+        gprojection = _matmul((x_hat - rhs).transpose(0, 2, 1), gy_hat, xp)
+        gmean = -gy_hat_pca[..., 0]
         self.retain_outputs(())
         return gx, gmean, gprojection
 

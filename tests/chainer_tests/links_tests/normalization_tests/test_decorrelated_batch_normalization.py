@@ -115,8 +115,6 @@ class DecorrelatedBatchNormalizationTest(unittest.TestCase):
         self.check_forward(cuda.to_gpu(self.x))
 
     def check_backward(self, x_data, y_grad):
-        raise unittest.SkipTest('WIP')  # TODO(kataoka)
-
         gradient_check.check_backward(
             self.link, x_data, y_grad, (),
             eps=1e-2, **self.check_backward_options)

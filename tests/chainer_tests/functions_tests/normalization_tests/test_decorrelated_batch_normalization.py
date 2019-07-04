@@ -144,9 +144,6 @@ class TestDecorrelatedBatchNormalization(testing.FunctionTestCase):
 )
 class TestFixedDecorrelatedBatchNormalization(testing.FunctionTestCase):
 
-    # TODO(kataoka): WIP
-    skip_backward_test = True
-
     # TODO(crcrpar): Delete this line once double backward of
     # :func:`~chainer.functions.fixed_decorrelated_batch_normalization` is
     # implemented.
