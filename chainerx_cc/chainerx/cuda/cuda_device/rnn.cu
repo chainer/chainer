@@ -8,9 +8,9 @@
 #include <utility>
 #include <vector>
 
+#include <absl/types/optional.h>
 #include <cuda.h>
 #include <cudnn.h>
-#include <absl/types/optional.h>
 
 #include "chainerx/array.h"
 #include "chainerx/backend_util.h"
