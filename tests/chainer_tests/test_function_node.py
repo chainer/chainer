@@ -362,11 +362,9 @@ class TestFunctionNodeMixChainerxAndXpArrays(unittest.TestCase):
         xp_x1 = xp.random.randn(2, 3).astype(numpy.float32)
         xp_x2 = xp.random.randn(2, 3).astype(numpy.float32)
         x2 = backend.to_chx(xp_x2)
-        y, = self.SimpleFunctionNode(xp).apply((xp_x1, x2))
-
-        assert isinstance(y.array, chainerx.ndarray)
-        chainerx.testing.assert_array_equal(
-            backend.CpuDevice().send(xp_x1 * xp_x2), y.array)
+        fnode = self.SimpleFunctionNode(xp)
+        with self.assertRaises(TypeError):
+            fnode.apply((xp_x1, x2))
 
     @attr.chainerx
     def test_mix_numpy(self):

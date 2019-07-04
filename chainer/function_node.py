@@ -1194,8 +1194,8 @@ def _extract_apply_in_data(inputs):
     # `Variable._data[0]` (which is backproppable in contrast to
     # `Variable.array`) is returned.
     #
-    # If at least one of the arrays is a ChainerX array, all other NumPy/CuPy
-    # arrays are converted to ChainerX arrays without copy.
+    # If at least one of the arrays is a ChainerX array, all other
+    # arrays need to be ChainerX arrays.
     if not inputs:
         return False, ()
 
@@ -1216,9 +1216,7 @@ def _extract_apply_in_data(inputs):
                 if not has_chainerx_array:
                     if isinstance(x, chainerx.ndarray):
                         has_chainerx_array = True
-
         return has_chainerx_array, tuple(arrays)
-
     else:
         return False, tuple([
             x.array if isinstance(x, variable.Variable) else x
