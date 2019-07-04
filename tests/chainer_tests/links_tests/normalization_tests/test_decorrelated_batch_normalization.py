@@ -11,43 +11,55 @@ from chainer.testing import attr
 
 
 def _decorrelated_batch_normalization(x, mean, projection, groups):
+    xs = numpy.split(x, groups, axis=1)
+    assert mean.shape[0] == groups
+    assert projection.shape[0] == groups
+    ys = [
+        _decorrelated_batch_normalization_1group(xi, m, p)
+        for (xi, m, p) in zip(xs, mean, projection)]
+    return numpy.concatenate(ys, axis=1)
+
+
+def _decorrelated_batch_normalization_1group(x, mean, projection):
     spatial_ndim = len(x.shape[2:])
     spatial_axis = tuple(range(2, 2 + spatial_ndim))
-    b, c = x.shape[:2]
-    g = groups
-    C = c // g
-
-    x = x.reshape((b * g, C) + x.shape[2:])
-    x_hat = x.transpose((1, 0) + spatial_axis).reshape((C, -1))
-
+    b, C = x.shape[:2]
+    x_hat = x.transpose((1, 0) + spatial_axis).reshape(C, -1)
     y_hat = projection.dot(x_hat - mean[:, None])
-
-    y = y_hat.reshape((C, b * g) + x.shape[2:]).transpose(
+    y = y_hat.reshape((C, b) + x.shape[2:]).transpose(
         (1, 0) + spatial_axis)
-    y = y.reshape((-1, c) + x.shape[2:])
     return y
 
 
 def _calc_projection(x, mean, eps, groups):
+    xs = numpy.split(x, groups, axis=1)
+    assert mean.shape[0] == groups
+    projections = [
+        _calc_projection_1group(xi, m, eps)
+        for (xi, m) in zip(xs, mean)]
+    return numpy.concatenate([p[None] for p in projections])
+
+
+def _calc_projection_1group(x, mean, eps):
     spatial_ndim = len(x.shape[2:])
     spatial_axis = tuple(range(2, 2 + spatial_ndim))
-    b, c = x.shape[:2]
-    g = groups
-    C = c // g
-    m = b * g
+    b, C = x.shape[:2]
+    m = b
     for i in spatial_axis:
         m *= x.shape[i]
 
-    x = x.reshape((b * g, C) + x.shape[2:])
-    x_hat = x.transpose((1, 0) + spatial_axis).reshape((C, -1))
-
+    x_hat = x.transpose((1, 0) + spatial_axis).reshape(C, -1)
     mean = x_hat.mean(axis=1)
     x_hat = x_hat - mean[:, None]
-
     cov = x_hat.dot(x_hat.T) / m + eps * numpy.eye(C, dtype=x.dtype)
     eigvals, eigvectors = numpy.linalg.eigh(cov)
     projection = eigvectors.dot(numpy.diag(eigvals ** -0.5)).dot(eigvectors.T)
     return projection
+
+
+def _calc_mean(x, groups):
+    axis = (0,) + tuple(range(2, x.ndim))
+    return x.mean(axis=axis).reshape(groups, -1)
 
 
 @testing.parameterize(*(testing.product({
@@ -62,7 +74,6 @@ class DecorrelatedBatchNormalizationTest(unittest.TestCase):
 
     def setUp(self):
         C = self.n_channels // self.groups
-        head_ndim = 2
 
         self.link = links.DecorrelatedBatchNormalization(
             self.n_channels, groups=self.groups, dtype=self.dtype)
@@ -81,10 +92,7 @@ class DecorrelatedBatchNormalizationTest(unittest.TestCase):
             self.link.avg_mean[...] = self.mean
             self.link.avg_projection[...] = self.projection
         else:
-            spatial_axis = tuple(range(head_ndim, self.x.ndim))
-            x_hat = self.x.transpose((1, 0) + spatial_axis)
-            x_hat = x_hat.reshape(self.groups, C, -1)
-            self.mean = x_hat.mean(axis=2)
+            self.mean = _calc_mean(self.x, self.groups)
             self.projection = _calc_projection(self.x, self.mean,
                                                self.link.eps, self.groups)
         self.check_forward_options = {'atol': 1e-4, 'rtol': 1e-3}
@@ -99,7 +107,6 @@ class DecorrelatedBatchNormalizationTest(unittest.TestCase):
             y = self.link(x)
             self.assertEqual(y.dtype, self.dtype)
 
-        return  # TODO(kataoka): WIP
         y_expect = _decorrelated_batch_normalization(
             self.x, self.mean, self.projection, self.groups)
 
