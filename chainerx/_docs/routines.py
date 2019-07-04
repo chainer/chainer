@@ -1996,6 +1996,42 @@ Note:
 .. seealso:: :data:`numpy.bitwise_xor`
 """)
 
+    _docs.set_doc(
+        chainerx.left_shift,
+        """left_shift(x1, x2)
+Shift the bits of an integer to the left.
+
+Args:
+    x1 (~chainerx.ndarray or scalar): Input array of integers.
+    x2 (~chainerx.ndarray or scalar): Input array of integers.
+
+Returns:
+    :class:`~chainerx.ndarray`: Return `x1` with bits shifted `x2` times to the left.
+
+Note:
+    During backpropagation, this function does not propagate gradients.
+
+.. seealso:: :data:`numpy.left_shift`
+""")  # NOQA
+
+    _docs.set_doc(
+        chainerx.right_shift,
+        """right_shift(x1, x2)
+Shift the bits of an integer to the right.
+
+Args:
+    x1 (~chainerx.ndarray or scalar): Input array of integers.
+    x2 (~chainerx.ndarray or scalar): Input array of integers.
+
+Returns:
+    :class:`~chainerx.ndarray`: Return `x1` with bits shifted `x2` times to the right.
+
+Note:
+    During backpropagation, this function does not propagate gradients.
+
+.. seealso:: :data:`numpy.right_shift`
+""")  # NOQA
+
 
 def _docs_sorting():
     _docs.set_doc(

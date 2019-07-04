@@ -90,6 +90,10 @@ public:
     Array& operator|=(Scalar rhs);
     Array& operator^=(const Array& rhs);
     Array& operator^=(Scalar rhs);
+    Array& operator<<=(const Array& rhs);
+    Array& operator<<=(Scalar rhs);
+    Array& operator>>=(const Array& rhs);
+    Array& operator>>=(Scalar rhs);
 
     const Array& operator+=(const Array& rhs) const;
     const Array& operator+=(Scalar rhs) const;
@@ -105,6 +109,10 @@ public:
     const Array& operator|=(Scalar rhs) const;
     const Array& operator^=(const Array& rhs) const;
     const Array& operator^=(Scalar rhs) const;
+    const Array& operator<<=(const Array& rhs) const;
+    const Array& operator<<=(Scalar rhs) const;
+    const Array& operator>>=(const Array& rhs) const;
+    const Array& operator>>=(Scalar rhs) const;
 
     Array operator+(const Array& rhs) const;
     Array operator+(Scalar rhs) const;
@@ -120,6 +128,10 @@ public:
     Array operator|(Scalar rhs) const;
     Array operator^(const Array& rhs) const;
     Array operator^(Scalar rhs) const;
+    Array operator<<(const Array& rhs) const;
+    Array operator<<(Scalar rhs) const;
+    Array operator>>(const Array& rhs) const;
+    Array operator>>(Scalar rhs) const;
 
     // Returns a view selected with the indices.
     Array At(const std::vector<ArrayIndex>& indices) const;
@@ -313,6 +325,9 @@ Array operator+(Scalar lhs, const Array& rhs);
 Array operator-(Scalar lhs, const Array& rhs);
 Array operator*(Scalar lhs, const Array& rhs);
 Array operator/(Scalar lhs, const Array& rhs);
+
+Array operator<<(Scalar lhs, const Array& rhs);
+Array operator>>(Scalar lhs, const Array& rhs);
 
 namespace internal {
 
