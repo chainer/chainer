@@ -15,6 +15,7 @@ from chainer import utils
         'dtype': [numpy.float16, numpy.float32, numpy.float64],
         'use_weights': [True, False],
         'keepdims': [True, False],
+        'use_variable_method': [True, False],
     }) +
     testing.product({
         'shape': [()],
@@ -22,6 +23,7 @@ from chainer import utils
         'dtype': [numpy.float16, numpy.float32, numpy.float64],
         'use_weights': [True, False],
         'keepdims': [True, False],
+        'use_variable_method': [True, False],
     })))
 @testing.fix_random()
 @testing.inject_backend_tests(
@@ -84,8 +86,11 @@ class TestAverage(testing.FunctionTestCase):
         x, w = inputs
         if not self.use_weights:
             w = None
-        y = functions.average(
-            x, axis=self.axis, weights=w, keepdims=self.keepdims)
+        if self.use_variable_method:
+            y = x.mean(axis=self.axis, weights=w, keepdims=self.keepdims)
+        else:
+            y = functions.average(
+                x, axis=self.axis, weights=w, keepdims=self.keepdims)
         return y,
 
     def forward_expected(self, inputs):
