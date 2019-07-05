@@ -95,14 +95,7 @@ def test_dot_invalid(is_module, xp, device, a_shape, b_shape, dtype):
         return a.dot(b)
 
 
-@op_utils.op_test(['native:0', 'cuda:0'])
-@chainer.testing.parameterize(*(
-    chainer.testing.product({
-        'shape': [(1, 1), (3, 3), (6, 6)],
-        'in_dtypes': ['float32', 'float64'],
-    })
-))
-class TestSolve(op_utils.NumpyOpTest):
+class NumpyLinalgOpTest(op_utils.NumpyOpTest):
 
     dodge_nondifferentiable = True
 
@@ -111,6 +104,16 @@ class TestSolve(op_utils.NumpyOpTest):
         if (device.backend.name == 'native'
                 and not chainerx.linalg._is_lapack_available()):
             pytest.skip('LAPACK is not linked to ChainerX')
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    chainer.testing.product({
+        'shape': [(1, 1), (3, 3), (6, 6)],
+        'in_dtypes': ['float32', 'float64'],
+    })
+))
+class TestSolve(NumpyLinalgOpTest):
 
     def generate_inputs(self):
         a = numpy.random.random(self.shape).astype(self.in_dtypes)
@@ -131,16 +134,10 @@ class TestSolve(op_utils.NumpyOpTest):
         'in_dtypes': ['float32', 'float64'],
     })
 ))
-class TestSolveFailing(op_utils.NumpyOpTest):
+class TestSolveFailing(NumpyLinalgOpTest):
 
     forward_accept_errors = (numpy.linalg.LinAlgError,
                              chainerx.DimensionError)
-
-    def setup(self):
-        device = chainerx.get_default_device()
-        if (device.backend.name == 'native'
-                and not chainerx.linalg._is_lapack_available()):
-            pytest.skip('LAPACK is not linked to ChainerX')
 
     def generate_inputs(self):
         a = numpy.random.random(self.shape).astype(self.in_dtypes)
@@ -160,15 +157,7 @@ class TestSolveFailing(op_utils.NumpyOpTest):
         'in_dtypes': ['float32', 'float64'],
     })
 ))
-class TestInverse(op_utils.NumpyOpTest):
-
-    dodge_nondifferentiable = True
-
-    def setup(self):
-        device = chainerx.get_default_device()
-        if (device.backend.name == 'native'
-                and not chainerx.linalg._is_lapack_available()):
-            pytest.skip('LAPACK is not linked to ChainerX')
+class TestInverse(NumpyLinalgOpTest):
 
     def generate_inputs(self):
         a = numpy.random.random(self.shape).astype(self.in_dtypes)
@@ -188,16 +177,10 @@ class TestInverse(op_utils.NumpyOpTest):
         'in_dtypes': ['float32', 'float64'],
     })
 ))
-class TestInverseFailing(op_utils.NumpyOpTest):
+class TestInverseFailing(NumpyLinalgOpTest):
 
     forward_accept_errors = (numpy.linalg.LinAlgError,
                              chainerx.DimensionError)
-
-    def setup(self):
-        device = chainerx.get_default_device()
-        if (device.backend.name == 'native'
-                and not chainerx.linalg._is_lapack_available()):
-            pytest.skip('LAPACK is not linked to ChainerX')
 
     def generate_inputs(self):
         a = numpy.random.random(self.shape).astype(self.in_dtypes)
