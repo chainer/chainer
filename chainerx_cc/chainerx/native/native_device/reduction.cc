@@ -162,7 +162,8 @@ public:
                         it_out.CopyIndex(it_right, it_left.ndim() + it.ndim());
                         it_prev.CopyIndex(it_right, it_left.ndim() + it_axis.ndim());
                         it_prev.index()[axis] -= 1;
-                        out_iarray[it_out] += out_iarray[it_prev];
+                        native_internal::StorageToDataType<T>(out_iarray[it_out]) +=
+                                native_internal::StorageToDataType<T>(out_iarray[it_prev]);
                         it_prev.index()[axis] += 1;
                     }
                 }

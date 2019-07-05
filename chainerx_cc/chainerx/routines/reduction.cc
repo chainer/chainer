@@ -103,13 +103,15 @@ Array Cumsum(const Array& a, int8_t axis) {
 
     Shape out_shape = a.shape();
     Array out = Empty(out_shape, a.dtype(), a.device());
+    const Array& out_cast = out.dtype() == Dtype::kBool ? out.AsType(Dtype::kInt64) : out;
+    const Array& a_cast = a.dtype() != out_cast.dtype() ? a.AsType(out_cast.dtype()) : a;
 
     {
         NoBackpropModeScope scope{};
-        a.device().backend().CallKernel<CumsumKernel>(a, axis_norm, out);
+        a.device().backend().CallKernel<CumsumKernel>(a_cast, axis_norm, out_cast);
     }
     // Backward not implemented yet
-    return out;
+    return out_cast;
 }
 
 }  // namespace chainerx
