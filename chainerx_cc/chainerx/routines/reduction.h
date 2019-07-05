@@ -21,4 +21,6 @@ Array Softmax(const Array& x, const OptionalAxes& axis = absl::nullopt);
 
 Array Cumsum(const Array& a, absl::optional<int8_t> axis = absl::nullopt);
 
+Array Cumprod(const Array& a, int8_t axis);
+
 }  // namespace chainerx

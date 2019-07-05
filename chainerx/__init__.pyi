@@ -921,6 +921,11 @@ def cumsum(
         axis: tp.Optional[int]=None) -> ndarray: ...
 
 
+def cumprod(
+        x: ndarray,
+        axis: tp.Optional[int]) -> ndarray: ...
+
+
 def swapaxes(a: ndarray, axis1: int, axis2: int) -> ndarray: ...
 
 

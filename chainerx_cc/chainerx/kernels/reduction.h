@@ -29,4 +29,11 @@ public:
     virtual void Call(const Array& a, int8_t axis, const Array& out) = 0;
 };
 
+class CumprodKernel : public Kernel {
+public:
+    static const char* name() { return "Cumprod"; }
+
+    virtual void Call(const Array& a, int8_t axis, const Array& out) = 0;
+};
+
 }  // namespace chainerx

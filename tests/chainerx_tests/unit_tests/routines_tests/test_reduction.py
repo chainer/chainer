@@ -38,7 +38,7 @@ _invalid_logsumexp_params = [
 ]
 
 
-_cumsum_params = [
+_cum_params = [
     ((1,), 0),
     ((2, 3, 4), 0),
     ((2, 3, 4), 1),
@@ -268,7 +268,7 @@ def test_log_softmax_invalid(device, a_shape, axis, dtype):
 @op_utils.op_test(['native:0'])
 @chainer.testing.parameterize_pytest(
     'in_dtypes,out_dtype', _in_out_dtypes_sum)
-@chainer.testing.parameterize_pytest('shape,axis', _cumsum_params)
+@chainer.testing.parameterize_pytest('shape,axis', _cum_params)
 # TODO(aksub99): Add cuda device tests when cuda implementation is supported.
 class TestCumsum(math_utils.UnaryMathTestBase, op_utils.NumpyOpTest):
 
@@ -285,3 +285,27 @@ class TestCumsum(math_utils.UnaryMathTestBase, op_utils.NumpyOpTest):
 
     def func(self, xp, a):
         return xp.cumsum(a, axis=self.axis)
+
+
+@op_utils.op_test(['native:0'])
+@chainer.testing.parameterize_pytest(
+    'in_dtypes,out_dtype', _in_out_dtypes_sum)
+@chainer.testing.parameterize_pytest('shape,axis', _cum_params)
+# TODO(aksub99): Add cuda device tests when cuda implementation is supported.
+class TestCumprod(math_utils.UnaryMathTestBase, op_utils.NumpyOpTest):
+
+    input = 'random'
+    skip_backward_test = True
+    skip_double_backward_test = True
+
+    def setup(self):
+        super().setup()
+        in_dtype, = self.in_dtypes
+        if in_dtype == 'float16':
+            self.check_forward_options.update({'rtol': 1e-2, 'atol': 1e-2})
+            self.check_backward_options.update({'rtol': 1e-2, 'atol': 1e-2})
+            self.check_double_backward_options.update(
+                {'rtol': 1e-2, 'atol': 1e-2})
+
+    def func(self, xp, a):
+        return xp.cumprod(a, axis=self.axis)
