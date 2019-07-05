@@ -504,14 +504,19 @@ Note:
 Solves a linear matrix equation, or system of linear scalar equations.
 
 It computes the exact solution of ``x`` in ``ax = b``,
-where ``a`` is a square and full rank matrix.
+where ``a`` is a square and full rank matrix,
+``b`` can be a vector, or a rectangular matrix.
+When ``b`` is matrix, its columns are treated as separate vectors
+representing multiple right-hand sides.
 
 Args:
     a (~chainerx.ndarray): Coefficient matrix.
     b (~chainerx.ndarray): "dependent variable" values.
 
 Returns:
-    :class:`~chainerx.ndarray`: Solution to the system ``ax = b``.
+    :class:`~chainerx.ndarray`:
+        Solution to the system ``ax = b``.
+        Shape is identical to ``b``.
 
 .. seealso:: :func:`numpy.linalg.solve`
 """)
