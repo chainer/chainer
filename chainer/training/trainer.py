@@ -167,6 +167,10 @@ class Trainer(object):
             self.extend(ext)
 
     @property
+    def is_before_training(self):
+        return self.updater.iteration == 0
+
+    @property
     def elapsed_time(self):
         """Total time used for the training.
 
@@ -312,7 +316,7 @@ class Trainer(object):
         stop_trigger = self.stop_trigger
 
         # call extensions before training loop
-        if self.updater.iteration == 0:
+        if self.is_before_training:
             self.observation = {}
             with reporter.scope(self.observation):
                 for name, entry in extensions:

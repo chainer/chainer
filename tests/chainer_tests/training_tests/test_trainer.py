@@ -127,7 +127,7 @@ class TestTrainer(unittest.TestCase):
                 self.is_called_before_training = False
 
             def __call__(self, trainer):
-                if trainer.updater.iteration == 0:
+                if trainer.is_before_training:
                     self.is_called_before_training = True
                 return super(MyDummyCallableClass, self).__call__(trainer)
 

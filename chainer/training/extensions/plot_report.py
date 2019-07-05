@@ -150,7 +150,7 @@ filename='plot.png', marker='x', grid=True)
         else:
             summary.add({k: observation[k] for k in keys if k in observation})
 
-        if trainer.updater.iteration == 0 or self._trigger(trainer):
+        if trainer.is_before_training or self._trigger(trainer):
             stats = self._summary.compute_mean()
             stats_cpu = {}
             for name, value in six.iteritems(stats):
