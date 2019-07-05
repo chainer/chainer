@@ -1,4 +1,5 @@
 import unittest
+import itertools
 
 import mock
 import numpy as np
@@ -72,6 +73,7 @@ class TestGradientNoise(unittest.TestCase):
             param.to_device(device)
 
         def test_noise(xp, shape, dtype, hook, opt):
+            # Make noise value an array of current backend
             return xp.array(noise_value)
 
         noise = mock.Mock(side_effect=test_noise)
@@ -93,8 +95,9 @@ class TestGradientNoise(unittest.TestCase):
             calls.append(mock.call(xp, (2, 3), np.dtype('float32'), hook,
                                    param.update_rule))
 
-        # TODO(kshitij12345): assert with call permutations.
-        assert(noise.mock_calls == calls)
+        # Order does not matter
+        assert(any([noise.mock_calls == list(permuted_calls)
+                    for permuted_calls in itertools.permutations(calls)]))
 
     def test_gradient_noise(self, backend_config0,
                             backend_config1, backend_config2):
