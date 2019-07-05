@@ -318,7 +318,7 @@ def lstm(c_prev, x):
         ``c`` is the updated cell state. ``h`` indicates the outgoing signal.
 
     See the original paper proposing LSTM with forget gates:
-    `Long Short-Term Memory in Recurrent Neural Networks \
+    `Long Short-Term Memory in Recurrent Neural Networks
     <http://www.felixgers.de/papers/phd.pdf>`_.
 
     .. seealso::

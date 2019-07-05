@@ -378,7 +378,7 @@ def slstm(c_prev1, c_prev2, x1, x2):
         tuple: Two :class:`~chainer.Variable` objects ``c`` and ``h``. ``c`` is
         the cell state. ``h`` indicates the outgoing signal.
 
-    See detail in paper: `Long Short-Term Memory Over Tree Structures \
+    See detail in paper: `Long Short-Term Memory Over Tree Structures
     <https://arxiv.org/abs/1503.04881>`_.
 
     .. admonition:: Example

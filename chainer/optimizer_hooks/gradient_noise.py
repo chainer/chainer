@@ -39,7 +39,7 @@ class GradientNoise(object):
             the default noise function, it is recommended that it be either
             0.01, 0.3 or 1.0.
         noise_func (function): Noise generating function which by default
-            is given by `Adding Gradient Noise Improves Learning for Very Deep\
+            is given by `Adding Gradient Noise Improves Learning for Very Deep
             Networks <https://arxiv.org/pdf/1511.06807>`_.
 
     Attributes:

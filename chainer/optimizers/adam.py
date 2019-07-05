@@ -78,23 +78,23 @@ class AdamRule(optimizer.UpdateRule):
 
     """Update rule of Adam optimization algorithm.
 
-    See: `Adam: A Method for Stochastic Optimization \
-          <https://arxiv.org/abs/1412.6980v8>`_
+    See: `Adam: A Method for Stochastic Optimization
+    <https://arxiv.org/abs/1412.6980v8>`_
 
     Modified for proper weight decay.
 
-    See: `Fixing Weight Decay Regularization in Adam \
-          <https://openreview.net/forum?id=rk6qdGgCZ>`_
+    See: `Fixing Weight Decay Regularization in Adam
+    <https://openreview.net/forum?id=rk6qdGgCZ>`_
 
     With option to use AMSGrad variant of Adam.
 
-    See: `On the Convergence of Adam and Beyond \
-          <https://openreview.net/forum?id=ryQu7f-RZ>`_
+    See: `On the Convergence of Adam and Beyond
+    <https://openreview.net/forum?id=ryQu7f-RZ>`_
 
     With option to use AdaBound variant of Adam.
 
-    See: `Adaptive Gradient Methods with Dynamic Bound of Learning Rate \
-          <https://openreview.net/forum?id=Bkg3g2R9FX>`
+    See: `Adaptive Gradient Methods with Dynamic Bound of Learning Rate
+    <https://openreview.net/forum?id=Bkg3g2R9FX>`
 
     See :class:`~chainer.optimizers.Adam` for the default values
     of the hyperparameters.
@@ -340,8 +340,8 @@ class Adam(optimizer.GradientMethod):
 
     """Adam optimizer.
 
-    See: `Adam: A Method for Stochastic Optimization \
-          <https://arxiv.org/abs/1412.6980v8>`_
+    See: `Adam: A Method for Stochastic Optimization
+    <https://arxiv.org/abs/1412.6980v8>`_
 
     Modified for proper weight decay (also called AdamW).
     AdamW introduces the additional parameters ``eta``
@@ -353,16 +353,16 @@ class Adam(optimizer.GradientMethod):
     ``weight_decay_rate = 0``, this implementation is identical to
     the standard Adam method.
 
-    See: `Fixing Weight Decay Regularization in Adam \
-          <https://openreview.net/forum?id=rk6qdGgCZ>`_
+    See: `Fixing Weight Decay Regularization in Adam
+    <https://openreview.net/forum?id=rk6qdGgCZ>`_
 
     A flag ``amsgrad`` to use the AMSGrad variant of Adam from
-    the paper: `On the Convergence of Adam and Beyond \
-               <https://openreview.net/forum?id=ryQu7f-RZ>`_
+    the paper: `On the Convergence of Adam and Beyond
+    <https://openreview.net/forum?id=ryQu7f-RZ>`_
 
     A flag ``adabound`` to use the AdaBound variant of Adam from
-    the paper: `Adaptive Gradient Methods with Dynamic Bound of Learning Rate \
-               <https://openreview.net/forum?id=Bkg3g2R9FX>`_
+    the paper: `Adaptive Gradient Methods with Dynamic Bound of Learning Rate
+    <https://openreview.net/forum?id=Bkg3g2R9FX>`_
 
     Args:
         alpha (float): Coefficient of learning rate.

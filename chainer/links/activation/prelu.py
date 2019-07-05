@@ -11,8 +11,8 @@ class PReLU(link.Link):
         shape (tuple of ints): Shape of the parameter array.
         init (float): Initial parameter value.
 
-    See the paper for details: `Delving Deep into Rectifiers: Surpassing \
-    Human-Level Performance on ImageNet Classification \
+    See the paper for details: `Delving Deep into Rectifiers: Surpassing
+    Human-Level Performance on ImageNet Classification
     <https://arxiv.org/abs/1502.01852>`_.
 
     To try PReLU instead of ReLU, replace ``F.relu`` with individual ``PReLU``

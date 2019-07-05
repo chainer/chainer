@@ -58,7 +58,7 @@ def zoneout(h, x, ratio=.5, **kwargs):
     Returns:
         ~chainer.Variable: Output variable.
 
-    See the paper: `Zoneout: Regularizing RNNs by Randomly Preserving Hidden \
+    See the paper: `Zoneout: Regularizing RNNs by Randomly Preserving Hidden
     Activations <https://arxiv.org/abs/1606.01305>`_.
 
     """
