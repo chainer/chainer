@@ -18,7 +18,7 @@
 #include "chainerx/routines/creation.h"
 #include "chainerx/shape.h"
 
-#ifdef CHAINERX_ENABLE_LAPACK
+#if CHAINERX_ENABLE_LAPACK
 extern "C" {
 // gesv
 void dgesv_(int* n, int* nrhs, double* a, int* lda, int* ipiv, double* b, int* ldb, int* info);
@@ -53,7 +53,7 @@ void Getri(int /*n*/, T* /*a*/, int /*lda*/, int* /*ipiv*/, T* /*work*/, int /*l
     throw DtypeError{"Only Arrays of float or double type are supported by getri (Inverse LU)"};
 }
 
-#ifdef CHAINERX_ENABLE_LAPACK
+#if CHAINERX_ENABLE_LAPACK
 template <>
 void Gesv<double>(int n, int nrhs, double* a, int lda, int* ipiv, double* b, int ldb, int* info) {
     dgesv_(&n, &nrhs, a, &lda, ipiv, b, &ldb, info);
@@ -153,12 +153,7 @@ void InverseImpl(const Array& a, const Array& out) {
 class NativeSolveKernel : public SolveKernel {
 public:
     void Call(const Array& a, const Array& b, const Array& out) override {
-#ifndef CHAINERX_ENABLE_LAPACK
-        (void)a;  // unused
-        (void)b;  // unused
-        (void)out;  // unused
-        throw ChainerxError{"LAPACK is not linked to ChainerX."};
-#else  // CHAINERX_ENABLE_LAPACK
+#if CHAINERX_ENABLE_LAPACK
         CHAINERX_ASSERT(a.ndim() == 2);
         CHAINERX_ASSERT(a.shape()[0] == a.shape()[1]);
 
@@ -166,6 +161,11 @@ public:
             using T = typename decltype(pt)::type;
             SolveImpl<T>(a, b, out);
         });
+#else  // CHAINERX_ENABLE_LAPACK
+        (void)a;  // unused
+        (void)b;  // unused
+        (void)out;  // unused
+        throw ChainerxError{"LAPACK is not linked to ChainerX."};
 #endif  // CHAINERX_ENABLE_LAPACK
     }
 };
@@ -175,11 +175,8 @@ CHAINERX_NATIVE_REGISTER_KERNEL(SolveKernel, NativeSolveKernel);
 class NativeInverseKernel : public InverseKernel {
 public:
     void Call(const Array& a, const Array& out) override {
-#ifndef CHAINERX_ENABLE_LAPACK
-        (void)a;  // unused
-        (void)out;  // unused
-        throw ChainerxError{"LAPACK is not linked to ChainerX."};
-#else  // CHAINERX_ENABLE_LAPACK
+#if CHAINERX_ENABLE_LAPACK
+
         CHAINERX_ASSERT(a.ndim() == 2);
         CHAINERX_ASSERT(a.shape()[0] == a.shape()[1]);
 
@@ -187,6 +184,10 @@ public:
             using T = typename decltype(pt)::type;
             InverseImpl<T>(a, out);
         });
+#else  // CHAINERX_ENABLE_LAPACK
+        (void)a;  // unused
+        (void)out;  // unused
+        throw ChainerxError{"LAPACK is not linked to ChainerX."};
 #endif  // CHAINERX_ENABLE_LAPACK
     }
 };

@@ -115,6 +115,7 @@ if(${CHAINERX_ENABLE_LAPACK})
         add_definitions(-DCHAINERX_ENABLE_LAPACK=1)
     else()
         message(STATUS "LAPACK not found")
+        add_definitions(-DCHAINERX_ENABLE_LAPACK=0)
     endif()
 endif()
 
