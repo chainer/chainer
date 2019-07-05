@@ -159,7 +159,7 @@ class DecorrelatedBatchNormalizationGrad(function_node.FunctionNode):
         f = gy_hat_pca.mean(axis=2, keepdims=True)
 
         K = eigvals[:, :, None] - eigvals[:, None, :]
-        valid = K != 0
+        valid = K != 0  # to avoid nan, use eig_i != eig_j instead of i != j
         K[valid] = xp.reciprocal(K[valid])
 
         V = _diag(eigvals, xp)
