@@ -173,14 +173,16 @@ class TestInverse(NumpyLinalgOpTest):
 @chainer.testing.parameterize(*(
     # Special shapes
     chainer.testing.product({
-        'shape': [(2, 3), (3, 2)],
-        'in_dtypes': ['float32', 'float64'],
+        'shape': [(2, 3), (3, 2), (3, 3)],
+        'in_dtypes': ['float16', 'float32', 'float64'],
     })
 ))
 class TestInverseFailing(NumpyLinalgOpTest):
 
     forward_accept_errors = (numpy.linalg.LinAlgError,
-                             chainerx.DimensionError)
+                             chainerx.DimensionError,
+                             TypeError,
+                             chainerx.DtypeError)
 
     def generate_inputs(self):
         a = numpy.random.random(self.shape).astype(self.in_dtypes)
