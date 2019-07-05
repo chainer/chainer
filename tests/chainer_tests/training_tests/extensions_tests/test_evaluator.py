@@ -272,4 +272,23 @@ class TestEvaluatorRepeat(unittest.TestCase):
                 extensions.Evaluator(iterator, {})
 
 
+class TestEvaluatorProgressBar(unittest.TestCase):
+
+    def setUp(self):
+        self.data = [
+            numpy.random.uniform(-1, 1, (3, 4)).astype('f') for _ in range(2)]
+
+        self.iterator = iterators.SerialIterator(
+            self.data, 1, repeat=False, shuffle=False)
+        self.target = DummyModel(self)
+        self.evaluator = extensions.Evaluator(
+            self.iterator, {}, eval_func=self.target, progress_bar=True)
+
+    def test_evaluator(self):
+        reporter = chainer.Reporter()
+        reporter.add_observer('target', self.target)
+        with reporter:
+            self.evaluator.evaluate()
+
+
 testing.run_module(__name__, __file__)

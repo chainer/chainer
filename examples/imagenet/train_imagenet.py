@@ -152,7 +152,7 @@ def main():
     if args.dali:
         if not dali_util._dali_available:
             raise RuntimeError('DALI seems not available on your system.')
-        if not isinstance(device, chainer.backend.cuda.GpuDevice):
+        if device.xp is not chainer.backend.cuda.cupy:
             raise RuntimeError('Using DALI requires GPU device. Please '
                                'specify it with --device option.')
         num_threads = args.loaderjob

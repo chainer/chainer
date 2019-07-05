@@ -5,6 +5,8 @@
 #include <string>
 #include <utility>
 
+#include <pybind11/cast.h>
+
 #include "chainerx/backend.h"
 #include "chainerx/context.h"
 #include "chainerx/device.h"
@@ -17,6 +19,7 @@ namespace python {
 namespace python_internal {
 
 namespace py = pybind11;  // standard convention
+using py::literals::operator""_a;
 
 Context& GetContext(py::handle handle) {
     if (handle.is_none()) {
@@ -59,19 +62,19 @@ void InitChainerxContext(pybind11::module& m) {
           py::return_value_policy::reference);
     c.def("make_backprop_id",
           [](Context& self, std::string backprop_name) { return self.MakeBackpropId(std::move(backprop_name)); },
-          py::arg("backprop_name"));
+          "backprop_name"_a);
     c.def("release_backprop_id",
           [](Context& self, const BackpropId& backprop_id) { return self.ReleaseBackpropId(backprop_id); },
-          py::arg("backprop_id"));
+          "backprop_id"_a);
     // For testing
     c.def("_check_valid_backprop_id",
           [](Context& self, const BackpropId& backprop_id) { return self.CheckValidBackpropId(backprop_id); },
-          py::arg("backprop_id"));
+          "backprop_id"_a);
 
     m.def("get_backend", &GetBackend, py::return_value_policy::reference);
     m.def("get_device",
           [](py::handle device) -> Device& { return GetDevice(device); },
-          py::arg("device") = nullptr,
+          "device"_a = nullptr,
           py::return_value_policy::reference);
     m.def("get_device",
           [](const std::string& backend_name, int index) -> Device& {

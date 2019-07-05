@@ -257,7 +257,7 @@ std::ostream& operator<<(std::ostream& os, const Array& array) {
     // TODO(hvy): We need to determine the output specification of this function, whether or not to align with Python repr specification,
     // and also whether this functionality should be defined in C++ layer or Python layer.
     // TODO(hvy): Consider using a static dimensionality.
-    VisitDtype(array.dtype(), [&](auto pt) { ArrayReprImpl<kDynamicNdim>{}.operator()<typename decltype(pt)::type>(array, os); });
+    VisitDtype(array.dtype(), [&os, &array](auto pt) { ArrayReprImpl<kDynamicNdim>{}.operator()<typename decltype(pt)::type>(array, os); });
     return os;
 }
 

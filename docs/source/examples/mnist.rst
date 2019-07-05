@@ -34,7 +34,7 @@ Load the MNIST dataset, which contains a training set of images and class labels
 
     a list of tuples like this can be used as a dataset.
 
-    There are many utility dataset classes defined in :mod:`~chainer.datasets`. It's recommended to utilize them in the actual applications.
+    There are many utility dataset classes defined in :mod:`~chainer.datasets`. It is recommended that you utilize them in the actual applications.
 
     For example, if your dataset consists of a number of image files, it would take a large amount of memory to load those data into a list like above. In that case, you can use :class:`~chainer.datasets.ImageDataset`, which just keeps the paths to image files. The actual image data will be loaded from the disk when the corresponding element is requested via ``[]`` accessor. Until then, no images are loaded to the memory to reduce memory use.
 

@@ -33,11 +33,24 @@ _dummy_context = _DummyContext()
 # TODO(niboshi): Write more detailed description about interface/usage.
 class Device(object):
     """A base class of unified devices.
+
+    Chainer has the following concrete implementations:
+
+    - :class:`chainer.backend.CpuDevice`
+    - :class:`chainer.backend.GpuDevice`
+    - :class:`chainer.backend.Intel64Device`
+    - :class:`chainer.backend.ChainerxDevice`
     """
 
     @property
     def xp(self):
         """Array module corresponding to the device."""
+        raise NotImplementedError(
+            'Device implementation must override this property.')
+
+    @property
+    def name(self):
+        """A unique name of the device."""
         raise NotImplementedError(
             'Device implementation must override this property.')
 
@@ -51,6 +64,9 @@ class Device(object):
         """
         raise NotImplementedError(
             'Device implementation must override this property.')
+
+    def __str__(self):
+        return self.name
 
     def __enter__(self):
         """A dummy definition that simply raises RuntimeError.
@@ -73,6 +89,9 @@ class Device(object):
 
     def __ne__(self, other):
         return not (self == other)
+
+    def __hash__(self):
+        return hash(self.name)
 
     def create_context(self):
         """Returns a context manager in which the device is made current.
@@ -98,3 +117,14 @@ class Device(object):
         """Makes the device current in the current thread.
          """
         pass
+
+    def is_array_supported(self, array):
+        """Returns if the specified array is compatible with the device.
+        Args:
+            array (:ref:`ndarray`): An array to be checked
+        Returns:
+            ``True`` if the array is compatible with the device. Otherwise
+            ``False`` is returned.
+        """
+        raise NotImplementedError(
+            'Device implementation must override this method.')

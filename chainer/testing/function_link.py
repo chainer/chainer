@@ -1,9 +1,9 @@
 import contextlib
-import six
 import typing as tp  # NOQA
 import unittest
 
 import numpy
+import six
 
 import chainer
 from chainer import backend

@@ -5,7 +5,6 @@ import inspect
 import traceback
 import weakref
 
-import numpy
 import six
 
 import chainer
@@ -22,10 +21,15 @@ from chainer import variable
 import chainerx
 
 
-def _to_variable_with_chainerx_fallback_array(chainerx_array, fallback_array):
+def _to_variable_with_chainerx_fallback_array(
+        chainerx_device, chainerx_array, fallback_array):
     # chainerx_array can be None.
-    var = variable.Variable(
+    assert (
+        chainerx_array is None
+        or chainerx_array.device == chainerx_device.device)
+    var = variable.Variable._init_unchecked(
         chainerx_array,
+        device=chainerx_device,
         requires_grad=(
             False if chainerx_array is None
             else chainerx_array.is_backprop_required()))
@@ -219,9 +223,9 @@ class FunctionNode(object):
 Chainer's built-in function class object ({}) which is derived from \
 chainer.FunctionNode has been called as if it were a callable. \
 Use FunctionNode.apply() method instead.
-Furthermore, it's not recommended to use built-in function classes directly; \
-use corresponding function aliases (those with snake_case name, such as \
-F.convolution_nd) instead.\
+Furthermore, it's not recommended that you use built-in function classes \
+directly; use corresponding function aliases (those with snake_case name, \
+such as F.convolution_nd) instead.\
 '''.format(self.__class__.__name__)
         else:
             msg = '''\
@@ -240,9 +244,9 @@ Use apply() method instead.\
 
         .. note::
 
-           If the :data:`~Variable.data` attribute of input variables exist on
-           a GPU device, that device is made current before calling
-           :meth:`forward`, so implementors do not need to take care of device
+           If the :data:`~Variable.data` attributes of the input variables
+           exist on a GPU device, that device is made current before calling
+           :meth:`forward`, so implementers do not need to take care of device
            selection in most cases.
 
         Args:
@@ -306,7 +310,7 @@ Use apply() method instead.\
             hook.forward_preprocess(self, in_data)
 
         # Forward propagation
-        with cuda.get_device_from_array(*in_data):
+        with chainer.using_device(backend.get_device_from_array(*in_data)):
             self._input_indexes_to_retain = None
             self._output_indexes_to_retain = None
             if chainer.config.schedule_func is not None:
@@ -339,16 +343,17 @@ Use apply() method instead.\
 
         # NaN check of output values
         if is_debug:
-            if any(chainer.backend._contains_nan(out)
-                   for out in outputs):
-                msg = ('NaN is detected on forward computation of '
-                       '{}'.format(self.label))
-                raise RuntimeError(msg)
+            for out in outputs:
+                if out is not None and chainer.backend._contains_nan(out):
+                    msg = ('NaN is detected on forward computation of '
+                           '{}'.format(self.label))
+                    raise RuntimeError(msg)
 
         self._output_count = len(outputs)
 
         if self._is_chainerx_fallback_mode:
             ret = self._chainerx_apply_fallback_postprocess(
+                chainerx_device,
                 chainerx_in_data, inputs, outputs)
 
         else:
@@ -442,11 +447,11 @@ Use apply() method instead.\
         return chainerx_in_data, in_data, device
 
     def _chainerx_apply_fallback_postprocess(
-            self, chainerx_in_data, inputs, outputs):
+            self, chainerx_device, chainerx_in_data, inputs, outputs):
 
         # TODO(hvy): Take configuration.config.enable_backprop into
         # account?
-        chainerx_out_data = backend.to_chx(outputs)
+        chainerx_out_data = chainerx_device.send(outputs)
 
         # Insert a ChainerX op-node that calls FunctionNode.backward in
         # backprop. Note that chainerx_out_data may not require gradients.
@@ -463,6 +468,7 @@ Use apply() method instead.\
 
         ret = tuple([
             _to_variable_with_chainerx_fallback_array(
+                chainerx_device,
                 chainerx_out_array, out_array)
             for chainerx_out_array, out_array
             in six.moves.zip(chainerx_out_data, outputs)])
@@ -868,11 +874,15 @@ Use apply() method instead.\
 
     def unchain(self):
         """Purges in/out nodes and this function node itself from the graph."""
+        if self._is_chainerx_fallback_mode:
+            raise NotImplementedError(
+                'Unchaining is not yet supported in ChainerX fallback mode.')
         for y in self.outputs:
             y_ref = y()
             if y_ref is not None:
                 y_ref.unchain()
         self.inputs = None
+        self.outputs = None
 
     def add_hook(self, hook, name=None):
         """Registers a function hook.
@@ -1059,14 +1069,11 @@ def grad(outputs, inputs, grad_outputs=None, grad_inputs=None, set_grad=False,
         grad_outputs = (None,) * len(outputs)
     for y, gy in zip(outputs, grad_outputs):
         if gy is None:
-            with cuda.get_device_from_array(y.data) as device:
-                if device is cuda.DummyDevice:
-                    gy_data = numpy.ones_like(y.data)
-                else:
-                    gy_data = cuda.cupy.ones_like(y.data)
+            with chainer.using_device(y.device):
+                gy_data = y.device.xp.ones_like(y.array)
                 gy = variable.Variable(gy_data, requires_grad=False)
-            if loss_scale is not None:
-                gy.data *= loss_scale
+                if loss_scale is not None:
+                    gy.data *= loss_scale
         grads[y.node] = gy
 
     if grad_inputs is not None:
@@ -1148,7 +1155,7 @@ def _backprop(outputs, inputs, grad_required, retain_grad, grads, loss_scale):
         in_data = [x.data for x in func.inputs]
         out_grad_data = [None if g is None else g.data for g in gys]
 
-        with cuda.get_device_from_array(*in_data):
+        with chainer.using_device(backend.get_device_from_array(*in_data)):
             for hook in hooks:
                 hook.backward_preprocess(
                     func, tuple(in_data), tuple(out_grad_data))

@@ -7,10 +7,11 @@
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
 #include "chainerx/float16.h"
-#include "chainerx/kernels/math.h"
+#include "chainerx/kernels/arithmetic.h"
 #include "chainerx/native/elementwise.h"
 #include "chainerx/native/kernel_regist.h"
-#include "chainerx/routines/math.h"
+#include "chainerx/numeric.h"
+#include "chainerx/routines/arithmetic.h"
 #include "chainerx/scalar.h"
 
 namespace chainerx {
@@ -194,18 +195,18 @@ public:
 
 CHAINERX_NATIVE_REGISTER_KERNEL(DivideSAKernel, NativeDivideSAKernel);
 
-CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_BINARY_KERNEL(BitwiseAndKernel, { out = x1 & x2; }, VisitIntegralDtype);
+CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_BINARY_KERNEL(PowerKernel, { out = chainerx::Power(x1, x2); }, VisitNumericDtype);
 
-class NativeBitwiseAndASKernel : public BitwiseAndASKernel {
+class NativePowerASKernel : public PowerASKernel {
 public:
     void Call(const Array& x1, Scalar x2, const Array& out) override {
         Device& device = x1.device();
         device.CheckDevicesCompatible(x1, out);
         const Array& x1_cast = x1.dtype() == out.dtype() ? x1 : x1.AsType(out.dtype());
-        VisitIntegralDtype(out.dtype(), [&](auto pt) {
+        VisitNumericDtype(out.dtype(), [&](auto pt) {
             using T = typename decltype(pt)::type;
             struct Impl {
-                void operator()(int64_t /*i*/, T x1, T& out) { out = x1 & x2; }
+                void operator()(int64_t /*i*/, T x1, T& out) { out = chainerx::Power(x1, x2); }
                 T x2;
             };
             Elementwise<const T, T>(Impl{static_cast<T>(x2)}, x1_cast, out);
@@ -213,49 +214,26 @@ public:
     }
 };
 
-CHAINERX_NATIVE_REGISTER_KERNEL(BitwiseAndASKernel, NativeBitwiseAndASKernel);
+CHAINERX_NATIVE_REGISTER_KERNEL(PowerASKernel, NativePowerASKernel);
 
-CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_BINARY_KERNEL(BitwiseOrKernel, { out = x1 | x2; }, VisitIntegralDtype);
-
-class NativeBitwiseOrASKernel : public BitwiseOrASKernel {
+class NativePowerSAKernel : public PowerSAKernel {
 public:
-    void Call(const Array& x1, Scalar x2, const Array& out) override {
-        Device& device = x1.device();
-        device.CheckDevicesCompatible(x1, out);
-        const Array& x1_cast = x1.dtype() == out.dtype() ? x1 : x1.AsType(out.dtype());
-        VisitIntegralDtype(out.dtype(), [&](auto pt) {
+    void Call(Scalar x1, const Array& x2, const Array& out) override {
+        Device& device = x2.device();
+        device.CheckDevicesCompatible(x2, out);
+        const Array& x2_cast = x2.dtype() == out.dtype() ? x2 : x2.AsType(out.dtype());
+        VisitNumericDtype(out.dtype(), [&](auto pt) {
             using T = typename decltype(pt)::type;
             struct Impl {
-                void operator()(int64_t /*i*/, T x1, T& out) { out = x1 | x2; }
-                T x2;
+                void operator()(int64_t /*i*/, T x2, T& out) { out = chainerx::Power(x1, x2); }
+                T x1;
             };
-            Elementwise<const T, T>(Impl{static_cast<T>(x2)}, x1_cast, out);
+            Elementwise<const T, T>(Impl{static_cast<T>(x1)}, x2_cast, out);
         });
     }
 };
 
-CHAINERX_NATIVE_REGISTER_KERNEL(BitwiseOrASKernel, NativeBitwiseOrASKernel);
-
-CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_BINARY_KERNEL(BitwiseXorKernel, { out = x1 ^ x2; }, VisitIntegralDtype);
-
-class NativeBitwiseXorASKernel : public BitwiseXorASKernel {
-public:
-    void Call(const Array& x1, Scalar x2, const Array& out) override {
-        Device& device = x1.device();
-        device.CheckDevicesCompatible(x1, out);
-        const Array& x1_cast = x1.dtype() == out.dtype() ? x1 : x1.AsType(out.dtype());
-        VisitIntegralDtype(out.dtype(), [&](auto pt) {
-            using T = typename decltype(pt)::type;
-            struct Impl {
-                void operator()(int64_t /*i*/, T x1, T& out) { out = x1 ^ x2; }
-                T x2;
-            };
-            Elementwise<const T, T>(Impl{static_cast<T>(x2)}, x1_cast, out);
-        });
-    }
-};
-
-CHAINERX_NATIVE_REGISTER_KERNEL(BitwiseXorASKernel, NativeBitwiseXorASKernel);
+CHAINERX_NATIVE_REGISTER_KERNEL(PowerSAKernel, NativePowerSAKernel);
 
 }  // namespace
 }  // namespace native

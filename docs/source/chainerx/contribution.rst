@@ -9,6 +9,10 @@ It describes how to build the project and how to run the test suite so that you 
     Please refer to the :ref:`Chainer Contribution Guide <contrib>` for the more general contribution guideline that is not specific to ChainerX.
     E.g. how to download the source code, manage git branches, send pull requests or contribute to Chainer's Python code base.
 
+.. note::
+    There is a public `ChainerX Product Backlog <https://docs.google.com/spreadsheets/d/1daitXlRhHu7eZENFUs1cHw8o12rmA8bvudUQ0Yof8Jc>`__.
+
+
 Building the shared library
 ---------------------------
 
@@ -122,48 +126,3 @@ Run tests without CUDA GPU:
 .. code-block:: console
 
     $ pytest -m 'not cuda' tests/chainerx_tests
-
-Test coverage
--------------
-
-We use `gcov <https://gcc.gnu.org/onlinedocs/gcc/Gcov.html>`_ to the measure C++ code coverage.
-Build the Python package in ``Debug`` mode, and build C++ test suite as:
-
-.. code-block:: console
-
-    $ python setup.py build --debug --build-temp ./build --build-lib ./build develop
-    $ mkdir -p build
-    $ cd build
-    $ cmake -DCMAKE_BUILD_TYPE=Debug -DCHAINERX_BUILD_PYTHON=1 -DCHAINERX_ENABLE_COVERAGE ..
-    $ make
-
-Run both the Python and the C++ test suite:
-
-.. code-block:: console
-
-    $ pytest
-    $ cd build
-    $ ctest -V
-
-Then find the ``.gcda`` files:
-
-.. code-block:: console
-
-    $ find build -name '*.gcda'
-
-Use the ``gcov`` command to get coverage:
-
-.. code-block:: console
-
-    $ gcov ./build/chainerx/CMakeFiles/chainerx.dir/chainerx.gcda
-
-See generated ``.gcov`` files.
-
-You can also generate HTML coverage reports with `lcov <https://github.com/linux-test-project/lcov>`_. After running tests:
-
-.. code-block:: console
-
-    $ lcov -c -b chainerx -d build/chainerx/ --no-external -o build/coverage.info
-    $ genhtml build/coverage.info -o build/coverage
-
-Then open ``build/coverage/index.html`` with any browsers.

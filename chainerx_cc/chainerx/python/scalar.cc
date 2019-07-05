@@ -22,8 +22,6 @@ namespace py = pybind11;  // standard convention
 
 namespace {
 
-using internal::MoveArrayBody;
-
 Scalar HandleToScalar(py::handle obj) {
     if (py::isinstance<Scalar>(obj)) {
         return py::cast<Scalar>(obj);
