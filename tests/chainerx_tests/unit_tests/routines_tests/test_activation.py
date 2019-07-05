@@ -297,7 +297,7 @@ class TestLeakyRelu(UnaryMathTestBase, op_utils.NumpyOpTest):
         'in_dtypes,out_dtype': _in_out_dtypes_math_functions,
         'input': [-2, 2],
         'contiguous': [None, 'C'],
-        'beta_range': [(1.0, 2.0), Unspecified],
+        'beta_range': [(-2.0, 0.0), (1.0, 2.0), Unspecified],
     })
     # Special values
     + chainer.testing.product({
@@ -306,7 +306,7 @@ class TestLeakyRelu(UnaryMathTestBase, op_utils.NumpyOpTest):
         'input': [0, float('inf'), -float('inf'), float('nan')],
         'skip_backward_test': [True],
         'skip_double_backward_test': [True],
-        'beta_range': [(1.0, 2.0), Unspecified],
+        'beta_range': [(-2.0, 0.0), (1.0, 2.0), Unspecified],
     })
 ))
 class TestSoftplus(UnaryMathTestBase, op_utils.NumpyOpTest):
