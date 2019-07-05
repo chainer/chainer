@@ -119,7 +119,7 @@ class TestIntervalTrigger(unittest.TestCase):
     def test_str(self):
         trigger = training.triggers.IntervalTrigger(*self.interval)
 
-        expected = 'IntervalTrigger(%d, \'%s\')' % tuple(self.interval)
+        expected = 'IntervalTrigger({}, \'{}\')'.format(*self.interval)
         actual = str(trigger)
 
         self.assertEqual(expected, actual)
