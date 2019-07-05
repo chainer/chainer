@@ -118,6 +118,6 @@ class IntervalTrigger(object):
         Returns:
             str: IntervalTrigger(<period>, '<unit>')
         """
-        return '%s(%d, \'%s\')' % (
+        return '{}({}, \'{}\')'.format(
             self.__class__.__name__, self.period, self.unit
         )
