@@ -240,8 +240,8 @@ Use apply() method instead.\
 
         .. note::
 
-           If the :data:`~Variable.data` attributes of the input variables exist on
-           a GPU device, that device is made current before calling
+           If the :data:`~Variable.data` attributes of the input variables
+           exist on a GPU device, that device is made current before calling
            :meth:`forward`, so implementers do not need to take care of device
            selection in most cases.
 
