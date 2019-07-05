@@ -148,6 +148,7 @@ class DecorrelatedBatchNormalizationGrad(function_node.FunctionNode):
         g = self.groups
         C = c // g
         spatial_axis, m = _calc_axis_and_m(gy_shape, b, g)
+        diag_indices = slice(None), numpy.arange(C), numpy.arange(C)
 
         gy_hat = gy.transpose((1, 0) + spatial_axis).reshape(g, C, m)
 
@@ -156,8 +157,6 @@ class DecorrelatedBatchNormalizationGrad(function_node.FunctionNode):
         y_hat_pca = self.y_hat_pca
         gy_hat_pca = _matmul(eigvectors.transpose(0, 2, 1), gy_hat, xp)
         f = gy_hat_pca.mean(axis=2, keepdims=True)
-
-        diag_indices = slice(None), numpy.arange(C), numpy.arange(C)
 
         K = eigvals[:, :, None] - eigvals[:, None, :]
         valid = K != 0
