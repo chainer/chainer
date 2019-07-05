@@ -138,7 +138,13 @@ Array Solve(const Array& a, const Array& b) {
                 const Array& a = bctx.GetRetainedInput(a_tok);
                 const Array& out = bctx.GetRetainedOutput(out_tok);
                 const Array& gout = *bctx.output_grad();
-                bctx.input_grad() = -Dot(ExpandDims(Solve(a.Transpose(), gout), 1), ExpandDims(out, 0), a_dtype);
+                auto updim = [&](const Array& x) {
+                    if (x.ndim() == a.ndim())
+                        return x;
+                    else
+                        return ExpandDims(x, 1);
+                };
+                bctx.input_grad() = -Dot(updim(Solve(a.Transpose(), gout)), updim(out).Transpose(), a_dtype);
             });
         }
         if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {

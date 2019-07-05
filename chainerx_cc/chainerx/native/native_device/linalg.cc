@@ -103,8 +103,8 @@ void SolveImpl(const Array& a, const Array& b, const Array& out) {
     Array ipiv = Empty(Shape{n}, Dtype::kInt32, device);
     int* ipiv_ptr = static_cast<int*>(internal::GetRawOffsetData(ipiv));
 
-    device.backend().CallKernel<CopyKernel>(b, out);
-    T* out_ptr = static_cast<T*>(internal::GetRawOffsetData(out));
+    Array out_transposed = b.Transpose().Copy();
+    T* out_ptr = static_cast<T*>(internal::GetRawOffsetData(out_transposed));
 
     int info;
     Gesv(n, nrhs, lu_ptr, n, ipiv_ptr, out_ptr, n, &info);
@@ -112,6 +112,8 @@ void SolveImpl(const Array& a, const Array& b, const Array& out) {
     if (info != 0) {
         throw ChainerxError{"Unsuccessfull gesv (Solve) execution. Info = ", info};
     }
+
+    device.backend().CallKernel<CopyKernel>(out_transposed.Transpose(), out);
 }
 
 template <typename T>

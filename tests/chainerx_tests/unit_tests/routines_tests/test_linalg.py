@@ -110,14 +110,20 @@ class NumpyLinalgOpTest(op_utils.NumpyOpTest):
 @chainer.testing.parameterize(*(
     chainer.testing.product({
         'shape': [(1, 1), (3, 3), (6, 6)],
-        'in_dtypes': ['float32', 'float64'],
+        'b_two_dim': [True, False],
+        'b_columns': [1, 3, 4],
+        'in_dtypes': ['float32', 'float64']
     })
 ))
 class TestSolve(NumpyLinalgOpTest):
 
     def generate_inputs(self):
         a = numpy.random.random(self.shape).astype(self.in_dtypes)
-        b = numpy.random.random(self.shape[0]).astype(self.in_dtypes)
+        if self.b_two_dim:
+            b = numpy.random.random(
+                (self.shape[0], self.b_columns)).astype(self.in_dtypes)
+        else:
+            b = numpy.random.random(self.shape[0]).astype(self.in_dtypes)
         return a, b
 
     def forward_xp(self, inputs, xp):

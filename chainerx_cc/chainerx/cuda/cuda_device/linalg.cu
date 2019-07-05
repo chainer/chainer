@@ -124,6 +124,10 @@ void SolveImpl(const Array& a, const Array& b, const Array& out) {
     T* lu_ptr = static_cast<T*>(internal::GetRawOffsetData(lu_matrix));
 
     int m = a.shape()[0];
+    int nrhs = 1;
+    if (b.ndim() == 2) {
+        nrhs = b.shape()[1];
+    }
 
     Array ipiv = Empty(Shape{m}, Dtype::kInt32, device);
     int* ipiv_ptr = static_cast<int*>(internal::GetRawOffsetData(ipiv));
@@ -145,16 +149,18 @@ void SolveImpl(const Array& a, const Array& b, const Array& out) {
         throw ChainerxError{"Unsuccessfull getrf (LU) execution. Info = ", devinfo_h};
     }
 
-    device.backend().CallKernel<CopyKernel>(b, out);
-    T* out_ptr = static_cast<T*>(internal::GetRawOffsetData(out));
+    Array out_transposed = b.Transpose().Copy();
+    T* out_ptr = static_cast<T*>(internal::GetRawOffsetData(out_transposed));
 
     device_internals.cusolverdn_handle().Call(
-            Getrs<T>, CUBLAS_OP_N, m, m, lu_ptr, m, ipiv_ptr, out_ptr, m, static_cast<int*>(devinfo.get()));
+            Getrs<T>, CUBLAS_OP_N, m, nrhs, lu_ptr, m, ipiv_ptr, out_ptr, m, static_cast<int*>(devinfo.get()));
 
     device.MemoryCopyTo(&devinfo_h, devinfo.get(), sizeof(int), native_device);
     if (devinfo_h != 0) {
         throw ChainerxError{"Unsuccessfull getrs (Solve) execution. Info = ", devinfo_h};
     }
+
+    device.backend().CallKernel<CopyKernel>(out_transposed.Transpose(), out);
 }
 
 }  // namespace
@@ -192,7 +198,7 @@ public:
         // but cuSOLVER does not have it implemented, therefore inverse is obtained with ``getrs``
         // inv(A) == solve(A, Identity)
         Array b = Identity(a.shape()[0], dtype, device);
-        device.backend().CallKernel<SolveKernel>(a.Transpose(), b, out);
+        device.backend().CallKernel<SolveKernel>(a, b, out);
     }
 };
 
