@@ -32,14 +32,11 @@ namespace native {
 class NativeQRKernel : public QRKernel {
 public:
     std::tuple<Array, Array> Call(const Array& a, QRMode mode = QRMode::reduced) override {
+#if CHAINERX_ENABLE_LAPACK
         Device& device = a.device();
         Dtype dtype = a.dtype();
 
         CHAINERX_ASSERT(a.ndim() == 2);
-
-#ifndef CHAINERX_LAPACK_AVAILABLE
-        throw ChainerxError{"LAPACK is not linked to ChainerX."};
-#endif  // CHAINERX_LAPACK_AVAILABLE
 
         int m = a.shape()[0];
         int n = a.shape()[1];
@@ -126,6 +123,11 @@ public:
             default:
                 CHAINERX_NEVER_REACH();
         }
+#else  // CHAINERX_ENABLE_LAPACK
+        (void)a;  // unused
+        (void)mode;  // unused
+        throw ChainerxError{"LAPACK is not linked to ChainerX."};
+#endif  // CHAINERX_ENABLE_LAPACK
     }
 };
 
