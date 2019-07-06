@@ -103,7 +103,21 @@ Array Cumsum(const Array& a, int8_t axis) {
 
     Shape out_shape = a.shape();
     Array out = Empty(out_shape, a.dtype(), a.device());
-    const Array& out_cast = out.dtype() == Dtype::kBool ? out.AsType(Dtype::kInt64) : out;
+    // Decide the output dtype for integral input dtype.
+    Dtype out_dtype{};
+    switch (GetKind(a.dtype())) {
+        case DtypeKind::kBool:
+        case DtypeKind::kInt:  // fallthrough
+            out_dtype = Dtype::kInt64;
+            break;
+        case DtypeKind::kUInt:
+            out_dtype = Dtype::kInt64;  // TODO(niboshi): This should be kUInt64
+            break;
+        default:
+            out_dtype = a.dtype();
+    }
+
+    const Array& out_cast = out.AsType(out_dtype);
     const Array& a_cast = a.dtype() != out_cast.dtype() ? a.AsType(out_cast.dtype()) : a;
 
     {

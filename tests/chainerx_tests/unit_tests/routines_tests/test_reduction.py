@@ -285,4 +285,4 @@ class TestCumsum(math_utils.UnaryMathTestBase, op_utils.NumpyOpTest):
                 {'rtol': 1e-2, 'atol': 1e-2})
 
     def func(self, xp, a):
-        return xp.cumsum(a, axis=self.axis).astype(self.out_dtype)
+        return xp.cumsum(a, axis=self.axis)
