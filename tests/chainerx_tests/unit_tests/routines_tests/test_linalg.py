@@ -95,6 +95,17 @@ def test_dot_invalid(is_module, xp, device, a_shape, b_shape, dtype):
         return a.dot(b)
 
 
+class NumpyLinalgOpTest(op_utils.NumpyOpTest):
+
+    dodge_nondifferentiable = True
+
+    def setup(self):
+        device = chainerx.get_default_device()
+        if (device.backend.name == 'native'
+                and not chainerx.linalg._is_lapack_available()):
+            pytest.skip('LAPACK is not linked to ChainerX')
+
+
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
     chainer.testing.product({
@@ -105,7 +116,7 @@ def test_dot_invalid(is_module, xp, device, a_shape, b_shape, dtype):
         'skip_double_backward_test': [True],
     })
 ))
-class TestQR(op_utils.NumpyOpTest):
+class TestQR(NumpyLinalgOpTest):
 
     def generate_inputs(self):
         a = numpy.random.random(self.shape).astype(self.in_dtypes)
