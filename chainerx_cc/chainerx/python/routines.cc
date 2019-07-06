@@ -366,8 +366,8 @@ void InitChainerxLinalg(pybind11::module& m) {
                 Array r = std::get<1>(qr);
                 return std::make_tuple(MoveArrayBody(Array{q}), MoveArrayBody(Array{r}));
             },
-            py::arg("a"),
-            py::arg("mode") = "reduced");
+            "a"_a,
+            "mode"_a = "reduced");
 }
 
 void InitChainerxLogic(pybind11::module& m) {
