@@ -46,6 +46,8 @@ class TestCreateMnBnModel(unittest.TestCase):
         self.assertTrue(
             isinstance(mnbn_model.bn,
                        chainermn.links.MultiNodeBatchNormalization))
+        x = mnbn_model.xp.zeros((1, 1, 1, 1))
+        mnbn_model(x)
 
     def test_create_mnbn_model_chain_list_cpu(self):
         model = BnChainList(3)
@@ -56,6 +58,8 @@ class TestCreateMnBnModel(unittest.TestCase):
         self.assertTrue(
             isinstance(mnbn_model[1],
                        chainermn.links.MultiNodeBatchNormalization))
+        x = mnbn_model.xp.zeros((1, 1, 1, 1))
+        mnbn_model(x)
 
     def test_create_mnbn_model_sequential_cpu(self):
         size = 3
