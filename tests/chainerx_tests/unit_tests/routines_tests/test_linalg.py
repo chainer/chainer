@@ -136,3 +136,26 @@ class TestQR(NumpyLinalgOpTest):
             if a.dtype.char == 'f':
                 return out[0].astype(xp.float64), out[1].astype(xp.float64)
         return out
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    chainer.testing.product({
+        'shape': [(1, 1), (2, 3), (3, 2), (6, 6)],
+        'in_dtypes': ['float16'],
+        'mode': ['r', 'raw', 'reduced', 'complete']
+    })
+))
+class TestQRFailing(NumpyLinalgOpTest):
+
+    forward_accept_errors = (TypeError,
+                             chainerx.DtypeError)
+
+    def generate_inputs(self):
+        a = numpy.random.random(self.shape).astype(self.in_dtypes)
+        return a,
+
+    def forward_xp(self, inputs, xp):
+        a, = inputs
+        out = xp.linalg.qr(a, mode=self.mode)
+        return out
