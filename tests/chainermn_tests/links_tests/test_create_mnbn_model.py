@@ -35,7 +35,7 @@ class TestCreateMnBnModel(unittest.TestCase):
     def setUp(self):
         self.communicator = chainermn.create_communicator('naive')
 
-    def test_create_mnbn_model_chain(self):
+    def test_create_mnbn_model_chain_cpu(self):
         model = BnChain(3)
         mnbn_model = chainermn.links.create_mnbn_model(model,
                                                        self.communicator)
@@ -45,7 +45,7 @@ class TestCreateMnBnModel(unittest.TestCase):
             isinstance(mnbn_model.bn,
                        chainermn.links.MultiNodeBatchNormalization))
 
-    def test_create_mnbn_model_chain_list(self):
+    def test_create_mnbn_model_chain_list_cpu(self):
         model = BnChainList(3)
         mnbn_model = chainermn.links.create_mnbn_model(model,
                                                        self.communicator)
@@ -55,7 +55,7 @@ class TestCreateMnBnModel(unittest.TestCase):
             isinstance(mnbn_model[1],
                        chainermn.links.MultiNodeBatchNormalization))
 
-    def test_create_mnbn_model_sequential(self):
+    def test_create_mnbn_model_sequential_cpu(self):
         size = 3
         model = chainer.Sequential(
             chainer.links.Convolution2D(
@@ -71,3 +71,55 @@ class TestCreateMnBnModel(unittest.TestCase):
             isinstance(mnbn_model[1],
                        chainermn.links.MultiNodeBatchNormalization))
         self.assertTrue(mnbn_model[2] == chainer.functions.relu)
+
+        x = mnbn_model.xp.zeros((1,1,1,1))
+        mnbn_model(x)
+
+    @chainer.testing.attr.gpu
+    def test_create_mnbn_model_chain_gpu(self):
+        model = BnChain(3)
+        mnbn_model = chainermn.links.create_mnbn_model(model,
+                                                       self.communicator)
+        self.assertTrue(isinstance(mnbn_model.conv,
+                                   chainer.links.Convolution2D))
+        self.assertTrue(
+            isinstance(mnbn_model.bn,
+                       chainermn.links.MultiNodeBatchNormalization))
+        device_id = self.communicator.intra_rank
+        mnbn_model.to_gpu(device=device_id)
+        with chainer.using_device(mnbn_model.device):
+            x = mnbn_model.xp.zeros((1,1,1,1))
+            mnbn_model(x)
+
+    def test_create_mnbn_model_chain_list_gpu(self):
+        model = BnChainList(3)
+        mnbn_model = chainermn.links.create_mnbn_model(model,
+                                                       self.communicator)
+        self.assertTrue(isinstance(mnbn_model[0],
+                                   chainer.links.Convolution2D))
+        self.assertTrue(
+            isinstance(mnbn_model[1],
+                       chainermn.links.MultiNodeBatchNormalization))
+        device_id = self.communicator.intra_rank
+        mnbn_model.to_gpu(device=device_id)
+        with chainer.using_device(mnbn_model.device):
+            x = mnbn_model.xp.zeros((1,1,1,1))
+            mnbn_model(x)
+
+    @chainer.testing.attr.gpu
+    def test_create_mnbn_model_sequential_cpu(self):
+        size = 3
+        model = chainer.Sequential(
+            chainer.links.Convolution2D(
+                None, size, 1, 1, 1, nobias=True),
+            chainer.links.BatchNormalization(size),
+            chainer.functions.relu
+        )
+        mnbn_model = chainermn.links.create_mnbn_model(model,
+                                                       self.communicator)
+
+        device_id = self.communicator.intra_rank
+        mnbn_model.to_gpu(device=device_id)
+        with chainer.using_device(mnbn_model.device):
+            x = mnbn_model.xp.zeros((1,1,1,1))
+            mnbn_model(x)
