@@ -32,7 +32,7 @@ class GroupNormalization(link.Link):
             If a scalar, the vector is filled by it.
             If ``numpy.ndarray``, the vector is set by it.
         cache_x_hat (bool): If ``True``, cache normalized input ``x`` for
-            faster backward. The default value is ``Nonee`` because Group
+            faster backward. The default value is ``False`` because Group
             Normalization is a normalization technique for training with
             very small batchsizes.
 
