@@ -129,12 +129,10 @@ public:
 
             Indexer<> left_indexer{left_shape};
             Indexer<> right_indexer{right_shape};
-            Indexer<> axis_indexer{axis_shape};
             Indexer<> indices_indexer{axis_shape};
 
             auto it_left = left_indexer.It(0);
             auto it_right = right_indexer.It(0);
-            auto it_axis = axis_indexer.It(0);
             auto it_out = out_indexer.It(0);
             auto it_prev = prev_indexer.It(0);
 
@@ -149,18 +147,14 @@ public:
                 CHAINERX_ASSERT(0 <= index);
                 CHAINERX_ASSERT(index < axis_dim);
 
-                it_axis.Restart(index);
-
                 it_out.CopyIndex(it, it_left.ndim());
-                it_prev.CopyIndex(it_axis, it_left.ndim());
 
                 for (it_left.Restart(); it_left; ++it_left) {
                     it_out.CopyIndex(it_left);
-                    it_prev.CopyIndex(it_left);
 
                     for (it_right.Restart(); it_right; ++it_right) {
                         it_out.CopyIndex(it_right, it_left.ndim() + it.ndim());
-                        it_prev.CopyIndex(it_right, it_left.ndim() + it_axis.ndim());
+                        it_prev.CopyIndex(it_out);
                         it_prev.index()[axis] -= 1;
                         native_internal::StorageToDataType<T>(out_iarray[it_out]) +=
                                 native_internal::StorageToDataType<T>(out_iarray[it_prev]);
