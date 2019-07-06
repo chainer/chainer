@@ -21,6 +21,8 @@
 #include "chainerx/routines/arithmetic.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/explog.h"
+#include "chainerx/routines/indexing.h"
+#include "chainerx/routines/logic.h"
 #include "chainerx/routines/manipulation.h"
 #include "chainerx/routines/routines_util.h"
 #include "chainerx/routines/statistics.h"
@@ -141,6 +143,34 @@ Array Cumsum(const Array& a, absl::optional<int8_t> axis) {
         });
     }
     bb.Finalize();
+    return out;
+}
+
+Array Nansum(const Array& a, const OptionalAxes& axis, bool keepdims) {
+    Axes sorted_axis = internal::GetSortedAxesOrAll(axis, a.ndim());
+    Array a_masked = Where(IsNan(a), 0, a);
+    // Decide the output dtype for integral input dtype.
+    Dtype out_dtype{};
+    switch (GetKind(a_masked.dtype())) {
+        case DtypeKind::kBool:
+        case DtypeKind::kInt:  // fallthrough
+            out_dtype = Dtype::kInt64;
+            break;
+        case DtypeKind::kUInt:
+            out_dtype = Dtype::kInt64;  // TODO(niboshi): This should be kUInt64
+            break;
+        default:
+            out_dtype = a.dtype();
+    }
+
+    Array out = internal::EmptyReduced(a_masked.shape(), out_dtype, sorted_axis, keepdims, a_masked.device());
+    {
+        NoBackpropModeScope scope{};
+        a.device().backend().CallKernel<NansumKernel>(a_masked, sorted_axis, out);
+    }
+
+    // Backward not implemented yet.
+
     return out;
 }
 

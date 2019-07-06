@@ -824,6 +824,11 @@ void InitChainerxReduction(pybind11::module& m) {
           [](const ArrayBodyPtr& a, const absl::optional<int8_t>& axis) { return MoveArrayBody(Cumsum(Array{a}, axis)); },
           "a"_a,
           "axis"_a = nullptr);
+    m.def("nansum",
+          [](const ArrayBodyPtr& a, int8_t axis, bool keepdims) { return MoveArrayBody(Nansum(Array{a}, Axes{axis}, keepdims)); },
+          "a"_a,
+          "axis"_a,
+          "keepdims"_a = false);
 }
 
 void InitChainerxRounding(pybind11::module& m) {
