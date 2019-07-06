@@ -74,7 +74,7 @@ class TestCreateMnBnModel(unittest.TestCase):
                        chainermn.links.MultiNodeBatchNormalization))
         self.assertTrue(mnbn_model[2] == chainer.functions.relu)
 
-        x = mnbn_model.xp.zeros((1,1,1,1))
+        x = mnbn_model.xp.zeros((1, 1, 1, 1))
         mnbn_model(x)
 
     @chainer.testing.attr.gpu
@@ -90,7 +90,7 @@ class TestCreateMnBnModel(unittest.TestCase):
         device_id = self.communicator.intra_rank
         mnbn_model.to_gpu(device=device_id)
         with chainer.using_device(mnbn_model.device):
-            x = mnbn_model.xp.zeros((1,1,1,1))
+            x = mnbn_model.xp.zeros((1, 1, 1, 1))
             mnbn_model(x)
 
     def test_create_mnbn_model_chain_list_gpu(self):
@@ -105,11 +105,11 @@ class TestCreateMnBnModel(unittest.TestCase):
         device_id = self.communicator.intra_rank
         mnbn_model.to_gpu(device=device_id)
         with chainer.using_device(mnbn_model.device):
-            x = mnbn_model.xp.zeros((1,1,1,1))
+            x = mnbn_model.xp.zeros((1, 1, 1, 1))
             mnbn_model(x)
 
     @chainer.testing.attr.gpu
-    def test_create_mnbn_model_sequential_cpu(self):
+    def test_create_mnbn_model_sequential_gpu(self):
         size = 3
         model = chainer.Sequential(
             chainer.links.Convolution2D(
@@ -123,5 +123,5 @@ class TestCreateMnBnModel(unittest.TestCase):
         device_id = self.communicator.intra_rank
         mnbn_model.to_gpu(device=device_id)
         with chainer.using_device(mnbn_model.device):
-            x = mnbn_model.xp.zeros((1,1,1,1))
+            x = mnbn_model.xp.zeros((1, 1, 1, 1))
             mnbn_model(x)
