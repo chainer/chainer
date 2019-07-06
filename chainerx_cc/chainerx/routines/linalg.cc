@@ -112,6 +112,45 @@ std::tuple<Array, Array> QR(const Array& a, QRMode mode) {
         std::tie(q, r) = a.device().backend().CallKernel<QRKernel>(a, mode);
     }
 
+    // Backward of (Q, R) = QR(A):
+    // dA = (dQ + symmetrize(M) * Q) * R^(-T), M = R * dR^T - dQ^T * Q
+    {
+        BackwardBuilder bb{"qr", a, {q, r}};
+        if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+            bt.Define([a_tok = bb.RetainInput(0), q_tok = bb.RetainOutput(0), r_tok = bb.RetainOutput(1), mode = mode](BackwardContext& bctx) {
+                if (mode == QRMode::r || mode == QRMode::raw) {
+                    throw ChainerxError{"ChainerX QR differentiation is not implemented for 'r' or 'raw' modes."};
+                }
+
+                const Array& a = bctx.GetRetainedInput(a_tok);
+                const Array& Q = bctx.GetRetainedOutput(q_tok);
+                const Array& R = bctx.GetRetainedOutput(r_tok);
+
+                if (R.shape()[0] != R.shape()[1]) {
+                    throw DimensionError{"ChainerX QR differentiation is not implemented for non-square R."};
+                }
+
+                const Array& gQ = bctx.output_grad(0).has_value() ? *bctx.output_grad(0) : Zeros(a.shape(), a.dtype(), a.device());
+                const Array& gR = bctx.output_grad(1).has_value() ? *bctx.output_grad(1) : Zeros(a.shape(), a.dtype(), a.device());
+
+                Array M = Dot(R, gR.Transpose(), a.dtype()) - Dot(gQ.Transpose(), Q);
+
+                // Here a symmetric matrix is created from the square matrix M
+                // by setting the upper triangle to be equal to the lower triangle, leaving
+                // lower triangle and diagonal unchanged.
+                Array M_sym = Tril(M, 0) + Tril(M, -1).Transpose();
+                Array rhs = gQ + Dot(M_sym, Q, a.dtype());
+
+                // Note that rhs * R^(-T) = (R^(-1) * rhs^T)^T
+                // bctx.input_grad() = Solve(R, rhs.Transpose()).Transpose();
+                bctx.input_grad() = Zeros(a.shape(), a.dtype(), a.device());
+
+                throw ChainerxError{"ChainerX QR differentiation is not implemented."};
+            });
+        }
+        bb.Finalize();
+    }
+
     return std::make_tuple(std::move(q), std::move(r));
 }
 
