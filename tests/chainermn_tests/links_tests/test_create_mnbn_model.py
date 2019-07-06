@@ -97,6 +97,7 @@ class TestCreateMnBnModel(unittest.TestCase):
             x = mnbn_model.xp.zeros((1, 1, 1, 1))
             mnbn_model(x)
 
+    @chainer.testing.attr.gpu
     def test_create_mnbn_model_chain_list_gpu(self):
         model = BnChainList(3)
         mnbn_model = chainermn.links.create_mnbn_model(model,
