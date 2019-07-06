@@ -117,7 +117,8 @@ std::tuple<Array, Array> QR(const Array& a, QRMode mode) {
     {
         BackwardBuilder bb{"qr", a, {q, r}};
         if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-            bt.Define([a_tok = bb.RetainInput(0), q_tok = bb.RetainOutput(0), r_tok = bb.RetainOutput(1), mode = mode](BackwardContext& bctx) {
+            bt.Define([a_tok = bb.RetainInput(0), q_tok = bb.RetainOutput(0), r_tok = bb.RetainOutput(1), mode = mode](
+                              BackwardContext& bctx) {
                 if (mode == QRMode::r || mode == QRMode::raw) {
                     throw ChainerxError{"ChainerX QR differentiation is not implemented for 'r' or 'raw' modes."};
                 }

@@ -42,17 +42,37 @@ cusolverStatus_t GeqrfBufferSize(cusolverDnHandle_t /*handle*/, int /*m*/, int /
 }
 
 template <typename T>
-cusolverStatus_t Geqrf(cusolverDnHandle_t /*handle*/, int /*m*/, int /*n*/, T* /*a*/, int /*lda*/, T* /*tau*/, T* /*workspace*/, int /*lwork*/, int* /*devinfo*/) {
+cusolverStatus_t Geqrf(
+        cusolverDnHandle_t /*handle*/,
+        int /*m*/,
+        int /*n*/,
+        T* /*a*/,
+        int /*lda*/,
+        T* /*tau*/,
+        T* /*workspace*/,
+        int /*lwork*/,
+        int* /*devinfo*/) {
     throw DtypeError{"Only Arrays of float or double type are supported by geqrf (QR)"};
 }
 
 template <typename T>
-cusolverStatus_t OrgqrBufferSize(cusolverDnHandle_t /*handle*/, int /*m*/, int /*n*/, int /*k*/, T* /*a*/, int /*lda*/, T* /*tau*/, int* /*lwork*/) {
+cusolverStatus_t OrgqrBufferSize(
+        cusolverDnHandle_t /*handle*/, int /*m*/, int /*n*/, int /*k*/, T* /*a*/, int /*lda*/, T* /*tau*/, int* /*lwork*/) {
     throw DtypeError{"Only Arrays of float or double type are supported by orgqr (QR)"};
 }
 
 template <typename T>
-cusolverStatus_t Orgqr(cusolverDnHandle_t /*handle*/, int /*m*/, int /*n*/, int /*k*/, T* /*a*/, int /*lda*/, T* /*tau*/, T* /*work*/, int /*lwork*/, int* /*devinfo*/) {
+cusolverStatus_t Orgqr(
+        cusolverDnHandle_t /*handle*/,
+        int /*m*/,
+        int /*n*/,
+        int /*k*/,
+        T* /*a*/,
+        int /*lda*/,
+        T* /*tau*/,
+        T* /*work*/,
+        int /*lwork*/,
+        int* /*devinfo*/) {
     throw DtypeError{"Only Arrays of float or double type are supported by orgqr (QR)"};
 }
 
@@ -67,12 +87,14 @@ cusolverStatus_t GeqrfBufferSize<float>(cusolverDnHandle_t handle, int m, int n,
 }
 
 template <>
-cusolverStatus_t Geqrf<double>(cusolverDnHandle_t handle, int m, int n, double* a, int lda, double* tau, double* workspace, int lwork, int* devinfo) {
+cusolverStatus_t Geqrf<double>(
+        cusolverDnHandle_t handle, int m, int n, double* a, int lda, double* tau, double* workspace, int lwork, int* devinfo) {
     return cusolverDnDgeqrf(handle, m, n, a, lda, tau, workspace, lwork, devinfo);
 }
 
 template <>
-cusolverStatus_t Geqrf<float>(cusolverDnHandle_t handle, int m, int n, float* a, int lda, float* tau, float* workspace, int lwork, int* devinfo) {
+cusolverStatus_t Geqrf<float>(
+        cusolverDnHandle_t handle, int m, int n, float* a, int lda, float* tau, float* workspace, int lwork, int* devinfo) {
     return cusolverDnSgeqrf(handle, m, n, a, lda, tau, workspace, lwork, devinfo);
 }
 
@@ -87,12 +109,14 @@ cusolverStatus_t OrgqrBufferSize<float>(cusolverDnHandle_t handle, int m, int n,
 }
 
 template <>
-cusolverStatus_t Orgqr<double>(cusolverDnHandle_t handle, int m, int n, int k, double* a, int lda, double* tau, double* work, int lwork, int* devinfo) {
+cusolverStatus_t Orgqr<double>(
+        cusolverDnHandle_t handle, int m, int n, int k, double* a, int lda, double* tau, double* work, int lwork, int* devinfo) {
     return cusolverDnDorgqr(handle, m, n, k, a, lda, tau, work, lwork, devinfo);
 }
 
 template <>
-cusolverStatus_t Orgqr<float>(cusolverDnHandle_t handle, int m, int n, int k, float* a, int lda, float* tau, float* work, int lwork, int* devinfo) {
+cusolverStatus_t Orgqr<float>(
+        cusolverDnHandle_t handle, int m, int n, int k, float* a, int lda, float* tau, float* work, int lwork, int* devinfo) {
     return cusolverDnSorgqr(handle, m, n, k, a, lda, tau, work, lwork, devinfo);
 }
 
