@@ -1,6 +1,8 @@
 import unittest
 
 import chainer
+import chainer.testing
+import chainer.testing.attr
 import chainermn
 
 
