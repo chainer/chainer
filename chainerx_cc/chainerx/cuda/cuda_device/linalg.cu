@@ -117,19 +117,7 @@ public:
             }
         };
 
-        switch (a.dtype()) {
-            case Dtype::kFloat16:
-                throw DtypeError{"Half-precision (float16) is not supported by Cholesky decomposition"};
-                break;
-            case Dtype::kFloat32:
-                cholesky_impl(PrimitiveType<float>{});
-                break;
-            case Dtype::kFloat64:
-                cholesky_impl(PrimitiveType<double>{});
-                break;
-            default:
-                CHAINERX_NEVER_REACH();
-        }
+        VisitFloatingPointDtype(dtype, cholesky_impl);
     }
 };
 
