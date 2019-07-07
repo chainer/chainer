@@ -343,7 +343,7 @@ void InitChainerxLinalg(pybind11::module& m) {
     m.def("dot", [](const ArrayBodyPtr& a, const ArrayBodyPtr& b) { return MoveArrayBody(Dot(Array{a}, Array{b})); }, "a"_a, "b"_a);
 
     pybind11::module mlinalg = m.def_submodule("linalg");
-    mlinalg.def("cholesky", [](const ArrayBodyPtr& a) { return MoveArrayBody(Cholesky(Array{a})); }, py::arg("a"));
+    mlinalg.def("cholesky", [](const ArrayBodyPtr& a) { return MoveArrayBody(Cholesky(Array{a})); }, "a"_a);
 }
 
 void InitChainerxLogic(pybind11::module& m) {
