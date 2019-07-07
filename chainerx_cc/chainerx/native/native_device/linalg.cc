@@ -19,12 +19,35 @@
 #include "chainerx/shape.h"
 
 #if CHAINERX_ENABLE_LAPACK
-extern "C" void dpotrf_(char* uplo, int* n, double* a, int* lda, int* info);
-extern "C" void spotrf_(char* uplo, int* n, float* a, int* lda, int* info);
+extern "C" {
+// potrf
+void dpotrf_(char* uplo, int* n, double* a, int* lda, int* info);
+void spotrf_(char* uplo, int* n, float* a, int* lda, int* info);
+}
 #endif  // CHAINERX_ENABLE_LAPACK
 
 namespace chainerx {
 namespace native {
+namespace {
+
+template <typename T>
+void Potrf(char /*uplo*/, int /*n*/, T* /*a*/, int /*lda*/, int* /*info*/) {
+    throw DtypeError{"Only Arrays of float or double type are supported by potrf (Cholesky)"};
+}
+
+#if CHAINERX_ENABLE_LAPACK
+template <>
+void Potrf<double>(char uplo, int n, double* a, int lda, int* info) {
+    dpotrf_(&uplo, &n, a, &lda, info);
+}
+
+template <>
+void Potrf<float>(char uplo, int n, float* a, int lda, int* info) {
+    spotrf_(&uplo, &n, a, &lda, info);
+}
+#endif  // CHAINERX_ENABLE_LAPACK
+
+}  // namespace
 
 class NativeCholeskyKernel : public CholeskyKernel {
 public:
@@ -43,7 +66,7 @@ public:
         Array out_contiguous = AsContiguous(out);
         CHAINERX_ASSERT(a.dtype() == out_contiguous.dtype());
 
-        auto cholesky_impl = [&](auto pt, auto potrf) {
+        auto cholesky_impl = [&](auto pt) {
             using T = typename decltype(pt)::type;
 
             // Note that LAPACK uses Fortran order.
@@ -54,7 +77,7 @@ public:
             int N = a.shape()[0];
 
             int info;
-            potrf(&uplo, &N, out_ptr, &N, &info);
+            Potrf<T>(uplo, N, out_ptr, N, &info);
 
             if (info != 0) {
                 throw ChainerxError{"Unsuccessfull potrf (Cholesky) execution. Info = ", info};
@@ -66,10 +89,10 @@ public:
                 throw DtypeError{"Half-precision (float16) is not supported by Cholesky decomposition"};
                 break;
             case Dtype::kFloat32:
-                cholesky_impl(PrimitiveType<float>{}, spotrf_);
+                cholesky_impl(PrimitiveType<float>{});
                 break;
             case Dtype::kFloat64:
-                cholesky_impl(PrimitiveType<double>{}, dpotrf_);
+                cholesky_impl(PrimitiveType<double>{});
                 break;
             default:
                 CHAINERX_NEVER_REACH();
