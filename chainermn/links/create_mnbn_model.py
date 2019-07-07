@@ -50,10 +50,9 @@ def create_mnbn_model(link, comm, communication_backend='auto'):
         return new_link
     elif isinstance(link, chainer.Sequential):
         new_link = copy.deepcopy(link)
-        new_link.clear()
-        for l in link:
+        for i, l in enumerate(link):
             new_l = create_mnbn_model(l, comm, communication_backend)
-            new_link.append(new_l)
+            new_link[i] = new_l
         return new_link
     elif isinstance(link, chainer.ChainList):
         new_children = [
