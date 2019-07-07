@@ -48,9 +48,9 @@ class TestCreateMnBnModel(unittest.TestCase):
                        chainermn.links.MultiNodeBatchNormalization))
         if gpu:
             device_id = self.communicator.intra_rank
+            mnbn_model.to_gpu(device=device_id)
         else:
             device_id = -1
-        mnbn_model.to_gpu(device=device_id)
         with chainer.using_device(mnbn_model.device):
             x = mnbn_model.xp.zeros((1, 1, 1, 1))
             mnbn_model(x)
@@ -66,9 +66,9 @@ class TestCreateMnBnModel(unittest.TestCase):
                        chainermn.links.MultiNodeBatchNormalization))
         if gpu:
             device_id = self.communicator.intra_rank
+            mnbn_model.to_gpu(device=device_id)
         else:
             device_id = -1
-        mnbn_model.to_gpu(device=device_id)
         with chainer.using_device(mnbn_model.device):
             x = mnbn_model.xp.zeros((1, 1, 1, 1))
             mnbn_model(x)
@@ -86,9 +86,9 @@ class TestCreateMnBnModel(unittest.TestCase):
 
         if gpu:
             device_id = self.communicator.intra_rank
+            mnbn_model.to_gpu(device=device_id)
         else:
             device_id = -1
-        mnbn_model.to_gpu(device=device_id)
         with chainer.using_device(mnbn_model.device):
             x = mnbn_model.xp.zeros((1, 1, 1, 1))
             mnbn_model(x)
