@@ -33,6 +33,39 @@
 
 namespace chainerx {
 namespace cuda {
+namespace {
+
+template <typename T>
+cusolverStatus_t PotrfBuffersize(cusolverDnHandle_t /*handle*/, cublasFillMode_t /*uplo*/, int /*n*/, T* /*a*/, int /*lda*/, int* /*lwork*/) {
+    throw DtypeError{"Only Arrays of float or double type are supported by potrf (Cholesky)"};
+}
+
+template <typename T>
+cusolverStatus_t Potrf(cusolverDnHandle_t /*handle*/, cublasFillMode_t /*uplo*/, int /*n*/, T* /*a*/, int /*lda*/, T* /*workspace*/, int /*lwork*/, int* /*devinfo*/) {
+    throw DtypeError{"Only Arrays of float or double type are supported by potrf (Cholesky)"};
+}
+
+template <>
+cusolverStatus_t PotrfBuffersize<double>(cusolverDnHandle_t handle, cublasFillMode_t uplo, int n, double* a, int lda, int* lwork) {
+    return cusolverDnDpotrf_bufferSize(handle, uplo, n, a, lda, lwork);
+}
+
+template <>
+cusolverStatus_t PotrfBuffersize<float>(cusolverDnHandle_t handle, cublasFillMode_t uplo, int n, float* a, int lda, int* lwork) {
+    return cusolverDnSpotrf_bufferSize(handle, uplo, n, a, lda, lwork);
+}
+
+template <>
+cusolverStatus_t Potrf<double>(cusolverDnHandle_t handle, cublasFillMode_t uplo, int n, double* a, int lda, double* workspace, int lwork, int* devinfo) {
+    return cusolverDnDpotrf(handle, uplo, n, a, lda, workspace, lwork, devinfo);
+}
+
+template <>
+cusolverStatus_t Potrf<float>(cusolverDnHandle_t handle, cublasFillMode_t uplo, int n, float* a, int lda, float* workspace, int lwork, int* devinfo) {
+    return cusolverDnSpotrf(handle, uplo, n, a, lda, workspace, lwork, devinfo);
+}
+
+}  // namespace
 
 class CudaCholeskyKernel : public CholeskyKernel {
 public:
@@ -51,7 +84,7 @@ public:
 
         Array out_contiguous = AsContiguous(out);
 
-        auto cholesky_impl = [&](auto pt, auto bufsize_func, auto solver_func) {
+        auto cholesky_impl = [&](auto pt) {
             CHAINERX_ASSERT(a.dtype() == out_contiguous.dtype());
 
             using T = typename decltype(pt)::type;
@@ -66,7 +99,7 @@ public:
             T* out_ptr = static_cast<T*>(internal::GetRawOffsetData(out_contiguous));
             int work_size = 0;
             const int N = a.shape()[0];
-            device_internals.cusolverdn_handle().Call(bufsize_func, uplo, N, out_ptr, N, &work_size);
+            device_internals.cusolverdn_handle().Call(PotrfBuffersize<T>, uplo, N, out_ptr, N, &work_size);
 
             // POTRF execution
             Array work = Empty(Shape({work_size}), dtype, device);
@@ -74,7 +107,7 @@ public:
 
             std::shared_ptr<void> devInfo = device.Allocate(sizeof(int));
             device_internals.cusolverdn_handle().Call(
-                    solver_func, uplo, N, out_ptr, N, work_ptr, work_size, static_cast<int*>(devInfo.get()));
+                    Potrf<T>, uplo, N, out_ptr, N, work_ptr, work_size, static_cast<int*>(devInfo.get()));
 
             int devInfo_h = 0;
             Device& native_device = dynamic_cast<native::NativeDevice&>(GetDefaultContext().GetDevice({"native", 0}));
@@ -89,10 +122,10 @@ public:
                 throw DtypeError{"Half-precision (float16) is not supported by Cholesky decomposition"};
                 break;
             case Dtype::kFloat32:
-                cholesky_impl(PrimitiveType<float>{}, cusolverDnSpotrf_bufferSize, cusolverDnSpotrf);
+                cholesky_impl(PrimitiveType<float>{});
                 break;
             case Dtype::kFloat64:
-                cholesky_impl(PrimitiveType<double>{}, cusolverDnDpotrf_bufferSize, cusolverDnDpotrf);
+                cholesky_impl(PrimitiveType<double>{});
                 break;
             default:
                 CHAINERX_NEVER_REACH();
