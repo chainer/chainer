@@ -18,8 +18,10 @@
 #include "chainerx/routines/creation.h"
 #include "chainerx/shape.h"
 
+#if CHAINERX_ENABLE_LAPACK
 extern "C" void dpotrf_(char* uplo, int* n, double* a, int* lda, int* info);
 extern "C" void spotrf_(char* uplo, int* n, float* a, int* lda, int* info);
+#endif  // CHAINERX_ENABLE_LAPACK
 
 namespace chainerx {
 namespace native {
@@ -27,16 +29,13 @@ namespace native {
 class NativeCholeskyKernel : public CholeskyKernel {
 public:
     void Call(const Array& a, const Array& out) override {
+#if CHAINERX_ENABLE_LAPACK
         Device& device = a.device();
         device.CheckDevicesCompatible(a, out);
 
         CHAINERX_ASSERT(a.ndim() == 2);
         CHAINERX_ASSERT(out.ndim() == 2);
         CHAINERX_ASSERT(a.shape()[0] == a.shape()[1]);
-
-#ifndef CHAINERX_LAPACK_AVAILABLE
-        throw ChainerxError{"LAPACK is not linked to ChainerX."};
-#endif  // CHAINERX_LAPACK_AVAILABLE
 
         // potrf (cholesky) stores result in-place, therefore copy ``a`` to ``out`` and then pass ``out`` to the routine
         device.backend().CallKernel<CopyKernel>(a, out);
@@ -75,6 +74,9 @@ public:
             default:
                 CHAINERX_NEVER_REACH();
         }
+#else // CHAINERX_LAPACK_AVAILABLE
+        throw ChainerxError{"LAPACK is not linked to ChainerX."};
+#endif  // CHAINERX_LAPACK_AVAILABLE
     }
 };
 
