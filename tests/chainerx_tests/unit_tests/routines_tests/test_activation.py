@@ -1,11 +1,19 @@
 import random
 import chainer
 import numpy
+import chainerx
 
 from chainer import utils
 from chainerx_tests import array_utils
 from chainerx_tests import dtype_utils
 from chainerx_tests import op_utils
+
+n_step_lstm_dtypes_valid = dtype_utils._permutate_dtype_mapping([
+    # Floats.
+    (('float16', ), ()),
+    (('float32', ), ()),
+    (('float64', ), ()),
+])
 
 
 # A special parameter object used to represent an unspecified argument.
@@ -78,6 +86,49 @@ _in_out_dtypes_math_functions = _in_out_float_dtypes_math_functions + [
     (('bool_',), 'float32'),
 ]
 
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    chainer.testing.product([
+        chainer.testing.from_pytest_parameterize(
+            'attr', [
+                ((2, 1, 3)),
+                ((2, 2, 3)),
+                ((3, 8, 4)),
+                ((4, 12, 4)),
+
+            ]),
+        chainer.testing.from_pytest_parameterize(
+            'in_dtypes, out_dtype', n_step_lstm_dtypes_valid)
+    ])
+))
+class TestTreeLstm(op_utils.ChainerOpTest):
+
+    def setup(self):
+        self.check_forward_options.update({
+            'rtol': 1e-2, 'atol': 1e-2})
+        self.check_backward_options.update({
+            'rtol': 1e-2, 'atol': 1e-2})
+        self.check_double_backward_options.update({
+            'rtol': 5e-3, 'atol': 5e-2})
+
+    def generate_inputs(self):
+        c_dim = self.attr[0]
+        num_c = self.attr[1]
+        batch_size = self.attr[2]
+        c_shape = (batch_size, c_dim)
+        inputs = []
+        for i in range(num_c):
+            inputs.append(array_utils.uniform(c_shape, self.in_dtypes[0]))
+        inputs.append(array_utils.uniform((batch_size, c_dim * (num_c + 3)), self.in_dtypes[0]))
+        return tuple(inputs)
+
+    def forward_chainerx(self, inputs):
+        out = chainerx.tree_lstm(*list(inputs))
+        return out
+
+    def forward_chainer(self, inputs):
+        out = chainer.functions.tree_lstm(*list(inputs))
+        return out
 
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 #include "chainerx/array.h"
 #include "chainerx/scalar.h"
 
@@ -16,5 +18,7 @@ Array Sigmoid(const Array& x);
 Array Relu(const Array& x);
 
 Array LeakyRelu(const Array& x, Scalar slope);
+
+std::vector<Array> TreeLstm(std::vector<Array> arrays);
 
 }  // namespace chainerx
