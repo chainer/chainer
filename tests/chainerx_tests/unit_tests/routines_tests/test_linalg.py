@@ -95,6 +95,17 @@ def test_dot_invalid(is_module, xp, device, a_shape, b_shape, dtype):
         return a.dot(b)
 
 
+class NumpyLinalgOpTest(op_utils.NumpyOpTest):
+
+    dodge_nondifferentiable = True
+
+    def setup(self):
+        device = chainerx.get_default_device()
+        if (device.backend.name == 'native'
+                and not chainerx.linalg._is_lapack_available()):
+            pytest.skip('LAPACK is not linked to ChainerX')
+
+
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
     # Special shapes
@@ -106,7 +117,7 @@ def test_dot_invalid(is_module, xp, device, a_shape, b_shape, dtype):
         'skip_double_backward_test': [True]
     })
 ))
-class TestCholesky(op_utils.NumpyOpTest):
+class TestCholesky(NumpyLinalgOpTest):
 
     def generate_inputs(self):
         a = numpy.random.random(self.shape).astype(self.in_dtypes)
@@ -125,17 +136,19 @@ class TestCholesky(op_utils.NumpyOpTest):
     # Special shapes
     chainer.testing.product({
         'shape': [(), (2, 3), (3, 2), (6, 6)],
-        'in_dtypes': ['float32', 'float64'],
+        'in_dtypes': ['float16', 'float32', 'float64'],
         'contiguous': [None, 'C'],
         'skip_backward_test': [True],
         'skip_double_backward_test': [True]
     })
 ))
-class TestCholeskyFailing(op_utils.NumpyOpTest):
+class TestCholeskyFailing(NumpyLinalgOpTest):
 
     forward_accept_errors = (numpy.linalg.LinAlgError,
                              chainerx.ChainerxError,
-                             chainerx.DimensionError)
+                             chainerx.DimensionError,
+                             TypeError,
+                             chainerx.DtypeError)
 
     def generate_inputs(self):
         a = numpy.random.random(self.shape).astype(self.in_dtypes)
