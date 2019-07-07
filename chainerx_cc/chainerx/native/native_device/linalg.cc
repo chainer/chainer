@@ -85,7 +85,7 @@ public:
         };
 
         VisitFloatingPointDtype(a.dtype(), cholesky_impl);
-#else // CHAINERX_LAPACK_AVAILABLE
+#else  // CHAINERX_LAPACK_AVAILABLE
         throw ChainerxError{"LAPACK is not linked to ChainerX."};
 #endif  // CHAINERX_LAPACK_AVAILABLE
     }

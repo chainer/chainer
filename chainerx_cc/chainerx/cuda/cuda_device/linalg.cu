@@ -36,12 +36,21 @@ namespace cuda {
 namespace {
 
 template <typename T>
-cusolverStatus_t PotrfBuffersize(cusolverDnHandle_t /*handle*/, cublasFillMode_t /*uplo*/, int /*n*/, T* /*a*/, int /*lda*/, int* /*lwork*/) {
+cusolverStatus_t PotrfBuffersize(
+        cusolverDnHandle_t /*handle*/, cublasFillMode_t /*uplo*/, int /*n*/, T* /*a*/, int /*lda*/, int* /*lwork*/) {
     throw DtypeError{"Only Arrays of float or double type are supported by potrf (Cholesky)"};
 }
 
 template <typename T>
-cusolverStatus_t Potrf(cusolverDnHandle_t /*handle*/, cublasFillMode_t /*uplo*/, int /*n*/, T* /*a*/, int /*lda*/, T* /*workspace*/, int /*lwork*/, int* /*devinfo*/) {
+cusolverStatus_t Potrf(
+        cusolverDnHandle_t /*handle*/,
+        cublasFillMode_t /*uplo*/,
+        int /*n*/,
+        T* /*a*/,
+        int /*lda*/,
+        T* /*workspace*/,
+        int /*lwork*/,
+        int* /*devinfo*/) {
     throw DtypeError{"Only Arrays of float or double type are supported by potrf (Cholesky)"};
 }
 
@@ -56,12 +65,14 @@ cusolverStatus_t PotrfBuffersize<float>(cusolverDnHandle_t handle, cublasFillMod
 }
 
 template <>
-cusolverStatus_t Potrf<double>(cusolverDnHandle_t handle, cublasFillMode_t uplo, int n, double* a, int lda, double* workspace, int lwork, int* devinfo) {
+cusolverStatus_t Potrf<double>(
+        cusolverDnHandle_t handle, cublasFillMode_t uplo, int n, double* a, int lda, double* workspace, int lwork, int* devinfo) {
     return cusolverDnDpotrf(handle, uplo, n, a, lda, workspace, lwork, devinfo);
 }
 
 template <>
-cusolverStatus_t Potrf<float>(cusolverDnHandle_t handle, cublasFillMode_t uplo, int n, float* a, int lda, float* workspace, int lwork, int* devinfo) {
+cusolverStatus_t Potrf<float>(
+        cusolverDnHandle_t handle, cublasFillMode_t uplo, int n, float* a, int lda, float* workspace, int lwork, int* devinfo) {
     return cusolverDnSpotrf(handle, uplo, n, a, lda, workspace, lwork, devinfo);
 }
 
@@ -106,8 +117,7 @@ public:
             T* work_ptr = static_cast<T*>(internal::GetRawOffsetData(work));
 
             std::shared_ptr<void> devInfo = device.Allocate(sizeof(int));
-            device_internals.cusolverdn_handle().Call(
-                    Potrf<T>, uplo, N, out_ptr, N, work_ptr, work_size, static_cast<int*>(devInfo.get()));
+            device_internals.cusolverdn_handle().Call(Potrf<T>, uplo, N, out_ptr, N, work_ptr, work_size, static_cast<int*>(devInfo.get()));
 
             int devInfo_h = 0;
             Device& native_device = dynamic_cast<native::NativeDevice&>(GetDefaultContext().GetDevice({"native", 0}));
