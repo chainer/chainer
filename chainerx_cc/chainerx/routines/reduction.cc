@@ -98,14 +98,21 @@ Array LogSoftmax(const Array& x, const OptionalAxes& axis) {
     return x_cast - LogSumExp(x_cast, axis.has_value() ? axis : OptionalAxes{1}, true);
 }
 
-Array Cumsum(const Array& a, int8_t axis) {
-    int8_t axis_norm = internal::NormalizeAxis(axis, a.ndim());
+Array Cumsum(const Array& a, absl::optional<int8_t> axis) {
+    int8_t axis_norm;
+    Array a_reshaped = Copy(a);
+    if (axis.has_value()) {
+        axis_norm = internal::NormalizeAxis(*axis, a.ndim());
+    } else {
+        axis_norm = 0;
+        a_reshaped = a.Reshape(Shape{a.GetTotalSize()});
+    }
 
-    Shape out_shape = a.shape();
-    Array out = Empty(out_shape, a.dtype(), a.device());
+    Shape out_shape = a_reshaped.shape();
+    Array out = Empty(out_shape, a_reshaped.dtype(), a_reshaped.device());
     // Decide the output dtype for integral input dtype.
     Dtype out_dtype{};
-    switch (GetKind(a.dtype())) {
+    switch (GetKind(a_reshaped.dtype())) {
         case DtypeKind::kBool:
         case DtypeKind::kInt:  // fallthrough
             out_dtype = Dtype::kInt64;
@@ -114,11 +121,11 @@ Array Cumsum(const Array& a, int8_t axis) {
             out_dtype = Dtype::kInt64;  // TODO(niboshi): This should be kUInt64
             break;
         default:
-            out_dtype = a.dtype();
+            out_dtype = a_reshaped.dtype();
     }
 
     const Array& out_cast = out.AsType(out_dtype);
-    const Array& a_cast = a.dtype() != out_cast.dtype() ? a.AsType(out_cast.dtype()) : a;
+    const Array& a_cast = a_reshaped.dtype() != out_cast.dtype() ? a_reshaped.AsType(out_cast.dtype()) : a_reshaped;
 
     {
         NoBackpropModeScope scope{};

@@ -790,9 +790,9 @@ void InitChainerxReduction(pybind11::module& m) {
           "x"_a,
           "axis"_a = nullptr);
     m.def("cumsum",
-          [](const ArrayBodyPtr& a, const absl::optional<int8_t>& axis) { return MoveArrayBody(Cumsum(Array{a}, axis.value())); },
+          [](const ArrayBodyPtr& a, const absl::optional<int8_t>& axis) { return MoveArrayBody(Cumsum(Array{a}, axis)); },
           "a"_a,
-          "axis"_a);
+          "axis"_a = nullptr);
 }
 
 void InitChainerxRounding(pybind11::module& m) {
