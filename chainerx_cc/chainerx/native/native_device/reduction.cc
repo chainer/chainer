@@ -9,6 +9,7 @@
 #include "chainerx/kernels/reduction.h"
 #include "chainerx/kernels/sorting.h"
 #include "chainerx/macro.h"
+#include "chainerx/native/data_type.h"
 #include "chainerx/native/kernel_regist.h"
 #include "chainerx/native/reduce.h"
 #include "chainerx/numeric.h"
