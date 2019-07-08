@@ -69,6 +69,12 @@ public:
     using ChainerxError::ChainerxError;
 };
 
+// Error on out of range and too many indices for array.
+class IndexError : public ChainerxError {
+public:
+    using ChainerxError::ChainerxError;
+};
+
 // Error on shape mismatch, invalid strides, and so on.
 class DimensionError : public ChainerxError {
 public:

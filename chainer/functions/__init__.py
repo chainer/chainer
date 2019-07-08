@@ -113,6 +113,7 @@ from chainer.functions.loss.mean_squared_error import mean_squared_error  # NOQA
 from chainer.functions.loss.negative_sampling import negative_sampling  # NOQA
 from chainer.functions.loss.sigmoid_cross_entropy import sigmoid_cross_entropy  # NOQA
 from chainer.functions.loss.softmax_cross_entropy import softmax_cross_entropy  # NOQA
+from chainer.functions.loss.squared_error import squared_difference  # NOQA
 from chainer.functions.loss.squared_error import squared_error  # NOQA
 from chainer.functions.loss.triplet import triplet  # NOQA
 from chainer.functions.loss.vae import bernoulli_nll  # NOQA
@@ -176,7 +177,6 @@ from chainer.functions.math.sparse_matmul import sparse_matmul  # NOQA
 from chainer.functions.math.sqrt import rsqrt  # NOQA
 from chainer.functions.math.sqrt import sqrt  # NOQA
 from chainer.functions.math.square import square  # NOQA
-from chainer.functions.math.squared_difference import squared_difference  # NOQA
 from chainer.functions.math.sum import sum  # NOQA
 from chainer.functions.math.sum import sum_to  # NOQA
 from chainer.functions.math.tensordot import tensordot  # NOQA

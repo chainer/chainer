@@ -111,3 +111,13 @@ class IntervalTrigger(object):
 
     def get_training_length(self):
         return (self.period, self.unit)
+
+    def __str__(self):
+        """Returns a string describing the class and interval
+
+        Returns:
+            str: IntervalTrigger(<period>, '<unit>')
+        """
+        return '{}({}, \'{}\')'.format(
+            self.__class__.__name__, self.period, self.unit
+        )

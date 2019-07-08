@@ -18,7 +18,7 @@ def average(x, axis=None, weights=None, keepdims=False):
             If it is ``None``, all weights are assumed to be one.
             When ``axis`` is ``None``, ``weights`` must have the same shape
             of ``x``. And when ``axis`` is ``int``, it must be 1-D array
-            satisfing ``weights.shape == (x.shape[axis],)``.
+            satisfying ``weights.shape == (x.shape[axis],)``.
         keepdims (bool): If ``True``, the specified axes are remained as axes
             of length one.
 

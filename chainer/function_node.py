@@ -244,9 +244,9 @@ Use apply() method instead.\
 
         .. note::
 
-           If the :data:`~Variable.data` attribute of input variables exist on
-           a GPU device, that device is made current before calling
-           :meth:`forward`, so implementors do not need to take care of device
+           If the :data:`~Variable.data` attributes of the input variables
+           exist on a GPU device, that device is made current before calling
+           :meth:`forward`, so implementers do not need to take care of device
            selection in most cases.
 
         Args:
@@ -343,11 +343,11 @@ Use apply() method instead.\
 
         # NaN check of output values
         if is_debug:
-            if any(chainer.backend._contains_nan(out)
-                   for out in outputs):
-                msg = ('NaN is detected on forward computation of '
-                       '{}'.format(self.label))
-                raise RuntimeError(msg)
+            for out in outputs:
+                if out is not None and chainer.backend._contains_nan(out):
+                    msg = ('NaN is detected on forward computation of '
+                           '{}'.format(self.label))
+                    raise RuntimeError(msg)
 
         self._output_count = len(outputs)
 
@@ -1072,8 +1072,8 @@ def grad(outputs, inputs, grad_outputs=None, grad_inputs=None, set_grad=False,
             with chainer.using_device(y.device):
                 gy_data = y.device.xp.ones_like(y.array)
                 gy = variable.Variable(gy_data, requires_grad=False)
-            if loss_scale is not None:
-                gy.data *= loss_scale
+                if loss_scale is not None:
+                    gy.data *= loss_scale
         grads[y.node] = gy
 
     if grad_inputs is not None:
