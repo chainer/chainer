@@ -41,6 +41,7 @@ public:
             const Dims& pad,
             bool cover_all,
             Dtype out_dtype,
+            TensorLayout layout,
             const absl::optional<Array>& out) override {
         // TODO(niboshi): Implement and test the `out` argument.
         if (out.has_value()) {
@@ -53,8 +54,14 @@ public:
         Dims kernel_size;
         std::copy_n(w.shape().begin() + 2, ndim, std::back_inserter(kernel_size));
 
+        // Transpose to NCHW
+        Array nchw_x = x;
+        if (layout == TensorLayout::NHWC) {
+            nchw_x = nchw_x.Transpose({0, 3, 1, 2});
+        }
+
         // Convert to colum representation of shape (batch_size, channel, k_1, k_2, ..., k_n, out_1, out_2, ..., out_n).
-        Array col = native_internal::Im2Col(x, kernel_size, stride, pad, cover_all, 0);
+        Array col = native_internal::Im2Col(nchw_x, kernel_size, stride, pad, cover_all, 0);
 
         // Compute the tensor dot product of col and w, reducing (channel, k_1, k_2, ..., k_n).
         Axes axes;
@@ -76,6 +83,11 @@ public:
         std::iota(roll_axes.begin() + 2, roll_axes.end(), 1);
         Array actual_out = y.Transpose(roll_axes);
 
+        // Transpose to NWHC
+        if (layout == TensorLayout::NHWC) {
+            actual_out = nchw_x.Transpose({0, 2, 3, 1});
+        }
+
         CHAINERX_ASSERT(actual_out.dtype() == out_dtype);
         return actual_out;
     }
@@ -93,6 +105,7 @@ public:
             const Dims& stride,
             const Dims& pad,
             bool cover_all,
+            TensorLayout layout,
             const absl::optional<Array>& out) override {
         CHAINERX_ASSERT(x.ndim() == w_shape.ndim());
 
@@ -106,8 +119,14 @@ public:
         // Compute the kernel size
         Dims kernel_size{w_shape.begin() + 2, w_shape.end()};
 
+        // Transpose to NCHW
+        Array nchw_x = x;
+        if (layout == TensorLayout::NHWC) {
+            nchw_x = nchw_x.Transpose({0, 3, 1, 2});
+        }
+
         // Im2Col
-        Array col = native_internal::Im2Col(x, kernel_size, stride, pad, cover_all, 0);
+        Array col = native_internal::Im2Col(nchw_x, kernel_size, stride, pad, cover_all, 0);
 
         // TensorDot
         Axes out_axes{0};
@@ -116,7 +135,14 @@ public:
             out_axes.emplace_back(int64_t{2 + i});
             col_axes.emplace_back(int64_t{2 + ndim + i});
         }
-        return TensorDot(gy, col, out_axes, col_axes, w_dtype);
+        Array actual_out = TensorDot(gy, col, out_axes, col_axes, w_dtype);
+
+        // Transpose to NWHC
+        if (layout == TensorLayout::NHWC) {
+            actual_out = nchw_x.Transpose({0, 2, 3, 1});
+        }
+
+        return actual_out;
     }
 };
 
@@ -132,13 +158,20 @@ public:
             const Dims& pad,
             const Dims& out_size,
             Dtype out_dtype,
+            TensorLayout layout,
             const absl::optional<Array>& out) override {
         // TODO(niboshi): Implement and test the `out` argument.
         if (out.has_value()) {
             throw NotImplementedError{"Passing out as an argument is not yet supported."};
         }
 
-        Array col = TensorDot(w, x, {0}, {1}, out_dtype);  // shape: out_channel, k_1, ..., k_n, batch_size, out_1, ..., out_n
+        // Transpose to NCHW
+        Array nchw_x = x;
+        if (layout == TensorLayout::NHWC) {
+            nchw_x = nchw_x.Transpose({0, 3, 1, 2});
+        }
+
+        Array col = TensorDot(w, nchw_x, {0}, {1}, out_dtype);  // shape: out_channel, k_1, ..., k_n, batch_size, out_1, ..., out_n
         col = RollAxis(col, x.ndim() - 1);  // batch axis is rolled to the top
 
         Array actual_out = native_internal::Col2Im(col, stride, pad, out_size);  // shape: batch_size, out_channel, out_size...
@@ -151,6 +184,11 @@ public:
             }
             // TODO(niboshi): Remove AsType when += supports dtype promotion.
             actual_out += b->At(slice).AsType(out_dtype);
+        }
+
+        // Transpose to NWHC
+        if (layout == TensorLayout::NHWC) {
+            actual_out = nchw_x.Transpose({0, 2, 3, 1});
         }
 
         CHAINERX_ASSERT(actual_out.dtype() == out_dtype);

@@ -60,9 +60,20 @@ Axes GetSwapSpatialDimensionsAxes(size_t n) {
 class NativeMaxPoolKernel : public MaxPoolKernel {
 public:
     std::tuple<Array, std::unique_ptr<MaxPoolGradState>> Call(
-            const Array& x, Dims kernel_size, Dims stride, Dims pad, bool cover_all, bool return_state, const absl::optional<Array>& out)
-            override {
+            const Array& x,
+            Dims kernel_size,
+            Dims stride,
+            Dims pad,
+            bool cover_all,
+            bool return_state,
+            TensorLayout layout,
+            const absl::optional<Array>& out) override {
         CHAINERX_ASSERT(internal::GetArrayBody(x)->nodes().empty());
+
+        Array nchw_x = x;
+        if (layout == TensorLayout::NHWC) {
+            nchw_x = x.Transpose({0, 3, 1, 2});
+        }
 
         // TODO(hvy): Implement and test the `out` argument.
         if (out.has_value()) {
@@ -70,7 +81,7 @@ public:
         }
 
         // Convert to column representation of shape (batch_size, channel, k_1, k_2, ..., k_n, out_1, out_2, ..., out_n).
-        Array col = native_internal::Im2Col(x, kernel_size, stride, pad, cover_all, GetLowestOrInf(x.dtype()));
+        Array col = native_internal::Im2Col(nchw_x, kernel_size, stride, pad, cover_all, GetLowestOrInf(x.dtype()));
         Axes axes{};
         axes.resize(kernel_size.size());
         std::iota(axes.begin(), axes.end(), 2);
@@ -95,6 +106,7 @@ public:
             const Dims& pad,
             const std::shared_ptr<MaxPoolGradState>& state,
             bool return_state,
+            TensorLayout /* format */,
             const absl::optional<Array>& gx) override {
         CHAINERX_ASSERT(internal::GetArrayBody(gout)->nodes().empty());
 
@@ -151,6 +163,7 @@ public:
             const Dims& pad,
             bool cover_all,
             const std::shared_ptr<MaxPoolGradGradState>& state,
+            TensorLayout layout,
             const absl::optional<Array>& ggout) override {
         CHAINERX_ASSERT(internal::GetArrayBody(ggx)->nodes().empty());
 
@@ -166,7 +179,12 @@ public:
         const Array& offset = native_state.offset();
         Dtype x_dtype = native_state.x_dtype();
 
-        Array col = native_internal::Im2Col(ggx, kernel_size, stride, pad, cover_all, GetLowestOrInf(x_dtype));
+        Array nchw_ggx = ggx;
+        if (layout == TensorLayout::NHWC) {
+            nchw_ggx = ggx.Transpose({0, 3, 1, 2});
+        }
+
+        Array col = native_internal::Im2Col(nchw_ggx, kernel_size, stride, pad, cover_all, GetLowestOrInf(x_dtype));
         return Take(
                 col.Transpose(GetSwapSpatialDimensionsAxes(kernel_size.size())).Reshape({col.GetTotalSize()}),
                 indices + offset.Reshape(indices.shape()),
@@ -247,6 +265,7 @@ public:
             const Dims& pad,
             AveragePoolPadMode pad_mode,
             bool return_state,
+            TensorLayout layout,
             const absl::optional<Array>& out) override {
         CHAINERX_ASSERT(internal::GetArrayBody(x)->nodes().empty());
 
@@ -255,7 +274,12 @@ public:
             throw NotImplementedError{"Passing out as an argument is not yet supported."};
         }
 
-        Array col = native_internal::Im2Col(x, kernel_size, stride, pad, false, 0);
+        Array nchw_x = x;
+        if (layout == TensorLayout::NHWC) {
+            nchw_x = x.Transpose({0, 3, 1, 2});
+        }
+
+        Array col = native_internal::Im2Col(nchw_x, kernel_size, stride, pad, false, 0);
 
         // Average along the kernel dimensions of col with shape (batch_size, channel, k_1, k_2, ..., k_n, out_1, out_2, ..., out_n).
         Axes kernel_axes{};
@@ -301,6 +325,7 @@ public:
             const Dims& pad,
             AveragePoolPadMode pad_mode,
             const std::shared_ptr<AveragePoolGradState>& state,
+            TensorLayout /* format */,
             const absl::optional<Array>& gx) override {
         CHAINERX_ASSERT(internal::GetArrayBody(gout)->nodes().empty());
 

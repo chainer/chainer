@@ -94,7 +94,7 @@ std::size_t CudaConv::AlgoCacheKeyHash::operator()(const AlgoCacheKey& key) cons
     return seed;
 }
 
-void CudaConv::AddBias(CudnnHandle& handle, const CudnnTensorDescriptor& y_desc, const Array& y, const Array& b) {
+void CudaConv::AddBias(CudnnHandle& handle, const CudnnTensorDescriptor& y_desc, const Array& y, const Array& b, TensorLayout layout) {
     CHAINERX_ASSERT(&b.device() == &y.device());
     CHAINERX_ASSERT(b.dtype() == y.dtype());
 
@@ -109,7 +109,7 @@ void CudaConv::AddBias(CudnnHandle& handle, const CudnnTensorDescriptor& y_desc,
     }
     Array b_cont = AsContiguous(b).Reshape(new_shape);
 
-    CudnnTensorDescriptor b_desc{b_cont};
+    CudnnTensorDescriptor b_desc{b_cont, layout};
     handle.Call(
             cudnnAddTensor,
             GetCudnnCoefficientPtr<1>(y.dtype()),
@@ -275,7 +275,8 @@ Array CudaConv::Conv(
         const Dims& stride,
         const Dims& pad,
         bool cover_all,
-        Dtype out_dtype) {
+        Dtype out_dtype,
+        TensorLayout layout) {
     if (cover_all) {
         throw ChainerxError{"CUDA convolution does not support cover_all"};
     }
@@ -318,9 +319,9 @@ Array CudaConv::Conv(
     Array x_cont = AsContiguous(x_cast);
     Array w_cont = AsContiguous(w_cast);
 
-    CudnnTensorDescriptor x_desc{x_cont};
-    CudnnTensorDescriptor y_desc{y};
-    CudnnFilterDescriptor filter_desc{w_cont};
+    CudnnTensorDescriptor x_desc{x_cont, layout};
+    CudnnTensorDescriptor y_desc{y, layout};
+    CudnnFilterDescriptor filter_desc{w_cont, layout};
     CudnnConvolutionDescriptor conv_desc{dtypes.conv_dtype, pad, stride, absl::nullopt /*dilation*/, 1 /*groups*/};
 
     size_t max_workspace_size = backend.GetCudnnMaxWorkspaceSize();
@@ -360,7 +361,7 @@ Array CudaConv::Conv(
 
     if (b) {
         const Array& b_cast = b->dtype() == y.dtype() ? *b : b->AsType(y.dtype());
-        AddBias(handle, y_desc, y, b_cast);
+        AddBias(handle, y_desc, y, b_cast, layout);
     }
 
     if (y.dtype() != out_dtype) {
@@ -378,7 +379,8 @@ Array CudaConv::ConvTranspose(
         const Dims& stride,
         const Dims& pad,
         const Dims& out_size,
-        Dtype out_dtype) {
+        Dtype out_dtype,
+        TensorLayout layout) {
     int8_t ndim = x.ndim() - 2;  // Number of spatial dimensions
 
     // Check if cover_all is false
@@ -425,9 +427,9 @@ Array CudaConv::ConvTranspose(
     Array x_cont = AsContiguous(x_cast);
     Array w_cont = AsContiguous(w_cast);
 
-    CudnnTensorDescriptor x_desc{x_cont};
-    CudnnTensorDescriptor y_desc{y};
-    CudnnFilterDescriptor filter_desc{w_cont};
+    CudnnTensorDescriptor x_desc{x_cont, layout};
+    CudnnTensorDescriptor y_desc{y, layout};
+    CudnnFilterDescriptor filter_desc{w_cont, layout};
     CudnnConvolutionDescriptor conv_desc{dtypes.conv_dtype, pad, stride, absl::nullopt /*dilation*/, 1 /*group*/};
 
     size_t max_workspace_size = backend.GetCudnnMaxWorkspaceSize();
@@ -467,7 +469,7 @@ Array CudaConv::ConvTranspose(
 
     if (b) {
         const Array& b_cast = b->dtype() == y.dtype() ? *b : b->AsType(y.dtype());
-        AddBias(handle, y_desc, y, b_cast);
+        AddBias(handle, y_desc, y, b_cast, layout);
     }
 
     if (y.dtype() != out_dtype) {
@@ -485,7 +487,8 @@ Array CudaConv::ConvGradWeight(
         const Array& gy,
         const Dims& stride,
         const Dims& pad,
-        bool cover_all) {
+        bool cover_all,
+        TensorLayout layout) {
     if (cover_all) {
         throw ChainerxError{"CUDA convolution does not support cover_all"};
     }
@@ -528,9 +531,9 @@ Array CudaConv::ConvGradWeight(
     Array x_cont = AsContiguous(x_cast);
     Array gy_cont = AsContiguous(gy_cast);
 
-    CudnnTensorDescriptor x_desc{x_cont};
-    CudnnTensorDescriptor gy_desc{gy_cont};
-    CudnnFilterDescriptor gw_desc{gw};
+    CudnnTensorDescriptor x_desc{x_cont, layout};
+    CudnnTensorDescriptor gy_desc{gy_cont, layout};
+    CudnnFilterDescriptor gw_desc{gw, layout};
     CudnnConvolutionDescriptor conv_desc{dtypes.conv_dtype, pad, stride, absl::nullopt /*dilation*/, 1 /*groups*/};
 
     size_t max_workspace_size = backend.GetCudnnMaxWorkspaceSize();

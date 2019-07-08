@@ -30,6 +30,7 @@ public:
             const Dims& pad,
             bool cover_all,
             Dtype out_dtype,
+            TensorLayout layout,
             const absl::optional<Array>& out) = 0;
 };
 
@@ -52,6 +53,7 @@ public:
             const Dims& pad,
             const Dims& out_size,
             Dtype out_dtype,
+            TensorLayout layout,
             const absl::optional<Array>& out) = 0;
 };
 
@@ -67,6 +69,7 @@ public:
             const Dims& stride,
             const Dims& pad,
             bool cover_all,
+            TensorLayout layout,
             const absl::optional<Array>& out) = 0;
 };
 

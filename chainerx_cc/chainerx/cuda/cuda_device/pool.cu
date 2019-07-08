@@ -87,6 +87,7 @@ Array Pool(
         Dims stride,
         Dims pad,
         bool cover_all,
+        TensorLayout layout,
         const absl::optional<Array>& out) {
     CHAINERX_ASSERT(kernel_size.size() == static_cast<size_t>(x.ndim() - 2));
     CHAINERX_ASSERT(stride.size() == static_cast<size_t>(x.ndim() - 2));
@@ -117,8 +118,8 @@ Array Pool(
     Array actual_out = Empty(out_shape, dtype, device);
     Array x_cont = AsContiguousArray(x);
 
-    cuda_internal::CudnnTensorDescriptor x_desc{x_cont};
-    cuda_internal::CudnnTensorDescriptor out_desc{actual_out};
+    cuda_internal::CudnnTensorDescriptor x_desc{x_cont, layout};
+    cuda_internal::CudnnTensorDescriptor out_desc{actual_out, layout};
 
     cuda_internal::CudnnPoolingDescriptor pool_desc{cudnn_pooling_mode, CUDNN_NOT_PROPAGATE_NAN, kernel_size, pad, stride};
 
@@ -145,6 +146,7 @@ Array PoolGrad(
         Dims kernel_size,
         Dims stride,
         Dims pad,
+        TensorLayout layout,
         const absl::optional<Array>& gx) {
     CHAINERX_ASSERT(out.shape() == gout.shape());
     CHAINERX_ASSERT(kernel_size.size() == static_cast<size_t>(x.ndim() - 2));
@@ -171,10 +173,10 @@ Array PoolGrad(
     Array gout_cont = AsContiguousArray(gout);
     Array x_cont = AsContiguousArray(x);
 
-    cuda_internal::CudnnTensorDescriptor out_desc{out_cont};
-    cuda_internal::CudnnTensorDescriptor gout_desc{gout_cont};
-    cuda_internal::CudnnTensorDescriptor x_desc{x_cont};
-    cuda_internal::CudnnTensorDescriptor gx_desc{actual_gx};
+    cuda_internal::CudnnTensorDescriptor out_desc{out_cont, layout};
+    cuda_internal::CudnnTensorDescriptor gout_desc{gout_cont, layout};
+    cuda_internal::CudnnTensorDescriptor x_desc{x_cont, layout};
+    cuda_internal::CudnnTensorDescriptor gx_desc{actual_gx, layout};
 
     cuda_internal::CudnnPoolingDescriptor pool_desc{cudnn_pooling_mode, CUDNN_NOT_PROPAGATE_NAN, kernel_size, pad, stride};
 
@@ -198,7 +200,14 @@ Array PoolGrad(
 }
 
 Array MaxPoolGradGrad(
-        const Array& x, const Array& out, const Array& ggx, Dims kernel_size, Dims stride, Dims pad, const absl::optional<Array>& ggout) {
+        const Array& x,
+        const Array& out,
+        const Array& ggx,
+        Dims kernel_size,
+        Dims stride,
+        Dims pad,
+        TensorLayout /* format */,
+        const absl::optional<Array>& ggout) {
     CHAINERX_ASSERT(x.shape() == ggx.shape());
     CHAINERX_ASSERT(kernel_size.size() == static_cast<size_t>(x.ndim() - 2));
     CHAINERX_ASSERT(stride.size() == static_cast<size_t>(x.ndim() - 2));
@@ -246,11 +255,17 @@ Array MaxPoolGradGrad(
 class CudaMaxPoolKernel : public MaxPoolKernel {
 public:
     std::tuple<Array, std::unique_ptr<MaxPoolGradState>> Call(
-            const Array& x, Dims kernel_size, Dims stride, Dims pad, bool cover_all, bool return_state, const absl::optional<Array>& out)
-            override {
+            const Array& x,
+            Dims kernel_size,
+            Dims stride,
+            Dims pad,
+            bool cover_all,
+            bool return_state,
+            TensorLayout layout,
+            const absl::optional<Array>& out) override {
         CHAINERX_ASSERT(internal::GetArrayBody(x)->nodes().empty());
 
-        Array actual_out = Pool(CUDNN_POOLING_MAX, x, kernel_size, stride, pad, cover_all, out);
+        Array actual_out = Pool(CUDNN_POOLING_MAX, x, kernel_size, stride, pad, cover_all, layout, out);
 
         std::unique_ptr<MaxPoolGradState> state = return_state ? std::make_unique<CudaMaxPoolGradState>(x, actual_out) : nullptr;
 
@@ -269,6 +284,7 @@ public:
             const Dims& pad,
             const std::shared_ptr<MaxPoolGradState>& state,
             bool return_state,
+            TensorLayout layout,
             const absl::optional<Array>& gx) override {
         CHAINERX_ASSERT(internal::GetArrayBody(gout)->nodes().empty());
 
@@ -277,7 +293,7 @@ public:
         const Array& x = cuda_state.x();
         const Array& out = cuda_state.out();
 
-        Array actual_gx = PoolGrad(CUDNN_POOLING_MAX, x, out, gout, kernel_size, stride, pad, gx);
+        Array actual_gx = PoolGrad(CUDNN_POOLING_MAX, x, out, gout, kernel_size, stride, pad, layout, gx);
 
         std::unique_ptr<MaxPoolGradGradState> grad_grad_state = return_state ? std::make_unique<CudaMaxPoolGradGradState>(x, out) : nullptr;
 
@@ -296,6 +312,7 @@ public:
             const Dims& pad,
             bool /*cover_all*/,
             const std::shared_ptr<MaxPoolGradGradState>& state,
+            TensorLayout layout,
             const absl::optional<Array>& ggout) override {
         CHAINERX_ASSERT(internal::GetArrayBody(ggx)->nodes().empty());
 
@@ -304,7 +321,7 @@ public:
         const Array& x = cuda_state.x();
         const Array& out = cuda_state.out();
 
-        return MaxPoolGradGrad(x, out, ggx, kernel_size, stride, pad, ggout);
+        return MaxPoolGradGrad(x, out, ggx, kernel_size, stride, pad, layout, ggout);
     }
 };
 
@@ -330,10 +347,11 @@ public:
             const Dims& pad,
             AveragePoolPadMode pad_mode,
             bool return_state,
+            TensorLayout layout,
             const absl::optional<Array>& out) override {
         CHAINERX_ASSERT(internal::GetArrayBody(x)->nodes().empty());
 
-        Array actual_out = Pool(GetCudnnPoolingMode(pad_mode), x, kernel_size, stride, pad, false, out);
+        Array actual_out = Pool(GetCudnnPoolingMode(pad_mode), x, kernel_size, stride, pad, false, layout, out);
 
         std::unique_ptr<AveragePoolGradState> state = return_state ? std::make_unique<CudaAveragePoolGradState>(x, actual_out) : nullptr;
 
@@ -352,6 +370,7 @@ public:
             const Dims& pad,
             AveragePoolPadMode pad_mode,
             const std::shared_ptr<AveragePoolGradState>& state,
+            TensorLayout layout,
             const absl::optional<Array>& gx) override {
         CHAINERX_ASSERT(internal::GetArrayBody(gout)->nodes().empty());
 
@@ -360,7 +379,7 @@ public:
         const Array& x = cuda_state.x();
         const Array& out = cuda_state.out();
 
-        return PoolGrad(GetCudnnPoolingMode(pad_mode), x, out, gout, kernel_size, stride, pad, gx);
+        return PoolGrad(GetCudnnPoolingMode(pad_mode), x, out, gout, kernel_size, stride, pad, layout, gx);
     }
 };
 

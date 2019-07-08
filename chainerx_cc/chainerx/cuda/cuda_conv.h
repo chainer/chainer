@@ -37,7 +37,8 @@ public:
             const Dims& stride,
             const Dims& pad,
             bool cover_all,
-            Dtype out_dtype);
+            Dtype out_dtype,
+            TensorLayout layout);
     Array ConvTranspose(
             CudaDevice& device,
             const Array& x,
@@ -46,7 +47,8 @@ public:
             const Dims& stride,
             const Dims& pad,
             const Dims& out_size,
-            Dtype out_dtype);
+            Dtype out_dtype,
+            TensorLayout layout);
     Array ConvGradWeight(
             CudaDevice& device,
             Dtype w_dtype,
@@ -55,10 +57,11 @@ public:
             const Array& gy,
             const Dims& stride,
             const Dims& pad,
-            bool cover_all);
+            bool cover_all,
+            TensorLayout layout);
 
 private:
-    void AddBias(CudnnHandle& handle, const CudnnTensorDescriptor& y_desc, const Array& y, const Array& b);
+    void AddBias(CudnnHandle& handle, const CudnnTensorDescriptor& y_desc, const Array& y, const Array& b, TensorLayout layout);
 
     std::tuple<cudnnConvolutionFwdAlgo_t, size_t, cudnnMathType_t> FindConvolutionForwardAlgorithm(
             CudnnHandle& handle,

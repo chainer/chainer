@@ -894,7 +894,8 @@ void InitChainerxConnection(pybind11::module& m) {
              const absl::optional<ArrayBodyPtr>& b,
              py::handle stride,
              py::handle pad,
-             bool cover_all) {
+             bool cover_all,
+             const absl::optional<py::str>& layout) {
               // Create an Array from x to compute the image dimensions and the expected number of stride and padding elements.
               Array x_array{x};
               int8_t ndim = x_array.ndim() - 2;
@@ -904,21 +905,25 @@ void InitChainerxConnection(pybind11::module& m) {
                            b.has_value() ? absl::optional<Array>{Array{*b}} : absl::nullopt,
                            ToStackVector<int64_t>(stride, ndim),
                            ToStackVector<int64_t>(pad, ndim),
-                           cover_all));
+                           cover_all,
+                           absl::nullopt,
+                           ToTensorLayout(layout)));
           },
           "x"_a,
           "w"_a,
           "b"_a = nullptr,
           "stride"_a = 1,
           "pad"_a = 0,
-          "cover_all"_a = false);
+          "cover_all"_a = false,
+          "layout"_a = nullptr);
     m.def("conv_transpose",
           [](const ArrayBodyPtr& x,
              const ArrayBodyPtr& w,
              const absl::optional<ArrayBodyPtr>& b,
              py::handle stride,
              py::handle pad,
-             const absl::optional<py::tuple>& outsize) {
+             const absl::optional<py::tuple>& outsize,
+             const absl::optional<py::str>& layout) {
               // Create an Array from x to compute the image dimensions and the expected number of stride and padding elements.
               Array x_array{x};
               int8_t ndim = x_array.ndim() - 2;
@@ -928,14 +933,17 @@ void InitChainerxConnection(pybind11::module& m) {
                       b.has_value() ? absl::optional<Array>{Array{*b}} : absl::nullopt,
                       ToStackVector<int64_t>(stride, ndim),
                       ToStackVector<int64_t>(pad, ndim),
-                      outsize.has_value() ? absl::optional<Dims>{ToStackVector<int64_t>(*outsize, ndim)} : absl::nullopt));
+                      outsize.has_value() ? absl::optional<Dims>{ToStackVector<int64_t>(*outsize, ndim)} : absl::nullopt,
+                      absl::nullopt,
+                      ToTensorLayout(layout)));
           },
           "x"_a,
           "w"_a,
           "b"_a = nullptr,
           "stride"_a = 1,
           "pad"_a = 0,
-          "outsize"_a = nullptr);
+          "outsize"_a = nullptr,
+          "layout"_a = nullptr);
     m.def("linear",
           [](const ArrayBodyPtr& x, const ArrayBodyPtr& w, const absl::optional<ArrayBodyPtr>& b, int8_t n_batch_axes) {
               return MoveArrayBody(
@@ -957,9 +965,18 @@ void InitChainerxNormalization(pybind11::module& m) {
              const ArrayBodyPtr& running_var,
              Scalar eps,
              Scalar decay,
-             const absl::optional<std::vector<int8_t>>& axis) {
-              return MoveArrayBody(
-                      BatchNorm(Array{x}, Array{gamma}, Array{beta}, Array{running_mean}, Array{running_var}, eps, decay, ToAxes(axis)));
+             const absl::optional<std::vector<int8_t>>& axis,
+             const absl::optional<py::str>& layout) {
+              return MoveArrayBody(BatchNorm(
+                      Array{x},
+                      Array{gamma},
+                      Array{beta},
+                      Array{running_mean},
+                      Array{running_var},
+                      eps,
+                      decay,
+                      ToAxes(axis),
+                      ToTensorLayout(layout)));
           },
           "x"_a,
           "gamma"_a,
@@ -968,7 +985,8 @@ void InitChainerxNormalization(pybind11::module& m) {
           "running_var"_a,
           "eps"_a = 2e-5,
           "decay"_a = 0.9,
-          "axis"_a = nullptr);
+          "axis"_a = nullptr,
+          "layout"_a = nullptr);
     m.def("fixed_batch_norm",
           [](const ArrayBodyPtr& x,
              const ArrayBodyPtr& gamma,
@@ -976,8 +994,10 @@ void InitChainerxNormalization(pybind11::module& m) {
              const ArrayBodyPtr& mean,
              const ArrayBodyPtr& var,
              Scalar eps,
-             const absl::optional<std::vector<int8_t>>& axis) {
-              return MoveArrayBody(FixedBatchNorm(Array{x}, Array{gamma}, Array{beta}, Array{mean}, Array{var}, eps, ToAxes(axis)));
+             const absl::optional<std::vector<int8_t>>& axis,
+             const absl::optional<py::str>& layout) {
+              return MoveArrayBody(FixedBatchNorm(
+                      Array{x}, Array{gamma}, Array{beta}, Array{mean}, Array{var}, eps, ToAxes(axis), ToTensorLayout(layout)));
           },
           "x"_a,
           "gamma"_a,
@@ -985,14 +1005,20 @@ void InitChainerxNormalization(pybind11::module& m) {
           "mean"_a,
           "var"_a,
           "eps"_a = 2e-5,
-          "axis"_a = nullptr);
+          "axis"_a = nullptr,
+          "layout"_a = nullptr);
 }
 
 void InitChainerxPooling(pybind11::module& m) {
     // pooling routines
     // TODO(sonots): Support return_indicies option of chainer.functions.max_pooling_nd.
     m.def("max_pool",
-          [](const ArrayBodyPtr& x, py::handle ksize, py::handle stride, py::handle pad, bool cover_all) {
+          [](const ArrayBodyPtr& x,
+             py::handle ksize,
+             py::handle stride,
+             py::handle pad,
+             bool cover_all,
+             const absl::optional<py::str>& layout) {
               Array x_array{x};
               int8_t ndim = x_array.ndim() - 2;
               return MoveArrayBody(
@@ -1000,15 +1026,22 @@ void InitChainerxPooling(pybind11::module& m) {
                               ToStackVector<int64_t>(ksize, ndim),
                               stride.is_none() ? ToStackVector<int64_t>(ksize, ndim) : ToStackVector<int64_t>(stride, ndim),
                               ToStackVector<int64_t>(pad, ndim),
-                              cover_all));
+                              cover_all,
+                              ToTensorLayout(layout)));
           },
           "x"_a,
           "ksize"_a,
           "stride"_a = py::none(),
           "pad"_a = 0,
-          "cover_all"_a = false);
+          "cover_all"_a = false,
+          "layout"_a = nullptr);
     m.def("average_pool",
-          [](const ArrayBodyPtr& x, py::handle ksize, py::handle stride, py::handle pad, const std::string& pad_mode) {
+          [](const ArrayBodyPtr& x,
+             py::handle ksize,
+             py::handle stride,
+             py::handle pad,
+             const std::string& pad_mode,
+             const absl::optional<py::str>& layout) {
               Array x_array{x};
               int8_t ndim = x_array.ndim() - 2;
 
@@ -1026,13 +1059,15 @@ void InitChainerxPooling(pybind11::module& m) {
                       ToStackVector<int64_t>(ksize, ndim),
                       stride.is_none() ? ToStackVector<int64_t>(ksize, ndim) : ToStackVector<int64_t>(stride, ndim),
                       ToStackVector<int64_t>(pad, ndim),
-                      mode));
+                      mode,
+                      ToTensorLayout(layout)));
           },
           "x"_a,
           "ksize"_a,
           "stride"_a = py::none(),
           "pad"_a = 0,
-          "pad_mode"_a = "ignore");
+          "pad_mode"_a = "ignore",
+          "layout"_a = nullptr);
 }
 
 void InitChainerxLoss(pybind11::module& m) {

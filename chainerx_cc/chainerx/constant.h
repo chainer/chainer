@@ -14,4 +14,10 @@ constexpr const char* kDefaultBackpropName = "default";
 // Value of constant PI
 constexpr long double kPi = 3.141592653589793238462643383279502884L;
 
+// Format of 4D tensor
+enum class TensorLayout {
+    NCHW,
+    NHWC,
+};
+
 }  // namespace chainerx

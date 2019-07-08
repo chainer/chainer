@@ -120,6 +120,7 @@ std::tuple<Array, std::unique_ptr<BatchNormGradState>> ApplyGenericBatchNorm(
         const Axes& axis,
         Dtype interm_dtype,
         bool return_state,
+        TensorLayout /* format */,
         const absl::optional<Array>& out) {
     if (CHAINERX_DEBUG) {
         Shape reduced_shape = internal::ReduceShape(x.shape(), axis, true);
@@ -164,6 +165,7 @@ std::tuple<Array, std::unique_ptr<BatchNormGradState>> GenericBatchNormKernel::C
         Scalar decay,
         const Axes& axis,
         bool return_state,
+        TensorLayout layout,
         const absl::optional<Array>& out) {
     CHAINERX_ASSERT(internal::GetArrayBody(x)->nodes().empty());
     CHAINERX_ASSERT(internal::GetArrayBody(gamma)->nodes().empty());
@@ -180,7 +182,7 @@ std::tuple<Array, std::unique_ptr<BatchNormGradState>> GenericBatchNormKernel::C
     Array x_mean = Mean(x_cast, axis, true);
     Array x_var = Var(x_cast, axis, true);
     std::tuple<Array, std::unique_ptr<BatchNormGradState>> result =
-            ApplyGenericBatchNorm(x, gamma, beta, x_mean, x_var, eps, axis, interm_dtype, return_state, out);
+            ApplyGenericBatchNorm(x, gamma, beta, x_mean, x_var, eps, axis, interm_dtype, return_state, layout, out);
 
     // Update running values.
     // TODO(hvy): Avoid `AsType` when `IAdd` supports mixed dtypes.
@@ -203,7 +205,8 @@ std::tuple<Array, Array, Array> GenericBatchNormGradKernel::Call(
         const std::shared_ptr<BatchNormGradState>& state,
         const absl::optional<Array>& gx,
         const absl::optional<Array>& ggamma,
-        const absl::optional<Array>& gbeta) {
+        const absl::optional<Array>& gbeta,
+        TensorLayout /* format */) {
     // TODO(hvy): Implement and test the `gx` argument.
     if (gx.has_value()) {
         throw NotImplementedError{"Passing gx as an argument is not yet supported."};
@@ -256,10 +259,11 @@ Array GenericFixedBatchNormKernel::Call(
         const Array& var,
         Scalar eps,
         const Axes& axis,
+        TensorLayout layout,
         const absl::optional<Array>& out) {
     Dtype interm_dtype = ResultType(x, gamma, beta, mean, var);
     std::tuple<Array, std::unique_ptr<BatchNormGradState>> result =
-            ApplyGenericBatchNorm(x, gamma, beta, mean, var, eps, axis, interm_dtype, false, out);
+            ApplyGenericBatchNorm(x, gamma, beta, mean, var, eps, axis, interm_dtype, false, layout, out);
     return out.has_value() ? *out : std::get<0>(result);
 }
 
@@ -271,7 +275,8 @@ Array BatchNorm(
         const Array& running_var,
         Scalar eps,
         Scalar decay,
-        const OptionalAxes& axis) {
+        const OptionalAxes& axis,
+        TensorLayout layout) {
     // Preprocess inputs.
     PreprocessBatchNormResult result = PreprocessBatchNorm(x, gamma, beta, running_mean, running_var, axis);
     const Array& gamma_reshaped = result.gamma;
@@ -297,6 +302,7 @@ Array BatchNorm(
                 decay,
                 sorted_axis,
                 true,
+                layout,
                 absl::nullopt);
     }
     CHAINERX_ASSERT(state != nullptr);
@@ -311,7 +317,8 @@ Array BatchNorm(
                    eps,
                    sorted_axis,
                    beta_shape = beta_reshaped.shape(),
-                   beta_dtype = beta_reshaped.dtype()](BackwardContext& bctx) {
+                   beta_dtype = beta_reshaped.dtype(),
+                   layout](BackwardContext& bctx) {
             const Array& gout = *bctx.output_grad();
             const Array& x = bctx.GetRetainedInput(x_tok);
             const Array& gamma_reshaped = bctx.GetRetainedInput(gamma_tok);
@@ -325,7 +332,7 @@ Array BatchNorm(
             {
                 NoBackpropModeScope scope{};
                 std::tie(gx, ggamma, gbeta) = device.backend().CallKernel<BatchNormGradKernel>(
-                        x, gamma_reshaped, gout, eps, sorted_axis, state, absl::nullopt, absl::nullopt, absl::nullopt);
+                        x, gamma_reshaped, gout, eps, sorted_axis, state, absl::nullopt, absl::nullopt, absl::nullopt, layout);
             }
             CHAINERX_ASSERT(internal::GetArrayBody(gx)->nodes().empty());
             CHAINERX_ASSERT(internal::GetArrayBody(ggamma)->nodes().empty());
@@ -412,14 +419,21 @@ Array BatchNorm(
 }
 
 Array FixedBatchNorm(
-        const Array& x, const Array& gamma, const Array& beta, const Array& mean, const Array& var, Scalar eps, const OptionalAxes& axis) {
+        const Array& x,
+        const Array& gamma,
+        const Array& beta,
+        const Array& mean,
+        const Array& var,
+        Scalar eps,
+        const OptionalAxes& axis,
+        TensorLayout layout) {
     PreprocessBatchNormResult result =
             PreprocessBatchNorm(x, gamma.AsGradStopped(), beta.AsGradStopped(), mean.AsGradStopped(), var.AsGradStopped(), axis);
 
     {
         NoBackpropModeScope scope{};
         return x.device().backend().CallKernel<FixedBatchNormKernel>(
-                x.AsGradStopped(), result.gamma, result.beta, result.mean, result.var, eps, result.sorted_axis, absl::nullopt);
+                x.AsGradStopped(), result.gamma, result.beta, result.mean, result.var, eps, result.sorted_axis, layout, absl::nullopt);
     }
 }
 

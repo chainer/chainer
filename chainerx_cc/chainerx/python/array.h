@@ -31,6 +31,8 @@ ArrayBodyPtr MakeArrayFromNumpyArray(pybind11::array array, Device& device);
 
 void InitChainerxArray(pybind11::module& m);
 
+TensorLayout ToTensorLayout(const absl::optional<pybind11::str>& str);
+
 }  // namespace python_internal
 }  // namespace python
 }  // namespace chainerx

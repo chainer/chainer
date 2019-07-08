@@ -49,15 +49,15 @@ void CheckPoolInputs(const Array& x, const Dims& kernel_size, const Dims& stride
 
 }  // namespace
 
-Array MaxPool(const Array& x, const Dims& kernel_size, const Dims& stride, const Dims& pad, bool cover_all) {
+Array MaxPool(const Array& x, const Dims& kernel_size, const Dims& stride, const Dims& pad, bool cover_all, TensorLayout layout) {
     CheckPoolInputs(x, kernel_size, stride, pad);
 
     Array out{};
     std::shared_ptr<MaxPoolGradState> state{};
     {
         NoBackpropModeScope scope{};
-        std::tie(out, state) =
-                x.device().backend().CallKernel<MaxPoolKernel>(x.AsGradStopped(), kernel_size, stride, pad, cover_all, true, absl::nullopt);
+        std::tie(out, state) = x.device().backend().CallKernel<MaxPoolKernel>(
+                x.AsGradStopped(), kernel_size, stride, pad, cover_all, true, layout, absl::nullopt);
     }
     internal::MakeViewForForwardBackwardOutput(out);
 
@@ -72,7 +72,7 @@ Array MaxPool(const Array& x, const Dims& kernel_size, const Dims& stride, const
             {
                 NoBackpropModeScope scope{};
                 std::tie(gx, grad_grad_state) = gout.device().backend().CallKernel<MaxPoolGradKernel>(
-                        gout.AsGradStopped(), kernel_size, stride, pad, state, true, absl::nullopt);
+                        gout.AsGradStopped(), kernel_size, stride, pad, state, true, layout, absl::nullopt);
             }
             internal::MakeViewForForwardBackwardOutput(gx);
 
@@ -86,7 +86,14 @@ Array MaxPool(const Array& x, const Dims& kernel_size, const Dims& stride, const
                         {
                             NoBackpropModeScope scope{};
                             ggout = ggx.device().backend().CallKernel<MaxPoolGradGradKernel>(
-                                    ggx.AsGradStopped(), st.kernel_size, st.stride, st.pad, st.cover_all, grad_grad_state, absl::nullopt);
+                                    ggx.AsGradStopped(),
+                                    st.kernel_size,
+                                    st.stride,
+                                    st.pad,
+                                    st.cover_all,
+                                    grad_grad_state,
+                                    st.layout,
+                                    absl::nullopt);
                         }
 
                         // Make ggout further backpropable.
@@ -109,20 +116,22 @@ Array MaxPool(const Array& x, const Dims& kernel_size, const Dims& stride, const
         Dims stride;
         Dims pad;
         bool cover_all;
+        TensorLayout layout;
         std::shared_ptr<MaxPoolGradState> state;
     };
 
     {
         BackwardBuilder bb1{"max_pooling", x, out};
         if (BackwardBuilder::Target bt1 = bb1.CreateTarget(0)) {
-            bt1.Define(MaxPoolBwd{kernel_size, stride, pad, cover_all, std::move(state)});
+            bt1.Define(MaxPoolBwd{kernel_size, stride, pad, cover_all, layout, std::move(state)});
         }
         bb1.Finalize();
     }
     return out;
 }
 
-Array AveragePool(const Array& x, const Dims& kernel_size, const Dims& stride, const Dims& pad, AveragePoolPadMode pad_mode) {
+Array AveragePool(
+        const Array& x, const Dims& kernel_size, const Dims& stride, const Dims& pad, AveragePoolPadMode pad_mode, TensorLayout layout) {
     if (GetKind(x.dtype()) != DtypeKind::kFloat) {
         throw DtypeError("cannot apply average pooling to ", x.dtype(), " array (floatXX array is expected)");
     }
@@ -133,29 +142,29 @@ Array AveragePool(const Array& x, const Dims& kernel_size, const Dims& stride, c
     {
         NoBackpropModeScope scope{};
         std::tie(out, state) = x.device().backend().CallKernel<AveragePoolKernel>(
-                x.AsGradStopped(), kernel_size, stride, pad, pad_mode, true, absl::nullopt);
+                x.AsGradStopped(), kernel_size, stride, pad, pad_mode, true, layout, absl::nullopt);
     }
     internal::MakeViewForForwardBackwardOutput(out);
 
     {
         BackwardBuilder bb1{"average_pool", x, out};
         if (BackwardBuilder::Target bt1 = bb1.CreateTarget(0)) {
-            bt1.Define([state = std::move(state), kernel_size, stride, pad, pad_mode](BackwardContext& bctx) {
+            bt1.Define([state = std::move(state), kernel_size, stride, pad, pad_mode, layout](BackwardContext& bctx) {
                 const Array& gout = *bctx.output_grad();
 
                 Array gx{};
                 {
                     NoBackpropModeScope scope{};
                     gx = gout.device().backend().CallKernel<AveragePoolGradKernel>(
-                            gout.AsGradStopped(), kernel_size, stride, pad, pad_mode, state, absl::nullopt);
+                            gout.AsGradStopped(), kernel_size, stride, pad, pad_mode, state, layout, absl::nullopt);
                 }
 
                 {
                     BackwardBuilder bb2{"average_pool_backward", gout, gx};
                     if (BackwardBuilder::Target bt2 = bb2.CreateTarget(0)) {
-                        bt2.Define([kernel_size, stride, pad, pad_mode](BackwardContext& bctx2) {
+                        bt2.Define([kernel_size, stride, pad, pad_mode, layout](BackwardContext& bctx2) {
                             const Array& ggx = *bctx2.output_grad();
-                            bctx2.input_grad() = AveragePool(ggx, kernel_size, stride, pad, pad_mode);
+                            bctx2.input_grad() = AveragePool(ggx, kernel_size, stride, pad, pad_mode, layout);
                         });
                     }
                     bb2.Finalize();

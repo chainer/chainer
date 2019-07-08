@@ -56,7 +56,14 @@ int64_t GetConvTransposeOutDim(int64_t in_dim, int64_t kernel_size, int64_t stri
 namespace {
 
 Array ConvGradWeight(
-        Dtype w_dtype, const Shape& w_shape, const Array& x, const Array& gy, const Dims& stride, const Dims& pad, bool cover_all) {
+        Dtype w_dtype,
+        const Shape& w_shape,
+        const Array& x,
+        const Array& gy,
+        const Dims& stride,
+        const Dims& pad,
+        bool cover_all,
+        TensorLayout layout) {
     CHAINERX_ASSERT(x.ndim() == w_shape.ndim());
     CHAINERX_ASSERT(gy.ndim() == w_shape.ndim());
     CHAINERX_ASSERT(stride.size() == static_cast<size_t>(w_shape.ndim() - 2));
@@ -65,7 +72,7 @@ Array ConvGradWeight(
     Array out{};
     {
         NoBackpropModeScope scope{};
-        out = x.device().backend().CallKernel<ConvGradWeightKernel>(w_dtype, w_shape, x, gy, stride, pad, cover_all, absl::nullopt);
+        out = x.device().backend().CallKernel<ConvGradWeightKernel>(w_dtype, w_shape, x, gy, stride, pad, cover_all, layout, absl::nullopt);
         CHAINERX_ASSERT(out.dtype() == w_dtype);
     }
 
@@ -73,20 +80,20 @@ Array ConvGradWeight(
         BackwardBuilder bb{"conv-grad-weight", {x, gy}, out};
 
         if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-            bt.Define([x_shape = x.shape(), x_dtype = x.dtype(), gy_tok = bb.RetainInput(1), stride, pad](BackwardContext& bctx) {
+            bt.Define([x_shape = x.shape(), x_dtype = x.dtype(), gy_tok = bb.RetainInput(1), stride, pad, layout](BackwardContext& bctx) {
                 const Array& gy = bctx.GetRetainedInput(gy_tok);
                 const Array& gout = *bctx.output_grad();
                 Dims out_size{x_shape.begin() + 2, x_shape.end()};
                 CHAINERX_ASSERT(out_size.size() == stride.size());
-                bctx.input_grad() = ConvTranspose(gy, gout, absl::nullopt, stride, pad, out_size, x_dtype);
+                bctx.input_grad() = ConvTranspose(gy, gout, absl::nullopt, stride, pad, out_size, x_dtype, layout);
             });
         }
 
         if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
-            bt.Define([gy_dtype = gy.dtype(), x_tok = bb.RetainInput(0), stride, pad, cover_all](BackwardContext& bctx) {
+            bt.Define([gy_dtype = gy.dtype(), x_tok = bb.RetainInput(0), stride, pad, cover_all, layout](BackwardContext& bctx) {
                 const Array& x = bctx.GetRetainedInput(x_tok);
                 const Array& gout = *bctx.output_grad();
-                bctx.input_grad() = Conv(x, gout, absl::nullopt, stride, pad, cover_all, gy_dtype);
+                bctx.input_grad() = Conv(x, gout, absl::nullopt, stride, pad, cover_all, gy_dtype, layout);
             });
         }
         bb.Finalize();
@@ -123,7 +130,8 @@ Array Conv(
         const Dims& stride,
         const Dims& pad,
         bool cover_all,
-        absl::optional<Dtype> out_dtype) {
+        absl::optional<Dtype> out_dtype,
+        TensorLayout layout) {
     ConvCheckNdim(x, w, stride, pad);
     if (w.shape()[1] != x.shape()[1]) {
         throw DimensionError{"Mismatched number of input channels in input ", x.shape(), " and weights ", w.shape(), "."};
@@ -137,7 +145,7 @@ Array Conv(
     Array out{};
     {
         NoBackpropModeScope scope{};
-        out = x.device().backend().CallKernel<ConvKernel>(x, w, b, stride, pad, cover_all, real_out_dtype, absl::nullopt);
+        out = x.device().backend().CallKernel<ConvKernel>(x, w, b, stride, pad, cover_all, real_out_dtype, layout, absl::nullopt);
     }
 
     {
@@ -160,10 +168,11 @@ Array Conv(
         }
 
         if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
-            bt.Define([w_dtype = w.dtype(), w_shape = w.shape(), x_tok = bb.RetainInput(0), stride, pad, cover_all](BackwardContext& bctx) {
+            bt.Define([w_dtype = w.dtype(), w_shape = w.shape(), x_tok = bb.RetainInput(0), stride, pad, cover_all, layout](
+                              BackwardContext& bctx) {
                 const Array& x = bctx.GetRetainedInput(x_tok);
                 const Array& gout = *bctx.output_grad();
-                bctx.input_grad() = ConvGradWeight(w_dtype, w_shape, x, gout, stride, pad, cover_all);
+                bctx.input_grad() = ConvGradWeight(w_dtype, w_shape, x, gout, stride, pad, cover_all, layout);
             });
         }
 
@@ -193,7 +202,8 @@ Array ConvTranspose(
         const Dims& stride,
         const Dims& pad,
         const absl::optional<Dims>& out_size,
-        absl::optional<Dtype> out_dtype) {
+        absl::optional<Dtype> out_dtype,
+        TensorLayout layout) {
     ConvCheckNdim(x, w, stride, pad);
     if (x.shape()[1] != w.shape()[0]) {
         throw DimensionError{"Mismatched number of input channels in input ", x.shape(), " and weights ", w.shape(), "."};
@@ -249,7 +259,8 @@ Array ConvTranspose(
     Array out{};
     {
         NoBackpropModeScope scope{};
-        out = x.device().backend().CallKernel<ConvTransposeKernel>(x, w, b, stride, pad, real_out_size, real_out_dtype, absl::nullopt);
+        out = x.device().backend().CallKernel<ConvTransposeKernel>(
+                x, w, b, stride, pad, real_out_size, real_out_dtype, layout, absl::nullopt);
     }
 
     {
@@ -263,19 +274,21 @@ Array ConvTranspose(
         BackwardBuilder bb{"conv_transpose", std::move(inputs), out};
 
         if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-            bt.Define([x_shape = x.shape(), x_dtype = x.dtype(), w_tok = bb.RetainInput(1), stride, pad, cover_all](BackwardContext& bctx) {
+            bt.Define([x_shape = x.shape(), x_dtype = x.dtype(), w_tok = bb.RetainInput(1), stride, pad, cover_all, layout](
+                              BackwardContext& bctx) {
                 const Array& w = bctx.GetRetainedInput(w_tok);
                 const Array& gout = *bctx.output_grad();
                 Dims out_size{x_shape.begin() + 2, x_shape.end()};
-                bctx.input_grad() = Conv(gout, w, absl::nullopt, stride, pad, cover_all, x_dtype);
+                bctx.input_grad() = Conv(gout, w, absl::nullopt, stride, pad, cover_all, x_dtype, layout);
             });
         }
 
         if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
-            bt.Define([w_dtype = w.dtype(), w_shape = w.shape(), x_tok = bb.RetainInput(0), stride, pad, cover_all](BackwardContext& bctx) {
+            bt.Define([w_dtype = w.dtype(), w_shape = w.shape(), x_tok = bb.RetainInput(0), stride, pad, cover_all, layout](
+                              BackwardContext& bctx) {
                 const Array& x = bctx.GetRetainedInput(x_tok);
                 const Array& gout = *bctx.output_grad();
-                bctx.input_grad() = ConvGradWeight(w_dtype, w_shape, gout, x, stride, pad, cover_all);
+                bctx.input_grad() = ConvGradWeight(w_dtype, w_shape, gout, x, stride, pad, cover_all, layout);
             });
         }
 

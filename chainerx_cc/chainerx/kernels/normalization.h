@@ -44,6 +44,7 @@ public:
             Scalar decay,
             const Axes& axis,
             bool return_state,
+            TensorLayout layout,
             const absl::optional<Array>& out) = 0;
 };
 
@@ -61,7 +62,8 @@ public:
             const std::shared_ptr<BatchNormGradState>& state,
             const absl::optional<Array>& gx,
             const absl::optional<Array>& ggamma,
-            const absl::optional<Array>& gbeta) = 0;
+            const absl::optional<Array>& gbeta,
+            TensorLayout layout) = 0;
 };
 
 class GenericBatchNormGradState : public BatchNormGradState {
@@ -91,6 +93,7 @@ public:
             Scalar decay,
             const Axes& axis,
             bool return_state,
+            TensorLayout layout,
             const absl::optional<Array>& out) override;
 };
 
@@ -105,7 +108,8 @@ public:
             const std::shared_ptr<BatchNormGradState>& state,
             const absl::optional<Array>& gx,
             const absl::optional<Array>& ggamma,
-            const absl::optional<Array>& gbeta) override;
+            const absl::optional<Array>& gbeta,
+            TensorLayout layout) override;
 };
 
 class FixedBatchNormKernel : public Kernel {
@@ -120,6 +124,7 @@ public:
             const Array& var,
             Scalar eps,
             const Axes& axis,
+            TensorLayout layout,
             const absl::optional<Array>& out) = 0;
 };
 
@@ -133,6 +138,7 @@ public:
             const Array& var,
             Scalar eps,
             const Axes& axis,
+            TensorLayout layout,
             const absl::optional<Array>& out) override;
 };
 

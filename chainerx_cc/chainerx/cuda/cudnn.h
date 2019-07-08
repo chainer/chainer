@@ -47,10 +47,21 @@ const void* GetCudnnCoefficientPtr(Dtype dtype) {
     }
 }
 
+inline cudnnTensorFormat_t ToCudnnFormat(TensorLayout layout) {
+    switch (layout) {
+        case TensorLayout::NHWC:
+            return CUDNN_TENSOR_NHWC;
+
+        case TensorLayout::NCHW:
+        default:
+            return CUDNN_TENSOR_NCHW;
+    }
+}
+
 class CudnnTensorDescriptor {
 public:
     CudnnTensorDescriptor();
-    explicit CudnnTensorDescriptor(const Array& arr);
+    explicit CudnnTensorDescriptor(const Array& arr, TensorLayout layout);
 
     ~CudnnTensorDescriptor();
 
@@ -70,7 +81,7 @@ private:
 
 class CudnnFilterDescriptor {
 public:
-    explicit CudnnFilterDescriptor(const Array& w);
+    explicit CudnnFilterDescriptor(const Array& w, TensorLayout layout);
 
     ~CudnnFilterDescriptor();
 

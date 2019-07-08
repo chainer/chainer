@@ -2,6 +2,7 @@
 
 #include <absl/types/optional.h>
 #include <cudnn.h>
+#include <utility>
 
 #include "chainerx/array.h"
 #include "chainerx/cuda/cuda_runtime.h"
@@ -94,13 +95,17 @@ CudnnTensorDescriptor::~CudnnTensorDescriptor() {
     }
 }
 
-CudnnTensorDescriptor::CudnnTensorDescriptor(const Array& arr) : CudnnTensorDescriptor{} {
+CudnnTensorDescriptor::CudnnTensorDescriptor(const Array& arr, TensorLayout layout) : CudnnTensorDescriptor{} {
     CHAINERX_ASSERT(arr.IsContiguous());
 
     cudnnDataType_t cudnn_dtype = GetCudnnDataType(arr.dtype());
     if (arr.shape().ndim() == 4) {
         StackVector<int, kMaxNdim> nchw = GetIntShape(arr.shape());
-        CheckCudnnError(cudnnSetTensor4dDescriptor(desc_, CUDNN_TENSOR_NCHW, cudnn_dtype, nchw[0], nchw[1], nchw[2], nchw[3]));
+        if (layout == TensorLayout::NHWC) {
+            std::swap(nchw[1], nchw[3]);
+            std::swap(nchw[2], nchw[3]);
+        }
+        CheckCudnnError(cudnnSetTensor4dDescriptor(desc_, ToCudnnFormat(layout), cudnn_dtype, nchw[0], nchw[1], nchw[2], nchw[3]));
     } else {
         StackVector<int, kMaxNdim> int_strides = GetIntArrayStrides(arr.strides(), arr.GetItemSize());  // strides divided by item size
         StackVector<int, kMaxNdim> int_shape = GetIntShape(arr.shape());
@@ -134,16 +139,20 @@ CudnnFilterDescriptor::~CudnnFilterDescriptor() {
     }
 }
 
-CudnnFilterDescriptor::CudnnFilterDescriptor(const Array& w) : CudnnFilterDescriptor{} {
+CudnnFilterDescriptor::CudnnFilterDescriptor(const Array& w, TensorLayout layout) : CudnnFilterDescriptor{} {
     CHAINERX_ASSERT(w.IsContiguous());
 
     cudnnDataType_t cudnn_dtype = GetCudnnDataType(w.dtype());
     if (w.shape().ndim() == 4) {
         StackVector<int, kMaxNdim> nchw = GetIntShape(w.shape());
-        CheckCudnnError(cudnnSetFilter4dDescriptor(desc_, cudnn_dtype, CUDNN_TENSOR_NCHW, nchw[0], nchw[1], nchw[2], nchw[3]));
+        if (layout == TensorLayout::NHWC) {
+            std::swap(nchw[1], nchw[3]);
+            std::swap(nchw[2], nchw[3]);
+        }
+        CheckCudnnError(cudnnSetFilter4dDescriptor(desc_, cudnn_dtype, ToCudnnFormat(layout), nchw[0], nchw[1], nchw[2], nchw[3]));
     } else {
         StackVector<int, kMaxNdim> int_shape = GetIntShape(w.shape());
-        CheckCudnnError(cudnnSetFilterNdDescriptor(desc_, cudnn_dtype, CUDNN_TENSOR_NCHW, w.ndim(), &int_shape[0]));
+        CheckCudnnError(cudnnSetFilterNdDescriptor(desc_, cudnn_dtype, ToCudnnFormat(layout), w.ndim(), &int_shape[0]));
     }
 }
 

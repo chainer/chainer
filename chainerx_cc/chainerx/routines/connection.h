@@ -34,7 +34,8 @@ Array Conv(
         const Dims& stride,
         const Dims& pad,
         bool cover_all = false,
-        absl::optional<Dtype> out_dtype = absl::nullopt);
+        absl::optional<Dtype> out_dtype = absl::nullopt,
+        TensorLayout layout = TensorLayout::NCHW);
 
 Array ConvTranspose(
         const Array& x,
@@ -43,7 +44,8 @@ Array ConvTranspose(
         const Dims& stride,
         const Dims& pad,
         const absl::optional<Dims>& out_size = absl::nullopt,
-        absl::optional<Dtype> out_dtype = absl::nullopt);
+        absl::optional<Dtype> out_dtype = absl::nullopt,
+        TensorLayout layout = TensorLayout::NCHW);
 
 Array Linear(const Array& x, const Array& w, const absl::optional<Array>& b = absl::nullopt, uint8_t n_batch_axes = 1);
 

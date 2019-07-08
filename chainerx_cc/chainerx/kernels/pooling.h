@@ -29,8 +29,15 @@ class MaxPoolKernel : public Kernel {
 public:
     static const char* name() { return "MaxPool"; }
 
-    virtual std::tuple<Array, std::unique_ptr<MaxPoolGradState>>
-    Call(const Array& x, Dims kernel_size, Dims stride, Dims pad, bool cover_all, bool return_state, const absl::optional<Array>& out) = 0;
+    virtual std::tuple<Array, std::unique_ptr<MaxPoolGradState>> Call(
+            const Array& x,
+            Dims kernel_size,
+            Dims stride,
+            Dims pad,
+            bool cover_all,
+            bool return_state,
+            TensorLayout layout,
+            const absl::optional<Array>& out) = 0;
 };
 
 class MaxPoolGradGradState {
@@ -56,6 +63,7 @@ public:
             const Dims& pad,
             const std::shared_ptr<MaxPoolGradState>& state,
             bool return_state,
+            TensorLayout layout,
             const absl::optional<Array>& gx) = 0;
 };
 
@@ -70,6 +78,7 @@ public:
             const Dims& pad,
             bool cover_all,
             const std::shared_ptr<MaxPoolGradGradState>& state,
+            TensorLayout layout,
             const absl::optional<Array>& ggout) = 0;
 };
 
@@ -96,6 +105,7 @@ public:
             const Dims& pad,
             AveragePoolPadMode pad_mode,
             bool return_state,
+            TensorLayout layout,
             const absl::optional<Array>& out) = 0;
 };
 
@@ -110,6 +120,7 @@ public:
             const Dims& pad,
             AveragePoolPadMode pad_mode,
             const std::shared_ptr<AveragePoolGradState>& state,
+            TensorLayout layout,
             const absl::optional<Array>& gx) = 0;
 };
 

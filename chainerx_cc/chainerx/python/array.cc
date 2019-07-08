@@ -157,6 +157,19 @@ ArrayBodyPtr MakeArray(py::handle object, const absl::optional<Dtype>& dtype, bo
     return MakeArrayFromNumpyArray(np_array, device);
 }
 
+TensorLayout ToTensorLayout(const absl::optional<py::str>& str) {
+    using py::operator""_s;
+
+    if (!str.has_value()) {
+        return TensorLayout::NCHW;
+    }
+    if (str->is("nhwc"_s)) {
+        return TensorLayout::NHWC;
+    }
+    CHAINERX_ASSERT(str->is("nchw"_s));
+    return TensorLayout::NCHW;
+}
+
 void InitChainerxArray(pybind11::module& m) {
     py::class_<ArrayBody, ArrayBodyPtr> c{m, "ndarray", py::buffer_protocol()};
     // TODO(hvy): Support all arguments in the constructor of numpy.ndarray.

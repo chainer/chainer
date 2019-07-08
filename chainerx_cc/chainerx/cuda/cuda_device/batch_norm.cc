@@ -83,6 +83,7 @@ public:
             Scalar decay,
             const Axes& axis,
             bool return_state,
+            TensorLayout layout,
             const absl::optional<Array>& out) override {
         if (CHAINERX_DEBUG) {
             Shape reduced_shape = internal::ReduceShape(x.shape(), axis, true);
@@ -122,7 +123,7 @@ public:
         CudaSetDeviceScope scope{device.index()};
 
         Array x_cont = AsContiguous(x);
-        cuda_internal::CudnnTensorDescriptor x_desc{x_cont};
+        cuda_internal::CudnnTensorDescriptor x_desc{x_cont, layout};
 
         cudnnBatchNormMode_t mode = GetBatchNormMode(axis);
         cuda_internal::CudnnTensorDescriptor gamma_beta_mean_var_desc = DeriveBatchNormTensorDescriptor(x_desc, mode);
@@ -197,7 +198,8 @@ public:
             const std::shared_ptr<BatchNormGradState>& state,
             const absl::optional<Array>& gx,
             const absl::optional<Array>& ggamma,
-            const absl::optional<Array>& gbeta) override {
+            const absl::optional<Array>& gbeta,
+            TensorLayout layout) override {
         CHAINERX_ASSERT(gamma.shape() == internal::ReduceShape(x.shape(), axis, true));
         CHAINERX_ASSERT(x.shape() == gout.shape());
         CHAINERX_ASSERT(&x.device() == &gamma.device());
@@ -239,10 +241,10 @@ public:
 
         Array gout_cont = AsContiguous(gout);
         Array actual_gx = EmptyLike(x, device);
-        cuda_internal::CudnnTensorDescriptor x_desc{x_cont};
+        cuda_internal::CudnnTensorDescriptor x_desc{x_cont, layout};
 
         // The CudnnTensorDescriptor for `x_cont` can be reused for `gout_cont`.
-        CHAINERX_ASSERT(x_desc.GetDtype() == cuda_internal::CudnnTensorDescriptor{gout_cont}.GetDtype());
+        CHAINERX_ASSERT(x_desc.GetDtype() == (cuda_internal::CudnnTensorDescriptor{gout_cont, layout}.GetDtype()));
 
         cudnnBatchNormMode_t mode = GetBatchNormMode(axis);
 
@@ -307,6 +309,7 @@ public:
             const Array& var,
             Scalar eps,
             const Axes& axis,
+            TensorLayout layout,
             const absl::optional<Array>& out) override {
         if (CHAINERX_DEBUG) {
             Shape reduced_shape = internal::ReduceShape(x.shape(), axis, true);
@@ -339,7 +342,7 @@ public:
         CudaSetDeviceScope scope{device.index()};
 
         Array x_cont = AsContiguous(x);
-        cuda_internal::CudnnTensorDescriptor x_desc{x_cont};
+        cuda_internal::CudnnTensorDescriptor x_desc{x_cont, layout};
 
         cudnnBatchNormMode_t mode = GetBatchNormMode(axis);
 

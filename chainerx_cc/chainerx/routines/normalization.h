@@ -19,7 +19,8 @@ Array BatchNorm(
         const Array& running_var,
         Scalar eps = 2e-5,
         Scalar decay = 0.9,
-        const OptionalAxes& axis = absl::nullopt);
+        const OptionalAxes& axis = absl::nullopt,
+        TensorLayout layout = TensorLayout::NCHW);
 
 // Computes the fixed batch normalization.
 // axis argument is treated in the same way as BatchNorm.
@@ -31,6 +32,7 @@ Array FixedBatchNorm(
         const Array& mean,
         const Array& var,
         Scalar eps,
-        const OptionalAxes& axis = absl::nullopt);
+        const OptionalAxes& axis = absl::nullopt,
+        TensorLayout layout = TensorLayout::NCHW);
 
 }  // namespace chainerx
