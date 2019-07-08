@@ -197,14 +197,14 @@ from chainer.functions.normalization.layer_normalization import layer_normalizat
 from chainer.functions.normalization.local_response_normalization import local_response_normalization  # NOQA
 
 from chainer.functions.rnn.lstm import lstm  # NOQA
-from chainer.functions.rnn.slstm import slstm  # NOQA
-from chainer.functions.rnn.tree_lstm import tree_lstm  # NOQA
 from chainer.functions.rnn.n_step_gru import n_step_bigru  # NOQA
 from chainer.functions.rnn.n_step_gru import n_step_gru  # NOQA
 from chainer.functions.rnn.n_step_lstm import n_step_bilstm  # NOQA
 from chainer.functions.rnn.n_step_lstm import n_step_lstm  # NOQA
 from chainer.functions.rnn.n_step_rnn import n_step_birnn  # NOQA
 from chainer.functions.rnn.n_step_rnn import n_step_rnn  # NOQA
+from chainer.functions.rnn.slstm import slstm  # NOQA
+from chainer.functions.rnn.tree_lstm import tree_lstm  # NOQA
 
 from chainer.functions.pooling.average_pooling_2d import average_pooling_2d  # NOQA
 from chainer.functions.pooling.average_pooling_nd import average_pooling_1d  # NOQA

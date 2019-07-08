@@ -45,6 +45,10 @@ from chainer.links.normalization.layer_normalization import LayerNormalization  
 from chainer.links.rnn.gru import GRU  # NOQA
 from chainer.links.rnn.gru import StatefulGRU  # NOQA
 from chainer.links.rnn.gru import StatelessGRU  # NOQA
+from chainer.links.rnn.lstm import LSTM  # NOQA
+from chainer.links.rnn.lstm import StatelessLSTM  # NOQA
+from chainer.links.rnn.mgu import StatefulMGU  # NOQA
+from chainer.links.rnn.mgu import StatelessMGU  # NOQA
 from chainer.links.rnn.n_step_gru import NStepBiGRU  # NOQA
 from chainer.links.rnn.n_step_gru import NStepGRU  # NOQA
 from chainer.links.rnn.n_step_lstm import NStepBiLSTM  # NOQA
@@ -57,8 +61,4 @@ from chainer.links.rnn.peephole import StatefulPeepholeLSTM  # NOQA
 from chainer.links.rnn.tree_lstm import ChildSumTreeLSTM  # NOQA
 from chainer.links.rnn.tree_lstm import NaryTreeLSTM  # NOQA
 from chainer.links.rnn.zoneoutlstm import StatefulZoneoutLSTM  # NOQA
-from chainer.links.rnn.lstm import LSTM  # NOQA
-from chainer.links.rnn.lstm import StatelessLSTM  # NOQA
-from chainer.links.rnn.mgu import StatefulMGU  # NOQA
-from chainer.links.rnn.mgu import StatelessMGU  # NOQA
 from chainer.links.theano.theano_function import TheanoFunction  # NOQA
