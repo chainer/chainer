@@ -273,8 +273,6 @@ def test_log_softmax_invalid(device, a_shape, axis, dtype):
 class TestCumsum(math_utils.UnaryMathTestBase, op_utils.NumpyOpTest):
 
     input = 'random'
-    skip_backward_test = True
-    skip_double_backward_test = True
 
     def setup(self):
         super().setup()
