@@ -1,7 +1,7 @@
 import six
 
 import chainer
-from chainer.functions.activation import lstm
+from chainer.functions.rnn import lstm
 from chainer.functions.array import concat
 from chainer.functions.array import split_axis
 from chainer import initializers
