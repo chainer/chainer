@@ -766,6 +766,118 @@ Note:
 """)
 
 
+def _docs_loss():
+    _docs.set_doc(
+        chainerx.absolute_error,
+        """Element-wise absolute error function.
+
+Computes the element-wise absolute error :math:`L` between two inputs
+:math:`x_1` and :math:`x_2` defined as follows.
+
+.. math::
+    L = |x_1 - x_2|
+
+Args:
+    x1 (~chainerx.ndarray): Input variable.
+    x2 (~chainerx.ndarray): Input variable.
+
+Returns:
+    :class:`~chainerx.ndarray`: A variable holding an array representing
+    the absolute error of two inputs.
+
+.. seealso:: :func:`chainer.functions.absolute_error`
+""")
+
+    _docs.set_doc(
+        chainerx.squared_error,
+        """Element-wise squared error function.
+
+Computes the element-wise squared error :math:`L` between two inputs
+:math:`x_1` and :math:`x_2` defined as follows.
+
+.. math::
+    L = (x_1 - x_2)^2
+
+Can be used to compute mean squared error by just calling `mean()`
+on the output array.
+
+Args:
+    x0 (~chainerx.ndarray): Input variable.
+    x1 (~chainerx.ndarray): Input variable.
+
+Returns:
+    :class:`~chainerx.ndarray`: A variable holding an array representing
+    the squared error of two inputs.
+
+.. seealso:: :func:`chainer.functions.squared_error`
+""")
+
+    _docs.set_doc(
+        chainerx.huber_loss,
+        """Element-wise Huber loss.
+
+The Huber loss is similar to the squared error but is less sensitive to
+outliers in the data. It is defined as
+
+.. math::
+
+    L_{\\delta}(a) = \\left \\{ \\begin{array}{cc}
+    \\frac{1}{2} a^2 & {\\rm if~|a| \\leq \\delta} \\\\
+    \\delta (|a| - \\frac{1}{2} \\delta) & {\\rm otherwise,}
+    \\end{array} \\right.
+
+where :math:`a = x - t` is the difference between the input :math:`x`
+and the target :math:`t`.
+
+See: `Huber loss - Wikipedia <https://en.wikipedia.org/wiki/Huber_loss>`_.
+
+Args:
+    x (~chainerx.ndarray): Input variable.
+    t (~chainerx.ndarray): Target variable for regression.
+    delta (float): Constant variable for Huber loss function as used in
+        definition.
+
+Returns:
+    :class:`~chainerx.ndarray`:
+        A variable object holding an array representing the Huber loss
+        :math:`L_{\\delta}` of the two inputs.
+
+.. seealso:: :func:`chainer.functions.huber_loss`
+""")
+
+    _docs.set_doc(
+        chainerx.gaussian_kl_divergence,
+        """Element-wise KL-divergence of Gaussian variables from the standard one.
+
+Given two variable ``mean`` representing :math:`\\mu` and ``ln_var``
+representing :math:`\\log(\\sigma^2)`, this function calculates
+the element-wise KL-divergence between the given multi-dimensional
+Gaussian :math:`N(\\mu, S)` and the standard Gaussian :math:`N(0, I)`
+
+.. math::
+
+   D_{\\mathbf{KL}}(N(\\mu, S) \\| N(0, I)),
+
+where :math:`S` is a diagonal matrix such that :math:`S_{ii} = \\sigma_i^2`
+and :math:`I` is an identity matrix.
+
+Args:
+    mean (~chainerx.ndarray):
+        A variable representing mean of given
+        gaussian distribution, :math:`\\mu`.
+    ln_var (~chainerx.ndarray):
+        A variable representing logarithm of
+        variance of given gaussian distribution, :math:`\\log(\\sigma^2)`.
+
+Returns:
+    :class:`~chainerx.ndarray`:
+        A variable representing KL-divergence between
+        given gaussian distribution and the standard gaussian.
+
+.. seealso:: :func:`chainer.functions.gaussian_kl_divergence`
+""")
+
+
 def _docs_manipulation():
     _docs.set_doc(
         chainerx.reshape,
@@ -1011,6 +1123,30 @@ Note:
     output arrays to the input array ``ary``.
 
 .. seealso:: :func:`numpy.split`
+""")
+
+    _docs.set_doc(
+        chainerx.dsplit,
+        """dsplit(ary, indices_or_sections)
+Split array into multiple sub-arrays along the 3rd axis (depth).
+
+Args:
+    ary (~chainerx.ndarray): Array to split.
+    indices_or_sections (int or sequence of ints): A value indicating how to
+        divide the axis. If it is an integer, then is treated as the number of
+        sections, and the axis is evenly divided. Otherwise, the integers
+        indicate indices to split at. Note that a sequence on the device
+        memory is not allowed.
+
+Returns:
+    list of :class:`~chainerx.ndarray`\\ s: A list of sub arrays. Each array \
+is a partial view of the input array.
+
+Note:
+    During backpropagation, this function propagates the gradients of the
+    output arrays to the input array ``ary``.
+
+.. seealso:: :func:`numpy.dsplit`
 """)
 
     _docs.set_doc(
@@ -1872,6 +2008,42 @@ Note:
 
 .. seealso:: :data:`numpy.bitwise_xor`
 """)
+
+    _docs.set_doc(
+        chainerx.left_shift,
+        """left_shift(x1, x2)
+Shift the bits of an integer to the left.
+
+Args:
+    x1 (~chainerx.ndarray or scalar): Input array of integers.
+    x2 (~chainerx.ndarray or scalar): Input array of integers.
+
+Returns:
+    :class:`~chainerx.ndarray`: Return `x1` with bits shifted `x2` times to the left.
+
+Note:
+    During backpropagation, this function does not propagate gradients.
+
+.. seealso:: :data:`numpy.left_shift`
+""")  # NOQA
+
+    _docs.set_doc(
+        chainerx.right_shift,
+        """right_shift(x1, x2)
+Shift the bits of an integer to the right.
+
+Args:
+    x1 (~chainerx.ndarray or scalar): Input array of integers.
+    x2 (~chainerx.ndarray or scalar): Input array of integers.
+
+Returns:
+    :class:`~chainerx.ndarray`: Return `x1` with bits shifted `x2` times to the right.
+
+Note:
+    During backpropagation, this function does not propagate gradients.
+
+.. seealso:: :data:`numpy.right_shift`
+""")  # NOQA
 
 
 def _docs_sorting():

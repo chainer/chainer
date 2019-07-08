@@ -1,6 +1,6 @@
 import numpy
 
-from chainer.backends import cuda
+from chainer import backend
 from chainer.backends import intel64
 from chainer import function_node
 import chainer.functions
@@ -102,7 +102,7 @@ class LinearFunction(function_node.FunctionNode):
         # In order to be compatible with the "static graph" feature, it is
         # required that all output arrays of this forward
         # function be allocated explicitly:
-        xp = cuda.get_array_module(x)
+        xp = backend.get_array_module(x)
         y = xp.empty((x.shape[0], W.shape[0]), dtype=x.dtype)
 
         # This is required because all of the "static_*()" functions
@@ -277,7 +277,10 @@ def linear(x, W, b=None, n_batch_axes=1):
         ~chainer.Variable: Output variable. A float array with shape
         of :math:`(s_1, ..., s_{\\rm n\\_batch\\_axes}, M)`.
 
-    .. seealso:: :class:`~chainer.links.Linear`
+    .. seealso::
+
+        :class:`~chainer.links.Linear` to manage the model parameters
+        ``W`` and ``b``.
 
     .. admonition:: Example
 

@@ -49,6 +49,12 @@ class Device(object):
             'Device implementation must override this property.')
 
     @property
+    def name(self):
+        """A unique name of the device."""
+        raise NotImplementedError(
+            'Device implementation must override this property.')
+
+    @property
     def supported_array_types(self):
         """Array types supported by the device.
 
@@ -58,6 +64,9 @@ class Device(object):
         """
         raise NotImplementedError(
             'Device implementation must override this property.')
+
+    def __str__(self):
+        return self.name
 
     def __enter__(self):
         """A dummy definition that simply raises RuntimeError.
@@ -80,6 +89,9 @@ class Device(object):
 
     def __ne__(self, other):
         return not (self == other)
+
+    def __hash__(self):
+        return hash(self.name)
 
     def create_context(self):
         """Returns a context manager in which the device is made current.

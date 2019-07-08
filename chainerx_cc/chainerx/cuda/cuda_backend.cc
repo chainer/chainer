@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include <string>
 
+#include <absl/types/optional.h>
 #include <cuda_runtime.h>
 #include <gsl/gsl>
 
@@ -67,7 +68,7 @@ size_t CudaBackend::GetCudnnMaxWorkspaceSize() {
     if (cudnn_max_workspace_size_) {
         return *cudnn_max_workspace_size_;
     }
-    if (nonstd::optional<std::string> env = GetEnv(kCudnnMaxWorkspaceSizeEnvVarName)) {
+    if (absl::optional<std::string> env = GetEnv(kCudnnMaxWorkspaceSizeEnvVarName)) {
         cudnn_max_workspace_size_ = std::stoul(*env);
     } else {
         cudnn_max_workspace_size_ = kCudnnDefaultMaxWorkspaceSize;

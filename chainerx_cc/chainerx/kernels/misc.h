@@ -13,14 +13,6 @@ public:
     virtual void Call(const Array& out, Scalar value) = 0;
 };
 
-// Casts the elements from one array to the other dtype, and store into the other.
-class AsTypeKernel : public Kernel {
-public:
-    static const char* name() { return "AsType"; }
-
-    virtual void Call(const Array& a, const Array& out) = 0;
-};
-
 class SqrtKernel : public Kernel {
 public:
     static const char* name() { return "Sqrt"; }

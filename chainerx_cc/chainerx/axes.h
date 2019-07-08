@@ -8,6 +8,7 @@
 #include <sstream>
 #include <string>
 
+#include <absl/types/span.h>
 #include <gsl/gsl>
 
 #include "chainerx/constant.h"
@@ -38,8 +39,8 @@ public:
         insert(begin(), first, last);
     }
 
-    // by gsl:span
-    explicit Axes(gsl::span<const int8_t> axes) : Axes{axes.begin(), axes.end()} {}
+    // by span
+    explicit Axes(absl::Span<const int8_t> axes) : Axes{axes.begin(), axes.end()} {}
 
     // by initializer list
     Axes(std::initializer_list<int8_t> axes) : Axes{axes.begin(), axes.end()} {}
@@ -71,7 +72,7 @@ public:
     }
 
     // span
-    gsl::span<const int8_t> span() const { return {*this}; }
+    absl::Span<const int8_t> span() const { return {*this}; }
 };
 
 std::ostream& operator<<(std::ostream& os, const Axes& axes);
