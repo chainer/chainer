@@ -1,5 +1,3 @@
-import warnings
-
 from chainermn.communicators.communicator_base import CommunicatorBase  # NOQA
 
 
