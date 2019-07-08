@@ -100,11 +100,13 @@ Array LogSoftmax(const Array& x, const OptionalAxes& axis) {
 
 Array Cumsum(const Array& a, absl::optional<int8_t> axis) {
     int8_t axis_norm;
-    Array a_reshaped = Copy(a);
+    Array a_reshaped{};
     if (axis.has_value()) {
         axis_norm = internal::NormalizeAxis(*axis, a.ndim());
+        a_reshaped = Copy(a);
     } else {
         axis_norm = 0;
+        // TODO(imanishi): Fix after chainerx::Ravel is supported.
         a_reshaped = a.Reshape(Shape{a.GetTotalSize()});
     }
 
