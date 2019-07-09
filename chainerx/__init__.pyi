@@ -874,6 +874,8 @@ def softmax(
         x: ndarray,
         axis: tp.Optional[tp.Union[int, tp.List[int]]]=None) -> ndarray: ...
 
+def softplus(x: ndarray, beta: double=1.0) -> ndarray: ...
+
 def split(
         ary: ndarray,
         indices_or_sections: tp.Union[int, tp.List[int]],

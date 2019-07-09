@@ -647,6 +647,7 @@ void InitChainerxActivation(pybind11::module& m) {
           [](const ArrayBodyPtr& x, Scalar slope) { return MoveArrayBody(LeakyRelu(Array{x}, slope)); },
           "x"_a,
           "slope"_a = 0.2);
+    m.def("softplus", [](const ArrayBodyPtr& x, double beta) { return MoveArrayBody(Softplus(Array{x}, beta)); }, "x"_a, "beta"_a = 1.0);
 }
 
 void InitChainerxArithmetic(pybind11::module& m) {
