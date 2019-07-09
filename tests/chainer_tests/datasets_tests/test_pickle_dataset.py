@@ -64,13 +64,19 @@ class TestPickleDataset(unittest.TestCase):
         writer.flush()
 
         reader = ReaderMock(self.io)
-        _ = datasets.PickleDataset(reader)
+        # Assign to avoid destruction of the instance
+        # before creation a child process
+        dataset = datasets.PickleDataset(reader)
+
         assert reader.n_hook_called == 0
         p = multiprocessing.Process()
         p.start()
         p.join()
         assert reader.n_hook_called == 1
         assert reader.last_caller_pid == p.pid
+
+        # Touch to suppress "unused variable' warning
+        del dataset
 
 
 class TestPickleDatasetHelper(unittest.TestCase):
