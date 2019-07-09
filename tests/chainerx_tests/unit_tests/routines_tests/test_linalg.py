@@ -95,6 +95,17 @@ def test_dot_invalid(is_module, xp, device, a_shape, b_shape, dtype):
         return a.dot(b)
 
 
+class NumpyLinalgOpTest(op_utils.NumpyOpTest):
+
+    dodge_nondifferentiable = True
+
+    def setup(self):
+        device = chainerx.get_default_device()
+        if (device.backend.name == 'native'
+                and not chainerx.linalg._is_lapack_available()):
+            pytest.skip('LAPACK is not linked to ChainerX')
+
+
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
     chainer.testing.product({
@@ -106,7 +117,7 @@ def test_dot_invalid(is_module, xp, device, a_shape, b_shape, dtype):
         'skip_double_backward_test': [True],
     })
 ))
-class TestSVD(op_utils.NumpyOpTest):
+class TestSVD(NumpyLinalgOpTest):
 
     def generate_inputs(self):
         a = numpy.random.random(self.shape).astype(self.in_dtypes)
@@ -138,7 +149,7 @@ class TestSVD(op_utils.NumpyOpTest):
         'in_dtypes': ['float32', 'float64']
     })
 ))
-class TestPseudoInverse(op_utils.NumpyOpTest):
+class TestPseudoInverse(NumpyLinalgOpTest):
 
     def setup(self):
         self.check_backward_options.update({'rtol': 5e-3})
@@ -162,7 +173,7 @@ class TestPseudoInverse(op_utils.NumpyOpTest):
         'in_dtypes': ['float32', 'float64']
     })
 ))
-class TestPseudoInverseFailing(op_utils.NumpyOpTest):
+class TestPseudoInverseFailing(NumpyLinalgOpTest):
 
     forward_accept_errors = (numpy.linalg.LinAlgError,
                              chainerx.ChainerxError,

@@ -20,36 +20,41 @@
 #include "chainerx/routines/linalg.h"
 #include "chainerx/shape.h"
 
-extern "C" void dgesdd_(
-        char* jobz,
-        int* m,
-        int* n,
-        double* a,
-        int* lda,
-        double* s,
-        double* u,
-        int* ldu,
-        double* vt,
-        int* ldvt,
-        double* work,
-        int* lwork,
-        int* iwork,
-        int* info);
-extern "C" void sgesdd_(
-        char* jobz,
-        int* m,
-        int* n,
-        float* a,
-        int* lda,
-        float* s,
-        float* u,
-        int* ldu,
-        float* vt,
-        int* ldvt,
-        float* work,
-        int* lwork,
-        int* iwork,
-        int* info);
+#if CHAINERX_ENABLE_LAPACK
+extern "C" {
+// gesdd
+void dgesdd_(
+    char* jobz,
+    int* m,
+    int* n,
+    double* a,
+    int* lda,
+    double* s,
+    double* u,
+    int* ldu,
+    double* vt,
+    int* ldvt,
+    double* work,
+    int* lwork,
+    int* iwork,
+    int* info);
+void sgesdd_(
+    char* jobz,
+    int* m,
+    int* n,
+    float* a,
+    int* lda,
+    float* s,
+    float* u,
+    int* ldu,
+    float* vt,
+    int* ldvt,
+    float* work,
+    int* lwork,
+    int* iwork,
+    int* info);
+}
+#endif  // CHAINERX_ENABLE_LAPACK
 
 namespace chainerx {
 namespace native {
@@ -57,14 +62,11 @@ namespace native {
 class NativeSVDKernel : public SVDKernel {
 public:
     std::tuple<Array, Array, Array> Call(const Array& a, bool full_matrices, bool compute_uv) override {
+#if CHAINERX_ENABLE_LAPACK
         Device& device = a.device();
         Dtype dtype = a.dtype();
 
         CHAINERX_ASSERT(a.ndim() == 2);
-
-#ifndef CHAINERX_LAPACK_AVAILABLE
-        throw ChainerxError{"LAPACK is not linked to ChainerX."};
-#endif  // CHAINERX_LAPACK_AVAILABLE
 
         int n = a.shape()[0];
         int m = a.shape()[1];
@@ -153,6 +155,12 @@ public:
             default:
                 CHAINERX_NEVER_REACH();
         }
+#else  // CHAINERX_LAPACK_AVAILABLE
+        (void)a;  // unused
+        (void)full_matrices;  // unused
+        (void)compute_uv;  // unused
+        throw ChainerxError{"LAPACK is not linked to ChainerX."};
+#endif  // CHAINERX_LAPACK_AVAILABLE
     }
 };
 
