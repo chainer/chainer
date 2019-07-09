@@ -21,10 +21,8 @@
 
 #if CHAINERX_ENABLE_LAPACK
 extern "C" {
-void dsyevd_(
-        char* jobz, char* uplo, int* n, double* a, int* lda, double* w, double* work, int* lwork, int* iwork, int* liwork, int* info);
-void ssyevd_(
-        char* jobz, char* uplo, int* n, float* a, int* lda, float* w, float* work, int* lwork, int* iwork, int* liwork, int* info);
+void dsyevd_(char* jobz, char* uplo, int* n, double* a, int* lda, double* w, double* work, int* lwork, int* iwork, int* liwork, int* info);
+void ssyevd_(char* jobz, char* uplo, int* n, float* a, int* lda, float* w, float* work, int* lwork, int* iwork, int* liwork, int* info);
 }
 #endif  // CHAINERX_ENABLE_LAPACK
 
@@ -33,7 +31,18 @@ namespace native {
 namespace {
 
 template <typename T>
-void Syevd(char /*jobz*/, char /*uplo*/, int /*n*/, T* /*a*/, int /*lda*/, T* /*w*/, T* /*work*/, int /*lwork*/, int* /*iwork*/, int /*liwork*/, int* /*info*/) {
+void Syevd(
+        char /*jobz*/,
+        char /*uplo*/,
+        int /*n*/,
+        T* /*a*/,
+        int /*lda*/,
+        T* /*w*/,
+        T* /*work*/,
+        int /*lwork*/,
+        int* /*iwork*/,
+        int /*liwork*/,
+        int* /*info*/) {
     throw DtypeError{"Only Arrays of float or double type are supported by syevd (Eigen)"};
 }
 

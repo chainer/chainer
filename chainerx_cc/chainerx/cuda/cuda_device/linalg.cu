@@ -39,13 +39,29 @@ namespace {
 
 template <typename T>
 cusolverStatus_t SyevdBuffersize(
-        cusolverDnHandle_t /*handle*/, cusolverEigMode_t /*jobz*/, cublasFillMode_t /*uplo*/, int /*n*/, T* /*a*/, int /*lda*/, T* /*w*/, int* /*lwork*/) {
+        cusolverDnHandle_t /*handle*/,
+        cusolverEigMode_t /*jobz*/,
+        cublasFillMode_t /*uplo*/,
+        int /*n*/,
+        T* /*a*/,
+        int /*lda*/,
+        T* /*w*/,
+        int* /*lwork*/) {
     throw DtypeError{"Only Arrays of float or double type are supported by syevd (Eigen)"};
 }
 
 template <typename T>
 cusolverStatus_t Syevd(
-        cusolverDnHandle_t /*handle*/, cusolverEigMode_t /*jobz*/, cublasFillMode_t /*uplo*/, int /*n*/, T* /*a*/, int /*lda*/, T* /*w*/, T* /*work*/, int /*lwork*/, int* /*devinfo*/) {
+        cusolverDnHandle_t /*handle*/,
+        cusolverEigMode_t /*jobz*/,
+        cublasFillMode_t /*uplo*/,
+        int /*n*/,
+        T* /*a*/,
+        int /*lda*/,
+        T* /*w*/,
+        T* /*work*/,
+        int /*lwork*/,
+        int* /*devinfo*/) {
     throw DtypeError{"Only Arrays of float or double type are supported by syevd (Eigen)"};
 }
 
@@ -63,13 +79,31 @@ cusolverStatus_t SyevdBuffersize<float>(
 
 template <>
 cusolverStatus_t Syevd<double>(
-        cusolverDnHandle_t handle, cusolverEigMode_t jobz, cublasFillMode_t uplo, int n, double* a, int lda, double* w, double* work, int lwork, int* devinfo) {
+        cusolverDnHandle_t handle,
+        cusolverEigMode_t jobz,
+        cublasFillMode_t uplo,
+        int n,
+        double* a,
+        int lda,
+        double* w,
+        double* work,
+        int lwork,
+        int* devinfo) {
     return cusolverDnDsyevd(handle, jobz, uplo, n, a, lda, w, work, lwork, devinfo);
 }
 
 template <>
 cusolverStatus_t Syevd<float>(
-        cusolverDnHandle_t handle, cusolverEigMode_t jobz, cublasFillMode_t uplo, int n, float* a, int lda, float* w, float* work, int lwork, int* devinfo) {
+        cusolverDnHandle_t handle,
+        cusolverEigMode_t jobz,
+        cublasFillMode_t uplo,
+        int n,
+        float* a,
+        int lda,
+        float* w,
+        float* work,
+        int lwork,
+        int* devinfo) {
     return cusolverDnSsyevd(handle, jobz, uplo, n, a, lda, w, work, lwork, devinfo);
 }
 
