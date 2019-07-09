@@ -169,7 +169,26 @@ Array Nansum(const Array& a, const OptionalAxes& axis, bool keepdims) {
         a.device().backend().CallKernel<NansumKernel>(a_masked, sorted_axis, out);
     }
 
-    // Backward not implemented yet.
+    BackwardBuilder bb{"nansum", a, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([sorted_axis, in_shape = a.shape(), keepdims](BackwardContext& bctx) {
+            const Array& gout = *bctx.output_grad();
+            CHAINERX_ASSERT(std::is_sorted(sorted_axis.begin(), sorted_axis.end()));
+
+            if (!(in_shape.ndim() == 0 || sorted_axis.empty() || keepdims)) {
+                Shape out_shape_broadcastable = gout.shape();
+                for (auto axis : sorted_axis) {
+                    out_shape_broadcastable.insert(out_shape_broadcastable.begin() + axis, 1);
+                }
+                Array input_grad = gout.Reshape(out_shape_broadcastable).BroadcastTo(in_shape);
+                bctx.input_grad() = Where(IsNan(input_grad), 0, input_grad);
+            } else {
+                Array input_grad = gout.BroadcastTo(in_shape);
+                bctx.input_grad() = Where(IsNan(input_grad), 0, input_grad);
+            }
+        });
+    }
+    bb.Finalize();
 
     return out;
 }
