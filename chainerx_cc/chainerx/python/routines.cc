@@ -342,14 +342,14 @@ void InitChainerxLinalg(pybind11::module& m) {
                 Array v = std::get<1>(wv);
                 return std::make_tuple(MoveArrayBody(Array{w}), MoveArrayBody(Array{v}));
             },
-            py::arg("a"),
-            py::arg("UPLO") = "L");
+            "a"_a,
+            "UPLO"_a = "L");
 
     mlinalg.def(
             "eigvalsh",
             [](const ArrayBodyPtr& a, const std::string& UPLO) { return MoveArrayBody(Eigvalsh(Array{a}, UPLO)); },
-            py::arg("a"),
-            py::arg("UPLO") = "L");
+            "a"_a,
+            "UPLO"_a = "L");
 }
 
 void InitChainerxLogic(pybind11::module& m) {
