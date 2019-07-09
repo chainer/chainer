@@ -30,6 +30,26 @@ void ssyevd_(
 
 namespace chainerx {
 namespace native {
+namespace {
+
+template <typename T>
+void Syevd(char /*jobz*/, char /*uplo*/, int /*n*/, T* /*a*/, int /*lda*/, T* /*w*/, T* /*work*/, int /*lwork*/, int* /*iwork*/, int /*liwork*/, int* /*info*/) {
+    throw DtypeError{"Only Arrays of float or double type are supported by syevd (Eigen)"};
+}
+
+#if CHAINERX_ENABLE_LAPACK
+template <>
+void Syevd<double>(char jobz, char uplo, int n, double* a, int lda, double* w, double* work, int lwork, int* iwork, int liwork, int* info) {
+    dsyevd_(&jobz, &uplo, &n, a, &lda, w, work, &lwork, iwork, &liwork, info);
+}
+
+template <>
+void Syevd<float>(char jobz, char uplo, int n, float* a, int lda, float* w, float* work, int lwork, int* iwork, int liwork, int* info) {
+    ssyevd_(&jobz, &uplo, &n, a, &lda, w, work, &lwork, iwork, &liwork, info);
+}
+#endif  // CHAINERX_ENABLE_LAPACK
+
+}  // namespace
 
 class NativeSyevdKernel : public SyevdKernel {
 public:
@@ -48,7 +68,7 @@ public:
 
         Array w = Empty(Shape{m}, dtype, device);
 
-        auto syevd_impl = [&](auto pt, auto syevd) -> std::tuple<Array, Array> {
+        auto syevd_impl = [&](auto pt) -> std::tuple<Array, Array> {
             using T = typename decltype(pt)::type;
 
             T* v_ptr = static_cast<T*>(internal::GetRawOffsetData(v));
@@ -67,7 +87,7 @@ public:
             T work_size;
             int iwork_size;
 
-            syevd(&jobz, &uplo, &m, v_ptr, &lda, w_ptr, &work_size, &lwork, &iwork_size, &liwork, &info);
+            Syevd<T>(jobz, uplo, m, v_ptr, lda, w_ptr, &work_size, lwork, &iwork_size, liwork, &info);
 
             lwork = static_cast<int>(work_size);
             Array work = Empty(Shape{lwork}, dtype, device);
@@ -77,7 +97,7 @@ public:
             Array iwork = Empty(Shape{liwork}, Dtype::kInt32, device);
             int* iwork_ptr = static_cast<int*>(internal::GetRawOffsetData(iwork));
 
-            syevd(&jobz, &uplo, &m, v_ptr, &lda, w_ptr, work_ptr, &lwork, iwork_ptr, &liwork, &info);
+            Syevd<T>(jobz, uplo, m, v_ptr, lda, w_ptr, work_ptr, lwork, iwork_ptr, liwork, &info);
 
             if (info != 0) {
                 throw ChainerxError{"Unsuccessfull syevd (Eigen Decomposition) execution. Info = ", info};
@@ -86,19 +106,7 @@ public:
             return std::make_tuple(std::move(w), std::move(v.Transpose().Copy()));
         };
 
-        switch (a.dtype()) {
-            case Dtype::kFloat16:
-                throw DtypeError{"Half-precision (float16) is not supported by eigen decomposition"};
-                break;
-            case Dtype::kFloat32:
-                return syevd_impl(PrimitiveType<float>{}, ssyevd_);
-                break;
-            case Dtype::kFloat64:
-                return syevd_impl(PrimitiveType<double>{}, dsyevd_);
-                break;
-            default:
-                CHAINERX_NEVER_REACH();
-        }
+        return VisitFloatingPointDtype(dtype, syevd_impl);
 #else  // CHAINERX_LAPACK_AVAILABLE
         (void)a;
         (void)UPLO;
