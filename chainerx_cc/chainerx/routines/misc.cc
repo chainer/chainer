@@ -2,7 +2,7 @@
 
 #include <utility>
 
-#include <nonstd/optional.hpp>
+#include <absl/types/optional.h>
 
 #include "chainerx/array.h"
 #include "chainerx/backprop_mode.h"
@@ -160,8 +160,6 @@ Array Square(const Array& x) {
 
     return out;
 }
-
-Array SquaredDifference(const Array& x1, const Array& x2) { return Square(x1 - x2); }
 
 Array Absolute(const Array& x) {
     Array x_flip_1 = IfGreaterElse(x, 0.0, 0.0, -x);

@@ -68,7 +68,9 @@ class TestNonparameterizedMaxout(testing.FunctionTestCase):
 
     def forward_expected(self, inputs):
         x, = inputs
-        return _maxout(x, self.pool_size, self.axis),
+        expected = _maxout(x, self.pool_size, self.axis)
+        assert expected.shape == self.y_shape
+        return expected,
 
 
 @testing.parameterize(

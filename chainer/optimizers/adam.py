@@ -204,7 +204,7 @@ class AdamRule(optimizer.UpdateRule):
             vhat = self.state['vhat']
             # For iDeep
             if isinstance(vhat, intel64.mdarray):
-                vhat = numpy.maximum(vhat, v)
+                vhat[...] = numpy.maximum(vhat, v)
             else:
                 numpy.maximum(vhat, v, out=vhat)
         else:

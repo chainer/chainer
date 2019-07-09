@@ -139,7 +139,7 @@ def check_multi_node_bn(comm, use_gpu=False, backend='auto',
     l2 = m2(x_local, y_local)
     m2.cleargrads()
     l2.backward()
-    comm.allreduce_grad(m2)
+    comm.multi_node_mean_grad(m2)
 
     l3 = m3(x, y)
     m3.cleargrads()
@@ -148,7 +148,7 @@ def check_multi_node_bn(comm, use_gpu=False, backend='auto',
     l4 = m4(x_local, y_local)
     m4.cleargrads()
     l4.backward()
-    comm.allreduce_grad(m4)
+    comm.multi_node_mean_grad(m4)
 
     if comm.rank == 0:
         for p1, p2, p3, p4 in zip(

@@ -82,7 +82,7 @@ Array FromData(
         const Shape& shape,
         Dtype dtype,
         const std::shared_ptr<void>& data,
-        const nonstd::optional<Strides>& strides,
+        const absl::optional<Strides>& strides,
         int64_t offset,
         Device& device) {
     return internal::MakeArray(
@@ -188,7 +188,7 @@ Array Identity(int64_t n, Dtype dtype, Device& device) {
     return out;
 }
 
-Array Eye(int64_t n, nonstd::optional<int64_t> m, nonstd::optional<int64_t> k, nonstd::optional<Dtype> dtype, Device& device) {
+Array Eye(int64_t n, absl::optional<int64_t> m, absl::optional<int64_t> k, absl::optional<Dtype> dtype, Device& device) {
     if (!m.has_value()) {
         m = n;
     }
@@ -218,7 +218,8 @@ Array AsContiguous(const Array& a, Dtype dtype) {
     Array out = Empty(a.shape(), dtype, a.device());
     {
         NoBackpropModeScope scope{};
-        a.device().backend().CallKernel<AsTypeKernel>(a.AsGradStopped(), out);
+        // Note: In CopyKernel, Input Array Elements are casted to the type of Output Array.
+        a.device().backend().CallKernel<CopyKernel>(a.AsGradStopped(), out);
     }
 
     if (GetKind(dtype) == DtypeKind::kFloat) {
@@ -238,7 +239,7 @@ Array AsContiguous(const Array& a, Dtype dtype) {
     return out;
 }
 
-Array AsContiguousArray(const Array& a, const nonstd::optional<Dtype>& dtype) {
+Array AsContiguousArray(const Array& a, const absl::optional<Dtype>& dtype) {
     Dtype src_dt = a.dtype();
     Dtype dt = dtype.value_or(src_dt);
 
@@ -309,12 +310,7 @@ Array Diagflat(const Array& v, int64_t k, Device& device) {
 
 // Creates a 1-d array with evenly spaced numbers.
 Array Linspace(
-        Scalar start,
-        Scalar stop,
-        const nonstd::optional<int64_t>& num,
-        bool endpoint,
-        const nonstd::optional<Dtype>& dtype,
-        Device& device) {
+        Scalar start, Scalar stop, const absl::optional<int64_t>& num, bool endpoint, const absl::optional<Dtype>& dtype, Device& device) {
     static const int64_t kDefaultNum = 50;
 
     // Always default to float type.
