@@ -48,7 +48,7 @@ void InitChainerxCheckBackward(pybind11::module& m) {
              const std::vector<ArrayBodyPtr>& eps,
              double atol,
              double rtol,
-             const nonstd::optional<BackpropId>& backprop_id) {
+             const absl::optional<BackpropId>& backprop_id) {
               py::gil_scoped_release release;
               CheckBackward(
                       ForwardInPython{func},
@@ -76,7 +76,7 @@ void InitChainerxCheckBackward(pybind11::module& m) {
              const std::vector<ArrayBodyPtr>& eps,
              double atol,
              double rtol,
-             const nonstd::optional<BackpropId>& backprop_id) {
+             const absl::optional<BackpropId>& backprop_id) {
               py::gil_scoped_release release;
               CheckDoubleBackwardComputation(
                       ForwardInPython{func},

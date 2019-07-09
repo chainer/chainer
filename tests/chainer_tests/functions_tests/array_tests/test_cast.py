@@ -3,11 +3,14 @@ import unittest
 import numpy
 
 import chainer
-from chainer.backends import cuda
 from chainer import functions
-from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
+import chainerx
+
+
+if chainerx.is_available():
+    import chainerx.testing
 
 
 @testing.parameterize(*testing.product_dict(
@@ -36,39 +39,62 @@ from chainer.testing import attr
         {'out_type': numpy.float64},
     ]
 ))
-class TestCast(unittest.TestCase):
+@testing.inject_backend_tests(
+    None,
+    # CPU tests
+    [
+        {},
+    ]
+    # GPU tests
+    + testing.product({
+        'use_cuda': [True],
+        'use_cudnn': ['never', 'always'],
+        'cuda_device': [0, 1],
+    })
+    # ChainerX tests
+    + [
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
+    ]
+)
+@attr.chainerx
+class TestCast(testing.FunctionTestCase):
+
+    def _skip_chainerx_unsupported_dtype(self):
+        supported_dtypes = chainerx.testing.dtypes.all_dtypes
+        if (self.in_type.__name__ not in supported_dtypes
+                or self.out_type.__name__ not in supported_dtypes):
+            raise unittest.SkipTest(
+                'ChainerX does not support either of {} or {} dtypes'.format(
+                    self.in_type.__name__, self.out_type.__name__))
 
     def setUp(self):
-        self.x = numpy.random.uniform(-1, 1, self.shape).astype(self.in_type)
-        self.g = numpy.random.uniform(-1, 1, self.shape).astype(self.out_type)
+        # Skip e.g. uint64 for ChainerX.
+        self._skip_chainerx_unsupported_dtype()
 
-    def check_forward(self, x_data):
-        x = chainer.Variable(x_data)
-        y = functions.cast(x, self.out_type)
-        assert y.data.shape == x.data.shape
-        assert y.data.dtype == self.out_type
-
-    def test_forward_cpu(self):
-        self.check_forward(self.x)
-
-    @attr.gpu
-    def test_forward_gpu(self):
-        self.check_forward(cuda.to_gpu(self.x))
-
-    def check_backward(self, x_data, g_data):
         if (numpy.dtype(self.in_type).kind != 'f'
                 or numpy.dtype(self.out_type).kind != 'f'):
-            raise unittest.SkipTest('Non-float dtypes')
+            self.skip_backward_test = True
+            self.skip_double_backward_test = True
 
-        def func(x):
-            return functions.cast(x, self.out_type)
+        self.check_backward_options = {
+            'eps': 2.0 ** -2, 'atol': 1e-2, 'rtol': 1e-3}
+        self.check_double_backward_options = {
+            'eps': 2.0 ** -2, 'atol': 1e-2, 'rtol': 1e-3}
 
-        gradient_check.check_backward(
-            func, x_data, g_data, dtype='d',
-            eps=2.0 ** -2, atol=1e-2, rtol=1e-3)
+    def generate_inputs(self):
+        x = numpy.random.uniform(-1, 1, self.shape).astype(self.in_type)
+        return x,
 
-    def test_backward_cpu(self):
-        self.check_backward(self.x, self.g)
+    def forward_expected(self, inputs):
+        x, = inputs
+        return x.astype(self.out_type),
+
+    def forward(self, inputs, devices):
+        x, = inputs
+        y = functions.cast(x, self.out_type)
+        return y,
 
 
 class TestNoCast(unittest.TestCase):

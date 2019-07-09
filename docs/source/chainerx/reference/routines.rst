@@ -72,6 +72,7 @@ Array manipulation routines
    chainerx.atleast_2d
    chainerx.atleast_3d
    chainerx.split
+   chainerx.dsplit
    chainerx.swapaxes
    chainerx.expand_dims
    chainerx.flip
@@ -124,7 +125,7 @@ Logic functions
    chainerx.not_equal
 
 Loss functions
----------------
+--------------
 
 .. autosummary::
    :toctree: generated/
@@ -178,6 +179,8 @@ Mathematical functions
    chainerx.bitwise_and
    chainerx.bitwise_or
    chainerx.bitwise_xor
+   chainerx.left_shift
+   chainerx.right_shift
 
 Random sampling
 ---------------

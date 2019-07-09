@@ -8,8 +8,8 @@
 #include <utility>
 #include <vector>
 
-#include <gsl/gsl>
-#include <nonstd/optional.hpp>
+#include <absl/types/optional.h>
+#include <absl/types/span.h>
 
 #include "chainerx/array.h"
 #include "chainerx/array_body.h"
@@ -38,20 +38,20 @@ GradRef::GradRef(ArrayNode& array_node) : original_grad_owner_body_{array_node.w
     }
 }
 
-GradRef::GradRef(nonstd::nullopt_t /*nullopt*/) : temporary_grad_{std::make_unique<nonstd::optional<Array>>()} {}
+GradRef::GradRef(absl::nullopt_t /*nullopt*/) : temporary_grad_{std::make_unique<absl::optional<Array>>()} {}
 
-GradRef::GradRef(nonstd::optional<Array>* grad) : original_grad_ptr_{grad} {
+GradRef::GradRef(absl::optional<Array>* grad) : original_grad_ptr_{grad} {
     if (original_grad_ptr_->has_value()) {
         original_grad_owner_body_ = internal::GetArrayBody(**grad);
     }
 }
 
-nonstd::optional<Array>& GradRef::get() {
+absl::optional<Array>& GradRef::get() {
     if (original_grad_ptr_ == nullptr) {
         if (temporary_grad_ == nullptr) {
             // Original gradient is gone and this is the first accumulation.
             // Initialize the temporary gradient.
-            temporary_grad_ = std::make_unique<nonstd::optional<Array>>(nonstd::nullopt);
+            temporary_grad_ = std::make_unique<absl::optional<Array>>(absl::nullopt);
         }
 
         // Target of accumulation is the temporary gradient.
@@ -67,8 +67,8 @@ nonstd::optional<Array>& GradRef::get() {
 BackwardContext::BackwardContext(
         const std::shared_ptr<OpNode>& op_node,
         const internal::OpNodeBackwardEntry& backward_entry,
-        gsl::span<std::shared_ptr<ArrayNode>> output_array_nodes,
-        gsl::span<internal::GradRef*> output_grads,
+        absl::Span<std::shared_ptr<ArrayNode>> output_array_nodes,
+        absl::Span<internal::GradRef*> output_grads,
         std::vector<Array>& input_grads,
         DoubleBackpropOption double_backprop_option)
     : op_node_{op_node},
@@ -102,7 +102,7 @@ bool BackwardContext::is_input_grad_required(size_t input_index) const {
     return op_node_->HasInputArrayNode(input_index);
 }
 
-const nonstd::optional<Array>& BackwardContext::output_grad(size_t output_index) const {
+const absl::optional<Array>& BackwardContext::output_grad(size_t output_index) const {
     // If the output gradient has a propagated value, return it.
     if (HasOutputGrad(output_index)) {
         return output_grads_[output_index]->get();

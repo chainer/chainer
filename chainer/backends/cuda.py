@@ -207,6 +207,8 @@ class GpuDevice(_backend.Device):
     xp = cupy
     supported_array_types = (ndarray,)
 
+    __hash__ = _backend.Device.__hash__
+
     def __init__(self, device):
         check_cuda_available()
         assert isinstance(device, Device)

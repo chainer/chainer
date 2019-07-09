@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "chainerx/array.h"
+#include "chainerx/device.h"
 #include "chainerx/dtype.h"
 #include "chainerx/enum.h"
 #include "chainerx/error.h"
@@ -38,6 +39,14 @@ Array CRelu(const Array& x, int8_t axis) {
     return Relu(concat);
 }
 
+Array Elu(const Array& x, double alpha) {
+    Dtype dtype = internal::GetMathResultDtype(x.dtype());
+    const Array& x_cast = x.dtype() == dtype ? x : x.AsType(dtype);
+    // TODO(aksub99): Replace x > zero with x > 0 when operator > supports scalars.
+    Array zero = ZerosLike(x_cast, x_cast.device());
+    return Where(x_cast > zero, x_cast, alpha * Expm1(x_cast));
+}
+
 Array Sigmoid(const Array& x) {
     Dtype dtype = internal::GetMathResultDtype(x.dtype());
     const Array& x_cast = x.dtype() == dtype ? x : x.AsType(dtype);
@@ -55,6 +64,15 @@ Array LeakyRelu(const Array& x, Scalar slope) {
     const Array& x_cast = x.dtype() == dtype ? x : x.AsType(dtype);
     Array zero = ZerosLike(x_cast, x_cast.device());
     return Where(x_cast >= zero, x_cast, slope * x_cast);
+}
+
+Array Softplus(const Array& x, double beta) {
+    Dtype dtype = internal::GetMathResultDtype(x.dtype());
+    const Array& x_cast = x.dtype() == dtype ? x : x.AsType(dtype);
+    double beta_inv = 1.0 / beta;
+    Array bx = beta * x_cast;
+    Array y = (Maximum(bx, 0) + Log1p(Exp(-Fabs(bx)))) * beta_inv;
+    return y;
 }
 
 }  // namespace chainerx

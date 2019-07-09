@@ -141,7 +141,9 @@ def embed_id(x, W, ignore_label=None):
     Returns:
         ~chainer.Variable: Output variable.
 
-    .. seealso:: :class:`~chainer.links.EmbedID`
+    .. seealso::
+
+        :class:`~chainer.links.EmbedID` to manage the model parameter ``W``.
 
     .. admonition:: Example
 

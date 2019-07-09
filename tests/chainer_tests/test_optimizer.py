@@ -91,7 +91,7 @@ class DummyDeserializer(serializer.Deserializer):
         return value
 
 
-def _create_update_rule(has_states=False):
+def _create_update_rule(has_states):
     class SimpleUpdateRule(optimizer.UpdateRule):
         def update_core_cpu(self, param):
             pass
@@ -134,7 +134,7 @@ def _create_var():
 class TestUpdateRule(unittest.TestCase):
 
     def setUp(self):
-        self.update_rule = _create_update_rule()
+        self.update_rule = _create_update_rule(has_states=False)
         self.var = _create_var()
 
     def check_update(self, backend_config):
@@ -224,7 +224,7 @@ class TestUpdateRule(unittest.TestCase):
 
     def test_add_hook_duplicated_name(self):
         self.update_rule.add_hook(mock.MagicMock(), name='foo')
-        with self.assertRaises(ValueError):
+        with self.assertRaises(KeyError):
             self.update_rule.add_hook(mock.MagicMock(), name='foo')
 
     def test_remove_hook_not_exist(self):
@@ -443,6 +443,7 @@ class TestOptimizerHook(unittest.TestCase):
             self.optimizer.add_hook(lambda s: None, 'h1', timing='pre')
 
     def test_invalid_hook(self):
+        self.optimizer.setup(self.target)
         with self.assertRaises(TypeError):
             self.optimizer.add_hook(1)
 

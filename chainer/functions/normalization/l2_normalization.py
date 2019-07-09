@@ -1,3 +1,5 @@
+import six
+
 from chainer import backend
 from chainer import function_node
 import chainer.functions
@@ -30,7 +32,7 @@ class NormalizeL2(function_node.FunctionNode):
 
     def __init__(self, eps=1e-5, axis=1):
         self.eps = eps
-        if isinstance(axis, int):
+        if isinstance(axis, six.integer_types):
             axis = axis,
         self.axis = axis
 
