@@ -19,10 +19,14 @@
 #include "chainerx/routines/linalg.h"
 #include "chainerx/shape.h"
 
-extern "C" void dsyevd_(
+#if CHAINERX_ENABLE_LAPACK
+extern "C" {
+void dsyevd_(
         char* jobz, char* uplo, int* n, double* a, int* lda, double* w, double* work, int* lwork, int* iwork, int* liwork, int* info);
-extern "C" void ssyevd_(
+void ssyevd_(
         char* jobz, char* uplo, int* n, float* a, int* lda, float* w, float* work, int* lwork, int* iwork, int* liwork, int* info);
+}
+#endif  // CHAINERX_ENABLE_LAPACK
 
 namespace chainerx {
 namespace native {
@@ -30,14 +34,11 @@ namespace native {
 class NativeSyevdKernel : public SyevdKernel {
 public:
     std::tuple<Array, Array> Call(const Array& a, const std::string& UPLO, bool compute_eigen_vector) override {
+#if CHAINERX_ENABLE_LAPACK
         Device& device = a.device();
         Dtype dtype = a.dtype();
 
         CHAINERX_ASSERT(a.ndim() == 2);
-
-#ifndef CHAINERX_LAPACK_AVAILABLE
-        throw ChainerxError{"LAPACK is not linked to ChainerX."};
-#endif  // CHAINERX_LAPACK_AVAILABLE
 
         Array v = Empty(a.shape(), dtype, device);
         device.backend().CallKernel<CopyKernel>(a.Transpose(), v);
@@ -98,6 +99,12 @@ public:
             default:
                 CHAINERX_NEVER_REACH();
         }
+#else  // CHAINERX_LAPACK_AVAILABLE
+        (void)a;
+        (void)UPLO;
+        (void)compute_eigen_vector;
+        throw ChainerxError{"LAPACK is not linked to ChainerX."};
+#endif  // CHAINERX_LAPACK_AVAILABLE
     }
 };
 
