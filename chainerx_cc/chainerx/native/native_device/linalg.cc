@@ -46,7 +46,7 @@ public:
         int m = a.shape()[0];
         int lda = a.shape()[1];
 
-        Array w = Empty(Shape({m}), dtype, device);
+        Array w = Empty(Shape{m}, dtype, device);
 
         auto syevd_impl = [&](auto pt, auto syevd) -> std::tuple<Array, Array> {
             using T = typename decltype(pt)::type;
@@ -70,11 +70,11 @@ public:
             syevd(&jobz, &uplo, &m, v_ptr, &lda, w_ptr, &work_size, &lwork, &iwork_size, &liwork, &info);
 
             lwork = static_cast<int>(work_size);
-            Array work = Empty(Shape({lwork}), dtype, device);
+            Array work = Empty(Shape{lwork}, dtype, device);
             T* work_ptr = static_cast<T*>(internal::GetRawOffsetData(work));
 
             liwork = static_cast<int>(iwork_size);
-            Array iwork = Empty(Shape({liwork}), Dtype::kInt32, device);
+            Array iwork = Empty(Shape{liwork}, Dtype::kInt32, device);
             int* iwork_ptr = static_cast<int*>(internal::GetRawOffsetData(iwork));
 
             syevd(&jobz, &uplo, &m, v_ptr, &lda, w_ptr, work_ptr, &lwork, iwork_ptr, &liwork, &info);

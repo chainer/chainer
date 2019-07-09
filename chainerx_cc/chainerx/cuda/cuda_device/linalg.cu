@@ -51,7 +51,7 @@ public:
         int64_t m = a.shape()[0];
         int64_t lda = a.shape()[1];
 
-        Array w = Empty(Shape({m}), dtype, device);
+        Array w = Empty(Shape{m}, dtype, device);
 
         auto syevd_impl = [&](auto pt, auto syevd_bufferSize, auto syevd) -> std::tuple<Array, Array> {
             using T = typename decltype(pt)::type;
@@ -73,7 +73,7 @@ public:
             int buffersize = 0;
             device_internals.cusolverdn_handle().Call(syevd_bufferSize, jobz, uplo, m, v_ptr, lda, w_ptr, &buffersize);
 
-            Array work = Empty(Shape({buffersize}), dtype, device);
+            Array work = Empty(Shape{buffersize}, dtype, device);
             T* work_ptr = static_cast<T*>(internal::GetRawOffsetData(work));
 
             std::shared_ptr<void> devInfo = device.Allocate(sizeof(int));
