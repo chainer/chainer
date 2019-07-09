@@ -650,8 +650,8 @@ std::vector<absl::optional<Array>> Grad(
 
     BackwardImpl{inputs, outputs, actual_backprop_id, double_backprop, std::move(array_node_grad_map), retain_grad}.Run();
 
-    size_t i = 0;
-    for (absl::optional<Array>& grad : input_grads) {
+    for (size_t i = 0; i < input_grads.size(); ++i) {  // NOLINT(modernize-loop-convert)
+        absl::optional<Array>& grad = input_grads[i];
         if (grad.has_value()) {
             if (internal::GetArrayBody(*grad) == nullptr) {
                 // If the allocated input_grad was not used during calculation due to a not connected graph
@@ -663,7 +663,6 @@ std::vector<absl::optional<Array>> Grad(
                 inputs[i].get().SetGrad(grad.value(), backprop_id);
             }
         }
-        ++i;
     }
 
     return input_grads;
