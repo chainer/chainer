@@ -27,7 +27,7 @@ def _simple_group_normalization(x, groups, gamma, beta, eps=1e-5):
 
 
 @testing.parameterize(*(testing.product({
-    'shape': [(1, 4, 5, 5), (5, 4, 15)],
+    'shape': [(1, 4, 5, 3), (5, 4, 7), (3, 20)],
     'groups': [1, 2, 4],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'eps': [1e-5, 1e-1],

@@ -247,10 +247,12 @@ class SpectralNormalization(link_hook.LinkHook):
                 else:
                     with chainer.using_device(device):
                         _, s, _ = xp.linalg.svd(array)
+                s = fallback._to_chx(s)
             else:
                 _, s, _ = link.xp.linalg.svd(weight_matrix)
+            s0 = chainer.utils.force_array(s[0])
             with link.init_scope():
-                link.gamma = variable.Parameter(s[0], ())
+                link.gamma = variable.Parameter(s0)
         self._initialized = True
 
     def normalize_weight(self, link):

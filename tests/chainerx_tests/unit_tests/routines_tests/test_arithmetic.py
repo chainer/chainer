@@ -925,6 +925,13 @@ _in_out_dtypes_inplace_truediv = [
     (('float16', 'float64'), 'float64'),
 ]
 
+_in_out_dtypes_reciprocal = [
+    (('int16',), 'float32'),
+    (('uint8',), 'float32'),
+    (('float16',), 'float16'),
+    (('float32',), 'float32'),
+    (('float64',), 'float64'),
+]
 
 _in_out_dtypes_truediv = _in_out_dtypes_inplace_truediv + [
     (('int8', 'int8'), 'float32'),
@@ -1368,3 +1375,32 @@ def test_power_invalid_bool_dtype(
                 a ** b
             else:
                 b ** a
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    # Special shapes
+    chainer.testing.product({
+        'shape': [(), (1,), (1, 1, 1), (2, 3)],
+        'in_dtypes,out_dtype': _in_out_dtypes_reciprocal,
+        'input': [1, 3],
+    })
+    # Dtype combinations
+    + chainer.testing.product({
+        'shape': [(0,), (2, 0, 3)],
+        'in_dtypes,out_dtype': _in_out_dtypes_reciprocal,
+        'input': [1, 3],
+    })
+    # Special values
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,out_dtype': math_utils.in_out_float_dtypes_math_functions,
+        'input': ['random', float('inf'), -float('inf'), float('nan'), 0],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True],
+    })
+))
+class TestReciprocal(math_utils.UnaryMathTestBase, op_utils.NumpyOpTest):
+
+    def func(self, xp, a):
+        return xp.reciprocal(a)
