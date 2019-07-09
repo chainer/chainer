@@ -506,14 +506,14 @@ Compute the eigenvalues and eigenvectors of a real symmetric matrix.
 Args:
     a (~chainerx.ndarray): Real symmetric matrix whose eigenvalues
         and eigenvectors are to be computed.
-    UPLO (string): Specifies whether the calculation is done with the lower
-        triangular part of a (‘L’, default) or the upper triangular part (‘U’).
+    UPLO (str): Specifies whether the calculation is done with the lower
+        triangular part of a ('L', default) or the upper triangular part ('U').
 
 Returns:
-    w (~chainerx.ndarray): The eigenvalues in ascending order, each repeated
-    according to its multiplicity.
-    v (~chainerx.ndarray): The column v[:, i] is the normalized eigenvector
-        corresponding to the eigenvalue w[i].
+    tuple of :class:`~chainerx.ndarray`:
+        Returns a tuple ``(w, v)``. ``w`` contains eigenvalues and
+        ``v`` contains eigenvectors. ``v[:, i]`` is an eigenvector
+        corresponding to an eigenvalue ``w[i]``.
 
 .. seealso:: :func:`numpy.linalg.eigh`
 """)
@@ -528,13 +528,12 @@ Main difference from eigh: the eigenvectors are not computed.
 Args:
     a (~chainerx.ndarray): Real symmetric matrix whose eigenvalues
         and eigenvectors are to be computed.
-    UPLO (string): Specifies whether the calculation is done with the lower
+    UPLO (str): Specifies whether the calculation is done with the lower
         triangular part of a (‘L’, default) or the upper triangular part (‘U’).
         (optional).
 
 Returns:
-    w (~chainerx.ndarray): The eigenvalues in ascending order, each repeated
-        according to its multiplicity.
+    :class:`~chainerx.ndarray`: Returns eigenvalues as a vector.
 
 .. seealso:: :func:`numpy.linalg.eigvalsh`
 """)
