@@ -7,6 +7,7 @@ import numpy as np
 import chainer
 import chainer.testing
 from chainer.training import extension
+from chainer.backend import cuda
 import chainermn
 from chainermn.extensions import ObservationAggregator
 
@@ -26,28 +27,26 @@ class DummyChain(chainer.Chain):
 
 
 @chainer.testing.parameterize(*chainer.testing.product({
-    'use_cupy': [False, True],
     'use_chainer_variable': [False, True],
     'communicate_interval': [1, 2],
 }))
 class TestObservationAggregator(unittest.TestCase):
 
-    def setUp(self):
-        if self.use_cupy:
-            comm_name = 'pure_nccl'
-            import cupy
-            self.xp = cupy
-        else:
-            comm_name = 'naive'
-            self.xp = np
-        self.communicator = chainermn.create_communicator(comm_name)
+    def test_observation_aggregator_cpu(self):
+        self.communicator = chainermn.create_communicator('naive')
+        self.xp = np
+        self.run_test_observation_aggregator(use_cupy=False)
 
-        if self.use_cupy:
-            cupy.cuda.Device(self.communicator.intra_rank).use()
+    @chainer.testing.attr.gpu
+    def test_observation_aggregator_gpu(self):
+        self.communicator = chainermn.create_communicator('pure_nccl')
+        self.xp = cuda.cupy
+        cuda.Device(self.communicator.intra_rank).use()
+        self.run_test_observation_aggregator(use_cupy=True)
 
-    def test_observation_aggregator(self):
+    def run_test_observation_aggregator(self, use_cupy):
         model = DummyChain()
-        if self.use_cupy:
+        if use_cupy:
             model.to_gpu()
         comm = self.communicator
 
