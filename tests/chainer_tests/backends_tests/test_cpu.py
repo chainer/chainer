@@ -4,19 +4,36 @@ import numpy
 
 from chainer import backend
 from chainer import testing
-import chainer.testing.backend  # NOQA
+
+
+class TestCpuDevice(unittest.TestCase):
+
+    def test_hashable(self):
+        assert isinstance(hash(backend.CpuDevice()), int)
 
 
 class TestCpuDeviceFromArray(unittest.TestCase):
+
+    def check_device(self, device):
+        assert device.xp is numpy
+        assert device.supported_array_types == (numpy.ndarray,)
+        assert device.name == '@numpy'
+        assert str(device) == '@numpy'
+
+    def test_init(self):
+        device = backend.CpuDevice()
+        self.check_device(device)
 
     def test_from_array(self):
         arr = numpy.ndarray((2,), numpy.float32)
         expected_device = backend.CpuDevice()
 
         device = backend.CpuDevice.from_array(arr)
+        self.check_device(device)
         assert device == expected_device
 
         device = backend.get_device_from_array(arr)
+        self.check_device(device)
         assert device == expected_device
 
 

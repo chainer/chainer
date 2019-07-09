@@ -1,6 +1,6 @@
 #pragma once
 
-#include <nonstd/optional.hpp>
+#include <absl/types/optional.h>
 #include <string>
 #include <tuple>
 
@@ -9,7 +9,7 @@
 
 namespace chainerx {
 
-Array Dot(const Array& a, const Array& b, nonstd::optional<Dtype> out_dtype = nonstd::nullopt);
+Array Dot(const Array& a, const Array& b, absl::optional<Dtype> out_dtype = absl::nullopt);
 
 std::tuple<Array, Array> Eigh(const Array& a, const std::string& uplo);
 

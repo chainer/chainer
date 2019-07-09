@@ -4,8 +4,8 @@
 #include <tuple>
 #include <vector>
 
+#include <absl/types/span.h>
 #include <gtest/gtest.h>
-#include <gsl/gsl>
 
 #include "chainerx/dtype.h"
 #include "chainerx/strides.h"
@@ -13,8 +13,8 @@
 namespace chainerx {
 namespace {
 
-void CheckSpanEqual(std::initializer_list<int64_t> expect, gsl::span<const int64_t> actual) {
-    EXPECT_EQ(gsl::make_span(expect.begin(), expect.end()), actual);
+void CheckSpanEqual(std::initializer_list<int64_t> expect, absl::Span<const int64_t> actual) {
+    EXPECT_EQ(absl::MakeConstSpan(expect.begin(), expect.end()), actual);
 }
 
 TEST(ShapeTest, Ctor) {
@@ -30,9 +30,9 @@ TEST(ShapeTest, Ctor) {
         CheckSpanEqual({2, 3, 4}, shape.span());
         EXPECT_EQ(2 * 3 * 4, shape.GetTotalSize());
     }
-    {  // From gsl::span
+    {  // From span
         const std::array<int64_t, 3> dims{2, 3, 4};
-        const Shape shape{gsl::make_span(dims)};
+        const Shape shape{absl::MakeConstSpan(dims)};
         EXPECT_EQ(3, shape.ndim());
         CheckSpanEqual({2, 3, 4}, shape.span());
     }
@@ -47,9 +47,9 @@ TEST(ShapeTest, Ctor) {
         EXPECT_EQ(0, shape.ndim());
         CheckSpanEqual({}, shape.span());
     }
-    {  // From empty gsl::span
+    {  // From empty span
         const std::array<int64_t, 0> dims{};
-        const Shape shape{gsl::make_span(dims)};
+        const Shape shape{absl::MakeConstSpan(dims)};
         EXPECT_EQ(0, shape.ndim());
         CheckSpanEqual({}, shape.span());
     }
@@ -62,9 +62,9 @@ TEST(ShapeTest, Ctor) {
     {  // Too long std::initializer_list
         EXPECT_THROW(Shape({1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}), DimensionError);
     }
-    {  // Too long gsl::span
+    {  // Too long span
         const std::array<int64_t, kMaxNdim + 1> too_long{1};
-        EXPECT_THROW(Shape{gsl::make_span(too_long)}, DimensionError);
+        EXPECT_THROW(Shape{absl::MakeConstSpan(too_long)}, DimensionError);
     }
     {  // Too long iterators
         std::vector<int64_t> dims{};
@@ -79,8 +79,8 @@ TEST(ShapeTest, Subscript) {
     EXPECT_EQ(2, shape[0]);
     EXPECT_EQ(3, shape[1]);
     EXPECT_EQ(4, shape[2]);
-    EXPECT_THROW(shape[-1], DimensionError);
-    EXPECT_THROW(shape[3], DimensionError);
+    EXPECT_THROW(shape[-1], IndexError);
+    EXPECT_THROW(shape[3], IndexError);
 }
 
 TEST(ShapeTest, Compare) {
@@ -116,8 +116,8 @@ TEST(ShapeTest, CheckEqual) {
 
 TEST(ShapeTest, Iterator) {
     const Shape shape = {2, 3, 4};
-    CheckSpanEqual({2, 3, 4}, gsl::make_span(std::vector<int64_t>{shape.begin(), shape.end()}));
-    CheckSpanEqual({4, 3, 2}, gsl::make_span(std::vector<int64_t>{shape.rbegin(), shape.rend()}));
+    CheckSpanEqual({2, 3, 4}, absl::MakeConstSpan(std::vector<int64_t>{shape.begin(), shape.end()}));
+    CheckSpanEqual({4, 3, 2}, absl::MakeConstSpan(std::vector<int64_t>{shape.rbegin(), shape.rend()}));
 }
 
 TEST(ShapeTest, ToString) {
@@ -137,7 +137,7 @@ TEST(ShapeTest, ToString) {
 
 TEST(StridesTest, SpanFromShape) {
     const Shape shape = {2, 3, 4};
-    CheckSpanEqual({2, 3, 4}, gsl::make_span(shape));
+    CheckSpanEqual({2, 3, 4}, absl::MakeConstSpan(shape));
 }
 
 TEST(ShapeTest, IsContiguous) {

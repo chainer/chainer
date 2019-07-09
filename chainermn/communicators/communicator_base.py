@@ -1,6 +1,7 @@
 from abc import ABCMeta
 from abc import abstractmethod
 import six
+import warnings
 
 
 class CommunicatorBase(six.with_metaclass(ABCMeta)):
@@ -19,7 +20,7 @@ class CommunicatorBase(six.with_metaclass(ABCMeta)):
         [send, recv, bcast, gather, allreduce] * [ '_obj', '']
 
 
-    (with single exception ``alltoall``, ``allreduce_grad``, ``split``
+    (with single exception ``alltoall``, ``multi_node_mean_grad``, ``split``
     and ``bcast_data`` so far). Also methods are supposed to be
     written in this order. All those methods must be implemented in
     its implementation class, or otherwise it cannot be instantiated
@@ -310,9 +311,40 @@ class CommunicatorBase(six.with_metaclass(ABCMeta)):
         self.bcast_data(model)
 
     @abstractmethod
-    def allreduce_grad(self, model):
-        '''Works as same as ``allreduce_obj`` but for Chainer model gradients
+    def multi_node_mean_grad(self, model, zero_fill=False):
+        '''mean Chainer model gradients.
 
-        .. note:: this only supports `SUM` same as ``allreduce_obj``.
+        Args:
+            link (~chainer.Link): Link object.
+            zero_fill: A knob to control whether to fill gradients of
+              initialized and unused Link (which is None internally) with
+              zero-valued array, because the all gradients must be an array
+              among processes for performing all-reduce, which might be an
+              array or None after backward computation. Gradients of
+              uninitialized Link are skipped. If it is False, gradients of
+              unused Link are just skipped.
+
         '''
         raise NotImplementedError()
+
+    def allreduce_grad(self, model, zero_fill=False):
+        '''mean Chainer model gradients.
+
+        .. deprecated:: v7.0.0
+            This API is deprecated. Please use
+            :func:`~chainermn.CommunicatorBase.multi_node_mean_grad` instead.
+
+        Args:
+            link (~chainer.Link): Link object.
+            zero_fill: A knob to control whether to fill gradients of
+              initialized and unused Link (which is None internally) with
+              zero-valued array, because the all gradients must be an array
+              among processes for performing all-reduce, which might be an
+              array or None after backward computation. Gradients of
+              uninitialized Link are skipped. If it is False, gradients of
+              unused Link are just skipped.
+
+        '''
+        warnings.warn('allreduce_grad() is deprecated.',
+                      DeprecationWarning)
+        self.multi_node_mean_grad(model, zero_fill)

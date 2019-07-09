@@ -36,8 +36,38 @@ def _filter_params(params):
 
 
 @testing.parameterize(*_filter_params(testing.product_dict(
+    testing.product_dict(
+        [{'mode': tuple}, {'mode': dict}],
+        [
+            {'keys': None, 'expected_keys': ('a', 'b', 'c')},
+            {'keys': 1, 'expected_keys': ('b',)},
+            {'keys': (1,), 'expected_keys': ('b',)},
+            {'keys': 3, 'key_exception': IndexError},
+            {'keys': (3,), 'key_exception': IndexError},
+            {'keys': 'c', 'expected_keys': ('c',)},
+            {'keys': ('c',), 'expected_keys': ('c',)},
+            {'keys': 'd', 'key_exception': KeyError},
+            {'keys': ('d',), 'key_exception': KeyError},
+            {'keys': (-1, 'a'), 'expected_keys': ('c', 'a')},
+            {'keys': (), 'expected_keys': ()},
+        ],
+    ) +
+    testing.product_dict(
+        [{'mode': None}],
+        [
+            {'keys': None, 'expected_keys': ('a',)},
+            {'keys': 0, 'expected_keys': ('a',)},
+            {'keys': (0,), 'expected_keys': ('a',)},
+            {'keys': 1, 'key_exception': IndexError},
+            {'keys': (1,), 'key_exception': IndexError},
+            {'keys': 'a', 'expected_keys': ('a',)},
+            {'keys': ('a',), 'expected_keys': ('a',)},
+            {'keys': 'b', 'key_exception': KeyError},
+            {'keys': ('b',), 'key_exception': KeyError},
+            {'keys': (), 'expected_keys': ()},
+        ],
+    ),
     testing.product({
-        'mode': [tuple, dict],
         'return_array': [True, False],
         'integer': [int, np.int32],
     }),
@@ -49,15 +79,6 @@ def _filter_params(params):
         {'indices': [True] * 11, 'index_exception': ValueError},
         {'indices': slice(3, None, -2), 'expected_len': 2},
         {'indices': [], 'expected_len': 0},
-    ],
-    [
-        {'keys': None, 'expected_keys': ('a', 'b', 'c')},
-        {'keys': (1,), 'expected_keys': ('b',)},
-        {'keys': (3,), 'key_exception': IndexError},
-        {'keys': ('c',), 'expected_keys': ('c',)},
-        {'keys': ('d',), 'key_exception': KeyError},
-        {'keys': (-1, 'a'), 'expected_keys': ('c', 'a')},
-        {'keys': (), 'expected_keys': ()},
     ],
     testing.product({
         'get_examples_indices': [
@@ -108,15 +129,24 @@ class TestSlice(unittest.TestCase):
             data = dataset.data[:, _indices_for_numpy(self.indices)]
         else:
             view = dataset.slice[self.indices, self.keys]
+            if isinstance(self.keys, tuple):
+                keys = self.keys
+            else:
+                keys = self.keys,
             key_indices = [
-                {'a': 0, 'b': 1, 'c': 2}.get(key, key) for key in self.keys]
+                {'a': 0, 'b': 1, 'c': 2}.get(key, key) for key in keys]
             data = dataset.data[key_indices][
                 :, _indices_for_numpy(self.indices)]
 
         self.assertIsInstance(view, chainer.dataset.TabularDataset)
         self.assertEqual(len(view), self.expected_len)
         self.assertEqual(view.keys, self.expected_keys)
-        self.assertEqual(view.mode, self.mode)
+        if self.keys is None:
+            self.assertEqual(view.mode, self.mode)
+        elif isinstance(self.keys, tuple):
+            self.assertEqual(view.mode, self.mode or tuple)
+        else:
+            self.assertEqual(view.mode, None)
 
         output = view.get_examples(
             self.get_examples_indices, self.get_examples_key_indices)
