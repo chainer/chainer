@@ -1,8 +1,13 @@
 import os
 import warnings
 
-from chainerx import _build_info
-
+try:
+    from chainerx import _build_info
+except ImportError:
+    chainer_root_dir = os.path.abspath(__file__ + '../../..')
+    raise ImportError(
+        'Reinstall Chainer in "editable" mode.\n'
+        '$ pip install -e {}'.format(chainer_root_dir))
 
 if _build_info.build_chainerx:
     from chainerx import _core
