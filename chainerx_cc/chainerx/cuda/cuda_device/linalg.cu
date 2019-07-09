@@ -35,6 +35,45 @@
 
 namespace chainerx {
 namespace cuda {
+namespace {
+
+template <typename T>
+cusolverStatus_t SyevdBuffersize(
+        cusolverDnHandle_t /*handle*/, cusolverEigMode_t /*jobz*/, cublasFillMode_t /*uplo*/, int /*n*/, T* /*a*/, int /*lda*/, T* /*w*/, int* /*lwork*/) {
+    throw DtypeError{"Only Arrays of float or double type are supported by syevd (Eigen)"};
+}
+
+template <typename T>
+cusolverStatus_t Syevd(
+        cusolverDnHandle_t /*handle*/, cusolverEigMode_t /*jobz*/, cublasFillMode_t /*uplo*/, int /*n*/, T* /*a*/, int /*lda*/, T* /*w*/, T* /*work*/, int /*lwork*/, int* /*devinfo*/) {
+    throw DtypeError{"Only Arrays of float or double type are supported by syevd (Eigen)"};
+}
+
+template <>
+cusolverStatus_t SyevdBuffersize<double>(
+        cusolverDnHandle_t handle, cusolverEigMode_t jobz, cublasFillMode_t uplo, int n, double* a, int lda, double* w, int* lwork) {
+    return cusolverDnDsyevd_bufferSize(handle, jobz, uplo, n, a, lda, w, lwork);
+}
+
+template <>
+cusolverStatus_t SyevdBuffersize<float>(
+        cusolverDnHandle_t handle, cusolverEigMode_t jobz, cublasFillMode_t uplo, int n, float* a, int lda, float* w, int* lwork) {
+    return cusolverDnSsyevd_bufferSize(handle, jobz, uplo, n, a, lda, w, lwork);
+}
+
+template <>
+cusolverStatus_t Syevd<double>(
+        cusolverDnHandle_t handle, cusolverEigMode_t jobz, cublasFillMode_t uplo, int n, double* a, int lda, double* w, double* work, int lwork, int* devinfo) {
+    return cusolverDnDsyevd(handle, jobz, uplo, n, a, lda, w, work, lwork, devinfo);
+}
+
+template <>
+cusolverStatus_t Syevd<float>(
+        cusolverDnHandle_t handle, cusolverEigMode_t jobz, cublasFillMode_t uplo, int n, float* a, int lda, float* w, float* work, int lwork, int* devinfo) {
+    return cusolverDnSsyevd(handle, jobz, uplo, n, a, lda, w, work, lwork, devinfo);
+}
+
+}  // namespace
 
 class CudaSyevdKernel : public SyevdKernel {
 public:
@@ -53,7 +92,7 @@ public:
 
         Array w = Empty(Shape{m}, dtype, device);
 
-        auto syevd_impl = [&](auto pt, auto syevd_bufferSize, auto syevd) -> std::tuple<Array, Array> {
+        auto syevd_impl = [&](auto pt) -> std::tuple<Array, Array> {
             using T = typename decltype(pt)::type;
             cuda_internal::DeviceInternals& device_internals = cuda_internal::GetDeviceInternals(static_cast<CudaDevice&>(device));
 
@@ -71,7 +110,7 @@ public:
             }
 
             int buffersize = 0;
-            device_internals.cusolverdn_handle().Call(syevd_bufferSize, jobz, uplo, m, v_ptr, lda, w_ptr, &buffersize);
+            device_internals.cusolverdn_handle().Call(SyevdBuffersize<T>, jobz, uplo, m, v_ptr, lda, w_ptr, &buffersize);
 
             Array work = Empty(Shape{buffersize}, dtype, device);
             T* work_ptr = static_cast<T*>(internal::GetRawOffsetData(work));
@@ -79,7 +118,7 @@ public:
             std::shared_ptr<void> devInfo = device.Allocate(sizeof(int));
 
             device_internals.cusolverdn_handle().Call(
-                    syevd, jobz, uplo, m, v_ptr, lda, w_ptr, work_ptr, buffersize, static_cast<int*>(devInfo.get()));
+                    Syevd<T>, jobz, uplo, m, v_ptr, lda, w_ptr, work_ptr, buffersize, static_cast<int*>(devInfo.get()));
 
             int devInfo_h = 0;
             Device& native_device = dynamic_cast<native::NativeDevice&>(GetDefaultContext().GetDevice({"native", 0}));
@@ -91,19 +130,7 @@ public:
             return std::make_tuple(std::move(w), std::move(v.Transpose().Copy()));
         };
 
-        switch (a.dtype()) {
-            case Dtype::kFloat16:
-                throw DtypeError{"Half-precision (float16) is not supported by eigen decomposition"};
-                break;
-            case Dtype::kFloat32:
-                return syevd_impl(PrimitiveType<float>{}, cusolverDnSsyevd_bufferSize, cusolverDnSsyevd);
-                break;
-            case Dtype::kFloat64:
-                return syevd_impl(PrimitiveType<double>{}, cusolverDnDsyevd_bufferSize, cusolverDnDsyevd);
-                break;
-            default:
-                CHAINERX_NEVER_REACH();
-        }
+        return VisitFloatingPointDtype(dtype, syevd_impl);
     }
 };
 
