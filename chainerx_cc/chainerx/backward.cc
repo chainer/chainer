@@ -629,8 +629,8 @@ std::vector<absl::optional<Array>> Grad(
     // Initialize the grad map with newly created gradient arrays of the inputs.
     // The existing gradients of the inputs are thus not modified.
     std::unordered_map<ArrayNode*, internal::GradRef> array_node_grad_map;
-    for (size_t i = 0; i < inputs.size(); ++i) {
-        const std::shared_ptr<ArrayBody>& array_body = internal::GetArrayBody(inputs[i]);
+    for (const Array& input : inputs) {
+        const std::shared_ptr<ArrayBody>& array_body = internal::GetArrayBody(input);
         if (const std::shared_ptr<ArrayNode>& input_array_node = array_body->GetArrayNode(actual_backprop_id)) {
             input_grads.emplace_back(absl::optional<Array>{});
             array_node_grad_map.emplace(input_array_node.get(), internal::GradRef{&input_grads.back()});
@@ -650,7 +650,7 @@ std::vector<absl::optional<Array>> Grad(
 
     BackwardImpl{inputs, outputs, actual_backprop_id, double_backprop, std::move(array_node_grad_map), retain_grad}.Run();
 
-    for (size_t i = 0; i < input_grads.size(); ++i) {  // NOLINT(modernize-loop-convert)
+    for (size_t i = 0; i < input_grads.size(); ++i) {
         absl::optional<Array>& grad = input_grads[i];
         if (grad.has_value()) {
             if (internal::GetArrayBody(*grad) == nullptr) {
