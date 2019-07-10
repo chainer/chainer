@@ -7,8 +7,8 @@
 #include <string>
 #include <vector>
 
+#include <absl/types/optional.h>
 #include <gtest/gtest.h>
-#include <nonstd/optional.hpp>
 
 #include "chainerx/array.h"
 #include "chainerx/check_backward.h"
@@ -201,7 +201,7 @@ public:
     }
 
 private:
-    nonstd::optional<testing::DeviceSession> device_session_;
+    absl::optional<testing::DeviceSession> device_session_;
 };
 
 TEST_P(CreationTest, FromContiguousHostData) {
@@ -312,7 +312,7 @@ TEST_P(CreationTest, FromData_Contiguous) {
             std::shared_ptr<void> data = device.FromHostMemory(host_data, sizeof(raw_data));
             data_ptr = data.get();
             // nullopt strides creates an array from a contiguous data
-            x = FromData(shape, dtype, data, nonstd::nullopt, offset);
+            x = FromData(shape, dtype, data, absl::nullopt, offset);
         }
 
         CheckFromData<T>(x, shape, dtype, strides, offset, expected_data, data_ptr);

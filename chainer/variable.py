@@ -1480,6 +1480,15 @@ class Variable(object):
         """
         return self.array.item()
 
+    def mean(self, axis=None, weights=None, keepdims=False):
+        """Calculate weighted average of array elements over a given axis.
+
+        .. seealso::
+           :func:`chainer.functions.average` for full documentation,
+
+        """
+        return chainer.functions.average(self, axis, weights, keepdims)
+
     def reshape(self, *shape):
         """Returns a variable of a different shape and the same content.
 

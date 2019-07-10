@@ -8,6 +8,7 @@
 #include <sstream>
 #include <string>
 
+#include <absl/types/span.h>
 #include <gsl/gsl>
 
 #include "chainerx/axes.h"
@@ -40,8 +41,8 @@ public:
         insert(begin(), first, last);
     }
 
-    // by gsl:span
-    explicit Shape(gsl::span<const int64_t> dims) : Shape{dims.begin(), dims.end()} {}
+    // by span
+    explicit Shape(absl::Span<const int64_t> dims) : Shape{dims.begin(), dims.end()} {}
 
     // by initializer list
     Shape(std::initializer_list<int64_t> dims) : Shape{dims.begin(), dims.end()} {}
@@ -75,7 +76,7 @@ public:
     }
 
     // span
-    gsl::span<const int64_t> span() const { return {*this}; }
+    absl::Span<const int64_t> span() const { return {*this}; }
 };
 
 namespace internal {

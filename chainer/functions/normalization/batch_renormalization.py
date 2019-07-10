@@ -76,8 +76,8 @@ class BatchRenormalizationFunction(function.Function):
         # batch renormalization
         axis = (0,) + tuple(range(head_ndim, x.ndim))
         mean = x.mean(axis=axis, dtype=gamma.dtype)
-        var = x.var(axis=axis, dtype=gamma.dtype) + self.eps
-        self.std = xp.sqrt(var, dtype=var.dtype)
+        var = x.var(axis=axis, dtype=gamma.dtype)
+        self.std = xp.sqrt(var + self.eps, dtype=var.dtype)
 
         running_sigma = xp.sqrt(self._running_var + self.eps,
                                 dtype=self._running_mean.dtype)

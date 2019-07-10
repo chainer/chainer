@@ -107,6 +107,12 @@ from chainerx_tests import op_utils
     ((), (chainerx.newaxis,)),
     ((3,), (chainerx.newaxis,)),
     ((2, 3), (chainerx.newaxis, chainerx.newaxis)),
+    # ellipsis indexing - non-tuple indexing
+    ((), Ellipsis),
+    ((3,), Ellipsis),
+    # ellipsis indexing - tuple indexing
+    ((), (Ellipsis,)),
+    ((2, 3), (Ellipsis,)),
     # mixed indexing - tuple indexing
     ((2, 3), (0, slice(1, 3))),
     ((4, 3), (slice(1, 3), 1)),
@@ -118,6 +124,14 @@ from chainerx_tests import op_utils
     ((2, 3, 4), (chainerx.newaxis, slice(0, 1), slice(1, 2), slice(1, 3))),
     ((2, 3, 4),
      (1, slice(2,), chainerx.newaxis, slice(1, 3), chainerx.newaxis)),
+    ((2, 3, 4), (0, Ellipsis)),
+    ((2, 3, 4), (Ellipsis, 2)),
+    ((2, 3, 4), (1, Ellipsis, 2)),
+    ((2, 3, 4), (1, Ellipsis, 2, 3)),
+    ((2, 3, 4), (chainerx.newaxis, Ellipsis, chainerx.newaxis)),
+    ((2, 3, 4), (1, Ellipsis, chainerx.newaxis, 3)),
+    ((2, 3, 4), (1, Ellipsis, 2, chainerx.newaxis, 3)),
+    ((2, 3, 4), (slice(0, 1), Ellipsis, slice(1, 3))),
 ])
 class TestGetitem(op_utils.NumpyOpTest):
     # TODO(niboshi): Remove this
@@ -141,6 +155,9 @@ class TestGetitem(op_utils.NumpyOpTest):
     ((3,), 3),
     ((3,), (0, 1)),
     ((2, 3,), (2, 0)),
+    ((2,), (2, chainerx.newaxis, 3)),
+    ((2,), (2, Ellipsis, chainerx.newaxis, 3)),
+    ((2,), (Ellipsis, Ellipsis)),
 ])
 def test_getitem_index_error(device, shape, indices):
     a = array_utils.create_dummy_ndarray(chainerx, shape, 'float32')

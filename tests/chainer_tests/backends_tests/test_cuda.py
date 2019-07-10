@@ -481,6 +481,7 @@ class TestGpuDevice(unittest.TestCase):
         assert isinstance(device, backend.GpuDevice)
         assert isinstance(device.device, cuda.cupy.cuda.Device)
         assert device.device.id == device_id
+        assert isinstance(hash(device), int)  # hashable
 
         assert device.xp is cuda.cupy
         assert device.supported_array_types == (cuda.ndarray,)

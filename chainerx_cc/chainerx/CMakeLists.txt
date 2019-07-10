@@ -1,3 +1,5 @@
+include_directories("${PROJECT_SOURCE_DIR}")
+
 add_subdirectory(kernels)
 add_subdirectory(routines)
 add_subdirectory(native)
@@ -69,6 +71,7 @@ set(chainerx_srcs
     array.cc
     array_body.cc
     array_body_leak_detection.cc
+    array_index.cc
     array_repr.cc
     axes.cc
     backend.cc
@@ -113,7 +116,11 @@ else()
 endif()
 
 # abseil
-target_link_libraries(chainerx PUBLIC absl::failure_signal_handler)
+target_link_libraries(
+    chainerx
+    PUBLIC
+    absl::failure_signal_handler
+    absl::bad_optional_access)
 
 if(MSVC)
     target_link_libraries(chainerx

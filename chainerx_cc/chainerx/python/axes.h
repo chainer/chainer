@@ -3,8 +3,8 @@
 #include <cstdint>
 #include <vector>
 
+#include <absl/types/optional.h>
 #include <pybind11/pybind11.h>
-#include <nonstd/optional.hpp>
 
 #include "chainerx/axes.h"
 
@@ -14,18 +14,18 @@ namespace python_internal {
 
 Axes ToAxes(const pybind11::tuple& tup);
 
-inline OptionalAxes ToAxes(const nonstd::optional<std::vector<int8_t>>& vec) {
+inline OptionalAxes ToAxes(const absl::optional<std::vector<int8_t>>& vec) {
     if (vec.has_value()) {
         return Axes{vec->begin(), vec->end()};
     }
-    return nonstd::nullopt;
+    return absl::nullopt;
 }
 
-inline OptionalAxes ToAxes(const nonstd::optional<int8_t>& vec) {
+inline OptionalAxes ToAxes(const absl::optional<int8_t>& vec) {
     if (vec.has_value()) {
         return Axes{*vec};
     }
-    return nonstd::nullopt;
+    return absl::nullopt;
 }
 
 }  // namespace python_internal
