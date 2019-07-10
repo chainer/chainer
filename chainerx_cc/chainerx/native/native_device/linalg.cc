@@ -24,35 +24,35 @@
 extern "C" {
 // gesdd
 void dgesdd_(
-    char* jobz,
-    int* m,
-    int* n,
-    double* a,
-    int* lda,
-    double* s,
-    double* u,
-    int* ldu,
-    double* vt,
-    int* ldvt,
-    double* work,
-    int* lwork,
-    int* iwork,
-    int* info);
+        char* jobz,
+        int* m,
+        int* n,
+        double* a,
+        int* lda,
+        double* s,
+        double* u,
+        int* ldu,
+        double* vt,
+        int* ldvt,
+        double* work,
+        int* lwork,
+        int* iwork,
+        int* info);
 void sgesdd_(
-    char* jobz,
-    int* m,
-    int* n,
-    float* a,
-    int* lda,
-    float* s,
-    float* u,
-    int* ldu,
-    float* vt,
-    int* ldvt,
-    float* work,
-    int* lwork,
-    int* iwork,
-    int* info);
+        char* jobz,
+        int* m,
+        int* n,
+        float* a,
+        int* lda,
+        float* s,
+        float* u,
+        int* ldu,
+        float* vt,
+        int* ldvt,
+        float* work,
+        int* lwork,
+        int* iwork,
+        int* info);
 }
 #endif  // CHAINERX_ENABLE_LAPACK
 
