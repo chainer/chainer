@@ -128,9 +128,9 @@ class MultiprocessIterator(iterator.Iterator):
                 order_sampler = ShuffleOrderSampler()
         self.order_sampler = order_sampler
 
-        self.initialize_loop()
+        self._initialize_loop()
 
-    def initialize_loop(self):
+    def _initialize_loop(self):
         self._comm = _Communicator(self.n_prefetch, self.dataset_timeout)
         self.reset()
 
@@ -280,9 +280,9 @@ class MultiprocessIterator(iterator.Iterator):
         del init['_state']
         del init['_prefetch_loop']
 
-        # TODO: when pickling in one process and restoring in other
-        # dataset is copied too, this may result in large memory consumption
-        # if the data is entirely in memory at the time of processes span
+        # TODO(ecastill): When pickling this object there is the risk to copy
+        # the entire dataset. If the dataset is entirely in memory
+        # it can be duplicated when spawning new processes.
 
         state['init'] = init
         return state
@@ -290,7 +290,7 @@ class MultiprocessIterator(iterator.Iterator):
     def __setstate__(self, state):
         self.__dict__.update(state['init'])
 
-        self.initialize_loop()
+        self._initialize_loop()
         # Iterator state is restored after initialization
         self._reset_state(state['current_position'], state['epoch'],
                           state['is_new_epoch'], state['order'])
@@ -391,6 +391,8 @@ class _PrefetchLoop(object):
         self.order_sampler = order_sampler
         self.maxtasksperchild = maxtasksperchild
 
+        self._allocate_shared_memory()
+
         self._interruption_testing = _interruption_testing
 
     def terminate(self):
@@ -459,12 +461,6 @@ class _PrefetchLoop(object):
                 sharedctypes.RawArray('b', self.batch_size * self.mem_size)
 
     def launch_thread(self):
-        # Defer memory allocation due to pickling issues.
-        # This object can be pickled when using MultiprocessParallelUpdater
-        # with multiprocessing.set_start_method(spawn).
-        # This avoids failing on pickle
-        self._allocate_shared_memory()
-
         self._pool = multiprocessing.Pool(
             processes=self.n_processes,
             initializer=_fetch_setup,
