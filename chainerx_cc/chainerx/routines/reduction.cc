@@ -110,8 +110,6 @@ Array Cumsum(const Array& a, absl::optional<int8_t> axis) {
         a_reshaped = a.Reshape(Shape{a.GetTotalSize()});
     }
 
-    Shape out_shape = a_reshaped.shape();
-    Array out = Empty(out_shape, a_reshaped.dtype(), a_reshaped.device());
     // Decide the output dtype for integral input dtype.
     Dtype out_dtype{};
     switch (GetKind(a_reshaped.dtype())) {
@@ -126,15 +124,14 @@ Array Cumsum(const Array& a, absl::optional<int8_t> axis) {
             out_dtype = a_reshaped.dtype();
     }
 
-    const Array& out_cast = out.AsType(out_dtype);
-    const Array& a_cast = a_reshaped.dtype() != out_cast.dtype() ? a_reshaped.AsType(out_cast.dtype()) : a_reshaped;
+    const Array& out = Empty(a_reshaped.shape(), out_dtype, a_reshaped.device());
 
     {
         NoBackpropModeScope scope{};
-        a.device().backend().CallKernel<CumsumKernel>(a_cast, axis_norm, out_cast);
+        a.device().backend().CallKernel<CumsumKernel>(a_reshaped, axis_norm, out);
     }
 
-    BackwardBuilder bb{"cumsum", a, out_cast};
+    BackwardBuilder bb{"cumsum", a, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
         bt.Define([axis, axis_norm, in_shape = a.shape()](BackwardContext& bctx) {
             const Array& gout = *bctx.output_grad();
@@ -147,7 +144,7 @@ Array Cumsum(const Array& a, absl::optional<int8_t> axis) {
         });
     }
     bb.Finalize();
-    return out_cast;
+    return out;
 }
 
 }  // namespace chainerx

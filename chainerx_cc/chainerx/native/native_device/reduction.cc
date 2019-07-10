@@ -111,21 +111,22 @@ class NativeCumsumKernel : public CumsumKernel {
 public:
     void Call(const Array& a, int8_t axis, const Array& out) override {
         a.device().CheckDevicesCompatible(a, out);
+        const Array& a_cast = a.dtype() != out.dtype() ? a.AsType(out.dtype()) : a;
 
-        VisitDtype(out.dtype(), [&a, axis, &out](auto pt) {
+        VisitDtype(out.dtype(), [&a_cast, axis, &out](auto pt) {
             using T = typename decltype(pt)::type;
 
-            IndexableArray<const T> a_iarray{a};
+            IndexableArray<const T> a_iarray{a_cast};
             IndexableArray<T> out_iarray{out};
             Indexer<> out_indexer{out.shape()};
-            Indexer<> prev_indexer{a.shape()};
+            Indexer<> prev_indexer{a_cast.shape()};
 
-            int64_t axis_dim = a.shape()[axis];
+            int64_t axis_dim = a_cast.shape()[axis];
 
             // left: set of input dimensions lower than the axis
             // right: set of input dimensions higher than the axis
-            Shape left_shape{a.shape().begin(), a.shape().begin() + axis};
-            Shape right_shape{a.shape().begin() + (axis + 1), a.shape().end()};
+            Shape left_shape{a_cast.shape().begin(), a_cast.shape().begin() + axis};
+            Shape right_shape{a_cast.shape().begin() + (axis + 1), a_cast.shape().end()};
             Shape axis_shape{axis_dim};  // always ndim==1
 
             Indexer<> left_indexer{left_shape};
