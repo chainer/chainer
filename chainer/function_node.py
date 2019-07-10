@@ -263,6 +263,8 @@ Use apply() method instead.\
         chainerx_device = None
         is_chainerx, in_data = _extract_apply_in_data(inputs)
 
+        utils._check_arrays_forward_compatible(in_data, self.label)
+
         if is_chainerx:
             # Try ChainerX C++ implementation.
             # If it's supported, the output arrays are wrapped with Variables
@@ -289,8 +291,6 @@ Use apply() method instead.\
                 self._chainerx_apply_fallback_preprocess(in_data, inputs))
             self._is_chainerx_fallback_mode = True
             self.chainerx_device = chainerx_device
-
-        utils._check_arrays_forward_compatible(in_data, self.label)
 
         is_debug = chainer.is_debug()
         if is_debug:
@@ -1194,8 +1194,8 @@ def _extract_apply_in_data(inputs):
     # `Variable._data[0]` (which is backproppable in contrast to
     # `Variable.array`) is returned.
     #
-    # If at least one of the arrays is a ChainerX array, all other NumPy/CuPy
-    # arrays are converted to ChainerX arrays without copy.
+    # If at least one of the arrays is a ChainerX array, all other
+    # arrays need to be ChainerX arrays.
     if not inputs:
         return False, ()
 
@@ -1216,12 +1216,7 @@ def _extract_apply_in_data(inputs):
                 if not has_chainerx_array:
                     if isinstance(x, chainerx.ndarray):
                         has_chainerx_array = True
-
-        if has_chainerx_array:
-            return True, tuple(backend.to_chx(arrays))
-        else:
-            return False, tuple(arrays)
-
+        return has_chainerx_array, tuple(arrays)
     else:
         return False, tuple([
             x.array if isinstance(x, variable.Variable) else x
