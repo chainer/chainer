@@ -114,11 +114,7 @@ Array Linspace(
 
 // Creates a 2-dimensional array with ones at and below the given diagonal and zeros elsewhere.
 Array Tri(
-        int64_t n,
-        absl::optional<int64_t> m,
-        absl::optional<int64_t> k,
-        absl::optional<Dtype> dtype,
-        Device& device = GetDefaultDevice());
+        int64_t n, absl::optional<int64_t> m, absl::optional<int64_t> k, absl::optional<Dtype> dtype, Device& device = GetDefaultDevice());
 
 // Creates a lower triangle of an array.
 Array Tril(const Array& m, int64_t k);
