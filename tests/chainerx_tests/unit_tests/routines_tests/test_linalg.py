@@ -104,6 +104,8 @@ class NumpyLinalgOpTest(op_utils.NumpyOpTest):
         if (device.backend.name == 'native'
                 and not chainerx.linalg._is_lapack_available()):
             pytest.skip('LAPACK is not linked to ChainerX')
+        self.check_backward_options.update({'rtol': 5e-3})
+        self.check_double_backward_options.update({'rtol': 5e-3})
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
@@ -150,10 +152,6 @@ class TestSVD(NumpyLinalgOpTest):
     })
 ))
 class TestPseudoInverse(NumpyLinalgOpTest):
-
-    def setup(self):
-        self.check_backward_options.update({'rtol': 5e-3})
-        self.check_double_backward_options.update({'rtol': 5e-3})
 
     def generate_inputs(self):
         a = numpy.random.random(self.shape).astype(self.in_dtypes)
