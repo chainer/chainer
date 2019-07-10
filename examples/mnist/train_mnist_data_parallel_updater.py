@@ -32,7 +32,7 @@ def main():
                         'specifiers or integers. If non-negative integer, '
                         'CuPy arrays with specified device id are used. If '
                         'negative integer, NumPy arrays are used')
-    parser.add_argument('--ljob', '-j', type=int,
+    parser.add_argument('--ljob', '-j', type=int, default=4,
                         help='Number of parallel data loading processes')
     args = parser.parse_args()
 
