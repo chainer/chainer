@@ -131,9 +131,9 @@ Array Cumsum(const Array& a, absl::optional<int8_t> axis) {
         a.device().backend().CallKernel<CumsumKernel>(a_reshaped, axis_norm, out);
     }
 
-    BackwardBuilder bb{"cumsum", a, out};
+    BackwardBuilder bb{"cumsum", a_reshaped, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-        bt.Define([axis, axis_norm, in_shape = a.shape()](BackwardContext& bctx) {
+        bt.Define([axis, axis_norm, in_shape = a_reshaped.shape()](BackwardContext& bctx) {
             const Array& gout = *bctx.output_grad();
             if (axis.has_value()) {
                 bctx.input_grad() = Flip(Cumsum(Flip(gout, axis_norm), axis_norm), axis_norm);
