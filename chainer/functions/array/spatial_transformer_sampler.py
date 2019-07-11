@@ -265,7 +265,7 @@ def spatial_transformer_sampler(x, grid, **kwargs):
     When coordinates in ``grid`` is outside range :math:`[-1, 1]`, values are
     sampled from a zero padded input image.
 
-    Notatition: here is a notation for dimensionalities.
+    Notation: here is a notation for dimensionalities.
 
     - :math:`n` is the batch size.
     - :math:`c_I` is the number of the input channels.
@@ -274,7 +274,7 @@ def spatial_transformer_sampler(x, grid, **kwargs):
     - :math:`h_O` and :math:`w_O` are the height and width of the output
       image.
 
-    See detail in the following paper: `Spatial Transformer Networks \
+    See detail in the following paper: `Spatial Transformer Networks
     <https://arxiv.org/abs/1506.02025>`_.
 
     .. note::
@@ -306,9 +306,9 @@ def spatial_transformer_sampler(x, grid, **kwargs):
     """
     if kwargs:
         argument.check_unexpected_kwargs(
-            kwargs, use_cudnn="The argument \"use_cudnn\" is not "
-            "supported anymore. "
-            "Use chainer.using_config('use_cudnn', value) "
-            "context where value can be `always`, `never`, or `auto`.")
+            kwargs, use_cudnn='The argument "use_cudnn" is not '
+            'supported anymore. '
+            'Use chainer.using_config(\'use_cudnn\', value) '
+            'context where value can be `always`, `never`, or `auto`.')
         argument.assert_kwargs_empty(kwargs)
     return SpatialTransformerSampler()(x, grid)

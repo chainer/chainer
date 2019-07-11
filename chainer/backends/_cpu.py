@@ -10,13 +10,13 @@ import chainerx
 
 class CpuDevice(_backend.Device):
 
-    @property
-    def xp(self):
-        return numpy
+    """Device for CPU (NumPy) backend"""
 
-    @property
-    def supported_array_types(self):
-        return (numpy.ndarray,)
+    name = '@numpy'
+    xp = numpy
+    supported_array_types = (numpy.ndarray,)
+
+    __hash__ = _backend.Device.__hash__
 
     @staticmethod
     def from_array(array):
@@ -33,11 +33,8 @@ class CpuDevice(_backend.Device):
     def send_array(self, array):
         return _array_to_cpu(array)
 
-
-def _get_device(device_spec):
-    if device_spec is numpy:
-        return CpuDevice()
-    return None
+    def is_array_supported(self, array):
+        return isinstance(array, numpy.ndarray)
 
 
 def _to_cpu(array):

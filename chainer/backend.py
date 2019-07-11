@@ -1,4 +1,5 @@
 import numpy
+import six
 
 import chainer
 from chainer.backends import _chainerx
@@ -10,8 +11,8 @@ import chainerx
 # Aliases
 from chainer._backend import Device
 from chainer.backends._chainerx import ChainerxDevice
-from chainer.backends._chainerx import from_chainerx  # NOQA
-from chainer.backends._chainerx import to_chainerx  # NOQA
+from chainer.backends._chainerx import from_chx  # NOQA
+from chainer.backends._chainerx import to_chx  # NOQA
 from chainer.backends._cpu import CpuDevice
 from chainer.backends.cuda import GpuDevice
 from chainer.backends.intel64 import Intel64Device
@@ -29,8 +30,9 @@ def _contains_nan(x):
 
     """
     if x.dtype.kind in ('f', 'c'):
-        with cuda.get_device_from_array(x):
-            return get_array_module(x).isnan(x).any()
+        device = get_device_from_array(x)
+        with chainer.using_device(device):
+            return device.xp.isnan(x).any()
     else:
         return False
 
@@ -48,7 +50,9 @@ def copyto(dst, src):
             Source array.
 
     """
-    if isinstance(dst, numpy.ndarray):
+    if isinstance(dst, chainerx.ndarray):
+        dst[...] = _chainerx._array_to_chainerx(src, dst.device)
+    elif isinstance(dst, numpy.ndarray):
         numpy.copyto(dst, _cpu._to_cpu(src))
     elif isinstance(dst, intel64.mdarray):
         intel64.ideep.basic_copyto(
@@ -70,69 +74,113 @@ def copyto(dst, src):
             type(dst)))
 
 
+def _guess_device_from_array_module(xp):
+    """Returns a plausible device from array module
+
+    .. warning::
+
+        There can be multiple devices for a module
+
+    """
+    if xp is cuda.cupy:
+        return cuda.GpuDevice(cuda.Device())
+    elif xp is chainerx:
+        return _chainerx.ChainerxDevice(chainerx.get_default_device())
+    else:
+        # Cannot detect intel64, because xp of intel64 is numpy.
+        return _cpu.CpuDevice()
+
+
 def get_device(device_spec):
     # type: (types.DeviceSpec) -> Device
     """Returns a device object.
 
     Args:
-        device_spec (object): Device specifier. If a :class:`chainer.Device`
-            instance is given, it is returned intact. Otherwise the following
-            values are supported:
+        device_spec (object): Device specifier.
+            If a :class:`chainer.backend.Device` instance is given, it is
+            returned intact. Otherwise the following values are supported:
 
             * ChainerX devices
 
               * A string representing a device.
                 (ex. ``'native:0'``, ``'native'``)
-              * A tuple of ChainerX backend name and device index.
-                (ex. ``('native', 0)``)
               * A :class:`chainerx.Device` object.
 
             * CuPy
 
-              * A tuple of :mod:`cupy` module object and device ID.
-                (ex. ``(cupy, 0)``)
-              * A :class:`chainer.backends.cuda.Device` object.
+              * A string starts with ``'@cupy:'``.
+                (ex. ``'@cupy:0'``)
+              * A :class:`cupy.cuda.Device` object.
 
             * NumPy
 
-              * :mod:`numpy` module object. (``numpy``)
+              * The string ``'@numpy'``.
 
             * NumPy with Intel Architecture
 
-              * :mod:`chainer.backends.intel64` module object.
-                (``chainer.backends.intel64``)
+              * The string ``'@intel64'``.
     """
-    if device_spec is None:
-        raise ValueError('Invalid dtype specifier: {}'.format(device_spec))
-
     if isinstance(device_spec, Device):
         return device_spec
 
-    get_device_funcs = (
-        _chainerx._get_device,
-        _cpu._get_device,
-        cuda._get_device,
-        intel64._get_device,
-    )
-
-    for get_device_func in get_device_funcs:
-        device = get_device_func(device_spec)
-        if device is not None:
-            return device
-
-    raise ValueError('Invalid device specifier: {}'.format(device_spec))
-
-
-def _get_device_compat(device_spec):
-    # Backward-compatibility version of get_device.
-    # It supports CUDA device index as an integer (numpy if negative)
-    # Returns chainer.Device.
     if isinstance(device_spec, cuda._integer_types):
-        if device_spec < 0:
-            return CpuDevice()
+        return _get_device_cupy_or_numpy(device_spec)
+
+    if chainerx.is_available() and isinstance(device_spec, chainerx.Device):
+        return _chainerx.ChainerxDevice(device_spec)
+
+    if cuda.available and isinstance(device_spec, cuda.Device):
+        return cuda.GpuDevice(device_spec)
+
+    if isinstance(device_spec, six.string_types):
+        # '-1', '0', '1', ...
+        try:
+            int_device_spec = int(device_spec)
+        except ValueError:
+            pass
         else:
-            return GpuDevice.from_device_id(device_spec)
-    return get_device(device_spec)
+            return _get_device_cupy_or_numpy(int_device_spec)
+
+        if device_spec.startswith('@'):
+            # '@module:...'
+            mod_name, colon, precise_spec = device_spec[1:].partition(':')
+            if mod_name == 'numpy':
+                if not colon:
+                    return _cpu.CpuDevice()
+            elif mod_name == 'cupy':
+                if colon:
+                    return cuda.GpuDevice.from_device_id(int(precise_spec))
+            elif mod_name == 'intel64':
+                if not colon:
+                    return intel64.Intel64Device()
+            raise ValueError(
+                'Device specifiers starting with \'@\' must be followed by'
+                ' a module name and depending on the module, module specific'
+                ' precise device specifiers. Actual: {}'.format(device_spec))
+        else:
+            # String device specifier without '@' prefix is assumed to be a
+            # ChainerX device.
+            if not chainerx.is_available():
+                raise RuntimeError(
+                    'Tried to parse ChainerX device specifier \'{}\', '
+                    'but ChainerX is not available. '
+                    'Note that device specifiers without \'@\' prefix are '
+                    'assumed to be ChainerX device '
+                    'specifiers.'.format(device_spec))
+            return _chainerx.ChainerxDevice(chainerx.get_device(device_spec))
+
+    raise TypeError(
+        'Device specifier must be a backend.Device, cuda.Device,'
+        ' chainerx.Device, integer or a string. Actual: {}'.format(
+            type(device_spec)))
+
+
+def _get_device_cupy_or_numpy(device_spec):
+    # legacy spec of (gpu) device
+    if device_spec >= 0:
+        return cuda.GpuDevice.from_device_id(device_spec)
+    else:
+        return _cpu.CpuDevice()
 
 
 def using_device(device_spec):
@@ -141,6 +189,17 @@ def using_device(device_spec):
     Args:
         device_spec (object): Device specifier. See :func:`chainer.get_device`
             for details.
+
+    .. admonition:: Example
+
+        .. testcode::
+           :skipif: doctest_helper.skipif_not_enough_cuda_devices(2)
+
+           with chainer.using_device('@cupy:1'):
+               a = cupy.empty((3, 2))
+
+           assert a.device.id == 1
+
     """
 
     # TODO(niboshi): Set default device (once this concept is introduced in
@@ -150,18 +209,17 @@ def using_device(device_spec):
 
 
 def get_array_module(*args):
-    """Gets an appropriate one from :mod:`numpy`, :mod:`cupy`, or
-    :mod:`chainerx`.
+    """Gets an appropriate NumPy-compatible module to process arguments
 
     This function will return their data arrays' array module for
     :class:`~chainer.Variable` arguments.
 
     Args:
         args: Values to determine whether NumPy, CuPy, or ChainerX should be
-        used.
+            used.
 
     Returns:
-        module: :mod:`cupy`, :mod:`numpy`, or :mod:`chainerx` is returned based
+        module: :mod:`numpy`, :mod:`cupy`, or :mod:`chainerx` is returned based
         on the types of the arguments.
 
     """
@@ -201,7 +259,7 @@ def get_device_from_array(*arrays):
             is returned.
 
     Returns:
-        chainer.Device: Device instance.
+        chainer.backend.Device: Device instance.
     """
     for array in arrays:
         device = GpuDevice.from_array(array)

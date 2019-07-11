@@ -36,10 +36,6 @@ def _check_dtype_and_strides(x, y, dtype_check, strides_check):
 
 
 def _preprocess_input(a):
-    # Convert chainerx.Scalar to Python scalar
-    if isinstance(a, chainerx.Scalar):
-        a = a.tolist()
-
     # Convert to something NumPy can handle and return
     return _as_numpy(a)
 

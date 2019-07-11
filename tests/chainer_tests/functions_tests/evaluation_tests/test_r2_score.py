@@ -4,13 +4,14 @@ import numpy
 
 import chainer
 from chainer.backends import cuda
+from chainer import functions
 from chainer import testing
 from chainer.testing import attr
-from chainer.testing import condition
+from chainer.utils import force_array
 from chainer.utils import type_check
 
 
-def r2_score(pred, true, sample_weight=None, multioutput="uniform_average"):
+def r2_score(pred, true, sample_weight=None, multioutput='uniform_average'):
     SS_res = numpy.asarray(
         numpy.sum((pred - true) ** 2, axis=0))
     SS_tot = numpy.asarray(
@@ -39,53 +40,60 @@ def r2_score(pred, true, sample_weight=None, multioutput="uniform_average"):
          {'x_shape': (10, 5), 't_shape': (10, 5)},
          {'x_shape': (10, 5, 4), 't_shape': (10, 5, 4)}],
         [{'t_input': 'random'}, {'t_input': 'zero'}],
-        [{'multioutput': "uniform_average"},
-         {'multioutput': "raw_values"}],
+        [{'multioutput': 'uniform_average'},
+         {'multioutput': 'raw_values'}],
         [{'sample_weight': None}],
         [{'dtype': numpy.float16},
          {'dtype': numpy.float32},
          {'dtype': numpy.float64}]
     )
 )
-class TestAccuracy(unittest.TestCase):
+@testing.fix_random()
+@testing.inject_backend_tests(
+    None,
+    # CPU tests
+    [
+        {},
+    ]
+    # GPU tests
+    + testing.product({
+        'use_cuda': [True],
+        'cuda_device': [0, 1],
+    })
+    # ChainerX tests
+    + testing.product({
+        'use_chainerx': [True],
+        'chainerx_device': ['native:0', 'cuda:0', 'cuda:1'],
+    })
+)
+class TestAccuracy(testing.FunctionTestCase):
 
     def setUp(self):
-        self.x = numpy.random.uniform(-1, 1, self.x_shape).astype(self.dtype)
+        self.skip_backward_test = True
+        self.skip_double_backward_test = True
 
-        if self.t_input == 'random':
-            self.t = numpy.random.uniform(-1, 1, self.t_shape)\
-                .astype(self.dtype)
-        else:
-            self.t = numpy.zeros(self.t_shape).astype(self.dtype)
-
-        self.check_forward_options = {}
         if self.dtype == numpy.float16:
-            self.check_forward_options = {'atol': 1e-2, 'rtol': 1e-2}
+            self.check_forward_options.update({'atol': 1e-2, 'rtol': 1e-2})
 
-    def check_forward(self, x_data, t_data):
-        x = chainer.Variable(x_data)
-        t = chainer.Variable(t_data)
-        y = chainer.functions.r2_score(x, t, self.sample_weight,
-                                       self.multioutput)
-        self.assertEqual(y.data.dtype, self.dtype)
-        if self.multioutput == 'uniform_average':
-            self.assertEqual((), y.data.shape)
-        elif self.multioutput == 'raw_values':
-            self.assertEqual(x_data.shape[1:], y.data.shape)
+    def generate_inputs(self):
+        x = numpy.random.uniform(-1, 1, self.x_shape).astype(self.dtype)
+        if self.t_input == 'random':
+            t = numpy.random.uniform(-1, 1, self.t_shape).astype(self.dtype)
+        else:
+            t = numpy.zeros(self.t_shape).astype(self.dtype)
+        return x, t
 
-        expected = r2_score(self.x, self.t, sample_weight=None,
+    def forward(self, inputs, device):
+        x, t = inputs
+        y = functions.r2_score(x, t, self.sample_weight, self.multioutput)
+        return y,
+
+    def forward_expected(self, inputs):
+        x, t = inputs
+        expected = r2_score(x, t, sample_weight=self.sample_weight,
                             multioutput=self.multioutput)
-        testing.assert_allclose(
-            expected, y.data, **self.check_forward_options)
-
-    @condition.retry(3)
-    def test_forward_cpu(self):
-        self.check_forward(self.x, self.t)
-
-    @attr.gpu
-    @condition.retry(3)
-    def test_forward_gpu(self):
-        self.check_forward(cuda.to_gpu(self.x), cuda.to_gpu(self.t))
+        expected = force_array(expected, self.dtype)
+        return expected,
 
 
 @testing.parameterize(

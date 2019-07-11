@@ -11,8 +11,9 @@
 [**Website**](https://chainer.org/)
 | [**Docs**](https://docs.chainer.org/en/stable/)
 | [**Install Guide**](https://docs.chainer.org/en/stable/install.html)
-| [**Tutorial**](https://docs.chainer.org/en/stable/guides/)
+| **Tutorials** ([ja](https://tutorials.chainer.org/ja/))
 | **Examples** ([Official](https://github.com/chainer/chainer/tree/master/examples), [External](https://github.com/chainer-community/awesome-chainer))
+| [**Concepts**](https://docs.chainer.org/en/stable/guides/)
 | [**ChainerX**](#chainerx)
 
 **Forum** ([en](https://groups.google.com/forum/#!forum/chainer), [ja](https://groups.google.com/forum/#!forum/chainer-jp))
@@ -22,7 +23,7 @@
 *Chainer* is a Python-based deep learning framework aiming at flexibility.
 It provides automatic differentiation APIs based on the **define-by-run** approach (a.k.a. dynamic computational graphs) as well as object-oriented high-level APIs to build and train neural networks.
 It also supports CUDA/cuDNN using [CuPy](https://github.com/cupy/cupy) for high performance training and inference.
-For more details of Chainer, see the documents and resources listed above and join the community in Forum, Slack, and Twitter.
+For more details about Chainer, see the documents and resources listed above and join the community in Forum, Slack, and Twitter.
 
 ## Stable version
 
@@ -42,7 +43,7 @@ To enable CUDA support, [set up CUDA](https://docs.nvidia.com/cuda/index.html#in
 $ pip install cupy
 ```
 
-[See the installation guide for more details.](https://docs.chainer.org/en/stable/install.html).
+[See the installation guide for more details](https://docs.chainer.org/en/stable/install.html).
 
 
 ## Docker image
@@ -64,7 +65,7 @@ If you want to file an issue or send a pull request, [please follow the contribu
 
 ## ChainerX
 
-See this [separate user guide](chainerx.md) for how to build and run Chainer with ChainerX.
+See the [ChainerX documentation](https://docs.chainer.org/en/stable/chainerx/index.html).
 
 
 ## License
@@ -75,7 +76,6 @@ MIT License (see `LICENSE` file).
 ## More information
 
 - [Release notes](https://github.com/chainer/chainer/releases)
-- [Research projects using Chainer](https://github.com/chainer/chainer/wiki/Research-projects-using-Chainer)
 
 
 ## Reference

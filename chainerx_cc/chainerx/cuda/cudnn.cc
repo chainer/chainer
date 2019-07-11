@@ -1,14 +1,14 @@
 #include "chainerx/cuda/cudnn.h"
 
+#include <absl/types/optional.h>
 #include <cudnn.h>
-#include <nonstd/optional.hpp>
 
 #include "chainerx/array.h"
 #include "chainerx/cuda/cuda_runtime.h"
+#include "chainerx/dims.h"
 #include "chainerx/dtype.h"
 #include "chainerx/error.h"
 #include "chainerx/macro.h"
-#include "chainerx/stack_vector.h"
 
 namespace chainerx {
 namespace cuda {
@@ -31,6 +31,10 @@ cudnnDataType_t GetCudnnDataType(Dtype dtype) {
             return CUDNN_DATA_FLOAT;
         case Dtype::kFloat64:
             return CUDNN_DATA_DOUBLE;
+        case Dtype::kInt8:
+            return CUDNN_DATA_INT8;
+        case Dtype::kInt32:
+            return CUDNN_DATA_INT32;
         default:
             throw DtypeError{"Dtype ", dtype, " is not supported in cuDNN"};
     }
@@ -57,13 +61,11 @@ StackVector<int, kMaxNdim> GetIntStackVector(const T& container, const char* src
 
 StackVector<int, kMaxNdim> GetIntShape(const Shape& shape) { return GetIntStackVector(shape, "shape size"); }
 
-StackVector<int, kMaxNdim> GetIntKernelSize(const StackVector<int64_t, kMaxNdim>& kernel_size) {
-    return GetIntStackVector(kernel_size, "kernel size");
-}
+StackVector<int, kMaxNdim> GetIntKernelSize(const Dims& kernel_size) { return GetIntStackVector(kernel_size, "kernel size"); }
 
-StackVector<int, kMaxNdim> GetIntStride(const StackVector<int64_t, kMaxNdim>& stride) { return GetIntStackVector(stride, "stride"); }
+StackVector<int, kMaxNdim> GetIntStride(const Dims& stride) { return GetIntStackVector(stride, "stride"); }
 
-StackVector<int, kMaxNdim> GetIntPad(const StackVector<int64_t, kMaxNdim>& pad) { return GetIntStackVector(pad, "pad"); }
+StackVector<int, kMaxNdim> GetIntPad(const Dims& pad) { return GetIntStackVector(pad, "pad"); }
 
 StackVector<int, kMaxNdim> GetIntDilation(const StackVector<int64_t, kMaxNdim>& dilation) {
     return GetIntStackVector(dilation, "dilation");
@@ -88,7 +90,7 @@ CudnnTensorDescriptor::CudnnTensorDescriptor() { CheckCudnnError(cudnnCreateTens
 
 CudnnTensorDescriptor::~CudnnTensorDescriptor() {
     if (desc_ != nullptr) {
-        CheckCudnnError(cudnnDestroyTensorDescriptor(desc_));
+        cudnnDestroyTensorDescriptor(desc_);
     }
 }
 
@@ -106,11 +108,29 @@ CudnnTensorDescriptor::CudnnTensorDescriptor(const Array& arr) : CudnnTensorDesc
     }
 }
 
+Dtype CudnnTensorDescriptor::GetDtype() const {
+    cudnnDataType_t cudnn_dtype{};
+    int ndim{};
+
+    CheckCudnnError(cudnnGetTensorNdDescriptor(desc_, 0, &cudnn_dtype, &ndim, nullptr, nullptr));
+
+    switch (cudnn_dtype) {
+        case CUDNN_DATA_HALF:
+            return Dtype::kFloat16;
+        case CUDNN_DATA_FLOAT:
+            return Dtype::kFloat32;
+        case CUDNN_DATA_DOUBLE:
+            return Dtype::kFloat64;
+        default:
+            throw DtypeError{"Unsupported cudnn data type: ", cudnn_dtype};
+    }
+}
+
 CudnnFilterDescriptor::CudnnFilterDescriptor() { CheckCudnnError(cudnnCreateFilterDescriptor(&desc_)); }
 
 CudnnFilterDescriptor::~CudnnFilterDescriptor() {
     if (desc_ != nullptr) {
-        CheckCudnnError(cudnnDestroyFilterDescriptor(desc_));
+        cudnnDestroyFilterDescriptor(desc_);
     }
 }
 
@@ -131,16 +151,12 @@ CudnnConvolutionDescriptor::CudnnConvolutionDescriptor() { CheckCudnnError(cudnn
 
 CudnnConvolutionDescriptor::~CudnnConvolutionDescriptor() {
     if (desc_ != nullptr) {
-        CheckCudnnError(cudnnDestroyConvolutionDescriptor(desc_));
+        cudnnDestroyConvolutionDescriptor(desc_);
     }
 }
 
 CudnnConvolutionDescriptor::CudnnConvolutionDescriptor(
-        Dtype dtype,
-        const StackVector<int64_t, kMaxNdim>& pad,
-        const StackVector<int64_t, kMaxNdim>& stride,
-        const nonstd::optional<StackVector<int64_t, kMaxNdim>>& dilation,
-        int groups)
+        Dtype dtype, const Dims& pad, const Dims& stride, const absl::optional<Dims>& dilation, int groups)
     : CudnnConvolutionDescriptor{} {
     size_t ndim = pad.size();
     CHAINERX_ASSERT(ndim == stride.size());
@@ -184,16 +200,12 @@ CudnnPoolingDescriptor::CudnnPoolingDescriptor() { CheckCudnnError(cudnnCreatePo
 
 CudnnPoolingDescriptor::~CudnnPoolingDescriptor() {
     if (desc_ != nullptr) {
-        CheckCudnnError(cudnnDestroyPoolingDescriptor(desc_));
+        cudnnDestroyPoolingDescriptor(desc_);
     }
 }
 
 CudnnPoolingDescriptor::CudnnPoolingDescriptor(
-        cudnnPoolingMode_t mode,
-        cudnnNanPropagation_t max_pooling_nan_opt,
-        const StackVector<int64_t, kMaxNdim>& kernel_size,
-        const StackVector<int64_t, kMaxNdim>& pad,
-        const StackVector<int64_t, kMaxNdim>& stride)
+        cudnnPoolingMode_t mode, cudnnNanPropagation_t max_pooling_nan_opt, const Dims& kernel_size, const Dims& pad, const Dims& stride)
     : CudnnPoolingDescriptor{} {
     size_t ndim = kernel_size.size();
     CHAINERX_ASSERT(ndim == pad.size());
@@ -222,6 +234,7 @@ CudnnPoolingDescriptor::CudnnPoolingDescriptor(
 
 CudnnHandle::~CudnnHandle() {
     if (handle_ != nullptr) {
+        // TODO(hvy): Reset device upon return similar to CublasHandle?
         cudaSetDevice(device_index_);
         cudnnDestroy(handle_);
     }
@@ -229,6 +242,7 @@ CudnnHandle::~CudnnHandle() {
 
 cudnnHandle_t CudnnHandle::handle() {
     if (handle_ == nullptr) {
+        // TODO(hvy): Use CudaSetDeviceScope similar to CublasHandle?
         CheckCudaError(cudaSetDevice(device_index_));
         CheckCudnnError(cudnnCreate(&handle_));
     }

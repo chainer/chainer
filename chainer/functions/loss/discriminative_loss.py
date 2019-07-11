@@ -1,4 +1,4 @@
-from chainer.backends import cuda
+from chainer import backend
 from chainer.functions.activation.relu import relu
 from chainer.functions.array.broadcast import broadcast_to
 from chainer.functions.math.basic_math import absolute
@@ -45,7 +45,7 @@ class DiscriminativeMarginBasedClusteringLoss(object):
         self.max_embedding_dim = max_embedding_dim
 
         if self.max_embedding_dim <= 0:
-            raise ValueError("Max number of embeddings has to be positive!")
+            raise ValueError('Max number of embeddings has to be positive!')
 
         # L1 or L2 norm is allowed only
         if norm == 1:
@@ -53,9 +53,9 @@ class DiscriminativeMarginBasedClusteringLoss(object):
         elif norm == 2:
             self.norm = lambda x, axis=None: sqrt(c_sum(x ** 2, axis=axis))
         else:
-            raise ValueError("For discriminative loss, "
-                             "norm can only be 1 or 2. "
-                             "Obtained the value : {}".format(norm))
+            raise ValueError('For discriminative loss, '
+                             'norm can only be 1 or 2. '
+                             'Obtained the value : {}'.format(norm))
 
     def __call__(self, embeddings, labels):
         """
@@ -81,7 +81,7 @@ class DiscriminativeMarginBasedClusteringLoss(object):
 
         l_dist = 0.0
         count = 0
-        xp = cuda.get_array_module(embeddings)
+        xp = backend.get_array_module(embeddings)
 
         emb = embeddings[None, :]
         emb = broadcast_to(emb, (emb.shape[1],

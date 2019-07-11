@@ -36,49 +36,50 @@ BackwardBuilder::Target::Target(BackwardBuilder& builder, std::vector<size_t> in
         return &gsl::at(builder_.inputs_, input_index).get().device() == &(builder_.inputs_.front().get().device());
     }));
 
-    KeepGraphsAndArrayNodesThatRequireDefinition();
+    graph_to_input_array_nodes_ = CreateInputArrayNodesMap();
 }
 
-void BackwardBuilder::Target::KeepGraphsAndArrayNodesThatRequireDefinition() {
-    CHAINERX_ASSERT(graph_to_input_array_nodes_.empty());
+std::unordered_map<BackpropId, BackwardBuilder::Target::InputArrayNodes> BackwardBuilder::Target::CreateInputArrayNodesMap() const {
+    std::unordered_map<BackpropId, InputArrayNodes> graph_to_input_array_nodes{};
 
-    if (!builder_.has_any_applicable_outputs_) {
-        // There's no output array that can have a gradient.
-        return;
-    }
+    if (builder_.has_any_applicable_outputs_) {
+        // At least one output arrays can have gradients.
 
-    for (size_t input_index : input_indices_) {
-        // Need to access the input array via the builder.
-        const Array& input = gsl::at(builder_.inputs_, input_index);
+        for (size_t input_index : input_indices_) {
+            // Need to access the input array via the builder.
+            const Array& input = gsl::at(builder_.inputs_, input_index);
 
-        for (std::shared_ptr<ArrayNode>& input_array_node : internal::GetArrayBody(input)->nodes()) {
-            const BackpropId& backprop_id = input_array_node->backprop_id();
-            if (!IsBackpropRequired(backprop_id)) {
-                continue;
+            for (std::shared_ptr<ArrayNode>& input_array_node : internal::GetArrayBody(input)->nodes()) {
+                const BackpropId& backprop_id = input_array_node->backprop_id();
+                if (!IsBackpropRequired(backprop_id)) {
+                    continue;
+                }
+
+                // Add the array node to the mapping
+                auto insert_result = graph_to_input_array_nodes.emplace(backprop_id, InputArrayNodes{});
+                auto& input_array_nodes = insert_result.first->second;
+                if (insert_result.second) {
+                    // New array node for a graph. Fill all array nodes with nullptr.
+                    input_array_nodes.resize(builder_.inputs_.size());
+                }
+                // Assign valid pointer to the array node.
+                input_array_nodes[input_index] = &input_array_node;
             }
+        }
 
-            // Add the array node to the mapping
-            auto insert_result = graph_to_input_array_nodes_.emplace(backprop_id, InputArrayNodes{});
-            auto& input_array_nodes = insert_result.first->second;
-            if (insert_result.second) {
-                // New array node for a graph. Fill all array nodes with nullptr.
-                input_array_nodes.resize(builder_.inputs_.size());
+        if (CHAINERX_DEBUG) {
+            for (auto& pair : graph_to_input_array_nodes) {
+                const BackpropId& backprop_id = pair.first;
+                (void)backprop_id;  // maybe unused
+                const InputArrayNodes& input_array_nodes = pair.second;
+                for (const std::shared_ptr<ArrayNode>* array_node : input_array_nodes) {
+                    CHAINERX_ASSERT(array_node == nullptr || backprop_id == (*array_node)->backprop_id());
+                }
             }
-            // Assign valid pointer to the array node.
-            input_array_nodes[input_index] = &input_array_node;
         }
     }
 
-    if (CHAINERX_DEBUG) {
-        for (auto& pair : graph_to_input_array_nodes_) {
-            const BackpropId& backprop_id = pair.first;
-            (void)backprop_id;  // maybe unused
-            const InputArrayNodes& input_array_nodes = pair.second;
-            for (const std::shared_ptr<ArrayNode>* array_node : input_array_nodes) {
-                CHAINERX_ASSERT(array_node == nullptr || backprop_id == (*array_node)->backprop_id());
-            }
-        }
-    }
+    return graph_to_input_array_nodes;
 }
 
 void BackwardBuilder::Target::Define(const BackwardFunction& backward_func) {
@@ -200,7 +201,7 @@ void AddEdgesFromOpNodeToOutputArrayNodesOfOuterGraph(
     // Therefore, first convert the weak_ptr to shared_ptr, assuming that they have not expired.
     for (size_t i = 0; i < output_retention_record.size(); ++i) {
         if (output_retention_record.IsRecorded(i)) {
-            const nonstd::optional<std::weak_ptr<ArrayNode>>& array_node = outer_op_node.output_array_nodes()[i];
+            const absl::optional<std::weak_ptr<ArrayNode>>& array_node = outer_op_node.output_array_nodes()[i];
             CHAINERX_ASSERT(array_node.has_value());
             CHAINERX_ASSERT(!array_node->expired());
             output_array_nodes.emplace_back(array_node->lock());

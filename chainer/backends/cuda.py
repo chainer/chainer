@@ -147,7 +147,7 @@ def check_cuda_available():
         check_cuda_available._already_warned = True
 
 
-class DummyDeviceType(Device):
+class DummyDeviceType(object):
 
     """Dummy device class that does nothing with cupy.cuda.Device interface.
 
@@ -202,6 +202,13 @@ _integer_types = six.integer_types + (numpy.integer,)
 # ------------------------------------------------------------------------------
 class GpuDevice(_backend.Device):
 
+    """Device for GPU (CuPy) backend"""
+
+    xp = cupy
+    supported_array_types = (ndarray,)
+
+    __hash__ = _backend.Device.__hash__
+
     def __init__(self, device):
         check_cuda_available()
         assert isinstance(device, Device)
@@ -211,6 +218,9 @@ class GpuDevice(_backend.Device):
 
     @staticmethod
     def from_device_id(device_id):
+        """Returns a :class:`~chainer.backend.GpuDevice` corresponding \
+to the CUDA device ID.
+        """
         check_cuda_available()
 
         if not (isinstance(device_id, _integer_types) and device_id >= 0):
@@ -224,20 +234,16 @@ class GpuDevice(_backend.Device):
             return GpuDevice(array.device)
         return None
 
+    @property
+    def name(self):
+        return '@cupy:{}'.format(self.device.id)
+
     def __eq__(self, other):
         return isinstance(other, GpuDevice) and other.device == self.device
 
     def __repr__(self):
         return '<{} (cupy):{}>'.format(
             self.__class__.__name__, self.device.id)
-
-    @property
-    def xp(self):
-        return cupy
-
-    @property
-    def supported_array_types(self):
-        return (ndarray,)
 
     def create_context(self):
         # Creates a new cuda.Device instance because a single cuda.Device
@@ -250,19 +256,8 @@ class GpuDevice(_backend.Device):
     def use(self):
         self.device.use()
 
-
-def _get_device(device_spec):
-    if not available:
-        return None
-
-    if isinstance(device_spec, Device):
-        return GpuDevice(device_spec)
-    if (isinstance(device_spec, tuple) and len(device_spec) == 2
-            and device_spec[0] is cupy
-            and isinstance(device_spec[1], _integer_types)):
-        return GpuDevice.from_device_id(device_spec[1])
-
-    return None
+    def is_array_supported(self, array):
+        return isinstance(array, ndarray) and self.device == array.device
 
 
 # ------------------------------------------------------------------------------
@@ -290,7 +285,7 @@ def get_device_from_array(*arrays):
     .. deprecated:: v6.0.0
 
         This API is deprecated. Please use
-        :func:`~chainer.backend.get_device_from_array` instead.
+        :func:`chainer.backend.get_device_from_array` instead.
 
     The device on which the given CuPy array reside is returned.
 
@@ -431,17 +426,7 @@ def _array_to_gpu(array, device, stream):
         # the array interface.
         if array.device.backend.name == 'cuda':
             # Convert to cupy.ndarray on the same device as source array
-            array = cupy.ndarray(
-                array.shape,
-                array.dtype,
-                cupy.cuda.MemoryPointer(
-                    cupy.cuda.UnownedMemory(
-                        array.data_ptr + array.offset,
-                        array.data_size,
-                        array,
-                        array.device.index),
-                    0),
-                strides=array.strides)
+            array = chainerx._to_cupy(array)
         else:
             array = chainerx.to_numpy(array)
     elif isinstance(array, (numpy.number, numpy.bool_)):
@@ -460,30 +445,13 @@ def _array_to_gpu(array, device, stream):
             'The array sent to gpu must be an array or a NumPy scalar.'
             '\nActual type: {0}.'.format(type(array)))
 
-    if stream is not None and stream.ptr != 0:
-        ret = cupy.empty_like(array)
-        if is_numpy:
-            # cpu to gpu
-            mem = cupy.cuda.alloc_pinned_memory(array.nbytes)
-            src = numpy.frombuffer(
-                mem, array.dtype, array.size).reshape(array.shape)
-            src[...] = array
-            ret.set(src, stream)
-            cupy.cuda.pinned_memory._add_to_watch_list(
-                stream.record(), mem)
-        else:
-            # gpu to gpu
-            with array.device:
-                src = array.copy()
-                event = Stream.null.record()
-            stream.wait_event(event)
-            ret.data.copy_from_device_async(
-                src.data, src.nbytes, stream)
-
-            # to hold a reference until the end of the asynchronous
-            # memcpy
-            stream.add_callback(lambda *x: None, (src, ret))
-        return ret
+    if stream is not None:
+        with device:
+            with stream:
+                if is_numpy:
+                    return cupy.asarray(array)
+                # Need to make a copy when an array is copied to another device
+                return cupy.array(array, copy=True)
 
     with device:
         if is_numpy:
@@ -551,7 +519,7 @@ def copy(array, out=None, out_device=None, stream=None):
     if out is None:
         if out_device is None:
             out_device = array
-        with _get_device(out_device):
+        with chainer.get_device(out_device):
             out = cupy.empty_like(array)
 
     with get_device_from_array(array):

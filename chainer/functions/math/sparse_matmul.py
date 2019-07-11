@@ -24,9 +24,9 @@ def _coo_matmul(sp_data, sp_row, sp_col, sp_shape, sp_order,
         A_row = sp_col
         A_col = sp_row
         A_shape = (sp_shape[1], sp_shape[0])
-        if sp_order is 'C':
+        if sp_order == 'C':
             A_order = 'F'
-        elif sp_order is 'F':
+        elif sp_order == 'F':
             A_order = 'C'
         else:
             A_order = sp_order
@@ -57,9 +57,9 @@ def _coo_matmul_cpu(A_data, A_row, A_col, A_shape, B, dtype):
     # B.shape: ((nb,) _k, _n)
     # A_data/row/col.shape: ((nb,) ldnz)
     if not _scipy_available:
-        msg = "SciPy seems to be unavailable on your system. A CPU" \
-              " implementation of sparse_matmul uses SciPy, so you" \
-              " cannot use sparse_matmul on the CPU."
+        msg = 'SciPy seems to be unavailable on your system. A CPU' \
+              ' implementation of sparse_matmul uses SciPy, so you' \
+              ' cannot use sparse_matmul on the CPU.'
         raise RuntimeError(msg)
 
     _m, _k = A_shape
@@ -99,7 +99,7 @@ def _coo_matmul_gpu(A_data, A_row, A_col, A_shape, A_order, B, dtype):
         nb = B.shape[0]
         C = cuda.cupy.zeros((nb, _m, _n), dtype=cupy_dtype)
 
-    if A_order is 'C':
+    if A_order == 'C':
         # A chunk is the number of non-zero elements handled by a single GPU
         # thread. If contiguous non-zero elemets are related to the same
         # location of the output matrix and they are processed in the same
@@ -116,6 +116,7 @@ def _coo_matmul_gpu(A_data, A_row, A_col, A_shape, A_order, B, dtype):
 
 
 def _cupy_coo_matmul():
+    utils.nondeterministic('atomicAdd')
     return cuda.elementwise(
         'int32 nb, int32 _m, int32 _n, int32 _k, int32 nnz, int32 chunk, \
          raw A A_data, raw T A_row, raw T A_col, \

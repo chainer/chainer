@@ -179,8 +179,13 @@ def swish(x, beta):
     Returns:
         ~chainer.Variable: Output variable of the same shape as ``x``.
 
+    .. warning::
+        :math:`\\beta` is a trainable parameter in the original paper
+        (https://arxiv.org/abs/1710.05941). To train :math:`\\beta`, use
+        :class:`chainer.links.Swish` instead.
+
     .. seealso::
-        :class:`chainer.links.Swish`
+        :class:`chainer.links.Swish` to manage the model parameter ``beta``.
 
     """
     y, = Swish().apply((x, beta))

@@ -39,19 +39,23 @@ class Convolution2DFunction(function_node.FunctionNode):
     def __init__(self, stride=1, pad=0, cover_all=False, **kwargs):
         dilate, groups = argument.parse_kwargs(
             kwargs, ('dilate', 1), ('groups', 1),
-            deterministic="deterministic argument is not supported anymore. "
-            "Use chainer.using_config('cudnn_deterministic', value) context "
-            "where value is either `True` or `False`.",
-            requires_x_grad="requires_x_grad argument is not supported "
-            "anymore. Just remove the argument. Note that whether to compute "
-            "the gradient w.r.t. x is automatically decided during "
-            "backpropagation.")
+            deterministic='deterministic argument is not supported anymore. '
+            'Use chainer.using_config(\'cudnn_deterministic\', value) context '
+            'where value is either `True` or `False`.',
+            requires_x_grad='requires_x_grad argument is not supported '
+            'anymore. Just remove the argument. Note that whether to compute '
+            'the gradient w.r.t. x is automatically decided during '
+            'backpropagation.')
 
         self.sy, self.sx = _pair(stride)
         self.ph, self.pw = _pair(pad)
         self.cover_all = cover_all
         self.dy, self.dx = _pair(dilate)
         self.groups = groups
+
+        if self.dx < 1 or self.dy < 1:
+            raise ValueError('Dilate should be positive, but {} is '
+                             'supplied.'.format(dilate))
 
     def check_type_forward(self, in_types):
         n_in = in_types.size()
@@ -480,7 +484,7 @@ dilate=1, groups=1)
 
     If ``cover_all`` option is ``True``, the filter will cover the all
     spatial locations. So, if the last stride of filter does not cover the
-    end of spatial locations, an addtional stride will be applied to the end
+    end of spatial locations, an additional stride will be applied to the end
     part of spatial locations. In this case, the output size :math:`(h_O, w_O)`
     is determined by the following equations:
 
@@ -534,7 +538,10 @@ dilate=1, groups=1)
         ~chainer.Variable:
             Output variable of shape :math:`(n, c_O, h_O, w_O)`.
 
-    .. seealso:: :class:`~chainer.links.Convolution2D`
+    .. seealso::
+
+        :class:`~chainer.links.Convolution2D` to manage the model parameters
+        ``W`` and ``b``.
 
     .. admonition:: Example
 
@@ -569,9 +576,9 @@ cover_all=True)
     """
     dilate, groups = argument.parse_kwargs(
         kwargs, ('dilate', 1), ('groups', 1),
-        deterministic="deterministic argument is not supported anymore. "
-        "Use chainer.using_config('cudnn_deterministic', value) "
-        "context where value is either `True` or `False`.")
+        deterministic='deterministic argument is not supported anymore. '
+        'Use chainer.using_config(\'cudnn_deterministic\', value) '
+        'context where value is either `True` or `False`.')
 
     fnode = Convolution2DFunction(stride, pad, cover_all, dilate=dilate,
                                   groups=groups)

@@ -6,6 +6,7 @@
 #include <initializer_list>
 #include <iterator>
 #include <type_traits>
+#include <utility>
 
 #include "chainerx/macro.h"
 
@@ -39,6 +40,8 @@ public:
 
     StackVector() = default;
 
+    ~StackVector() = default;
+
     template <typename InputIter>
     StackVector(InputIter first, InputIter last) {
         CHAINERX_ASSERT(std::distance(first, last) <= static_cast<difference_type>(N));
@@ -56,9 +59,9 @@ public:
         return *this;
     }
 
-    StackVector(StackVector&& other) : n_{other.n_} { std::move(other.d_.begin(), other.d_.begin() + other.n_, d_.begin()); }
+    StackVector(StackVector&& other) noexcept : n_{other.n_} { std::move(other.d_.begin(), other.d_.begin() + other.n_, d_.begin()); }
 
-    StackVector& operator=(StackVector&& other) {
+    StackVector& operator=(StackVector&& other) noexcept {
         n_ = other.n_;
         std::move(other.d_.begin(), other.d_.begin() + other.n_, d_.begin());
         return *this;

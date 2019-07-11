@@ -122,18 +122,18 @@ def test_cast_scalar_invalid(device, shape):
 
 
 def test_to_device():
-    a = chainerx.ones((2,), chainerx.float32, device="native:0")
-    dst_device = chainerx.get_device("native:1")
+    a = chainerx.ones((2,), chainerx.float32, device='native:0')
+    dst_device = chainerx.get_device('native:1')
 
     b0 = a.to_device(dst_device)  # by device instance
     assert b0.device is dst_device
     chainerx.testing.assert_array_equal_ex(a, b0)
 
-    b1 = a.to_device("native:1")  # by device name
+    b1 = a.to_device('native:1')  # by device name
     assert b1.device is dst_device
     chainerx.testing.assert_array_equal_ex(a, b1)
 
-    b2 = a.to_device("native", 1)  # by backend name and index
+    b2 = a.to_device('native', 1)  # by backend name and index
     assert b2.device is dst_device
     chainerx.testing.assert_array_equal_ex(a, b2)
 
@@ -181,7 +181,7 @@ def test_view(shape, dtype):
 
     # inplace modification
     if array.size > 0:
-        array += array
+        array *= array
         assert array._debug_flat_data == view._debug_flat_data
 
 
@@ -209,12 +209,12 @@ def test_view_must_not_share_properties():
 # TODO(beam2d): use fixtures.
 @pytest.mark.parametrize(
     'src_dtype',
-    ['bool_', 'uint8', 'int8', 'int16', 'int32', 'int64', 'float32',
-     'float64'])
+    ['bool_', 'uint8', 'int8', 'int16', 'int32', 'int64', 'float16',
+     'float32', 'float64'])
 @pytest.mark.parametrize(
     'dst_dtype',
-    ['bool_', 'uint8', 'int8', 'int16', 'int32', 'int64', 'float32',
-     'float64'])
+    ['bool_', 'uint8', 'int8', 'int16', 'int32', 'int64', 'float16',
+     'float32', 'float64'])
 def test_astype(xp, shape, device, copy, src_dtype, dst_dtype):
     a = array_utils.create_dummy_ndarray(xp, shape, src_dtype)
 
@@ -356,36 +356,37 @@ def test_as_grad_stopped_view(shape, float_dtype):
 
 def test_array_repr():
     array = chainerx.array([], chainerx.bool_)
-    assert "array([], shape=(0,), dtype=bool, device='native:0')" == str(array)
+    assert ('array([], shape=(0,), dtype=bool, '
+            'device=\'native:0\')' == str(array))
 
     array = chainerx.array([False], chainerx.bool_)
-    assert ("array([False], shape=(1,), dtype=bool, "
-            "device='native:0')" == str(array))
+    assert ('array([False], shape=(1,), dtype=bool, '
+            'device=\'native:0\')' == str(array))
 
     array = chainerx.array([[0, 1, 2], [3, 4, 5]], chainerx.int8)
-    assert ("array([[0, 1, 2],\n"
-            "       [3, 4, 5]], shape=(2, 3), dtype=int8, "
-            "device='native:0')") == str(array)
+    assert ('array([[0, 1, 2],\n'
+            '       [3, 4, 5]], shape=(2, 3), dtype=int8, '
+            'device=\'native:0\')') == str(array)
 
     array = chainerx.array([[0, 1, 2], [3.25, 4, 5]], chainerx.float32)
-    assert ("array([[0.  , 1.  , 2.  ],\n"
-            "       [3.25, 4.  , 5.  ]], shape=(2, 3), dtype=float32, "
-            "device='native:0')") == str(array)
+    assert ('array([[0.  , 1.  , 2.  ],\n'
+            '       [3.25, 4.  , 5.  ]], shape=(2, 3), dtype=float32, '
+            'device=\'native:0\')') == str(array)
 
 
 def test_array_repr_default_backprop_id():
     array = chainerx.array([3.0], chainerx.float32)
     array.require_grad()
-    assert ("array([3.], shape=(1,), dtype=float32, device='native:0', "
-            "backprop_ids=['<default>'])" == str(array))
+    assert ('array([3.], shape=(1,), dtype=float32, device=\'native:0\', '
+            'backprop_ids=[\'<default>\'])' == str(array))
 
 
 def test_array_repr_expired_backprop_id():
     with chainerx.backprop_scope('bp1') as bp1:
         array = chainerx.array([3.0], chainerx.float32)
         array.require_grad(bp1)
-    assert ("array([3.], shape=(1,), dtype=float32, device='native:0', "
-            "backprop_ids=['<expired>'])" == str(array))
+    assert ('array([3.], shape=(1,), dtype=float32, device=\'native:0\', '
+            'backprop_ids=[\'<expired>\'])' == str(array))
 
 
 @pytest.mark.parametrize('backprop_args', [(None,), ()])
@@ -657,18 +658,6 @@ def test_fill(xp, shape, dtype, value, device):
     return a
 
 
-@chainerx.testing.numpy_chainerx_array_equal(strides_check=False)
-@pytest.mark.parametrize(
-    'value', [-1, 0, 1, 2, 2.3, float('inf'), float('nan')])
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-def test_fill_with_scalar(xp, device, shape, dtype, value):
-    a = xp.empty(shape, dtype)
-    if xp is chainerx:
-        value = chainerx.Scalar(value, dtype)
-    a.fill(value)
-    return a
-
-
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @pytest.mark.parametrize(
     'slice1', [(0, 30, 1), (30, 0, -1), (10, 40, 7), (40, 10, -7)])
@@ -729,3 +718,15 @@ def test_array_deepcopy(device):
     chainerx.testing.assert_array_equal(
         arr2,
         chainerx.array([1, 2], chainerx.float32))
+
+
+def test_is_chained():
+    arr = chainerx.array([1, 2], chainerx.float32)
+    with pytest.raises(chainerx.ChainerxError):
+        arr._is_chained()
+
+    arr.require_grad()
+    assert not arr._is_chained()
+
+    arr2 = 2 * arr
+    assert arr2._is_chained()

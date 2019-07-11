@@ -16,8 +16,8 @@ class CrossCovariance(function_node.FunctionNode):
 
         if reduce not in ('half_squared_sum', 'no'):
             raise ValueError(
-                "Only 'half_squared_sum' and 'no' are valid "
-                "for 'reduce', but '%s' is given" % reduce)
+                'Only \'half_squared_sum\' and \'no\' are valid '
+                'for \'reduce\', but \'%s\' is given' % reduce)
         self.reduce = reduce
 
     def check_type_forward(self, in_types):
@@ -104,7 +104,7 @@ def cross_covariance(y, z, reduce='half_squared_sum'):
             Otherwise, :class:`ValueError` is raised.
 
     Returns:
-        Variable:
+        ~chainer.Variable:
             A variable holding the cross covariance loss.
             If ``reduce`` is ``'no'``, the output variable holds
             2-dimensional array matrix of shape ``(M, N)`` where

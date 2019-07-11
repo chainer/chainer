@@ -21,7 +21,7 @@ def main():
     parser.add_argument('--batchsize', '-b', type=int, default=50,
                         help='Number of images in each mini-batch')
     parser.add_argument('--communicator', type=str,
-                        default='hierarchical', help='Type of communicator')
+                        default='pure_nccl', help='Type of communicator')
     parser.add_argument('--epoch', '-e', type=int, default=1000,
                         help='Number of sweeps over the dataset to train')
     parser.add_argument('--gpu', '-g', action='store_true',
@@ -48,7 +48,7 @@ def main():
 
     if args.gpu:
         if args.communicator == 'naive':
-            print("Error: 'naive' communicator does not support GPU.\n")
+            print('Error: \'naive\' communicator does not support GPU.\n')
             exit(-1)
         comm = chainermn.create_communicator(args.communicator)
         device = comm.intra_rank

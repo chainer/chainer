@@ -7,8 +7,8 @@
 #include <utility>
 #include <vector>
 
+#include <absl/types/optional.h>
 #include <gsl/gsl>
-#include <nonstd/optional.hpp>
 
 #ifdef CHAINERX_ENABLE_CUDA
 #include "chainerx/cuda/cuda_backend.h"
@@ -26,10 +26,10 @@ namespace {
 std::atomic<Context*> g_global_default_context{nullptr};
 
 std::string GetChainerxPath() {
-    if (nonstd::optional<std::string> chainerx_path = GetEnv("CHAINERX_PATH")) {
+    if (absl::optional<std::string> chainerx_path = GetEnv("CHAINERX_PATH")) {
         return *chainerx_path;
     }
-    if (nonstd::optional<std::string> home_path = GetEnv("HOME")) {
+    if (absl::optional<std::string> home_path = GetEnv("HOME")) {
         return *home_path + "/.chainerx";
     }
     throw ChainerxError{"ChainerX path is not defined. Set either CHAINERX_PATH or HOME."};
@@ -111,13 +111,7 @@ Backend& Context::GetBackend(const std::string& backend_name) {
                                                                            context_detail::BackendDeleter{destroy_backend}};
     }
 
-    {
-        // In a multi-threaded case, backends_[backend_name] may already exist at this point.
-        // In that case, the backend created above is thrown away.
-        std::lock_guard<std::mutex> lock{mutex_};
-        auto pair = backends_.emplace(backend_name, std::move(backend));
-        return *pair.first->second;
-    }
+    return RegisterBackend(backend_name, std::move(backend)).first;
 }
 
 Device& Context::GetDevice(const DeviceId& device_id) {
@@ -259,6 +253,20 @@ std::vector<BackpropId> Context::GetInnerBackpropIds(const BackpropId& backprop_
         }
     }
     return inner_backprop_ids;
+}
+
+std::pair<Backend&, bool> Context::RegisterBackend(
+        const std::string& backend_name, std::unique_ptr<Backend, context_detail::BackendDeleter> backend) {
+    // In a multi-threaded case, backends_[backend_name] may already exist at this point.
+    // In that case, the backend created in `Context::GetBackend` is thrown away.
+    std::lock_guard<std::mutex> lock{mutex_};
+    auto pair = backends_.emplace(backend_name, std::move(backend));
+    // Initialize the backend only if emplaced.
+    if (!pair.second) {
+        return {*pair.first->second, false};
+    }
+    pair.first->second->Initialize();
+    return {*pair.first->second, true};
 }
 
 template <typename ThisPtr, typename ReturnType>

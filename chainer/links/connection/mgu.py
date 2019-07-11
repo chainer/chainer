@@ -1,7 +1,6 @@
 import numpy
 
 import chainer
-from chainer.backends import cuda
 from chainer.functions.activation import sigmoid
 from chainer.functions.activation import tanh
 from chainer.functions.array import concat
@@ -37,18 +36,10 @@ class StatefulMGU(MGUBase):
         self._state_size = out_size
         self.reset_state()
 
-    def _to_device(self, device, skip_between_cupy_devices=False):
-        # Overrides Link._to_device
-        # TODO(niboshi): Avoid forcing concrete links to override _to_device
-        device = chainer.get_device(device)
-        super(StatefulMGU, self)._to_device(
-            device, skip_between_cupy_devices=skip_between_cupy_devices)
+    def device_resident_accept(self, visitor):
+        super(StatefulMGU, self).device_resident_accept(visitor)
         if self.h is not None:
-            if not (skip_between_cupy_devices
-                    and device.xp is cuda.cupy
-                    and isinstance(self.h, cuda.ndarray)):
-                self.h.to_device(device)
-        return self
+            visitor.visit_variable(self.h)
 
     def set_state(self, h):
         assert isinstance(h, chainer.Variable)

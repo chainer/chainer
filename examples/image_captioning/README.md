@@ -9,6 +9,8 @@ Given an image, this model generates a sentence that describes it.
 This example requires the following packages.
 
 - PIL
+- matplotlib
+- progressbar
 - [pycocotools](https://github.com/cocodataset/cocoapi/tree/master/PythonAPI)
 
 To install pycocotools, clone the repository and run `pip install -e .` from `cocoapi/PythonAPI` where `setup.py` is located.

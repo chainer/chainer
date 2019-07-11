@@ -13,7 +13,7 @@ Distributions
 .. autosummary::
    :toctree: generated/
    :nosignatures:
-   
+
    chainer.distributions.Bernoulli
    chainer.distributions.Beta
    chainer.distributions.Categorical
@@ -24,6 +24,7 @@ Distributions
    chainer.distributions.Gamma
    chainer.distributions.Geometric
    chainer.distributions.Gumbel
+   chainer.distributions.Independent
    chainer.distributions.Laplace
    chainer.distributions.LogNormal
    chainer.distributions.MultivariateNormal
@@ -42,7 +43,7 @@ Functionals of distribution
 .. autosummary::
   :toctree: generated/
   :nosignatures:
-  
+
   chainer.cross_entropy
   chainer.kl_divergence
   chainer.register_kl

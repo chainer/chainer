@@ -1,8 +1,9 @@
 import multiprocessing
 import os
 import shutil
-from six.moves import queue
 import threading
+
+from six.moves import queue
 
 from chainer.serializers import npz
 from chainer import utils

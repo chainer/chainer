@@ -36,7 +36,7 @@ ChainerMN example: MNIST with automatic checkpoints enabled''')
     parser.add_argument('--batchsize', '-b', type=int, default=100,
                         help='Number of images in each mini-batch')
     parser.add_argument('--communicator', type=str,
-                        default='hierarchical', help='Type of communicator')
+                        default='pure_nccl', help='Type of communicator')
     parser.add_argument('--epoch', '-e', type=int, default=20,
                         help='Number of sweeps over the dataset to train')
     parser.add_argument('--gpu', '-g', action='store_true',
@@ -53,7 +53,7 @@ ChainerMN example: MNIST with automatic checkpoints enabled''')
 
     if args.gpu:
         if args.communicator == 'naive':
-            print("Error: 'naive' communicator does not support GPU.\n")
+            print('Error: \'naive\' communicator does not support GPU.\n')
             exit(-1)
         comm = chainermn.create_communicator(args.communicator)
         device = comm.intra_rank
@@ -104,7 +104,7 @@ ChainerMN example: MNIST with automatic checkpoints enabled''')
     # Enable checkpointer and recover from checkpoint if any checkpoint exists
     checkpointer = create_multi_node_checkpointer(name=args.run_id, comm=comm)
     checkpointer.maybe_load(trainer, optimizer)
-    print("Rank", comm.rank, ": (Re)Starting from (epoch, iter) =",
+    print('Rank', comm.rank, ': (Re)Starting from (epoch, iter) =',
           (trainer.updater.epoch, trainer.updater.iteration))
     trainer.extend(checkpointer, trigger=(1000, 'iteration'))
 

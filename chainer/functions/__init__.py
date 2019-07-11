@@ -5,6 +5,7 @@ Functions are either implemented as :class:`~chainer.Function`\\ s or
 """
 
 from chainer.functions.activation.clipped_relu import clipped_relu  # NOQA
+from chainer.functions.activation.clipped_relu import relu6  # NOQA
 from chainer.functions.activation.crelu import crelu  # NOQA
 from chainer.functions.activation.elu import elu  # NOQA
 from chainer.functions.activation.hard_sigmoid import hard_sigmoid  # NOQA
@@ -112,12 +113,14 @@ from chainer.functions.loss.mean_squared_error import mean_squared_error  # NOQA
 from chainer.functions.loss.negative_sampling import negative_sampling  # NOQA
 from chainer.functions.loss.sigmoid_cross_entropy import sigmoid_cross_entropy  # NOQA
 from chainer.functions.loss.softmax_cross_entropy import softmax_cross_entropy  # NOQA
+from chainer.functions.loss.squared_error import squared_difference  # NOQA
 from chainer.functions.loss.squared_error import squared_error  # NOQA
 from chainer.functions.loss.triplet import triplet  # NOQA
 from chainer.functions.loss.vae import bernoulli_nll  # NOQA
 from chainer.functions.loss.vae import gaussian_kl_divergence  # NOQA
 from chainer.functions.loss.vae import gaussian_nll  # NOQA
 
+from chainer.functions.math.arctanh import arctanh  # NOQA
 from chainer.functions.math.average import average  # NOQA
 from chainer.functions.math.basic_math import absolute  # NOQA
 from chainer.functions.math.basic_math import add  # NOQA
@@ -174,7 +177,6 @@ from chainer.functions.math.sparse_matmul import sparse_matmul  # NOQA
 from chainer.functions.math.sqrt import rsqrt  # NOQA
 from chainer.functions.math.sqrt import sqrt  # NOQA
 from chainer.functions.math.square import square  # NOQA
-from chainer.functions.math.squared_difference import squared_difference  # NOQA
 from chainer.functions.math.sum import sum  # NOQA
 from chainer.functions.math.sum import sum_to  # NOQA
 from chainer.functions.math.tensordot import tensordot  # NOQA
@@ -196,6 +198,8 @@ from chainer.functions.normalization.batch_normalization import batch_normalizat
 from chainer.functions.normalization.batch_normalization import fixed_batch_normalization  # NOQA
 from chainer.functions.normalization.batch_renormalization import batch_renormalization  # NOQA
 from chainer.functions.normalization.batch_renormalization import fixed_batch_renormalization  # NOQA
+from chainer.functions.normalization.decorrelated_batch_normalization import decorrelated_batch_normalization  # NOQA
+from chainer.functions.normalization.decorrelated_batch_normalization import fixed_decorrelated_batch_normalization  # NOQA
 from chainer.functions.normalization.group_normalization import group_normalization  # NOQA
 from chainer.functions.normalization.l2_normalization import normalize  # NOQA
 from chainer.functions.normalization.layer_normalization import layer_normalization  # NOQA

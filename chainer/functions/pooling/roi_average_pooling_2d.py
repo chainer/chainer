@@ -34,6 +34,7 @@ import six
 from chainer.backends import cuda
 from chainer import function
 from chainer.functions.pooling.roi_pooling_2d import _roi_pooling_slice
+from chainer import utils
 from chainer.utils import collections_abc
 from chainer.utils import type_check
 
@@ -229,6 +230,7 @@ class ROIAveragePooling2D(function.Function):
         return bottom_diff, None, None
 
     def backward_gpu(self, inputs, gy):
+        utils.nondeterministic('atomicAdd')
         bottom_rois, bottom_roi_indices = inputs[1:]
         channels, height, width = self._bottom_data_shape[1:]
         bottom_diff = cuda.cupy.zeros(

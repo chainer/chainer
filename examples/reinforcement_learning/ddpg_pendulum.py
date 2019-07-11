@@ -8,6 +8,7 @@ import argparse
 import collections
 import copy
 import random
+import warnings
 
 import gym
 import numpy as np
@@ -69,7 +70,8 @@ class Policy(chainer.Chain):
 
 def get_action(policy, obs):
     """Get an action by evaluating a given policy."""
-    obs = policy.xp.asarray(obs[None], dtype=np.float32)
+    dtype = chainer.get_dtype()
+    obs = policy.xp.asarray(obs[None], dtype=dtype)
     with chainer.no_backprop_mode():
         action = policy(obs).array[0]
     return chainer.backends.cuda.to_cpu(action)
@@ -78,12 +80,13 @@ def get_action(policy, obs):
 def update(Q, target_Q, policy, target_policy, opt_Q, opt_policy,
            samples, gamma=0.99):
     """Update a Q-function and a policy."""
+    dtype = chainer.get_dtype()
     xp = Q.xp
-    obs = xp.asarray([sample[0] for sample in samples], dtype=np.float32)
-    action = xp.asarray([sample[1] for sample in samples], dtype=np.float32)
-    reward = xp.asarray([sample[2] for sample in samples], dtype=np.float32)
-    done = xp.asarray([sample[3] for sample in samples], dtype=np.float32)
-    obs_next = xp.asarray([sample[4] for sample in samples], dtype=np.float32)
+    obs = xp.asarray([sample[0] for sample in samples], dtype=dtype)
+    action = xp.asarray([sample[1] for sample in samples], dtype=dtype)
+    reward = xp.asarray([sample[2] for sample in samples], dtype=dtype)
+    done = xp.asarray([sample[3] for sample in samples], dtype=dtype)
+    obs_next = xp.asarray([sample[4] for sample in samples], dtype=dtype)
 
     def update_Q():
         # Predicted values: Q(s,a)
@@ -133,8 +136,11 @@ def main():
                         help='Number of transitions in each mini-batch')
     parser.add_argument('--episodes', '-e', type=int, default=1000,
                         help='Number of episodes to run')
-    parser.add_argument('--gpu', '-g', type=int, default=-1,
-                        help='GPU ID (negative value indicates CPU)')
+    parser.add_argument('--device', '-d', type=str, default='-1',
+                        help='Device specifier. Either ChainerX device '
+                        'specifier or an integer. If non-negative integer, '
+                        'CuPy arrays with specified device id are used. If '
+                        'negative integer, NumPy arrays are used')
     parser.add_argument('--out', '-o', default='ddpg_result',
                         help='Directory to output the result')
     parser.add_argument('--unit', '-u', type=int, default=100,
@@ -151,7 +157,18 @@ def main():
     parser.add_argument('--record', action='store_true', default=True,
                         help='Record performance')
     parser.add_argument('--no-record', action='store_false', dest='record')
+    group = parser.add_argument_group('deprecated arguments')
+    group.add_argument('--gpu', '-g', dest='device',
+                       type=int, nargs='?', const=0,
+                       help='GPU ID (negative value indicates CPU)')
     args = parser.parse_args()
+
+    if chainer.get_dtype() == np.float16:
+        warnings.warn(
+            'This example may cause NaN in FP16 mode.', RuntimeWarning)
+
+    device = chainer.get_device(args.device)
+    device.use()
 
     # Initialize an environment
     env = gym.make(args.env)
@@ -180,13 +197,11 @@ def main():
     policy = Policy(obs_size, action_size,
                     env.action_space.low, env.action_space.high,
                     n_units=args.unit)
-    if args.gpu >= 0:
-        chainer.backends.cuda.get_device_from_id(args.gpu).use()
-        Q.to_gpu(args.gpu)
-        policy.to_gpu(args.gpu)
+    Q.to_device(device)
+    policy.to_device(device)
     target_Q = copy.deepcopy(Q)
     target_policy = copy.deepcopy(policy)
-    opt_Q = optimizers.Adam()
+    opt_Q = optimizers.Adam(eps=1e-5)  # Use larger eps in case of FP16 mode
     opt_Q.setup(Q)
     opt_policy = optimizers.Adam(alpha=1e-4)
     opt_policy.setup(policy)

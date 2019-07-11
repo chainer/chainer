@@ -103,7 +103,7 @@ class TestMaxPooling2D(unittest.TestCase):
         if not self.c_contiguous:
             inputs = _to_fcontiguous(inputs)
         if backend_config.use_chainerx:
-            inputs = chainer.backend.to_chainerx(inputs)
+            inputs = chainer.backend.to_chx(inputs)
 
         with backend_config:
             x, = inputs
@@ -131,7 +131,7 @@ class TestMaxPooling2D(unittest.TestCase):
                     and backend_config.chainerx_device.startswith('cuda:'))):
                 x = cuda.to_gpu(x)
             if backend_config.use_chainerx:
-                x = chainer.backend.to_chainerx(x)
+                x = chainer.backend.to_chx(x)
             x = chainer.Variable(x)
             with backend_config:
                 functions.max_pooling_2d(x, 3, stride=2)
@@ -145,7 +145,7 @@ class TestMaxPooling2D(unittest.TestCase):
                     and backend_config.chainerx_device.startswith('cuda:'))):
                 x = cuda.to_gpu(x)
             if backend_config.use_chainerx:
-                x = chainer.backend.to_chainerx(x)
+                x = chainer.backend.to_chx(x)
             x = chainer.Variable(x)
             with backend_config:
                 functions.max_pooling_2d(x, 3, stride=2)
@@ -162,8 +162,8 @@ class TestMaxPooling2D(unittest.TestCase):
             inputs = _to_fcontiguous(inputs)
             grad_outputs = _to_fcontiguous(grad_outputs)
         if backend_config.use_chainerx:
-            inputs = chainer.backend.to_chainerx(inputs)
-            grad_outputs = chainer.backend.to_chainerx(grad_outputs)
+            inputs = chainer.backend.to_chx(inputs)
+            grad_outputs = chainer.backend.to_chx(grad_outputs)
 
         def f(x):
             return functions.max_pooling_2d(
@@ -199,9 +199,9 @@ class TestMaxPooling2D(unittest.TestCase):
             grad_outputs = _to_fcontiguous(grad_outputs)
             grad_grad_inputs = _to_fcontiguous(grad_grad_inputs)
         if backend_config.use_chainerx:
-            inputs = chainer.backend.to_chainerx(inputs)
-            grad_outputs = chainer.backend.to_chainerx(grad_outputs)
-            grad_grad_inputs = chainer.backend.to_chainerx(grad_grad_inputs)
+            inputs = chainer.backend.to_chx(inputs)
+            grad_outputs = chainer.backend.to_chx(grad_outputs)
+            grad_grad_inputs = chainer.backend.to_chx(grad_grad_inputs)
 
         def f(x):
             return functions.max_pooling_2d(

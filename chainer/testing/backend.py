@@ -1,15 +1,14 @@
 import functools
 
-import numpy
-
 import chainer
 from chainer import backend
-from chainer.backends import cuda
 from chainer.testing import _bundle
 from chainer.testing import attr
 import chainerx
 
 
+# TODO(hvy): BackendConfig.__enter__ does not have to modify the current
+# device. Change it so that it does not.
 class BackendConfig(object):
 
     _props = [
@@ -62,20 +61,16 @@ class BackendConfig(object):
 
     @property
     def xp(self):
-        if self.use_chainerx:
-            return chainerx
-        if self.use_cuda:
-            return cuda.cupy
-        return numpy  # applicable with/without ideep
+        return self.device.xp
 
     @property
     def device(self):
         if self._device is None:
             if self.use_cuda:
-                device = chainer.get_device(
-                    chainer.backends.cuda.Device(self.cuda_device))
+                device = backend.GpuDevice.from_device_id(self.cuda_device)
             elif self.use_chainerx:
-                device = chainer.get_device(self.chainerx_device)
+                device = backend.ChainerxDevice(
+                    chainerx.get_device(self.chainerx_device))
             elif self.use_ideep != 'never':
                 device = backend.Intel64Device()
             else:

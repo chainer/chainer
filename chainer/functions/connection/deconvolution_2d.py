@@ -30,19 +30,23 @@ class Deconvolution2DFunction(function_node.FunctionNode):
     def __init__(self, stride=1, pad=0, outsize=None, **kwargs):
         dilate, groups = argument.parse_kwargs(
             kwargs, ('dilate', 1), ('groups', 1),
-            deterministic="deterministic argument is not supported anymore. "
-            "Use chainer.using_config('cudnn_deterministic', value) context "
-            "where value is either `True` or `False`.",
-            requires_x_grad="requires_x_grad argument is not supported "
-            "anymore. Just remove the argument. Note that whether to compute "
-            "the gradient w.r.t. x is automatically decided during "
-            "backpropagation.")
+            deterministic='deterministic argument is not supported anymore. '
+            'Use chainer.using_config(\'cudnn_deterministic\', value) context '
+            'where value is either `True` or `False`.',
+            requires_x_grad='requires_x_grad argument is not supported '
+            'anymore. Just remove the argument. Note that whether to compute '
+            'the gradient w.r.t. x is automatically decided during '
+            'backpropagation.')
 
         self.sy, self.sx = _pair(stride)
         self.ph, self.pw = _pair(pad)
         self.outh, self.outw = (None, None) if outsize is None else outsize
         self.dy, self.dx = _pair(dilate)
         self.groups = groups
+
+        if self.dx < 1 or self.dy < 1:
+            raise ValueError('Dilate should be positive, but {} is '
+                             'supplied.'.format(dilate))
 
     def check_type_forward(self, in_types):
         n_in = in_types.size()
@@ -402,6 +406,11 @@ http://www.matthewzeiler.com/pubs/cvpr2010/cvpr2010.pdf
         ~chainer.Variable:
             Output variable of shape :math:`(n, c_O, h_O, w_O)`.
 
+    .. seealso::
+
+        :class:`~chainer.links.Deconvolution2D` to manage the model parameters
+        ``W`` and ``b``.
+
     .. admonition:: Example
 
         >>> n = 10
@@ -431,10 +440,10 @@ astype(np.float32)
 
     """
     argument.check_unexpected_kwargs(
-        kwargs, deterministic="deterministic argument is not "
-        "supported anymore. "
-        "Use chainer.using_config('cudnn_deterministic', value) "
-        "context where value is either `True` or `False`.")
+        kwargs, deterministic='deterministic argument is not '
+        'supported anymore. '
+        'Use chainer.using_config(\'cudnn_deterministic\', value) '
+        'context where value is either `True` or `False`.')
     dilate, groups = argument.parse_kwargs(kwargs,
                                            ('dilate', 1), ('groups', 1))
 

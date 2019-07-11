@@ -107,9 +107,9 @@ class TestStack(unittest.TestCase):
     @attr.chainerx
     def test_double_backward_chainerx(self):
         self.check_double_backward(
-            backend.to_chainerx(self.xs),
-            backend.to_chainerx(self.g),
-            backend.to_chainerx(self.ggs))
+            backend.to_chx(self.xs),
+            backend.to_chx(self.g),
+            backend.to_chx(self.ggs))
 
 
 testing.run_module(__name__, __file__)

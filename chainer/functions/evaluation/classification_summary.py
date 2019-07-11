@@ -75,12 +75,13 @@ def classification_summary(y, t, label_num=None, beta=1.0, ignore_label=-1):
     This function calculates the following quantities for each class.
 
     - Precision: :math:`\\frac{\\mathrm{tp}}{\\mathrm{tp} + \\mathrm{fp}}`
-    - Recall: :math:`\\frac{\\mathrm{tp}}{\\mathrm{tp} + \\mathrm{tn}}`
+    - Recall: :math:`\\frac{\\mathrm{tp}}{\\mathrm{tp} + \\mathrm{fn}}`
     - F beta Score: The weighted harmonic average of Precision and Recall.
     - Support: The number of instances of each ground truth label.
 
-    Here, ``tp``, ``fp``, and ``tn`` stand for the number of true positives,
-    false positives, and true negative, respectively.
+    Here, ``tp``, ``fp``, ``tn``, and ``fn`` stand for the number of true
+    positives, false positives, true negatives, and false negatives,
+    respectively.
 
     ``label_num`` specifies the number of classes, that is,
     each value in ``t`` must be an integer in the range of

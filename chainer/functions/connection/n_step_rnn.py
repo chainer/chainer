@@ -120,10 +120,10 @@ class CudnnRNNWeightConcat(function.Function):
                         b_type.shape[0] == out_size,
                     )
 
-    def forward(self, inputs):
+    def forward_gpu(self, inputs):
         handle = cudnn.get_handle()
         ws_size = self.n_layers * self.rnn_direction * self.n_W
-        ws = inputs[0:ws_size]
+        ws = inputs[:ws_size]
         bs = inputs[ws_size:]
         out_size = ws[0].shape[0]
         in_size = ws[0].shape[1]
@@ -266,7 +266,7 @@ class BaseNStepRNN(function.Function):
             x_type.shape[0] == self.sections[-1],
         )
 
-    def forward(self, inputs):
+    def forward_gpu(self, inputs):
         if self.use_cell:
             # LSTM
             hx, cx, w, xs = inputs
@@ -407,26 +407,28 @@ def n_step_rnn(
     Args:
         n_layers(int): Number of layers.
         dropout_ratio(float): Dropout ratio.
-        hx (chainer.Variable): Variable holding stacked hidden states.
+        hx (:class:`~chainer.Variable`):
+            Variable holding stacked hidden states.
             Its shape is ``(S, B, N)`` where ``S`` is number of layers and is
             equal to ``n_layers``, ``B`` is mini-batch size, and ``N`` is
             dimension of hidden units.
-        ws (list of list of chainer.Variable): Weight matrices. ``ws[i]``
-            represents weights for i-th layer.
+        ws (list of list of :class:`~chainer.Variable`): Weight matrices.
+            ``ws[i]`` represents weights for i-th layer.
             Each ``ws[i]`` is a list containing two matrices.
             ``ws[i][j]`` is corresponding with ``W_j`` in the equation.
             Only ``ws[0][j]`` where ``0 <= j < 1`` is ``(I, N)`` shape as they
             are multiplied with input variables. All other matrices has
             ``(N, N)`` shape.
-        bs (list of list of chainer.Variable): Bias vectors. ``bs[i]``
-            represnents biases for i-th layer.
+        bs (list of list of :class:`~chainer.Variable`): Bias vectors.
+            ``bs[i]`` represnents biases for i-th layer.
             Each ``bs[i]`` is a list containing two vectors.
             ``bs[i][j]`` is corresponding with ``b_j`` in the equation.
             Shape of each matrix is ``(N,)`` where ``N`` is dimension of
             hidden units.
-        xs (list of chainer.Variable): A list of :class:`~chainer.Variable`
-            holding input values. Each element ``xs[t]`` holds input value
-            for time ``t``. Its shape is ``(B_t, I)``, where ``B_t`` is
+        xs (list of :class:`~chainer.Variable`):
+            A list of :class:`~chainer.Variable` holding input values.
+            Each element ``xs[t]`` holds input value for time ``t``.
+            Its shape is ``(B_t, I)``, where ``B_t`` is
             mini-batch size for time ``t``, and ``I`` is size of input units.
             Note that this function supports variable length sequences.
             When sequneces has different lengths, sort sequences in descending
@@ -502,13 +504,14 @@ def n_step_birnn(
     Args:
         n_layers(int): Number of layers.
         dropout_ratio(float): Dropout ratio.
-        hx (chainer.Variable): Variable holding stacked hidden states.
+        hx (:class:`~chainer.Variable`):
+            Variable holding stacked hidden states.
             Its shape is ``(2S, B, N)`` where ``S`` is number of layers and is
             equal to ``n_layers``, ``B`` is mini-batch size, and ``N`` is
             dimension of hidden units. Because of bi-direction, the
             first dimension length is ``2S``.
-        ws (list of list of chainer.Variable): Weight matrices. ``ws[i + di]``
-            represents weights for i-th layer.
+        ws (list of list of :class:`~chainer.Variable`): Weight matrices.
+            ``ws[i + di]`` represents weights for i-th layer.
             Note that ``di = 0`` for forward-RNN and ``di = 1`` for
             backward-RNN.
             Each ``ws[i + di]`` is a list containing two matrices.
@@ -517,8 +520,8 @@ def n_step_birnn(
             Only ``ws[0][j]`` and ``ws[1][j]`` where ``0 <= j < 1`` are
             ``(I, N)`` shape as they are multiplied with input variables.
             All other matrices has ``(N, N)`` shape.
-        bs (list of list of chainer.Variable): Bias vectors. ``bs[i + di]``
-            represnents biases for i-th layer.
+        bs (list of list of :class:`~chainer.Variable`): Bias vectors.
+            ``bs[i + di]`` represnents biases for i-th layer.
             Note that ``di = 0`` for forward-RNN and ``di = 1`` for
             backward-RNN.
             Each ``bs[i + di]`` is a list containing two vectors.
@@ -526,8 +529,9 @@ def n_step_birnn(
             and corresponding with ``b^{b}_j`` if ``di = 1`` in the equation.
             Shape of each matrix is ``(N,)`` where ``N`` is dimension of
             hidden units.
-        xs (list of chainer.Variable): A list of :class:`~chainer.Variable`
-            holding input values. Each element ``xs[t]`` holds input value
+        xs (list of :class:`~chainer.Variable`):
+            A list of :class:`~chainer.Variable` holding input values.
+            Each element ``xs[t]`` holds input value
             for time ``t``. Its shape is ``(B_t, I)``, where ``B_t`` is
             mini-batch size for time ``t``, and ``I`` is size of input units.
             Note that this function supports variable length sequences.
@@ -571,25 +575,27 @@ use_bi_direction)
     Args:
         n_layers(int): Number of layers.
         dropout_ratio(float): Dropout ratio.
-        hx (chainer.Variable): Variable holding stacked hidden states.
+        hx (:class:`~chainer.Variable`):
+            Variable holding stacked hidden states.
             Its shape is ``(S, B, N)`` where ``S`` is number of layers and is
             equal to ``n_layers``, ``B`` is mini-batch size, and ``N`` is
             dimension of hidden units.
-        ws (list of list of chainer.Variable): Weight matrices. ``ws[i]``
-            represents weights for i-th layer.
+        ws (list of list of :class:`~chainer.Variable`): Weight matrices.
+            ``ws[i]`` represents weights for i-th layer.
             Each ``ws[i]`` is a list containing two matrices.
             ``ws[i][j]`` is corresponding with ``W_j`` in the equation.
             Only ``ws[0][j]`` where ``0 <= j < 1`` is ``(I, N)`` shape as they
             are multiplied with input variables. All other matrices has
             ``(N, N)`` shape.
-        bs (list of list of chainer.Variable): Bias vectors. ``bs[i]``
-            represnents biases for i-th layer.
+        bs (list of list of :class:`~chainer.Variable`): Bias vectors.
+            ``bs[i]`` represnents biases for i-th layer.
             Each ``bs[i]`` is a list containing two vectors.
             ``bs[i][j]`` is corresponding with ``b_j`` in the equation.
             Shape of each matrix is ``(N,)`` where ``N`` is dimension of
             hidden units.
-        xs (list of chainer.Variable): A list of :class:`~chainer.Variable`
-            holding input values. Each element ``xs[t]`` holds input value
+        xs (list of :class:`~chainer.Variable`):
+            A list of :class:`~chainer.Variable` holding input values.
+            Each element ``xs[t]`` holds input value
             for time ``t``. Its shape is ``(B_t, I)``, where ``B_t`` is
             mini-batch size for time ``t``, and ``I`` is size of input units.
             Note that this function supports variable length sequences.
@@ -644,10 +650,11 @@ use_bi_direction)
     xp = backend.get_array_module(hx)
 
     if xp is cuda.cupy and chainer.should_use_cudnn('>=auto', 5000):
-        states = cuda.get_cudnn_dropout_states()
-        states.set_dropout_ratio(dropout_ratio)
         lengths = [len(x) for x in xs]
         xs = chainer.functions.concat(xs, axis=0)
+        with chainer.using_device(xs.device):
+            states = cuda.get_cudnn_dropout_states()
+            states.set_dropout_ratio(dropout_ratio)
 
         rnn_mode = 'rnn_%s' % activation
         w = cudnn_rnn_weight_concat(

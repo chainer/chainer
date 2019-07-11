@@ -7,7 +7,7 @@
 #include <utility>
 #include <vector>
 
-#include <nonstd/optional.hpp>
+#include <absl/types/optional.h>
 
 #include "chainerx/backend.h"
 #include "chainerx/device.h"
@@ -61,6 +61,19 @@ public:
     // Gets the native backend.
     native::NativeBackend& GetNativeBackend();
 
+    // Registers the backend.
+    template <typename BackendType, typename... Args>
+    Backend& CreateBackend(const std::string& backend_name, Args&&... args) {
+        auto backend = std::unique_ptr<Backend, context_detail::BackendDeleter>{
+                new BackendType{*this, std::forward<Args>(args)...},
+                context_detail::BackendDeleter{[](gsl::owner<Backend*> ptr) { delete ptr; }}};
+        auto pair = RegisterBackend(backend_name, std::move(backend));
+        if (!pair.second) {
+            ContextError{"Backend is already registered: ", backend_name};
+        }
+        return pair.first;
+    }
+
     // Gets the device specified by the device ID.
     // If the backend and/or device do not exist, this function automatically creates them.
     Device& GetDevice(const DeviceId& device_id);
@@ -109,6 +122,11 @@ public:
     }
 
 private:
+    // If a backend associated with backend_name is already registered, returns a pair of the a reference to the backend already registered
+    // and true. Otherwise, registers the given backend and returns a pair of a reference to it and false
+    std::pair<Backend&, bool> RegisterBackend(
+            const std::string& backend_name, std::unique_ptr<Backend, context_detail::BackendDeleter> backend);
+
     // TODO(niboshi): Support multi-thread usage
     struct BackpropSetItem {
         BackpropSetItem(BackpropOrdinal ordinal, std::string name) : ordinal{ordinal}, name{std::move(name)} {}
@@ -118,7 +136,7 @@ private:
 
         // If this member has a value, it indicates that this Backprop ID is prohibited for further backprop.
         // Its value is the backprop ID which caused the prohibition.
-        nonstd::optional<BackpropOrdinal> prohibiting_ordinal{nonstd::nullopt};
+        absl::optional<BackpropOrdinal> prohibiting_ordinal{absl::nullopt};
     };
 
     // Finds the BackpropSetItem instance.
@@ -195,7 +213,7 @@ public:
     ContextScope& operator=(const ContextScope&) = delete;
     ContextScope& operator=(ContextScope&& other) = delete;
 
-    ContextScope(ContextScope&& other) : orig_ctx_{other.orig_ctx_}, orig_device_{other.orig_device_}, exited_{other.exited_} {
+    ContextScope(ContextScope&& other) noexcept : orig_ctx_{other.orig_ctx_}, orig_device_{other.orig_device_}, exited_{other.exited_} {
         other.exited_ = true;
     }
 

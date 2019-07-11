@@ -168,6 +168,8 @@ def static_code(*dec_args, **dec_kwargs):
             # If trace mode is on, add to schedule.
             schedule_function = chainer.config.schedule_func
             if schedule_function is not None:
+                assert chainer.config.use_static_graph
+
                 # Note: 'ret = func(*args, **kwargs)' is called inside
                 # the following method.
                 ret = schedule_function.append_function(func, args, kwargs,
@@ -175,7 +177,7 @@ def static_code(*dec_args, **dec_kwargs):
                 # Add the schedule function as an attribute of the
                 # FunctionNode instance (or more generally, to any class)
                 # that contains the wrapped function as a method
-                if len(args) > 0:
+                if args:
                     instance = args[0]
                     if inspect.isclass(instance):
                         # note: this is not currently needed.
@@ -211,8 +213,8 @@ def static_forward_optimizations(func, inputs):
     schedule_function = chainer.config.schedule_func
     if not func._supports_static_optimizations:
         if schedule_function.verbosity_level >= 2:
-            print("Adding automatic static graph support to "
-                  "function: ", func)
+            print('Adding automatic static graph support to '
+                  'function: ', func)
 
         @static_code(func_name=str(func))
         def generic_static_forward(func, inputs):

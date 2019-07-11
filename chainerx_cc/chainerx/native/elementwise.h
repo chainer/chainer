@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <tuple>
+#include <utility>
 
 #include "chainerx/constant.h"
 #include "chainerx/index_iterator.h"

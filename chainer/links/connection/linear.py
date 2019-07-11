@@ -102,6 +102,7 @@ class Linear(link.Link):
 
         if out_size is None:
             in_size, out_size = None, in_size
+        self.in_size = in_size
         self.out_size = out_size
 
         with self.init_scope():
@@ -123,6 +124,16 @@ class Linear(link.Link):
 
         self.W.initialize((self.out_size, in_size))  # type: ignore
 
+    @property
+    def printable_specs(self):
+        specs = [
+            ('in_size', self.in_size),
+            ('out_size', self.out_size),
+            ('nobias', self.b is None),
+        ]
+        for spec in specs:
+            yield spec
+
     def forward(self, x, n_batch_axes=1):
         # type: (variable.Variable, int) -> variable.Variable
         """Applies the linear layer.
@@ -139,6 +150,6 @@ class Linear(link.Link):
 
         """
         if self.W.array is None:
-            in_size = utils.size_of_shape(x.shape[1:])
+            in_size = utils.size_of_shape(x.shape[n_batch_axes:])
             self._initialize_params(in_size)
         return linear.linear(x, self.W, self.b, n_batch_axes=n_batch_axes)
