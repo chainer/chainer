@@ -103,7 +103,7 @@ Array Cumsum(const Array& a, absl::optional<int8_t> axis) {
     Array a_reshaped{};
     if (axis.has_value()) {
         axis_norm = internal::NormalizeAxis(*axis, a.ndim());
-        a_reshaped = Copy(a);
+        a_reshaped = a;
     } else {
         axis_norm = 0;
         // TODO(imanishi): Fix after chainerx::Ravel is supported.
