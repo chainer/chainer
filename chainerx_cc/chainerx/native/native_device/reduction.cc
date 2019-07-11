@@ -107,8 +107,8 @@ public:
 
 CHAINERX_NATIVE_REGISTER_KERNEL(SumKernel, NativeSumKernel);
 
-class NativeCumsumKernel : public CumsumKernel {
 // TODO(imanishi): Performance improvement.
+class NativeCumsumKernel : public CumsumKernel {
 public:
     void Call(const Array& a, int8_t axis, const Array& out) override {
         a.device().CheckDevicesCompatible(a, out);
