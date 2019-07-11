@@ -9,6 +9,7 @@ import chainer
 from chainer import backend
 from chainer import initializers
 from chainer.testing import array as array_module
+from chainer.testing.backend import BackendConfig
 from chainer import utils
 
 
@@ -84,8 +85,8 @@ class FunctionTestBase(object):
     def __init__(self, *args, **kwargs):
         super(FunctionTestBase, self).__init__(*args, **kwargs)
         self.check_forward_options = {}
-        self.check_backward_options = {}
-        self.check_double_backward_options = {}
+        self.check_backward_options = {'numerical_cpu': True}
+        self.check_double_backward_options = {'numerical_cpu': True}
 
     def before_test(self, test_name):
         pass
@@ -222,8 +223,11 @@ class FunctionTestBase(object):
         self.test_name = 'test_backward'
         self.before_test(self.test_name)
 
-        def f(*args):
-            return self._forward(args, backend_config)
+        def f(*args, **kwargs):
+            backend_config_check = backend_config
+            if kwargs.get('force_cpu', False):
+                backend_config_check = BackendConfig({})
+            return self._forward(args, backend_config_check)
 
         def do_check():
             inputs = self._generate_inputs()
@@ -266,8 +270,12 @@ class FunctionTestBase(object):
         self.test_name = 'test_double_backward'
         self.before_test(self.test_name)
 
-        def f(*args):
-            return self._forward(args, backend_config)
+        def f(*args, **kwargs):
+            backend_config_check = backend_config
+            if kwargs.get('force_cpu', False):
+                backend_config_check = BackendConfig({})
+                return self._forward(args, backend_config_check)
+            return self._forward(args, backend_config_check)
 
         def do_check():
             inputs = self._generate_inputs()
@@ -808,14 +816,18 @@ class LinkTestCase(_LinkTestBase, unittest.TestCase):
             forward_link, _, _ = self._create_initialized_link(
                 inits, backend_config)
 
-            def forward(inputs, ps):
+            def forward(inputs, ps, **kwargs):
 
                 # Use generated parameters.
                 with forward_link.init_scope():
                     for param_name, p in zip(self.param_names, ps):
                         setattr(forward_link, param_name, p)
-
-                return self._forward(forward_link, inputs, backend_config)
+                backend_config_check = backend_config
+                if kwargs.get('force_cpu', False):
+                    forward_link.to_cpu()
+                    backend_config_check = BackendConfig({})
+                return self._forward(forward_link, inputs,
+                                     backend_config_check)
 
             with LinkTestError.raise_if_fail(
                     'backward is not implemented correctly'):

@@ -76,7 +76,7 @@ def _check_outputs_and_grad_outputs(outputs, grad_outputs):
 def numerical_grad(
         f, inputs, grad_outputs, eps=1e-3,
         detect_nondifferentiable=False, diff_atol=0, diff_rtol=1e-2,
-        center_outputs=None):
+        center_outputs=None, numerical_cpu=False):
     """Computes numerical gradient by finite differences.
 
     This function is used to implement gradient check. For usage example, see
@@ -182,7 +182,10 @@ def numerical_grad(
     # Evaluate func at a single input
     def eval_func(x, x_ind, delta, orig):
         x[x_ind] = orig + delta
-        ys = _copy_arrays(f())
+        if numerical_cpu:
+            ys = _copy_arrays(f(force_cpu=True))
+        else:
+            ys = _copy_arrays(f())
         assert len(ys) == len(grad_outputs)
         assert all([
             gy is None
@@ -404,7 +407,8 @@ class _CheckBackward(object):
 
     def __init__(
             self, func, xs, gys, params, eps, atol, rtol, no_gxs,
-            dtype, detect_nondifferentiable, is_immutable_params):
+            dtype, detect_nondifferentiable, is_immutable_params,
+            numerical_cpu=False):
         # If `is_immutable_params` is `False`, `params` are expected to be of
         # type `chainer.Parameter` and are updated in-place.
         # To run `_CheckBackward` with ChainerX ndarrays however which cannot
@@ -458,6 +462,7 @@ class _CheckBackward(object):
         self.eps = eps
         self.dtype = dtype
         self.detect_nondifferentiable = detect_nondifferentiable
+        self.numerical_cpu = numerical_cpu
 
     def run(self):
         with chainer.using_device(self.device):
@@ -642,6 +647,13 @@ class _CheckBackward(object):
             p if self.is_immutable_params else p.array for p in params]
 
         xp = device.xp
+        if self.numerical_cpu and (xp is not numpy):
+            xp = numpy
+            # Convert all the data to numpy arrays
+            xs = _cpu._to_cpu(xs)
+            gys = _cpu._to_cpu(gys)
+            directions = _cpu._to_cpu(directions)
+            params_data = _cpu._to_cpu(params_data)
 
         x_vars = [variable.Variable(x, requires_grad=False) for x in xs]
 
@@ -665,7 +677,7 @@ class _CheckBackward(object):
 
         delta = xp.array(0., numpy.float64)
 
-        def g():
+        def g(**kwargs):
             # This functions is called twice in `numerical_grad`.
             # `delta` is `epsilon` or `-epsilon` in these calls.
             # See the document of `numerical_grad`.
@@ -709,9 +721,15 @@ class _CheckBackward(object):
 
             if self.is_immutable_params:
                 ps = tuple([chainer.Parameter(p) for p in params_data])
-                ys = func(g_x_vars, ps)
+                if self.numerical_cpu:
+                    ys = func(g_x_vars, ps, force_cpu=True)
+                else:
+                    ys = func(g_x_vars, ps)
             else:
-                ys = func(*g_x_vars)
+                if self.numerical_cpu:
+                    ys = func(*g_x_vars, force_cpu=True)
+                else:
+                    ys = func(*g_x_vars)
             ys = _as_tuple(ys)
             ys_data = tuple([None if y is None else y.array for y in ys])
             if xp is chainerx:
@@ -728,7 +746,8 @@ class _CheckBackward(object):
         gx, = numerical_grad(
             g, (delta,), gys, eps=eps,
             detect_nondifferentiable=detect_nondifferentiable,
-            center_outputs=y0_data, diff_atol=0, diff_rtol=self.rtol)
+            center_outputs=y0_data, diff_atol=0, diff_rtol=self.rtol,
+            numerical_cpu=self.numerical_cpu)
 
         return gx
 
@@ -736,7 +755,7 @@ class _CheckBackward(object):
 def check_backward(
         func, x_data, y_grad, params=(),
         eps=1e-3, atol=1e-5, rtol=1e-4, no_grads=None, dtype=None,
-        detect_nondifferentiable=False):
+        detect_nondifferentiable=False, **kwargs):
     """Test backward procedure of a given function.
 
     This function automatically checks the backward-process of a given function
@@ -883,9 +902,11 @@ def check_backward(
     .. seealso::
        :func:`numerical_grad`
     """
+    numerical_cpu = kwargs.get('numerical_cpu', False)
     _CheckBackward(
         func, x_data, y_grad, params, eps, atol, rtol, no_grads, dtype,
-        detect_nondifferentiable, is_immutable_params=False
+        detect_nondifferentiable, is_immutable_params=False,
+        numerical_cpu=numerical_cpu
     ).run()
 
 
@@ -911,7 +932,7 @@ def _check_backward_with_params(
 def check_double_backward(func, x_data, y_grad, x_grad_grad, params=(),
                           params_grad_grad=(), eps=1e-3, atol=1e-4, rtol=1e-3,
                           no_grads=None, dtype=None,
-                          detect_nondifferentiable=False):
+                          detect_nondifferentiable=False, **kwargs):
     """Test twice differentiation of a given procedure.
 
     This function automatically checks if the backward procedure of ``func``
@@ -963,11 +984,18 @@ def check_double_backward(func, x_data, y_grad, x_grad_grad, params=(),
 
     first_order_no_gxs = [x.dtype.kind != 'f' for x in xs]
 
-    def first_order_grad(*inputs):
+    def first_order_grad(*inputs, **kwargs):
         xs = inputs[:n_x]
         gys = inputs[n_x:]
 
-        ys = _as_tuple(func(*xs))
+        # TODO(ecastill) : several function and link tests
+        # are not refactored to use backend injection and
+        # pass the forward functions unwrapped without
+        # support for numerical gradients on cpu
+        if kwargs.get('force_cpu', False):
+            ys = _as_tuple(func(*xs, force_cpu=True))
+        else:
+            ys = _as_tuple(func(*xs))
 
         # `gys` (inputs to `first_order_grad` forward function) may have been
         # casted to float64 by `numerical_grad`. For certain functions demoting
@@ -1013,7 +1041,8 @@ def check_double_backward(func, x_data, y_grad, x_grad_grad, params=(),
         check_backward(first_order_grad, inputs, grad_grad, params=params,
                        eps=eps, atol=atol, rtol=rtol, no_grads=no_gxs,
                        dtype=dtype,
-                       detect_nondifferentiable=detect_nondifferentiable)
+                       detect_nondifferentiable=detect_nondifferentiable,
+                       **kwargs)
     except AssertionError as e:
         f = six.StringIO()
         f.write('check_double_backward failed '
