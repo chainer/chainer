@@ -5,16 +5,15 @@ from chainer import function_node
 from chainer.functions.array import broadcast
 from chainer.functions.array import reshape
 from chainer.functions.math import sum as sum_mod
+from chainer import utils
 from chainer.utils import type_check
 import chainerx
 
 
-class Sum(function_node.FunctionNode):
-    """Sum of array elements over a given axis."""
+class Mean(function_node.FunctionNode):
+    """Mean of array elements over a given axis."""
 
-    keepdims = False
-
-    def __init__(self, axis=None, keepdims=False):
+    def __init__(self, axis, keepdims):
         if axis is None:
             self.axis = None
         elif isinstance(axis, six.integer_types):
@@ -47,17 +46,24 @@ class Sum(function_node.FunctionNode):
 
     def forward_chainerx(self, inputs):
         x, = inputs
-        return chainerx.sum(x, axis=self.axis, keepdims=self.keepdims),
+        return chainerx.mean(x, axis=self.axis, keepdims=self.keepdims),
 
     def forward(self, inputs):
         x, = inputs
-        ret = x.sum(axis=self.axis, keepdims=self.keepdims)
-        if backend.get_array_module(x) is numpy:
-            ret = numpy.asarray(ret)
+        if self.axis is None:
+            self.multiplier = 1.0 / x.size
+        else:
+            divider = 1
+            for axis in self.axis:
+                divider *= x.shape[axis]
+            self.multiplier = 1.0 / divider
+        ret = utils.force_array(
+            x.mean(axis=self.axis, keepdims=self.keepdims))
         return ret,
 
     def backward(self, indexes, grad_outputs):
         gy, = grad_outputs
+        gy *= self.multiplier
         ndim = len(self.inputs[0].shape)
         if not (ndim == 0 or self.axis is None or self.keepdims):
             actual_axis = [
@@ -68,6 +74,12 @@ class Sum(function_node.FunctionNode):
                 shape.insert(axis, 1)
             gy = chainer.functions.reshape(gy, shape)
         return chainer.functions.broadcast_to(gy, self.inputs[0].shape),
+
+
+# TODO(kataoka): consider making the function public.
+def _mean(x, axis, keepdims=False):
+    y, = Mean(axis, keepdims).apply((x,))
+    return y
 
 
 def average(x, axis=None, weights=None, keepdims=False):
@@ -91,6 +103,8 @@ def average(x, axis=None, weights=None, keepdims=False):
         ~chainer.Variable: Output variable.
 
     """
+    if weights is None:
+        return _mean(x, axis, keepdims)
     if axis is None:
         pass
     elif isinstance(axis, tuple):
@@ -105,28 +119,17 @@ def average(x, axis=None, weights=None, keepdims=False):
             axis += x.ndim
         axis = (axis,)
 
-    if weights is not None:
-        if axis is not None and len(axis) > 1:
-            raise ValueError(
-                'tuple axis is not supported when weights is given')
-        divider = sum_mod.sum(weights)
-        if axis is not None:
-            w_shape = [d if i in axis else 1 for i, d in enumerate(x.shape)]
-            weights = broadcast.broadcast_to(
-                reshape.reshape(weights, w_shape), x.shape)
+    if axis is not None and len(axis) > 1:
+        raise ValueError(
+            'tuple axis is not supported when weights is given')
+    divider = sum_mod.sum(weights)
+    if axis is not None:
+        w_shape = [d if i in axis else 1 for i, d in enumerate(x.shape)]
+        weights = broadcast.broadcast_to(
+            reshape.reshape(weights, w_shape), x.shape)
 
-        x = x * weights
-    else:
-        if axis is None:
-            divider = x.size
-        else:
-            divider = 1
-            for a in axis:
-                divider *= x.shape[a]
+    x = x * weights
 
     x_sum = sum_mod.sum(x, axis, keepdims)
-    if weights is not None:
-        # We do not need to call broadcast when weights is None because
-        # divider here is not a Variable but a scalar
-        divider = broadcast.broadcast_to(divider, x_sum.shape)
+    divider = broadcast.broadcast_to(divider, x_sum.shape)
     return x_sum / divider
