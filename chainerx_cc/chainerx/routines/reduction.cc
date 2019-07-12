@@ -135,12 +135,8 @@ Array Cumsum(const Array& a, absl::optional<int8_t> axis) {
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
         bt.Define([axis, axis_norm, in_shape = a_reshaped.shape()](BackwardContext& bctx) {
             const Array& gout = *bctx.output_grad();
-            if (axis.has_value()) {
-                bctx.input_grad() = Flip(Cumsum(Flip(gout, axis_norm), axis_norm), axis_norm);
-            } else {
-                Array input_grad = Flip(Cumsum(Flip(gout, 0), 0), 0);
-                bctx.input_grad() = input_grad.Reshape(in_shape);
-            }
+            Array input_grad = Flip(Cumsum(Flip(gout, axis_norm), axis_norm), axis_norm);
+            bctx.input_grad() = input_grad.Reshape(in_shape);
         });
     }
     bb.Finalize();
