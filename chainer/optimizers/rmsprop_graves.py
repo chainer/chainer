@@ -74,8 +74,8 @@ class RMSpropGravesRule(optimizer.UpdateRule):
         n, g, delta = self.state['n'], self.state['g'], self.state['delta']
         hp = self.hyperparam
 
-        batch_size_factor = self.hyperparam.batch_size_factor
-        eps = hp.eps / batch_size_factor**2
+        grad_scale_factor = self.hyperparam.grad_scale_factor
+        eps = hp.eps / grad_scale_factor**2
 
         n *= hp.alpha
         n += (1 - hp.alpha) * grad * grad
@@ -90,8 +90,8 @@ class RMSpropGravesRule(optimizer.UpdateRule):
         if grad is None:
             return
         hp = self.hyperparam
-        batch_size_factor = self.hyperparam.batch_size_factor
-        eps = hp.eps / batch_size_factor**2
+        grad_scale_factor = self.hyperparam.grad_scale_factor
+        eps = hp.eps / grad_scale_factor**2
         if RMSpropGravesRule._kernel is None:
             RMSpropGravesRule._kernel = cuda.elementwise(
                 'T grad, T lr, T alpha, T momentum, T eps',

@@ -44,9 +44,9 @@ class TestOptimizerHyperparameter(unittest.TestCase):
     def test_hyperparams(self):
         self.create()
         default = self.optimizer.hyperparam.get_dict()
-        # batch_size_factor is not a parameter to the constructor
+        # grad_scale_factor is not a parameter to the constructor
         # of the optimizers
-        del default['batch_size_factor']
+        del default['grad_scale_factor']
         for name, default_value in six.iteritems(default):
             self.create()
             self.assertEqual(self.get_hyperparam(name), default_value)

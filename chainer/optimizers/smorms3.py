@@ -60,8 +60,8 @@ class SMORMS3Rule(optimizer.UpdateRule):
             return
         mem, g, g2 = self.state['mem'], self.state['g'], self.state['g2']
 
-        batch_size_factor = self.hyperparam.batch_size_factor
-        lr = self.hyperparam.lr * batch_size_factor
+        grad_scale_factor = self.hyperparam.grad_scale_factor
+        lr = self.hyperparam.lr * grad_scale_factor
 
         r = 1 / (mem + 1)
         g = (1 - r) * g + r * grad
@@ -77,8 +77,8 @@ class SMORMS3Rule(optimizer.UpdateRule):
         grad = param.grad
         if grad is None:
             return
-        batch_size_factor = self.hyperparam.batch_size_factor
-        lr = self.hyperparam.lr * batch_size_factor
+        grad_scale_factor = self.hyperparam.grad_scale_factor
+        lr = self.hyperparam.lr * grad_scale_factor
         if SMORMS3Rule._kernel is None:
             SMORMS3Rule._kernel = cuda.elementwise(
                 'T grad, T lr, T eps',

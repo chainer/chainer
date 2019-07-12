@@ -744,7 +744,7 @@ class GradientMethod(Optimizer):
         super(GradientMethod, self).__init__()
         self.hyperparam = Hyperparameter()
         self._use_fp32_update = False
-        self.hyperparam.batch_size_factor = 1
+        self.hyperparam.grad_scale_factor = 1
 
     def setup(self, link):
         super(GradientMethod, self).setup(link)
@@ -865,12 +865,12 @@ class GradientMethod(Optimizer):
                 param.update_rule.use_fp32_update()
 
     @property
-    def batch_size_factor(self):
-        return self.hyperparam.batch_size_factor
+    def grad_scale_factor(self):
+        return self.hyperparam.grad_scale_factor
 
-    @batch_size_factor.setter
-    def batch_size_factor(self, batch_size_factor):
-        self.hyperparam.batch_size_factor = batch_size_factor
+    @grad_scale_factor.setter
+    def grad_scale_factor(self, grad_scale_factor):
+        self.hyperparam.grad_scale_factor = grad_scale_factor
 
 
 class HyperparameterProxy(object):

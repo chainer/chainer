@@ -44,8 +44,8 @@ class SGDRule(optimizer.UpdateRule):
         grad = param.grad
         if grad is None:
             return
-        batch_size_factor = self.hyperparam.batch_size_factor
-        lr = self.hyperparam.lr * batch_size_factor
+        grad_scale_factor = self.hyperparam.grad_scale_factor
+        lr = self.hyperparam.lr * grad_scale_factor
         if isinstance(param.data, intel64.mdarray):
             param.data.inplace_axpby(1.0, -self.hyperparam.lr, grad)
         else:
@@ -55,8 +55,8 @@ class SGDRule(optimizer.UpdateRule):
         grad = param.grad
         if grad is None:
             return
-        batch_size_factor = self.hyperparam.batch_size_factor
-        lr = self.hyperparam.lr * batch_size_factor
+        grad_scale_factor = self.hyperparam.grad_scale_factor
+        lr = self.hyperparam.lr * grad_scale_factor
         if SGDRule._kernel is None:
             SGDRule._kernel = cuda.elementwise(
                 'T grad, T lr', 'T param',

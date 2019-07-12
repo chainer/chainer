@@ -74,8 +74,8 @@ class RMSpropRule(optimizer.UpdateRule):
             return
         hp = self.hyperparam
         eps = grad.dtype.type(hp.eps)
-        batch_size_factor = self.hyperparam.batch_size_factor
-        eps = eps / batch_size_factor
+        grad_scale_factor = self.hyperparam.grad_scale_factor
+        eps = eps / grad_scale_factor
         if hp.eps != 0 and eps == 0:
             raise ValueError(
                 'eps of RMSprop optimizer is too small for {} ({})'.format(
@@ -96,8 +96,8 @@ class RMSpropRule(optimizer.UpdateRule):
             return
         hp = self.hyperparam
         eps = grad.dtype.type(hp.eps)
-        batch_size_factor = self.hyperparam.batch_size_factor
-        eps = eps / batch_size_factor
+        grad_scale_factor = self.hyperparam.grad_scale_factor
+        eps = eps / grad_scale_factor
         if eps == 0:
             raise ValueError(
                 'eps of RMSprop optimizer is too small for {} ({})'.format(

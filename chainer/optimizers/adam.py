@@ -193,8 +193,8 @@ class AdamRule(optimizer.UpdateRule):
         self._check_eps(dtype)
         grad = grad.astype(dtype, copy=False)
 
-        batch_size_factor = self.hyperparam.batch_size_factor
-        eps = self.hyperparam.eps / batch_size_factor
+        grad_scale_factor = self.hyperparam.grad_scale_factor
+        eps = self.hyperparam.eps / grad_scale_factor
 
         m, v = self.state['m'], self.state['v']
 
@@ -232,8 +232,8 @@ class AdamRule(optimizer.UpdateRule):
 
         # TODO(ecastill): verify that eps reduction applies to all Adam
         # derived methods
-        batch_size_factor = self.hyperparam.batch_size_factor
-        eps = self.hyperparam.eps / batch_size_factor
+        grad_scale_factor = self.hyperparam.grad_scale_factor
+        eps = self.hyperparam.eps / grad_scale_factor
 
         if self._dummy is None:
             self._dummy = cuda.cupy.empty((0,), dtype=dtype)

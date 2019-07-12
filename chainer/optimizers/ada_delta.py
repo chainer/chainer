@@ -60,8 +60,8 @@ class AdaDeltaRule(optimizer.UpdateRule):
             return
         msg, msdx = self.state['msg'], self.state['msdx']
         rho = self.hyperparam.rho
-        batch_size_factor = self.hyperparam.batch_size_factor
-        eps = self.hyperparam.eps / batch_size_factor**2
+        grad_scale_factor = self.hyperparam.grad_scale_factor
+        eps = self.hyperparam.eps / grad_scale_factor**2
 
         msg *= rho
         msg += (1 - rho) * grad * grad
@@ -74,8 +74,8 @@ class AdaDeltaRule(optimizer.UpdateRule):
         grad = param.grad
         if grad is None:
             return
-        batch_size_factor = self.hyperparam.batch_size_factor
-        eps = self.hyperparam.eps / batch_size_factor**2
+        grad_scale_factor = self.hyperparam.grad_scale_factor
+        eps = self.hyperparam.eps / grad_scale_factor**2
         if AdaDeltaRule._kernel is None:
             AdaDeltaRule._kernel = cuda.elementwise(
                 'T grad, T one_minus_rho, T eps',

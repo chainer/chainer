@@ -104,8 +104,8 @@ class MSVAGRule(optimizer.UpdateRule):
             if numpy.isnan(factor):
                 factor = 0
 
-        batch_size_factor = hp.batch_size_factor
-        lr = hp.lr * batch_size_factor
+        grad_scale_factor = hp.grad_scale_factor
+        lr = hp.lr * grad_scale_factor
         param.data -= hp.eta * (lr * mt * factor +
                                 hp.weight_decay_rate * param.data)
 
@@ -122,8 +122,8 @@ class MSVAGRule(optimizer.UpdateRule):
                (((1.0 - self.beta_power) ** 2) * (1.0 - hp.beta ** 2)))
         rho = min(rho, 0.9999)
 
-        batch_size_factor = hp.batch_size_factor
-        lr = hp.lr * batch_size_factor
+        grad_scale_factor = hp.grad_scale_factor
+        lr = hp.lr * grad_scale_factor
         cuda.elementwise(
             'T grad, T lr, T one_minus_beta, T eta, \
              T weight_decay_rate, T beta_power, T rho',

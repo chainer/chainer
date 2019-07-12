@@ -144,10 +144,10 @@ class MultiprocessParallelUpdater(standard_updater.StandardUpdater):
             assert len(iterator.dataset) == len(iterators[0].dataset)
 
         if len(devices) > 1:
-            optimizer.batch_size_factor = 1.0/len(devices)
-            warnings.warn('optimizer.batch_size_factor is changed to {} '
-                          'by MultiprocessParallelUpdater for new batch size.'.
-                          format(optimizer.batch_size_factor))
+            optimizer.grad_scale_factor = 1.0/len(devices)
+            warnings.warn('optimizer.grad_scale_factor is changed to {} by'
+                          'MultiprocessParallelUpdater for the new batch size.'
+                          .format(optimizer.grad_scale_factor))
 
         super(MultiprocessParallelUpdater, self).__init__(
             iterator=iterators[0],
