@@ -7,7 +7,6 @@ from chainer.functions.array import reshape
 from chainer.functions.math import sum as sum_mod
 from chainer import utils
 from chainer.utils import type_check
-import chainerx
 
 
 class Mean(function_node.FunctionNode):
@@ -44,9 +43,8 @@ class Mean(function_node.FunctionNode):
                         -axis - 1 < in_types[0].ndim,
                     )
 
-    def forward_chainerx(self, inputs):
-        x, = inputs
-        return chainerx.mean(x, axis=self.axis, keepdims=self.keepdims),
+    # TODO(kataoka): override `forward_chainerx` if `chainerx.mean` does not
+    # overflow for large float16 inputs
 
     def forward(self, inputs):
         x, = inputs
