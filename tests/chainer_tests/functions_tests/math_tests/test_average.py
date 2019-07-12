@@ -141,6 +141,7 @@ class TestAverage(testing.FunctionTestCase):
         'chainerx_device': ['native:0', 'cuda:0', 'cuda:1'],
     }))
 @attr.slow
+@testing.with_requires('numpy>=1.12')  # NumPy #8222
 class TestAverageOverflowingSum(testing.FunctionTestCase):
 
     def setUp(self):
