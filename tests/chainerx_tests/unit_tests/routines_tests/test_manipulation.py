@@ -243,7 +243,9 @@ class TestReshape(op_utils.NumpyOpTest):
             else:
                 assert b.flags.c_contiguous
 
-        return xp.asarray(copied), b
+        # return of NumpyOpTest.forward_xp should not contain a boolean array
+        copied = b * 0 + int(copied)
+        return copied, b
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
