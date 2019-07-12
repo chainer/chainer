@@ -4,11 +4,12 @@ import itertools
 import mock
 import numpy as np
 
-
 import chainer
 from chainer import optimizer_hooks
 from chainer import optimizers
 from chainer import testing
+
+from chainer_tests.optimizer_hooks_tests import utils
 
 
 _backend_params = [
@@ -25,15 +26,6 @@ _backend_params = [
 ]
 
 
-class SimpleLink(chainer.Link):
-
-    def __init__(self, params):
-        super(SimpleLink, self).__init__()
-        with self.init_scope():
-            for i, p in enumerate(params):
-                setattr(self, 'p{}'.format(i), p)
-
-
 @testing.backend.inject_backend_tests(None, _backend_params)
 @testing.backend.inject_backend_tests(None, _backend_params)
 @testing.backend.inject_backend_tests(None, _backend_params)
@@ -42,20 +34,9 @@ class TestGradientNoise(unittest.TestCase):
     eta = 0.01
 
     def setUp(self):
-        self.num_params = 3
-        arrs = [
-            np.random.uniform(-3, 3, (2, 3)).astype(np.float32)
-            for _ in range(self.num_params)]
-        grads = [
-            np.random.uniform(-3, 3, (2, 3)).astype(np.float32)
-            for _ in range(self.num_params)]
-        params = []
-        for arr, grad in zip(arrs, grads):
-            param = chainer.Parameter(arr)
-            param.grad = grad
-            params.append(param)
-
-        self.target = SimpleLink(params)
+        self.target = utils.ParametersLink.from_param_props(
+            # TODO(niboshi): Use different shapes
+            ((2, 3), (2, 3), (2, 3)))
 
         self.noise_value = np.random.normal(
             loc=0, scale=np.sqrt(self.eta / np.power(1, 0.55)),
@@ -87,7 +68,7 @@ class TestGradientNoise(unittest.TestCase):
         for expect, param in zip(expects, target.params()):
             testing.assert_allclose(expect, param.array)
 
-        self.assertEqual(noise.call_count, self.num_params)
+        self.assertEqual(noise.call_count, len(tuple(self.target.params())))
 
         calls = []
         for param in target.params():

@@ -7,6 +7,8 @@ from chainer import optimizer_hooks
 from chainer import optimizers
 from chainer import testing
 
+from chainer_tests.optimizer_hooks_tests import utils
+
 
 _backend_params = [
     # NumPy
@@ -22,49 +24,19 @@ _backend_params = [
 ]
 
 
-class SimpleLink(chainer.Link):
-
-    def __init__(self, params):
-        super(SimpleLink, self).__init__()
-        with self.init_scope():
-            for i, p in enumerate(params):
-                setattr(self, 'p{}'.format(i), p)
-
-
 @testing.backend.inject_backend_tests(None, _backend_params)
 @testing.backend.inject_backend_tests(None, _backend_params)
 @testing.backend.inject_backend_tests(None, _backend_params)
 class TestGradientLARS(unittest.TestCase):
 
     def setUp(self):
-        num_params = 3
-        arrs = [
-            np.random.uniform(-3, 3, (2, 3)).astype(np.float32)
-            for _ in range(num_params)]
-        grads = [
-            np.random.uniform(-3, 3, (2, 3)).astype(np.float32)
-            for _ in range(num_params)]
-        params_0 = []
-        for arr, grad in zip(arrs, grads):
-            param = chainer.Parameter(arr)
-            param.grad = grad
-            params_0.append(param)
-
-        arrs = [
-            np.random.uniform(-3, 3, (2, 3)).astype(np.float32) * 0.0001
-            for _ in range(num_params)]
-        grads = [
-            np.random.uniform(-3, 3, (2, 3)).astype(np.float32)
-            for _ in range(num_params)]
-        params_1 = []
-        for arr, grad in zip(arrs, grads):
-            param = chainer.Parameter(arr)
-            param.grad = grad
-            params_1.append(param)
-
-        self.target = chainer.ChainList(
-            SimpleLink(params_0),
-            SimpleLink(params_1))
+        link1 = utils.ParametersLink.from_param_props(
+            ((2, 3), (2, 0, 1), (0,)))
+        link2 = utils.ParametersLink.from_param_props(
+            ((5, 0, 1), (0,), (7, 3)))
+        for param in link2.params():
+            param.array[...] *= 0.0001
+        self.target = chainer.ChainList(link1, link2)
 
     def check_LARS(self, backend_configs):
         target = self.target
