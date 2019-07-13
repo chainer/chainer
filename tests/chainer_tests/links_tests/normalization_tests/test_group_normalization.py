@@ -1,14 +1,14 @@
+import six
 import unittest
 
 import numpy
 
 import chainer
-from chainer import backend
 from chainer.backends import cuda
-from chainer import gradient_check
 from chainer import links
 from chainer import testing
 from chainer.testing import attr
+import chainerx
 
 
 def _simple_group_normalization(x, groups, gamma, beta, eps=1e-5):
@@ -95,7 +95,7 @@ class GroupNormalizationTestBase(object):
         return y.astype(self.dtype), y_one_each
 
     def check_forward_outputs(self, outputs, expected_outputs):
-        expected, no_bs_effect = expected_outputs
+        _, no_bs_effect = expected_outputs
         super(GroupNormalizationTestBase, self).check_forward_outputs(
             outputs, expected_outputs)
         y, = outputs
@@ -113,7 +113,7 @@ class GroupNormalizationTestBase(object):
 @testing.inject_backend_tests(
     None,
     [
-        {}, {'ideep': 'always'},
+        {}, {'use_ideep': 'always'},
     ]
     + testing.product({
         'use_cuda': [True],
@@ -122,7 +122,7 @@ class GroupNormalizationTestBase(object):
     })
     + testing.product({
         'use_chainerx': [True],
-        'chaienrx_device': ['native:0', 'cuda:0', 'cuda:1'],
+        'chainerx_device': ['native:0', 'cuda:0', 'cuda:1'],
     })
 )
 class GroupNormalizationTest(GroupNormalizationTestBase, testing.LinkTestCase):
@@ -148,15 +148,15 @@ class TestInitialize(unittest.TestCase):
 
     def test_initialize_cpu(self):
         self.link(numpy.zeros(self.shape, dtype='f'))
-        testing.assert_allclose(self.initial_gamma, self.link.gamma.data)
-        testing.assert_allclose(self.initial_beta, self.link.beta.data)
+        testing.assert_allclose(self.initial_gamma, self.link.gamma.array)
+        testing.assert_allclose(self.initial_beta, self.link.beta.array)
 
     @attr.gpu
     def test_initialize_gpu(self):
         self.link.to_gpu()
         self.link(cuda.cupy.zeros(self.shape, dtype='f'))
-        testing.assert_allclose(self.initial_gamma, self.link.gamma.data)
-        testing.assert_allclose(self.initial_beta, self.link.beta.data)
+        testing.assert_allclose(self.initial_gamma, self.link.gamma.array)
+        testing.assert_allclose(self.initial_beta, self.link.beta.array)
 
 
 @testing.parameterize(*testing.product({
