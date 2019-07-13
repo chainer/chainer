@@ -8,14 +8,14 @@ from chainerx_tests import dtype_utils
 from chainerx_tests import op_utils
 
 
-_in_out_eval_dtypes = dtype_utils._permutate_dtype_mapping([
-    (('float16', 'float16'), 'float16'),
-    (('float32', 'float32'), 'float32'),
-    (('float64', 'float64'), 'float64'),
-    (('float32', 'float16'), 'float32'),
-    (('float64', 'float16'), 'float64'),
-    (('float64', 'float32'), 'float64'),
-])
+_in_out_eval_dtypes = [
+    (('float16', 'int16'), 'float32'),
+    (('float32', 'int32'), 'float32'),
+    (('float64', 'int64'), 'float64'),
+    (('float32', 'int16'), 'float32'),
+    (('float64', 'int16'), 'float64'),
+    (('float64', 'int32'), 'float64'),
+]
 
 
 class EvalBase(op_utils.ChainerOpTest):
@@ -61,9 +61,5 @@ class TestAccuracy(EvalBase):
 
     def forward_xp(self, inputs, xp):
         x, t = inputs
-        t = t.astype(numpy.int64)
-        if xp is chainerx:
-            out = xp.accuracy(x, t, self.ignore_label)
-        else:
-            out = xp.accuracy(x, t, self.ignore_label)
+        out = xp.accuracy(x, t, self.ignore_label)
         return out,
