@@ -10,6 +10,6 @@
 
 namespace chainerx {
 
-Array Accuracy(const Array& x1, const Array& x2, const nonstd::optional<Array>& ignore_label);
+Array Accuracy(const Array& x1, const Array& x2, const nonstd::optional<int8_t>& ignore_label);
 
 }  // namespace chainerx

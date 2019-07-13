@@ -37,18 +37,19 @@
 
 namespace chainerx {
 
-Array Accuracy(const Array& x1, const Array& x2, const nonstd::optional<Array>& ignore_label) {
+Array Accuracy(const Array& x1, const Array& x2, const nonstd::optional<int8_t>& ignore_label) {
     if (ignore_label.has_value()) {
-        Array mask = Equal(x2, *ignore_label);
+        Array ignore = chainerx::FullLike(x2, Scalar{*ignore_label});
+        Array mask = Equal(x2, ignore);
         Array ignore_cnt = Sum(mask);
-        Array pred = Where(mask, *ignore_label, AMax(x1, 1).Reshape(x2.shape()));
+        Array pred = Where(mask, ignore, ArgMax(x1, 1).Reshape(x2.shape()));
         Array count = Sum(Equal(pred, x2)) - ignore_cnt;
         Scalar size{x2.GetTotalSize()};
         Scalar total = size - AsScalar(ignore_cnt);
         if (total == 0.0) {
-            return Array{0};
+            return Array{0}.AsType(x1.dtype());
         } else {
-            return Divide(count, total);
+            return Divide(count, total).AsType(x1.dtype());
         }
     } else {
         Array pred = ArgMax(x1, 1).Reshape(x2.shape());
