@@ -4,7 +4,6 @@ import numpy
 
 import chainerx
 
-from chainerx_tests import dtype_utils
 from chainerx_tests import op_utils
 
 
