@@ -5,6 +5,7 @@
 #include <functional>
 #include <iostream>
 #include <memory>
+#include <string>
 #include <tuple>
 #include <utility>
 #include <vector>
@@ -42,7 +43,8 @@ public:
             const std::vector<std::vector<Array>>& bs,
             const std::vector<Array>& xs,
             const int8_t bidirectional,
-            const int8_t mode) = 0;
+            const int8_t mode,
+            absl::optional<std::string> activation) = 0;
 };
 
 class RnnBackwardKernel : public Kernel {

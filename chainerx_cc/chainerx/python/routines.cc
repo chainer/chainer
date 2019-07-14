@@ -1179,6 +1179,64 @@ void InitChainerxRNN(pybind11::module& m) {
               ret.push_back(ToTuple(out[1]));
               return ret;
           });
+    m.def("n_step_rnn",
+          [](int64_t n_layers,
+             ArrayBodyPtr& hx,
+             std::vector<std::vector<ArrayBodyPtr>> weights,
+             std::vector<std::vector<ArrayBodyPtr>> biases,
+             std::vector<ArrayBodyPtr> inputs,
+             std::string activation) {
+              std::vector<std::vector<Array>> ws;
+              std::vector<std::vector<Array>> bs;
+              std::vector<Array> xs;
+              for (uint i = 0; i < weights.size(); i++) {
+                  std::vector<Array> temp_ws;
+                  std::vector<Array> temp_bs;
+                  for (uint j = 0; j < weights[i].size(); j++) {
+                      temp_ws.push_back(Array{weights[i][j]});
+                      temp_bs.push_back(Array{biases[i][j]});
+                  }
+                  ws.push_back(temp_ws);
+                  bs.push_back(temp_bs);
+              }
+              for (uint i = 0; i < inputs.size(); i++) {
+                  xs.push_back(Array{inputs[i]});
+              }
+              std::vector<std::vector<Array>> out = n_step_rnn(n_layers, Array{hx}, ws, bs, xs, activation);
+              std::vector<py::tuple> ret;
+              ret.push_back(ToTuple(out[0]));
+              ret.push_back(ToTuple(out[1]));
+              return ret;
+          });
+    m.def("n_step_birnn",
+          [](int64_t n_layers,
+             ArrayBodyPtr& hx,
+             std::vector<std::vector<ArrayBodyPtr>> weights,
+             std::vector<std::vector<ArrayBodyPtr>> biases,
+             std::vector<ArrayBodyPtr> inputs,
+             std::string activation) {
+              std::vector<std::vector<Array>> ws;
+              std::vector<std::vector<Array>> bs;
+              std::vector<Array> xs;
+              for (uint i = 0; i < weights.size(); i++) {
+                  std::vector<Array> temp_ws;
+                  std::vector<Array> temp_bs;
+                  for (uint j = 0; j < weights[i].size(); j++) {
+                      temp_ws.push_back(Array{weights[i][j]});
+                      temp_bs.push_back(Array{biases[i][j]});
+                  }
+                  ws.push_back(temp_ws);
+                  bs.push_back(temp_bs);
+              }
+              for (uint i = 0; i < inputs.size(); i++) {
+                  xs.push_back(Array{inputs[i]});
+              }
+              std::vector<std::vector<Array>> out = n_step_birnn(n_layers, Array{hx}, ws, bs, xs, activation);
+              std::vector<py::tuple> ret;
+              ret.push_back(ToTuple(out[0]));
+              ret.push_back(ToTuple(out[1]));
+              return ret;
+          });
 }
 
 }  // namespace

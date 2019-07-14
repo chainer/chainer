@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <string>
 #include <tuple>
 #include <utility>
 #include <vector>
@@ -196,7 +197,8 @@ public:
             const std::vector<std::vector<Array>>& bs,
             const std::vector<Array>& xs,
             const int8_t bidirectional,
-            const int8_t mode) override {
+            const int8_t mode,
+            absl::optional<std::string> activation) override {
         CudaDevice& device = dynamic_cast<CudaDevice&>(hx.device());
         CudaSetDeviceScope scope{device.index()};
         auto& backend = static_cast<CudaBackend&>(device.backend());  // NOLINT
@@ -208,7 +210,16 @@ public:
         const auto num_directions = bidirectional == 1 ? 2 : 1;
         const auto num_layers = n_layers;
         const auto rnn_direction = bidirectional == 1 ? CUDNN_BIDIRECTIONAL : CUDNN_UNIDIRECTIONAL;
-        const auto rnn_mode = mode == 1 ? CUDNN_LSTM : CUDNN_GRU;
+        cudnnRNNMode_t rnn_mode;
+        if (mode == 2) {
+            if (*activation == "tanh") {
+                rnn_mode = CUDNN_RNN_TANH;
+            } else {
+                rnn_mode = CUDNN_RNN_RELU;
+            }
+        } else {
+            rnn_mode = mode == 0 ? CUDNN_GRU : CUDNN_LSTM;
+        }
         const auto rnn_input = CUDNN_LINEAR_INPUT;
         cudnnRNNDescriptor_t rnn_desc;
         uint64_t seed = 1337ull;
