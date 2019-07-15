@@ -99,31 +99,30 @@ class NumpyLinalgOpTest(op_utils.NumpyOpTest):
 
     dodge_nondifferentiable = True
 
-    def setup(self):
+    def setup(self, float_dtype):
         device = chainerx.get_default_device()
         if (device.backend.name == 'native'
                 and not chainerx.linalg._is_lapack_available()):
             pytest.skip('LAPACK is not linked to ChainerX')
+        self.dtype = float_dtype
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
     chainer.testing.product({
         'shape': [(1, 1), (3, 3), (6, 6)],
-        'b_two_dim': [True, False],
-        'b_columns': [1, 3, 4],
-        'in_dtypes': ['float32', 'float64']
+        'b_columns': [(), (1,), (3,), (4,)]
     })
 ))
 class TestSolve(NumpyLinalgOpTest):
 
+    forward_accept_errors = (TypeError,
+                             chainerx.DtypeError)
+
     def generate_inputs(self):
-        a = numpy.random.random(self.shape).astype(self.in_dtypes)
-        if self.b_two_dim:
-            b = numpy.random.random(
-                (self.shape[0], self.b_columns)).astype(self.in_dtypes)
-        else:
-            b = numpy.random.random(self.shape[0]).astype(self.in_dtypes)
+        a = numpy.random.random(self.shape).astype(self.dtype)
+        b = numpy.random.random(
+            (self.shape[0], *self.b_columns)).astype(self.dtype)
         return a, b
 
     def forward_xp(self, inputs, xp):
@@ -134,10 +133,8 @@ class TestSolve(NumpyLinalgOpTest):
 
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
-    # Special shapes
     chainer.testing.product({
-        'shape': [(2, 3), (3, 2)],
-        'in_dtypes': ['float32', 'float64'],
+        'shape': [(2, 3), (3, 2)]
     })
 ))
 class TestSolveFailing(NumpyLinalgOpTest):
@@ -146,8 +143,8 @@ class TestSolveFailing(NumpyLinalgOpTest):
                              chainerx.DimensionError)
 
     def generate_inputs(self):
-        a = numpy.random.random(self.shape).astype(self.in_dtypes)
-        b = numpy.random.random(self.shape).astype(self.in_dtypes)
+        a = numpy.random.random(self.shape).astype(self.dtype)
+        b = numpy.random.random(self.shape).astype(self.dtype)
         return a, b
 
     def forward_xp(self, inputs, xp):
@@ -159,14 +156,16 @@ class TestSolveFailing(NumpyLinalgOpTest):
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
     chainer.testing.product({
-        'shape': [(1, 1), (3, 3), (6, 6)],
-        'in_dtypes': ['float32', 'float64'],
+        'shape': [(1, 1), (3, 3), (6, 6)]
     })
 ))
 class TestInverse(NumpyLinalgOpTest):
 
+    forward_accept_errors = (TypeError,
+                             chainerx.DtypeError)
+
     def generate_inputs(self):
-        a = numpy.random.random(self.shape).astype(self.in_dtypes)
+        a = numpy.random.random(self.shape).astype(self.dtype)
         return a,
 
     def forward_xp(self, inputs, xp):
@@ -177,10 +176,8 @@ class TestInverse(NumpyLinalgOpTest):
 
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
-    # Special shapes
     chainer.testing.product({
-        'shape': [(2, 3), (3, 2)],
-        'in_dtypes': ['float32', 'float64'],
+        'shape': [(2, 3), (3, 2)]
     })
 ))
 class TestInverseFailing(NumpyLinalgOpTest):
@@ -189,57 +186,10 @@ class TestInverseFailing(NumpyLinalgOpTest):
                              chainerx.DimensionError)
 
     def generate_inputs(self):
-        a = numpy.random.random(self.shape).astype(self.in_dtypes)
+        a = numpy.random.random(self.shape).astype(self.dtype)
         return a,
 
     def forward_xp(self, inputs, xp):
         a, = inputs
         out = xp.linalg.inv(a)
-        return out,
-
-
-@op_utils.op_test(['native:0', 'cuda:0'])
-@chainer.testing.parameterize(*(
-    # Special shapes
-    chainer.testing.product({
-        'shape': [(3, 3)],
-        'in_dtypes': ['float16'],
-    })
-))
-class TestInverseDtypeFailing(NumpyLinalgOpTest):
-
-    forward_accept_errors = (TypeError,
-                             chainerx.DtypeError)
-
-    def generate_inputs(self):
-        a = numpy.random.random(self.shape).astype(self.in_dtypes)
-        return a,
-
-    def forward_xp(self, inputs, xp):
-        a, = inputs
-        out = xp.linalg.inv(a)
-        return out,
-
-
-@op_utils.op_test(['native:0', 'cuda:0'])
-@chainer.testing.parameterize(*(
-    # Special shapes
-    chainer.testing.product({
-        'shape': [(3, 3)],
-        'in_dtypes': ['float16'],
-    })
-))
-class TestSolveDtypeFailing(NumpyLinalgOpTest):
-
-    forward_accept_errors = (TypeError,
-                             chainerx.DtypeError)
-
-    def generate_inputs(self):
-        a = numpy.random.random(self.shape).astype(self.in_dtypes)
-        b = numpy.random.random(self.shape).astype(self.in_dtypes)
-        return a, b
-
-    def forward_xp(self, inputs, xp):
-        a, b = inputs
-        out = xp.linalg.solve(a, b)
         return out,
