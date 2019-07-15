@@ -2846,6 +2846,12 @@ class TestLossScale(unittest.TestCase):
     def test_loss_scale_gpu(self):
         self.check_loss_scale(cuda.to_gpu(self.x), cuda.to_gpu(self.y))
 
+    @attr.chainerx
+    def test_loss_chainerx_cpu(self):
+        x = chainerx.array(self.x)
+        y = chainerx.array(self.y)
+        self.check_loss_scale(x, y)
+
 
 @testing.parameterize(*testing.product({
     # ideep2.0.0 not support shape 0
