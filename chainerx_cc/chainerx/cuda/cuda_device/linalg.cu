@@ -123,8 +123,8 @@ void SolveImpl(const Array& a, const Array& b, const Array& out) {
     device.backend().CallKernel<CopyKernel>(a.Transpose(), lu_matrix);
     T* lu_ptr = static_cast<T*>(internal::GetRawOffsetData(lu_matrix));
 
-    int m = a.shape()[0];
-    int nrhs = 1;
+    int64_t m = a.shape()[0];
+    int64_t nrhs = 1;
     if (b.ndim() == 2) {
         nrhs = b.shape()[1];
     }

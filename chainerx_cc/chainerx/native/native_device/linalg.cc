@@ -94,8 +94,8 @@ void SolveImpl(const Array& a, const Array& b, const Array& out) {
     device.backend().CallKernel<CopyKernel>(a.Transpose(), lu_matrix);
     T* lu_ptr = static_cast<T*>(internal::GetRawOffsetData(lu_matrix));
 
-    int n = a.shape()[0];
-    int nrhs = 1;
+    int64_t n = a.shape()[0];
+    int64_t nrhs = 1;
     if (b.ndim() == 2) {
         nrhs = b.shape()[1];
     }
@@ -124,7 +124,7 @@ void InverseImpl(const Array& a, const Array& out) {
     device.backend().CallKernel<CopyKernel>(a, out);
     T* out_ptr = static_cast<T*>(internal::GetRawOffsetData(out));
 
-    int n = a.shape()[0];
+    int64_t n = a.shape()[0];
 
     Array ipiv = Empty(Shape{n}, Dtype::kInt32, device);
     int* ipiv_ptr = static_cast<int*>(internal::GetRawOffsetData(ipiv));
