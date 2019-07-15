@@ -53,7 +53,7 @@ Array _stack_weight(const std::vector<Array>& ws) {
 }
 
 std::vector<Array> _gru(
-        const Array& x, const Array& h, const absl::optional<Array>& c, const std::vector<Array>& ws, const std::vector<Array>& bs, absl::optional<std::string> activation) {
+        Array& x, Array& h, const absl::optional<Array>& c, const std::vector<Array>& ws, const std::vector<Array>& bs, absl::optional<std::string> activation) {
     activation.has_value();
     c.has_value();  
     Array xw = Concatenate({ws[0], ws[1], ws[2]}, 0);
@@ -99,13 +99,15 @@ std::vector<Array> _lstm(
 }
 
 std::vector<Array> _rnn(
-		const Array& x, const Array& h, const absl::optional<Array>& c, const std::vector<Array>& ws, const std::vector<Array>& bs, absl::optional<std::string> activation) {
+		Array& x, Array& h, const absl::optional<Array>& c, const std::vector<Array>& ws, const std::vector<Array>& bs, absl::optional<std::string> activation) {
     c.has_value();
+    
     Array xw = ws[0];
 	Array hw = ws[1];
 
 	Array xb = bs[0];
 	Array hb = bs[1];
+    
     Array rnn_in_1 = Linear(x, xw, xb);
     Array rnn_in_2 = Linear(h, hw, hb);
 	Array rnn_in =  rnn_in_1 + rnn_in_2;
@@ -114,12 +116,10 @@ std::vector<Array> _rnn(
     Array rnn_act;
 	if (*activation == "tanh") {
         rnn_act = Tanh(rnn_in);
-		out.push_back(rnn_act);
 	} else {
         rnn_act = Relu(rnn_in);
-		out.push_back(rnn_act);
 	}
-
+    out.push_back(rnn_act);
 	return out;
 }
 

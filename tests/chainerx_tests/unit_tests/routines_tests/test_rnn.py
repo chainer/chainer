@@ -234,10 +234,11 @@ class TestNStepRNN(op_utils.ChainerOpTest):
         self.check_backward_options.update({
             'rtol': 1e-2, 'atol': 1e-2})
         self.check_double_backward_options.update({
-            'rtol': 5e-3, 'atol': 5e-2})
+            'rtol': 5e-2, 'atol': 5e-2})
         device = chainerx.get_default_device()
         if device.backend.name == 'cuda':
             if self.in_dtypes[0] != 'float32':
+                self.skip_forward_test = True
                 self.skip_backward_test = True
             self.skip_double_backward_test = True
 
@@ -329,6 +330,7 @@ class TestNStepBiRNN(op_utils.ChainerOpTest):
         device = chainerx.get_default_device()
         if device.backend.name == 'cuda':
             if self.in_dtypes[0] != 'float32':
+                self.skip_forward_test = True
                 self.skip_backward_test = True
             self.skip_double_backward_test = True
 
@@ -425,6 +427,7 @@ class TestNStepGru(op_utils.ChainerOpTest):
         device = chainerx.get_default_device()
         if device.backend.name == 'cuda':
             if self.in_dtypes[0] != 'float32':
+
                 self.skip_backward_test = True
             self.skip_double_backward_test = True
 
