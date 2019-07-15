@@ -29,10 +29,13 @@ def _soft_nearest_neighbor_loss(x, y, temp):
     for index in range(batch):
         x0 = x[index]
         y0 = y[index]
-        denom = _pick(x, x0, temp) 
         x_same = x[y==y0]
         numer = _pick(x_same, x0, temp)
-        snnl_sum += -numpy.log(numer / (denom + STABILITY_EPS))
+        denom = _pick(x, x0, temp) 
+        if len(x_same) == 1:
+            snnl_sum += -numpy.log(STABILITY_EPS)
+        else:
+            snnl_sum += -numpy.log(numer / (denom + STABILITY_EPS))
 
     return snnl_sum / batch
 
@@ -46,7 +49,7 @@ def _soft_nearest_neighbor_loss(x, y, temp):
     # GPU tests
     + testing.product({
         'use_cuda': [True],
-        'cuda_device': [0, 1],
+        'use_cudnn': ['never', 'always'],
     })
     # ChainerX tests
     + [
@@ -55,9 +58,15 @@ def _soft_nearest_neighbor_loss(x, y, temp):
 #        {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
     ])
 @testing.parameterize(
-#    {'dtype': numpy.float16},
-    {'dtype': numpy.float32},
+    *testing.product({
+        'shape': [(10, 5)],
+        'temp' : [numpy.asarray(100)],
+        'dtype': [numpy.float16, numpy.float32],
+    })
 )
+@testing.parameterize(
+    *testing.product({'enable_double_backprop': [False, True]}))
+@testing.fix_random()
 
 class TestSoftNearestNeiborLoss(testing.FunctionTestCase):
     def setUp(self):
@@ -66,21 +75,24 @@ class TestSoftNearestNeiborLoss(testing.FunctionTestCase):
             self.check_backward_options.update({'atol': 5e-2, 'rtol': 5e-2})
             self.check_double_backward_options.update(
                 {'atol': 5e-2, 'rtol': 5e-2})
-
-        y = numpy.asarray([0,0,1,1,2,2,3,3,4,4]).astype(numpy.int32)
-        temp = numpy.asarray(100).astype(self.dtype)
+        
+        y = numpy.random.randint(5, size=self.shape[0]).astype(numpy.int32)
+        temp = self.temp.astype(self.dtype)
         self.y = y
         self.temp = temp
 
 
     def generate_inputs(self):
         dtype = self.dtype
-        x = numpy.random.uniform(-1, 1, (10, 5)).astype(dtype)
+        x = numpy.random.uniform(-1, 1, self.shape).astype(dtype)
         return x,
 
     def forward(self, inputs, device):
         x, = inputs
-        loss = functions.soft_nearest_neighbor_loss(x,self.y,self.temp,0)
+        y = device.send(self.y)
+        temp = device.send(self.temp)
+        loss = functions.soft_nearest_neighbor_loss(x,y,temp,0)
+        print("real={}".format(loss))
         return loss,
 
     def forward_expected(self, inputs):
@@ -88,6 +100,7 @@ class TestSoftNearestNeiborLoss(testing.FunctionTestCase):
 
         loss = _soft_nearest_neighbor_loss(x, self.y, self.temp)
         loss = utils.force_array(loss).astype(x.dtype)
+        print("expected={}".format(loss))
         return loss,
 
 
