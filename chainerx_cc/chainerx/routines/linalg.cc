@@ -19,7 +19,9 @@
 #include "chainerx/error.h"
 #include "chainerx/graph.h"
 #include "chainerx/kernels/linalg.h"
+#include "chainerx/routines/arithmetic.h"
 #include "chainerx/routines/creation.h"
+#include "chainerx/routines/manipulation.h"
 #include "chainerx/routines/type_util.h"
 #include "chainerx/shape.h"
 
@@ -126,7 +128,7 @@ std::tuple<Array, Array, Array> SVD(const Array& a, bool full_matrices, bool com
 
                 auto m = a.shape()[0];
                 auto n = a.shape()[1];
-                auto k = s.shape()[0];
+                // auto k = s.shape()[0];
 
                 const Array& gu = bctx.output_grad(0).has_value() ? *bctx.output_grad(0) : Zeros(u.shape(), a.dtype(), a.device());
                 const Array& gsigma = bctx.output_grad(1).has_value() ? *bctx.output_grad(1) : Zeros(s.shape(), a.dtype(), a.device());
@@ -140,6 +142,18 @@ std::tuple<Array, Array, Array> SVD(const Array& a, bool full_matrices, bool com
                 } else {
                     sigma_term = Zeros(s.shape(), a.dtype(), a.device());
                 }
+
+                auto ut = u.Transpose();
+                auto im = Eye(m, m, 0, a.dtype(), a.device());
+                auto in = Eye(n, n, 0, a.dtype(), a.device());
+                auto sigma_mat = Diag(s);
+                auto sigma_mat_inv = Diag(Power(s, -1));
+                auto sigma_sq = Power(s, 2);
+                auto F = ExpandDims(sigma_sq, 0) - ExpandDims(sigma_sq, 1);
+                // Invert values of F, and fill the diagonal with 0s.
+                // F has 0s on the diagonal, therefore fill it first with infinity.
+                // F.FillDiagonal(INFINITY);
+                F = Power(F, -1);
 
             });
         }
