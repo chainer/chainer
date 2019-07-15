@@ -4,12 +4,11 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
-#include <utility>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <absl/types/optional.h>
-
 
 #include "chainerx/array.h"
 #include "chainerx/backprop_mode.h"
@@ -26,13 +25,13 @@
 #include "chainerx/kernels/linalg.h"
 #include "chainerx/kernels/rnn.h"
 #include "chainerx/macro.h"
-#include "chainerx/routines/misc.h"
 #include "chainerx/routines/activation.h"
 #include "chainerx/routines/connection.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/hyperbolic.h"
 #include "chainerx/routines/linalg.h"
 #include "chainerx/routines/manipulation.h"
+#include "chainerx/routines/misc.h"
 #include "chainerx/routines/reduction.h"
 #include "chainerx/routines/type_util.h"
 namespace chainerx {
@@ -53,9 +52,14 @@ Array _stack_weight(const std::vector<Array>& ws) {
 }
 
 std::vector<Array> _gru(
-        Array& x, Array& h, const absl::optional<Array>& c, const std::vector<Array>& ws, const std::vector<Array>& bs, absl::optional<std::string> activation) {
+        const Array& x,
+        const Array& h,
+        const absl::optional<Array>& c,
+        const std::vector<Array>& ws,
+        const std::vector<Array>& bs,
+        absl::optional<std::string> activation) {
     activation.has_value();
-    c.has_value();  
+    c.has_value();
     Array xw = Concatenate({ws[0], ws[1], ws[2]}, 0);
     Array hw = Concatenate({ws[3], ws[4], ws[5]}, 0);
     Array xb = Concatenate({bs[0], bs[1], bs[2]}, 0);
@@ -70,7 +74,7 @@ std::vector<Array> _gru(
     Array r = Sigmoid(r_prev);
     Array z_prev = split_w[1] + split_h[1];
     Array z = Sigmoid(z_prev);
-        Array h_bar_prev = split_w[2] + r * split_h[2];
+    Array h_bar_prev = split_w[2] + r * split_h[2];
     Array h_bar = Tanh(h_bar_prev);
     std::vector<Array> out{};
     out.reserve(1);
@@ -80,8 +84,13 @@ std::vector<Array> _gru(
 }
 
 std::vector<Array> _lstm(
-        const Array& x, const Array& h, const absl::optional<Array>& c, const std::vector<Array>& ws, const std::vector<Array>& bs, absl::optional<std::string> activation) {
-	activation.has_value();
+        const Array& x,
+        const Array& h,
+        const absl::optional<Array>& c,
+        const std::vector<Array>& ws,
+        const std::vector<Array>& bs,
+        absl::optional<std::string> activation) {
+    activation.has_value();
     std::vector<Array> ws_0_4{ws[2], ws[0], ws[1], ws[3]};
     Array xw = _stack_weight(ws_0_4);
     std::vector<Array> ws_5_8{ws[6], ws[4], ws[5], ws[7]};
@@ -99,33 +108,43 @@ std::vector<Array> _lstm(
 }
 
 std::vector<Array> _rnn(
-		Array& x, Array& h, const absl::optional<Array>& c, const std::vector<Array>& ws, const std::vector<Array>& bs, absl::optional<std::string> activation) {
+        const Array& x,
+        const Array& h,
+        const absl::optional<Array>& c,
+        const std::vector<Array>& ws,
+        const std::vector<Array>& bs,
+        absl::optional<std::string> activation) {
     c.has_value();
-    
     Array xw = ws[0];
-	Array hw = ws[1];
+    Array hw = ws[1];
 
-	Array xb = bs[0];
-	Array hb = bs[1];
-    
+    Array xb = bs[0];
+    Array hb = bs[1];
+
     Array rnn_in_1 = Linear(x, xw, xb);
     Array rnn_in_2 = Linear(h, hw, hb);
-	Array rnn_in =  rnn_in_1 + rnn_in_2;
-	std::vector<Array> out{};
-	out.reserve(1);
+    Array rnn_in = rnn_in_1 + rnn_in_2;
+    std::vector<Array> out{};
+    out.reserve(1);
     Array rnn_act;
-	if (*activation == "tanh") {
+    if (*activation == "tanh") {
         rnn_act = Tanh(rnn_in);
-	} else {
+    } else {
         rnn_act = Relu(rnn_in);
-	}
+    }
     out.push_back(rnn_act);
-	return out;
+    return out;
 }
 
 template <typename Impl>
 std::vector<std::vector<Array>> _one_directional_loop(
-        Impl&& impl, std::vector<Array>& xs, Array h, absl::optional<Array> c, const std::vector<Array>& ws, const std::vector<Array>& b, absl::optional<std::string> activation) {
+        Impl&& impl,
+        std::vector<Array>& xs,
+        Array h,
+        absl::optional<Array> c,
+        const std::vector<Array>& ws,
+        const std::vector<Array>& b,
+        absl::optional<std::string> activation) {
     Shape h_shape{h.shape()[1], h.shape()[2]};
     h = Reshape(h, h_shape);
     if (c.has_value()) {
@@ -192,7 +211,8 @@ std::vector<std::vector<Array>> n_step_rnn_impl(
         std::shared_ptr<RnnGradState> state{};
         {
             NoBackpropModeScope scope{};
-            std::tie(out, state) = hx.device().backend().CallKernel<RnnKernel>(n_layers, hx, cx, ws, bs, xs, use_bidirection, mode, activation);
+            std::tie(out, state) =
+                    hx.device().backend().CallKernel<RnnKernel>(n_layers, hx, cx, ws, bs, xs, use_bidirection, mode, activation);
         }
         {
             std::vector<ConstArrayRef> inp;
@@ -459,8 +479,8 @@ std::vector<std::vector<Array>> n_step_rnn(
         const std::vector<std::vector<Array>>& bs,
         std::vector<Array>& xs,
         absl::optional<std::string> activation) {
-	hx.device().CheckDevicesCompatible(hx, ws[0][0], bs[0][0], xs[0]);
-	return n_step_rnn_impl(&_rnn, n_layers, hx, absl::nullopt, ws, bs, xs, 0, 2, activation);
+    hx.device().CheckDevicesCompatible(hx, ws[0][0], bs[0][0], xs[0]);
+    return n_step_rnn_impl(&_rnn, n_layers, hx, absl::nullopt, ws, bs, xs, 0, 2, activation);
 }
 
 std::vector<std::vector<Array>> n_step_birnn(
@@ -470,8 +490,8 @@ std::vector<std::vector<Array>> n_step_birnn(
         const std::vector<std::vector<Array>>& bs,
         std::vector<Array>& xs,
         absl::optional<std::string> activation) {
-	hx.device().CheckDevicesCompatible(hx, ws[0][0], bs[0][0], xs[0]);
-	return n_step_rnn_impl(&_rnn, n_layers, hx, absl::nullopt, ws, bs, xs, 1, 2, activation);
+    hx.device().CheckDevicesCompatible(hx, ws[0][0], bs[0][0], xs[0]);
+    return n_step_rnn_impl(&_rnn, n_layers, hx, absl::nullopt, ws, bs, xs, 1, 2, activation);
 }
 
 }  // namespace chainerx

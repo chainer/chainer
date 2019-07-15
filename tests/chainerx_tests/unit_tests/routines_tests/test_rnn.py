@@ -217,9 +217,13 @@ class TestNStepBiLstm(op_utils.ChainerOpTest):
         chainer.testing.from_pytest_parameterize(
             'n_layers,hidden_size,input_size,batches,activation', [
                 (2, 2, 1, (1, 1, 1), "tanh"),
+                (2, 2, 1, (1, 1, 1), "relu"),
+                (2, 2, 3, (3, 2, 1), "tanh"),
                 (2, 2, 3, (3, 2, 1), "relu"),
-                (3, 8, 4, (4, 2, 1), "tanh"),
-                (4, 6, 4, (4, 3, 2), "relu"),
+                (3, 4, 4, (4, 2, 1), "tanh"),
+                (3, 4, 4, (4, 2, 1), "relu"),
+                (4, 5, 4, (4, 3, 2), "tanh"),
+                (4, 5, 4, (4, 3, 2), "relu"),
 
             ]),
         chainer.testing.from_pytest_parameterize(
@@ -283,7 +287,8 @@ class TestNStepRNN(op_utils.ChainerOpTest):
 
     def forward_chainerx(self, inputs):
         h, ws, bs, xs = self.process_input(inputs)
-        out = chainerx.n_step_rnn(self.n_layers, h, ws, bs, xs, self.activation)
+        out = chainerx.n_step_rnn(
+            self.n_layers, h, ws, bs, xs, self.activation)
         rets = []
         rets.append(out[0][0])
         for i in range(len(out[1])):
@@ -308,8 +313,12 @@ class TestNStepRNN(op_utils.ChainerOpTest):
         chainer.testing.from_pytest_parameterize(
             'n_layers,hidden_size,input_size,batches,activation', [
                 (2, 2, 1, (1, 1, 1), "tanh"),
+                (2, 2, 1, (1, 1, 1), "relu"),
+                (2, 2, 3, (3, 2, 1), "tanh"),
                 (2, 2, 3, (3, 2, 1), "relu"),
                 (3, 4, 4, (4, 2, 1), "tanh"),
+                (3, 4, 4, (4, 2, 1), "relu"),
+                (4, 5, 4, (4, 3, 2), "tanh"),
                 (4, 5, 4, (4, 3, 2), "relu"),
 
             ]),
@@ -382,7 +391,8 @@ class TestNStepBiRNN(op_utils.ChainerOpTest):
 
     def forward_chainerx(self, inputs):
         h, ws, bs, xs = self.process_input(inputs)
-        out = chainerx.n_step_birnn(self.n_layers, h, ws, bs, xs, self.activation)
+        out = chainerx.n_step_birnn(
+            self.n_layers, h, ws, bs, xs, self.activation)
         rets = []
         rets.append(out[0][0])
         for i in range(len(out[1])):
@@ -399,6 +409,7 @@ class TestNStepBiRNN(op_utils.ChainerOpTest):
             rets.append(out[1][i])
 
         return tuple(rets)
+
 
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
