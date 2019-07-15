@@ -1,7 +1,7 @@
 import chainer
-from chainer import variable
-from chainer import link_hook
 import chainer.functions as F
+from chainer import link_hook
+from chainer import variable
 
 
 def optimized_temp_SNNL(x, y, initial_temp, cos_distance):

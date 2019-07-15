@@ -1,22 +1,18 @@
 import unittest
 
-import mock
 import numpy
-import six
-  
-import chainer
+
 from chainer.backends import cuda
 from chainer import functions as F
 from chainer import links as L
+from chainer import Sequential
 from chainer import testing
 from chainer.testing import attr
 
-from chainer import Sequential
 
 @testing.parameterize(*testing.product({
-    'link_names': [['0'], ['0','1'], None],
+    'link_names': [['0'], ['0', '1'], None],
 }))
-
 class TestClassifierSNNL(unittest.TestCase):
 
     def setUp(self):
@@ -24,7 +20,11 @@ class TestClassifierSNNL(unittest.TestCase):
         self.t = numpy.random.randint(3, size=10).astype(numpy.int32)
 
     def check_call(self, gpu):
-        predictor = Sequential(L.Linear(5, 15), F.relu, L.Linear(15,10), F.relu, L.Linear(10,3))
+        predictor = Sequential(L.Linear(5, 15),
+                               F.relu,
+                               L.Linear(15, 10),
+                               F.relu,
+                               L.Linear(10, 3))
         link = L.ClassifierSNNL(predictor, link_names=self.link_names)
 
         if gpu:
@@ -32,7 +32,6 @@ class TestClassifierSNNL(unittest.TestCase):
             link.to_gpu()
         else:
             xp = numpy
-
 
         snn_loss = link(self.x, self.t)
         hook_names = []
@@ -47,12 +46,15 @@ class TestClassifierSNNL(unittest.TestCase):
         self.assertIsNotNone(link.y)
 
         self.assertTrue(hasattr(link, 'loss'))
+        xp.testing.assert_allclose(link.snn_loss.data, snn_loss.data)
         xp.testing.assert_allclose(link.snn_loss.data, snn_loss_expected.data)
 
         if self.link_names is not None:
-             self.assertEqual(self.link_names, hook_names)
+            self.assertEqual(self.link_names, hook_names)
         else:
-             self.assertEqual([l.name for l in list(link.predictor.children())[:-1]] , hook_names)
+            self.assertEqual([l.name for l
+                              in list(link.predictor.children())[:-1]],
+                             hook_names)
 
     def test_call_cpu(self):
         self.check_call(
@@ -67,5 +69,6 @@ class TestClassifierSNNL(unittest.TestCase):
     def to_gpu(self):
         self.x = cuda.to_gpu(self.x)
         self.t = cuda.to_gpu(self.t)
+
 
 testing.run_module(__name__, __file__)
