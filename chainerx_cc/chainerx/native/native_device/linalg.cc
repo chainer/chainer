@@ -92,7 +92,7 @@ void SolveImpl(const Array& a, const Array& b, const Array& out) {
 
     Array lu_matrix = Empty(a.shape(), dtype, device);
     device.backend().CallKernel<CopyKernel>(a.Transpose(), lu_matrix);
-    T* lu_ptr = static_cast<T*>(internal::GetRawOffsetData(lu_matrix));
+    auto lu_ptr = static_cast<T*>(internal::GetRawOffsetData(lu_matrix));
 
     int64_t n = a.shape()[0];
     int64_t nrhs = 1;
@@ -101,10 +101,10 @@ void SolveImpl(const Array& a, const Array& b, const Array& out) {
     }
 
     Array ipiv = Empty(Shape{n}, Dtype::kInt32, device);
-    int* ipiv_ptr = static_cast<int*>(internal::GetRawOffsetData(ipiv));
+    auto ipiv_ptr = static_cast<int*>(internal::GetRawOffsetData(ipiv));
 
     Array out_transposed = b.Transpose().Copy();
-    T* out_ptr = static_cast<T*>(internal::GetRawOffsetData(out_transposed));
+    auto out_ptr = static_cast<T*>(internal::GetRawOffsetData(out_transposed));
 
     int info;
     Gesv(n, nrhs, lu_ptr, n, ipiv_ptr, out_ptr, n, &info);
@@ -122,12 +122,12 @@ void InverseImpl(const Array& a, const Array& out) {
     Dtype dtype = a.dtype();
 
     device.backend().CallKernel<CopyKernel>(a, out);
-    T* out_ptr = static_cast<T*>(internal::GetRawOffsetData(out));
+    auto out_ptr = static_cast<T*>(internal::GetRawOffsetData(out));
 
     int64_t n = a.shape()[0];
 
     Array ipiv = Empty(Shape{n}, Dtype::kInt32, device);
-    int* ipiv_ptr = static_cast<int*>(internal::GetRawOffsetData(ipiv));
+    auto ipiv_ptr = static_cast<int*>(internal::GetRawOffsetData(ipiv));
 
     int info;
     Getrf(n, n, out_ptr, n, ipiv_ptr, &info);
@@ -140,7 +140,7 @@ void InverseImpl(const Array& a, const Array& out) {
     Getri(n, out_ptr, n, ipiv_ptr, &work_size, buffersize, &info);
     buffersize = static_cast<int>(work_size);
     Array work = Empty(Shape{buffersize}, dtype, device);
-    T* work_ptr = static_cast<T*>(internal::GetRawOffsetData(work));
+    auto work_ptr = static_cast<T*>(internal::GetRawOffsetData(work));
 
     Getri(n, out_ptr, n, ipiv_ptr, work_ptr, buffersize, &info);
     if (info != 0) {

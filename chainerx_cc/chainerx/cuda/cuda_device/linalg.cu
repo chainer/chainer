@@ -121,7 +121,7 @@ void SolveImpl(const Array& a, const Array& b, const Array& out) {
 
     Array lu_matrix = Empty(a.shape(), dtype, device);
     device.backend().CallKernel<CopyKernel>(a.Transpose(), lu_matrix);
-    T* lu_ptr = static_cast<T*>(internal::GetRawOffsetData(lu_matrix));
+    auto lu_ptr = static_cast<T*>(internal::GetRawOffsetData(lu_matrix));
 
     int64_t m = a.shape()[0];
     int64_t nrhs = 1;
@@ -130,13 +130,13 @@ void SolveImpl(const Array& a, const Array& b, const Array& out) {
     }
 
     Array ipiv = Empty(Shape{m}, Dtype::kInt32, device);
-    int* ipiv_ptr = static_cast<int*>(internal::GetRawOffsetData(ipiv));
+    auto ipiv_ptr = static_cast<int*>(internal::GetRawOffsetData(ipiv));
 
     int buffersize = 0;
     device_internals.cusolverdn_handle().Call(GetrfBuffersize<T>, m, m, lu_ptr, m, &buffersize);
 
     Array work = Empty(Shape{buffersize}, dtype, device);
-    T* work_ptr = static_cast<T*>(internal::GetRawOffsetData(work));
+    auto work_ptr = static_cast<T*>(internal::GetRawOffsetData(work));
 
     std::shared_ptr<void> devinfo = device.Allocate(sizeof(int));
 
@@ -150,7 +150,7 @@ void SolveImpl(const Array& a, const Array& b, const Array& out) {
     }
 
     Array out_transposed = b.Transpose().Copy();
-    T* out_ptr = static_cast<T*>(internal::GetRawOffsetData(out_transposed));
+    auto out_ptr = static_cast<T*>(internal::GetRawOffsetData(out_transposed));
 
     device_internals.cusolverdn_handle().Call(
             Getrs<T>, CUBLAS_OP_N, m, nrhs, lu_ptr, m, ipiv_ptr, out_ptr, m, static_cast<int*>(devinfo.get()));
