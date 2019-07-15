@@ -8,19 +8,6 @@ from chainer import testing
 from chainer import utils
 
 
-def _skip_if(cond, reason):
-    """Skip test if cond(self) is True"""
-    def decorator(impl):
-        @functools.wraps(impl)
-        def wrapper(self, *args, **kwargs):
-            if cond(self):
-                raise unittest.SkipTest(reason)
-            else:
-                impl(self, *args, **kwargs)
-        return wrapper
-    return decorator
-
-
 @testing.parameterize(*testing.product([
     [
         {'ch_out': 1},
@@ -67,14 +54,15 @@ def _skip_if(cond, reason):
 )
 class TestStandardize(testing.FunctionTestCase):
 
-    # TODO(hitsgub): Delete this line once double backward of
-    # :func:`~chainer.functions._standardize` is implemented.
-    skip_double_backward_test = True
-
     def setUp(self):
-        self.check_forward_options.update({'atol': 5e-3, 'rtol': 1e-2})
-        self.check_backward_options.update({'atol': 5e-3, 'rtol': 1e-2})
-        self.check_double_backward_options.update({'atol': 5e-3, 'rtol': 1e-2})
+        if self.dtype == numpy.float16:
+            self.check_forward_options.update({'atol': 2e-3, 'rtol': 2e-3})
+            self.check_backward_options.update({'atol': 5e-3, 'rtol': 1e-2})
+            self.check_double_backward_options.update({'atol': 5e-3, 'rtol': 1e-2})
+        if self.same in ('equal', 'near'):
+            self.check_backward_options.update({
+                'atol': 1e-2, 'rtol': 1e-2, 'eps': 1e-4})
+            self.skip_double_backward_test = True
 
     def generate_inputs(self):
         shape = self.ch_out, self.size
