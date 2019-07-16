@@ -31,10 +31,7 @@ def _soft_nearest_neighbor_loss(x, y, temp):
         x_same = x[y == y0]
         numer = _pick(x_same, x0, temp)
         denom = _pick(x, x0, temp)
-        if len(x_same) == 1:
-            snnl_sum += -numpy.log(STABILITY_EPS)
-        else:
-            snnl_sum += -numpy.log(numer / (denom + STABILITY_EPS))
+        snnl_sum += -numpy.log(numer / (denom + STABILITY_EPS) + STABILITY_EPS)
 
     return snnl_sum / batch
 
