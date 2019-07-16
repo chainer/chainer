@@ -98,23 +98,29 @@ def test_dot_invalid(is_module, xp, device, a_shape, b_shape, dtype):
 class NumpyLinalgOpTest(op_utils.NumpyOpTest):
 
     dodge_nondifferentiable = True
+    forward_accept_errors = (TypeError,
+                            chainerx.DtypeError)
 
-    def setup(self):
+    def setup(self, float_dtype):
         device = chainerx.get_default_device()
         if (device.backend.name == 'native'
                 and not chainerx.linalg._is_lapack_available()):
             pytest.skip('LAPACK is not linked to ChainerX')
         self.check_backward_options.update({'rtol': 5e-3})
         self.check_double_backward_options.update({'rtol': 5e-3})
+        self.dtype = float_dtype
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
     chainer.testing.product({
         'shape': [(1, 1), (2, 3), (3, 2), (6, 6)],
-        'in_dtypes': ['float32', 'float64'],
-        'full_matrices': [True, False],
-        'compute_uv': [True, False],
+        'full_matrices': [False],
+        'compute_uv': [True]
+    }) + chainer.testing.product({
+        'shape': [(1, 1), (2, 3), (3, 2), (6, 6)],
+        'full_matrices': [True],
+        'compute_uv': [False],
         'skip_backward_test': [True],
         'skip_double_backward_test': [True],
     })
@@ -122,7 +128,7 @@ class NumpyLinalgOpTest(op_utils.NumpyOpTest):
 class TestSVD(NumpyLinalgOpTest):
 
     def generate_inputs(self):
-        a = numpy.random.random(self.shape).astype(self.in_dtypes)
+        a = numpy.random.random(self.shape).astype(self.dtype)
         return a,
 
     def forward_xp(self, inputs, xp):
@@ -147,14 +153,13 @@ class TestSVD(NumpyLinalgOpTest):
 @chainer.testing.parameterize(*(
     chainer.testing.product({
         'shape': [(1, 1), (2, 3), (3, 2), (6, 6)],
-        'rcond': [1e-15, 1e-9, 1e-6, 1e-3],
-        'in_dtypes': ['float32', 'float64']
+        'rcond': [1e-15, 1e-9, 1e-6, 1e-3]
     })
 ))
 class TestPseudoInverse(NumpyLinalgOpTest):
 
     def generate_inputs(self):
-        a = numpy.random.random(self.shape).astype(self.in_dtypes)
+        a = numpy.random.random(self.shape).astype(self.dtype)
         return a,
 
     def forward_xp(self, inputs, xp):
@@ -167,8 +172,7 @@ class TestPseudoInverse(NumpyLinalgOpTest):
 @chainer.testing.parameterize(*(
     chainer.testing.product({
         'shape': [(), ],
-        'rcond': [1e-15, 1e-9, 1e-6, 1e-3],
-        'in_dtypes': ['float32', 'float64']
+        'rcond': [1e-15, 1e-9, 1e-6, 1e-3]
     })
 ))
 class TestPseudoInverseFailing(NumpyLinalgOpTest):
@@ -178,7 +182,7 @@ class TestPseudoInverseFailing(NumpyLinalgOpTest):
                              chainerx.DimensionError)
 
     def generate_inputs(self):
-        a = numpy.random.random(self.shape).astype(self.in_dtypes)
+        a = numpy.random.random(self.shape).astype(self.dtype)
         return a,
 
     def forward_xp(self, inputs, xp):

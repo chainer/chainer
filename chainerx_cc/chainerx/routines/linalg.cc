@@ -21,6 +21,7 @@
 #include "chainerx/kernels/linalg.h"
 #include "chainerx/routines/arithmetic.h"
 #include "chainerx/routines/creation.h"
+#include "chainerx/routines/indexing.h"
 #include "chainerx/routines/manipulation.h"
 #include "chainerx/routines/type_util.h"
 #include "chainerx/shape.h"
@@ -121,27 +122,30 @@ std::tuple<Array, Array, Array> SVD(const Array& a, bool full_matrices, bool com
         if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
             bt.Define([a_tok = bb.RetainInput(0), u_tok = bb.RetainOutput(0), s_tok = bb.RetainOutput(1), v_tok = bb.RetainOutput(2), full_matrices, compute_uv](
                               BackwardContext& bctx) {
+                if (full_matrices) {
+                    throw ChainerxError{"ChainerX SVD differentiation is not implemented for full_matrices=true."};
+                }
+                if (!compute_uv) {
+                    throw ChainerxError{"ChainerX SVD differentiation cannot be computed with compute_uv=false."};
+                }
+
                 const Array& a = bctx.GetRetainedInput(a_tok);
                 const Array& u = bctx.GetRetainedOutput(u_tok);
                 const Array& s = bctx.GetRetainedOutput(s_tok);
-                const Array& v = bctx.GetRetainedOutput(v_tok);
+                const Array& vt = bctx.GetRetainedOutput(v_tok);
 
                 auto m = a.shape()[0];
                 auto n = a.shape()[1];
-                // auto k = s.shape()[0];
+                auto k = s.shape()[0];
 
                 const Array& gu = bctx.output_grad(0).has_value() ? *bctx.output_grad(0) : Zeros(u.shape(), a.dtype(), a.device());
                 const Array& gsigma = bctx.output_grad(1).has_value() ? *bctx.output_grad(1) : Zeros(s.shape(), a.dtype(), a.device());
-                const Array& gv = bctx.output_grad(2).has_value() ? *bctx.output_grad(2) : Zeros(v.shape(), a.dtype(), a.device());
+                const Array& gvt = bctx.output_grad(2).has_value() ? *bctx.output_grad(2) : Zeros(vt.shape(), a.dtype(), a.device());
 
-                const Array& vt = v.Transpose();
+                auto v = vt.Transpose();
+                auto gv = gvt.Transpose();
 
-                Array sigma_term{};
-                if (bctx.output_grad(1).has_value()) {
-                    sigma_term = Dot(Dot(u, Diag(gsigma)), vt);
-                } else {
-                    sigma_term = Zeros(s.shape(), a.dtype(), a.device());
-                }
+                auto sigma_term = Dot(Dot(u, Diag(gsigma)), vt);
 
                 auto ut = u.Transpose();
                 auto im = Eye(m, m, 0, a.dtype(), a.device());
@@ -152,9 +156,27 @@ std::tuple<Array, Array, Array> SVD(const Array& a, bool full_matrices, bool com
                 auto F = ExpandDims(sigma_sq, 0) - ExpandDims(sigma_sq, 1);
                 // Invert values of F, and fill the diagonal with 0s.
                 // F has 0s on the diagonal, therefore fill it first with infinity.
-                // F.FillDiagonal(INFINITY);
+                auto mask = Eye(F.shape()[0], F.shape()[1], 0, Dtype::kBool, a.device());
+                F = Where(mask, INFINITY, F);
                 F = Power(F, -1);
 
+                Array u_term{};
+                Array utgu = Dot(u.Transpose(), gu);
+                u_term = Dot(Dot(u, F*(utgu - utgu.Transpose())), sigma_mat);
+                if (m > k) {
+                    u_term = u_term + Dot(Dot(im - Dot(u, ut), gu), sigma_mat_inv);
+                }
+                u_term = Dot(u_term, vt);
+
+                Array v_term{};
+                Array vtgv = Dot(vt, gv);
+                v_term = Dot(Dot(sigma_mat, F*(vtgv - vtgv.Transpose())), vt);
+                if (n > k) {
+                    v_term = v_term + Dot(sigma_mat_inv, Dot(gvt, in - Dot(v, vt)));
+                }
+                v_term = Dot(u, v_term);
+
+                bctx.input_grad() = u_term + sigma_term + v_term;
             });
         }
         bb.Finalize();
