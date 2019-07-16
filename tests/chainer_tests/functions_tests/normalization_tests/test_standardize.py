@@ -53,7 +53,7 @@ class TestStandardize(testing.FunctionTestCase):
 
     def setUp(self):
         if self.dtype == numpy.float16:
-            self.check_forward_options.update({'atol': 2e-3, 'rtol': 2e-3})
+            self.check_forward_options.update({'atol': 5e-3, 'rtol': 2e-3})
             self.check_backward_options.update({'atol': 5e-3, 'rtol': 1e-2})
             self.check_double_backward_options.update({
                 'atol': 5e-3, 'rtol': 1e-2})
