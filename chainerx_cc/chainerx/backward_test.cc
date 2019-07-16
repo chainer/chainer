@@ -8,8 +8,8 @@
 #include <utility>
 #include <vector>
 
+#include <absl/types/optional.h>
 #include <gtest/gtest.h>
-#include <nonstd/optional.hpp>
 
 #include "chainerx/array.h"
 #include "chainerx/array_body_leak_detection.h"
@@ -197,7 +197,7 @@ public:
     }
 
 private:
-    nonstd::optional<testing::DeviceSession> device_session_;
+    absl::optional<testing::DeviceSession> device_session_;
 };
 
 TEST_F(BackpropTest, CreateAndReleaseSingleBackpropId) {
@@ -370,7 +370,7 @@ TEST_F(BackpropTest, BackwardSoleArrayNode) {
 TEST_F(BackpropTest, DoubleBackprop) {
     auto fprop = [](auto& xs, auto& ys) {
         auto z = xs[0] * (xs[0] + ys[0]);
-        Backward(z, nonstd::nullopt, DoubleBackpropOption::kEnable);
+        Backward(z, absl::nullopt, DoubleBackpropOption::kEnable);
         auto gx = *xs[0].GetGrad();  // 2x + y
         xs[0].ClearGrad();
         return gx;
@@ -909,7 +909,7 @@ TEST_F(BackpropTest, SomeOfOutputArrayNodesAreGone) {
         forward(x, y1, y2, y3, y4);
         z1 = y1.MakeView();
     }
-    Backward(z1, nonstd::nullopt);
+    Backward(z1, absl::nullopt);
 
     Array expected_x_grad = x_value * Exp(x_value);
     EXPECT_ARRAY_ALL_CLOSE(expected_x_grad, *x.GetGrad(), 1e-5, 1e-8);
@@ -1014,7 +1014,7 @@ TEST_F(BackpropTest, GradWithSingleArrayNode) {
 
     x1.SetGrad(x1_initial_grad, backprop_id_1);
 
-    std::vector<nonstd::optional<Array>> grads = Grad({x1}, {x1}, backprop_id_1);
+    std::vector<absl::optional<Array>> grads = Grad({x1}, {x1}, backprop_id_1);
 
     EXPECT_TRUE(x1.IsGradRequired(backprop_id_1));
 
@@ -1031,7 +1031,7 @@ TEST_F(BackpropTest, GradWithSingleArrayNodeNoRequiresGrad) {
 
     Array x1 = Full({1}, 2.0f);
 
-    std::vector<nonstd::optional<Array>> grads = Grad({x1}, {x1}, backprop_id_1);
+    std::vector<absl::optional<Array>> grads = Grad({x1}, {x1}, backprop_id_1);
     ASSERT_EQ(1U, grads.size());
     ASSERT_FALSE(grads[0].has_value());
 }
@@ -1048,7 +1048,7 @@ TEST_F(BackpropTest, GradOnlyRequiresGrad) {
 
     Array y = x1 * x2;
 
-    std::vector<nonstd::optional<Array>> grads = Grad({y}, {x1}, backprop_id_1);
+    std::vector<absl::optional<Array>> grads = Grad({y}, {x1}, backprop_id_1);
 
     EXPECT_TRUE(x1.IsGradRequired(backprop_id_1));
     EXPECT_FALSE(x2.IsGradRequired(backprop_id_1));
@@ -1072,7 +1072,7 @@ TEST_F(BackpropTest, GradMixedRequiresGrad) {
 
     Array y = x1 * x2;
 
-    std::vector<nonstd::optional<Array>> grads = Grad({y}, {x1, x2}, backprop_id_1);
+    std::vector<absl::optional<Array>> grads = Grad({y}, {x1, x2}, backprop_id_1);
 
     EXPECT_TRUE(x1.IsGradRequired(backprop_id_1));
     EXPECT_FALSE(x2.IsGradRequired(backprop_id_1));
@@ -1099,7 +1099,7 @@ TEST_F(BackpropTest, GradOnlyRequiresGradButSpecifySubset) {
 
     Array y = x1 * x2;
 
-    std::vector<nonstd::optional<Array>> grads = Grad({y}, {x1}, backprop_id_1);
+    std::vector<absl::optional<Array>> grads = Grad({y}, {x1}, backprop_id_1);
 
     EXPECT_TRUE(x1.IsGradRequired(backprop_id_1));
     EXPECT_TRUE(x2.IsGradRequired(backprop_id_1));
@@ -1124,7 +1124,7 @@ TEST_F(BackpropTest, GradMultipleSameInputs) {
 
     Array y = x1 * x1 * x2;
 
-    std::vector<nonstd::optional<Array>> grads = Grad({y}, {x1}, backprop_id_1);
+    std::vector<absl::optional<Array>> grads = Grad({y}, {x1}, backprop_id_1);
 
     EXPECT_TRUE(x1.IsGradRequired(backprop_id_1));
     EXPECT_FALSE(x2.IsGradRequired(backprop_id_1));
@@ -1150,7 +1150,7 @@ TEST_F(BackpropTest, GradMultipleSameInputToDifferentOpNodes) {
 
     Array y = x1 * x2 * x1 * x2;
 
-    std::vector<nonstd::optional<Array>> grads = Grad({y}, {x1, x2}, backprop_id_1);
+    std::vector<absl::optional<Array>> grads = Grad({y}, {x1, x2}, backprop_id_1);
 
     EXPECT_TRUE(x1.IsGradRequired(backprop_id_1));
     EXPECT_TRUE(x2.IsGradRequired(backprop_id_1));
@@ -1177,7 +1177,7 @@ TEST_F(BackpropTest, GradNoInputs) {
 
     Array y = x1 * x2;
 
-    std::vector<nonstd::optional<Array>> grads = Grad({y}, {}, backprop_id_1);
+    std::vector<absl::optional<Array>> grads = Grad({y}, {}, backprop_id_1);
 
     EXPECT_TRUE(x1.IsGradRequired(backprop_id_1));
     EXPECT_FALSE(x2.IsGradRequired(backprop_id_1));
@@ -1199,7 +1199,7 @@ TEST_F(BackpropTest, GradNoOutputs) {
 
     Array y = x1 * x2;
 
-    std::vector<nonstd::optional<Array>> grads = Grad({}, {x1, x2}, backprop_id_1);
+    std::vector<absl::optional<Array>> grads = Grad({}, {x1, x2}, backprop_id_1);
 
     EXPECT_TRUE(x1.IsGradRequired(backprop_id_1));
     EXPECT_FALSE(x2.IsGradRequired(backprop_id_1));
@@ -1228,7 +1228,7 @@ TEST_F(BackpropTest, GradDisjointInputs) {
 
     Array y = x1 * x2;
 
-    std::vector<nonstd::optional<Array>> grads = Grad({y}, {x1, x2, x3}, backprop_id_1);
+    std::vector<absl::optional<Array>> grads = Grad({y}, {x1, x2, x3}, backprop_id_1);
 
     EXPECT_TRUE(x1.IsGradRequired(backprop_id_1));
     EXPECT_TRUE(x2.IsGradRequired(backprop_id_1));
@@ -1268,7 +1268,7 @@ TEST_F(BackpropTest, GradNonTrivialGraph) {
     Array z1 = y1 * 2;
     Array z2 = y2 / y3;
 
-    std::vector<nonstd::optional<Array>> grads = Grad({z1, z2}, {x2, x3}, backprop_id_1);
+    std::vector<absl::optional<Array>> grads = Grad({z1, z2}, {x2, x3}, backprop_id_1);
 
     EXPECT_TRUE(x1.IsGradRequired(backprop_id_1));
     EXPECT_TRUE(x2.IsGradRequired(backprop_id_1));
@@ -1301,7 +1301,7 @@ TEST_F(BackpropTest, GradFromIntermediate) {
     Array y1 = x1 * x2;
     Array z1 = y1 * x1;
 
-    std::vector<nonstd::optional<Array>> grads = Grad({y1}, {x1, x2}, backprop_id_1);
+    std::vector<absl::optional<Array>> grads = Grad({y1}, {x1, x2}, backprop_id_1);
 
     EXPECT_TRUE(x1.IsGradRequired(backprop_id_1));
     EXPECT_TRUE(x2.IsGradRequired(backprop_id_1));
@@ -1342,7 +1342,7 @@ TEST_F(BackpropTest, GradSomeOutputsOmitted) {
     y1.SetGrad(FullLike(y1, 2), backprop_id_1);
     y2.SetGrad(FullLike(y2, 3), backprop_id_1);
 
-    std::vector<nonstd::optional<Array>> grads = Grad({y2}, {x1}, backprop_id_1);
+    std::vector<absl::optional<Array>> grads = Grad({y2}, {x1}, backprop_id_1);
 
     EXPECT_EQ(grads.size(), 1U);
     EXPECT_TRUE(grads.at(0).has_value());
@@ -1364,7 +1364,7 @@ TEST_F(BackpropTest, GradDoubleBackwardWithBackward) {
 
     Array y = x1 * x2 * x1 * x2;
 
-    std::vector<nonstd::optional<Array>> grads = Grad({y}, {x1, x2}, backprop_id_1, DoubleBackpropOption::kEnable);
+    std::vector<absl::optional<Array>> grads = Grad({y}, {x1, x2}, backprop_id_1, DoubleBackpropOption::kEnable);
 
     EXPECT_TRUE(x1.IsGradRequired(backprop_id_1));
     EXPECT_TRUE(x2.IsGradRequired(backprop_id_1));
@@ -1832,8 +1832,8 @@ TEST_P(BackpropFunctionTest, SomeOutputGradsAreAbsentWhileArrayNodesAreAlive) {
                 EXPECT_FALSE(bctx.HasOutputGrad(0));
                 EXPECT_TRUE(bctx.HasOutputGrad(1));
 
-                const nonstd::optional<Array>& gy1 = bctx.output_grad(0);
-                const nonstd::optional<Array>& gy2 = bctx.output_grad(1);
+                const absl::optional<Array>& gy1 = bctx.output_grad(0);
+                const absl::optional<Array>& gy2 = bctx.output_grad(1);
                 EXPECT_FALSE(gy1.has_value());
                 EXPECT_TRUE(gy2.has_value());
                 EXPECT_ARRAY_EQ(gy2_value, *gy2);

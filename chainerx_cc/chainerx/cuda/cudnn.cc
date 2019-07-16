@@ -1,7 +1,7 @@
 #include "chainerx/cuda/cudnn.h"
 
+#include <absl/types/optional.h>
 #include <cudnn.h>
-#include <nonstd/optional.hpp>
 
 #include "chainerx/array.h"
 #include "chainerx/cuda/cuda_runtime.h"
@@ -156,7 +156,7 @@ CudnnConvolutionDescriptor::~CudnnConvolutionDescriptor() {
 }
 
 CudnnConvolutionDescriptor::CudnnConvolutionDescriptor(
-        Dtype dtype, const Dims& pad, const Dims& stride, const nonstd::optional<Dims>& dilation, int groups)
+        Dtype dtype, const Dims& pad, const Dims& stride, const absl::optional<Dims>& dilation, int groups)
     : CudnnConvolutionDescriptor{} {
     size_t ndim = pad.size();
     CHAINERX_ASSERT(ndim == stride.size());

@@ -9,6 +9,7 @@ add_library(chainerx_routines STATIC
     indexing.cc
     linalg.cc
     logic.cc
+    loss.cc
     manipulation.cc
     misc.cc
     normalization.cc
@@ -32,6 +33,7 @@ install(FILES
     indexing.h
     linalg.h
     logic.h
+    loss.h
     manipulation.h
     misc.h
     normalization.h

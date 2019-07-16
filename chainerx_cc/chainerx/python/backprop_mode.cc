@@ -5,7 +5,7 @@
 #include <utility>
 #include <vector>
 
-#include <nonstd/optional.hpp>
+#include <absl/types/optional.h>
 
 #include "chainerx/backprop_mode.h"
 #include "chainerx/context.h"
@@ -46,7 +46,7 @@ private:
     // optional requires having copy ctor, so use unique_ptr instead
     std::unique_ptr<BackpropModeScope> scope_;
     Context* context_{nullptr};
-    nonstd::optional<std::vector<BackpropId>> backprop_ids_{};
+    absl::optional<std::vector<BackpropId>> backprop_ids_{};
 };
 
 template <class BackpropModeScope>

@@ -125,7 +125,7 @@ class DaliConverter(object):
     def __call__(self, inputs, device=None):
         """Convert DALI arrays to Numpy/CuPy arrays"""
 
-        xp = cuda.get_array_module(self.perturbation)
+        xp = chainer.backend.get_array_module(self.perturbation)
         if xp is not cuda.cupy:
             self.perturbation = cuda.to_gpu(self.perturbation, device)
 
