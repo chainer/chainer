@@ -102,7 +102,6 @@ def same_label_mask(y, y2, xp):
     :returns: A tensor for the masking matrix.
     """
     return xp.squeeze(xp.equal(y, xp.expand_dims(y2, 1)))
-#    return xp.squeeze(xp.equal(y.data, xp.expand_dims(y2.data, 1)))
 
 
 def masked_pick_probability(x, y, temp, cos_distance):
@@ -135,9 +134,5 @@ def soft_nearest_neighbor_loss(x, y, temp, cos_distance):
     F = chainer.functions
     summed_masked_pick_prob = F.sum(
         masked_pick_probability(x, y, temp, cos_distance), 1)
-#    tmp = np.log(STABILITY_EPS + summed_masked_pick_prob.data)
-#    if np.isnan(tmp).any():
-#        print(summed_masked_pick_prob)
-#        exit(1)
     return F.mean(
         -F.log(STABILITY_EPS + summed_masked_pick_prob))
