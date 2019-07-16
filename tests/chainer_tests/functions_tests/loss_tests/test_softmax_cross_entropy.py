@@ -585,6 +585,7 @@ class BaseSoftTarget(object):
     'shape': [(3,), (3, 2), (3, 2, 2)],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'reduce': ['mean', 'no'],
+    'soft_target_loss': ['cross-entropy', 'kl-divergence'],
 })))
 class TestSoftTargetCompareToHard(BaseSoftTarget, unittest.TestCase):
 
@@ -603,8 +604,9 @@ class TestSoftTargetCompareToHard(BaseSoftTarget, unittest.TestCase):
         x = xp.asarray(self.x)
         t = xp.asarray(self.t)
         loss = functions.softmax_cross_entropy(x, t, reduce=self.reduce)
-        expect = functions.softmax_cross_entropy(x, xp.asarray(self.t_hard),
-                                                 reduce=self.reduce)
+        expect = functions.softmax_cross_entropy(
+            x, xp.asarray(self.t_hard), reduce=self.reduce,
+            soft_target_loss=self.soft_target_loss)
         testing.assert_allclose(loss.data, expect.data,
                                 **self.check_forward_options)
 
@@ -614,6 +616,7 @@ class TestSoftTargetCompareToHard(BaseSoftTarget, unittest.TestCase):
     'shape': [(3,), (3, 2), (3, 2, 2)],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'reduce': ['mean', 'no'],
+    'soft_target_loss': ['cross-entropy', 'kl-divergence'],
 })))
 class TestSoftTargetExpectNearZero(BaseSoftTarget, unittest.TestCase):
 
@@ -624,7 +627,8 @@ class TestSoftTargetExpectNearZero(BaseSoftTarget, unittest.TestCase):
     def check_forward(self, xp):
         x = xp.asarray(self.x)
         t = xp.asarray(self.t)
-        loss = functions.softmax_cross_entropy(x, t, reduce=self.reduce)
+        loss = functions.softmax_cross_entropy(
+            x, t, reduce=self.reduce, soft_target_loss=self.soft_target_loss)
         if self.reduce == 'mean':
             expect = 0.
         else:
