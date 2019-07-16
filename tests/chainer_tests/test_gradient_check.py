@@ -783,6 +783,36 @@ class TestCheckBackwardFailure(unittest.TestCase):
         with self.assertRaises(ValueError):
             gradient_check.check_backward(f, x, gy)
 
+    def check_fail_invalid_value_in_forward_output(self, value):
+
+        class Broken(chainer.FunctionNode):
+            def forward(self, inputs):
+                x, = inputs
+                y1 = x + x
+                y2 = x * x
+                y2.ravel()[y2.size // 2] = value
+                return y1, y2
+
+            def backward(self, indexes, grad_outputs):
+                assert False  # never called
+
+        x = numpy.random.uniform(-1, 1, (2, 3)).astype(numpy.float32)
+        gy = numpy.random.uniform(-1, 1, (2, 3)).astype(numpy.float32)
+
+        def f(x):
+            return Broken().apply((x,))
+
+        with self.assertRaises(ValueError):
+            gradient_check.check_backward(f, x, gy)
+
+    def test_fail_forward_output_with_nan(self):
+        # NaN in forward output should not be allowed.
+        self.check_fail_invalid_value_in_forward_output(numpy.nan)
+
+    def test_fail_forward_output_with_inf(self):
+        # inf in forward output should not be allowed.
+        self.check_fail_invalid_value_in_forward_output(numpy.inf)
+
 
 class NewIdent(chainer.FunctionNode):
 
