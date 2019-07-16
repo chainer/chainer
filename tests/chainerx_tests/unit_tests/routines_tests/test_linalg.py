@@ -98,6 +98,8 @@ def test_dot_invalid(is_module, xp, device, a_shape, b_shape, dtype):
 class NumpyLinalgOpTest(op_utils.NumpyOpTest):
 
     dodge_nondifferentiable = True
+    forward_accept_errors = (TypeError,
+                             chainerx.DtypeError)
 
     def setup(self, float_dtype):
         device = chainerx.get_default_device()
@@ -115,9 +117,6 @@ class NumpyLinalgOpTest(op_utils.NumpyOpTest):
     })
 ))
 class TestSolve(NumpyLinalgOpTest):
-
-    forward_accept_errors = (TypeError,
-                             chainerx.DtypeError)
 
     def generate_inputs(self):
         a = numpy.random.random(self.shape).astype(self.dtype)
@@ -160,9 +159,6 @@ class TestSolveFailing(NumpyLinalgOpTest):
     })
 ))
 class TestInverse(NumpyLinalgOpTest):
-
-    forward_accept_errors = (TypeError,
-                             chainerx.DtypeError)
 
     def generate_inputs(self):
         a = numpy.random.random(self.shape).astype(self.dtype)
