@@ -250,7 +250,7 @@ class SoftmaxCrossEntropy(function_node.FunctionNode):
         if self.soft_target_loss == 'kl-divergence':
             ret = xp.sum(t * (xp.log(t + self.eps) - log_y), axis=1)
         else:
-            ret = -xp.sum(t * log_y), axis=1)
+            ret = -xp.sum(t * log_y, axis=1)
         if self.reduce == 'mean':
             self._coeff = 1.0 / (x.size / x.shape[1])
             ret = ret.sum(keepdims=True) * self._coeff
@@ -447,7 +447,8 @@ def _double_backward_softmax_cross_entropy(x, t, normalize, class_weight,
 def softmax_cross_entropy(
         x, t, normalize=True, cache_score=True, class_weight=None,
         ignore_label=-1, reduce='mean', enable_double_backprop=False,
-        soft_target_loss='cross-entropy'):
+        soft_target_loss='kl-divergence'):
+        # soft_target_loss='cross-entropy'):
     """Computes cross entropy loss for pre-softmax activations.
 
     Args:
