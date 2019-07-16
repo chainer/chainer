@@ -1,5 +1,4 @@
 #include "chainerx/backward.h"
-#include <absl/debugging/failure_signal_handler.h>
 
 #include <algorithm>
 #include <functional>
@@ -69,6 +68,8 @@ void SetGrad(absl::optional<Array>& target_grad, Array grad, const Shape& shape,
     CheckGradCompatible(grad, shape, dtype, device);
     target_grad = std::move(grad);
 }
+
+void SetLossScale(absl::optional<float>& target_loss_scale, const absl::optional<float>& loss_scale) { target_loss_scale = loss_scale; }
 
 }  // namespace internal
 
@@ -254,6 +255,7 @@ public:
     void Run() {
         CHAINERX_ASSERT(output_array_nodes_.size() == outputs_.size());
 
+        float initial_out_value = loss_scale_.has_value() ? loss_scale_.value() : 1.0;
         // Push initial output array nodes
         for (size_t i = 0; i < outputs_.size(); ++i) {
             const Array& output = outputs_[i];
@@ -262,14 +264,9 @@ public:
             if (array_node != nullptr) {
                 // Add GradRef for output array nodes
                 auto emplace_result = array_node_grad_map_.emplace(array_node.get(), internal::GradRef{*array_node});
-
                 // Set unset output gradients to the default value of one
                 if (!emplace_result.first->second.get().has_value()) {
-                    if (loss_scale_.has_value()) {
-                        emplace_result.first->second.get() = OnesLike(output, output.device()) * loss_scale_.value();
-                    } else {
-                        emplace_result.first->second.get() = OnesLike(output, output.device());
-                    }
+                    emplace_result.first->second.get() = FullLike(output, initial_out_value, output.device());
                 }
 
                 PushCreatorOpNode(array_node);
@@ -467,6 +464,13 @@ private:
                 const std::shared_ptr<ArrayNode>& input_array_node = gsl::at(op_node->input_array_nodes(), i_input_grad);
                 CHAINERX_ASSERT(input_array_node != nullptr);
                 absl::optional<Array>& input_grad = input_grads[i_input_grad];
+                {
+                    // Assign the loss scale
+                    std::shared_ptr<ArrayBody> body = input_array_node->weak_body().lock();
+                    if (body != nullptr) {
+                        body->SetLossScale(loss_scale_, backprop_id_);
+                    }
+                }
 
                 try {
                     internal::SetGrad(
@@ -596,14 +600,21 @@ private:
 
 }  // namespace
 
-void Backward(const Array& output, const absl::optional<BackpropId>& backprop_id, DoubleBackpropOption double_backprop, const absl::optional<float>& loss_scale) {
+void Backward(
+        const Array& output,
+        const absl::optional<BackpropId>& backprop_id,
+        DoubleBackpropOption double_backprop,
+        const absl::optional<float>& loss_scale) {
     BackpropId actual_backprop_id = internal::GetArrayBackpropId(output, backprop_id);
     std::vector<ConstArrayRef> outputs{output};  // Do not inline it; we need to guarantee that the vector is alive until Run() finishes.
     BackwardImpl{{}, outputs, actual_backprop_id, double_backprop, loss_scale}.Run();
 }
 
 void Backward(
-        const std::vector<ConstArrayRef>& outputs, const absl::optional<BackpropId>& backprop_id, DoubleBackpropOption double_backprop, const absl::optional<float>& loss_scale) {
+        const std::vector<ConstArrayRef>& outputs,
+        const absl::optional<BackpropId>& backprop_id,
+        DoubleBackpropOption double_backprop,
+        const absl::optional<float>& loss_scale) {
     if (outputs.empty()) {
         return;
     }

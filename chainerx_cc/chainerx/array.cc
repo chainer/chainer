@@ -474,6 +474,16 @@ const absl::optional<Array>& Array::GetGrad(const absl::optional<BackpropId>& ba
     return *grad;
 }
 
+const absl::optional<float>& Array::GetLossScale(const absl::optional<BackpropId>& backprop_id) const {
+    BackpropId actual_backprop_id = internal::GetArrayBackpropId(*this, backprop_id);
+    if (!IsGradRequired(actual_backprop_id)) {
+        throw ChainerxError{"Array is not flagged as requiring gradient for backprop id: '", actual_backprop_id, "'."};
+    }
+    const absl::optional<float>* loss_scale = body_->GetLossScale(actual_backprop_id);
+    CHAINERX_ASSERT(loss_scale != nullptr);
+    return *loss_scale;
+}
+
 void Array::SetGrad(Array grad, const absl::optional<BackpropId>& backprop_id) const {
     BackpropId actual_backprop_id = internal::GetArrayBackpropId(*this, backprop_id);
     absl::optional<Array>* target_grad = body_->GetGrad(actual_backprop_id);
@@ -485,6 +495,15 @@ void Array::SetGrad(Array grad, const absl::optional<BackpropId>& backprop_id) c
     RequireGrad(actual_backprop_id);
 
     internal::SetGrad(*target_grad, std::move(grad), shape(), dtype(), device());
+}
+
+void Array::SetLossScale(const absl::optional<float>& loss_scale, const absl::optional<BackpropId>& backprop_id) const {
+    BackpropId actual_backprop_id = internal::GetArrayBackpropId(*this, backprop_id);
+    absl::optional<float>* target_loss_scale = body_->GetLossScale(actual_backprop_id);
+    if (!IsGradRequired(actual_backprop_id)) {
+        throw ChainerxError{"Array is not flagged as requiring gradient for backprop id: '", actual_backprop_id, "'."};
+    }
+    internal::SetLossScale(*target_loss_scale, loss_scale);
 }
 
 void Array::ClearGrad(const absl::optional<BackpropId>& backprop_id) const {

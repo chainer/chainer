@@ -243,12 +243,26 @@ public:
     // This function ignores no/force-backprop mode.
     const absl::optional<Array>& GetGrad(const absl::optional<BackpropId>& backprop_id = absl::nullopt) const;
 
+    // Returns the loss_scale assigned to the gradient of the array.
+    //
+    // ChainerxError is thrown if the array is constant with respect to the computation for the specified backprop ID.
+    // ChainerxError is thrown if the array is not flagged as requiring gradient.
+    // This function ignores no/force-backprop mode.
+    const absl::optional<float>& GetLossScale(const absl::optional<BackpropId>& backprop_id = absl::nullopt) const;
+
     // Sets the gradient of the array.
     // This function also flags the array as requiring gradient, so that preceding GetGrad() can return the gradient.
     //
     // ChainerxError is thrown if the array is constant with respect to the computation for the specified backprop ID.
     // This function ignores no/force-backprop mode.
     void SetGrad(Array grad, const absl::optional<BackpropId>& backprop_id = absl::nullopt) const;
+
+    // Sets the loss_scale that will be used by the optimizer for this array
+    // This function also flags the array as requiring gradient, so that preceding GetGrad() can return the gradient.
+    //
+    // ChainerxError is thrown if the array is constant with respect to the computation for the specified backprop ID.
+    // This function ignores no/force-backprop mode.
+    void SetLossScale(const absl::optional<float>& loss_scale, const absl::optional<BackpropId>& backprop_id = absl::nullopt) const;
 
     // Clears the gradient of the array if set.
     // This function does not change the state of the array other than that. For example, if the array is flagged as requiring gradient,

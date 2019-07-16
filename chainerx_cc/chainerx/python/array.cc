@@ -576,6 +576,17 @@ void InitChainerxArray(pybind11::module& m) {
           },
           "grad"_a,
           "backprop_id"_a = nullptr);
+    c.def("get_loss_scale",
+          [](const ArrayBodyPtr& self, const absl::optional<BackpropId>& backprop_id) -> const absl::optional<float>& {
+              return Array{self}.GetLossScale(backprop_id);
+          },
+          "backprop_id"_a = nullptr);
+    c.def("set_loss_scale",
+          [](const ArrayBodyPtr& self, const absl::optional<float>& loss_scale, const absl::optional<BackpropId>& backprop_id) {
+              Array{self}.SetLossScale(loss_scale, backprop_id);
+          },
+          "grad"_a,
+          "backprop_id"_a = nullptr);
     c.def("backward",
           [](const ArrayBodyPtr& self, const absl::optional<BackpropId>& backprop_id, bool enable_double_backprop) {
               auto double_backprop = enable_double_backprop ? DoubleBackpropOption::kEnable : DoubleBackpropOption::kDisable;

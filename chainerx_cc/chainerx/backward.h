@@ -26,6 +26,8 @@ void AccumulateGrad(absl::optional<Array>& target_grad, Array partial_grad, cons
 // Throws GradientError in case of mismatch in gradient array props.
 void SetGrad(absl::optional<Array>& target_grad, Array grad, const Shape& shape, Dtype dtype, Device& device);
 
+void SetLossScale(absl::optional<float>& target_loss_scale, const absl::optional<float>& loss_scale);
+
 }  // namespace internal
 
 // Updates the gradients held by the input arrays using backpropagation.

@@ -560,7 +560,7 @@ class Variable(object):
         # Check is skipped for performance.
 
         self._requires_grad = requires_grad  # type: bool
-        self._loss_scale = None
+        self._loss_scale_var = None
         self._grad_var = None
         self._device = device
         # A flag to prevent grad from being used before calling cleargrad().
@@ -681,6 +681,7 @@ class Variable(object):
                 array.require_grad()
                 if grad is not None:
                     array.set_grad(grad)
+                array.set_loss_scale(self._loss_scale_var)
             self._data = [array]
 
         self._has_chainerx_array = True  # even if data is None
@@ -1020,6 +1021,19 @@ class Variable(object):
             _check_grad_type(None, self, False, g)
         self._set_grad_without_check(g)
 
+    @property
+    def _loss_scale(self):
+        if isinstance(self._data[0], chainerx.ndarray):
+            return self._data[0].get_loss_scale()
+        return self._loss_scale_var
+
+    @_loss_scale.setter
+    def _loss_scale(self, loss_scale):
+        if isinstance(self._data[0], chainerx.ndarray):
+            self._data[0].set_loss_scale(loss_scale)
+        else:
+            self._loss_scale_var = loss_scale
+
     def _set_grad_var_without_check(self, gv):
         if self._has_chainerx_array:
             self._set_chainerx_grad(
@@ -1224,6 +1238,9 @@ class Variable(object):
                 grad_var._to_device(device, allow_unchaining=allow_unchaining)
                 # _grad has been invalidated by the line above.
                 self._grad = grad_var.array
+
+        if grad_var is not None and was_chainerx and not is_chainerx:
+            self._loss_scale_var = arr.get_loss_scale()
 
         # ensure that the node tracks the device migration
         node = self._node
@@ -1435,7 +1452,7 @@ class Variable(object):
                     'retain_grad is not supported for ChainerX array.')
             arr = self._data[0]
             assert isinstance(arr, chainerx.ndarray)
-            # pybind has issues when converting opt<int> -> opt<float>
+            # pybind has issues when converting int -> opt<float>
             if loss_scale:
                 loss_scale = float(loss_scale)
             chainerx.backward(

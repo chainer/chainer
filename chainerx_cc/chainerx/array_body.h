@@ -133,6 +133,22 @@ public:
         return GetGradImpl<ArrayBody*, absl::optional<Array>*>(this, backprop_id);
     }
 
+    // Returns the loss_scalefor the grad after backprop.
+    // Returns nullptr if the array does not belong to the specified graph.
+    const absl::optional<float>* GetLossScale(const BackpropId& backprop_id) const {
+        return GetLossScaleImpl<const ArrayBody*, const absl::optional<float>*>(this, backprop_id);
+    }
+
+    // Returns the loss_scalefor the grad after backprop.
+    // Returns nullptr if the array does not belong to the specified graph.
+    absl::optional<float>* GetLossScale(const BackpropId& backprop_id) {
+        return GetLossScaleImpl<ArrayBody*, absl::optional<float>*>(this, backprop_id);
+    }
+
+    // Sets the loss scale for this backprop.
+    // The behavior is undefined if there is no array node for the specified graph.
+    void SetLossScale(const absl::optional<float>& loss_scale, const BackpropId& backprop_id);
+
     // Sets a gradient array.
     // The behavior is undefined if there is no array node for the specified graph.
     void SetGrad(Array grad, const BackpropId& backprop_id);
@@ -157,6 +173,9 @@ private:
     void AssertConsistency() const;
 
     template <typename ThisPtr, typename ReturnType>
+    static ReturnType GetLossScaleImpl(ThisPtr this_ptr, const BackpropId& backprop_id);
+
+    template <typename ThisPtr, typename ReturnType>
     static ReturnType GetGradImpl(ThisPtr this_ptr, const BackpropId& backprop_id);
 
     absl::optional<size_t> GetNodeIndex(const BackpropId& backprop_id) const;
@@ -175,6 +194,7 @@ private:
     std::vector<BackpropId> grad_required_backprop_ids_;
     std::vector<std::shared_ptr<ArrayNode>> nodes_;
     std::vector<std::unique_ptr<absl::optional<Array>>> grads_;
+    std::vector<std::unique_ptr<absl::optional<float>>> loss_scale_;
 };
 
 std::shared_ptr<ArrayBody> CreateArrayBody(

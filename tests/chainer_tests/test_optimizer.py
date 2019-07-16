@@ -628,8 +628,6 @@ class TestGradientMethodLossScale(unittest.TestCase):
         lr = 1.0
         if self.loss_scale is not None:
             lr = self.loss_scale
-            for i in range(2):
-                self.target[i].param._loss_scale = self.loss_scale
         # TODO(niboshi): Do not use SGD in GradientMethod test
         self.optimizer = chainer.optimizers.SGD(lr)
 
@@ -641,6 +639,10 @@ class TestGradientMethodLossScale(unittest.TestCase):
         target = self.target
         optimizer = self.optimizer
         target.to_device(backend_config.device)
+        if self.loss_scale is not None:
+            for i in range(2):
+                self.target[i].param._loss_scale = self.loss_scale
+
         optimizer.setup(target)
         optimizer.update()
         xp = backend.get_array_module(target[0].param)

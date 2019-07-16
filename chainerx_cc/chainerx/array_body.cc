@@ -78,6 +78,7 @@ const std::shared_ptr<ArrayNode>& ArrayBody::AddNode(const std::shared_ptr<Array
 
     body->nodes_.emplace_back(std::move(array_node));
     body->grads_.emplace_back(std::make_unique<absl::optional<Array>>(absl::nullopt));
+    body->loss_scale_.emplace_back(std::make_unique<absl::optional<float>>(absl::nullopt));
 
     body->AssertConsistency();
     return body->nodes_.back();
@@ -122,6 +123,12 @@ absl::optional<size_t> ArrayBody::GetNodeIndex(const BackpropId& backprop_id) co
     return absl::nullopt;
 }
 
+void ArrayBody::SetLossScale(const absl::optional<float>& loss_scale, const BackpropId& backprop_id) {
+    absl::optional<float>* target_loss_scale = GetLossScale(backprop_id);
+    CHAINERX_ASSERT(target_loss_scale != nullptr);
+    internal::SetLossScale(*target_loss_scale, loss_scale);
+}
+
 void ArrayBody::SetGrad(Array grad, const BackpropId& backprop_id) {
     absl::optional<Array>* target_grad = GetGrad(backprop_id);
     CHAINERX_ASSERT(target_grad != nullptr);
@@ -133,6 +140,20 @@ void ArrayBody::ClearGrad(const BackpropId& backprop_id) {
     CHAINERX_ASSERT(grad != nullptr);
     grad->reset();
 }
+
+template <typename ThisPtr, typename ReturnType>
+ReturnType ArrayBody::GetLossScaleImpl(ThisPtr this_ptr, const BackpropId& backprop_id) {
+    absl::optional<size_t> i = this_ptr->GetNodeIndex(backprop_id);
+    if (!i.has_value()) {
+        return nullptr;
+    }
+    CHAINERX_ASSERT(*i < this_ptr->loss_scale_.size());
+    return this_ptr->loss_scale_[*i].get();
+}
+
+template absl::optional<float>* ArrayBody::GetLossScaleImpl<ArrayBody*, absl::optional<float>*>(ArrayBody*, const BackpropId&);
+template const absl::optional<float>* ArrayBody::GetLossScaleImpl<const ArrayBody*, const absl::optional<float>*>(
+        const ArrayBody*, const BackpropId&);
 
 template <typename ThisPtr, typename ReturnType>
 ReturnType ArrayBody::GetGradImpl(ThisPtr this_ptr, const BackpropId& backprop_id) {
