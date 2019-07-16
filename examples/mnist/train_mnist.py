@@ -44,6 +44,11 @@ def main():
                         'negative integer, NumPy arrays are used')
     parser.add_argument('--out', '-o', default='result',
                         help='Directory to output the result')
+    parser.add_argument('--resume', '-r', type=str,
+                        help='Resume the training from snapshot')
+    parser.add_argument('--autoload', action='store_true',
+                        help='Automatically load trainer snapshots in case'
+                        ' of preemption or other temporary system failure')
     parser.add_argument('--unit', '-u', type=int, default=1000,
                         help='Number of units')
     group = parser.add_argument_group('deprecated arguments')
@@ -97,7 +102,7 @@ def main():
     # Take a snapshot each ``frequency`` epoch, delete old stale
     # snapshots and automatically load from snapshot files if any
     # files are already resident at result directory.
-    trainer.extend(extensions.snapshot(num_retain=1, autoload=True),
+    trainer.extend(extensions.snapshot(num_retain=1, autoload=args.autoload),
                    trigger=(frequency, 'epoch'))
 
     # Write a log of evaluation statistics for each epoch
@@ -123,6 +128,12 @@ def main():
 
     # Print a progress bar to stdout
     trainer.extend(extensions.ProgressBar())
+
+    if args.resume is not None:
+        # Resume from a snapshot (Note: this loaded model is to be
+        # overwritten by --autoload option, autoloading snapshots, if
+        # any snapshots exist in output directory)
+        chainer.serializers.load_npz(args.resume, trainer)
 
     # Run the training
     trainer.run()

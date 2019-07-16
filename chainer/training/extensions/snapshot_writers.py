@@ -57,28 +57,27 @@ class Writer(object):
             savefun(tmppath, target)
             shutil.move(tmppath, os.path.join(outdir, filename))
 
-        self._post_save(filename, outdir, target, savefun, **kwds)
+        self._post_save()
 
     def _add_cleanup_hook(self, hook_fun):
-        """Adds post-save hook function.
+        """Adds cleanup hook function.
 
-        Arbitrary user-defined hook to be called after saving snapshot
-        can be added with this method. Works with any predefined
-        snapshot writers.
+        Technically, arbitrary user-defined hook can be called, but
+        this is intended for cleaning up stale snapshots.
 
         Args:
             hook_fun (callable): callable funtion to be called
-                right after save is done.
+                right after save is done. It takes no arguments.
 
         """
         if not hasattr(self, '_post_save_hooks'):
             self._post_save_hooks = []
         self._post_save_hooks.append(hook_fun)
 
-    def _post_save(self, *args):
+    def _post_save(self):
         if hasattr(self, '_post_save_hooks'):
             for hook in self._post_save_hooks:
-                hook(*args)
+                hook()
 
 
 class SimpleWriter(Writer):
