@@ -1,6 +1,3 @@
-import functools
-import unittest
-
 import numpy
 
 from chainer.functions.normalization._standardize import _standardize
@@ -58,7 +55,8 @@ class TestStandardize(testing.FunctionTestCase):
         if self.dtype == numpy.float16:
             self.check_forward_options.update({'atol': 2e-3, 'rtol': 2e-3})
             self.check_backward_options.update({'atol': 5e-3, 'rtol': 1e-2})
-            self.check_double_backward_options.update({'atol': 5e-3, 'rtol': 1e-2})
+            self.check_double_backward_options.update({
+                'atol': 5e-3, 'rtol': 1e-2})
         if self.same in ('equal', 'near'):
             self.check_backward_options.update({
                 'atol': 1e-2, 'rtol': 1e-2, 'eps': 1e-4})
