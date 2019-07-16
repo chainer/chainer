@@ -10,6 +10,7 @@ rules { name: "chainer_tests\\functions_tests\\loss_tests\\test_softmax_cross_en
 rules { name: "chainer_tests\\functions_tests\\math_tests\\test_sparse_matmul.py" deadline: 240 }
 rules { name: "chainer_tests\\functions_tests\\normalization_tests\\test_batch_normalization.py" deadline: 240 }
 rules { name: "chainer_tests\\functions_tests\\pooling_tests\\test_average_pooling_nd.py" deadline: 240 }
+rules { name: "chainer_tests\\functions_tests\\pooling_tests\\test_max_pooling_nd.py" deadline: 240 }
 rules { name: "chainer_tests\\optimizers_tests\\test_optimizers_by_linear_model.py" deadline: 240 }
 
 # Slow tests take 10+ seconds.
