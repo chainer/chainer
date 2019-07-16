@@ -115,7 +115,7 @@ class Statistician(object):
             out['std'] = x.std(axis=axis)
 
         if self.percentile_sigmas:
-            xp = cuda.get_array_module(x)
+            xp = backend.get_array_module(x)
             p = xp.percentile(x, self.percentile_sigmas, axis=axis)
             out['percentile'] = p
 
@@ -124,7 +124,15 @@ class Statistician(object):
 
 class VariableStatisticsPlot(extension.Extension):
 
-    """Trainer extension to plot statistics for :class:`Variable`\\s.
+    """__init__(\
+targets, max_sample_size=1000, report_data=True, report_grad=True, \
+plot_mean=True, plot_std=True, \
+percentile_sigmas=(0, 0.13, 2.28, 15.87, 50, 84.13, 97.72, 99.87, 100), \
+trigger=(1, 'epoch'), filename='statistics.png', figsize=None, marker=None, \
+grid=True)
+
+    Trainer extension to plot statistics for :class:`~chainer.Variable`\\s.
+
 
     This extension collects statistics for a single :class:`Variable`, a list
     of :class:`Variable`\\s or similarly a single or a list of
@@ -167,10 +175,8 @@ class VariableStatisticsPlot(extension.Extension):
             is passed to :class:`IntervalTrigger`.
         filename (str):
             Name of the output image file under the output directory.
-            Although it is recommended to use `filename`, you can also
-            specify the name of the output image file with the `file_name`
-            argument for backward compatibility. However, if both `filename`
-            and `file_name` are specified, `filename` will be used.
+            For historical reasons ``file_name`` is also accepted as an alias
+            of this argument.
         figsize (tuple of int):
             Matlotlib ``figsize`` argument that specifies the size of the
             output image.
@@ -198,7 +204,7 @@ class VariableStatisticsPlot(extension.Extension):
         del file_name  # avoid accidental use
 
         self._vars = _unpack_variables(targets)
-        if len(self._vars) == 0:
+        if not self._vars:
             raise ValueError(
                 'Need at least one variables for which to collect statistics.'
                 '\nActual: 0 <= 0')
@@ -261,7 +267,7 @@ class VariableStatisticsPlot(extension.Extension):
                 x = getattr(var, k, None)
                 if x is not None:
                     xs.append(x.ravel())
-            if len(xs) > 0:
+            if xs:
                 stat_dict = self._statistician(
                     xp.concatenate(xs, axis=0), axis=0, xp=xp)
                 stat_list = []

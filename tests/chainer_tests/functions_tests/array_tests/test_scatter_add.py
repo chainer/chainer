@@ -3,11 +3,8 @@ import unittest
 import numpy
 
 import chainer
-from chainer.backends import cuda
 from chainer import functions
-from chainer import gradient_check
 from chainer import testing
-from chainer.testing import attr
 from chainer.utils import type_check
 
 
@@ -27,81 +24,47 @@ from chainer.utils import type_check
      {'slices': [], 'b_data': numpy.empty(shape=(0, 2, 3))},
      ]
 ))
-class TestScatterAdd(unittest.TestCase):
+@testing.fix_random()
+@testing.inject_backend_tests(
+    None,
+    # CPU tests
+    [
+        {},
+    ]
+    # GPU tests
+    + testing.product({
+        'use_cuda': [True],
+        'use_cudnn': ['never', 'always'],
+        'cuda_device': [0, 1],
+    })
+    # ChainerX tests
+    + testing.product({
+        'use_chainerx': [True],
+        'chainerx_device': ['native:0', 'cuda:0', 'cuda:1'],
+    })
+)
+class TestScatterAdd(testing.FunctionTestCase):
 
     def setUp(self):
-        self.shape = (4, 2, 3)
-        self.a_data = numpy.random.uniform(
-            -1, 1, self.shape).astype(self.dtype)
-        self.a_data_original = self.a_data.copy()
-        self.gy_data = numpy.random.uniform(
-            -1, 1, self.shape).astype(self.dtype)
-        self.b_data = self.b_data.astype(self.dtype)
-        self.gga_data = numpy.random.uniform(
-            -1, 1, self.a_data.shape).astype(self.dtype)
-        self.ggb_data = numpy.random.uniform(
-            -1, 1, self.b_data.shape).astype(self.dtype)
+        self.check_backward_options.update({'atol': 5e-4, 'rtol': 5e-4})
+        self.check_double_backward_options.update({
+            'atol': 1e-3, 'rtol': 1e-3})
 
-        self.check_backward_options = {'atol': 5e-4, 'rtol': 5e-4}
-        self.check_double_backward_options = {'atol': 1e-3, 'rtol': 1e-3}
-        if self.dtype == numpy.float16:
-            self.check_backward_options['dtype'] = numpy.float64
-            self.check_double_backward_options['dtype'] = numpy.float64
+    def generate_inputs(self):
+        a = numpy.random.uniform(-1, 1, (4, 2, 3)).astype(self.dtype)
+        b = self.b_data.astype(self.dtype)
+        return a, b
 
-    def check_forward(self, a_data, b_data):
-        a = chainer.Variable(a_data)
-        b = chainer.Variable(b_data)
+    def forward(self, inputs, device):
+        a, b = inputs
         y = functions.scatter_add(a, self.slices, b)
-        self.assertEqual(y.data.dtype, self.dtype)
-        # Test to make sure that the input values are not changed
-        numpy.testing.assert_equal(cuda.to_cpu(a.data), self.a_data_original)
+        return y,
 
-        a_data_copy = cuda.to_cpu(a_data).copy()
-        numpy.add.at(a_data_copy, self.slices, cuda.to_cpu(b_data))
-        numpy.testing.assert_equal(a_data_copy, cuda.to_cpu(y.data))
-
-    def test_forward_cpu(self):
-        self.check_forward(self.a_data, self.b_data)
-
-    @attr.gpu
-    def test_forward_gpu(self):
-        self.check_forward(cuda.to_gpu(self.a_data), cuda.to_gpu(self.b_data))
-
-    def check_backward(self, a_data, b_data, y_grad):
-        def f(a, b):
-            return functions.scatter_add(a, self.slices, b)
-
-        gradient_check.check_backward(
-            f, (a_data, b_data), y_grad, **self.check_backward_options)
-
-    def test_backward_cpu(self):
-        self.check_backward(self.a_data, self.b_data, self.gy_data)
-
-    @attr.gpu
-    def test_backward_gpu(self):
-        self.check_backward(cuda.to_gpu(self.a_data), cuda.to_gpu(self.b_data),
-                            cuda.to_gpu(self.gy_data))
-
-    def check_double_backward(self, a_data, b_data, y_grad, a_grad_grad,
-                              b_grad_grad):
-        def f(a, b):
-            return functions.scatter_add(a, self.slices, b)
-
-        gradient_check.check_double_backward(
-            f, (a_data, b_data), y_grad, (a_grad_grad, b_grad_grad),
-            **self.check_double_backward_options)
-
-    def test_double_backward_cpu(self):
-        self.check_double_backward(self.a_data, self.b_data, self.gy_data,
-                                   self.gga_data, self.ggb_data)
-
-    @attr.gpu
-    def test_double_backward_gpu(self):
-        self.check_double_backward(cuda.to_gpu(self.a_data),
-                                   cuda.to_gpu(self.b_data),
-                                   cuda.to_gpu(self.gy_data),
-                                   cuda.to_gpu(self.gga_data),
-                                   cuda.to_gpu(self.ggb_data))
+    def forward_expected(self, inputs):
+        a, b = inputs
+        a_copy = a.copy()
+        numpy.add.at(a_copy, self.slices, b)
+        return a_copy,
 
 
 class TestInvalidScatterAdd(unittest.TestCase):

@@ -116,7 +116,7 @@ def spatial_transformer_grid(theta, output_shape, **kwargs):
     """2D Spatial Transformer grid.
 
     This function generates coordinates of the points sampled from an image
-    to perform warping described in `Spatial Transformer Networks \
+    to perform warping described in `Spatial Transformer Networks
     <https://arxiv.org/abs/1506.02025>`_.
 
     Given a coordinate in the warped image :math:`(x_i^t, y_i^t)`, the point

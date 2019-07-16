@@ -16,13 +16,14 @@ class Swish(link.Link):
         beta_init (float): Initial value of the parameter variable
             :math:`\\beta`.
 
-    See the paper for details: `Searching for Activation Functions \
+    See the paper for details: `Searching for Activation Functions
     <https://arxiv.org/abs/1710.05941>`_
 
-    To try Swish instead of ReLU, replace ``F.ReLU`` with individual ``Swish``
+    To try Swish instead of ReLU, replace ``F.relu`` with individual ``Swish``
     links registered to the model. For example, the model defined in the
-    `MNIST example <https://github.com/chainer/chainer/tree/master/examples/\
-    mnist/train_mnist.py>`_ can be rewritten as follows.
+    `MNIST example
+    <https://github.com/chainer/chainer/tree/master/examples/mnist/train_mnist.py>`_
+    can be rewritten as follows.
 
     ReLU version (original)::
 

@@ -3,13 +3,13 @@
 #include <memory>
 #include <string>
 
+#include <absl/types/optional.h>
 #include <gsl/gsl>
-#include <nonstd/optional.hpp>
 
 #include "chainerx/backend.h"
 #include "chainerx/context.h"
 #include "chainerx/device.h"
-#include "chainerx/op_registry.h"
+#include "chainerx/kernel_registry.h"
 
 namespace chainerx {
 namespace cuda {
@@ -50,19 +50,19 @@ public:
     // Gets maximum cuDNN workspace size.
     size_t GetCudnnMaxWorkspaceSize();
 
-    static OpRegistry& GetGlobalOpRegistry() {
-        static OpRegistry* global_op_registry = new OpRegistry{};
-        return *global_op_registry;
+    static KernelRegistry& GetGlobalKernelRegistry() {
+        static gsl::owner<KernelRegistry*> global_kernel_registry = new KernelRegistry{};
+        return *global_kernel_registry;
     }
 
 protected:
-    OpRegistry& GetParentOpRegistry() override { return GetGlobalOpRegistry(); }
+    KernelRegistry& GetParentKernelRegistry() override { return GetGlobalKernelRegistry(); }
 
 private:
     std::unique_ptr<Device> CreateDevice(int index) override;
 
     // TODO(hvy): Move to CudaDevice.
-    nonstd::optional<size_t> cudnn_max_workspace_size_{};
+    absl::optional<size_t> cudnn_max_workspace_size_{};
 
     std::mutex mutex_;
 };

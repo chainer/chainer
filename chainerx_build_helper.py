@@ -12,6 +12,13 @@ import setuptools
 from setuptools.command import build_ext
 
 
+def emit_build_info(build_chainerx):
+    dirname = os.path.dirname(__file__)
+    filename = os.path.join(dirname, 'chainerx/_build_info.py')
+    with open(filename, mode='w') as f:
+        f.write('build_chainerx = {}\n'.format(build_chainerx))
+
+
 class CMakeExtension(setuptools.Extension):
 
     def __init__(self, name, build_targets, sourcedir=''):
@@ -69,8 +76,6 @@ class CMakeBuild(build_ext.build_ext):
                 '-DCMAKE_LIBRARY_OUTPUT_DIRECTORY_{}={}'.format(
                     build_type.upper(), extdir)]
 
-            cmake_args += ['-G', 'Visual Studio 15 2017', '-T', 'llvm']
-
             if sys.maxsize > 2**32:
                 cmake_args += ['-A', 'x64']
             build_args += ['--', '/m']
@@ -91,6 +96,10 @@ class CMakeBuild(build_ext.build_ext):
 
 
 def config_setup_kwargs(setup_kwargs, build_chainerx):
+
+    # TODO(imanishi): Call this function with setuptools.
+    emit_build_info(build_chainerx)
+
     if not build_chainerx:
         # `chainerx` package needs to be able to be imported even if ChainerX
         # is unavailable.

@@ -6,7 +6,7 @@
 #include <utility>
 #include <vector>
 
-#include <nonstd/optional.hpp>
+#include <absl/types/optional.h>
 
 #include "chainerx/array.h"
 #include "chainerx/axes.h"
@@ -17,13 +17,14 @@
 #include "chainerx/dtype.h"
 #include "chainerx/error.h"
 #include "chainerx/graph.h"
+#include "chainerx/kernels/linalg.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/type_util.h"
 #include "chainerx/shape.h"
 
 namespace chainerx {
 
-Array Dot(const Array& a, const Array& b, nonstd::optional<Dtype> out_dtype) {
+Array Dot(const Array& a, const Array& b, absl::optional<Dtype> out_dtype) {
     Dtype real_out_dtype = out_dtype.has_value() ? *out_dtype : ResultType(a, b);
 
     if (a.ndim() == 0 || b.ndim() == 0) {
@@ -72,7 +73,7 @@ Array Dot(const Array& a, const Array& b, nonstd::optional<Dtype> out_dtype) {
     Array out_matrix = Empty({m, n}, real_out_dtype, a.device());
     {
         NoBackpropModeScope scope{};
-        a.device().backend().CallOp<DotOp>(a_matrix, b_matrix, out_matrix);
+        a.device().backend().CallKernel<DotKernel>(a_matrix, b_matrix, out_matrix);
     }
 
     {

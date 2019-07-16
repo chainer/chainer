@@ -7,27 +7,30 @@
 #include <tuple>
 #include <utility>
 
-#include <nonstd/optional.hpp>
+#include <absl/types/optional.h>
 
 #include "chainerx/array.h"
 #include "chainerx/constant.h"
+#include "chainerx/dims.h"
 #include "chainerx/dtype.h"
 #include "chainerx/error.h"
+#include "chainerx/kernels/arithmetic.h"
+#include "chainerx/kernels/indexing.h"
+#include "chainerx/kernels/pooling.h"
+#include "chainerx/kernels/reduction.h"
 #include "chainerx/macro.h"
 #include "chainerx/native/col2im.h"
 #include "chainerx/native/elementwise.h"
 #include "chainerx/native/im2col.h"
-#include "chainerx/native/op_regist.h"
+#include "chainerx/native/kernel_regist.h"
 #include "chainerx/native/tensor_dot.h"
 #include "chainerx/numeric_limits.h"
 #include "chainerx/routines/connection.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/indexing.h"
-#include "chainerx/routines/math.h"
 #include "chainerx/routines/pooling.h"
 #include "chainerx/scalar.h"
 #include "chainerx/shape.h"
-#include "chainerx/stack_vector.h"
 
 namespace chainerx {
 namespace native {
@@ -54,16 +57,11 @@ Axes GetSwapSpatialDimensionsAxes(size_t n) {
     return axes;
 }
 
-class NativeMaxPoolOp : public MaxPoolOp {
+class NativeMaxPoolKernel : public MaxPoolKernel {
 public:
     std::tuple<Array, std::unique_ptr<MaxPoolGradState>> Call(
-            const Array& x,
-            StackVector<int64_t, kMaxNdim> kernel_size,
-            StackVector<int64_t, kMaxNdim> stride,
-            StackVector<int64_t, kMaxNdim> pad,
-            bool cover_all,
-            bool return_state,
-            const nonstd::optional<Array>& out) override {
+            const Array& x, Dims kernel_size, Dims stride, Dims pad, bool cover_all, bool return_state, const absl::optional<Array>& out)
+            override {
         CHAINERX_ASSERT(internal::GetArrayBody(x)->nodes().empty());
 
         // TODO(hvy): Implement and test the `out` argument.
@@ -86,18 +84,18 @@ public:
     }
 };
 
-CHAINERX_NATIVE_REGISTER_OP(MaxPoolOp, NativeMaxPoolOp);
+CHAINERX_NATIVE_REGISTER_KERNEL(MaxPoolKernel, NativeMaxPoolKernel);
 
-class NativeMaxPoolGradOp : public MaxPoolGradOp {
+class NativeMaxPoolGradKernel : public MaxPoolGradKernel {
 public:
     std::tuple<Array, std::unique_ptr<MaxPoolGradGradState>> Call(
             const Array& gout,
-            StackVector<int64_t, kMaxNdim> kernel_size,
-            StackVector<int64_t, kMaxNdim> stride,
-            StackVector<int64_t, kMaxNdim> pad,
+            const Dims& kernel_size,
+            const Dims& stride,
+            const Dims& pad,
             const std::shared_ptr<MaxPoolGradState>& state,
             bool return_state,
-            const nonstd::optional<Array>& gx) override {
+            const absl::optional<Array>& gx) override {
         CHAINERX_ASSERT(internal::GetArrayBody(gout)->nodes().empty());
 
         // TODO(hvy): Implement and test the `gx` argument.
@@ -122,7 +120,7 @@ public:
         Device& device = x.device();
         Array gcol = Zeros({out_total_size * kernel_total_size}, x.dtype(), device);
         Array offset = Arange(0, out_total_size * kernel_total_size, kernel_total_size, indices.dtype(), device);
-        device.backend().CallOp<AddAtOp>(gcol, indices.Reshape(out_flat) + offset, 0, gout.Reshape(out_flat), gcol);
+        device.backend().CallKernel<AddAtKernel>(gcol, indices.Reshape(out_flat) + offset, 0, gout.Reshape(out_flat), gcol);
 
         // Reshape col gradients to (batch_size, channel, out_1, out_2, ..., out_n, k_1, k_2, ..., k_n).
         Shape out_shape_with_kernel = gout.shape();
@@ -142,18 +140,18 @@ public:
     }
 };
 
-CHAINERX_NATIVE_REGISTER_OP(MaxPoolGradOp, NativeMaxPoolGradOp);
+CHAINERX_NATIVE_REGISTER_KERNEL(MaxPoolGradKernel, NativeMaxPoolGradKernel);
 
-class NativeMaxPoolGradGradOp : public MaxPoolGradGradOp {
+class NativeMaxPoolGradGradKernel : public MaxPoolGradGradKernel {
 public:
     Array Call(
             const Array& ggx,
-            StackVector<int64_t, kMaxNdim> kernel_size,
-            StackVector<int64_t, kMaxNdim> stride,
-            StackVector<int64_t, kMaxNdim> pad,
+            const Dims& kernel_size,
+            const Dims& stride,
+            const Dims& pad,
             bool cover_all,
             const std::shared_ptr<MaxPoolGradGradState>& state,
-            const nonstd::optional<Array>& ggout) override {
+            const absl::optional<Array>& ggout) override {
         CHAINERX_ASSERT(internal::GetArrayBody(ggx)->nodes().empty());
 
         // TODO(hvy): Implement and test the `ggout` argument.
@@ -176,21 +174,16 @@ public:
     }
 };
 
-CHAINERX_NATIVE_REGISTER_OP(MaxPoolGradGradOp, NativeMaxPoolGradGradOp);
+CHAINERX_NATIVE_REGISTER_KERNEL(MaxPoolGradGradKernel, NativeMaxPoolGradGradKernel);
 
 // TODO(hvy): Use Device::Mean when implemented.
 void Mean(const Array& a, const Axes& axis, const Array& out) {
     Device& device = a.device();
-    device.backend().CallOp<SumOp>(a, axis, out);
-    device.backend().CallOp<DivideASOp>(out, internal::CountItemsAlongAxes(a.shape(), axis), out);
+    device.backend().CallKernel<SumKernel>(a, axis, out);
+    device.backend().CallKernel<DivideASKernel>(out, internal::CountItemsAlongAxes(a.shape(), axis), out);
 }
 
-Array GetPadModeIgnorePoolingWidths(
-        const Shape& shape,
-        const StackVector<int64_t, kMaxNdim>& kernel_size,
-        const StackVector<int64_t, kMaxNdim>& stride,
-        const StackVector<int64_t, kMaxNdim>& pad,
-        Dtype dtype) {
+Array GetPadModeIgnorePoolingWidths(const Shape& shape, const Dims& kernel_size, const Dims& stride, const Dims& pad, Dtype dtype) {
     int8_t n = shape.ndim() - 2;
     CHAINERX_ASSERT(n == static_cast<int8_t>(kernel_size.size()));
     CHAINERX_ASSERT(n == static_cast<int8_t>(stride.size()));
@@ -245,16 +238,16 @@ Array GetPadModeIgnorePoolingWidths(
     return widths;
 }
 
-class NativeAveragePoolOp : public AveragePoolOp {
+class NativeAveragePoolKernel : public AveragePoolKernel {
 public:
     std::tuple<Array, std::unique_ptr<AveragePoolGradState>> Call(
             const Array& x,
-            StackVector<int64_t, kMaxNdim> kernel_size,
-            StackVector<int64_t, kMaxNdim> stride,
-            StackVector<int64_t, kMaxNdim> pad,
+            const Dims& kernel_size,
+            const Dims& stride,
+            const Dims& pad,
             AveragePoolPadMode pad_mode,
             bool return_state,
-            const nonstd::optional<Array>& out) override {
+            const absl::optional<Array>& out) override {
         CHAINERX_ASSERT(internal::GetArrayBody(x)->nodes().empty());
 
         // TODO(hvy): Implement and test the `out` argument.
@@ -272,7 +265,7 @@ public:
         Device& device = col.device();
         Array actual_out = internal::EmptyReduced(col.shape(), col.dtype(), kernel_axes, false, device);
 
-        nonstd::optional<Array> width_ignore{nonstd::nullopt};
+        absl::optional<Array> width_ignore{absl::nullopt};
 
         switch (pad_mode) {
             case AveragePoolPadMode::kZero:
@@ -280,10 +273,10 @@ public:
                 break;
             case AveragePoolPadMode::kIgnore: {
                 Device& device = x.device();
-                device.backend().CallOp<SumOp>(col, kernel_axes, actual_out);
+                device.backend().CallKernel<SumKernel>(col, kernel_axes, actual_out);
                 width_ignore =
                         GetPadModeIgnorePoolingWidths(x.shape(), kernel_size, stride, pad, x.dtype()).BroadcastTo(actual_out.shape());
-                device.backend().CallOp<DivideOp>(actual_out, *width_ignore, actual_out);
+                device.backend().CallKernel<DivideKernel>(actual_out, *width_ignore, actual_out);
                 break;
             }
             default:
@@ -297,18 +290,18 @@ public:
     }
 };
 
-CHAINERX_NATIVE_REGISTER_OP(AveragePoolOp, NativeAveragePoolOp);
+CHAINERX_NATIVE_REGISTER_KERNEL(AveragePoolKernel, NativeAveragePoolKernel);
 
-class NativeAveragePoolGradOp : public AveragePoolGradOp {
+class NativeAveragePoolGradKernel : public AveragePoolGradKernel {
 public:
     Array Call(
             const Array& gout,
-            StackVector<int64_t, kMaxNdim> kernel_size,
-            StackVector<int64_t, kMaxNdim> stride,
-            StackVector<int64_t, kMaxNdim> pad,
+            const Dims& kernel_size,
+            const Dims& stride,
+            const Dims& pad,
             AveragePoolPadMode pad_mode,
             const std::shared_ptr<AveragePoolGradState>& state,
-            const nonstd::optional<Array>& gx) override {
+            const absl::optional<Array>& gx) override {
         CHAINERX_ASSERT(internal::GetArrayBody(gout)->nodes().empty());
 
         // TODO(hvy): Implement and test the `gx` argument.
@@ -347,7 +340,7 @@ public:
     }
 };
 
-CHAINERX_NATIVE_REGISTER_OP(AveragePoolGradOp, NativeAveragePoolGradOp);
+CHAINERX_NATIVE_REGISTER_KERNEL(AveragePoolGradKernel, NativeAveragePoolGradKernel);
 
 }  // namespace
 }  // namespace native

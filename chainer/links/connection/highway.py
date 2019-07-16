@@ -66,8 +66,8 @@ class Highway(link.Chain):
         Args:
             x (~chainer.Variable): Input variable.
         Returns:
-            Variable: Output variable. Its array has the same spatial size and
-            the same minibatch size as the input array.
+            ~chainer.Variable: Output variable. Its array has the same spatial
+            size and the same minibatch size as the input array.
         """
         out_plain = self.activate(self.plain(x))
         out_transform = sigmoid.sigmoid(self.transform(x))

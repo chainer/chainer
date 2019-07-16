@@ -1,19 +1,92 @@
 from __future__ import absolute_import
 import collections
 import copy
+import math
 import warnings
 
-import math
 import numpy
 import six
 
 import chainer
-from chainer import backend
 from chainer import link as link_module
 from chainer import optimizer_hooks
 from chainer import serializer as serializer_module
 from chainer import variable
 import chainerx
+
+
+class _Hookable(object):
+
+    """A hookable.
+
+    Args:
+        invalid_timing_fallback(bool):
+            If ``True``, an invalid value of ``timing`` will fall back to
+            ``'pre'``.
+    """
+
+    def __init__(self, invalid_timing_fallback=False):
+        self._pre_update_hooks = collections.OrderedDict()
+        self._post_update_hooks = collections.OrderedDict()
+        self._invalid_timing_fallback = invalid_timing_fallback
+
+    def add_hook(self, hook, name, timing):
+        """Adds a hook function."""
+        if not callable(hook):
+            raise TypeError('hook function must be callable')
+        if timing not in ('pre', 'post', 'auto'):
+            raise ValueError(
+                'timing must be one of (\'pre\', \'post\', \'auto\')')
+        if timing == 'auto':
+            timing = getattr(hook, 'timing', 'pre')
+            if (timing not in ('pre', 'post')
+                    and self._invalid_timing_fallback):
+                warnings.warn(
+                    'Hook timing attribute not in (\'pre\', \'post\'), '
+                    'defaulting timing to \'pre\'.')
+                timing = 'pre'
+
+        if name is None:
+            name = getattr(hook, 'name', getattr(hook, '__name__', None))
+            if name is None:
+                raise ValueError(
+                    'the name of the hook function is not specified')
+        if name in self._pre_update_hooks or name in self._post_update_hooks:
+            raise KeyError('hook "{}" already exists'.format(name))
+
+        if timing == 'pre':
+            self._pre_update_hooks[name] = hook
+        else:
+            self._post_update_hooks[name] = hook
+
+    def remove_hook(self, name):
+        """Removes the specified hook function.
+
+        Args:
+            name (str): Name of the hook function to be removed. The hook
+                function registered with this name will be removed.
+
+        """
+        try:
+            del self._pre_update_hooks[name]
+        except KeyError:
+            del self._post_update_hooks[name]
+
+    def call_hooks(self, timing, args):
+        """Invokes hook functions in registration order."""
+        hooks = self.__get_hooks(timing)
+        for hook in six.itervalues(hooks):
+            self.call_hook(hook, args)
+
+    def call_hook(self, hook, args):
+        hook(*args)
+
+    def __get_hooks(self, timing):
+        if timing == 'pre':
+            return self._pre_update_hooks
+        elif timing == 'post':
+            return self._post_update_hooks
+        raise ValueError('timing must be either \'pre\' or \'post\'')
 
 
 class Hyperparameter(object):
@@ -114,14 +187,13 @@ class UpdateRule(object):
     """
 
     def __init__(self, parent_hyperparam=None):
-        self._pre_update_hooks = collections.OrderedDict()
-        self._post_update_hooks = collections.OrderedDict()
         self._state = None
         self.enabled = True
         self.hyperparam = Hyperparameter(parent_hyperparam)
         self.t = 0
         self._use_fp32_update = False
         self._fp32_param = None
+        self._hookable = _Hookable()
 
     @property
     def state(self):
@@ -147,26 +219,7 @@ class UpdateRule(object):
                 available, timing will default to 'pre'.
 
         """
-        if not callable(hook):
-            raise TypeError('hook function must be callable')
-        if timing not in ('pre', 'post', 'auto'):
-            raise ValueError(
-                'timing must be one of (\'pre\', \'post\', \'auto\')')
-        if timing == 'auto':
-            timing = getattr(hook, 'timing', 'pre')
-
-        if name is None:
-            name = getattr(hook, 'name', getattr(hook, '__name__', None))
-            if name is None:
-                raise ValueError(
-                    'the name of the hook function is not specified')
-        if name in self._pre_update_hooks or name in self._post_update_hooks:
-            raise ValueError('hook "{}" already exists'.format(name))
-
-        if timing == 'pre':
-            self._pre_update_hooks[name] = hook
-        else:
-            self._post_update_hooks[name] = hook
+        self._hookable.add_hook(hook, name, timing)
 
     def remove_hook(self, name):
         """Removes the specified hook function.
@@ -176,10 +229,7 @@ class UpdateRule(object):
                 function registered with this name will be removed.
 
         """
-        try:
-            del self._pre_update_hooks[name]
-        except KeyError:
-            del self._post_update_hooks[name]
+        self._hookable.remove_hook(name)
 
     def update(self, param):
         """Invokes hook functions and updates the parameter.
@@ -193,36 +243,67 @@ class UpdateRule(object):
 
         self.t += 1
 
-        if self._use_fp32_update and param.dtype == numpy.float16:
+        try:
+            param_dtype = param.dtype
+        except RuntimeError:
+            param_dtype = None  # uninitialized and dtype is not determined
+
+        is_initialized = param.array is not None
+        loss_scale = param._loss_scale
+
+        # Apply use_fp32_update
+        if self._use_fp32_update and param_dtype == numpy.float16:
+            # Create fp32 parameter if not created yet.
             if self._fp32_param is None:
-                self._fp32_param = variable.Variable(
-                    param.array.astype(numpy.float32),
-                    name=param.name)
+                if is_initialized:
+                    self._fp32_param = variable.Parameter(
+                        param.array.astype(numpy.float32),
+                        name=param.name)
+                else:
+                    self._fp32_param = self._create_uninitialized_parameter(
+                        numpy.float32, name=param.name)
             fp32_param = self._fp32_param
-            fp32_param.grad = param.grad.astype(numpy.float32)
 
-            if fp32_param.data is not None:
-                self._prepare(fp32_param)
-            if param._loss_scale is not None:
-                fp32_param.grad /= param._loss_scale
-            for hook in six.itervalues(self._pre_update_hooks):
-                hook(self, fp32_param)
-            self.update_core(fp32_param)
-            for hook in six.itervalues(self._post_update_hooks):
-                hook(self, fp32_param)
+            # Convert the gradient
+            if is_initialized:
+                fp32_param.grad = param.grad.astype(numpy.float32)
 
-            param.data = fp32_param.data.astype(param.dtype)
-            fp32_param.grad = None
+            param_ = fp32_param
+            fp32_converted = True
         else:
-            if param.data is not None:
-                self._prepare(param)
-            if param._loss_scale is not None:
-                param.grad /= param._loss_scale
-            for hook in six.itervalues(self._pre_update_hooks):
-                hook(self, param)
-            self.update_core(param)
-            for hook in six.itervalues(self._post_update_hooks):
-                hook(self, param)
+            param_ = param
+            fp32_converted = False
+
+        if is_initialized:
+            # Init states
+            self._init_states(param_)
+
+            # Apply loss scaling
+            if loss_scale is not None:
+                param_.grad /= loss_scale
+
+        # Call update_core
+        self._hookable.call_hooks('pre', args=(self, param_,))
+        self.update_core(param_)
+        self._hookable.call_hooks('post', args=(self, param_,))
+
+        # Convert back to the original dtype
+        if fp32_converted:
+            if is_initialized:
+                param.array = fp32_param.array.astype(param.dtype)
+            fp32_param.grad = None
+
+    def _create_uninitialized_parameter(self, dtype, name):
+        # Creates an uninitialized parameter with given dtype.
+        # This is somewhat tricky but the parameter is created with a
+        # dummy initializer with the dtype.
+        def initializer(array):
+            assert False  # the parameter should never be initialized.
+        initializer.dtype = dtype
+        param = variable.Parameter(initializer, name=name)
+        assert param.dtype == dtype
+        assert param.array is None
+        return param
 
     def update_core(self, param):
         """Updates the parameter.
@@ -279,51 +360,51 @@ class UpdateRule(object):
             param (~chainer.Variable): Variable to be updated.
 
         """
-        grad_array = param.grad
-        backend_name = param.array.device.backend.name
-        if backend_name not in ('native', 'cuda'):
-            raise RuntimeError(
-                'Default implementation of Optimizer.update_core_chainerx is '
-                'only provided for native or cuda backends (actual: {}). '
-                'Override Optimizer.update_core_chainerx() to implement '
-                'custom update logic.'.format(backend_name))
+        device = param.device
+        fallback_device = device.fallback_device
 
         # Convert state arrays to NumPy/CuPy
-        chainerx_state_arrays = {}
-        for state_name, st in self.state.items():
-            st = self.state[state_name]
-            if isinstance(st, chainerx.ndarray):
-                fallback_arr = backend.from_chx(st)
-                self.state[state_name] = fallback_arr
-                chainerx_state_arrays[state_name] = (st, fallback_arr)
+        chainerx_state_arrays = None
+        state = self.state
+        if state is not None:
+            chainerx_state_arrays = {}
+            for state_name, st in state.items():
+                if isinstance(st, chainerx.ndarray):
+                    fallback_arr = fallback_device.send(st)
+                    state[state_name] = fallback_arr
+                    chainerx_state_arrays[state_name] = (st, fallback_arr)
 
         # Create a temporary parameter with memory-shared NumPy/CuPy array
         # If the ChainerX parameter has a cached NumPy/CuPy copy, use the
         # cache and avoid redundant conversion. Else, create the cache here
         # and use it.
         if param._chainerx_fallback_array is None:
-            param._chainerx_fallback_array = backend.from_chx(
-                param.array)
+            param._chainerx_fallback_array = fallback_device.send(param.array)
 
         temp_param = variable.Variable._init_unchecked(
-            param._chainerx_fallback_array, is_chainerx_array=False)
+            param._chainerx_fallback_array,
+            device=fallback_device,
+            is_chainerx_array=False)
 
-        if grad_array is not None:
+        # TODO(niboshi): Avoid accessing private attribute
+        if param._grad_valid:
             temp_param._set_grad_without_check(
-                backend.from_chx(grad_array))
+                fallback_device.send(param.grad))
 
         # Update
         self.update_core(temp_param)
 
         # Restore state arrays
-        for state_name, (arr, fallback_arr) in chainerx_state_arrays.items():
-            cur_arr = self.state[state_name]
-            if cur_arr is not fallback_arr:
-                # The optimizer altered the reference of the state, instead of
-                # updating it in-place. We need to convert the new state back
-                # to ChainerX.
-                arr = backend.to_chx(cur_arr)
-            self.state[state_name] = arr
+        if chainerx_state_arrays:
+            for state_name, (arr, fallback_arr) in (
+                    chainerx_state_arrays.items()):
+                cur_arr = state[state_name]
+                if cur_arr is not fallback_arr:
+                    # The optimizer altered the reference of the state, instead
+                    # of updating it in-place. We need to convert the new state
+                    # back to ChainerX.
+                    arr = device.send(cur_arr)
+                state[state_name] = arr
 
     def init_state(self, param):
         """Initializes the state.
@@ -368,7 +449,7 @@ class UpdateRule(object):
                         value = None
                     # leave the update rule state as `None` if the keys are not
                     # contained in the snapshot, so that these states can be
-                    # automatically initialized with the `_prepare` method
+                    # automatically initialized with the `_init_states` method
                     if value is None:
                         self._state = None
                         break
@@ -378,7 +459,7 @@ class UpdateRule(object):
             for key in self._state:
                 self._state[key] = serializer(key, self._state[key])
 
-    def _prepare(self, param):
+    def _init_states(self, param):
         device = param.device
         with chainer.using_device(device):
             state = self.state
@@ -458,6 +539,7 @@ class Optimizer(object):
     _loss_scale_max = 65504  # max representable value with fp16
     _loss_scaling_is_dynamic = False
     use_auto_new_epoch = False
+    _hookable = None
 
     def setup(self, link):
         """Sets a target link and initializes the optimizer states.
@@ -483,8 +565,19 @@ class Optimizer(object):
         self.target = link
         self.t = 0
         self.epoch = 0
-        self._pre_update_hooks = collections.OrderedDict()
-        self._post_update_hooks = collections.OrderedDict()
+
+        optimizer = self
+
+        class OptimizerHookable(_Hookable):
+            def __init__(self):
+                super(OptimizerHookable, self).__init__(
+                    invalid_timing_fallback=True)
+
+            def call_hook(self, hook, args):
+                assert args == ()
+                optimizer.call_hook(hook)
+
+        self._hookable = OptimizerHookable()
         return self
 
     def update(self, lossfun=None, *args, **kwds):
@@ -556,6 +649,10 @@ class Optimizer(object):
                     'new_epoch outside the updater.')
         self.epoch += 1
 
+    def _check_set_up(self):
+        if self._hookable is None:
+            raise RuntimeError('Optimizer is not set up. Call `setup` method.')
+
     def add_hook(self, hook, name=None, timing='auto'):
         """Registers a hook function.
 
@@ -577,30 +674,8 @@ class Optimizer(object):
                 If 'post', the hook will be called after any updates.
 
         """
-        if not callable(hook):
-            raise TypeError('hook function is not callable')
-        if self._pre_update_hooks is None or self._post_update_hooks is None:
-            raise RuntimeError('call `setup` method before `add_hook` method')
-        if timing not in ('pre', 'post', 'auto'):
-            raise ValueError(
-                'timing must be one of (\'pre\', \'post\', \'auto\')')
-        if timing == 'auto':
-            timing = getattr(hook, 'timing', None)
-            if timing not in ('pre', 'post'):
-                warnings.warn(
-                    'Hook timing attribute not in (\'pre\', \'post\'), '
-                    'defaulting timing to \'pre\'.')
-                timing = 'pre'
-
-        if name is None:
-            name = hook.name
-        if name in self._pre_update_hooks or name in self._post_update_hooks:
-            raise KeyError('hook "{}" already exists'.format(name))
-
-        if timing == 'pre':
-            self._pre_update_hooks[name] = hook
-        else:
-            self._post_update_hooks[name] = hook
+        self._check_set_up()
+        self._hookable.add_hook(hook, name, timing)
 
     def remove_hook(self, name):
         """Removes a hook function.
@@ -609,23 +684,15 @@ class Optimizer(object):
             name (str): Registered name of the hook function to remove.
 
         """
-        try:
-            del self._pre_update_hooks[name]
-        except KeyError:
-            del self._post_update_hooks[name]
+        self._check_set_up()
+        self._hookable.remove_hook(name)
 
     def call_hooks(self, timing='pre'):
         """Invokes hook functions in registration order."""
-        if timing not in ('pre', 'post'):
-            raise ValueError('timing must be either \'pre\' or \'post\'')
-        if timing == 'pre':
-            hooks = self._pre_update_hooks
-        else:
-            hooks = self._post_update_hooks
-        for hook in six.itervalues(hooks):
-            self._call_hook(hook)
+        self._check_set_up()
+        self._hookable.call_hooks(timing, ())
 
-    def _call_hook(self, hook):
+    def call_hook(self, hook):
         if getattr(hook, 'call_for_each_param', False):
             for param in self.target.params():
                 hook(param.update_rule, param)
@@ -728,9 +795,9 @@ class GradientMethod(Optimizer):
     This class also provides :attr:`hyperparam`, which is the hyperparameter
     used as the default configuration of each update rule. All built-in
     gradient method implementations also provide proxy properties that act
-    as aliases to the attributes of :attr:`hyperparam`. It is recommended to
-    provide such an alias to each attribute. It can be done by only adding one
-    line for each attribute using :class:`HyperparameterProxy`.
+    as aliases to the attributes of :attr:`hyperparam`. It is recommended that
+    you provide such an alias to each attribute. It can be done by only adding
+    one line for each attribute using :class:`HyperparameterProxy`.
 
     Attributes:
         hyperparam (Hyperparameter): The hyperparameter of the gradient
@@ -768,17 +835,9 @@ class GradientMethod(Optimizer):
                 with chainer.using_device(device):
                     param.grad = device.xp.zeros_like(param.data)
 
-    def call_hooks(self, timing='pre'):
-        """Invokes hook functions in registration order."""
-        if timing not in ('pre', 'post'):
-            raise ValueError('timing must be either \'pre\' or \'post\'')
-        if timing == 'pre':
-            hooks = self._pre_update_hooks
-        else:
-            hooks = self._post_update_hooks
-        for hook in six.itervalues(hooks):
-            self._call_hook(hook)
-            self.reallocate_cleared_grads()
+    def call_hook(self, hook):
+        super(GradientMethod, self).call_hook(hook)
+        self.reallocate_cleared_grads()
 
     def update(self, lossfun=None, *args, **kwds):
         """Updates parameters based on a loss function or computed gradients.

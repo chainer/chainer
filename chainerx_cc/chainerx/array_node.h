@@ -4,7 +4,7 @@
 #include <memory>
 #include <utility>
 
-#include <nonstd/optional.hpp>
+#include <absl/types/optional.h>
 
 #include "chainerx/array_body.h"
 #include "chainerx/device.h"
@@ -19,8 +19,10 @@ namespace internal {
 
 class ArrayNode {
 public:
-    ArrayNode(const Shape& shape, Dtype dtype, Device& device, BackpropId backprop_id)
-        : shape_{shape}, dtype_{dtype}, device_{device}, backprop_id_{std::move(backprop_id)} {}
+    ArrayNode(Shape shape, Dtype dtype, Device& device, BackpropId backprop_id)
+        : shape_{std::move(shape)}, dtype_{dtype}, device_{device}, backprop_id_{backprop_id} {}
+
+    ~ArrayNode() = default;
 
     ArrayNode(const ArrayNode&) = delete;
     ArrayNode(ArrayNode&&) = delete;
@@ -58,7 +60,8 @@ public:
 
 private:
     // weak_body_ is set by this function.
-    friend const std::shared_ptr<ArrayNode>& ArrayBody::AddNode(const std::shared_ptr<ArrayBody>&, std::shared_ptr<ArrayNode>);
+    friend const std::shared_ptr<ArrayNode>& ArrayBody::AddNode(
+            const std::shared_ptr<ArrayBody>& body, std::shared_ptr<ArrayNode> array_node);
 
     std::weak_ptr<ArrayBody> weak_body_;
     std::shared_ptr<OpNode> creator_op_node_;
