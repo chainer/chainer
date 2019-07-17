@@ -1,3 +1,5 @@
+import os
+import tempfile
 import unittest
 
 import numpy
@@ -133,6 +135,46 @@ class DecorrelatedBatchNormalizationTest(unittest.TestCase):
     def test_backward_gpu(self):
         self.link.to_gpu()
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
+
+
+@testing.parameterize(*(testing.product({
+    'n_channels': [8],
+    'groups': [1, 2],
+    'test': [True, False],
+    'dtype': [numpy.float32, numpy.float64],
+})))
+class TestDecorrelatedBatchNormalizationCompat(unittest.TestCase):
+
+    def setUp(self):
+        C = self.n_channels // self.groups
+
+        fd, path = tempfile.mkstemp()
+        os.close(fd)
+        self.temp_file_path = path
+        with open(path, 'wb') as f:
+            numpy.savez(f, **{
+                'avg_mean': numpy.random.uniform(
+                    -1, 1, (C,)).astype(self.dtype),
+                'avg_projection': numpy.random.uniform(
+                    0.5, 1, (C, C)).astype(self.dtype),
+                'N': numpy.array(0)
+            })
+
+    def tearDown(self):
+        if hasattr(self, 'temp_file_path'):
+            os.remove(self.temp_file_path)
+
+    def test_model_compatibility(self):
+        model = links.DecorrelatedBatchNormalization(
+            self.n_channels, groups=self.groups, dtype=self.dtype)
+        chainer.serializers.load_npz(self.temp_file_path, model)
+        print(model.avg_mean.shape)
+        x = numpy.random.rand(5, self.n_channels, 2).astype(self.dtype)
+        if self.groups == 1:
+            model(x)
+        else:
+            with testing.assert_warns(RuntimeWarning):
+                model(x)
 
 
 testing.run_module(__name__, __file__)
