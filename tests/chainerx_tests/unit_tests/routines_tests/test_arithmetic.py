@@ -1405,6 +1405,7 @@ class TestReciprocal(math_utils.UnaryMathTestBase, op_utils.NumpyOpTest):
     def func(self, xp, a):
         return xp.reciprocal(a)
 
+
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
     # Special shapes
@@ -1435,7 +1436,8 @@ class TestReciprocal(math_utils.UnaryMathTestBase, op_utils.NumpyOpTest):
         'input_rhs': ['random'],
         'is_module': [True, False],
     })
-    # Remove special values test since chainerx.remainder returns nan when numpy.remainder returns inf
+    # Remove special values test
+    # since chainerx.remainder returns nan when numpy.remainder returns inf
 ))
 class TestRemainder(math_utils.BinaryMathTestBase, op_utils.NumpyOpTest):
     dodge_nondifferentiable = True
@@ -1449,8 +1451,6 @@ class TestRemainder(math_utils.BinaryMathTestBase, op_utils.NumpyOpTest):
         return a, b
 
     def func(self, xp, a, b):
-        print(a)
-        print(b)
         if self.is_module:
             return xp.remainder(a, b)
         else:
@@ -1489,9 +1489,11 @@ def test_remainder_invalid_dtypes(device, dtypes, is_module):
         'input_lhs': ['random'],
         'input_rhs': ['random'],
     })
-    # Remove special values test since chainerx.remainder returns nan when numpy.remainder returns inf
+    # Remove special values test
+    # since chainerx.remainder returns nan when numpy.remainder returns inf
 ))
-class TestIRemainder(math_utils.InplaceBinaryMathTestBase, op_utils.NumpyOpTest):
+class TestIRemainder(
+        math_utils.InplaceBinaryMathTestBase, op_utils.NumpyOpTest):
     dodge_nondifferentiable = True
 
     def generate_inputs(self):
@@ -1524,7 +1526,7 @@ def test_iremainder_invalid_dtypes(device, dtypes):
         'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
         'in_dtypes,scalar_type,out_dtype': _in_out_dtypes_arithmetic_scalar,
         'input': ['random'],
-        'scalar_value': [1],
+        'scalar_value': [2, 3],
         'is_module': [False],
         'is_scalar_rhs': [False],
     })
@@ -1533,7 +1535,7 @@ def test_iremainder_invalid_dtypes(device, dtypes):
         'shape': [(2, 3)],
         'in_dtypes,scalar_type,out_dtype': _in_out_dtypes_arithmetic_scalar,
         'input': ['random'],
-        'scalar_value': [1],
+        'scalar_value': [2, 3],
         'is_module': [False],
         'is_scalar_rhs': [True, False],
     })
@@ -1542,11 +1544,12 @@ def test_iremainder_invalid_dtypes(device, dtypes):
         'shape': [(2, 3)],
         'in_dtypes,scalar_type,out_dtype': _in_out_dtypes_arithmetic_scalar,
         'input': ['random'],
-        'scalar_value': [1],
+        'scalar_value': [2, 3],
         'is_module': [True, False],
         'is_scalar_rhs': [True, False],
     })
-    # Remove special values test since chainerx.remainder returns nan when numpy.remainder returns inf
+    # Remove special values test
+    # since chainerx.remainder returns nan when numpy.remainder returns inf
 ))
 class TestRemainderScalar(math_utils.MathScalarTestBase, op_utils.NumpyOpTest):
     dodge_nondifferentiable = True
@@ -1584,7 +1587,7 @@ class TestRemainderScalar(math_utils.MathScalarTestBase, op_utils.NumpyOpTest):
         'in_dtypes,scalar_type,out_dtype':
             _in_out_dtypes_inplace_arithmetic_scalar,
         'input': ['random'],
-        'scalar_value': [1],
+        'scalar_value': [2, 3],
     })
     # Dtype combinations
     + chainer.testing.product({
@@ -1592,9 +1595,10 @@ class TestRemainderScalar(math_utils.MathScalarTestBase, op_utils.NumpyOpTest):
         'in_dtypes,scalar_type,out_dtype':
             _in_out_dtypes_inplace_arithmetic_scalar,
         'input': ['random'],
-        'scalar_value': [1],
+        'scalar_value': [2, 3],
     })
-    # Remove special values test since chainerx.remainder returns nan when numpy.remainder returns inf
+    # Remove special values test
+    # since chainerx.remainder returns nan when numpy.remainder returns inf
 ))
 class TestIRemainderScalar(
         math_utils.InplaceMathScalarTestBase, op_utils.NumpyOpTest):

@@ -1393,7 +1393,7 @@ Note:
     _docs.set_doc(
         chainerx.mod,
         """mod(x1, x2)
-Return element-wise remainder of division..
+Same as `chainerx.remainder`
 
 Args:
     x1 (~chainerx.ndarray or scalar): Input array.
@@ -1401,10 +1401,11 @@ Args:
 
 Returns:
     :class:`~chainerx.ndarray`:
-        Returned array: The element-wise remainder of the quotient :math:`floor_divide(x1, x2)`.
-        
+        Returned array: The element-wise remainder of
+        the quotient ``floor_divide(x1, x2)``.
+
 Note:
-    During backpropagation, this function does not propagate gradients.
+    During backpropagation, this function propagates gradients.
 
 .. seealso:: :data:`numpy.mod`
 """)
@@ -1412,7 +1413,7 @@ Note:
     _docs.set_doc(
         chainerx.remainder,
         """remainder(x1, x2)
-Return element-wise remainder of division..
+Return element-wise remainder of division.
 
 Args:
     x1 (~chainerx.ndarray or scalar): Input array.
@@ -1420,10 +1421,11 @@ Args:
 
 Returns:
     :class:`~chainerx.ndarray`:
-        Returned array: The element-wise remainder of the quotient :math:`floor_divide(x1, x2)`.
-        
+        Returned array: The element-wise remainder of
+        the quotient ``floor_divide(x1, x2)``.
+
 Note:
-    During backpropagation, this function does not propagate gradients.
+    During backpropagation, this function propagates gradients.
 
 .. seealso:: :data:`numpy.remainder`
 """)

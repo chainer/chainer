@@ -289,12 +289,13 @@ __device__ T ModImpl(T x, T y) {
     }
     if (x < 0) {
         if (y > 0) {
-            return (y - (-x) % y) % y;
+            T z = (-x) % y;
+            return z == 0 ? 0 : y - z;
         }
         return -(-x % (-y));
     }
     if (y < 0) {
-        return (y + x % (-y)) % y;
+        T z = x % (-y) return z == 0 ? 0 : y - z;
     }
     return x % y;
 }
@@ -308,36 +309,25 @@ __device__ uint8_t Mod(uint8_t x, uint8_t y) {
     }
     return x % y;
 }
-__device__ float Mod(float x, float y) {
+__device__ T FModImpl(T x, T y) {
     if (x == 0 || y == 0) {
         return 0;
     }
     if (x < 0) {
         if (y > 0) {
-            return std::fmod(y - std::fmod(-x, y), y);
+            T z = std::fmod(-x, y);
+            return z == 0 ? 0 : y - z;
         }
         return -std::fmod(-x, -y);
     }
     if (y < 0) {
-        return std::fmod(y + std::fmod(x, -y), y);
+        T x = std::fmod(x, -y);
+        return z == 0 ? 0 : y - z;
     }
     return std::fmod(x, y);
 }
-__device__ double Mod(double x, double y) {
-    if (x == 0 || y == 0) {
-        return 0;
-    }
-    if (x < 0) {
-        if (y > 0) {
-            return std::fmod(y - std::fmod(-x, y), y);
-        }
-        return -std::fmod(-x, -y);
-    }
-    if (y < 0) {
-        return std::fmod(y + std::fmod(x, -y), y);
-    }
-    return std::fmod(x, y);
-}
+__device__ double Mod(double x, double y) { return FModImpl(x, y); }
+__device__ float Mod(float x, float y) { return FModImpl(x, y); }
 __device__ cuda::Float16 Mod(cuda::Float16 x, cuda::Float16 y) { return cuda::Float16{Mod(static_cast<float>(x), static_cast<float>(y))}; }
 
 CHAINERX_CUDA_REGISTER_ELTWISE_DTYPE_BINARY_KERNEL(ModAAKernel, { out = cuda::Mod(x1, x2); }, VisitNumericDtype);
