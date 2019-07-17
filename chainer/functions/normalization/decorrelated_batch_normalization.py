@@ -40,7 +40,8 @@ def _matmul(a, b, xp):
 def _diag(a, xp):
     s0, s1 = a.shape
     ret = xp.zeros((s0, s1, s1), a.dtype)
-    ret[:, numpy.arange(s1), numpy.arange(s1)] = a
+    arange_s1 = numpy.arange(s1)
+    ret[:, arange_s1, arange_s1] = a
     return ret
 
 
@@ -148,7 +149,8 @@ class DecorrelatedBatchNormalizationGrad(function_node.FunctionNode):
         g = self.groups
         C = c // g
         spatial_axis, m = _calc_axis_and_m(gy_shape, b, g)
-        diag_indices = slice(None), numpy.arange(C), numpy.arange(C)
+        arange_C = numpy.arange(C)
+        diag_indices = slice(None), arange_C, arange_C
 
         gy_hat = gy.transpose((1, 0) + spatial_axis).reshape(g, C, m)
 

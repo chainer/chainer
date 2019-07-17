@@ -66,7 +66,8 @@ class DecorrelatedBatchNormalization(link.Link):
         self.avg_mean = numpy.zeros((groups, C), dtype=dtype)
         self.register_persistent('avg_mean')
         avg_projection = numpy.zeros((groups, C, C), dtype=dtype)
-        avg_projection[:, numpy.arange(C), numpy.arange(C)] = 1
+        arange_C = numpy.arange(C)
+        avg_projection[:, arange_C, arange_C] = 1
         self.avg_projection = avg_projection
         self.register_persistent('avg_projection')
         self.N = 0
