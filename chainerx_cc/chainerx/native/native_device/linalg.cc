@@ -80,7 +80,7 @@ public:
             Potrf<T>(uplo, N, out_ptr, N, &info);
 
             if (info != 0) {
-                throw ChainerxError{"Unsuccessfull potrf (Cholesky) execution. Info = ", info};
+                throw ChainerxError{"Unsuccessful potrf (Cholesky) execution. Info = ", info};
             }
         };
 
