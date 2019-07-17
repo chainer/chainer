@@ -95,18 +95,17 @@ def test_dot_invalid(is_module, xp, device, a_shape, b_shape, dtype):
         return a.dot(b)
 
 
+@pytest.mark.parametrize('dtype', ['float32', 'float64'])
 class NumpyLinalgOpTest(op_utils.NumpyOpTest):
 
     dodge_nondifferentiable = True
-    forward_accept_errors = (TypeError,
-                             chainerx.DtypeError)
 
-    def setup(self, float_dtype):
+    def setup(self, dtype):
         device = chainerx.get_default_device()
         if (device.backend.name == 'native'
                 and not chainerx.linalg._is_lapack_available()):
             pytest.skip('LAPACK is not linked to ChainerX')
-        self.dtype = float_dtype
+        self.dtype = dtype
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
@@ -188,4 +187,41 @@ class TestInverseFailing(NumpyLinalgOpTest):
     def forward_xp(self, inputs, xp):
         a, = inputs
         out = xp.linalg.inv(a)
+        return out,
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize_pytest('shape', [(3, 3)])
+@chainer.testing.parameterize_pytest('dtype', ['float16'])
+class TestInverseDtypeFailing(op_utils.NumpyOpTest):
+
+    forward_accept_errors = (TypeError,
+                             chainerx.DtypeError)
+
+    def generate_inputs(self):
+        a = numpy.random.random(self.shape).astype(self.dtype)
+        return a,
+
+    def forward_xp(self, inputs, xp):
+        a, = inputs
+        out = xp.linalg.inv(a)
+        return out,
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize_pytest('shape', [(3, 3)])
+@chainer.testing.parameterize_pytest('dtype', ['float16'])
+class TestSolveDtypeFailing(op_utils.NumpyOpTest):
+
+    forward_accept_errors = (TypeError,
+                             chainerx.DtypeError)
+
+    def generate_inputs(self):
+        a = numpy.random.random(self.shape).astype(self.dtype)
+        b = numpy.random.random(self.shape).astype(self.dtype)
+        return a, b
+
+    def forward_xp(self, inputs, xp):
+        a, b = inputs
+        out = xp.linalg.solve(a, b)
         return out,
