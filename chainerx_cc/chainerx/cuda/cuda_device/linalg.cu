@@ -143,7 +143,7 @@ void SolveImpl(const Array& a, const Array& b, const Array& out) {
     device_internals.cusolverdn_handle().Call(Getrf<T>, m, m, lu_ptr, m, work_ptr, ipiv_ptr, static_cast<int*>(devinfo.get()));
 
     int devinfo_h = 0;
-    Device& native_device = dynamic_cast<native::NativeDevice&>(GetDefaultContext().GetDevice({"native", 0}));
+    Device& native_device = GetDefaultContext().GetDevice({"native", 0});
     device.MemoryCopyTo(&devinfo_h, devinfo.get(), sizeof(int), native_device);
     if (devinfo_h != 0) {
         throw ChainerxError{"Unsuccessfull getrf (LU) execution. Info = ", devinfo_h};
