@@ -155,7 +155,7 @@ public:
                     Syevd<T>, jobz, uplo, m, v_ptr, lda, w_ptr, work_ptr, buffersize, static_cast<int*>(devInfo.get()));
 
             int devInfo_h = 0;
-            Device& native_device = dynamic_cast<native::NativeDevice&>(GetDefaultContext().GetDevice({"native", 0}));
+            Device& native_device = GetDefaultContext().GetDevice({"native", 0});
             device.MemoryCopyTo(&devInfo_h, devInfo.get(), sizeof(int), native_device);
             if (devInfo_h != 0) {
                 throw ChainerxError{"Unsuccessfull syevd (Eigen Decomposition) execution. Info = ", devInfo_h};
