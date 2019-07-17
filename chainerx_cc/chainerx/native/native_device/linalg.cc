@@ -94,7 +94,7 @@ std::tuple<Array, Array> QRImpl(const Array& a, QRMode mode) {
     Geqrf(m, n, r_ptr, m, tau_ptr, work_ptr, buffersize_geqrf, &info);
 
     if (info != 0) {
-        throw ChainerxError{"Unsuccessfull geqrf (QR) execution. Info = ", info};
+        throw ChainerxError{"Unsuccessful geqrf (QR) execution. Info = ", info};
     }
 
     if (mode == QRMode::r) {
@@ -130,7 +130,7 @@ std::tuple<Array, Array> QRImpl(const Array& a, QRMode mode) {
     Orgqr(m, mc, mn, q_ptr, m, tau_ptr, work_orgqr_ptr, buffersize_orgqr, &info);
 
     if (info != 0) {
-        throw ChainerxError{"Unsuccessfull orgqr (QR) execution. Info = ", info};
+        throw ChainerxError{"Unsuccessful orgqr (QR) execution. Info = ", info};
     }
 
     // .Copy() is needed to have correct strides

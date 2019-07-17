@@ -153,7 +153,7 @@ std::tuple<Array, Array> QRImpl(const Array& a, QRMode mode) {
     Device& native_device = GetDefaultContext().GetDevice({"native", 0});
     device.MemoryCopyTo(&devInfo_h, devInfo.get(), sizeof(int), native_device);
     if (devInfo_h != 0) {
-        throw ChainerxError{"Unsuccessfull geqrf (QR) execution. Info = ", devInfo_h};
+        throw ChainerxError{"Unsuccessful geqrf (QR) execution. Info = ", devInfo_h};
     }
 
     if (mode == QRMode::r) {
@@ -188,7 +188,7 @@ std::tuple<Array, Array> QRImpl(const Array& a, QRMode mode) {
 
     device.MemoryCopyTo(&devInfo_h, devInfo.get(), sizeof(int), native_device);
     if (devInfo_h != 0) {
-        throw ChainerxError{"Unsuccessfull orgqr (QR) execution. Info = ", devInfo_h};
+        throw ChainerxError{"Unsuccessful orgqr (QR) execution. Info = ", devInfo_h};
     }
 
     // .Copy() is needed to have correct strides
