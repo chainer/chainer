@@ -197,7 +197,7 @@ Save two plot images to the result directory.
 .. literalinclude:: ../../examples/glance/glance.py
    :language: python
    :linenos:
-   :lines: 66-74
+   :lines: 66-73
    :lineno-start: 66
 
 Print selected entries of the log to standard output.
@@ -205,8 +205,8 @@ Print selected entries of the log to standard output.
 .. literalinclude:: ../../examples/glance/glance.py
    :language: python
    :linenos:
-   :lines: 76-79
-   :lineno-start: 76
+   :lines: 75-78
+   :lineno-start: 75
 
 Main Loop
 ~~~~~~~~~
@@ -216,8 +216,8 @@ Finally, with the ``trainer`` and all the extensions set up, we can add the line
 .. literalinclude:: ../../examples/glance/glance.py
    :language: python
    :linenos:
-   :lines: 81-82
-   :lineno-start: 81
+   :lines: 80-81
+   :lineno-start: 80
 
 Inference
 ~~~~~~~~~
@@ -227,8 +227,8 @@ Once the training is complete, only the model is necessary to make predictions. 
 .. literalinclude:: ../../examples/glance/glance.py
    :language: python
    :linenos:
-   :lines: 84-
-   :lineno-start: 84
+   :lines: 83-
+   :lineno-start: 83
 
 Output
 -------

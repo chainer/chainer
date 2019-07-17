@@ -7,7 +7,7 @@
 #include <utility>
 #include <vector>
 
-#include <nonstd/optional.hpp>
+#include <absl/types/optional.h>
 
 #include "chainerx/array.h"
 #include "chainerx/backprop_mode.h"
@@ -19,18 +19,13 @@
 #include "chainerx/error.h"
 #include "chainerx/graph.h"
 #include "chainerx/kernels/pooling.h"
-#include "chainerx/routines/math.h"
+#include "chainerx/routines/arithmetic.h"
 #include "chainerx/routines/routines_util.h"
-#include "chainerx/stack_vector.h"
 
 namespace chainerx {
 namespace {
 
-void CheckPoolInputs(
-        const Array& x,
-        const StackVector<int64_t, kMaxNdim>& kernel_size,
-        const StackVector<int64_t, kMaxNdim>& stride,
-        const StackVector<int64_t, kMaxNdim>& pad) {
+void CheckPoolInputs(const Array& x, const Dims& kernel_size, const Dims& stride, const Dims& pad) {
     int8_t ndim = x.ndim() - 2;  // Number of spatial dimensions.
     if (static_cast<int8_t>(kernel_size.size()) != ndim) {
         throw DimensionError{"Wrong numbers of kernel size dimensions ", kernel_size.size(), " for input with ", x.ndim(), " dimensions."};
@@ -54,20 +49,15 @@ void CheckPoolInputs(
 
 }  // namespace
 
-Array MaxPool(
-        const Array& x,
-        const StackVector<int64_t, kMaxNdim>& kernel_size,
-        const StackVector<int64_t, kMaxNdim>& stride,
-        const StackVector<int64_t, kMaxNdim>& pad,
-        bool cover_all) {
+Array MaxPool(const Array& x, const Dims& kernel_size, const Dims& stride, const Dims& pad, bool cover_all) {
     CheckPoolInputs(x, kernel_size, stride, pad);
 
     Array out{};
     std::shared_ptr<MaxPoolGradState> state{};
     {
         NoBackpropModeScope scope{};
-        std::tie(out, state) = x.device().backend().CallKernel<MaxPoolKernel>(
-                x.AsGradStopped(), kernel_size, stride, pad, cover_all, true, nonstd::nullopt);
+        std::tie(out, state) =
+                x.device().backend().CallKernel<MaxPoolKernel>(x.AsGradStopped(), kernel_size, stride, pad, cover_all, true, absl::nullopt);
     }
     internal::MakeViewForForwardBackwardOutput(out);
 
@@ -82,7 +72,7 @@ Array MaxPool(
             {
                 NoBackpropModeScope scope{};
                 std::tie(gx, grad_grad_state) = gout.device().backend().CallKernel<MaxPoolGradKernel>(
-                        gout.AsGradStopped(), kernel_size, stride, pad, state, true, nonstd::nullopt);
+                        gout.AsGradStopped(), kernel_size, stride, pad, state, true, absl::nullopt);
             }
             internal::MakeViewForForwardBackwardOutput(gx);
 
@@ -96,7 +86,7 @@ Array MaxPool(
                         {
                             NoBackpropModeScope scope{};
                             ggout = ggx.device().backend().CallKernel<MaxPoolGradGradKernel>(
-                                    ggx.AsGradStopped(), st.kernel_size, st.stride, st.pad, st.cover_all, grad_grad_state, nonstd::nullopt);
+                                    ggx.AsGradStopped(), st.kernel_size, st.stride, st.pad, st.cover_all, grad_grad_state, absl::nullopt);
                         }
 
                         // Make ggout further backpropable.
@@ -115,9 +105,9 @@ Array MaxPool(
             bctx1.input_grad() = std::move(gx);
         }
 
-        StackVector<int64_t, kMaxNdim> kernel_size;
-        StackVector<int64_t, kMaxNdim> stride;
-        StackVector<int64_t, kMaxNdim> pad;
+        Dims kernel_size;
+        Dims stride;
+        Dims pad;
         bool cover_all;
         std::shared_ptr<MaxPoolGradState> state;
     };
@@ -132,12 +122,7 @@ Array MaxPool(
     return out;
 }
 
-Array AveragePool(
-        const Array& x,
-        const StackVector<int64_t, kMaxNdim>& kernel_size,
-        const StackVector<int64_t, kMaxNdim>& stride,
-        const StackVector<int64_t, kMaxNdim>& pad,
-        AveragePoolPadMode pad_mode) {
+Array AveragePool(const Array& x, const Dims& kernel_size, const Dims& stride, const Dims& pad, AveragePoolPadMode pad_mode) {
     if (GetKind(x.dtype()) != DtypeKind::kFloat) {
         throw DtypeError("cannot apply average pooling to ", x.dtype(), " array (floatXX array is expected)");
     }
@@ -148,7 +133,7 @@ Array AveragePool(
     {
         NoBackpropModeScope scope{};
         std::tie(out, state) = x.device().backend().CallKernel<AveragePoolKernel>(
-                x.AsGradStopped(), kernel_size, stride, pad, pad_mode, true, nonstd::nullopt);
+                x.AsGradStopped(), kernel_size, stride, pad, pad_mode, true, absl::nullopt);
     }
     internal::MakeViewForForwardBackwardOutput(out);
 
@@ -162,7 +147,7 @@ Array AveragePool(
                 {
                     NoBackpropModeScope scope{};
                     gx = gout.device().backend().CallKernel<AveragePoolGradKernel>(
-                            gout.AsGradStopped(), kernel_size, stride, pad, pad_mode, state, nonstd::nullopt);
+                            gout.AsGradStopped(), kernel_size, stride, pad, pad_mode, state, absl::nullopt);
                 }
 
                 {

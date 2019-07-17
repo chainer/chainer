@@ -64,14 +64,13 @@ trainer.extend(extensions.snapshot(), trigger=(20, 'epoch'))
 trainer.extend(extensions.LogReport())
 
 # Save two plot images to the result dir
-if extensions.PlotReport.available():
-    trainer.extend(
-        extensions.PlotReport(['main/loss', 'validation/main/loss'],
-                              'epoch', file_name='loss.png'))
-    trainer.extend(
-        extensions.PlotReport(
-            ['main/accuracy', 'validation/main/accuracy'],
-            'epoch', file_name='accuracy.png'))
+trainer.extend(
+    extensions.PlotReport(['main/loss', 'validation/main/loss'],
+                          'epoch', file_name='loss.png'))
+trainer.extend(
+    extensions.PlotReport(
+        ['main/accuracy', 'validation/main/accuracy'],
+        'epoch', file_name='accuracy.png'))
 
 # Print selected entries of the log to stdout
 trainer.extend(extensions.PrintReport(

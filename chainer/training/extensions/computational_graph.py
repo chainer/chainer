@@ -56,7 +56,7 @@ root_name, filename='cg.dot', variable_style=None, function_style=None)
     .. note::
        The computational graph is not kept by default. This
        extension changes this behavior until the first invocation. **It is
-       strongly recommended to use it with the default trigger setting.**
+       strongly recommended that you use it with the default trigger setting.**
 
        The detailed behavior of this extension is as follows.
 

@@ -290,18 +290,20 @@ class TestBoolBinaryOperator(unittest.TestCase):
 
     def test_eval(self):
         self.assertTrue(self.op1.eval())
+        self.assertFalse(self.op2.eval())
 
     def test_expect(self):
+        self.op1.expect()
         with self.assertRaises(T.InvalidType):
             self.op2.expect()
 
     def test_bool(self):
-        with self.assertRaises(RuntimeError):
-            bool(self.op1)
+        self.assertTrue(bool(self.op1))
+        self.assertFalse(bool(self.op2))
 
     def test_bool_operator(self):
-        with self.assertRaises(RuntimeError):
-            not self.op1
+        self.assertFalse(not self.op1)
+        self.assertTrue(not self.op2)
 
 
 class TestLazyGetItem(unittest.TestCase):

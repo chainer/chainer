@@ -1,14 +1,14 @@
 #include "chainerx/cuda/cudnn.h"
 
+#include <absl/types/optional.h>
 #include <cudnn.h>
-#include <nonstd/optional.hpp>
 
 #include "chainerx/array.h"
 #include "chainerx/cuda/cuda_runtime.h"
+#include "chainerx/dims.h"
 #include "chainerx/dtype.h"
 #include "chainerx/error.h"
 #include "chainerx/macro.h"
-#include "chainerx/stack_vector.h"
 
 namespace chainerx {
 namespace cuda {
@@ -61,13 +61,11 @@ StackVector<int, kMaxNdim> GetIntStackVector(const T& container, const char* src
 
 StackVector<int, kMaxNdim> GetIntShape(const Shape& shape) { return GetIntStackVector(shape, "shape size"); }
 
-StackVector<int, kMaxNdim> GetIntKernelSize(const StackVector<int64_t, kMaxNdim>& kernel_size) {
-    return GetIntStackVector(kernel_size, "kernel size");
-}
+StackVector<int, kMaxNdim> GetIntKernelSize(const Dims& kernel_size) { return GetIntStackVector(kernel_size, "kernel size"); }
 
-StackVector<int, kMaxNdim> GetIntStride(const StackVector<int64_t, kMaxNdim>& stride) { return GetIntStackVector(stride, "stride"); }
+StackVector<int, kMaxNdim> GetIntStride(const Dims& stride) { return GetIntStackVector(stride, "stride"); }
 
-StackVector<int, kMaxNdim> GetIntPad(const StackVector<int64_t, kMaxNdim>& pad) { return GetIntStackVector(pad, "pad"); }
+StackVector<int, kMaxNdim> GetIntPad(const Dims& pad) { return GetIntStackVector(pad, "pad"); }
 
 StackVector<int, kMaxNdim> GetIntDilation(const StackVector<int64_t, kMaxNdim>& dilation) {
     return GetIntStackVector(dilation, "dilation");
@@ -158,11 +156,7 @@ CudnnConvolutionDescriptor::~CudnnConvolutionDescriptor() {
 }
 
 CudnnConvolutionDescriptor::CudnnConvolutionDescriptor(
-        Dtype dtype,
-        const StackVector<int64_t, kMaxNdim>& pad,
-        const StackVector<int64_t, kMaxNdim>& stride,
-        const nonstd::optional<StackVector<int64_t, kMaxNdim>>& dilation,
-        int groups)
+        Dtype dtype, const Dims& pad, const Dims& stride, const absl::optional<Dims>& dilation, int groups)
     : CudnnConvolutionDescriptor{} {
     size_t ndim = pad.size();
     CHAINERX_ASSERT(ndim == stride.size());
@@ -211,11 +205,7 @@ CudnnPoolingDescriptor::~CudnnPoolingDescriptor() {
 }
 
 CudnnPoolingDescriptor::CudnnPoolingDescriptor(
-        cudnnPoolingMode_t mode,
-        cudnnNanPropagation_t max_pooling_nan_opt,
-        const StackVector<int64_t, kMaxNdim>& kernel_size,
-        const StackVector<int64_t, kMaxNdim>& pad,
-        const StackVector<int64_t, kMaxNdim>& stride)
+        cudnnPoolingMode_t mode, cudnnNanPropagation_t max_pooling_nan_opt, const Dims& kernel_size, const Dims& pad, const Dims& stride)
     : CudnnPoolingDescriptor{} {
     size_t ndim = kernel_size.size();
     CHAINERX_ASSERT(ndim == pad.size());

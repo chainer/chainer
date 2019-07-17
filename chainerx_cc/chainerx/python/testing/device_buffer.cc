@@ -23,6 +23,7 @@ namespace testing {
 namespace testing_internal {
 
 namespace py = pybind11;  // standard convention
+using py::literals::operator""_a;
 
 // A device buffer that upon construction allocates device memory and creates a py::buffer_info, sharing ownership of the managed data
 // (py::buffer_info only holds a raw pointer and does not manage the lifetime of the pointed data). Memoryviews created from this buffer
@@ -50,7 +51,7 @@ private:
 
 void InitChainerxDeviceBuffer(pybind11::module& m) {
     py::class_<PyDeviceBuffer> c{m, "_DeviceBuffer", py::buffer_protocol()};
-    c.def(py::init([](const py::list& list, const py::tuple& shape_tup, const py::handle& dtype_handle, const py::handle& device) {
+    c.def(py::init([](const py::list& list, py::handle shape_tup, const py::handle& dtype_handle, const py::handle& device) {
               Shape shape = python_internal::ToShape(shape_tup);
               int64_t total_size = shape.GetTotalSize();
               if (static_cast<size_t>(total_size) != list.size()) {
@@ -72,10 +73,10 @@ void InitChainerxDeviceBuffer(pybind11::module& m) {
               std::shared_ptr<void> device_data = python_internal::GetDevice(device).FromHostMemory(host_data, bytes);
               return PyDeviceBuffer{device_data, item_size, format, shape.ndim(), shape, Strides{shape, dtype}};
           }),
-          py::arg("shape"),
-          py::arg("dtype"),
-          py::arg("data"),
-          py::arg("device") = nullptr);
+          "shape"_a,
+          "dtype"_a,
+          "data"_a,
+          "device"_a = nullptr);
     c.def_buffer([](const PyDeviceBuffer& self) {
         // py::buffer_info cannot be copied.
         std::shared_ptr<py::buffer_info> info = self.info();

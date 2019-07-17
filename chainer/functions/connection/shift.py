@@ -117,7 +117,7 @@ class Shift(function_node.FunctionNode):
 def shift(x, ksize=3, dilate=1):
     """Shift function.
 
-    See: `Shift: A Zero FLOP, Zero Parameter Alternative to Spatial \
+    See: `Shift: A Zero FLOP, Zero Parameter Alternative to Spatial
     Convolutions <https://arxiv.org/abs/1711.08141>`_
 
     Args:

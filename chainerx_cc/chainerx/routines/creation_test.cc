@@ -7,8 +7,8 @@
 #include <string>
 #include <vector>
 
+#include <absl/types/optional.h>
 #include <gtest/gtest.h>
-#include <nonstd/optional.hpp>
 
 #include "chainerx/array.h"
 #include "chainerx/check_backward.h"
@@ -201,7 +201,7 @@ public:
     }
 
 private:
-    nonstd::optional<testing::DeviceSession> device_session_;
+    absl::optional<testing::DeviceSession> device_session_;
 };
 
 TEST_P(CreationTest, FromContiguousHostData) {
@@ -312,7 +312,7 @@ TEST_P(CreationTest, FromData_Contiguous) {
             std::shared_ptr<void> data = device.FromHostMemory(host_data, sizeof(raw_data));
             data_ptr = data.get();
             // nullopt strides creates an array from a contiguous data
-            x = FromData(shape, dtype, data, nonstd::nullopt, offset);
+            x = FromData(shape, dtype, data, absl::nullopt, offset);
         }
 
         CheckFromData<T>(x, shape, dtype, strides, offset, expected_data, data_ptr);
@@ -692,6 +692,39 @@ TEST_P(CreationTest, EyeInvalidNM) {
     EXPECT_THROW(Eye(-1, -2, 1, Dtype::kFloat32), DimensionError);
 }
 
+TEST_THREAD_SAFE_P(CreationTest, AsContiguous) {
+    Array a = testing::BuildArray({2, 3}).WithLinearData<int32_t>().WithPadding(1);
+    ASSERT_FALSE(a.IsContiguous());  // test precondition
+
+    Run([&]() {
+        testing::CheckForward(
+                [](const std::vector<Array>& xs) {
+                    Array y = AsContiguous(xs[0]);
+                    EXPECT_TRUE(y.IsContiguous());
+                    return std::vector<Array>{y};
+                },
+                {a},
+                {a});
+    });
+}
+
+TEST_THREAD_SAFE_P(CreationTest, AsContiguousScalar) {
+    Array a = testing::BuildArray({}).WithLinearData<int32_t>();
+    ASSERT_EQ(0, a.ndim());  // test precondition
+
+    Run([&]() {
+        testing::CheckForward(
+                [](const std::vector<Array>& xs) {
+                    Array y = AsContiguous(xs[0]);
+                    EXPECT_TRUE(y.IsContiguous());
+                    EXPECT_EQ(0, y.ndim());
+                    return std::vector<Array>{y};
+                },
+                {a},
+                {a});
+    });
+}
+
 TEST_THREAD_SAFE_P(CreationTest, AsContiguousArray) {
     Array a = testing::BuildArray({2, 3}).WithLinearData<int32_t>().WithPadding(1);
     ASSERT_FALSE(a.IsContiguous());  // test precondition
@@ -740,6 +773,24 @@ TEST_THREAD_SAFE_P(CreationTest, AsContiguousArrayDtypeMismatch) {
                 },
                 {a},
                 {});
+    });
+}
+
+TEST_THREAD_SAFE_P(CreationTest, AsContiguousArrayScalar) {
+    Array a = testing::BuildArray({}).WithLinearData<int32_t>();
+    ASSERT_EQ(0, a.ndim());  // test precondition
+    Array e = a.Reshape({1});
+
+    Run([&]() {
+        testing::CheckForward(
+                [](const std::vector<Array>& xs) {
+                    Array y = AsContiguousArray(xs[0]);
+                    EXPECT_TRUE(y.IsContiguous());
+                    EXPECT_EQ(1, y.ndim());
+                    return std::vector<Array>{y};
+                },
+                {a},
+                {e});
     });
 }
 
