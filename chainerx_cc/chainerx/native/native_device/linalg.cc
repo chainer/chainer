@@ -132,7 +132,7 @@ public:
             gesdd(&job, &m, &n, x_ptr, &m, s_ptr, u_ptr, &m, vt_ptr, &n, work_ptr, &buffersize, nullptr, &info);
 
             if (info != 0) {
-                throw ChainerxError{"Unsuccessfull gesdd (SVD) execution. Info = ", info};
+                throw ChainerxError{"Unsuccessful gesdd (SVD) execution. Info = ", info};
             }
 
             if (trans_flag) {

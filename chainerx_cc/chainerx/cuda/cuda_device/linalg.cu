@@ -128,7 +128,7 @@ public:
             Device& native_device = GetDefaultContext().GetDevice({"native", 0});
             device.MemoryCopyTo(&devInfo_h, devInfo.get(), sizeof(int), native_device);
             if (devInfo_h != 0) {
-                throw ChainerxError{"Unsuccessfull gesvd (SVD) execution. Info = ", devInfo_h};
+                throw ChainerxError{"Unsuccessful gesvd (SVD) execution. Info = ", devInfo_h};
             }
 
             if (trans_flag) {
