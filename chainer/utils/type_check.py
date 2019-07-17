@@ -482,12 +482,6 @@ class BoolBinaryOperator(BinaryOperator, Testable):
                 '{0} {1} {2}'.format(self.lhs, self.exp, self.rhs),
                 '{0} {1} {2}'.format(left, self.inv, right))
 
-    def __bool__(self):
-        return self.eval()
-
-    def __nonzero__(self):
-        return self.__bool__()
-
 
 class InvalidType(Exception):
     """Raised when types of data for forward/backward are invalid.
