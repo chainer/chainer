@@ -518,6 +518,10 @@ Returns:
         Solution to the system ``ax = b``.
         Shape is identical to ``b``.
 
+Note:
+    The ``dtype`` must be ``float32`` or ``float64`` (``float16`` is not
+    supported yet.)
+
 .. seealso:: :func:`numpy.linalg.solve`
 """)
 
@@ -534,6 +538,10 @@ Args:
 
 Returns:
     :class:`~chainerx.ndarray`: The inverse of a matrix.
+
+Note:
+    The ``dtype`` must be ``float32`` or ``float64`` (``float16`` is not
+    supported yet.)
 
 .. seealso:: :func:`numpy.linalg.inv`
 """)
