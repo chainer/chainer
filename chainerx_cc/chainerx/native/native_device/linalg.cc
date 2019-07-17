@@ -109,7 +109,7 @@ public:
             Syevd<T>(jobz, uplo, m, v_ptr, lda, w_ptr, work_ptr, lwork, iwork_ptr, liwork, &info);
 
             if (info != 0) {
-                throw ChainerxError{"Unsuccessfull syevd (Eigen Decomposition) execution. Info = ", info};
+                throw ChainerxError{"Unsuccessful syevd (Eigen Decomposition) execution. Info = ", info};
             }
 
             return std::make_tuple(std::move(w), std::move(v.Transpose().Copy()));

@@ -158,7 +158,7 @@ public:
             Device& native_device = GetDefaultContext().GetDevice({"native", 0});
             device.MemoryCopyTo(&devInfo_h, devInfo.get(), sizeof(int), native_device);
             if (devInfo_h != 0) {
-                throw ChainerxError{"Unsuccessfull syevd (Eigen Decomposition) execution. Info = ", devInfo_h};
+                throw ChainerxError{"Unsuccessful syevd (Eigen Decomposition) execution. Info = ", devInfo_h};
             }
 
             return std::make_tuple(std::move(w), std::move(v.Transpose().Copy()));
