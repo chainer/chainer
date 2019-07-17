@@ -1,5 +1,8 @@
+import warnings
+
 import numpy
 
+import chainer
 from chainer import configuration
 from chainer import functions
 from chainer import link
@@ -95,6 +98,24 @@ class DecorrelatedBatchNormalization(link.Link):
 
         """
         finetune, = argument.parse_kwargs(kwargs, ('finetune', False))
+
+        if self.avg_projection.ndim == 2:
+            g = self.groups
+            if g != 1:
+                warnings.warn(
+                    'Found moving statistics of old '
+                    'DecorrelatedBatchNormalization, whose algorithm was '
+                    'different from the paper.',
+                    RuntimeWarning)
+            C, = self.avg_mean.shape
+            assert self.avg_projection.ndim == (C, C)
+            device = chainer.backend.get_device_from_array(self.avg_projection)
+            xp = device.xp
+            with chainer.using_device(device):
+                self.avg_projection = xp.broadcast_to(
+                    self.avg_projection, (g, C, C))
+                self.avg_mean = xp.broadcast_to(self.avg_mean, (g, C))
+            del g, C
 
         if configuration.config.train:
             if finetune:
