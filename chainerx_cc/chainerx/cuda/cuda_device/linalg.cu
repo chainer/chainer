@@ -146,7 +146,7 @@ void SolveImpl(const Array& a, const Array& b, const Array& out) {
     Device& native_device = GetDefaultContext().GetDevice({"native", 0});
     device.MemoryCopyTo(&devinfo_h, devinfo.get(), sizeof(int), native_device);
     if (devinfo_h != 0) {
-        throw ChainerxError{"Unsuccessfull getrf (LU) execution. Info = ", devinfo_h};
+        throw ChainerxError{"Unsuccessful getrf (LU) execution. Info = ", devinfo_h};
     }
 
     Array out_transposed = b.Transpose().Copy();
@@ -157,7 +157,7 @@ void SolveImpl(const Array& a, const Array& b, const Array& out) {
 
     device.MemoryCopyTo(&devinfo_h, devinfo.get(), sizeof(int), native_device);
     if (devinfo_h != 0) {
-        throw ChainerxError{"Unsuccessfull getrs (Solve) execution. Info = ", devinfo_h};
+        throw ChainerxError{"Unsuccessful getrs (Solve) execution. Info = ", devinfo_h};
     }
 
     device.backend().CallKernel<CopyKernel>(out_transposed.Transpose(), out);

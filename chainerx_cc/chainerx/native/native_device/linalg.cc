@@ -110,7 +110,7 @@ void SolveImpl(const Array& a, const Array& b, const Array& out) {
     Gesv(n, nrhs, lu_ptr, n, ipiv_ptr, out_ptr, n, &info);
 
     if (info != 0) {
-        throw ChainerxError{"Unsuccessfull gesv (Solve) execution. Info = ", info};
+        throw ChainerxError{"Unsuccessful gesv (Solve) execution. Info = ", info};
     }
 
     device.backend().CallKernel<CopyKernel>(out_transposed.Transpose(), out);
@@ -132,7 +132,7 @@ void InverseImpl(const Array& a, const Array& out) {
     int info;
     Getrf(n, n, out_ptr, n, ipiv_ptr, &info);
     if (info != 0) {
-        throw ChainerxError{"Unsuccessfull getrf (LU) execution. Info = ", info};
+        throw ChainerxError{"Unsuccessful getrf (LU) execution. Info = ", info};
     }
 
     int buffersize = -1;
@@ -144,7 +144,7 @@ void InverseImpl(const Array& a, const Array& out) {
 
     Getri(n, out_ptr, n, ipiv_ptr, work_ptr, buffersize, &info);
     if (info != 0) {
-        throw ChainerxError{"Unsuccessfull getri (Inverse LU) execution. Info = ", info};
+        throw ChainerxError{"Unsuccessful getri (Inverse LU) execution. Info = ", info};
     }
 }
 
