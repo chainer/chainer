@@ -120,8 +120,12 @@ std::tuple<Array, Array, Array> SVD(const Array& a, bool full_matrices, bool com
     {
         BackwardBuilder bb{"svd", a, {u, s, v}};
         if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-            bt.Define([a_tok = bb.RetainInput(0), u_tok = bb.RetainOutput(0), s_tok = bb.RetainOutput(1), v_tok = bb.RetainOutput(2), full_matrices, compute_uv](
-                              BackwardContext& bctx) {
+            bt.Define([a_tok = bb.RetainInput(0),
+                       u_tok = bb.RetainOutput(0),
+                       s_tok = bb.RetainOutput(1),
+                       v_tok = bb.RetainOutput(2),
+                       full_matrices,
+                       compute_uv](BackwardContext& bctx) {
                 if (full_matrices) {
                     throw ChainerxError{"ChainerX SVD differentiation is not implemented for full_matrices=true."};
                 }
@@ -162,7 +166,7 @@ std::tuple<Array, Array, Array> SVD(const Array& a, bool full_matrices, bool com
 
                 Array u_term{};
                 Array utgu = Dot(u.Transpose(), gu);
-                u_term = Dot(Dot(u, F*(utgu - utgu.Transpose())), sigma_mat);
+                u_term = Dot(Dot(u, F * (utgu - utgu.Transpose())), sigma_mat);
                 if (m > k) {
                     u_term = u_term + Dot(Dot(im - Dot(u, ut), gu), sigma_mat_inv);
                 }
@@ -170,7 +174,7 @@ std::tuple<Array, Array, Array> SVD(const Array& a, bool full_matrices, bool com
 
                 Array v_term{};
                 Array vtgv = Dot(vt, gv);
-                v_term = Dot(Dot(sigma_mat, F*(vtgv - vtgv.Transpose())), vt);
+                v_term = Dot(Dot(sigma_mat, F * (vtgv - vtgv.Transpose())), vt);
                 if (n > k) {
                     v_term = v_term + Dot(sigma_mat_inv, Dot(gvt, in - Dot(v, vt)));
                 }
