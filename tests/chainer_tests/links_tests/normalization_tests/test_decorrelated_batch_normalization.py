@@ -1,3 +1,4 @@
+import contextlib
 import os
 import tempfile
 import unittest
@@ -137,12 +138,27 @@ class DecorrelatedBatchNormalizationTest(unittest.TestCase):
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
 
 
+# TODO(kataoka) Use `contextlib.nullcontext` if Python 3.7 or higher is assumed
+@contextlib.contextmanager
+def nullcontext():
+    yield
+
+
 @testing.parameterize(*(testing.product({
     'n_channels': [8],
     'groups': [1, 2],
-    'test': [True, False],
     'dtype': [numpy.float32, numpy.float64],
 })))
+@testing.inject_backend_tests([
+    'test_model_compatibility_npz',
+], [
+    {},
+    {'use_cuda': True},
+    {'use_cuda': True, 'cuda_device': 1},
+    {'use_chainerx': True, 'chainerx_device': 'native:0'},
+    {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+    {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
+])
 class TestDecorrelatedBatchNormalizationCompat(unittest.TestCase):
 
     def setUp(self):
@@ -164,17 +180,19 @@ class TestDecorrelatedBatchNormalizationCompat(unittest.TestCase):
         if hasattr(self, 'temp_file_path'):
             os.remove(self.temp_file_path)
 
-    def test_model_compatibility(self):
+    def test_model_compatibility_npz(self, backend_config):
         model = links.DecorrelatedBatchNormalization(
             self.n_channels, groups=self.groups, dtype=self.dtype)
-        chainer.serializers.load_npz(self.temp_file_path, model)
-        print(model.avg_mean.shape)
+        model.to_device(backend_config.device)
+        with (
+                testing.assert_warns(UserWarning) if self.groups != 1
+                else nullcontext()):
+            chainer.serializers.load_npz(self.temp_file_path, model)
         x = numpy.random.rand(5, self.n_channels, 2).astype(self.dtype)
-        if self.groups == 1:
+        x = backend_config.get_array(x)
+        with chainer.using_config('train', False):
             model(x)
-        else:
-            with testing.assert_warns(RuntimeWarning):
-                model(x)
+        model(x)
 
 
 testing.run_module(__name__, __file__)
