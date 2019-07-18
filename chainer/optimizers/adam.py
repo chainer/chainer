@@ -307,7 +307,6 @@ class AdamRule(optimizer.UpdateRule):
                 hp.eta, hp.weight_decay_rate, self._dummy,
                 param.data, self.state['m'], self.state['v'],
                 self.state['vhat'])
-            print(self.state['m'], self.state['v'], self.state['vhat'])
         else:
             if AdamRule._kernel is None:
                 AdamRule._kernel = cuda.elementwise(
