@@ -29,7 +29,7 @@ class _MultiNodeOptimizer(object):
         if self.is_changed(target):
             self.communicator.bcast_data(target)
         else:
-            self.communicator.allreduce_grad(target, self.zero_fill)
+            self.communicator.multi_node_mean_grad(target, self.zero_fill)
             self.actual_optimizer.update(None, *args, **kwds)
 
     def is_changed(self, target):
@@ -101,15 +101,15 @@ class _DoubleBufferingOptimizer(object):
             self.wait()
             self.swap_grad(self.target_params_list[0],
                            self.target_params_list[1])
-            self.allreduce_grad_async()
+            self.multi_node_mean_grad_async()
             if self.needs_update:
                 self.actual_optimizer.update(None, *args, **kwds)
             else:
                 super(_DoubleBufferingOptimizer, self).__setattr__(
                     'needs_update', True)
 
-    def allreduce_grad_async(self):
-        self.communicator._allreduce_grad_async(
+    def multi_node_mean_grad_async(self):
+        self.communicator._multi_node_mean_grad_async(
             self.communicated_target, self.zero_fill,
             self.allreduce_grad_stream)
 

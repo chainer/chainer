@@ -417,7 +417,7 @@ class TestVariable(unittest.TestCase):
 
     # TODO(kataoka): Variable.backward with ChainerX backend unexpectedly
     # behaves like retain_grad=True
-    @unittest.expectedFailure
+    @pytest.mark.xfail(strict=True)
     @attr.chainerx
     def test_backward_chainerx(self):
         ret = self.create_linear_chain(2, chainerx)
@@ -1740,7 +1740,8 @@ class TestUninitializedParameter(unittest.TestCase):
     def test_init_without_data(self):
         x = chainer.Parameter()
         assert x.data is None
-        assert x.grad is None
+        with pytest.raises(RuntimeError):
+            x.grad
 
     def test_initialize(self):
         x = chainer.Parameter()
@@ -1987,6 +1988,25 @@ class TestUninitializedParameter(unittest.TestCase):
     def test_addgrad_to_uninitialized_parameter_cpu_to_chx(self):
         # TODO(sonots): Support addgrad with ChainerX
         raise unittest.SkipTest('ChainerX does not support addgrad')
+
+    def test_dtype_given_by_initializer(self):
+        class MyInitializer(object):
+            dtype = 'float16'
+
+            def __call__(self, array):
+                assert False  # never called
+
+        param = chainer.Parameter(MyInitializer())
+        assert param.dtype == np.float16
+
+    def test_dtype_not_given(self):
+        class MyInitializer(object):
+            def __call__(self, array):
+                assert False  # never called
+
+        param = chainer.Parameter(MyInitializer())
+        with pytest.raises(RuntimeError):
+            param.dtype
 
 
 class TestDebugPrint(unittest.TestCase):

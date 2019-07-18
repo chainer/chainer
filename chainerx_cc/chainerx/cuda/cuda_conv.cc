@@ -8,7 +8,7 @@
 #include <mutex>
 #include <utility>
 
-#include <nonstd/optional.hpp>
+#include <absl/types/optional.h>
 
 #include "chainerx/array.h"
 #include "chainerx/backend_util.h"
@@ -278,7 +278,7 @@ Array CudaConv::Conv(
         CudaDevice& device,
         const Array& x,
         const Array& w,
-        const nonstd::optional<Array>& b,
+        const absl::optional<Array>& b,
         const Dims& stride,
         const Dims& pad,
         const Dims& dilate,
@@ -330,7 +330,7 @@ Array CudaConv::Conv(
     CudnnTensorDescriptor x_desc{x_cont};
     CudnnTensorDescriptor y_desc{y};
     CudnnFilterDescriptor filter_desc{w_cont};
-    CudnnConvolutionDescriptor conv_desc{dtypes.conv_dtype, pad, stride, nonstd::nullopt /*dilation*/, 1 /*groups*/};
+    CudnnConvolutionDescriptor conv_desc{dtypes.conv_dtype, pad, stride, absl::nullopt /*dilation*/, 1 /*groups*/};
 
     size_t max_workspace_size = backend.GetCudnnMaxWorkspaceSize();
 
@@ -383,7 +383,7 @@ Array CudaConv::ConvTranspose(
         CudaDevice& device,
         const Array& x,
         const Array& w,
-        const nonstd::optional<Array>& b,
+        const absl::optional<Array>& b,
         const Dims& stride,
         const Dims& pad,
         const Dims& dilate,

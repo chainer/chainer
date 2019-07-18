@@ -404,6 +404,11 @@ http://www.matthewzeiler.com/pubs/cvpr2010/cvpr2010.pdf
         ~chainer.Variable:
             Output variable of shape :math:`(n, c_O, h_O, w_O)`.
 
+    .. seealso::
+
+        :class:`~chainer.links.Deconvolution2D` to manage the model parameters
+        ``W`` and ``b``.
+
     .. admonition:: Example
 
         >>> n = 10

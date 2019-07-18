@@ -1,6 +1,6 @@
 #include "chainerx/cuda/cuda_device.h"
 
-#include <nonstd/optional.hpp>
+#include <absl/types/optional.h>
 
 #include "chainerx/array.h"
 #include "chainerx/constant.h"
@@ -22,13 +22,13 @@ public:
     Array Call(
             const Array& x,
             const Array& w,
-            const nonstd::optional<Array>& b,
+            const absl::optional<Array>& b,
             const Dims& stride,
             const Dims& pad,
             const Dims& dilate,
             bool cover_all,
             Dtype out_dtype,
-            const nonstd::optional<Array>& out) override {
+            const absl::optional<Array>& out) override {
         // TODO(niboshi): Implement and test the `out` argument.
         if (out.has_value()) {
             throw NotImplementedError{"Passing out as an argument is not yet supported."};
@@ -47,13 +47,13 @@ public:
     Array Call(
             const Array& x,
             const Array& w,
-            const nonstd::optional<Array>& b,
+            const absl::optional<Array>& b,
             const Dims& stride,
             const Dims& pad,
             const Dims& dilate,
             const Dims& out_size,
             Dtype out_dtype,
-            const nonstd::optional<Array>& out) override {
+            const absl::optional<Array>& out) override {
         // TODO(niboshi): Implement and test the `out` argument.
         if (out.has_value()) {
             throw NotImplementedError{"Passing out as an argument is not yet supported."};
@@ -77,7 +77,7 @@ public:
             const Dims& pad,
             const Dims& dilate,
             bool cover_all,
-            const nonstd::optional<Array>& out) override {
+            const absl::optional<Array>& out) override {
         // TODO(niboshi): Implement and test the `out` argument.
         if (out.has_value()) {
             throw NotImplementedError{"Passing out as an argument is not yet supported."};

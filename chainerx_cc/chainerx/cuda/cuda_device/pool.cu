@@ -6,7 +6,7 @@
 #include <tuple>
 #include <utility>
 
-#include <nonstd/optional.hpp>
+#include <absl/types/optional.h>
 
 #include <cudnn.h>
 
@@ -87,7 +87,7 @@ Array Pool(
         Dims stride,
         Dims pad,
         bool cover_all,
-        const nonstd::optional<Array>& out) {
+        const absl::optional<Array>& out) {
     CHAINERX_ASSERT(kernel_size.size() == static_cast<size_t>(x.ndim() - 2));
     CHAINERX_ASSERT(stride.size() == static_cast<size_t>(x.ndim() - 2));
     CHAINERX_ASSERT(pad.size() == static_cast<size_t>(x.ndim() - 2));
@@ -145,7 +145,7 @@ Array PoolGrad(
         Dims kernel_size,
         Dims stride,
         Dims pad,
-        const nonstd::optional<Array>& gx) {
+        const absl::optional<Array>& gx) {
     CHAINERX_ASSERT(out.shape() == gout.shape());
     CHAINERX_ASSERT(kernel_size.size() == static_cast<size_t>(x.ndim() - 2));
     CHAINERX_ASSERT(stride.size() == static_cast<size_t>(x.ndim() - 2));
@@ -198,7 +198,7 @@ Array PoolGrad(
 }
 
 Array MaxPoolGradGrad(
-        const Array& x, const Array& out, const Array& ggx, Dims kernel_size, Dims stride, Dims pad, const nonstd::optional<Array>& ggout) {
+        const Array& x, const Array& out, const Array& ggx, Dims kernel_size, Dims stride, Dims pad, const absl::optional<Array>& ggout) {
     CHAINERX_ASSERT(x.shape() == ggx.shape());
     CHAINERX_ASSERT(kernel_size.size() == static_cast<size_t>(x.ndim() - 2));
     CHAINERX_ASSERT(stride.size() == static_cast<size_t>(x.ndim() - 2));
@@ -246,7 +246,7 @@ Array MaxPoolGradGrad(
 class CudaMaxPoolKernel : public MaxPoolKernel {
 public:
     std::tuple<Array, std::unique_ptr<MaxPoolGradState>> Call(
-            const Array& x, Dims kernel_size, Dims stride, Dims pad, bool cover_all, bool return_state, const nonstd::optional<Array>& out)
+            const Array& x, Dims kernel_size, Dims stride, Dims pad, bool cover_all, bool return_state, const absl::optional<Array>& out)
             override {
         CHAINERX_ASSERT(internal::GetArrayBody(x)->nodes().empty());
 
@@ -269,7 +269,7 @@ public:
             const Dims& pad,
             const std::shared_ptr<MaxPoolGradState>& state,
             bool return_state,
-            const nonstd::optional<Array>& gx) override {
+            const absl::optional<Array>& gx) override {
         CHAINERX_ASSERT(internal::GetArrayBody(gout)->nodes().empty());
 
         CHAINERX_ASSERT(state != nullptr);
@@ -296,7 +296,7 @@ public:
             const Dims& pad,
             bool /*cover_all*/,
             const std::shared_ptr<MaxPoolGradGradState>& state,
-            const nonstd::optional<Array>& ggout) override {
+            const absl::optional<Array>& ggout) override {
         CHAINERX_ASSERT(internal::GetArrayBody(ggx)->nodes().empty());
 
         CHAINERX_ASSERT(state != nullptr);
@@ -330,7 +330,7 @@ public:
             const Dims& pad,
             AveragePoolPadMode pad_mode,
             bool return_state,
-            const nonstd::optional<Array>& out) override {
+            const absl::optional<Array>& out) override {
         CHAINERX_ASSERT(internal::GetArrayBody(x)->nodes().empty());
 
         Array actual_out = Pool(GetCudnnPoolingMode(pad_mode), x, kernel_size, stride, pad, false, out);
@@ -352,7 +352,7 @@ public:
             const Dims& pad,
             AveragePoolPadMode pad_mode,
             const std::shared_ptr<AveragePoolGradState>& state,
-            const nonstd::optional<Array>& gx) override {
+            const absl::optional<Array>& gx) override {
         CHAINERX_ASSERT(internal::GetArrayBody(gout)->nodes().empty());
 
         CHAINERX_ASSERT(state != nullptr);

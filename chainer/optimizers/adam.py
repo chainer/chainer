@@ -204,7 +204,7 @@ class AdamRule(optimizer.UpdateRule):
             vhat = self.state['vhat']
             # For iDeep
             if isinstance(vhat, intel64.mdarray):
-                vhat = numpy.maximum(vhat, v)
+                vhat[...] = numpy.maximum(vhat, v)
             else:
                 numpy.maximum(vhat, v, out=vhat)
         else:
@@ -217,7 +217,7 @@ class AdamRule(optimizer.UpdateRule):
         # param -=
         #  eta * (step * m - weight_decay_rate * param)
         _inplace_axpby(
-            param.data, 1.0 - hp.weight_decay_rate, -hp.eta, step * m)
+            param.data, 1.0 - hp.eta * hp.weight_decay_rate, -hp.eta, step * m)
 
     def update_core_gpu(self, param):
         grad = param.grad
