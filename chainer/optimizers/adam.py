@@ -247,8 +247,8 @@ class AdamRule(optimizer.UpdateRule):
                        v_ += one_minus_beta2 * (grad_ * grad_ - v_);
                        vhat_ = max(vhat_, v_);
                        vhat = static_cast<T>(vhat_);
-                       m = static_cast<T>(m_);
-                       v = static_cast<T>(v_);
+                       m = static_cast<P>(m_);
+                       v = static_cast<P>(v_);
                        param -= eta *
                            (max(min(alpha_t / (sqrt(vhat_) + eps), upper),
                                 lower) * m_ + weight_decay_rate * param);''',
@@ -271,8 +271,8 @@ class AdamRule(optimizer.UpdateRule):
                        T v_ = static_cast<T>(v);
                        m_ += one_minus_beta1 * (grad_ - m_);
                        v_ += one_minus_beta2 * (grad_ * grad_ - v_);
-                       m = static_cast<T>(m_);
-                       v = static_cast<T>(v_);
+                       m = static_cast<P>(m_);
+                       v = static_cast<P>(v_);
                        param -= eta *
                            (max(min(alpha_t / (sqrt(v_) + eps), upper),
                                 lower) * m_ + weight_decay_rate * param);''',
@@ -296,8 +296,8 @@ class AdamRule(optimizer.UpdateRule):
                        v_ += one_minus_beta2 * (grad_ * grad_ - v_);
                        vhat_ = max(vhat_, v_);
                        vhat = static_cast<T>(vhat_);
-                       m = static_cast<T>(m_);
-                       v = static_cast<T>(v_);
+                       m = static_cast<P>(m_);
+                       v = static_cast<P>(v_);
                        param -= eta * (alpha_t * m_ / (sqrt(vhat_) + eps) +
                                        weight_decay_rate * param);''',
                     'adam')
@@ -319,8 +319,8 @@ class AdamRule(optimizer.UpdateRule):
                        T v_ = static_cast<T>(v);
                        m_ += one_minus_beta1 * (grad_ - m_);
                        v_ += one_minus_beta2 * (grad_ * grad_ - v_);
-                       m = static_cast<T>(m_);
-                       v = static_cast<T>(v_);
+                       m = static_cast<P>(m_);
+                       v = static_cast<P>(v_);
                        param -= eta * (alpha_t * m_ / (sqrt(v_) + eps) +
                                        weight_decay_rate * param);''',
                     'adam')
