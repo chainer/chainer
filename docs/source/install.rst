@@ -32,11 +32,6 @@ Before installing Chainer, we recommend you to upgrade ``setuptools`` and ``pip`
 
   $ pip install -U setuptools pip
 
-.. note::
-
-   Chainer v7.x is going to drop support of Python 2.7.
-   Consider upgrading Python or continue using Chainer v6.x, which will be the last version that supports Python 2.7.
-
 Hardware Acceleration Support
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
