@@ -7,18 +7,6 @@ Upgrade Guide
 This is a list of changes introduced in each release that users should be aware of when migrating from older versions.
 Most changes are carefully designed not to break existing code; however changes that may possibly break them are highlighted with a box.
 
-Chainer v7
-==========
-
-Dropping Python 2
------------------
-
-Starting from Chainer v7, Python 2.7 will no longer be supported as it reaches its end-of-life (EOL) in January 2020.
-Python 3.5.1 will become the minimum Python version supported by Chainer.
-Please upgrade the Python version if you are using Python 2.7 to any version listed under :ref:`install-guide`.
-Chainer v6.x will continue to run on Python 2.
-
-
 Chainer v6
 ==========
 
