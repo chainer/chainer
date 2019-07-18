@@ -393,10 +393,9 @@ class _ToDeviceVisitor(DeviceResidentsVisitor):
 
     def visit_variable(self, param):
         assert isinstance(param, chainer.Variable)
-        if not (self._skip_between_cupy_devices
-                and self._device.xp is cuda.cupy
-                and param.device.xp is cuda.cupy):
-            param.to_device(self._device, allow_unchain=self._allow_unchain)
+        param._to_device(
+            self._device, allow_unchain=self._allow_unchain,
+            skip_between_cupy_devices=self._skip_between_cupy_devices)
 
 
 class _ToChxVisitor(DeviceResidentsVisitor):

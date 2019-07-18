@@ -1223,6 +1223,20 @@ class Variable(object):
                 graph.
 
         """
+        self._to_device(
+            device, allow_unchain=allow_unchain,
+            skip_between_cupy_devices=False)
+
+    def _to_device(self, device, allow_unchain, skip_between_cupy_devices):
+        # This method unchains the graph as follows.
+        # - Non-ChainerX -> Non-ChainerX: Calling `unchain`.
+        # - Non-ChainerX -> ChainerX: Calling `unchain`.
+        # - ChainerX -> Non-ChainerX: Implicitly unchained.
+        # - ChainerX -> ChainerX: Calling `as_grad_stopped`.
+        #
+        # If `skip_between_cupy_devices` is true and both src and dst devices
+        # are CuPy devices, this method will unchain without performing any
+        # device tranfers.
         device = chainer.get_device(device)
 
         was_chainerx = self._has_chainerx_array
@@ -1250,21 +1264,19 @@ class Variable(object):
                     ' unchain the graph beforehand if one exists.',
                     DeprecationWarning)
 
+        if not was_chainerx:
+            self.unchain()
+
+        if (skip_between_cupy_devices
+                and self.xp is cuda.cupy
+                and device.xp is cuda.cupy):
+            return
+
         if was_chainerx and not is_chainerx:
             self._clear_chainerx()
             self._node = VariableNode(self, self._chainerx_name)
         elif not was_chainerx and is_chainerx:
             self._chainerx_name = self._node.name
-
-        # How the graph is unchained.
-        #
-        # - Non-ChainerX -> Non-ChainerX: Calling `unchain`.
-        # - Non-ChainerX -> ChainerX: Calling `unchain`.
-        # - ChainerX -> Non-ChainerX: Implicitly unchained.
-        # - ChainerX -> ChainerX: Calling `as_grad_stopped`.
-
-        if not was_chainerx:
-            self.unchain()
 
         # Transfer gradient variable if any.
         grad_var = self.grad_var
@@ -1279,7 +1291,7 @@ class Variable(object):
             if is_chainerx and self.requires_grad:
                 new_arr.require_grad()
 
-                # Gradient is updated torwards the end of this method and is
+                # Gradient is updated towards the end of this method and is
                 # therefore passed as `None`.
                 self._set_chainerx_array(new_arr, None)
             else:
@@ -1815,13 +1827,16 @@ class Parameter(Variable):
 
         super(Parameter, self).from_chx(allow_unchain=allow_unchain)
 
-    def to_device(self, device, allow_unchain=False):
+    def _to_device(
+            self, device, allow_unchain, skip_between_cupy_devices):
         device = chainer.get_device(device)
         if self.data is None and self._initial_device != device:
             self._data = [None]  # Renew placeholder to break sharing
             self._has_chainerx_array = False
         self._initial_device = device
-        super(Parameter, self).to_device(device, allow_unchain=allow_unchain)
+        super(Parameter, self)._to_device(
+            device, allow_unchain=allow_unchain,
+            skip_between_cupy_devices=skip_between_cupy_devices)
 
     def cleargrad(self):
         super(Parameter, self).cleargrad()
