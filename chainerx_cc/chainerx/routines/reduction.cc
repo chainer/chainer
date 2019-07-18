@@ -131,6 +131,7 @@ Array Cumsum(const Array& a, absl::optional<int8_t> axis) {
         a.device().backend().CallKernel<CumsumKernel>(a_reshaped, axis_norm, out);
     }
 
+    // TODO(aksub99): Improve backward implementation to prevent flipping gout twice.
     BackwardBuilder bb{"cumsum", a_reshaped, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
         bt.Define([axis, axis_norm, in_shape = a_reshaped.shape()](BackwardContext& bctx) {
