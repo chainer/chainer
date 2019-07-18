@@ -231,6 +231,31 @@ class TestReshape(op_utils.NumpyOpTest):
             b = xp.reshape(a, shape_type(b_shape))
         else:
             b = a.reshape(shape_type(b_shape))
+        return b,
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize_pytest('a_shape,b_shape', _reshape_shape)
+@chainer.testing.parameterize_pytest('shape_type', [tuple, list])
+@chainer.testing.parameterize_pytest('contiguous', ['C', None])
+@chainer.testing.parameterize_pytest('is_module', [True, False])
+class TestReshapeCopied(op_utils.NumpyOpTest):
+
+    skip_backward_test = True
+    skip_double_backward_test = True
+
+    def generate_inputs(self):
+        a = array_utils.shaped_arange(self.a_shape, 'float64')
+        return a,
+
+    def forward_xp(self, inputs, xp):
+        a, = inputs
+        b_shape = self.b_shape
+        shape_type = self.shape_type
+        if self.is_module:
+            b = xp.reshape(a, shape_type(b_shape))
+        else:
+            b = a.reshape(shape_type(b_shape))
         if xp is chainerx:
             copied = (
                 a._debug_data_memory_address
@@ -243,9 +268,7 @@ class TestReshape(op_utils.NumpyOpTest):
             else:
                 assert b.flags.c_contiguous
 
-        # return of NumpyOpTest.forward_xp should not contain a boolean array
-        copied = b * 0 + int(copied)
-        return copied, b
+        return xp.asarray(copied),
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
