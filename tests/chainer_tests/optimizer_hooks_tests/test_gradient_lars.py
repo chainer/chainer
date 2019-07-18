@@ -7,7 +7,7 @@ from chainer import optimizer_hooks
 from chainer import optimizers
 from chainer import testing
 
-from chainer_tests.optimizer_hooks_tests import utils
+import utils
 
 
 _backend_params = [
