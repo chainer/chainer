@@ -1,3 +1,4 @@
+import functools
 import warnings
 
 import numpy
@@ -6,6 +7,7 @@ import chainer
 from chainer import configuration
 from chainer import functions
 from chainer import link
+import chainer.serializer as serializer_mod
 from chainer.utils import argument
 
 
@@ -79,6 +81,16 @@ class DecorrelatedBatchNormalization(link.Link):
         self.eps = eps
         self.groups = groups
 
+    def serialize(self, serializer):
+        if isinstance(serializer, serializer_mod.Deserializer):
+            serializer = _PatchedDeserializer(serializer, {
+                'avg_mean': functools.partial(
+                    fix_avg_mean, groups=self.groups),
+                'avg_projection': functools.partial(
+                    fix_avg_projection, groups=self.groups),
+            })
+        super(DecorrelatedBatchNormalization, self).serialize(serializer)
+
     def forward(self, x, **kwargs):
         """forward(self, x, *, finetune=False)
 
@@ -98,24 +110,6 @@ class DecorrelatedBatchNormalization(link.Link):
 
         """
         finetune, = argument.parse_kwargs(kwargs, ('finetune', False))
-
-        if self.avg_projection.ndim == 2:
-            g = self.groups
-            if g != 1:
-                warnings.warn(
-                    'Found moving statistics of old '
-                    'DecorrelatedBatchNormalization, whose algorithm was '
-                    'different from the paper.',
-                    RuntimeWarning)
-            C, = self.avg_mean.shape
-            assert self.avg_projection.ndim == (C, C)
-            device = chainer.backend.get_device_from_array(self.avg_projection)
-            xp = device.xp
-            with chainer.using_device(device):
-                self.avg_projection = xp.broadcast_to(
-                    self.avg_projection, (g, C, C))
-                self.avg_mean = xp.broadcast_to(self.avg_mean, (g, C))
-            del g, C
 
         if configuration.config.train:
             if finetune:
@@ -156,3 +150,52 @@ class DecorrelatedBatchNormalization(link.Link):
 
         """
         self.N = 0
+
+
+class _PatchedDeserializer(serializer_mod.Deserializer):
+
+    def __init__(self, base, patches):
+        self.base = base
+        self.patches = patches
+
+    def __repr__(self):
+        return '_PatchedDeserializer({}, {})'.format(
+            repr(self.base), repr(self.patches))
+
+    def __call__(self, key, value):
+        if key not in self.patches:
+            return self.base(key, value)
+        arr = self.base(key, None)
+        arr = self.patches[key](arr)
+        if value is None:
+            return arr
+        chainer.backend.copyto(value, arr)
+        return value
+
+
+def _warn_old_model():
+    msg = (
+        'Found moving statistics of old DecorrelatedBatchNormalization, whose '
+        'algorithm was different from the paper.')
+    warnings.warn(msg)
+
+
+def fix_avg_mean(avg_mean, groups):
+    if avg_mean.ndim == 2:  # OK
+        return avg_mean
+    elif avg_mean.ndim == 1:  # Issue #7706
+        if groups != 1:
+            _warn_old_model()
+        return numpy.broadcast_to(avg_mean, (groups,) + avg_mean.shape)
+    raise ValueError('unexpected shape of avg_mean')
+
+
+def fix_avg_projection(avg_projection, groups):
+    if avg_projection.ndim == 3:  # OK
+        return avg_projection
+    elif avg_projection.ndim == 2:  # Issue #7706
+        if groups != 1:
+            _warn_old_model()
+        return numpy.broadcast_to(
+            avg_projection, (groups,) + avg_projection.shape)
+    raise ValueError('unexpected shape of avg_projection')
