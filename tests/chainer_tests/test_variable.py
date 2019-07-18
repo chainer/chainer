@@ -1071,10 +1071,10 @@ class VariableToDeviceFamilyBase(object):
 @testing.backend.inject_backend_tests(None, _backend_params)
 class TestVariableToCpu(VariableToDeviceFamilyBase, unittest.TestCase):
 
-    def to_device_method(self, _, allow_unchain):
+    def to_device_method(self, dst_device, allow_unchain):
         self.x.to_cpu(allow_unchain=allow_unchain)
 
-    def check_to_device_method_devices(self, src_device, _):
+    def check_to_device_method_devices(self, src_device, dst_device):
         x = self.x
 
         assert x.xp is np
@@ -1164,10 +1164,10 @@ class TestVariableToGpu(VariableToDeviceFamilyBase, unittest.TestCase):
 @attr.chainerx
 class TestVariableToChainerX(VariableToDeviceFamilyBase, unittest.TestCase):
 
-    def to_device_method(self, _, allow_unchain):
+    def to_device_method(self, dst_device, allow_unchain):
         self.x.to_chx(allow_unchain=allow_unchain)
 
-    def check_to_device_method_devices(self, src_device, _):
+    def check_to_device_method_devices(self, src_device, dst_device):
         x = self.x
 
         if src_device.xp is chainerx:
@@ -1205,10 +1205,10 @@ class TestVariableToChainerX(VariableToDeviceFamilyBase, unittest.TestCase):
 @attr.chainerx
 class TestVariableFromChainerX(VariableToDeviceFamilyBase, unittest.TestCase):
 
-    def to_device_method(self, _, allow_unchain):
+    def to_device_method(self, dst_device, allow_unchain):
         self.x.from_chx(allow_unchain=allow_unchain)
 
-    def check_to_device_method_devices(self, src_device, _):
+    def check_to_device_method_devices(self, src_device, dst_device):
         x = self.x
 
         if src_device.xp is chainerx:
