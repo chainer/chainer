@@ -15,6 +15,8 @@ class ChainerxDevice(_backend.Device):
     xp = chainerx
     supported_array_types = (chainerx.ndarray,)
 
+    __hash__ = _backend.Device.__hash__
+
     def __init__(self, device):
         # type: (chainerx.Device) -> None
 

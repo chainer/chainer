@@ -11,7 +11,7 @@ namespace chainerx {
 
 Array AbsoluteError(const Array& x1, const Array& x2) { return Absolute(x1 - x2); }
 
-Array SquaredError(const Array& x1, const Array& x2) { return SquaredDifference(x1, x2); }
+Array SquaredError(const Array& x1, const Array& x2) { return Square(x1 - x2); }
 
 Array GaussianKLDivergence(const Array& mean, const Array& ln_var) { return (Square(mean) + Exp(ln_var) - ln_var - 1) * 0.5; }
 

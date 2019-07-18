@@ -77,7 +77,7 @@ def _as_noncontiguous_array(array):
 
         device = backend.get_device_from_array(a)
         xp = device.xp
-        slices = (slice(None, None, 2),) * a.ndim
+        slices = (slice(None, None, -2),) * a.ndim
         with chainer.using_device(device):
             ret = xp.empty(tuple([s * 2 for s in a.shape]), dtype=a.dtype)
             ret[slices] = a

@@ -7,7 +7,7 @@
 #include <tuple>
 #include <utility>
 
-#include <nonstd/optional.hpp>
+#include <absl/types/optional.h>
 
 #include "chainerx/array.h"
 #include "chainerx/constant.h"
@@ -60,7 +60,7 @@ Axes GetSwapSpatialDimensionsAxes(size_t n) {
 class NativeMaxPoolKernel : public MaxPoolKernel {
 public:
     std::tuple<Array, std::unique_ptr<MaxPoolGradState>> Call(
-            const Array& x, Dims kernel_size, Dims stride, Dims pad, bool cover_all, bool return_state, const nonstd::optional<Array>& out)
+            const Array& x, Dims kernel_size, Dims stride, Dims pad, bool cover_all, bool return_state, const absl::optional<Array>& out)
             override {
         CHAINERX_ASSERT(internal::GetArrayBody(x)->nodes().empty());
 
@@ -95,7 +95,7 @@ public:
             const Dims& pad,
             const std::shared_ptr<MaxPoolGradState>& state,
             bool return_state,
-            const nonstd::optional<Array>& gx) override {
+            const absl::optional<Array>& gx) override {
         CHAINERX_ASSERT(internal::GetArrayBody(gout)->nodes().empty());
 
         // TODO(hvy): Implement and test the `gx` argument.
@@ -151,7 +151,7 @@ public:
             const Dims& pad,
             bool cover_all,
             const std::shared_ptr<MaxPoolGradGradState>& state,
-            const nonstd::optional<Array>& ggout) override {
+            const absl::optional<Array>& ggout) override {
         CHAINERX_ASSERT(internal::GetArrayBody(ggx)->nodes().empty());
 
         // TODO(hvy): Implement and test the `ggout` argument.
@@ -247,7 +247,7 @@ public:
             const Dims& pad,
             AveragePoolPadMode pad_mode,
             bool return_state,
-            const nonstd::optional<Array>& out) override {
+            const absl::optional<Array>& out) override {
         CHAINERX_ASSERT(internal::GetArrayBody(x)->nodes().empty());
 
         // TODO(hvy): Implement and test the `out` argument.
@@ -265,7 +265,7 @@ public:
         Device& device = col.device();
         Array actual_out = internal::EmptyReduced(col.shape(), col.dtype(), kernel_axes, false, device);
 
-        nonstd::optional<Array> width_ignore{nonstd::nullopt};
+        absl::optional<Array> width_ignore{absl::nullopt};
 
         switch (pad_mode) {
             case AveragePoolPadMode::kZero:
@@ -301,7 +301,7 @@ public:
             const Dims& pad,
             AveragePoolPadMode pad_mode,
             const std::shared_ptr<AveragePoolGradState>& state,
-            const nonstd::optional<Array>& gx) override {
+            const absl::optional<Array>& gx) override {
         CHAINERX_ASSERT(internal::GetArrayBody(gout)->nodes().empty());
 
         // TODO(hvy): Implement and test the `gx` argument.

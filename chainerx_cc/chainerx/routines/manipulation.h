@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <vector>
 
-#include <nonstd/optional.hpp>
+#include <absl/types/optional.h>
 
 #include "chainerx/array.h"
 #include "chainerx/axes.h"
@@ -20,7 +20,7 @@ Scalar AsScalar(const Array& a);
 Array RollAxis(const Array& a, int8_t axis, int8_t start = 0);
 
 // Returns a transposed view of the array.
-Array Transpose(const Array& a, const OptionalAxes& axes = nonstd::nullopt);
+Array Transpose(const Array& a, const OptionalAxes& axes = absl::nullopt);
 
 // Returns a reshaped array.
 Array Reshape(const Array& a, const Shape& newshape);
@@ -29,7 +29,7 @@ Array Reshape(const Array& a, const Shape& newshape);
 //
 // If no axes are specified, all axes of unit-lengths are removed.
 // If no axes can be removed, an array with aliased data is returned.
-Array Squeeze(const Array& a, const OptionalAxes& axis = nonstd::nullopt);
+Array Squeeze(const Array& a, const OptionalAxes& axis = absl::nullopt);
 
 // Broadcasts the array to the specified shape.
 // Returned array is always a view to this array.
@@ -37,7 +37,7 @@ Array BroadcastTo(const Array& array, const Shape& shape);
 
 // Returns a concatenated array.
 Array Concatenate(const std::vector<Array>& arrays);
-Array Concatenate(const std::vector<Array>& arrays, nonstd::optional<int8_t> axis);
+Array Concatenate(const std::vector<Array>& arrays, absl::optional<int8_t> axis);
 
 // Returns a joined array along a new axis.
 Array Stack(const std::vector<Array>& arrays, int8_t axis = 0);
@@ -57,7 +57,7 @@ Array Swapaxes(const Array& a, int8_t axis1, int8_t axis2);
 
 Array ExpandDims(const Array& a, int8_t axis);
 
-Array Flip(const Array& m, const OptionalAxes& axes = nonstd::nullopt);
+Array Flip(const Array& m, const OptionalAxes& axes = absl::nullopt);
 
 Array Fliplr(const Array& m);
 

@@ -17,7 +17,7 @@ def argone(iterable):
 
 class Squeeze(function_node.FunctionNode):
 
-    """Remove demensions of size one from the shape of a ndarray."""
+    """Remove dimensions of size one from the shape of a ndarray."""
 
     def __init__(self, axis=None):
 
@@ -68,7 +68,7 @@ class Squeeze(function_node.FunctionNode):
 
 
 def squeeze(x, axis=None):
-    """Remove demensions of size one from the shape of a ndarray.
+    """Remove dimensions of size one from the shape of a ndarray.
 
     Args:
         x (:class:`~chainer.Variable` or :ref:`ndarray`):

@@ -25,6 +25,7 @@ class TestChainerxDevice(unittest.TestCase):
         assert device.supported_array_types == (chainerx.ndarray,)
         assert device.name == backend_config.chainerx_device
         assert str(device) == backend_config.chainerx_device
+        assert isinstance(hash(device), int)  # hashable
 
         # fallback_device
         chainerx_device_comps = backend_config.chainerx_device.split(':')

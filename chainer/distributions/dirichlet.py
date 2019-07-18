@@ -1,7 +1,6 @@
 import numpy
 
 import chainer
-from chainer.backends import cuda
 from chainer import distribution
 from chainer.functions.array import expand_dims
 from chainer.functions.math import digamma
@@ -80,7 +79,7 @@ class Dirichlet(distribution.Distribution):
 
     def sample_n(self, n):
         obo_alpha = self.alpha.data.reshape(-1, self.event_shape[0])
-        xp = cuda.get_array_module(self.alpha)
+        xp = chainer.backend.get_array_module(self.alpha)
         if xp is numpy:
             eps = [
                 xp.random.dirichlet(one_alpha, size=(n,)).astype(numpy.float32)

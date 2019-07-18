@@ -1927,6 +1927,25 @@ class TestUninitializedParameter(unittest.TestCase):
         # TODO(sonots): Support addgrad with ChainerX
         raise unittest.SkipTest('ChainerX does not support addgrad')
 
+    def test_dtype_given_by_initializer(self):
+        class MyInitializer(object):
+            dtype = 'float16'
+
+            def __call__(self, array):
+                assert False  # never called
+
+        param = chainer.Parameter(MyInitializer())
+        assert param.dtype == np.float16
+
+    def test_dtype_not_given(self):
+        class MyInitializer(object):
+            def __call__(self, array):
+                assert False  # never called
+
+        param = chainer.Parameter(MyInitializer())
+        with pytest.raises(RuntimeError):
+            param.dtype
+
 
 class TestDebugPrint(unittest.TestCase):
 
