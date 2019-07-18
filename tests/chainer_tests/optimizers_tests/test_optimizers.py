@@ -212,27 +212,27 @@ class TestAMSGrad(unittest.TestCase):
         opt.update()
         testing.assert_allclose(
             x.update_rule.state['v'],
-            np.array([0.3, 0.3, 30, 30]),
+            [0.3, 0.3, 30, 30],
             atol=1e-7, rtol=1e-7)
         testing.assert_allclose(
             x.data,
-            np.array([-0.01, 0.01, -0.01, 0.01]),
+            [-0.01, 0.01, -0.01, 0.01],
             atol=1e-7, rtol=1e-7)
 
         x.grad = device.send(np.array([-10, -10, -1, -1], np.float32))
         opt.update()
         testing.assert_allclose(
             x.update_rule.state['v'],
-            np.array([30.21, 30.21, 21.3, 21.3]),
+            [30.21, 30.21, 21.3, 21.3],
             atol=1e-7, rtol=1e-7)
         testing.assert_allclose(
             x.update_rule.state['vhat'],
-            np.array([30.21, 30.21, 30, 30]),
+            [30.21, 30.21, 30, 30],
             atol=1e-7, rtol=1e-7)
         testing.assert_allclose(
             x.data,
             # result with NumPy
-            np.array([-0.00377703, 0.01745388, -0.01548985, 0.01686232]),
+            [-0.00377703, 0.01745388, -0.01548985, 0.01686232],
             atol=1e-7, rtol=1e-7)
 
 
