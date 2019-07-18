@@ -150,7 +150,7 @@ def nullcontext():
     'dtype': [numpy.float32, numpy.float64],
 })))
 @testing.inject_backend_tests([
-    'test_model_compatibility_npz',
+    'test_model_compatibility_npz', 'test_model_compatibility_hdf5',
 ], [
     {},
     {'use_cuda': True},
@@ -162,37 +162,52 @@ def nullcontext():
 class TestDecorrelatedBatchNormalizationCompat(unittest.TestCase):
 
     def setUp(self):
-        C = self.n_channels // self.groups
-
         fd, path = tempfile.mkstemp()
         os.close(fd)
         self.temp_file_path = path
-        with open(path, 'wb') as f:
-            numpy.savez(f, **{
-                'avg_mean': numpy.random.uniform(
-                    -1, 1, (C,)).astype(self.dtype),
-                'avg_projection': numpy.random.uniform(
-                    0.5, 1, (C, C)).astype(self.dtype),
-                'N': numpy.array(0)
-            })
 
     def tearDown(self):
         if hasattr(self, 'temp_file_path'):
             os.remove(self.temp_file_path)
 
-    def test_model_compatibility_npz(self, backend_config):
+    def check_model_compatibility(self, backend_config, save, load):
+        C = self.n_channels // self.groups
+        old_model = {
+            'avg_mean': numpy.random.uniform(
+                -1, 1, (C,)).astype(self.dtype),
+            'avg_projection': numpy.random.uniform(
+                0.5, 1, (C, C)).astype(self.dtype),
+            'N': numpy.array(0)
+        }
+        save(self.temp_file_path, old_model)
+
         model = links.DecorrelatedBatchNormalization(
             self.n_channels, groups=self.groups, dtype=self.dtype)
         model.to_device(backend_config.device)
         with (
                 testing.assert_warns(UserWarning) if self.groups != 1
                 else nullcontext()):
-            chainer.serializers.load_npz(self.temp_file_path, model)
+            load(self.temp_file_path, model)
         x = numpy.random.rand(5, self.n_channels, 2).astype(self.dtype)
         x = backend_config.get_array(x)
         with chainer.using_config('train', False):
             model(x)
         model(x)
+
+    def test_model_compatibility_npz(self, backend_config):
+        self.check_model_compatibility(
+            backend_config,
+            chainer.serializers.save_npz,
+            chainer.serializers.load_npz,
+        )
+
+    @testing.with_requires('h5py')
+    def test_model_compatibility_hdf5(self, backend_config):
+        self.check_model_compatibility(
+            backend_config,
+            chainer.serializers.save_hdf5,
+            chainer.serializers.load_hdf5,
+        )
 
 
 testing.run_module(__name__, __file__)
