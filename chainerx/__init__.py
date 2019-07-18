@@ -4,7 +4,6 @@ import warnings
 try:
     from chainerx import _build_info
 except ImportError:
-    chainer_root_dir = os.path.abspath(__file__ + '../../..')
     raise ImportError(
         '''\
 Cannot import chainerx because _build_info.py cannot be found.
