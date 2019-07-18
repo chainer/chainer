@@ -522,7 +522,7 @@ class TestDifferentDtype(unittest.TestCase):
 
         # dtypes to be tested
         # DO NOT USE chainer.testing.parameterize
-        # (because running order of generated test cases is not unique)
+        # (because running order of generated test cases is not deterministic)
         self.dtypes = [np.int32, np.int64, np.float32, np.float64]
 
     def teardown(self):
