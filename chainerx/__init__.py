@@ -8,8 +8,8 @@ except ImportError:
         '''\
 Cannot import chainerx because _build_info.py cannot be found.
 
-The chainerx module being imported was not correctly installed by \
-`pip install`.
+The chainer and chainerx module being imported was not correctly \
+installed by `pip install`.
 
 It may be caused by either of the following reasons.
 
