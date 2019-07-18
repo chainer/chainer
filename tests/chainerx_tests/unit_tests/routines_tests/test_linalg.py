@@ -95,24 +95,23 @@ def test_dot_invalid(is_module, xp, device, a_shape, b_shape, dtype):
         return a.dot(b)
 
 
-@pytest.mark.parametrize('dtype', ['float32', 'float64'])
 class NumpyLinalgOpTest(op_utils.NumpyOpTest):
 
     dodge_nondifferentiable = True
 
-    def setup(self, dtype):
+    def setup(self):
         device = chainerx.get_default_device()
         if (device.backend.name == 'native'
                 and not chainerx.linalg._is_lapack_available()):
             pytest.skip('LAPACK is not linked to ChainerX')
-        self.dtype = dtype
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
     chainer.testing.product({
         'shape': [(1, 1), (3, 3), (6, 6)],
-        'b_columns': [(), (1,), (3,), (4,)]
+        'b_columns': [(), (1,), (3,), (4,)],
+        'dtype': ['float32', 'float64']
     })
 ))
 class TestSolve(NumpyLinalgOpTest):
@@ -132,7 +131,8 @@ class TestSolve(NumpyLinalgOpTest):
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
     chainer.testing.product({
-        'shape': [(2, 3), (3, 2)]
+        'shape': [(2, 3), (3, 2)],
+        'dtype': ['float32', 'float64']
     })
 ))
 class TestSolveFailing(NumpyLinalgOpTest):
@@ -154,7 +154,8 @@ class TestSolveFailing(NumpyLinalgOpTest):
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
     chainer.testing.product({
-        'shape': [(1, 1), (3, 3), (6, 6)]
+        'shape': [(1, 1), (3, 3), (6, 6)],
+        'dtype': ['float32', 'float64']
     })
 ))
 class TestInverse(NumpyLinalgOpTest):
@@ -172,7 +173,8 @@ class TestInverse(NumpyLinalgOpTest):
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
     chainer.testing.product({
-        'shape': [(2, 3), (3, 2)]
+        'shape': [(2, 3), (3, 2)],
+        'dtype': ['float32', 'float64']
     })
 ))
 class TestInverseFailing(NumpyLinalgOpTest):
@@ -193,7 +195,7 @@ class TestInverseFailing(NumpyLinalgOpTest):
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize_pytest('shape', [(3, 3)])
 @chainer.testing.parameterize_pytest('dtype', ['float16'])
-class TestInverseDtypeFailing(op_utils.NumpyOpTest):
+class TestInverseDtypeFailing(NumpyLinalgOpTest):
 
     forward_accept_errors = (TypeError,
                              chainerx.DtypeError)
@@ -211,7 +213,7 @@ class TestInverseDtypeFailing(op_utils.NumpyOpTest):
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize_pytest('shape', [(3, 3)])
 @chainer.testing.parameterize_pytest('dtype', ['float16'])
-class TestSolveDtypeFailing(op_utils.NumpyOpTest):
+class TestSolveDtypeFailing(NumpyLinalgOpTest):
 
     forward_accept_errors = (TypeError,
                              chainerx.DtypeError)
