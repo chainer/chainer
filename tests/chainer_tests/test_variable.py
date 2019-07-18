@@ -1007,15 +1007,15 @@ class VariableToDeviceFamilyBase(object):
         self.x = x
         self.gx = gx
 
-    def to_device_meth(self, dst_device, allow_unchain):
+    def to_device_method(self, dst_device, allow_unchain):
         # Call `self.x.to_device`, `self.x.from_chx`, etc.
         raise NotImplementedError('Must be overridden.')
 
-    def check_to_device_meth_devices(self, src_device, dst_device):
+    def check_to_device_method_devices(self, src_device, dst_device):
         # Called after the device transfer, check `self.x`, etc.
         raise NotImplementedError('Must be overridden.')
 
-    def check_to_device_meth_ndarrays(self):
+    def check_to_device_method_ndarrays(self):
         x = self.x
 
         # Check x.
@@ -1040,26 +1040,26 @@ class VariableToDeviceFamilyBase(object):
             assert x.grad is None
             assert x.grad_var is None
 
-    def test_to_device_meth_allow_unchain(
+    def test_to_device_method_allow_unchain(
             self, src_backend_config, dst_backend_config):
         self.setup(src_backend_config)
 
-        self.to_device_meth(dst_backend_config.device, True)
+        self.to_device_method(dst_backend_config.device, True)
 
-        self.check_to_device_meth_devices(
+        self.check_to_device_method_devices(
             src_backend_config.device, dst_backend_config.device)
-        self.check_to_device_meth_ndarrays()
+        self.check_to_device_method_ndarrays()
 
-    def test_to_device_meth_not_allow_unchain(
+    def test_to_device_method_not_allow_unchain(
             self, src_backend_config, dst_backend_config):
         self.setup(src_backend_config)
 
         if self.x_with_graph:
             with pytest.warns(DeprecationWarning):
-                self.to_device_meth(dst_backend_config.device, False)
+                self.to_device_method(dst_backend_config.device, False)
         else:
             # Check that nothing is warned.
-            self.to_device_meth(dst_backend_config.device, False)
+            self.to_device_method(dst_backend_config.device, False)
 
 
 @testing.parameterize(*testing.product({
@@ -1071,10 +1071,10 @@ class VariableToDeviceFamilyBase(object):
 @testing.backend.inject_backend_tests(None, _backend_params)
 class TestVariableToCpu(VariableToDeviceFamilyBase, unittest.TestCase):
 
-    def to_device_meth(self, _, allow_unchain):
+    def to_device_method(self, _, allow_unchain):
         self.x.to_cpu(allow_unchain=allow_unchain)
 
-    def check_to_device_meth_devices(self, src_device, _):
+    def check_to_device_method_devices(self, src_device, _):
         x = self.x
 
         assert x.xp is np
@@ -1106,14 +1106,14 @@ class TestVariableToCpu(VariableToDeviceFamilyBase, unittest.TestCase):
 @attr.gpu
 class TestVariableToGpu(VariableToDeviceFamilyBase, unittest.TestCase):
 
-    def to_device_meth(self, device, allow_unchain):
+    def to_device_method(self, device, allow_unchain):
         # Device is `None` or a `GpuDevice`.
         if device is not None:
             assert device.xp is cuda.cupy
             device = device.device.id
         self.x.to_gpu(device, allow_unchain=allow_unchain)
 
-    def check_to_device_meth_devices(self, src_device, dst_device):
+    def check_to_device_method_devices(self, src_device, dst_device):
         assert isinstance(dst_device, backend.GpuDevice)
         x = self.x
 
@@ -1142,16 +1142,16 @@ class TestVariableToGpu(VariableToDeviceFamilyBase, unittest.TestCase):
             if self.x_with_grad:
                 assert x.grad is self.gx_src
 
-    def test_to_device_meth_allow_unchain_none_device(
+    def test_to_device_method_allow_unchain_none_device(
             self, src_backend_config, dst_backend_config):
         self.setup(src_backend_config)
 
-        self.to_device_meth(None, True)
+        self.to_device_method(None, True)
 
-        self.check_to_device_meth_devices(
+        self.check_to_device_method_devices(
             src_backend_config.device, backend.GpuDevice.from_device_id(
                 cuda.cupy.cuda.runtime.getDevice()))
-        self.check_to_device_meth_ndarrays()
+        self.check_to_device_method_ndarrays()
 
 
 @testing.parameterize(*testing.product({
@@ -1164,10 +1164,10 @@ class TestVariableToGpu(VariableToDeviceFamilyBase, unittest.TestCase):
 @attr.chainerx
 class TestVariableToChainerX(VariableToDeviceFamilyBase, unittest.TestCase):
 
-    def to_device_meth(self, _, allow_unchain):
+    def to_device_method(self, _, allow_unchain):
         self.x.to_chx(allow_unchain=allow_unchain)
 
-    def check_to_device_meth_devices(self, src_device, _):
+    def check_to_device_method_devices(self, src_device, _):
         x = self.x
 
         if src_device.xp is chainerx:
@@ -1205,10 +1205,10 @@ class TestVariableToChainerX(VariableToDeviceFamilyBase, unittest.TestCase):
 @attr.chainerx
 class TestVariableFromChainerX(VariableToDeviceFamilyBase, unittest.TestCase):
 
-    def to_device_meth(self, _, allow_unchain):
+    def to_device_method(self, _, allow_unchain):
         self.x.from_chx(allow_unchain=allow_unchain)
 
-    def check_to_device_meth_devices(self, src_device, _):
+    def check_to_device_method_devices(self, src_device, _):
         x = self.x
 
         if src_device.xp is chainerx:
@@ -1246,10 +1246,10 @@ class TestVariableFromChainerX(VariableToDeviceFamilyBase, unittest.TestCase):
 @testing.backend.inject_backend_tests(None, _backend_params)
 class TestVariableToDevice(VariableToDeviceFamilyBase, unittest.TestCase):
 
-    def to_device_meth(self, dst_device, allow_unchain):
+    def to_device_method(self, dst_device, allow_unchain):
         self.x.to_device(dst_device, allow_unchain=allow_unchain)
 
-    def check_to_device_meth_devices(self, src_device, dst_device):
+    def check_to_device_method_devices(self, src_device, dst_device):
         x = self.x
 
         assert x.xp is dst_device.xp
