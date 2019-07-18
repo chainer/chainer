@@ -7,8 +7,8 @@
 #include <unordered_map>
 #include <utility>
 
+#include <absl/types/optional.h>
 #include <cudnn.h>
-#include <nonstd/optional.hpp>
 
 #include "chainerx/array.h"
 #include "chainerx/constant.h"
@@ -33,7 +33,7 @@ public:
             CudaDevice& device,
             const Array& x,
             const Array& w,
-            const nonstd::optional<Array>& b,
+            const absl::optional<Array>& b,
             const Dims& stride,
             const Dims& pad,
             int groups,
@@ -43,7 +43,7 @@ public:
             CudaDevice& device,
             const Array& x,
             const Array& w,
-            const nonstd::optional<Array>& b,
+            const absl::optional<Array>& b,
             const Dims& stride,
             const Dims& pad,
             int groups,

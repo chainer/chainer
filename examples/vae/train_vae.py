@@ -34,9 +34,9 @@ def main():
     parser.add_argument('--epoch', '-e', default=100, type=int,
                         help='number of epochs to learn')
     parser.add_argument('--dim-z', '-z', default=20, type=int,
-                        help='dimention of encoded vector')
+                        help='dimension of encoded vector')
     parser.add_argument('--dim-h', default=500, type=int,
-                        help='dimention of hidden layer')
+                        help='dimension of hidden layer')
     parser.add_argument('--beta', default=1.0, type=float,
                         help='Regularization coefficient for '
                              'the second term of ELBO bound')

@@ -528,7 +528,7 @@ def test_zeros(xp, shape_as_sequence_or_int, dtype_spec, device):
 @pytest.mark.parametrize(
     'device', [None, 'native:1', chainerx.get_device('native:1')])
 def test_zeros_with_device(device):
-    a = chainerx.zeros((2,), 'float32', device)
+    a = chainerx.zeros((2,), 'float32', device=device)
     b = chainerx.zeros((2,), 'float32')
     chainerx.testing.assert_array_equal_ex(a, b)
     array_utils.check_device(a, device)

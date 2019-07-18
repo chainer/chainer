@@ -6,7 +6,7 @@
 #include <utility>
 #include <vector>
 
-#include <nonstd/optional.hpp>
+#include <absl/types/optional.h>
 
 #include "chainerx/array.h"
 #include "chainerx/backprop_mode.h"
@@ -72,8 +72,7 @@ Array ConvGradWeight(
     Array out{};
     {
         NoBackpropModeScope scope{};
-        out = x.device().backend().CallKernel<ConvGradWeightKernel>(
-                w_dtype, w_shape, x, gy, stride, pad, groups, cover_all, nonstd::nullopt);
+        out = x.device().backend().CallKernel<ConvGradWeightKernel>(w_dtype, w_shape, x, gy, stride, pad, groups, cover_all, absl::nullopt);
         CHAINERX_ASSERT(out.dtype() == w_dtype);
     }
 
@@ -86,7 +85,7 @@ Array ConvGradWeight(
                 const Array& gout = *bctx.output_grad();
                 Dims out_size{x_shape.begin() + 2, x_shape.end()};
                 CHAINERX_ASSERT(out_size.size() == stride.size());
-                bctx.input_grad() = ConvTranspose(gy, gout, nonstd::nullopt, stride, pad, groups, out_size, x_dtype);
+                bctx.input_grad() = ConvTranspose(gy, gout, absl::nullopt, stride, pad, groups, out_size, x_dtype);
             });
         }
 
@@ -94,7 +93,7 @@ Array ConvGradWeight(
             bt.Define([gy_dtype = gy.dtype(), x_tok = bb.RetainInput(0), stride, pad, groups, cover_all](BackwardContext& bctx) {
                 const Array& x = bctx.GetRetainedInput(x_tok);
                 const Array& gout = *bctx.output_grad();
-                bctx.input_grad() = Conv(x, gout, nonstd::nullopt, stride, pad, groups, cover_all, gy_dtype);
+                bctx.input_grad() = Conv(x, gout, absl::nullopt, stride, pad, groups, cover_all, gy_dtype);
             });
         }
         bb.Finalize();
@@ -127,12 +126,12 @@ void ConvCheckNdim(const Array& x, const Array& w, const Dims& stride, const Dim
 Array Conv(
         const Array& x,
         const Array& w,
-        const nonstd::optional<Array>& b,
+        const absl::optional<Array>& b,
         const Dims& stride,
         const Dims& pad,
         int groups,
         bool cover_all,
-        nonstd::optional<Dtype> out_dtype) {
+        absl::optional<Dtype> out_dtype) {
     ConvCheckNdim(x, w, stride, pad);
     if ((w.shape()[1] * groups) != x.shape()[1]) {
         throw DimensionError{"Mismatched number of input channels in input ", x.shape(), " and weights ", w.shape(), "."};
@@ -146,7 +145,7 @@ Array Conv(
     Array out{};
     {
         NoBackpropModeScope scope{};
-        out = x.device().backend().CallKernel<ConvKernel>(x, w, b, stride, pad, groups, cover_all, real_out_dtype, nonstd::nullopt);
+        out = x.device().backend().CallKernel<ConvKernel>(x, w, b, stride, pad, groups, cover_all, real_out_dtype, absl::nullopt);
     }
 
     {
@@ -164,7 +163,7 @@ Array Conv(
                 const Array& w = bctx.GetRetainedInput(w_tok);
                 const Array& gout = *bctx.output_grad();
                 Dims out_size{x_shape.begin() + 2, x_shape.end()};
-                bctx.input_grad() = ConvTranspose(gout, w, nonstd::nullopt, stride, pad, groups, out_size, x_dtype);
+                bctx.input_grad() = ConvTranspose(gout, w, absl::nullopt, stride, pad, groups, out_size, x_dtype);
             });
         }
 
@@ -199,12 +198,12 @@ Array Conv(
 Array ConvTranspose(
         const Array& x,
         const Array& w,
-        const nonstd::optional<Array>& b,
+        const absl::optional<Array>& b,
         const Dims& stride,
         const Dims& pad,
         int groups,
-        const nonstd::optional<Dims>& out_size,
-        nonstd::optional<Dtype> out_dtype) {
+        const absl::optional<Dims>& out_size,
+        absl::optional<Dtype> out_dtype) {
     ConvCheckNdim(x, w, stride, pad);
     if (x.shape()[1] != w.shape()[0]) {
         throw DimensionError{"Mismatched number of input channels in input ", x.shape(), " and weights ", w.shape(), "."};
@@ -261,7 +260,7 @@ Array ConvTranspose(
     {
         NoBackpropModeScope scope{};
         out = x.device().backend().CallKernel<ConvTransposeKernel>(
-                x, w, b, stride, pad, groups, real_out_size, real_out_dtype, nonstd::nullopt);
+                x, w, b, stride, pad, groups, real_out_size, real_out_dtype, absl::nullopt);
     }
 
     {
@@ -280,7 +279,7 @@ Array ConvTranspose(
                 const Array& w = bctx.GetRetainedInput(w_tok);
                 const Array& gout = *bctx.output_grad();
                 Dims out_size{x_shape.begin() + 2, x_shape.end()};
-                bctx.input_grad() = Conv(gout, w, nonstd::nullopt, stride, pad, groups, cover_all, x_dtype);
+                bctx.input_grad() = Conv(gout, w, absl::nullopt, stride, pad, groups, cover_all, x_dtype);
             });
         }
 
@@ -312,7 +311,7 @@ Array ConvTranspose(
     return out;
 }
 
-Array Linear(const Array& x, const Array& w, const nonstd::optional<Array>& b, uint8_t n_batch_axes) {
+Array Linear(const Array& x, const Array& w, const absl::optional<Array>& b, uint8_t n_batch_axes) {
     n_batch_axes = internal::NormalizeAxis(n_batch_axes, x.ndim());
 
     if (x.ndim() < 1) {

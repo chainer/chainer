@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-#include <nonstd/optional.hpp>
+#include <absl/types/optional.h>
 
 #include "chainerx/array.h"
 #include "chainerx/constant.h"
@@ -25,13 +25,13 @@ public:
     virtual Array Call(
             const Array& x,
             const Array& w,
-            const nonstd::optional<Array>& b,
+            const absl::optional<Array>& b,
             const Dims& stride,
             const Dims& pad,
             int groups,
             bool cover_all,
             Dtype out_dtype,
-            const nonstd::optional<Array>& out) = 0;
+            const absl::optional<Array>& out) = 0;
 };
 
 // Computes the n-dimensional transposed convolution.
@@ -48,13 +48,13 @@ public:
     virtual Array Call(
             const Array& x,
             const Array& w,
-            const nonstd::optional<Array>& b,
+            const absl::optional<Array>& b,
             const Dims& stride,
             const Dims& pad,
             int groups,
             const Dims& out_size,
             Dtype out_dtype,
-            const nonstd::optional<Array>& out) = 0;
+            const absl::optional<Array>& out) = 0;
 };
 
 class ConvGradWeightKernel : public Kernel {
@@ -70,7 +70,7 @@ public:
             const Dims& pad,
             int groups,
             bool cover_all,
-            const nonstd::optional<Array>& out) = 0;
+            const absl::optional<Array>& out) = 0;
 };
 
 }  // namespace chainerx

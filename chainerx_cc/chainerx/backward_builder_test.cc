@@ -81,7 +81,7 @@ TEST(BackwardBuilderTest, FloatToInt_GetIntRetainOutputFirstParam) {
         BackwardBuilder::Target bt = bb.CreateTarget();
         EXPECT_TRUE(static_cast<bool>(bt));
         bt.Define([out_tok = bb.RetainOutput(0)](BackwardContext& bctx) {
-            const nonstd::optional<Array>& y1 = bctx.GetRetainedOutput(out_tok);
+            const absl::optional<Array>& y1 = bctx.GetRetainedOutput(out_tok);
             ASSERT_FALSE(bctx.output_grad(0).has_value());
             ASSERT_TRUE(bctx.output_grad(1).has_value());
             EXPECT_TRUE(y1.has_value());
@@ -117,7 +117,7 @@ TEST(BackwardBuilderTest, FloatToInt_GetIntRetainOutputSecondParam) {
         BackwardBuilder::Target bt = bb.CreateTarget();
         EXPECT_TRUE(static_cast<bool>(bt));
         bt.Define([out_tok = bb.RetainOutput(1)](BackwardContext& bctx) {
-            const nonstd::optional<Array>& y2 = bctx.GetRetainedOutput(out_tok);
+            const absl::optional<Array>& y2 = bctx.GetRetainedOutput(out_tok);
             ASSERT_TRUE(bctx.output_grad(0).has_value());
             ASSERT_FALSE(bctx.output_grad(1).has_value());
             EXPECT_TRUE(y2.has_value());
@@ -153,7 +153,7 @@ TEST(BackwardBuilderTest, FloatToInt_GetIntRetainOutputArrayBodyIsGone) {
         BackwardBuilder::Target bt = bb.CreateTarget();
         EXPECT_TRUE(static_cast<bool>(bt));
         bt.Define([out_tok = bb.RetainOutput(1)](BackwardContext& bctx) {
-            const nonstd::optional<Array>& y2 = bctx.GetRetainedOutput(out_tok);
+            const absl::optional<Array>& y2 = bctx.GetRetainedOutput(out_tok);
             ASSERT_TRUE(bctx.output_grad(0).has_value());
             ASSERT_FALSE(bctx.output_grad(1).has_value());
             EXPECT_TRUE(y2.has_value());
@@ -193,7 +193,7 @@ TEST(BackwardBuilderTest, FloatToInt_GetIntRetainOutputArrayNodeIsGone) {
         BackwardBuilder::Target bt = bb.CreateTarget();
         EXPECT_TRUE(static_cast<bool>(bt));
         bt.Define([out_tok = bb.RetainOutput(1)](BackwardContext& bctx) {
-            const nonstd::optional<Array>& y2 = bctx.GetRetainedOutput(out_tok);
+            const absl::optional<Array>& y2 = bctx.GetRetainedOutput(out_tok);
             ASSERT_TRUE(bctx.output_grad(0).has_value());
             ASSERT_FALSE(bctx.output_grad(1).has_value());
             EXPECT_TRUE(y2.has_value());

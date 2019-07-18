@@ -98,5 +98,11 @@ def layer_normalization(x, gamma, beta, eps=1e-5):
         as :math:`x`.
 
     See: `Layer Normalization <https://arxiv.org/abs/1607.06450>`_
+
+    .. seealso::
+
+        :class:`~chainer.links.LayerNormalization` to manage the model
+        parameters ``gamma`` and ``beta``.
+
     """
     return LayerNormalization(eps).apply((x, gamma, beta))[0]
