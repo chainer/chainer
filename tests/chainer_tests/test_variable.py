@@ -977,8 +977,6 @@ class TestVariableChainerXInitRequiresGrad(unittest.TestCase):
             assert v().requires_grad is self.expected
 
 
-# TODO(hvy): Classes deriving this base class should test all backends
-# including intel64.
 class VariableToDeviceFamilyBase(object):
 
     x_shape = None
@@ -1070,6 +1068,7 @@ class VariableToDeviceFamilyBase(object):
     'x_with_graph': [True, False],
 }))
 @testing.backend.inject_backend_tests(None, _numpy_backend_params)
+# TODO(hvy): Test intel64.
 @testing.backend.inject_backend_tests(None, _backend_params)
 class TestVariableToCpu(VariableToDeviceFamilyBase, unittest.TestCase):
 
@@ -1104,6 +1103,7 @@ class TestVariableToCpu(VariableToDeviceFamilyBase, unittest.TestCase):
     'x_with_graph': [True, False],
 }))
 @testing.backend.inject_backend_tests(None, _cupy_backend_params)
+# TODO(hvy): Test intel64.
 @testing.backend.inject_backend_tests(None, _backend_params)
 @attr.gpu
 class TestVariableToGpu(VariableToDeviceFamilyBase, unittest.TestCase):
@@ -1162,6 +1162,7 @@ class TestVariableToGpu(VariableToDeviceFamilyBase, unittest.TestCase):
     'x_with_graph': [True, False],
 }))
 @testing.backend.inject_backend_tests(None, _numpy_backend_params)
+# TODO(hvy): Test intel64.
 @testing.backend.inject_backend_tests(None, _backend_params)
 @attr.chainerx
 class TestVariableToChainerX(VariableToDeviceFamilyBase, unittest.TestCase):
@@ -1203,6 +1204,7 @@ class TestVariableToChainerX(VariableToDeviceFamilyBase, unittest.TestCase):
     'x_with_graph': [True, False],
 }))
 @testing.backend.inject_backend_tests(None, _numpy_backend_params)
+# TODO(hvy): Test intel64.
 @testing.backend.inject_backend_tests(None, _backend_params)
 @attr.chainerx
 class TestVariableFromChainerX(VariableToDeviceFamilyBase, unittest.TestCase):
@@ -1244,7 +1246,9 @@ class TestVariableFromChainerX(VariableToDeviceFamilyBase, unittest.TestCase):
     'x_with_grad': [True, False],
     'x_with_graph': [True, False],
 }))
+# TODO(hvy): Test intel64.
 @testing.backend.inject_backend_tests(None, _backend_params)
+# TODO(hvy): Test intel64.
 @testing.backend.inject_backend_tests(None, _backend_params)
 class TestVariableToDevice(VariableToDeviceFamilyBase, unittest.TestCase):
 
