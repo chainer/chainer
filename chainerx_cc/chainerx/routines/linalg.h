@@ -11,6 +11,10 @@ namespace chainerx {
 
 Array Dot(const Array& a, const Array& b, absl::optional<Dtype> out_dtype = absl::nullopt);
 
+Array Solve(const Array& a, const Array& b);
+
+Array Inverse(const Array& a);
+
 enum class QRMode {
     // if K = min(M, N), where `a` of shape (M, N)
     reduced,  // returns q, r with dimensions (M, K), (K, N) (default)

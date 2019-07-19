@@ -60,7 +60,6 @@ if(${BLAS_FOUND})
     endif()
 endif()
 
-# LAPACK
 if(${LAPACK_FOUND})
     MESSAGE(STATUS "Found LAPACK (library: ${LAPACK_LIBRARIES})")
     include_directories(${LAPACK_INCLUDE_DIRS})

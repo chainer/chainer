@@ -3,6 +3,7 @@ import collections
 import contextlib
 import copy
 import json
+import threading
 import typing as tp  # NOQA
 import warnings
 
@@ -15,6 +16,9 @@ from chainer import configuration
 from chainer import serializer as serializer_module
 from chainer import variable
 import chainerx
+
+
+_thread_local = threading.local()
 
 
 def _copy_variable(value):
@@ -78,11 +82,11 @@ class Reporter(object):
 
     def __enter__(self):
         """Makes this reporter object current."""
-        _reporters.append(self)
+        _get_reporters().append(self)
 
     def __exit__(self, exc_type, exc_value, traceback):
         """Recovers the previous reporter object to the current."""
-        _reporters.pop()
+        _get_reporters().pop()
 
     @contextlib.contextmanager
     def scope(self, observation):
@@ -171,12 +175,17 @@ class Reporter(object):
             self.observation.update(values)
 
 
-_reporters = []  # type: tp.Optional[tp.List[Reporter]]
+def _get_reporters():
+    try:
+        reporters = _thread_local.reporters
+    except AttributeError:
+        reporters = _thread_local.reporters = []
+    return reporters
 
 
 def get_current_reporter():
     """Returns the current reporter object."""
-    return _reporters[-1]
+    return _get_reporters()[-1]
 
 
 def report(values, observer=None):
@@ -231,8 +240,9 @@ def report(values, observer=None):
             of the observed value.
 
     """
-    if _reporters:
-        current = _reporters[-1]
+    reporters = _get_reporters()
+    if reporters:
+        current = reporters[-1]
         current.report(values, observer)
 
 
@@ -244,7 +254,7 @@ def report_scope(observation):
     except that it does not make the reporter current redundantly.
 
     """
-    current = _reporters[-1]
+    current = _get_reporters()[-1]
     old = current.observation
     current.observation = observation
     yield
