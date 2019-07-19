@@ -83,6 +83,16 @@ step_install_chainermn_test_deps() {
 }
 
 
+step_before_install_chainerx_test_deps() {
+    # LAPACK is installed only for Linux
+    # OSX has LAPACK available natively with Accelerate framework
+    # Currently Windows is not tested
+    if [[ $TRAVIS_OS_NAME = "linux" ]]; then
+        sudo apt-get install -y libblas-dev liblapack-dev
+    fi
+}
+
+
 step_install_chainer_docs_deps() {
     _install_chainer_deps docs
 }
