@@ -333,10 +333,10 @@ public:
             using T = typename decltype(pt)::type;
             cuda_internal::DeviceInternals& device_internals = cuda_internal::GetDeviceInternals(static_cast<CudaDevice&>(device));
 
-            T* x_ptr = static_cast<T*>(internal::GetRawOffsetData(x));
-            T* s_ptr = static_cast<T*>(internal::GetRawOffsetData(s));
-            T* u_ptr = static_cast<T*>(internal::GetRawOffsetData(u));
-            T* vt_ptr = static_cast<T*>(internal::GetRawOffsetData(vt));
+            auto x_ptr = static_cast<T*>(internal::GetRawOffsetData(x));
+            auto s_ptr = static_cast<T*>(internal::GetRawOffsetData(s));
+            auto u_ptr = static_cast<T*>(internal::GetRawOffsetData(u));
+            auto vt_ptr = static_cast<T*>(internal::GetRawOffsetData(vt));
 
             std::shared_ptr<void> devInfo = device.Allocate(sizeof(int));
 
@@ -344,7 +344,7 @@ public:
             device_internals.cusolverdn_handle().Call(GesvdBuffersize<T>, m, n, &buffersize);
 
             Array work = Empty(Shape{buffersize}, dtype, device);
-            T* work_ptr = static_cast<T*>(internal::GetRawOffsetData(work));
+            auto work_ptr = static_cast<T*>(internal::GetRawOffsetData(work));
 
             signed char job;
             if (compute_uv) {

@@ -333,10 +333,10 @@ public:
         auto svd_impl = [&](auto pt) -> std::tuple<Array, Array, Array> {
             using T = typename decltype(pt)::type;
 
-            T* x_ptr = static_cast<T*>(internal::GetRawOffsetData(x));
-            T* s_ptr = static_cast<T*>(internal::GetRawOffsetData(s));
-            T* u_ptr = static_cast<T*>(internal::GetRawOffsetData(u));
-            T* vt_ptr = static_cast<T*>(internal::GetRawOffsetData(vt));
+            auto x_ptr = static_cast<T*>(internal::GetRawOffsetData(x));
+            auto s_ptr = static_cast<T*>(internal::GetRawOffsetData(s));
+            auto u_ptr = static_cast<T*>(internal::GetRawOffsetData(u));
+            auto vt_ptr = static_cast<T*>(internal::GetRawOffsetData(vt));
 
             char job;
             if (compute_uv) {
@@ -355,7 +355,7 @@ public:
             buffersize = static_cast<int>(work_size);
 
             Array work = Empty(Shape{buffersize}, dtype, device);
-            T* work_ptr = static_cast<T*>(internal::GetRawOffsetData(work));
+            auto work_ptr = static_cast<T*>(internal::GetRawOffsetData(work));
 
             Gesdd(job, m, n, x_ptr, m, s_ptr, u_ptr, m, vt_ptr, n, work_ptr, buffersize, iwork_ptr, &info);
 
