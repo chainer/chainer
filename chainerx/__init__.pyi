@@ -874,6 +874,8 @@ def softmax(
         x: ndarray,
         axis: tp.Optional[tp.Union[int, tp.List[int]]]=None) -> ndarray: ...
 
+def softplus(x: ndarray, beta: double=1.0) -> ndarray: ...
+
 def split(
         ary: ndarray,
         indices_or_sections: tp.Union[int, tp.List[int]],
@@ -912,6 +914,11 @@ def subtract(x1: tp.Any, x2: tp.Any) -> ndarray: ...
 def sum(a: ndarray,
         axis: tp.Optional[tp.Union[int, tp.List[int]]]=None,
         keepdims: bool=...) -> ndarray: ...
+
+
+def cumsum(
+        x: ndarray,
+        axis: tp.Optional[int]=None) -> ndarray: ...
 
 
 def swapaxes(a: ndarray, axis1: int, axis2: int) -> ndarray: ...

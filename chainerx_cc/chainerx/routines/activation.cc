@@ -109,5 +109,13 @@ std::vector<Array> TreeLstm(std::vector<Array> arrays) {
     Array h = o_ * Tanh(c);
     return {c, h};
 }
+Array Softplus(const Array& x, double beta) {
+    Dtype dtype = internal::GetMathResultDtype(x.dtype());
+    const Array& x_cast = x.dtype() == dtype ? x : x.AsType(dtype);
+    double beta_inv = 1.0 / beta;
+    Array bx = beta * x_cast;
+    Array y = (Maximum(bx, 0) + Log1p(Exp(-Fabs(bx)))) * beta_inv;
+    return y;
+}
 
 }  // namespace chainerx

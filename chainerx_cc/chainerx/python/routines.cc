@@ -655,6 +655,7 @@ void InitChainerxActivation(pybind11::module& m) {
       }
       return ToTuple(TreeLstm(input));
     });
+    m.def("softplus", [](const ArrayBodyPtr& x, double beta) { return MoveArrayBody(Softplus(Array{x}, beta)); }, "x"_a, "beta"_a = 1.0);
 }
 
 void InitChainerxArithmetic(pybind11::module& m) {
@@ -795,6 +796,10 @@ void InitChainerxReduction(pybind11::module& m) {
               return MoveArrayBody(Softmax(Array{x}, ToAxes(axis)));
           },
           "x"_a,
+          "axis"_a = nullptr);
+    m.def("cumsum",
+          [](const ArrayBodyPtr& a, const absl::optional<int8_t>& axis) { return MoveArrayBody(Cumsum(Array{a}, axis)); },
+          "a"_a,
           "axis"_a = nullptr);
 }
 
