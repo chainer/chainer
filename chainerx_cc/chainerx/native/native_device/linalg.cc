@@ -58,6 +58,68 @@ void sgesdd_(
 
 namespace chainerx {
 namespace native {
+namespace {
+
+template <typename T>
+void Gesdd(
+        char /*jobz*/,
+        int /*m*/,
+        int /*n*/,
+        T* /*a*/,
+        int /*lda*/,
+        T* /*s*/,
+        T* /*u*/,
+        int /*ldu*/,
+        T* /*vt*/,
+        int /*ldvt*/,
+        T* /*work*/,
+        int /*lwork*/,
+        int* /*iwork*/,
+        int* /*info*/) {
+    throw DtypeError{"Only Arrays of float or double type are supported by gesdd (SVD)"};
+}
+
+#if CHAINERX_ENABLE_LAPACK
+template <>
+void Gesdd<double>(
+        char jobz,
+        int m,
+        int n,
+        double* a,
+        int lda,
+        double* s,
+        double* u,
+        int ldu,
+        double* vt,
+        int ldvt,
+        double* work,
+        int lwork,
+        int* iwork,
+        int* info) {
+    dgesdd_(&jobz, &m, &n, a, &lda, s, u, &ldu, vt, &ldvt, work, &lwork, iwork, info);
+}
+
+template <>
+void Gesdd<float>(
+        char jobz,
+        int m,
+        int n,
+        float* a,
+        int lda,
+        float* s,
+        float* u,
+        int ldu,
+        float* vt,
+        int ldvt,
+        float* work,
+        int lwork,
+        int* iwork,
+        int* info) {
+    sgesdd_(&jobz, &m, &n, a, &lda, s, u, &ldu, vt, &ldvt, work, &lwork, iwork, info);
+}
+#endif  // CHAINERX_ENABLE_LAPACK
+
+}  // namespace
 
 class NativeSVDKernel : public SVDKernel {
 public:
@@ -105,7 +167,7 @@ public:
 
         Array s = Empty(Shape({mn}), dtype, device);
 
-        auto svd_impl = [&](auto pt, auto gesdd) -> std::tuple<Array, Array, Array> {
+        auto svd_impl = [&](auto pt) -> std::tuple<Array, Array, Array> {
             using T = typename decltype(pt)::type;
 
             T* x_ptr = static_cast<T*>(internal::GetRawOffsetData(x));
@@ -120,16 +182,19 @@ public:
                 job = 'N';
             }
 
+            Array iwork = Empty(Shape{8*mn}, Dtype::kInt64, device);
+            auto iwork_ptr = static_cast<int*>(internal::GetRawOffsetData(iwork));
+
             int info;
             int buffersize = -1;
             T work_size;
-            gesdd(&job, &m, &n, x_ptr, &m, s_ptr, u_ptr, &m, vt_ptr, &n, &work_size, &buffersize, nullptr, &info);
+            Gesdd(job, m, n, x_ptr, m, s_ptr, u_ptr, m, vt_ptr, n, &work_size, buffersize, iwork_ptr, &info);
             buffersize = static_cast<int>(work_size);
 
             Array work = Empty(Shape({buffersize}), dtype, device);
             T* work_ptr = static_cast<T*>(internal::GetRawOffsetData(work));
 
-            gesdd(&job, &m, &n, x_ptr, &m, s_ptr, u_ptr, &m, vt_ptr, &n, work_ptr, &buffersize, nullptr, &info);
+            Gesdd(job, m, n, x_ptr, m, s_ptr, u_ptr, m, vt_ptr, n, work_ptr, buffersize, iwork_ptr, &info);
 
             if (info != 0) {
                 throw ChainerxError{"Unsuccessful gesdd (SVD) execution. Info = ", info};
@@ -142,19 +207,7 @@ public:
             }
         };
 
-        switch (a.dtype()) {
-            case Dtype::kFloat16:
-                throw DtypeError{"Half-precision (float16) is not supported by SVD"};
-                break;
-            case Dtype::kFloat32:
-                return svd_impl(PrimitiveType<float>{}, sgesdd_);
-                break;
-            case Dtype::kFloat64:
-                return svd_impl(PrimitiveType<double>{}, dgesdd_);
-                break;
-            default:
-                CHAINERX_NEVER_REACH();
-        }
+        return VisitFloatingPointDtype(dtype, svd_impl);
 #else  // CHAINERX_LAPACK_AVAILABLE
         (void)a;  // unused
         (void)full_matrices;  // unused
