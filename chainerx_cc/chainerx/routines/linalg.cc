@@ -234,10 +234,7 @@ std::tuple<Array, Array> QR(const Array& a, QRMode mode) {
                 Array rhs = dQ + Dot(Q, M_sym, a.dtype());
 
                 // Note that rhs * R^(-T) = (R^(-1) * rhs^T)^T
-                // TODO(ivan): uncomment this once Solve is available
-                // bctx.input_grad() = Solve(R, rhs.Transpose()).Transpose();
-
-                throw ChainerxError{"ChainerX QR differentiation is not implemented."};
+                bctx.input_grad() = Solve(R, rhs.Transpose()).Transpose();
             });
         }
         bb.Finalize();

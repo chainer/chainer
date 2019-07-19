@@ -231,12 +231,33 @@ class TestSolveDtypeFailing(NumpyLinalgOpTest):
 
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
+    # backward for 'r', 'raw' modes is not implemented
     chainer.testing.product({
         'shape': [(1, 1), (2, 3), (3, 2), (6, 6)],
         'in_dtypes': ['float32', 'float64'],
-        'mode': ['r', 'raw', 'reduced', 'complete'],
+        'mode': ['r', 'raw'],
         'skip_backward_test': [True],
-        'skip_double_backward_test': [True],
+        'skip_double_backward_test': [True]
+    }) +
+    # backward for non-square `R` is not implemented
+    chainer.testing.product({
+        'shape': [(2, 3), (3, 2)],
+        'in_dtypes': ['float32', 'float64'],
+        'mode': ['complete'],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True]
+    }) +
+    # double backward implementation is blocked by tril/triu backward
+    chainer.testing.product({
+        'shape': [(1, 1), (6, 6)],
+        'in_dtypes': ['float32', 'float64'],
+        'mode': ['reduced', 'complete'],
+        'skip_double_backward_test': [True]
+    }) + chainer.testing.product({
+        'shape': [(3, 2)],
+        'in_dtypes': ['float32', 'float64'],
+        'mode': ['reduced'],
+        'skip_double_backward_test': [True]
     })
 ))
 class TestQR(NumpyLinalgOpTest):
