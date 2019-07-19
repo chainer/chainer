@@ -133,13 +133,13 @@ public:
         bool trans_flag;
 
         if (m >= n) {
-            x = Empty(Shape({n, m}), dtype, device);
+            x = Empty(Shape{n, m}, dtype, device);
             device.backend().CallKernel<CopyKernel>(a, x);
             trans_flag = false;
         } else {
             m = a.shape()[0];
             n = a.shape()[1];
-            x = Empty(Shape({n, m}), dtype, device);
+            x = Empty(Shape{n, m}, dtype, device);
             device.backend().CallKernel<CopyKernel>(a.Transpose(), x);
             trans_flag = true;
         }
@@ -150,18 +150,18 @@ public:
 
         if (compute_uv) {
             if (full_matrices) {
-                u = Empty(Shape({m, m}), dtype, device);
-                vt = Empty(Shape({n, n}), dtype, device);
+                u = Empty(Shape{m, m}, dtype, device);
+                vt = Empty(Shape{n, n}, dtype, device);
             } else {
-                u = Empty(Shape({mn, m}), dtype, device);
-                vt = Empty(Shape({mn, n}), dtype, device);
+                u = Empty(Shape{mn, m}, dtype, device);
+                vt = Empty(Shape{mn, n}, dtype, device);
             }
         } else {
-            u = Empty(Shape({0}), dtype, device);
-            vt = Empty(Shape({0}), dtype, device);
+            u = Empty(Shape{0}, dtype, device);
+            vt = Empty(Shape{0}, dtype, device);
         }
 
-        Array s = Empty(Shape({mn}), dtype, device);
+        Array s = Empty(Shape{mn}, dtype, device);
 
         auto svd_impl = [&](auto pt) -> std::tuple<Array, Array, Array> {
             using T = typename decltype(pt)::type;
@@ -177,7 +177,7 @@ public:
             int buffersize = 0;
             device_internals.cusolverdn_handle().Call(GesvdBuffersize<T>, m, n, &buffersize);
 
-            Array work = Empty(Shape({buffersize}), dtype, device);
+            Array work = Empty(Shape{buffersize}, dtype, device);
             T* work_ptr = static_cast<T*>(internal::GetRawOffsetData(work));
 
             signed char job;
