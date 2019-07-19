@@ -1211,9 +1211,7 @@ def test_tri(xp, N, M, k, dtype_spec, device):
     chainer.testing.product({
         'shape': [(2, 1), (3, 4), (6, 3), (3, 6)],
         'k': [0, 1, -1],
-        'in_dtypes': ['float32', 'float64'],
-        'skip_backward_test': [True],
-        'skip_double_backward_test': [True]
+        'in_dtypes': ['float32', 'float64']
     })
 ))
 class TestTrilTriu(op_utils.NumpyOpTest):
