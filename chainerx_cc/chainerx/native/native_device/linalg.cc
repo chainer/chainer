@@ -293,8 +293,8 @@ public:
 
         CHAINERX_ASSERT(a.ndim() == 2);
 
-        int n = a.shape()[0];
-        int m = a.shape()[1];
+        int64_t n = a.shape()[0];
+        int64_t m = a.shape()[1];
 
         Array x{};
         bool trans_flag;
@@ -310,7 +310,7 @@ public:
             device.backend().CallKernel<CopyKernel>(a.Transpose(), x);
             trans_flag = true;
         }
-        int mn = std::min(m, n);
+        int64_t mn = std::min(m, n);
 
         Array u{};
         Array vt{};
