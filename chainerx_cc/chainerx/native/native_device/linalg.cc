@@ -182,7 +182,7 @@ public:
                 job = 'N';
             }
 
-            Array iwork = Empty(Shape{8*mn}, Dtype::kInt64, device);
+            Array iwork = Empty(Shape{8 * mn}, Dtype::kInt64, device);
             auto iwork_ptr = static_cast<int*>(internal::GetRawOffsetData(iwork));
 
             int info;
