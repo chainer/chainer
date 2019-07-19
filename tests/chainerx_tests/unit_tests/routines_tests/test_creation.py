@@ -1210,14 +1210,20 @@ def test_tri(xp, N, M, k, dtype_spec, device):
     # Special shapes
     chainer.testing.product({
         'shape': [(2, 1), (3, 4), (6, 3), (3, 6)],
-        'k': [0, 1, -1],
-        'in_dtypes': ['float32', 'float64']
+        'k': [0, 1, -1]
     })
 ))
 class TestTrilTriu(op_utils.NumpyOpTest):
 
+    def setup(self, float_dtype):
+        self.dtype = float_dtype
+        # backward with float16 sometimes does not pass tests with default rtol
+        if self.dtype == 'float16':
+            self.check_backward_options.update({'rtol': 5e-3})
+            self.check_double_backward_options.update({'rtol': 5e-3})
+
     def generate_inputs(self):
-        a = numpy.random.random(self.shape).astype(self.in_dtypes)
+        a = numpy.random.random(self.shape).astype(self.dtype)
         return a,
 
     def forward_xp(self, inputs, xp):
