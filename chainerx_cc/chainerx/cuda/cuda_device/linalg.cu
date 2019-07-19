@@ -35,6 +35,87 @@
 
 namespace chainerx {
 namespace cuda {
+namespace {
+
+template <typename T>
+cusolverStatus_t GesvdBuffersize(cusolverDnHandle_t /*handle*/, int /*m*/, int /*n*/, int* /*lwork*/) {
+    throw DtypeError{"Only Arrays of float or double type are supported by gesvd (SVD)"};
+}
+
+template <typename T>
+cusolverStatus_t Gesvd(
+        cusolverDnHandle_t /*handle*/,
+        signed char /*jobu*/,
+        signed char /*jobvt*/,
+        int /*m*/,
+        int /*n*/,
+        T* /*a*/,
+        int /*lda*/,
+        T* /*s*/,
+        T* /*u*/,
+        int /*ldu*/,
+        T* /*vt*/,
+        int /*ldvt*/,
+        T* /*work*/,
+        int /*lwork*/,
+        T* /*rwork*/,
+        int* /*devinfo*/) {
+    throw DtypeError{"Only Arrays of float or double type are supported by gesvd (SVD)"};
+}
+
+template <>
+cusolverStatus_t GesvdBuffersize<double>(cusolverDnHandle_t handle, int m, int n, int* lwork) {
+    return cusolverDnDgesvd_bufferSize(handle, m, n, lwork);
+}
+
+template <>
+cusolverStatus_t GesvdBuffersize<float>(cusolverDnHandle_t handle, int m, int n, int* lwork) {
+    return cusolverDnSgesvd_bufferSize(handle, m, n, lwork);
+}
+
+template <>
+cusolverStatus_t Gesvd<double>(
+        cusolverDnHandle_t handle,
+        signed char jobu,
+        signed char jobvt,
+        int m,
+        int n,
+        double* a,
+        int lda,
+        double* s,
+        double* u,
+        int ldu,
+        double* vt,
+        int ldvt,
+        double* work,
+        int lwork,
+        double* rwork,
+        int* devinfo) {
+    return cusolverDnDgesvd(handle, jobu, jobvt, m, n, a, lda, s, u, ldu, vt, ldvt, work, lwork, rwork, devinfo);
+}
+
+template <>
+cusolverStatus_t Gesvd<float>(
+        cusolverDnHandle_t handle,
+        signed char jobu,
+        signed char jobvt,
+        int m,
+        int n,
+        float* a,
+        int lda,
+        float* s,
+        float* u,
+        int ldu,
+        float* vt,
+        int ldvt,
+        float* work,
+        int lwork,
+        float* rwork,
+        int* devinfo) {
+    return cusolverDnSgesvd(handle, jobu, jobvt, m, n, a, lda, s, u, ldu, vt, ldvt, work, lwork, rwork, devinfo);
+}
+
+}  // namespace
 
 class CudaSVDKernel : public SVDKernel {
 public:
@@ -82,7 +163,7 @@ public:
 
         Array s = Empty(Shape({mn}), dtype, device);
 
-        auto svd_impl = [&](auto pt, auto gesvd_bufferSize, auto gesvd) -> std::tuple<Array, Array, Array> {
+        auto svd_impl = [&](auto pt) -> std::tuple<Array, Array, Array> {
             using T = typename decltype(pt)::type;
             cuda_internal::DeviceInternals& device_internals = cuda_internal::GetDeviceInternals(static_cast<CudaDevice&>(device));
 
@@ -94,7 +175,7 @@ public:
             std::shared_ptr<void> devInfo = device.Allocate(sizeof(int));
 
             int buffersize = 0;
-            device_internals.cusolverdn_handle().Call(gesvd_bufferSize, m, n, &buffersize);
+            device_internals.cusolverdn_handle().Call(GesvdBuffersize<T>, m, n, &buffersize);
 
             Array work = Empty(Shape({buffersize}), dtype, device);
             T* work_ptr = static_cast<T*>(internal::GetRawOffsetData(work));
@@ -107,7 +188,7 @@ public:
             }
 
             device_internals.cusolverdn_handle().Call(
-                    gesvd,
+                    Gesvd<T>,
                     job,
                     job,
                     m,
@@ -138,19 +219,7 @@ public:
             }
         };
 
-        switch (a.dtype()) {
-            case Dtype::kFloat16:
-                throw DtypeError{"Half-precision (float16) is not supported by SVD"};
-                break;
-            case Dtype::kFloat32:
-                return svd_impl(PrimitiveType<float>{}, cusolverDnSgesvd_bufferSize, cusolverDnSgesvd);
-                break;
-            case Dtype::kFloat64:
-                return svd_impl(PrimitiveType<double>{}, cusolverDnDgesvd_bufferSize, cusolverDnDgesvd);
-                break;
-            default:
-                CHAINERX_NEVER_REACH();
-        }
+        return VisitFloatingPointDtype(dtype, svd_impl);
     }
 };
 
