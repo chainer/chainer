@@ -367,6 +367,16 @@ Array Tril(const Array& m, int64_t k = 0) {
         Array mask = Tri(m.shape()[m.ndim() - 2], m.shape()[m.ndim() - 1], k, Dtype::kBool, m.device());
         out = Where(mask, m, 0);
     }
+
+    BackwardBuilder bb{"tril", m, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([k](BackwardContext& bctx) {
+            const Array& gout = *bctx.output_grad();
+            bctx.input_grad() = Tril(gout, k);
+        });
+    }
+    bb.Finalize();
+
     return out;
 }
 
@@ -377,6 +387,16 @@ Array Triu(const Array& m, int64_t k = 0) {
         Array mask = Tri(m.shape()[m.ndim() - 2], m.shape()[m.ndim() - 1], k - 1, Dtype::kBool, m.device());
         out = Where(mask, 0, m);
     }
+
+    BackwardBuilder bb{"triu", m, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([k](BackwardContext& bctx) {
+            const Array& gout = *bctx.output_grad();
+            bctx.input_grad() = Triu(gout, k);
+        });
+    }
+    bb.Finalize();
+
     return out;
 }
 

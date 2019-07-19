@@ -247,17 +247,14 @@ class TestSolveDtypeFailing(NumpyLinalgOpTest):
         'skip_backward_test': [True],
         'skip_double_backward_test': [True]
     }) +
-    # double backward implementation is blocked by tril/triu backward
     chainer.testing.product({
         'shape': [(1, 1), (6, 6)],
         'in_dtypes': ['float32', 'float64'],
-        'mode': ['reduced', 'complete'],
-        'skip_double_backward_test': [True]
+        'mode': ['reduced', 'complete']
     }) + chainer.testing.product({
         'shape': [(3, 2)],
         'in_dtypes': ['float32', 'float64'],
-        'mode': ['reduced'],
-        'skip_double_backward_test': [True]
+        'mode': ['reduced']
     })
 ))
 class TestQR(NumpyLinalgOpTest):
