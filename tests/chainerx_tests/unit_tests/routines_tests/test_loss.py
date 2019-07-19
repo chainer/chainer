@@ -125,8 +125,10 @@ class TestGaussianKLDivergence(LossBase):
 ))
 class TestHuberLoss(LossBase):
 
-    # Absolute is non-differentiable at zero.
-    dodge_nondifferentiable = True
+    def generate_inputs(self):
+        x, t = super().generate_inputs()
+        mask = numpy.abs(numpy.abs(x - t) - self.delta) > 1e-3
+        return x * mask, t * mask
 
     def forward_xp(self, inputs, xp):
         x, t = inputs

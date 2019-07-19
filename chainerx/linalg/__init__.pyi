@@ -1,7 +1,13 @@
 import typing as tp
 
 
+def inv(a: ndarray) -> ndarray: ...
+
+
 def pinv(a: ndarray, rcond: float=...) -> ndarray: ...
+
+
+def solve(a: ndarray, b: ndarray) -> ndarray: ...
 
 
 def svd(a: ndarray, *args: tp.Any) -> tp.Tuple[ndarray, ...]: ...

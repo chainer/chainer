@@ -102,10 +102,98 @@ Array Dot(const Array& a, const Array& b, absl::optional<Dtype> out_dtype) {
     return out_matrix.Reshape(out_shape);
 }
 
-std::tuple<Array, Array, Array> SVD(const Array& a, bool full_matrices, bool compute_uv) {
+namespace {
+
+void CheckRankTwoArray(const Array& a) {
     if (a.ndim() != 2) {
-        throw DimensionError{"ChainerX SVD supports only 2-dimensional arrays."};
+        throw DimensionError{"ChainerX linear algebra routines support only 2-dimensional arrays."};
     }
+}
+
+void CheckSquareMatrix(const Array& a) {
+    if (a.shape()[0] != a.shape()[1]) {
+        throw DimensionError{"Matrix is not square."};
+    }
+}
+
+}  // namespace
+
+Array Solve(const Array& a, const Array& b) {
+    CheckRankTwoArray(a);
+    CheckSquareMatrix(a);
+    CheckEqual(a.device(), b.device());
+    CheckEqual(a.dtype(), b.dtype());
+    Dtype dtype = internal::GetMathResultDtype(b.dtype());
+    Array out = Empty(b.shape(), dtype, b.device());
+
+    {
+        NoBackpropModeScope scope{};
+        a.device().backend().CallKernel<SolveKernel>(a, b, out);
+    }
+
+    // Reference:
+    // https://people.maths.ox.ac.uk/gilesm/files/NA-08-01.pdf
+    // Sec. 2.3.1 Matrix inverse product
+    {
+        BackwardBuilder bb{"solve", {a, b}, out};
+        if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+            bt.Define([out_tok = bb.RetainOutput(0), a_tok = bb.RetainInput(0), a_dtype = a.dtype()](BackwardContext& bctx) {
+                const Array& a = bctx.GetRetainedInput(a_tok);
+                const Array& out = bctx.GetRetainedOutput(out_tok);
+                const Array& gout = *bctx.output_grad();
+                auto updim = [&](const Array& x) {
+                    if (x.ndim() == a.ndim()) {
+                        return x;
+                    }
+                    return ExpandDims(x, 1);
+                };
+                bctx.input_grad() = -Dot(updim(Solve(a.Transpose(), gout)), updim(out).Transpose(), a_dtype);
+            });
+        }
+        if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
+            bt.Define([a_tok = bb.RetainInput(0)](BackwardContext& bctx) {
+                const Array& a = bctx.GetRetainedInput(a_tok);
+                const Array& gout = *bctx.output_grad();
+                bctx.input_grad() = Solve(a.Transpose(), gout);
+            });
+        }
+        bb.Finalize();
+    }
+
+    return out;
+}
+
+Array Inverse(const Array& a) {
+    CheckRankTwoArray(a);
+    CheckSquareMatrix(a);
+    Dtype dtype = internal::GetMathResultDtype(a.dtype());
+    Array out = Empty(a.shape(), dtype, a.device());
+
+    {
+        NoBackpropModeScope scope{};
+        a.device().backend().CallKernel<InverseKernel>(a, out);
+    }
+
+    // Reference:
+    // https://people.maths.ox.ac.uk/gilesm/files/NA-08-01.pdf
+    // Sec. 2.2.3 Inverse
+    {
+        BackwardBuilder bb{"inv", a, out};
+        if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+            bt.Define([out_tok = bb.RetainOutput(0), a_dtype = a.dtype()](BackwardContext& bctx) {
+                const Array& out = bctx.GetRetainedOutput(out_tok);
+                const Array& gout = *bctx.output_grad();
+                bctx.input_grad() = -Dot(Dot(out.Transpose(), gout, a_dtype), out.Transpose(), a_dtype);
+            });
+        }
+        bb.Finalize();
+    }
+
+    return out;
+}
+
+std::tuple<Array, Array, Array> SVD(const Array& a, bool full_matrices, bool compute_uv) {
+    CheckRankTwoArray(a);
     Array u{};
     Array s{};
     Array v{};
@@ -190,9 +278,7 @@ std::tuple<Array, Array, Array> SVD(const Array& a, bool full_matrices, bool com
 }
 
 Array PseudoInverse(const Array& a, float rcond) {
-    if (a.ndim() != 2) {
-        throw DimensionError{"ChainerX pseudo-inverse supports only 2-dimensional arrays."};
-    }
+    CheckRankTwoArray(a);
     Dtype dtype = internal::GetMathResultDtype(a.dtype());
     Array out = Empty(Shape({a.shape()[1], a.shape()[0]}), dtype, a.device());
 
