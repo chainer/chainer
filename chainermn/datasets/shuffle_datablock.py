@@ -50,22 +50,22 @@ def _exclusive_scan(array, dtype=None):
     return z
 
 
-def shuffle_data_chunks(comm, data_chunks, force_equal_length=True, chunk_size=10000):
+def shuffle_data_chunks(comm, data_chunks, force_equal_length=True,
+                        chunk_size=10000):
     """Exchange chunks of data between all processes,
     where the data is huge or the total length is unknown.
 
     :param comm: ChainerMN communicator
-    :param data_chunks: list or generator to read chunks.
+    :param data_chunks: Sequence or generator to read chunks.
     :param force_equal_length: Whether data length of each process is adjusted
                                by copying some elements, so that all processes
-                               have exactly the same number of training data.
+                               have exactly the same length of data.
                                This is required in training for correct
                                iteration/epoch counting.
-                               In evaluation, however, it is not required and
-                               the option can be False if you don't want
-                               duplicated elements.
+                               In evaluation, however, the option can be False
+                               if you don't want duplicated elements.
     :param chunk_size: Number of elements read from `data_chunks` at a time
-    :return: List of shuffled data
+    :return: Shuffled data (in a list)
     """
 
     if chunk_size <= 1:
@@ -78,18 +78,8 @@ def shuffle_data_chunks(comm, data_chunks, force_equal_length=True, chunk_size=1
     data_chunks = iter(data_chunks)
     data = []
 
-    if comm.rank == 0:
-        print("\n\n======================", flush=True)
-        print("chunk_size = {}".format(chunk_size))
-        print("force_equal_length = {}".format(force_equal_length))
-
     # repeat until all processes consume all data
     while True:
-        comm.mpi_comm.barrier()
-        if comm.rank == 0:
-            print("---------------------", flush=True)
-        comm.mpi_comm.barrier()
-
         # Read a chunk of data
         chunk = list(itertools.islice(data_chunks, chunk_size))
 
@@ -98,13 +88,9 @@ def shuffle_data_chunks(comm, data_chunks, force_equal_length=True, chunk_size=1
         else:
             length = np.array([len(chunk)])
 
-        # print("Rank {}: length = {}".format(comm.rank, length))
-
         # How many elements does each process have?
         chunk_length_all = [x[0] for x in comm.allgather(length)]
         assert len(chunk_length_all) == comm.size
-        if comm.rank == 0:
-            print("chunk_length_all = {}".format(chunk_length_all), flush=True)
 
         # Nobody has any more data to send. done.
         if all(n == 0 for n in chunk_length_all):
@@ -115,13 +101,12 @@ def shuffle_data_chunks(comm, data_chunks, force_equal_length=True, chunk_size=1
         # Perform parallel communication (which is very similar to alltoallv)
         # using send() and recv()
 
-        # First, generate all (sender, receiver) pairs
+        # Generate all (sender, receiver) pairs
         size = comm.size
         pairs = _send_recv_pairs(comm.size)
 
         # offset of sendcounts
         offset = _exclusive_scan(count_table[comm.rank, :])
-        # print("Rank {}: pairs = {}".format(comm.rank, pairs))
 
         # Perform send() and recv() in the order of `pairs`
         # i.e.
@@ -145,44 +130,28 @@ def shuffle_data_chunks(comm, data_chunks, force_equal_length=True, chunk_size=1
                 beg = offset[recv_rank]
                 end = beg + count
                 comm.send_obj(chunk[beg:end], dest=recv_rank, tag=0)
-                # print("Rank {}: {} --> {}, data={}".format(comm.rank, send_rank, recv_rank, chunk[beg:end]), flush=True)
             elif recv_rank == comm.rank:
                 # I am the receiver
                 assert send_rank != comm.rank
                 recv_data = comm.recv_obj(source=send_rank, tag=0)
                 data += recv_data
 
-        comm.mpi_comm.barrier()
-        print("Rank {} len(data) = {}".format(comm.rank, len(data)), flush=True)
-        comm.mpi_comm.barrier()
-
-    # print("Rank {}: data={}".format(comm.rank, data))
-    if comm.rank == 0:
-        print("Rank {}: finished main loop".format(comm.rank), flush=True)
-    comm.mpi_comm.barrier()
-    print("Rank {}: len(data) = {}".format(comm.rank, len(data)))
-
     if force_equal_length:
         # After all communications, get the length of data of all ranks
         _adjust_data_length(comm, data)
 
-    comm.mpi_comm.barrier()
-    if comm.rank == 0:
-        print("Rank {}: finished force_equal_length".format(comm.rank), flush=True)
     return data
 
 
 def _adjust_data_length(comm, data):
-    length_all = [x[0] for x in comm.allgather(np.array([len(data)]))]
-    length_final = max(length_all)
-    print("length_final = {}".format(length_final))
-
     # The process which has maximum number of elements sends its data
     # to other processes
 
+    length_all = [x[0] for x in comm.allgather(np.array([len(data)]))]
+    length_final = max(length_all)
+
     root_rank = next(r for r in range(comm.size)
                      if length_all[r] == length_final)
-    print("root_rank = {}".format(root_rank))
 
     if comm.rank == root_rank:
         offset = 0
@@ -192,47 +161,12 @@ def _adjust_data_length(comm, data):
 
             send_cnt = length_final - length_all[dest_rank]
             if send_cnt > 0:
-                print(
-                    "Rank {}: Sending {} elements to rank {}".format(comm.rank,
-                                                                     send_cnt,
-                                                                     dest_rank))
                 comm.send_obj(data[offset:offset + send_cnt], dest_rank, tag=0)
                 offset += send_cnt
     else:
         if len(data) < length_final:
-            print("Rank {}: recv from rank {}".format(comm.rank, root_rank))
             data += comm.recv_obj(source=root_rank, tag=0)
         assert len(data) == length_final
-
-
-def test_count_table():
-    from numpy.testing import assert_array_equal
-
-    ## --
-    length_all = [0, 0, 100]
-    answer = np.array([[ 0,  0,  0],
-                       [ 0,  0,  0],
-                       [33, 33, 34]])
-    assert_array_equal(_count_table(length_all), answer)
-
-    ## --
-    length_all = [0, 0, 101]
-    answer = np.array([[0, 0, 0],
-                       [0, 0, 0],
-                       [34, 33, 34]])
-    assert_array_equal(_count_table(length_all), answer)
-
-    ## --
-    length_all = [100]
-    answer = np.array([[100]])
-    assert_array_equal(_count_table(length_all), answer)
-
-    ## --
-    length_all = [10, 20, 30]
-    answer = np.array([[4, 3, 3],
-                       [6, 7, 7],
-                       [10, 10, 10]])
-    assert_array_equal(_count_table(length_all), answer)
 
 
 import pytest
@@ -285,46 +219,30 @@ def test_send_recv_pairs():
               (3, 0), (3, 1), (3, 2), (3, 3)]
     assert_array_equal(_send_recv_pairs(4), answer)
 
+def test_count_table():
+    """A unit test for an internal function"""
+    from numpy.testing import assert_array_equal
 
-if __name__ == '__main__':
-    import numpy as np
-    import chainermn
-    import time
-    import random
-    comm = chainermn.communicators.create_communicator()
+    length_all = [0, 0, 100]
+    answer = np.array([[ 0,  0,  0],
+                       [ 0,  0,  0],
+                       [33, 33, 34]])
+    assert_array_equal(_count_table(length_all), answer)
 
-    r = range(comm.rank * 10, comm.rank * 10 + (comm.rank + 5) * 100 + random.randint(10, 500))
+    length_all = [0, 0, 101]
+    answer = np.array([[0, 0, 0],
+                       [0, 0, 0],
+                       [34, 33, 34]])
+    assert_array_equal(_count_table(length_all), answer)
 
-    for i in range(comm.size):
-        if i == comm.rank:
-            if i == 0:
-                print("------------------------------")
+    length_all = [100]
+    answer = np.array([[100]])
+    assert_array_equal(_count_table(length_all), answer)
 
-            print(len(r))
-        comm.mpi_comm.barrier()
+    length_all = [10, 20, 30]
+    answer = np.array([[4, 3, 3],
+                       [6, 7, 7],
+                       [10, 10, 10]])
+    assert_array_equal(_count_table(length_all), answer)
 
-    chunks = [np.array([i]) for i in r]
-    data = shuffle_data_chunks(comm, chunks, force_equal_length=True)
-    data = [x[0] for x in data]
-
-    time.sleep(0.5)
-
-    for i in range(comm.size):
-        if i == comm.rank:
-            if i == 0:
-                print("------------------------------")
-
-            # print("{}, {}".format(data, len(data)), flush=True)
-            print("{}".format(len(data)), flush=True)
-        comm.mpi_comm.barrier()
-
-    time.sleep(0.5)
-
-    length_all = [x[0] for x in comm.allgather(np.array([len(data)]))]
-    if comm.rank == 0:
-        print()
-        print(length_all)
-        print("max = {}".format(max(length_all)))
-        print("min = {}".format(min(length_all)))
-        print("dif = {}".format(max(length_all) - min(length_all)))
 
