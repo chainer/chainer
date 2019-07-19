@@ -195,9 +195,9 @@ std::tuple<Array, Array> QRImpl(const Array& a, QRMode mode) {
     int64_t n = a.shape()[1];
     int64_t mn = std::min(m, n);
 
-    Array Q = Empty(Shape({0}), dtype, device);
+    Array Q = Empty(Shape{0}, dtype, device);
     Array R = a.Transpose().Copy();  // QR decomposition is done in-place
-    Array tau = Empty(Shape({mn}), dtype, device);
+    Array tau = Empty(Shape{mn}, dtype, device);
 
     T* r_ptr = static_cast<T*>(internal::GetRawOffsetData(R));
     T* tau_ptr = static_cast<T*>(internal::GetRawOffsetData(tau));
@@ -208,7 +208,7 @@ std::tuple<Array, Array> QRImpl(const Array& a, QRMode mode) {
     Geqrf(m, n, r_ptr, m, tau_ptr, &work_query_geqrf, buffersize_geqrf, &info);
     buffersize_geqrf = static_cast<int>(work_query_geqrf);
 
-    Array work = Empty(Shape({buffersize_geqrf}), dtype, device);
+    Array work = Empty(Shape{buffersize_geqrf}, dtype, device);
     T* work_ptr = static_cast<T*>(internal::GetRawOffsetData(work));
 
     Geqrf(m, n, r_ptr, m, tau_ptr, work_ptr, buffersize_geqrf, &info);
@@ -230,10 +230,10 @@ std::tuple<Array, Array> QRImpl(const Array& a, QRMode mode) {
     int64_t mc;
     if (mode == QRMode::complete && m > n) {
         mc = m;
-        Q = Empty(Shape({m, m}), dtype, device);
+        Q = Empty(Shape{m, m}, dtype, device);
     } else {
         mc = mn;
-        Q = Empty(Shape({n, m}), dtype, device);
+        Q = Empty(Shape{n, m}, dtype, device);
     }
 
     device.backend().CallKernel<CopyKernel>(R, Q.At(std::vector<ArrayIndex>{Slice{0, n}, Slice{}}));  // Q[0:n, :] = R
@@ -244,7 +244,7 @@ std::tuple<Array, Array> QRImpl(const Array& a, QRMode mode) {
     Orgqr(m, mc, mn, q_ptr, m, tau_ptr, &work_query_orgqr, buffersize_orgqr, &info);
     buffersize_orgqr = static_cast<int>(work_query_orgqr);
 
-    Array work_orgqr = Empty(Shape({buffersize_orgqr}), dtype, device);
+    Array work_orgqr = Empty(Shape{buffersize_orgqr}, dtype, device);
     T* work_orgqr_ptr = static_cast<T*>(internal::GetRawOffsetData(work_orgqr));
 
     Orgqr(m, mc, mn, q_ptr, m, tau_ptr, work_orgqr_ptr, buffersize_orgqr, &info);
