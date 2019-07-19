@@ -108,7 +108,8 @@ _numpy_device = backend.CpuDevice()
 
 
 _numpy_backend_params = [
-    {},
+    {'use_ideep': 'never'},
+    {'use_ideep': 'always'},
 ]
 
 
@@ -997,13 +998,15 @@ class VariableToDeviceFamilyBase(object):
         gx = chainer.Variable(gx)
 
         if self.x_with_graph:
-            x = 2 * x
+            x *= x
 
         if self.x_with_grad:
             x.grad_var = gx
 
         self.x = x
         self.gx = gx
+
+        self.src_device = src_backend_config.device
 
     def to_device_method(self, dst_device, allow_unchain):
         # Call `self.x.to_device`, `self.x.from_chx`, etc.
@@ -1068,7 +1071,6 @@ class VariableToDeviceFamilyBase(object):
     'x_with_graph': [True, False],
 }))
 @testing.backend.inject_backend_tests(None, _numpy_backend_params)
-# TODO(hvy): Test intel64.
 @testing.backend.inject_backend_tests(None, _backend_params)
 class TestVariableToCpu(VariableToDeviceFamilyBase, unittest.TestCase):
 
@@ -1090,7 +1092,9 @@ class TestVariableToCpu(VariableToDeviceFamilyBase, unittest.TestCase):
             assert x.grad is None
             assert x.grad_var is None
 
-        no_copy = src_device.xp is np and not self.x_with_graph
+        no_copy = (
+            isinstance(src_device, backend.CpuDevice)
+            and not self.x_with_graph)
         if no_copy:
             assert x.array is self.x_src
             if self.x_with_grad:
@@ -1103,7 +1107,6 @@ class TestVariableToCpu(VariableToDeviceFamilyBase, unittest.TestCase):
     'x_with_graph': [True, False],
 }))
 @testing.backend.inject_backend_tests(None, _cupy_backend_params)
-# TODO(hvy): Test intel64.
 @testing.backend.inject_backend_tests(None, _backend_params)
 @attr.gpu
 class TestVariableToGpu(VariableToDeviceFamilyBase, unittest.TestCase):
@@ -1162,12 +1165,17 @@ class TestVariableToGpu(VariableToDeviceFamilyBase, unittest.TestCase):
     'x_with_graph': [True, False],
 }))
 @testing.backend.inject_backend_tests(None, _numpy_backend_params)
-# TODO(hvy): Test intel64.
 @testing.backend.inject_backend_tests(None, _backend_params)
 @attr.chainerx
 class TestVariableToChainerX(VariableToDeviceFamilyBase, unittest.TestCase):
 
     def to_device_method(self, dst_device, allow_unchain):
+        # We cannot override setup and are thus skipping here.
+        if isinstance(self.src_device, backend.Intel64Device):
+            raise unittest.SkipTest(
+                'to_chx does not work with intel64 since ChainerX does not'
+                ' define a corresponding fallback backend/device.')
+
         self.x.to_chx(allow_unchain=allow_unchain)
 
     def check_to_device_method(self, src_device, dst_device):
@@ -1204,7 +1212,6 @@ class TestVariableToChainerX(VariableToDeviceFamilyBase, unittest.TestCase):
     'x_with_graph': [True, False],
 }))
 @testing.backend.inject_backend_tests(None, _numpy_backend_params)
-# TODO(hvy): Test intel64.
 @testing.backend.inject_backend_tests(None, _backend_params)
 @attr.chainerx
 class TestVariableFromChainerX(VariableToDeviceFamilyBase, unittest.TestCase):
@@ -1219,17 +1226,20 @@ class TestVariableFromChainerX(VariableToDeviceFamilyBase, unittest.TestCase):
             dst_device = src_device.fallback_device
         else:
             dst_device = src_device
+        # Special case for 0-dim intel64.
+        if isinstance(dst_device, backend.Intel64Device) and x.ndim == 0:
+            dst_device = backend.CpuDevice()
 
         assert x.xp is dst_device.xp
         assert x.node is not None
         assert x.device == dst_device
-        assert isinstance(x.array, dst_device.xp.ndarray)
+        assert isinstance(x.array, dst_device.supported_array_types)
 
         if self.x_with_grad:
             assert x.grad_var.xp is dst_device.xp
             assert x.grad_var.node is not None
             assert x.grad_var.device == dst_device
-            assert isinstance(x.grad, dst_device.xp.ndarray)
+            assert isinstance(x.grad, dst_device.supported_array_types)
         else:
             assert x.grad is None
             assert x.grad_var is None
@@ -1246,9 +1256,7 @@ class TestVariableFromChainerX(VariableToDeviceFamilyBase, unittest.TestCase):
     'x_with_grad': [True, False],
     'x_with_graph': [True, False],
 }))
-# TODO(hvy): Test intel64.
 @testing.backend.inject_backend_tests(None, _backend_params)
-# TODO(hvy): Test intel64.
 @testing.backend.inject_backend_tests(None, _backend_params)
 class TestVariableToDevice(VariableToDeviceFamilyBase, unittest.TestCase):
 
@@ -1265,7 +1273,7 @@ class TestVariableToDevice(VariableToDeviceFamilyBase, unittest.TestCase):
         else:
             assert x.node is not None
         assert x.device == dst_device
-        assert isinstance(x.array, dst_device.xp.ndarray)
+        assert isinstance(x.array, dst_device.supported_array_types)
 
         if self.x_with_grad:
             assert x.grad_var.xp is dst_device.xp
@@ -1275,7 +1283,7 @@ class TestVariableToDevice(VariableToDeviceFamilyBase, unittest.TestCase):
             else:
                 assert x.grad_var.node is not None
             assert x.grad_var.device == dst_device
-            assert isinstance(x.grad, dst_device.xp.ndarray)
+            assert isinstance(x.grad, dst_device.supported_array_types)
         else:
             assert x.grad is None
             assert x.grad_var is None
@@ -1317,8 +1325,7 @@ class TestVariableToDeviceTwice(unittest.TestCase):
             assert var.array is None
             assert var.data is None
         else:
-            assert isinstance(var.array, device2.xp.ndarray)
-            assert backend.get_device_from_array(var.array) == device2
+            assert isinstance(var.array, device2.supported_array_types)
             np.testing.assert_array_equal(
                 self.x,
                 backend.CpuDevice().send(var.array))
