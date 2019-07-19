@@ -186,7 +186,7 @@ def fix_avg_mean(avg_mean, groups):
     elif avg_mean.ndim == 1:  # Issue #7706
         if groups != 1:
             _warn_old_model()
-        return numpy.broadcast_to(avg_mean, (groups,) + avg_mean.shape)
+        return _broadcast_to(avg_mean, (groups,) + avg_mean.shape)
     raise ValueError('unexpected shape of avg_mean')
 
 
@@ -196,6 +196,16 @@ def fix_avg_projection(avg_projection, groups):
     elif avg_projection.ndim == 2:  # Issue #7706
         if groups != 1:
             _warn_old_model()
-        return numpy.broadcast_to(
+        return _broadcast_to(
             avg_projection, (groups,) + avg_projection.shape)
     raise ValueError('unexpected shape of avg_projection')
+
+
+def _broadcast_to(array, shape):
+    if hasattr(numpy, 'broadcast_to'):
+        return numpy.broadcast_to(array, shape)
+    else:
+        # numpy 1.9 doesn't support broadcast_to method
+        dummy = numpy.empty(shape)
+        bx, _ = numpy.broadcast_arrays(array, dummy)
+        return bx
