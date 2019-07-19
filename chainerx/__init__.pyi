@@ -852,10 +852,6 @@ def ones(shape: tp.Union[int, tp.Sequence[int]],
 def ones_like(a: ndarray, device: tp.Optional[Device]=None) -> ndarray: ...
 
 
-def pinv(a: ndarray, rcond: float=...) -> ndarray: ...
-
-
-@tp.overload
 def reshape(
         a: ndarray,
         newshape: tp.Union[int, tp.Sequence[int]]) -> ndarray: ...
@@ -887,9 +883,6 @@ def dsplit(
         ary: ndarray,
         indices_or_sections: tp.Union[int, tp.List[int]],
         ) -> tp.List[ndarray]: ...
-
-
-def svd(a: ndarray, *args: tp.Any) -> tp.Tuple[ndarray, ...]: ...
 
 
 def square(x: ndarray) -> ndarray: ...
