@@ -109,9 +109,11 @@ _numpy_device = backend.CpuDevice()
 
 _numpy_backend_params = [
     {'use_ideep': 'never'},
-    {'use_ideep': 'always'},
 ]
 
+_ideep_backend_params = [
+    {'use_ideep': 'always'},
+]
 
 _cupy_backend_params = [
     {'use_cuda': True, 'cuda_device': 0},
@@ -126,7 +128,8 @@ _chainerx_backend_params = [
 ]
 
 
-_nonchainerx_backend_params = _numpy_backend_params + _cupy_backend_params
+_nonchainerx_backend_params = (
+    _numpy_backend_params + _ideep_backend_params + _cupy_backend_params)
 
 
 _backend_params = _nonchainerx_backend_params + _chainerx_backend_params
@@ -1026,8 +1029,7 @@ class VariableToDeviceFamilyBase(object):
         assert x.shape == x_src.shape
         assert x.dtype == x_src.dtype
         np.testing.assert_array_equal(
-            backend.CpuDevice().send(x.array),
-            backend.CpuDevice().send(x_src))
+            _numpy_device.send(x.array), _numpy_device.send(x_src))
 
         # Check gx.
         gx_src = self.gx_src
@@ -1037,8 +1039,7 @@ class VariableToDeviceFamilyBase(object):
             assert x.grad_var.shape == gx_src.shape
             assert x.grad_var.dtype == gx_src.dtype
             np.testing.assert_array_equal(
-                backend.CpuDevice().send(x.grad),
-                backend.CpuDevice().send(gx_src))
+                _numpy_device.send(x.grad), _numpy_device.send(gx_src))
         else:
             assert x.grad is None
             assert x.grad_var is None
@@ -1228,7 +1229,7 @@ class TestVariableFromChainerX(VariableToDeviceFamilyBase, unittest.TestCase):
             dst_device = src_device
         # Special case for 0-dim intel64.
         if isinstance(dst_device, backend.Intel64Device) and x.ndim == 0:
-            dst_device = backend.CpuDevice()
+            dst_device = _numpy_device
 
         assert x.xp is dst_device.xp
         assert x.node is not None
@@ -1327,8 +1328,7 @@ class TestVariableToDeviceTwice(unittest.TestCase):
         else:
             assert isinstance(var.array, device2.supported_array_types)
             np.testing.assert_array_equal(
-                self.x,
-                backend.CpuDevice().send(var.array))
+                self.x, _numpy_device.send(var.array))
 
 
 class TestVariableBasic(unittest.TestCase):
