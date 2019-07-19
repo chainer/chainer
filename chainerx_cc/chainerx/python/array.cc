@@ -51,8 +51,8 @@ namespace python {
 namespace python_internal {
 namespace {
 
-using internal::MoveArrayBody;
 using internal::GetArrayBody;
+using internal::MoveArrayBody;
 
 }  // namespace
 

@@ -3,7 +3,6 @@
 #include <cmath>
 #include <numeric>
 #include <utility>
-#include <iostream>
 #include <vector>
 
 #include "chainerx/array.h"
@@ -103,7 +102,7 @@ std::vector<Array> TreeLstm(std::vector<Array> arrays) {
     std::vector<Array> sum;
     sum.push_back(arrays[0] * fs_s[0]);
     for (uint i = 1; i < arrays.size() - 1; i++) {
-        sum.push_back(sum[i-1] + arrays[i] * fs_s[i]);
+        sum.push_back(sum[i - 1] + arrays[i] * fs_s[i]);
     }
     Array c = a_ * i_ + sum[sum.size() - 1];
     Array h = o_ * Tanh(c);

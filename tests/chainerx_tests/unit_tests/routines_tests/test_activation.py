@@ -86,6 +86,7 @@ _in_out_dtypes_math_functions = _in_out_float_dtypes_math_functions + [
     (('bool_',), 'float32'),
 ]
 
+
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
     chainer.testing.product([
@@ -119,7 +120,8 @@ class TestTreeLstm(op_utils.ChainerOpTest):
         inputs = []
         for i in range(num_c):
             inputs.append(array_utils.uniform(c_shape, self.in_dtypes[0]))
-        inputs.append(array_utils.uniform((batch_size, c_dim * (num_c + 3)), self.in_dtypes[0]))
+        inputs.append(array_utils.uniform(
+            (batch_size, c_dim * (num_c + 3)), self.in_dtypes[0]))
         return tuple(inputs)
 
     def forward_chainerx(self, inputs):
@@ -129,6 +131,7 @@ class TestTreeLstm(op_utils.ChainerOpTest):
     def forward_chainer(self, inputs):
         out = chainer.functions.tree_lstm(*list(inputs))
         return out
+
 
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(

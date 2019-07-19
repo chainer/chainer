@@ -648,12 +648,12 @@ void InitChainerxActivation(pybind11::module& m) {
           "x"_a,
           "slope"_a = 0.2);
     m.def("tree_lstm", [](py::args args) {
-      std::vector<ArrayBodyPtr> arrays = py::cast<std::vector<ArrayBodyPtr>>(args);
-      std::vector<Array> input;
-      for (uint i = 0; i < arrays.size(); i++) {
-        input.push_back(Array{arrays[i]});
-      }
-      return ToTuple(TreeLstm(input));
+        std::vector<ArrayBodyPtr> arrays = py::cast<std::vector<ArrayBodyPtr>>(args);
+        std::vector<Array> input;
+        for (uint i = 0; i < arrays.size(); i++) {
+            input.push_back(Array{arrays[i]});
+        }
+        return ToTuple(TreeLstm(input));
     });
     m.def("softplus", [](const ArrayBodyPtr& x, double beta) { return MoveArrayBody(Softplus(Array{x}, beta)); }, "x"_a, "beta"_a = 1.0);
 }
