@@ -72,12 +72,11 @@ std::vector<Array> _extract_gates(Array x, int64_t n_splits, int64_t axis) {
     shape_vec.push_back(x.shape()[0]);
     if (axis == 1) {
         shape_vec.push_back(n_splits);
-        shape_vec.push_back(static_cast<int>(x.shape()[1] / n_splits));    
+        shape_vec.push_back(static_cast<int>(x.shape()[1] / n_splits));
     } else {
         shape_vec.push_back(static_cast<int>(x.shape()[1] / n_splits));
         shape_vec.push_back(n_splits);
     }
-    
     for (int i = 2; i < x.ndim(); i++) {
         shape_vec.push_back(x.shape()[i]);
     }

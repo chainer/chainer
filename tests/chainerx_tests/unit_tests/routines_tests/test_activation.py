@@ -148,7 +148,7 @@ class TestTreeLstm(op_utils.ChainerOpTest):
             'in_dtypes, out_dtype', n_step_lstm_dtypes_valid)
     ])
 ))
-class TestTreeLstm(op_utils.ChainerOpTest):
+class TestSLSTM(op_utils.ChainerOpTest):
 
     def setup(self):
         self.check_forward_options.update({
