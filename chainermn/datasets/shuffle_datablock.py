@@ -3,9 +3,11 @@ import numpy as np
 
 
 def _count_table(length_all):
-    """Returns a 2d numpy array of size NP x NP where NP is the comm_size,
-    of which element [sender, receiver] is
-    the send/recv count for send()/recv() call.
+    """Returns a send_cnt matrix.
+
+    The matrix is a 2d numpy array of size NP x NP, where NP is the comm_size,
+    of which element [sender, receiver] is the send/recv count for
+    send()/recv() call.
 
     i.e.
     sender rank i sends N elements to receiver j where N = table[i, j]
@@ -52,8 +54,10 @@ def _exclusive_scan(array, dtype=None):
 
 def shuffle_data_chunks(comm, data_chunks, force_equal_length=True,
                         chunk_size=10000):
-    """Exchange chunks of data between all processes,
-    where the data is huge or the total length is unknown.
+    """Exchange chunks of data between all processes
+
+    This function is useful when `scatter_dataset` is not suitable.
+    For instance, the data is huge or the total length is unknown.
 
     :param comm: ChainerMN communicator
     :param data_chunks: Sequence or generator to read chunks.
@@ -102,7 +106,6 @@ def shuffle_data_chunks(comm, data_chunks, force_equal_length=True,
         # using send() and recv()
 
         # Generate all (sender, receiver) pairs
-        size = comm.size
         pairs = _send_recv_pairs(comm.size)
 
         # offset of sendcounts
@@ -167,6 +170,3 @@ def _adjust_data_length(comm, data):
         if len(data) < length_final:
             data += comm.recv_obj(source=root_rank, tag=0)
         assert len(data) == length_final
-
-
-import pytest

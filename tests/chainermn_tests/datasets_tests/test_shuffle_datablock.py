@@ -1,5 +1,5 @@
-import pytest
 import itertools
+import pytest
 
 import numpy as np
 from numpy.testing import assert_array_equal
@@ -18,7 +18,7 @@ def test_shuffle_datablocks(chunk_size, force_equal_length):
 
     # Rank i generates data = range(10**i)
     num_elem = 10 ** (comm.rank + 1)
-    data = range(num_elem, num_elem *2 + 3)
+    data = range(num_elem, num_elem * 2 + 3)
 
     total_data_size = sum(10 ** r for r in range(comm.size))
 
@@ -59,8 +59,8 @@ def test_count_table():
     """A unit test for an internal function"""
 
     length_all = [0, 0, 100]
-    answer = np.array([[ 0,  0,  0],
-                       [ 0,  0,  0],
+    answer = np.array([[0,  0,  0],
+                       [0,  0,  0],
                        [33, 33, 34]])
     assert_array_equal(_count_table(length_all), answer)
 
@@ -79,5 +79,3 @@ def test_count_table():
                        [6, 7, 7],
                        [10, 10, 10]])
     assert_array_equal(_count_table(length_all), answer)
-
-
