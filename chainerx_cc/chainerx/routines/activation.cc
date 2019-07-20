@@ -67,23 +67,29 @@ Array LeakyRelu(const Array& x, Scalar slope) {
     return Where(x_cast >= zero, x_cast, slope * x_cast);
 }
 
-std::vector<Array> _extract_gates(Array x, int64_t n_splits) {
+std::vector<Array> _extract_gates(Array x, int64_t n_splits, int64_t axis) {
     StackVector<int64_t, kMaxNdim> shape_vec;
     shape_vec.push_back(x.shape()[0]);
-    shape_vec.push_back(n_splits);
-    shape_vec.push_back(static_cast<int>(x.shape()[1] / n_splits));
+    if (axis == 1) {
+        shape_vec.push_back(n_splits);
+        shape_vec.push_back(static_cast<int>(x.shape()[1] / n_splits));    
+    } else {
+        shape_vec.push_back(static_cast<int>(x.shape()[1] / n_splits));
+        shape_vec.push_back(n_splits);
+    }
+    
     for (int i = 2; i < x.ndim(); i++) {
         shape_vec.push_back(x.shape()[i]);
     }
     Shape shape{shape_vec};
     Array x_r = Reshape(x, shape);
-    std::vector<Array> x_split = Split(x_r, n_splits, 1);
+    std::vector<Array> x_split = Split(x_r, n_splits, axis);
     return x_split;
 }
 
 std::vector<Array> TreeLstm(std::vector<Array> arrays) {
     uint n_ary = arrays.size() - 1;
-    std::vector<Array> gates = _extract_gates(arrays[arrays.size() - 1], 3 + n_ary);
+    std::vector<Array> gates = _extract_gates(arrays[arrays.size() - 1], 3 + n_ary, 1);
 
     Array a = Squeeze(gates[0]);
     Array i = Squeeze(gates[1]);
@@ -108,6 +114,35 @@ std::vector<Array> TreeLstm(std::vector<Array> arrays) {
     Array h = o_ * Tanh(c);
     return {c, h};
 }
+
+std::vector<Array> SLSTM(const Array& c_prev1, const Array& c_prev2, const Array& x1, const Array& x2) {
+    std::vector<Array> x1_gates = _extract_gates(x1, 4, 2);
+    std::vector<Array> x2_gates = _extract_gates(x2, 4, 2);
+    Array a1 = Squeeze(x1_gates[0]);
+    Array i1 = Squeeze(x1_gates[1]);
+    Array f1 = Squeeze(x1_gates[2]);
+    Array o1 = Squeeze(x1_gates[3]);
+
+    Array a2 = Squeeze(x2_gates[0]);
+    Array i2 = Squeeze(x2_gates[1]);
+    Array f2 = Squeeze(x2_gates[2]);
+    Array o2 = Squeeze(x2_gates[3]);
+
+    a1 = Tanh(a1);
+    i1 = Sigmoid(i1);
+    f1 = Sigmoid(f1);
+
+    a2 = Tanh(a2);
+    i2 = Sigmoid(i2);
+    f2 = Sigmoid(f2);
+
+    Array o = Sigmoid(o1 + o2);
+    Array c = a1 * i1 + a2 * i2 + f1 * c_prev1 + f2 * c_prev2;
+    Array h = o * Tanh(c);
+
+    return {c, h};
+}
+
 Array Softplus(const Array& x, double beta) {
     Dtype dtype = internal::GetMathResultDtype(x.dtype());
     const Array& x_cast = x.dtype() == dtype ? x : x.AsType(dtype);

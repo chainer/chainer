@@ -21,6 +21,8 @@ Array LeakyRelu(const Array& x, Scalar slope);
 
 std::vector<Array> TreeLstm(std::vector<Array> arrays);
 
+std::vector<Array> SLSTM(const Array& c_prev1, const Array& c_prev2, const Array& x1, const Array& x2);
+
 Array Softplus(const Array& x, double beta = 1.0);
 
 }  // namespace chainerx
