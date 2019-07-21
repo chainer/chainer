@@ -561,7 +561,8 @@ Args:
         ``(M, M)`` and ``(N, N)``. Otherwise, the dimensions of u and v
         are respectively ``(M, K)`` and ``(K, N)``, where
         ``K = min(M, N)``.
-    compute_uv (bool): If True, it only returns singular values.
+    compute_uv (bool): If True, only singular values are computed.
+        u and v will be empty arrays.
 
 Returns:
     tuple of :class:`chainerx.ndarray`:
