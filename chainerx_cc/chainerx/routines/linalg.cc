@@ -106,7 +106,7 @@ namespace {
 
 void CheckRankTwoArray(const Array& a) {
     if (a.ndim() != 2) {
-        throw DimensionError{"ChainerX linear algebra routines support only 2-dimensional arrays."};
+        throw DimensionError{"ChainerX linear algebra routines only support 2-dimensional arrays."};
     }
 }
 
