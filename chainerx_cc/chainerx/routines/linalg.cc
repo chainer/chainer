@@ -234,21 +234,21 @@ std::tuple<Array, Array, Array> SVD(const Array& a, bool full_matrices, bool com
                 const Array& gsigma = bctx.output_grad(1).has_value() ? *bctx.output_grad(1) : Zeros(s.shape(), a.dtype(), a.device());
                 const Array& gvt = bctx.output_grad(2).has_value() ? *bctx.output_grad(2) : Zeros(vt.shape(), a.dtype(), a.device());
 
-                auto v = vt.Transpose();
-                auto gv = gvt.Transpose();
+                Array v = vt.Transpose();
+                Array gv = gvt.Transpose();
 
-                auto sigma_term = Dot(Dot(u, Diag(gsigma)), vt);
+                Array sigma_term = Dot(Dot(u, Diag(gsigma)), vt);
 
-                auto ut = u.Transpose();
-                auto im = Eye(m, m, 0, a.dtype(), a.device());
-                auto in = Eye(n, n, 0, a.dtype(), a.device());
-                auto sigma_mat = Diag(s);
-                auto sigma_mat_inv = Diag(Power(s, -1));
-                auto sigma_sq = Power(s, 2);
-                auto F = ExpandDims(sigma_sq, 0) - ExpandDims(sigma_sq, 1);
+                Array ut = u.Transpose();
+                Array im = Eye(m, m, 0, a.dtype(), a.device());
+                Array in = Eye(n, n, 0, a.dtype(), a.device());
+                Array sigma_mat = Diag(s);
+                Array sigma_mat_inv = Diag(Power(s, -1));
+                Array sigma_sq = Power(s, 2);
+                Array F = ExpandDims(sigma_sq, 0) - ExpandDims(sigma_sq, 1);
                 // Invert values of F, and fill the diagonal with 0s.
                 // F has 0s on the diagonal, therefore fill it first with infinity.
-                auto mask = Eye(F.shape()[0], F.shape()[1], 0, Dtype::kBool, a.device());
+                Array mask = Eye(F.shape()[0], F.shape()[1], 0, Dtype::kBool, a.device());
                 F = Where(mask, INFINITY, F);
                 F = Power(F, -1);
 
