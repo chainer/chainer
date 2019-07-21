@@ -24,6 +24,7 @@
 #include "chainerx/macro.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/linalg.h"
+#include "chainerx/routines/manipulation.h"
 #include "chainerx/routines/reduction.h"
 #include "chainerx/routines/type_util.h"
 
@@ -370,6 +371,28 @@ Array Linear(const Array& x, const Array& w, const absl::optional<Array>& b, uin
     }
     CHAINERX_ASSERT(out_matrix.dtype() == out_dtype);
     return out_matrix.Reshape(out_shape);
+}
+
+Array EmbedId(const Array& x, const Array& w, absl::optional<int64_t> ignore_label) {
+    std::vector<Array> x_split = Split(x, x.shape()[0], 0);
+    std::vector<Array> w_split = Split(w, w.shape()[0], 0);
+    std::vector<Array> out;
+
+    if (ignore_label.has_value() && (*ignore_label < 0 || *ignore_label >= w.shape()[0])) {
+        throw IndexError{"ignore_label should be greater than equal to 0 and less than" + w.shape()[0]};
+    }
+     
+    for (uint i = 0; i < x_split.size(); i++) {
+        if (int64_t(AsScalar(x_split[i])) < 0 || int64_t(AsScalar(x_split[i])) >= w.shape()[0]) {
+            throw IndexError{"each value in x should be greater than equal to 0 and less than equal equal to" + w.shape()[0]};
+        }
+        if (ignore_label.has_value() && AsScalar(x_split[i]) == *ignore_label) {
+            out.push_back(Zeros(w_split[0].shape(), w_split[0].dtype(), w_split[0].device()));
+        } else {
+            out.push_back(w_split[int64_t(AsScalar(x_split[i]))]);
+        }
+    }
+    return Squeeze(Stack(out, 0));
 }
 
 }  // namespace chainerx

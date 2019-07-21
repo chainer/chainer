@@ -11,10 +11,79 @@ from chainerx_tests import array_utils
 from chainerx_tests import dtype_utils
 from chainerx_tests import op_utils
 
+embed_id_dtypes = [
+    (('int16', 'float16'), 'float16'),
+    (('int16', 'float32'), 'float32'),
+    (('int16', 'float64'), 'float64'),
+    (('int32', 'float16'), 'float16'),
+    (('int32', 'float32'), 'float32'),
+    (('int32', 'float64'), 'float64'),
+    (('int64', 'float16'), 'float16'),
+    (('int64', 'float32'), 'float32'),
+    (('int64', 'float64'), 'float64'),
+]
+
 
 # A special parameter object used to represent an unspecified argument.
 class Unspecified(object):
     pass
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    chainer.testing.product([
+        chainer.testing.from_pytest_parameterize(
+            'x,w_shape,ignore_index', [
+                ((0, 1, 2), (5, 3), 0),
+                ((2, 3, 4, 1), (8, 3), Unspecified),
+                ((6, 7, 8), (10, 3), 8),
+                ((0, 1, 2), (15, 3), Unspecified),
+            ]),
+        chainer.testing.from_pytest_parameterize(
+            'in_dtypes, out_dtype', embed_id_dtypes)
+    ])
+))
+class TestEmbedId(op_utils.ChainerOpTest):
+
+    def generate_inputs(self):
+        x = numpy.array(self.x).astype(self.in_dtypes[0])
+        w = array_utils.uniform(self.w_shape, self.in_dtypes[1])
+        return x, w,
+
+    def forward_chainerx(self, inputs):
+        x, w = inputs
+        if self.ignore_index is Unspecified:
+            out = chainerx.embed_id(x, w)
+        else:
+            out = chainerx.embed_id(x, w, self.ignore_index)
+        return out,
+
+    def forward_chainer(self, inputs):
+        x, w = inputs
+        if self.ignore_index is Unspecified:
+            out = chainer.functions.embed_id(x, w)
+        else:
+            out = chainer.functions.embed_id(x, w, self.ignore_index)
+        return out,
+
+
+@pytest.mark.parametrize('x,w_shape,ignore_index', [
+    ((0, 1, 8), (5, 3), 0),
+    ((6, 7, 4, 1), (4, 3), Unspecified),
+    ((6, 7, 4), (10, 3), 11),
+    ((0, 1, 13), (15, 3), Unspecified),
+])
+@pytest.mark.parametrize('in_dtypes, out_dtype', embed_id_dtypes)
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_embed_id_invalid_index(device, x, w_shape, ignore_index, in_dtypes,
+                                out_dtype):
+    x_t = chainerx.array(x).astype(in_dtypes[0])
+    w = array_utils.create_dummy_ndarray(chainerx, w_shape, in_dtypes[1])
+    with pytest.raises(IndexError):
+        if ignore_index is Unspecified:
+            chainerx.embed_id(x_t, w)
+        else:
+            chainerx.embed_id(x_t, w, ignore_index)
 
 
 def _create_conv_args(

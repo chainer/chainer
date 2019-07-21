@@ -47,4 +47,6 @@ Array ConvTranspose(
 
 Array Linear(const Array& x, const Array& w, const absl::optional<Array>& b = absl::nullopt, uint8_t n_batch_axes = 1);
 
+Array EmbedId(const Array& x, const Array& w, absl::optional<int64_t> ignore_label);
+
 }  // namespace chainerx
