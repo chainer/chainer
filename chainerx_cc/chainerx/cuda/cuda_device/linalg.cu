@@ -29,6 +29,7 @@
 #include "chainerx/kernels/misc.h"
 #include "chainerx/macro.h"
 #include "chainerx/native/native_device.h"
+#include "chainerx/routines/arithmetic.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/indexing.h"
 #include "chainerx/routines/linalg.h"
@@ -410,7 +411,7 @@ public:
         Array cutoff = rcond * s.Max();
         Array cutoff_indices = s <= cutoff;
 
-        Array sinv = 1.0 / s;
+        Array sinv = Reciprocal(s);
         sinv = Where(cutoff_indices, 0, sinv);
 
         std::vector<ArrayIndex> indices{Slice{}, NewAxis{}};
