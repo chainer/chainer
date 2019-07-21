@@ -294,9 +294,9 @@ class TestCumsum(math_utils.UnaryMathTestBase, op_utils.NumpyOpTest):
 # TODO(aksub99): Add cuda device tests when cuda implementation is supported.
 class TestCumprod(math_utils.UnaryMathTestBase, op_utils.NumpyOpTest):
 
-    input = 'random'
     skip_backward_test = True
     skip_double_backward_test = True
+    input = 'random'
 
     def setup(self):
         super().setup()

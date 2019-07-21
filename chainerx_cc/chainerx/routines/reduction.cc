@@ -144,20 +144,39 @@ Array Cumsum(const Array& a, absl::optional<int8_t> axis) {
     return out;
 }
 
-Array Cumprod(const Array& a, int8_t axis) {
-    int8_t axis_norm = internal::NormalizeAxis(axis, a.ndim());
+Array Cumprod(const Array& a, absl::optional<int8_t> axis) {
+    int8_t axis_norm;
+    Array a_reshaped{};
+    if (axis.has_value()) {
+        axis_norm = internal::NormalizeAxis(*axis, a.ndim());
+        a_reshaped = a;
+    } else {
+        axis_norm = 0;
+        // TODO(imanishi): Fix after chainerx::Ravel is supported.
+        a_reshaped = a.Reshape(Shape{a.GetTotalSize()});
+    }
 
-    Shape out_shape = a.shape();
-    Array out = Empty(out_shape, a.dtype(), a.device());
-    const Array& out_cast = out.dtype() == Dtype::kBool ? out.AsType(Dtype::kInt64) : out;
-    const Array& a_cast = a.dtype() != out_cast.dtype() ? a.AsType(out_cast.dtype()) : a;
+    // Decide the output dtype for integral input dtype.
+    Dtype out_dtype{};
+    switch (GetKind(a_reshaped.dtype())) {
+        case DtypeKind::kBool:
+        case DtypeKind::kInt:  // fallthrough
+            out_dtype = Dtype::kInt64;
+            break;
+        case DtypeKind::kUInt:
+            out_dtype = Dtype::kInt64;  // TODO(niboshi): This should be kUInt64
+            break;
+        default:
+            out_dtype = a_reshaped.dtype();
+    }
+
+    const Array& out = Empty(a_reshaped.shape(), out_dtype, a_reshaped.device());
 
     {
         NoBackpropModeScope scope{};
-        a.device().backend().CallKernel<CumprodKernel>(a_cast, axis_norm, out_cast);
+        a.device().backend().CallKernel<CumprodKernel>(a_reshaped, axis_norm, out);
     }
-    // Backward not implemented yet
-    return out_cast;
+    return out;
 }
 
 }  // namespace chainerx
