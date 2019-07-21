@@ -243,14 +243,14 @@ std::tuple<Array, Array, Array> SVD(const Array& a, bool full_matrices, bool com
                 Array im = Eye(m, m, 0, a.dtype(), a.device());
                 Array in = Eye(n, n, 0, a.dtype(), a.device());
                 Array sigma_mat = Diag(s);
-                Array sigma_mat_inv = Diag(Power(s, -1));
+                Array sigma_mat_inv = Diag(Reciprocal(s));
                 Array sigma_sq = Power(s, 2);
                 Array F = ExpandDims(sigma_sq, 0) - ExpandDims(sigma_sq, 1);
                 // Invert values of F, and fill the diagonal with 0s.
                 // F has 0s on the diagonal, therefore fill it first with infinity.
                 Array mask = Eye(F.shape()[0], F.shape()[1], 0, Dtype::kBool, a.device());
                 F = Where(mask, INFINITY, F);
-                F = Power(F, -1);
+                F = Reciprocal(F);
 
                 Array u_term{};
                 Array utgu = Dot(u.Transpose(), gu);
