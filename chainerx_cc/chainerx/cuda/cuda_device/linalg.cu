@@ -296,17 +296,16 @@ public:
         int64_t n = a.shape()[0];
         int64_t m = a.shape()[1];
 
-        Array x{};
+        Array x = Empty(Shape{n, m}, dtype, device);
         bool trans_flag;
 
         if (m >= n) {
-            x = Empty(Shape{n, m}, dtype, device);
             device.backend().CallKernel<CopyKernel>(a, x);
             trans_flag = false;
         } else {
             m = a.shape()[0];
             n = a.shape()[1];
-            x = Empty(Shape{n, m}, dtype, device);
+            x = x.Reshape(Shape{n, m});
             device.backend().CallKernel<CopyKernel>(a.Transpose(), x);
             trans_flag = true;
         }
