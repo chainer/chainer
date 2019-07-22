@@ -77,7 +77,6 @@ Returns:
 .. seealso:: :func:`numpy.eye`
 """)
 
-
     _docs.set_doc(
         chainerx.tri,
         """tri(N, M=None, k=0, dtype=float64, device=None)
