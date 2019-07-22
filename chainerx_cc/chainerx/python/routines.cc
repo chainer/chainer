@@ -282,7 +282,7 @@ void InitChainerxCreation(pybind11::module& m) {
           "N"_a,
           "M"_a = nullptr,
           "k"_a = 0,
-          "dtype"_a = "float64",
+          "dtype"_a = "float32",
           "device"_a = nullptr);
     m.def("tril", [](const ArrayBodyPtr& m, int64_t k) { return MoveArrayBody(Tril(Array{m}, k)); }, "m"_a, "k"_a = 0);
     m.def("triu", [](const ArrayBodyPtr& m, int64_t k) { return MoveArrayBody(Triu(Array{m}, k)); }, "m"_a, "k"_a = 0);
