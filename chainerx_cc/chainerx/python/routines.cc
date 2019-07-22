@@ -277,10 +277,7 @@ void InitChainerxCreation(pybind11::module& m) {
           "device"_a = nullptr);
     m.def("tri",
           [](int64_t n, absl::optional<int64_t> m, int64_t k, py::handle dtype, py::handle device) {
-              if (!m.has_value()) {
-                  m = n;
-              }
-              return MoveArrayBody(Tri(n, m.value(), k, GetDtype(dtype), GetDevice(device)));
+              return MoveArrayBody(Tri(n, m, k, GetDtype(dtype), GetDevice(device)));
           },
           "N"_a,
           "M"_a = nullptr,
