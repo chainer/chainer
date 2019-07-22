@@ -354,7 +354,7 @@ void InitChainerxLinalg(pybind11::module& m) {
     mlinalg.def("inv", [](const ArrayBodyPtr& a) { return MoveArrayBody(Inverse(Array{a})); }, "a"_a);
     mlinalg.def(
             "qr",
-            [](const ArrayBodyPtr& a, const std::string& mode) {
+            [](const ArrayBodyPtr& a, const std::string& mode) -> py::object {
                 Array a_array{a};
 
                 QRMode qrmode{};
@@ -372,7 +372,10 @@ void InitChainerxLinalg(pybind11::module& m) {
                 std::tuple<Array, Array> qr = QR(a_array, qrmode);
                 Array q = std::get<0>(qr);
                 Array r = std::get<1>(qr);
-                return std::make_tuple(MoveArrayBody(Array{q}), MoveArrayBody(Array{r}));
+                if (mode == "r") {
+                    return py::cast(MoveArrayBody(Array{r}));
+                }
+                return py::make_tuple(MoveArrayBody(Array{q}), MoveArrayBody(Array{r}));
             },
             "a"_a,
             "mode"_a = "reduced");

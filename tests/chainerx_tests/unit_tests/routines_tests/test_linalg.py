@@ -268,10 +268,7 @@ class TestQR(NumpyLinalgOpTest):
         out = xp.linalg.qr(a, mode=self.mode)
 
         if self.mode == 'r':
-            if xp is chainerx:
-                _, r = out
-            else:
-                r = out
+            r = out
             return r,
         if self.mode == 'raw':
             if a.dtype.char == 'f':

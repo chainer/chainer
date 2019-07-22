@@ -609,7 +609,7 @@ Note:
 
     _docs.set_doc(
         chainerx.linalg.qr,
-        """qr(a)
+        """qr(a, mode='reduced')
 Compute the qr factorization of a matrix.
 
 Factor the matrix ``a`` as *qr*, where ``q`` is orthonormal and ``r`` is
@@ -617,6 +617,12 @@ upper-triangular.
 
 Args:
     a (~chainerx.ndarray): Matrix to be factored.
+    mode (str): The mode of decomposition.
+        'reduced' : returns q, r with dimensions (M, K), (K, N) (default)
+        'complete' : returns q, r with dimensions (M, M), (M, N)
+        'r' : returns r only with dimensions (K, N)
+        'raw' : returns h, tau with dimensions (N, M), (K,),
+        where ``(M, N)`` is the shape of the input matrix and ``K = min(M, N)``
 
 Returns:
     q (~chainerx.ndarray): A matrix with orthonormal columns.
