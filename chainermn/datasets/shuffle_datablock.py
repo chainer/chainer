@@ -52,6 +52,77 @@ def _exclusive_scan(array, dtype=None):
     return z
 
 
+def _exchange_chunks(comm, chunk, chunk_length_all):
+    count_table = _count_table(chunk_length_all)
+
+    data = []
+
+    # Perform parallel communication (which is very similar to alltoallv)
+    # using send() and recv()
+
+    # Generate all (sender, receiver) pairs
+    pairs = _send_recv_pairs(comm.size)
+
+    # offset of sendcounts
+    offset = _exclusive_scan(count_table[comm.rank, :])
+
+    # Perform send() and recv() in the order of `pairs`
+    # i.e.
+    #   pairs (0 --> 1) and (2 --> 3) are independent, so their
+    #   communications happen simultaneously
+    for send_rank, recv_rank in pairs:
+        count = count_table[send_rank, recv_rank]
+
+        if count == 0:
+            continue
+
+        if send_rank == recv_rank:
+            if send_rank == comm.rank:
+                # self copy
+                beg = offset[recv_rank]
+                end = beg + count
+                data += chunk[beg:end]
+        elif send_rank == comm.rank:
+            assert recv_rank != comm.rank
+            # I am the sender
+            beg = offset[recv_rank]
+            end = beg + count
+            comm.send_obj(chunk[beg:end], dest=recv_rank, tag=0)
+        elif recv_rank == comm.rank:
+            # I am the receiver
+            assert send_rank != comm.rank
+            recv_data = comm.recv_obj(source=send_rank, tag=0)
+            data += recv_data
+
+    return data
+
+
+def _adjust_data_length(comm, data):
+    # The process which has maximum number of elements sends its data
+    # to other processes
+
+    length_all = [x[0] for x in comm.allgather(np.array([len(data)]))]
+    length_final = max(length_all)
+
+    root_rank = next(r for r in range(comm.size)
+                     if length_all[r] == length_final)
+
+    if comm.rank == root_rank:
+        offset = 0
+        for dest_rank in range(comm.size):
+            if comm.rank == dest_rank:
+                continue
+
+            send_cnt = length_final - length_all[dest_rank]
+            if send_cnt > 0:
+                comm.send_obj(data[offset:offset + send_cnt], dest_rank, tag=0)
+                offset += send_cnt
+    else:
+        if len(data) < length_final:
+            data += comm.recv_obj(source=root_rank, tag=0)
+        assert len(data) == length_final
+
+
 def shuffle_data_chunks(comm, data_chunks, force_equal_length=True,
                         chunk_size=10000):
     """Exchange chunks of data between all processes
@@ -84,7 +155,8 @@ def shuffle_data_chunks(comm, data_chunks, force_equal_length=True,
 
     # repeat until all processes consume all data
     while True:
-        # Read a chunk of data
+        # Read a chunk of data; we need to use itertools.islice
+        # to support both of list-like objects and generators
         chunk = list(itertools.islice(data_chunks, chunk_size))
 
         if chunk is None:
@@ -100,73 +172,10 @@ def shuffle_data_chunks(comm, data_chunks, force_equal_length=True,
         if all(n == 0 for n in chunk_length_all):
             break
 
-        count_table = _count_table(chunk_length_all)
-
-        # Perform parallel communication (which is very similar to alltoallv)
-        # using send() and recv()
-
-        # Generate all (sender, receiver) pairs
-        pairs = _send_recv_pairs(comm.size)
-
-        # offset of sendcounts
-        offset = _exclusive_scan(count_table[comm.rank, :])
-
-        # Perform send() and recv() in the order of `pairs`
-        # i.e.
-        #   pairs (0 --> 1) and (2 --> 3) are independent, so their
-        #   communications happen simultaneously
-        for send_rank, recv_rank in pairs:
-            count = count_table[send_rank, recv_rank]
-
-            if count == 0:
-                continue
-
-            if send_rank == recv_rank:
-                if send_rank == comm.rank:
-                    # self copy
-                    beg = offset[recv_rank]
-                    end = beg + count
-                    data += chunk[beg:end]
-            elif send_rank == comm.rank:
-                assert recv_rank != comm.rank
-                # I am the sender
-                beg = offset[recv_rank]
-                end = beg + count
-                comm.send_obj(chunk[beg:end], dest=recv_rank, tag=0)
-            elif recv_rank == comm.rank:
-                # I am the receiver
-                assert send_rank != comm.rank
-                recv_data = comm.recv_obj(source=send_rank, tag=0)
-                data += recv_data
+        data += _exchange_chunks(comm, chunk, chunk_length_all)
 
     if force_equal_length:
         # After all communications, get the length of data of all ranks
         _adjust_data_length(comm, data)
 
     return data
-
-
-def _adjust_data_length(comm, data):
-    # The process which has maximum number of elements sends its data
-    # to other processes
-
-    length_all = [x[0] for x in comm.allgather(np.array([len(data)]))]
-    length_final = max(length_all)
-
-    root_rank = next(r for r in range(comm.size)
-                     if length_all[r] == length_final)
-
-    if comm.rank == root_rank:
-        offset = 0
-        for dest_rank in range(comm.size):
-            if comm.rank == dest_rank:
-                continue
-
-            send_cnt = length_final - length_all[dest_rank]
-            if send_cnt > 0:
-                comm.send_obj(data[offset:offset + send_cnt], dest_rank, tag=0)
-                offset += send_cnt
-    else:
-        if len(data) < length_final:
-            data += comm.recv_obj(source=root_rank, tag=0)
-        assert len(data) == length_final
