@@ -2,6 +2,7 @@ import ctypes
 import io
 import multiprocessing
 import os
+import pickle
 import platform
 import sys
 import unittest
@@ -59,6 +60,16 @@ class TestPickleDataset(unittest.TestCase):
         assert dataset[2] == 1.5
         assert dataset[1] == 'hello'
 
+    def test_picklable(self):
+        writer = datasets.PickleDatasetWriter(self.io)
+        writer.write(1)
+        writer.flush()
+
+        dataset = datasets.PickleDataset(self.io)
+        dataset = pickle.loads(pickle.dumps(dataset))
+        assert len(dataset) == 1
+        assert dataset[0] == 1
+
     @unittest.skipIf(platform.system() == 'Windows',
                      'Windows does not support `fork` method')
     def test_after_fork(self):
@@ -112,6 +123,18 @@ class TestPickleDatasetHelper(unittest.TestCase):
 
             m.assert_called_once_with(self.path, 'rb')
             m().close.assert_called_once_with()
+
+    def test_file_reader_picklable(self):
+        m = mock.mock_open()
+        with mock.patch('chainer.datasets.pickle_dataset.open', m):
+            r = pickle_dataset._FileReader(self.path)
+
+            m.assert_called_once_with(self.path, 'rb')
+
+            m.reset_mock()
+            pickle.loads(pickle.dumps(r))
+
+            m.assert_called_once_with(self.path, 'rb')
 
 
 testing.run_module(__name__, __file__)
