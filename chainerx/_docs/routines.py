@@ -561,12 +561,12 @@ Args:
         ``(M, M)`` and ``(N, N)``. Otherwise, the dimensions of u and v
         are respectively ``(M, K)`` and ``(K, N)``, where
         ``K = min(M, N)``.
-    compute_uv (bool): If True, only singular values are computed.
-        u and v will be empty arrays.
+    compute_uv (bool): If False, only singular values are computed.
 
 Returns:
     tuple of :class:`chainerx.ndarray`:
         A tuple of ``(u, s, v)`` such that ``a = u * diag(s) * v``.
+        When ``compute_uv`` is False only singular values ``s`` are returned.
 
 Note:
     The ``dtype`` must be ``float32`` or ``float64`` (``float16`` is not

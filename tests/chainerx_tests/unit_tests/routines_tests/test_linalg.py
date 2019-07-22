@@ -264,10 +264,7 @@ class TestSVD(NumpyLinalgOpTest):
             u, s, v = out
             return xp.abs(u), s, xp.abs(v)
         else:
-            if xp is chainerx:
-                _, s, _ = out
-            else:
-                s = out
+            s = out
             return s,
 
 

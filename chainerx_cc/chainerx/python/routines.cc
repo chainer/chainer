@@ -340,12 +340,15 @@ void InitChainerxLinalg(pybind11::module& m) {
     mlinalg.def("inv", [](const ArrayBodyPtr& a) { return MoveArrayBody(Inverse(Array{a})); }, "a"_a);
     mlinalg.def(
             "svd",
-            [](const ArrayBodyPtr& a, bool full_matrices, bool compute_uv) {
+            [](const ArrayBodyPtr& a, bool full_matrices, bool compute_uv) -> py::object {
                 std::tuple<Array, Array, Array> usv = SVD(Array{a}, full_matrices, compute_uv);
                 Array u = std::get<0>(usv);
                 Array s = std::get<1>(usv);
                 Array v = std::get<2>(usv);
-                return std::make_tuple(MoveArrayBody(Array{u}), MoveArrayBody(Array{s}), MoveArrayBody(Array{v}));
+                if (!compute_uv) {
+                    return py::cast(MoveArrayBody(Array{s}));
+                }
+                return py::make_tuple(MoveArrayBody(Array{u}), MoveArrayBody(Array{s}), MoveArrayBody(Array{v}));
             },
             "a"_a,
             "full_matrices"_a = true,
