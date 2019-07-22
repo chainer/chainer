@@ -247,7 +247,7 @@ void InitChainerxCreation(pybind11::module& m) {
           "N"_a,
           "M"_a = nullptr,
           "k"_a = 0,
-          "dtype"_a = "float64",
+          "dtype"_a = "float32",
           "device"_a = nullptr);
     m.def("diag",
           [](const ArrayBodyPtr& v, int64_t k, py::handle device) { return MoveArrayBody(Diag(Array{v}, k, GetDevice(device))); },
