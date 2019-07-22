@@ -943,20 +943,6 @@ def transpose(
         a: ndarray,
         axes: tp.Optional[tp.Union[int, tp.List[int]]]=None) -> ndarray: ...
 
-
-def tri(N: int,
-        M: tp.Optional[int]=None,
-        k: int=...,
-        dtype: tp.Optional[tp.Any]=...,
-        device: tp.Optional[Device]=None) -> ndarray: ...
-
-
-def tril(m: ndarray, k: int=...) -> ndarray: ...
-
-
-def triu(m: ndarray, k: int=...) -> ndarray: ...
-
-
 def vstack(arrays: tp.List[ndarray]) -> ndarray: ...
 
 def where(cond: ndarray, x: ndarray, y: ndarray) -> ndarray: ...

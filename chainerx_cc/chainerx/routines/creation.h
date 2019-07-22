@@ -112,14 +112,4 @@ Array Linspace(
         const absl::optional<Dtype>& dtype = absl::nullopt,
         Device& device = GetDefaultDevice());
 
-// Creates a 2-dimensional array with ones at and below the given diagonal and zeros elsewhere.
-Array Tri(
-        int64_t n, absl::optional<int64_t> m, absl::optional<int64_t> k, absl::optional<Dtype> dtype, Device& device = GetDefaultDevice());
-
-// Creates a lower triangle of an array.
-Array Tril(const Array& m, int64_t k);
-
-// Creates an upper triangle of an array.
-Array Triu(const Array& m, int64_t k);
-
 }  // namespace chainerx

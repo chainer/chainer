@@ -1,5 +1,4 @@
 #include "chainerx/routines/creation.h"
-#include "chainerx/routines/indexing.h"
 
 #include <algorithm>
 #include <cmath>
@@ -335,68 +334,6 @@ Array Linspace(
             device.backend().CallKernel<LinspaceKernel>(start_value, stop_value, out);
         }
     }
-    return out;
-}
-
-Array Tri(int64_t n, absl::optional<int64_t> m, absl::optional<int64_t> k, absl::optional<Dtype> dtype, Device& device) {
-    if (!m.has_value()) {
-        m = n;
-    }
-    if (!k.has_value()) {
-        k = 0;
-    }
-    if (!dtype.has_value()) {
-        dtype = Dtype::kFloat64;
-    }
-    if (n < 0 || m < 0) {
-        throw DimensionError{"Negative dimensions are not allowed"};
-    }
-
-    Array out = Empty({n, m.value()}, dtype.value(), device);
-    {
-        NoBackpropModeScope scope{};
-        device.backend().CallKernel<TriKernel>(k.value(), out);
-    }
-    return out;
-}
-
-Array Tril(const Array& m, int64_t k = 0) {
-    Array out = Empty(m.shape(), m.dtype(), m.device());
-    {
-        NoBackpropModeScope scope{};
-        Array mask = Tri(m.shape()[m.ndim() - 2], m.shape()[m.ndim() - 1], k, Dtype::kBool, m.device());
-        out = Where(mask, m, 0);
-    }
-
-    BackwardBuilder bb{"tril", m, out};
-    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-        bt.Define([k](BackwardContext& bctx) {
-            const Array& gout = *bctx.output_grad();
-            bctx.input_grad() = Tril(gout, k);
-        });
-    }
-    bb.Finalize();
-
-    return out;
-}
-
-Array Triu(const Array& m, int64_t k = 0) {
-    Array out = Empty(m.shape(), m.dtype(), m.device());
-    {
-        NoBackpropModeScope scope{};
-        Array mask = Tri(m.shape()[m.ndim() - 2], m.shape()[m.ndim() - 1], k - 1, Dtype::kBool, m.device());
-        out = Where(mask, 0, m);
-    }
-
-    BackwardBuilder bb{"triu", m, out};
-    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-        bt.Define([k](BackwardContext& bctx) {
-            const Array& gout = *bctx.output_grad();
-            bctx.input_grad() = Triu(gout, k);
-        });
-    }
-    bb.Finalize();
-
     return out;
 }
 
