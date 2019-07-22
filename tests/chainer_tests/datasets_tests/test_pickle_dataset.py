@@ -2,6 +2,7 @@ import ctypes
 import io
 import multiprocessing
 import os
+import platform
 import sys
 import unittest
 
@@ -58,6 +59,8 @@ class TestPickleDataset(unittest.TestCase):
         assert dataset[2] == 1.5
         assert dataset[1] == 'hello'
 
+    @unittest.skipIf(platform.system() == 'Windows',
+                     'Windows does not support `fork` method')
     def test_after_fork(self):
         writer = datasets.PickleDatasetWriter(self.io)
         writer.write(1)
