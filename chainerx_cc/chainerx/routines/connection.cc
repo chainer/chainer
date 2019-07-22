@@ -381,7 +381,6 @@ Array EmbedId(const Array& x, const Array& w, absl::optional<int64_t> ignore_lab
     if (ignore_label.has_value() && (*ignore_label < 0 || *ignore_label >= w.shape()[0])) {
         throw IndexError{"ignore_label should be greater than equal to 0 and less than" + w.shape()[0]};
     }
-     
     for (uint i = 0; i < x_split.size(); i++) {
         if (int64_t(AsScalar(x_split[i])) < 0 || int64_t(AsScalar(x_split[i])) >= w.shape()[0]) {
             throw IndexError{"each value in x should be greater than equal to 0 and less than equal equal to" + w.shape()[0]};

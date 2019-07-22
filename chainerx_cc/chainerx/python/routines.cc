@@ -961,12 +961,13 @@ void InitChainerxConnection(pybind11::module& m) {
           "w"_a,
           "b"_a = nullptr,
           "n_batch_axes"_a = 1);
-    m.def("embed_id", [](const ArrayBodyPtr& x, const ArrayBodyPtr& w, const absl::optional<int64_t> ignore_index) {
-      return MoveArrayBody(EmbedId(Array{x}, Array{w}, ignore_index));
-    },
-    "x"_a,
-    "w"_a,
-    "ignore_index"_a = nullptr);
+    m.def("embed_id",
+          [](const ArrayBodyPtr& x, const ArrayBodyPtr& w, const absl::optional<int64_t> ignore_index) {
+              return MoveArrayBody(EmbedId(Array{x}, Array{w}, ignore_index));
+          },
+          "x"_a,
+          "w"_a,
+          "ignore_index"_a = nullptr);
 }
 
 void InitChainerxNormalization(pybind11::module& m) {

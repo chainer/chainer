@@ -71,7 +71,7 @@ class TestEmbedId(op_utils.ChainerOpTest):
     ((0, 1, 8), (5, 3), 0),
     ((6, 7, 4, 1), (4, 3), Unspecified),
     ((6, 7, 4), (10, 3), 11),
-    ((0, 1, 13), (15, 3), Unspecified),
+    ((0, 1, 13), (6, 3), Unspecified),
 ])
 @pytest.mark.parametrize('in_dtypes, out_dtype', embed_id_dtypes)
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
