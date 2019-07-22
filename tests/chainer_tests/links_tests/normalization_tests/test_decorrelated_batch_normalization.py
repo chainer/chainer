@@ -99,8 +99,7 @@ class DecorrelatedBatchNormalizationTest(unittest.TestCase):
             self.projection = _calc_projection(self.x, self.mean,
                                                self.link.eps, self.groups)
         self.check_forward_options = {'atol': 1e-4, 'rtol': 1e-3}
-        self.check_backward_options = {
-            'atol': 5e-3, 'rtol': 1e-3, 'dtype': numpy.float64}
+        self.check_backward_options = {'atol': 5e-3, 'rtol': 1e-3}
         if self.dtype == numpy.float32:
             self.check_backward_options = {'atol': 5e-2, 'rtol': 5e-2}
 
@@ -127,7 +126,7 @@ class DecorrelatedBatchNormalizationTest(unittest.TestCase):
     def check_backward(self, x_data, y_grad):
         gradient_check.check_backward(
             self.link, x_data, y_grad, (),
-            eps=1e-2, **self.check_backward_options)
+            dtype=numpy.float64, **self.check_backward_options)
 
     def test_backward_cpu(self):
         self.check_backward(self.x, self.gy)
