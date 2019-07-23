@@ -498,6 +498,54 @@ Note:
 .. seealso:: :func:`numpy.dot`
 """)
 
+    _docs.set_doc(
+        chainerx.linalg.solve,
+        """solve(a, b)
+Solves a linear matrix equation, or system of linear scalar equations.
+
+It computes the exact solution of ``x`` in ``ax = b``,
+where ``a`` is a square and full rank matrix,
+``b`` can be a vector, or a rectangular matrix.
+When ``b`` is matrix, its columns are treated as separate vectors
+representing multiple right-hand sides.
+
+Args:
+    a (~chainerx.ndarray): Coefficient matrix.
+    b (~chainerx.ndarray): "dependent variable" values.
+
+Returns:
+    :class:`~chainerx.ndarray`:
+        Solution to the system ``ax = b``.
+        Shape is identical to ``b``.
+
+Note:
+    The ``dtype`` must be ``float32`` or ``float64`` (``float16`` is not
+    supported yet.)
+
+.. seealso:: :func:`numpy.linalg.solve`
+""")
+
+    _docs.set_doc(
+        chainerx.linalg.inv,
+        """inv(a)
+Computes the inverse of a matrix.
+
+This function computes matrix ``a_inv`` from square matrix
+``a`` such that ``dot(a, a_inv) = dot(a_inv, a) = eye(a.shape[0])``.
+
+Args:
+    a (~chainerx.ndarray): The matrix to be inverted.
+
+Returns:
+    :class:`~chainerx.ndarray`: The inverse of a matrix.
+
+Note:
+    The ``dtype`` must be ``float32`` or ``float64`` (``float16`` is not
+    supported yet.)
+
+.. seealso:: :func:`numpy.linalg.inv`
+""")
+
 
 def _docs_logic():
     _docs.set_doc(

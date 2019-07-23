@@ -99,6 +99,9 @@ Linear algebra
 
    chainerx.dot
 
+   chainerx.linalg.solve
+   chainerx.linalg.inv
+
 Logic functions
 ---------------
 
