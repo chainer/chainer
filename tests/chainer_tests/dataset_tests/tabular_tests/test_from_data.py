@@ -68,7 +68,7 @@ class TestFromData(unittest.TestCase):
         dataset_b = tabular.from_data(
             [2, 7, 1, 8, 4, 5, 9, 0, 3, 6],
             -np.arange(10))
-        dataset_a.join(dataset_b)
+        self.assertFalse(set(dataset_a.keys) & set(dataset_b.keys))
 
     def test_dict(self):
         dataset = tabular.from_data(
