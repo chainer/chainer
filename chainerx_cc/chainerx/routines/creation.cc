@@ -196,7 +196,7 @@ Array Eye(int64_t n, absl::optional<int64_t> m, absl::optional<int64_t> k, absl:
         k = 0;
     }
     if (!dtype.has_value()) {
-        dtype = Dtype::kFloat32;
+        dtype = Dtype::kFloat64;
     }
     if (n < 0 || m < 0) {
         throw DimensionError{"Negative dimensions are not allowed"};
