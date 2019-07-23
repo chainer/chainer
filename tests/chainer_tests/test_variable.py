@@ -1004,9 +1004,9 @@ class VariableToDeviceFamilyBase(object):
             # When `x` is an `ideep4py.mdarray` (testing the intel64 backend),
             # the operands must be `ideep4py.mdarray`s as well to guarantee
             # that the type of `x` does not change. (E.g., arithmetics
-            # with Python scalars such as x *= 2 turns `x` into a
+            # with Python scalars such as `x = 2 * x` turns `x` into a
             # `numpy.ndarray`.)
-            x *= x
+            x = x * x
 
         if self.x_with_grad:
             x.grad_var = gx
