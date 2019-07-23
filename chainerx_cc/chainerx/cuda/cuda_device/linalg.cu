@@ -299,6 +299,9 @@ public:
         Array x = Empty(Shape{n, m}, dtype, device);
         bool trans_flag;
 
+        // Remark: gesvd only supports m>=n.
+        // See: https://docs.nvidia.com/cuda/cusolver/index.html#cuds-lt-t-gt-gesvd
+        // Therefore for the case m<n we calculuate svd of transposed matrix
         if (m >= n) {
             device.backend().CallKernel<CopyKernel>(a, x);
             trans_flag = false;
