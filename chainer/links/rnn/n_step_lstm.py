@@ -1,5 +1,5 @@
-from chainer.functions.connection import n_step_lstm as rnn
-from chainer.links.connection import n_step_rnn
+from chainer.functions.rnn import n_step_lstm as rnn
+from chainer.links.rnn import n_step_rnn
 
 
 class NStepLSTMBase(n_step_rnn.NStepRNNBase):

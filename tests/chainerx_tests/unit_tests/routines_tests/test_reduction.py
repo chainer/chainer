@@ -38,8 +38,19 @@ _invalid_logsumexp_params = [
 ]
 
 
-@op_utils.op_test(['native:0', 'cuda:0'])
-@chainer.testing.parameterize_pytest('in_dtypes,out_dtype', [
+_cumsum_params = [
+    ((1,), 0),
+    ((2, 3, 4), 0),
+    ((2, 3, 4), 1),
+    ((2, 3, 4), 2),
+    ((2, 3, 4), -3),
+    ((2, 3, 4), -2),
+    ((2, 3, 4), -1),
+    ((2, 3, 4), None),
+]
+
+
+_in_out_dtypes_sum = [
     (('bool_',), 'int64'),
     (('int8',), 'int64'),
     (('int16',), 'int64'),
@@ -52,7 +63,12 @@ _invalid_logsumexp_params = [
     # TODO(niboshi): Unsigned integer dtypes should result in uint64.
     # Currently chainerx returns int64.
     (('uint8',), 'int64'),
-])
+]
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize_pytest(
+    'in_dtypes,out_dtype', _in_out_dtypes_sum)
 @chainer.testing.parameterize_pytest('shape,axis', [
     ((), None),
     ((), ()),
@@ -247,3 +263,25 @@ def test_log_softmax_invalid(device, a_shape, axis, dtype):
     a = array_utils.create_dummy_ndarray(chainerx, a_shape, dtype)
     with pytest.raises(chainerx.DimensionError):
         return chainerx.log_softmax(a, axis=axis)
+
+
+@op_utils.op_test(['native:0'])
+@chainer.testing.parameterize_pytest(
+    'in_dtypes,out_dtype', _in_out_dtypes_sum)
+@chainer.testing.parameterize_pytest('shape,axis', _cumsum_params)
+# TODO(aksub99): Add cuda device tests when cuda implementation is supported.
+class TestCumsum(math_utils.UnaryMathTestBase, op_utils.NumpyOpTest):
+
+    input = 'random'
+
+    def setup(self):
+        super().setup()
+        in_dtype, = self.in_dtypes
+        if in_dtype == 'float16':
+            self.check_forward_options.update({'rtol': 1e-2, 'atol': 1e-2})
+            self.check_backward_options.update({'rtol': 1e-2, 'atol': 1e-2})
+            self.check_double_backward_options.update(
+                {'rtol': 1e-2, 'atol': 1e-2})
+
+    def func(self, xp, a):
+        return xp.cumsum(a, axis=self.axis)

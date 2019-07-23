@@ -341,7 +341,7 @@ def main():
                         help='Resume the training from snapshot')
     parser.add_argument('--unit', '-u', type=int, default=1024,
                         help='Number of units')
-    parser.add_argument('--communicator', default='hierarchical',
+    parser.add_argument('--communicator', default='pure_nccl',
                         help='Type of communicator')
     parser.add_argument('--stop', '-s', type=str, default='15e',
                         help='Stop trigger (ex. "500i", "15e")')
@@ -355,7 +355,7 @@ def main():
 
     # Prepare ChainerMN communicator
     if args.gpu:
-        comm = chainermn.create_communicator('hierarchical')
+        comm = chainermn.create_communicator(args.communicator)
         dev = comm.intra_rank
     else:
         comm = chainermn.create_communicator('naive')

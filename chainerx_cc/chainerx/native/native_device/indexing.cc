@@ -63,7 +63,6 @@ public:
                 CHAINERX_ASSERT(0 <= index);
                 CHAINERX_ASSERT(index < axis_dim);
                 it_axis.Restart(index);
-
                 it_out.CopyIndex(it, it_left.ndim());
                 it_a.CopyIndex(it_axis, it_left.ndim());
 
@@ -102,7 +101,7 @@ public:
             IndexableArray<T> out_iarray{out};
             Indexer<> b_indexer{b.shape()};
             Indexer<> indices_indexer{indices_cast.shape()};
-            Indexer<> out_indexer{out.shape()};  // indexer for both out_iarray and a_array
+            Indexer<> out_indexer{out.shape()};  // indexer for both out_iarray and a_iarray
 
             int64_t axis_dim = a.shape()[axis];
 

@@ -111,6 +111,10 @@ case "${CHAINER_TRAVIS_TEST}" in
                     run_prestep before_install_chainermn_test_deps
                 fi
 
+                if [[ $SKIP_CHAINERX != 1 ]]; then
+                    run_prestep before_install_chainerx_test_deps
+                fi
+
                 if [[ $TRAVIS_OS_NAME == "windows" ]]; then
                     choco install python3
 

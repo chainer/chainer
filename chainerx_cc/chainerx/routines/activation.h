@@ -17,4 +17,6 @@ Array Relu(const Array& x);
 
 Array LeakyRelu(const Array& x, Scalar slope);
 
+Array Softplus(const Array& x, double beta = 1.0);
+
 }  // namespace chainerx

@@ -2,6 +2,7 @@
 
 #include <cublas_v2.h>
 #include <cudnn.h>
+#include <cusolverDn.h>
 
 #include <cstddef>
 #include <cstdint>
@@ -10,7 +11,7 @@
 #include <queue>
 #include <utility>
 
-#include <nonstd/optional.hpp>
+#include <absl/types/optional.h>
 
 #include "chainerx/array.h"
 #include "chainerx/axes.h"
@@ -18,6 +19,7 @@
 #include "chainerx/cuda/cuda_backend.h"
 #include "chainerx/cuda/cuda_conv.h"
 #include "chainerx/cuda/cudnn.h"
+#include "chainerx/cuda/cusolver.h"
 #include "chainerx/cuda/memory_pool.h"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
@@ -67,7 +69,8 @@ private:
 // These internals are exposed through `GetDeviceInternals` for CUDA internal usages.
 class DeviceInternals {
 public:
-    explicit DeviceInternals(int device_index) : cublas_handle_{device_index}, cudnn_handle_{device_index} {}
+    explicit DeviceInternals(int device_index)
+        : cublas_handle_{device_index}, cudnn_handle_{device_index}, cusolverdn_handle_{device_index} {}
 
     ~DeviceInternals() = default;
 
@@ -80,12 +83,16 @@ public:
 
     cuda_internal::CudnnHandle& cudnn_handle() { return cudnn_handle_; }
 
+    cuda_internal::CusolverDnHandle& cusolverdn_handle() { return cusolverdn_handle_; }
+
     cuda_internal::CudaConv& cuda_conv() { return cuda_conv_; }
 
 private:
     cuda_internal::CublasHandle cublas_handle_;
 
     cuda_internal::CudnnHandle cudnn_handle_;
+
+    cuda_internal::CusolverDnHandle cusolverdn_handle_;
 
     cuda_internal::CudaConv cuda_conv_{};
 };

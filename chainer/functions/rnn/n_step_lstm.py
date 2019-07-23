@@ -3,11 +3,11 @@ import numpy
 import chainer
 from chainer import backend
 from chainer.backends import cuda
-from chainer.functions.activation import lstm
 from chainer.functions.array import reshape
 from chainer.functions.array import stack
 from chainer.functions.connection import linear
-from chainer.functions.connection import n_step_rnn
+from chainer.functions.rnn import lstm
+from chainer.functions.rnn import n_step_rnn
 from chainer.utils import argument
 import chainerx
 
