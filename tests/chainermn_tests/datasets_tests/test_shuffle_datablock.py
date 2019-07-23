@@ -14,7 +14,8 @@ from chainermn.datasets.shuffle_datablock import shuffle_data_chunks
                          list(itertools.product([1000, 100000],
                                                 [True, False])))
 def test_shuffle_datablocks(chunk_size, force_equal_length):
-    comm = chainermn.create_communicator('pure_nccl')
+    comm = chainermn.create_communicator('flat')
+
 
     # Rank i generates data = range(10**i)
     num_elem = 10 ** (comm.rank + 1)
