@@ -64,9 +64,9 @@ def from_data(*args, **kwargs):
     elif args and kwargs:
         raise ValueError('Mixture of args and kwargs is not supported')
     elif args:
-        return datasets[0].join(*datasets[1:]).as_tuple()
+        return datasets[0].join(*datasets[1:]).astuple()
     elif kwargs:
-        return datasets[0].join(*datasets[1:]).as_dict()
+        return datasets[0].join(*datasets[1:]).asdict()
     else:
         raise ValueError('At least one data must be passed')
 
