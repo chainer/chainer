@@ -36,7 +36,7 @@ class SVDKernel : public Kernel {
 public:
     static const char* name() { return "SVD"; }
 
-    virtual std::tuple<Array, Array, Array> Call(const Array& a, bool full_matrices, bool compute_uv) = 0;
+    virtual void Call(const Array& a, const Array& u, const Array& s, const Array& vt, bool full_matrices) = 0;
 };
 
 class PseudoInverseKernel : public Kernel {

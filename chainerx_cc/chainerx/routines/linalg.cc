@@ -194,13 +194,36 @@ Array Inverse(const Array& a) {
 
 std::tuple<Array, Array, Array> SVD(const Array& a, bool full_matrices, bool compute_uv) {
     CheckRankTwoArray(a);
+
     Array u{};
     Array s{};
     Array vt{};
 
+    Shape u_shape, vt_shape;
+    int64_t m = a.shape()[0];
+    int64_t n = a.shape()[1];
+    int64_t mn = std::min(m, n);
+
+    if (compute_uv) {
+        if (full_matrices) {
+            u_shape = Shape{m, m};
+            vt_shape = Shape{n, n};
+        } else {
+            u_shape = Shape{m, mn};
+            vt_shape = Shape{mn, n};
+        }
+    } else {
+        u_shape = Shape{0};
+        vt_shape = Shape{0};
+    }
+
+    u = Empty(u_shape, a.dtype(), a.device());
+    vt = Empty(vt_shape, a.dtype(), a.device());
+    s = Empty(Shape{mn}, a.dtype(), a.device());
+
     {
         NoBackpropModeScope scope{};
-        std::tie(u, s, vt) = a.device().backend().CallKernel<SVDKernel>(a, full_matrices, compute_uv);
+        a.device().backend().CallKernel<SVDKernel>(a, u, s, vt, full_matrices);
     }
 
     // Reference:

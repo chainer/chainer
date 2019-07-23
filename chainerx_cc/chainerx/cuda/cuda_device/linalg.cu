@@ -286,17 +286,21 @@ CHAINERX_CUDA_REGISTER_KERNEL(InverseKernel, CudaInverseKernel);
 
 class CudaSVDKernel : public SVDKernel {
 public:
-    std::tuple<Array, Array, Array> Call(const Array& a, bool full_matrices, bool compute_uv) override {
+    void Call(const Array& a, const Array& u, const Array& s, const Array& vt, bool full_matrices) override {
         Device& device = a.device();
         Dtype dtype = a.dtype();
         CudaSetDeviceScope scope{device.index()};
 
         CHAINERX_ASSERT(a.ndim() == 2);
 
+        bool compute_uv = u.shape()[0] != 0 && vt.shape()[0] != 0;
+
         int64_t n = a.shape()[0];
         int64_t m = a.shape()[1];
+        int64_t mn = std::min(m, n);
 
         Array x = Empty(Shape{n, m}, dtype, device);
+        Array u_temp{}, vt_temp{};
         bool trans_flag;
 
         // Remark: gesvd only supports m>=n.
@@ -311,31 +315,29 @@ public:
             x = x.Reshape(Shape{n, m});
             device.backend().CallKernel<CopyKernel>(a.Transpose(), x);
             trans_flag = true;
-        }
-        int64_t mn = std::min(m, n);
-        int64_t ldu = m;
-        int64_t ldvt = n;
 
-        Array u{};
-        Array vt{};
-
-        if (compute_uv) {
-            if (full_matrices) {
-                u = Empty(Shape{m, m}, dtype, device);
-                vt = Empty(Shape{n, n}, dtype, device);
+            // Temporary arrays for u, vt are needed to store transposed results
+            Shape u_shape, vt_shape;
+            if (compute_uv) {
+                if (full_matrices) {
+                    u_shape = Shape{m, m};
+                    vt_shape = Shape{n, n};
+                } else {
+                    u_shape = Shape{mn, m};
+                    vt_shape = Shape{n, mn};
+                }
             } else {
-                u = Empty(Shape{mn, m}, dtype, device);
-                vt = Empty(Shape{n, mn}, dtype, device);
-                ldvt = mn;
+                u_shape = Shape{0};
+                vt_shape = Shape{0};
             }
-        } else {
-            u = Empty(Shape{0}, dtype, device);
-            vt = Empty(Shape{0}, dtype, device);
+            u_temp = Empty(u_shape, dtype, device);
+            vt_temp = Empty(vt_shape, dtype, device);
         }
 
-        Array s = Empty(Shape{mn}, dtype, device);
+        int64_t ldu = m;
+        int64_t ldvt = full_matrices ? n : mn;
 
-        auto svd_impl = [&](auto pt) -> std::tuple<Array, Array, Array> {
+        auto svd_impl = [&](auto pt) {
             using T = typename decltype(pt)::type;
             cuda_internal::DeviceInternals& device_internals = cuda_internal::GetDeviceInternals(static_cast<CudaDevice&>(device));
 
@@ -343,6 +345,10 @@ public:
             auto s_ptr = static_cast<T*>(internal::GetRawOffsetData(s));
             auto u_ptr = static_cast<T*>(internal::GetRawOffsetData(u));
             auto vt_ptr = static_cast<T*>(internal::GetRawOffsetData(vt));
+            if (trans_flag) {
+                u_ptr = static_cast<T*>(internal::GetRawOffsetData(vt_temp));
+                vt_ptr = static_cast<T*>(internal::GetRawOffsetData(u_temp));
+            }
 
             std::shared_ptr<void> devInfo = device.Allocate(sizeof(int));
 
@@ -368,9 +374,9 @@ public:
                     x_ptr,
                     m,
                     s_ptr,
-                    u_ptr,
-                    ldu,
                     vt_ptr,
+                    ldu,
+                    u_ptr,
                     ldvt,
                     work_ptr,
                     buffersize,
@@ -385,13 +391,12 @@ public:
             }
 
             if (trans_flag) {
-                return std::make_tuple(std::move(u.Transpose()), std::move(s), std::move(vt.Transpose()));
-            } else {
-                return std::make_tuple(std::move(vt), std::move(s), std::move(u));
+                device.backend().CallKernel<CopyKernel>(u_temp.Transpose(), u);
+                device.backend().CallKernel<CopyKernel>(vt_temp.Transpose(), vt);
             }
         };
 
-        return VisitFloatingPointDtype(dtype, svd_impl);
+        VisitFloatingPointDtype(dtype, svd_impl);
     }
 };
 
@@ -411,7 +416,7 @@ public:
         Array s{};
         Array vt{};
 
-        std::tie(u, s, vt) = device.backend().CallKernel<SVDKernel>(a, false, true);
+        std::tie(u, s, vt) = SVD(a, false, true);
 
         Array cutoff = rcond * s.Max();
         Array cutoff_indices = s <= cutoff;

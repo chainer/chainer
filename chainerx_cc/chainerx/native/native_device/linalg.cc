@@ -18,6 +18,7 @@
 #include "chainerx/routines/arithmetic.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/indexing.h"
+#include "chainerx/routines/linalg.h"
 #include "chainerx/shape.h"
 
 #if CHAINERX_ENABLE_LAPACK
@@ -288,12 +289,14 @@ CHAINERX_NATIVE_REGISTER_KERNEL(InverseKernel, NativeInverseKernel);
 
 class NativeSVDKernel : public SVDKernel {
 public:
-    std::tuple<Array, Array, Array> Call(const Array& a, bool full_matrices, bool compute_uv) override {
+    void Call(const Array& a, const Array& u, const Array& s, const Array& vt, bool full_matrices) override {
 #if CHAINERX_ENABLE_LAPACK
         Device& device = a.device();
         Dtype dtype = a.dtype();
 
         CHAINERX_ASSERT(a.ndim() == 2);
+
+        bool compute_uv = u.shape()[0] != 0 && vt.shape()[0] != 0;
 
         // LAPACK routine works with arrays in column-major order.
         // In order to avoid transposes instead of calculating svd(A) = U S V^T, we compute svd(A^T)
@@ -301,31 +304,12 @@ public:
         int64_t m = a.shape()[1];
         int64_t mn = std::min(m, n);
         int64_t ldu = m;
-        int64_t ldvt = n;
+        int64_t ldvt = full_matrices ? n : mn;
 
         Array x = Empty(Shape{n, m}, dtype, device);
         device.backend().CallKernel<CopyKernel>(a, x);
 
-        Array u{};
-        Array vt{};
-
-        if (compute_uv) {
-            if (full_matrices) {
-                u = Empty(Shape{m, m}, dtype, device);
-                vt = Empty(Shape{n, n}, dtype, device);
-            } else {
-                u = Empty(Shape{mn, m}, dtype, device);
-                vt = Empty(Shape{n, mn}, dtype, device);
-                ldvt = mn;
-            }
-        } else {
-            u = Empty(Shape{0}, dtype, device);
-            vt = Empty(Shape{0}, dtype, device);
-        }
-
-        Array s = Empty(Shape{mn}, dtype, device);
-
-        auto svd_impl = [&](auto pt) -> std::tuple<Array, Array, Array> {
+        auto svd_impl = [&](auto pt) {
             using T = typename decltype(pt)::type;
 
             auto x_ptr = static_cast<T*>(internal::GetRawOffsetData(x));
@@ -346,26 +330,23 @@ public:
             int info;
             int buffersize = -1;
             T work_size;
-            Gesdd(job, m, n, x_ptr, m, s_ptr, u_ptr, ldu, vt_ptr, ldvt, &work_size, buffersize, iwork_ptr, &info);
+            Gesdd(job, m, n, x_ptr, m, s_ptr, vt_ptr, ldu, u_ptr, ldvt, &work_size, buffersize, iwork_ptr, &info);
             buffersize = static_cast<int>(work_size);
 
             Array work = Empty(Shape{buffersize}, dtype, device);
             auto work_ptr = static_cast<T*>(internal::GetRawOffsetData(work));
 
-            Gesdd(job, m, n, x_ptr, m, s_ptr, u_ptr, ldu, vt_ptr, ldvt, work_ptr, buffersize, iwork_ptr, &info);
+            Gesdd(job, m, n, x_ptr, m, s_ptr, vt_ptr, ldu, u_ptr, ldvt, work_ptr, buffersize, iwork_ptr, &info);
 
             if (info != 0) {
                 throw ChainerxError{"Unsuccessful gesdd (SVD) execution. Info = ", info};
             }
-
-            return std::make_tuple(std::move(vt), std::move(s), std::move(u));
         };
 
-        return VisitFloatingPointDtype(dtype, svd_impl);
+        VisitFloatingPointDtype(dtype, svd_impl);
 #else  // CHAINERX_LAPACK_AVAILABLE
         (void)a;  // unused
         (void)full_matrices;  // unused
-        (void)compute_uv;  // unused
         throw ChainerxError{"LAPACK is not linked to ChainerX."};
 #endif  // CHAINERX_LAPACK_AVAILABLE
     }
@@ -385,7 +366,7 @@ public:
         Array s{};
         Array vt{};
 
-        std::tie(u, s, vt) = device.backend().CallKernel<SVDKernel>(a, false, true);
+        std::tie(u, s, vt) = SVD(a, false, true);
 
         Array cutoff = rcond * s.Max();
         Array cutoff_indices = s <= cutoff;
