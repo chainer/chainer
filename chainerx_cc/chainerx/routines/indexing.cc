@@ -3,10 +3,10 @@
 #include <algorithm>
 #include <cstdint>
 #include <iterator>
-#include <string>
+#include <utility>
 #include <vector>
 
-#include "nonstd/optional.hpp"
+#include "absl/types/optional.h"
 
 #include "chainerx/array.h"
 #include "chainerx/array_index.h"
@@ -17,11 +17,11 @@
 #include "chainerx/constant.h"
 #include "chainerx/dtype.h"
 #include "chainerx/graph.h"
+#include "chainerx/kernels/arithmetic.h"
 #include "chainerx/kernels/indexing.h"
-#include "chainerx/kernels/math.h"
 #include "chainerx/macro.h"
+#include "chainerx/routines/arithmetic.h"
 #include "chainerx/routines/creation.h"
-#include "chainerx/routines/math.h"
 #include "chainerx/routines/type_util.h"
 #include "chainerx/shape.h"
 #include "chainerx/slice.h"
@@ -67,17 +67,18 @@ Array AddAt(const Array& a, const std::vector<ArrayIndex>& indices, const Array&
 }  // namespace
 
 Array At(const Array& a, const std::vector<ArrayIndex>& indices) {
+    std::vector<ArrayIndex> normalized_indices = internal::GetNormalizedArrayIndices(indices, a.ndim());
     Shape out_shape{};
     Strides out_strides{};
     int64_t out_offset = a.offset();
     bool is_a_empty = a.GetTotalSize() == 0;
     int64_t i_in = 0;
-    for (const ArrayIndex& index : indices) {
+    for (const ArrayIndex& index : normalized_indices) {
         switch (index.tag()) {
             case ArrayIndexTag::kSingleElement: {
                 int64_t dim = a.shape()[i_in];
                 if (index.index() < -dim || dim <= index.index()) {
-                    throw DimensionError{"Index ", index.index(), " is out of bounds for axis ", i_in, " with size ", dim};
+                    throw IndexError{"Index ", index.index(), " is out of bounds for axis ", i_in, " with size ", dim};
                 }
                 if (!is_a_empty) {
                     out_offset += a.strides()[i_in] * ((index.index() + dim) % dim);
@@ -104,7 +105,7 @@ Array At(const Array& a, const std::vector<ArrayIndex>& indices) {
                 out_strides.emplace_back(0);
                 break;
             default:
-                CHAINERX_NEVER_REACH();
+                ChainerxError{"Invalid ArrayIndexTag."};
         }
     }
     for (int64_t i = i_in; i < a.ndim(); ++i) {
@@ -116,7 +117,7 @@ Array At(const Array& a, const std::vector<ArrayIndex>& indices) {
 
     BackwardBuilder bb{"get_item", a, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-        bt.Define([indices, a_shape = a.shape(), a_dtype = a.dtype()](BackwardContext& bctx) {
+        bt.Define([indices = std::move(normalized_indices), a_shape = a.shape(), a_dtype = a.dtype()](BackwardContext& bctx) {
             const Array& gout = *bctx.output_grad();
             Array gin = Zeros(a_shape, a_dtype, gout.device());
             bctx.input_grad() = AddAt(gin, indices, gout);
@@ -202,33 +203,93 @@ Array Take(const Array& a, const Array& indices, int8_t axis) {
 Array Where(const Array& condition, const Array& x, const Array& y) {
     Dtype out_dtype = ResultType(x, y);
     Shape out_shape = internal::BroadcastShapes(condition.shape(), internal::BroadcastShapes(x.shape(), y.shape()));
-    Array out = Empty(out_shape, out_dtype, x.device());
-    const Array& x_b = x.BroadcastTo(out_shape);
-    const Array& y_b = y.BroadcastTo(out_shape);
-    const Array& condition_b = condition.BroadcastTo(out_shape);
+    Array out = Empty(out_shape, out_dtype, condition.device());
+    Array x_b = x.BroadcastTo(out_shape);
+    Array y_b = y.BroadcastTo(out_shape);
+    Array condition_b = condition.BroadcastTo(out_shape);
 
     {
         NoBackpropModeScope scope;
-        x.device().backend().CallKernel<WhereKernel>(condition_b, x_b, y_b, out);
+        condition.device().backend().CallKernel<WhereKernel>(condition_b, x_b, y_b, out);
     }
 
     BackwardBuilder bb{"where", {x_b, y_b}, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-        bt.Define([condition, dtype = x.dtype()](BackwardContext& bctx) {
+        bt.Define([dtype = x.dtype(), condition = condition_b](BackwardContext& bctx) {
             const Array& gout = *bctx.output_grad();
-            // TODO(kshitij12345): Use Scalar-Array kernel when implemented.
-            bctx.input_grad() = Where(condition, gout, ZerosLike(gout)).AsType(dtype);
+            const Array& gx = Where(condition, gout, Scalar{0, GetKind(gout.dtype())});
+            bctx.input_grad() = gx.dtype() == dtype ? gx : gx.AsType(dtype);
         });
     }
     if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
-        bt.Define([condition, dtype = y.dtype()](BackwardContext& bctx) {
+        bt.Define([dtype = y.dtype(), condition = condition_b](BackwardContext& bctx) {
             const Array& gout = *bctx.output_grad();
-            // TODO(kshitij12345): Use Scalar-Array kernel when implemented.
-            bctx.input_grad() = Where(condition, ZerosLike(gout), gout).AsType(dtype);
+            const Array& gy = Where(condition, Scalar{0, GetKind(gout.dtype())}, gout);
+            bctx.input_grad() = gy.dtype() == dtype ? gy : gy.AsType(dtype);
         });
     }
     bb.Finalize();
 
+    return out;
+}
+
+Array Where(const Array& condition, const Array& x, Scalar y) {
+    Dtype out_dtype = ResultType(x, y);
+    Shape out_shape = internal::BroadcastShapes(condition.shape(), x.shape());
+    Array out = Empty(out_shape, out_dtype, condition.device());
+    Array x_b = x.BroadcastTo(out_shape);
+    Array condition_b = condition.BroadcastTo(out_shape);
+
+    {
+        NoBackpropModeScope scope;
+        condition.device().backend().CallKernel<WhereAASKernel>(condition_b, x_b, y, out);
+    }
+
+    BackwardBuilder bb{"where_array_scalar", {x_b}, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([dtype = x.dtype(), condition = std::move(condition_b)](BackwardContext& bctx) {
+            const Array& gout = *bctx.output_grad();
+            const Array& gx = Where(condition, gout, Scalar{0, GetKind(gout.dtype())});
+            bctx.input_grad() = gx.dtype() == dtype ? gx : gx.AsType(dtype);
+        });
+    }
+    bb.Finalize();
+
+    return out;
+}
+
+Array Where(const Array& condition, Scalar x, const Array& y) {
+    Dtype out_dtype = ResultType(x, y);
+    Shape out_shape = internal::BroadcastShapes(condition.shape(), y.shape());
+    Array out = Empty(out_shape, out_dtype, condition.device());
+    Array y_b = y.BroadcastTo(out_shape);
+    Array condition_b = condition.BroadcastTo(out_shape);
+
+    {
+        NoBackpropModeScope scope;
+        condition.device().backend().CallKernel<WhereASAKernel>(condition_b, x, y_b, out);
+    }
+
+    BackwardBuilder bb{"where_scalar_array", {y_b}, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([dtype = y.dtype(), condition = std::move(condition_b)](BackwardContext& bctx) {
+            const Array& gout = *bctx.output_grad();
+            const Array& gy = Where(condition, Scalar{0, GetKind(gout.dtype())}, gout);
+            bctx.input_grad() = gy.dtype() == dtype ? gy : gy.AsType(dtype);
+        });
+    }
+    bb.Finalize();
+
+    return out;
+}
+
+Array Where(const Array& condition, Scalar x, Scalar y) {
+    Dtype out_dtype = ResultType(x, y);
+    Array out = Empty(condition.shape(), out_dtype, condition.device());
+    {
+        NoBackpropModeScope scope;
+        condition.device().backend().CallKernel<WhereASSKernel>(condition, x, y, out);
+    }
     return out;
 }
 

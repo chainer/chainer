@@ -308,7 +308,7 @@ It can be written straight-forward as follows:
    Of course, the module in such environment is almost useless, but if the interpreter does not run through the code accessing CUDA-dedicated functions, the code is still valid.
 
 The CPU and GPU implementations are almost same, except that :mod:`numpy` is replaced by :mod:`cupy` in ``forward_gpu``.
-We can unify these functions using the :func:`chainer.backends.cuda.get_array_module` function.
+We can unify these functions using the :func:`chainer.backend.get_array_module` function.
 This function accepts arbitrary number of arrays, and returns an appropriate module for them.
 See the following code:
 
@@ -686,7 +686,7 @@ This link hides the parameters of the linear layer.
 
    An advanced tip to implement functions: if you want to preserve some information between forward and backward computations (e.g. to cache some arrays), you can store it as attributes.
    Be careful that it might increase the memory consumption during the whole forward-backward computation.
-   If you want to train very large networks on a GPU with limited memory, it is not recommended to cache arrays between forward and backward.
+   If you want to train very large networks on a GPU with limited memory, it is not recommended that you cache arrays between forward and backward.
    There is one exception for this: caching the output arrays does not change the memory consumption, because they are also held by the output Variable objects.
 
    .. warning::

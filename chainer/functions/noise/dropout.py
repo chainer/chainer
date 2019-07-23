@@ -15,13 +15,14 @@ if cuda.cudnn_enabled:
 class Dropout(function_node.FunctionNode):
 
     """Dropout regularization."""
-    _use_cudnn = False
 
-    def __init__(self, dropout_ratio, mask=None):
+    def __init__(self, dropout_ratio, mask=None, return_mask=False):
         if not 0.0 <= dropout_ratio < 1.0:
             raise ValueError('dropout_ratio must be in the range [0, 1)')
         self.dropout_ratio = dropout_ratio
         self.mask = mask
+        self.return_mask = return_mask
+        self._use_cudnn = False
 
     def check_type_forward(self, in_types):
         type_check._argname(in_types, ('x',))
@@ -43,9 +44,10 @@ class Dropout(function_node.FunctionNode):
         return y,
 
     def forward_gpu(self, x):
-        if (chainer.should_use_cudnn('==always', 5000)
+        if (chainer.should_use_cudnn('>=auto', 5000)
                 and x[0].flags.c_contiguous
-                and self.mask is None):
+                and self.mask is None
+                and not self.return_mask):
             self._use_cudnn = True
 
             if hasattr(self, 'states'):
@@ -81,7 +83,7 @@ class Dropout(function_node.FunctionNode):
         return y,
 
     def backward(self, x, gy):
-        if chainer.should_use_cudnn('==always', 5000) and self._use_cudnn:
+        if chainer.should_use_cudnn('>=auto', 5000) and self._use_cudnn:
             return DropoutGradCuDNN(self.states, self.dropout_ratio).apply(gy)
         else:
             return DropoutGrad(self.mask).apply(gy)
@@ -166,7 +168,7 @@ def dropout(x, ratio=.5, **kwargs):
             input. The mask will become ``None`` when ``chainer.config.train``
             is set to ``False``.
 
-    See the paper by G. Hinton: `Improving neural networks by preventing \
+    See the paper by G. Hinton: `Improving neural networks by preventing
     co-adaptation of feature detectors <https://arxiv.org/abs/1207.0580>`_.
 
     .. admonition:: Example
@@ -199,7 +201,7 @@ def dropout(x, ratio=.5, **kwargs):
                   'Use chainer.using_config')
 
     if configuration.config.train:
-        func = Dropout(ratio, mask)
+        func = Dropout(ratio, mask, return_mask)
         out, = func.apply((x,))
         mask = func.mask
     else:

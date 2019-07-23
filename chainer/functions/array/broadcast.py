@@ -41,7 +41,7 @@ def broadcast(*args):
     Returns:
         ~chainer.Variable: :class:`~chainer.Variable` or tuple of \
             :class:`~chainer.Variable` objects which are broadcasted \
-            from given arguments.
+            from the given arguments.
 
     .. admonition:: Example
 
@@ -110,7 +110,7 @@ def broadcast_to(x, shape):
 
     Args:
         x (:class:`~chainer.Variable` or :ref:`ndarray`):
-            Input variable be broadcasted. A \
+            Input variable to be broadcasted. A \
             :math:`(s_1, s_2, ..., s_N)`-shaped float array.
         shape (tuple): Tuple of :class:`int` of the shape of the \
             output variable.

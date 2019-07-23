@@ -26,6 +26,7 @@ from chainer import warnings  # NOQA
 
 # import class and function
 # These functions from backends.cuda are kept for backward compatibility
+from chainer._backprop import backward  # NOQA
 from chainer._runtime_info import print_runtime_info  # NOQA
 from chainer.backend import get_device  # NOQA
 from chainer.backend import using_device  # NOQA
@@ -68,6 +69,7 @@ from chainer.sequential import Sequential  # NOQA
 from chainer.serializer import AbstractSerializer  # NOQA
 from chainer.serializer import Deserializer  # NOQA
 from chainer.serializer import Serializer  # NOQA
+from chainer.variable import as_array  # NOQA
 from chainer.variable import as_variable  # NOQA
 from chainer.variable import Parameter  # NOQA
 from chainer.variable import Variable  # NOQA
@@ -179,13 +181,10 @@ def is_arrays_compatible(arrays):
         return True
 
     # If there's at least one chainerx.ndarray, all other arrays
-    # will be converted to memory-shared chainerx.ndarrays.
-    # TODO(niboshi): intel64.mdarray is not supported yet.
-    # TODO(niboshi): Delegate array compatibility check to chainerx.
-    if (chainerx.is_available()
-            and any([isinstance(arr, chainerx.ndarray) for arr in arrays])):
-        return not any([
-            isinstance(arr, backends.intel64.mdarray) for arr in arrays])
+    # must be chainerx as well
+    are_chainerx = [isinstance(arr, chainerx.ndarray) for arr in arrays]
+    if chainerx.is_available() and any(are_chainerx):
+        return all(are_chainerx)
 
     if isinstance(arrays[0], backends.cuda.ndarray):
         types = backends.cuda.ndarray
@@ -218,6 +217,7 @@ global_config.use_cudnn = os.environ.get('CHAINER_USE_CUDNN', 'auto')
 global_config.use_cudnn_tensor_core = 'auto'
 global_config.autotune = False
 global_config.schedule_func = None
+global_config.use_static_graph = True
 global_config.use_ideep = os.environ.get('CHAINER_USE_IDEEP', 'never')
 global_config.lazy_grad_sum = bool(int(
     os.environ.get('CHAINER_LAZY_GRAD_SUM', '0')))
@@ -233,6 +233,7 @@ else:
     raise TypeError('incorrect dtype name in CHAINER_DTYPE: "{}". '
                     'Only float16/32/64 are allowed.'.format(_chainer_dtype))
 global_config.in_recomputing = False
+global_config._will_recompute = False
 
 
 def is_debug():

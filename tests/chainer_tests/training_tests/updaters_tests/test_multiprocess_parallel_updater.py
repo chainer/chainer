@@ -51,9 +51,6 @@ class SimpleNet(chainer.Chain):
 }))
 class TestGatherScatter(unittest.TestCase):
 
-    def setUp(self):
-        pass
-
     @attr.gpu
     def test_gather_scatter_grads(self):
         cupy = cuda.cupy
@@ -143,14 +140,12 @@ def _run_test_snippet(name, *args):
 
 class TestRawArray(unittest.TestCase):
 
-    def setUp(self):
-        pass
-
     @attr.gpu
     @unittest.skipUnless(mpu.MultiprocessParallelUpdater.available(),
                          'MultiprocessParallelUpdater is not available.')
     def test_update_uses_raw_array(self):
-        ret, stdoutdata, stderrdata = _run_test_snippet('raw_array.py')
+        ret, stdoutdata, stderrdata = _run_test_snippet(
+            'raw_array.py', '@cupy:0')
         assert ret == 0, (
             '[stdout]:{!r}\n'
             '[stderr]:{!r}'.format(stdoutdata, stderrdata))
@@ -158,10 +153,11 @@ class TestRawArray(unittest.TestCase):
 
 class TestChildReporter(unittest.TestCase):
 
-    def check_with_gpus(self, n_devices):
-        device_ids_str = ','.join([str(n) for n in range(n_devices)])
+    def check_with_devices(self, n_devices):
+        devices_str = ','.join([
+            '@cupy:{}'.format(device_id) for device_id in range(n_devices)])
         ret, stdoutdata, stderrdata = _run_test_snippet(
-            'child_reporter.py', device_ids_str)
+            'child_reporter.py', devices_str)
         assert ret == 0, (
             '[stdout]:{!r}\n'
             '[stderr]:{!r}'.format(stdoutdata, stderrdata))
@@ -170,13 +166,13 @@ class TestChildReporter(unittest.TestCase):
     @unittest.skipUnless(mpu.MultiprocessParallelUpdater.available(),
                          'MultiprocessParallelUpdater is not available.')
     def test_single_device(self):
-        self.check_with_gpus(1)
+        self.check_with_devices(1)
 
     @attr.multi_gpu(2)
     @unittest.skipUnless(mpu.MultiprocessParallelUpdater.available(),
                          'MultiprocessParallelUpdater is not available.')
     def test_multi_device(self):
-        self.check_with_gpus(2)
+        self.check_with_devices(2)
 
 
 class TestCUDAContext(unittest.TestCase):
@@ -186,6 +182,20 @@ class TestCUDAContext(unittest.TestCase):
                          'MultiprocessParallelUpdater is not available.')
     def test_cuda_init(self):
         ret, stdoutdata, stderrdata = _run_test_snippet('cuda_init.py')
+        assert ret == 0, (
+            '[stdout]:{!r}\n'
+            '[stderr]:{!r}'.format(stdoutdata, stderrdata))
+
+
+class TestDevicesByDeviceIds(unittest.TestCase):
+
+    @attr.gpu
+    @unittest.skipUnless(mpu.MultiprocessParallelUpdater.available(),
+                         'MultiprocessParallelUpdater is not available.')
+    def test_devices_by_device_ids_array(self):
+        # Test passing devices to MultiprocessParallelUpdater by their ids.
+        ret, stdoutdata, stderrdata = _run_test_snippet(
+            'raw_array.py', '0')
         assert ret == 0, (
             '[stdout]:{!r}\n'
             '[stderr]:{!r}'.format(stdoutdata, stderrdata))

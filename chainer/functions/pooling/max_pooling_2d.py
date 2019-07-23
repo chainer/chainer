@@ -3,10 +3,14 @@ import numpy
 import chainer
 from chainer.backends import cuda
 from chainer.backends import intel64
+from chainer import configuration
 from chainer import function_node
 from chainer.functions.pooling import pooling_2d
 from chainer.utils import conv
 import chainerx
+
+if cuda.cudnn_enabled:
+    _cudnn_version = cuda.cuda.cudnn.getVersion()
 
 
 class MaxPooling2D(pooling_2d.Pooling2D):
@@ -125,7 +129,10 @@ class MaxPooling2D(pooling_2d.Pooling2D):
         return MaxPooling2DGrad(self).apply(gy)
 
     def _get_pool_mode(self):
-        return cuda.cuda.cudnn.CUDNN_POOLING_MAX
+        if _cudnn_version >= 6000 and configuration.config.cudnn_deterministic:
+            return cuda.cuda.cudnn.CUDNN_POOLING_MAX_DETERMINISTIC
+        else:
+            return cuda.cuda.cudnn.CUDNN_POOLING_MAX
 
 
 class MaxPooling2DGrad(function_node.FunctionNode):
@@ -157,8 +164,8 @@ class MaxPooling2DGrad(function_node.FunctionNode):
         gcol = numpy.zeros(
             (n * c * out_h * out_w * kh * kw), dtype=self._in_dtype)
 
-        indexes = self.indexes.flatten()
-        indexes += numpy.arange(0, indexes.size * kh * kw, kh * kw)
+        indexes = self.indexes.ravel() + numpy.arange(
+            0, self.indexes.size * kh * kw, kh * kw)
 
         gcol[indexes] = gy[0].ravel()
         gcol = gcol.reshape(n, c, out_h, out_w, kh, kw)

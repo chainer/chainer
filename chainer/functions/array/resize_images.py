@@ -1,3 +1,5 @@
+from __future__ import division
+
 import numpy
 
 from chainer import backend
@@ -169,11 +171,42 @@ def interpolate_grad_bilinear_gpu(gy, v, u, vw, uw, H, W):
     return gx.reshape((B, C, H, W))
 
 
+def compute_indices_and_weights(out_size, in_size, mode, align_corners, xp):
+    out_H, out_W = out_size
+    H, W = in_size
+    if mode == 'bilinear':
+        if align_corners:
+            v = xp.linspace(0, H - 1, num=out_H, dtype=numpy.float)
+            u = xp.linspace(0, W - 1, num=out_W, dtype=numpy.float)
+        else:
+            y_scale = H / out_H
+            x_scale = W / out_W
+            v = (xp.arange(out_H, dtype=numpy.float) + 0.5) * y_scale - 0.5
+            v = xp.maximum(v, 0)
+            u = (xp.arange(out_W, dtype=numpy.float) + 0.5) * x_scale - 0.5
+            u = xp.maximum(u, 0)
+        vw, v = xp.modf(v)
+        uw, u = xp.modf(u)
+    elif mode == 'nearest':
+        y_scale = H / out_H
+        x_scale = W / out_W
+        v = xp.minimum(xp.floor(
+            xp.arange(out_H, dtype=numpy.float) * y_scale), H - 1)
+        u = xp.minimum(xp.floor(
+            xp.arange(out_W, dtype=numpy.float) * x_scale), W - 1)
+        vw = xp.zeros_like(v)
+        uw = xp.zeros_like(u)
+    return v, u, vw, uw
+
+
 class ResizeImages(function_node.FunctionNode):
 
-    def __init__(self, output_shape):
+    def __init__(self, output_shape, mode, align_corners):
         self.out_H = output_shape[0]
         self.out_W = output_shape[1]
+        assert mode in ['bilinear', 'nearest']
+        self.mode = mode
+        self.align_corners = align_corners
 
     def check_type_forward(self, in_types):
         type_check._argname(in_types, ('x',))
@@ -188,14 +221,9 @@ class ResizeImages(function_node.FunctionNode):
         x, = inputs
         xp = backend.get_array_module(x)
 
-        _, C, H, W = x.shape
-        out_H, out_W = self.out_H, self.out_W
-
-        # Compute indices and weights.
-        v = xp.linspace(0, H - 1, num=out_H, dtype=numpy.float)
-        u = xp.linspace(0, W - 1, num=out_W, dtype=numpy.float)
-        vw, v = xp.modf(v)
-        uw, u = xp.modf(u)
+        v, u, vw, uw = compute_indices_and_weights(
+            (self.out_H, self.out_W), x.shape[2:],
+            self.mode, self.align_corners, xp)
         v = v.astype(numpy.intp)
         u = u.astype(numpy.intp)
         vw = vw.astype(x.dtype)
@@ -215,15 +243,20 @@ class ResizeImages(function_node.FunctionNode):
 
     def backward(self, indexes, grad_outputs):
         return ResizeImagesGrad(
-            self.inputs[0].shape, (self.out_H, self.out_W)).apply(grad_outputs)
+            self.inputs[0].shape,
+            (self.out_H, self.out_W),
+            self.mode, self.align_corners).apply(grad_outputs)
 
 
 class ResizeImagesGrad(function_node.FunctionNode):
 
-    def __init__(self, input_shape, output_shape):
+    def __init__(self, input_shape, output_shape, mode, align_corners):
         self.out_H = output_shape[0]
         self.out_W = output_shape[1]
         self.input_shape = input_shape
+        assert mode in ['bilinear', 'nearest']
+        self.mode = mode
+        self.align_corners = align_corners
 
     def check_type_forward(self, in_types):
         type_check._argname(in_types, ('gy',))
@@ -239,13 +272,10 @@ class ResizeImagesGrad(function_node.FunctionNode):
         xp = backend.get_array_module(gy)
 
         _, C, H, W = self.input_shape
-        out_H, out_W = self.out_H, self.out_W
 
-        # Compute indices and weights.
-        v = xp.linspace(0, H - 1, num=out_H, dtype=numpy.float)
-        u = xp.linspace(0, W - 1, num=out_W, dtype=numpy.float)
-        vw, v = xp.modf(v)
-        uw, u = xp.modf(u)
+        v, u, vw, uw = compute_indices_and_weights(
+            (self.out_H, self.out_W), (H, W),
+            self.mode, self.align_corners, xp)
         v = v.astype(numpy.intp)
         u = u.astype(numpy.intp)
         vw = vw.astype(gy.dtype)
@@ -264,10 +294,12 @@ class ResizeImagesGrad(function_node.FunctionNode):
         return gx,
 
     def backward(self, indexes, grad_outputs):
-        return ResizeImages((self.out_H, self.out_W)).apply(grad_outputs)
+        return ResizeImages(
+            (self.out_H, self.out_W),
+            self.mode, self.align_corners).apply(grad_outputs)
 
 
-def resize_images(x, output_shape):
+def resize_images(x, output_shape, mode='bilinear', align_corners=True):
     """Resize images to the given shape.
 
     This function resizes 2D data to :obj:`output_shape`.
@@ -288,10 +320,15 @@ def resize_images(x, output_shape):
         output_shape (tuple): This is a tuple of length 2 whose values are
             :obj:`(h_O, w_O)`. Note that the order of height and width is
             opposite of the one in OpenCV.
+        mode ({\'bilinear\', \'nearest\'}): Defines the sampling rule.
+        align_corners (bool): When this value is :obj:`True`,
+            the corners of the input are mapped to the corners of
+            the output. When :obj:`False`, the behavior is the same as
+            OpenCV.
 
     Returns:
         ~chainer.Variable: Resized image whose shape is \
             :math:`(n, c_I, h_O, w_O)`.
 
     """
-    return ResizeImages(output_shape).apply((x,))[0]
+    return ResizeImages(output_shape, mode, align_corners).apply((x,))[0]

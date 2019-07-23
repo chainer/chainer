@@ -64,14 +64,17 @@ def deformable_convolution_2d_sampler(x, offset, W, b=None, stride=1, pad=0):
     locations in the standard convolution. It enables free form deformation of
     the sampling grid.
 
-    See `Jifeng Dai, Haozhi Qi, Yuwen Xiong, Yi Li, Guodong Zhang, Han Hu, \
-        Yichen Wei. Deformable Convolutional Networks\
-        <https://arxiv.org/abs/1703.06211>`_
+    See `Jifeng Dai, Haozhi Qi, Yuwen Xiong, Yi Li, Guodong Zhang, Han Hu,
+    Yichen Wei. Deformable Convolutional Networks
+    <https://arxiv.org/abs/1703.06211>`_
 
     If the bias vector is given, then it is added to all spatial locations of
     the output of convolution.
 
-    .. seealso:: :class:`~chainer.links.DeformableConvolution2D`
+    .. seealso::
+
+        :class:`~chainer.links.DeformableConvolution2D` to manage the model
+        parameters ``W`` and ``b``.
 
     .. admonition:: Example
 

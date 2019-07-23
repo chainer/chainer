@@ -4,7 +4,7 @@ import warnings
 
 import numpy
 
-from chainer import backend
+import chainer
 from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import optimizer
@@ -78,23 +78,23 @@ class AdamRule(optimizer.UpdateRule):
 
     """Update rule of Adam optimization algorithm.
 
-    See: `Adam: A Method for Stochastic Optimization \
-          <https://arxiv.org/abs/1412.6980v8>`_
+    See: `Adam: A Method for Stochastic Optimization
+    <https://arxiv.org/abs/1412.6980v8>`_
 
     Modified for proper weight decay.
 
-    See: `Fixing Weight Decay Regularization in Adam \
-          <https://openreview.net/forum?id=rk6qdGgCZ>`_
+    See: `Fixing Weight Decay Regularization in Adam
+    <https://openreview.net/forum?id=rk6qdGgCZ>`_
 
     With option to use AMSGrad variant of Adam.
 
-    See: `On the Convergence of Adam and Beyond \
-          <https://openreview.net/forum?id=ryQu7f-RZ>`_
+    See: `On the Convergence of Adam and Beyond
+    <https://openreview.net/forum?id=ryQu7f-RZ>`_
 
     With option to use AdaBound variant of Adam.
 
-    See: `Adaptive Gradient Methods with Dynamic Bound of Learning Rate \
-          <https://openreview.net/forum?id=Bkg3g2R9FX>`
+    See: `Adaptive Gradient Methods with Dynamic Bound of Learning Rate
+    <https://openreview.net/forum?id=Bkg3g2R9FX>`
 
     See :class:`~chainer.optimizers.Adam` for the default values
     of the hyperparameters.
@@ -155,8 +155,8 @@ class AdamRule(optimizer.UpdateRule):
             self.initial_alpha = self.hyperparam.alpha
 
     def init_state(self, param):
-        xp = backend.get_array_module(param.data)
-        with cuda.get_device_from_array(param.data):
+        with chainer.using_device(param.device):
+            xp = param.device.xp
             self.state['m'] = xp.zeros_like(param.data)
             self.state['v'] = xp.zeros_like(param.data)
             if self.hyperparam.amsgrad:
@@ -204,7 +204,7 @@ class AdamRule(optimizer.UpdateRule):
             vhat = self.state['vhat']
             # For iDeep
             if isinstance(vhat, intel64.mdarray):
-                vhat = numpy.maximum(vhat, v)
+                vhat[...] = numpy.maximum(vhat, v)
             else:
                 numpy.maximum(vhat, v, out=vhat)
         else:
@@ -217,7 +217,7 @@ class AdamRule(optimizer.UpdateRule):
         # param -=
         #  eta * (step * m - weight_decay_rate * param)
         _inplace_axpby(
-            param.data, 1.0 - hp.weight_decay_rate, -hp.eta, step * m)
+            param.data, 1.0 - hp.eta * hp.weight_decay_rate, -hp.eta, step * m)
 
     def update_core_gpu(self, param):
         grad = param.grad
@@ -240,12 +240,18 @@ class AdamRule(optimizer.UpdateRule):
                     'T eps, T eta, T weight_decay_rate, raw T dummy',
                     'P param, P m, P v, P vhat',
                     '''T grad_ = static_cast<T>(grad);
-                       m += one_minus_beta1 * (grad_ - m);
-                       v += one_minus_beta2 * (grad_ * grad - v);
-                       vhat = max(vhat, v);
+                       T m_ = static_cast<T>(m);
+                       T v_ = static_cast<T>(v);
+                       T vhat_ = static_cast<T>(vhat);
+                       m_ += one_minus_beta1 * (grad_ - m_);
+                       v_ += one_minus_beta2 * (grad_ * grad_ - v_);
+                       vhat_ = max(vhat_, v_);
+                       vhat = static_cast<T>(vhat_);
+                       m = static_cast<P>(m_);
+                       v = static_cast<P>(v_);
                        param -= eta *
-                           (max(min(alpha_t / (sqrt(vhat) + eps), upper),
-                                lower) * m + weight_decay_rate * param);''',
+                           (max(min(alpha_t / (sqrt(vhat_) + eps), upper),
+                                lower) * m_ + weight_decay_rate * param);''',
                     'amsbound')
             AdamRule._amsbound_kernel(
                 grad, self.alpha_t, 1 - hp.beta1,
@@ -261,11 +267,15 @@ class AdamRule(optimizer.UpdateRule):
                     'T eps, T eta, T weight_decay_rate, raw T dummy',
                     'P param, P m, P v',
                     '''T grad_ = static_cast<T>(grad);
-                       m += one_minus_beta1 * (grad_ - m);
-                       v += one_minus_beta2 * (grad_ * grad_ - v);
+                       T m_ = static_cast<T>(m);
+                       T v_ = static_cast<T>(v);
+                       m_ += one_minus_beta1 * (grad_ - m_);
+                       v_ += one_minus_beta2 * (grad_ * grad_ - v_);
+                       m = static_cast<P>(m_);
+                       v = static_cast<P>(v_);
                        param -= eta *
-                           (max(min(alpha_t / (sqrt(v) + eps), upper),
-                                lower) * m + weight_decay_rate * param);''',
+                           (max(min(alpha_t / (sqrt(v_) + eps), upper),
+                                lower) * m_ + weight_decay_rate * param);''',
                     'adabound')
             AdamRule._adabound_kernel(
                 grad, self.alpha_t, 1 - hp.beta1,
@@ -279,10 +289,16 @@ class AdamRule(optimizer.UpdateRule):
                     'T eps, T eta, T weight_decay_rate, raw T dummy',
                     'P param, P m, P v, P vhat',
                     '''T grad_ = static_cast<T>(grad);
-                       m += one_minus_beta1 * (grad_ - m);
-                       v += one_minus_beta2 * (grad_ * grad_ - v);
-                       vhat = max(vhat, v);
-                       param -= eta * (alpha_t * m / (sqrt(vhat) + eps) +
+                       T m_ = static_cast<T>(m);
+                       T v_ = static_cast<T>(v);
+                       T vhat_ = static_cast<T>(vhat);
+                       m_ += one_minus_beta1 * (grad_ - m_);
+                       v_ += one_minus_beta2 * (grad_ * grad_ - v_);
+                       vhat_ = max(vhat_, v_);
+                       vhat = static_cast<T>(vhat_);
+                       m = static_cast<P>(m_);
+                       v = static_cast<P>(v_);
+                       param -= eta * (alpha_t * m_ / (sqrt(vhat_) + eps) +
                                        weight_decay_rate * param);''',
                     'adam')
             AdamRule._amsgrad_kernel(
@@ -298,9 +314,13 @@ class AdamRule(optimizer.UpdateRule):
                     'T eps, T eta, T weight_decay_rate, raw T dummy',
                     'P param, P m, P v',
                     '''T grad_ = static_cast<T>(grad);
-                       m += one_minus_beta1 * (grad_ - m);
-                       v += one_minus_beta2 * (grad_ * grad_ - v);
-                       param -= eta * (alpha_t * m / (sqrt(v) + eps) +
+                       T m_ = static_cast<T>(m);
+                       T v_ = static_cast<T>(v);
+                       m_ += one_minus_beta1 * (grad_ - m_);
+                       v_ += one_minus_beta2 * (grad_ * grad_ - v_);
+                       m = static_cast<P>(m_);
+                       v = static_cast<P>(v_);
+                       param -= eta * (alpha_t * m_ / (sqrt(v_) + eps) +
                                        weight_decay_rate * param);''',
                     'adam')
             AdamRule._kernel(
@@ -340,8 +360,8 @@ class Adam(optimizer.GradientMethod):
 
     """Adam optimizer.
 
-    See: `Adam: A Method for Stochastic Optimization \
-          <https://arxiv.org/abs/1412.6980v8>`_
+    See: `Adam: A Method for Stochastic Optimization
+    <https://arxiv.org/abs/1412.6980v8>`_
 
     Modified for proper weight decay (also called
     :class:`~chainer.optimizers.AdamW`).
@@ -354,18 +374,18 @@ class Adam(optimizer.GradientMethod):
     ``weight_decay_rate = 0``, this implementation is identical to
     the standard Adam method.
 
-    See: `Fixing Weight Decay Regularization in Adam \
-          <https://openreview.net/forum?id=rk6qdGgCZ>`_
+    See: `Fixing Weight Decay Regularization in Adam
+    <https://openreview.net/forum?id=rk6qdGgCZ>`_
 
     A flag ``amsgrad`` to use the :class:`~chainer.optimizers.AMSGrad`
-    variant of Adam from
-    the paper: `On the Convergence of Adam and Beyond \
-               <https://openreview.net/forum?id=ryQu7f-RZ>`_
+    variant of Adam from the paper:
+    `On the Convergence of Adam and Beyond
+    <https://openreview.net/forum?id=ryQu7f-RZ>`_
 
     A flag ``adabound`` to use the :class:`~chainer.optimizers.AdaBound`
-    variant of Adam from
-    the paper: `Adaptive Gradient Methods with Dynamic Bound of Learning Rate \
-               <https://openreview.net/forum?id=Bkg3g2R9FX>`_
+    variant of Adam from the paper:
+    `Adaptive Gradient Methods with Dynamic Bound of Learning Rate
+    <https://openreview.net/forum?id=Bkg3g2R9FX>`_
 
     If both ``amsgrad`` and ``adabound`` are ``True``, the optimizer is
     equivalent to :class:`~chainer.optimizers.AMSBound` proposed in the
@@ -441,8 +461,8 @@ class AdamW(Adam):
 
     This class is a special case of :class:`~chainer.optimizers.Adam`.
 
-    See: `Fixing Weight Decay Regularization in Adam \
-          <https://openreview.net/forum?id=rk6qdGgCZ>`_
+    See: `Fixing Weight Decay Regularization in Adam
+    <https://openreview.net/forum?id=rk6qdGgCZ>`_
 
     Args:
         alpha (float): Coefficient of learning rate.
@@ -473,8 +493,8 @@ class AMSGrad(Adam):
 
     This class is a special case of :class:`~chainer.optimizers.Adam`.
 
-    See: `On the Convergence of Adam and Beyond \
-          <https://openreview.net/forum?id=ryQu7f-RZ>`_
+    See: `On the Convergence of Adam and Beyond
+    <https://openreview.net/forum?id=ryQu7f-RZ>`_
 
     Args:
         alpha (float): Coefficient of learning rate.
@@ -501,8 +521,8 @@ class AdaBound(Adam):
 
     This class is a special case of :class:`~chainer.optimizers.Adam`.
 
-    See: `Adaptive Gradient Methods with Dynamic Bound of Learning Rate \
-          <https://openreview.net/forum?id=Bkg3g2R9FX>`_
+    See: `Adaptive Gradient Methods with Dynamic Bound of Learning Rate
+    <https://openreview.net/forum?id=Bkg3g2R9FX>`_
 
     Args:
         alpha (float): Coefficient of learning rate.
@@ -533,8 +553,8 @@ class AMSBound(Adam):
 
     This class is a special case of :class:`~chainer.optimizers.Adam`.
 
-    See: `Adaptive Gradient Methods with Dynamic Bound of Learning Rate \
-          <https://openreview.net/forum?id=Bkg3g2R9FX>`_
+    See: `Adaptive Gradient Methods with Dynamic Bound of Learning Rate
+    <https://openreview.net/forum?id=Bkg3g2R9FX>`_
 
     Args:
         alpha (float): Coefficient of learning rate.

@@ -3,8 +3,8 @@
 #include <atomic>
 #include <string>
 
+#include <absl/types/optional.h>
 #include <gtest/gtest.h>
-#include <nonstd/optional.hpp>
 
 #include "chainerx/backend.h"
 #include "chainerx/context.h"
@@ -25,7 +25,7 @@ int GetNativeDeviceLimit(Backend& backend) {
     if (limit >= 0) {
         return limit;
     }
-    if (nonstd::optional<std::string> env = GetEnv("CHAINERX_TEST_NATIVE_DEVICE_LIMIT")) {
+    if (absl::optional<std::string> env = GetEnv("CHAINERX_TEST_NATIVE_DEVICE_LIMIT")) {
         try {
             limit = std::stoi(*env);
         } catch (const std::exception&) {
@@ -46,7 +46,7 @@ int GetCudaDeviceLimit(Backend& backend) {
     if (limit >= 0) {
         return limit;
     }
-    if (nonstd::optional<std::string> env = GetEnv("CHAINERX_TEST_CUDA_DEVICE_LIMIT")) {
+    if (absl::optional<std::string> env = GetEnv("CHAINERX_TEST_CUDA_DEVICE_LIMIT")) {
         try {
             limit = std::stoi(*env);
         } catch (const std::exception&) {
