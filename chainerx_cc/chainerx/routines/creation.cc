@@ -346,7 +346,7 @@ Array Tri(int64_t n, absl::optional<int64_t> m, absl::optional<int64_t> k, absl:
         k = 0;
     }
     if (!dtype.has_value()) {
-        dtype = Dtype::kFloat64;
+        dtype = Dtype::kFloat32;
     }
     // NumPy returns 0-sized array for the input with negative dimensions.
     // This is a flaw in NumPy's implementation. Other array creation routines raise an error for negative dimensions.
