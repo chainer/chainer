@@ -295,23 +295,16 @@ public:
 
         CHAINERX_ASSERT(a.ndim() == 2);
 
+        // LAPACK routine works with arrays in column-major order.
+        // In order to avoid transposes instead of calculating svd(A) = U S V^T, we compute svd(A^T)
         int64_t n = a.shape()[0];
         int64_t m = a.shape()[1];
+        int64_t mn = std::min(m, n);
+        int64_t ldu = m;
+        int64_t ldvt = n;
 
         Array x = Empty(Shape{n, m}, dtype, device);
-        bool trans_flag;
-
-        if (m >= n) {
-            device.backend().CallKernel<CopyKernel>(a, x);
-            trans_flag = false;
-        } else {
-            m = a.shape()[0];
-            n = a.shape()[1];
-            x = x.Reshape(Shape{n, m});
-            device.backend().CallKernel<CopyKernel>(a.Transpose(), x);
-            trans_flag = true;
-        }
-        int64_t mn = std::min(m, n);
+        device.backend().CallKernel<CopyKernel>(a, x);
 
         Array u{};
         Array vt{};
@@ -322,7 +315,8 @@ public:
                 vt = Empty(Shape{n, n}, dtype, device);
             } else {
                 u = Empty(Shape{mn, m}, dtype, device);
-                vt = Empty(Shape{mn, n}, dtype, device);
+                vt = Empty(Shape{n, mn}, dtype, device);
+                ldvt = mn;
             }
         } else {
             u = Empty(Shape{0}, dtype, device);
@@ -352,23 +346,19 @@ public:
             int info;
             int buffersize = -1;
             T work_size;
-            Gesdd(job, m, n, x_ptr, m, s_ptr, u_ptr, m, vt_ptr, n, &work_size, buffersize, iwork_ptr, &info);
+            Gesdd(job, m, n, x_ptr, m, s_ptr, u_ptr, ldu, vt_ptr, ldvt, &work_size, buffersize, iwork_ptr, &info);
             buffersize = static_cast<int>(work_size);
 
             Array work = Empty(Shape{buffersize}, dtype, device);
             auto work_ptr = static_cast<T*>(internal::GetRawOffsetData(work));
 
-            Gesdd(job, m, n, x_ptr, m, s_ptr, u_ptr, m, vt_ptr, n, work_ptr, buffersize, iwork_ptr, &info);
+            Gesdd(job, m, n, x_ptr, m, s_ptr, u_ptr, ldu, vt_ptr, ldvt, work_ptr, buffersize, iwork_ptr, &info);
 
             if (info != 0) {
                 throw ChainerxError{"Unsuccessful gesdd (SVD) execution. Info = ", info};
             }
 
-            if (trans_flag) {
-                return std::make_tuple(std::move(u.Transpose()), std::move(s), std::move(vt.Transpose()));
-            } else {
-                return std::make_tuple(std::move(vt), std::move(s), std::move(u));
-            }
+            return std::make_tuple(std::move(vt), std::move(s), std::move(u));
         };
 
         return VisitFloatingPointDtype(dtype, svd_impl);
