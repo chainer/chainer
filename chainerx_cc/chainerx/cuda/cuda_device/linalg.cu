@@ -313,6 +313,8 @@ public:
             trans_flag = true;
         }
         int64_t mn = std::min(m, n);
+        int64_t ldu = m;
+        int64_t ldvt = n;
 
         Array u{};
         Array vt{};
@@ -323,7 +325,8 @@ public:
                 vt = Empty(Shape{n, n}, dtype, device);
             } else {
                 u = Empty(Shape{mn, m}, dtype, device);
-                vt = Empty(Shape{mn, n}, dtype, device);
+                vt = Empty(Shape{n, mn}, dtype, device);
+                ldvt = mn;
             }
         } else {
             u = Empty(Shape{0}, dtype, device);
@@ -366,9 +369,9 @@ public:
                     m,
                     s_ptr,
                     u_ptr,
-                    m,
+                    ldu,
                     vt_ptr,
-                    n,
+                    ldvt,
                     work_ptr,
                     buffersize,
                     nullptr,
