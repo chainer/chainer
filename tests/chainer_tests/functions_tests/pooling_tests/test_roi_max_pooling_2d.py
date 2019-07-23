@@ -19,7 +19,7 @@ def _pair(x):
 @testing.parameterize(*testing.product({
     'dtype': [numpy.float32, numpy.float64],
     'outsize': [
-        5, 7, (5, 7), numpy.int32(5),
+        5, 7, (5, 7),
         (numpy.int32(5), numpy.int32(7))],
     'spatial_scale': [
         0.6, 1.0, 2, numpy.float32(0.6), numpy.int32(2)],
