@@ -208,8 +208,9 @@ method to evaluate expression.
         # `z == w`. It is confusing.
         # See also:
         # https://docs.python.org/3/library/stdtypes.html
-        msg = ('Don\'t convert Expr to bool. '
-               'Please call Expr.eval method to evaluate expression.')
+        msg = ('An Expr instance cannot be evaluated as bool. '
+               'Please use chainer.type_check.eval() to evaluate an '
+               'expression.')
         raise RuntimeError(msg)
 
     def __bool__(self):
