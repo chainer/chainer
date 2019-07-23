@@ -1203,6 +1203,36 @@ def test_tri(xp, shape, k, dtype_spec, device):
     return out
 
 
+@chainerx.testing.numpy_chainerx_array_equal()
+@pytest.mark.parametrize('N,M,k', [
+    (3, None, 1),
+    (3, 4, None),
+    (3, None, None),
+])
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@chainerx.testing.parametrize_dtype_specifier('dtype_spec')
+def test_tri_with_default(xp, N, M, k, dtype_spec, device):
+    if xp is numpy and isinstance(dtype_spec, chainerx.dtype):
+        dtype_spec = dtype_spec.name
+
+    if M is None and k is None:
+        return xp.tri(N, dtype=dtype_spec)
+    elif M is None:
+        return xp.tri(N, k=k, dtype=dtype_spec)
+    elif k is None:
+        return xp.tri(N, M=M, dtype=dtype_spec)
+    assert False
+
+
+@pytest.mark.parametrize(
+    'device', [None, 'native:1', chainerx.get_device('native:1')])
+def test_tri_with_device(device):
+    a = chainerx.tri(1, 2, 1, 'float32', device)
+    b = chainerx.tri(1, 2, 1, 'float32')
+    array_utils.check_device(a, device)
+    chainerx.testing.assert_array_equal_ex(a, b)
+
+
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
     chainer.testing.product({
