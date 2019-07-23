@@ -82,6 +82,7 @@ Returns:
         """tri(N, M=None, k=0, dtype=float64, device=None)
 Returns a 2-D array with ones at and below the given diagonal
 and zeros elsewhere.
+
 Args:
     N (int): Number of rows.
     M (int): Number of columns. M == N by default.
@@ -91,9 +92,11 @@ Args:
     dtype: Data type.
     device (~chainerx.Device): Device on which the array is allocated.
         If omitted, :ref:`the default device <chainerx_device>` is chosen.
+
 Returns:
     ~chainerx.ndarray: A 2-D array with given diagonals filled ones at and
     below the given diagonal and zeros elsewhere.
+
 .. seealso:: :func:`numpy.tri`
 """)
 
@@ -101,14 +104,18 @@ Returns:
         chainerx.tril,
         """tril(m, k=0)
 Lower triangle of an array.
+
 Returns a copy of an array with elements above the k-th diagonal zeroed.
+
 Args:
     m (~chainerx.ndarray): Input array.
     k (int): Index of the diagonal. Zero indicates the main diagonal,
         a positive index an upper diagonal, and a negative index a lower
         diagonal.
+
 Returns:
     ~chainerx.ndarray: Lower triangle of ``m``.
+
 .. seealso:: :func:`numpy.tril`
 """)
 
@@ -116,14 +123,18 @@ Returns:
         chainerx.triu,
         """triu(m, k=0)
 Upper triangle of an array.
+
 Returns a copy of an array with elements below the k-th diagonal zeroed.
+
 Args:
     m (~chainerx.ndarray): Input array.
     k (int): Index of the diagonal. Zero indicates the main diagonal,
         a positive index an upper diagonal, and a negative index a lower
         diagonal.
+
 Returns:
     ~chainerx.ndarray: Upper triangle of ``m``.
+
 .. seealso:: :func:`numpy.triu`
 """)
 
