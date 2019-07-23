@@ -5,6 +5,23 @@ from chainer.dataset.tabular import tabular_dataset
 def from_data(*args, **kwargs):
     """Create a :class:`~chainer.dataset.TabularDataset` from lists/arrays.
 
+    >>> from chainer.dataset import tabular
+    >>>
+    >>> dataset = tabular.from_data([0, 1, 2])
+    >>> dataset[0]
+    0
+    >>> dataset = tabular.from_data([0, 1, 2], [3, 4, 5])
+    >>> dataset[0]
+    (0, 3)
+    >>> dataset = tabular.from_data(('a', [0, 1, 2]), ('b', [3, 4, 5]))
+    >>> dataset.keys
+    ('a', 'b')
+    >>> dataset[0]
+    (0, 3)
+    >>> dataset = tabular.from_data(a=[0, 1, 2], b=[3, 4, 5])
+    >>> sorted(dataset[0].items())
+    [('a', 0), ('b', 3)]
+
     Args:
         args (list or array or tuple): Data of a column.
             If this argument is an array or a list,
