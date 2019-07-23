@@ -157,8 +157,8 @@ class MaxPooling2DGrad(function_node.FunctionNode):
         gcol = numpy.zeros(
             (n * c * out_h * out_w * kh * kw), dtype=self._in_dtype)
 
-        indexes = self.indexes.flatten()
-        indexes += numpy.arange(0, indexes.size * kh * kw, kh * kw)
+        indexes = self.indexes.ravel() + numpy.arange(
+            0, self.indexes.size * kh * kw, kh * kw)
 
         gcol[indexes] = gy[0].ravel()
         gcol = gcol.reshape(n, c, out_h, out_w, kh, kw)
