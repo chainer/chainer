@@ -1001,6 +1001,11 @@ class VariableToDeviceFamilyBase(object):
         gx = chainer.Variable(gx)
 
         if self.x_with_graph:
+            # When `x` is an `ideep4py.mdarray` (testing the intel64 backend),
+            # the operands must be `ideep4py.mdarray`s as well to guarantee
+            # that the type of `x` does not change. (E.g., arithmetics
+            # with Python scalars such as x *= 2 turns `x` into a
+            # `numpy.ndarray`.)
             x *= x
 
         if self.x_with_grad:
