@@ -24,8 +24,8 @@ set CHAINER_PYTHON_350_FORCE environment variable to 1."""
 requirements = {
     'install': [
         'setuptools',
-        'typing',
-        'typing_extensions',
+        'typing<=3.6.6',
+        'typing_extensions<=3.6.6',
         'filelock',
         'numpy>=1.9.0',
         # protobuf 3.8.0rc1 causes CI errors.
@@ -127,6 +127,7 @@ setup_kwargs = dict(
     packages=['chainer',
               'chainer.backends',
               'chainer.dataset',
+              'chainer.dataset.tabular',
               'chainer.datasets',
               'chainer.distributions',
               'chainer.exporters',
@@ -140,6 +141,7 @@ setup_kwargs = dict(
               'chainer.functions.noise',
               'chainer.functions.normalization',
               'chainer.functions.pooling',
+              'chainer.functions.rnn',
               'chainer.functions.theano',
               'chainer.functions.util',
               'chainer.function_hooks',
@@ -154,6 +156,7 @@ setup_kwargs = dict(
               'chainer.links.model',
               'chainer.links.model.vision',
               'chainer.links.normalization',
+              'chainer.links.rnn',
               'chainer.links.theano',
               'chainer.link_hooks',
               'chainer.graph_optimizations',
@@ -185,7 +188,8 @@ setup_kwargs = dict(
 
 
 build_chainerx = 0 != int(os.getenv('CHAINER_BUILD_CHAINERX', '0'))
-if os.getenv('READTHEDOCS', None) == 'True':
+if (os.getenv('READTHEDOCS', None) == 'True'
+        and os.getenv('READTHEDOCS_PROJECT', None) == 'chainer'):
     os.environ['MAKEFLAGS'] = '-j2'
     build_chainerx = True
 

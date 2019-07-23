@@ -27,14 +27,15 @@ class Normal(initializer.Initializer):
         super(Normal, self).__init__(dtype)
 
     def __call__(self, array):
-        xp = backend.get_array_module(array)
+        device = backend.get_device_from_array(array)
         args = {'loc': 0.0, 'scale': self.scale, 'size': array.shape}
-        if xp is cuda.cupy:
+        if device.xp is cuda.cupy:
             # Only CuPy supports dtype option
             if self.dtype == numpy.float32 or self.dtype == numpy.float16:
                 # float16 is not supported in cuRAND
                 args['dtype'] = numpy.float32
-        array[...] = xp.random.normal(**args)
+
+        array[...] = device.xp.random.normal(**args)
 
 
 class LeCunNormal(initializer.Initializer):

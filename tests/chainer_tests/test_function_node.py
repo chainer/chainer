@@ -362,11 +362,9 @@ class TestFunctionNodeMixChainerxAndXpArrays(unittest.TestCase):
         xp_x1 = xp.random.randn(2, 3).astype(numpy.float32)
         xp_x2 = xp.random.randn(2, 3).astype(numpy.float32)
         x2 = backend.to_chx(xp_x2)
-        y, = self.SimpleFunctionNode(xp).apply((xp_x1, x2))
-
-        assert isinstance(y.array, chainerx.ndarray)
-        chainerx.testing.assert_array_equal(
-            backend.CpuDevice().send(xp_x1 * xp_x2), y.array)
+        fnode = self.SimpleFunctionNode(xp)
+        with self.assertRaises(TypeError):
+            fnode.apply((xp_x1, x2))
 
     @attr.chainerx
     def test_mix_numpy(self):
@@ -883,8 +881,6 @@ class GradTestBase(object):
         for name in names:
             v = chainer.Variable(
                 numpy.random.randint(-4, 6, self.shape).astype('f'), name=name)
-            if self.extend_graph_x:
-                v *= 1.
             ret.append(v)
             setattr(self, name, v)
         return ret
@@ -915,10 +911,10 @@ class GradTestBase(object):
             self._init_ones(self._to_grad_names(self.y_names))
             self.gys = None
 
-    def use_gpu(self):
+    def use_device(self, device):
         for value in six.itervalues(self.__dict__):
             if isinstance(value, chainer.Variable):
-                value.to_gpu()
+                value.to_device(device)
 
     def forward(self):
         raise NotImplementedError
@@ -943,6 +939,13 @@ class GradTestBase(object):
         ys = [getattr(self, name) for name in self.y_names]
         if self.extend_graph_y:
             self._ys = [v * 1. for v in ys]
+
+        # graph_x extension should be done here
+        # to avoid chainer/chainerx mixed graph
+        if self.extend_graph_x:
+            for v in self.xs:
+                v *= 1.
+
         gxs = chainer.grad(ys, self.xs, self.gys, self.gxs,
                            loss_scale=self.loss_scale)
 
@@ -960,12 +963,10 @@ class GradTestBase(object):
             self._print_variables('gxs (expected)', expected)
             raise
 
-    def test_grad_cpu(self):
-        self.check_grad()
-
-    @attr.gpu
-    def test_grad_gpu(self):
-        self.use_gpu()
+    def test_grad(self, backend_config):
+        if self.loss_scale and backend_config.xp is chainerx:
+            pytest.skip('chainerx.grad does not support loss_scale')
+        self.use_device(backend_config.device)
         self.check_grad()
 
     def check_double_grad(self):
@@ -989,18 +990,28 @@ class GradTestBase(object):
             self._print_variables('ggxs (expected)', expected)
             raise
 
-    def test_double_grad_cpu(self):
-        self.check_double_grad()
-
-    @attr.gpu
-    def test_double_grad_gpu(self):
-        self.use_gpu()
+    def test_double_grad(self, backend_config):
+        if self.loss_scale and backend_config.xp is chainerx:
+            pytest.skip('chainerx.grad does not support loss_scale')
+        self.use_device(backend_config.device)
         self.check_double_grad()
 
 
 @testing.parameterize(*testing.product({
     'loss_scale': [None, 1, 10],
 }))
+@testing.backend.inject_backend_tests(
+    None,
+    [
+        {},
+        {'use_ideep': 'always'},
+        {'use_cuda': True, 'cuda_device': 0},
+        {'use_cuda': True, 'cuda_device': 1},
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
+    ]
+)
 class TestGradSimple(GradTestBase, unittest.TestCase):
 
     x_names = 'x',
@@ -1026,6 +1037,18 @@ class TestGradSimple(GradTestBase, unittest.TestCase):
     'extend_graph_x': [False, True],
     'extend_graph_y': [False, True],
 }))
+@testing.backend.inject_backend_tests(
+    None,
+    [
+        {},
+        {'use_ideep': 'always'},
+        {'use_cuda': True, 'cuda_device': 0},
+        {'use_cuda': True, 'cuda_device': 1},
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
+    ]
+)
 class TestGradComplex(GradTestBase, unittest.TestCase):
 
     x_names = 'x1', 'x2'
@@ -1070,6 +1093,18 @@ def exp_pair(x):
 @testing.parameterize(*testing.product({
     'keep_y2': [False, True],
 }))
+@testing.backend.inject_backend_tests(
+    None,
+    [
+        {},
+        {'use_ideep': 'always'},
+        {'use_cuda': True, 'cuda_device': 0},
+        {'use_cuda': True, 'cuda_device': 1},
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
+    ]
+)
 class TestGradDelRetainedOutput(GradTestBase, unittest.TestCase):
 
     x_names = 'x1',

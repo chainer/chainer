@@ -15,6 +15,7 @@ Common Classes and Utilities
    chainer.backend.Device
    chainer.get_device
    chainer.using_device
+   chainer.backend.get_device_from_array
    chainer.backend.get_array_module
    chainer.DeviceResident
    chainer.device_resident.DeviceResidentsVisitor

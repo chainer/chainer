@@ -6,7 +6,7 @@
 #include <tuple>
 #include <utility>
 
-#include <nonstd/optional.hpp>
+#include <absl/types/optional.h>
 
 #include "chainerx/array.h"
 #include "chainerx/axes.h"
@@ -19,8 +19,9 @@
 #include "chainerx/graph.h"
 #include "chainerx/kernels/normalization.h"
 #include "chainerx/macro.h"
+#include "chainerx/routines/arithmetic.h"
 #include "chainerx/routines/creation.h"
-#include "chainerx/routines/math.h"
+#include "chainerx/routines/misc.h"
 #include "chainerx/routines/routines_util.h"
 #include "chainerx/routines/statistics.h"
 #include "chainerx/routines/type_util.h"
@@ -99,7 +100,7 @@ PreprocessBatchNormResult PreprocessBatchNorm(
     return {std::move(gamma_reshaped), std::move(beta_reshaped), std::move(mean_reshaped), std::move(var_reshaped), sorted_axis};
 }
 
-Array ArrayOrZeros(const nonstd::optional<Array>& array, const Array& zeros_template, Dtype dtype) {
+Array ArrayOrZeros(const absl::optional<Array>& array, const Array& zeros_template, Dtype dtype) {
     if (array.has_value()) {
         if (array->dtype() == dtype) {
             return *array;
@@ -119,7 +120,7 @@ std::tuple<Array, std::unique_ptr<BatchNormGradState>> ApplyGenericBatchNorm(
         const Axes& axis,
         Dtype interm_dtype,
         bool return_state,
-        const nonstd::optional<Array>& out) {
+        const absl::optional<Array>& out) {
     if (CHAINERX_DEBUG) {
         Shape reduced_shape = internal::ReduceShape(x.shape(), axis, true);
         CHAINERX_ASSERT(gamma.shape() == reduced_shape);
@@ -163,7 +164,7 @@ std::tuple<Array, std::unique_ptr<BatchNormGradState>> GenericBatchNormKernel::C
         Scalar decay,
         const Axes& axis,
         bool return_state,
-        const nonstd::optional<Array>& out) {
+        const absl::optional<Array>& out) {
     CHAINERX_ASSERT(internal::GetArrayBody(x)->nodes().empty());
     CHAINERX_ASSERT(internal::GetArrayBody(gamma)->nodes().empty());
     CHAINERX_ASSERT(internal::GetArrayBody(beta)->nodes().empty());
@@ -200,9 +201,9 @@ std::tuple<Array, Array, Array> GenericBatchNormGradKernel::Call(
         Scalar /*eps*/,
         const Axes& axis,
         const std::shared_ptr<BatchNormGradState>& state,
-        const nonstd::optional<Array>& gx,
-        const nonstd::optional<Array>& ggamma,
-        const nonstd::optional<Array>& gbeta) {
+        const absl::optional<Array>& gx,
+        const absl::optional<Array>& ggamma,
+        const absl::optional<Array>& gbeta) {
     // TODO(hvy): Implement and test the `gx` argument.
     if (gx.has_value()) {
         throw NotImplementedError{"Passing gx as an argument is not yet supported."};
@@ -255,7 +256,7 @@ Array GenericFixedBatchNormKernel::Call(
         const Array& var,
         Scalar eps,
         const Axes& axis,
-        const nonstd::optional<Array>& out) {
+        const absl::optional<Array>& out) {
     Dtype interm_dtype = ResultType(x, gamma, beta, mean, var);
     std::tuple<Array, std::unique_ptr<BatchNormGradState>> result =
             ApplyGenericBatchNorm(x, gamma, beta, mean, var, eps, axis, interm_dtype, false, out);
@@ -296,7 +297,7 @@ Array BatchNorm(
                 decay,
                 sorted_axis,
                 true,
-                nonstd::nullopt);
+                absl::nullopt);
     }
     CHAINERX_ASSERT(state != nullptr);
 
@@ -324,7 +325,7 @@ Array BatchNorm(
             {
                 NoBackpropModeScope scope{};
                 std::tie(gx, ggamma, gbeta) = device.backend().CallKernel<BatchNormGradKernel>(
-                        x, gamma_reshaped, gout, eps, sorted_axis, state, nonstd::nullopt, nonstd::nullopt, nonstd::nullopt);
+                        x, gamma_reshaped, gout, eps, sorted_axis, state, absl::nullopt, absl::nullopt, absl::nullopt);
             }
             CHAINERX_ASSERT(internal::GetArrayBody(gx)->nodes().empty());
             CHAINERX_ASSERT(internal::GetArrayBody(ggamma)->nodes().empty());
@@ -418,7 +419,7 @@ Array FixedBatchNorm(
     {
         NoBackpropModeScope scope{};
         return x.device().backend().CallKernel<FixedBatchNormKernel>(
-                x.AsGradStopped(), result.gamma, result.beta, result.mean, result.var, eps, result.sorted_axis, nonstd::nullopt);
+                x.AsGradStopped(), result.gamma, result.beta, result.mean, result.var, eps, result.sorted_axis, absl::nullopt);
     }
 }
 

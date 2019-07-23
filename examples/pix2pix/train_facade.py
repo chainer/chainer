@@ -3,10 +3,15 @@
 from __future__ import print_function
 
 import argparse
+import sys
+import warnings
+
+import numpy
 
 import chainer
 from chainer import training
 from chainer.training import extensions
+import chainerx
 
 from facade_dataset import FacadeDataset
 from facade_visualizer import out_image
@@ -25,8 +30,11 @@ def main():
                         help='Number of images in each mini-batch')
     parser.add_argument('--epoch', '-e', type=int, default=200,
                         help='Number of sweeps over the dataset to train')
-    parser.add_argument('--gpu', '-g', type=int, default=-1,
-                        help='GPU ID (negative value indicates CPU)')
+    parser.add_argument('--device', '-d', type=str, default='-1',
+                        help='Device specifier. Either ChainerX device '
+                        'specifier or an integer. If non-negative integer, '
+                        'CuPy arrays with specified device id are used. If '
+                        'negative integer, NumPy arrays are used')
     parser.add_argument('--dataset', '-i', default='./facade/base',
                         help='Directory of image files.')
     parser.add_argument('--out', '-o', default='result',
@@ -39,23 +47,36 @@ def main():
                         help='Interval of snapshot')
     parser.add_argument('--display_interval', type=int, default=100,
                         help='Interval of displaying log to console')
+    group = parser.add_argument_group('deprecated arguments')
+    group.add_argument('--gpu', '-g', dest='device',
+                       type=int, nargs='?', const=0,
+                       help='GPU ID (negative value indicates CPU)')
     args = parser.parse_args()
 
-    print('GPU: {}'.format(args.gpu))
+    if chainer.get_dtype() == numpy.float16:
+        warnings.warn(
+            'This example may cause NaN in FP16 mode.', RuntimeWarning)
+
+    device = chainer.get_device(args.device)
+    if device.xp is chainerx:
+        sys.stderr.write('This example does not support ChainerX devices.\n')
+        sys.exit(1)
+
+    print('Device: {}'.format(device))
     print('# Minibatch-size: {}'.format(args.batchsize))
     print('# epoch: {}'.format(args.epoch))
     print('')
+
+    device.use()
 
     # Set up a neural network to train
     enc = Encoder(in_ch=12)
     dec = Decoder(out_ch=3)
     dis = Discriminator(in_ch=12, out_ch=3)
 
-    if args.gpu >= 0:
-        chainer.cuda.get_device(args.gpu).use()  # Make a specified GPU current
-        enc.to_gpu()  # Copy the model to the GPU
-        dec.to_gpu()
-        dis.to_gpu()
+    enc.to_device(device)
+    dec.to_device(device)
+    dis.to_device(device)
 
     # Setup an optimizer
     def make_optimizer(model, alpha=0.0002, beta1=0.5):
@@ -81,7 +102,7 @@ def main():
         optimizer={
             'enc': opt_enc, 'dec': opt_dec,
             'dis': opt_dis},
-        device=args.gpu)
+        device=device)
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.out)
 
     snapshot_interval = (args.snapshot_interval, 'iteration')

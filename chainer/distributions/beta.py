@@ -56,10 +56,11 @@ class Beta(distribution.Distribution):
     @cache.cached_property
     def entropy(self):
         apb = self._a_plus_b
-        return _lbeta(self.a, self.b) \
-            - (self.a - 1) * digamma.digamma(self.a) \
-            - (self.b - 1) * digamma.digamma(self.b) \
-            + (apb - 2) * digamma.digamma(apb)
+        return (
+            _lbeta(self.a, self.b)
+            - (self.a - 1) * digamma.digamma(self.a)
+            - (self.b - 1) * digamma.digamma(self.b)
+            + (apb - 2) * digamma.digamma(apb))
 
     @property
     def event_shape(self):
@@ -67,13 +68,15 @@ class Beta(distribution.Distribution):
 
     def log_prob(self, x):
         x = chainer.as_variable(x)
-        logp = (self.a - 1) * exponential.log(x) \
-            + (self.b - 1) * exponential.log(1 - x) \
-            - _lbeta(self.a, self.b)
+        logp = (
+            (self.a - 1) * exponential.log(x)
+            + (self.b - 1) * exponential.log(1 - x)
+            - _lbeta(self.a, self.b))
         xp = logp.xp
         return where.where(
             utils.force_array((x.array >= 0) & (x.array <= 1)),
-            logp, xp.array(-xp.inf, logp.dtype))
+            logp,
+            xp.array(-xp.inf, logp.dtype))
 
     @cache.cached_property
     def mean(self):
@@ -103,7 +106,9 @@ class Beta(distribution.Distribution):
 def _kl_beta_beta(dist1, dist2):
     dist1_apb = dist1._a_plus_b
     dist2_apb = dist2._a_plus_b
-    return - _lbeta(dist1.a, dist1.b) + _lbeta(dist2.a, dist2.b)\
-        + (dist1.a - dist2.a) * digamma.digamma(dist1.a) \
-        + (dist1.b - dist2.b) * digamma.digamma(dist1.b) \
-        + (dist2_apb - dist1_apb) * digamma.digamma(dist1_apb)
+    return (
+        - _lbeta(dist1.a, dist1.b)
+        + _lbeta(dist2.a, dist2.b)
+        + (dist1.a - dist2.a) * digamma.digamma(dist1.a)
+        + (dist1.b - dist2.b) * digamma.digamma(dist1.b)
+        + (dist2_apb - dist1_apb) * digamma.digamma(dist1_apb))

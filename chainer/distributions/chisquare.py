@@ -41,16 +41,22 @@ class Chisquare(distribution.Distribution):
 
     @cache.cached_property
     def entropy(self):
-        return self._half_k + numpy.log(2.) + lgamma.lgamma(self._half_k) \
-            + (1 - self._half_k) * digamma.digamma(self._half_k)
+        return (
+            self._half_k
+            + numpy.log(2.)
+            + lgamma.lgamma(self._half_k)
+            + (1 - self._half_k) * digamma.digamma(self._half_k))
 
     @property
     def event_shape(self):
         return ()
 
     def log_prob(self, x):
-        return - lgamma.lgamma(self._half_k) - self._half_k * numpy.log(2.) \
-            + (self._half_k - 1) * exponential.log(x) - 0.5 * x
+        return (
+            - lgamma.lgamma(self._half_k)
+            - self._half_k * numpy.log(2.)
+            + (self._half_k - 1) * exponential.log(x)
+            - 0.5 * x)
 
     @cache.cached_property
     def mean(self):
@@ -61,7 +67,7 @@ class Chisquare(distribution.Distribution):
         return {'k': self.k}
 
     def sample_n(self, n):
-        xp = cuda.get_array_module(self.k)
+        xp = chainer.backend.get_array_module(self.k)
         if xp is cuda.cupy:
             eps = xp.random.chisquare(
                 self.k.data, (n,)+self.k.shape, dtype=self.k.dtype)

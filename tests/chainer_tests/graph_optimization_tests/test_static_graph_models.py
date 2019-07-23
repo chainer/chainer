@@ -76,6 +76,7 @@ class MLP(chainer.Chain):
 @testing.parameterize(*testing.product({
     'x_dtype': [numpy.float16, numpy.float32, numpy.float64],
     'W_dtype': [numpy.float32],
+    'use_static_graph': [True, False],
 }))
 class TestSimpleChain(unittest.TestCase):
 
@@ -104,11 +105,19 @@ class TestSimpleChain(unittest.TestCase):
                                       self.x_dtype)
 
     def check_forward(self, x):
-        y_dyn = self.chain.dynamic_call(x)
-        with chainer.using_config('enable_backprop', False):
-            y_static = self.chain.static_call(x)
-            y_static = self.chain.static_call(x)
-            y_static = self.chain.static_call(x)
+        chain = self.chain
+        y_dyn = chain.dynamic_call(x)
+        use_static_graph = self.use_static_graph
+
+        with chainer.using_config('use_static_graph', use_static_graph), \
+                chainer.using_config('enable_backprop', False):
+            y_static = chain.static_call(x)
+            y_static = chain.static_call(x)
+            y_static = chain.static_call(x)
+
+        assert use_static_graph == hasattr(chain, 'schedule_manager')
+        assert use_static_graph == hasattr(chain, 'static_schedule')
+
         chainer.testing.assert_allclose(y_dyn.data, y_static.data)
 
     def test_forward_cpu(self):

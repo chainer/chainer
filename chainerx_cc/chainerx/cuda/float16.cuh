@@ -1,6 +1,6 @@
 #pragma once
 
-#include <cuda_fp16.hpp>
+#include <cuda_fp16.h>
 
 #include "chainerx/float16.h"
 #include "chainerx/scalar.h"
@@ -71,6 +71,8 @@ public:
     __device__ Float16 Exp() const { return Float16{std::exp(static_cast<float>(*this))}; }
     __device__ Float16 Log() const { return Float16{std::log(static_cast<float>(*this))}; }
     __device__ Float16 Log10() const { return Float16{std::log10(static_cast<float>(*this))}; }
+    __device__ Float16 Log2() const { return Float16{std::log2f(static_cast<float>(*this))}; }
+    __device__ Float16 Log1p() const { return Float16{std::log1pf(static_cast<float>(*this))}; }
     __device__ Float16 Sqrt() const { return Float16{std::sqrt(static_cast<float>(*this))}; }
     __device__ Float16 Floor() const { return Float16{std::floor(static_cast<float>(*this))}; }
 

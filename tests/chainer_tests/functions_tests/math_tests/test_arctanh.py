@@ -1,8 +1,9 @@
 import unittest
 
-from chainer import testing
-import chainer.functions as F
 import numpy
+
+import chainer.functions as F
+from chainer import testing
 
 
 def make_data(shape, dtype):

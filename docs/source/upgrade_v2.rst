@@ -292,14 +292,14 @@ This method must not be called from the outside of :meth:`Function.forward`.
 
 In some cases, the function can (or have to) use the output arrays instead of the inputs in its backward computation.
 In Chainer v1, we have written code that store the output arrays to attributes of the :class:`~chainer.Function` object and reuse them in the :meth:`~Function.backward` method.
-In Chainer v2, it is recommended to use :meth:`Function.retain_outputs` to declare which outputs are required in the backward computation.
+In Chainer v2, it is recommended that you use :meth:`Function.retain_outputs` to declare which outputs are required in the backward computation.
 The retained output arrays can be accessed via :attr:`Function.output_data`.
 
 .. note::
 
    The existing :class:`~chainer.Function` implementations that store the output arrays to its attributes will run correctly in Chainer v2.
    There is no any memory overhead right now.
-   It is recommended to use :meth:`~Function.retain_outputs`, though, so that we can incorporate more memory optimization in the future.
+   It is recommended that you use :meth:`~Function.retain_outputs`, though, so that we can incorporate more memory optimization in the future.
 
 .. admonition:: Example
 
@@ -501,7 +501,7 @@ New-style parameter registration APIs are added to Link
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 In Chainer v2, :meth:`Link.init_scope` method returns a context manager that automatically registers a :class:`~chainer.Parameter` object to the link at setting it to an attribute.
-If you are using IDE like PyCharm, it is recommended to use this new-style parameter registration so that IDEs can easily detect the existence of the parameter as an attribute.
+If you are using IDE like PyCharm, it is recommended that you use this new-style parameter registration so that IDEs can easily detect the existence of the parameter as an attribute.
 It is also a good practice to use the new-style API even if you are not using IDEs, if you are planning to make the code public.
 
 .. note::
@@ -546,7 +546,7 @@ New-style child link registration APIs are added to Chain
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Like :class:`~chainer.Parameter`, a :class:`~chainer.Link` object is also automatically registered to a :class:`~chainer.Chain` object by substitution to an attribute within a :meth:`~Link.init_scope` scope.
-If you are using IDE like PyCharm, it is recommended to use the new-style child link registration so that IDEs can easily detect the existence of the child link as an attribute.
+If you are using IDE like PyCharm, it is recommended that you use the new-style child link registration so that IDEs can easily detect the existence of the child link as an attribute.
 It is also a good practice to use the new-style API even if you are not using IDEs, if you are planning to make the code public.
 
 .. note::
