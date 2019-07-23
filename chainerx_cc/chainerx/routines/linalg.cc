@@ -307,7 +307,22 @@ Array PseudoInverse(const Array& a, float rcond) {
 
     {
         NoBackpropModeScope scope{};
-        a.device().backend().CallKernel<PseudoInverseKernel>(a, out, rcond);
+
+        Array u{};
+        Array s{};
+        Array vt{};
+
+        std::tie(u, s, vt) = SVD(a, /*full_matrices=*/false, /*compute_uv=*/true);
+
+        Array cutoff = rcond * s.Max();
+        Array cutoff_indices = s <= cutoff;
+
+        Array sinv = Reciprocal(s);
+        sinv = Where(cutoff_indices, 0, sinv);
+
+        std::vector<ArrayIndex> indices{Slice{}, NewAxis{}};
+
+        a.device().backend().CallKernel<DotKernel>(vt.Transpose(), sinv.At(indices) * u.Transpose(), out);
     }
 
     // Reference:

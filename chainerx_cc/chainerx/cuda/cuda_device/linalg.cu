@@ -402,35 +402,5 @@ public:
 
 CHAINERX_CUDA_REGISTER_KERNEL(SVDKernel, CudaSVDKernel);
 
-class CudaPseudoInverseKernel : public PseudoInverseKernel {
-public:
-    void Call(const Array& a, const Array& out, float rcond = 1e-15) override {
-        Device& device = a.device();
-        device.CheckDevicesCompatible(a, out);
-        Dtype dtype = a.dtype();
-        CudaSetDeviceScope scope{device.index()};
-
-        CHAINERX_ASSERT(a.ndim() == 2);
-
-        Array u{};
-        Array s{};
-        Array vt{};
-
-        std::tie(u, s, vt) = SVD(a, false, true);
-
-        Array cutoff = rcond * s.Max();
-        Array cutoff_indices = s <= cutoff;
-
-        Array sinv = Reciprocal(s);
-        sinv = Where(cutoff_indices, 0, sinv);
-
-        std::vector<ArrayIndex> indices{Slice{}, NewAxis{}};
-
-        device.backend().CallKernel<DotKernel>(vt.Transpose(), sinv.At(indices) * u.Transpose(), out);
-    }
-};
-
-CHAINERX_CUDA_REGISTER_KERNEL(PseudoInverseKernel, CudaPseudoInverseKernel);
-
 }  // namespace cuda
 }  // namespace chainerx

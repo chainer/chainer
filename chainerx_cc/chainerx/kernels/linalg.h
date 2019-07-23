@@ -39,11 +39,4 @@ public:
     virtual void Call(const Array& a, const Array& u, const Array& s, const Array& vt, bool full_matrices) = 0;
 };
 
-class PseudoInverseKernel : public Kernel {
-public:
-    static const char* name() { return "PseudoInverse"; }
-
-    virtual void Call(const Array& a, const Array& out, float rcond) = 0;
-};
-
 }  // namespace chainerx
