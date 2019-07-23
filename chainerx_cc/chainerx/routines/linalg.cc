@@ -196,22 +196,22 @@ std::tuple<Array, Array, Array> SVD(const Array& a, bool full_matrices, bool com
     CheckRankTwoArray(a);
     Array u{};
     Array s{};
-    Array v{};
+    Array vt{};
 
     {
         NoBackpropModeScope scope{};
-        std::tie(u, s, v) = a.device().backend().CallKernel<SVDKernel>(a, full_matrices, compute_uv);
+        std::tie(u, s, vt) = a.device().backend().CallKernel<SVDKernel>(a, full_matrices, compute_uv);
     }
 
     // Reference:
     // https://j-towns.github.io/papers/svd-derivative.pdf
     {
-        BackwardBuilder bb{"svd", a, {u, s, v}};
+        BackwardBuilder bb{"svd", a, {u, s, vt}};
         if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
             bt.Define([a_tok = bb.RetainInput(0),
                        u_tok = bb.RetainOutput(0),
                        s_tok = bb.RetainOutput(1),
-                       v_tok = bb.RetainOutput(2),
+                       vt_tok = bb.RetainOutput(2),
                        full_matrices,
                        compute_uv](BackwardContext& bctx) {
                 if (full_matrices) {
@@ -224,7 +224,7 @@ std::tuple<Array, Array, Array> SVD(const Array& a, bool full_matrices, bool com
                 const Array& a = bctx.GetRetainedInput(a_tok);
                 const Array& u = bctx.GetRetainedOutput(u_tok);
                 const Array& s = bctx.GetRetainedOutput(s_tok);
-                const Array& vt = bctx.GetRetainedOutput(v_tok);
+                const Array& vt = bctx.GetRetainedOutput(vt_tok);
 
                 auto m = a.shape()[0];
                 auto n = a.shape()[1];
@@ -274,7 +274,7 @@ std::tuple<Array, Array, Array> SVD(const Array& a, bool full_matrices, bool com
         bb.Finalize();
     }
 
-    return std::make_tuple(std::move(u), std::move(s), std::move(v));
+    return std::make_tuple(std::move(u), std::move(s), std::move(vt));
 }
 
 Array PseudoInverse(const Array& a, float rcond) {
