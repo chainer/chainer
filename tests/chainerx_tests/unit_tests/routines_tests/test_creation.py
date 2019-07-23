@@ -1238,6 +1238,12 @@ def test_tri_with_device(device):
     chainer.testing.product({
         'shape': [(3, 3), (4, 3), (2, 3, 4)],
         'k': [0, 1, -1, 5, -5]
+    }) +
+    chainer.testing.product({
+        'shape': [(3,)],
+        'k': [0, 1, -1, 5, -5],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True]
     })
 ))
 class TestTrilTriu(op_utils.NumpyOpTest):

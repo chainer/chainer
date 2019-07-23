@@ -366,13 +366,21 @@ Array Tril(const Array& m, int64_t k = 0) {
     Array out = Empty(m.shape(), m.dtype(), m.device());
     {
         NoBackpropModeScope scope{};
-        Array mask = Tri(m.shape()[m.ndim() - 2], m.shape()[m.ndim() - 1], k, Dtype::kBool, m.device());
+        Array mask{};
+        if (m.ndim() >= 2) {
+            mask = Tri(m.shape()[m.ndim() - 2], m.shape()[m.ndim() - 1], k, Dtype::kBool, m.device());
+        } else {
+            mask = Tri(m.shape()[0], m.shape()[0], k, Dtype::kBool, m.device());
+        }
         out = Where(mask, m, 0);
     }
 
     BackwardBuilder bb{"tril", m, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-        bt.Define([k](BackwardContext& bctx) {
+        bt.Define([ndim = m.ndim(), k](BackwardContext& bctx) {
+            if (ndim == 1) {
+                throw DimensionError{"ChainerX Tril backward is not implemented for 1-dimensional arrays."};
+            }
             const Array& gout = *bctx.output_grad();
             bctx.input_grad() = Tril(gout, k);
         });
@@ -386,13 +394,21 @@ Array Triu(const Array& m, int64_t k = 0) {
     Array out = Empty(m.shape(), m.dtype(), m.device());
     {
         NoBackpropModeScope scope{};
-        Array mask = Tri(m.shape()[m.ndim() - 2], m.shape()[m.ndim() - 1], k - 1, Dtype::kBool, m.device());
+        Array mask{};
+        if (m.ndim() >= 2) {
+            mask = Tri(m.shape()[m.ndim() - 2], m.shape()[m.ndim() - 1], k - 1, Dtype::kBool, m.device());
+        } else {
+            mask = Tri(m.shape()[0], m.shape()[0], k - 1, Dtype::kBool, m.device());
+        }
         out = Where(mask, 0, m);
     }
 
     BackwardBuilder bb{"triu", m, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-        bt.Define([k](BackwardContext& bctx) {
+        bt.Define([ndim = m.ndim(), k](BackwardContext& bctx) {
+            if (ndim == 1) {
+                throw DimensionError{"ChainerX Triu backward is not implemented for 1-dimensional arrays."};
+            }
             const Array& gout = *bctx.output_grad();
             bctx.input_grad() = Triu(gout, k);
         });
