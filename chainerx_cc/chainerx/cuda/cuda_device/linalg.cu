@@ -258,7 +258,7 @@ public:
         CHAINERX_ASSERT(a.shape()[0] == a.shape()[1]);
 
         // potrf (cholesky) stores result in-place, therefore copy ``a`` to ``out`` and then pass ``out`` to the routine
-        device.backend().CallKernel<CopyKernel>(a, out);
+        device.backend().CallKernel<CopyKernel>(Tril(a, 0), out);
 
         Array out_contiguous = AsContiguous(out);
 

@@ -199,7 +199,6 @@ Array Cholesky(const Array& a) {
     {
         NoBackpropModeScope scope{};
         a.device().backend().CallKernel<CholeskyKernel>(a, out);
-        out = Tril(out, 0);
     }
 
     // Reference:
