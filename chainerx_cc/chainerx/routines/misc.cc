@@ -161,8 +161,6 @@ Array Square(const Array& x) {
     return out;
 }
 
-Array SquaredDifference(const Array& x1, const Array& x2) { return Square(x1 - x2); }
-
 Array Absolute(const Array& x) {
     Array x_flip_1 = IfGreaterElse(x, 0.0, 0.0, -x);
     Array x_flip_2 = IfLessElse(x, 0.0, 0.0, x);

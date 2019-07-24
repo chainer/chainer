@@ -16,4 +16,18 @@ public:
     virtual void Call(const Array& a, const Array& b, const Array& out) = 0;
 };
 
+class SolveKernel : public Kernel {
+public:
+    static const char* name() { return "Solve"; }
+
+    virtual void Call(const Array& a, const Array& b, const Array& out) = 0;
+};
+
+class InverseKernel : public Kernel {
+public:
+    static const char* name() { return "Inverse"; }
+
+    virtual void Call(const Array& a, const Array& out) = 0;
+};
+
 }  // namespace chainerx

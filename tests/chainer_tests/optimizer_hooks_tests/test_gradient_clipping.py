@@ -8,6 +8,8 @@ from chainer import optimizer_hooks
 from chainer import optimizers
 from chainer import testing
 
+import utils
+
 
 _backend_params = [
     # NumPy
@@ -38,21 +40,10 @@ class SimpleLink(chainer.Link):
 class TestGradientClipping(unittest.TestCase):
 
     def setUp(self):
-        num_params = 3
-        arrs = [
-            np.random.uniform(-3, 3, (2, 3)).astype(np.float32)
-            for _ in range(num_params)]
-        grads = [
-            np.random.uniform(-3, 3, (2, 3)).astype(np.float32)
-            for _ in range(num_params)]
-        params = []
-        for arr, grad in zip(arrs, grads):
-            param = chainer.Parameter(arr)
-            param.grad = grad
-            params.append(param)
-
-        self.target = SimpleLink(params)
-        self.norm = math.sqrt(sum([g.ravel().dot(g.ravel()) for g in grads]))
+        self.target = utils.ParametersLink.from_param_props(
+            ((2, 3), (2, 0, 1), ()))
+        self.norm = math.sqrt(sum([
+            np.square(param.grad).sum() for param in self.target.params()]))
 
     def check_clipping(self, backend_configs, rate):
         target = self.target

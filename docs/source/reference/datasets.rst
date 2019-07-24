@@ -42,6 +42,15 @@ Tabular Dataset Representation
 
    chainer.dataset.TabularDataset
 
+Tabular Dataset Helpers
+~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.dataset.tabular.from_data
+
 
 Iterator Interface
 ~~~~~~~~~~~~~~~~~~

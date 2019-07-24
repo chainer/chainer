@@ -46,6 +46,7 @@
 #include "chainerx/python/common.h"
 #include "chainerx/python/device.h"
 #include "chainerx/python/dtype.h"
+#include "chainerx/python/kwarg.h"
 #include "chainerx/python/shape.h"
 #include "chainerx/python/stack_vector.h"
 #include "chainerx/python/strides.h"
@@ -155,19 +156,21 @@ void InitChainerxCreation(pybind11::module& m) {
           "fill_value"_a,
           "device"_a = nullptr);
     m.def("zeros",
-          [](py::handle shape, py::handle dtype, py::handle device) {
+          [](py::handle shape, py::handle dtype, py::kwargs kwargs) {
+              py::handle device;
+              std::tie(device) = GetKwargs(kwargs, "device");
               return MoveArrayBody(Zeros(ToShape(shape), dtype.is_none() ? Dtype::kFloat32 : GetDtype(dtype), GetDevice(device)));
           },
           "shape"_a,
-          "dtype"_a = nullptr,
-          "device"_a = nullptr);
+          "dtype"_a = nullptr);
     m.def("zeros",
-          [](py::int_ dim, py::handle dtype, py::handle device) {
+          [](py::int_ dim, py::handle dtype, py::kwargs kwargs) {
+              py::handle device;
+              std::tie(device) = GetKwargs(kwargs, "device");
               return MoveArrayBody(Zeros(Shape{dim}, dtype.is_none() ? Dtype::kFloat32 : GetDtype(dtype), GetDevice(device)));
           },
           "shape"_a,
-          "dtype"_a = nullptr,
-          "device"_a = nullptr);
+          "dtype"_a = nullptr);
     m.def("ones",
           [](py::handle shape, py::handle dtype, py::handle device) {
               return MoveArrayBody(Ones(ToShape(shape), dtype.is_none() ? Dtype::kFloat32 : GetDtype(dtype), GetDevice(device)));
@@ -272,6 +275,17 @@ void InitChainerxCreation(pybind11::module& m) {
           "endpoint"_a = true,
           "dtype"_a = nullptr,
           "device"_a = nullptr);
+    m.def("tri",
+          [](int64_t n, absl::optional<int64_t> m, int64_t k, py::handle dtype, py::handle device) {
+              return MoveArrayBody(Tri(n, m, k, GetDtype(dtype), GetDevice(device)));
+          },
+          "N"_a,
+          "M"_a = nullptr,
+          "k"_a = 0,
+          "dtype"_a = "float32",
+          "device"_a = nullptr);
+    m.def("tril", [](const ArrayBodyPtr& m, int64_t k) { return MoveArrayBody(Tril(Array{m}, k)); }, "m"_a, "k"_a = 0);
+    m.def("triu", [](const ArrayBodyPtr& m, int64_t k) { return MoveArrayBody(Triu(Array{m}, k)); }, "m"_a, "k"_a = 0);
 }
 
 void InitChainerxIndexing(pybind11::module& m) {
@@ -328,6 +342,12 @@ void InitChainerxIndexing(pybind11::module& m) {
 void InitChainerxLinalg(pybind11::module& m) {
     // linalg routines
     m.def("dot", [](const ArrayBodyPtr& a, const ArrayBodyPtr& b) { return MoveArrayBody(Dot(Array{a}, Array{b})); }, "a"_a, "b"_a);
+
+    pybind11::module mlinalg = m.def_submodule("linalg");
+    mlinalg.def("_is_lapack_available", []() -> bool { return CHAINERX_ENABLE_LAPACK; });
+    mlinalg.def(
+            "solve", [](const ArrayBodyPtr& a, const ArrayBodyPtr& b) { return MoveArrayBody(Solve(Array{a}, Array{b})); }, "a"_a, "b"_a);
+    mlinalg.def("inv", [](const ArrayBodyPtr& a) { return MoveArrayBody(Inverse(Array{a})); }, "a"_a);
 }
 
 void InitChainerxLogic(pybind11::module& m) {
@@ -644,6 +664,7 @@ void InitChainerxActivation(pybind11::module& m) {
           [](const ArrayBodyPtr& x, Scalar slope) { return MoveArrayBody(LeakyRelu(Array{x}, slope)); },
           "x"_a,
           "slope"_a = 0.2);
+    m.def("softplus", [](const ArrayBodyPtr& x, double beta) { return MoveArrayBody(Softplus(Array{x}, beta)); }, "x"_a, "beta"_a = 1.0);
 }
 
 void InitChainerxArithmetic(pybind11::module& m) {
@@ -724,10 +745,6 @@ void InitChainerxHyperbolic(pybind11::module& m) {
 
 void InitChainerxMisc(pybind11::module& m) {
     m.def("square", [](const ArrayBodyPtr& x) { return MoveArrayBody(Square(Array{x})); }, "x"_a);
-    m.def("squared_difference",
-          [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return MoveArrayBody(SquaredDifference(Array{x1}, Array{x2})); },
-          "x1"_a,
-          "x2"_a);
     m.def("sqrt", [](const ArrayBodyPtr& x) { return MoveArrayBody(Sqrt(Array{x})); }, "x"_a);
     m.def("abs", [](const ArrayBodyPtr& x) { return MoveArrayBody(Absolute(Array{x})); }, "x"_a);
     m.attr("absolute") = m.attr("abs");
@@ -789,6 +806,10 @@ void InitChainerxReduction(pybind11::module& m) {
           },
           "x"_a,
           "axis"_a = nullptr);
+    m.def("cumsum",
+          [](const ArrayBodyPtr& a, const absl::optional<int8_t>& axis) { return MoveArrayBody(Cumsum(Array{a}, axis)); },
+          "a"_a,
+          "axis"_a = nullptr);
 }
 
 void InitChainerxRounding(pybind11::module& m) {
@@ -807,6 +828,18 @@ void InitChainerxTrigonometric(pybind11::module& m) {
           [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return MoveArrayBody(Arctan2(Array{x1}, Array{x2})); },
           "x1"_a,
           "x2"_a);
+    m.def("left_shift",
+          [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return MoveArrayBody(LeftShift(Array{x1}, Array{x2})); },
+          "x1"_a,
+          "x2"_a);
+    m.def("left_shift", [](const ArrayBodyPtr& x1, Scalar x2) { return MoveArrayBody(LeftShift(Array{x1}, x2)); }, "x1"_a, "x2"_a);
+    m.def("left_shift", [](Scalar x1, const ArrayBodyPtr& x2) { return MoveArrayBody(LeftShift(x1, Array{x2})); }, "x1"_a, "x2"_a);
+    m.def("right_shift",
+          [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return MoveArrayBody(RightShift(Array{x1}, Array{x2})); },
+          "x1"_a,
+          "x2"_a);
+    m.def("right_shift", [](const ArrayBodyPtr& x1, Scalar x2) { return MoveArrayBody(RightShift(Array{x1}, x2)); }, "x1"_a, "x2"_a);
+    m.def("right_shift", [](Scalar x1, const ArrayBodyPtr& x2) { return MoveArrayBody(RightShift(x1, Array{x2})); }, "x1"_a, "x2"_a);
 }
 
 void InitChainerxSorting(pybind11::module& m) {
