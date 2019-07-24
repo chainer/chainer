@@ -68,10 +68,11 @@ def inject_backend_tests(method_names):
             'use_cudnn': ['always'],
             'cudnn_deterministic': [True, False],
             'autotune': [True, False],
-})]))
+        })]))
 class TestLSTM(testing.FunctionTestCase):
 
     dodge_nondifferentiable = True
+
     def setUp(self):
         dtype = self.dtype
 
@@ -84,7 +85,9 @@ class TestLSTM(testing.FunctionTestCase):
                 'rtol': 1e-2, 'atol': 1e-2})
             self.check_backward_options.update({
                 'rtol': 1e-2, 'atol': 1e-2})
-            self.check_double_backward_options.update({'rtol': 1e-2, 'atol': 1e-2})
+            self.check_double_backward_options.update(
+                {'rtol': 1e-2, 'atol': 1e-2})
+
     def generate_inputs(self):
         c = numpy.random.uniform(-1, 1, self.c_shape).astype(self.dtype)
         x = numpy.random.uniform(-1, 1, self.x_shape).astype(self.dtype)
@@ -98,8 +101,9 @@ class TestLSTM(testing.FunctionTestCase):
     def forward_expected(self, inputs):
         c, x = inputs
         with chainer.using_config('use_ideep', 'never'):
-        	c, h = F.lstm(c, x)
-        	return c.array, h.array, 
+            c, h = F.lstm(c, x)
+            return c.array, h.array,
+
 
 @testing.parameterize(*(testing.product({
     'batch': [3, 2, 0],
