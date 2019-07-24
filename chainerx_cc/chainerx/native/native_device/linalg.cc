@@ -346,6 +346,9 @@ public:
         VisitFloatingPointDtype(dtype, svd_impl);
 #else  // CHAINERX_LAPACK_AVAILABLE
         (void)a;  // unused
+        (void)u;  // unused
+        (void)s;  // unused
+        (void)vt;  // unused
         (void)full_matrices;  // unused
         throw ChainerxError{"LAPACK is not linked to ChainerX."};
 #endif  // CHAINERX_LAPACK_AVAILABLE
