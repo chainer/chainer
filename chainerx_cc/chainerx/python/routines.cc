@@ -276,7 +276,7 @@ void InitChainerxCreation(pybind11::module& m) {
           "dtype"_a = nullptr,
           "device"_a = nullptr);
     m.def("tri",
-          [](int64_t n, nonstd::optional<int64_t> m, int64_t k, py::handle dtype, py::handle device) {
+          [](int64_t n, absl::optional<int64_t> m, int64_t k, py::handle dtype, py::handle device) {
               if (!m.has_value()) {
                   m = n;
               }

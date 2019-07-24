@@ -338,7 +338,7 @@ Array Linspace(
     return out;
 }
 
-Array Tri(int64_t n, nonstd::optional<int64_t> m, nonstd::optional<int64_t> k, nonstd::optional<Dtype> dtype, Device& device) {
+Array Tri(int64_t n, absl::optional<int64_t> m, absl::optional<int64_t> k, absl::optional<Dtype> dtype, Device& device) {
     if (!m.has_value()) {
         m = n;
     }

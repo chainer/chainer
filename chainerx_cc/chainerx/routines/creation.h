@@ -115,9 +115,9 @@ Array Linspace(
 // Creates a 2-dimensional array with ones at and below the given diagonal and zeros elsewhere.
 Array Tri(
         int64_t n,
-        nonstd::optional<int64_t> m,
-        nonstd::optional<int64_t> k,
-        nonstd::optional<Dtype> dtype,
+        absl::optional<int64_t> m,
+        absl::optional<int64_t> k,
+        absl::optional<Dtype> dtype,
         Device& device = GetDefaultDevice());
 
 // Creates a lower triangle of an array.
