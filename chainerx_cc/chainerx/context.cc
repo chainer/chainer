@@ -7,8 +7,8 @@
 #include <utility>
 #include <vector>
 
+#include <absl/types/optional.h>
 #include <gsl/gsl>
-#include <nonstd/optional.hpp>
 
 #ifdef CHAINERX_ENABLE_CUDA
 #include "chainerx/cuda/cuda_backend.h"
@@ -26,10 +26,10 @@ namespace {
 std::atomic<Context*> g_global_default_context{nullptr};
 
 std::string GetChainerxPath() {
-    if (nonstd::optional<std::string> chainerx_path = GetEnv("CHAINERX_PATH")) {
+    if (absl::optional<std::string> chainerx_path = GetEnv("CHAINERX_PATH")) {
         return *chainerx_path;
     }
-    if (nonstd::optional<std::string> home_path = GetEnv("HOME")) {
+    if (absl::optional<std::string> home_path = GetEnv("HOME")) {
         return *home_path + "/.chainerx";
     }
     throw ChainerxError{"ChainerX path is not defined. Set either CHAINERX_PATH or HOME."};

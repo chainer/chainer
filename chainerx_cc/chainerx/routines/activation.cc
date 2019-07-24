@@ -66,4 +66,13 @@ Array LeakyRelu(const Array& x, Scalar slope) {
     return Where(x_cast >= zero, x_cast, slope * x_cast);
 }
 
+Array Softplus(const Array& x, double beta) {
+    Dtype dtype = internal::GetMathResultDtype(x.dtype());
+    const Array& x_cast = x.dtype() == dtype ? x : x.AsType(dtype);
+    double beta_inv = 1.0 / beta;
+    Array bx = beta * x_cast;
+    Array y = (Maximum(bx, 0) + Log1p(Exp(-Fabs(bx)))) * beta_inv;
+    return y;
+}
+
 }  // namespace chainerx
