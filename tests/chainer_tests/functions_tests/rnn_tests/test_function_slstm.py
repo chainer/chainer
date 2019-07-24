@@ -28,6 +28,7 @@ def inject_backend_tests(method_names):
         [{'use_cuda': True}])
     return decorator
 
+
 """
 @testing.parameterize(*testing.product({
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
@@ -170,12 +171,14 @@ class TestSLSTM(unittest.TestCase):
             self.inputs, self.grad_outputs, self.grad_grad_inputs,
             backend_config)
 """
+
+
 @testing.parameterize(*testing.product_dict(
     [
         {'batch_size': 10, 'n_units': 4},
         {'batch_size': 8, 'n_units': 5},
         {'batch_size': 6, 'n_units': 24},
-        {'batch_size': 4 , 'n_units': 15},
+        {'batch_size': 4, 'n_units': 15},
     ], [
         {'dtype': numpy.float16},
         {'dtype': numpy.float32},
@@ -208,10 +211,11 @@ class TestSLSTM(unittest.TestCase):
             'use_cudnn': ['always'],
             'cudnn_deterministic': [True, False],
             'autotune': [True, False],
-})]))
+        })]))
 class TestSLSTM(testing.FunctionTestCase):
 
     dodge_nondifferentiable = True
+
     def setUp(self):
         dtype = self.dtype
 
@@ -220,13 +224,18 @@ class TestSLSTM(testing.FunctionTestCase):
                 'rtol': 1e-2, 'atol': 1e-2})
             self.check_backward_options.update({
                 'rtol': 1e-2, 'atol': 1e-2})
-            self.check_double_backward_options.update({'rtol': 1e-2, 'atol': 1e-2})
+            self.check_double_backward_options.update(
+                {'rtol': 1e-2, 'atol': 1e-2})
 
     def generate_inputs(self):
-        c1 = numpy.random.uniform(-1, 1, (self.batch_size, self.n_units)).astype(self.dtype)
-        c2 = numpy.random.uniform(-1, 1, (self.batch_size, self.n_units)).astype(self.dtype)
-        x1 = numpy.random.uniform(-1, 1, (self.batch_size, 4 * self.n_units)).astype(self.dtype)
-        x2 = numpy.random.uniform(-1, 1, (self.batch_size, 4 * self.n_units)).astype(self.dtype)
+        c1 = numpy.random.uniform(-1, 1, (self.batch_size,
+                                          self.n_units)).astype(self.dtype)
+        c2 = numpy.random.uniform(-1, 1, (self.batch_size,
+                                          self.n_units)).astype(self.dtype)
+        x1 = numpy.random.uniform(-1, 1, (self.batch_size,
+                                          4 * self.n_units)).astype(self.dtype)
+        x2 = numpy.random.uniform(-1, 1, (self.batch_size,
+                                          4 * self.n_units)).astype(self.dtype)
         return c1, c2, x1, x2,
 
     def forward(self, inputs, device):
@@ -242,6 +251,7 @@ class TestSLSTM(testing.FunctionTestCase):
             for v in out:
                 ret.append(v.array)
             return tuple(ret)
+
 
 @testing.parameterize(*testing.product({
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
