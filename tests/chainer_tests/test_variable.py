@@ -1064,6 +1064,10 @@ class VariableToDeviceFamilyBase(object):
             self.to_device_method(dst_backend_config.device, False)
         assert self.x_with_graph == (len(record) > 0)
 
+        self.check_to_device_method(
+            src_backend_config.device, dst_backend_config.device)
+        self.check_to_device_method_ndarrays()
+
 
 @testing.parameterize(*testing.product({
     'x_shape': [(10,), ()],
