@@ -23,6 +23,7 @@ class Dropout(function_node.FunctionNode):
         self.mask = mask
         self.return_mask = return_mask
         self._use_cudnn = False
+        self._cudnn_dropout_handler = None
 
     def check_type_forward(self, in_types):
         type_check._argname(in_types, ('x',))
@@ -53,10 +54,13 @@ class Dropout(function_node.FunctionNode):
             if hasattr(self, 'states'):
                 # if we already have a dropout mask,
                 # the forward operation is equal to backward.
-                return cuda.get_cudnn_dropout_states().backward(
+                return self._cudnn_dropout_handler.backward(
                     None, x[0], self.dropout_ratio, self.states),
-
-            self.states, y = cuda.get_cudnn_dropout_states().forward(
+            # cudnn_dropout_states sets and holds the configuration for the rng
+            # we cache it in order to prevent issues with threading or
+            # device switching
+            self._cudnn_dropout_handler = cuda.get_cudnn_dropout_states()
+            self.states, y = self._cudnn_dropout_handler.forward(
                 None, x[0], self.dropout_ratio)
             return y,
         else:
@@ -88,10 +92,10 @@ class Dropout(function_node.FunctionNode):
         else:
             # The forward pass might have been done using cuDNN
             # Retrieve the mask from cuDNN
-            if hasattr(self, 'states') and self.mask is None:
-                _, self.mask = cuda.get_cudnn_dropout_states().forward(
-                    None, cuda.cupy.ones(gy[0].shape, dtype=gy[0].dtype),
-                    self.dropout_ratio)
+            if self._cudnn_dropout_handler is not None and self.mask is None:
+                ones = cuda.cupy.ones(gy[0].shape, dtype=gy[0].dtype)
+                self.mask = self._cudnn_dropout_handler.backward(
+                    None, ones, self.dropout_ratio, self.states)
             return DropoutGrad(self.mask).apply(gy)
 
 
