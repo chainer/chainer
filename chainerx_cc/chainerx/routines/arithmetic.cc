@@ -527,7 +527,7 @@ void ModASImpl(const Array& x1, Scalar x2, const Array& out) {
 
     BackwardBuilder bb{"mod_array_scalar", x1, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-        bt.Define([x1_tok = bb.RetainInput(0), x2](BackwardContext& bctx) {
+        bt.Define([x1_tok = bb.RetainInput(0)](BackwardContext& bctx) {
             const Array& x1 = bctx.GetRetainedInput(x1_tok);
             const Array& gx = *bctx.output_grad();
             bctx.input_grad() = x1.dtype() == gx.dtype() ? gx : gx.AsType(x1.dtype());
