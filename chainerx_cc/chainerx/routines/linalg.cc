@@ -20,7 +20,10 @@
 #include "chainerx/error.h"
 #include "chainerx/graph.h"
 #include "chainerx/kernels/linalg.h"
+#include "chainerx/routines/arithmetic.h"
 #include "chainerx/routines/creation.h"
+#include "chainerx/routines/indexing.h"
+#include "chainerx/routines/manipulation.h"
 #include "chainerx/routines/type_util.h"
 #include "chainerx/shape.h"
 
@@ -114,6 +117,37 @@ std::tuple<Array, Array> Eigh(const Array& a, const std::string& uplo) {
     {
         NoBackpropModeScope scope{};
         std::tie(w, v) = a.device().backend().CallKernel<SyevdKernel>(a, uplo, true);
+    }
+
+    // Reference:
+    // Section 3.1 https://people.maths.ox.ac.uk/gilesm/files/NA-08-01.pdf
+    {
+        BackwardBuilder bb{"eigh", a, {w, v}};
+        if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+            bt.Define([a_tok = bb.RetainInput(0),
+                       w_tok = bb.RetainOutput(0),
+                       v_tok = bb.RetainOutput(1)](BackwardContext& bctx) {
+
+                const Array& a = bctx.GetRetainedInput(a_tok);
+                const Array& w = bctx.GetRetainedOutput(w_tok);
+                const Array& v = bctx.GetRetainedOutput(v_tok);
+
+                const Array& gw = bctx.output_grad(0).has_value() ? *bctx.output_grad(0) : Zeros(w.shape(), a.dtype(), a.device());
+                const Array& gv = bctx.output_grad(1).has_value() ? *bctx.output_grad(1) : Zeros(v.shape(), a.dtype(), a.device());
+
+                Array vt = v.Transpose();
+
+                Array F = ExpandDims(w, 0) - ExpandDims(w, 1);
+                // Invert values of F, and fill the diagonal with 0s.
+                // F has 0s on the diagonal, therefore fill it first with infinity.
+                Array mask = Eye(F.shape()[0], F.shape()[1], 0, Dtype::kBool, a.device());
+                F = Where(mask, INFINITY, F);
+                F = Reciprocal(F);
+
+                bctx.input_grad() = Dot(Dot(v, F * Dot(vt, gv) + Diag(gw)), vt);
+            });
+        }
+        bb.Finalize();
     }
 
     return std::make_tuple(std::move(w), std::move(v));
