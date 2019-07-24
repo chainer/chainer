@@ -28,7 +28,7 @@ def inject_backend_tests(method_names):
         [{'use_cuda': True}])
     return decorator
 
-
+"""
 @testing.parameterize(*testing.product({
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
 }))
@@ -169,7 +169,79 @@ class TestSLSTM(unittest.TestCase):
         self.check_double_backward(
             self.inputs, self.grad_outputs, self.grad_grad_inputs,
             backend_config)
+"""
+@testing.parameterize(*testing.product_dict(
+    [
+        {'batch_size': 10, 'n_units': 4},
+        {'batch_size': 8, 'n_units': 5},
+        {'batch_size': 6, 'n_units': 24},
+        {'batch_size': 4 , 'n_units': 15},
+    ], [
+        {'dtype': numpy.float16},
+        {'dtype': numpy.float32},
+        {'dtype': numpy.float64},
+    ]
+))
+@testing.fix_random()
+@backend.inject_backend_tests(
+    None,
+    # ChainerX tests
+    testing.product({
+        'use_chainerx': [True],
+        'chainerx_device': ['native:0', 'cuda:0'],
+    })
+    # CPU tests
+    + testing.product({
+        'use_cuda': [False],
+        'use_ideep': ['never', 'always'],
+    })
+    # GPU tests
+    + testing.product([
+        [{'use_cuda': True}],
 
+        # Without cuDNN
+        testing.product({
+            'use_cudnn': ['never'],
+        })
+        # With cuDNN
+        + testing.product({
+            'use_cudnn': ['always'],
+            'cudnn_deterministic': [True, False],
+            'autotune': [True, False],
+})]))
+class TestSLSTM(testing.FunctionTestCase):
+
+    dodge_nondifferentiable = True
+    def setUp(self):
+        dtype = self.dtype
+
+        if dtype == numpy.float16:
+            self.check_forward_options.update({
+                'rtol': 1e-2, 'atol': 1e-2})
+            self.check_backward_options.update({
+                'rtol': 1e-2, 'atol': 1e-2})
+            self.check_double_backward_options.update({'rtol': 1e-2, 'atol': 1e-2})
+
+    def generate_inputs(self):
+        c1 = numpy.random.uniform(-1, 1, (self.batch_size, self.n_units)).astype(self.dtype)
+        c2 = numpy.random.uniform(-1, 1, (self.batch_size, self.n_units)).astype(self.dtype)
+        x1 = numpy.random.uniform(-1, 1, (self.batch_size, 4 * self.n_units)).astype(self.dtype)
+        x2 = numpy.random.uniform(-1, 1, (self.batch_size, 4 * self.n_units)).astype(self.dtype)
+        return c1, c2, x1, x2,
+
+    def forward(self, inputs, device):
+        c1, c2, x1, x2 = inputs
+        out = functions.slstm(c1, c2, x1, x2)
+        return out
+
+    def forward_expected(self, inputs):
+        c1, c2, x1, x2 = inputs
+        with chainer.using_config('use_ideep', 'never'):
+            out = functions.slstm(c1, c2, x1, x2)
+            ret = []
+            for v in out:
+                ret.append(v.array)
+            return tuple(ret)
 
 @testing.parameterize(*testing.product({
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
