@@ -15,14 +15,22 @@ from chainer.testing import backend
 
 @testing.parameterize(*testing.product_dict(
     [
-        {'n_layers': 1, 'hidden_size': 2, 'input_size': 1 , 'batches': (1, 1, 1), 'activation': 'relu'},
-        {'n_layers': 1, 'hidden_size': 2, 'input_size': 1 , 'batches': (1, 1, 1), 'activation': 'tanh'},
-        {'n_layers': 2, 'hidden_size': 2, 'input_size': 3 , 'batches': (3, 2, 1), 'activation': 'relu'},
-        {'n_layers': 2, 'hidden_size': 2, 'input_size': 3 , 'batches': (3, 2, 1), 'activation': 'tanh'},
-        {'n_layers': 4, 'hidden_size': 6, 'input_size': 3 , 'batches': (5, 3, 1), 'activation': 'relu'},
-        {'n_layers': 4, 'hidden_size': 6, 'input_size': 3 , 'batches': (5, 3, 1), 'activation': 'tanh'},
-        {'n_layers': 5, 'hidden_size': 10, 'input_size': 6 , 'batches': (6, 5, 3), 'activation': 'relu'},
-        {'n_layers': 5, 'hidden_size': 10, 'input_size': 6 , 'batches': (6, 5, 3), 'activation': 'tanh'},
+        {'n_layers': 1, 'hidden_size': 2, 'input_size': 1,
+            'batches': (1, 1, 1), 'activation': 'relu'},
+        {'n_layers': 1, 'hidden_size': 2, 'input_size': 1,
+            'batches': (1, 1, 1), 'activation': 'tanh'},
+        {'n_layers': 2, 'hidden_size': 2, 'input_size': 3,
+            'batches': (3, 2, 1), 'activation': 'relu'},
+        {'n_layers': 2, 'hidden_size': 2, 'input_size': 3,
+            'batches': (3, 2, 1), 'activation': 'tanh'},
+        {'n_layers': 4, 'hidden_size': 6, 'input_size': 3,
+            'batches': (5, 3, 1), 'activation': 'relu'},
+        {'n_layers': 4, 'hidden_size': 6, 'input_size': 3,
+            'batches': (5, 3, 1), 'activation': 'tanh'},
+        {'n_layers': 5, 'hidden_size': 10, 'input_size': 6,
+            'batches': (6, 5, 3), 'activation': 'relu'},
+        {'n_layers': 5, 'hidden_size': 10, 'input_size': 6,
+            'batches': (6, 5, 3), 'activation': 'tanh'},
     ]))
 @testing.fix_random()
 @backend.inject_backend_tests(
@@ -45,10 +53,11 @@ from chainer.testing import backend
             'use_cudnn': ['always'],
             'cudnn_deterministic': [True, False],
             'autotune': [True, False],
-})]))
+        })]))
 class TestNStepRNN(testing.FunctionTestCase):
 
     dodge_nondifferentiable = True
+
     def setUp(self):
         self.check_forward_options.update({
             'rtol': 1e-2, 'atol': 1e-2})
@@ -77,21 +86,23 @@ class TestNStepRNN(testing.FunctionTestCase):
             inputs.append(xs[i])
         for n in range(self.n_layers):
             for i in range(2):
-                inputs.append(numpy.random.uniform(-1, 1, (out_size, w_in(n, i))).astype(dtype))
+                inputs.append(numpy.random.uniform(-1, 1,
+                                                   (out_size, w_in(n, i))).astype(dtype))
             for i in range(2):
-                inputs.append(numpy.random.uniform(-1, 1, (out_size,)).astype(dtype))
+                inputs.append(numpy.random.uniform(-1, 1,
+                                                   (out_size,)).astype(dtype))
         return tuple(inputs)
 
     def process_inputs(self, inputs):
         h = inputs[0]
-        
+
         xs = inputs[1:1 + len(self.batches)]
         ws = []
         bs = []
         index = 1 + len(self.batches)
         for n in range(self.n_layers):
-            ws.append(inputs[index : index + 2])
-            bs.append(inputs[index + 2 : index + 4])
+            ws.append(inputs[index: index + 2])
+            bs.append(inputs[index + 2: index + 4])
             index += 4
 
         return h, ws, bs, xs
@@ -110,7 +121,7 @@ class TestNStepRNN(testing.FunctionTestCase):
         return tuple(rets)
 
     def forward_expected(self, inputs):
-        h, ws, bs, xs = self.process_inputs (inputs)
+        h, ws, bs, xs = self.process_inputs(inputs)
         with chainer.using_config('use_ideep', 'never'):
             out = F.n_step_rnn(self.n_layers, 0.0, h, ws, bs, xs)
             rets = []
@@ -122,14 +133,22 @@ class TestNStepRNN(testing.FunctionTestCase):
 
 @testing.parameterize(*testing.product_dict(
     [
-        {'n_layers': 1, 'hidden_size': 2, 'input_size': 1 , 'batches': (1, 1, 1), 'activation': 'relu'},
-        {'n_layers': 1, 'hidden_size': 2, 'input_size': 1 , 'batches': (1, 1, 1), 'activation': 'tanh'},
-        {'n_layers': 2, 'hidden_size': 2, 'input_size': 3 , 'batches': (3, 2, 1), 'activation': 'relu'},
-        {'n_layers': 2, 'hidden_size': 2, 'input_size': 3 , 'batches': (3, 2, 1), 'activation': 'tanh'},
-        {'n_layers': 4, 'hidden_size': 6, 'input_size': 3 , 'batches': (5, 3, 1), 'activation': 'relu'},
-        {'n_layers': 4, 'hidden_size': 6, 'input_size': 3 , 'batches': (5, 3, 1), 'activation': 'tanh'},
-        {'n_layers': 5, 'hidden_size': 10, 'input_size': 6 , 'batches': (6, 5, 3), 'activation': 'relu'},
-        {'n_layers': 5, 'hidden_size': 10, 'input_size': 6 , 'batches': (6, 5, 3), 'activation': 'tanh'},
+        {'n_layers': 1, 'hidden_size': 2, 'input_size': 1,
+            'batches': (1, 1, 1), 'activation': 'relu'},
+        {'n_layers': 1, 'hidden_size': 2, 'input_size': 1,
+            'batches': (1, 1, 1), 'activation': 'tanh'},
+        {'n_layers': 2, 'hidden_size': 2, 'input_size': 3,
+            'batches': (3, 2, 1), 'activation': 'relu'},
+        {'n_layers': 2, 'hidden_size': 2, 'input_size': 3,
+            'batches': (3, 2, 1), 'activation': 'tanh'},
+        {'n_layers': 4, 'hidden_size': 6, 'input_size': 3,
+            'batches': (5, 3, 1), 'activation': 'relu'},
+        {'n_layers': 4, 'hidden_size': 6, 'input_size': 3,
+            'batches': (5, 3, 1), 'activation': 'tanh'},
+        {'n_layers': 5, 'hidden_size': 10, 'input_size': 6,
+            'batches': (6, 5, 3), 'activation': 'relu'},
+        {'n_layers': 5, 'hidden_size': 10, 'input_size': 6,
+            'batches': (6, 5, 3), 'activation': 'tanh'},
     ]))
 @testing.fix_random()
 @backend.inject_backend_tests(
@@ -152,9 +171,10 @@ class TestNStepRNN(testing.FunctionTestCase):
             'use_cudnn': ['always'],
             'cudnn_deterministic': [True, False],
             'autotune': [True, False],
-})]))
+        })]))
 class TestNStepBiRNN(testing.FunctionTestCase):
     dodge_nondifferentiable = True
+
     def setUp(self):
         self.check_forward_options.update({
             'rtol': 1e-2, 'atol': 1e-2})
@@ -191,22 +211,23 @@ class TestNStepBiRNN(testing.FunctionTestCase):
             for direction in (0, 1):
                 for i in range(2):
                     inputs.append(numpy.random.uniform(-1, 1,
-                        (out_size, w_in(n, i))).astype(dtype))
+                                                       (out_size, w_in(n, i))).astype(dtype))
                 for i in range(2):
-                    inputs.append(numpy.random.uniform(-1, 1, (out_size,)).astype(dtype))
+                    inputs.append(numpy.random.uniform(-1, 1,
+                                                       (out_size,)).astype(dtype))
         return tuple(inputs)
 
     def process_inputs(self, inputs):
         h = inputs[0]
-        xs = inputs[1 : 1 + len(self.batches)]
+        xs = inputs[1: 1 + len(self.batches)]
         ws = []
         bs = []
         index = 1 + len(self.batches)
         for n in range(self.n_layers):
-            ws.append(inputs[index : index + 2])
-            bs.append(inputs[index + 2 : index + 4])
-            ws.append(inputs[index + 4 : index + 6])
-            bs.append(inputs[index + 6 : index + 8])
+            ws.append(inputs[index: index + 2])
+            bs.append(inputs[index + 2: index + 4])
+            ws.append(inputs[index + 4: index + 6])
+            bs.append(inputs[index + 6: index + 8])
             index += 8
         return h, ws, bs, xs
 
@@ -216,7 +237,8 @@ class TestNStepBiRNN(testing.FunctionTestCase):
         # arrays coming as input here are of type float32 and float64
         if h.array.dtype == numpy.float64:
             raise unittest.SkipTest('float64 not supported')
-        out = F.n_step_birnn(self.n_layers, 0.0, h, ws, bs, xs, self.activation)
+        out = F.n_step_birnn(self.n_layers, 0.0, h, ws,
+                             bs, xs, self.activation)
         rets = []
         rets.append(out[0][0])
         for i in range(len(out[1])):
@@ -224,13 +246,15 @@ class TestNStepBiRNN(testing.FunctionTestCase):
         return tuple(rets)
 
     def forward_expected(self, inputs):
-        h, ws, bs, xs = self.process_inputs (inputs)
+        h, ws, bs, xs = self.process_inputs(inputs)
         with chainer.using_config('use_ideep', 'never'):
-            out = F.n_step_birnn(self.n_layers, 0.0, h, ws, bs, xs, self.activation)
+            out = F.n_step_birnn(self.n_layers, 0.0, h,
+                                 ws, bs, xs, self.activation)
             rets = []
             rets.append(out[0][0].array)
             for i in range(len(out[1])):
                 rets.append(out[1][i].array)
             return tuple(rets)
+
 
 testing.run_module(__name__, __file__)
