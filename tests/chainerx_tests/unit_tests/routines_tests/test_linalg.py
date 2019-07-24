@@ -234,6 +234,7 @@ class TestSolveDtypeFailing(NumpyLinalgOpTest):
     chainer.testing.product({
         'shape': [(1, 1), (3, 3), (6, 6)],
         'in_dtypes': ['float32', 'float64'],
+        'UPLO': ['U', 'L'],
         'skip_backward_test': [True],
         'skip_double_backward_test': [True]
     })
@@ -277,8 +278,31 @@ class TestEighFailing(NumpyLinalgOpTest):
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
     chainer.testing.product({
+        'shape': [(3, 3)],
+        'in_dtypes': ['float16']
+    })
+))
+class TestEighDtypeFailing(NumpyLinalgOpTest):
+
+    forward_accept_errors = (TypeError,
+                             chainerx.DtypeError)
+
+    def generate_inputs(self):
+        a = numpy.random.random(self.shape).astype(self.in_dtypes)
+        return a,
+
+    def forward_xp(self, inputs, xp):
+        a, = inputs
+        w, v = xp.linalg.eigh(a)
+        return w, v
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    chainer.testing.product({
         'shape': [(1, 1), (3, 3), (6, 6)],
         'in_dtypes': ['float32', 'float64'],
+        'UPLO': ['U', 'L'],
         'skip_backward_test': [True],
         'skip_double_backward_test': [True]
     })
@@ -299,15 +323,35 @@ class TestEigvalsh(NumpyLinalgOpTest):
 @chainer.testing.parameterize(*(
     chainer.testing.product({
         'shape': [(), (2, 3), (3, 2)],
-        'in_dtypes': ['float32', 'float64'],
-        'skip_backward_test': [True],
-        'skip_double_backward_test': [True]
+        'in_dtypes': ['float32', 'float64']
     })
 ))
 class TestEigvalshFailing(NumpyLinalgOpTest):
 
     forward_accept_errors = (numpy.linalg.LinAlgError,
                              chainerx.DimensionError)
+
+    def generate_inputs(self):
+        a = numpy.random.random(self.shape).astype(self.in_dtypes)
+        return a,
+
+    def forward_xp(self, inputs, xp):
+        a, = inputs
+        w = xp.linalg.eigvalsh(a)
+        return w,
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    chainer.testing.product({
+        'shape': [(3, 3)],
+        'in_dtypes': ['float16']
+    })
+))
+class TestEigvalshDtypeFailing(NumpyLinalgOpTest):
+
+    forward_accept_errors = (TypeError,
+                             chainerx.DtypeError)
 
     def generate_inputs(self):
         a = numpy.random.random(self.shape).astype(self.in_dtypes)
