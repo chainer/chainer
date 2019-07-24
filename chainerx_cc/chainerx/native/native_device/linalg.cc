@@ -250,6 +250,8 @@ public:
 
         VisitFloatingPointDtype(a.dtype(), cholesky_impl);
 #else  // CHAINERX_LAPACK_AVAILABLE
+        (void)a;  // unused
+        (void)out; // unused
         throw ChainerxError{"LAPACK is not linked to ChainerX."};
 #endif  // CHAINERX_LAPACK_AVAILABLE
     }
