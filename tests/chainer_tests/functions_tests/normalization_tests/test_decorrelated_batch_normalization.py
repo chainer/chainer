@@ -91,9 +91,8 @@ class TestDecorrelatedBatchNormalization(testing.FunctionTestCase):
     skip_double_backward_test = True
 
     def setUp(self):
-        self.decay = 0.9
-        check_forward_options = {'atol': 1e-4, 'rtol': 1e-3}
-        check_backward_options = {'atol': 1e-4, 'rtol': 1e-3}
+        check_forward_options = {'atol': 1e-3, 'rtol': 1e-3}
+        check_backward_options = {'atol': 1e-3, 'rtol': 1e-3}
         if self.dtype == numpy.float16:
             check_forward_options = {'atol': 1e-2, 'rtol': 1e-2}
             check_backward_options = {'atol': 1e-2, 'rtol': 1e-2}
