@@ -216,9 +216,9 @@ template <typename T>
 struct TriImpl {
     using CudaType = cuda_internal::DataType<T>;
     __device__ void operator()(int64_t i, CudaType& out) {
-        int64_t row = i % m;
-        int64_t col = i / m;
-        out = row <= col + k ? CudaType{1} : CudaType{0};
+        int64_t row = i / m;
+        int64_t col = i % m;
+        out = col <= row + k ? CudaType{1} : CudaType{0};
     }
     int64_t m;
     int64_t k;

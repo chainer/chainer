@@ -166,9 +166,9 @@ public:
             using T = typename decltype(pt)::type;
             struct Impl {
                 void operator()(int64_t i, T& out) {
-                    int64_t row = i % m;
-                    int64_t col = i / m;
-                    out = row <= col + k ? T{1} : T{0};
+                    int64_t row = i / m;
+                    int64_t col = i % m;
+                    out = col <= row + k ? T{1} : T{0};
                 }
                 int64_t m;
                 int64_t k;
