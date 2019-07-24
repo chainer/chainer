@@ -52,7 +52,7 @@ class GradientHardClipping(object):
             # supports kwarg `out`.
             if xp == backend.chainerx \
                     or isinstance(param.grad, backend.intel64.mdarray):
-                grad[:] = grad.clip(self.lower_bound, self.upper_bound)
+                grad[...] = grad.clip(self.lower_bound, self.upper_bound)
             else:
                 # Save on new object allocation when using numpy and cupy
                 # using kwarg `out`

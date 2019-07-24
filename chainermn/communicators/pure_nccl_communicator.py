@@ -183,7 +183,7 @@ class PureNcclCommunicator(mpi_communicator_base.MpiCommunicatorBase):
         self.nccl_comm.allReduce(sendbuf.ptr(),
                                  recvbuf.ptr(), n_elems,
                                  type_id, nccl.NCCL_SUM, stream.ptr)
-        div_by_size = chainer.cuda.cupy.ElementwiseKernel(
+        div_by_size = chainer.cuda.elementwise(
             '',
             '{} x'.format(dtype.name),
             'x *= (1.0/{})'.format(self.size), 'div_by_size')
@@ -194,21 +194,6 @@ class PureNcclCommunicator(mpi_communicator_base.MpiCommunicatorBase):
         if chainer.is_debug():
             stream.synchronize()
             self._ensure_all_finite(recvbuf.array(n_elems, dtype=dtype))
-
-
-def _get_converting_kernel(src_dtype, dst_dtype, kernel_name):
-    return chainer.cuda.cupy.ElementwiseKernel(
-        '{} x'.format(src_dtype.name),
-        '{} y'.format(dst_dtype.name),
-        'y = x', kernel_name)
-
-
-def _get_param_data_dtype(param):
-    return param.data.dtype
-
-
-def _get_param_grad_dtype(param):
-    return param.grad.dtype
 
 
 class _ParamsData(object):
@@ -266,7 +251,7 @@ def _batched_unpack_params(params_data, buffer, dtype):
 
 
 def _cupy_batched_pack_params():
-    return chainer.cuda.cupy.RawKernel(r'''
+    return chainer.cuda.raw(r'''
 #include <cupy/carray.cuh>
 #define NCCL_FLOAT16  6
 #define NCCL_FLOAT32  7
@@ -319,7 +304,7 @@ def _cupy_batched_pack_params():
 
 
 def _cupy_batched_unpack_params():
-    return chainer.cuda.cupy.RawKernel(r'''
+    return chainer.cuda.raw(r'''
 #include <cupy/carray.cuh>
 #define NCCL_FLOAT16  6
 #define NCCL_FLOAT32  7

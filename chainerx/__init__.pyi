@@ -916,6 +916,11 @@ def sum(a: ndarray,
         keepdims: bool=...) -> ndarray: ...
 
 
+def cumsum(
+        x: ndarray,
+        axis: tp.Optional[int]=None) -> ndarray: ...
+
+
 def swapaxes(a: ndarray, axis1: int, axis2: int) -> ndarray: ...
 
 
@@ -937,6 +942,20 @@ def _to_cupy(array: ndarray) -> numpy.ndarray: ...
 def transpose(
         a: ndarray,
         axes: tp.Optional[tp.Union[int, tp.List[int]]]=None) -> ndarray: ...
+
+
+def tri(N: int,
+        M: tp.Optional[int]=None,
+        k: int=...,
+        dtype: tp.Optional[tp.Any]=...,
+        device: tp.Optional[Device]=None) -> ndarray: ...
+
+
+def tril(m: ndarray, k: int=...) -> ndarray: ...
+
+
+def triu(m: ndarray, k: int=...) -> ndarray: ...
+
 
 def vstack(arrays: tp.List[ndarray]) -> ndarray: ...
 
