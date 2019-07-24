@@ -22,6 +22,7 @@
 #include "chainerx/kernels/creation.h"
 #include "chainerx/kernels/misc.h"
 #include "chainerx/macro.h"
+#include "chainerx/routines/indexing.h"
 #include "chainerx/routines/type_util.h"
 #include "chainerx/scalar.h"
 #include "chainerx/shape.h"
@@ -346,8 +347,10 @@ Array Tri(int64_t n, absl::optional<int64_t> m, absl::optional<int64_t> k, absl:
         k = 0;
     }
     if (!dtype.has_value()) {
-        dtype = Dtype::kFloat64;
+        dtype = Dtype::kFloat32;
     }
+    // NumPy returns 0-sized array for the input with negative dimensions.
+    // This is a flaw in NumPy's implementation. Other array creation routines raise an error for negative dimensions.
     if (n < 0 || m < 0) {
         throw DimensionError{"Negative dimensions are not allowed"};
     }
@@ -364,9 +367,27 @@ Array Tril(const Array& m, int64_t k = 0) {
     Array out = Empty(m.shape(), m.dtype(), m.device());
     {
         NoBackpropModeScope scope{};
-        Array mask = Tri(m.shape()[m.ndim() - 2], m.shape()[m.ndim() - 1], k, Dtype::kBool, m.device());
+        Array mask{};
+        if (m.ndim() >= 2) {
+            mask = Tri(m.shape()[m.ndim() - 2], m.shape()[m.ndim() - 1], k, Dtype::kBool, m.device());
+        } else {
+            mask = Tri(m.shape()[0], m.shape()[0], k, Dtype::kBool, m.device());
+        }
         out = Where(mask, m, 0);
     }
+
+    BackwardBuilder bb{"tril", m, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([ndim = m.ndim(), k](BackwardContext& bctx) {
+            if (ndim == 1) {
+                throw DimensionError{"ChainerX Tril backward is not implemented for 1-dimensional arrays."};
+            }
+            const Array& gout = *bctx.output_grad();
+            bctx.input_grad() = Tril(gout, k);
+        });
+    }
+    bb.Finalize();
+
     return out;
 }
 
@@ -374,9 +395,27 @@ Array Triu(const Array& m, int64_t k = 0) {
     Array out = Empty(m.shape(), m.dtype(), m.device());
     {
         NoBackpropModeScope scope{};
-        Array mask = Tri(m.shape()[m.ndim() - 2], m.shape()[m.ndim() - 1], k - 1, Dtype::kBool, m.device());
+        Array mask{};
+        if (m.ndim() >= 2) {
+            mask = Tri(m.shape()[m.ndim() - 2], m.shape()[m.ndim() - 1], k - 1, Dtype::kBool, m.device());
+        } else {
+            mask = Tri(m.shape()[0], m.shape()[0], k - 1, Dtype::kBool, m.device());
+        }
         out = Where(mask, 0, m);
     }
+
+    BackwardBuilder bb{"triu", m, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([ndim = m.ndim(), k](BackwardContext& bctx) {
+            if (ndim == 1) {
+                throw DimensionError{"ChainerX Triu backward is not implemented for 1-dimensional arrays."};
+            }
+            const Array& gout = *bctx.output_grad();
+            bctx.input_grad() = Triu(gout, k);
+        });
+    }
+    bb.Finalize();
+
     return out;
 }
 

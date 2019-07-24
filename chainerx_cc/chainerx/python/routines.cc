@@ -277,18 +277,15 @@ void InitChainerxCreation(pybind11::module& m) {
           "device"_a = nullptr);
     m.def("tri",
           [](int64_t n, absl::optional<int64_t> m, int64_t k, py::handle dtype, py::handle device) {
-              if (!m.has_value()) {
-                  m = n;
-              }
-              return MoveArrayBody(Tri(n, m.value(), k, GetDtype(dtype), GetDevice(device)));
+              return MoveArrayBody(Tri(n, m, k, GetDtype(dtype), GetDevice(device)));
           },
-          py::arg("N"),
-          py::arg("M") = nullptr,
-          py::arg("k") = 0,
-          py::arg("dtype") = "float64",
-          py::arg("device") = nullptr);
-    m.def("tril", [](const ArrayBodyPtr& m, int64_t k) { return MoveArrayBody(Tril(Array{m}, k)); }, py::arg("m"), py::arg("k") = 0);
-    m.def("triu", [](const ArrayBodyPtr& m, int64_t k) { return MoveArrayBody(Triu(Array{m}, k)); }, py::arg("m"), py::arg("k") = 0);
+          "N"_a,
+          "M"_a = nullptr,
+          "k"_a = 0,
+          "dtype"_a = "float32",
+          "device"_a = nullptr);
+    m.def("tril", [](const ArrayBodyPtr& m, int64_t k) { return MoveArrayBody(Tril(Array{m}, k)); }, "m"_a, "k"_a = 0);
+    m.def("triu", [](const ArrayBodyPtr& m, int64_t k) { return MoveArrayBody(Triu(Array{m}, k)); }, "m"_a, "k"_a = 0);
 }
 
 void InitChainerxIndexing(pybind11::module& m) {
