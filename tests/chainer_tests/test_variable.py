@@ -1058,12 +1058,11 @@ class VariableToDeviceFamilyBase(object):
             self, src_backend_config, dst_backend_config):
         self.setup(src_backend_config)
 
-        if self.x_with_graph:
-            with pytest.warns(DeprecationWarning):
-                self.to_device_method(dst_backend_config.device, False)
-        else:
-            # Check that nothing is warned.
+        # A deprecation warning is expected if unchaining is required.
+        with (pytest.deprecated_call() if self.x_with_graph
+                else pytest.warns(None)) as record:
             self.to_device_method(dst_backend_config.device, False)
+        assert self.x_with_graph == (len(record) > 0)
 
 
 @testing.parameterize(*testing.product({
