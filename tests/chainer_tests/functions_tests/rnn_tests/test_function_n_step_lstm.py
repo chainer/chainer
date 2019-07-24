@@ -15,10 +15,14 @@ from chainer.testing import backend
 
 @testing.parameterize(*testing.product_dict(
     [
-        {'n_layers': 1, 'hidden_size': 2, 'input_size': 1 , 'batches': (1, 1, 1)},
-        {'n_layers': 2, 'hidden_size': 2, 'input_size': 3 , 'batches': (3, 2, 1)},
-        {'n_layers': 4, 'hidden_size': 6, 'input_size': 3 , 'batches': (5, 3, 1)},
-        {'n_layers': 5, 'hidden_size': 10, 'input_size': 6 , 'batches': (6, 5, 3)},
+        {'n_layers': 1, 'hidden_size': 2,
+            'input_size': 1, 'batches': (1, 1, 1)},
+        {'n_layers': 2, 'hidden_size': 2,
+            'input_size': 3, 'batches': (3, 2, 1)},
+        {'n_layers': 4, 'hidden_size': 6,
+            'input_size': 3, 'batches': (5, 3, 1)},
+        {'n_layers': 5, 'hidden_size': 10,
+            'input_size': 6, 'batches': (6, 5, 3)},
     ]))
 @testing.fix_random()
 @backend.inject_backend_tests(
@@ -41,10 +45,11 @@ from chainer.testing import backend
             'use_cudnn': ['always'],
             'cudnn_deterministic': [True, False],
             'autotune': [True, False],
-})]))
+        })]))
 class TestNStepLSTM(testing.FunctionTestCase):
 
     dodge_nondifferentiable = True
+
     def setUp(self):
         self.check_forward_options.update({
             'rtol': 1e-2, 'atol': 1e-2})
@@ -75,15 +80,17 @@ class TestNStepLSTM(testing.FunctionTestCase):
             inputs.append(xs[i])
         for n in range(self.n_layers):
             for i in range(8):
-                inputs.append(numpy.random.uniform(-1, 1, (out_size, w_in(n, i))).astype(dtype))
+                inputs.append(numpy.random.uniform(-1, 1,
+                                                   (out_size, w_in(n, i))).astype(dtype))
             for i in range(8):
-                inputs.append(numpy.random.uniform(-1, 1, (out_size,)).astype(dtype))
+                inputs.append(numpy.random.uniform(-1, 1,
+                                                   (out_size,)).astype(dtype))
         return tuple(inputs)
 
     def process_inputs(self, inputs):
         h = inputs[0]
         c = inputs[1]
-        xs = inputs[2 : 2 + len(self.batches)]
+        xs = inputs[2: 2 + len(self.batches)]
         ws = []
         bs = []
         index = 2 + len(self.batches)
@@ -108,7 +115,7 @@ class TestNStepLSTM(testing.FunctionTestCase):
         return tuple(rets)
 
     def forward_expected(self, inputs):
-        h, c, ws, bs, xs = self.process_inputs (inputs)
+        h, c, ws, bs, xs = self.process_inputs(inputs)
         with chainer.using_config('use_ideep', 'never'):
             out = F.n_step_lstm(self.n_layers, 0.0, h, c, ws, bs, xs)
             rets = []
@@ -121,10 +128,14 @@ class TestNStepLSTM(testing.FunctionTestCase):
 
 @testing.parameterize(*testing.product_dict(
     [
-        {'n_layers': 1, 'hidden_size': 2, 'input_size': 1 , 'batches': (1, 1, 1)},
-        {'n_layers': 2, 'hidden_size': 2, 'input_size': 3 , 'batches': (3, 2, 1)},
-        {'n_layers': 4, 'hidden_size': 6, 'input_size': 3 , 'batches': (5, 3, 1)},
-        {'n_layers': 5, 'hidden_size': 10, 'input_size': 6 , 'batches': (6, 5, 3)},
+        {'n_layers': 1, 'hidden_size': 2,
+            'input_size': 1, 'batches': (1, 1, 1)},
+        {'n_layers': 2, 'hidden_size': 2,
+            'input_size': 3, 'batches': (3, 2, 1)},
+        {'n_layers': 4, 'hidden_size': 6,
+            'input_size': 3, 'batches': (5, 3, 1)},
+        {'n_layers': 5, 'hidden_size': 10,
+            'input_size': 6, 'batches': (6, 5, 3)},
     ]))
 @testing.fix_random()
 @backend.inject_backend_tests(
@@ -147,9 +158,10 @@ class TestNStepLSTM(testing.FunctionTestCase):
             'use_cudnn': ['always'],
             'cudnn_deterministic': [True, False],
             'autotune': [True, False],
-})]))
+        })]))
 class TestNStepBiLSTM(testing.FunctionTestCase):
     dodge_nondifferentiable = True
+
     def setUp(self):
         self.check_forward_options.update({
             'rtol': 1e-2, 'atol': 1e-2})
@@ -187,9 +199,10 @@ class TestNStepBiLSTM(testing.FunctionTestCase):
             for direction in (0, 1):
                 for i in range(8):
                     inputs.append(numpy.random.uniform(-1, 1,
-                        (out_size, w_in(n, i))).astype(dtype))
+                                                       (out_size, w_in(n, i))).astype(dtype))
                 for i in range(8):
-                    inputs.append(numpy.random.uniform(-1, 1, (out_size,)).astype(dtype))
+                    inputs.append(numpy.random.uniform(-1, 1,
+                                                       (out_size,)).astype(dtype))
         return tuple(inputs)
 
     def process_inputs(self, inputs):
@@ -231,5 +244,6 @@ class TestNStepBiLSTM(testing.FunctionTestCase):
             for i in range(len(out[2])):
                 rets.append(out[2][i].array)
             return tuple(rets)
+
 
 testing.run_module(__name__, __file__)
