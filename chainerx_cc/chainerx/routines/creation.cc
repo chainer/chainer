@@ -1,5 +1,4 @@
 #include "chainerx/routines/creation.h"
-#include "chainerx/routines/indexing.h"
 
 #include <algorithm>
 #include <cmath>
