@@ -5,6 +5,7 @@ import numpy as np
 from chainermn.communicators import _communication_utility
 
 import chainer.backends
+import chainerx
 try:
     import cupy as cp
     _cupy_avail = True
@@ -188,6 +189,11 @@ def get_device_memory_pointer(array):
 
     if xp is np:
         return array
+    elif xp is chainerx:
+        return ctypes.cast(
+            array.data_ptr,
+            ctypes.POINTER(ctypes.c_ubyte * array.nbytes)
+        ).contents
     else:
         return ctypes.cast(
             array.data.ptr,
