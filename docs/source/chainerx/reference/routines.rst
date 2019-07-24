@@ -103,6 +103,8 @@ Linear algebra
    chainerx.dot
 
    chainerx.linalg.cholesky
+   chainerx.linalg.solve
+   chainerx.linalg.inv
 
 Logic functions
 ---------------

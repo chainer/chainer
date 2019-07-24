@@ -263,6 +263,8 @@ Use apply() method instead.\
         chainerx_device = None
         is_chainerx, in_data = _extract_apply_in_data(inputs)
 
+        utils._check_arrays_forward_compatible(in_data, self.label)
+
         if is_chainerx:
             # Try ChainerX C++ implementation.
             # If it's supported, the output arrays are wrapped with Variables
@@ -289,8 +291,6 @@ Use apply() method instead.\
                 self._chainerx_apply_fallback_preprocess(in_data, inputs))
             self._is_chainerx_fallback_mode = True
             self.chainerx_device = chainerx_device
-
-        utils._check_arrays_forward_compatible(in_data, self.label)
 
         is_debug = chainer.is_debug()
         if is_debug:
@@ -1009,6 +1009,39 @@ def grad(outputs, inputs, grad_outputs=None, grad_inputs=None, set_grad=False,
                 'len(inputs) = {}, len(grad_inputs) = {}'
                 .format(len(inputs), len(grad_inputs)))
 
+    # Check if all the inputs are chainerx arrays and if so
+    # Relies in chainerx.grad function
+    n_chx_inputs = sum([False if x is None else x._has_chainerx_array
+                        for x in inputs])
+    if n_chx_inputs == len(inputs):
+        if loss_scale is not None:
+            raise ValueError(
+                'loss_scale is not supported on chainerx.grad interface')
+
+        # Need to access the arrays to invoke the chainer grad function
+        if grad_outputs:
+            grad_outputs_chx = [x._data[0] for x in grad_outputs]
+        else:
+            grad_outputs_chx = []
+        outputs_chx = [x._data[0] for x in outputs]
+        inputs_chx = [x._data[0] for x in inputs]
+        grads = chainerx.grad(outputs_chx, inputs_chx,
+                              backprop_id=None,
+                              enable_double_backprop=enable_double_backprop,
+                              set_grad=set_grad,
+                              retain_grad=retain_grad,
+                              grad_outputs=grad_outputs_chx)
+
+        if grad_inputs:
+            grads = [g+gi._data[0] for g, gi in zip(grads, grad_inputs)]
+
+        return [variable.Variable(g, requires_grad=g.is_backprop_required())
+                for g in grads]
+
+    elif n_chx_inputs > 0:
+        raise TypeError(
+            'Mixing chainerx and non-chainerx variables is not allowed')
+
     for v in outputs:
         # Raise error here if v is created by Function.backward.
         # In such case, we don't know exact inputs of the creator.
@@ -1194,8 +1227,8 @@ def _extract_apply_in_data(inputs):
     # `Variable._data[0]` (which is backproppable in contrast to
     # `Variable.array`) is returned.
     #
-    # If at least one of the arrays is a ChainerX array, all other NumPy/CuPy
-    # arrays are converted to ChainerX arrays without copy.
+    # If at least one of the arrays is a ChainerX array, all other
+    # arrays need to be ChainerX arrays.
     if not inputs:
         return False, ()
 
@@ -1216,12 +1249,7 @@ def _extract_apply_in_data(inputs):
                 if not has_chainerx_array:
                     if isinstance(x, chainerx.ndarray):
                         has_chainerx_array = True
-
-        if has_chainerx_array:
-            return True, tuple(backend.to_chx(arrays))
-        else:
-            return False, tuple(arrays)
-
+        return has_chainerx_array, tuple(arrays)
     else:
         return False, tuple([
             x.array if isinstance(x, variable.Variable) else x

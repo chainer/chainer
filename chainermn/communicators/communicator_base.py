@@ -255,7 +255,7 @@ class CommunicatorBase(six.with_metaclass(ABCMeta)):
 
     @abstractmethod
     def gather_obj(self, obj, root=0):
-        '''Gathers arbitrary objects from all non-root processes to root process.
+        '''Gathers arbitrary objects from all non-root processes to the root.
 
         Args:
             obj: arbtrary object to send to root process. Root process will
