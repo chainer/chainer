@@ -30,9 +30,9 @@ class Dropout(function_node.FunctionNode):
 
     @property
     def mask(self):
-        if (self._mask is None
-                and (chainer.should_use_cudnn('==always', 5000)
-                     or self._cudnn_dropout_handler is not None)):
+        if (chainer.should_use_cudnn('==always', 5000)
+                or self._cudnn_dropout_handler is not None
+                and self._mask is None):
             ones = cuda.cupy.ones(self.input_shape, dtype=self.input_dtype)
             self._mask = self._cudnn_dropout_handler.backward(
                 None, ones, self.dropout_ratio, self.states)
