@@ -69,7 +69,6 @@ class TestNStepGRU(testing.FunctionTestCase):
 
         inputs = []
         inputs.append(h)
-        print(h.dtype)
         for i in range(len(self.batches)):
             inputs.append(xs[i])
         for n in range(self.n_layers):
@@ -78,14 +77,6 @@ class TestNStepGRU(testing.FunctionTestCase):
             for i in range(6):
                 inputs.append(numpy.random.uniform(-1, 1, (out_size,)).astype(dtype))
         return tuple(inputs)
-    def check_dtype(self, query):
-        result = []
-        for q in query:
-            if isinstance(q, numpy.ndarray):
-                result.append(q.astype('f'))
-            else:
-                result.append(Variable(q.array.astype('f')))
-        return result
 
     def process_inputs(self, inputs):
         h = inputs[0]
@@ -109,7 +100,7 @@ class TestNStepGRU(testing.FunctionTestCase):
             raise unittest.SkipTest('float64 not supported')
         out = F.n_step_gru(self.n_layers, 0.0, h, ws, bs, xs)
         rets = []
-        rets.append(out[0][0])
+        rets.append(out[0])
         for i in range(len(out[1])):
             rets.append(out[1][i])
         return tuple(rets)
@@ -119,7 +110,7 @@ class TestNStepGRU(testing.FunctionTestCase):
         with chainer.using_config('use_ideep', 'never'):
             out = F.n_step_gru(self.n_layers, 0.0, h, ws, bs, xs)
             rets = []
-            rets.append(out[0][0].array)
+            rets.append(out[0].array)
             for i in range(len(out[1])):
                 rets.append(out[1][i].array)
             return tuple(rets)
