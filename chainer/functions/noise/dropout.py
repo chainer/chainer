@@ -16,12 +16,11 @@ class Dropout(function_node.FunctionNode):
 
     """Dropout regularization."""
 
-    def __init__(self, dropout_ratio, mask=None, return_mask=False):
+    def __init__(self, dropout_ratio, mask=None):
         if not 0.0 <= dropout_ratio < 1.0:
             raise ValueError('dropout_ratio must be in the range [0, 1)')
         self.dropout_ratio = dropout_ratio
-        self.mask = mask
-        self.return_mask = return_mask
+        self._mask = mask
         self._use_cudnn = False
         self._cudnn_dropout_handler = None
 
@@ -29,39 +28,53 @@ class Dropout(function_node.FunctionNode):
         type_check._argname(in_types, ('x',))
         type_check.expect(in_types[0].dtype.kind == 'f')
 
+    @property
+    def mask(self):
+        if (self._mask is None
+                and (chainer.should_use_cudnn('==always', 5000)
+                     or self._cudnn_dropout_handler is not None)):
+            ones = cuda.cupy.ones(self.input_shape, dtype=self.input_dtype)
+            self._mask = self._cudnn_dropout_handler.backward(
+                None, ones, self.dropout_ratio, self.states)
+        return self._mask
+
     def forward_cpu(self, x):
         if (intel64.should_use_ideep('>=auto')
                 and intel64.inputs_all_ready(x)
-                and self.mask is None):
+                and self._mask is None):
             return self._forward_ideep(x)
 
-        if self.mask is not None:
-            y = x[0] * self.mask
+        if self._mask is not None:
+            y = x[0] * self._mask
         else:
             scale = x[0].dtype.type(1. / (1 - self.dropout_ratio))
             flag = numpy.random.rand(*x[0].shape) >= self.dropout_ratio
-            self.mask = scale * flag
-            y = x[0] * self.mask
+            self._mask = scale * flag
+            y = x[0] * self._mask
         return y,
 
     def forward_gpu(self, x):
         if (chainer.should_use_cudnn('==always', 5000)
-                and x[0].flags.c_contiguous
-                and self.mask is None
-                and not self.return_mask):
+                and x[0].flags.c_contiguous):
             self._use_cudnn = True
 
             if hasattr(self, 'states'):
                 # if we already have a dropout mask,
                 # the forward operation is equal to backward.
+                # This is a hack for when the same function object
+                # is called multiple times in the numerical gradient
                 return self._cudnn_dropout_handler.backward(
                     None, x[0], self.dropout_ratio, self.states),
-            # cudnn_dropout_states sets and holds the configuration for the rng
-            # we cache it in order to prevent issues with threading or
-            # device switching
+
+            # cudnn_dropout_states sets and holds the configuration for
+            # the random seed and we cache it in order to prevent
+            # issues with threading or device switching
             self._cudnn_dropout_handler = cuda.get_cudnn_dropout_states()
             self.states, y = self._cudnn_dropout_handler.forward(
                 None, x[0], self.dropout_ratio)
+            # Needed to reconstruct the mask
+            self.input_shape = x[0].shape
+            self.input_dtype = x[0].dtype
             return y,
         else:
             if self.mask is not None:
@@ -69,7 +82,7 @@ class Dropout(function_node.FunctionNode):
             else:
                 rand = cuda.cupy.random.rand(*x[0].shape, dtype=numpy.float32)
                 scale = x[0].dtype.type(1. / (1 - self.dropout_ratio))
-                self.mask, y = cuda.elementwise(
+                self._mask, y = cuda.elementwise(
                     'T x, R r, T scale, T ratio', 'T mask, T y',
                     '''
                     mask = (r >= ratio) * scale;
@@ -83,19 +96,13 @@ class Dropout(function_node.FunctionNode):
         mask, y = intel64.ideep.dropout.Forward(
             intel64.ideep.array(x[0]),
             self.dropout_ratio)
-        self.mask = mask
+        self._mask = mask
         return y,
 
     def backward(self, x, gy):
         if chainer.should_use_cudnn('==always', 5000) and self._use_cudnn:
             return DropoutGradCuDNN(self.states, self.dropout_ratio).apply(gy)
         else:
-            # The forward pass might have been done using cuDNN
-            # Retrieve the mask from cuDNN
-            if self._cudnn_dropout_handler is not None and self.mask is None:
-                ones = cuda.cupy.ones(gy[0].shape, dtype=gy[0].dtype)
-                self.mask = self._cudnn_dropout_handler.backward(
-                    None, ones, self.dropout_ratio, self.states)
             return DropoutGrad(self.mask).apply(gy)
 
 
@@ -211,7 +218,7 @@ def dropout(x, ratio=.5, **kwargs):
                   'Use chainer.using_config')
 
     if configuration.config.train:
-        func = Dropout(ratio, mask, return_mask)
+        func = Dropout(ratio, mask)
         out, = func.apply((x,))
         mask = func.mask
     else:

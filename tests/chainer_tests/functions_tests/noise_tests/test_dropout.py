@@ -65,20 +65,16 @@ class TestDropout(unittest.TestCase):
         with backend_config:
             y = functions.dropout(*(inputs + [self.ratio]))
 
-        if backend_config.use_cudnn == 'always':
-            if self.ratio == 0.0:
-                y_expected, = inputs
-                testing.assert_allclose(y_expected, y.data)
-            else:
-                self.assertTrue(cuda.cupy.all(inputs[0] != y.data))
-        else:
-            # In the calculation of expected results,
-            # the mask used in test forward computation is reused.
-            mask = y.creator.mask
-            y_expected, = self.forward_cpu(inputs, self.ratio, mask)
+        # In the calculation of expected results,
+        # the mask used in test forward computation is reused.
+        mask = y.creator.mask
+        y_expected, = self.forward_cpu(inputs, self.ratio, mask)
 
-            assert y.data.dtype == self.dtype
-            testing.assert_allclose(y_expected, y.data)
+        assert y.data.dtype == self.dtype
+        tolerance = {'rtol': 0.0001, 'atol': 1e-05}
+        if self.dtype == numpy.float16:
+            tolerance = {'rtol': 0.001, 'atol': 1e-04}
+        testing.assert_allclose(y_expected, y.data, **tolerance)
 
     def test_forward(self, backend_config):
         self.check_forward(self.inputs, backend_config)
@@ -170,7 +166,7 @@ class TestDropoutMask(unittest.TestCase):
 
         if self.train:
             assert isinstance(out_mask, type(out.array))
-            if mask is None:
+            if mask is None or backend_config.use_cudnn:
                 assert out_mask.shape == out.array.shape
             else:
                 assert out_mask is mask
