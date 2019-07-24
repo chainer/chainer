@@ -19,6 +19,7 @@
 #include "chainerx/graph.h"
 #include "chainerx/kernels/linalg.h"
 #include "chainerx/routines/creation.h"
+#include "chainerx/routines/indexing.h"
 #include "chainerx/routines/manipulation.h"
 #include "chainerx/routines/type_util.h"
 #include "chainerx/shape.h"
@@ -209,12 +210,18 @@ Array Cholesky(const Array& a) {
             bt.Define([a_tok = bb.RetainInput(0), out_tok = bb.RetainOutput(0), a_dtype = a.dtype(), &a_device = a.device()](
                               BackwardContext& bctx) {
                 const Array& a = bctx.GetRetainedInput(a_tok);
-                const Array& out = bctx.GetRetainedOutput(out_tok);
-                const Array& gout = *bctx.output_grad();
+                const Array& L = bctx.GetRetainedOutput(out_tok);
+                const Array& gL = *bctx.output_grad();
 
-                Array L_inv = Inverse(out);
+                Array L_inv = Inverse(L);
+                Array phi = Dot(L.Transpose(), gL);
+                phi = Tril(phi, 0);
+                Array mask = Eye(phi.shape()[0], phi.shape()[1], 0, Dtype::kBool, a_device);
+                phi = Where(mask, 0.5 * Diag(phi), phi);
 
-                bctx.input_grad() = 0;
+                Array gin = Dot(Dot(L_inv.Transpose(), phi), L_inv);
+
+                bctx.input_grad() = (gin + gin.Transpose()) * 0.5;
             });
         }
         bb.Finalize();
