@@ -15,6 +15,7 @@ class TestIntel64Device(unittest.TestCase):
         assert device.supported_array_types == (numpy.ndarray, intel64.mdarray)
         assert device.name == '@intel64'
         assert str(device) == '@intel64'
+        assert isinstance(hash(device), int)  # hashable
 
     def test_init(self):
         device = backend.Intel64Device()

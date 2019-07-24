@@ -131,6 +131,16 @@ public:
 
 CHAINERX_CUDA_REGISTER_KERNEL(SumKernel, CudaSumKernel);
 
+class CudaCumsumKernel : public CumsumKernel {
+public:
+    void Call(const Array& /* a */, int8_t /* axis */, const Array& /* out */) override {
+        // TODO(aksub99): CUDA Implementation is to be suppported.
+        throw NotImplementedError{"CUDA Implementation is not yet supported."};
+    }
+};
+
+CHAINERX_CUDA_REGISTER_KERNEL(CumsumKernel, CudaCumsumKernel);
+
 }  // namespace
 }  // namespace cuda
 }  // namespace chainerx

@@ -31,6 +31,8 @@ class Intel64Device(_backend.Device):
     name = '@intel64'
     supported_array_types = (numpy.ndarray, mdarray)
 
+    __hash__ = _backend.Device.__hash__
+
     def __init__(self):
         check_ideep_available()
         super(Intel64Device, self).__init__()

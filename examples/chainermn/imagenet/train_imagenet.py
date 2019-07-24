@@ -127,7 +127,7 @@ def main():
     parser.add_argument('--val_batchsize', '-b', type=int, default=250,
                         help='Validation minibatch size')
     parser.add_argument('--test', action='store_true')
-    parser.add_argument('--communicator', default='hierarchical')
+    parser.add_argument('--communicator', default='pure_nccl')
     parser.set_defaults(test=False)
     args = parser.parse_args()
 
