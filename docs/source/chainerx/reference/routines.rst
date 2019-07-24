@@ -37,6 +37,9 @@ Array creation routines
    chainerx.linspace
    chainerx.diag
    chainerx.diagflat
+   chainerx.tri
+   chainerx.tril
+   chainerx.triu
 
 Activation functions
 --------------------
@@ -101,6 +104,8 @@ Linear algebra
 
    chainerx.linalg.eigh
    chainerx.linalg.eigvalsh
+   chainerx.linalg.solve
+   chainerx.linalg.inv
 
 Logic functions
 ---------------

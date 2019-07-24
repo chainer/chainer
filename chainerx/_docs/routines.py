@@ -78,6 +78,67 @@ Returns:
 """)
 
     _docs.set_doc(
+        chainerx.tri,
+        """tri(N, M=None, k=0, dtype=float32, device=None)
+Returns a 2-D array with ones at and below the given diagonal
+and zeros elsewhere.
+
+Args:
+    N (int): Number of rows.
+    M (int): Number of columns. M == N by default.
+    k (int): Index of the diagonal. Zero indicates the main diagonal,
+        a positive index an upper diagonal, and a negative index a lower
+        diagonal.
+    dtype: Data type.
+    device (~chainerx.Device): Device on which the array is allocated.
+        If omitted, :ref:`the default device <chainerx_device>` is chosen.
+
+Returns:
+    ~chainerx.ndarray: A 2-D array with given diagonals filled ones at and
+    below the given diagonal and zeros elsewhere.
+
+.. seealso:: :func:`numpy.tri`
+""")
+
+    _docs.set_doc(
+        chainerx.tril,
+        """tril(m, k=0)
+Lower triangle of an array.
+
+Returns a copy of an array with elements above the k-th diagonal zeroed.
+
+Args:
+    m (~chainerx.ndarray): Input array.
+    k (int): Index of the diagonal. Zero indicates the main diagonal,
+        a positive index an upper diagonal, and a negative index a lower
+        diagonal.
+
+Returns:
+    ~chainerx.ndarray: Lower triangle of ``m``.
+
+.. seealso:: :func:`numpy.tril`
+""")
+
+    _docs.set_doc(
+        chainerx.triu,
+        """triu(m, k=0)
+Upper triangle of an array.
+
+Returns a copy of an array with elements below the k-th diagonal zeroed.
+
+Args:
+    m (~chainerx.ndarray): Input array.
+    k (int): Index of the diagonal. Zero indicates the main diagonal,
+        a positive index an upper diagonal, and a negative index a lower
+        diagonal.
+
+Returns:
+    ~chainerx.ndarray: Upper triangle of ``m``.
+
+.. seealso:: :func:`numpy.triu`
+""")
+
+    _docs.set_doc(
         chainerx.identity,
         """identity(n, dtype=None, device=None)
 Returns a 2-D identity array.
@@ -496,6 +557,54 @@ Note:
     output array to input arrays ``a`` and ``b``.
 
 .. seealso:: :func:`numpy.dot`
+""")
+
+    _docs.set_doc(
+        chainerx.linalg.solve,
+        """solve(a, b)
+Solves a linear matrix equation, or system of linear scalar equations.
+
+It computes the exact solution of ``x`` in ``ax = b``,
+where ``a`` is a square and full rank matrix,
+``b`` can be a vector, or a rectangular matrix.
+When ``b`` is matrix, its columns are treated as separate vectors
+representing multiple right-hand sides.
+
+Args:
+    a (~chainerx.ndarray): Coefficient matrix.
+    b (~chainerx.ndarray): "dependent variable" values.
+
+Returns:
+    :class:`~chainerx.ndarray`:
+        Solution to the system ``ax = b``.
+        Shape is identical to ``b``.
+
+Note:
+    The ``dtype`` must be ``float32`` or ``float64`` (``float16`` is not
+    supported yet.)
+
+.. seealso:: :func:`numpy.linalg.solve`
+""")
+
+    _docs.set_doc(
+        chainerx.linalg.inv,
+        """inv(a)
+Computes the inverse of a matrix.
+
+This function computes matrix ``a_inv`` from square matrix
+``a`` such that ``dot(a, a_inv) = dot(a_inv, a) = eye(a.shape[0])``.
+
+Args:
+    a (~chainerx.ndarray): The matrix to be inverted.
+
+Returns:
+    :class:`~chainerx.ndarray`: The inverse of a matrix.
+
+Note:
+    The ``dtype`` must be ``float32`` or ``float64`` (``float16`` is not
+    supported yet.)
+
+.. seealso:: :func:`numpy.linalg.inv`
 """)
 
     _docs.set_doc(

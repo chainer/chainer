@@ -1700,6 +1700,19 @@ class Parameter(Variable):
             self.initializer, self.update_rule, self.device)
         return _recover_parameter, args
 
+    @property
+    def dtype(self):
+        array = self.array
+        if array is not None:
+            return array.dtype
+        # uninitialized
+        initializer = self.initializer
+        if hasattr(initializer, 'dtype'):
+            return numpy.dtype(initializer.dtype)
+        raise RuntimeError(
+            'Dtype of the parameter is not determined yet because it\'s '
+            'uninitialized and dtype was not explicitly given.')
+
     def to_cpu(self):
         return self.to_device(backend.CpuDevice())
 

@@ -4,7 +4,7 @@ import six
 import chainer
 from chainer.functions.array import permutate
 from chainer.functions.array import transpose_sequence
-from chainer.functions.connection import n_step_rnn as rnn
+from chainer.functions.rnn import n_step_rnn as rnn
 from chainer.initializers import normal
 from chainer import link
 from chainer.utils import argument
