@@ -341,7 +341,7 @@ void InitChainerxLinalg(pybind11::module& m) {
     mlinalg.def(
             "svd",
             [](const ArrayBodyPtr& a, bool full_matrices, bool compute_uv) -> py::object {
-                std::tuple<Array, Array, Array> usv = SVD(Array{a}, full_matrices, compute_uv);
+                std::tuple<Array, Array, Array> usv = Svd(Array{a}, full_matrices, compute_uv);
                 Array u = std::get<0>(usv);
                 Array s = std::get<1>(usv);
                 Array v = std::get<2>(usv);

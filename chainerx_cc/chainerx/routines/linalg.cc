@@ -192,7 +192,7 @@ Array Inverse(const Array& a) {
     return out;
 }
 
-std::tuple<Array, Array, Array> SVD(const Array& a, bool full_matrices, bool compute_uv) {
+std::tuple<Array, Array, Array> Svd(const Array& a, bool full_matrices, bool compute_uv) {
     CheckRankTwoArray(a);
 
     Array u{};
@@ -223,7 +223,7 @@ std::tuple<Array, Array, Array> SVD(const Array& a, bool full_matrices, bool com
 
     {
         NoBackpropModeScope scope{};
-        a.device().backend().CallKernel<SVDKernel>(a, u, s, vt, full_matrices);
+        a.device().backend().CallKernel<SvdKernel>(a, u, s, vt, full_matrices);
     }
 
     // Reference:
@@ -312,7 +312,7 @@ Array PseudoInverse(const Array& a, float rcond) {
         Array s{};
         Array vt{};
 
-        std::tie(u, s, vt) = SVD(a, /*full_matrices=*/false, /*compute_uv=*/true);
+        std::tie(u, s, vt) = Svd(a, /*full_matrices=*/false, /*compute_uv=*/true);
 
         Array cutoff = rcond * s.Max();
         Array cutoff_indices = s <= cutoff;

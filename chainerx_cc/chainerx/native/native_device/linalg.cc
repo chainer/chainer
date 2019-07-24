@@ -287,7 +287,7 @@ public:
 
 CHAINERX_NATIVE_REGISTER_KERNEL(InverseKernel, NativeInverseKernel);
 
-class NativeSVDKernel : public SVDKernel {
+class NativeSvdKernel : public SvdKernel {
 public:
     void Call(const Array& a, const Array& u, const Array& s, const Array& vt, bool full_matrices) override {
 #if CHAINERX_ENABLE_LAPACK
@@ -355,7 +355,7 @@ public:
     }
 };
 
-CHAINERX_NATIVE_REGISTER_KERNEL(SVDKernel, NativeSVDKernel);
+CHAINERX_NATIVE_REGISTER_KERNEL(SvdKernel, NativeSvdKernel);
 
 }  // namespace native
 }  // namespace chainerx

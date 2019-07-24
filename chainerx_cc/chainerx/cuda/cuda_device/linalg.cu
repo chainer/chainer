@@ -284,7 +284,7 @@ public:
 
 CHAINERX_CUDA_REGISTER_KERNEL(InverseKernel, CudaInverseKernel);
 
-class CudaSVDKernel : public SVDKernel {
+class CudaSvdKernel : public SvdKernel {
 public:
     void Call(const Array& a, const Array& u, const Array& s, const Array& vt, bool full_matrices) override {
         Device& device = a.device();
@@ -400,7 +400,7 @@ public:
     }
 };
 
-CHAINERX_CUDA_REGISTER_KERNEL(SVDKernel, CudaSVDKernel);
+CHAINERX_CUDA_REGISTER_KERNEL(SvdKernel, CudaSvdKernel);
 
 }  // namespace cuda
 }  // namespace chainerx
