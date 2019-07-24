@@ -201,6 +201,25 @@ Array Cholesky(const Array& a) {
         out = Tril(out, 0);
     }
 
+    // Reference:
+    // Differentiation of the Cholesky decomposition, Iain Murray https://arxiv.org/abs/1602.07527
+    {
+        BackwardBuilder bb{"cholesky", a, out};
+        if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+            bt.Define([a_tok = bb.RetainInput(0), out_tok = bb.RetainOutput(0), a_dtype = a.dtype(), &a_device = a.device()](
+                              BackwardContext& bctx) {
+                const Array& a = bctx.GetRetainedInput(a_tok);
+                const Array& out = bctx.GetRetainedOutput(out_tok);
+                const Array& gout = *bctx.output_grad();
+
+                Array L_inv = Inverse(out);
+
+                bctx.input_grad() = 0;
+            });
+        }
+        bb.Finalize();
+    }
+
     return out;
 }
 
