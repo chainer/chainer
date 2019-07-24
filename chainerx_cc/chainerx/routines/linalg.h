@@ -15,7 +15,7 @@ Array Solve(const Array& a, const Array& b);
 
 Array Inverse(const Array& a);
 
-enum class QRMode {
+enum class QrMode {
     // if K = min(M, N), where `a` of shape (M, N)
     reduced,  // returns q, r with dimensions (M, K), (K, N) (default)
     complete,  // returns q, r with dimensions (M, M), (M, N)
@@ -23,6 +23,6 @@ enum class QRMode {
     raw  // returns h, tau with dimensions (N, M), (K, 1)
 };
 
-std::tuple<Array, Array> QR(const Array& a, QRMode mode);
+std::tuple<Array, Array> Qr(const Array& a, QrMode mode);
 
 }  // namespace chainerx

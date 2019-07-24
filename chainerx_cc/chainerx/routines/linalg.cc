@@ -190,7 +190,7 @@ Array Inverse(const Array& a) {
     return out;
 }
 
-std::tuple<Array, Array> QR(const Array& a, QRMode mode) {
+std::tuple<Array, Array> Qr(const Array& a, QrMode mode) {
     Array q{};
     Array r{};
 
@@ -200,7 +200,7 @@ std::tuple<Array, Array> QR(const Array& a, QRMode mode) {
 
     {
         NoBackpropModeScope scope{};
-        std::tie(q, r) = a.device().backend().CallKernel<QRKernel>(a, mode);
+        std::tie(q, r) = a.device().backend().CallKernel<QrKernel>(a, mode);
     }
 
     // Backward of (Q, R) = QR(A):
@@ -210,7 +210,7 @@ std::tuple<Array, Array> QR(const Array& a, QRMode mode) {
         if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
             bt.Define([a_tok = bb.RetainInput(0), q_tok = bb.RetainOutput(0), r_tok = bb.RetainOutput(1), mode = mode](
                               BackwardContext& bctx) {
-                if (mode == QRMode::r || mode == QRMode::raw) {
+                if (mode == QrMode::r || mode == QrMode::raw) {
                     throw ChainerxError{"ChainerX QR differentiation is not implemented for 'r' or 'raw' modes."};
                 }
 

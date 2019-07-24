@@ -187,7 +187,7 @@ void InverseImpl(const Array& a, const Array& out) {
 }
 
 template <typename T>
-std::tuple<Array, Array> QRImpl(const Array& a, QRMode mode) {
+std::tuple<Array, Array> QrImpl(const Array& a, QrMode mode) {
     Device& device = a.device();
     Dtype dtype = a.dtype();
 
@@ -217,18 +217,18 @@ std::tuple<Array, Array> QRImpl(const Array& a, QRMode mode) {
         throw ChainerxError{"Unsuccessful geqrf (QR) execution. Info = ", info};
     }
 
-    if (mode == QRMode::r) {
+    if (mode == QrMode::r) {
         R = R.At(std::vector<ArrayIndex>{Slice{}, Slice{0, mn}}).Transpose();  // R = R[:, 0:mn].T
         R = Triu(R, 0);
         return std::make_tuple(std::move(Q), std::move(R));
     }
 
-    if (mode == QRMode::raw) {
+    if (mode == QrMode::raw) {
         return std::make_tuple(std::move(R), std::move(tau));
     }
 
     int64_t mc;
-    if (mode == QRMode::complete && m > n) {
+    if (mode == QrMode::complete && m > n) {
         mc = m;
         Q = Empty(Shape{m, m}, dtype, device);
     } else {
@@ -306,15 +306,15 @@ public:
 
 CHAINERX_NATIVE_REGISTER_KERNEL(InverseKernel, NativeInverseKernel);
 
-class NativeQRKernel : public QRKernel {
+class NativeQrKernel : public QrKernel {
 public:
-    std::tuple<Array, Array> Call(const Array& a, QRMode mode = QRMode::reduced) override {
+    std::tuple<Array, Array> Call(const Array& a, QrMode mode = QrMode::reduced) override {
 #if CHAINERX_ENABLE_LAPACK
         CHAINERX_ASSERT(a.ndim() == 2);
 
         return VisitFloatingPointDtype(a.dtype(), [&](auto pt) -> std::tuple<Array, Array> {
             using T = typename decltype(pt)::type;
-            return QRImpl<T>(a, mode);
+            return QrImpl<T>(a, mode);
         });
 #else  // CHAINERX_ENABLE_LAPACK
         (void)a;  // unused
@@ -324,7 +324,7 @@ public:
     }
 };
 
-CHAINERX_NATIVE_REGISTER_KERNEL(QRKernel, NativeQRKernel);
+CHAINERX_NATIVE_REGISTER_KERNEL(QrKernel, NativeQrKernel);
 
 }  // namespace native
 }  // namespace chainerx

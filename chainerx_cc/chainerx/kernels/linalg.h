@@ -33,11 +33,11 @@ public:
     virtual void Call(const Array& a, const Array& out) = 0;
 };
 
-class QRKernel : public Kernel {
+class QrKernel : public Kernel {
 public:
-    static const char* name() { return "QR"; }
+    static const char* name() { return "Qr"; }
 
-    virtual std::tuple<Array, Array> Call(const Array& a, QRMode mode) = 0;
+    virtual std::tuple<Array, Array> Call(const Array& a, QrMode mode) = 0;
 };
 
 }  // namespace chainerx
