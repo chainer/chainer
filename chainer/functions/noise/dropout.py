@@ -86,6 +86,12 @@ class Dropout(function_node.FunctionNode):
         if chainer.should_use_cudnn('==always', 5000) and self._use_cudnn:
             return DropoutGradCuDNN(self.states, self.dropout_ratio).apply(gy)
         else:
+            # The forward pass might have been done using cuDNN
+            # Retrieve the mask by
+            if hasattr(self, 'states') and self.mask is None:
+                _, self.mask = cuda.get_cudnn_dropout_states().forward(
+                    None, cuda.cupy.ones(gy[0].shape, dtype=gy[0].dtype),
+                    self.dropout_ratio)
             return DropoutGrad(self.mask).apply(gy)
 
 
