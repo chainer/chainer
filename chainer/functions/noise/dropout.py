@@ -30,13 +30,17 @@ class Dropout(function_node.FunctionNode):
 
     @property
     def mask(self):
-        if (chainer.should_use_cudnn('==always', 5000)
+        if (chainer.should_use_cudnn('>=auto', 5000)
                 or self._cudnn_dropout_handler is not None
                 and self._mask is None):
             ones = cuda.cupy.ones(self.input_shape, dtype=self.input_dtype)
             self._mask = self._cudnn_dropout_handler.backward(
                 None, ones, self.dropout_ratio, self.states)
         return self._mask
+
+    @mask.setter
+    def mask(self, mask):
+        self._mask = mask
 
     def forward_cpu(self, x):
         if (intel64.should_use_ideep('>=auto')
@@ -54,7 +58,7 @@ class Dropout(function_node.FunctionNode):
         return y,
 
     def forward_gpu(self, x):
-        if (chainer.should_use_cudnn('==always', 5000)
+        if (chainer.should_use_cudnn('>=auto', 5000)
                 and x[0].flags.c_contiguous):
             self._use_cudnn = True
 
@@ -100,7 +104,7 @@ class Dropout(function_node.FunctionNode):
         return y,
 
     def backward(self, x, gy):
-        if chainer.should_use_cudnn('==always', 5000) and self._use_cudnn:
+        if chainer.should_use_cudnn('>=auto', 5000) and self._use_cudnn:
             return DropoutGradCuDNN(self.states, self.dropout_ratio).apply(gy)
         else:
             return DropoutGrad(self.mask).apply(gy)
