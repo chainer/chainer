@@ -233,10 +233,7 @@ class TestSolveDtypeFailing(NumpyLinalgOpTest):
 @chainer.testing.parameterize(*(
     chainer.testing.product({
         'shape': [(1, 1), (3, 3), (6, 6)],
-        'in_dtypes': ['float32', 'float64'],
-        'contiguous': [None, 'C'],
-        'skip_backward_test': [True],
-        'skip_double_backward_test': [True]
+        'in_dtypes': ['float32', 'float64']
     })
 ))
 class TestCholesky(NumpyLinalgOpTest):
@@ -249,6 +246,13 @@ class TestCholesky(NumpyLinalgOpTest):
 
     def forward_xp(self, inputs, xp):
         a, = inputs
+
+        # Input has to be symmetrized for backward test to work
+        def symmetrize(A):
+            L = xp.tril(A)
+            return (L + L.T)/2.
+        a = symmetrize(a)
+
         L = xp.linalg.cholesky(a)
         return L,
 
@@ -257,18 +261,35 @@ class TestCholesky(NumpyLinalgOpTest):
 @chainer.testing.parameterize(*(
     chainer.testing.product({
         'shape': [(), (2, 3), (3, 2), (6, 6)],
-        'in_dtypes': ['float16', 'float32', 'float64'],
-        'contiguous': [None, 'C'],
-        'skip_backward_test': [True],
-        'skip_double_backward_test': [True]
+        'in_dtypes': ['float32', 'float64'],
     })
 ))
 class TestCholeskyFailing(NumpyLinalgOpTest):
 
     forward_accept_errors = (numpy.linalg.LinAlgError,
                              chainerx.ChainerxError,
-                             chainerx.DimensionError,
-                             TypeError,
+                             chainerx.DimensionError)
+
+    def generate_inputs(self):
+        a = numpy.random.random(self.shape).astype(self.in_dtypes)
+        return a,
+
+    def forward_xp(self, inputs, xp):
+        a, = inputs
+        L = xp.linalg.cholesky(a)
+        return L,
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    chainer.testing.product({
+        'shape': [(6, 6)],
+        'in_dtypes': ['float16'],
+    })
+))
+class TestCholeskyDtypeFailing(NumpyLinalgOpTest):
+
+    forward_accept_errors = (TypeError,
                              chainerx.DtypeError)
 
     def generate_inputs(self):
