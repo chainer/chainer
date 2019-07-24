@@ -234,9 +234,7 @@ class TestSolveDtypeFailing(NumpyLinalgOpTest):
     chainer.testing.product({
         'shape': [(1, 1), (3, 3), (6, 6)],
         'in_dtypes': ['float32', 'float64'],
-        'UPLO': ['U', 'L'],
-        'skip_backward_test': [True],
-        'skip_double_backward_test': [True]
+        'UPLO': ['U', 'L']
     })
 ))
 class TestEigh(NumpyLinalgOpTest):
@@ -247,6 +245,13 @@ class TestEigh(NumpyLinalgOpTest):
 
     def forward_xp(self, inputs, xp):
         a, = inputs
+
+        # Input has to be symmetrized for backward test to work
+        def symmetrize(A):
+            L = xp.tril(A)
+            return (L + L.T)/2.
+        a = symmetrize(a)
+
         w, v = xp.linalg.eigh(a)
         return w, v
 
