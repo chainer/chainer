@@ -1,3 +1,5 @@
+import six
+
 import chainer
 from chainer import backend
 from chainer import function_node
@@ -11,9 +13,10 @@ class LogSumExp(function_node.FunctionNode):
     def __init__(self, axis=None):
         if axis is None:
             self.axis = None
-        elif isinstance(axis, int):
+        elif isinstance(axis, six.integer_types):
             self.axis = (axis,)
-        elif isinstance(axis, tuple) and all(isinstance(a, int) for a in axis):
+        elif isinstance(axis, tuple) and all(
+                isinstance(a, six.integer_types) for a in axis):
             if len(set(axis)) != len(axis):
                 raise ValueError('duplicate value in axis: ({})'.format(
                     ', '.join(map(str, axis))))

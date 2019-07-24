@@ -18,6 +18,8 @@ params = [Param(p) for p in [
         'dtype': np.float16,
     }, {
         'dtype': np.float32,
+    }, {
+        'dtype': chainer.mixed16
     }]]
 
 

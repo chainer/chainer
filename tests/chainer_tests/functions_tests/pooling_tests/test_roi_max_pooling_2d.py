@@ -19,6 +19,7 @@ def _pair(x):
 @testing.parameterize(*testing.product({
     'dtype': [numpy.float32, numpy.float64],
     'outsize': [5, 7, (5, 7)],
+    'spatial_scale': [0.6, 1.0, 2.0],
 }))
 class TestROIMaxPooling2D(unittest.TestCase):
 
@@ -39,7 +40,6 @@ class TestROIMaxPooling2D(unittest.TestCase):
         self.roi_indices = numpy.array([0, 2, 1, 0], dtype=numpy.int32)
         n_rois = self.rois.shape[0]
         outsize = _pair(self.outsize)
-        self.spatial_scale = 0.6
         self.gy = numpy.random.uniform(
             -1, 1, (n_rois, n_channels,
                     outsize[0], outsize[1])).astype(self.dtype)
@@ -91,9 +91,14 @@ class TestROIMaxPooling2D(unittest.TestCase):
 
     def check_backward(self, x_data, roi_data, roi_index_data, y_grad):
         def f(x, rois, roi_indices):
-            return functions.roi_max_pooling_2d(
+            y = functions.roi_max_pooling_2d(
                 x, rois, roi_indices, outsize=self.outsize,
                 spatial_scale=self.spatial_scale)
+            xp = cuda.get_array_module(y)
+            # replace -inf with zero for gradient_check
+            y = functions.where(
+                xp.isinf(y.array), xp.zeros(y.shape, dtype=y.dtype), y)
+            return y
 
         gradient_check.check_backward(
             f, (x_data, roi_data, roi_index_data), y_grad,

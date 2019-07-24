@@ -4,7 +4,7 @@
 #include <tuple>
 #include <utility>
 
-#include <nonstd/optional.hpp>
+#include <absl/types/optional.h>
 
 #include "chainerx/array.h"
 #include "chainerx/axes.h"
@@ -44,7 +44,7 @@ public:
             Scalar decay,
             const Axes& axis,
             bool return_state,
-            const nonstd::optional<Array>& out) = 0;
+            const absl::optional<Array>& out) = 0;
 };
 
 class BatchNormGradKernel : public Kernel {
@@ -59,9 +59,9 @@ public:
             Scalar eps,
             const Axes& axis,
             const std::shared_ptr<BatchNormGradState>& state,
-            const nonstd::optional<Array>& gx,
-            const nonstd::optional<Array>& ggamma,
-            const nonstd::optional<Array>& gbeta) = 0;
+            const absl::optional<Array>& gx,
+            const absl::optional<Array>& ggamma,
+            const absl::optional<Array>& gbeta) = 0;
 };
 
 class GenericBatchNormGradState : public BatchNormGradState {
@@ -91,7 +91,7 @@ public:
             Scalar decay,
             const Axes& axis,
             bool return_state,
-            const nonstd::optional<Array>& out) override;
+            const absl::optional<Array>& out) override;
 };
 
 class GenericBatchNormGradKernel : public BatchNormGradKernel {
@@ -103,9 +103,9 @@ public:
             Scalar eps,
             const Axes& axis,
             const std::shared_ptr<BatchNormGradState>& state,
-            const nonstd::optional<Array>& gx,
-            const nonstd::optional<Array>& ggamma,
-            const nonstd::optional<Array>& gbeta) override;
+            const absl::optional<Array>& gx,
+            const absl::optional<Array>& ggamma,
+            const absl::optional<Array>& gbeta) override;
 };
 
 class FixedBatchNormKernel : public Kernel {
@@ -120,7 +120,7 @@ public:
             const Array& var,
             Scalar eps,
             const Axes& axis,
-            const nonstd::optional<Array>& out) = 0;
+            const absl::optional<Array>& out) = 0;
 };
 
 class GenericFixedBatchNormKernel : public FixedBatchNormKernel {
@@ -133,7 +133,7 @@ public:
             const Array& var,
             Scalar eps,
             const Axes& axis,
-            const nonstd::optional<Array>& out) override;
+            const absl::optional<Array>& out) override;
 };
 
 }  // namespace chainerx

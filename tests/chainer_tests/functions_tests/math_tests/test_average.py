@@ -5,6 +5,7 @@ import six
 
 from chainer import functions
 from chainer import testing
+from chainer.testing import attr
 from chainer import utils
 
 
@@ -15,6 +16,7 @@ from chainer import utils
         'dtype': [numpy.float16, numpy.float32, numpy.float64],
         'use_weights': [True, False],
         'keepdims': [True, False],
+        'use_variable_method': [True, False],
     }) +
     testing.product({
         'shape': [()],
@@ -22,6 +24,7 @@ from chainer import utils
         'dtype': [numpy.float16, numpy.float32, numpy.float64],
         'use_weights': [True, False],
         'keepdims': [True, False],
+        'use_variable_method': [True, False],
     })))
 @testing.fix_random()
 @testing.inject_backend_tests(
@@ -84,8 +87,11 @@ class TestAverage(testing.FunctionTestCase):
         x, w = inputs
         if not self.use_weights:
             w = None
-        y = functions.average(
-            x, axis=self.axis, weights=w, keepdims=self.keepdims)
+        if self.use_variable_method:
+            y = x.mean(axis=self.axis, weights=w, keepdims=self.keepdims)
+        else:
+            y = functions.average(
+                x, axis=self.axis, weights=w, keepdims=self.keepdims)
         return y,
 
     def forward_expected(self, inputs):
@@ -107,6 +113,58 @@ class TestAverage(testing.FunctionTestCase):
             y_expect = y_expect.reshape(shape)
         y_expect = utils.force_array(y_expect, dtype=self.dtype)
         return y_expect,
+
+
+@testing.parameterize(*(
+    testing.product({
+        'shape': [(30, 20, 40)],
+        'axis': [None, 0, 1, 2, -1, (0, 1), (1, -1)],
+        'dtype': [numpy.float16],
+        'use_weights': [False],  # np.average overflows when `weights` is used
+        'keepdims': [True, False],
+    })
+))
+@testing.inject_backend_tests(
+    None,
+    # CPU tests
+    [
+        {},
+    ]
+    # GPU tests
+    + testing.product({
+        'use_cuda': [True],
+        'cuda_device': [0, 1],
+    })
+    # ChainerX tests
+    + testing.product({
+        'use_chainerx': [True],
+        'chainerx_device': ['native:0', 'cuda:0', 'cuda:1'],
+    }))
+@attr.slow
+@testing.with_requires('numpy>=1.12')  # NumPy #8222
+class TestAverageOverflowingSum(testing.FunctionTestCase):
+
+    def setUp(self):
+        self.check_forward_options.update({'atol': 1e-2, 'rtol': 2e-3})
+        self.check_backward_options.update({'atol': 1e-2, 'rtol': 1e-2})
+        self.check_double_backward_options.update({'atol': 1e-2, 'rtol': 1e-2})
+
+    def generate_inputs(self):
+        x = numpy.random.uniform(3000, 7000, self.shape).astype(self.dtype)
+        return x,
+
+    def forward(self, inputs, device):
+        x, = inputs
+        y = functions.average(
+            x, self.axis, keepdims=self.keepdims)
+        return y,
+
+    def forward_expected(self, inputs):
+        x, = inputs
+        y_expect = numpy.mean(
+            x.astype(numpy.float64), self.axis, keepdims=self.keepdims
+        ).astype(self.dtype)
+        return utils.force_array(y_expect),
 
 
 @testing.parameterize(*testing.product({
