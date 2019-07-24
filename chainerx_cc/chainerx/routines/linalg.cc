@@ -210,10 +210,7 @@ std::tuple<Array, Array> Eigh(const Array& a, const std::string& uplo) {
     {
         BackwardBuilder bb{"eigh", a, {w, v}};
         if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-            bt.Define([a_tok = bb.RetainInput(0),
-                       w_tok = bb.RetainOutput(0),
-                       v_tok = bb.RetainOutput(1)](BackwardContext& bctx) {
-
+            bt.Define([a_tok = bb.RetainInput(0), w_tok = bb.RetainOutput(0), v_tok = bb.RetainOutput(1)](BackwardContext& bctx) {
                 const Array& a = bctx.GetRetainedInput(a_tok);
                 const Array& w = bctx.GetRetainedOutput(w_tok);
                 const Array& v = bctx.GetRetainedOutput(v_tok);
