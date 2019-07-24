@@ -90,6 +90,8 @@ class FuncWithBackwardAccumulate(chainer.FunctionNode):
                       for gx, g_input in six.moves.zip(gxs, grad_inputs)])
 
 
+# TODO(hvy): Clean up/simply this test class. Some code seems to be copy-pasted
+# and unused, etc.
 @testing.parameterize(*testing.product({
     'y_shape': [(4,), (0,), (2, 3), ()],
     'x_shape': [(3,), (0,), (4, 1), ()],
@@ -132,7 +134,7 @@ class TestFunctionNode(unittest.TestCase):
             make_array(3, x_shape, numpy.float32))
         self.gx2_orig = chainer.Variable(
             make_array(2, x_shape, numpy.float32))
-        self.gx1_accum = gx1 + self.gx1_orig
+        self.gx1_accum = gx1.array + self.gx1_orig.array
         self.gy1 = gy1
         self.gy2 = gy2
 
@@ -151,7 +153,6 @@ class TestFunctionNode(unittest.TestCase):
         self.gx1.to_gpu()
         self.gx1_orig.to_gpu()
         self.gx2_orig.to_gpu()
-        self.gx1_accum.to_gpu()
         self.gy1 = cuda.to_gpu(self.gy1)
         self.gy2 = cuda.to_gpu(self.gy2)
         self.f.forward_gpu = mock.MagicMock(return_value=(self.y1, self.y2))
@@ -181,7 +182,7 @@ class TestFunctionNode(unittest.TestCase):
             self.assertIsNone(gx2)
         else:
             numpy.testing.assert_array_equal(cuda.to_cpu(gx1.data),
-                                             cuda.to_cpu(self.gx1_accum.data))
+                                             self.gx1_accum)
             numpy.testing.assert_array_equal(cuda.to_cpu(gx2.data),
                                              cuda.to_cpu(self.gx2_orig.data))
 

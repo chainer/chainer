@@ -79,6 +79,9 @@ class TestDiscriminativeMarginBasedClusteringLoss(unittest.TestCase):
             chainer.Variable(t_data[1]), \
             chainer.Variable(t_data[2])
         l_dist, l_var, l_reg = self.get_result(embeddings, labels)
+        l_dist.unchain()
+        l_var.unchain()
+        l_reg.unchain()
         l_dist.to_cpu()
         l_var.to_cpu()
         l_reg.to_cpu()
@@ -105,9 +108,10 @@ class TestDiscriminativeMarginBasedClusteringLoss(unittest.TestCase):
         gpu_res = self.get_result(cuda.to_gpu(self.input),
                                   cuda.to_gpu(self.gt))
         for idx in range(len(gpu_res)):
-            gpu_res[idx].to_cpu()
-            numpy.testing.assert_almost_equal(cpu_res[idx].data,
-                                              gpu_res[idx].data)
+            res = gpu_res[idx]
+            res.unchain()
+            res.to_cpu()
+            numpy.testing.assert_almost_equal(cpu_res[idx].data, res.data)
 
     def check_backward(self, x0_data, x1_data, y_grad):
         gradient_check.check_backward(
