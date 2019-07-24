@@ -1,3 +1,6 @@
+def cholesky(a: ndarray) -> ndarray: ...
+
+
 def inv(a: ndarray) -> ndarray: ...
 
 
