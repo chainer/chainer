@@ -671,14 +671,14 @@ Array Repeat(const Array& a, int64_t repeats, absl::optional<int8_t> axis) {
         target_array = Reshape(a, Shape({a.shape().GetTotalSize()}));
     }
 
-    Shape broadcastShape = target_array.shape();
-    broadcastShape.insert(broadcastShape.begin() + target_axis + 1, repeats);
+    Shape broadcast_shape = target_array.shape();
+    broadcast_shape.insert(broadcast_shape.begin() + target_axis + 1, repeats);
 
     Shape reshape_shape = target_array.shape();
     reshape_shape[target_axis] *= repeats;
 
     Array expanded_array = ExpandDims(target_array, target_axis + 1);
-    Array broadcasted_array = BroadcastTo(expanded_array, broadcastShape);
+    Array broadcasted_array = BroadcastTo(expanded_array, broadcast_shape);
     Array reshaped_array = Reshape(broadcasted_array, reshape_shape);
     return AsContiguousArray(reshaped_array);
 }
@@ -691,17 +691,18 @@ Array Repeat(const Array& a, const std::vector<int64_t>& repeats, absl::optional
             throw DimensionError("The number of repeats must be same with a shape in the axis direction.");
         }
 
-        for (size_t i = 0; i < repeats.size(); i++) {
+        for (size_t i = 0; i < repeats.size(); ++i) {
             if (repeats[i] < 0) {
                 throw DimensionError("repeats must be larger than 0.");
             }
         }
 
+		// TODO(durswd) : should be optimized
         std::vector<Array> output_elements;
         std::vector<Array> splitted = Split(a, a.shape()[target_axis], target_axis);
 
-        for (size_t i = 0; i < splitted.size(); i++) {
-            for (int32_t j = 0; j < repeats[i]; j++) {
+        for (size_t i = 0; i < splitted.size(); ++i) {
+            for (int32_t j = 0; j < repeats[i]; ++j) {
                 output_elements.push_back(splitted[i]);
             }
         }
