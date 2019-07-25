@@ -1,5 +1,3 @@
-import random
-import string
 from chainer.training.triggers import EarlyStoppingTrigger
 from chainermn.extensions import ObservationAggregator
 
