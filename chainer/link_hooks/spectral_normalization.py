@@ -243,7 +243,7 @@ class SpectralNormalization(link_hook.LinkHook):
                 weight_matrix_ = fallback_device.send(weight_matrix)
                 with chainer.using_device(fallback_device):
                     _, s_, _ = fallback_device.xp.linalg.svd(weight_matrix_)
-                s = fallback_device.send(s_)
+                s = device.send(s_)
             else:
                 _, s, _ = link.xp.linalg.svd(weight_matrix)
             s0 = chainer.utils.force_array(s[0])
