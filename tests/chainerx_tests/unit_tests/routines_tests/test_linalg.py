@@ -253,7 +253,10 @@ class TestEigh(NumpyLinalgOpTest):
         a = symmetrize(a)
 
         w, v = xp.linalg.eigh(a)
-        return w, v
+
+        # The sign of eigenvectors is not unique,
+        # therefore absolute values are compared
+        return w, xp.abs(v)
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
