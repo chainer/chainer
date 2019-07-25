@@ -235,21 +235,6 @@ public:
 
 CHAINERX_NATIVE_REGISTER_KERNEL(PowerSAKernel, NativePowerSAKernel);
 
-int32_t Mod(int32_t x, int32_t y) {
-    if (x == 0 || y == 0) {
-        return 0;
-    }
-    if (x < 0) {
-        if (y > 0) {
-            return (y - (-x) % y) % y;
-        }
-        return -(-x % (-y));
-    }
-    if (y < 0) {
-        return (y + x % (-y)) % y;
-    }
-    return x % y;
-}
 int64_t Mod(int64_t x, int64_t y) {
     if (x == 0 || y == 0) {
         return 0;
@@ -265,8 +250,9 @@ int64_t Mod(int64_t x, int64_t y) {
     }
     return x % y;
 }
-int8_t Mod(int8_t x, int8_t y) { return static_cast<int8_t>(Mod(static_cast<int32_t>(x), static_cast<int32_t>(y))); }
-int16_t Mod(int16_t x, int16_t y) { return static_cast<int16_t>(Mod(static_cast<int32_t>(x), static_cast<int32_t>(y))); }
+int8_t Mod(int8_t x, int8_t y) { return static_cast<int8_t>(Mod(static_cast<int64_t>(x), static_cast<int64_t>(y))); }
+int16_t Mod(int16_t x, int16_t y) { return static_cast<int16_t>(Mod(static_cast<int64_t>(x), static_cast<int64_t>(y))); }
+int32_t Mod(int32_t x, int32_t y) { return static_cast<int32_t>(Mod(static_cast<int64_t>(x), static_cast<int64_t>(y))); }
 uint8_t Mod(uint8_t x, uint8_t y) {
     if (x == 0 || y == 0) {
         return 0;

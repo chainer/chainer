@@ -1414,16 +1414,16 @@ class TestReciprocal(math_utils.UnaryMathTestBase, op_utils.NumpyOpTest):
         'in_dtypes,out_dtype': (
             dtype_utils.make_same_in_out_dtypes(
                 2, chainerx.testing.numeric_dtypes)),
-        'input_lhs': ['random'],
-        'input_rhs': ['random'],
+        'input_lhs': [5, -5, 'random'],
+        'input_rhs': [2, 3, -2, -3, 'random'],
         'is_module': [False],
     })
     # Dtype combinations
     + chainer.testing.product({
         'in_shapes': [((2, 3), (2, 3))],
         'in_dtypes,out_dtype': _in_out_dtypes_arithmetic,
-        'input_lhs': ['random'],
-        'input_rhs': ['random'],
+        'input_lhs': [5, -5, 'random'],
+        'input_rhs': [2, 3, -2, -3, 'random'],
         'is_module': [False],
     })
     # is_module
@@ -1432,8 +1432,8 @@ class TestReciprocal(math_utils.UnaryMathTestBase, op_utils.NumpyOpTest):
         'in_dtypes,out_dtype': (
             dtype_utils.make_same_in_out_dtypes(
                 2, chainerx.testing.numeric_dtypes)),
-        'input_lhs': ['random'],
-        'input_rhs': ['random'],
+        'input_lhs': [5, -5, 'random'],
+        'input_rhs': [2, 3, -2, -3, 'random'],
         'is_module': [True, False],
     })
     # Remove special values test
@@ -1442,9 +1442,18 @@ class TestReciprocal(math_utils.UnaryMathTestBase, op_utils.NumpyOpTest):
 class TestRemainder(math_utils.BinaryMathTestBase, op_utils.NumpyOpTest):
     dodge_nondifferentiable = True
 
+    def setup(self):
+        super().setup()
+        dtype1, dtype2 = self.in_dtypes
+        if dtype1 == 'float16' or dtype2 == 'float16':
+            self.check_forward_options.update({'rtol': 5e-3, 'atol': 5e-3})
+            self.check_backward_options.update({'rtol': 5e-3, 'atol': 5e-3})
+            self.check_double_backward_options.update(
+                {'rtol': 5e-3, 'atol': 5e-3})
+
     def generate_inputs(self):
         a, b = super().generate_inputs()
-        if self.input_lhs == 'random':
+        if self.input_rhs == 'random':
             # Avoid (-0.3, 0.3) interval
             with math_utils.IgnoreNumpyFloatingPointError():
                 b[numpy.logical_and(-0.3 < b, b < 0.3)] = 1
@@ -1479,15 +1488,15 @@ def test_remainder_invalid_dtypes(device, dtypes, is_module):
         'in_dtypes,out_dtype': (
             dtype_utils.make_same_in_out_dtypes(
                 2, chainerx.testing.numeric_dtypes)),
-        'input_lhs': ['random'],
-        'input_rhs': ['random'],
+        'input_lhs': [5, -5, 'random'],
+        'input_rhs': [2, 3, -2, -3, 'random'],
     })
     # Dtype combinations
     + chainer.testing.product({
         'in_shapes': [((2, 3), (2, 3))],
         'in_dtypes,out_dtype': _in_out_dtypes_inplace_arithmetic,
-        'input_lhs': ['random'],
-        'input_rhs': ['random'],
+        'input_lhs': [5, -5, 'random'],
+        'input_rhs': [2, 3, -2, -3, 'random'],
     })
     # Remove special values test
     # since chainerx.remainder returns nan when numpy.remainder returns inf
@@ -1496,9 +1505,18 @@ class TestIRemainder(
         math_utils.InplaceBinaryMathTestBase, op_utils.NumpyOpTest):
     dodge_nondifferentiable = True
 
+    def setup(self):
+        super().setup()
+        dtype1, dtype2 = self.in_dtypes
+        if dtype1 == 'float16' or dtype2 == 'float16':
+            self.check_forward_options.update({'rtol': 5e-3, 'atol': 5e-3})
+            self.check_backward_options.update({'rtol': 5e-3, 'atol': 5e-3})
+            self.check_double_backward_options.update(
+                {'rtol': 5e-3, 'atol': 5e-3})
+
     def generate_inputs(self):
         a, b = super().generate_inputs()
-        if self.input_lhs == 'random':
+        if self.input_rhs == 'random':
             # Avoid (-0.3, 0.3) interval
             with math_utils.IgnoreNumpyFloatingPointError():
                 b[numpy.logical_and(-0.3 < b, b < 0.3)] = 1

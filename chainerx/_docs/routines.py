@@ -1405,7 +1405,8 @@ Returns:
         the quotient ``floor_divide(x1, x2)``.
 
 Note:
-    During backpropagation, this function propagates gradients.
+    During backpropagation, this function propagates the gradient of the
+    output array to the input arrays ``x1`` and ``x2``.
 
 .. seealso:: :data:`numpy.mod`
 """)
@@ -1425,7 +1426,8 @@ Returns:
         the quotient ``floor_divide(x1, x2)``.
 
 Note:
-    During backpropagation, this function propagates gradients.
+    During backpropagation, this function propagates the gradient of the
+    output array to the input arrays ``x1`` and ``x2``.
 
 .. seealso:: :data:`numpy.remainder`
 """)

@@ -283,7 +283,7 @@ CHAINERX_CUDA_REGISTER_KERNEL(PowerSAKernel, CudaPowerSAKernel);
 
 // CUDA does not have std::mod, which is used for the native backend.
 template <typename T>
-__device__ T ModImpl(T x, T y) {
+__device__ T ModSignedIntegerImpl(T x, T y) {
     if (x == 0 || y == 0) {
         return 0;
     }
@@ -295,21 +295,22 @@ __device__ T ModImpl(T x, T y) {
         return -(-x % (-y));
     }
     if (y < 0) {
-        T z = x % (-y) return z == 0 ? 0 : y - z;
+        T z = x % (-y);
+        return z == 0 ? 0 : y - z;
     }
     return x % y;
 }
-__device__ int8_t Mod(int8_t x, int8_t y) { return ModImpl(x, y); }
-__device__ int16_t Mod(int16_t x, int16_t y) { return ModImpl(x, y); }
-__device__ int32_t Mod(int32_t x, int32_t y) { return ModImpl(x, y); }
-__device__ int64_t Mod(int64_t x, int64_t y) { return ModImpl(x, y); }
+__device__ int8_t Mod(int8_t x, int8_t y) { return ModSignedIntegerImpl(x, y); }
+__device__ int16_t Mod(int16_t x, int16_t y) { return ModSignedIntegerImpl(x, y); }
+__device__ int32_t Mod(int32_t x, int32_t y) { return ModSignedIntegerImpl(x, y); }
+__device__ int64_t Mod(int64_t x, int64_t y) { return ModSignedIntegerImpl(x, y); }
 __device__ uint8_t Mod(uint8_t x, uint8_t y) {
     if (x == 0 || y == 0) {
         return 0;
     }
     return x % y;
 }
-__device__ T FModImpl(T x, T y) {
+__device__ T ModFloatImpl(T x, T y) {
     if (x == 0 || y == 0) {
         return 0;
     }
@@ -326,8 +327,8 @@ __device__ T FModImpl(T x, T y) {
     }
     return std::fmod(x, y);
 }
-__device__ double Mod(double x, double y) { return FModImpl(x, y); }
-__device__ float Mod(float x, float y) { return FModImpl(x, y); }
+__device__ double Mod(double x, double y) { return ModFloatImpl(x, y); }
+__device__ float Mod(float x, float y) { return ModFloatImpl(x, y); }
 __device__ cuda::Float16 Mod(cuda::Float16 x, cuda::Float16 y) { return cuda::Float16{Mod(static_cast<float>(x), static_cast<float>(y))}; }
 
 CHAINERX_CUDA_REGISTER_ELTWISE_DTYPE_BINARY_KERNEL(ModAAKernel, { out = cuda::Mod(x1, x2); }, VisitNumericDtype);
