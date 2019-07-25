@@ -441,8 +441,10 @@ class TestFunctionNodeForwardTypeCheck(unittest.TestCase):
         f = FunctionNode()
         x1 = chainer.Variable(self.x1)
 
-        with self.assertRaisesRegex(
-                TypeError, 'forward output must be a tuple of ndarrays'):
+        with six.assertRaisesRegex(
+                self,
+                TypeError,
+                'forward output must be a tuple of ndarrays'):
             f.apply((x1,))
 
     @attr.gpu
