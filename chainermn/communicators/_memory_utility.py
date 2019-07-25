@@ -25,8 +25,8 @@ class ParamsData(object):
                 v = param.xp.zeros_like(param.data)
                 setattr(param, attr_name, v)
             params_dptr[i] = v.data.ptr
-            if v.dtype not in [np.float16, np.float32]:
-                raise ValueError('dtype must be float16 or float32.')
+            if v.dtype not in [np.float16, np.float32, np.float64]:
+                raise ValueError('dtype must be float16, float32 or float64.')
             params_dtype[i] = _communication_utility._get_nccl_type_id(v.dtype)
             params_size_csum[i+1] = params_size_csum[i] + v.size
         self.n_params = n_params
@@ -230,6 +230,7 @@ def _cupy_batched_pack_params():
 #include <cupy/carray.cuh>
 #define NCCL_FLOAT16  6
 #define NCCL_FLOAT32  7
+#define NCCL_FLOAT64  8
     extern "C" __global__
     void cupy_batched_pack_params(
             void *dst0, int dst_dtype, int n_elems,
@@ -264,6 +265,9 @@ def _cupy_batched_pack_params():
             else if (src_dtype == NCCL_FLOAT32) {
                 dst[tid] = (half) (((float*) (params_dptr[j]))[src_idx]);
             }
+            else if (src_dtype == NCCL_FLOAT64) {
+                dst[tid] = (half) (((double*) (params_dptr[j]))[src_idx]);
+            }
         }
         else if (dst_dtype == NCCL_FLOAT32) {
             float* dst = (float*) dst0;
@@ -272,6 +276,21 @@ def _cupy_batched_pack_params():
             }
             else if (src_dtype == NCCL_FLOAT32) {
                 dst[tid] = (float) (((float*) (params_dptr[j]))[src_idx]);
+            }
+            else if (src_dtype == NCCL_FLOAT64) {
+                dst[tid] = (float) (((double*) (params_dptr[j]))[src_idx]);
+            }
+       }
+       else if (dst_dtype == NCCL_FLOAT64) {
+            double* dst = (double*) dst0;
+            if (src_dtype == NCCL_FLOAT16) {
+                dst[tid] = (double) (((half*) (params_dptr[j]))[src_idx]);
+            }
+            else if (src_dtype == NCCL_FLOAT32) {
+                dst[tid] = (double) (((float*) (params_dptr[j]))[src_idx]);
+            }
+            else if (src_dtype == NCCL_FLOAT64) {
+                dst[tid] = (double) (((double*) (params_dptr[j]))[src_idx]);
             }
        }
     }
@@ -283,6 +302,7 @@ def _cupy_batched_unpack_params():
 #include <cupy/carray.cuh>
 #define NCCL_FLOAT16  6
 #define NCCL_FLOAT32  7
+#define NCCL_FLOAT64  8
     extern "C" __global__
     void cupy_batched_unpack_params(
             void *src0, int src_dtype, int n_elems,
@@ -317,6 +337,9 @@ def _cupy_batched_unpack_params():
             else if (dst_dtype == NCCL_FLOAT32) {
                 ((float*) (params_dptr[j]))[dst_idx] = (float) src[tid];
             }
+            else if (dst_dtype == NCCL_FLOAT64) {
+                ((double*) (params_dptr[j]))[dst_idx] = (double) src[tid];
+            }
         }
         else if (src_dtype == NCCL_FLOAT32) {
             float* src = (float*) src0;
@@ -325,6 +348,21 @@ def _cupy_batched_unpack_params():
             }
             else if (dst_dtype == NCCL_FLOAT32) {
                 ((float*) (params_dptr[j]))[dst_idx] = (float) src[tid];
+            }
+            else if (dst_dtype == NCCL_FLOAT64) {
+                ((double*) (params_dptr[j]))[dst_idx] = (double) src[tid];
+            }
+       }
+       else if (src_dtype == NCCL_FLOAT64) {
+            double* src = (double*) src0;
+            if (dst_dtype == NCCL_FLOAT16) {
+                ((half*) (params_dptr[j]))[dst_idx] = (half) src[tid];
+            }
+            else if (dst_dtype == NCCL_FLOAT32) {
+                ((float*) (params_dptr[j]))[dst_idx] = (float) src[tid];
+            }
+            else if (dst_dtype == NCCL_FLOAT64) {
+                ((double*) (params_dptr[j]))[dst_idx] = (double) src[tid];
             }
        }
     }''', 'cupy_batched_unpack_params')
