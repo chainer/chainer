@@ -4,10 +4,6 @@ from chainer.training.triggers import EarlyStoppingTrigger
 from chainermn.extensions import ObservationAggregator
 
 
-def _random_suffix(n):
-    return ''.join([random.choice(string.ascii_letters) for i in range(n)])
-
-
 class MultiNodeEarlyStoppingTrigger(object):
     """__init__(\
         self, comm, check_trigger=(1, 'epoch'), monitor='main/loss', \
@@ -43,6 +39,8 @@ class MultiNodeEarlyStoppingTrigger(object):
         verbose (bool) : Enable verbose output.
             If verbose is true, you can get more information
         max_trigger: Upper bound of the number of training loops
+        suffix (str): Suffix added to the name of the monitored
+            metric after aggregation.
 
     .. note::
        ``patients`` is also available as an alias of ``patience`` for
@@ -51,10 +49,10 @@ class MultiNodeEarlyStoppingTrigger(object):
 
     def __init__(self, comm, check_trigger=(1, 'epoch'), monitor='main/loss',
                  patience=None, mode='auto', verbose=False,
-                 max_trigger=(100, 'epoch'), **kwargs):
+                 max_trigger=(100, 'epoch'), suffix='_aggregated', **kwargs):
 
         # `patients` as an alias of `patience`
-        monitor_aggregated = monitor + '-aggregated-' + _random_suffix(10)
+        monitor_aggregated = monitor + suffix
 
         self.actual_trigger = EarlyStoppingTrigger(check_trigger=check_trigger,
                                                    monitor=monitor_aggregated,
