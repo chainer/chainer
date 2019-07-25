@@ -209,7 +209,7 @@ method to evaluate expression.
         # See also:
         # https://docs.python.org/3/library/stdtypes.html
         msg = ('An Expr instance cannot be evaluated as bool. '
-               'Please use chainer.type_check.eval() to evaluate an '
+               'Please use chainer.utils.type_check.eval() to evaluate an '
                'expression.')
         raise RuntimeError(msg)
 
