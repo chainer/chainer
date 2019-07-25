@@ -310,6 +310,7 @@ __device__ uint8_t Mod(uint8_t x, uint8_t y) {
     }
     return x % y;
 }
+template <typename T>
 __device__ T ModFloatImpl(T x, T y) {
     if (x == 0 || y == 0) {
         return 0;
@@ -322,7 +323,7 @@ __device__ T ModFloatImpl(T x, T y) {
         return -std::fmod(-x, -y);
     }
     if (y < 0) {
-        T x = std::fmod(x, -y);
+        T z = std::fmod(x, -y);
         return z == 0 ? 0 : y - z;
     }
     return std::fmod(x, y);
