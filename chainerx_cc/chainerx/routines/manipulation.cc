@@ -684,6 +684,10 @@ Array Repeat(const Array& a, int64_t repeats, absl::optional<int8_t> axis) {
 }
 
 Array Repeat(const Array& a, const std::vector<int64_t>& repeats, absl::optional<int8_t> axis) {
+    if (repeats.size() == 1) {
+        return Repeat(a, repeats[0], axis);
+    }
+
     if (axis.has_value()) {
         int8_t target_axis = internal::NormalizeAxis(*axis, a.ndim());
 
@@ -697,7 +701,7 @@ Array Repeat(const Array& a, const std::vector<int64_t>& repeats, absl::optional
             }
         }
 
-		// TODO(durswd) : should be optimized
+        // TODO(durswd) : should be optimized
         std::vector<Array> output_elements;
         std::vector<Array> splitted = Split(a, a.shape()[target_axis], target_axis);
 
