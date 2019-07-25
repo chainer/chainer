@@ -5,9 +5,9 @@ import numpy
 import chainer
 from chainer.backends import cuda
 from chainer import functions
-from chainer.functions.activation import lstm
 from chainer import gradient_check
 from chainer import testing
+from chainer.functions.rnn import lstm
 from chainer.testing import backend
 
 

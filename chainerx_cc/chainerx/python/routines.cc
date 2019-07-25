@@ -275,6 +275,17 @@ void InitChainerxCreation(pybind11::module& m) {
           "endpoint"_a = true,
           "dtype"_a = nullptr,
           "device"_a = nullptr);
+    m.def("tri",
+          [](int64_t n, absl::optional<int64_t> m, int64_t k, py::handle dtype, py::handle device) {
+              return MoveArrayBody(Tri(n, m, k, GetDtype(dtype), GetDevice(device)));
+          },
+          "N"_a,
+          "M"_a = nullptr,
+          "k"_a = 0,
+          "dtype"_a = "float32",
+          "device"_a = nullptr);
+    m.def("tril", [](const ArrayBodyPtr& m, int64_t k) { return MoveArrayBody(Tril(Array{m}, k)); }, "m"_a, "k"_a = 0);
+    m.def("triu", [](const ArrayBodyPtr& m, int64_t k) { return MoveArrayBody(Triu(Array{m}, k)); }, "m"_a, "k"_a = 0);
 }
 
 void InitChainerxIndexing(pybind11::module& m) {
@@ -331,6 +342,12 @@ void InitChainerxIndexing(pybind11::module& m) {
 void InitChainerxLinalg(pybind11::module& m) {
     // linalg routines
     m.def("dot", [](const ArrayBodyPtr& a, const ArrayBodyPtr& b) { return MoveArrayBody(Dot(Array{a}, Array{b})); }, "a"_a, "b"_a);
+
+    pybind11::module mlinalg = m.def_submodule("linalg");
+    mlinalg.def("_is_lapack_available", []() -> bool { return CHAINERX_ENABLE_LAPACK; });
+    mlinalg.def(
+            "solve", [](const ArrayBodyPtr& a, const ArrayBodyPtr& b) { return MoveArrayBody(Solve(Array{a}, Array{b})); }, "a"_a, "b"_a);
+    mlinalg.def("inv", [](const ArrayBodyPtr& a) { return MoveArrayBody(Inverse(Array{a})); }, "a"_a);
 }
 
 void InitChainerxLogic(pybind11::module& m) {
@@ -647,6 +664,7 @@ void InitChainerxActivation(pybind11::module& m) {
           [](const ArrayBodyPtr& x, Scalar slope) { return MoveArrayBody(LeakyRelu(Array{x}, slope)); },
           "x"_a,
           "slope"_a = 0.2);
+    m.def("softplus", [](const ArrayBodyPtr& x, double beta) { return MoveArrayBody(Softplus(Array{x}, beta)); }, "x"_a, "beta"_a = 1.0);
 }
 
 void InitChainerxArithmetic(pybind11::module& m) {
@@ -787,6 +805,10 @@ void InitChainerxReduction(pybind11::module& m) {
               return MoveArrayBody(Softmax(Array{x}, ToAxes(axis)));
           },
           "x"_a,
+          "axis"_a = nullptr);
+    m.def("cumsum",
+          [](const ArrayBodyPtr& a, const absl::optional<int8_t>& axis) { return MoveArrayBody(Cumsum(Array{a}, axis)); },
+          "a"_a,
           "axis"_a = nullptr);
 }
 

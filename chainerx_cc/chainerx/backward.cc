@@ -207,12 +207,14 @@ public:
             const std::vector<ConstArrayRef>& outputs,
             const BackpropId& backprop_id,
             DoubleBackpropOption double_backprop,
-            std::unordered_map<ArrayNode*, internal::GradRef> array_node_grad_map)
+            std::unordered_map<ArrayNode*, internal::GradRef> array_node_grad_map,
+            bool retain_grad)
         : inputs_{inputs},
           outputs_{outputs},
           backprop_id_{backprop_id},
           double_backprop_{double_backprop},
-          array_node_grad_map_{std::move(array_node_grad_map)} {
+          array_node_grad_map_{std::move(array_node_grad_map)},
+          retain_grad_{retain_grad} {
         if (!outputs_.empty()) {
             // Collect output array nodes (can be nullptr).
             output_array_nodes_.reserve(outputs.size());
@@ -243,7 +245,7 @@ public:
             const std::vector<ConstArrayRef>& outputs,
             const BackpropId& backprop_id,
             DoubleBackpropOption double_backprop)
-        : BackwardImpl{inputs, outputs, backprop_id, double_backprop, {}} {}
+        : BackwardImpl{inputs, outputs, backprop_id, double_backprop, {}, false} {}
 
     void Run() {
         CHAINERX_ASSERT(output_array_nodes_.size() == outputs_.size());
@@ -396,7 +398,11 @@ private:
                 if (output_array_node != nullptr) {
                     std::shared_ptr<ArrayBody> body = output_array_node->weak_body().lock();
                     if (body != nullptr && !body->IsGradRequired(backprop_id_)) {
-                        body->ClearGrad(backprop_id_);
+                        if (retain_grad_) {
+                            internal::ArrayBody::RequireGrad(body, backprop_id_);
+                        } else {
+                            body->ClearGrad(backprop_id_);
+                        }
                     }
                 }
             }
@@ -572,6 +578,9 @@ private:
     // Represents the subgraph required for backprop in case any inputs are specified.
     // Specifically, stores for an op nodes a vector of boolean flags whether an input at that index is included in the subgraph.
     std::unordered_map<OpNode*, std::vector<uint8_t>> input_required_flags_;
+
+    // To mark if grads of intermediate nodes in the graph should be kept
+    bool retain_grad_;
 };
 
 }  // namespace
@@ -595,7 +604,10 @@ std::vector<absl::optional<Array>> Grad(
         const std::vector<ConstArrayRef>& outputs,
         const std::vector<ConstArrayRef>& inputs,
         const absl::optional<BackpropId>& backprop_id,
-        DoubleBackpropOption double_backprop) {
+        DoubleBackpropOption double_backprop,
+        bool set_grad,
+        bool retain_grad,
+        const std::vector<ConstArrayRef>& grad_outputs) {
     if (inputs.empty()) {
         return {};
     }
@@ -603,8 +615,14 @@ std::vector<absl::optional<Array>> Grad(
         return std::vector<absl::optional<Array>>(inputs.size(), absl::nullopt);
     }
 
+    if (!grad_outputs.empty() && outputs.size() != grad_outputs.size()) {
+        throw GradientError{"Grad_outputs and outputs must have the same size"};
+    }
+
     std::vector<absl::optional<Array>> input_grads;
+    std::vector<absl::optional<Array>> output_grads;
     input_grads.reserve(inputs.size());
+    output_grads.reserve(outputs.size());
 
     BackpropId actual_backprop_id = internal::GetArrayBackpropId(outputs.front().get(), backprop_id);
 
@@ -621,13 +639,29 @@ std::vector<absl::optional<Array>> Grad(
         }
     }
 
-    BackwardImpl{inputs, outputs, actual_backprop_id, double_backprop, std::move(array_node_grad_map)}.Run();
+    // Push initial output grads, Run() assigns to 1 in other case
+    for (size_t i = 0; i < grad_outputs.size(); ++i) {
+        const std::shared_ptr<ArrayBody>& array_body = internal::GetArrayBody(outputs[i]);
+        if (const std::shared_ptr<ArrayNode>& array_node = array_body->GetArrayNode(actual_backprop_id)) {
+            output_grads.emplace_back(grad_outputs[i]);
+            array_node_grad_map.emplace(array_node.get(), internal::GradRef{&output_grads.back()});
+        }
+    }
 
-    // input_grads may contain unmodified array bodies (nullptr) for arrays that are not included in the graph.
-    // Those grads are returned as nullopt.
-    for (absl::optional<Array>& grad : input_grads) {
-        if (grad.has_value() && internal::GetArrayBody(*grad) == nullptr) {
-            grad = absl::nullopt;
+    BackwardImpl{inputs, outputs, actual_backprop_id, double_backprop, std::move(array_node_grad_map), retain_grad}.Run();
+
+    for (size_t i = 0; i < input_grads.size(); ++i) {
+        absl::optional<Array>& grad = input_grads[i];
+        if (grad.has_value()) {
+            if (internal::GetArrayBody(*grad) == nullptr) {
+                // If the allocated input_grad was not used during calculation due to a not connected graph
+                // the body was never initialized and it remains as null
+                grad = absl::nullopt;
+            } else if (set_grad) {
+                // Explicitly assign the grad to the input array if specified
+                // Input grads are not set by default during Backward run
+                inputs[i].get().SetGrad(grad.value(), backprop_id);
+            }
         }
     }
 

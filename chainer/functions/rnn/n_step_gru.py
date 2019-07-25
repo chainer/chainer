@@ -8,7 +8,7 @@ from chainer.functions.activation import tanh
 from chainer.functions.array import concat
 from chainer.functions.array import split_axis
 from chainer.functions.connection import linear
-from chainer.functions.connection import n_step_rnn
+from chainer.functions.rnn import n_step_rnn
 from chainer.utils import argument
 
 
