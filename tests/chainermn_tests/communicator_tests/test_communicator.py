@@ -62,7 +62,7 @@ class Param(object):
         self.nccl1 = False
         self.model_dtype = None
         self.allreduce_grad_dtype = None
-        self.batched_copy = False
+        self.batched_copy = True
         self.global_dtype = None
         self.__dict__.update(param)
 
@@ -126,28 +126,24 @@ gpu_params = [Param(p) for p in [
         'nccl1': False,
         'model_dtype': np.float16,
         'allreduce_grad_dtype': np.float16,
-        'batched_copy': True,
     }, {
         'communicator_class': PureNcclCommunicator,
         'multi_node': True,
         'nccl1': False,
         'model_dtype': np.float16,
         'allreduce_grad_dtype': np.float32,
-        'batched_copy': True,
     }, {
         'communicator_class': PureNcclCommunicator,
         'multi_node': True,
         'nccl1': False,
         'model_dtype': np.float32,
         'allreduce_grad_dtype': np.float32,
-        'batched_copy': True,
     }, {
         'communicator_class': PureNcclCommunicator,
         'multi_node': True,
         'nccl1': False,
         'model_dtype': np.float32,
         'allreduce_grad_dtype': np.float16,
-        'batched_copy': True,
     }]]
 
 
