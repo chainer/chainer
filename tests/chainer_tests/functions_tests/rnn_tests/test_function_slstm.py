@@ -3,7 +3,6 @@ import six
 
 import numpy
 
-import chainer
 from chainer.backends import cuda
 from chainer import functions
 from chainer import gradient_check
@@ -82,7 +81,7 @@ class TestSLSTM(testing.FunctionTestCase):
             self.check_forward_options = {'atol': 1e-3, 'rtol': 1e-2}
             self.check_backward_options = {'atol': 5e-3, 'rtol': 5e-2}
             self.check_double_backward_options = {'atol': 5e-3, 'rtol': 5e-2}
-        if self.grad_outputs[0] == False or self.grad_outputs[1] == False:
+        if self.grad_outputs[0] is False or self.grad_outputs[1] is False:
             self.skip_double_backward_test = True
 
     def generate_inputs(self):
@@ -121,17 +120,21 @@ class TestSLSTM(testing.FunctionTestCase):
         h_expect = _sigmoid(o1_in + o2_in) * numpy.tanh(c_expect)
         return c_expect, h_expect
 
-    def generate_grad_outputs(self, output_template):
+    def generate_grad_outputs(self, outputs_template):
         grad_out = []
-        if self.grad_outputs[0] == True:
+        h = outputs_template[0]
+        c = outputs_template[1]
+        h_shape = h[0].shape
+        c_shape = c[0].shape
+        if self.grad_outputs[0] is True:
             grad_out.append(numpy.random.uniform(-1, 1,
-                                                 output_template[0].shape).astype(output_template[0].dtype))
+                                                 h_shape).astype(h.dtype))
         else:
             grad_out.append(None)
 
-        if self.grad_outputs[1] == True:
+        if self.grad_outputs[1] is True:
             grad_out.append(numpy.random.uniform(-1, 1,
-                                                 output_template[1].shape).astype(output_template[1].dtype))
+                                                 c_shape).astype(c.dtype))
         else:
             grad_out.append(None)
         return tuple(grad_out)
