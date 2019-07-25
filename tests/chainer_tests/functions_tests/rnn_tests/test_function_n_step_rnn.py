@@ -5,10 +5,8 @@ import numpy
 import chainer
 from chainer.backends import cuda
 import chainer.functions as F
-import chainer.functions as functions
 from chainer import gradient_check
 from chainer import testing
-from chainer import Variable
 from chainer.testing import attr
 from chainer.testing import backend
 
@@ -49,7 +47,12 @@ from chainer.testing import backend
     + testing.product([
         [{'use_cuda': True}],
 
+        # Without cuDNN
         testing.product({
+            'use_cudnn': ['never'],
+        })
+
+        + testing.product({
             'use_cudnn': ['always'],
             'cudnn_deterministic': [True, False],
             'autotune': [True, False],
@@ -108,11 +111,12 @@ class TestNStepRNN(testing.FunctionTestCase):
         return h, ws, bs, xs
 
     def forward(self, inputs, device):
+        if inputs[0].array.dtype == numpy.float64:
+            actual_inputs = []
+            for i in inputs:
+                actual_inputs.append(i.array.astype(numpy.float32))
+            inputs = actual_inputs
         h, ws, bs, xs = self.process_inputs(inputs)
-        # For some reason even though only float32 arrays are created in generate_inputs(),
-        # arrays coming as input here are of type float32 and float64
-        if h.array.dtype == numpy.float64:
-            raise unittest.SkipTest('float64 not supported')
         out = F.n_step_rnn(self.n_layers, 0.0, h, ws, bs, xs)
         rets = []
         rets.append(out[0])
@@ -122,13 +126,13 @@ class TestNStepRNN(testing.FunctionTestCase):
 
     def forward_expected(self, inputs):
         h, ws, bs, xs = self.process_inputs(inputs)
-        with chainer.using_config('use_ideep', 'never'):
-            out = F.n_step_rnn(self.n_layers, 0.0, h, ws, bs, xs)
-            rets = []
-            rets.append(out[0].array)
-            for i in range(len(out[1])):
-                rets.append(out[1][i].array)
-            return tuple(rets)
+        
+        out = F.n_step_rnn(self.n_layers, 0.0, h, ws, bs, xs)
+        rets = []
+        rets.append(out[0].array)
+        for i in range(len(out[1])):
+            rets.append(out[1][i].array)
+        return tuple(rets)
 
 
 @testing.parameterize(*testing.product_dict(
