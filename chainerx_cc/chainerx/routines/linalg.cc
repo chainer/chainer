@@ -199,7 +199,8 @@ std::tuple<Array, Array, Array> Svd(const Array& a, bool full_matrices, bool com
     Array s{};
     Array vt{};
 
-    Shape u_shape, vt_shape;
+    Shape u_shape;
+    Shape vt_shape;
     int64_t m = a.shape()[0];
     int64_t n = a.shape()[1];
     int64_t mn = std::min(m, n);

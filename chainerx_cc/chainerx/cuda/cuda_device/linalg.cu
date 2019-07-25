@@ -300,7 +300,8 @@ public:
         int64_t mn = std::min(m, n);
 
         Array x = Empty(Shape{n, m}, dtype, device);
-        Array u_temp{}, vt_temp{};
+        Array u_temp{};
+        Array vt_temp{};
         bool trans_flag;
 
         // Remark: gesvd only supports m>=n.
@@ -317,7 +318,8 @@ public:
             trans_flag = true;
 
             // Temporary arrays for u, vt are needed to store transposed results
-            Shape u_shape, vt_shape;
+            Shape u_shape;
+            Shape vt_shape;
             if (compute_uv) {
                 if (full_matrices) {
                     u_shape = Shape{m, m};
