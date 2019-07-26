@@ -273,7 +273,7 @@ std::tuple<Array, Array, Array> Svd(const Array& a, bool full_matrices, bool com
                 // Invert values of f, and fill the diagonal with 0s.
                 // f has 0s on the diagonal, therefore fill it first with infinity.
                 Array mask = Eye(f.shape()[0], f.shape()[1], 0, Dtype::kBool, a.device());
-                f = Where(mask, INFINITY, f);
+                f = Where(mask, std::numeric_limits<float>::infinity(), f);
                 f = Reciprocal(f);
 
                 Array u_term{};
