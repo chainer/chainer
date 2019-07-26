@@ -11,6 +11,9 @@ from chainer.training import extensions
 import datasets
 from model import ImageCaptionModel
 
+import matplotlib
+matplotlib.use('Agg')
+
 
 def main():
     parser = argparse.ArgumentParser()

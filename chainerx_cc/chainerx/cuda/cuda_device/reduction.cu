@@ -16,12 +16,11 @@
 #include "chainerx/cuda/reduce.cuh"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
-#include "chainerx/kernels/math.h"
+#include "chainerx/kernels/reduction.h"
 #include "chainerx/kernels/sorting.h"
 #include "chainerx/macro.h"
 #include "chainerx/numeric_limits.h"
 #include "chainerx/reduction_kernel_arg.h"
-#include "chainerx/routines/math.h"
 #include "chainerx/shape.h"
 
 namespace chainerx {
@@ -131,6 +130,16 @@ public:
 };
 
 CHAINERX_CUDA_REGISTER_KERNEL(SumKernel, CudaSumKernel);
+
+class CudaCumsumKernel : public CumsumKernel {
+public:
+    void Call(const Array& /* a */, int8_t /* axis */, const Array& /* out */) override {
+        // TODO(aksub99): CUDA Implementation is to be suppported.
+        throw NotImplementedError{"CUDA Implementation is not yet supported."};
+    }
+};
+
+CHAINERX_CUDA_REGISTER_KERNEL(CumsumKernel, CudaCumsumKernel);
 
 }  // namespace
 }  // namespace cuda

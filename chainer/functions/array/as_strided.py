@@ -1,10 +1,11 @@
+import numpy as np
+import six
+
+from chainer import backend
 from chainer.backends import cuda
 from chainer import function_node
 from chainer.utils import type_check
 
-import numpy as np
-
-from six import moves
 
 index_dtype = {t().itemsize: t for t in np.sctypes['int']}
 
@@ -59,7 +60,7 @@ def _min_index(shape, strides, storage_offset):
     if not sh_st_neg:
         return storage_offset
     else:
-        return storage_offset + moves.reduce(
+        return storage_offset + six.moves.reduce(
             lambda base, sh_st: base + (sh_st[0] - 1) * sh_st[1], sh_st_neg, 0)
 
 
@@ -80,7 +81,7 @@ def _max_index(shape, strides, storage_offset):
     if not sh_st_pos:
         return storage_offset
     else:
-        return storage_offset + moves.reduce(
+        return storage_offset + six.moves.reduce(
             lambda base, sh_st: base + (sh_st[0] - 1) * sh_st[1], sh_st_pos, 0)
 
 
@@ -251,7 +252,7 @@ class AsStridedGrad(function_node.FunctionNode):
         if gy.dtype not in np.sctypes['float']:
             raise TypeError('Only float is supported for back propagation')
 
-        xp = cuda.get_array_module(gy)
+        xp = backend.get_array_module(gy)
         input_geometry = self.input_geometry
         itemsize = input_geometry.itemsize
 
@@ -262,25 +263,26 @@ class AsStridedGrad(function_node.FunctionNode):
         #  [redundant axis]
         #  axis with shape==0, shape==1 or strides==0
         if 0 in gy.shape:
-            return cuda.get_array_module(gy).zeros(input_geometry.shape)
+            return backend.get_array_module(gy).zeros(input_geometry.shape)
         else:
-            out_shape = tuple([self.shape[i] for i in moves.range(gy.ndim) if
-                               self.shape[i] != 1 and self.strides[i] != 0])
-            out_strides = tuple([self.strides[i] for i in moves.range(gy.ndim)
-                                 if self.shape[i] != 1
-                                 and self.strides[i] != 0])
+            out_shape = tuple([
+                self.shape[i] for i in six.moves.range(gy.ndim)
+                if self.shape[i] != 1 and self.strides[i] != 0])
+            out_strides = tuple([
+                self.strides[i] for i in six.moves.range(gy.ndim)
+                if self.shape[i] != 1 and self.strides[i] != 0])
             gy = gy.sum(
-                tuple([i for i in moves.range(gy.ndim)
+                tuple([i for i in six.moves.range(gy.ndim)
                        if self.strides[i] == 0]))
             gy = gy.squeeze()
 
         out_storage_offset = self.storage_offset
 
         inp_shape = tuple([input_geometry.shape[i]
-                           for i in moves.range(input_geometry.ndim)
+                           for i in six.moves.range(input_geometry.ndim)
                            if input_geometry.shape[i] != 1])
         inp_strides = tuple([input_geometry.strides[i]
-                             for i in moves.range(input_geometry.ndim)
+                             for i in six.moves.range(input_geometry.ndim)
                              if input_geometry.shape[i] != 1])
         inp_storage_offset = input_geometry.storage_offset
 

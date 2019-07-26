@@ -50,7 +50,9 @@ def copyto(dst, src):
             Source array.
 
     """
-    if isinstance(dst, numpy.ndarray):
+    if isinstance(dst, chainerx.ndarray):
+        dst[...] = _chainerx._array_to_chainerx(src, dst.device)
+    elif isinstance(dst, numpy.ndarray):
         numpy.copyto(dst, _cpu._to_cpu(src))
     elif isinstance(dst, intel64.mdarray):
         intel64.ideep.basic_copyto(
@@ -151,11 +153,26 @@ def get_device(device_spec):
             elif mod_name == 'intel64':
                 if not colon:
                     return intel64.Intel64Device()
-
-        elif chainerx.is_available():
+            raise ValueError(
+                'Device specifiers starting with \'@\' must be followed by'
+                ' a module name and depending on the module, module specific'
+                ' precise device specifiers. Actual: {}'.format(device_spec))
+        else:
+            # String device specifier without '@' prefix is assumed to be a
+            # ChainerX device.
+            if not chainerx.is_available():
+                raise RuntimeError(
+                    'Tried to parse ChainerX device specifier \'{}\', '
+                    'but ChainerX is not available. '
+                    'Note that device specifiers without \'@\' prefix are '
+                    'assumed to be ChainerX device '
+                    'specifiers.'.format(device_spec))
             return _chainerx.ChainerxDevice(chainerx.get_device(device_spec))
 
-    raise ValueError('Invalid device specifier: {}'.format(device_spec))
+    raise TypeError(
+        'Device specifier must be a backend.Device, cuda.Device,'
+        ' chainerx.Device, integer or a string. Actual: {}'.format(
+            type(device_spec)))
 
 
 def _get_device_cupy_or_numpy(device_spec):

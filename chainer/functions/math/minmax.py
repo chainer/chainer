@@ -1,4 +1,5 @@
 import numpy
+import six
 
 from chainer import backend
 from chainer import function_node
@@ -15,9 +16,10 @@ class SelectorBase(function_node.FunctionNode):
         self.keepdims = keepdims
         if axis is None:
             self.axis = None
-        elif isinstance(axis, int):
+        elif isinstance(axis, six.integer_types):
             self.axis = (axis,)
-        elif isinstance(axis, tuple) and all(isinstance(a, int) for a in axis):
+        elif isinstance(axis, tuple) and all(
+                isinstance(a, six.integer_types) for a in axis):
             if len(set(axis)) != len(axis):
                 raise ValueError('duplicate value in axis: ({})'.format(
                     ', '.join(map(str, axis))))
@@ -94,7 +96,7 @@ class IndexSelectorBase(function_node.FunctionNode):
     def __init__(self, axis=None):
         if axis is None:
             self.axis = None
-        elif isinstance(axis, int):
+        elif isinstance(axis, six.integer_types):
             self.axis = axis
         else:
             raise TypeError('None or int are required')

@@ -17,6 +17,7 @@ namespace python {
 namespace python_internal {
 
 namespace py = pybind11;
+using py::literals::operator""_a;
 
 using ArrayBodyPtr = std::shared_ptr<internal::ArrayBody>;
 
@@ -47,7 +48,7 @@ void InitChainerxCheckBackward(pybind11::module& m) {
              const std::vector<ArrayBodyPtr>& eps,
              double atol,
              double rtol,
-             const nonstd::optional<BackpropId>& backprop_id) {
+             const absl::optional<BackpropId>& backprop_id) {
               py::gil_scoped_release release;
               CheckBackward(
                       ForwardInPython{func},
@@ -59,13 +60,13 @@ void InitChainerxCheckBackward(pybind11::module& m) {
                       rtol,
                       backprop_id);
           },
-          py::arg("func"),
-          py::arg("inputs"),
-          py::arg("grad_outputs"),
-          py::arg("eps"),
-          py::arg("atol") = 1e-5,
-          py::arg("rtol") = 1e-4,
-          py::arg("backprop_id") = nullptr);
+          "func"_a,
+          "inputs"_a,
+          "grad_outputs"_a,
+          "eps"_a,
+          "atol"_a = 1e-5,
+          "rtol"_a = 1e-4,
+          "backprop_id"_a = nullptr);
 
     m.def("check_double_backward",
           [](py::object func,
@@ -75,7 +76,7 @@ void InitChainerxCheckBackward(pybind11::module& m) {
              const std::vector<ArrayBodyPtr>& eps,
              double atol,
              double rtol,
-             const nonstd::optional<BackpropId>& backprop_id) {
+             const absl::optional<BackpropId>& backprop_id) {
               py::gil_scoped_release release;
               CheckDoubleBackwardComputation(
                       ForwardInPython{func},
@@ -88,14 +89,14 @@ void InitChainerxCheckBackward(pybind11::module& m) {
                       rtol,
                       backprop_id);
           },
-          py::arg("func"),
-          py::arg("inputs"),
-          py::arg("grad_outputs"),
-          py::arg("grad_grad_inputs"),
-          py::arg("eps"),
-          py::arg("atol") = 1e-5,
-          py::arg("rtol") = 1e-4,
-          py::arg("backprop_id") = nullptr);
+          "func"_a,
+          "inputs"_a,
+          "grad_outputs"_a,
+          "grad_grad_inputs"_a,
+          "eps"_a,
+          "atol"_a = 1e-5,
+          "rtol"_a = 1e-4,
+          "backprop_id"_a = nullptr);
 }
 
 }  // namespace python_internal

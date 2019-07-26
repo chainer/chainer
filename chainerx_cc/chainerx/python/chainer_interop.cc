@@ -8,8 +8,8 @@
 #include <utility>
 #include <vector>
 
+#include <absl/types/optional.h>
 #include <gsl/gsl>
-#include <nonstd/optional.hpp>
 
 #include "chainerx/array.h"
 #include "chainerx/array_body.h"
@@ -25,6 +25,7 @@ namespace python {
 namespace python_internal {
 
 namespace py = pybind11;
+using py::literals::operator""_a;
 
 using ArrayBodyPtr = std::shared_ptr<internal::ArrayBody>;
 
@@ -72,7 +73,7 @@ void InitChainerxChainerInterop(pybind11::module& m) {
                   // reduced <r> indices where None arrays are omitted.
                   std::vector<Array> reduced_arrays;
                   std::vector<size_t> index_r2o_map;
-                  std::vector<nonstd::optional<size_t>> index_o2r_map(array_bodies.size());
+                  std::vector<absl::optional<size_t>> index_o2r_map(array_bodies.size());
                   reduced_arrays.reserve(array_bodies.size());
                   index_r2o_map.reserve(array_bodies.size());
                   for (size_t i = 0; i < array_bodies.size(); ++i) {
@@ -89,7 +90,7 @@ void InitChainerxChainerInterop(pybind11::module& m) {
               // Inputs
               std::vector<Array> reduced_input_arrays;
               std::vector<size_t> input_index_r2o_map;
-              std::vector<nonstd::optional<size_t>> input_index_o2r_map;
+              std::vector<absl::optional<size_t>> input_index_o2r_map;
               std::vector<ConstArrayRef> reduced_input_array_refs;
               std::tie(reduced_input_arrays, input_index_r2o_map, input_index_o2r_map) = get_reduced_arrays(inputs);
               CHAINERX_ASSERT(IsUniqueAndIncreasingIndexes(input_index_r2o_map, inputs.size()));
@@ -102,7 +103,7 @@ void InitChainerxChainerInterop(pybind11::module& m) {
               // Outputs
               std::vector<Array> reduced_output_arrays;
               std::vector<size_t> output_index_r2o_map;
-              std::vector<nonstd::optional<size_t>> output_index_o2r_map;
+              std::vector<absl::optional<size_t>> output_index_o2r_map;
               std::vector<ConstArrayRef> reduced_output_array_refs;
               std::tie(reduced_output_arrays, output_index_r2o_map, output_index_o2r_map) = get_reduced_arrays(outputs);
               CHAINERX_ASSERT(IsUniqueAndIncreasingIndexes(output_index_r2o_map, outputs.size()));
@@ -125,27 +126,27 @@ void InitChainerxChainerInterop(pybind11::module& m) {
 
                   // Retain inputs/outputs
                   auto retain_arrays = [](auto retain,
-                                          const std::vector<nonstd::optional<size_t>>& index_o2r_map,
+                                          const std::vector<absl::optional<size_t>>& index_o2r_map,
                                           const std::vector<size_t>& indexes_to_retain) {
                       // Given the original indices to retain, retain the corresponding arrays and return the retain tokens. If the
                       // corresponding array was None, the token is nullopt.
                       using RetainedToken = decltype(retain(size_t{}));
-                      std::vector<nonstd::optional<RetainedToken>> retained_tokens;
+                      std::vector<absl::optional<RetainedToken>> retained_tokens;
                       retained_tokens.reserve(indexes_to_retain.size());
                       for (size_t i : indexes_to_retain) {
                           if (auto j = index_o2r_map[i]) {
                               retained_tokens.emplace_back(retain(*j));
                           } else {
                               // Array to retain was None
-                              retained_tokens.emplace_back(nonstd::nullopt);
+                              retained_tokens.emplace_back(absl::nullopt);
                           }
                       }
                       return retained_tokens;
                   };
 
-                  std::vector<nonstd::optional<RetainedInputToken>> retained_input_tokens =
+                  std::vector<absl::optional<RetainedInputToken>> retained_input_tokens =
                           retain_arrays([&bb](size_t j) { return bb.RetainInput(j); }, input_index_o2r_map, input_indexes_to_retain);
-                  std::vector<nonstd::optional<RetainedOutputToken>> retained_output_tokens =
+                  std::vector<absl::optional<RetainedOutputToken>> retained_output_tokens =
                           retain_arrays([&bb](size_t j) { return bb.RetainOutput(j); }, output_index_o2r_map, output_indexes_to_retain);
 
                   // Define backward function
@@ -230,11 +231,11 @@ void InitChainerxChainerInterop(pybind11::module& m) {
               }
               bb.Finalize();
           },
-          py::arg("function_node"),
-          py::arg("inputs"),
-          py::arg("outputs"),
-          py::arg("input_indexes_to_retain"),
-          py::arg("output_indexes_to_retain"));
+          "function_node"_a,
+          "inputs"_a,
+          "outputs"_a,
+          "input_indexes_to_retain"_a,
+          "output_indexes_to_retain"_a);
 }
 
 }  // namespace python_internal

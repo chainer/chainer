@@ -4,7 +4,7 @@
 #include <memory>
 #include <string>
 
-#include <nonstd/optional.hpp>
+#include <absl/types/optional.h>
 
 #include "chainerx/axes.h"
 #include "chainerx/backend.h"
@@ -13,7 +13,6 @@
 #include "chainerx/error.h"
 #include "chainerx/scalar.h"
 #include "chainerx/shape.h"
-#include "chainerx/stack_vector.h"
 
 namespace chainerx {
 

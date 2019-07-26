@@ -3,6 +3,7 @@
 """
 import argparse
 import os
+import warnings
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -13,6 +14,9 @@ from chainer.training import extensions
 import chainerx
 
 import net
+
+import matplotlib
+matplotlib.use('Agg')
 
 
 def main():
@@ -31,9 +35,9 @@ def main():
     parser.add_argument('--epoch', '-e', default=100, type=int,
                         help='number of epochs to learn')
     parser.add_argument('--dim-z', '-z', default=20, type=int,
-                        help='dimention of encoded vector')
+                        help='dimension of encoded vector')
     parser.add_argument('--dim-h', default=500, type=int,
-                        help='dimention of hidden layer')
+                        help='dimension of hidden layer')
     parser.add_argument('--beta', default=1.0, type=float,
                         help='Regularization coefficient for '
                              'the second term of ELBO bound')
@@ -51,6 +55,10 @@ def main():
                        type=int, nargs='?', const=0,
                        help='GPU ID (negative value indicates CPU)')
     args = parser.parse_args()
+
+    if chainer.get_dtype() == np.float16:
+        warnings.warn(
+            'This example may cause NaN in FP16 mode.', RuntimeWarning)
 
     device = chainer.get_device(args.device)
     device.use()
