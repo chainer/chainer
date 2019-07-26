@@ -695,10 +695,8 @@ Array Repeat(const Array& a, const std::vector<int64_t>& repeats, absl::optional
             throw DimensionError("The number of repeats must be same with a shape in the axis direction.");
         }
 
-        for (size_t i = 0; i < repeats.size(); ++i) {
-            if (repeats[i] < 0) {
-                throw DimensionError("repeats must be larger than 0.");
-            }
+        if (std::any_of(repeats.begin(), repeats.end(), [](int64_t x) -> bool { return x < 0; })) {
+            throw DimensionError("repeats must be larger than 0.");
         }
 
         // TODO(durswd) : should be optimized
