@@ -336,11 +336,13 @@ Array PseudoInverse(const Array& a, float rcond) {
                 const Array& a = bctx.GetRetainedInput(a_tok);
                 const Array& out = bctx.GetRetainedOutput(out_tok);
                 const Array& gout = *bctx.output_grad();
-                Array I_a = Identity(a.shape()[0], a_dtype, a_device);
-                Array I_out = Identity(out.shape()[0], a_dtype, a_device);
-                bctx.input_grad() = (-Dot(Dot(out, gout.Transpose()), out) + Dot(Dot(Dot(out, out.Transpose()), gout), I_a - Dot(a, out)) +
-                                     Dot(Dot(Dot(I_out - Dot(out, a), gout), out.Transpose()), out))
-                                            .Transpose();
+                Array ia = Identity(a.shape()[0], a_dtype, a_device);
+                Array iout = Identity(out.shape()[0], a_dtype, a_device);
+                Array outt = out.Transpose();
+                Array summand1 = -Dot(Dot(out, gout.Transpose()), out);
+                Array summand2 = Dot(Dot(Dot(out, outt), gout), ia - Dot(a, out));
+                Array summand3 = Dot(Dot(Dot(iout - Dot(out, a), gout), outt), out);
+                bctx.input_grad() = (summand1 + summand2 + summand3).Transpose();
             });
         }
         bb.Finalize();
