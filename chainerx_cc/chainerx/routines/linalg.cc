@@ -303,50 +303,24 @@ std::tuple<Array, Array, Array> Svd(const Array& a, bool full_matrices, bool com
 
 Array PseudoInverse(const Array& a, float rcond) {
     CheckRankTwoArray(a);
-    Dtype dtype = internal::GetMathResultDtype(a.dtype());
-    Array out = Empty(Shape({a.shape()[1], a.shape()[0]}), dtype, a.device());
 
-    {
-        NoBackpropModeScope scope{};
+    Array u{};
+    Array s{};
+    Array vt{};
 
-        Array u{};
-        Array s{};
-        Array vt{};
+    std::tie(u, s, vt) = Svd(a, /*full_matrices=*/false, /*compute_uv=*/true);
 
-        std::tie(u, s, vt) = Svd(a, /*full_matrices=*/false, /*compute_uv=*/true);
+    Array cutoff = rcond * s.Max();
+    Array cutoff_indices = s <= cutoff;
 
-        Array cutoff = rcond * s.Max();
-        Array cutoff_indices = s <= cutoff;
+    Array sinv = Reciprocal(s);
+    sinv = Where(cutoff_indices, 0, sinv);
 
-        Array sinv = Reciprocal(s);
-        sinv = Where(cutoff_indices, 0, sinv);
+    Array out = vt.Transpose().Dot(Diag(sinv)).Dot(u.Transpose());
 
-        std::vector<ArrayIndex> indices{Slice{}, NewAxis{}};
-
-        a.device().backend().CallKernel<DotKernel>(vt.Transpose(), sinv.At(indices) * u.Transpose(), out);
-    }
-
-    // Reference:
+    // Note that there is an analytical formula for the derivative:
     // https://mathoverflow.net/questions/25778/analytical-formula-for-numerical-derivative-of-the-matrix-pseudo-inverse
-    {
-        BackwardBuilder bb{"pinv", a, out};
-        if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-            bt.Define([a_tok = bb.RetainInput(0), out_tok = bb.RetainOutput(0), a_dtype = a.dtype(), &a_device = a.device()](
-                              BackwardContext& bctx) {
-                const Array& a = bctx.GetRetainedInput(a_tok);
-                const Array& out = bctx.GetRetainedOutput(out_tok);
-                const Array& gout = *bctx.output_grad();
-                Array ia = Identity(a.shape()[0], a_dtype, a_device);
-                Array iout = Identity(out.shape()[0], a_dtype, a_device);
-                Array outt = out.Transpose();
-                Array summand1 = -Dot(Dot(out, gout.Transpose()), out);
-                Array summand2 = Dot(Dot(Dot(out, outt), gout), ia - Dot(a, out));
-                Array summand3 = Dot(Dot(Dot(iout - Dot(out, a), gout), outt), out);
-                bctx.input_grad() = (summand1 + summand2 + summand3).Transpose();
-            });
-        }
-        bb.Finalize();
-    }
+    // However, it does not hold if singular values are truncated based on rcond.
 
     return out;
 }
