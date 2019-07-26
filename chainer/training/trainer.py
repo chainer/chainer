@@ -168,6 +168,18 @@ class Trainer(object):
 
     @property
     def is_before_training(self):
+        """Flag that represents if training has started or not.
+
+        ``True`` represents 'before training' and
+        ``False`` represents 'during/after training'.
+
+        This flag is supposed to be used in :meth:`Extension.__call__`
+        (e.g., :meth:`PlotReport.__call__`) to decide to execute its operation
+        or not. This additional condition is necessary since
+        ``Extension._trigger(trainer)`` is always ``False`` before training
+        and cannot be used.
+
+        """
         return self.updater.iteration == 0
 
     @property
