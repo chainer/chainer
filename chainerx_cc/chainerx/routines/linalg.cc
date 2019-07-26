@@ -197,12 +197,13 @@ std::tuple<Array, Array> Eigh(const Array& a, const std::string& uplo) {
     CheckRankTwoArray(a);
     CheckSquareMatrix(a);
 
-    Array w{};
-    Array v{};
+    Array w = Empty(Shape{a.shape()[0]}, a.dtype(), a.device());
+    Array v = Empty(a.shape(), a.dtype(), a.device());
 
     {
         NoBackpropModeScope scope{};
-        std::tie(w, v) = a.device().backend().CallKernel<SyevdKernel>(a, uplo, true);
+        a.device().backend().CallKernel<SyevdKernel>(a, w, v, uplo, /*compute_eigen_vector=*/true);
+        v = v.Transpose();
     }
 
     // Reference:
@@ -240,12 +241,12 @@ Array Eigvalsh(const Array& a, const std::string& uplo) {
     CheckRankTwoArray(a);
     CheckSquareMatrix(a);
 
-    Array w{};
-    Array v{};
+    Array w = Empty(Shape{a.shape()[0]}, a.dtype(), a.device());
+    Array v = Empty(a.shape(), a.dtype(), a.device());
 
     {
         NoBackpropModeScope scope{};
-        std::tie(w, v) = a.device().backend().CallKernel<SyevdKernel>(a, uplo, false);
+        a.device().backend().CallKernel<SyevdKernel>(a, w, v, uplo, /*compute_eigen_vector=*/false);
     }
 
     return w;

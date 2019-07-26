@@ -227,22 +227,19 @@ CHAINERX_NATIVE_REGISTER_KERNEL(InverseKernel, NativeInverseKernel);
 
 class NativeSyevdKernel : public SyevdKernel {
 public:
-    std::tuple<Array, Array> Call(const Array& a, const std::string& UPLO, bool compute_eigen_vector) override {
+    void Call(const Array& a, const Array& w, const Array& v, const std::string& UPLO, bool compute_eigen_vector) override {
 #if CHAINERX_ENABLE_LAPACK
         Device& device = a.device();
         Dtype dtype = a.dtype();
 
         CHAINERX_ASSERT(a.ndim() == 2);
 
-        Array v = Empty(a.shape(), dtype, device);
         device.backend().CallKernel<CopyKernel>(a.Transpose(), v);
 
-        int m = a.shape()[0];
-        int lda = a.shape()[1];
+        int64_t m = a.shape()[0];
+        int64_t lda = a.shape()[1];
 
-        Array w = Empty(Shape{m}, dtype, device);
-
-        auto syevd_impl = [&](auto pt) -> std::tuple<Array, Array> {
+        auto syevd_impl = [&](auto pt) {
             using T = typename decltype(pt)::type;
 
             T* v_ptr = static_cast<T*>(internal::GetRawOffsetData(v));
@@ -276,15 +273,15 @@ public:
             if (info != 0) {
                 throw ChainerxError{"Unsuccessful syevd (Eigen Decomposition) execution. Info = ", info};
             }
-
-            return std::make_tuple(std::move(w), std::move(v.Transpose().Copy()));
         };
 
-        return VisitFloatingPointDtype(dtype, syevd_impl);
+        VisitFloatingPointDtype(dtype, syevd_impl);
 #else  // CHAINERX_LAPACK_AVAILABLE
-        (void)a;
-        (void)UPLO;
-        (void)compute_eigen_vector;
+        (void)a;  // unused
+        (void)w;  // unused
+        (void)v;  // unused
+        (void)UPLO;  // unused
+        (void)compute_eigen_vector;  // unused
         throw ChainerxError{"LAPACK is not linked to ChainerX."};
 #endif  // CHAINERX_LAPACK_AVAILABLE
     }
