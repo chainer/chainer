@@ -308,7 +308,7 @@ public:
         int64_t ldu = m;
         int64_t ldvt = full_matrices ? n : mn;
 
-        Array x = Empty(Shape{n, m}, dtype, device);
+        Array x = EmptyLike(a, device);
         device.backend().CallKernel<CopyKernel>(a, x);
 
         auto svd_impl = [&](auto pt) {

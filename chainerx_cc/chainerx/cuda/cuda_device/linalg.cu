@@ -303,7 +303,7 @@ public:
         int64_t m = a.shape()[1];
         int64_t mn = std::min(m, n);
 
-        Array x = Empty(Shape{n, m}, dtype, device);
+        Array x = EmptyLike(a, device);
         Array u_temp{};
         Array vt_temp{};
         bool trans_flag;
