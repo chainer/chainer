@@ -151,8 +151,7 @@ def save_images(device, encoder, decoder, train, test, prior, out_dir):
 
     # Training samples
     train_ind = [1, 3, 5, 10, 2, 0, 13, 15, 17]
-    x_numpy = train[train_ind]
-    x = device.send(x_numpy)
+    x = device.send(np.asarray(train[train_ind]))
     with chainer.using_config('train', False):
         with chainer.no_backprop_mode():
             z = encoder(x).mean
@@ -163,8 +162,7 @@ def save_images(device, encoder, decoder, train, test, prior, out_dir):
 
     # Test samples
     test_ind = [3, 2, 1, 18, 4, 8, 11, 17, 61]
-    x_numpy = test[test_ind]
-    x = device.send(x_numpy)
+    x = device.send(np.asarray(test[test_ind]))
     with chainer.using_config('train', False):
         with chainer.no_backprop_mode():
             z = encoder(x).mean
