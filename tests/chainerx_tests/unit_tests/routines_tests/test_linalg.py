@@ -291,7 +291,7 @@ class TestSVDDtypeFailing(NumpyLinalgOpTest):
 @chainer.testing.parameterize(*(
     chainer.testing.product({
         'shape': [(1, 1), (2, 3), (3, 2), (6, 6)],
-        'rcond': [1e-15, 1e-9, 1e-6, 1e-3],
+        'rcond': [1e-15, 0.3, 0.5, 0.6],
         'dtype': ['float32', 'float64']
     })
 ))
@@ -311,7 +311,7 @@ class TestPseudoInverse(NumpyLinalgOpTest):
 @chainer.testing.parameterize(*(
     chainer.testing.product({
         'shape': [(), ],
-        'rcond': [1e-15, 1e-9, 1e-6, 1e-3],
+        'rcond': [1e-15, ],
         'dtype': ['float32', 'float64']
     })
 ))
