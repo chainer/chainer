@@ -269,6 +269,25 @@ class TestSVD(NumpyLinalgOpTest):
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize_pytest('shape', [(2, 3)])
+@chainer.testing.parameterize_pytest('dtype', ['float16'])
+class TestSVDDtypeFailing(NumpyLinalgOpTest):
+
+    forward_accept_errors = (TypeError,
+                             chainerx.DtypeError)
+
+    def generate_inputs(self):
+        a = numpy.random.random(self.shape).astype(self.dtype)
+        return a,
+
+    def forward_xp(self, inputs, xp):
+        a, = inputs
+        out = xp.linalg.svd(a)
+        u, s, v = out
+        return xp.abs(u), s, xp.abs(v)
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
     chainer.testing.product({
         'shape': [(1, 1), (2, 3), (3, 2), (6, 6)],
@@ -328,22 +347,3 @@ class TestPseudoInverseDtypeFailing(NumpyLinalgOpTest):
         a, = inputs
         out = xp.linalg.pinv(a)
         return out,
-
-
-@op_utils.op_test(['native:0', 'cuda:0'])
-@chainer.testing.parameterize_pytest('shape', [(2, 3)])
-@chainer.testing.parameterize_pytest('dtype', ['float16'])
-class TestSVDDtypeFailing(NumpyLinalgOpTest):
-
-    forward_accept_errors = (TypeError,
-                             chainerx.DtypeError)
-
-    def generate_inputs(self):
-        a = numpy.random.random(self.shape).astype(self.dtype)
-        return a,
-
-    def forward_xp(self, inputs, xp):
-        a, = inputs
-        out = xp.linalg.svd(a)
-        u, s, v = out
-        return xp.abs(u), s, xp.abs(v)
