@@ -284,10 +284,10 @@ public:
 
         CHAINERX_ASSERT(a.ndim() == 2);
 
-        device.backend().CallKernel<CopyKernel>(a.Transpose(), v);
+        device.backend().CallKernel<CopyKernel>(a, v);
 
         int64_t m = a.shape()[0];
-        int64_t lda = a.shape()[1];
+        int64_t n = a.shape()[1];
 
         auto syevd_impl = [&](auto pt) {
             using T = typename decltype(pt)::type;
@@ -301,13 +301,16 @@ public:
                 jobz = CUSOLVER_EIG_MODE_VECTOR;
             }
 
-            cublasFillMode_t uplo = CUBLAS_FILL_MODE_LOWER;
+            // cuSOLVER assumes that arrays are stored in column-major order
+            // The uplo argument is swapped instead of transposing the input matrix
+            cublasFillMode_t uplo = CUBLAS_FILL_MODE_UPPER;
             if (UPLO == "U") {
-                uplo = CUBLAS_FILL_MODE_UPPER;
+                uplo = CUBLAS_FILL_MODE_LOWER;
             }
 
             int buffersize = 0;
-            device_internals.cusolverdn_handle().Call(SyevdBuffersize<T>, jobz, uplo, m, v_ptr, lda, w_ptr, &buffersize);
+            // When calling Syevd matrix dimensions are swapped instead of transposing the input matrix
+            device_internals.cusolverdn_handle().Call(SyevdBuffersize<T>, jobz, uplo, n, v_ptr, m, w_ptr, &buffersize);
 
             Array work = Empty(Shape{buffersize}, dtype, device);
             T* work_ptr = static_cast<T*>(internal::GetRawOffsetData(work));
@@ -315,7 +318,7 @@ public:
             std::shared_ptr<void> devInfo = device.Allocate(sizeof(int));
 
             device_internals.cusolverdn_handle().Call(
-                    Syevd<T>, jobz, uplo, m, v_ptr, lda, w_ptr, work_ptr, buffersize, static_cast<int*>(devInfo.get()));
+                    Syevd<T>, jobz, uplo, n, v_ptr, m, w_ptr, work_ptr, buffersize, static_cast<int*>(devInfo.get()));
 
             int devInfo_h = 0;
             Device& native_device = GetDefaultContext().GetDevice({"native", 0});

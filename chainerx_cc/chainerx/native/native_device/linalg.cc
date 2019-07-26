@@ -234,10 +234,11 @@ public:
 
         CHAINERX_ASSERT(a.ndim() == 2);
 
-        device.backend().CallKernel<CopyKernel>(a.Transpose(), v);
+        // Syevd stores the result in-place, copy a to v to avoid destroying the input matrix 
+        device.backend().CallKernel<CopyKernel>(a, v);
 
         int64_t m = a.shape()[0];
-        int64_t lda = a.shape()[1];
+        int64_t n = a.shape()[1];
 
         auto syevd_impl = [&](auto pt) {
             using T = typename decltype(pt)::type;
@@ -251,6 +252,13 @@ public:
             }
 
             char uplo = UPLO.c_str()[0];
+            // LAPACK assumes that arrays are stored in column-major order
+            // The uplo argument is swapped instead of transposing the input matrix
+            if (uplo == 'U') {
+                uplo = 'L';
+            } else {
+                uplo = 'U';
+            }
 
             int info;
             int lwork = -1;
@@ -258,7 +266,8 @@ public:
             T work_size;
             int iwork_size;
 
-            Syevd<T>(jobz, uplo, m, v_ptr, lda, w_ptr, &work_size, lwork, &iwork_size, liwork, &info);
+            // When calling Syevd matrix dimensions are swapped instead of transposing the input matrix
+            Syevd<T>(jobz, uplo, n, v_ptr, m, w_ptr, &work_size, lwork, &iwork_size, liwork, &info);
 
             lwork = static_cast<int>(work_size);
             Array work = Empty(Shape{lwork}, dtype, device);
@@ -268,7 +277,7 @@ public:
             Array iwork = Empty(Shape{liwork}, Dtype::kInt32, device);
             int* iwork_ptr = static_cast<int*>(internal::GetRawOffsetData(iwork));
 
-            Syevd<T>(jobz, uplo, m, v_ptr, lda, w_ptr, work_ptr, lwork, iwork_ptr, liwork, &info);
+            Syevd<T>(jobz, uplo, n, v_ptr, m, w_ptr, work_ptr, lwork, iwork_ptr, liwork, &info);
 
             if (info != 0) {
                 throw ChainerxError{"Unsuccessful syevd (Eigen Decomposition) execution. Info = ", info};
