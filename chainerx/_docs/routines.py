@@ -551,9 +551,10 @@ Note:
         """svd(a, full_matrices=True, compute_uv=True)
 Singular Value Decomposition.
 
-Factorizes the matrix ``a`` as ``u * np.diag(s) * v``, where ``u`` and
-``v`` are unitary and ``s`` is an one-dimensional array of ``a``'s
-singular values.
+Factorizes the matrix ``a`` into two unitary matrices ``U`` and ``Vt``, and
+a 1-D array ``s`` of singular values such that
+``a == U * S * Vt``, where ``S`` is a suitably shaped matrix of zeros with
+main diagonal ``s`` and ``*`` represents a dot product.
 
 Args:
     a (~chainerx.ndarray): The input matrix with dimension ``(M, N)``.
@@ -565,12 +566,14 @@ Args:
 
 Returns:
     tuple of :class:`chainerx.ndarray`:
-        A tuple of ``(u, s, v)`` such that ``a = u * diag(s) * v``.
+        A tuple of ``(U, s, Vt)`` such that ``a = U * diag(s) * Vt``.
         When ``compute_uv`` is False only singular values ``s`` are returned.
 
 Note:
-    The ``dtype`` must be ``float32`` or ``float64`` (``float16`` is not
-    supported yet.)
+    * The ``dtype`` must be ``float32`` or ``float64`` (``float16`` is not
+      supported yet.)
+    * The SVD is commonly written as `a = U * diag(s) * V^T`.
+      The ``Vt`` returned by this function is `V^T`.
 
 .. seealso:: :func:`numpy.linalg.svd`
 """)
