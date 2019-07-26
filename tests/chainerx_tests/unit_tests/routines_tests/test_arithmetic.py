@@ -1414,16 +1414,16 @@ class TestReciprocal(math_utils.UnaryMathTestBase, op_utils.NumpyOpTest):
         'in_dtypes,out_dtype': (
             dtype_utils.make_same_in_out_dtypes(
                 2, chainerx.testing.numeric_dtypes)),
-        'input_lhs': [5, -5, 'random'],
-        'input_rhs': [2, 3, -2, -3, 'random'],
+        'input_lhs': [5.5, -5.5, 'random'],
+        'input_rhs': [2.5, -2.5, 'random'],
         'is_module': [False],
     })
     # Dtype combinations
     + chainer.testing.product({
         'in_shapes': [((2, 3), (2, 3))],
         'in_dtypes,out_dtype': _in_out_dtypes_arithmetic,
-        'input_lhs': [5, -5, 'random'],
-        'input_rhs': [2, 3, -2, -3, 'random'],
+        'input_lhs': [5.5, -5.5, 'random'],
+        'input_rhs': [2.5, -2.5, 'random'],
         'is_module': [False],
     })
     # is_module
@@ -1432,8 +1432,8 @@ class TestReciprocal(math_utils.UnaryMathTestBase, op_utils.NumpyOpTest):
         'in_dtypes,out_dtype': (
             dtype_utils.make_same_in_out_dtypes(
                 2, chainerx.testing.numeric_dtypes)),
-        'input_lhs': [5, -5, 'random'],
-        'input_rhs': [2, 3, -2, -3, 'random'],
+        'input_lhs': [5.5, -5.5, 'random'],
+        'input_rhs': [2.5, -2.5, 'random'],
         'is_module': [True, False],
     })
     # Remove special values test
@@ -1454,9 +1454,9 @@ class TestRemainder(math_utils.BinaryMathTestBase, op_utils.NumpyOpTest):
     def generate_inputs(self):
         a, b = super().generate_inputs()
         if self.input_rhs == 'random':
-            # Avoid (-0.3, 0.3) interval
+            # Avoid (-0.5, 0.5) interval
             with math_utils.IgnoreNumpyFloatingPointError():
-                b[numpy.logical_and(-0.3 < b, b < 0.3)] = 1
+                b[numpy.logical_and(-0.5 < b, b < 0.5)] = 1
         return a, b
 
     def func(self, xp, a, b):
@@ -1488,15 +1488,15 @@ def test_remainder_invalid_dtypes(device, dtypes, is_module):
         'in_dtypes,out_dtype': (
             dtype_utils.make_same_in_out_dtypes(
                 2, chainerx.testing.numeric_dtypes)),
-        'input_lhs': [5, -5, 'random'],
-        'input_rhs': [2, 3, -2, -3, 'random'],
+        'input_lhs': [5.5, -5.5, 'random'],
+        'input_rhs': [2.5, -2.5, 'random'],
     })
     # Dtype combinations
     + chainer.testing.product({
         'in_shapes': [((2, 3), (2, 3))],
         'in_dtypes,out_dtype': _in_out_dtypes_inplace_arithmetic,
-        'input_lhs': [5, -5, 'random'],
-        'input_rhs': [2, 3, -2, -3, 'random'],
+        'input_lhs': [5.5, -5.5, 'random'],
+        'input_rhs': [2.5, -2.5, 'random'],
     })
     # Remove special values test
     # since chainerx.remainder returns nan when numpy.remainder returns inf
@@ -1517,9 +1517,9 @@ class TestIRemainder(
     def generate_inputs(self):
         a, b = super().generate_inputs()
         if self.input_rhs == 'random':
-            # Avoid (-0.3, 0.3) interval
+            # Avoid (-0.5, 0.5) interval
             with math_utils.IgnoreNumpyFloatingPointError():
-                b[numpy.logical_and(-0.3 < b, b < 0.3)] = 1
+                b[numpy.logical_and(-0.5 < b, b < 0.5)] = 1
         return a, b
 
     def func(self, xp, a, b):
