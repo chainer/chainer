@@ -269,16 +269,16 @@ std::tuple<Array, Array, Array> Svd(const Array& a, bool full_matrices, bool com
                 Array sigma_mat = Diag(s);
                 Array sigma_mat_inv = Diag(Reciprocal(s));
                 Array sigma_sq = Power(s, 2);
-                Array F = ExpandDims(sigma_sq, 0) - ExpandDims(sigma_sq, 1);
-                // Invert values of F, and fill the diagonal with 0s.
-                // F has 0s on the diagonal, therefore fill it first with infinity.
-                Array mask = Eye(F.shape()[0], F.shape()[1], 0, Dtype::kBool, a.device());
-                F = Where(mask, INFINITY, F);
-                F = Reciprocal(F);
+                Array f = ExpandDims(sigma_sq, 0) - ExpandDims(sigma_sq, 1);
+                // Invert values of f, and fill the diagonal with 0s.
+                // f has 0s on the diagonal, therefore fill it first with infinity.
+                Array mask = Eye(f.shape()[0], f.shape()[1], 0, Dtype::kBool, a.device());
+                f = Where(mask, INFINITY, f);
+                f = Reciprocal(f);
 
                 Array u_term{};
                 Array utgu = Dot(u.Transpose(), gu);
-                u_term = Dot(Dot(u, F * (utgu - utgu.Transpose())), sigma_mat);
+                u_term = Dot(Dot(u, f * (utgu - utgu.Transpose())), sigma_mat);
                 if (m > k) {
                     u_term = u_term + Dot(Dot(im - Dot(u, ut), gu), sigma_mat_inv);
                 }
@@ -286,7 +286,7 @@ std::tuple<Array, Array, Array> Svd(const Array& a, bool full_matrices, bool com
 
                 Array v_term{};
                 Array vtgv = Dot(vt, gv);
-                v_term = Dot(Dot(sigma_mat, F * (vtgv - vtgv.Transpose())), vt);
+                v_term = Dot(Dot(sigma_mat, f * (vtgv - vtgv.Transpose())), vt);
                 if (n > k) {
                     v_term = v_term + Dot(sigma_mat_inv, Dot(gvt, in - Dot(v, vt)));
                 }
