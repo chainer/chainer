@@ -47,6 +47,12 @@ class PureNcclCommunicator(mpi_communicator_base.MpiCommunicatorBase):
         self.allreduce_dtype_to_grad_dtype_kernel = None
         self.params_data = None
 
+    def finalize(self):
+        super(PureNcclCommunicator, self).finalize()
+        if self.nccl_comm is not None:
+            self.nccl_comm.destroy()
+            self.nccl_comm = None
+
     def _init_comms(self):
         if self.nccl_comm is not None:
             return
