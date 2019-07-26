@@ -372,6 +372,7 @@ public:
                 job = 'N';
             }
 
+            // When calling Gesvd pointers to u and vt are swapped instead of transposing the input matrix.
             device_internals.cusolverdn_handle().Call(
                     Gesvd<T>,
                     job,

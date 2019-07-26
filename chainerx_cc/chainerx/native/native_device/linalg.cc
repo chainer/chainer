@@ -332,6 +332,7 @@ public:
             int info;
             int buffersize = -1;
             T work_size;
+            // When calling Gesdd pointers to u and vt are swapped instead of transposing the input matrix.
             Gesdd(job, m, n, x_ptr, m, s_ptr, vt_ptr, ldu, u_ptr, ldvt, &work_size, buffersize, iwork_ptr, &info);
             buffersize = static_cast<int>(work_size);
 
