@@ -298,8 +298,10 @@ public:
 
         bool compute_uv = u.shape()[0] != 0 && vt.shape()[0] != 0;
 
-        // LAPACK routine works with arrays in column-major order.
-        // In order to avoid transposes instead of calculating svd(A) = U S V^T, we compute svd(A^T)
+        // LAPACK assumes arrays are in column-major order.
+        // In order to avoid transposing the input matrix, matrix dimensions are swapped.
+        // Since the input is assumed to be transposed, it is necessary to
+        // swap the pointers to u and vt matrices when calling Gesdd.
         int64_t n = a.shape()[0];
         int64_t m = a.shape()[1];
         int64_t mn = std::min(m, n);
