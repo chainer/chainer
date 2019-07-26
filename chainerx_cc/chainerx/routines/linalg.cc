@@ -239,10 +239,10 @@ std::tuple<Array, Array, Array> Svd(const Array& a, bool full_matrices, bool com
                        full_matrices,
                        compute_uv](BackwardContext& bctx) {
                 if (full_matrices) {
-                    throw ChainerxError{"ChainerX SVD differentiation is not implemented for full_matrices=true."};
+                    throw ChainerxError{"ChainerX SVD differentiation is not implemented for full_matrices mode."};
                 }
                 if (!compute_uv) {
-                    throw ChainerxError{"ChainerX SVD differentiation cannot be computed with compute_uv=false."};
+                    throw ChainerxError{"ChainerX SVD differentiation cannot be computed without u, vt matrices."};
                 }
 
                 const Array& a = bctx.GetRetainedInput(a_tok);

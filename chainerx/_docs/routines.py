@@ -574,6 +574,9 @@ Note:
       supported yet.)
     * The SVD is commonly written as `a = U * diag(s) * V^T`.
       The ``Vt`` returned by this function is `V^T`.
+    * During backpropagation, this function requires ``U`` and ``Vt`` computed,
+      therefore differentiation does not work for ``compute_uv=False``.
+    * Backpropagation is not implemented for ``full_matrices=True``.
 
 .. seealso:: :func:`numpy.linalg.svd`
 """)
