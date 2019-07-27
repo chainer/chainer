@@ -1,13 +1,8 @@
-import unittest
-
 import numpy
 
 import chainer
-from chainer.backends import cuda
 import chainer.functions as F
-from chainer import gradient_check
 from chainer import testing
-from chainer.testing import attr
 from chainer.testing import backend
 
 
@@ -17,6 +12,10 @@ def _relu(x):
         if x[i] < 0:
             expected[i] = 0
     return expected
+
+
+def array(shape, dtype):
+    return numpy.random.uniform(-1, 1, shape).astype(dtype)
 
 
 @testing.parameterize(*testing.product_dict(
@@ -70,22 +69,16 @@ class TestNStepRNN(testing.FunctionTestCase):
     dodge_nondifferentiable = True
 
     def setUp(self):
-        self.check_forward_options.update({
-            'rtol': 1e-2, 'atol': 1e-2})
-        self.check_backward_options.update({
-            'rtol': 1e-2, 'atol': 1e-2})
-        self.check_double_backward_options.update({
-            'rtol': 5e-3, 'atol': 5e-2})
         self.skip_double_backward_test = True
 
     def generate_inputs(self):
         h_shape = (self.n_layers, self.batches[0], self.hidden_size)
         dtype = numpy.float32
 
-        h = numpy.random.uniform(-1, 1, h_shape).astype(dtype)
+        h = array(h_shape, dtype)
         in_size = self.input_size
         out_size = self.hidden_size
-        xs = [numpy.random.uniform(-1, 1, (self.batches[b], in_size)).astype(dtype)
+        xs = [array((self.batches[b], in_size), dtype)
               for b in range(len(self.batches))]
 
         def w_in(i, j):
@@ -97,11 +90,9 @@ class TestNStepRNN(testing.FunctionTestCase):
             inputs.append(xs[i])
         for n in range(self.n_layers):
             for i in range(2):
-                inputs.append(numpy.random.uniform(-1, 1,
-                                                   (out_size, w_in(n, i))).astype(dtype))
+                inputs.append(array((out_size, w_in(n, i)), dtype))
             for i in range(2):
-                inputs.append(numpy.random.uniform(-1, 1,
-                                                   (out_size,)).astype(dtype))
+                inputs.append(array((out_size,), dtype))
         return tuple(inputs)
 
     def process_inputs(self, inputs):
@@ -208,22 +199,16 @@ class TestNStepBiRNN(testing.FunctionTestCase):
     dodge_nondifferentiable = True
 
     def setUp(self):
-        self.check_forward_options.update({
-            'rtol': 1e-2, 'atol': 1e-2})
-        self.check_backward_options.update({
-            'rtol': 1e-2, 'atol': 1e-2})
-        self.check_double_backward_options.update({
-            'rtol': 5e-3, 'atol': 5e-2})
         self.skip_double_backward_test = True
 
     def generate_inputs(self):
         h_shape = (self.n_layers * 2, self.batches[0], self.hidden_size)
         dtype = numpy.float32
 
-        h = numpy.random.uniform(-1, 1, h_shape).astype(dtype)
+        h = array(h_shape, dtype)
         in_size = self.input_size
         out_size = self.hidden_size
-        xs = [numpy.random.uniform(-1, 1, (self.batches[b], in_size)).astype(dtype)
+        xs = [array((self.batches[b], in_size), dtype)
               for b in range(len(self.batches))]
 
         def w_in(i, j):
@@ -242,11 +227,9 @@ class TestNStepBiRNN(testing.FunctionTestCase):
         for n in range(self.n_layers):
             for direction in (0, 1):
                 for i in range(2):
-                    inputs.append(numpy.random.uniform(-1, 1,
-                                                       (out_size, w_in(n, i))).astype(dtype))
+                    inputs.append(array((out_size, w_in(n, i)), dtype))
                 for i in range(2):
-                    inputs.append(numpy.random.uniform(-1, 1,
-                                                       (out_size,)).astype(dtype))
+                    inputs.append(array((out_size,), dtype))
         return tuple(inputs)
 
     def process_inputs(self, inputs):
