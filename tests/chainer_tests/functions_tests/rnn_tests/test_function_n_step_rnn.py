@@ -10,6 +10,13 @@ from chainer import testing
 from chainer.testing import attr
 from chainer.testing import backend
 
+def _relu(x):
+    expected = x.copy()
+    for i in numpy.ndindex(x.shape):
+        if x[i] < 0:
+            expected[i] = 0
+    return expected
+
 
 @testing.parameterize(*testing.product_dict(
     [
@@ -112,11 +119,11 @@ class TestNStepRNN(testing.FunctionTestCase):
 
     def forward(self, inputs, device):
         h, ws, bs, xs = self.process_inputs(inputs)
-        if isinstance(h, chainer.Variable) and h.array.dtype == numpy.float64:
+        if h.array.dtype == numpy.float64:
             with chainer.using_config('use_cudnn', 'never'):
-                out = F.n_step_rnn(self.n_layers, 0.0, h, ws, bs, xs)
+                out = F.n_step_rnn(self.n_layers, 0.0, h, ws, bs, xs, self.activation)
         else:
-            out = F.n_step_rnn(self.n_layers, 0.0, h, ws, bs, xs)
+            out = F.n_step_rnn(self.n_layers, 0.0, h, ws, bs, xs, self.activation)
         rets = []
         rets.append(out[0])
         for i in range(len(out[1])):
@@ -126,11 +133,30 @@ class TestNStepRNN(testing.FunctionTestCase):
     def forward_expected(self, inputs):
         h, ws, bs, xs = self.process_inputs(inputs)
 
-        out = F.n_step_rnn(self.n_layers, 0.0, h, ws, bs, xs)
+        e_hy = h.copy()
+        ys = []
+        for ind in range(len(xs)):
+            x = xs[ind]
+            batch = x.shape[0]
+            for layer in range(self.n_layers):
+                w = ws[layer]
+                b = bs[layer]
+                h_prev = e_hy[layer, :batch]
+                if self.activation == 'tanh':
+                    e_h = numpy.tanh(x.dot(w[0].T) +
+                                     h_prev.dot(w[1].T) + b[0] + b[1])
+                elif self.activation == 'relu':
+                    e_h = _relu(x.dot(w[0].T) +
+                                h_prev.dot(w[1].T) + b[0] + b[1])
+
+                e_hy[layer, :batch] = e_h
+
+                x = e_h
+            ys.append(x)
         rets = []
-        rets.append(out[0].array)
-        for i in range(len(out[1])):
-            rets.append(out[1][i].array)
+        rets.append(e_hy)
+        for i in range(len(ys)):
+            rets.append(ys[i])
         return tuple(rets)
 
 
@@ -237,7 +263,7 @@ class TestNStepBiRNN(testing.FunctionTestCase):
     def forward(self, inputs, device):
         h, ws, bs, xs = self.process_inputs(inputs)
 
-        if isinstance(h, chainer.Variable) and h.array.dtype == numpy.float64:
+        if h.array.dtype == numpy.float64:
             with chainer.using_config('use_cudnn', 'never'):
                 out = F.n_step_birnn(self.n_layers, 0.0, h, ws,
                                      bs, xs, self.activation)
@@ -245,21 +271,62 @@ class TestNStepBiRNN(testing.FunctionTestCase):
             out = F.n_step_birnn(self.n_layers, 0.0, h, ws,
                                  bs, xs, self.activation)
         rets = []
-        rets.append(out[0][0])
+        rets.append(out[0])
         for i in range(len(out[1])):
             rets.append(out[1][i])
         return tuple(rets)
 
     def forward_expected(self, inputs):
         h, ws, bs, xs = self.process_inputs(inputs)
-        with chainer.using_config('use_ideep', 'never'):
-            out = F.n_step_birnn(self.n_layers, 0.0, h,
-                                 ws, bs, xs, self.activation)
-            rets = []
-            rets.append(out[0][0].array)
-            for i in range(len(out[1])):
-                rets.append(out[1][i].array)
-            return tuple(rets)
+        xs_next = xs
+        e_hy = h.copy()
+        for layer in range(self.n_layers):
+            # forward
+            di = 0
+            xf = []
+            layer_idx = layer * 2 + di
+            w = ws[layer_idx]
+            b = bs[layer_idx]
+            for ind in range(len(xs)):
+                x = xs_next[ind]
+                batch = x.shape[0]
+                h_prev = e_hy[layer_idx, :batch]
+                if self.activation == 'tanh':
+                    e_h = numpy.tanh(x.dot(w[0].T) +
+                                     h_prev.dot(w[1].T) + b[0] + b[1])
+                elif self.activation == 'relu':
+                    e_h = _relu(x.dot(w[0].T) +
+                                h_prev.dot(w[1].T) + b[0] + b[1])
+
+                e_hy[layer_idx, :batch] = e_h
+                xf.append(e_h)
+
+            # backward
+            di = 1
+            xb = []
+            layer_idx = layer * 2 + di
+            w = ws[layer_idx]
+            b = bs[layer_idx]
+            for ind in reversed(range(len(xs))):
+                x = xs_next[ind]
+                batch = x.shape[0]
+                h_prev = e_hy[layer_idx, :batch]
+                if self.activation == 'tanh':
+                    e_h = numpy.tanh(x.dot(w[0].T) +
+                                     h_prev.dot(w[1].T) + b[0] + b[1])
+                elif self.activation == 'relu':
+                    e_h = _relu(x.dot(w[0].T) +
+                                h_prev.dot(w[1].T) + b[0] + b[1])
+
+                e_hy[layer_idx, :batch] = e_h
+                xb.append(e_h)
+            xb.reverse()
+            xs_next = [numpy.concatenate([hfi, hbi], axis=1) for (hfi, hbi) in zip(xf, xb)]
+        rets = []
+        rets.append(e_hy)
+        for x in xs_next:
+            rets.append(x)
+        return tuple(rets)
 
 
 testing.run_module(__name__, __file__)
