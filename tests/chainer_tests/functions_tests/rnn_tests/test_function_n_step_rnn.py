@@ -99,7 +99,7 @@ class TestNStepRNN(testing.FunctionTestCase):
     def process_inputs(self, inputs):
         h = inputs[0]
 
-        xs = inputs[1:1 + len(self.batches)]
+        xs = inputs[1: 1 + len(self.batches)]
         ws = []
         bs = []
         index = 1 + len(self.batches)
@@ -111,13 +111,12 @@ class TestNStepRNN(testing.FunctionTestCase):
         return h, ws, bs, xs
 
     def forward(self, inputs, device):
-        if inputs[0].array.dtype == numpy.float64:
-            actual_inputs = []
-            for i in inputs:
-                actual_inputs.append(i.array.astype(numpy.float32))
-            inputs = actual_inputs
         h, ws, bs, xs = self.process_inputs(inputs)
-        out = F.n_step_rnn(self.n_layers, 0.0, h, ws, bs, xs)
+        if isinstance(h, chainer.Variable) and h.array.dtype == numpy.float64:
+            with chainer.using_config('use_cudnn', 'never'):
+                out = F.n_step_rnn(self.n_layers, 0.0, h, ws, bs, xs)
+        else:
+            out = F.n_step_rnn(self.n_layers, 0.0, h, ws, bs, xs)
         rets = []
         rets.append(out[0])
         for i in range(len(out[1])):
@@ -126,7 +125,7 @@ class TestNStepRNN(testing.FunctionTestCase):
 
     def forward_expected(self, inputs):
         h, ws, bs, xs = self.process_inputs(inputs)
-        
+
         out = F.n_step_rnn(self.n_layers, 0.0, h, ws, bs, xs)
         rets = []
         rets.append(out[0].array)
