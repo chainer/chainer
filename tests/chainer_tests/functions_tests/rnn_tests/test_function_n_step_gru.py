@@ -5,12 +5,18 @@ import numpy
 import chainer
 from chainer.backends import cuda
 import chainer.functions as F
-import chainer.functions as functions
 from chainer import gradient_check
 from chainer import testing
-from chainer import Variable
 from chainer.testing import attr
 from chainer.testing import backend
+
+
+def sigmoid(x):
+    return numpy.tanh(x * 0.5) * 0.5 + 0.5
+
+
+def _split(inputs, pos):
+    return inputs[:pos], inputs[pos:]
 
 
 @testing.parameterize(*testing.product_dict(
@@ -101,11 +107,12 @@ class TestNStepGRU(testing.FunctionTestCase):
 
     def forward(self, inputs, device):
         h, ws, bs, xs = self.process_inputs(inputs)
-        # For some reason even though only float32 arrays are created in generate_inputs(),
-        # arrays coming as input here are of type float32 and float64
         if h.array.dtype == numpy.float64:
-            raise unittest.SkipTest('float64 not supported')
-        out = F.n_step_gru(self.n_layers, 0.0, h, ws, bs, xs)
+            with chainer.using_config('use_cudnn', 'never'):
+                out = F.n_step_gru(self.n_layers, 0.0, h, ws, bs, xs)
+        else:
+            out = F.n_step_gru(self.n_layers, 0.0, h, ws, bs, xs)
+
         rets = []
         rets.append(out[0])
         for i in range(len(out[1])):
@@ -114,13 +121,32 @@ class TestNStepGRU(testing.FunctionTestCase):
 
     def forward_expected(self, inputs):
         h, ws, bs, xs = self.process_inputs(inputs)
-        with chainer.using_config('use_ideep', 'never'):
-            out = F.n_step_gru(self.n_layers, 0.0, h, ws, bs, xs)
-            rets = []
-            rets.append(out[0].array)
-            for i in range(len(out[1])):
-                rets.append(out[1][i].array)
-            return tuple(rets)
+        e_hy = h.copy()
+        ys = []
+        for ind in range(len(xs)):
+            x = xs[ind]
+            batch = x.shape[0]
+            for layer in range(self.n_layers):
+                w = ws[layer]
+                b = bs[layer]
+                h_prev = e_hy[layer, :batch]
+
+                # GRU
+                z = sigmoid(x.dot(w[1].T) + h_prev.dot(w[4].T) + b[1] + b[4])
+                r = sigmoid(x.dot(w[0].T) + h_prev.dot(w[3].T) + b[0] + b[3])
+                h_bar = numpy.tanh(x.dot(w[2].T) +
+                                   r *
+                                   ((h_prev).dot(w[5].T) + b[5]) + b[2])
+                e_h = (1 - z) * h_bar + z * h_prev
+                e_hy[layer, :batch] = e_h
+
+                x = e_h
+            ys.append(x)
+        rets = []
+        rets.append(e_hy)
+        for i in range(len(ys)):
+            rets.append(ys[i])
+        return tuple(rets)
 
 
 @testing.parameterize(*testing.product_dict(
@@ -217,26 +243,70 @@ class TestNStepBiGRU(testing.FunctionTestCase):
 
     def forward(self, inputs, device):
         h, ws, bs, xs = self.process_inputs(inputs)
-        # For some reason even though only float32 arrays are created in generate_inputs(),
-        # arrays coming as input here are of type float32 and float64
         if h.array.dtype == numpy.float64:
-            raise unittest.SkipTest('float64 not supported')
-        out = F.n_step_bigru(self.n_layers, 0.0, h, ws, bs, xs)
+            with chainer.using_config('use_cudnn', 'never'):
+                out = F.n_step_bigru(self.n_layers, 0.0, h, ws, bs, xs)
+        else:
+            out = F.n_step_bigru(self.n_layers, 0.0, h, ws, bs, xs)
         rets = []
-        rets.append(out[0][0])
+        rets.append(out[0])
         for i in range(len(out[1])):
             rets.append(out[1][i])
         return tuple(rets)
 
     def forward_expected(self, inputs):
         h, ws, bs, xs = self.process_inputs(inputs)
-        with chainer.using_config('use_ideep', 'never'):
-            out = F.n_step_bigru(self.n_layers, 0.0, h, ws, bs, xs)
-            rets = []
-            rets.append(out[0][0].array)
-            for i in range(len(out[1])):
-                rets.append(out[1][i].array)
-            return tuple(rets)
+        xs_next = xs
+        e_hy = h.copy()
+        for layer in range(self.n_layers):
+            # forward
+            di = 0
+            xf = []
+            layer_idx = layer * 2 + di
+            w = ws[layer_idx]
+            b = bs[layer_idx]
+            for ind in range(len(xs)):
+                x = xs_next[ind]
+                batch = x.shape[0]
+                h_prev = e_hy[layer_idx, :batch]
+                # GRU
+                z = sigmoid(x.dot(w[1].T) + h_prev.dot(w[4].T) + b[1] + b[4])
+                r = sigmoid(x.dot(w[0].T) + h_prev.dot(w[3].T) + b[0] + b[3])
+                h_bar = numpy.tanh(x.dot(w[2].T) +
+                                   r *
+                                   ((h_prev).dot(w[5].T) + b[5]) + b[2])
+                e_h = (1 - z) * h_bar + z * h_prev
+                e_hy[layer_idx, :batch] = e_h
+                xf.append(e_h)
+
+            # backward
+            di = 1
+            xb = []
+            layer_idx = layer * 2 + di
+            w = ws[layer_idx]
+            b = bs[layer_idx]
+            for ind in reversed(range(len(xs))):
+                x = xs_next[ind]
+                batch = x.shape[0]
+                h_prev = e_hy[layer_idx, :batch]
+                # GRU
+                z = sigmoid(x.dot(w[1].T) + h_prev.dot(w[4].T) + b[1] + b[4])
+                r = sigmoid(x.dot(w[0].T) + h_prev.dot(w[3].T) + b[0] + b[3])
+                h_bar = numpy.tanh(x.dot(w[2].T) +
+                                   r *
+                                   ((h_prev).dot(w[5].T) + b[5]) + b[2])
+                e_h = (1 - z) * h_bar + z * h_prev
+                e_hy[layer_idx, :batch] = e_h
+                xb.append(e_h)
+            xb.reverse()
+            xs_next = [numpy.concatenate([hfi, hbi], axis=1) for (hfi, hbi) in
+                       zip(xf, xb)]
+
+        rets = []
+        rets.append(e_hy)
+        for x in xs_next:
+            rets.append(x)
+        return tuple(rets)
 
 
 testing.run_module(__name__, __file__)
