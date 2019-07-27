@@ -1,13 +1,8 @@
-import unittest
-
 import numpy
 
 import chainer
-from chainer.backends import cuda
 import chainer.functions as F
-from chainer import gradient_check
 from chainer import testing
-from chainer.testing import attr
 from chainer.testing import backend
 
 
@@ -15,8 +10,8 @@ def sigmoid(x):
     return numpy.tanh(x * 0.5) * 0.5 + 0.5
 
 
-def _split(inputs, pos):
-    return inputs[:pos], inputs[pos:]
+def array(shape, dtype):
+    return numpy.random.uniform(-1, 1, shape).astype(dtype)
 
 
 @testing.parameterize(*testing.product_dict(
@@ -69,12 +64,13 @@ class TestNStepLSTM(testing.FunctionTestCase):
         h_shape = (self.n_layers, self.batches[0], self.hidden_size)
         dtype = numpy.float32
 
-        h = numpy.random.uniform(-1, 1, h_shape).astype(dtype)
-        c = numpy.random.uniform(-1, 1, h_shape).astype(dtype)
+        h = array(h_shape, dtype)
+        c = array(h_shape, dtype)
         in_size = self.input_size
         out_size = self.hidden_size
-        xs = [numpy.random.uniform(-1, 1, (self.batches[b], in_size)).astype(dtype)
-              for b in range(len(self.batches))]
+        xs = []
+        for b in range(len(self.batches)):
+            xs.append(array((self.batches[b], in_size), dtype))
 
         def w_in(i, j):
             return in_size if i == 0 and j < 4 else out_size
@@ -86,11 +82,9 @@ class TestNStepLSTM(testing.FunctionTestCase):
             inputs.append(xs[i])
         for n in range(self.n_layers):
             for i in range(8):
-                inputs.append(numpy.random.uniform(-1, 1,
-                                                   (out_size, w_in(n, i))).astype(dtype))
+                inputs.append(array((out_size, w_in(n, i)), dtype))
             for i in range(8):
-                inputs.append(numpy.random.uniform(-1, 1,
-                                                   (out_size,)).astype(dtype))
+                inputs.append(array((out_size,), dtype))
         return tuple(inputs)
 
     def process_inputs(self, inputs):
@@ -202,12 +196,13 @@ class TestNStepBiLSTM(testing.FunctionTestCase):
         h_shape = (self.n_layers * 2, self.batches[0], self.hidden_size)
         dtype = numpy.float32
 
-        h = numpy.random.uniform(-1, 1, h_shape).astype(dtype)
-        c = numpy.random.uniform(-1, 1, h_shape).astype(dtype)
+        h = array(h_shape, dtype)
+        c = array(h_shape, dtype)
         in_size = self.input_size
         out_size = self.hidden_size
-        xs = [numpy.random.uniform(-1, 1, (self.batches[b], in_size)).astype(dtype)
-              for b in range(len(self.batches))]
+        xs = []
+        for b in range(len(self.batches)):
+            xs.append(array((self.batches[b], in_size), dtype))
 
         def w_in(i, j):
             if i == 0 and j < 4:
@@ -225,11 +220,9 @@ class TestNStepBiLSTM(testing.FunctionTestCase):
         for n in range(self.n_layers):
             for direction in (0, 1):
                 for i in range(8):
-                    inputs.append(numpy.random.uniform(-1, 1,
-                                                       (out_size, w_in(n, i))).astype(dtype))
+                    inputs.append(array((out_size, w_in(n, i)), dtype))
                 for i in range(8):
-                    inputs.append(numpy.random.uniform(-1, 1,
-                                                       (out_size,)).astype(dtype))
+                    inputs.append(array((out_size,), dtype))
         return tuple(inputs)
 
     def process_inputs(self, inputs):
