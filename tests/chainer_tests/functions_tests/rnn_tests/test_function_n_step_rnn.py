@@ -10,6 +10,7 @@ from chainer import testing
 from chainer.testing import attr
 from chainer.testing import backend
 
+
 def _relu(x):
     expected = x.copy()
     for i in numpy.ndindex(x.shape):
@@ -121,9 +122,11 @@ class TestNStepRNN(testing.FunctionTestCase):
         h, ws, bs, xs = self.process_inputs(inputs)
         if h.array.dtype == numpy.float64:
             with chainer.using_config('use_cudnn', 'never'):
-                out = F.n_step_rnn(self.n_layers, 0.0, h, ws, bs, xs, self.activation)
+                out = F.n_step_rnn(self.n_layers, 0.0, h,
+                                   ws, bs, xs, self.activation)
         else:
-            out = F.n_step_rnn(self.n_layers, 0.0, h, ws, bs, xs, self.activation)
+            out = F.n_step_rnn(self.n_layers, 0.0, h, ws,
+                               bs, xs, self.activation)
         rets = []
         rets.append(out[0])
         for i in range(len(out[1])):
@@ -321,7 +324,8 @@ class TestNStepBiRNN(testing.FunctionTestCase):
                 e_hy[layer_idx, :batch] = e_h
                 xb.append(e_h)
             xb.reverse()
-            xs_next = [numpy.concatenate([hfi, hbi], axis=1) for (hfi, hbi) in zip(xf, xb)]
+            xs_next = [numpy.concatenate([hfi, hbi], axis=1)
+                       for (hfi, hbi) in zip(xf, xb)]
         rets = []
         rets.append(e_hy)
         for x in xs_next:
