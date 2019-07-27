@@ -5,12 +5,18 @@ import numpy
 import chainer
 from chainer.backends import cuda
 import chainer.functions as F
-import chainer.functions as functions
 from chainer import gradient_check
 from chainer import testing
-from chainer import Variable
 from chainer.testing import attr
 from chainer.testing import backend
+
+
+def sigmoid(x):
+    return numpy.tanh(x * 0.5) * 0.5 + 0.5
+
+
+def _split(inputs, pos):
+    return inputs[:pos], inputs[pos:]
 
 
 @testing.parameterize(*testing.product_dict(
@@ -102,11 +108,11 @@ class TestNStepLSTM(testing.FunctionTestCase):
 
     def forward(self, inputs, device):
         h, c, ws, bs, xs = self.process_inputs(inputs)
-        # For some reason even though only float32 arrays are created in generate_inputs(),
-        # arrays coming as input here are of type float32 and float64
-        if h.array.dtype == numpy.float64:
-            raise unittest.SkipTest('float64 not supported')
-        out = F.n_step_lstm(self.n_layers, 0.0, h, c, ws, bs, xs)
+        if isinstance(h, chainer.Variable) and h.array.dtype == numpy.float64:
+            with chainer.using_config('use_cudnn', 'never'):
+                out = F.n_step_lstm(self.n_layers, 0.0, h, c, ws, bs, xs)
+        else:
+            out = F.n_step_lstm(self.n_layers, 0.0, h, c, ws, bs, xs)
         rets = []
         rets.append(out[0])
         rets.append(out[1])
@@ -116,14 +122,35 @@ class TestNStepLSTM(testing.FunctionTestCase):
 
     def forward_expected(self, inputs):
         h, c, ws, bs, xs = self.process_inputs(inputs)
-        with chainer.using_config('use_ideep', 'never'):
-            out = F.n_step_lstm(self.n_layers, 0.0, h, c, ws, bs, xs)
-            rets = []
-            rets.append(out[0].array)
-            rets.append(out[1].array)
-            for i in range(len(out[2])):
-                rets.append(out[2][i].array)
-            return tuple(rets)
+        e_hy = h.copy()
+        e_cy = c.copy()
+        ys = []
+        for ind in range(len(xs)):
+            x = xs[ind]
+            batch = x.shape[0]
+            for layer in range(self.n_layers):
+                w = ws[layer]
+                b = bs[layer]
+                h_prev = e_hy[layer, :batch]
+                c_prev = e_cy[layer, :batch]
+                i = sigmoid(x.dot(w[0].T) + h_prev.dot(w[4].T) + b[0] + b[4])
+                f = sigmoid(x.dot(w[1].T) + h_prev.dot(w[5].T) + b[1] + b[5])
+                c_bar = numpy.tanh(
+                    x.dot(w[2].T) + h_prev.dot(w[6].T) + b[2] + b[6])
+                o = sigmoid(x.dot(w[3].T) + h_prev.dot(w[7].T) + b[3] + b[7])
+                e_c = (f * c_prev + i * c_bar)
+                e_h = o * numpy.tanh(e_c)
+                e_hy[layer, :batch] = e_h
+                e_cy[layer, :batch] = e_c
+
+                x = e_h
+            ys.append(x)
+        rets = []
+        rets.append(e_hy)
+        rets.append(e_cy)
+        for i in range(len(ys)):
+            rets.append(ys[i])
+        return tuple(rets)
 
 
 @testing.parameterize(*testing.product_dict(
@@ -222,11 +249,12 @@ class TestNStepBiLSTM(testing.FunctionTestCase):
 
     def forward(self, inputs, device):
         h, c, ws, bs, xs = self.process_inputs(inputs)
-        # For some reason even though only float32 arrays are created in generate_inputs(),
-        # arrays coming as input here are of type float32 and float64
-        if h.array.dtype == numpy.float64:
-            raise unittest.SkipTest('float64 not supported')
-        out = F.n_step_bilstm(self.n_layers, 0.0, h, c, ws, bs, xs)
+        if isinstance(h, chainer.Variable) and h.array.dtype == numpy.float64:
+            with chainer.using_config('use_cudnn', 'never'):
+                out = F.n_step_bilstm(self.n_layers, 0.0, h, c, ws, bs, xs)
+        else:
+            out = F.n_step_bilstm(self.n_layers, 0.0, h, c, ws, bs, xs)
+
         rets = []
         rets.append(out[0])
         rets.append(out[1])
@@ -236,14 +264,66 @@ class TestNStepBiLSTM(testing.FunctionTestCase):
 
     def forward_expected(self, inputs):
         h, c, ws, bs, xs = self.process_inputs(inputs)
-        with chainer.using_config('use_ideep', 'never'):
-            out = F.n_step_bilstm(self.n_layers, 0.0, h, c, ws, bs, xs)
-            rets = []
-            rets.append(out[0].array)
-            rets.append(out[1].array)
-            for i in range(len(out[2])):
-                rets.append(out[2][i].array)
-            return tuple(rets)
+        xs_next = xs
+        e_hy = h.copy()
+        e_cy = c.copy()
+        for layer in range(self.n_layers):
+            # forward
+            di = 0
+            xf = []
+            layer_idx = layer * 2 + di
+            w = ws[layer_idx]
+            b = bs[layer_idx]
+            for ind in range(len(xs)):
+                x = xs_next[ind]
+                batch = x.shape[0]
+                h_prev = e_hy[layer_idx, :batch]
+                c_prev = e_cy[layer_idx, :batch]
+                i = sigmoid(x.dot(w[0].T) + h_prev.dot(w[4].T) + b[0] + b[4])
+                f = sigmoid(x.dot(w[1].T) + h_prev.dot(w[5].T) + b[1] + b[5])
+                c_bar = numpy.tanh(
+                    x.dot(w[2].T) + h_prev.dot(w[6].T) + b[2] + b[6])
+                o = sigmoid(x.dot(w[3].T) + h_prev.dot(w[7].T) + b[3] + b[7])
+                e_c = (f * c_prev + i * c_bar)
+                e_h = o * numpy.tanh(e_c)
+                e_hy[layer_idx, :batch] = e_h
+                e_cy[layer_idx, :batch] = e_c
+
+                xf.append(e_h)
+
+            # backward
+            di = 1
+            xb = []
+            layer_idx = layer * 2 + di
+            w = ws[layer_idx]
+            b = bs[layer_idx]
+            for ind in reversed(range(len(xs))):
+                x = xs_next[ind]
+                batch = x.shape[0]
+                h_prev = e_hy[layer_idx, :batch]
+                c_prev = e_cy[layer_idx, :batch]
+                i = sigmoid(x.dot(w[0].T) + h_prev.dot(w[4].T) + b[0] + b[4])
+                f = sigmoid(x.dot(w[1].T) + h_prev.dot(w[5].T) + b[1] + b[5])
+                c_bar = numpy.tanh(
+                    x.dot(w[2].T) + h_prev.dot(w[6].T) + b[2] + b[6])
+                o = sigmoid(x.dot(w[3].T) + h_prev.dot(w[7].T) + b[3] + b[7])
+                e_c = (f * c_prev + i * c_bar)
+                e_h = o * numpy.tanh(e_c)
+                e_hy[layer_idx, :batch] = e_h
+                e_cy[layer_idx, :batch] = e_c
+
+                xb.append(e_h)
+
+            xb.reverse()
+            xs_next = [numpy.concatenate([hfi, hbi], axis=1) for (hfi, hbi) in
+                       zip(xf, xb)]
+
+        rets = []
+        rets.append(e_hy)
+        rets.append(e_cy)
+        for x in xs_next:
+            rets.append(x)
+        return tuple(rets)
 
 
 testing.run_module(__name__, __file__)
