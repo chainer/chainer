@@ -108,7 +108,7 @@ class TestNStepLSTM(testing.FunctionTestCase):
 
     def forward(self, inputs, device):
         h, c, ws, bs, xs = self.process_inputs(inputs)
-        if isinstance(h, chainer.Variable) and h.array.dtype == numpy.float64:
+        if h.array.dtype == numpy.float64:
             with chainer.using_config('use_cudnn', 'never'):
                 out = F.n_step_lstm(self.n_layers, 0.0, h, c, ws, bs, xs)
         else:
@@ -249,7 +249,7 @@ class TestNStepBiLSTM(testing.FunctionTestCase):
 
     def forward(self, inputs, device):
         h, c, ws, bs, xs = self.process_inputs(inputs)
-        if isinstance(h, chainer.Variable) and h.array.dtype == numpy.float64:
+        if h.array.dtype == numpy.float64:
             with chainer.using_config('use_cudnn', 'never'):
                 out = F.n_step_bilstm(self.n_layers, 0.0, h, c, ws, bs, xs)
         else:
