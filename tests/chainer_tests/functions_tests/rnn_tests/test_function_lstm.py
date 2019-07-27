@@ -1,20 +1,18 @@
 import unittest
+import six
 
 import numpy
 
-import chainer
 from chainer.backends import cuda
 from chainer import gradient_check
 import chainer.functions as F
 from chainer import testing
 from chainer.functions.rnn import lstm
-from chainer.testing import attr
 from chainer.testing import backend
 
 
-def _sigmoid(x):
-    half = x.dtype.type(0.5)
-    return numpy.tanh(x * half) * half + half
+def sigmoid(x):
+    return numpy.tanh(x * 0.5) * 0.5 + 0.5
 
 
 def inject_backend_tests(method_names):
@@ -33,13 +31,17 @@ def inject_backend_tests(method_names):
 @testing.parameterize(*testing.product_dict(
     [
         {'c_shape': (10, 3), 'x_shape': (10, 12)},
-        {'c_shape': (20, 32), 'x_shape': (16, 128)},
-        {'c_shape': (32, 100), 'x_shape': (32, 400)},
+        {'c_shape': (20, 32, 4), 'x_shape': (16, 128, 4)},
+        {'c_shape': (32, 100, 3, 5), 'x_shape': (32, 400, 3, 5)},
         {'c_shape': (16, 20), 'x_shape': (2, 80)},
     ], [
         {'dtype': numpy.float16},
         {'dtype': numpy.float32},
         {'dtype': numpy.float64},
+    ], [
+        {'grad_outputs': (True, True)},
+        {'grad_outputs': (True, False)},
+        {'grad_outputs': (False, True)},
     ]
 ))
 @testing.fix_random()
@@ -74,19 +76,12 @@ class TestLSTM(testing.FunctionTestCase):
     dodge_nondifferentiable = True
 
     def setUp(self):
-        dtype = self.dtype
-
-        if 0 in self.c_shape or 0 in self.x_shape:
-            self.skip_backward_test = True
+        if self.dtype == numpy.float16:
+            self.check_forward_options = {'atol': 1e-3, 'rtol': 1e-2}
+            self.check_backward_options = {'atol': 5e-3, 'rtol': 5e-2}
+            self.check_double_backward_options = {'atol': 5e-3, 'rtol': 5e-2}
+        if self.grad_outputs[0] is False or self.grad_outputs[1] is False:
             self.skip_double_backward_test = True
-
-        if dtype == numpy.float16:
-            self.check_forward_options.update({
-                'rtol': 1e-2, 'atol': 1e-2})
-            self.check_backward_options.update({
-                'rtol': 1e-2, 'atol': 1e-2})
-            self.check_double_backward_options.update(
-                {'rtol': 1e-2, 'atol': 1e-2})
 
     def generate_inputs(self):
         c = numpy.random.uniform(-1, 1, self.c_shape).astype(self.dtype)
@@ -100,9 +95,45 @@ class TestLSTM(testing.FunctionTestCase):
 
     def forward_expected(self, inputs):
         c, x = inputs
-        with chainer.using_config('use_ideep', 'never'):
-            c, h = F.lstm(c, x)
-            return c.array, h.array,
+        batch = x.shape[0]
+
+        def _extract_gates(x):
+            r = x.reshape((len(x), x.shape[1] // 4, 4) + x.shape[2:])
+            return [r[:, :, i] for i in six.moves.range(4)]
+        a, i, f, o = _extract_gates(x)
+        a = numpy.tanh(a)
+        i = sigmoid(i)
+        f = sigmoid(f)
+        o = sigmoid(o)
+        c_exp = numpy.zeros_like(c)
+        c_exp[:batch] = a * i + f * c[:batch]
+        h_exp = o * numpy.tanh(c_exp[:batch])
+        c_exp[batch:] = c[batch:]
+        return c_exp, h_exp,
+
+    def generate_grad_outputs(self, outputs_template):
+        grad_out = []
+        c = outputs_template[0]
+        h = outputs_template[1]
+
+        c_shape = c.shape
+        h_shape = h.shape
+        if self.grad_outputs[0] is True:
+            grad_out.append(numpy.random.uniform(-1, 1,
+                                                 c_shape).astype(c.dtype))
+        else:
+            grad_out.append(None)
+
+        if self.grad_outputs[1] is True:
+            grad_out.append(numpy.random.uniform(-1, 1,
+                                                 h_shape).astype(h.dtype))
+        else:
+            grad_out.append(None)
+        return tuple(grad_out)
+
+    def _generate_grad_outputs(self, outputs_template):
+        grad_outputs = self.generate_grad_outputs(outputs_template)
+        return grad_outputs
 
 
 @testing.parameterize(*(testing.product({
