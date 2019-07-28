@@ -254,11 +254,11 @@ std::tuple<Array, Array> QrImpl(const Array& a, QrMode mode) {
 
     int64_t m = a.shape()[0];
     int64_t n = a.shape()[1];
-    int64_t mn = std::min(m, n);
+    int64_t k = std::min(m, n);
 
     Array Q = Empty(Shape{0}, dtype, device);
     Array R = a.Transpose().Copy();  // QR decomposition is done in-place
-    Array tau = Empty(Shape{mn}, dtype, device);
+    Array tau = Empty(Shape{k}, dtype, device);
 
     cuda_internal::DeviceInternals& device_internals = cuda_internal::GetDeviceInternals(static_cast<CudaDevice&>(device));
 
@@ -284,7 +284,7 @@ std::tuple<Array, Array> QrImpl(const Array& a, QrMode mode) {
     }
 
     if (mode == QrMode::r) {
-        R = R.At(std::vector<ArrayIndex>{Slice{}, Slice{0, mn}}).Transpose();  // R = R[:, 0:mn].T
+        R = R.At(std::vector<ArrayIndex>{Slice{}, Slice{0, k}}).Transpose();  // R = R[:, 0:k].T
         R = Triu(R, 0);
         return std::make_tuple(std::move(Q), std::move(R));
     }
@@ -298,7 +298,7 @@ std::tuple<Array, Array> QrImpl(const Array& a, QrMode mode) {
         mc = m;
         Q = Empty(Shape{m, m}, dtype, device);
     } else {
-        mc = mn;
+        mc = k;
         Q = Empty(Shape{n, m}, dtype, device);
     }
 
@@ -306,12 +306,12 @@ std::tuple<Array, Array> QrImpl(const Array& a, QrMode mode) {
     auto q_ptr = static_cast<T*>(internal::GetRawOffsetData(Q));
 
     int buffersize_orgqr = 0;
-    device_internals.cusolverdn_handle().Call(OrgqrBufferSize<T>, m, mc, mn, q_ptr, m, tau_ptr, &buffersize_orgqr);
+    device_internals.cusolverdn_handle().Call(OrgqrBufferSize<T>, m, mc, k, q_ptr, m, tau_ptr, &buffersize_orgqr);
 
     work = Empty(Shape{buffersize_orgqr}, dtype, device);
 
     device_internals.cusolverdn_handle().Call(
-            Orgqr<T>, m, mc, mn, q_ptr, m, tau_ptr, work_ptr, buffersize_orgqr, static_cast<int*>(devInfo.get()));
+            Orgqr<T>, m, mc, k, q_ptr, m, tau_ptr, work_ptr, buffersize_orgqr, static_cast<int*>(devInfo.get()));
 
     device.MemoryCopyTo(&devInfo_h, devInfo.get(), sizeof(int), native_device);
     if (devInfo_h != 0) {
