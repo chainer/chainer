@@ -221,14 +221,14 @@ std::tuple<Array, Array> Eigh(const Array& a, const std::string& uplo) {
 
                 Array vt = v.Transpose();
 
-                Array F = ExpandDims(w, 0) - ExpandDims(w, 1);
+                Array f = ExpandDims(w, 0) - ExpandDims(w, 1);
                 // Invert values of F, and fill the diagonal with 0s.
                 // F has 0s on the diagonal, therefore fill it first with infinity.
-                Array mask = Eye(F.shape()[0], F.shape()[1], 0, Dtype::kBool, a.device());
-                F = Where(mask, INFINITY, F);
-                F = Reciprocal(F);
+                Array mask = Eye(f.shape()[0], f.shape()[1], 0, Dtype::kBool, a.device());
+                f = Where(mask, INFINITY, f);
+                f = Reciprocal(f);
 
-                bctx.input_grad() = Dot(Dot(v, F * Dot(vt, gv) + Diag(gw)), vt);
+                bctx.input_grad() = Dot(Dot(v, f * Dot(vt, gv) + Diag(gw)), vt);
             });
         }
         bb.Finalize();
