@@ -280,7 +280,7 @@ public:
             device_internals.cusolverdn_handle().Call(PotrfBuffersize<T>, uplo, N, out_ptr, N, &work_size);
 
             // POTRF execution
-            Array work = Empty(Shape({work_size}), dtype, device);
+            Array work = Empty(Shape{work_size}, dtype, device);
             auto work_ptr = static_cast<T*>(internal::GetRawOffsetData(work));
 
             std::shared_ptr<void> devInfo = device.Allocate(sizeof(int));
