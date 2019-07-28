@@ -276,7 +276,7 @@ public:
             // compute workspace size and prepare workspace
             auto out_ptr = static_cast<T*>(internal::GetRawOffsetData(out_contiguous));
             int work_size = 0;
-            const int N = a.shape()[0];
+            int64_t N = a.shape()[0];
             device_internals.cusolverdn_handle().Call(PotrfBuffersize<T>, uplo, N, out_ptr, N, &work_size);
 
             // POTRF execution

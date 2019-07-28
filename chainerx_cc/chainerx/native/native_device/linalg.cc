@@ -238,7 +238,7 @@ public:
             char uplo = 'U';
 
             auto out_ptr = static_cast<T*>(internal::GetRawOffsetData(out_contiguous));
-            int N = a.shape()[0];
+            int64_t N = a.shape()[0];
 
             int info;
             Potrf<T>(uplo, N, out_ptr, N, &info);
