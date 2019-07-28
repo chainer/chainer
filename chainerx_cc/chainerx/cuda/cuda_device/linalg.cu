@@ -262,8 +262,8 @@ std::tuple<Array, Array> QrImpl(const Array& a, QrMode mode) {
 
     cuda_internal::DeviceInternals& device_internals = cuda_internal::GetDeviceInternals(static_cast<CudaDevice&>(device));
 
-    T* r_ptr = static_cast<T*>(internal::GetRawOffsetData(R));
-    T* tau_ptr = static_cast<T*>(internal::GetRawOffsetData(tau));
+    auto r_ptr = static_cast<T*>(internal::GetRawOffsetData(R));
+    auto tau_ptr = static_cast<T*>(internal::GetRawOffsetData(tau));
 
     std::shared_ptr<void> devInfo = device.Allocate(sizeof(int));
 
@@ -271,7 +271,7 @@ std::tuple<Array, Array> QrImpl(const Array& a, QrMode mode) {
     device_internals.cusolverdn_handle().Call(GeqrfBufferSize<T>, m, n, r_ptr, n, &buffersize_geqrf);
 
     Array work = Empty(Shape{buffersize_geqrf}, dtype, device);
-    T* work_ptr = static_cast<T*>(internal::GetRawOffsetData(work));
+    auto work_ptr = static_cast<T*>(internal::GetRawOffsetData(work));
 
     device_internals.cusolverdn_handle().Call(
             Geqrf<T>, m, n, r_ptr, m, tau_ptr, work_ptr, buffersize_geqrf, static_cast<int*>(devInfo.get()));
@@ -303,7 +303,7 @@ std::tuple<Array, Array> QrImpl(const Array& a, QrMode mode) {
     }
 
     device.backend().CallKernel<CopyKernel>(R, Q.At(std::vector<ArrayIndex>{Slice{0, n}, Slice{}}));  // Q[0:n, :] = R
-    T* q_ptr = static_cast<T*>(internal::GetRawOffsetData(Q));
+    auto q_ptr = static_cast<T*>(internal::GetRawOffsetData(Q));
 
     int buffersize_orgqr = 0;
     device_internals.cusolverdn_handle().Call(OrgqrBufferSize<T>, m, mc, mn, q_ptr, m, tau_ptr, &buffersize_orgqr);

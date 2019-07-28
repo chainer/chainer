@@ -199,8 +199,8 @@ std::tuple<Array, Array> QrImpl(const Array& a, QrMode mode) {
     Array R = a.Transpose().Copy();  // QR decomposition is done in-place
     Array tau = Empty(Shape{mn}, dtype, device);
 
-    T* r_ptr = static_cast<T*>(internal::GetRawOffsetData(R));
-    T* tau_ptr = static_cast<T*>(internal::GetRawOffsetData(tau));
+    auto r_ptr = static_cast<T*>(internal::GetRawOffsetData(R));
+    auto tau_ptr = static_cast<T*>(internal::GetRawOffsetData(tau));
 
     int info;
     int buffersize_geqrf = -1;
@@ -209,7 +209,7 @@ std::tuple<Array, Array> QrImpl(const Array& a, QrMode mode) {
     buffersize_geqrf = static_cast<int>(work_query_geqrf);
 
     Array work = Empty(Shape{buffersize_geqrf}, dtype, device);
-    T* work_ptr = static_cast<T*>(internal::GetRawOffsetData(work));
+    auto work_ptr = static_cast<T*>(internal::GetRawOffsetData(work));
 
     Geqrf(m, n, r_ptr, m, tau_ptr, work_ptr, buffersize_geqrf, &info);
 
@@ -237,7 +237,7 @@ std::tuple<Array, Array> QrImpl(const Array& a, QrMode mode) {
     }
 
     device.backend().CallKernel<CopyKernel>(R, Q.At(std::vector<ArrayIndex>{Slice{0, n}, Slice{}}));  // Q[0:n, :] = R
-    T* q_ptr = static_cast<T*>(internal::GetRawOffsetData(Q));
+    auto q_ptr = static_cast<T*>(internal::GetRawOffsetData(Q));
 
     int buffersize_orgqr = -1;
     T work_query_orgqr;
@@ -245,7 +245,7 @@ std::tuple<Array, Array> QrImpl(const Array& a, QrMode mode) {
     buffersize_orgqr = static_cast<int>(work_query_orgqr);
 
     Array work_orgqr = Empty(Shape{buffersize_orgqr}, dtype, device);
-    T* work_orgqr_ptr = static_cast<T*>(internal::GetRawOffsetData(work_orgqr));
+    auto work_orgqr_ptr = static_cast<T*>(internal::GetRawOffsetData(work_orgqr));
 
     Orgqr(m, mc, mn, q_ptr, m, tau_ptr, work_orgqr_ptr, buffersize_orgqr, &info);
 
