@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cstdint>
+#include <limits>
 #include <string>
 #include <tuple>
 #include <utility>
@@ -225,7 +226,7 @@ std::tuple<Array, Array> Eigh(const Array& a, const std::string& uplo) {
                 // Invert values of F, and fill the diagonal with 0s.
                 // F has 0s on the diagonal, therefore fill it first with infinity.
                 Array mask = Eye(f.shape()[0], f.shape()[1], 0, Dtype::kBool, a.device());
-                f = Where(mask, INFINITY, f);
+                f = Where(mask, std::numeric_limits<float>::infinity(), f);
                 f = Reciprocal(f);
 
                 bctx.input_grad() = Dot(Dot(v, f * Dot(vt, gv) + Diag(gw)), vt);
