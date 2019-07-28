@@ -237,7 +237,7 @@ public:
             // To compute a lower triangular matrix L = cholesky(A), we use LAPACK to compute an upper triangular matrix U = cholesky(A).
             char uplo = 'U';
 
-            T* out_ptr = static_cast<T*>(internal::GetRawOffsetData(out_contiguous));
+            auto out_ptr = static_cast<T*>(internal::GetRawOffsetData(out_contiguous));
             int N = a.shape()[0];
 
             int info;

@@ -274,14 +274,14 @@ public:
             cuda_internal::DeviceInternals& device_internals = cuda_internal::GetDeviceInternals(static_cast<CudaDevice&>(device));
 
             // compute workspace size and prepare workspace
-            T* out_ptr = static_cast<T*>(internal::GetRawOffsetData(out_contiguous));
+            auto out_ptr = static_cast<T*>(internal::GetRawOffsetData(out_contiguous));
             int work_size = 0;
             const int N = a.shape()[0];
             device_internals.cusolverdn_handle().Call(PotrfBuffersize<T>, uplo, N, out_ptr, N, &work_size);
 
             // POTRF execution
             Array work = Empty(Shape({work_size}), dtype, device);
-            T* work_ptr = static_cast<T*>(internal::GetRawOffsetData(work));
+            auto work_ptr = static_cast<T*>(internal::GetRawOffsetData(work));
 
             std::shared_ptr<void> devInfo = device.Allocate(sizeof(int));
             device_internals.cusolverdn_handle().Call(Potrf<T>, uplo, N, out_ptr, N, work_ptr, work_size, static_cast<int*>(devInfo.get()));
