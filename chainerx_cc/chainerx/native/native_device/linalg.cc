@@ -243,8 +243,8 @@ public:
         auto syevd_impl = [&](auto pt) {
             using T = typename decltype(pt)::type;
 
-            T* v_ptr = static_cast<T*>(internal::GetRawOffsetData(v));
-            T* w_ptr = static_cast<T*>(internal::GetRawOffsetData(w));
+            auto v_ptr = static_cast<T*>(internal::GetRawOffsetData(v));
+            auto w_ptr = static_cast<T*>(internal::GetRawOffsetData(w));
 
             char jobz = 'N';
             if (compute_eigen_vector) {
@@ -271,11 +271,11 @@ public:
 
             lwork = static_cast<int>(work_size);
             Array work = Empty(Shape{lwork}, dtype, device);
-            T* work_ptr = static_cast<T*>(internal::GetRawOffsetData(work));
+            auto work_ptr = static_cast<T*>(internal::GetRawOffsetData(work));
 
             liwork = static_cast<int>(iwork_size);
             Array iwork = Empty(Shape{liwork}, Dtype::kInt32, device);
-            int* iwork_ptr = static_cast<int*>(internal::GetRawOffsetData(iwork));
+            auto iwork_ptr = static_cast<int*>(internal::GetRawOffsetData(iwork));
 
             Syevd<T>(jobz, uplo, n, v_ptr, m, w_ptr, work_ptr, lwork, iwork_ptr, liwork, &info);
 

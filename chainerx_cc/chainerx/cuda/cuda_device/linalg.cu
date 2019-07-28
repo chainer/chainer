@@ -293,8 +293,8 @@ public:
             using T = typename decltype(pt)::type;
             cuda_internal::DeviceInternals& device_internals = cuda_internal::GetDeviceInternals(static_cast<CudaDevice&>(device));
 
-            T* v_ptr = static_cast<T*>(internal::GetRawOffsetData(v));
-            T* w_ptr = static_cast<T*>(internal::GetRawOffsetData(w));
+            auto v_ptr = static_cast<T*>(internal::GetRawOffsetData(v));
+            auto w_ptr = static_cast<T*>(internal::GetRawOffsetData(w));
 
             cusolverEigMode_t jobz = CUSOLVER_EIG_MODE_NOVECTOR;
             if (compute_eigen_vector) {
@@ -313,7 +313,7 @@ public:
             device_internals.cusolverdn_handle().Call(SyevdBuffersize<T>, jobz, uplo, n, v_ptr, m, w_ptr, &buffersize);
 
             Array work = Empty(Shape{buffersize}, dtype, device);
-            T* work_ptr = static_cast<T*>(internal::GetRawOffsetData(work));
+            auto work_ptr = static_cast<T*>(internal::GetRawOffsetData(work));
 
             std::shared_ptr<void> devInfo = device.Allocate(sizeof(int));
 
