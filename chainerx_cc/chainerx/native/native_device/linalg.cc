@@ -304,9 +304,9 @@ public:
         // swap the pointers to u and vt matrices when calling Gesdd.
         int64_t n = a.shape()[0];
         int64_t m = a.shape()[1];
-        int64_t mn = std::min(m, n);
+        int64_t k = std::min(m, n);
         int64_t ldu = m;
-        int64_t ldvt = full_matrices ? n : mn;
+        int64_t ldvt = full_matrices ? n : k;
 
         Array x = EmptyLike(a, device);
         device.backend().CallKernel<CopyKernel>(a, x);
@@ -326,7 +326,7 @@ public:
                 job = 'N';
             }
 
-            Array iwork = Empty(Shape{8 * mn}, Dtype::kInt64, device);
+            Array iwork = Empty(Shape{8 * k}, Dtype::kInt64, device);
             auto iwork_ptr = static_cast<int*>(internal::GetRawOffsetData(iwork));
 
             int info;

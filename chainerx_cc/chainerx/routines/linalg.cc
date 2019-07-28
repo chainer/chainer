@@ -204,15 +204,15 @@ std::tuple<Array, Array, Array> Svd(const Array& a, bool full_matrices, bool com
     Shape vt_shape;
     int64_t m = a.shape()[0];
     int64_t n = a.shape()[1];
-    int64_t mn = std::min(m, n);
+    int64_t k = std::min(m, n);
 
     if (compute_uv) {
         if (full_matrices) {
             u_shape = Shape{m, m};
             vt_shape = Shape{n, n};
         } else {
-            u_shape = Shape{m, mn};
-            vt_shape = Shape{mn, n};
+            u_shape = Shape{m, k};
+            vt_shape = Shape{k, n};
         }
     } else {
         u_shape = Shape{0};
@@ -221,7 +221,7 @@ std::tuple<Array, Array, Array> Svd(const Array& a, bool full_matrices, bool com
 
     u = Empty(u_shape, a.dtype(), a.device());
     vt = Empty(vt_shape, a.dtype(), a.device());
-    s = Empty(Shape{mn}, a.dtype(), a.device());
+    s = Empty(Shape{k}, a.dtype(), a.device());
 
     {
         NoBackpropModeScope scope{};

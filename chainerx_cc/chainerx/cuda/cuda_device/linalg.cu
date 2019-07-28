@@ -301,7 +301,7 @@ public:
         // swap the pointers to u and vt matrices when calling Gesvd.
         int64_t n = a.shape()[0];
         int64_t m = a.shape()[1];
-        int64_t mn = std::min(m, n);
+        int64_t k = std::min(m, n);
 
         Array x = EmptyLike(a, device);
         Array u_temp{};
@@ -330,8 +330,8 @@ public:
                     u_shape = Shape{m, m};
                     vt_shape = Shape{n, n};
                 } else {
-                    u_shape = Shape{mn, m};
-                    vt_shape = Shape{n, mn};
+                    u_shape = Shape{k, m};
+                    vt_shape = Shape{n, k};
                 }
             } else {
                 u_shape = Shape{0};
@@ -342,7 +342,7 @@ public:
         }
 
         int64_t ldu = m;
-        int64_t ldvt = full_matrices ? n : mn;
+        int64_t ldvt = full_matrices ? n : k;
 
         auto svd_impl = [&](auto pt) {
             using T = typename decltype(pt)::type;
