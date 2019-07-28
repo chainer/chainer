@@ -37,7 +37,7 @@ class QrKernel : public Kernel {
 public:
     static const char* name() { return "Qr"; }
 
-    virtual std::tuple<Array, Array> Call(const Array& a, QrMode mode) = 0;
+    virtual void Call(const Array& a, const Array& q, const Array& r, const Array& tau, QrMode mode) = 0;
 };
 
 }  // namespace chainerx

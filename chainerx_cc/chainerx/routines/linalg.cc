@@ -192,13 +192,34 @@ Array Inverse(const Array& a) {
 
 std::tuple<Array, Array> Qr(const Array& a, QrMode mode) {
     CheckRankTwoArray(a);
+    Device& device = a.device();
+    Dtype dtype = internal::GetMathResultDtype(a.dtype());
 
-    Array q{};
-    Array r{};
+    int64_t m = a.shape()[0];
+    int64_t n = a.shape()[1];
+    int64_t k = std::min(m, n);
+
+    Array tau = Empty(Shape{k}, dtype, device);
+    Shape q_shape{0};
+    Shape r_shape{0};
+    if (mode == QrMode::reduced) {
+        q_shape = Shape{m, k};
+        r_shape = Shape{k, n};
+    } else if (mode == QrMode::complete) {
+        q_shape = Shape{m, m};
+        r_shape = Shape{m, n};
+    } else if (mode == QrMode::r) {
+        r_shape = Shape{k, n};
+    } else if (mode == QrMode::raw) {
+        r_shape = Shape{n, m};  // for "raw" mode r in the code corrensponds to h in docs
+    }
+
+    Array q = Empty(q_shape, dtype, device);
+    Array r = Empty(r_shape, dtype, device);
 
     {
         NoBackpropModeScope scope{};
-        std::tie(q, r) = a.device().backend().CallKernel<QrKernel>(a, mode);
+        a.device().backend().CallKernel<QrKernel>(a, q, r, tau, mode);
     }
 
     // Backward of (Q, R) = QR(A):
@@ -238,6 +259,9 @@ std::tuple<Array, Array> Qr(const Array& a, QrMode mode) {
         bb.Finalize();
     }
 
+    if (mode == QrMode::raw) {
+        return std::make_tuple(std::move(r), std::move(tau));
+    }
     return std::make_tuple(std::move(q), std::move(r));
 }
 

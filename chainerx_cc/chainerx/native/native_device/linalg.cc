@@ -187,7 +187,7 @@ void InverseImpl(const Array& a, const Array& out) {
 }
 
 template <typename T>
-std::tuple<Array, Array> QrImpl(const Array& a, QrMode mode) {
+void QrImpl(const Array& a, const Array& q, const Array& r, const Array& tau, QrMode mode) {
     Device& device = a.device();
     Dtype dtype = a.dtype();
 
@@ -195,9 +195,7 @@ std::tuple<Array, Array> QrImpl(const Array& a, QrMode mode) {
     int64_t n = a.shape()[1];
     int64_t k = std::min(m, n);
 
-    Array Q = Empty(Shape{0}, dtype, device);
     Array R = a.Transpose().Copy();  // QR decomposition is done in-place
-    Array tau = Empty(Shape{k}, dtype, device);
 
     auto r_ptr = static_cast<T*>(internal::GetRawOffsetData(R));
     auto tau_ptr = static_cast<T*>(internal::GetRawOffsetData(tau));
@@ -220,21 +218,25 @@ std::tuple<Array, Array> QrImpl(const Array& a, QrMode mode) {
     if (mode == QrMode::r) {
         R = R.At(std::vector<ArrayIndex>{Slice{}, Slice{0, k}}).Transpose();  // R = R[:, 0:k].T
         R = Triu(R, 0);
-        return std::make_tuple(std::move(Q), std::move(R));
+        device.backend().CallKernel<CopyKernel>(R, r);
+        return;
     }
 
     if (mode == QrMode::raw) {
-        return std::make_tuple(std::move(R), std::move(tau));
+        device.backend().CallKernel<CopyKernel>(R, r);
+        return;
     }
 
     int64_t mc;
+    Shape q_shape{0};
     if (mode == QrMode::complete && m > n) {
         mc = m;
-        Q = Empty(Shape{m, m}, dtype, device);
+        q_shape = Shape{m, m};
     } else {
         mc = k;
-        Q = Empty(Shape{n, m}, dtype, device);
+        q_shape = Shape{n, m};
     }
+    Array Q = Empty(q_shape, dtype, device);
 
     device.backend().CallKernel<CopyKernel>(R, Q.At(std::vector<ArrayIndex>{Slice{0, n}, Slice{}}));  // Q[0:n, :] = R
     auto q_ptr = static_cast<T*>(internal::GetRawOffsetData(Q));
@@ -257,7 +259,9 @@ std::tuple<Array, Array> QrImpl(const Array& a, QrMode mode) {
     Q = Q.At(std::vector<ArrayIndex>{Slice{0, mc}, Slice{}}).Transpose().Copy();  // Q = Q[0:mc, :].T
     R = R.At(std::vector<ArrayIndex>{Slice{}, Slice{0, mc}}).Transpose();  // R = R[:, 0:mc].T
     R = Triu(R, 0);
-    return std::make_tuple(std::move(Q), std::move(R));
+
+    device.backend().CallKernel<CopyKernel>(Q, q);
+    device.backend().CallKernel<CopyKernel>(R, r);
 }
 
 }  // namespace
@@ -308,16 +312,19 @@ CHAINERX_NATIVE_REGISTER_KERNEL(InverseKernel, NativeInverseKernel);
 
 class NativeQrKernel : public QrKernel {
 public:
-    std::tuple<Array, Array> Call(const Array& a, QrMode mode = QrMode::reduced) override {
+    void Call(const Array& a, const Array& q, const Array& r, const Array& tau, QrMode mode = QrMode::reduced) override {
 #if CHAINERX_ENABLE_LAPACK
         CHAINERX_ASSERT(a.ndim() == 2);
 
-        return VisitFloatingPointDtype(a.dtype(), [&](auto pt) -> std::tuple<Array, Array> {
+        VisitFloatingPointDtype(a.dtype(), [&](auto pt) {
             using T = typename decltype(pt)::type;
-            return QrImpl<T>(a, mode);
+            QrImpl<T>(a, q, r, tau, mode);
         });
 #else  // CHAINERX_ENABLE_LAPACK
         (void)a;  // unused
+        (void)q;  // unused
+        (void)r;  // unused
+        (void)tau;  // unused
         (void)mode;  // unused
         throw ChainerxError{"LAPACK is not linked to ChainerX."};
 #endif  // CHAINERX_ENABLE_LAPACK
