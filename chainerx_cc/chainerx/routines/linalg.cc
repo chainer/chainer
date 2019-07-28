@@ -244,13 +244,13 @@ std::tuple<Array, Array> Qr(const Array& a, QrMode mode) {
                 const Array& dQ = bctx.output_grad(0).has_value() ? *bctx.output_grad(0) : Zeros(a.shape(), a.dtype(), a.device());
                 const Array& dR = bctx.output_grad(1).has_value() ? *bctx.output_grad(1) : Zeros(a.shape(), a.dtype(), a.device());
 
-                Array M = Dot(R, dR.Transpose(), a.dtype()) - Dot(dQ.Transpose(), Q, a.dtype());
+                Array M = Dot(R, dR.Transpose()) - Dot(dQ.Transpose(), Q);
 
                 // Here a symmetric matrix is created from the square matrix M
                 // by setting the upper triangle to be equal to the lower triangle, leaving
                 // lower triangle and diagonal unchanged.
                 Array M_sym = Tril(M, 0) + Tril(M, -1).Transpose();
-                Array rhs = dQ + Dot(Q, M_sym, a.dtype());
+                Array rhs = dQ + Dot(Q, M_sym);
 
                 // Note that rhs * R^(-T) = (R^(-1) * rhs^T)^T
                 bctx.input_grad() = Solve(R, rhs.Transpose()).Transpose();
