@@ -191,12 +191,10 @@ Array Inverse(const Array& a) {
 }
 
 std::tuple<Array, Array> Qr(const Array& a, QrMode mode) {
+    CheckRankTwoArray(a);
+
     Array q{};
     Array r{};
-
-    if (a.ndim() != 2) {
-        throw DimensionError{"ChainerX QR supports only 2-dimensional arrays."};
-    }
 
     {
         NoBackpropModeScope scope{};
