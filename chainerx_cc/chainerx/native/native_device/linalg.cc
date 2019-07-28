@@ -255,8 +255,7 @@ void QrImpl(const Array& a, const Array& q, const Array& r, const Array& tau, Qr
         throw ChainerxError{"Unsuccessful orgqr (QR) execution. Info = ", info};
     }
 
-    // .Copy() is needed to have correct strides
-    Q = Q.At(std::vector<ArrayIndex>{Slice{0, mc}, Slice{}}).Transpose().Copy();  // Q = Q[0:mc, :].T
+    Q = Q.At(std::vector<ArrayIndex>{Slice{0, mc}, Slice{}}).Transpose();  // Q = Q[0:mc, :].T
     R = R.At(std::vector<ArrayIndex>{Slice{}, Slice{0, mc}}).Transpose();  // R = R[:, 0:mc].T
     R = Triu(R, 0);
 
