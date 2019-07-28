@@ -234,7 +234,7 @@ public:
 
         CHAINERX_ASSERT(a.ndim() == 2);
 
-        // Syevd stores the result in-place, copy a to v to avoid destroying the input matrix 
+        // Syevd stores the result in-place, copy a to v to avoid destroying the input matrix
         device.backend().CallKernel<CopyKernel>(a, v);
 
         int64_t m = a.shape()[0];
