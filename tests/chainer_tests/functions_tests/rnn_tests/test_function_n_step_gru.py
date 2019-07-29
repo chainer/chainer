@@ -43,7 +43,7 @@ def array(shape, dtype):
         [{'use_cuda': True}],
 
         testing.product({
-            'use_cudnn': ['always'],
+            'use_cudnn': ['always', 'never'],
             'cudnn_deterministic': [True, False],
             'autotune': [True, False],
         })]))
@@ -165,7 +165,7 @@ class TestNStepGRU(testing.FunctionTestCase):
         [{'use_cuda': True}],
 
         testing.product({
-            'use_cudnn': ['always'],
+            'use_cudnn': ['always', 'never'],
             'cudnn_deterministic': [True, False],
             'autotune': [True, False],
         })]))
