@@ -110,12 +110,12 @@ class CudnnRNNWeightConcat(function.Function):
                             w_in = out_size
 
                     type_check.expect(
-                        w_type.dtype == numpy.float32,
+                        w_type.dtype.kind == 'f',
                         w_type.ndim == 2,
                         w_type.shape[0] == out_size,
                         w_type.shape[1] == w_in,
 
-                        b_type.dtype == numpy.float32,
+                        b_type.dtype.kind == 'f',
                         b_type.ndim == 1,
                         b_type.shape[0] == out_size,
                     )
@@ -234,11 +234,7 @@ class BaseNStepRNN(function.Function):
             h_type, c_type, w_type, x_type = in_types
             h_size = self.n_layers * self.rnn_direction
             type_check.expect(
-                h_type.dtype == numpy.float32,
-                c_type.dtype == numpy.float32,
-
-                h_type.ndim == 3,
-                h_type.shape[0] == h_size,
+                c_type.dtype.kind == 'f',
                 c_type.ndim == 3,
                 c_type.shape[0] == h_size,
 
@@ -253,15 +249,13 @@ class BaseNStepRNN(function.Function):
             type_check.expect(in_types.size() == 3)
             h_type, w_type, x_type = in_types
             h_size = self.n_layers * self.rnn_direction
-            type_check.expect(
-                h_type.dtype == numpy.float32,
-
-                h_type.ndim == 3,
-                h_type.shape[0] == h_size,
-            )
 
         type_check.expect(
-            x_type.dtype == numpy.float32,
+            h_type.dtype.kind == 'f',
+            h_type.ndim == 3,
+            h_type.shape[0] == h_size,
+
+            x_type.dtype.kind == 'f',
             x_type.ndim == 2,
             x_type.shape[0] == self.sections[-1],
         )
@@ -759,6 +753,7 @@ def _one_directional_loop(f, xs, h, c, w, b):
                 c, c_rest = split_axis.split_axis(c, [batch], axis=0)
 
         h, c = f(x, h, c, w, b)
+            pip3 install -r requirements.txt
         h_list.append(h)
 
         if need_split:
