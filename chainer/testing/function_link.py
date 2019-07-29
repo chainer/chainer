@@ -79,6 +79,7 @@ class FunctionTestBase(object):
     skip_backward_test = False
     skip_double_backward_test = False
     dodge_nondifferentiable = False
+    numerical_grad_dtype = numpy.float64
     contiguous = None
 
     def __init__(self, *args, **kwargs):
@@ -238,7 +239,7 @@ class FunctionTestBase(object):
             with FunctionTestError.raise_if_fail(
                     'backward is not implemented correctly'):
                 gradient_check.check_backward(
-                    f, inputs, grad_outputs, dtype=numpy.float64,
+                    f, inputs, grad_outputs, dtype=self.numerical_grad_dtype,
                     detect_nondifferentiable=self.dodge_nondifferentiable,
                     **self.check_backward_options)
 
@@ -292,7 +293,7 @@ class FunctionTestBase(object):
                         'double backward is not implemented correctly'):
                     gradient_check.check_double_backward(
                         f, inputs, grad_outputs, grad_grad_inputs,
-                        dtype=numpy.float64,
+                        dtype=self.numerical_grad_dtype,
                         detect_nondifferentiable=self.dodge_nondifferentiable,
                         **self.check_double_backward_options)
 
@@ -383,6 +384,11 @@ class FunctionTestCase(FunctionTestBase, unittest.TestCase):
         out to be a non-differentiable point, the test will repeatedly resample
         inputs until a differentiable point will be finally sampled.
         ``False`` by default.
+
+    ``numerical_grad_dtype`` (dtype):
+        Input arrays are casted to this dtype when calculating the numerical
+        gradients. It is ``float64`` by default, no matter what the original
+        input dtypes were, to maximize precision.
 
     ``contiguous`` (None or 'C'):
         Specifies the contiguousness of incoming arrays (i.e. inputs, output
@@ -650,6 +656,11 @@ class LinkTestCase(_LinkTestBase, unittest.TestCase):
         those until a differentiable point will be finally sampled. ``False``
         by default.
 
+    ``numerical_grad_dtype`` (dtype):
+        Input arrays are casted to this dtype when calculating the numerical
+        gradients. It is ``float64`` by default, no matter what the original
+        input dtypes were, to maximize precision.
+
     ``contiguous`` (None or 'C'):
         Specifies the contiguousness of incoming arrays (i.e. inputs,
         parameters and gradients. If ``None``, the
@@ -722,6 +733,7 @@ class LinkTestCase(_LinkTestBase, unittest.TestCase):
     skip_forward_test = False
     skip_backward_test = False
     dodge_nondifferentiable = False
+    numerical_grad_dtype = numpy.float64
 
     def __init__(self, *args, **kwargs):
         self.check_forward_options = {}
@@ -821,7 +833,7 @@ class LinkTestCase(_LinkTestBase, unittest.TestCase):
                     'backward is not implemented correctly'):
                 gradient_check._check_backward_with_params(
                     forward, inputs, grad_outputs, params=params,
-                    dtype=numpy.float64,
+                    dtype=self.numerical_grad_dtype,
                     detect_nondifferentiable=self.dodge_nondifferentiable,
                     **self.check_backward_options)
 
