@@ -1,9 +1,18 @@
+import unittest
 import numpy
 
 import chainer
+from chainer.backends import cuda
 import chainer.functions as F
 from chainer import testing
 from chainer.testing import backend
+from chainer.testing import attr
+from chainer.testing import condition
+
+
+def rand_vector(shape):
+    # return cuda.cupy.random.randint(-2, 2, shape).astype('f')
+    return cuda.cupy.random.uniform(-1, 1, shape).astype('f')
 
 
 def sigmoid(x):
@@ -12,6 +21,49 @@ def sigmoid(x):
 
 def array(shape, dtype):
     return numpy.random.uniform(-1, 1, shape).astype(dtype)
+
+
+def _stack_weight(ws):
+    # TODO(unno): Input of the current LSTM implementation is shuffled
+    w = F.stack(ws, axis=1)
+    shape = w.shape
+    return F.reshape(w, (shape[0] * shape[1],) + shape[2:])
+
+
+def count_close(x, y, atol=1e-4):
+    assert x.shape == y.shape
+    return int(sum(abs(x - y) / abs(x) < atol))
+
+
+def lstm_without_dropout(n_layer, dropout, hx, cx, ws, bs, xs):
+    xws = [_stack_weight([w[2], w[0], w[1], w[3]]) for w in ws]
+    hws = [_stack_weight([w[6], w[4], w[5], w[7]]) for w in ws]
+    xbs = [_stack_weight([b[2], b[0], b[1], b[3]]) for b in bs]
+    hbs = [_stack_weight([b[6], b[4], b[5], b[7]]) for b in bs]
+    xs = [xs[i] for i in range(3)]
+    ys = []
+    for x in xs:
+        cx_next = []
+        hx_next = []
+        for layer in range(n_layer):
+            c = cx[layer]
+            h = hx[layer]
+
+            if layer != 0:
+                # Only multiply ratio
+                x = x * (1 / (1.0 - dropout))
+            lstm_in = F.linear(x, xws[layer], xbs[layer]) + \
+                F.linear(h, hws[layer], hbs[layer])
+            c_new, h_new = F.lstm(c, lstm_in)
+            cx_next.append(c_new)
+            hx_next.append(h_new)
+            x = h_new
+        cx = cx_next
+        hx = hx_next
+        ys.append(x)
+    cy = F.stack(cx)
+    hy = F.stack(hx)
+    return hy, cy, ys
 
 
 @testing.parameterize(*testing.product_dict(
@@ -317,6 +369,80 @@ class TestNStepBiLSTM(testing.FunctionTestCase):
         for x in xs_next:
             rets.append(x)
         return tuple(rets)
+
+
+@testing.parameterize(*testing.product({
+    'use_cudnn': ['always', 'auto', 'never'],
+}))
+@attr.cudnn
+class TestNStepLSTMDropout(unittest.TestCase):
+
+    batch = 20
+    length = 3
+    in_size = 1
+    out_size = 1
+    n_layers = 2
+    dropout = 0.3
+    n_tests = 100
+
+    def setUp(self):
+        self.xs = [rand_vector((self.batch, self.in_size))
+                   for _ in range(self.length)]
+        h_shape = (self.n_layers, self.batch, self.out_size)
+        self.cx = rand_vector(h_shape)
+        self.hx = rand_vector(h_shape)
+        self.ws = []
+        self.bs = []
+        for i in range(self.n_layers):
+            weights = []
+            biases = []
+            for j in range(8):
+                if i == 0 and j < 4:
+                    w_in = self.in_size
+                else:
+                    w_in = self.out_size
+
+                weights.append(rand_vector((self.out_size, w_in)))
+                biases.append(rand_vector((self.out_size,)))
+
+            self.ws.append(weights)
+            self.bs.append(biases)
+
+    def assert_count(self, actual, expect):
+        self.assertTrue(expect * 0.8 < actual < expect * 1.2)
+
+    @condition.retry(5)
+    def test_forward_dropout_count(self):
+        y_counts = [0] * self.length
+        h_counts = [0] * self.n_layers
+        c_counts = [0] * self.n_layers
+
+        for _ in range(self.n_tests):
+            hy1, cy1, ys1 = lstm_without_dropout(
+                self.n_layers, self.dropout, self.hx, self.cx, self.ws,
+                self.bs, self.xs)
+            with chainer.using_config('use_cudnn', self.use_cudnn):
+                hy2, cy2, ys2 = F.n_step_lstm(
+                    self.n_layers, self.dropout, self.hx, self.cx, self.ws,
+                    self.bs, self.xs)
+
+            for i in range(self.length):
+                y_counts[i] += count_close(ys1[i].data, ys2[i].data)
+
+            for i in range(self.n_layers):
+                h_counts[i] += count_close(hy1[i].data, hy2[i].data)
+                c_counts[i] += count_close(cy1[i].data, cy2[i].data)
+
+        total = self.batch * self.n_tests
+        for i in range(self.length):
+            self.assert_count(
+                y_counts[i],
+                total * (1 - self.dropout) ** ((self.n_layers - 1) * (i + 1)))
+        for i in range(self.n_layers):
+            self.assert_count(
+                h_counts[i], total * (1 - self.dropout) ** (self.length * i))
+            self.assert_count(
+                c_counts[i], total * (1 - self.dropout) ** (self.length * i))
 
 
 testing.run_module(__name__, __file__)
