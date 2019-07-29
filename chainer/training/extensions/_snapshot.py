@@ -24,7 +24,7 @@ def _find_snapshot_files(fmt, path):
 
     Returns:
         A sorted list of pair of ``mtime, filename``, whose file
-        name that matched the format ``fmt`` directoly under ``path``.
+        name that matched the format ``fmt`` directly under ``path``.
 
     '''
     prefix = fmt.split('{')[0]

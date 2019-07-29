@@ -106,56 +106,74 @@ class TestSnapshotOnError(unittest.TestCase):
         self.assertTrue(os.path.exists(self.filename))
 
 
-@pytest.mark.parametrize('fmt', ['snapshot_iter_{}',
-                                 'snapshot_iter_{}.npz',
-                                 '{}_snapshot_man_suffix.npz'])
-def test_find_snapshot_files(fmt):
-    files = (fmt.format(i) for i in range(1, 100))
-    noise = ('dummy-foobar-iter{}'.format(i) for i in range(10, 304))
-    noise2 = ('tmpsnapshot_iter_{}'.format(i) for i in range(10, 304))
-    path = 'dummy'
+@testing.parameterize(*testing.product({'fmt':
+                                        ['snapshot_iter_{}',
+                                         'snapshot_iter_{}.npz',
+                                         '{}_snapshot_man_suffix.npz']}))
+class TestFindSnapshot(unittest.TestCase):
+    def setUp(self):
+        self.path = tempfile.mkdtemp()
 
-    try:
-        path = tempfile.mkdtemp()
+    def tearDown(self):
+        shutil.rmtree(self.path)
+
+    def test_find_snapshot_files(self):
+        files = (self.fmt.format(i) for i in range(1, 100))
+        noise = ('dummy-foobar-iter{}'.format(i) for i in range(10, 304))
+        noise2 = ('tmpsnapshot_iter_{}'.format(i) for i in range(10, 304))
 
         for file in itertools.chain(noise, files, noise2):
-            file = os.path.join(path, file)
+            file = os.path.join(self.path, file)
             open(file, 'w').close()
 
-        snapshot_files = _find_snapshot_files(fmt, path)
+        snapshot_files = _find_snapshot_files(self.fmt, self.path)
 
-        answer = [fmt.format(i) for i in range(1, 100)]
+        answer = [self.fmt.format(i) for i in range(1, 100)]
         assert len(snapshot_files) == 99
         timestamps, snapshot_files = zip(*snapshot_files)
         answer.sort()
         snapshot_files = sorted(list(snapshot_files))
         for lhs, rhs in zip(answer, snapshot_files):
             assert lhs == rhs
-    finally:
-        shutil.rmtree(path)
+
+    def test_find_latest_snapshot(self):
+        files = [self.fmt.format(i) for i in range(1, 100)]
+
+        for file in files[:-1]:
+            file = os.path.join(self.path, file)
+            open(file, 'w').close()
+        time.sleep(10e-3)
+        file = os.path.join(self.path, files[-1])
+        open(file, 'w').close()
+
+        assert self.fmt.format(99) == find_latest_snapshot(self.fmt, self.path)
 
 
-@pytest.mark.parametrize('fmt', ['snapshot_iter_{}_{}',
-                                 'snapshot_iter_{}_{}.npz',
-                                 '{}_snapshot_man_{}-suffix.npz',
-                                 'snapshot_iter_{}.{}'])
-def test_find_snapshot_files2(fmt):
-    files = (fmt.format(i*10, j*10) for i, j
-             in itertools.product(range(0, 10), range(0, 10)))
-    noise = ('tmpsnapshot_iter_{}.{}'.format(i, j)
-             for i, j in zip(range(10, 304), range(10, 200)))
-    path = 'dummy'
+@testing.parameterize(*testing.product({'fmt':
+                                        ['snapshot_iter_{}_{}',
+                                         'snapshot_iter_{}_{}.npz',
+                                         '{}_snapshot_man_{}-suffix.npz',
+                                         'snapshot_iter_{}.{}']}))
+class TestFindSnapshot2(unittest.TestCase):
+    def setUp(self):
+        self.path = tempfile.mkdtemp()
+        self.files = (self.fmt.format(i*10, j*10) for i, j
+                      in itertools.product(range(0, 10), range(0, 10)))
 
-    try:
-        path = tempfile.mkdtemp()
+    def tearDown(self):
+        shutil.rmtree(self.path)
 
-        for file in itertools.chain(noise, files):
-            file = os.path.join(path, file)
+    def test_find_snapshot_files(self):
+        noise = ('tmpsnapshot_iter_{}.{}'.format(i, j)
+                 for i, j in zip(range(10, 304), range(10, 200)))
+
+        for file in itertools.chain(noise, self.files):
+            file = os.path.join(self.path, file)
             open(file, 'w').close()
 
-        snapshot_files = _find_snapshot_files(fmt, path)
+        snapshot_files = _find_snapshot_files(self.fmt, self.path)
 
-        answer = [fmt.format(i*10, j*10)
+        answer = [self.fmt.format(i*10, j*10)
                   for i, j in itertools.product(range(0, 10), range(0, 10))]
 
         timestamps, snapshot_files = zip(*snapshot_files)
@@ -163,90 +181,73 @@ def test_find_snapshot_files2(fmt):
         snapshot_files = sorted(list(snapshot_files))
         for lhs, rhs in zip(answer, snapshot_files):
             assert lhs == rhs
-    finally:
-        shutil.rmtree(path)
 
 
-def test_find_latest_snapshot():
-    fmt = 'snapshot_iter_{}'
-    files = [fmt.format(i) for i in range(1, 100)]
-    path = 'dummy'
+@testing.parameterize(*testing.product({'length_retain':
+                                        [(100, 30), (10, 30), (1, 1000),
+                                         (1000, 1), (1, 1), (1, 3), (2, 3)]}))
+class TestFindStaleSnapshot(unittest.TestCase):
+    def setUp(self):
+        self.path = tempfile.mkdtemp()
 
-    try:
-        path = tempfile.mkdtemp()
+    def tearDown(self):
+        shutil.rmtree(self.path)
 
-        for file in files[:-1]:
-            file = os.path.join(path, file)
-            open(file, 'w').close()
-        time.sleep(10e-3)
-        file = os.path.join(path, files[-1])
-        open(file, 'w').close()
-
-        assert 'snapshot_iter_99' == find_latest_snapshot(fmt, path)
-    finally:
-        shutil.rmtree(path)
-
-
-@pytest.mark.parametrize('length,retain', [(100, 30), (10, 30), (1, 1000),
-                                           (1000, 1), (1, 1), (1, 3), (2, 3)])
-def test_find_stale_snapshot(length, retain):
-    fmt = 'snapshot_iter_{}'
-    files = random.sample([fmt.format(i) for i in range(0, length)],
-                          length)
-    path = 'dummy'
-
-    try:
-        path = tempfile.mkdtemp()
+    def test_find_stale_snapshot(self):
+        length, retain = self.length_retain
+        fmt = 'snapshot_iter_{}'
+        files = random.sample([fmt.format(i) for i in range(0, length)],
+                              length)
 
         for file in files[:-1]:
-            file = os.path.join(path, file)
+            file = os.path.join(self.path, file)
             open(file, 'w').close()
         time.sleep(10e-3)
-        file = os.path.join(path, files[-1])
+        file = os.path.join(self.path, files[-1])
         open(file, 'w').close()
 
-        stale = list(find_stale_snapshots(fmt, path, retain))
+        stale = list(find_stale_snapshots(fmt, self.path, retain))
         assert max(length-retain, 0) == len(list(stale))
         stales = [fmt.format(i) for i in range(0, max(length-retain, 0))]
         for lhs, rhs in zip(stales, stale):
             lhs == rhs
 
-    finally:
-        shutil.rmtree(path)
 
+class TestRemoveStaleSnapshots(unittest.TestCase):
+    def setUp(self):
+        self.path = tempfile.mkdtemp()
 
-def test_remove_stale_snapshots():
-    fmt = 'snapshot_iter_{.updater.iteration}'
-    retain = 3
-    snapshot = extensions.snapshot(filename=fmt, num_retain=retain,
-                                   autoload=False)
+    def tearDown(self):
+        shutil.rmtree(self.path)
 
-    trainer = testing.get_trainer_with_mock_updater()
-    trainer.out = '.'
-    trainer.extend(snapshot, trigger=(1, 'iteration'))
-    trainer.run()
-    assert 10 == trainer.updater.iteration
-    assert trainer._done
+    def test_remove_stale_snapshots(self):
+        fmt = 'snapshot_iter_{.updater.iteration}'
+        retain = 3
+        snapshot = extensions.snapshot(filename=fmt, num_retain=retain,
+                                       autoload=False)
 
-    pattern = os.path.join(trainer.out, "snapshot_iter_*")
-    found = [path for path in glob.glob(pattern)]
-    assert retain == len(found)
-    found.sort()
+        trainer = testing.get_trainer_with_mock_updater()
+        trainer.out = self.path
+        trainer.extend(snapshot, trigger=(1, 'iteration'))
+        trainer.run()
+        assert 10 == trainer.updater.iteration
+        assert trainer._done
 
-    for lhs, rhs in zip(['snapshot_iter_{}'.format(i) for i in range(8, 10)],
-                        found):
-        lhs == rhs
+        pattern = os.path.join(trainer.out, "snapshot_iter_*")
+        found = [path for path in glob.glob(pattern)]
+        assert retain == len(found)
+        found.sort()
 
-    trainer2 = testing.get_trainer_with_mock_updater()
-    trainer2.out = '.'
-    assert not trainer2._done
-    snapshot2 = extensions.snapshot(filename=fmt, autoload=True)
-    # Just making sure no error occurs
-    snapshot2.initialize(trainer2)
+        for lhs, rhs in zip(['snapshot_iter_{}'.format(i)
+                             for i in range(8, 10)], found):
+            lhs == rhs
 
-    # Cleanup
-    for file in found:
-        os.remove(file)
+        trainer2 = testing.get_trainer_with_mock_updater()
+        trainer2.out = self.path
+        assert not trainer2._done
+        snapshot2 = extensions.snapshot(filename=fmt, autoload=True)
+        # Just making sure no error occurs
+        snapshot2.initialize(trainer2)
 
 
 testing.run_module(__name__, __file__)
