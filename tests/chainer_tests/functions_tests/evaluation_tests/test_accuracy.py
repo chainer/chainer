@@ -12,6 +12,13 @@ from chainer.utils import force_array
 from chainer.utils import type_check
 
 
+def _random_select(prob, params):
+    rs = numpy.random.RandomState(seed=0)
+    for p in params:
+        if rs.rand() < prob:
+            yield p
+
+
 def accuracy(x, t, ignore_label):
     x_ = numpy.rollaxis(x, 1, x.ndim).reshape(t.size, -1)
     t_ = t.ravel()
@@ -37,8 +44,9 @@ def accuracy(x, t, ignore_label):
         return float(count) / total
 
 
-@testing.parameterize(
-    *testing.product_dict(
+@testing.parameterize(*_random_select(
+    0.3,
+    testing.product_dict(
         [{'x_shape': (10, 3), 't_shape': (10,)},
          {'x_shape': (10, 3, 1), 't_shape': (10,)},
          {'x_shape': (10, 3, 1, 1), 't_shape': (10,)},
@@ -57,7 +65,7 @@ def accuracy(x, t, ignore_label):
          {'label_dtype': numpy.int32},
          {'label_dtype': numpy.int64}]
     )
-)
+))
 @testing.fix_random()
 @testing.inject_backend_tests(
     None,
