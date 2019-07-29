@@ -31,9 +31,8 @@ def inject_backend_tests(method_names):
 
 @testing.parameterize(*testing.product_dict(
     [
-        {'shape': (4, 3)},
         {'shape': (5, 6, 2)},
-        {'shape': (8, 9, 4, 3)},
+        {'shape': (8, 9, 4, 5)},
         {'shape': (1, 0, 5)},
     ], [
         {'dtype': numpy.float16},
@@ -43,6 +42,9 @@ def inject_backend_tests(method_names):
         {'grad_outputs': (True, True)},
         {'grad_outputs': (True, False)},
         {'grad_outputs': (False, True)},
+    ], [
+        {'flat': True},
+        {'flat': False},
     ]
 ))
 @testing.fix_random()
@@ -96,7 +98,11 @@ class TestSLSTM(testing.FunctionTestCase):
         c2 = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
         x1 = numpy.random.uniform(-1, 1, x_shape).astype(self.dtype)
         x2 = numpy.random.uniform(-1, 1, x_shape).astype(self.dtype)
-        return c1, c2, x1, x2,
+        print(self.flat)
+        if self.flat:
+            return c1[..., 0], c2[..., 0], x1[..., 0], x2[..., 0],
+        else:
+            return c1, c2, x1, x2,
 
     def forward(self, inputs, device):
         c1, c2, x1, x2 = inputs
@@ -122,8 +128,9 @@ class TestSLSTM(testing.FunctionTestCase):
 
     def generate_grad_outputs(self, outputs_template):
         grad_out = []
+
         h = outputs_template[0]
-        c = outputs_template[1]
+        c = outputs_template[0]
         h_shape = h.shape
         c_shape = c.shape
         if self.grad_outputs[0] is True:
