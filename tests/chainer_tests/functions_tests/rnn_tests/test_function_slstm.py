@@ -98,7 +98,6 @@ class TestSLSTM(testing.FunctionTestCase):
         c2 = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
         x1 = numpy.random.uniform(-1, 1, x_shape).astype(self.dtype)
         x2 = numpy.random.uniform(-1, 1, x_shape).astype(self.dtype)
-        print(self.flat)
         if self.flat:
             return c1[..., 0], c2[..., 0], x1[..., 0], x2[..., 0],
         else:
@@ -130,7 +129,7 @@ class TestSLSTM(testing.FunctionTestCase):
         grad_out = []
 
         h = outputs_template[0]
-        c = outputs_template[0]
+        c = outputs_template[1]
         h_shape = h.shape
         c_shape = c.shape
         if self.grad_outputs[0] is True:
