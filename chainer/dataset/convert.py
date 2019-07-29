@@ -15,7 +15,7 @@ class Converter(object):
     Converters receive batched data retrieved from iterators and perform
     arbitrary transforms as well as device transfer.
 
-    Converters are required have a ``__call__`` method.
+    Implementation should override the ``__call__`` method.
 
     .. seealso::
         :meth:`chainer.dataset.converter` --- a decorator to turn a converter
