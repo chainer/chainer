@@ -167,11 +167,52 @@ test_py27and35() {
   exit ${py35_test_status}
 }
 
+# test_chainermn is a test function for chainermn
+test_chainermn() {
+  apt-get update -y && apt-get install -y --no-install-recommends ssh
+  export PYENV_VERSION=""
+  . /root/.bash_profile
+  pyenv versions
+  pyenv shell 3.7.3
+  marker='not slow'
+  if (( !GPU )); then
+    marker+=' and not gpu'
+    bucket=1
+  else
+    marker+=' and gpu'
+    bucket="${GPU}"
+  fi
+
+  #-----------------------------------------------------------------------------
+  # Install required libraries
+  #-----------------------------------------------------------------------------
+  pip install 'cupy-cuda92==7.0.0b1'
+
+  #-----------------------------------------------------------------------------
+  # Install Chainer
+  #-----------------------------------------------------------------------------
+  if ! python -m pip install /chainer[test] 2>&1 >/tmp/install-py3.log; then
+    cat /tmp/install-py3.log
+    exit 1
+  fi
+
+  #-----------------------------------------------------------------------------
+  # Test python
+  #-----------------------------------------------------------------------------
+  mpirun --allow-run-as-root -n 2 python -m pytest --color=yes \
+                   --full-trace \
+                   --durations=10 \
+                   -x --capture=no \
+                   -s -v -m "${marker}" \
+				   /chainer/tests/chainermn_tests
+}
+
 ################################################################################
 # Bootstrap
 ################################################################################
 case "${TARGET}" in
   'py37' ) test_py37;;
   'py27and35' ) test_py27and35;;
+  'chainermn-cuda92' ) test_chainermn;;
   * ) echo "Unsupported target: ${TARGET}" >&2; exit 1;;
 esac

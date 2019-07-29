@@ -89,6 +89,17 @@ main() {
         run docker push "asia.gcr.io/pfn-public-ci/chainer-ci-prep.${target}"
       fi
       ;;
+	'chainermn-cuda92' )
+      docker_args+=(
+          --volume="$(cd "$(dirname "${BASH_SOURCE}")/.."; pwd):/src:ro")
+      if [ "${GPU:-0}" != '0' ]; then
+        docker_args+=(
+            --ipc=host --privileged --env="GPU=${GPU}" --runtime=nvidia)
+      fi
+      run "${docker_args[@]}" \
+          "asia.gcr.io/pfn-public-ci/chainermn-ci-prep-cuda92" \
+          bash /src/.pfnci/run.sh "${TARGET}"
+      ;;
     # Unsupported targets.
     * )
       echo "Unsupported target: ${TARGET}" >&2
