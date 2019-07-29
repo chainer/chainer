@@ -127,11 +127,11 @@ class TestSLSTM(testing.FunctionTestCase):
 
     def generate_grad_outputs(self, outputs_template):
         grad_out = []
+        c = outputs_template[0]
+        h = outputs_template[1]
 
-        h = outputs_template[0]
-        c = outputs_template[1]
-        h_shape = h.shape
         c_shape = c.shape
+        h_shape = h.shape
         if self.grad_outputs[0] is True:
             grad_out.append(numpy.random.uniform(-1, 1,
                                                  h_shape).astype(h.dtype))
