@@ -283,6 +283,27 @@ class TestCholeskyFailing(NumpyLinalgOpTest):
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
     chainer.testing.product({
+        'in_dtypes': ['float32', 'float64'],
+    })
+))
+class TestCholeskySemiDefiniteFailing(NumpyLinalgOpTest):
+
+    forward_accept_errors = (numpy.linalg.LinAlgError,
+                             chainerx.ChainerxError)
+
+    def generate_inputs(self):
+        a = numpy.array([[1, 0], [0, 0]]).astype(self.in_dtypes)
+        return a,
+
+    def forward_xp(self, inputs, xp):
+        a, = inputs
+        L = xp.linalg.cholesky(a)
+        return L,
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    chainer.testing.product({
         'shape': [(6, 6)],
         'in_dtypes': ['float16'],
     })
