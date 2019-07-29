@@ -240,8 +240,8 @@ class TestCholesky(NumpyLinalgOpTest):
 
     def generate_inputs(self):
         a = numpy.random.random(self.shape).astype(self.in_dtypes)
-        # Make random square matrix a symmetric positive semi-definite one
-        a = numpy.array(a.T.dot(a))
+        # Make random square matrix a symmetric positive definite one
+        a = numpy.array(a.T.dot(a)) + 1e-6*numpy.eye(*self.shape)
         return a,
 
     def forward_xp(self, inputs, xp):
