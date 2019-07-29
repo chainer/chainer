@@ -98,7 +98,6 @@ class TestSLSTM(testing.FunctionTestCase):
         c2 = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
         x1 = numpy.random.uniform(-1, 1, x_shape).astype(self.dtype)
         x2 = numpy.random.uniform(-1, 1, x_shape).astype(self.dtype)
-        print(self.flat)
         if self.flat:
             return c1[..., 0], c2[..., 0], x1[..., 0], x2[..., 0],
         else:
