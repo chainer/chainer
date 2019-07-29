@@ -1,8 +1,13 @@
+import functools
+import warnings
+
 import numpy
 
+import chainer
 from chainer import configuration
 from chainer import functions
 from chainer import link
+import chainer.serializer as serializer_mod
 from chainer.utils import argument
 
 
@@ -62,15 +67,29 @@ class DecorrelatedBatchNormalization(link.Link):
     def __init__(self, size, groups=16, decay=0.9, eps=2e-5,
                  dtype=numpy.float32):
         super(DecorrelatedBatchNormalization, self).__init__()
-        self.avg_mean = numpy.zeros(size // groups, dtype=dtype)
+        C = size // groups
+        self.avg_mean = numpy.zeros((groups, C), dtype=dtype)
         self.register_persistent('avg_mean')
-        self.avg_projection = numpy.eye(size // groups, dtype=dtype)
+        avg_projection = numpy.zeros((groups, C, C), dtype=dtype)
+        arange_C = numpy.arange(C)
+        avg_projection[:, arange_C, arange_C] = 1
+        self.avg_projection = avg_projection
         self.register_persistent('avg_projection')
         self.N = 0
         self.register_persistent('N')
         self.decay = decay
         self.eps = eps
         self.groups = groups
+
+    def serialize(self, serializer):
+        if isinstance(serializer, serializer_mod.Deserializer):
+            serializer = _PatchedDeserializer(serializer, {
+                'avg_mean': functools.partial(
+                    fix_avg_mean, groups=self.groups),
+                'avg_projection': functools.partial(
+                    fix_avg_projection, groups=self.groups),
+            })
+        super(DecorrelatedBatchNormalization, self).serialize(serializer)
 
     def forward(self, x, **kwargs):
         """forward(self, x, *, finetune=False)
@@ -131,3 +150,62 @@ class DecorrelatedBatchNormalization(link.Link):
 
         """
         self.N = 0
+
+
+class _PatchedDeserializer(serializer_mod.Deserializer):
+
+    def __init__(self, base, patches):
+        self.base = base
+        self.patches = patches
+
+    def __repr__(self):
+        return '_PatchedDeserializer({}, {})'.format(
+            repr(self.base), repr(self.patches))
+
+    def __call__(self, key, value):
+        if key not in self.patches:
+            return self.base(key, value)
+        arr = self.base(key, None)
+        arr = self.patches[key](arr)
+        if value is None:
+            return arr
+        chainer.backend.copyto(value, arr)
+        return value
+
+
+def _warn_old_model():
+    msg = (
+        'Found moving statistics of old DecorrelatedBatchNormalization, whose '
+        'algorithm was different from the paper.')
+    warnings.warn(msg)
+
+
+def fix_avg_mean(avg_mean, groups):
+    if avg_mean.ndim == 2:  # OK
+        return avg_mean
+    elif avg_mean.ndim == 1:  # Issue #7706
+        if groups != 1:
+            _warn_old_model()
+        return _broadcast_to(avg_mean, (groups,) + avg_mean.shape)
+    raise ValueError('unexpected shape of avg_mean')
+
+
+def fix_avg_projection(avg_projection, groups):
+    if avg_projection.ndim == 3:  # OK
+        return avg_projection
+    elif avg_projection.ndim == 2:  # Issue #7706
+        if groups != 1:
+            _warn_old_model()
+        return _broadcast_to(
+            avg_projection, (groups,) + avg_projection.shape)
+    raise ValueError('unexpected shape of avg_projection')
+
+
+def _broadcast_to(array, shape):
+    if hasattr(numpy, 'broadcast_to'):
+        return numpy.broadcast_to(array, shape)
+    else:
+        # numpy 1.9 doesn't support broadcast_to method
+        dummy = numpy.empty(shape)
+        bx, _ = numpy.broadcast_arrays(array, dummy)
+        return bx
