@@ -14,8 +14,8 @@ from chainer import testing
 from chainer import training
 from chainer.training import extensions
 from chainer.training.extensions._snapshot import _find_snapshot_files
-from chainer.training.extensions import find_latest_snapshot
-from chainer.training.extensions import find_stale_snapshots
+from chainer.training.extensions._snapshot import _find_latest_snapshot
+from chainer.training.extensions._snapshot import _find_stale_snapshots
 
 
 class TestSnapshot(unittest.TestCase):
@@ -146,7 +146,8 @@ class TestFindSnapshot(unittest.TestCase):
         file = os.path.join(self.path, files[-1])
         open(file, 'w').close()
 
-        assert self.fmt.format(99) == find_latest_snapshot(self.fmt, self.path)
+        assert self.fmt.format(99) == _find_latest_snapshot(self.fmt,
+                                                            self.path)
 
 
 @testing.parameterize(*testing.product({'fmt':
@@ -206,7 +207,7 @@ class TestFindStaleSnapshot(unittest.TestCase):
         file = os.path.join(self.path, files[-1])
         open(file, 'w').close()
 
-        stale = list(find_stale_snapshots(fmt, self.path, retain))
+        stale = list(_find_stale_snapshots(fmt, self.path, retain))
         assert max(length-retain, 0) == len(list(stale))
         stales = [fmt.format(i) for i in range(0, max(length-retain, 0))]
         for lhs, rhs in zip(stales, stale):

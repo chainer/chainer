@@ -40,7 +40,7 @@ def _find_snapshot_files(fmt, path):
     return sorted(_prepend_mtime(file) for file in matched_files)
 
 
-def find_latest_snapshot(fmt, path):
+def _find_latest_snapshot(fmt, path):
     """Finds the latest snapshots in a directory
 
     Args:
@@ -65,7 +65,7 @@ def find_latest_snapshot(fmt, path):
     return None
 
 
-def find_stale_snapshots(fmt, path, num_retain):
+def _find_stale_snapshots(fmt, path, num_retain):
     """Finds stale snapshots in a directory, retaining several files
 
     Args:
@@ -329,7 +329,7 @@ class _Snapshot(extension.Extension):
             # from ``filename`` format, picks up the latest one in
             # terms of mtime, and tries to load it it the target or
             # trainer.
-            filename = find_latest_snapshot(self.filename, outdir)
+            filename = _find_latest_snapshot(self.filename, outdir)
             if filename is None:
                 if chainer.is_debug():
                     print('No snapshot file that matches {} was found'
@@ -355,8 +355,8 @@ class _Snapshot(extension.Extension):
             # triggered right after creation of new snapshot file, is
             # injected here.
             def _cleanup():
-                files = find_stale_snapshots(self.filename, outdir,
-                                             self.num_retain)
+                files = _find_stale_snapshots(self.filename, outdir,
+                                              self.num_retain)
                 for file in files:
                     os.remove(os.path.join(outdir, file))
 
