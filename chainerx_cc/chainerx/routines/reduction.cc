@@ -98,4 +98,50 @@ Array LogSoftmax(const Array& x, const OptionalAxes& axis) {
     return x_cast - LogSumExp(x_cast, axis.has_value() ? axis : OptionalAxes{1}, true);
 }
 
+Array Cumsum(const Array& a, absl::optional<int8_t> axis) {
+    int8_t axis_norm;
+    Array a_reshaped{};
+    if (axis.has_value()) {
+        axis_norm = internal::NormalizeAxis(*axis, a.ndim());
+        a_reshaped = a;
+    } else {
+        axis_norm = 0;
+        // TODO(imanishi): Fix after chainerx::Ravel is supported.
+        a_reshaped = a.Reshape(Shape{a.GetTotalSize()});
+    }
+
+    // Decide the output dtype for integral input dtype.
+    Dtype out_dtype{};
+    switch (GetKind(a_reshaped.dtype())) {
+        case DtypeKind::kBool:
+        case DtypeKind::kInt:  // fallthrough
+            out_dtype = Dtype::kInt64;
+            break;
+        case DtypeKind::kUInt:
+            out_dtype = Dtype::kInt64;  // TODO(niboshi): This should be kUInt64
+            break;
+        default:
+            out_dtype = a_reshaped.dtype();
+    }
+
+    const Array& out = Empty(a_reshaped.shape(), out_dtype, a_reshaped.device());
+
+    {
+        NoBackpropModeScope scope{};
+        a.device().backend().CallKernel<CumsumKernel>(a_reshaped, axis_norm, out);
+    }
+
+    // TODO(aksub99): Improve backward implementation to prevent flipping gout twice.
+    BackwardBuilder bb{"cumsum", a_reshaped, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([axis_norm, in_shape = a_reshaped.shape()](BackwardContext& bctx) {
+            const Array& gout = *bctx.output_grad();
+            Array input_grad = Flip(Cumsum(Flip(gout, axis_norm), axis_norm), axis_norm);
+            bctx.input_grad() = input_grad.Reshape(in_shape);
+        });
+    }
+    bb.Finalize();
+    return out;
+}
+
 }  // namespace chainerx
