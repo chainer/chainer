@@ -20,6 +20,7 @@ class Writer(object):
 
         - :meth:`chainer.training.extensions.snapshot`
     """
+
     def __init__(self):
         self._post_save_hooks = []
 
@@ -175,6 +176,7 @@ class ThreadWriter(StandardWriter):
 
         - :meth:`chainer.training.extensions.snapshot`
     """
+
     def __init__(self, savefun=npz.save_npz, **kwds):
         super(ThreadWriter, self).__init__(savefun=savefun, **kwds)
 
@@ -199,6 +201,7 @@ class ProcessWriter(StandardWriter):
 
         - :meth:`chainer.training.extensions.snapshot`
     """
+
     def __init__(self, savefun=npz.save_npz, **kwds):
         super(ProcessWriter, self).__init__(savefun=savefun, **kwds)
 
@@ -290,6 +293,7 @@ class ThreadQueueWriter(QueueWriter):
 
         - :meth:`chainer.training.extensions.snapshot`
     """
+
     def __init__(self, savefun=npz.save_npz, task=None):
         super(ThreadQueueWriter, self).__init__(savefun=savefun, task=task)
 
@@ -316,6 +320,7 @@ class ProcessQueueWriter(QueueWriter):
 
         - :meth:`chainer.training.extensions.snapshot`
     """
+
     def __init__(self, savefun=npz.save_npz, task=None):
         super(ProcessQueueWriter, self).__init__(savefun=savefun, task=task)
 
