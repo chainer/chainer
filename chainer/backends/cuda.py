@@ -250,8 +250,8 @@ to the CUDA device ID.
         # instance cannot be used across threads.
         return Device(self.device.id)
 
-    def send_array(self, array):
-        return _array_to_gpu(array, self.device, None)
+    def send(self, array):
+        return _arrays_to_gpu(array, self.device, None)
 
     def use(self):
         self.device.use()
@@ -413,8 +413,26 @@ def to_gpu(array, device=None, stream=None):
     else:
         device = _get_device_or_current(device)
 
-    return _backend._convert_arrays(
-        array, lambda arr: _array_to_gpu(arr, device, stream))
+    return _arrays_to_gpu(array, device, stream)
+
+
+def _arrays_to_gpu(array, device, stream):
+    if isinstance(array, (list, tuple)):
+        head = None
+        if len(array) > 0:
+            head = array[0]
+        if head is not None and isinstance(head, (numpy.ndarray, ndarray)):
+            with device:
+                if stream is None:
+                    return cupy.asarray(array)
+                else:
+                    with stream:
+                        return cupy.asarray(array)
+        else:  # fallback
+            return _backend._convert_arrays(array, lambda arr: _array_to_gpu(
+                arr, device, stream))
+    else:
+        return _array_to_gpu(array, device, stream)
 
 
 def _array_to_gpu(array, device, stream):

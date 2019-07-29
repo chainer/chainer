@@ -87,13 +87,8 @@ to the fallback device.
         # Returns a context that sets the default device.
         return chainerx.using_device(self.device)
 
-    def send_array(self, array):
-        device = self.device
-        if isinstance(array, chainerx.ndarray):
-            if array.device is device:
-                return array
-            return array.to_device(device)
-        return _array_to_chainerx(array, device)
+    def send(self, array):
+        return _arrays_to_chainerx(array, self.device)
 
     def use(self):
         chainerx.set_default_device(self.device)
@@ -110,7 +105,7 @@ def to_chx(array):
     Destination ChainerX devices are chosen according to the types of input
     arrays.
     """
-    return _backend._convert_arrays(array, _array_to_chainerx)
+    return _arrays_to_chainerx(array)
 
 
 def from_chx(array):
@@ -126,6 +121,26 @@ def _get_chainerx_device(device_spec):
     if isinstance(device_spec, chainerx.Device):
         return device_spec
     return chainerx.get_device(device_spec)
+
+
+def _arrays_to_chainerx(array, device=None):
+    if isinstance(array, (list, tuple)):
+        head = None
+        if len(array) > 0:
+            head = array[0]
+        if head is not None and isinstance(head, numpy.ndarray):
+            if device is None:
+                device = chainerx.get_device('native', 0)
+            return chainerx.array(array, device=device, copy=False)
+        else:  # fallback
+            return _backend._convert_arrays(
+                array, lambda arr: _array_to_chainerx(arr, device=device))
+    else:
+        if isinstance(array, chainerx.ndarray):
+            if array.device is device:
+                return array
+            return array.to_device(device)
+        return _array_to_chainerx(array, device)
 
 
 def _array_to_chainerx(array, device=None):
