@@ -127,6 +127,7 @@ class CudnnRNNWeightConcat(function.Function):
         bs = inputs[ws_size:]
         out_size = ws[0].shape[0]
         in_size = ws[0].shape[1]
+        input_dtype = ws[0].dtype
 
         # TODO(unno): Make a wrapper method to avoid access _desc directly
         rnn_desc = cudnn.create_rnn_descriptor(
@@ -135,12 +136,12 @@ class CudnnRNNWeightConcat(function.Function):
             self.rnn_mode, libcudnn.CUDNN_DATA_FLOAT)
         self.rnn_desc = rnn_desc
 
-        dummy_x = cuda.cupy.empty((1, in_size, 1), numpy.float32)
+        dummy_x = cuda.cupy.empty((1, in_size, 1), input_dtype)
         x_desc = cudnn.create_tensor_nd_descriptor(dummy_x)
 
         weights_size = libcudnn.getRNNParamsSize(
             handle, rnn_desc.value, x_desc.value, libcudnn.CUDNN_DATA_FLOAT)
-        w = cuda.cupy.empty((weights_size // 4, 1, 1), dtype=numpy.float32)
+        w = cuda.cupy.empty((weights_size // 4, 1, 1), dtype=input_dtype)
         w_desc = cudnn.create_filter_descriptor(w)
 
         for layer in six.moves.range(self.n_layers):
@@ -753,7 +754,6 @@ def _one_directional_loop(f, xs, h, c, w, b):
                 c, c_rest = split_axis.split_axis(c, [batch], axis=0)
 
         h, c = f(x, h, c, w, b)
-            pip3 install -r requirements.txt
         h_list.append(h)
 
         if need_split:
