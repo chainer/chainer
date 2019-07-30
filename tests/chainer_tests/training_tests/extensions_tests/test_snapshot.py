@@ -142,7 +142,27 @@ class TestFindSnapshot(unittest.TestCase):
         for file in files[:-1]:
             file = os.path.join(self.path, file)
             open(file, 'w').close()
-            time.sleep(2*10e-3)
+            # mtime resolution of some filesystems e.g. ext3 or HFS+
+            # is a second and thus snapshot files such as
+            # ``snapshot_iter_9`` and ``snapshot_iter_99`` may have
+            # same timestamp if it does not have enough interval
+            # between file creation. As current autosnapshot does not
+            # uses integer knowledge, timestamp resolution is
+            # important to sort out the file freshness with
+            # timestamps. This comment also applies to other tests in
+            # this file on snapshot freshness.
+            #
+            # Below is timestamp precision of major systems:
+            # NFS(RFC1094) - microsecond
+            # NFS v3(RFC1813) - nanosecond
+            # ext3 - second
+            # ext4 - nanosecond (256bytes inodes)
+            # HFS+ - second
+            # XFS  - second
+            # ZIP  - 2 seconds
+            # NTFS - 100ns
+            time.sleep(10e-3)
+
         file = os.path.join(self.path, files[-1])
         open(file, 'w').close()
 
@@ -171,6 +191,8 @@ class TestFindSnapshot2(unittest.TestCase):
         for file in itertools.chain(noise, self.files):
             file = os.path.join(self.path, file)
             open(file, 'w').close()
+            # Same comment applies. See comment in ``TestFindSnapshot``.
+            time.sleep(10e-3)
 
         snapshot_files = _find_snapshot_files(self.fmt, self.path)
 
@@ -203,7 +225,9 @@ class TestFindStaleSnapshot(unittest.TestCase):
         for file in files[:-1]:
             file = os.path.join(self.path, file)
             open(file, 'w').close()
+            # Same comment applies. See comment in ``TestFindSnapshot``.
             time.sleep(10e-3)
+
         file = os.path.join(self.path, files[-1])
         open(file, 'w').close()
 
