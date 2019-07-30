@@ -153,7 +153,7 @@ class TestFindSnapshot(unittest.TestCase):
             # modified here. This comment also applies to other tests
             # in this file on snapshot freshness.
             t = base_timestamp + i
-            os.utime(file, times=(t, t))
+            os.utime(file, (t, t))
 
         assert self.fmt.format(99) == _find_latest_snapshot(self.fmt,
                                                             self.path)
@@ -216,7 +216,7 @@ class TestFindStaleSnapshot(unittest.TestCase):
 
             # Same comment applies here. See comment in ``TestFindSnapshot``
             t = base_timestamp + i
-            os.utime(file, times=(t, t))
+            os.utime(file, (t, t))
 
         stale = list(_find_stale_snapshots(fmt, self.path, retain))
         assert max(length-retain, 0) == len(list(stale))
