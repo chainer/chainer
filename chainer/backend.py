@@ -54,8 +54,7 @@ def copyto(dst, src):
         dst[...] = _chainerx._array_to_chainerx(src, dst.device)
         return
     elif isinstance(src, chainerx.ndarray):
-        device = ChainerxDevice(src.device)
-        src = device.fallback_device.send(src)
+        src = from_chx(src)
 
     if isinstance(dst, numpy.ndarray):
         numpy.copyto(dst, _cpu._to_cpu(src))
