@@ -284,19 +284,19 @@ class _ToDeviceVisitor(DeviceResidentsVisitor):
 
     def visit_array(self, arr):
         assert isinstance(arr, chainer.get_array_types())
-        if self.skip_visiting(arr):
+        if self._skip_visiting(arr):
             self._warn_to_gpu(arr, self._device)
             return arr
         return self._device.send(arr)
 
     def visit_variable(self, param):
         assert isinstance(param, chainer.Variable)
-        if self.skip_visiting(param):
+        if self._skip_visiting(param):
             self._warn_to_gpu(param.array, self._device)
             return
         param.to_device(self._device)
 
-    def skip_visiting(self, obj):
+    def _skip_visiting(self, obj):
         if isinstance(obj, chainer.Variable):
             obj = obj.array
         return (
