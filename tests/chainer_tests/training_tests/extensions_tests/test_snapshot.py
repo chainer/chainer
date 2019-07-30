@@ -142,7 +142,7 @@ class TestFindSnapshot(unittest.TestCase):
         for file in files[:-1]:
             file = os.path.join(self.path, file)
             open(file, 'w').close()
-            time.sleep(10e-2)
+            time.sleep(2*10e-3)
         file = os.path.join(self.path, files[-1])
         open(file, 'w').close()
 
@@ -203,7 +203,7 @@ class TestFindStaleSnapshot(unittest.TestCase):
         for file in files[:-1]:
             file = os.path.join(self.path, file)
             open(file, 'w').close()
-            time.sleep(10e-2)
+            time.sleep(10e-3)
         file = os.path.join(self.path, files[-1])
         open(file, 'w').close()
 
