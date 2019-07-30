@@ -20,9 +20,11 @@
 #include "chainerx/macro.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/explog.h"
+#include "chainerx/routines/indexing.h"
 #include "chainerx/routines/logic.h"
 #include "chainerx/routines/manipulation.h"
 #include "chainerx/routines/misc.h"
+#include "chainerx/routines/rounding.h"
 #include "chainerx/routines/routines_util.h"
 #include "chainerx/routines/statistics.h"
 #include "chainerx/routines/type_util.h"
@@ -493,7 +495,8 @@ Array Power(Scalar x1, const Array& x2) { return internal::Binary(&PowerSAImpl, 
 
 Array Fmod(const Array& x1, const Array& x2) {
     CheckEqual(x1.shape(), x2.shape());
-    Array out = Empty(x1.shape(), x1.dtype(), x1.device());
+    Dtype dtype = GetArithmeticResultDtype(x1, x2);
+    Array out = Empty(x1.shape(), dtype, x1.device());
 
     {
         NoBackpropModeScope scope{};
@@ -512,7 +515,8 @@ Array Fmod(const Array& x1, const Array& x2) {
             bt.Define([x1_tok = bb.RetainInput(0), x2_tok = bb.RetainInput(1), dtype = x2.dtype()](BackwardContext& bctx) {
                 const Array& x1 = bctx.GetRetainedInput(x1_tok);
                 const Array& x2 = bctx.GetRetainedInput(x2_tok);
-                Array gx = -*bctx.output_grad() * FloorDivide(x1, x2);
+                const Array& divide = Divide(x1, x2);
+                Array gx = -*bctx.output_grad() * Where(divide > ZerosLike(divide), Floor(divide), Ceil(divide));
                 bctx.input_grad() = dtype == gx.dtype() ? std::move(gx) : gx.AsType(dtype);
             });
         }

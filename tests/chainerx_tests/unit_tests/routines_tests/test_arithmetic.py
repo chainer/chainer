@@ -1,4 +1,5 @@
 import chainer
+import math
 import numpy
 import pytest
 
@@ -1450,6 +1451,23 @@ class TestReciprocal(math_utils.UnaryMathTestBase, op_utils.NumpyOpTest):
     })
 ))
 class TestFmod(math_utils.BinaryMathTestBase, op_utils.NumpyOpTest):
+
+    def setup(self):
+        super().setup()
+        self.check_forward_options.update({'atol': 1e-7, 'rtol': 1e-7})
+        self.check_backward_options.update({'atol': 5e-4, 'rtol': 5e-3})
+        self.check_double_backward_options.update(
+            {'atol': 1e-3, 'rtol': 1e-2})
+
+    def generate_inputs(self):
+        shape1, shape2 = self.in_shapes
+        dtype1, dtype2 = self.in_dtypes
+        a, b = super().generate_inputs()
+        # division with too small divisor is unstable.
+        for i in numpy.ndindex(shape1):
+            if math.fabs(b[i]) < 0.1:
+                b[i] += 1.0
+        return a, b
 
     def func(self, xp, a, b):
         return xp.fmod(a, b)
