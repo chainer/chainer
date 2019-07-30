@@ -128,13 +128,10 @@ class TestFindSnapshot(unittest.TestCase):
 
         snapshot_files = _find_snapshot_files(self.fmt, self.path)
 
-        answer = [self.fmt.format(i) for i in range(1, 100)]
+        expected = sorted([self.fmt.format(i) for i in range(1, 100)])
         assert len(snapshot_files) == 99
         timestamps, snapshot_files = zip(*snapshot_files)
-        answer.sort()
-        snapshot_files = sorted(list(snapshot_files))
-        for lhs, rhs in zip(answer, snapshot_files):
-            assert lhs == rhs
+        expected == sorted(list(snapshot_files))
 
     def test_find_latest_snapshot(self):
         files = [self.fmt.format(i) for i in range(1, 100)]
@@ -183,14 +180,13 @@ class TestFindSnapshot2(unittest.TestCase):
 
         snapshot_files = _find_snapshot_files(self.fmt, self.path)
 
-        answer = [self.fmt.format(i*10, j*10)
-                  for i, j in itertools.product(range(0, 10), range(0, 10))]
+        expected = [self.fmt.format(i*10, j*10)
+                    for i, j in itertools.product(range(0, 10), range(0, 10))]
 
         timestamps, snapshot_files = zip(*snapshot_files)
-        answer.sort()
+        expected.sort()
         snapshot_files = sorted(list(snapshot_files))
-        for lhs, rhs in zip(answer, snapshot_files):
-            assert lhs == rhs
+        assert expected == snapshot_files
 
 
 @testing.parameterize(*testing.product({'length_retain':
@@ -220,9 +216,8 @@ class TestFindStaleSnapshot(unittest.TestCase):
 
         stale = list(_find_stale_snapshots(fmt, self.path, retain))
         assert max(length-retain, 0) == len(list(stale))
-        stales = [fmt.format(i) for i in range(0, max(length-retain, 0))]
-        for lhs, rhs in zip(stales, stale):
-            lhs == rhs
+        expected = [fmt.format(i) for i in range(0, max(length-retain, 0))]
+        expected == stale
 
 
 class TestRemoveStaleSnapshots(unittest.TestCase):
@@ -240,19 +235,31 @@ class TestRemoveStaleSnapshots(unittest.TestCase):
 
         trainer = testing.get_trainer_with_mock_updater()
         trainer.out = self.path
-        trainer.extend(snapshot, trigger=(1, 'iteration'))
+        trainer.extend(snapshot, trigger=(1, 'iteration'), priority=2)
+
+        class TimeStampUpdater():
+            t = time.time()
+            name = 'ts_updater'
+            priority = 1 # This must be called after snapshot taken
+            def __call__(self, _trainer):
+                filename = os.path.join(_trainer.out, fmt.format(_trainer))
+                self.t =+ 1
+                # For filesystems that does low timestamp precision
+                os.utime(filename, (self.t, self.t))
+
+        trainer.extend(TimeStampUpdater(), trigger=(1, 'iteration'))
         trainer.run()
         assert 10 == trainer.updater.iteration
         assert trainer._done
 
         pattern = os.path.join(trainer.out, "snapshot_iter_*")
-        found = [path for path in glob.glob(pattern)]
+        found = [os.path.basename(path) for path in glob.glob(pattern)]
         assert retain == len(found)
         found.sort()
-
-        for lhs, rhs in zip(['snapshot_iter_{}'.format(i)
-                             for i in range(8, 10)], found):
-            lhs == rhs
+        # snapshot_iter_(8, 9, 10) expected
+        expected = ['snapshot_iter_{}'.format(i) for i in range(8, 11)]
+        expected.sort()
+        assert expected == found
 
         trainer2 = testing.get_trainer_with_mock_updater()
         trainer2.out = self.path
