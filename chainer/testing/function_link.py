@@ -277,7 +277,8 @@ class FunctionTestBase(object):
 
             # Drop ggx corresponding to non-differentiable inputs.
             grad_grad_inputs = [
-                ggx for ggx in grad_grad_inputs if ggx.dtype.kind == 'f']
+                ggx for ggx in grad_grad_inputs
+                if (ggx is None or ggx.dtype.kind == 'f')]
 
             inputs = backend_config.get_array(inputs)
             grad_outputs = backend_config.get_array(grad_outputs)
@@ -1120,10 +1121,12 @@ def _check_array_types(arrays, device, func_name):
         raise TypeError(
             '`{}()` must return a tuple, '
             'not {}.'.format(func_name, type(arrays)))
-    if not all(isinstance(a, device.supported_array_types) for a in arrays):
+    if not all(
+            isinstance(a, device.supported_array_types) or a is None
+            for a in arrays):
         raise TypeError(
-            '{}() must return a tuple of arrays supported by device {}.\n'
-            'Actual: {}'.format(
+            '{}() must return a tuple of arrays supported by device {} or'
+            ' None.\nActual: {}'.format(
                 func_name, device, tuple([type(a) for a in arrays])))
 
 
