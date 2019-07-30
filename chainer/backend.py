@@ -52,7 +52,12 @@ def copyto(dst, src):
     """
     if isinstance(dst, chainerx.ndarray):
         dst[...] = _chainerx._array_to_chainerx(src, dst.device)
-    elif isinstance(dst, numpy.ndarray):
+        return
+    elif isinstance(src, chainerx.ndarray):
+        device = ChainerxDevice(src.device)
+        src = device.fallback_device.send(src)
+
+    if isinstance(dst, numpy.ndarray):
         numpy.copyto(dst, _cpu._to_cpu(src))
     elif isinstance(dst, intel64.mdarray):
         intel64.ideep.basic_copyto(
