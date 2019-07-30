@@ -15,6 +15,10 @@ def sigmoid(x):
     return numpy.tanh(x * 0.5) * 0.5 + 0.5
 
 
+def _shaped_random(shape, dtype):
+    return numpy.random.uniform(-1, 1, shape).astype(dtype)
+
+
 def inject_backend_tests(method_names):
     decorator = backend.inject_backend_tests(
         method_names,
@@ -84,8 +88,8 @@ class TestLSTM(testing.FunctionTestCase):
             self.skip_double_backward_test = True
 
     def generate_inputs(self):
-        c = numpy.random.uniform(-1, 1, self.c_shape).astype(self.dtype)
-        x = numpy.random.uniform(-1, 1, self.x_shape).astype(self.dtype)
+        c = _shaped_random(self.c_shape, self.dtype)
+        x = _shaped_random(self.x_shape, self.dtype)
         return c, x,
 
     def forward(self, inputs, device):
