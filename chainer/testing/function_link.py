@@ -1122,7 +1122,7 @@ def _check_array_types(arrays, device, func_name):
             '`{}()` must return a tuple, '
             'not {}.'.format(func_name, type(arrays)))
     if not all(
-            isinstance(a, device.supported_array_types) or a is None
+            a is None or isinstance(a, device.supported_array_types)
             for a in arrays):
         raise TypeError(
             '{}() must return a tuple of arrays supported by device {} or'
