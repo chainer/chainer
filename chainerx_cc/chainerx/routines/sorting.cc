@@ -112,14 +112,14 @@ Array NanArgMax(const Array& a, const OptionalAxes& axis) {
 
     for (int8_t i : sorted_axis) {
         if (a_replaced.shape()[i] == 0) {
-            throw DimensionError{"Cannot compute ArgMax for an empty array."};
+            throw DimensionError{"Cannot compute NanArgMax for an empty array."};
         }
     }
 
     Array out = Empty(out_shape, Dtype::kInt64, a_replaced.device());
     {
         NoBackpropModeScope scope{};
-        a_replaced.device().backend().CallKernel<ArgMaxKernel>(a_replaced, sorted_axis, out);
+        a_replaced.device().backend().CallKernel<NanArgMaxKernel>(a_replaced, sorted_axis, out);
     }
     return out;
 }
@@ -147,14 +147,14 @@ Array NanArgMin(const Array& a, const OptionalAxes& axis) {
 
     for (int8_t i : sorted_axis) {
         if (a_replaced.shape()[i] == 0) {
-            throw DimensionError{"Cannot compute ArgMin for an empty array."};
+            throw DimensionError{"Cannot compute NanArgMin for an empty array."};
         }
     }
 
     Array out = Empty(out_shape, Dtype::kInt64, a_replaced.device());
     {
         NoBackpropModeScope scope{};
-        a_replaced.device().backend().CallKernel<ArgMinKernel>(a_replaced, sorted_axis, out);
+        a_replaced.device().backend().CallKernel<NanArgMinKernel>(a_replaced, sorted_axis, out);
     }
     return out;
 }
