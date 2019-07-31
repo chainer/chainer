@@ -50,26 +50,7 @@ _cumsum_params = [
 ]
 
 
-_in_out_dtypes_sum = [
-    (('bool_',), 'int64'),
-    (('int8',), 'int64'),
-    (('int16',), 'int64'),
-    (('int32',), 'int64'),
-    (('int64',), 'int64'),
-    (('float16',), 'float16'),
-    (('float32',), 'float32'),
-    (('float64',), 'float64'),
-
-    # TODO(niboshi): Unsigned integer dtypes should result in uint64.
-    # Currently chainerx returns int64.
-    (('uint8',), 'int64'),
-]
-
-
-@op_utils.op_test(['native:0', 'cuda:0'])
-@chainer.testing.parameterize_pytest(
-    'in_dtypes,out_dtype', _in_out_dtypes_sum)
-@chainer.testing.parameterize_pytest('shape,axis', [
+_sum_params = [
     ((), None),
     ((), ()),
     ((2,), None),
@@ -96,7 +77,29 @@ _in_out_dtypes_sum = [
     ((2, 3, 4), (2, 0)),
     ((2, 3, 4), (2, 0, 1)),
     ((2, 3, 4), (-2, 2, 0)),
-])
+]
+
+
+_in_out_dtypes_sum = [
+    (('bool_',), 'int64'),
+    (('int8',), 'int64'),
+    (('int16',), 'int64'),
+    (('int32',), 'int64'),
+    (('int64',), 'int64'),
+    (('float16',), 'float16'),
+    (('float32',), 'float32'),
+    (('float64',), 'float64'),
+
+    # TODO(niboshi): Unsigned integer dtypes should result in uint64.
+    # Currently chainerx returns int64.
+    (('uint8',), 'int64'),
+]
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize_pytest(
+    'in_dtypes,out_dtype', _in_out_dtypes_sum)
+@chainer.testing.parameterize_pytest('shape,axis', _sum_params)
 @chainer.testing.parameterize_pytest('keepdims', [True, False])
 @chainer.testing.parameterize_pytest('is_module', [True, False])
 class TestSum(math_utils.UnaryMathTestBase, op_utils.NumpyOpTest):
@@ -285,3 +288,38 @@ class TestCumsum(math_utils.UnaryMathTestBase, op_utils.NumpyOpTest):
 
     def func(self, xp, a):
         return xp.cumsum(a, axis=self.axis)
+
+
+@op_utils.op_test(['native:0'])
+@chainer.testing.parameterize_pytest(
+    'in_dtypes,out_dtype', math_utils.in_out_float_dtypes_math_functions)
+@chainer.testing.parameterize_pytest('shape,axis', _sum_params)
+@chainer.testing.parameterize_pytest('keepdims', [True, False])
+class TestNansum(math_utils.UnaryMathTestBase, op_utils.NumpyOpTest):
+
+    input = 'random'
+
+    def setup(self):
+        super().setup()
+        in_dtype, = self.in_dtypes
+        if in_dtype == 'float16':
+            self.check_forward_options.update({'rtol': 1e-2, 'atol': 1e-2})
+            self.check_backward_options.update({'rtol': 1e-2, 'atol': 1e-2})
+            self.check_double_backward_options.update(
+                {'rtol': 1e-2, 'atol': 1e-2})
+
+    def generate_inputs(self):
+        shape = self.shape
+        a, = super().generate_inputs()
+        indices = numpy.asarray([i for i in numpy.ndindex(shape)])
+        numpy.random.shuffle(indices)
+        num_nans = numpy.random.randint(len(indices))
+        if num_nans == 0:
+            return a,
+        nan_indices = indices[:num_nans]
+        for i in nan_indices:
+            a[tuple(i)] = numpy.nan
+        return a,
+
+    def func(self, xp, a):
+        return xp.nansum(a, axis=self.axis, keepdims=self.keepdims)
