@@ -106,7 +106,8 @@ def _backward_correct(x1, x2, gy1, gy2, none_gy_as_zero=False):
 
 
 def _double_backward_correct(
-        x1, x2, gy1, gy2, ggx1, ggx2, none_gy_as_zero=False,
+        x1, x2, gy1, gy2, ggx1, ggx2,
+        none_gy_as_zero=False,
         none_ggx_as_zero=False):
     if none_gy_as_zero:
         if gy1 is None:
