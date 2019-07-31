@@ -58,6 +58,9 @@ class EvalBase(op_utils.ChainerOpTest):
 ))
 class TestAccuracy(EvalBase):
 
+    skip_backward_test = True
+    skip_double_backward_test = True
+
     def forward_xp(self, inputs, xp):
         x, t = inputs
         out = xp.accuracy(x, t, self.ignore_label)

@@ -1,12 +1,10 @@
 #pragma once
 
 #include <cstdint>
-#include <string>
 
 #include <absl/types/optional.h>
 
 #include "chainerx/array.h"
-#include "chainerx/constant.h"
 
 namespace chainerx {
 

@@ -1,41 +1,23 @@
 #include "chainerx/routines/evaluation.h"
 
-#include <algorithm>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
-#include <memory>
-#include <string>
-#include <type_traits>
-#include <utility>
-#include <vector>
 
 #include <absl/types/optional.h>
 
 #include "chainerx/array.h"
-#include "chainerx/backend.h"
-#include "chainerx/backprop_mode.h"
-#include "chainerx/backward_builder.h"
-#include "chainerx/backward_context.h"
-#include "chainerx/constant.h"
-#include "chainerx/device.h"
-#include "chainerx/dtype.h"
-#include "chainerx/graph.h"
-#include "chainerx/macro.h"
 #include "chainerx/routines/arithmetic.h"
 #include "chainerx/routines/creation.h"
-#include "chainerx/routines/explog.h"
 #include "chainerx/routines/indexing.h"
 #include "chainerx/routines/logic.h"
 #include "chainerx/routines/manipulation.h"
-#include "chainerx/routines/misc.h"
 #include "chainerx/routines/reduction.h"
 #include "chainerx/routines/sorting.h"
 #include "chainerx/routines/statistics.h"
 #include "chainerx/routines/type_util.h"
 #include "chainerx/scalar.h"
 #include "chainerx/shape.h"
-#include "chainerx/strides.h"
 
 namespace chainerx {
 
