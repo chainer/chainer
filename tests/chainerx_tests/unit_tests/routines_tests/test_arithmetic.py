@@ -1414,16 +1414,16 @@ class TestReciprocal(math_utils.UnaryMathTestBase, op_utils.NumpyOpTest):
         'in_dtypes,out_dtype': (
             dtype_utils.make_same_in_out_dtypes(
                 2, chainerx.testing.numeric_dtypes)),
-        'input_lhs': [5.5, -5.5, 'random'],
-        'input_rhs': [2.5, -2.5, 'random'],
+        'input_lhs': [5, -5, 'random'],
+        'input_rhs': [3, -3, 'random'],
         'is_module': [False],
     })
     # Dtype combinations
     + chainer.testing.product({
         'in_shapes': [((2, 3), (2, 3))],
         'in_dtypes,out_dtype': _in_out_dtypes_arithmetic,
-        'input_lhs': [5.5, -5.5, 'random'],
-        'input_rhs': [2.5, -2.5, 'random'],
+        'input_lhs': [5, -5, 'random'],
+        'input_rhs': [3, -3, 'random'],
         'is_module': [False],
     })
     # is_module
@@ -1432,8 +1432,8 @@ class TestReciprocal(math_utils.UnaryMathTestBase, op_utils.NumpyOpTest):
         'in_dtypes,out_dtype': (
             dtype_utils.make_same_in_out_dtypes(
                 2, chainerx.testing.numeric_dtypes)),
-        'input_lhs': [5.5, -5.5, 'random'],
-        'input_rhs': [2.5, -2.5, 'random'],
+        'input_lhs': [5, -5, 'random'],
+        'input_rhs': [3, -3, 'random'],
         'is_module': [True, False],
     })
     # Remove special values test
@@ -1488,15 +1488,15 @@ def test_remainder_invalid_dtypes(device, dtypes, is_module):
         'in_dtypes,out_dtype': (
             dtype_utils.make_same_in_out_dtypes(
                 2, chainerx.testing.numeric_dtypes)),
-        'input_lhs': [5.5, -5.5, 'random'],
-        'input_rhs': [2.5, -2.5, 'random'],
+        'input_lhs': [5, -5, 'random'],
+        'input_rhs': [3, -3, 'random'],
     })
     # Dtype combinations
     + chainer.testing.product({
         'in_shapes': [((2, 3), (2, 3))],
         'in_dtypes,out_dtype': _in_out_dtypes_inplace_arithmetic,
-        'input_lhs': [5.5, -5.5, 'random'],
-        'input_rhs': [2.5, -2.5, 'random'],
+        'input_lhs': [5, -5, 'random'],
+        'input_rhs': [3, -3, 'random'],
     })
     # Remove special values test
     # since chainerx.remainder returns nan when numpy.remainder returns inf

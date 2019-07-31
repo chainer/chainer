@@ -296,7 +296,7 @@ __device__ T ModSignedIntegerImpl(T x, T y) {
     }
     if (y < 0) {
         T z = x % (-y);
-        return z == 0 ? 0 : y - z;
+        return z == 0 ? 0 : y + z;
     }
     return x % y;
 }
@@ -324,7 +324,7 @@ __device__ T ModFloatImpl(T x, T y) {
     }
     if (y < 0) {
         T z = std::fmod(x, -y);
-        return z == 0 ? 0 : y - z;
+        return z == 0 ? 0 : y + z;
     }
     return std::fmod(x, y);
 }
