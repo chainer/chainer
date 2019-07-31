@@ -129,6 +129,9 @@ def inject_backend_tests():
         {'shape': (10, 4, 3, 2), 'axis': 0, 'ys_section': numpy.array([]),
          'slices': [slice(None, None)]
          },
+        # Functions with multiple outputs may receive `None` upstream gradients
+        # in their backward method, `split_axis` must handle this case
+        # (by constructing 0-filled variables for `None` gradients).
         {'shape': (2, 7, 3), 'axis': 1, 'ys_section': [2, 5],
          'slices': [
              (slice(None), slice(None, 2)),
@@ -145,6 +148,9 @@ def inject_backend_tests():
 @inject_backend_tests()
 class TestSplitAxis(testing.FunctionTestCase):
 
+    # A list of booleans. If element i is `True`, the i-th upstream gradient is
+    # generated as `None`. Default is `None`, in which case all gradients are
+    # ndarrays.
     grad_outputs_is_none = None
 
     def generate_inputs(self):
