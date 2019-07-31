@@ -223,12 +223,11 @@ public:
         CHAINERX_ASSERT(a.ndim() == 2);
         CHAINERX_ASSERT(out.ndim() == 2);
         CHAINERX_ASSERT(a.shape()[0] == a.shape()[1]);
+        CHAINERX_ASSERT(out.IsContiguous());
+        CHAINERX_ASSERT(a.dtype() == out.dtype());
 
         // potrf (cholesky) stores result in-place, therefore copy ``a`` to ``out`` and then pass ``out`` to the routine
         device.backend().CallKernel<CopyKernel>(Tril(a, 0), out);
-
-        Array out_contiguous = AsContiguous(out);
-        CHAINERX_ASSERT(a.dtype() == out_contiguous.dtype());
 
         auto cholesky_impl = [&](auto pt) {
             using T = typename decltype(pt)::type;
@@ -237,7 +236,7 @@ public:
             // To compute a lower triangular matrix L = cholesky(A), we use LAPACK to compute an upper triangular matrix U = cholesky(A).
             char uplo = 'U';
 
-            auto out_ptr = static_cast<T*>(internal::GetRawOffsetData(out_contiguous));
+            auto out_ptr = static_cast<T*>(internal::GetRawOffsetData(out));
             int64_t N = a.shape()[0];
 
             int info;

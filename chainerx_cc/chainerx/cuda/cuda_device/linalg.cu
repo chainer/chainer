@@ -256,15 +256,13 @@ public:
         CHAINERX_ASSERT(a.ndim() == 2);
         CHAINERX_ASSERT(out.ndim() == 2);
         CHAINERX_ASSERT(a.shape()[0] == a.shape()[1]);
+        CHAINERX_ASSERT(out.IsContiguous());
+        CHAINERX_ASSERT(a.dtype() == out.dtype());
 
         // potrf (cholesky) stores result in-place, therefore copy ``a`` to ``out`` and then pass ``out`` to the routine
         device.backend().CallKernel<CopyKernel>(Tril(a, 0), out);
 
-        Array out_contiguous = AsContiguous(out);
-
         auto cholesky_impl = [&](auto pt) {
-            CHAINERX_ASSERT(a.dtype() == out_contiguous.dtype());
-
             using T = typename decltype(pt)::type;
 
             // Note that cuSOLVER uses Fortran order.
@@ -274,7 +272,7 @@ public:
             cuda_internal::DeviceInternals& device_internals = cuda_internal::GetDeviceInternals(static_cast<CudaDevice&>(device));
 
             // compute workspace size and prepare workspace
-            auto out_ptr = static_cast<T*>(internal::GetRawOffsetData(out_contiguous));
+            auto out_ptr = static_cast<T*>(internal::GetRawOffsetData(out));
             int work_size = 0;
             int64_t N = a.shape()[0];
             device_internals.cusolverdn_handle().Call(PotrfBuffersize<T>, uplo, N, out_ptr, N, &work_size);
