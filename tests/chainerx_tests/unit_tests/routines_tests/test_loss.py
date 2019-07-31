@@ -153,11 +153,22 @@ class TestHuberLoss(LossBase):
 ))
 class TestSigmoidCrossEntropy(LossBase):
 
+    def generate_inputs(self):
+        y = numpy.random.normal(loc=0, scale=1.0, size=self.shape)
+        targ = numpy.random.normal(loc=0, scale=1.0, size=self.shape) + \
+            numpy.random.normal(loc=0, scale=0.5, size=self.shape)
+        self.t = targ
+        return y,
+
     def forward_xp(self, inputs, xp):
-        x, t = inputs
-        t = t.astype(numpy.int64)
+        x, = inputs
+        # TODO(aksub99): Improve implementation to avoid non-differentiability
+        # wrt targets
         if xp is chainerx:
+            t = self.backend_config.get_array(self.t)
+            t = t.astype(numpy.int64)
             out = xp.sigmoid_cross_entropy(x, t)
         else:
+            t = self.t.astype(numpy.int64)
             out = xp.sigmoid_cross_entropy(x, t, normalize=False, reduce='no')
         return out,
