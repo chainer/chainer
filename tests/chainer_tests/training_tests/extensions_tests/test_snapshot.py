@@ -238,12 +238,13 @@ class TestRemoveStaleSnapshots(unittest.TestCase):
         trainer.extend(snapshot, trigger=(1, 'iteration'), priority=2)
 
         class TimeStampUpdater():
-            t = time.time()
+            t = time.time() - 100
             name = 'ts_updater'
-            priority = 1 # This must be called after snapshot taken
+            priority = 1  # This must be called after snapshot taken
+
             def __call__(self, _trainer):
                 filename = os.path.join(_trainer.out, fmt.format(_trainer))
-                self.t =+ 1
+                self.t += 1
                 # For filesystems that does low timestamp precision
                 os.utime(filename, (self.t, self.t))
 
