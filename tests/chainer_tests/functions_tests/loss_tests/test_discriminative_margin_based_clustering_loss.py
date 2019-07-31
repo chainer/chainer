@@ -17,40 +17,42 @@ from chainer.testing import attr
     'beta': [1],
     'gamma': [0.001],
     'norm': [1],
-    'result_l_dist': [6.0776708],
-    'result_l_var': [64.0],
-    'result_l_reg': [0.03419368]
+    'result_l_dist': [24.85508332],
+    'result_l_var': [79.16666667],
+    'result_l_reg': [1.00000305]
 }) + testing.product(({
     'delta_v': [3],
     'delta_d': [10],
     'alpha': [0.1],
     'beta': [0.1],
     'gamma': [0.1],
-    'max_n_clusters': [2],
     'norm': [2],
     'result_l_dist': [0.0],
-    'result_l_var': [26.56423595],
-    'result_l_reg': [1.55665027]
+    'result_l_var': [33.2064643],
+    'result_l_reg': [8.2517263]
 })))
 class TestDiscriminativeMarginBasedClusteringLoss(unittest.TestCase):
 
     def setUp(self):
-        self.max_n_clusters = 5
+        self.embedding_dims = 20
         self.batch = 5
-        self.width = 10
-        self.height = 10
-        shape = (self.batch, self.max_n_clusters,
-                 self.width, self.height)
+        self.width = 128
+        self.height = 128
+        shape = (self.batch, self.embedding_dims,
+                 self.height, self.width)
 
-        input_arr = numpy.linspace(0, 100,
-                                   shape[0] * shape[1] *
-                                   shape[2] * shape[3])
-        self.input = input_arr.reshape(shape)
+        input_arr = numpy.linspace(-100, 100,
+                                   shape[1] * shape[2] * shape[3])
+        self.input = input_arr.reshape((1, shape[1], shape[2], shape[3]))
+        self.input = numpy.broadcast_to(self.input, shape)
 
-        g_s = (self.batch, self.width, self.height)
-        self.gt = numpy.linspace(0, 10,
-                                 g_s[0] * g_s[1] * g_s[2]).astype(numpy.int32)
-        self.gt = numpy.reshape(self.gt, g_s)
+        g_s = (self.batch, self.height, self.width)
+        self.gt = numpy.zeros(g_s, dtype=numpy.int32)
+        step_size = self.height // 10   # Create 10 different instances
+        for b_idx in range(self.batch):
+            for idx in range(10):
+                self.gt[b_idx, (step_size * idx):(step_size * (idx + 1)), :] = b_idx * 10 + idx
+
         self.y = (numpy.asarray(self.result_l_dist),
                   numpy.asarray(self.result_l_var),
                   numpy.asarray(self.result_l_reg))
@@ -58,8 +60,7 @@ class TestDiscriminativeMarginBasedClusteringLoss(unittest.TestCase):
     def get_result(self, embeddings, labels):
         out = functions.discriminative_margin_based_clustering_loss(
             embeddings, labels,
-            self.delta_v, self.delta_d, self.max_n_clusters,
-            self.norm, self.alpha, self.beta, self.gamma)
+            self.delta_v, self.delta_d, self.norm, self.alpha, self.beta, self.gamma)
         return out
 
     def check_forward_cpu(self, embeddings, labels, t_data):
