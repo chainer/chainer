@@ -2,6 +2,7 @@ import unittest
 
 import numpy
 import pytest
+import six
 
 import chainer
 from chainer import initializers
@@ -63,6 +64,18 @@ def _check_contiguousness(arr, expected_contiguous):
             raise _ContiguousnessMatched()
     else:
         assert False
+
+
+def _check_grad(grad, expect_grad_none, class_or_tuple):
+    if expect_grad_none:
+        assert grad is None
+    else:
+        isinstance(grad, class_or_tuple)
+
+
+def _check_grads(grads, expect_grads_none, class_or_tuple):
+    for grad, expect_grad_none in six.moves.zip(grads, expect_grads_none):
+        _check_grad(grad, expect_grad_none, class_or_tuple)
 
 
 _inject_backend_tests = testing.inject_backend_tests(
@@ -140,14 +153,14 @@ class FuncCorrectlyImplemented(chainer.FunctionNode):
 
     def backward(self, indexes, grad_outputs):
         device = self.device
+        _check_grads(
+            grad_outputs, self.expect_grad_outputs_none,
+            device.supported_array_types)
+
         x1, x2 = self.get_retained_inputs()
         gy1, gy2 = grad_outputs
         assert isinstance(x1.array, device.supported_array_types)
         assert isinstance(x2.array, device.supported_array_types)
-        assert (gy1 is None if self.expect_grad_outputs_none[0]
-                else isinstance(gy1.array, device.supported_array_types))
-        assert (gy2 is None if self.expect_grad_outputs_none[1]
-                else isinstance(gy2.array, device.supported_array_types))
 
         grad_func = FuncGradCorrectlyImplemented(
             device,
@@ -171,11 +184,9 @@ class FuncGradCorrectlyImplemented(chainer.FunctionNode):
 
         if device.xp is chainerx:
             fallback_device = device.fallback_device
-            supported_array_types = fallback_device.supported_array_types
-            assert (gy1 is None if self.expect_grad_outputs_none[0]
-                    else isinstance(gy1, supported_array_types))
-            assert (gy2 is None if self.expect_grad_outputs_none[1]
-                    else isinstance(gy2, supported_array_types))
+            _check_grads(
+                (gy1, gy2), self.expect_grad_outputs_none,
+                fallback_device.supported_array_types)
 
         self.retain_inputs((0, 1, 2, 3))
 
@@ -187,25 +198,22 @@ class FuncGradCorrectlyImplemented(chainer.FunctionNode):
 
     def backward(self, indexes, grad_grad_inputs):
         device = self.device
-        ggx1, ggx2 = grad_grad_inputs
-        assert (ggx1 is None if self.expect_grad_grad_inputs_none[0]
-                else isinstance(ggx1, chainer.Variable))
-        assert (ggx2 is None if self.expect_grad_grad_inputs_none[1]
-                else isinstance(ggx2, chainer.Variable))
+        _check_grads(
+            grad_grad_inputs, self.expect_grad_grad_inputs_none,
+            chainer.Variable)
 
+        ggx1, ggx2 = grad_grad_inputs
         x1, x2, gy1, gy2 = self.get_retained_inputs()
         assert isinstance(x1, chainer.Variable)
         assert isinstance(x2, chainer.Variable)
         assert isinstance(x1.array, device.supported_array_types)
         assert isinstance(x2.array, device.supported_array_types)
-        assert (gy1 is None if self.expect_grad_outputs_none[0]
-                else isinstance(gy1, chainer.Variable))
-        assert (gy2 is None if self.expect_grad_outputs_none[1]
-                else isinstance(gy2, chainer.Variable))
-        assert (gy1 is None if self.expect_grad_outputs_none[0]
-                else isinstance(gy1.array, device.supported_array_types))
-        assert (gy2 is None if self.expect_grad_outputs_none[1]
-                else isinstance(gy2.array, device.supported_array_types))
+        _check_grads(
+            (gy1, gy2), self.expect_grad_outputs_none, chainer.Variable)
+        if not self.expect_grad_outputs_none[0]:
+            isinstance(gy1.array, device.supported_array_types)
+        if not self.expect_grad_outputs_none[1]:
+            isinstance(gy2.array, device.supported_array_types)
 
         gx1, gx2, ggy1, ggy2 = _double_backward_correct(
             x1, x2,
