@@ -88,13 +88,7 @@ def _forward_correct(x1, x2):
     return utils.force_array(y1), utils.force_array(y2)
 
 
-def _backward_correct(x1, x2, gy1, gy2, none_gy_as_zero=False):
-    if none_gy_as_zero:
-        if gy1 is None:
-            gy1 = 0
-        if gy2 is None:
-            gy2 = 0
-
+def _backward_correct(x1, x2, gy1, gy2):
     dt = x1.dtype.type
     ggx1 = (
         + gy1 * dt(2) * (x1 + x2)
@@ -105,21 +99,7 @@ def _backward_correct(x1, x2, gy1, gy2, none_gy_as_zero=False):
     return ggx1, ggx2
 
 
-def _double_backward_correct(
-        x1, x2, gy1, gy2, ggx1, ggx2,
-        none_gy_as_zero=False,
-        none_ggx_as_zero=False):
-    if none_gy_as_zero:
-        if gy1 is None:
-            gy1 = 0
-        if gy2 is None:
-            gy2 = 0
-    if none_ggx_as_zero:
-        if ggx1 is None:
-            ggx1 = 0
-        if ggx2 is None:
-            ggx2 = 0
-
+def _double_backward_correct(x1, x2, gy1, gy2, ggx1, ggx2):
     dt = x1.dtype.type
     ggy1 = (ggx1 + ggx2) * dt(2) * (x1 + x2)
     ggy2 = (ggx1 * x2 + ggx2 * x1) * dt(2) * x1 * x2
@@ -139,11 +119,12 @@ def _double_backward_correct(
 
 class FuncCorrectlyImplemented(chainer.FunctionNode):
     def __init__(
-            self, device, allow_grad_outputs_none=False,
-            allow_grad_grad_inputs_none=False):
+            self, device,
+            expect_grad_outputs_none=(False, False),
+            expect_grad_grad_inputs_none=(False, False)):
         self.device = device
-        self.allow_grad_outputs_none = allow_grad_outputs_none
-        self.allow_grad_grad_inputs_none = allow_grad_grad_inputs_none
+        self.expect_grad_outputs_none = expect_grad_outputs_none
+        self.expect_grad_grad_inputs_none = expect_grad_grad_inputs_none
 
     def forward(self, inputs):
         device = self.device
@@ -163,24 +144,26 @@ class FuncCorrectlyImplemented(chainer.FunctionNode):
         gy1, gy2 = grad_outputs
         assert isinstance(x1.array, device.supported_array_types)
         assert isinstance(x2.array, device.supported_array_types)
-        assert ((gy1 is None and self.allow_grad_outputs_none)
-                or isinstance(gy1.array, device.supported_array_types))
-        assert ((gy2 is None and self.allow_grad_outputs_none)
-                or isinstance(gy2.array, device.supported_array_types))
+        assert (gy1 is None if self.expect_grad_outputs_none[0]
+                else isinstance(gy1.array, device.supported_array_types))
+        assert (gy2 is None if self.expect_grad_outputs_none[1]
+                else isinstance(gy2.array, device.supported_array_types))
 
         grad_func = FuncGradCorrectlyImplemented(
-            device, self.allow_grad_outputs_none,
-            self.allow_grad_grad_inputs_none)
+            device,
+            self.expect_grad_outputs_none,
+            self.expect_grad_grad_inputs_none)
         return grad_func.apply((x1, x2, gy1, gy2))
 
 
 class FuncGradCorrectlyImplemented(chainer.FunctionNode):
     def __init__(
-            self, device, allow_grad_outputs_none=False,
-            allow_grad_grad_inputs_none=False):
+            self, device,
+            expect_grad_outputs_none,
+            expect_grad_grad_inputs_none):
         self.device = device
-        self.allow_grad_outputs_none = allow_grad_outputs_none
-        self.allow_grad_grad_inputs_none = allow_grad_grad_inputs_none
+        self.expect_grad_outputs_none = expect_grad_outputs_none
+        self.expect_grad_grad_inputs_none = expect_grad_grad_inputs_none
 
     def forward(self, inputs_and_grad_outputs):
         device = self.device
@@ -188,43 +171,48 @@ class FuncGradCorrectlyImplemented(chainer.FunctionNode):
 
         if device.xp is chainerx:
             fallback_device = device.fallback_device
-            assert ((gy1 is None and self.allow_grad_outputs_none)
-                    or isinstance(gy1, fallback_device.supported_array_types))
-            assert ((gy2 is None and self.allow_grad_outputs_none)
-                    or isinstance(gy2, fallback_device.supported_array_types))
+            supported_array_types = fallback_device.supported_array_types
+            assert (gy1 is None if self.expect_grad_outputs_none[0]
+                    else isinstance(gy1, supported_array_types))
+            assert (gy2 is None if self.expect_grad_outputs_none[1]
+                    else isinstance(gy2, supported_array_types))
 
         self.retain_inputs((0, 1, 2, 3))
 
         ggx1, ggx2 = _backward_correct(
-            x1, x2, gy1, gy2, none_gy_as_zero=self.allow_grad_outputs_none)
+            x1, x2,
+            0 if self.expect_grad_outputs_none[0] else gy1,
+            0 if self.expect_grad_outputs_none[1] else gy2)
         return utils.force_array(ggx1), utils.force_array(ggx2)
 
     def backward(self, indexes, grad_grad_inputs):
         device = self.device
-        for ggx in grad_grad_inputs:
-            assert ((ggx is None and self.allow_grad_grad_inputs_none)
-                    or isinstance(ggx, chainer.Variable))
-
         ggx1, ggx2 = grad_grad_inputs
+        assert (ggx1 is None if self.expect_grad_grad_inputs_none[0]
+                else isinstance(ggx1, chainer.Variable))
+        assert (ggx2 is None if self.expect_grad_grad_inputs_none[1]
+                else isinstance(ggx2, chainer.Variable))
 
         x1, x2, gy1, gy2 = self.get_retained_inputs()
         assert isinstance(x1, chainer.Variable)
         assert isinstance(x2, chainer.Variable)
-        assert ((gy1 is None and self.allow_grad_outputs_none)
-                or isinstance(gy1, chainer.Variable))
-        assert ((gy2 is None and self.allow_grad_outputs_none)
-                or isinstance(gy2, chainer.Variable))
         assert isinstance(x1.array, device.supported_array_types)
         assert isinstance(x2.array, device.supported_array_types)
-        assert ((gy1 is None and self.allow_grad_outputs_none)
-                or isinstance(gy1.array, device.supported_array_types))
-        assert ((gy2 is None and self.allow_grad_outputs_none)
-                or isinstance(gy2.array, device.supported_array_types))
+        assert (gy1 is None if self.expect_grad_outputs_none[0]
+                else isinstance(gy1, chainer.Variable))
+        assert (gy2 is None if self.expect_grad_outputs_none[1]
+                else isinstance(gy2, chainer.Variable))
+        assert (gy1 is None if self.expect_grad_outputs_none[0]
+                else isinstance(gy1.array, device.supported_array_types))
+        assert (gy2 is None if self.expect_grad_outputs_none[1]
+                else isinstance(gy2.array, device.supported_array_types))
 
         gx1, gx2, ggy1, ggy2 = _double_backward_correct(
-            x1, x2, gy1, gy2, ggx1, ggx2,
-            none_gy_as_zero=self.allow_grad_outputs_none,
-            none_ggx_as_zero=self.allow_grad_grad_inputs_none)
+            x1, x2,
+            0 if self.expect_grad_outputs_none[0] else gy1,
+            0 if self.expect_grad_outputs_none[1] else gy2,
+            0 if self.expect_grad_grad_inputs_none[0] else ggx1,
+            0 if self.expect_grad_grad_inputs_none[1] else ggx2)
         return gx1, gx2, ggy1, ggy2
 
 
@@ -271,8 +259,9 @@ class TestFunctionTestSuccessfulNoneGrads(testing.FunctionTestCase):
 
     def forward(self, inputs, device):
         func = FuncCorrectlyImplemented(
-            device, allow_grad_outputs_none=True,
-            allow_grad_grad_inputs_none=True)
+            device,
+            expect_grad_outputs_none=(True, False),
+            expect_grad_grad_inputs_none=(False, True))
         return func.apply(inputs)
 
     def forward_expected(self, inputs):
@@ -322,8 +311,8 @@ class TestFunctionTestIncorrectForward(testing.FunctionTestCase):
 # This test checks if it can detect incorrect backward implementation.
 
 class FuncWithIncorrectBackward(chainer.FunctionNode):
-    def __init__(self, allow_grad_outputs_none=False):
-        self.allow_grad_outputs_none = allow_grad_outputs_none
+    def __init__(self, expect_grad_outputs_none=(False, False)):
+        self.expect_grad_outputs_none = expect_grad_outputs_none
 
     def forward(self, inputs):
         x1, x2 = inputs
@@ -335,7 +324,9 @@ class FuncWithIncorrectBackward(chainer.FunctionNode):
         gy1, gy2 = grad_outputs
         x1, x2 = self.get_retained_inputs()
         ggx1, ggx2 = _backward_correct(
-            x1, x2, gy1, gy2, none_gy_as_zero=self.allow_grad_outputs_none)
+            x1, x2,
+            0 if self.expect_grad_outputs_none[0] else gy1,
+            0 if self.expect_grad_outputs_none[1] else gy2)
         ggx1 = ggx1 + 100000
         ggx2 = ggx2 + 10000  # ! make incorrect
         return utils.force_array(ggx1), utils.force_array(ggx2)
@@ -382,7 +373,8 @@ class TestFunctionTestIncorrectBackwardNoneGrads(testing.FunctionTestCase):
         return grad_outputs
 
     def forward(self, inputs, device):
-        func = FuncWithIncorrectBackward(allow_grad_outputs_none=True)
+        func = FuncWithIncorrectBackward(
+            expect_grad_outputs_none=(True, False))
         return func.apply(inputs)
 
     def forward_expected(self, inputs):
@@ -395,10 +387,11 @@ class TestFunctionTestIncorrectBackwardNoneGrads(testing.FunctionTestCase):
 
 class FuncWithIncorrectDoubleBackward(chainer.FunctionNode):
     def __init__(
-            self, allow_grad_outputs_none=False,
-            allow_grad_grad_inputs_none=False):
-        self.allow_grad_outputs_none = allow_grad_outputs_none
-        self.allow_grad_grad_inputs_none = allow_grad_grad_inputs_none
+            self,
+            expect_grad_outputs_none=(False, False),
+            expect_grad_grad_inputs_none=(False, False)):
+        self.expect_grad_outputs_none = expect_grad_outputs_none
+        self.expect_grad_grad_inputs_none = expect_grad_grad_inputs_none
 
     def forward(self, inputs):
         x1, x2 = inputs
@@ -410,33 +403,38 @@ class FuncWithIncorrectDoubleBackward(chainer.FunctionNode):
         x1, x2 = self.get_retained_inputs()
         gy1, gy2 = grad_outputs
         grad_func = FuncGradWithIncorrectDoubleBackward(
-            allow_grad_outputs_none=self.allow_grad_outputs_none,
-            allow_grad_grad_inputs_none=self.allow_grad_grad_inputs_none)
+            expect_grad_outputs_none=self.expect_grad_outputs_none,
+            expect_grad_grad_inputs_none=self.expect_grad_grad_inputs_none)
         return grad_func.apply((x1, x2, gy1, gy2))
 
 
 class FuncGradWithIncorrectDoubleBackward(chainer.FunctionNode):
     def __init__(
-            self, allow_grad_outputs_none=False,
-            allow_grad_grad_inputs_none=False):
-        self.allow_grad_outputs_none = allow_grad_outputs_none
-        self.allow_grad_grad_inputs_none = allow_grad_grad_inputs_none
+            self,
+            expect_grad_outputs_none=(False, False),
+            expect_grad_grad_inputs_none=(False, False)):
+        self.expect_grad_outputs_none = expect_grad_outputs_none
+        self.expect_grad_grad_inputs_none = expect_grad_grad_inputs_none
 
     def forward(self, inputs_and_grad_outputs):
         x1, x2, gy1, gy2 = inputs_and_grad_outputs
         self.retain_inputs((0, 1, 2, 3))
 
         ggx1, ggx2 = _backward_correct(
-            x1, x2, gy1, gy2, none_gy_as_zero=self.allow_grad_outputs_none)
+            x1, x2,
+            0 if self.expect_grad_outputs_none[0] else gy1,
+            0 if self.expect_grad_outputs_none[1] else gy2)
         return utils.force_array(ggx1), utils.force_array(ggx2)
 
     def backward(self, indexes, grad_grad_inputs):
         ggx1, ggx2 = grad_grad_inputs
         x1, x2, gy1, gy2 = self.get_retained_inputs()
         gx1, gx2, ggy1, ggy2 = _double_backward_correct(
-            x1, x2, gy1, gy2, ggx1, ggx2,
-            none_gy_as_zero=self.allow_grad_outputs_none,
-            none_ggx_as_zero=self.allow_grad_grad_inputs_none)
+            x1, x2,
+            0 if self.expect_grad_outputs_none[0] else gy1,
+            0 if self.expect_grad_outputs_none[1] else gy2,
+            0 if self.expect_grad_grad_inputs_none[0] else ggx1,
+            0 if self.expect_grad_grad_inputs_none[1] else ggx2)
         ggy2 = ggy2 + 10000  # ! make incorrect
         return gx1, gx2, ggy1, ggy2
 
@@ -491,8 +489,8 @@ class TestFunctionTestIncorrectDoubleBackwardNoneGrads(
 
     def forward(self, inputs, device):
         func = FuncWithIncorrectDoubleBackward(
-            allow_grad_outputs_none=True,
-            allow_grad_grad_inputs_none=True)
+            expect_grad_outputs_none=(True, False),
+            expect_grad_grad_inputs_none=(False, True))
         return func.apply(inputs)
 
     def forward_expected(self, inputs):
