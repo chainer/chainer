@@ -610,7 +610,10 @@ Note:
     _docs.set_doc(
         chainerx.linalg.cholesky,
         """cholesky(a)
-Returns the Cholesky decomposition for the square matrix ``a``.
+Computes the Cholesky decomposition of a matrix.
+
+Returns the Cholesky decomposition, :math:`A = L L^T`,
+for the square matrix ``a``.
 
 Args:
     a (~chainerx.ndarray): Hermitian (symmetric if all elements are real),
