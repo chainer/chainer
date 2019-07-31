@@ -1,3 +1,4 @@
+import itertools
 import unittest
 
 import numpy
@@ -12,11 +13,32 @@ from chainer.utils import force_array
 from chainer.utils import type_check
 
 
-def _random_select(prob, params):
+def _testing_pairwise(*parameters):
     rs = numpy.random.RandomState(seed=0)
-    for p in params:
-        if rs.rand() < prob:
-            yield p
+    parameters = [list(enumerate(dicts)) for dicts in parameters]
+
+    uncovered = {}
+    for (i, dicts_i), (j, dicts_j) in itertools.combinations(
+            enumerate(parameters), 2):
+        uncovered[(i, j)] = set(itertools.product(
+            range(len(dicts_i)), range(len(dicts_j))))
+
+    product_dicts = list(itertools.product(*parameters))
+    rs.shuffle(product_dicts)
+    for product_dict in product_dicts:
+        count = 0
+        ks, dicts = zip(*product_dict)
+        for (i, k_i), (j, k_j) in itertools.combinations(
+                enumerate(ks), 2):
+            # uncovered[(i, j)].discard((k_i, k_j))
+            try:
+                uncovered[(i, j)].remove((k_i, k_j))
+            except KeyError:
+                pass
+            else:
+                count += 1
+        if count > 0:
+            yield {k: v for dic in dicts for k, v in dic.items()}
 
 
 def accuracy(x, t, ignore_label):
@@ -44,9 +66,8 @@ def accuracy(x, t, ignore_label):
         return float(count) / total
 
 
-@testing.parameterize(*_random_select(
-    0.3,
-    testing.product_dict(
+@testing.parameterize(
+    *_testing_pairwise(
         [{'x_shape': (10, 3), 't_shape': (10,)},
          {'x_shape': (10, 3, 1), 't_shape': (10,)},
          {'x_shape': (10, 3, 1, 1), 't_shape': (10,)},
@@ -65,7 +86,7 @@ def accuracy(x, t, ignore_label):
          {'label_dtype': numpy.int32},
          {'label_dtype': numpy.int64}]
     )
-))
+)
 @testing.fix_random()
 @testing.inject_backend_tests(
     None,
