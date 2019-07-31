@@ -275,6 +275,9 @@ class FunctionTestBase(object):
             grad_outputs = self._generate_grad_outputs(outputs)
             grad_grad_inputs = self._generate_grad_grad_inputs(inputs)
 
+            # Generated `grad_grad_inputs`, the upstream gradients for the
+            # double backward test, may contain `None` for omitted gradients.
+            # These must be propagated to the gradient check.
             # Drop ggx corresponding to non-differentiable inputs.
             grad_grad_inputs = [
                 ggx for ggx in grad_grad_inputs
@@ -348,13 +351,13 @@ class FunctionTestCase(FunctionTestBase, unittest.TestCase):
 
     ``generate_grad_outputs(self, outputs_template)``
         Returns a tuple of output gradient arrays of type
-        :class:`numpy.ndarray`.
+        :class:`numpy.ndarray` or ``None`` for omitted the gradients.
         ``outputs_template`` is a tuple of template arrays. The returned arrays
         are expected to have the same shapes and dtypes as the template arrays.
 
     ``generate_grad_grad_inputs(self, inputs_template)``
         Returns a tuple of the second order input gradient arrays of type
-        :class:`numpy.ndarray`.
+        :class:`numpy.ndarray` or ``None`` for omitted gradients.
         ``input_template`` is a tuple of template arrays. The returned arrays
         are expected to have the same shapes and dtypes as the template arrays.
 
