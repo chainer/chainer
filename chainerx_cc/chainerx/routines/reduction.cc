@@ -180,11 +180,11 @@ Array Nansum(const Array& a, const OptionalAxes& axis, bool keepdims) {
                 for (auto axis : sorted_axis) {
                     out_shape_broadcastable.insert(out_shape_broadcastable.begin() + axis, 1);
                 }
-                Array input_grad = gout.Reshape(out_shape_broadcastable).BroadcastTo(in_shape);
-                bctx.input_grad() = Where(IsNan(input_grad), 0, input_grad);
+                Array input_grad = Where(IsNan(gout), 0, gout);
+                bctx.input_grad() = input_grad.Reshape(out_shape_broadcastable).BroadcastTo(in_shape);
             } else {
-                Array input_grad = gout.BroadcastTo(in_shape);
-                bctx.input_grad() = Where(IsNan(input_grad), 0, input_grad);
+                Array input_grad = Where(IsNan(gout), 0, gout);
+                bctx.input_grad() = input_grad.BroadcastTo(in_shape);
             }
         });
     }
