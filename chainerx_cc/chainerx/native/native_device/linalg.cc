@@ -157,9 +157,9 @@ public:
         CHAINERX_ASSERT(a.ndim() == 2);
         CHAINERX_ASSERT(a.shape()[0] == a.shape()[1]);
 
-        VisitFloatingPointDtype(a.dtype(), [&](auto pt) {
+        VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
             using T = typename decltype(pt)::type;
-            SolveImpl<T>(a, b, out);
+            SolveImpl<T>(a.dtype() == out.dtype() ? a : a.AsType(out.dtype()), b.dtype() == out.dtype() ? b : b.AsType(out.dtype()), out);
         });
 #else  // CHAINERX_ENABLE_LAPACK
         (void)a;  // unused
