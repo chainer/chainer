@@ -165,6 +165,7 @@ class TestSplitAxis(testing.FunctionTestCase):
             for a in outputs_template])
 
         if self.grad_outputs_is_none is not None:
+            assert len(self.grad_outputs_is_none) == len(grad_outputs)
             grad_outputs = tuple(
                 None if is_none else g for is_none, g,
                 in six.moves.zip(self.grad_outputs_is_none, grad_outputs))
