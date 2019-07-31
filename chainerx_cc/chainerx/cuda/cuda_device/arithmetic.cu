@@ -287,18 +287,21 @@ __device__ T ModSignedIntegerImpl(T x, T y) {
     if (x == 0 || y == 0) {
         return 0;
     }
+    T z = abs(x) % abs(y);
     if (x < 0) {
         if (y > 0) {
-            T z = (-x) % y;
+            //T z = (-x) % y;
             return z == 0 ? 0 : y - z;
         }
-        return -(-x % (-y));
+        //return -(-x % (-y));
+        return -z;
     }
     if (y < 0) {
-        T z = x % (-y);
+        //T z = x % (-y);
         return z == 0 ? 0 : y + z;
     }
-    return x % y;
+    //return x % y;
+    return z;
 }
 __device__ int8_t Mod(int8_t x, int8_t y) { return ModSignedIntegerImpl(x, y); }
 __device__ int16_t Mod(int16_t x, int16_t y) { return ModSignedIntegerImpl(x, y); }
@@ -315,18 +318,21 @@ __device__ T ModFloatImpl(T x, T y) {
     if (x == 0 || y == 0) {
         return 0;
     }
+    T z = std::fmod(std::fabs(x), std::fabs(y));
     if (x < 0) {
         if (y > 0) {
-            T z = std::fmod(-x, y);
+            //T z = std::fmod(-x, y);
             return z == 0 ? 0 : y - z;
         }
-        return -std::fmod(-x, -y);
+        //return -std::fmod(-x, -y);
+        return -z;
     }
     if (y < 0) {
-        T z = std::fmod(x, -y);
+        //T z = std::fmod(x, -y);
         return z == 0 ? 0 : y + z;
     }
-    return std::fmod(x, y);
+    //return std::fmod(x, y);
+    return z;
 }
 __device__ double Mod(double x, double y) { return ModFloatImpl(x, y); }
 __device__ float Mod(float x, float y) { return ModFloatImpl(x, y); }
