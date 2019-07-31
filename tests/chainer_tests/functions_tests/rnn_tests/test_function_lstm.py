@@ -38,6 +38,9 @@ def inject_backend_tests(method_names):
         {'c_shape': (20, 32, 4), 'x_shape': (16, 128, 4)},
         {'c_shape': (32, 100, 3, 5), 'x_shape': (32, 400, 3, 5)},
         {'c_shape': (16, 20), 'x_shape': (2, 80)},
+        {'c_shape': (16, 20), 'x_shape': (0, 80)},
+        {'c_shape': (0, 0), 'x_shape': (0, 0)},
+        {'c_shape': (8, 0), 'x_shape': (2, 0)},
     ], [
         {'dtype': numpy.float16},
         {'dtype': numpy.float32},
