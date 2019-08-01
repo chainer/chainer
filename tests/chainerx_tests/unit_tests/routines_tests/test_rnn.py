@@ -89,10 +89,10 @@ class TestNStepLstm(op_utils.ChainerOpTest):
         h, c, ws, bs, xs = self.process_input(inputs)
         out = chainerx.n_step_lstm(self.n_layers, h, c, ws, bs, xs)
         rets = []
-        rets.append(out[0][0])
-        rets.append(out[0][1])
-        for i in range(len(out[1])):
-            rets.append(out[1][i])
+        rets.append(out[0])
+        rets.append(out[1])
+        for i in range(len(out[2])):
+            rets.append(out[2][i])
         return tuple(rets)
 
     def forward_chainer(self, inputs):
