@@ -275,10 +275,10 @@ class FunctionTestBase(object):
             grad_outputs = self._generate_grad_outputs(outputs)
             grad_grad_inputs = self._generate_grad_grad_inputs(inputs)
 
+            # Drop ggx corresponding to non-differentiable inputs.
             # Generated `grad_grad_inputs`, the upstream gradients for the
             # double backward test, may contain `None` for omitted gradients.
             # These must be propagated to the gradient check.
-            # Drop ggx corresponding to non-differentiable inputs.
             grad_grad_inputs = [
                 ggx for ggx in grad_grad_inputs
                 if (ggx is None or ggx.dtype.kind == 'f')]
