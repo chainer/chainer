@@ -3,8 +3,8 @@ import unittest
 import numpy as np
 
 import chainer
-from chainer import testing
 from chainer.dataset import tabular
+from chainer import testing
 
 
 class TestFromData(unittest.TestCase):
