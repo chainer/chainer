@@ -188,6 +188,13 @@ if(${CHAINERX_BUILD_CUDA})
         list(APPEND CUDA_NVCC_FLAGS --generate-code=arch=compute_70,code=sm_70)
     endif()
 
+    # cuSOLVER requires OpenMP
+    if(MSVC)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /openmp")
+    else()
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
+    endif()
+
     if(MSVC)
         if(CMAKE_CXX_COMPILER_ID MATCHES "GCC|Clang")
             list(APPEND CUDA_NVCC_FLAGS -Xcompiler /MD)
