@@ -866,6 +866,16 @@ void InitChainerxSorting(pybind11::module& m) {
           [](const ArrayBodyPtr& a, const absl::optional<int8_t>& axis) { return MoveArrayBody(ArgMin(Array{a}, ToAxes(axis))); },
           "a"_a,
           "axis"_a = nullptr);
+    m.def("count_nonzero",
+          [](const ArrayBodyPtr& a, int8_t axis) { return MoveArrayBody(CountNonzero(Array{a}, Axes{axis})); },
+          "a"_a,
+          "axis"_a);
+    m.def("count_nonzero",
+          [](const ArrayBodyPtr& a, const absl::optional<std::vector<int8_t>>& axis) {
+              return MoveArrayBody(CountNonzero(Array{a}, ToAxes(axis)));
+          },
+          "a"_a,
+          "axis"_a = nullptr);
 }
 
 void InitChainerxStatistics(pybind11::module& m) {
