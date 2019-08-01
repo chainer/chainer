@@ -32,7 +32,7 @@ ArrayBodyPtr MakeArray(pybind11::handle object, pybind11::handle dtype, bool cop
 
 ArrayBodyPtr MakeArray(pybind11::handle object, const absl::optional<Dtype>& dtype, bool copy, Device& device);
 
-pybind11::tuple ToTuple(const std::vector<Array>& ary);
+std::vector<ArrayBodyPtr> ToArrayBodyPtr(const std::vector<Array>& ary);
 
 // Makes an array from a NumPy array. Shape, dtype, strides will be kept.
 ArrayBodyPtr MakeArrayFromNumpyArray(pybind11::array array, Device& device);
