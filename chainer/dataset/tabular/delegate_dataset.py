@@ -16,11 +16,11 @@ class DelegateDataset(tabular_dataset.TabularDataset):
     >>> class MyDataset(tabular.DelegateDataset):
     ...
     ...     def __init__(self):
-    ...         super().__init__(tabular.from_data(
+    ...         super().__init__(tabular.from_data((
     ...             ('a', np.arange(10)),
     ...             ('b', self.get_b),
     ...             ('c', [3, 1, 4, 5, 9, 2, 6, 8, 7, 0]),
-    ...             (('d', 'e'), self.get_de)))
+    ...             (('d', 'e'), self.get_de))))
     ...
     ...     def get_b(self, i):
     ...         return 'b[{}]'.format(i)
