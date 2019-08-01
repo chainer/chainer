@@ -2,73 +2,106 @@ import chainer
 from chainer.dataset.tabular import tabular_dataset
 
 
-def from_data(*args, **kwargs):
-    """Create a :class:`~chainer.dataset.TabularDataset` from lists/arrays.
+def from_data(data, size=None):
+    """Create a :class:`~chainer.dataset.TabularDataset` from data.
 
     >>> from chainer.dataset import tabular
     >>>
     >>> dataset = tabular.from_data([0, 1, 2])
     >>> dataset[0]
     0
-    >>> dataset = tabular.from_data([0, 1, 2], [3, 4, 5])
+    >>> dataset = tabular.from_data(([0, 1, 2], [3, 4, 5]))
     >>> dataset[0]
     (0, 3)
-    >>> dataset = tabular.from_data(('a', [0, 1, 2]), ('b', [3, 4, 5]))
+    >>> dataset = tabular.from_data((('a', [0, 1, 2]), ('b', [3, 4, 5])))
     >>> dataset.keys
     ('a', 'b')
     >>> dataset[0]
     (0, 3)
-    >>> dataset = tabular.from_data(a=[0, 1, 2], b=[3, 4, 5])
+    >>> dataset = tabular.from_data({'a': [0, 1, 2], 'b': [3, 4, 5]})
     >>> sorted(dataset[0].items())
     [('a', 0), ('b', 3)]
+    >>> dataset = tabular.from_data(('a', lambda i: i * i), size=10)
+    >>> dataset[5]
+    25
 
     Args:
-        args (list or array or tuple): Data of a column.
-            If this argument is an array or a list,
-            it is treated as :obj:`data`.
-            In this case, the key is generated automatically.
-            Do not rely on the key.
-            If this argument is a tuple, it is treated as :obj:`(key, data)`.
-        kwargs (list or array): Data of a column.
-            The order of columns is determined automatically.
-            Do not rely on the order.
+        data (list, array, callable, tuple, or dict): Data in following format.
+
+            - `list/array`
+            - `(str, list/array/callable)`
+            - `((str, ...), callable)`
+            - `((list/array)/(str, list/array/callable) \
+                /((key, ...), callable), ...)`
+            - `{str: (list/array/callable)/(str, ...): callable, ...}`
+        size (int): The length of the dataset.
+            This argument is required \
+            when no lists/arrays exist in :obj:`data`.
     Return:
         A :class:`~chainer.dataset.TabularDataset`.
-        If only one argument is given, :attr:`mode` is :obj:`None`.
-        If more than one arguments are given as :obj:`args`,
-        :attr:`mode` is :class:`tuple`.
-        If more than one arguments are given as :obj:`kwargs`,
-        :attr:`mode` is :class:`dict`.
     """
-    datasets = []
 
-    for data in args:
-        if isinstance(data, tuple):
-            key, data = data
-        else:
-            key = '_{}'.format(id(data))
+    if isinstance(data, tuple):
+        if len(data) == 2:
+            key, d = data
+            if isinstance(key, str):
+                return _make_dataset(key, d, size)
+            if isinstance(key, tuple) and all(isinstance(k, str) for k in key):
+                return _make_dataset(key, d, size)
 
-        if isinstance(data, chainer.get_array_types()):
-            datasets.append(_Array(key, data))
-        elif isinstance(data, list):
-            datasets.append(_List(key, data))
+        for d in data:
+            if isinstance(d, tuple):
+                _, d = d
 
-    for key, data in kwargs.items():
-        if isinstance(data, chainer.get_array_types()):
-            datasets.append(_Array(key, data))
-        elif isinstance(data, list):
-            datasets.append(_List(key, data))
+            if size is None:
+                try:
+                    size = len(d)
+                except TypeError:
+                    pass
 
-    if len(datasets) == 1:
-        return datasets[0]
-    elif args and kwargs:
-        raise ValueError('Mixture of args and kwargs is not supported')
-    elif args:
+        datasets = []
+        for d in data:
+            if isinstance(d, tuple):
+                key, d = d
+            else:
+                key = None
+            datasets.append(_make_dataset(key, d, size))
+
         return datasets[0].join(*datasets[1:]).as_tuple()
-    elif kwargs:
+
+    elif isinstance(data, dict):
+        for d in data.values():
+            if size is None:
+                try:
+                    size = len(d)
+                except TypeError:
+                    pass
+
+        datasets = []
+        for key, d in data.items():
+            datasets.append(_make_dataset(key, d, size))
+
         return datasets[0].join(*datasets[1:]).as_dict()
+
     else:
-        raise ValueError('At least one data must be passed')
+        return _make_dataset(None, data, size)
+
+
+def _make_dataset(key, data, size):
+    if isinstance(data, chainer.get_array_types()):
+        if key is None:
+            key = '_{}'.format(id(data))
+        return _Array(key, data)
+    elif isinstance(data, list):
+        if key is None:
+            key = '_{}'.format(id(data))
+        return _List(key, data)
+    elif callable(data):
+        if key is None:
+            raise ValueError('key(s) must be specified for callable')
+        if size is None:
+            raise ValueError('size must be specified for callable')
+        return _Index(size).transform(key, data)
 
 
 class _Array(tabular_dataset.TabularDataset):
@@ -126,3 +159,32 @@ class _List(tabular_dataset.TabularDataset):
         else:
             return ([self._data[index] for index in indices],) \
                 * len(key_indices)
+
+
+class _Index(tabular_dataset.TabularDataset):
+
+    def __init__(self, size):
+        self._len = size
+
+    def __len__(self):
+        return self._len
+
+    @property
+    def keys(self):
+        return 'index',
+
+    @property
+    def mode(self):
+        return None
+
+    def get_examples(self, indices, key_indices):
+        if indices is None:
+            indices = slice(None)
+        if isinstance(indices, slice):
+            start, stop, step = indices.indices(len(self))
+            indices = list(range(start, stop, step))
+
+        if key_indices is None:
+            key_indices = 0,
+
+        return (indices,) * len(key_indices)
