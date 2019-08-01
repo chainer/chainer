@@ -3,7 +3,7 @@ from chainer.dataset.tabular import tabular_dataset
 
 
 def from_data(data, size=None):
-    """Create a :class:`~chainer.dataset.TabularDataset` from data.
+    """Create a TabularDataset from lists/arrays/callables.
 
     >>> from chainer.dataset import tabular
     >>>
