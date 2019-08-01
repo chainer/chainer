@@ -51,27 +51,9 @@ class DelegateDataset(tabular_dataset.TabularDataset):
     def keys(self):
         return self._dataset.keys
 
-    @keys.setter
-    def keys(self, keys):
-        self._dataset = self._dataset.slice[:, keys]
-
     @property
     def mode(self):
         return self._dataset.mode
-
-    @mode.setter
-    def mode(self, mode):
-        if mode is tuple:
-            self._dataset = self._dataset.as_tuple()
-        elif mode is dict:
-            self._dataset = self._dataset.as_dict()
-        elif mode is None:
-            if len(self._dataset.keys) == 1:
-                self._dataset = self._dataset.slice[:, 0]
-            else:
-                raise ValueError('Unary mode requires just one column')
-        else:
-            raise ValueError('Unknown mode: {}'.format(mode))
 
     def get_examples(self, indices, key_indices):
         return self._dataset.get_examples(indices, key_indices)
