@@ -70,6 +70,7 @@ Batch Conversion Function
    :toctree: generated/
    :nosignatures:
 
+   chainer.dataset.Converter
    chainer.dataset.converter
 
    chainer.dataset.concat_examples
