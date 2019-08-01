@@ -35,6 +35,10 @@ class DelegateDataset(tabular_dataset.TabularDataset):
     ('a', 'b', 'c', 'd', 'e')
     >>> dataset[0]
     (0, 'b[0]', 3, 'd[0]', 'e[0]')
+
+    Args:
+        dataset (chainer.dataset.TabularDataset): An underlying dataset.
+
     """
 
     def __init__(self, dataset):
