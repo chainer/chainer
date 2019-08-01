@@ -1,4 +1,5 @@
 import itertools
+import typing as tp  # NOQA
 import unittest
 
 import numpy
@@ -13,38 +14,38 @@ from chainer.utils import force_array
 from chainer.utils import type_check
 
 
-def _testing_pairwise(*parameters):
+def _testing_pairwise(
+        *parameters  # type: tp.Iterable[tp.Dict[str, tp.Any]]
+):
+    # type: (...) -> tp.Iterator[tp.Dict[str, tp.Any]]
     """Generate combinations that cover all pairs.
 
     The argument is the same as `chainer.testing.product_dict`.
 
     """
-    # parameters: [[dict<str, _>]]
-    parameters = [list(dicts) for dicts in parameters]
+    parameter_lists = [list(dicts) for dicts in parameters]  # type: tp.List[tp.List[tp.Dict[str, tp.Any]]]  # NOQA
 
     for nd_index in sorted(_nd_indices_to_cover_each_2d(
-            [len(dicts) for dicts in parameters])):
+            [len(dicts) for dicts in parameter_lists])):
         yield {
             k: v
-            for i, dicts in zip(nd_index, parameters)
+            for i, dicts in zip(nd_index, parameter_lists)
             for k, v in dicts[i].items()}
 
 
 def _nd_indices_to_cover_each_2d(shape):
+    # type: (tp.Sequence[int]) -> tp.Iterator[tp.Tuple[int, ...]]
     rs = numpy.random.RandomState(seed=0)
     n = len(shape)
-    # indices: [[int]]
-    indices = [list(range(length)) for length in shape]
+    indices = [list(range(length)) for length in shape]  # type: tp.List[tp.List[int]]  # NOQA
 
-    # uncovered: dict<(int, int), set<(int, int)>>
     # `(k_i, k_j) in uncovered[(i, j)]` iff it has not been yielded
     # `nd_index` such that `(nd_index[i], nd_inde[j]) == (k_i, k_j)`.
-    uncovered = {}
+    uncovered = {}  # type: tp.Dict[tp.Tuple[int, int], tp.Set[tp.Tuple[int, int]]]  # NOQA
     for i, j in itertools.combinations(range(n), 2):
         uncovered[(i, j)] = set(itertools.product(indices[i], indices[j]))
 
-    # nd_indices: [[int]]
-    nd_indices = list(itertools.product(*indices))
+    nd_indices = list(itertools.product(*indices))  # type: tp.List[tp.Tuple[int, ...]]  # NOQA
     rs.shuffle(nd_indices)
     for nd_index in nd_indices:
         count = 0
