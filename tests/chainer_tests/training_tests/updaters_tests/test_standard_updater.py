@@ -477,7 +477,7 @@ class TestStandardUpdaterDataTypes(unittest.TestCase):
 
 
 @testing.parameterize(*testing.product({
-    'converter_style': ['old', 'new'],
+    'converter_style': ['old', 'decorator', 'class'],
     'next_data_converted': [None, 'converted'],
 }))
 @chainer.testing.backend.inject_backend_tests(
@@ -527,18 +527,38 @@ class TestStandardUpdaterCustomConverter(unittest.TestCase):
     def get_converter(self, converter_func):
         if self.converter_style == 'old':
             return converter_func
-        if self.converter_style == 'new':
+
+        if self.converter_style == 'decorator':
             @chainer.dataset.converter()
             def wrapped_converter(*args, **kwargs):
                 return converter_func(*args, **kwargs)
 
             return wrapped_converter
+
+        if self.converter_style == 'class':
+            class MyConverter(dataset.Converter):
+                def __call__(self, *args, **kwargs):
+                    return converter_func(*args, **kwargs)
+
+            return MyConverter()
+
         assert False
+
+    def test_converter_type(self):
+        # Ensures that new-style converters inherit from dataset.Converter.
+
+        def converter_impl(batch, device):
+            pass
+
+        converter = self.get_converter(converter_impl)
+
+        if self.converter_style in ('decorator', 'class'):
+            assert isinstance(converter, dataset.Converter)
 
     def check_converter_received_device_arg(
             self, received_device_arg, device_arg):
 
-        new_style = self.converter_style == 'new'
+        new_style = self.converter_style in ('decorator', 'class')
 
         # None
         if device_arg is None:
