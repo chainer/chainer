@@ -16,14 +16,15 @@ from chainer_tests.dataset_tests.tabular_tests import dummy_dataset
 class TestDelegateDataset(unittest.TestCase):
 
     def test_delegate_dataset(self):
-        base_dataset = dummy_dataset.DummyDataset(mode=self.mode)
-        dataset = tabular.DelegateDataset(base_dataset)
+        dataset = tabular.DelegateDataset(
+            dummy_dataset.DummyDataset(mode=self.mode))
 
         self.assertIsInstance(dataset, chainer.dataset.TabularDataset)
-        self.assertEqual(len(dataset), len(base_dataset))
-        self.assertEqual(dataset.keys, base_dataset.keys)
-        self.assertEqual(dataset.mode, base_dataset.mode)
-        self.assertEqual(dataset.get_example(3), base_dataset.get_example(3))
+        self.assertEqual(len(dataset), len(dataset.dataset))
+        self.assertEqual(dataset.keys, dataset.dataset.keys)
+        self.assertEqual(dataset.mode, dataset.dataset.mode)
+        self.assertEqual(
+            dataset.get_example(3), dataset.dataset.get_example(3))
 
 
 testing.run_module(__name__, __file__)

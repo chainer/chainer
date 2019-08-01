@@ -42,18 +42,18 @@ class DelegateDataset(tabular_dataset.TabularDataset):
     """
 
     def __init__(self, dataset):
-        self._dataset = dataset
+        self.dataset = dataset
 
     def __len__(self):
-        return len(self._dataset)
+        return len(self.dataset)
 
     @property
     def keys(self):
-        return self._dataset.keys
+        return self.dataset.keys
 
     @property
     def mode(self):
-        return self._dataset.mode
+        return self.dataset.mode
 
     def get_examples(self, indices, key_indices):
-        return self._dataset.get_examples(indices, key_indices)
+        return self.dataset.get_examples(indices, key_indices)
