@@ -96,10 +96,10 @@ class TestNStepLstm(op_utils.ChainerOpTest):
         h, c, ws, bs, xs = self.process_input(inputs)
         out = chainerx.n_step_lstm(self.n_layers, h, c, ws, bs, xs)
         rets = []
-        rets.append(out[0][0])
-        rets.append(out[0][1])
-        for i in range(len(out[1])):
-            rets.append(out[1][i])
+        rets.append(out[0])
+        rets.append(out[1])
+        for i in range(len(out[2])):
+            rets.append(out[2][i])
         return tuple(rets)
 
     def forward_chainer(self, inputs):
@@ -206,10 +206,10 @@ class TestNStepBiLstm(op_utils.ChainerOpTest):
         h, c, ws, bs, xs = self.process_input(inputs)
         out = chainerx.n_step_bilstm(self.n_layers, h, c, ws, bs, xs)
         rets = []
-        rets.append(out[0][0])
-        rets.append(out[0][1])
-        for i in range(len(out[1])):
-            rets.append(out[1][i])
+        rets.append(out[0])
+        rets.append(out[1])
+        for i in range(len(out[2])):
+            rets.append(out[2][i])
         return tuple(rets)
 
     def forward_chainer(self, inputs):
@@ -306,7 +306,7 @@ class TestNStepGru(op_utils.ChainerOpTest):
         h, ws, bs, xs = self.process_input(inputs)
         out = chainerx.n_step_gru(self.n_layers, h, ws, bs, xs)
         rets = []
-        rets.append(out[0][0])
+        rets.append(out[0])
         for i in range(len(out[1])):
             rets.append(out[1][i])
         return tuple(rets)
@@ -411,7 +411,7 @@ class TestNStepBiGRU(op_utils.ChainerOpTest):
         h, ws, bs, xs = self.process_input(inputs)
         out = chainerx.n_step_bigru(self.n_layers, h, ws, bs, xs)
         rets = []
-        rets.append(out[0][0])
+        rets.append(out[0])
         for i in range(len(out[1])):
             rets.append(out[1][i])
         return tuple(rets)
@@ -516,7 +516,7 @@ class TestNStepRNN(op_utils.ChainerOpTest):
         out = chainerx.n_step_rnn(
             self.n_layers, h, ws, bs, xs, self.activation)
         rets = []
-        rets.append(out[0][0])
+        rets.append(out[0])
         for i in range(len(out[1])):
             rets.append(out[1][i])
         return tuple(rets)
@@ -627,7 +627,7 @@ class TestNStepBiRNN(op_utils.ChainerOpTest):
         out = chainerx.n_step_birnn(
             self.n_layers, h, ws, bs, xs, self.activation)
         rets = []
-        rets.append(out[0][0])
+        rets.append(out[0])
         for i in range(len(out[1])):
             rets.append(out[1][i])
         return tuple(rets)

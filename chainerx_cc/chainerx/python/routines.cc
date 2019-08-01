@@ -948,7 +948,13 @@ void InitChainerxConnection(pybind11::module& m) {
           "b"_a = nullptr,
           "n_batch_axes"_a = 1);
     m.def("lstm",
-          [](const ArrayBodyPtr& c, const ArrayBodyPtr& x) { return ToTuple(lstm(Array{c}, Array{x})); },
+          [](const ArrayBodyPtr& c, const ArrayBodyPtr& x) {
+            std::vector<ArrayBodyPtr> out= ToArrayBodyPtr(lstm(Array{c}, Array{x}));
+            py::tuple ret{2};
+            ret[0] = out[1];
+            ret[1] = out[0];
+            return ret;
+          },
           py::arg("c"),
           py::arg("x"));
 }
@@ -1089,9 +1095,12 @@ void InitChainerxRNN(pybind11::module& m) {
                   xs.push_back(Array{inputs[i]});
               }
               std::vector<std::vector<Array>> out = n_step_lstm(n_layers, Array{hx}, Array{cx}, ws, bs, xs);
-              std::vector<py::tuple> ret;
-              ret.push_back(ToTuple(out[0]));
-              ret.push_back(ToTuple(out[1]));
+              py::tuple ret{3};
+              std::vector<ArrayBodyPtr> states = ToArrayBodyPtr(out[0]);
+              std::vector<ArrayBodyPtr> ys = ToArrayBodyPtr(out[1]);
+              ret[0] = states[0];
+              ret[1] = states[1];
+              ret[2] = ys;
               return ret;
           });
     m.def("n_step_bilstm",
@@ -1118,9 +1127,12 @@ void InitChainerxRNN(pybind11::module& m) {
                   xs.push_back(Array{inputs[i]});
               }
               std::vector<std::vector<Array>> out = n_step_bilstm(n_layers, Array{hx}, Array{cx}, ws, bs, xs);
-              std::vector<py::tuple> ret;
-              ret.push_back(ToTuple(out[0]));
-              ret.push_back(ToTuple(out[1]));
+              py::tuple ret{3};
+              std::vector<ArrayBodyPtr> states = ToArrayBodyPtr(out[0]);
+              std::vector<ArrayBodyPtr> ys = ToArrayBodyPtr(out[1]);
+              ret[0] = states[0];
+              ret[1] = states[1];
+              ret[2] = ys;
               return ret;
           });
     m.def("n_step_gru",
@@ -1146,9 +1158,11 @@ void InitChainerxRNN(pybind11::module& m) {
                   xs.push_back(Array{inputs[i]});
               }
               std::vector<std::vector<Array>> out = n_step_gru(n_layers, Array{hx}, ws, bs, xs);
-              std::vector<py::tuple> ret;
-              ret.push_back(ToTuple(out[0]));
-              ret.push_back(ToTuple(out[1]));
+              py::tuple ret{2};
+              std::vector<ArrayBodyPtr> states = ToArrayBodyPtr(out[0]);
+              std::vector<ArrayBodyPtr> ys = ToArrayBodyPtr(out[1]);
+              ret[0] = states[0];
+              ret[1] = ys;
               return ret;
           });
     m.def("n_step_bigru",
@@ -1174,9 +1188,11 @@ void InitChainerxRNN(pybind11::module& m) {
                   xs.push_back(Array{inputs[i]});
               }
               std::vector<std::vector<Array>> out = n_step_bigru(n_layers, Array{hx}, ws, bs, xs);
-              std::vector<py::tuple> ret;
-              ret.push_back(ToTuple(out[0]));
-              ret.push_back(ToTuple(out[1]));
+              py::tuple ret{2};
+              std::vector<ArrayBodyPtr> states = ToArrayBodyPtr(out[0]);
+              std::vector<ArrayBodyPtr> ys = ToArrayBodyPtr(out[1]);
+              ret[0] = states[0];
+              ret[1] = ys;
               return ret;
           });
     m.def("n_step_rnn",
@@ -1203,9 +1219,11 @@ void InitChainerxRNN(pybind11::module& m) {
                   xs.push_back(Array{inputs[i]});
               }
               std::vector<std::vector<Array>> out = n_step_rnn(n_layers, Array{hx}, ws, bs, xs, activation);
-              std::vector<py::tuple> ret;
-              ret.push_back(ToTuple(out[0]));
-              ret.push_back(ToTuple(out[1]));
+              py::tuple ret{2};
+              std::vector<ArrayBodyPtr> states = ToArrayBodyPtr(out[0]);
+              std::vector<ArrayBodyPtr> ys = ToArrayBodyPtr(out[1]);
+              ret[0] = states[0];
+              ret[1] = ys;
               return ret;
           });
     m.def("n_step_birnn",
@@ -1232,9 +1250,11 @@ void InitChainerxRNN(pybind11::module& m) {
                   xs.push_back(Array{inputs[i]});
               }
               std::vector<std::vector<Array>> out = n_step_birnn(n_layers, Array{hx}, ws, bs, xs, activation);
-              std::vector<py::tuple> ret;
-              ret.push_back(ToTuple(out[0]));
-              ret.push_back(ToTuple(out[1]));
+              py::tuple ret{2};
+              std::vector<ArrayBodyPtr> states = ToArrayBodyPtr(out[0]);
+              std::vector<ArrayBodyPtr> ys = ToArrayBodyPtr(out[1]);
+              ret[0] = states[0];
+              ret[1] = ys;
               return ret;
           });
 }
