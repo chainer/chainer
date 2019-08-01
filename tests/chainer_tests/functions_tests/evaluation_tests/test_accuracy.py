@@ -19,39 +19,38 @@ def _testing_pairwise(*parameters):
     The argument is the same as `chainer.testing.product_dict`.
 
     """
-    # parameters: [[dict<str, _>]]
     rs = numpy.random.RandomState(seed=0)
-    # parameters: [[(int, dict)]]
-    parameters = [list(enumerate(dicts)) for dicts in parameters]
+    # parameters: [[dict<str, _>]]
+    parameters = [list(dicts) for dicts in parameters]
+    n = len(parameters)
+    # indices: [[int]]
+    indices = [list(range(len(dicts))) for dicts in parameters]
 
     # uncovered: dict<(int, int), set<(int, int)>>
     # `(k_i, k_j) in uncovered[(i, j)]` iff there has not been a combination
     # that selects k_i-th item of i-th choice and k_j-th item of j-th choice.
     uncovered = {}
-    for (i, dicts_i), (j, dicts_j) in itertools.combinations(
-            enumerate(parameters), 2):
-        uncovered[(i, j)] = set(itertools.product(
-            range(len(dicts_i)), range(len(dicts_j))))
+    for i, j in itertools.combinations(range(n), 2):
+        uncovered[(i, j)] = set(itertools.product(indices[i], indices[j]))
 
-    # product_dicts: [[(int, dict)]]
-    product_dicts = list(itertools.product(*parameters))
-    rs.shuffle(product_dicts)
-    for product_dict in product_dicts:
+    # product_indices: [[int]]
+    product_indices = list(itertools.product(*indices))
+    rs.shuffle(product_indices)
+    for ks in product_indices:
         count = 0
-        # ks: [int]
-        # dicts: [dict]
-        ks, dicts = zip(*product_dict)
-        for (i, k_i), (j, k_j) in itertools.combinations(
-                enumerate(ks), 2):
-            # uncovered[(i, j)].discard((k_i, k_j))
+        for i, j in itertools.combinations(range(n), 2):
             try:
-                uncovered[(i, j)].remove((k_i, k_j))
+                uncovered[(i, j)].remove((ks[i], ks[j]))
             except KeyError:
                 pass
             else:
                 count += 1
         if count > 0:
-            yield {k: v for dic in dicts for k, v in dic.items()}
+            # yield "parameters[ks]"
+            yield {
+                key: value
+                for k, dicts in zip(ks, parameters)
+                for key, value in dicts[k].items()}
 
 
 def accuracy(x, t, ignore_label):
