@@ -14,19 +14,32 @@ from chainer.utils import type_check
 
 
 def _testing_pairwise(*parameters):
+    """Generate combinations that cover all pairs.
+
+    The argument is the same as `chainer.testing.product_dict`.
+
+    """
+    # parameters: [[dict<str, _>]]
     rs = numpy.random.RandomState(seed=0)
+    # parameters: [[(int, dict)]]
     parameters = [list(enumerate(dicts)) for dicts in parameters]
 
+    # uncovered: dict<(int, int), set<(int, int)>>
+    # `(k_i, k_j) in uncovered[(i, j)]` iff there has not been a combination
+    # that selects k_i-th item of i-th choice and k_j-th item of j-th choice.
     uncovered = {}
     for (i, dicts_i), (j, dicts_j) in itertools.combinations(
             enumerate(parameters), 2):
         uncovered[(i, j)] = set(itertools.product(
             range(len(dicts_i)), range(len(dicts_j))))
 
+    # product_dicts: [[(int, dict)]]
     product_dicts = list(itertools.product(*parameters))
     rs.shuffle(product_dicts)
     for product_dict in product_dicts:
         count = 0
+        # ks: [int]
+        # dicts: [dict]
         ks, dicts = zip(*product_dict)
         for (i, k_i), (j, k_j) in itertools.combinations(
                 enumerate(ks), 2):
