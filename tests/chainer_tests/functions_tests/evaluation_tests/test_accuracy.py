@@ -19,38 +19,44 @@ def _testing_pairwise(*parameters):
     The argument is the same as `chainer.testing.product_dict`.
 
     """
-    rs = numpy.random.RandomState(seed=0)
     # parameters: [[dict<str, _>]]
     parameters = [list(dicts) for dicts in parameters]
-    n = len(parameters)
+
+    for nd_index in sorted(_nd_indices_to_cover_each_2d(
+            [len(dicts) for dicts in parameters])):
+        yield {
+            k: v
+            for i, dicts in zip(nd_index, parameters)
+            for k, v in dicts[i].items()}
+
+
+def _nd_indices_to_cover_each_2d(shape):
+    rs = numpy.random.RandomState(seed=0)
+    n = len(shape)
     # indices: [[int]]
-    indices = [list(range(len(dicts))) for dicts in parameters]
+    indices = [list(range(length)) for length in shape]
 
     # uncovered: dict<(int, int), set<(int, int)>>
-    # `(k_i, k_j) in uncovered[(i, j)]` iff there has not been a combination
-    # that selects k_i-th item of i-th choice and k_j-th item of j-th choice.
+    # `(k_i, k_j) in uncovered[(i, j)]` iff it has not been yielded
+    # `nd_index` such that `(nd_index[i], nd_inde[j]) == (k_i, k_j)`.
     uncovered = {}
     for i, j in itertools.combinations(range(n), 2):
         uncovered[(i, j)] = set(itertools.product(indices[i], indices[j]))
 
-    # product_indices: [[int]]
-    product_indices = list(itertools.product(*indices))
-    rs.shuffle(product_indices)
-    for ks in product_indices:
+    # nd_indices: [[int]]
+    nd_indices = list(itertools.product(*indices))
+    rs.shuffle(nd_indices)
+    for nd_index in nd_indices:
         count = 0
         for i, j in itertools.combinations(range(n), 2):
             try:
-                uncovered[(i, j)].remove((ks[i], ks[j]))
+                uncovered[(i, j)].remove((nd_index[i], nd_index[j]))
             except KeyError:
                 pass
             else:
                 count += 1
         if count > 0:
-            # yield "parameters[ks]"
-            yield {
-                key: value
-                for k, dicts in zip(ks, parameters)
-                for key, value in dicts[k].items()}
+            yield nd_index
 
 
 def accuracy(x, t, ignore_label):
