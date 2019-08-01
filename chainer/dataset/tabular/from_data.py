@@ -26,7 +26,7 @@ def from_data(data, size=None):
     25
 
     Args:
-        data (list, array, callable, tuple, or dict): Data in following format.
+        data (list, array, tuple, or dict): Data in following format.
 
             - `list/array`
             - `(str, list/array/callable)`
