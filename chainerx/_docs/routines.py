@@ -2581,3 +2581,39 @@ Note:
    In ``cuda`` backend, only 2 and 3 dim arrays are supported as ``x``
    because cuDNN pooling supports 2 and 3 spatial dimensions.
 """)
+
+    _docs.set_doc(
+        chainerx.embed_id,
+        """embed_id(x, W, ignore_label = None)
+    Efficient linear function for one-hot input.
+    This function implements so called *word embeddings*. It takes two
+    arguments: a set of IDs (words) ``x`` in :math:`B` dimensional integer
+    vector, and a set of all ID (word) embeddings ``W`` in :math:`V \\times d`
+    float matrix. It outputs :math:`B \\times d` matrix whose ``i``-th
+    row is the ``x[i]``-th row of ``W``.
+    This function is only differentiable on the input ``W``.
+    Args:
+        x (:class:`~chainerx.array`):
+            Batch vectors of IDs. Each element must be signed integer.
+        W (:class:`~chainerx.array`):
+            Distributed representation of each ID (a.k.a. word embeddings).
+        ignore_label (:class:`int` or :class:`None`):
+            If ``ignore_label`` is an int value, ``i``-th row of return
+            value is filled with ``0``.
+    Returns:
+        ~chainerx.array: Output variable.
+    .. admonition:: Example
+        >>> x = chainerx.array([2, 1]).astype(chainerx.int32)
+        >>> x
+        array([2, 1], dtype=int32)
+        >>> W = chainerx.array([[0, 0, 0],
+        ...               [1, 1, 1],
+        ...               [2, 2, 2]]).astype(chainerx.float32)
+        >>> W
+        array([[0., 0., 0.],
+               [1., 1., 1.],
+               [2., 2., 2.]], dtype=float32)
+        >>> y = chainerx.embed_id(x, W)
+        array([[2., 2., 2.],
+               [1., 1., 1.]], dtype=float32)
+        """)
