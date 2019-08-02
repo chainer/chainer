@@ -124,8 +124,7 @@ class TestArgmin(op_utils.NumpyOpTest):
         return b,
 
 
-# Add cuda tests after cuda implementation of cumsum is supported.
-@op_utils.op_test(['native:0'])
+@op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize_pytest('input,axis', _count_nonzero_params)
 class TestCountNonzero(op_utils.NumpyOpTest):
 

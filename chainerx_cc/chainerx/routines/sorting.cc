@@ -83,6 +83,7 @@ Array ArgMin(const Array& a, const OptionalAxes& axis) {
 }
 
 Array CountNonzero(const Array& a, const OptionalAxes& axis) {
+    // TODO(aksub99): Fix after NotEqual(Array, Scalar) is supported.
     Array out = (a != ZerosLike(a)).Sum(axis);
     return out;
 }

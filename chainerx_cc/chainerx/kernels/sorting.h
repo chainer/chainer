@@ -20,11 +20,4 @@ public:
     virtual void Call(const Array& a, const Axes& axis, const Array& out) = 0;
 };
 
-class CountNonzero : public Kernel {
-public:
-    static const char* name() { return "CountNonzero"; }
-
-    virtual void Call(const Array& a, const Axes& axis, const Array& out) = 0;
-};
-
 }  // namespace chainerx
