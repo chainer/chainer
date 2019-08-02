@@ -621,6 +621,11 @@ Args:
 Returns:
     :class:`~chainerx.ndarray`: Output array. Cholesky factor of ``a``.
 
+Note:
+    * GPU implementation of the Cholesky decomposition routine is based on
+      cuSOLVER library. Older versions (<10.1) of it might not raise an error
+      for some non positive-definite matrices.
+
 .. seealso:: :func:`numpy.linalg.cholesky`
 """)
 
