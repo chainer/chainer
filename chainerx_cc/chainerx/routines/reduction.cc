@@ -171,9 +171,10 @@ Array Nansum(const Array& a, const OptionalAxes& axis, bool keepdims) {
 
     BackwardBuilder bb{"nansum", a, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-        bt.Define([sorted_axis, in_shape = a.shape(), keepdims](BackwardContext& bctx) {
+        bt.Define([a_tok = bb.RetainInput(0), sorted_axis, in_shape = a.shape(), keepdims](BackwardContext& bctx) {
             const Array& gout = *bctx.output_grad();
-            const Array& input_grad = Where(IsNan(gout), 0, gout);
+            const Array& input = bctx.GetRetainedInput(a_tok);
+            Array& input_grad = bctx.input_grad();
             CHAINERX_ASSERT(std::is_sorted(sorted_axis.begin(), sorted_axis.end()));
 
             if (!(in_shape.ndim() == 0 || sorted_axis.empty() || keepdims)) {
@@ -181,10 +182,11 @@ Array Nansum(const Array& a, const OptionalAxes& axis, bool keepdims) {
                 for (auto axis : sorted_axis) {
                     out_shape_broadcastable.insert(out_shape_broadcastable.begin() + axis, 1);
                 }
-                bctx.input_grad() = input_grad.Reshape(out_shape_broadcastable).BroadcastTo(in_shape);
+                input_grad = gout.Reshape(out_shape_broadcastable).BroadcastTo(in_shape);
             } else {
-                bctx.input_grad() = input_grad.BroadcastTo(in_shape);
+                input_grad = gout.BroadcastTo(in_shape);
             }
+            input_grad = Where(IsNan(input), 0, input_grad);
         });
     }
     bb.Finalize();

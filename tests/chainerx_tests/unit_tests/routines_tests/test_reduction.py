@@ -313,7 +313,10 @@ class TestNansum(math_utils.UnaryMathTestBase, op_utils.NumpyOpTest):
         a, = super().generate_inputs()
         indices = numpy.asarray([i for i in numpy.ndindex(shape)])
         numpy.random.shuffle(indices)
-        num_nans = numpy.random.randint(len(indices))
+        if len(indices) == 0:
+            num_nans = 0
+        else:
+            num_nans = numpy.random.randint(len(indices))
         if num_nans == 0:
             return a,
         nan_indices = indices[:num_nans]
