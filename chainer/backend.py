@@ -53,7 +53,8 @@ def copyto(dst, src):
     if isinstance(dst, chainerx.ndarray):
         dst[...] = _chainerx._array_to_chainerx(src, dst.device)
         return
-    elif isinstance(src, chainerx.ndarray):
+
+    if isinstance(src, chainerx.ndarray):
         src = from_chx(src)
 
     if isinstance(dst, numpy.ndarray):
