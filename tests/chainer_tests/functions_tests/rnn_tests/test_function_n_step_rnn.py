@@ -111,12 +111,6 @@ class TestNStepRNN(testing.FunctionTestCase):
 
     def forward(self, inputs, device):
         h, ws, bs, xs = self.process_inputs(inputs)
-        #if h.array.dtype == numpy.float64:
-        #    with chainer.using_config('use_cudnn', 'never'):
-        #        out = F.n_step_rnn(self.n_layers, 0.0, h,
-        #                           ws, bs, xs, self.activation)
-        #else:
-
         out = F.n_step_rnn(self.n_layers, 0.0, h, ws,
                                bs, xs, self.activation)
         rets = []
