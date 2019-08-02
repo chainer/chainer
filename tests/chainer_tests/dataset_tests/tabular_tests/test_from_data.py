@@ -290,7 +290,7 @@ class TestFromData(unittest.TestCase):
 
         self.assertIsInstance(dataset, chainer.dataset.TabularDataset)
         self.assertEqual(len(dataset), 10)
-        self.assertEqual(dataset.keys, ('a', 'b'))
+        self.assertEqual(set(dataset.keys), {'a', 'b'})
         self.assertEqual(dataset.mode, dict)
 
         output = dataset.slice[[1, 3]].fetch()
