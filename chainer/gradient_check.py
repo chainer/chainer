@@ -429,7 +429,7 @@ class _CheckBackward(object):
         params = _as_tuple(params)
 
         if no_gxs is None:
-            no_gxs = [x.dtype.kind != 'f' for x in xs]
+            no_gxs = [None if x is None else x.dtype.kind != 'f' for x in xs]
         else:
             if len(no_gxs) != len(xs):
                 raise ValueError(
@@ -546,13 +546,14 @@ class _CheckBackward(object):
 
         xp = device.xp
         direction_xs_shapes = [
-            x.shape
-            for x, no_gx in six.moves.zip(xs, no_gxs)
+            None if x is None
+            else x.shape for x, no_gx in six.moves.zip(xs, no_gxs)
             if not no_gx]
         direction_param_shapes = [p.shape for p in params]
         direction_shapes = direction_xs_shapes + direction_param_shapes
         directions = [
-            xp.random.normal(size=shape) for shape in direction_shapes]
+            None if shape is None
+            else xp.random.normal(size=shape) for shape in direction_shapes]
 
         # The direction vector is normalized in order to keep the scale of
         # differentiation error invariant with respect to the number of input
@@ -560,16 +561,19 @@ class _CheckBackward(object):
         # input dimension should be taken into account, but we ignore the
         # differences and assume that the curvature is uniform with respect to
         # all the input dimensions.
-        norm = math.sqrt(sum([xp.square(d).sum() for d in directions]))
+        norm = math.sqrt(
+            sum([0 if d is None else xp.square(d).sum() for d in directions]))
         if norm != 0:
             # norm could be zero if input arrays are 0-sized.
             scale = 1. / norm
-            directions = [d * scale for d in directions]
+            directions = [None if d is None else d * scale for d in directions]
 
         return directions
 
     def _clear_grads(self, xs):
         for x in xs:
+            if x is None:
+                continue
             x.grad_var = None
 
     def _forward_for_backward_gradients(self):
@@ -578,7 +582,8 @@ class _CheckBackward(object):
         params = self.params
 
         xs = [
-            variable.Variable(x, requires_grad=x.dtype.kind == 'f')
+            None if x is None
+            else variable.Variable(x, requires_grad=x.dtype.kind == 'f')
             for x in xs]
 
         if self.is_immutable_params:
@@ -616,7 +621,8 @@ class _CheckBackward(object):
                     'gradient of int variable must be None')
 
         grads = (
-            [x.grad for x, no_gx in six.moves.zip(xs, no_gxs)
+            [None if x is None
+             else x.grad for x, no_gx in six.moves.zip(xs, no_gxs)
              if not no_gx]
             + [p.grad for p in params])
 
@@ -624,6 +630,7 @@ class _CheckBackward(object):
         assert len(grads) == len(directions)
         for g, direction in six.moves.zip(grads, directions):
             if g is not None:
+                assert direction is not None
                 gx_accum += (g.astype(numpy.float64) * direction).sum()
 
         return gx_accum
@@ -660,7 +667,7 @@ class _CheckBackward(object):
                     x.array = x.array.astype(dtype, copy=False)
 
             casted_data = [
-                x.astype(dtype, copy=False)
+                None if x is None else x.astype(dtype, copy=False)
                 for x in xs_filtered + params_data]
 
         delta = xp.array(0., numpy.float64)
@@ -671,6 +678,10 @@ class _CheckBackward(object):
             # See the document of `numerical_grad`.
 
             def perturb(data, direction):
+                if data is None:
+                    assert direction is None
+                    return data
+
                 data = (data.astype(numpy.float64)
                         + delta * direction).astype(data.dtype)
                 if numpy.isscalar(data):
@@ -685,7 +696,8 @@ class _CheckBackward(object):
                     g_x_vars.append(x_var)
                 else:
                     data = perturb(casted_data[j], directions[j])
-                    g_x_vars.append(variable.Variable(data))
+                    g_x_vars.append(
+                        None if data is None else variable.Variable(data))
                     j += 1
 
             # Parameters
@@ -974,7 +986,9 @@ def check_double_backward(func, x_data, y_grad, x_grad_grad, params=(),
         # the dtypes (e.g. `F.cast` that casts to float16), the dtypes of `ys`
         # (e.g. outputs of `F.cast`) and `gys` (e.g. given by `numerical_grad`)
         # may mismatch and we need to align those dtypes here.
-        gys = [chainer.functions.cast(gy, y.dtype) for y, gy in zip(ys, gys)]
+        gys = [
+            None if gy is None
+            else chainer.functions.cast(gy, y.dtype) for y, gy in zip(ys, gys)]
 
         _check_outputs_and_grad_outputs(ys, gys)
 

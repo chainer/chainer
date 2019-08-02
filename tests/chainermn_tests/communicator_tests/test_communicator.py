@@ -62,7 +62,7 @@ class Param(object):
         self.nccl1 = False
         self.model_dtype = None
         self.allreduce_grad_dtype = None
-        self.batched_copy = False
+        self.batched_copy = True
         self.global_dtype = None
         self.__dict__.update(param)
 
@@ -126,28 +126,24 @@ gpu_params = [Param(p) for p in [
         'nccl1': False,
         'model_dtype': np.float16,
         'allreduce_grad_dtype': np.float16,
-        'batched_copy': True,
     }, {
         'communicator_class': PureNcclCommunicator,
         'multi_node': True,
         'nccl1': False,
         'model_dtype': np.float16,
         'allreduce_grad_dtype': np.float32,
-        'batched_copy': True,
     }, {
         'communicator_class': PureNcclCommunicator,
         'multi_node': True,
         'nccl1': False,
         'model_dtype': np.float32,
         'allreduce_grad_dtype': np.float32,
-        'batched_copy': True,
     }, {
         'communicator_class': PureNcclCommunicator,
         'multi_node': True,
         'nccl1': False,
         'model_dtype': np.float32,
         'allreduce_grad_dtype': np.float16,
-        'batched_copy': True,
     }]]
 
 
@@ -201,21 +197,6 @@ def create_communicator(param, use_gpu):
         chainer.cuda.get_device_from_id(communicator.intra_rank).use()
 
     return communicator
-
-
-def destroy_communicator(comm):
-    """Destroy internal NCCL communicator.
-
-    When too many NCCL communicator are alive, NCCL produces
-    unhandled CUDA error. To avoid this, we need to make sure to
-    destory NCCL communicator after every use.
-    """
-    if hasattr(comm, 'nccl_comm') and comm.nccl_comm is not None:
-        comm.nccl_comm.destroy()
-        comm.nccl_comm = None
-    if hasattr(comm, 'intra_nccl_cojmm') and comm.intra_nccl_comm is not None:
-        comm.intra_nccl_comm.destroy()
-        comm.intra_nccl_comm = None
 
 
 def check_send_and_recv(communicator, *shape):
@@ -351,7 +332,7 @@ def check_send_recv(param, use_gpu):
         np.ones((50, 20, 5)).astype(np.float32)]
     check_send_and_recv_tuple(communicator, data)
 
-    destroy_communicator(communicator)
+    communicator.finalize()
 
 
 def check_multi_node_mean_grad_mixed_dtype(param, model, use_gpu):
@@ -427,7 +408,7 @@ def check_multi_node_mean_grad_mixed_dtype(param, model, use_gpu):
                                     (base + 1) * np.ones((4, 3)))
 
     mpi_comm.barrier()
-    destroy_communicator(communicator)
+    communicator.finalize()
 
 
 def check_collective_communication(param, use_gpu):
@@ -468,7 +449,7 @@ def check_collective_communication(param, use_gpu):
     # barrier() requires before destructor of PureNcclCommunicator
     # because communication may not be finished.
     mpi_comm.barrier()
-    destroy_communicator(communicator)
+    communicator.finalize()
 
 
 # chainer.testing.parameterize is not available at functions
@@ -505,6 +486,28 @@ class TestPureNcclCommunicator(unittest.TestCase):
         with self.assertRaises(ValueError):
             PureNcclCommunicator(self.mpi_comm, allreduce_grad_dtype=np.int32)
 
+    @chainer.testing.attr.gpu
+    def test_finalize(self):
+        communicator = PureNcclCommunicator(self.mpi_comm)
+        communicator._init_comms()
+        communicator.finalize()
+        self.assertIsNone(communicator.nccl_comm)
+
+
+class TestNonCudaAwareCommunicator(unittest.TestCase):
+
+    def setUp(self):
+        if nccl.get_build_version() < 2000:
+            pytest.skip('This test requires NCCL version >= 2.0')
+        self.mpi_comm = mpi4py.MPI.COMM_WORLD
+
+    @chainer.testing.attr.gpu
+    def test_finalize(self):
+        communicator = NonCudaAwareCommunicator(self.mpi_comm)
+        communicator._init_comms()
+        communicator.finalize()
+        self.assertIsNone(communicator.intra_nccl_comm)
+
 
 class TestDifferentDtype(unittest.TestCase):
 
@@ -527,7 +530,7 @@ class TestDifferentDtype(unittest.TestCase):
 
     def teardown(self):
         if self.communicator:
-            destroy_communicator(self.communicator)
+            self.communicator.finalize()
 
     def check_send_recv(self, x):
         if self.communicator.rank == 0:
@@ -802,7 +805,7 @@ class TestNonContiguousArray(unittest.TestCase):
 
     def teardown(self):
         if self.communicator:
-            destroy_communicator(self.communicator)
+            self.communicator.finalize()
 
     def check_send(self):
         if self.communicator.rank == 0:
@@ -855,7 +858,7 @@ class TestMpiCommunicatorBase(unittest.TestCase):
 
     def teardown(self):
         if self.communicator:
-            destroy_communicator(self.communicator)
+            self.communicator.finalize()
 
     def check_send_recv_obj(self, x, tag=0,
                             use_any_recv=True, use_status=False):
