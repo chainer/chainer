@@ -26,7 +26,7 @@ class _TestCopyToBase(object):
 
     @staticmethod
     def _to_cpu(arr):
-        return cuda.to_cpu(backend.from_chx(arr))
+        return backend.CpuDevice().send(arr)
 
     def test_from_cpu(self):
         src = self.src_data
