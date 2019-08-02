@@ -625,6 +625,8 @@ Note:
     * GPU implementation of the Cholesky decomposition routine is based on
       cuSOLVER library. Older versions (<10.1) of it might not raise an error
       for some non positive-definite matrices.
+    * The ``dtype`` must be ``float32`` or ``float64`` (``float16`` is not
+      supported yet.)
 
 .. seealso:: :func:`numpy.linalg.cholesky`
 """)
