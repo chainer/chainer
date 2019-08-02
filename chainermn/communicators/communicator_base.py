@@ -209,6 +209,16 @@ class CommunicatorBase(six.with_metaclass(ABCMeta)):
         '''
         raise NotImplementedError()
 
+    def finalize(self):
+        """Finalizes and cleans up internal resource.
+
+        The communicator SHALL NOT be used after calling this ``finalize()``.
+        The behaviour is undefined when calling ``finalize`` on the same
+        communicator multiple times.
+
+        """
+        pass
+
     # on objects
     @abstractmethod
     def send_obj(self, obj, dest, tag):
