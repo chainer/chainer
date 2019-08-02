@@ -86,7 +86,8 @@ def main():
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.out)
 
     # Evaluate the model with the test dataset for each epoch
-    trainer.extend(extensions.Evaluator(test_iter, model, device=device))
+    trainer.extend(extensions.Evaluator(test_iter, model, device=device),
+                   call_before_training=True)
 
     # Dump a computational graph from 'loss' variable at the first iteration
     # The "main" refers to the target link of the "main" optimizer.
@@ -99,16 +100,18 @@ def main():
     trainer.extend(extensions.snapshot(), trigger=(frequency, 'epoch'))
 
     # Write a log of evaluation statistics for each epoch
-    trainer.extend(extensions.LogReport())
+    trainer.extend(extensions.LogReport(), call_before_training=True)
 
     # Save two plot images to the result dir
     trainer.extend(
         extensions.PlotReport(['main/loss', 'validation/main/loss'],
-                              'epoch', file_name='loss.png'))
+                              'epoch', file_name='loss.png'),
+        call_before_training=True)
     trainer.extend(
         extensions.PlotReport(
             ['main/accuracy', 'validation/main/accuracy'],
-            'epoch', file_name='accuracy.png'))
+            'epoch', file_name='accuracy.png'),
+        call_before_training=True)
 
     # Print selected entries of the log to stdout
     # Here "main" refers to the target link of the "main" optimizer again, and
@@ -117,7 +120,8 @@ def main():
     # either the updater or the evaluator.
     trainer.extend(extensions.PrintReport(
         ['epoch', 'main/loss', 'validation/main/loss',
-         'main/accuracy', 'validation/main/accuracy', 'elapsed_time']))
+         'main/accuracy', 'validation/main/accuracy', 'elapsed_time']),
+        call_before_training=True)
 
     # Print a progress bar to stdout
     trainer.extend(extensions.ProgressBar())
