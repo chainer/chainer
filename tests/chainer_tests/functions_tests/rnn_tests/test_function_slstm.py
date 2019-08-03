@@ -83,8 +83,6 @@ class TestSLSTM(testing.FunctionTestCase):
             self.check_forward_options = {'atol': 1e-3, 'rtol': 1e-2}
             self.check_backward_options = {'atol': 5e-3, 'rtol': 5e-2}
             self.check_double_backward_options = {'atol': 5e-3, 'rtol': 5e-2}
-        if self.grad_outputs[0] is False or self.grad_outputs[1] is False:
-            self.skip_double_backward_test = True
 
     def generate_inputs(self):
         x_shape = []
