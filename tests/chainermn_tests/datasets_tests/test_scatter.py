@@ -1,4 +1,5 @@
 from __future__ import with_statement
+import itertools
 import unittest
 
 from chainer import testing
@@ -88,3 +89,31 @@ def test_scatter_large_dataset_flat():
         pytest.skip('This test is for multinode')
 
     scatter_large_data(communicator)
+
+
+def test_scatter_index_one():
+    it = chainermn.datasets.scatter._scatter_index(10, 3, False)
+    split = [(0, 0, 4), (1, 4, 7), (2, 7, 10)]
+    for lhs, rhs in zip(split, it):
+        assert lhs == rhs
+
+
+@pytest.mark.parametrize('combination', [
+    [10, 3], [1244, 23], [2, 1], [230945, 237]])
+def test_scatter_index(combination):
+    length, size = combination
+    it = chainermn.datasets.scatter._scatter_index(length, size, False)
+    union = set()
+    total = []
+    subsets = []
+    for (_, b, e) in it:
+        subset = list(range(b, e))
+        subsets.append(subset)
+        total.extend(subset)
+        for x in subset:
+            union.add(x)
+    assert length == len(total)  # no duplication
+    assert length == len(union)  # no duplication & no lacking
+    for lhs, rhs in itertools.combinations(subsets, 2):
+        set(lhs).isdisjoint(set(rhs))
+        assert abs(len(lhs) - len(rhs)) <= 1

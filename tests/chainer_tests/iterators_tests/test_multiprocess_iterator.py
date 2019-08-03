@@ -2,6 +2,7 @@ from __future__ import division
 import copy
 import errno
 import os
+import pickle
 import platform
 import signal
 import subprocess
@@ -369,6 +370,77 @@ class TestMultiprocessIterator(
 class TestMultiprocessIteratorSlow(
         BaseTestMultiprocessIterator, unittest.TestCase):
     pass
+
+
+# Pickle doesnt allow to use lambdas or pure functions
+# when serializing the iterator
+# work is needed to wrap samplers in classes instead of
+# anonymous functions
+class PickleSampler(object):
+    def __call__(self, order, _):
+        return numpy.random.permutation(len(order))
+
+
+@testing.parameterize(*testing.product({
+    'n_prefetch': [1, 2],
+    'shared_mem': [None, 1000000],
+    'order_sampler': [None, PickleSampler()]
+}))
+class TestMultiprocessIteratorPickle(unittest.TestCase):
+
+    def setUp(self):
+        self.n_processes = 2
+        self.options = {'n_processes': self.n_processes,
+                        'n_prefetch': self.n_prefetch,
+                        'shared_mem': self.shared_mem}
+        if self.order_sampler is not None:
+            self.options.update(
+                {'shuffle': None, 'order_sampler': self.order_sampler})
+
+    def test_iterator_pickle_new(self):
+        dataset = [1, 2, 3, 4, 5, 6]
+        it = iterators.MultiprocessIterator(dataset, 2, **self.options)
+
+        self.assertEqual(it.epoch, 0)
+        self.assertAlmostEqual(it.epoch_detail, 0 / 6)
+        self.assertIsNone(it.previous_epoch_detail)
+        pickled_it = pickle.dumps(it)
+        it = pickle.loads(pickled_it)
+
+    def test_iterator_pickle_after_init(self):
+        dataset = [1, 2, 3, 4, 5, 6]
+        it = iterators.MultiprocessIterator(dataset, 2, **self.options)
+
+        self.assertEqual(it.epoch, 0)
+        self.assertAlmostEqual(it.epoch_detail, 0 / 6)
+        self.assertIsNone(it.previous_epoch_detail)
+        batch1 = it.next()
+        self.assertEqual(len(batch1), 2)
+        self.assertIsInstance(batch1, list)
+        self.assertFalse(it.is_new_epoch)
+        self.assertAlmostEqual(it.epoch_detail, 2 / 6)
+        self.assertAlmostEqual(it.previous_epoch_detail, 0 / 6)
+        batch2 = it.next()
+        self.assertEqual(len(batch2), 2)
+        self.assertIsInstance(batch2, list)
+        self.assertFalse(it.is_new_epoch)
+        self.assertAlmostEqual(it.epoch_detail, 4 / 6)
+        self.assertAlmostEqual(it.previous_epoch_detail, 2 / 6)
+
+        pickled_it = pickle.dumps(it)
+        it = pickle.loads(pickled_it)
+
+        self.assertFalse(it.is_new_epoch)
+        self.assertAlmostEqual(it.epoch_detail, 4 / 6)
+        self.assertAlmostEqual(it.previous_epoch_detail, 2 / 6)
+
+        batch3 = it.next()
+        self.assertEqual(len(batch3), 2)
+        self.assertIsInstance(batch3, list)
+        self.assertTrue(it.is_new_epoch)
+        self.assertEqual(sorted(batch1 + batch2 + batch3), dataset)
+        self.assertAlmostEqual(it.epoch_detail, 6 / 6)
+        self.assertAlmostEqual(it.previous_epoch_detail, 4 / 6)
 
 
 @testing.parameterize(*testing.product({

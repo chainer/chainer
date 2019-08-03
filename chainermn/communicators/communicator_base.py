@@ -209,6 +209,16 @@ class CommunicatorBase(six.with_metaclass(ABCMeta)):
         '''
         raise NotImplementedError()
 
+    def finalize(self):
+        """Finalizes and cleans up internal resource.
+
+        The communicator SHALL NOT be used after calling this ``finalize()``.
+        The behaviour is undefined when calling ``finalize`` on the same
+        communicator multiple times.
+
+        """
+        pass
+
     # on objects
     @abstractmethod
     def send_obj(self, obj, dest, tag):
@@ -255,7 +265,7 @@ class CommunicatorBase(six.with_metaclass(ABCMeta)):
 
     @abstractmethod
     def gather_obj(self, obj, root=0):
-        '''Gathers arbitrary objects from all non-root processes to root process.
+        '''Gathers arbitrary objects from all non-root processes to the root.
 
         Args:
             obj: arbtrary object to send to root process. Root process will

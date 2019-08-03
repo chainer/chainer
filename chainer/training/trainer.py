@@ -25,10 +25,11 @@ except AttributeError:
 
 class _ExtensionEntry(object):
 
-    def __init__(self, extension, priority, trigger):
+    def __init__(self, extension, priority, trigger, call_before_training):
         self.extension = extension
         self.trigger = trigger
         self.priority = priority
+        self.call_before_training = call_before_training
 
 
 class Trainer(object):
@@ -166,6 +167,22 @@ class Trainer(object):
             self.extend(ext)
 
     @property
+    def is_before_training(self):
+        """Flag that represents if training has started or not.
+
+        ``True`` represents 'before training' and
+        ``False`` represents 'during/after training'.
+
+        This flag is supposed to be used in :meth:`Extension.__call__`
+        (e.g., :meth:`PlotReport.__call__`) to decide to execute its operation
+        or not. This additional condition is necessary since
+        ``Extension._trigger(trainer)`` is always ``False`` before training
+        and cannot be used.
+
+        """
+        return self.updater.iteration == 0
+
+    @property
     def elapsed_time(self):
         """Total time used for the training.
 
@@ -181,7 +198,7 @@ class Trainer(object):
         return _get_time() - self._start_at + self._snapshot_elapsed_time
 
     def extend(self, extension, name=None, trigger=None, priority=None,
-               **kwargs):
+               call_before_training=False, **kwargs):
         """Registers an extension to the trainer.
 
         :class:`Extension` is a callable object which is called after each
@@ -212,6 +229,8 @@ class Trainer(object):
                 iteration by default. If the trigger is not callable, it is
                 passed to :class:`IntervalTrigger` to build an interval
                 trigger.
+            call_before_training (bool): Flag to call extension before
+                training. Default is ``False``.
             priority (int): Invocation priority of the extension. Extensions
                 are invoked in the descending order of priorities in each
                 iteration. If this is ``None``, ``extension.priority`` is used
@@ -253,7 +272,7 @@ class Trainer(object):
 
         extension.name = modified_name
         self._extensions[modified_name] = _ExtensionEntry(
-            extension, priority, trigger)
+            extension, priority, trigger, call_before_training)
 
     def get_extension(self, name):
         """Returns the extension of a given name.
@@ -307,6 +326,14 @@ class Trainer(object):
         update = self.updater.update
         reporter = self.reporter
         stop_trigger = self.stop_trigger
+
+        # call extensions before training loop
+        if self.is_before_training:
+            self.observation = {}
+            with reporter.scope(self.observation):
+                for name, entry in extensions:
+                    if entry.call_before_training:
+                        entry.extension(self)
 
         # main training loop
         try:
