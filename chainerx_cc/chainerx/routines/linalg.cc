@@ -119,9 +119,8 @@ Array Solve(const Array& a, const Array& b) {
     CheckRankTwoArray(a);
     CheckSquareMatrix(a);
     CheckEqual(a.device(), b.device());
-    CheckEqual(a.dtype(), b.dtype());
-    Dtype dtype = internal::GetMathResultDtype(b.dtype());
-    Array out = Empty(b.shape(), dtype, b.device());
+    Dtype out_dtype = ResultType(a, b);
+    Array out = Empty(b.shape(), out_dtype, b.device());
 
     {
         NoBackpropModeScope scope{};
@@ -144,14 +143,14 @@ Array Solve(const Array& a, const Array& b) {
                     }
                     return ExpandDims(x, 1);
                 };
-                bctx.input_grad() = -Dot(updim(Solve(a.Transpose(), gout)), updim(out).Transpose(), a_dtype);
+                bctx.input_grad() = -Dot(updim(Solve(a.Transpose(), gout).AsType(a_dtype)), updim(out).Transpose(), a_dtype);
             });
         }
         if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
-            bt.Define([a_tok = bb.RetainInput(0)](BackwardContext& bctx) {
+            bt.Define([a_tok = bb.RetainInput(0), b_dtype = b.dtype()](BackwardContext& bctx) {
                 const Array& a = bctx.GetRetainedInput(a_tok);
                 const Array& gout = *bctx.output_grad();
-                bctx.input_grad() = Solve(a.Transpose(), gout);
+                bctx.input_grad() = Solve(a.Transpose(), gout).AsType(b_dtype);
             });
         }
         bb.Finalize();
