@@ -202,16 +202,24 @@ std::tuple<Array, Array> Qr(const Array& a, QrMode mode) {
     Array tau = Empty(Shape{k}, dtype, device);
     Shape q_shape{0};
     Shape r_shape{0};
-    if (mode == QrMode::kReduced) {
-        q_shape = Shape{m, k};
-        r_shape = Shape{k, n};
-    } else if (mode == QrMode::kComplete) {
-        q_shape = Shape{m, m};
-        r_shape = Shape{m, n};
-    } else if (mode == QrMode::kR) {
-        r_shape = Shape{k, n};
-    } else if (mode == QrMode::kRaw) {
-        r_shape = Shape{n, m};  // for "raw" mode r in the code corrensponds to h in docs
+    switch (mode) {
+        case QrMode::kReduced:
+            q_shape = Shape{m, k};
+            r_shape = Shape{k, n};
+            break;
+        case QrMode::kComplete:
+            q_shape = Shape{m, m};
+            r_shape = Shape{m, n};
+            break;
+        case QrMode::kR:
+            r_shape = Shape{k, n};
+            break;
+        case QrMode::kRaw:
+            r_shape = Shape{n, m};  // for "raw" mode r in the code corrensponds to h in docs
+            break;
+        default:
+            throw ChainerxError{"Invalid QR mode"};
+            break;
     }
 
     Array q = Empty(q_shape, dtype, device);
