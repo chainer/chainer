@@ -202,15 +202,15 @@ std::tuple<Array, Array> Qr(const Array& a, QrMode mode) {
     Array tau = Empty(Shape{k}, dtype, device);
     Shape q_shape{0};
     Shape r_shape{0};
-    if (mode == QrMode::reduced) {
+    if (mode == QrMode::kReduced) {
         q_shape = Shape{m, k};
         r_shape = Shape{k, n};
-    } else if (mode == QrMode::complete) {
+    } else if (mode == QrMode::kComplete) {
         q_shape = Shape{m, m};
         r_shape = Shape{m, n};
-    } else if (mode == QrMode::r) {
+    } else if (mode == QrMode::kR) {
         r_shape = Shape{k, n};
-    } else if (mode == QrMode::raw) {
+    } else if (mode == QrMode::kRaw) {
         r_shape = Shape{n, m};  // for "raw" mode r in the code corrensponds to h in docs
     }
 
@@ -229,7 +229,7 @@ std::tuple<Array, Array> Qr(const Array& a, QrMode mode) {
         if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
             bt.Define([a_tok = bb.RetainInput(0), q_tok = bb.RetainOutput(0), r_tok = bb.RetainOutput(1), mode = mode](
                               BackwardContext& bctx) {
-                if (mode == QrMode::r || mode == QrMode::raw) {
+                if (mode == QrMode::kR || mode == QrMode::kRaw) {
                     throw ChainerxError{"ChainerX QR differentiation is not implemented for 'r' or 'raw' modes."};
                 }
 
@@ -259,7 +259,7 @@ std::tuple<Array, Array> Qr(const Array& a, QrMode mode) {
         bb.Finalize();
     }
 
-    if (mode == QrMode::raw) {
+    if (mode == QrMode::kRaw) {
         return std::make_tuple(std::move(r), std::move(tau));
     }
     return std::make_tuple(std::move(q), std::move(r));

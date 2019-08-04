@@ -281,21 +281,21 @@ void QrImpl(const Array& a, const Array& q, const Array& r, const Array& tau, Qr
         throw ChainerxError{"Unsuccessful geqrf (QR) execution. Info = ", devInfo_h};
     }
 
-    if (mode == QrMode::r) {
+    if (mode == QrMode::kR) {
         R = R.At(std::vector<ArrayIndex>{Slice{}, Slice{0, k}}).Transpose();  // R = R[:, 0:k].T
         R = Triu(R, 0);
         device.backend().CallKernel<CopyKernel>(R, r);
         return;
     }
 
-    if (mode == QrMode::raw) {
+    if (mode == QrMode::kRaw) {
         device.backend().CallKernel<CopyKernel>(R, r);
         return;
     }
 
     int64_t mc;
     Shape q_shape{0};
-    if (mode == QrMode::complete && m > n) {
+    if (mode == QrMode::kComplete && m > n) {
         mc = m;
         q_shape = Shape{m, m};
     } else {
@@ -371,7 +371,7 @@ CHAINERX_CUDA_REGISTER_KERNEL(InverseKernel, CudaInverseKernel);
 
 class CudaQrKernel : public QrKernel {
 public:
-    void Call(const Array& a, const Array& q, const Array& r, const Array& tau, QrMode mode = QrMode::reduced) override {
+    void Call(const Array& a, const Array& q, const Array& r, const Array& tau, QrMode mode = QrMode::kReduced) override {
         Device& device = a.device();
         Dtype dtype = a.dtype();
         CudaSetDeviceScope scope{device.index()};

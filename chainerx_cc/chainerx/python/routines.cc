@@ -356,13 +356,13 @@ void InitChainerxLinalg(pybind11::module& m) {
 
                 QrMode qrmode{};
                 if (mode == "reduced") {
-                    qrmode = QrMode::reduced;
+                    qrmode = QrMode::kReduced;
                 } else if (mode == "complete") {
-                    qrmode = QrMode::complete;
+                    qrmode = QrMode::kComplete;
                 } else if (mode == "r") {
-                    qrmode = QrMode::r;
+                    qrmode = QrMode::kR;
                 } else if (mode == "raw") {
-                    qrmode = QrMode::raw;
+                    qrmode = QrMode::kRaw;
                 } else {
                     throw py::value_error{"mode must be 'reduced', 'complete', 'r', or 'raw'"};
                 }
