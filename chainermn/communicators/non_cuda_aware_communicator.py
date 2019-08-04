@@ -13,7 +13,9 @@ from chainermn import nccl
 
 class NonCudaAwareCommunicator(mpi_communicator_base.MpiCommunicatorBase):
 
-    def __init__(self, mpi_comm):
+    def __init__(self, mpi_comm,
+                 batched_copy=False):
+
         super(NonCudaAwareCommunicator, self).__init__(mpi_comm)
         if not nccl._available:
             raise RuntimeError(
@@ -35,6 +37,14 @@ class NonCudaAwareCommunicator(mpi_communicator_base.MpiCommunicatorBase):
         self.gpu_buffer_b = _memory_utility.DeviceMemory()
         self.cpu_buffer_a = _memory_utility.HostPinnedMemory()
         self.cpu_buffer_b = _memory_utility.HostPinnedMemory()
+
+        self.batched_copy = batched_copy
+
+    def finalize(self):
+        super(NonCudaAwareCommunicator, self).finalize()
+        if self.intra_nccl_comm is not None:
+            self.intra_nccl_comm.destroy()
+            self.intra_nccl_comm = None
 
     def _init_comms(self):
         if self.inter_mpi_comm is not None:
@@ -83,8 +93,9 @@ class NonCudaAwareCommunicator(mpi_communicator_base.MpiCommunicatorBase):
 
         allreduce_grad_dtype = np.float32
 
-        _memory_utility.pack_params(
-            params, 'grad', self.gpu_buffer_a, allreduce_grad_dtype, zero_fill)
+        self._pack_params_to_buffer(params, 'grad', buffer=self.gpu_buffer_a,
+                                    allreduce_grad_dtype=allreduce_grad_dtype,
+                                    zero_fill=zero_fill)
 
         if chainer.is_debug():
             stream.synchronize()
@@ -132,5 +143,5 @@ class NonCudaAwareCommunicator(mpi_communicator_base.MpiCommunicatorBase):
             stream.synchronize()
             self._ensure_all_finite(self.gpu_buffer_b.array(n_elems_total))
 
-        _memory_utility.unpack_params(
-            params, 'grad', self.gpu_buffer_b, allreduce_grad_dtype, zero_fill)
+        self._unpack_params_from_buffer(params, 'grad', self.gpu_buffer_b,
+                                        allreduce_grad_dtype, zero_fill)
