@@ -13,7 +13,7 @@ Communicators
               alltoall, split, send, recv, bcast, gather, allreduce,
               send_obj, recv_obj, bcast_obj, gather_obj,
               allreduce_obj, bcast_data, multi_node_mean_grad, allreduce_grad,
-              allgather
+              allgather, finalize
 
 
 Optimizers and Evaluators

@@ -1,5 +1,4 @@
 import collections
-import functools
 
 import numpy
 import six
@@ -9,11 +8,77 @@ from chainer import backend
 from chainer.backends import cuda
 
 
-def converter():
-    """Decorator to make a converter function.
+class Converter(object):
 
-    The target converter must be a callable that accepts two positional
-    arguments: a batch and a device, and returns a converted batch.
+    """Base class of converters.
+
+    Converters receive batched data retrieved from iterators and perform
+    arbitrary transforms as well as device transfer.
+
+    Implementation should override the ``__call__`` method.
+
+    .. seealso::
+        :meth:`chainer.dataset.converter` --- a decorator to turn a converter
+        function into a ``Converter`` instance.
+
+    """
+
+    def __call__(self, batch, device):
+        """Performs conversion.
+
+        Args:
+            batch:
+                A batch. The type and value are arbitrary, depending on usage.
+            device(~chainer.backend.Device):
+                Device to which the converter is expected to send the batch.
+
+        Returns: A converted batch.
+        """
+        raise NotImplementedError(
+            'Concrete class must implement __call__.')
+
+
+class _ArbitraryCallableConverter(Converter):
+    """Converter to wrap a callable with arbitrary arguments.
+
+    This class accepts arbitrary arguments and pass-through to the underlying
+    callable, with device argument replaced.
+    """
+
+    def __init__(self, base_callable):
+        if not callable(base_callable):
+            raise TypeError(
+                'Can only wrap a callable. Actual: {}'.format(
+                    type(base_callable)))
+        self.base_callable = base_callable
+
+    def __call__(self, *args, **kwargs):
+        base_callable = self.base_callable
+
+        # Normalize the 'device' argument
+        if len(args) >= 2:
+            # specified as a positional argument
+            args = list(args)
+            args[1] = _get_device(args[1])
+        elif 'device' in kwargs:
+            kwargs['device'] = _get_device(kwargs['device'])
+        return base_callable(*args, **kwargs)
+
+
+def converter():
+    """Decorator to make a converter.
+
+    This decorator turns a converter function into a
+    :class:`chainer.dataset.Converter` class instance, which also is a
+    callable.
+    This is required to use the converter function from an old module that
+    does not support :class:`chainer.backend.Device` instances
+    (See the **Device argument conversion** section below).
+
+    .. rubric:: Requirements of the target function
+
+    The target converter function must accept two positional arguments:
+    a batch and a device, and return a converted batch.
 
     The type of the device argument is :class:`chainer.backend.Device`.
 
@@ -29,9 +94,9 @@ def converter():
         ...     # do something with batch...
         ...     return device.send(batch)
 
-    This decorator puts a mark on the target converter function so that
-    Chainer can recognize that it accepts :class:`chainer.backend.Device` as
-    the device argument. For backward compatibility, the decorator also wraps
+    .. rubric:: Device argument conversion
+
+    For backward compatibility, the decorator wraps
     the function so that if the converter is called with the device argument
     with ``int`` type, it is converted to a :class:`chainer.backend.Device`
     instance before calling the original function. The ``int`` value indicates
@@ -44,20 +109,7 @@ def converter():
     """
 
     def wrap(func):
-        func.__is_decorated_converter = True
-
-        @functools.wraps(func)
-        def wrap_call(*args, **kwargs):
-            # Normalize the 'device' argument
-            if len(args) >= 2:
-                # specified as a positional argument
-                args = list(args)
-                args[1] = _get_device(args[1])
-            elif 'device' in kwargs:
-                kwargs['device'] = _get_device(kwargs['device'])
-            return func(*args, **kwargs)
-
-        return wrap_call
+        return _ArbitraryCallableConverter(func)
 
     return wrap
 
@@ -68,7 +120,7 @@ def _call_converter(converter, batch, device):
     # old-style (accepts int as device).
     assert device is None or isinstance(device, backend.Device)
 
-    if getattr(converter, '__is_decorated_converter', False):
+    if isinstance(converter, Converter):
         # New-style converter
         return converter(batch, device)
 

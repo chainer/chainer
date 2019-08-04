@@ -334,15 +334,14 @@ class CudaSolveKernel : public SolveKernel {
 public:
     void Call(const Array& a, const Array& b, const Array& out) override {
         Device& device = a.device();
-        Dtype dtype = a.dtype();
         CudaSetDeviceScope scope{device.index()};
 
         CHAINERX_ASSERT(a.ndim() == 2);
         CHAINERX_ASSERT(a.shape()[0] == a.shape()[1]);
 
-        VisitFloatingPointDtype(dtype, [&](auto pt) {
+        VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
             using T = typename decltype(pt)::type;
-            SolveImpl<T>(a, b, out);
+            SolveImpl<T>(a.dtype() == out.dtype() ? a : a.AsType(out.dtype()), b.dtype() == out.dtype() ? b : b.AsType(out.dtype()), out);
         });
     }
 };

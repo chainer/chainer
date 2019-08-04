@@ -1269,6 +1269,27 @@ Note:
 """)
 
     _docs.set_doc(
+        chainerx.repeat,
+        """repeat(a, repeats, axis=None)
+Constructs an array by repeating a given array.
+
+Args:
+    a (~chainerx.ndarray): Array to repeat.
+    repeats (int or tuple of ints): The number of times which each
+        element of a is repeated.
+    axis (int): The axis along which to repeat values.
+
+Returns:
+    ~chainerx.ndarray: The repeated output array.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``a``.
+
+.. seealso:: :func:`numpy.repeat`
+""")
+
+    _docs.set_doc(
         chainerx.expand_dims,
         """expand_dims(a, axis)
 Expand the shape of an array.
