@@ -234,25 +234,6 @@ class TestInverseDtypeFailing(NumpyLinalgOpTest):
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
-@chainer.testing.parameterize_pytest('shape', [(3, 3)])
-@chainer.testing.parameterize_pytest('dtype', ['float16'])
-class TestSolveDtypeFailing(NumpyLinalgOpTest):
-
-    forward_accept_errors = (TypeError,
-                             chainerx.DtypeError)
-
-    def generate_inputs(self):
-        a = numpy.random.random(self.shape).astype(self.dtype)
-        b = numpy.random.random(self.shape).astype(self.dtype)
-        return a, b
-
-    def forward_xp(self, inputs, xp):
-        a, b = inputs
-        out = xp.linalg.solve(a, b)
-        return out,
-
-
-@op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
     # backward for 'r', 'raw' modes is not implemented
     chainer.testing.product({
