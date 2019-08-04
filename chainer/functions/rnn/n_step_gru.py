@@ -1,7 +1,9 @@
 import numpy
 
 import chainer
+import chainerx
 from chainer import backend
+from chainer import variable
 from chainer.backends import cuda
 from chainer.functions.activation import sigmoid
 from chainer.functions.activation import tanh
@@ -14,6 +16,68 @@ from chainer.utils import argument
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
+
+
+def _extract_apply_in_data(inputs):
+    if not inputs:
+        return False, ()
+
+    if chainerx.is_available():
+        has_chainerx_array = False
+
+        # Unwrap arrays
+        arrays = []
+        for x in inputs:
+            if isinstance(x, variable.Variable):
+                if x._has_chainerx_array:
+                    arrays.append(x._data[0])
+                    has_chainerx_array = True
+                else:
+                    arrays.append(x.array)
+            else:  # x is ndarray
+                arrays.append(x)
+                if not has_chainerx_array:
+                    if isinstance(x, chainerx.ndarray):
+                        has_chainerx_array = True
+        return has_chainerx_array, tuple(arrays)
+    else:
+        return False, tuple([
+            x.array if isinstance(x, variable.Variable) else x
+            for x in inputs])
+
+
+def _combine_inputs(hx, ws, bs, xs, num_layers, directions):
+    combined = []
+    combined.append(hx)
+    for x in xs:
+        combined.append(x)
+
+    for n in range(num_layers):
+        for direction in range(directions):
+            idx = directions * n + direction
+
+            for i in range(6):
+                combined.append(ws[idx][i])
+            for i in range(6):
+                combined.append(bs[idx][i])
+    return combined
+
+
+def _seperate_inputs(combined, num_layers, seq_length, directions):
+    hx = combined[0]
+    xs = combined[1: 1 + seq_length]
+    ws = []
+    bs = []
+    index = 1 + seq_length
+    for n in range(num_layers):
+        ws.append(combined[index: index + 6])
+        bs.append(combined[index + 6: index + 12])
+        index += 12
+        if directions == 2:
+            ws.append(combined[index: index + 6])
+            bs.append(combined[index + 6: index + 12])
+            index += 12
+    return hx, ws, bs, xs
 
 
 class NStepGRU(n_step_rnn.BaseNStepRNN):
@@ -272,8 +336,32 @@ use_bi_direction)
         argument.assert_kwargs_empty(kwargs)
 
     xp = backend.get_array_module(hx, hx.data)
+    directions = 1
+    if use_bi_direction:
+        directions = 2
 
-    if xp is cuda.cupy and chainer.should_use_cudnn('>=auto', 5000):
+    combined = _combine_inputs(hx, ws, bs, xs, n_layers, directions)
+    has_chainerx_array, combined = _extract_apply_in_data(combined)
+    hx_chx, ws_chx, bs_chx, xs_chx = _seperate_inputs(
+        combined, n_layers, len(xs), directions)
+
+    if has_chainerx_array and xp is chainerx and dropout_ratio == 0:
+        if use_bi_direction:
+            hy, ys = chainerx.n_step_bigru(
+                n_layers, hx_chx, ws_chx, bs_chx, xs_chx)
+        else:
+            hy, ys = chainerx.n_step_gru(
+                n_layers, hx_chx, ws_chx, bs_chx, xs_chx)
+        hy = variable.Variable._init_unchecked(
+            hy, requires_grad=hy.is_backprop_required(),
+            is_chainerx_array=True)
+        ys = [variable.Variable._init_unchecked(
+            y, requires_grad=y.is_backprop_required(),
+            is_chainerx_array=True)
+            for y in ys]
+        return hy, ys
+
+    elif xp is cuda.cupy and chainer.should_use_cudnn('>=auto', 5000):
         lengths = [len(x) for x in xs]
         xs = chainer.functions.concat(xs, axis=0)
         with chainer.using_device(xs.device):

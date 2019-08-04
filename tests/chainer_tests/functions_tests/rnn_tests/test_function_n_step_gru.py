@@ -41,13 +41,7 @@ def array(shape, dtype):
     # GPU tests
     + testing.product([
         [{'use_cuda': True}],
-
-        # Without cuDNN
         testing.product({
-            'use_cudnn': ['never'],
-        })
-        # With cuDNN
-        + testing.product({
             'use_cudnn': ['always'],
             'cudnn_deterministic': [True, False],
             'autotune': [True, False],

@@ -154,7 +154,8 @@ std::vector<std::vector<Array>> n_step_rnn_impl(
         const int8_t use_bidirection,
         const int8_t mode) {
     int8_t direction = use_bidirection ? 2 : 1;
-    if (hx.device().backend().GetName() == "cuda") {
+    // Assuming that all the input arrays have the same datatype
+    if (hx.device().backend().GetName() == "cuda" && hx.dtype() == Dtype::kFloat32) {
         std::vector<std::vector<Array>> out;
         std::shared_ptr<RnnGradState> state{};
         {

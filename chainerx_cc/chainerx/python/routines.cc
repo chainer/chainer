@@ -984,12 +984,12 @@ void InitChainerxConnection(pybind11::module& m) {
           "b"_a = nullptr,
           "n_batch_axes"_a = 1);
     m.def("lstm",
-          [](const ArrayBodyPtr& c, const ArrayBodyPtr& x) { 
-            std::vector<ArrayBodyPtr> out= ToArrayBodyPtr(lstm(Array{c}, Array{x}));
-            py::tuple ret{2};
-            ret[0] = out[1];
-            ret[1] = out[0];
-            return ret;
+          [](const ArrayBodyPtr& c, const ArrayBodyPtr& x) {
+              std::vector<ArrayBodyPtr> out = ToArrayBodyPtr(lstm(Array{c}, Array{x}));
+              py::tuple ret{2};
+              ret[0] = out[1];
+              ret[1] = out[0];
+              return ret;
           },
           py::arg("c"),
           py::arg("x"));
