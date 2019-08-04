@@ -111,15 +111,19 @@ class NumpyLinalgOpTest(op_utils.NumpyOpTest):
     chainer.testing.product({
         'shape': [(1, 1), (3, 3), (6, 6)],
         'b_columns': [(), (1,), (3,), (4,)],
-        'dtype': ['float32', 'float64']
+        'dtypes': [
+            ('float32', 'float32'),
+            ('float64', 'float64'),
+            ('float64', 'float32'),
+            ('float32', 'float64')]
     })
 ))
 class TestSolve(NumpyLinalgOpTest):
 
     def generate_inputs(self):
-        a = numpy.random.random(self.shape).astype(self.dtype)
+        a = numpy.random.random(self.shape).astype(self.dtypes[0])
         b = numpy.random.random(
-            (self.shape[0], *self.b_columns)).astype(self.dtype)
+            (self.shape[0], *self.b_columns)).astype(self.dtypes[1])
         return a, b
 
     def forward_xp(self, inputs, xp):
@@ -139,6 +143,25 @@ class TestSolveFailing(NumpyLinalgOpTest):
 
     forward_accept_errors = (numpy.linalg.LinAlgError,
                              chainerx.DimensionError)
+
+    def generate_inputs(self):
+        a = numpy.random.random(self.shape).astype(self.dtype)
+        b = numpy.random.random(self.shape).astype(self.dtype)
+        return a, b
+
+    def forward_xp(self, inputs, xp):
+        a, b = inputs
+        out = xp.linalg.solve(a, b)
+        return out,
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize_pytest('shape', [(3, 3)])
+@chainer.testing.parameterize_pytest('dtype', ['float16'])
+class TestSolveDtypeFailing(NumpyLinalgOpTest):
+
+    forward_accept_errors = (TypeError,
+                             chainerx.DtypeError)
 
     def generate_inputs(self):
         a = numpy.random.random(self.shape).astype(self.dtype)
@@ -207,25 +230,6 @@ class TestInverseDtypeFailing(NumpyLinalgOpTest):
     def forward_xp(self, inputs, xp):
         a, = inputs
         out = xp.linalg.inv(a)
-        return out,
-
-
-@op_utils.op_test(['native:0', 'cuda:0'])
-@chainer.testing.parameterize_pytest('shape', [(3, 3)])
-@chainer.testing.parameterize_pytest('dtype', ['float16'])
-class TestSolveDtypeFailing(NumpyLinalgOpTest):
-
-    forward_accept_errors = (TypeError,
-                             chainerx.DtypeError)
-
-    def generate_inputs(self):
-        a = numpy.random.random(self.shape).astype(self.dtype)
-        b = numpy.random.random(self.shape).astype(self.dtype)
-        return a, b
-
-    def forward_xp(self, inputs, xp):
-        a, b = inputs
-        out = xp.linalg.solve(a, b)
         return out,
 
 
