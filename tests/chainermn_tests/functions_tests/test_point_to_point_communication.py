@@ -23,6 +23,8 @@ params = [Param(p) for p in [
         'dtype': numpy.float16,
     }, {
         'dtype': numpy.float32,
+    }, {
+        'dtype': chainer.mixed16,
     }]]
 
 function = sigmoid
