@@ -284,30 +284,30 @@ class _ToDeviceVisitor(DeviceResidentsVisitor):
 
     def visit_array(self, arr):
         assert isinstance(arr, chainer.get_array_types())
-        if self._skip_visiting(arr):
-            self._warn_to_gpu(arr, self._device)
+        device = backend.get_device_from_array(arr)
+        if self._skip_visiting(device):
+            self._warn_to_gpu(device, self._device)
             return arr
         return self._device.send(arr)
 
     def visit_variable(self, param):
         assert isinstance(param, chainer.Variable)
-        if self._skip_visiting(param):
-            self._warn_to_gpu(param.array, self._device)
+        device = param.device
+        if self._skip_visiting(device):
+            self._warn_to_gpu(device, self._device)
             return
         param.to_device(self._device)
 
-    def _skip_visiting(self, obj):
-        if isinstance(obj, chainer.Variable):
-            obj = obj.array
+    def _skip_visiting(self, obj_device):
         return (
             self._skip_between_cupy_devices
-            and isinstance(self._device, cuda.GpuDevice)
-            and isinstance(obj, cuda.ndarray))
+            and isinstance(self._device, backend.GpuDevice)
+            and isinstance(obj_device, backend.GpuDevice))
 
     @staticmethod
-    def _warn_to_gpu(arr, dst):
-        src_id = arr.device.id
-        dst_id = dst.device.id
+    def _warn_to_gpu(src_device, dst_device):
+        src_id = src_device.device.id
+        dst_id = dst_device.device.id
         if src_id != dst_id:
             warnings.warn('''\
 You are trying to transfer a DeviceResident to GPU-{dst} which is already on \

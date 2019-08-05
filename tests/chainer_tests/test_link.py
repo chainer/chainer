@@ -394,6 +394,8 @@ class TestLink(LinkTestBase, unittest.TestCase):
         self.assertEqual(self.link.x.grad.device, cuda.Device(0))
         self.assertEqual(self.link.y.data.device, cuda.Device(0))
         self.assertEqual(self.link.y.grad.device, cuda.Device(0))
+        self.assertEqual(self.link.u.device.device, cuda.Device(0))
+        self.assertEqual(self.link.v.device.device, cuda.Device(0))
         self.assertEqual(self.link.p.device, cuda.Device(0))
         with testing.assert_warns(RuntimeWarning):
             self.link.to_gpu(1)
@@ -402,6 +404,8 @@ class TestLink(LinkTestBase, unittest.TestCase):
         self.assertEqual(self.link.x.grad.device, cuda.Device(0))
         self.assertEqual(self.link.y.data.device, cuda.Device(0))
         self.assertEqual(self.link.y.grad.device, cuda.Device(0))
+        self.assertEqual(self.link.u.device.device, cuda.Device(0))
+        self.assertEqual(self.link.v.device.device, cuda.Device(0))
         self.assertEqual(self.link.p.device, cuda.Device(0))
 
     @attr.multi_gpu(2)
