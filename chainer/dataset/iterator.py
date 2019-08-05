@@ -88,7 +88,7 @@ class Iterator(object):
     def enable_convert(self):
         """Configure the iterator to call a converter in it.
 
-        This method congiures the iterator to call a converter and
+        This method configures the iterator to call a converter and
         return converted examples.
         The concept of converters is similar to
         :func:`chainer.dataset.concat_examples` and
