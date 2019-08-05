@@ -138,10 +138,6 @@ class TestLSTM(testing.FunctionTestCase):
             grad_out.append(None)
         return tuple(grad_out)
 
-    def _generate_grad_outputs(self, outputs_template):
-        grad_outputs = self.generate_grad_outputs(outputs_template)
-        return grad_outputs
-
 
 @testing.parameterize(*(testing.product({
     'batch': [3, 2, 0],
