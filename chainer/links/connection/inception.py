@@ -68,9 +68,9 @@ class Inception(link.Chain):
             x (~chainer.Variable): Input variable.
 
         Returns:
-            Variable: Output variable. Its array has the same spatial size and
-            the same minibatch size as the input array. The channel dimension
-            has size ``out1 + out3 + out5 + proj_pool``.
+            ~chainer.Variable: Output variable. Its array has the same spatial
+            size and the same minibatch size as the input array. The channel
+            dimension has size ``out1 + out3 + out5 + proj_pool``.
 
         """
         out1 = self.conv1(x)

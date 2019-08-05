@@ -16,7 +16,13 @@ namespace cuda_internal {
 class CublasHandle {
 public:
     explicit CublasHandle(int device_index) : device_index_{device_index} {}
+
     ~CublasHandle();
+
+    CublasHandle(const CublasHandle&) = delete;
+    CublasHandle(CublasHandle&&) = delete;
+    CublasHandle& operator=(const CublasHandle&) = delete;
+    CublasHandle& operator=(CublasHandle&&) = delete;
 
     template <class Func, class... Args>
     void Call(Func&& func, Args&&... args) {

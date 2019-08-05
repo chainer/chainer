@@ -20,6 +20,10 @@
 #include "chainerx/cuda/cudnn.h"
 #include "chainerx/cuda/memory_pool.h"
 #include "chainerx/device.h"
+#include "chainerx/dtype.h"
+#include "chainerx/kernels/normalization.h"
+#include "chainerx/kernels/pooling.h"
+#include "chainerx/routines/normalization.h"
 #include "chainerx/routines/pooling.h"
 #include "chainerx/scalar.h"
 #include "chainerx/stack_vector.h"
@@ -37,7 +41,14 @@ class CudaConvTest;  // for unit-tests
 // Operations in this class are thread safe.
 class MemoryKeeper {
 public:
+    MemoryKeeper() = default;
+
     ~MemoryKeeper();
+
+    MemoryKeeper(const MemoryKeeper&) = delete;
+    MemoryKeeper(MemoryKeeper&&) = delete;
+    MemoryKeeper& operator=(const MemoryKeeper&) = delete;
+    MemoryKeeper& operator=(MemoryKeeper&&) = delete;
 
     // Registers a pointer to a memory chunk.
     // The memory is only freed after all preceding CUDA operations in the stream are finished.
@@ -56,12 +67,14 @@ private:
 // These internals are exposed through `GetDeviceInternals` for CUDA internal usages.
 class DeviceInternals {
 public:
+    explicit DeviceInternals(int device_index) : cublas_handle_{device_index}, cudnn_handle_{device_index} {}
+
+    ~DeviceInternals() = default;
+
     DeviceInternals(const DeviceInternals&) = delete;
     DeviceInternals(DeviceInternals&&) = delete;
     DeviceInternals& operator=(const DeviceInternals&) = delete;
     DeviceInternals& operator=(DeviceInternals&&) = delete;
-
-    explicit DeviceInternals(int device_index) : cublas_handle_{device_index}, cudnn_handle_{device_index} {}
 
     cuda_internal::CublasHandle& cublas_handle() { return cublas_handle_; }
 
@@ -80,6 +93,48 @@ private:
 DeviceInternals& GetDeviceInternals(CudaDevice& device);
 
 }  // namespace cuda_internal
+
+struct CudaBatchNormGradState : public BatchNormGradState {
+public:
+    CudaBatchNormGradState(Array x_cont, Array x_mean, Array x_inv_std, Dtype beta_dtype)
+        : x_cont_{std::move(x_cont)}, x_mean_{std::move(x_mean)}, x_inv_std_{std::move(x_inv_std)}, beta_dtype_{beta_dtype} {}
+
+    const Array& x_cont() const { return x_cont_; }
+    const Array& x_mean() const { return x_mean_; }
+    const Array& x_inv_std() const { return x_inv_std_; }
+    Dtype beta_dtype() const { return beta_dtype_; }
+
+private:
+    Array x_cont_;
+    Array x_mean_;
+    Array x_inv_std_;
+    Dtype beta_dtype_;
+};
+
+// Pooling states are identical for most CUDA pooling ops so we define a common base class.
+class CudaPoolStateBase {
+public:
+    CudaPoolStateBase(Array x, Array out) : x_{std::move(x)}, out_{std::move(out)} {}
+
+    const Array& x() const { return x_; }
+    const Array& out() const { return out_; }
+
+private:
+    Array x_{};
+    Array out_{};
+};
+
+class CudaMaxPoolGradState : public MaxPoolGradState, public CudaPoolStateBase {
+    using CudaPoolStateBase::CudaPoolStateBase;
+};
+
+class CudaMaxPoolGradGradState : public MaxPoolGradGradState, public CudaPoolStateBase {
+    using CudaPoolStateBase::CudaPoolStateBase;
+};
+
+class CudaAveragePoolGradState : public AveragePoolGradState, public CudaPoolStateBase {
+    using CudaPoolStateBase::CudaPoolStateBase;
+};
 
 class CudaDevice : public Device {
 public:
@@ -104,56 +159,6 @@ public:
 
     std::shared_ptr<void> FromHostMemory(const std::shared_ptr<void>& src_ptr, size_t bytesize) override;
 
-    // fill.cu
-
-    void Fill(const Array& out, Scalar value) override;
-
-    // reduction.cu
-
-    void Sum(const Array& a, const Axes& axis, const Array& out) override;
-    void AMax(const Array& a, const Axes& axis, const Array& out) override;
-
-    // copy.cu
-
-    void AsType(const Array& a, const Array& out) override;
-
-    // activation.cu
-
-    void IfLessElseASSA(const Array& x1, Scalar x2, Scalar pos, const Array& neg, const Array& out) override;
-
-    void IfGreaterElseASSA(const Array& x1, Scalar x2, Scalar pos, const Array& neg, const Array& out) override;
-    void IfGreaterElseAAAA(const Array& x1, const Array& x2, const Array& pos, const Array& neg, const Array& out) override;
-
-    void Tanh(const Array& x, const Array& out) override;
-
-    // exp_log.cu
-
-    void Exp(const Array& x, const Array& out) override;
-    void Log(const Array& x, const Array& out) override;
-
-    // misc.cu
-
-    void Square(const Array& x, const Array& out) override;
-
-    void Sqrt(const Array& x, const Array& out) override;
-
-    void IsNan(const Array& x, const Array& out) override;
-    void IsInf(const Array& x, const Array& out) override;
-
-    // pool.cc
-
-    std::unique_ptr<MaxPoolForwardBackward> GetMaxPoolForwardBackward(
-            const StackVector<int64_t, kMaxNdim>& kernel_size,
-            const StackVector<int64_t, kMaxNdim>& stride,
-            const StackVector<int64_t, kMaxNdim>& pad,
-            bool cover_all) override;
-
-    std::unique_ptr<AveragePoolForwardBackward> GetAveragePoolForwardBackward(
-            const StackVector<int64_t, kMaxNdim>& kernel_size,
-            const StackVector<int64_t, kMaxNdim>& stride,
-            const StackVector<int64_t, kMaxNdim>& pad,
-            AveragePoolPadMode pad_mode) override;
-
 protected:
     CudaDevice(CudaBackend& backend, int index)
         : Device{backend, index},
@@ -162,7 +167,7 @@ protected:
           device_internals_{index} {}
 
 private:
-    friend CudaDevice* cuda_internal::CreateDevice(CudaBackend&, int);
+    friend CudaDevice* cuda_internal::CreateDevice(CudaBackend& backend, int index);
 
     friend cuda_internal::DeviceInternals& cuda_internal::GetDeviceInternals(CudaDevice& device);
 

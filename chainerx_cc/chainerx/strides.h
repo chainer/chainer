@@ -20,14 +20,16 @@
 
 namespace chainerx {
 
-class Strides : public StackVector<int64_t, kMaxNdim> {
-    using BaseVector = StackVector<int64_t, kMaxNdim>;
+class Strides : public Dims {
+    using BaseVector = Dims;
 
 public:
     using const_iterator = BaseVector::const_iterator;
     using const_reverse_iterator = BaseVector::const_reverse_iterator;
 
     Strides() = default;
+
+    ~Strides() = default;
 
     // Creates strides for contiguous array.
     Strides(const Shape& shape, Dtype dtype) : Strides{shape, GetItemSize(dtype)} {}
@@ -94,7 +96,7 @@ public:
     }
 };
 
-std::ostream& operator<<(std::ostream&, const Strides&);
+std::ostream& operator<<(std::ostream& os, const Strides& strides);
 
 void CheckEqual(const Strides& lhs, const Strides& rhs);
 

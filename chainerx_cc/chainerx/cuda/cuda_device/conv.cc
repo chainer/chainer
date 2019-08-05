@@ -5,26 +5,26 @@
 #include "chainerx/array.h"
 #include "chainerx/constant.h"
 #include "chainerx/cuda/cuda_conv.h"
-#include "chainerx/cuda/op_regist.h"
+#include "chainerx/cuda/kernel_regist.h"
+#include "chainerx/dims.h"
 #include "chainerx/dtype.h"
 #include "chainerx/error.h"
-#include "chainerx/native/op_regist.h"
-#include "chainerx/routines/connection.h"
+#include "chainerx/kernels/connection.h"
+#include "chainerx/native/kernel_regist.h"
 #include "chainerx/shape.h"
-#include "chainerx/stack_vector.h"
 
 namespace chainerx {
 namespace cuda {
 namespace {
 
-class CudaConvOp : public ConvOp {
+class CudaConvKernel : public ConvKernel {
 public:
     Array Call(
             const Array& x,
             const Array& w,
             const nonstd::optional<Array>& b,
-            const StackVector<int64_t, kMaxNdim>& stride,
-            const StackVector<int64_t, kMaxNdim>& pad,
+            const Dims& stride,
+            const Dims& pad,
             bool cover_all,
             Dtype out_dtype,
             const nonstd::optional<Array>& out) override {
@@ -39,17 +39,17 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(ConvOp, CudaConvOp);
+CHAINERX_CUDA_REGISTER_KERNEL(ConvKernel, CudaConvKernel);
 
-class CudaConvTransposeOp : public ConvTransposeOp {
+class CudaConvTransposeKernel : public ConvTransposeKernel {
 public:
     Array Call(
             const Array& x,
             const Array& w,
             const nonstd::optional<Array>& b,
-            const StackVector<int64_t, kMaxNdim>& stride,
-            const StackVector<int64_t, kMaxNdim>& pad,
-            const StackVector<int64_t, kMaxNdim>& out_size,
+            const Dims& stride,
+            const Dims& pad,
+            const Dims& out_size,
             Dtype out_dtype,
             const nonstd::optional<Array>& out) override {
         // TODO(niboshi): Implement and test the `out` argument.
@@ -62,17 +62,17 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(ConvTransposeOp, CudaConvTransposeOp);
+CHAINERX_CUDA_REGISTER_KERNEL(ConvTransposeKernel, CudaConvTransposeKernel);
 
-class CudaConvGradWeightOp : public ConvGradWeightOp {
+class CudaConvGradWeightKernel : public ConvGradWeightKernel {
 public:
     Array Call(
             Dtype w_dtype,
             const Shape& w_shape,
             const Array& x,
             const Array& gy,
-            const StackVector<int64_t, kMaxNdim>& stride,
-            const StackVector<int64_t, kMaxNdim>& pad,
+            const Dims& stride,
+            const Dims& pad,
             bool cover_all,
             const nonstd::optional<Array>& out) override {
         // TODO(niboshi): Implement and test the `out` argument.
@@ -85,7 +85,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(ConvGradWeightOp, CudaConvGradWeightOp);
+CHAINERX_CUDA_REGISTER_KERNEL(ConvGradWeightKernel, CudaConvGradWeightKernel);
 
 }  // namespace
 }  // namespace cuda

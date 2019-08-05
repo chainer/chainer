@@ -6,8 +6,8 @@
 #include <pybind11/pybind11.h>
 
 #include "chainerx/constant.h"
+#include "chainerx/dims.h"
 #include "chainerx/error.h"
-#include "chainerx/stack_vector.h"
 
 namespace chainerx {
 namespace python {

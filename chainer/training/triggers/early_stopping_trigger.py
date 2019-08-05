@@ -3,10 +3,16 @@ import warnings
 
 from chainer import reporter
 from chainer.training import util
+from chainer.utils import argument
 
 
 class EarlyStoppingTrigger(object):
-    """Trigger for Early Stopping
+    """__init__(\
+        self, check_trigger=(1, 'epoch'), monitor='main/loss', \
+        patience=3, mode='auto', verbose=False, \
+        max_trigger=(100, 'epoch'))
+
+    Trigger for Early Stopping
 
     It can be used as a stop trigger of :class:`~chainer.training.Trainer`
     to realize *early stopping* technique.
@@ -17,7 +23,7 @@ class EarlyStoppingTrigger(object):
     At the end of each interval, it computes the mean of the accumulated
     values and compares it to the previous ones to maintain the *best* value.
     When it finds that the best value is not updated
-    for some periods (defined by `patients`), this trigger fires.
+    for some periods (defined by ``patience``), this trigger fires.
 
     Args:
         monitor (str) : The metric you want to monitor
@@ -26,22 +32,42 @@ class EarlyStoppingTrigger(object):
             This must be a tuple in the form of ``<int>,
             'epoch'`` or ``<int>, 'iteration'`` which is passed to
             :class:`~chainer.training.triggers.IntervalTrigger`.
-        patients (int) : Counts to let the trigger be patient.
+        patience (int) : Counts to let the trigger be patient.
             The trigger will not fire until the condition is met
-            for successive ``patient`` checks.
+            for successive ``patience`` checks.
         mode (str) : ``'max'``, ``'min'``, or ``'auto'``.
             It is used to determine how to compare the monitored values.
         verbose (bool) : Enable verbose output.
             If verbose is true, you can get more information
         max_trigger: Upper bound of the number of training loops
+
+    .. note::
+       ``patients`` is also available as an alias of ``patience`` for
+       historical reason.
     """
 
     def __init__(self, check_trigger=(1, 'epoch'), monitor='main/loss',
-                 patients=3, mode='auto', verbose=False,
-                 max_trigger=(100, 'epoch')):
+                 patience=None, mode='auto', verbose=False,
+                 max_trigger=(100, 'epoch'), **kwargs):
+
+        # `patients` as an alias of `patience`
+        patients, = argument.parse_kwargs(kwargs, ('patients', None))
+        if patients is None:
+            if patience is None:
+                patience = 3
+            else:
+                pass
+        else:
+            if patience is None:
+                patience = patients
+            else:
+                raise TypeError(
+                    'Both \'patience\' and \'patients\' arguments are '
+                    'specified. \'patients\' is an alias of the former. '
+                    'Specify only \'patience\'.')
 
         self.count = 0
-        self.patients = patients
+        self.patience = patience
         self.monitor = monitor
         self.verbose = verbose
         self.already_warning = False
@@ -121,7 +147,7 @@ class EarlyStoppingTrigger(object):
         return False
 
     def _stop_condition(self):
-        return self.count >= self.patients
+        return self.count >= self.patience
 
     def _init_summary(self):
         self._summary = reporter.DictSummary()

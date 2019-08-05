@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <functional>
 #include <numeric>
+#include <set>
 #include <sstream>
 #include <string>
 #include <utility>
@@ -22,6 +23,8 @@
 #include "chainerx/dtype.h"
 #include "chainerx/error.h"
 #include "chainerx/graph.h"
+#include "chainerx/kernels/creation.h"
+#include "chainerx/kernels/misc.h"
 #include "chainerx/macro.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/type_util.h"
@@ -187,8 +190,8 @@ Array Reshape(const Array& a, const Shape& newshape) {
                 int64_t dim = in_shape[i];
                 int64_t st = in_strides[i];
                 CHAINERX_ASSERT(dim > 0);
-                if (dim == 1 && st == 0) {
-                    // If the axis has unit-length with no stride, skip this dimension.
+                if (dim == 1) {
+                    // If the axis has unit-length, skip this dimension.
                 } else if (dim * st == reduced_strides.back()) {
                     // If the pair is compatible with the previous stride, reduce the pair to it.
                     reduced_shape.back() *= dim;
@@ -444,11 +447,7 @@ Array ConcatenateImpl(const std::vector<Array>& arrays, int8_t axis) {
             Array sliced_out = internal::MakeArray(shape, strides, out_dtype, device, out.data(), out_offset);
             Dtype in_dtype = array.dtype();
             in_dtypes.emplace_back(in_dtype);
-            if (in_dtype == out_dtype) {
-                device.backend().CallOp<CopyOp>(array, sliced_out);
-            } else {
-                device.AsType(array, sliced_out);
-            }
+            device.backend().CallKernel<AsTypeKernel>(array, sliced_out);
             array_refs.emplace_back(ConstArrayRef{array});
             out_offset += strides[axis] * shape[axis];
         }
@@ -482,121 +481,26 @@ Array ConcatenateImpl(const std::vector<Array>& arrays, int8_t axis) {
 Array Concatenate(const std::vector<Array>& arrays) { return ConcatenateImpl(arrays, 0); }
 
 Array Concatenate(const std::vector<Array>& arrays, nonstd::optional<int8_t> axis) {
-    if (axis.has_value()) {
-        return ConcatenateImpl(arrays, *axis);
+    if (!axis.has_value()) {
+        // Special case, making input arrays 1-dimensional and concatenating along the first axis.
+        std::vector<Array> raveled_arrays;
+        raveled_arrays.reserve(arrays.size());
+        std::transform(arrays.begin(), arrays.end(), std::back_inserter(raveled_arrays), [](const Array& array) {
+            Shape shape{array.GetTotalSize()};
+            return array.Reshape(shape);
+        });
+        return ConcatenateImpl(raveled_arrays, 0);
     }
-    std::vector<Array> raveled_arrays;
-    raveled_arrays.reserve(arrays.size());
-    std::transform(arrays.begin(), arrays.end(), std::back_inserter(raveled_arrays), [](const Array& array) {
-        Shape shape{array.GetTotalSize()};
-        return array.Reshape(shape);
-    });
-    return ConcatenateImpl(raveled_arrays, 0);
+    return ConcatenateImpl(arrays, *axis);
 }
-
-namespace {
-std::vector<Array> StackGrad(const Array& gout, int8_t axis) {
-    Shape shape{gout.shape()};
-    Strides strides{gout.strides()};
-    size_t dim = shape[axis];
-    int64_t step = strides[axis];
-    shape.erase(shape.begin() + axis);
-    strides.erase(strides.begin() + axis);
-
-    std::vector<Array> gxs;
-    std::vector<ConstArrayRef> gxs_refs{};
-    gxs.reserve(dim);
-    gxs_refs.reserve(dim);
-    {
-        NoBackpropModeScope scope{};
-        Dtype dtype = gout.dtype();
-        Device& device = gout.device();
-        for (size_t i = 0; i < dim; ++i) {
-            gxs.emplace_back(internal::MakeArray(shape, strides, dtype, device, gout.data(), step * i));
-            gxs_refs.emplace_back(gxs.back());
-        }
-    }
-
-    {
-        BackwardBuilder bb{"stack-grad", gout, gxs_refs};
-        if (BackwardBuilder::Target bt = bb.CreateTarget()) {
-            bt.Define([axis](BackwardContext& bctx) {
-                std::vector<Array> ggxs;
-                ggxs.reserve(bctx.output_count());
-                for (size_t i = 0; i < bctx.output_count(); ++i) {
-                    // TODO(imanishi): Check if bctx.output_grad(i) is not nullopt.
-                    ggxs.emplace_back(*bctx.output_grad(i));
-                }
-                bctx.input_grad() = Stack(ggxs, axis);
-            });
-        }
-        bb.Finalize();
-    }
-    return gxs;
-}
-}  // namespace
 
 Array Stack(const std::vector<Array>& arrays, int8_t axis) {
-    if (arrays.empty()) {
-        throw DimensionError{"Need at least one array to stack"};
-    }
-
-    Shape shape = arrays.front().shape();
-    Dtype dtype = arrays.front().dtype();
-    Device& device = arrays.front().device();
-    uint8_t ndim = shape.ndim();
-    axis = internal::NormalizeAxis(axis, ndim + 1);
-
-    for (const Array& array : arrays) {
-        if (shape != array.shape()) {
-            throw DimensionError{"All input arrays must have the same shape"};
-        }
-        // TODO(imanishi): dtype conversion
-        CheckEqual(dtype, array.dtype());
-    }
-    shape.insert(shape.begin() + axis, static_cast<int64_t>(arrays.size()));
-
-    Strides strides{shape, dtype};
-
-    // Aligning with NumPy strides behavior
-    auto last_zero_it = std::find(shape.rbegin(), shape.rend(), int64_t{0});
-    if (last_zero_it != shape.rend()) {
-        std::fill(strides.rbegin() + (last_zero_it - shape.rbegin() + 1), strides.rend(), int64_t{0});
-    }
-
-    Array out = internal::Empty(shape, dtype, strides, device);
-
-    int64_t step = strides[axis];
-    strides.erase(strides.begin() + axis);
-    {
-        NoBackpropModeScope scope{};
-        int64_t out_offset = 0;
-        for (const Array& array : arrays) {
-            Array sliced_out = internal::MakeArray(array.shape(), strides, dtype, device, out.data(), out_offset);
-            device.backend().CallOp<CopyOp>(array, sliced_out);
-            out_offset += step;
-        }
-    }
-
-    std::vector<ConstArrayRef> array_refs;
-    array_refs.reserve(arrays.size());
-    std::transform(arrays.begin(), arrays.end(), std::back_inserter(array_refs), [](const Array& array) { return ConstArrayRef{array}; });
-
-    {
-        BackwardBuilder bb{"stack", array_refs, out};
-        if (BackwardBuilder::Target bt = bb.CreateTarget()) {
-            bt.Define([axis](BackwardContext& bctx) {
-                const Array& gout = *bctx.output_grad();
-                std::vector<Array> gxs = StackGrad(gout, axis);
-                for (size_t i = 0; i < gxs.size(); ++i) {
-                    bctx.input_grad(i) = std::move(gxs[i]);
-                }
-            });
-        }
-        bb.Finalize();
-    }
-
-    return out;
+    std::vector<Array> reshaped_arrays;
+    reshaped_arrays.reserve(arrays.size());
+    std::transform(arrays.begin(), arrays.end(), std::back_inserter(reshaped_arrays), [axis](const Array& array) {
+        return ExpandDims(array, axis);
+    });
+    return ConcatenateImpl(reshaped_arrays, axis);
 }
 
 namespace {
@@ -648,13 +552,18 @@ std::vector<Array> Split(const Array& ary, int64_t sections, int8_t axis) {
     out_shape[axis_norm] = out_dim;
     int64_t out_stride = ary.strides()[axis_norm];
     int64_t out_offset = ary.offset();
+    bool is_empty = ary.GetTotalSize() == 0;
 
     std::vector<Array> out{};
     out.reserve(sections);
 
     for (int64_t i = 0; i < sections; ++i) {
         out.emplace_back(internal::MakeArray(out_shape, ary.strides(), ary.dtype(), ary.device(), ary.data(), out_offset));
-        out_offset += out_stride * out_dim;
+
+        // Empty arrays should all have offsets of 0 to e.g. avoid out-of-memory errors.
+        if (!is_empty) {
+            out_offset += out_stride * out_dim;
+        }
     }
 
     DefineSplitBackward(ary, out, axis_norm);
@@ -676,6 +585,7 @@ std::vector<Array> Split(const Array& ary, std::vector<int64_t> indices, int8_t 
     int64_t out_stride = ary.strides()[axis_norm];
     int64_t out_offset = ary.offset();
     int64_t slice_start = 0;
+    bool is_empty = ary.GetTotalSize() == 0;
 
     std::vector<Array> out{};
     out.reserve(indices.size());
@@ -689,13 +599,267 @@ std::vector<Array> Split(const Array& ary, std::vector<int64_t> indices, int8_t 
 
         out.emplace_back(internal::MakeArray(out_shape, ary.strides(), ary.dtype(), ary.device(), ary.data(), out_offset));
 
-        out_offset += out_stride * slice_step;
+        // Empty arrays should all have offsets of 0 to e.g. avoid out-of-memory errors.
+        if (!is_empty) {
+            out_offset += out_stride * slice_step;
+        }
+
         slice_start = slice_stop;
     }
 
     DefineSplitBackward(ary, out, axis_norm);
 
     return out;
+}
+
+Array Swapaxes(const Array& a, int8_t axis1, int8_t axis2) {
+    Shape shape = a.shape();
+    Strides strides = a.strides();
+
+    axis1 = internal::NormalizeAxis(axis1, a.ndim());
+    axis2 = internal::NormalizeAxis(axis2, a.ndim());
+
+    std::iter_swap(shape.begin() + axis1, shape.begin() + axis2);
+    std::iter_swap(strides.begin() + axis1, strides.begin() + axis2);
+    Array out = internal::MakeArray(shape, strides, a.dtype(), a.device(), a.data(), a.offset());
+
+    BackwardBuilder bb{"swapaxes", a, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([axis1, axis2](BackwardContext& bctx) {
+            const Array& gout = *bctx.output_grad();
+            bctx.input_grad() = Swapaxes(gout, axis1, axis2);
+        });
+    }
+    bb.Finalize();
+
+    return out;
+}
+
+Array ExpandDims(const Array& a, int8_t axis) {
+    Shape shape = a.shape();
+
+    axis = internal::NormalizeAxis(axis, a.ndim() + 1);
+
+    shape.insert(shape.begin() + axis, 1);
+
+    Array out = a.Reshape(shape);
+
+    // A trivial reshape of adding a new axis should just return a view of the input.
+    CHAINERX_ASSERT(out.raw_data() == a.raw_data());
+
+    return out;
+}
+
+Array Flip(const Array& m, const OptionalAxes& axes) {
+    Axes real_axes;
+    if (axes.has_value()) {
+        real_axes = internal::GetNormalizedAxes(*axes, m.ndim());
+    } else {
+        for (int8_t i = 0; i < m.ndim(); ++i) {
+            real_axes.emplace_back(m.ndim() - i - 1);
+        }
+    }
+
+    Strides strides = m.strides();
+    Shape shape = m.shape();
+    int64_t offset = 0;
+    for (auto axis : real_axes) {
+        // last element of that dimension.
+        offset += std::max<int64_t>(shape[axis] - 1, 0) * strides[axis];
+        if (shape[axis] != 0) {
+            strides[axis] = -strides[axis];
+        }
+    }
+
+    auto is_zero = std::find(shape.begin(), shape.end(), 0);
+    if (is_zero != shape.end()) {
+        offset = 0;
+    }
+
+    Array out = internal::MakeArray(m.shape(), strides, m.dtype(), m.device(), m.data(), offset);
+
+    BackwardBuilder bb{"flip", m, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([real_axes](BackwardContext& bctx) {
+            const Array& gout = *bctx.output_grad();
+            bctx.input_grad() = Flip(gout, real_axes);
+        });
+    }
+    bb.Finalize();
+
+    return out;
+}
+
+Array Fliplr(const Array& m) {
+    if (m.ndim() < 2) {
+        throw DimensionError{"Input must be >= 2-d."};
+    }
+    return Flip(m, Axes{1});
+}
+
+Array Flipud(const Array& m) {
+    if (m.ndim() < 1) {
+        throw DimensionError{"Input must be >= 1-d."};
+    }
+    return Flip(m, Axes{0});
+}
+
+Array AtLeast2D(const Array& x) {
+    Array out;
+
+    {
+        NoBackpropModeScope scope;
+
+        switch (x.ndim()) {
+            case 0:
+                out = x.Reshape({1, 1});
+                break;
+            case 1: {
+                Shape shape = x.shape();
+                Strides strides = x.strides();
+                shape.insert(shape.begin(), 1);
+                strides.insert(strides.begin(), 0);
+                out = internal::MakeArray(shape, strides, x.dtype(), x.device(), x.data());
+            } break;
+            default:
+                out = x.MakeView();
+                break;
+        }
+    }
+
+    BackwardBuilder bb{"atleast_2d", x, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([in_shape = x.shape(), ndim = x.ndim()](BackwardContext& bctx) {
+            if (ndim <= 1) {
+                bctx.input_grad() = bctx.output_grad()->Reshape(in_shape);
+            } else {
+                bctx.input_grad() = *bctx.output_grad();
+            }
+        });
+    }
+    bb.Finalize();
+
+    return out;
+}
+
+Array AtLeast3D(const Array& x) {
+    Array out;
+
+    {
+        NoBackpropModeScope scope;
+
+        switch (x.ndim()) {
+            case 0:
+                out = x.Reshape({1, 1, 1});
+                break;
+            case 1: {
+                Shape shape = x.shape();
+                Strides strides = x.strides();
+                shape.insert(shape.begin(), 1);
+                shape.insert(shape.end(), 1);
+                strides.insert(strides.begin(), 0);
+                strides.insert(strides.end(), 0);
+                out = internal::MakeArray(shape, strides, x.dtype(), x.device(), x.data());
+            } break;
+            case 2: {
+                Shape shape = x.shape();
+                Strides strides = x.strides();
+                shape.insert(shape.end(), 1);
+                strides.insert(strides.end(), 0);
+                out = internal::MakeArray(shape, strides, x.dtype(), x.device(), x.data());
+            } break;
+            default:
+                out = x.MakeView();
+                break;
+        }
+    }
+
+    BackwardBuilder bb{"atleast_3d", x, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([in_shape = x.shape(), ndim = x.ndim()](BackwardContext& bctx) {
+            if (ndim <= 2) {
+                bctx.input_grad() = bctx.output_grad()->Reshape(in_shape);
+            } else {
+                bctx.input_grad() = *bctx.output_grad();
+            }
+        });
+    }
+    bb.Finalize();
+
+    return out;
+}
+
+Array HStack(const std::vector<Array>& arrays) {
+    if (arrays.empty()) {
+        throw DimensionError{"Need at least one array to stack"};
+    }
+
+    if (arrays.front().ndim() <= 1) {
+        return Concatenate(arrays, 0);
+    }
+    return Concatenate(arrays, 1);
+}
+
+Array VStack(const std::vector<Array>& arrays) {
+    if (arrays.empty()) {
+        throw DimensionError{"Need at least one array to stack"};
+    }
+
+    std::vector<Array> reshaped_arrays(arrays.size());
+    std::transform(arrays.begin(), arrays.end(), reshaped_arrays.begin(), AtLeast2D);
+
+    return Concatenate(reshaped_arrays, 0);
+}
+
+Array DStack(const std::vector<Array>& arrays) {
+    if (arrays.empty()) {
+        throw DimensionError{"Need at least one array to stack"};
+    }
+
+    std::vector<Array> reshaped_arrays(arrays.size());
+    std::transform(arrays.begin(), arrays.end(), reshaped_arrays.begin(), AtLeast3D);
+    return Concatenate(reshaped_arrays, 2);
+}
+
+Array Moveaxis(const Array& a, const Axes& source, const Axes& destination) {
+    if (source.size() != destination.size()) {
+        throw DimensionError{"Invalid Source or Destination Axes"};
+    }
+
+    if (source.empty()) {
+        return a;
+    }
+
+    const Axes& normalized_source = internal::GetNormalizedAxes(source, a.ndim());
+    const Axes& normalized_destination = internal::GetNormalizedAxes(destination, a.ndim());
+
+    Axes order, source_axes, destination_axes;
+    order.resize(a.ndim());
+    source_axes.resize(a.ndim());
+    destination_axes.resize(a.ndim());
+
+    std::iota(source_axes.begin(), source_axes.end(), 0);
+    std::iota(destination_axes.begin(), destination_axes.end(), 0);
+
+    for (int8_t i = 0; i < source.ndim(); ++i) {
+        order[normalized_destination[i]] = normalized_source[i];
+        source_axes[normalized_source[i]] = -1;
+        destination_axes[normalized_destination[i]] = -1;
+    }
+
+    auto source_iter = std::remove(source_axes.begin(), source_axes.end(), -1);
+    auto destination_iter = std::remove(destination_axes.begin(), destination_axes.end(), -1);
+
+    int8_t rest_dim = a.ndim() - source.ndim();
+    CHAINERX_ASSERT(a.ndim() - destination.ndim() == rest_dim);
+    CHAINERX_ASSERT(static_cast<int8_t>(source_iter - source_axes.begin()) == rest_dim);
+    CHAINERX_ASSERT(static_cast<int8_t>(destination_iter - destination_axes.begin()) == rest_dim);
+
+    for (int8_t i = 0; i < rest_dim; ++i) {
+        order[destination_axes[i]] = source_axes[i];
+    }
+
+    return a.Transpose(order);
 }
 
 }  // namespace chainerx

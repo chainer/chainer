@@ -13,7 +13,6 @@
 #include "chainerx/error.h"
 #include "chainerx/scalar.h"
 #include "chainerx/shape.h"
-#include "chainerx/stack_vector.h"
 
 namespace chainerx {
 
@@ -22,7 +21,15 @@ enum class AveragePoolPadMode;
 
 class MaxPoolForwardBackward {
 public:
+    MaxPoolForwardBackward() = default;
+
     virtual ~MaxPoolForwardBackward() = default;
+
+    MaxPoolForwardBackward(const MaxPoolForwardBackward&) = default;
+    MaxPoolForwardBackward(MaxPoolForwardBackward&&) = default;
+    MaxPoolForwardBackward& operator=(const MaxPoolForwardBackward&) = default;
+    MaxPoolForwardBackward& operator=(MaxPoolForwardBackward&&) = default;
+
     virtual Array Forward(const Array& x) = 0;
     virtual Array Backward(const Array& gout) = 0;
     virtual Array DoubleBackward(const Array& ggx) = 0;
@@ -30,7 +37,15 @@ public:
 
 class AveragePoolForwardBackward {
 public:
+    AveragePoolForwardBackward() = default;
+
     virtual ~AveragePoolForwardBackward() = default;
+
+    AveragePoolForwardBackward(const AveragePoolForwardBackward&) = default;
+    AveragePoolForwardBackward(AveragePoolForwardBackward&&) = default;
+    AveragePoolForwardBackward& operator=(const AveragePoolForwardBackward&) = default;
+    AveragePoolForwardBackward& operator=(AveragePoolForwardBackward&&) = default;
+
     virtual Array Forward(const Array& x) = 0;
     virtual Array Backward(const Array& gout) = 0;
 };
@@ -83,61 +98,6 @@ public:
     // It may allocate a new memory or return an alias.
     // src_ptr must reside in the host memory.
     virtual std::shared_ptr<void> FromHostMemory(const std::shared_ptr<void>& src_ptr, size_t bytesize) = 0;
-
-    // TODO(hvy): Implement as an Op and remove this method.
-    virtual void Fill(const Array& out, Scalar value) = 0;
-
-    // Calculate the sum of an array.
-    // It will be summed over the specified axes.
-    // `axis` must be normalized so that
-    // - it has only positive values,
-    // - it is sorted, and
-    // - it has no duplicated values.
-    // Otherwise, the behavior is undefined.
-    virtual void Sum(const Array& a, const Axes& axis, const Array& out) = 0;
-
-    // Calculates the maximum along specified axes.
-    // See Sum() for the explanation of arguments.
-    virtual void AMax(const Array& src, const Axes& axis, const Array& out) = 0;
-
-    // Casts the elements from one array to the other dtype, and store into the other.
-    // TODO(hvy): Implement as an Op and remove this method.
-    virtual void AsType(const Array& a, const Array& out) = 0;
-
-    // Compares x1 and x2 and assign either pos or neg according to the result.
-    //
-    // Formally, it calculates: out = x1 < x2 ? pos : neg
-    virtual void IfLessElseASSA(const Array& x1, Scalar x2, Scalar pos, const Array& neg, const Array& out) = 0;
-
-    // Compares x1 and x2 and assign either pos or neg according to the result.
-    //
-    // Formally, it calculates: out = x1 > x2 ? pos : neg
-    virtual void IfGreaterElseASSA(const Array& x1, Scalar x2, Scalar pos, const Array& neg, const Array& out) = 0;
-    virtual void IfGreaterElseAAAA(const Array& x1, const Array& x2, const Array& pos, const Array& neg, const Array& out) = 0;
-
-    virtual void Tanh(const Array& x, const Array& out) = 0;
-
-    virtual void Exp(const Array& x, const Array& out) = 0;
-    virtual void Log(const Array& x, const Array& out) = 0;
-
-    virtual void Square(const Array& x, const Array& out) = 0;
-
-    virtual void Sqrt(const Array& x, const Array& out) = 0;
-
-    virtual void IsNan(const Array& x, const Array& out) = 0;
-    virtual void IsInf(const Array& x, const Array& out) = 0;
-
-    virtual std::unique_ptr<MaxPoolForwardBackward> GetMaxPoolForwardBackward(
-            const StackVector<int64_t, kMaxNdim>& kernel_size,
-            const StackVector<int64_t, kMaxNdim>& stride,
-            const StackVector<int64_t, kMaxNdim>& pad,
-            bool cover_all) = 0;
-
-    virtual std::unique_ptr<AveragePoolForwardBackward> GetAveragePoolForwardBackward(
-            const StackVector<int64_t, kMaxNdim>& kernel_size,
-            const StackVector<int64_t, kMaxNdim>& stride,
-            const StackVector<int64_t, kMaxNdim>& pad,
-            AveragePoolPadMode pad_mode) = 0;
 
     virtual void Synchronize() = 0;
 
@@ -194,7 +154,7 @@ public:
     DeviceScope& operator=(const DeviceScope&) = delete;
     DeviceScope& operator=(DeviceScope&&) = delete;
 
-    DeviceScope(DeviceScope&& other) : orig_(other.orig_), exited_(other.exited_) { other.exited_ = true; }
+    DeviceScope(DeviceScope&& other) noexcept : orig_{other.orig_}, exited_{other.exited_} { other.exited_ = true; }
 
     ~DeviceScope() { Exit(); }
 

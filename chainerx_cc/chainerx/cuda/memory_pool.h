@@ -75,8 +75,13 @@ public:
     Chunk(void* ptr, size_t offset, size_t bytesize)
         : ptr_{reinterpret_cast<void*>(reinterpret_cast<intptr_t>(ptr) + offset)},  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
           bytesize_{bytesize} {}
+
+    ~Chunk() = default;
+
     Chunk(const Chunk&) = default;
-    ~Chunk() {}
+    Chunk(Chunk&&) = default;
+    Chunk& operator=(const Chunk&) = default;
+    Chunk& operator=(Chunk&&) = default;
 
     // Splits this chunk into a chunk with the given bytesize and one with the remaining.
     //
@@ -116,11 +121,12 @@ public:
     explicit MemoryPool(int device_index, std::unique_ptr<Allocator> allocator)
         : device_index_{device_index}, allocator_{std::move(allocator)} {}
 
-    MemoryPool(const MemoryPool&) = delete;
-
-    MemoryPool operator=(const MemoryPool&) = delete;
-
     ~MemoryPool();
+
+    MemoryPool(const MemoryPool&) = delete;
+    MemoryPool(MemoryPool&&) = delete;
+    MemoryPool& operator=(const MemoryPool&) = delete;
+    MemoryPool& operator=(MemoryPool&&) = delete;
 
     void FreeUnusedBlocks();
 

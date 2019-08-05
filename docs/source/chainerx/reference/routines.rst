@@ -66,7 +66,18 @@ Array manipulation routines
    chainerx.ascontiguousarray
    chainerx.concatenate
    chainerx.stack
+   chainerx.hstack
+   chainerx.vstack
+   chainerx.dstack
+   chainerx.atleast_2d
+   chainerx.atleast_3d
    chainerx.split
+   chainerx.swapaxes
+   chainerx.expand_dims
+   chainerx.flip
+   chainerx.fliplr
+   chainerx.flipud
+   chainerx.moveaxis
 
 Indexing routines
 -----------------
@@ -76,6 +87,7 @@ Indexing routines
    :nosignatures:
 
    chainerx.take
+   chainerx.where
 
 Linear algebra
 --------------
@@ -101,6 +113,7 @@ Logic functions
 
    chainerx.logical_and
    chainerx.logical_or
+   chainerx.logical_xor
    chainerx.logical_not
 
    chainerx.greater
@@ -126,6 +139,9 @@ Mathematical functions
    chainerx.maximum
    chainerx.exp
    chainerx.log
+   chainerx.log10
+   chainerx.log2
+   chainerx.log1p
    chainerx.logsumexp
    chainerx.log_softmax
    chainerx.sqrt
@@ -135,11 +151,21 @@ Mathematical functions
    chainerx.arcsin
    chainerx.arccos
    chainerx.arctan
+   chainerx.arctan2
+   chainerx.sinh
+   chainerx.cosh
    chainerx.tanh
-   chainerx.floor
+   chainerx.arcsinh
+   chainerx.arccosh
    chainerx.square
    chainerx.clip
+   chainerx.fabs
+   chainerx.sign
    chainerx.ceil
+   chainerx.floor
+   chainerx.bitwise_and
+   chainerx.bitwise_or
+   chainerx.bitwise_xor
 
 Random sampling
 ---------------
@@ -159,6 +185,7 @@ Sorting, searching, and counting
    :nosignatures:
 
    chainerx.argmax
+   chainerx.argmin
 
 Statistics
 ----------

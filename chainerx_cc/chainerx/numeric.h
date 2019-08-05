@@ -1,5 +1,6 @@
 #pragma once
 #include <cmath>
+#include <type_traits>
 
 #include "chainerx/array.h"
 #include "chainerx/scalar.h"
@@ -27,120 +28,114 @@ inline bool IsInf(double value) { return std::isinf(value); }
 inline bool IsInf(float value) { return std::isinf(value); }
 
 template <typename T>
-inline T Ceil(T x) {
-    return std::ceil(x);
+inline T Sign(T x) {
+    return IsNan(x) ? x : static_cast<T>(static_cast<int>(T{0} < x) - static_cast<int>(x < T{0}));
 }
+
 template <>
-inline chainerx::Float16 Ceil<chainerx::Float16>(chainerx::Float16 x) {
-    return Float16{std::ceil(static_cast<float>(x))};
+inline chainerx::Float16 Sign<chainerx::Float16>(chainerx::Float16 x) {
+    return IsNan(x) ? x : Float16{static_cast<int>(Float16{0} < x) - static_cast<int>(x < Float16{0})};
+}
+
+#define CHAINERX_DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(name, func)           \
+    template <typename T>                                                   \
+    inline T name(T x) {                                                    \
+        return func(x);                                                     \
+    }                                                                       \
+    template <>                                                             \
+    inline chainerx::Float16 name<chainerx::Float16>(chainerx::Float16 x) { \
+        return chainerx::Float16{func(static_cast<float>(x))};              \
+    }
+
+CHAINERX_DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(Ceil, std::ceil)
+CHAINERX_DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(Floor, std::floor)
+CHAINERX_DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(Sinh, std::sinh)
+CHAINERX_DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(Cosh, std::cosh)
+CHAINERX_DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(Tanh, std::tanh)
+CHAINERX_DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(Arcsinh, std::asinh)
+CHAINERX_DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(Arccosh, std::acosh)
+CHAINERX_DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(Sin, std::sin)
+CHAINERX_DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(Cos, std::cos)
+CHAINERX_DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(Tan, std::tan)
+CHAINERX_DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(Arcsin, std::asin)
+CHAINERX_DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(Arccos, std::acos)
+CHAINERX_DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(Arctan, std::atan)
+CHAINERX_DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(Erf, std::erf)
+CHAINERX_DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(Exp, std::exp)
+CHAINERX_DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(Expm1, std::expm1)
+CHAINERX_DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(Exp2, std::exp2)
+CHAINERX_DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(Log, std::log)
+CHAINERX_DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(Log10, std::log10)
+CHAINERX_DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(Log2, std::log2)
+CHAINERX_DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(Log1p, std::log1p)
+CHAINERX_DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(Sqrt, std::sqrt)
+CHAINERX_DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(Fabs, std::fabs)
+
+namespace numeric_detail {
+
+template <typename T>
+inline T NonNegativePower(T x1, T x2) {
+    static_assert(std::is_integral<T>::value, "NonNegativePower is only defined for non-negative integrals.");
+    T out{1};
+
+    while (x2 > 0) {
+        if (x2 & 1) {
+            out *= x1;
+        }
+        x1 *= x1;
+        x2 >>= 1;
+    }
+
+    return out;
+}
+
+}  // namespace numeric_detail
+
+template <typename T>
+inline auto Power(T x1, T x2) -> std::enable_if_t<std::is_integral<T>::value && std::is_signed<T>::value, T> {
+    if (x2 < 0) {
+        switch (x1) {
+            case -1:
+                return x2 & 1 ? -1 : 1;
+            case 1:
+                return 1;
+            default:
+                return 0;
+        }
+    }
+    return numeric_detail::NonNegativePower(x1, x2);
 }
 
 template <typename T>
-inline T Floor(T x) {
-    return std::floor(x);
-}
-template <>
-inline chainerx::Float16 Floor<chainerx::Float16>(chainerx::Float16 x) {
-    return Float16{std::floor(static_cast<float>(x))};
+inline auto Power(T x1, T x2) -> std::enable_if_t<std::is_integral<T>::value && std::is_unsigned<T>::value, T> {
+    return numeric_detail::NonNegativePower(x1, x2);
 }
 
 template <typename T>
-inline T Tanh(T x) {
-    return std::tanh(x);
+inline auto Power(T x1, T x2) -> std::enable_if_t<!std::is_integral<T>::value, T>;
+template <>
+inline chainerx::Float16 Power(chainerx::Float16 x1, chainerx::Float16 x2) {
+    return chainerx::Float16{std::pow(static_cast<float>(x1), static_cast<float>(x2))};
 }
 template <>
-inline chainerx::Float16 Tanh<chainerx::Float16>(chainerx::Float16 x) {
-    return Float16{std::tanh(static_cast<float>(x))};
+inline float Power(float x1, float x2) {
+    return std::pow(x1, x2);
+}
+template <>
+inline double Power(double x1, double x2) {
+    return std::pow(x1, x2);
 }
 
-template <typename T>
-inline T Sin(T x) {
-    return std::sin(x);
-}
-template <>
-inline chainerx::Float16 Sin<chainerx::Float16>(chainerx::Float16 x) {
-    return Float16{std::sin(static_cast<float>(x))};
-}
+#define CHAINERX_DEFINE_NATIVE_FLOAT16_FALLBACK_BINARY(name, func)                                 \
+    template <typename T>                                                                          \
+    inline T name(T x1, T x2) {                                                                    \
+        return func(x1, x2);                                                                       \
+    }                                                                                              \
+    template <>                                                                                    \
+    inline chainerx::Float16 name<chainerx::Float16>(chainerx::Float16 x1, chainerx::Float16 x2) { \
+        return chainerx::Float16{func(static_cast<float>(x1), static_cast<float>(x2))};            \
+    }
 
-template <typename T>
-inline T Cos(T x) {
-    return std::cos(x);
-}
-template <>
-inline chainerx::Float16 Cos<chainerx::Float16>(chainerx::Float16 x) {
-    return Float16{std::cos(static_cast<float>(x))};
-}
-
-template <typename T>
-inline T Tan(T x) {
-    return std::tan(x);
-}
-template <>
-inline chainerx::Float16 Tan<chainerx::Float16>(chainerx::Float16 x) {
-    return Float16{std::tan(static_cast<float>(x))};
-}
-
-template <typename T>
-inline T Arcsin(T x) {
-    return std::asin(x);
-}
-template <>
-inline chainerx::Float16 Arcsin<chainerx::Float16>(chainerx::Float16 x) {
-    return Float16{std::asin(static_cast<float>(x))};
-}
-
-template <typename T>
-inline T Arccos(T x) {
-    return std::acos(x);
-}
-template <>
-inline chainerx::Float16 Arccos<chainerx::Float16>(chainerx::Float16 x) {
-    return Float16{std::acos(static_cast<float>(x))};
-}
-
-template <typename T>
-inline T Arctan(T x) {
-    return std::atan(x);
-}
-template <>
-inline chainerx::Float16 Arctan<chainerx::Float16>(chainerx::Float16 x) {
-    return Float16{std::atan(static_cast<float>(x))};
-}
-
-template <typename T>
-inline T Exp(T x) {
-    return std::exp(x);
-}
-template <>
-inline chainerx::Float16 Exp<chainerx::Float16>(chainerx::Float16 x) {
-    return Float16{std::exp(static_cast<float>(x))};
-}
-
-template <typename T>
-inline T Log(T x) {
-    return std::log(x);
-}
-template <>
-inline chainerx::Float16 Log<chainerx::Float16>(chainerx::Float16 x) {
-    return Float16{std::log(static_cast<float>(x))};
-}
-
-template <typename T>
-inline T Square(T x) {
-    return x * x;
-}
-template <>
-inline chainerx::Float16 Square<chainerx::Float16>(chainerx::Float16 x) {
-    return Float16{static_cast<float>(x) * static_cast<float>(x)};
-}
-
-template <typename T>
-inline T Sqrt(T x) {
-    return std::sqrt(x);
-}
-template <>
-inline chainerx::Float16 Sqrt<chainerx::Float16>(chainerx::Float16 x) {
-    return Float16{std::sqrt(static_cast<float>(x))};
-}
+CHAINERX_DEFINE_NATIVE_FLOAT16_FALLBACK_BINARY(Arctan2, std::atan2)
 
 }  // namespace chainerx

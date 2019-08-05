@@ -184,6 +184,16 @@ def check_multi_node_bn(comm, use_gpu=False, backend='auto',
                 assert_not_allclose(p1[1].grad, p2[1].grad)
 
 
+def check_link_copyable(comm):
+    #  Regression test for #5854
+    bn0 = ModelDistributedBN(comm)
+    bn1 = bn0.copy(mode='copy')
+    assert bn1 is not None
+    bn2 = MultiNodeBatchNormalization(10, comm)
+    bn3 = bn2.copy(mode='copy')
+    assert bn3 is not None
+
+
 def assert_not_allclose(x, y, atol=1e-5, rtol=1e-4, verbose=True):
     x = chainer.cuda.to_cpu(chainer.utils.force_array(x))
     y = chainer.cuda.to_cpu(chainer.utils.force_array(y))
@@ -226,6 +236,7 @@ def test_multi_node_bn_cpu(communicator_class, backend, dtype):
     comm = create_communicator(communicator_class, mpi_comm,
                                use_gpu=False)
     check_multi_node_bn(comm, backend=backend, dtype=dtype)
+    check_link_copyable(comm)
     comm.mpi_comm.barrier()
 
 
@@ -242,6 +253,7 @@ def test_multi_node_bn_gpu(communicator_class, backend, dtype):
     comm = create_communicator(communicator_class, mpi_comm,
                                use_gpu=True)
     check_multi_node_bn(comm, use_gpu=True, backend=backend, dtype=dtype)
+    check_link_copyable(comm)
     chainer.cuda.Stream.null.synchronize()
     comm.mpi_comm.barrier()
     if hasattr(comm, 'nccl_comm'):

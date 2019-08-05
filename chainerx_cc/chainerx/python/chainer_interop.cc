@@ -25,6 +25,7 @@ namespace python {
 namespace python_internal {
 
 namespace py = pybind11;
+using py::literals::operator""_a;
 
 using ArrayBodyPtr = std::shared_ptr<internal::ArrayBody>;
 
@@ -116,10 +117,12 @@ void InitChainerxChainerInterop(pybind11::module& m) {
               // Insert backward function
               BackwardBuilder bb{"chainer_function", std::move(reduced_input_array_refs), std::move(reduced_output_array_refs)};
               if (BackwardBuilder::Target bt = bb.CreateTarget()) {
-                  auto function_node_ptr = std::make_shared<py::object>(std::move(function_node), [](gsl::owner<py::object*> ptr) {
-                      py::gil_scoped_acquire acquire;
-                      delete ptr;
-                  });
+                  // Need to reallocate the function node in order to specify a custom deleter (that acquires the GIL before deletion).
+                  auto function_node_ptr =
+                          std::shared_ptr<py::object>{new py::object{std::move(function_node)}, [](gsl::owner<py::object*> ptr) {
+                                                          py::gil_scoped_acquire acquire;
+                                                          delete ptr;
+                                                      }};
 
                   // Retain inputs/outputs
                   auto retain_arrays = [](auto retain,
@@ -228,11 +231,11 @@ void InitChainerxChainerInterop(pybind11::module& m) {
               }
               bb.Finalize();
           },
-          py::arg("function_node"),
-          py::arg("inputs"),
-          py::arg("outputs"),
-          py::arg("input_indexes_to_retain"),
-          py::arg("output_indexes_to_retain"));
+          "function_node"_a,
+          "inputs"_a,
+          "outputs"_a,
+          "input_indexes_to_retain"_a,
+          "output_indexes_to_retain"_a);
 }
 
 }  // namespace python_internal

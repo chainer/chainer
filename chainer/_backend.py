@@ -32,7 +32,14 @@ _dummy_context = _DummyContext()
 
 # TODO(niboshi): Write more detailed description about interface/usage.
 class Device(object):
-    """Device object.
+    """A base class of unified devices.
+
+    Chainer has the following concrete implementations:
+
+    - :class:`chainer.backend.CpuDevice`
+    - :class:`chainer.backend.GpuDevice`
+    - :class:`chainer.backend.Intel64Device`
+    - :class:`chainer.backend.ChainerxDevice`
     """
 
     @property
@@ -53,11 +60,16 @@ class Device(object):
             'Device implementation must override this property.')
 
     def __enter__(self):
+        """A dummy definition that simply raises RuntimeError.
+
+        :meth:`chainer.using_device` should be used instead.
+        """
         raise RuntimeError(
             'Device class does not support runtime context using `with` '
             'statement. Use chainer.using_device instead.')
 
     def __exit__(self, exc_type, exc_value, traceback):
+        """A dummy definition that should never be called."""
         # Definition of __exit__ is needed to raise a custom error on
         # __enter__.
         pass
@@ -70,7 +82,11 @@ class Device(object):
         return not (self == other)
 
     def create_context(self):
-        # Returns an object that implements __enter__ and __exit__.
+        """Returns a context manager in which the device is made current.
+
+        .. seealso::
+            :meth:`chainer.using_device` calls this method internally.
+        """
         return _dummy_context
 
     def send(self, arrays):
@@ -86,6 +102,17 @@ class Device(object):
         return _convert_arrays(arrays, self.send_array)
 
     def use(self):
-        """Makes this device default on the corresponding module.
+        """Makes the device current in the current thread.
          """
         pass
+
+    def is_array_supported(self, array):
+        """Returns if the specified array is compatible with the device.
+        Args:
+            array (:ref:`ndarray`): An array to be checked
+        Returns:
+            ``True`` if the array is compatible with the device. Otherwise
+            ``False`` is returned.
+        """
+        raise NotImplementedError(
+            'Device implementation must override this method.')
