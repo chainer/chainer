@@ -1,7 +1,6 @@
 import glob
 import itertools
 import os
-import random
 import shutil
 import tempfile
 import time
@@ -205,16 +204,13 @@ class TestFindStaleSnapshot(unittest.TestCase):
         files = [fmt.format(i) for i in range(0, length)]
         base_timestamp = time.time() - length * 2
 
-        for i, file in enumerate(files[:-1]):
+        for i, file in enumerate(files):
             file = os.path.join(self.path, file)
             open(file, 'w').close()
 
             # Same comment applies here. See comment in ``TestFindSnapshot``
             t = base_timestamp + i
             os.utime(file, (t, t))
-
-        file = os.path.join(self.path, fmt.format(length))
-        open(file, 'w').close()
 
         stale = list(_find_stale_snapshots(fmt, self.path, retain))
         assert max(length-retain, 0) == len(stale)
