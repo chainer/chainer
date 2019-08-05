@@ -78,6 +78,67 @@ Returns:
 """)
 
     _docs.set_doc(
+        chainerx.tri,
+        """tri(N, M=None, k=0, dtype=float32, device=None)
+Returns a 2-D array with ones at and below the given diagonal
+and zeros elsewhere.
+
+Args:
+    N (int): Number of rows.
+    M (int): Number of columns. M == N by default.
+    k (int): Index of the diagonal. Zero indicates the main diagonal,
+        a positive index an upper diagonal, and a negative index a lower
+        diagonal.
+    dtype: Data type.
+    device (~chainerx.Device): Device on which the array is allocated.
+        If omitted, :ref:`the default device <chainerx_device>` is chosen.
+
+Returns:
+    ~chainerx.ndarray: A 2-D array with given diagonals filled ones at and
+    below the given diagonal and zeros elsewhere.
+
+.. seealso:: :func:`numpy.tri`
+""")
+
+    _docs.set_doc(
+        chainerx.tril,
+        """tril(m, k=0)
+Lower triangle of an array.
+
+Returns a copy of an array with elements above the k-th diagonal zeroed.
+
+Args:
+    m (~chainerx.ndarray): Input array.
+    k (int): Index of the diagonal. Zero indicates the main diagonal,
+        a positive index an upper diagonal, and a negative index a lower
+        diagonal.
+
+Returns:
+    ~chainerx.ndarray: Lower triangle of ``m``.
+
+.. seealso:: :func:`numpy.tril`
+""")
+
+    _docs.set_doc(
+        chainerx.triu,
+        """triu(m, k=0)
+Upper triangle of an array.
+
+Returns a copy of an array with elements below the k-th diagonal zeroed.
+
+Args:
+    m (~chainerx.ndarray): Input array.
+    k (int): Index of the diagonal. Zero indicates the main diagonal,
+        a positive index an upper diagonal, and a negative index a lower
+        diagonal.
+
+Returns:
+    ~chainerx.ndarray: Upper triangle of ``m``.
+
+.. seealso:: :func:`numpy.triu`
+""")
+
+    _docs.set_doc(
         chainerx.identity,
         """identity(n, dtype=None, device=None)
 Returns a 2-D identity array.
@@ -544,6 +605,63 @@ Note:
     supported yet.)
 
 .. seealso:: :func:`numpy.linalg.inv`
+""")
+
+    _docs.set_doc(
+        chainerx.linalg.svd,
+        """svd(a, full_matrices=True, compute_uv=True)
+Singular Value Decomposition.
+
+Factorizes the matrix ``a`` into two unitary matrices ``U`` and ``Vt``, and
+a 1-D array ``s`` of singular values such that
+``a == U * S * Vt``, where ``S`` is a suitably shaped matrix of zeros with
+main diagonal ``s`` and ``*`` represents a dot product.
+
+Args:
+    a (~chainerx.ndarray): The input matrix with dimension ``(M, N)``.
+    full_matrices (bool): If True, it returns u and v with dimensions
+        ``(M, M)`` and ``(N, N)``. Otherwise, the dimensions of u and v
+        are respectively ``(M, K)`` and ``(K, N)``, where
+        ``K = min(M, N)``.
+    compute_uv (bool): If False, only singular values are computed.
+
+Returns:
+    tuple of :class:`chainerx.ndarray`:
+        A tuple of ``(U, s, Vt)`` such that ``a = U * diag(s) * Vt``.
+        When ``compute_uv`` is False only singular values ``s`` are returned.
+
+Note:
+    * The ``dtype`` must be ``float32`` or ``float64`` (``float16`` is not
+      supported yet.)
+    * The SVD is commonly written as `a = U * diag(s) * V^T`.
+      The ``Vt`` returned by this function is `V^T`.
+    * During backpropagation, this function requires ``U`` and ``Vt`` computed,
+      therefore differentiation does not work for ``compute_uv=False``.
+    * Backpropagation is not implemented for ``full_matrices=True``.
+
+.. seealso:: :func:`numpy.linalg.svd`
+""")
+
+    _docs.set_doc(
+        chainerx.linalg.pinv,
+        """pinv(a, rcond=1e-15)
+Compute the (Moore-Penrose) pseudo-inverse of a matrix.
+
+Calculate the generalized inverse of a matrix using its singular-value
+decomposition (SVD) and including all large singular values.
+
+Args:
+    a (~chainerx.ndarray): The input matrix to be pseudo-inverted.
+    rcond (float): Cutoff for small singular values.
+
+Returns:
+    :class:`~chainerx.ndarray`: The pseudo-inverse of ``a``.
+
+Note:
+    The ``dtype`` must be ``float32`` or ``float64`` (``float16`` is not
+    supported yet.)
+
+.. seealso:: :func:`numpy.linalg.pinv`
 """)
 
 
@@ -1177,6 +1295,27 @@ Note:
 
 
 .. seealso:: :func:`numpy.swapaxes`
+""")
+
+    _docs.set_doc(
+        chainerx.repeat,
+        """repeat(a, repeats, axis=None)
+Constructs an array by repeating a given array.
+
+Args:
+    a (~chainerx.ndarray): Array to repeat.
+    repeats (int or tuple of ints): The number of times which each
+        element of a is repeated.
+    axis (int): The axis along which to repeat values.
+
+Returns:
+    ~chainerx.ndarray: The repeated output array.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``a``.
+
+.. seealso:: :func:`numpy.repeat`
 """)
 
     _docs.set_doc(
