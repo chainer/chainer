@@ -617,7 +617,7 @@ class TestLstm(op_utils.ChainerOpTest):
 
     def forward_chainerx(self, inputs):
         c, x = inputs
-        h, c = chainerx.lstm(c, x)
+        c, h = chainerx.lstm(c, x)
         return c, h,
 
     def forward_chainer(self, inputs):
