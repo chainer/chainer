@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -348,6 +349,26 @@ void InitChainerxLinalg(pybind11::module& m) {
     mlinalg.def(
             "solve", [](const ArrayBodyPtr& a, const ArrayBodyPtr& b) { return MoveArrayBody(Solve(Array{a}, Array{b})); }, "a"_a, "b"_a);
     mlinalg.def("inv", [](const ArrayBodyPtr& a) { return MoveArrayBody(Inverse(Array{a})); }, "a"_a);
+    mlinalg.def(
+            "svd",
+            [](const ArrayBodyPtr& a, bool full_matrices, bool compute_uv) -> py::object {
+                std::tuple<Array, Array, Array> usvt = Svd(Array{a}, full_matrices, compute_uv);
+                Array u = std::get<0>(usvt);
+                Array s = std::get<1>(usvt);
+                Array vt = std::get<2>(usvt);
+                if (!compute_uv) {
+                    return py::cast(MoveArrayBody(Array{s}));
+                }
+                return py::make_tuple(MoveArrayBody(Array{u}), MoveArrayBody(Array{s}), MoveArrayBody(Array{vt}));
+            },
+            "a"_a,
+            "full_matrices"_a = true,
+            "compute_uv"_a = true);
+    mlinalg.def(
+            "pinv",
+            [](const ArrayBodyPtr& a, float rcond) { return MoveArrayBody(PseudoInverse(Array{a}, rcond)); },
+            "a"_a,
+            "rcond"_a = 1e-15);
 }
 
 void InitChainerxLogic(pybind11::module& m) {
