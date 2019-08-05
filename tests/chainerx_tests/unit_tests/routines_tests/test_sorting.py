@@ -61,6 +61,11 @@ _count_nonzero_params = [
     (numpy.ones((2, 0, 3)), None),
     (numpy.ones((2, 3)), 2),
     (numpy.ones((2, 3)), -3),
+    # tuple axis
+    (numpy.asarray([[4, 0, 0, 1], [0, 0, 4, 1]]), (0, 1)),
+    (numpy.asarray([[4, 0, 0, 0], [0, 0, 4, 1]]), (0,)),
+    (numpy.ones((2, 3)), (1, 0)),
+    (numpy.ones((2, 3, 4)), (2, 0)),
 ]
 
 
