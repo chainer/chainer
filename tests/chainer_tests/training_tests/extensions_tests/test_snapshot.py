@@ -131,7 +131,7 @@ class TestFindSnapshot(unittest.TestCase):
         expected = sorted([self.fmt.format(i) for i in range(1, 100)])
         assert len(snapshot_files) == 99
         timestamps, snapshot_files = zip(*snapshot_files)
-        expected == sorted(list(snapshot_files))
+        assert expected == sorted(list(snapshot_files))
 
     def test_find_latest_snapshot(self):
         files = [self.fmt.format(i) for i in range(1, 100)]
@@ -202,11 +202,10 @@ class TestFindStaleSnapshot(unittest.TestCase):
     def test_find_stale_snapshot(self):
         length, retain = self.length_retain
         fmt = 'snapshot_iter_{}'
-        files = random.sample([fmt.format(i) for i in range(0, length)],
-                              length)
-        base_timestamp = time.time()
+        files = [fmt.format(i) for i in range(0, length)]
+        base_timestamp = time.time() - length * 2
 
-        for i, file in enumerate(files):
+        for i, file in enumerate(files[:-1]):
             file = os.path.join(self.path, file)
             open(file, 'w').close()
 
@@ -214,10 +213,13 @@ class TestFindStaleSnapshot(unittest.TestCase):
             t = base_timestamp + i
             os.utime(file, (t, t))
 
+        file = os.path.join(self.path, fmt.format(length))
+        open(file, 'w').close()
+
         stale = list(_find_stale_snapshots(fmt, self.path, retain))
-        assert max(length-retain, 0) == len(list(stale))
+        assert max(length-retain, 0) == len(stale)
         expected = [fmt.format(i) for i in range(0, max(length-retain, 0))]
-        expected == stale
+        assert expected == stale
 
 
 class TestRemoveStaleSnapshots(unittest.TestCase):
