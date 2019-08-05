@@ -30,11 +30,8 @@ Array HuberLoss(const Array& x1, const Array& x2, Scalar delta) {
 
 Array Hinge(const Array& x1, const Array& x2, const std::string& norm) {
     int64_t num = x1.shape()[0];
-    Array bottom_diff = Copy(x1);
-    std::vector<Array> indices = {Arange(num), x2};
-    Array concat = Transpose(Concatenate(indices, 0));
-    IMultiply(At(bottom_diff, concat), -1);
-    bottom_diff = Maximum(0, Add(1, bottom_diff));
+    Array one_minus_diff = Where(ExpandDims(x2, 1) == Arange(num), 0, 2);
+    Array bottom_diff = Maximum(0, one_minus_diff);
 
     if (norm == "L1") {
         return bottom_diff;
