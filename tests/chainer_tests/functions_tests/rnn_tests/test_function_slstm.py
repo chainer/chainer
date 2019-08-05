@@ -85,7 +85,6 @@ class TestSLSTM(testing.FunctionTestCase):
             self.check_double_backward_options = {'atol': 5e-3, 'rtol': 5e-2}
         # TODO(dido1998) : Remove this skip
         if self.grad_outputs[0] is False or self.grad_outputs[1] is False:
-            self.skip_backward_test = True
             self.skip_double_backward_test = True
 
     def generate_inputs(self):
