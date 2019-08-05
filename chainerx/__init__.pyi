@@ -927,6 +927,11 @@ def sum(a: ndarray,
         keepdims: bool=...) -> ndarray: ...
 
 
+def count_nonzero(
+        a: ndarray,
+        axis: tp.Optional[tp.Union[int, tp.List[int]]]=None) -> ndarray: ...
+
+
 def cumsum(
         x: ndarray,
         axis: tp.Optional[int]=None) -> ndarray: ...
