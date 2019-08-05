@@ -68,7 +68,11 @@ class TestNStepRNN(testing.FunctionTestCase):
 
     dodge_nondifferentiable = True
     numerical_grad_dtype = None
+
     def setUp(self):
+        self.check_forward_options = {'atol': 1e-3, 'rtol': 1e-2}
+        self.check_backward_options = {'atol': 5e-3, 'rtol': 5e-2}
+        self.check_double_backward_options = {'atol': 5e-3, 'rtol': 5e-2}
         self.skip_double_backward_test = True
 
     def generate_inputs(self):
@@ -112,7 +116,7 @@ class TestNStepRNN(testing.FunctionTestCase):
     def forward(self, inputs, device):
         h, ws, bs, xs = self.process_inputs(inputs)
         out = F.n_step_rnn(self.n_layers, 0.0, h, ws,
-                               bs, xs, self.activation)
+                           bs, xs, self.activation)
         rets = []
         rets.append(out[0])
         for i in range(len(out[1])):
