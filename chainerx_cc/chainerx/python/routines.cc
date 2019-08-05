@@ -353,13 +353,13 @@ void InitChainerxLinalg(pybind11::module& m) {
             "svd",
             [](const ArrayBodyPtr& a, bool full_matrices, bool compute_uv) -> py::object {
                 std::tuple<Array, Array, Array> usvt = Svd(Array{a}, full_matrices, compute_uv);
-                Array u = std::get<0>(usvt);
-                Array s = std::get<1>(usvt);
-                Array vt = std::get<2>(usvt);
+                Array& u = std::get<0>(usvt);
+                Array& s = std::get<1>(usvt);
+                Array& vt = std::get<2>(usvt);
                 if (!compute_uv) {
-                    return py::cast(MoveArrayBody(Array{s}));
+                    return py::cast(MoveArrayBody(std::move(s)));
                 }
-                return py::make_tuple(MoveArrayBody(Array{u}), MoveArrayBody(Array{s}), MoveArrayBody(Array{vt}));
+                return py::make_tuple(MoveArrayBody(std::move(u)), MoveArrayBody(std::move(s)), MoveArrayBody(std::move(vt)));
             },
             "a"_a,
             "full_matrices"_a = true,
