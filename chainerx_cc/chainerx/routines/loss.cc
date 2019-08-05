@@ -29,6 +29,22 @@ Array HuberLoss(const Array& x1, const Array& x2, Scalar delta) {
 }
 
 Array Hinge(const Array& x1, const Array& x2, const std::string& norm) {
+    if (GetKind(x1.dtype()) != DtypeKind::kFloat) {
+        throw DtypeError{"Outputs must be of float type."};
+    }
+    if (GetKind(x2.dtype()) != DtypeKind::kInt) {
+        throw DtypeError{"Targets must be of int type."};
+    }
+    if (x1.ndim() != 2) {
+        throw DimensionError{"Outputs must be 2 dimensional."};
+    }
+    if (x2.ndim() != 1) {
+        throw DimensionError{"Targets must be 1 dimensional."};
+    }
+    if (x1.shape()[0] != x2.shape()[0]) {
+        throw DimensionError{"x1.shape[0] must be equal to x2.shape[0]"};
+    }
+
     int64_t num = x1.shape()[0];
     Array one_minus_diff = Where(ExpandDims(x2, 1) == Arange(num), 0, 2);
     Array bottom_diff = Maximum(0, one_minus_diff);
