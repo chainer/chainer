@@ -68,7 +68,7 @@ step_before_install_chainermn_test_deps() {
             sudo apt-get install -y "${pkgs[@]}"
             ;;
         osx)
-            brew install open-mpi
+            brew install open-mpi hwloc
             ;;
         *)
             false
