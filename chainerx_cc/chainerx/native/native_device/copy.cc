@@ -6,18 +6,14 @@
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
 #include "chainerx/kernels/creation.h"
-#include "chainerx/kernels/misc.h"
 #include "chainerx/native/elementwise.h"
 #include "chainerx/native/kernel_regist.h"
-#include "chainerx/routines/creation.h"
 
 namespace chainerx {
 namespace native {
 namespace {
 
-CHAINERX_NATIVE_REGISTER_ELTWISE_UNARY_KERNEL(CopyKernel, { out = x; });
-
-class NativeAsTypeKernel : public AsTypeKernel {
+class NativeCopyKernel : public CopyKernel {
 public:
     void Call(const Array& a, const Array& out) override {
         a.device().CheckDevicesCompatible(a, out);
@@ -33,7 +29,7 @@ public:
     }
 };
 
-CHAINERX_NATIVE_REGISTER_KERNEL(AsTypeKernel, NativeAsTypeKernel);
+CHAINERX_NATIVE_REGISTER_KERNEL(CopyKernel, NativeCopyKernel);
 
 }  // namespace
 }  // namespace native

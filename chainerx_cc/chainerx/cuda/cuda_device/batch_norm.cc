@@ -5,7 +5,7 @@
 #include <tuple>
 #include <utility>
 
-#include <nonstd/optional.hpp>
+#include <absl/types/optional.h>
 
 #include <cudnn.h>
 
@@ -83,7 +83,7 @@ public:
             Scalar decay,
             const Axes& axis,
             bool return_state,
-            const nonstd::optional<Array>& out) override {
+            const absl::optional<Array>& out) override {
         if (CHAINERX_DEBUG) {
             Shape reduced_shape = internal::ReduceShape(x.shape(), axis, true);
             CHAINERX_ASSERT(gamma.shape() == reduced_shape);
@@ -121,15 +121,15 @@ public:
         CudaDevice& device = dynamic_cast<CudaDevice&>(x.device());
         CudaSetDeviceScope scope{device.index()};
 
-        Array x_cont = internal::AsContiguous(x);
+        Array x_cont = AsContiguous(x);
         cuda_internal::CudnnTensorDescriptor x_desc{x_cont};
 
         cudnnBatchNormMode_t mode = GetBatchNormMode(axis);
         cuda_internal::CudnnTensorDescriptor gamma_beta_mean_var_desc = DeriveBatchNormTensorDescriptor(x_desc, mode);
         Dtype gamma_beta_mean_var_dtype = gamma_beta_mean_var_desc.GetDtype();
 
-        Array gamma_casted_cont = internal::AsContiguous(gamma, gamma_beta_mean_var_dtype);
-        Array beta_casted_cont = internal::AsContiguous(beta, gamma_beta_mean_var_dtype);
+        Array gamma_casted_cont = AsContiguous(gamma, gamma_beta_mean_var_dtype);
+        Array beta_casted_cont = AsContiguous(beta, gamma_beta_mean_var_dtype);
 
         CHAINERX_ASSERT(running_mean.IsContiguous());
         CHAINERX_ASSERT(running_var.IsContiguous());
@@ -195,9 +195,9 @@ public:
             Scalar eps,
             const Axes& axis,
             const std::shared_ptr<BatchNormGradState>& state,
-            const nonstd::optional<Array>& gx,
-            const nonstd::optional<Array>& ggamma,
-            const nonstd::optional<Array>& gbeta) override {
+            const absl::optional<Array>& gx,
+            const absl::optional<Array>& ggamma,
+            const absl::optional<Array>& gbeta) override {
         CHAINERX_ASSERT(gamma.shape() == internal::ReduceShape(x.shape(), axis, true));
         CHAINERX_ASSERT(x.shape() == gout.shape());
         CHAINERX_ASSERT(&x.device() == &gamma.device());
@@ -237,7 +237,7 @@ public:
         CudaDevice& device = dynamic_cast<CudaDevice&>(x.device());
         CudaSetDeviceScope scope{device.index()};
 
-        Array gout_cont = internal::AsContiguous(gout);
+        Array gout_cont = AsContiguous(gout);
         Array actual_gx = EmptyLike(x, device);
         cuda_internal::CudnnTensorDescriptor x_desc{x_cont};
 
@@ -250,7 +250,7 @@ public:
         Dtype gamma_beta_mean_var_dtype = gamma_beta_mean_var_desc.GetDtype();
         Shape gamma_beta_mean_var_shape = internal::ReduceShape(x_cont.shape(), axis, true);
 
-        Array gamma_casted_cont = internal::AsContiguous(gamma, gamma_beta_mean_var_dtype);
+        Array gamma_casted_cont = AsContiguous(gamma, gamma_beta_mean_var_dtype);
         Array actual_ggamma = Empty(gamma_beta_mean_var_shape, gamma_beta_mean_var_dtype, device);
         Array actual_gbeta = Empty(gamma_beta_mean_var_shape, gamma_beta_mean_var_dtype, device);
 
@@ -307,7 +307,7 @@ public:
             const Array& var,
             Scalar eps,
             const Axes& axis,
-            const nonstd::optional<Array>& out) override {
+            const absl::optional<Array>& out) override {
         if (CHAINERX_DEBUG) {
             Shape reduced_shape = internal::ReduceShape(x.shape(), axis, true);
             CHAINERX_ASSERT(gamma.shape() == reduced_shape);
@@ -338,7 +338,7 @@ public:
         CudaDevice& device = dynamic_cast<CudaDevice&>(x.device());
         CudaSetDeviceScope scope{device.index()};
 
-        Array x_cont = internal::AsContiguous(x);
+        Array x_cont = AsContiguous(x);
         cuda_internal::CudnnTensorDescriptor x_desc{x_cont};
 
         cudnnBatchNormMode_t mode = GetBatchNormMode(axis);
@@ -346,10 +346,10 @@ public:
         cuda_internal::CudnnTensorDescriptor gamma_beta_mean_var_desc = DeriveBatchNormTensorDescriptor(x_desc, mode);
         Dtype gamma_beta_mean_var_dtype = gamma_beta_mean_var_desc.GetDtype();
 
-        Array gamma_casted_cont = internal::AsContiguous(gamma, gamma_beta_mean_var_dtype);
-        Array beta_casted_cont = internal::AsContiguous(beta, gamma_beta_mean_var_dtype);
-        Array mean_casted_cont = internal::AsContiguous(mean, gamma_beta_mean_var_dtype);
-        Array var_casted_cont = internal::AsContiguous(var, gamma_beta_mean_var_dtype);
+        Array gamma_casted_cont = AsContiguous(gamma, gamma_beta_mean_var_dtype);
+        Array beta_casted_cont = AsContiguous(beta, gamma_beta_mean_var_dtype);
+        Array mean_casted_cont = AsContiguous(mean, gamma_beta_mean_var_dtype);
+        Array var_casted_cont = AsContiguous(var, gamma_beta_mean_var_dtype);
 
         Dtype dtype = x_cont.dtype();
 

@@ -67,7 +67,7 @@ There are several attributes you can add using the :meth:`~chainer.training.make
 
 ``trigger`` is an object that takes a :class:`~chainer.training.Trainer` object as an argument and returns a boolean value. If a tuple in the form ``(period, unit)`` is given as a trigger, it will be considered as an :class:`~chainer.training.triggers.IntervalTrigger` that invokes the extension every ``period`` ``unit``. For example, when the given tuple is ``(10, 'epoch')``, the extension will run every 10 epochs.
 
-``trigger`` can also be given to the :meth:`~chainer.training.trainer.extend` method that adds an extension to a :class:`~chainer.training.Trainer` object. The priority of ``trigger``\ s is as follows:
+``trigger`` can also be given to the :meth:`~chainer.training.Trainer.extend` method that adds an extension to a :class:`~chainer.training.Trainer` object. The priority of ``trigger``\ s is as follows:
 
 - When both :meth:`~chainer.training.Trainer.extend` and a given :class:`~chainer.training.Extension` have ``trigger``\ s, the ``trigger`` given to :meth:`~chainer.training.Trainer.extend` is used.
 - When ``None`` is given to :meth:`~chainer.training.Trainer.extend` as the ``trigger`` argument and a given :class:`~chainer.training.Extension` has ``trigger``, the ``trigger`` given to the :class:`~chainer.training.Extension` is used.
@@ -85,16 +85,16 @@ An :class:`~chainer.training.Extension` is kept in a dictionary which is a prope
 
 As a :class:`~chainer.training.Trainer` object can be assigned multiple :class:`~chainer.training.Extension` objects, the execution order is defined according to the following three values:
 
-- :data:`~chainer.training.extension.PRIORITY_WRITER`: The priority for extensions that write some records to the observation dictionary. It includes cases that the extension directly adds values to the observation dictionary, or the extension uses the chainer.report() function to report values to the observation dictionary. Extensions which write something to reporter should go first because other Extensions which read those values may be added.
-- :data:`~chainer.training.extension.PRIORITY_EDITOR`: The priority for extensions that edit the observation dictionary based on already reported values. Extensions which edit some values of reported ones should go after the extensions which write values to reporter but before extensions which read the final values.
-- :data:`~chainer.training.extension.PRIORITY_READER`: The priority for extensions that only read records from the observation dictionary. This is also suitable for extensions that do not use the observation dictionary at all. Extensions which read the reported values should be fired after all the extensions which have other priorities, e.g, :data:`PRIORITY_WRITER` and :data:`PRIORITY_EDITOR` because it should read the final values.
+- ``PRIORITY_WRITER``: The priority for extensions that write some records to the observation dictionary. It includes cases that the extension directly adds values to the observation dictionary, or the extension uses the chainer.report() function to report values to the observation dictionary. Extensions which write something to reporter should go first because other Extensions which read those values may be added.
+- ``PRIORITY_EDITOR``: The priority for extensions that edit the observation dictionary based on already reported values. Extensions which edit some values of reported ones should go after the extensions which write values to reporter but before extensions which read the final values.
+- ``PRIORITY_READER``: The priority for extensions that only read records from the observation dictionary. This is also suitable for extensions that do not use the observation dictionary at all. Extensions which read the reported values should be fired after all the extensions which have other priorities, e.g, ``PRIORITY_WRITER`` and ``PRIORITY_EDITOR`` because it should read the final values.
 
 See the details in the documentation of :class:`~chainer.training.Trainer` for more information.
 
 4. finalizer
 ^^^^^^^^^^^^
 
-You can specify a function which takes a :class:`~chainer.training.Trainer` object as an argument to finalize the extension. It is called once at the end of the training loop, i.e., when :meth:`~chainer.training.Trainer.run` has finished.
+You can specify a function to finalize the extension. It is called once at the end of the training loop, i.e., when :meth:`~chainer.training.Trainer.run` has finished.
 
 5. initializer
 ^^^^^^^^^^^^^^
@@ -164,14 +164,14 @@ The learning rate will be dropped according to the curve below with :math:`{\rm 
 .. code-block:: python
 
     stop_trigger = (10000, 'iteration')
-    trainer.extend(PolynomialShift('lr', 0.5, stop_trigger)
+    trainer.extend(PolynomialShift('lr', 0.5, stop_trigger))
 
 This extension ``PolynomialShift`` takes five arguments.
 
 - ``attr``: The name of the optimizer property you want to update using this extension.
 - ``power``: The power of the above equation to calculate the learning rate.
-- ``stop_trigger``: The trigger given to the :class:`~chainer.traininig.Trainer` object to specify when to stop the training loop.
+- ``stop_trigger``: The trigger given to the :class:`~chainer.training.Trainer` object to specify when to stop the training loop.
 - ``batchsize``: The training mini-batchsize.
 - ``len_dataset``: The length of the dataset, i.e., the number of data in the training dataset.
 
-This extension calculates the number of iterations which will be performed during training by using ``stop_trigger``, ``batchsize``, and ``len_dataset``, then stores it as a property ``_maxiter``. This property will be used in the :meth:`__call__` method to update the learning rate. The :meth:`initialize` method obtains the initial learning rate from the optimizer given to the :class:`~chainer.training.Trainer` object. The :meth:`~chainer.traininig.serialize` method stores or recovers the properties, ``_t`` (number of iterations) and ``_last_value`` (the latest learning rate), belonging to this extension.
+This extension calculates the number of iterations which will be performed during training by using ``stop_trigger``, ``batchsize``, and ``len_dataset``, then stores it as a property ``_maxiter``. This property will be used in the ``__call__()`` method to update the learning rate. The ``initialize()`` method obtains the initial learning rate from the optimizer given to the :class:`~chainer.training.Trainer` object. The ``serialize()`` method stores or recovers the properties, ``_t`` (number of iterations) and ``_last_value`` (the latest learning rate), belonging to this extension.

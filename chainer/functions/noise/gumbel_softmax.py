@@ -16,7 +16,7 @@ def gumbel_softmax(log_pi, tau=0.1, axis=1):
     :math:`g_i` s are samples drawn from
     Gumbel distribution :math:`Gumbel(0, 1)`
 
-    See `Categorical Reparameterization with Gumbel-Softmax \
+    See `Categorical Reparameterization with Gumbel-Softmax
     <https://arxiv.org/abs/1611.01144>`_.
 
     Args:

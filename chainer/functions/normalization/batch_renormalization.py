@@ -69,10 +69,6 @@ class BatchRenormalizationFunction(function.Function):
         # Note: we must be in train mode.
         assert configuration.config.train
 
-        if not self.update_statistics:
-            self._running_mean = xp.array(self._running_mean)
-            self._running_var = xp.array(self._running_var)
-
         head_ndim = gamma.ndim + 1
         expander = (None, Ellipsis) + (None,) * (x.ndim - head_ndim)
 
@@ -80,8 +76,8 @@ class BatchRenormalizationFunction(function.Function):
         # batch renormalization
         axis = (0,) + tuple(range(head_ndim, x.ndim))
         mean = x.mean(axis=axis, dtype=gamma.dtype)
-        var = x.var(axis=axis, dtype=gamma.dtype) + self.eps
-        self.std = xp.sqrt(var, dtype=var.dtype)
+        var = x.var(axis=axis, dtype=gamma.dtype)
+        self.std = xp.sqrt(var + self.eps, dtype=var.dtype)
 
         running_sigma = xp.sqrt(self._running_var + self.eps,
                                 dtype=self._running_mean.dtype)
@@ -90,20 +86,6 @@ class BatchRenormalizationFunction(function.Function):
         d = xp.clip(
             (mean - self._running_mean) / running_sigma,
             -self.dmax, self.dmax)
-
-        # Update running statistics:
-        m = x.size // gamma[expander].size
-        self._running_mean *= self.decay
-        adjust = m / max(m - 1., 1.)  # unbiased estimation
-        temp_ar = xp.array(mean)
-        temp_ar *= (1 - self.decay)
-        self._running_mean += temp_ar
-        del temp_ar
-        self._running_var *= self.decay
-        temp_ar = xp.array(var)
-        temp_ar *= (1 - self.decay) * adjust
-        self._running_var += temp_ar
-        del temp_ar
 
         gamma = gamma[expander]
         beta = beta[expander]
@@ -123,8 +105,23 @@ class BatchRenormalizationFunction(function.Function):
                 x_hat_renorm = x_hat * r + d;
                 y = gamma * x_hat_renorm + beta;
                 ''',
-                'bn_fwd')(x, mean[expander], self.std[expander], gamma,
-                          beta, self.r[expander], d[expander])
+                'brn_fwd')(
+                    x, mean[expander], self.std[expander], gamma, beta,
+                    self.r[expander], d[expander])
+
+        if self.update_statistics:
+            m = x.size // gamma[expander].size
+            self._running_mean *= self.decay
+            adjust = m / max(m - 1., 1.)  # unbiased estimation
+            temp_ar = xp.array(mean)
+            temp_ar *= (1 - self.decay)
+            self._running_mean += temp_ar
+            del temp_ar
+            self._running_var *= self.decay
+            temp_ar = xp.array(var)
+            temp_ar *= (1 - self.decay) * adjust
+            self._running_var += temp_ar
+            del temp_ar
 
         return y,
 
@@ -157,9 +154,10 @@ class BatchRenormalizationFunction(function.Function):
                 'T gx',
                 'gx = (r * gamma / std) * (gy - (x_hat * gsigma_batch + gbeta) * \
                 inv_m)',
-                'bn_bwd')(gy, self.x_hat, gamma[expander],
-                          self.std[expander], gsigma_batch[expander],
-                          gbeta[expander], inv_m, self.r[expander])
+                'brn_bwd')(
+                    gy, self.x_hat, gamma[expander],
+                    self.std[expander], gsigma_batch[expander],
+                    gbeta[expander], inv_m, self.r[expander])
         return gx, ggamma, gbeta
 
 
@@ -173,6 +171,7 @@ def batch_renormalization(x, gamma, beta, rmax, dmax, eps=2e-5,
     individual examples rather than the entire minibatch.
 
     .. note::
+
         This function does not perform in-place update to
         ``running_mean`` and ``running_var`` by default, contrary to
         :func:`~chainer.functions.batch_normalization`.
@@ -180,14 +179,34 @@ def batch_renormalization(x, gamma, beta, rmax, dmax, eps=2e-5,
         updated running mean and variance statistics, because they are members
         of the function object, which cannot be accessed by the caller.
         If it is desired to update the running statistics, call the function
-        with `update_statistics=True` option.
+        with ``update_statistics=True`` option.
 
-    See: `Batch Renormalization: Towards Reducing Minibatch Dependence in \
-          Batch-Normalized Models <https://arxiv.org/abs/1702.03275>`_
+    .. note::
 
-    .. seealso:: :class:`~chainer.links.BatchRenormalization`
+        For the consistency with Batch Normalization, this function
+        intentionally ignores some of the theoretical flaws in Algorithm 1 of
+        the Batch Renormalization paper:
+
+        - ``F.batch_renormalization`` maintains the moving average of variances
+          :math:`\\sigma^2`, while the original paper maintains the moving
+          average of standard deviations :math:`\\sigma`.
+        - ``F.batch_renormalization`` applies Bessel's correction to update the
+          moving average of variances.
+
+    See: `Batch Renormalization: Towards Reducing Minibatch Dependence in
+    Batch-Normalized Models <https://arxiv.org/abs/1702.03275>`_
+
+    .. seealso::
+
+        :class:`~chainer.links.BatchRenormalization` to manage the model
+        parameters (``gamma``, ``beta``) and the statistics (``running_mean``,
+        ``running_var``).
 
     """
+    if running_mean is None:
+        raise TypeError('running_mean is required')
+    if running_var is None:
+        raise TypeError('running_var is required')
     return BatchRenormalizationFunction(
         eps, running_mean, running_var, decay, rmax, dmax, update_statistics
     )(x, gamma, beta)

@@ -8,19 +8,20 @@
 #include <sstream>
 #include <string>
 
+#include <absl/types/span.h>
 #include <gsl/gsl>
 
 #include "chainerx/axes.h"
 #include "chainerx/constant.h"
+#include "chainerx/dims.h"
 #include "chainerx/error.h"
-#include "chainerx/stack_vector.h"
 
 namespace chainerx {
 
 class Strides;
 
-class Shape : public StackVector<int64_t, kMaxNdim> {
-    using BaseVector = StackVector<int64_t, kMaxNdim>;
+class Shape : public Dims {
+    using BaseVector = Dims;
 
 public:
     using const_iterator = BaseVector::const_iterator;
@@ -40,8 +41,8 @@ public:
         insert(begin(), first, last);
     }
 
-    // by gsl:span
-    explicit Shape(gsl::span<const int64_t> dims) : Shape{dims.begin(), dims.end()} {}
+    // by span
+    explicit Shape(absl::Span<const int64_t> dims) : Shape{dims.begin(), dims.end()} {}
 
     // by initializer list
     Shape(std::initializer_list<int64_t> dims) : Shape{dims.begin(), dims.end()} {}
@@ -62,20 +63,20 @@ public:
 
     const int64_t& operator[](int8_t index) const {
         if (!(0 <= index && static_cast<size_t>(index) < size())) {
-            throw DimensionError{"Shape index ", index, " out of bounds for shape with ", size(), " size."};
+            throw IndexError{"Shape index ", index, " out of bounds for shape with ", size(), " size."};
         }
-        return this->StackVector::operator[](index);
+        return this->Dims::operator[](index);
     }
 
     int64_t& operator[](int8_t index) {
         if (!(0 <= index && static_cast<size_t>(index) < size())) {
-            throw DimensionError{"Shape index ", index, " out of bounds for shape with ", size(), " size."};
+            throw IndexError{"Shape index ", index, " out of bounds for shape with ", size(), " size."};
         }
-        return this->StackVector::operator[](index);
+        return this->Dims::operator[](index);
     }
 
     // span
-    gsl::span<const int64_t> span() const { return {*this}; }
+    absl::Span<const int64_t> span() const { return {*this}; }
 };
 
 namespace internal {

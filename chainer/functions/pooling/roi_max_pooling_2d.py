@@ -91,11 +91,10 @@ class ROIMaxPooling2D(function.Function):
         bottom_data, bottom_rois, bottom_roi_indices = inputs
         channels, height, width = bottom_data.shape[1:]
         n_rois = bottom_rois.shape[0]
-        # `numpy.zeros` needs to be used because the arrays can be
-        # returned without having some of its values updated.
-        top_data = numpy.zeros((n_rois, channels, self.outh, self.outw),
-                               dtype=bottom_data.dtype)
-        self.argmax_data = numpy.zeros(top_data.shape, numpy.int32)
+        top_data = numpy.full(
+            (n_rois, channels, self.outh, self.outw),
+            - numpy.inf, dtype=bottom_data.dtype)
+        self.argmax_data = - numpy.ones(top_data.shape, numpy.int32)
 
         for i_roi in six.moves.range(n_rois):
             idx = bottom_roi_indices[i_roi]
@@ -166,18 +165,18 @@ class ROIMaxPooling2D(function.Function):
             // Force malformed ROIs to be 1x1
             int roi_height = max(roi_end_h - roi_start_h , 1);
             int roi_width = max(roi_end_w - roi_start_w, 1);
-            float bin_size_h = static_cast<float>(roi_height)
-                           / static_cast<float>(pooled_height);
-            float bin_size_w = static_cast<float>(roi_width)
-                           / static_cast<float>(pooled_width);
+            T bin_size_h = static_cast<T>(roi_height)
+                           / static_cast<T>(pooled_height);
+            T bin_size_w = static_cast<T>(roi_width)
+                           / static_cast<T>(pooled_width);
 
-            int hstart = static_cast<int>(floor(static_cast<float>(ph)
+            int hstart = static_cast<int>(floor(static_cast<T>(ph)
                                           * bin_size_h));
-            int wstart = static_cast<int>(floor(static_cast<float>(pw)
+            int wstart = static_cast<int>(floor(static_cast<T>(pw)
                                           * bin_size_w));
-            int hend = static_cast<int>(ceil(static_cast<float>(ph + 1)
+            int hend = static_cast<int>(ceil(static_cast<T>(ph + 1)
                                         * bin_size_h));
-            int wend = static_cast<int>(ceil(static_cast<float>(pw + 1)
+            int wend = static_cast<int>(ceil(static_cast<T>(pw + 1)
                                         * bin_size_w));
 
             // Add roi offsets and clip to input boundaries
@@ -185,10 +184,9 @@ class ROIMaxPooling2D(function.Function):
             hend = min(max(hend + roi_start_h, 0), height);
             wstart = min(max(wstart + roi_start_w, 0), width);
             wend = min(max(wend + roi_start_w, 0), width);
-            bool is_empty = (hend <= hstart) || (wend <= wstart);
 
             // Define an empty pooling region to be zero
-            float maxval = is_empty ? 0 : -1E+37;
+            T maxval = - (T) (1.0 / 0.0);
             // If nothing is pooled, argmax=-1 causes nothing to be backprop'd
             int maxidx = -1;
             int data_offset = (roi_batch_ind * channels + c) * height * width;

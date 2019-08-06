@@ -1,3 +1,5 @@
+import six
+
 from chainer import backend
 from chainer import function_node
 import chainer.functions
@@ -30,7 +32,7 @@ class NormalizeL2(function_node.FunctionNode):
 
     def __init__(self, eps=1e-5, axis=1):
         self.eps = eps
-        if isinstance(axis, int):
+        if isinstance(axis, six.integer_types):
             axis = axis,
         self.axis = axis
 
@@ -76,10 +78,10 @@ class NormalizeL2(function_node.FunctionNode):
 
 
 def normalize(x, eps=1e-5, axis=1):
-    """L2 norm squared (a.k.a.\\  Euclidean norm).
+    """Normalize input by L2 norm.
 
-    This function implements L2 normalization on a vector along the given axis.
-    No reduction is done along the normalization axis.
+    This function implements L2 normalization on a sample along the given
+    axis/axes. No reduction is done along the normalization axis.
 
     In the case when :obj:`axis=1` and :math:`\\mathbf{x}` is a matrix of
     dimension :math:`(N, K)`, where :math:`N` and :math:`K` denote mini-batch
@@ -98,7 +100,7 @@ def normalize(x, eps=1e-5, axis=1):
 
     Args:
         x (:class:`~chainer.Variable` or :ref:`ndarray`):
-            Two dimensional output variable. The first
+            multi-dimensional output variable. The first
             dimension is assumed to be the mini-batch dimension.
         eps (float): Epsilon value for numerical stability.
         axis (int or tuple of ints): Axis along which to normalize.

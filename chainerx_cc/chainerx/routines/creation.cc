@@ -21,6 +21,7 @@
 #include "chainerx/kernels/creation.h"
 #include "chainerx/kernels/misc.h"
 #include "chainerx/macro.h"
+#include "chainerx/routines/indexing.h"
 #include "chainerx/routines/type_util.h"
 #include "chainerx/scalar.h"
 #include "chainerx/shape.h"
@@ -81,7 +82,7 @@ Array FromData(
         const Shape& shape,
         Dtype dtype,
         const std::shared_ptr<void>& data,
-        const nonstd::optional<Strides>& strides,
+        const absl::optional<Strides>& strides,
         int64_t offset,
         Device& device) {
     return internal::MakeArray(
@@ -187,7 +188,7 @@ Array Identity(int64_t n, Dtype dtype, Device& device) {
     return out;
 }
 
-Array Eye(int64_t n, nonstd::optional<int64_t> m, nonstd::optional<int64_t> k, nonstd::optional<Dtype> dtype, Device& device) {
+Array Eye(int64_t n, absl::optional<int64_t> m, absl::optional<int64_t> k, absl::optional<Dtype> dtype, Device& device) {
     if (!m.has_value()) {
         m = n;
     }
@@ -209,8 +210,6 @@ Array Eye(int64_t n, nonstd::optional<int64_t> m, nonstd::optional<int64_t> k, n
     return out;
 }
 
-namespace internal {
-
 Array AsContiguous(const Array& a, Dtype dtype) {
     if (a.IsContiguous() && a.dtype() == dtype) {
         return a;
@@ -219,7 +218,8 @@ Array AsContiguous(const Array& a, Dtype dtype) {
     Array out = Empty(a.shape(), dtype, a.device());
     {
         NoBackpropModeScope scope{};
-        a.device().backend().CallKernel<AsTypeKernel>(a.AsGradStopped(), out);
+        // Note: In CopyKernel, Input Array Elements are casted to the type of Output Array.
+        a.device().backend().CallKernel<CopyKernel>(a.AsGradStopped(), out);
     }
 
     if (GetKind(dtype) == DtypeKind::kFloat) {
@@ -239,9 +239,7 @@ Array AsContiguous(const Array& a, Dtype dtype) {
     return out;
 }
 
-}  // namespace internal
-
-Array AsContiguousArray(const Array& a, const nonstd::optional<Dtype>& dtype) {
+Array AsContiguousArray(const Array& a, const absl::optional<Dtype>& dtype) {
     Dtype src_dt = a.dtype();
     Dtype dt = dtype.value_or(src_dt);
 
@@ -252,7 +250,7 @@ Array AsContiguousArray(const Array& a, const nonstd::optional<Dtype>& dtype) {
         return a;
     }
 
-    Array out = internal::AsContiguous(a, dt);
+    Array out = AsContiguous(a, dt);
     if (a.ndim() == 0) {
         out = out.Reshape({1});
     }
@@ -312,12 +310,7 @@ Array Diagflat(const Array& v, int64_t k, Device& device) {
 
 // Creates a 1-d array with evenly spaced numbers.
 Array Linspace(
-        Scalar start,
-        Scalar stop,
-        const nonstd::optional<int64_t>& num,
-        bool endpoint,
-        const nonstd::optional<Dtype>& dtype,
-        Device& device) {
+        Scalar start, Scalar stop, const absl::optional<int64_t>& num, bool endpoint, const absl::optional<Dtype>& dtype, Device& device) {
     static const int64_t kDefaultNum = 50;
 
     // Always default to float type.
@@ -342,6 +335,86 @@ Array Linspace(
             device.backend().CallKernel<LinspaceKernel>(start_value, stop_value, out);
         }
     }
+    return out;
+}
+
+Array Tri(int64_t n, absl::optional<int64_t> m, absl::optional<int64_t> k, absl::optional<Dtype> dtype, Device& device) {
+    if (!m.has_value()) {
+        m = n;
+    }
+    if (!k.has_value()) {
+        k = 0;
+    }
+    if (!dtype.has_value()) {
+        dtype = Dtype::kFloat32;
+    }
+    // NumPy returns 0-sized array for the input with negative dimensions.
+    // This is a flaw in NumPy's implementation. Other array creation routines raise an error for negative dimensions.
+    if (n < 0 || m < 0) {
+        throw DimensionError{"Negative dimensions are not allowed"};
+    }
+
+    Array out = Empty({n, m.value()}, dtype.value(), device);
+    {
+        NoBackpropModeScope scope{};
+        device.backend().CallKernel<TriKernel>(k.value(), out);
+    }
+    return out;
+}
+
+Array Tril(const Array& m, int64_t k = 0) {
+    Array out = Empty(m.shape(), m.dtype(), m.device());
+    {
+        NoBackpropModeScope scope{};
+        Array mask{};
+        if (m.ndim() >= 2) {
+            mask = Tri(m.shape()[m.ndim() - 2], m.shape()[m.ndim() - 1], k, Dtype::kBool, m.device());
+        } else {
+            mask = Tri(m.shape()[0], m.shape()[0], k, Dtype::kBool, m.device());
+        }
+        out = Where(mask, m, 0);
+    }
+
+    BackwardBuilder bb{"tril", m, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([ndim = m.ndim(), k](BackwardContext& bctx) {
+            if (ndim == 1) {
+                throw DimensionError{"ChainerX Tril backward is not implemented for 1-dimensional arrays."};
+            }
+            const Array& gout = *bctx.output_grad();
+            bctx.input_grad() = Tril(gout, k);
+        });
+    }
+    bb.Finalize();
+
+    return out;
+}
+
+Array Triu(const Array& m, int64_t k = 0) {
+    Array out = Empty(m.shape(), m.dtype(), m.device());
+    {
+        NoBackpropModeScope scope{};
+        Array mask{};
+        if (m.ndim() >= 2) {
+            mask = Tri(m.shape()[m.ndim() - 2], m.shape()[m.ndim() - 1], k - 1, Dtype::kBool, m.device());
+        } else {
+            mask = Tri(m.shape()[0], m.shape()[0], k - 1, Dtype::kBool, m.device());
+        }
+        out = Where(mask, 0, m);
+    }
+
+    BackwardBuilder bb{"triu", m, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([ndim = m.ndim(), k](BackwardContext& bctx) {
+            if (ndim == 1) {
+                throw DimensionError{"ChainerX Triu backward is not implemented for 1-dimensional arrays."};
+            }
+            const Array& gout = *bctx.output_grad();
+            bctx.input_grad() = Triu(gout, k);
+        });
+    }
+    bb.Finalize();
+
     return out;
 }
 

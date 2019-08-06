@@ -10,7 +10,6 @@ from chainer import backend
 from chainer.backends import _cpu
 from chainer.backends import cuda
 from chainer import configuration
-from chainer import FunctionNode
 from chainer import testing
 from chainer import utils
 from chainer import variable
@@ -33,10 +32,9 @@ def _copy_arrays(xs):
 
 
 def _ones_like(arr):
-    device = cuda.get_device_from_array(arr)
-    xp = backend.get_array_module(arr)
-    with device:
-        return xp.ones_like(arr)
+    device = backend.get_device_from_array(arr)
+    with chainer.using_device(device):
+        return device.xp.ones_like(arr)
 
 
 def _make_outputs_props_in_error_message(outputs, grad_outputs):
@@ -431,7 +429,7 @@ class _CheckBackward(object):
         params = _as_tuple(params)
 
         if no_gxs is None:
-            no_gxs = [x.dtype.kind != 'f' for x in xs]
+            no_gxs = [None if x is None else x.dtype.kind != 'f' for x in xs]
         else:
             if len(no_gxs) != len(xs):
                 raise ValueError(
@@ -548,13 +546,14 @@ class _CheckBackward(object):
 
         xp = device.xp
         direction_xs_shapes = [
-            x.shape
-            for x, no_gx in six.moves.zip(xs, no_gxs)
+            None if x is None
+            else x.shape for x, no_gx in six.moves.zip(xs, no_gxs)
             if not no_gx]
         direction_param_shapes = [p.shape for p in params]
         direction_shapes = direction_xs_shapes + direction_param_shapes
         directions = [
-            xp.random.normal(size=shape) for shape in direction_shapes]
+            None if shape is None
+            else xp.random.normal(size=shape) for shape in direction_shapes]
 
         # The direction vector is normalized in order to keep the scale of
         # differentiation error invariant with respect to the number of input
@@ -562,16 +561,19 @@ class _CheckBackward(object):
         # input dimension should be taken into account, but we ignore the
         # differences and assume that the curvature is uniform with respect to
         # all the input dimensions.
-        norm = math.sqrt(sum([xp.square(d).sum() for d in directions]))
+        norm = math.sqrt(
+            sum([0 if d is None else xp.square(d).sum() for d in directions]))
         if norm != 0:
             # norm could be zero if input arrays are 0-sized.
             scale = 1. / norm
-            directions = [d * scale for d in directions]
+            directions = [None if d is None else d * scale for d in directions]
 
         return directions
 
     def _clear_grads(self, xs):
         for x in xs:
+            if x is None:
+                continue
             x.grad_var = None
 
     def _forward_for_backward_gradients(self):
@@ -580,7 +582,8 @@ class _CheckBackward(object):
         params = self.params
 
         xs = [
-            variable.Variable(x, requires_grad=x.dtype.kind == 'f')
+            None if x is None
+            else variable.Variable(x, requires_grad=x.dtype.kind == 'f')
             for x in xs]
 
         if self.is_immutable_params:
@@ -601,11 +604,7 @@ class _CheckBackward(object):
     def _directional_backward_gradients(self, xs, ys, params, directions):
         no_gxs = self.no_gxs
 
-        # We need to start backprop from a single variable,
-        # so a dummy function `_GradientSetter` is inserted at the end of the
-        # computational graph.
-        y_backward = _apply_grad_setter_func(
-            ys,
+        gys = (
             [None if gy is None
              # Copy is needed to avoid being updated during backprop, which
              # would affect the numerical gradient.
@@ -614,7 +613,7 @@ class _CheckBackward(object):
              for gy in self.gys])
 
         # Backward
-        y_backward.backward()
+        chainer.backward(ys, gys)
 
         for no_gx, x in six.moves.zip(no_gxs, xs):
             if no_gx and x.grad is not None:
@@ -622,7 +621,8 @@ class _CheckBackward(object):
                     'gradient of int variable must be None')
 
         grads = (
-            [x.grad for x, no_gx in six.moves.zip(xs, no_gxs)
+            [None if x is None
+             else x.grad for x, no_gx in six.moves.zip(xs, no_gxs)
              if not no_gx]
             + [p.grad for p in params])
 
@@ -630,6 +630,7 @@ class _CheckBackward(object):
         assert len(grads) == len(directions)
         for g, direction in six.moves.zip(grads, directions):
             if g is not None:
+                assert direction is not None
                 gx_accum += (g.astype(numpy.float64) * direction).sum()
 
         return gx_accum
@@ -666,7 +667,7 @@ class _CheckBackward(object):
                     x.array = x.array.astype(dtype, copy=False)
 
             casted_data = [
-                x.astype(dtype, copy=False)
+                None if x is None else x.astype(dtype, copy=False)
                 for x in xs_filtered + params_data]
 
         delta = xp.array(0., numpy.float64)
@@ -677,6 +678,10 @@ class _CheckBackward(object):
             # See the document of `numerical_grad`.
 
             def perturb(data, direction):
+                if data is None:
+                    assert direction is None
+                    return data
+
                 data = (data.astype(numpy.float64)
                         + delta * direction).astype(data.dtype)
                 if numpy.isscalar(data):
@@ -691,7 +696,8 @@ class _CheckBackward(object):
                     g_x_vars.append(x_var)
                 else:
                     data = perturb(casted_data[j], directions[j])
-                    g_x_vars.append(variable.Variable(data))
+                    g_x_vars.append(
+                        None if data is None else variable.Variable(data))
                     j += 1
 
             # Parameters
@@ -974,13 +980,19 @@ def check_double_backward(func, x_data, y_grad, x_grad_grad, params=(),
         gys = inputs[n_x:]
 
         ys = _as_tuple(func(*xs))
+
+        # `gys` (inputs to `first_order_grad` forward function) may have been
+        # casted to float64 by `numerical_grad`. For certain functions demoting
+        # the dtypes (e.g. `F.cast` that casts to float16), the dtypes of `ys`
+        # (e.g. outputs of `F.cast`) and `gys` (e.g. given by `numerical_grad`)
+        # may mismatch and we need to align those dtypes here.
+        gys = [
+            None if gy is None
+            else chainer.functions.cast(gy, y.dtype) for y, gy in zip(ys, gys)]
+
         _check_outputs_and_grad_outputs(ys, gys)
 
-        # Let all elements of y share the same creator.
-        # See the comment in check_backward.
-        y_backward = _apply_grad_setter_func(ys, gys)
-
-        y_backward.backward(enable_double_backprop=True)
+        chainer.backward(ys, gys, enable_double_backprop=True)
 
         gxs = []
         errors = []
@@ -1035,36 +1047,3 @@ def check_double_backward(func, x_data, y_grad, x_grad_grad, params=(),
         f.write('\n')
         f.write(str(e))
         utils._raise_from(AssertionError, f.getvalue(), e)
-
-
-class _GradientSetter(FunctionNode):
-    def __init__(self, grad):
-        self.grad = grad
-
-    def forward(self, inputs):
-        # output a dummy array.
-        xp = backend.get_array_module(inputs[0])
-        return xp.empty((0,), dtype=numpy.float32),
-
-    def backward(self, inputs, grad_outputs):
-        return self.grad
-
-
-def _apply_grad_setter_func(ys, gys):
-    # Applies the `_GradientSetter` function.
-    # The gradient setter function accepts any number of upstream outputs as
-    # its inputs, and returns a single output variable with dummy data.
-    # This variable will be later backward()ed and during backprop, this
-    # function returns the given gradients (`y_grad`) on its backward.
-    assert len(ys) == len(gys)
-    assert all(y is None or isinstance(y, chainer.Variable) for y in ys)
-    assert all(gy is None or isinstance(gy, chainer.Variable) for gy in gys)
-    # y is None => gy is None
-    assert all(gy is None for y, gy in zip(ys, gys) if y is None)
-
-    ys_ = [y for y in ys if y is not None]
-    gys_ = [gy for y, gy in zip(ys, gys) if y is not None]
-    assert len(ys_) == len(gys_)
-    grad_setter = _GradientSetter(gys_)
-    y, = grad_setter.apply(ys_)
-    return y

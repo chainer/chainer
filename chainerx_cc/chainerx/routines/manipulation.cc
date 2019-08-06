@@ -5,12 +5,13 @@
 #include <cstdint>
 #include <functional>
 #include <numeric>
+#include <set>
 #include <sstream>
 #include <string>
 #include <utility>
 #include <vector>
 
-#include <nonstd/optional.hpp>
+#include <absl/types/optional.h>
 
 #include "chainerx/array.h"
 #include "chainerx/axes.h"
@@ -322,7 +323,7 @@ Array BroadcastTo(const Array& array, const Shape& shape) {
         int64_t out_dim = shape[i_out];
         // If this dimension is to be broadcasted, nonbroadcast_stride is unset.
         // Otherwise, it holds the new stride.
-        nonstd::optional<int64_t> nonbroadcast_stride{};
+        absl::optional<int64_t> nonbroadcast_stride{};
         if (i_in >= 0) {
             int64_t in_dim = in_shape[i_in];
             if (in_dim == 1) {
@@ -446,7 +447,8 @@ Array ConcatenateImpl(const std::vector<Array>& arrays, int8_t axis) {
             Array sliced_out = internal::MakeArray(shape, strides, out_dtype, device, out.data(), out_offset);
             Dtype in_dtype = array.dtype();
             in_dtypes.emplace_back(in_dtype);
-            device.backend().CallKernel<AsTypeKernel>(array, sliced_out);
+            // Note: In CopyKernel, Input Array Elements are casted to the type of Output Array.
+            device.backend().CallKernel<CopyKernel>(array, sliced_out);
             array_refs.emplace_back(ConstArrayRef{array});
             out_offset += strides[axis] * shape[axis];
         }
@@ -479,7 +481,7 @@ Array ConcatenateImpl(const std::vector<Array>& arrays, int8_t axis) {
 
 Array Concatenate(const std::vector<Array>& arrays) { return ConcatenateImpl(arrays, 0); }
 
-Array Concatenate(const std::vector<Array>& arrays, nonstd::optional<int8_t> axis) {
+Array Concatenate(const std::vector<Array>& arrays, absl::optional<int8_t> axis) {
     if (!axis.has_value()) {
         // Special case, making input arrays 1-dimensional and concatenating along the first axis.
         std::vector<Array> raveled_arrays;
@@ -522,7 +524,7 @@ void DefineSplitBackward(const Array& ary, const std::vector<Array>& out, int8_t
             std::vector<Array> output_grads;
             output_grads.reserve(bctx.output_count());
             for (size_t i = 0; i < bctx.output_count(); ++i) {
-                const nonstd::optional<Array>& gy = bctx.output_grad(i);
+                const absl::optional<Array>& gy = bctx.output_grad(i);
                 output_grads.emplace_back(gy.has_value() ? *gy : Zeros(shapes[i], dtype, device));
             }
             bctx.input_grad() = ConcatenateImpl(output_grads, axis_norm);
@@ -611,6 +613,26 @@ std::vector<Array> Split(const Array& ary, std::vector<int64_t> indices, int8_t 
     return out;
 }
 
+std::vector<Array> DSplit(const Array& ary, int64_t sections) {
+    if (sections < 1) {
+        throw DimensionError("Number of sections must be larger than 0.");
+    }
+
+    if (ary.ndim() < 3) {
+        throw DimensionError("dsplit only works on arrays of 3 or more dimensions.");
+    }
+
+    return Split(ary, sections, 2);
+}
+
+std::vector<Array> DSplit(const Array& ary, std::vector<int64_t> indices) {
+    if (ary.ndim() < 3) {
+        throw DimensionError("dsplit only works on arrays of 3 or more dimensions.");
+    }
+
+    return Split(ary, std::move(indices), 2);
+}
+
 Array Swapaxes(const Array& a, int8_t axis1, int8_t axis2) {
     Shape shape = a.shape();
     Strides strides = a.strides();
@@ -632,6 +654,72 @@ Array Swapaxes(const Array& a, int8_t axis1, int8_t axis2) {
     bb.Finalize();
 
     return out;
+}
+
+Array Repeat(const Array& a, int64_t repeats, absl::optional<int8_t> axis) {
+    if (repeats < 0) {
+        throw DimensionError("repeats must be larger than 0.");
+    }
+
+    int8_t target_axis = 0;
+    Array target_array;
+
+    if (axis.has_value()) {
+        target_axis = internal::NormalizeAxis(*axis, a.ndim());
+        target_array = a;
+    } else {
+        target_array = Reshape(a, Shape({a.shape().GetTotalSize()}));
+    }
+
+    Shape broadcast_shape = target_array.shape();
+    broadcast_shape.insert(broadcast_shape.begin() + target_axis + 1, repeats);
+
+    Shape reshape_shape = target_array.shape();
+    reshape_shape[target_axis] *= repeats;
+
+    Array expanded_array = ExpandDims(target_array, target_axis + 1);
+    Array broadcasted_array = BroadcastTo(expanded_array, broadcast_shape);
+    Array reshaped_array = Reshape(broadcasted_array, reshape_shape);
+    return AsContiguousArray(reshaped_array);
+}
+
+Array Repeat(const Array& a, const std::vector<int64_t>& repeats, absl::optional<int8_t> axis) {
+    if (repeats.size() == 1) {
+        return Repeat(a, repeats[0], axis);
+    }
+
+    if (axis.has_value()) {
+        int8_t target_axis = internal::NormalizeAxis(*axis, a.ndim());
+
+        if (repeats.size() != static_cast<size_t>(a.shape()[target_axis])) {
+            throw DimensionError("The number of repeats must be same with a shape in the axis direction.");
+        }
+
+        if (std::any_of(repeats.begin(), repeats.end(), [](int64_t x) -> bool { return x < 0; })) {
+            throw DimensionError("repeats must be larger than 0.");
+        }
+
+        // TODO(durswd) : should be optimized
+        std::vector<Array> output_elements;
+        std::vector<Array> splitted = Split(a, a.shape()[target_axis], target_axis);
+
+        for (size_t i = 0; i < splitted.size(); ++i) {
+            for (int32_t j = 0; j < repeats[i]; ++j) {
+                output_elements.push_back(splitted[i]);
+            }
+        }
+
+        Array out = Concatenate(output_elements, target_axis);
+
+        return AsContiguousArray(out);
+    }
+
+    if (repeats.size() != static_cast<size_t>(a.shape().GetTotalSize())) {
+        throw DimensionError("The number of repeats must be same with a shape.");
+    }
+
+    Array reshaped = Reshape(a, Shape({a.shape().GetTotalSize()}));
+    return Repeat(reshaped, repeats, 0);
 }
 
 Array ExpandDims(const Array& a, int8_t axis) {
@@ -661,7 +749,7 @@ Array Flip(const Array& m, const OptionalAxes& axes) {
 
     Strides strides = m.strides();
     Shape shape = m.shape();
-    int64_t offset = 0;
+    int64_t offset = m.offset();
     for (auto axis : real_axes) {
         // last element of that dimension.
         offset += std::max<int64_t>(shape[axis] - 1, 0) * strides[axis];
@@ -701,6 +789,164 @@ Array Flipud(const Array& m) {
         throw DimensionError{"Input must be >= 1-d."};
     }
     return Flip(m, Axes{0});
+}
+
+Array AtLeast2D(const Array& x) {
+    Array out;
+
+    {
+        NoBackpropModeScope scope;
+
+        switch (x.ndim()) {
+            case 0:
+                out = x.Reshape({1, 1});
+                break;
+            case 1: {
+                Shape shape = x.shape();
+                Strides strides = x.strides();
+                shape.insert(shape.begin(), 1);
+                strides.insert(strides.begin(), 0);
+                out = internal::MakeArray(shape, strides, x.dtype(), x.device(), x.data());
+            } break;
+            default:
+                out = x.MakeView();
+                break;
+        }
+    }
+
+    BackwardBuilder bb{"atleast_2d", x, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([in_shape = x.shape(), ndim = x.ndim()](BackwardContext& bctx) {
+            if (ndim <= 1) {
+                bctx.input_grad() = bctx.output_grad()->Reshape(in_shape);
+            } else {
+                bctx.input_grad() = *bctx.output_grad();
+            }
+        });
+    }
+    bb.Finalize();
+
+    return out;
+}
+
+Array AtLeast3D(const Array& x) {
+    Array out;
+
+    {
+        NoBackpropModeScope scope;
+
+        switch (x.ndim()) {
+            case 0:
+                out = x.Reshape({1, 1, 1});
+                break;
+            case 1: {
+                Shape shape = x.shape();
+                Strides strides = x.strides();
+                shape.insert(shape.begin(), 1);
+                shape.insert(shape.end(), 1);
+                strides.insert(strides.begin(), 0);
+                strides.insert(strides.end(), 0);
+                out = internal::MakeArray(shape, strides, x.dtype(), x.device(), x.data());
+            } break;
+            case 2: {
+                Shape shape = x.shape();
+                Strides strides = x.strides();
+                shape.insert(shape.end(), 1);
+                strides.insert(strides.end(), 0);
+                out = internal::MakeArray(shape, strides, x.dtype(), x.device(), x.data());
+            } break;
+            default:
+                out = x.MakeView();
+                break;
+        }
+    }
+
+    BackwardBuilder bb{"atleast_3d", x, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([in_shape = x.shape(), ndim = x.ndim()](BackwardContext& bctx) {
+            if (ndim <= 2) {
+                bctx.input_grad() = bctx.output_grad()->Reshape(in_shape);
+            } else {
+                bctx.input_grad() = *bctx.output_grad();
+            }
+        });
+    }
+    bb.Finalize();
+
+    return out;
+}
+
+Array HStack(const std::vector<Array>& arrays) {
+    if (arrays.empty()) {
+        throw DimensionError{"Need at least one array to stack"};
+    }
+
+    if (arrays.front().ndim() <= 1) {
+        return Concatenate(arrays, 0);
+    }
+    return Concatenate(arrays, 1);
+}
+
+Array VStack(const std::vector<Array>& arrays) {
+    if (arrays.empty()) {
+        throw DimensionError{"Need at least one array to stack"};
+    }
+
+    std::vector<Array> reshaped_arrays(arrays.size());
+    std::transform(arrays.begin(), arrays.end(), reshaped_arrays.begin(), AtLeast2D);
+
+    return Concatenate(reshaped_arrays, 0);
+}
+
+Array DStack(const std::vector<Array>& arrays) {
+    if (arrays.empty()) {
+        throw DimensionError{"Need at least one array to stack"};
+    }
+
+    std::vector<Array> reshaped_arrays(arrays.size());
+    std::transform(arrays.begin(), arrays.end(), reshaped_arrays.begin(), AtLeast3D);
+    return Concatenate(reshaped_arrays, 2);
+}
+
+Array Moveaxis(const Array& a, const Axes& source, const Axes& destination) {
+    if (source.size() != destination.size()) {
+        throw DimensionError{"Invalid Source or Destination Axes"};
+    }
+
+    if (source.empty()) {
+        return a;
+    }
+
+    const Axes& normalized_source = internal::GetNormalizedAxes(source, a.ndim());
+    const Axes& normalized_destination = internal::GetNormalizedAxes(destination, a.ndim());
+
+    Axes order, source_axes, destination_axes;
+    order.resize(a.ndim());
+    source_axes.resize(a.ndim());
+    destination_axes.resize(a.ndim());
+
+    std::iota(source_axes.begin(), source_axes.end(), 0);
+    std::iota(destination_axes.begin(), destination_axes.end(), 0);
+
+    for (int8_t i = 0; i < source.ndim(); ++i) {
+        order[normalized_destination[i]] = normalized_source[i];
+        source_axes[normalized_source[i]] = -1;
+        destination_axes[normalized_destination[i]] = -1;
+    }
+
+    auto source_iter = std::remove(source_axes.begin(), source_axes.end(), -1);
+    auto destination_iter = std::remove(destination_axes.begin(), destination_axes.end(), -1);
+
+    int8_t rest_dim = a.ndim() - source.ndim();
+    CHAINERX_ASSERT(a.ndim() - destination.ndim() == rest_dim);
+    CHAINERX_ASSERT(static_cast<int8_t>(source_iter - source_axes.begin()) == rest_dim);
+    CHAINERX_ASSERT(static_cast<int8_t>(destination_iter - destination_axes.begin()) == rest_dim);
+
+    for (int8_t i = 0; i < rest_dim; ++i) {
+        order[destination_axes[i]] = source_axes[i];
+    }
+
+    return a.Transpose(order);
 }
 
 }  // namespace chainerx

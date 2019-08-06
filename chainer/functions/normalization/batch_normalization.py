@@ -1,6 +1,7 @@
 import warnings
 
 import numpy
+import six
 
 import chainer
 from chainer import backend
@@ -58,7 +59,7 @@ class BatchNormalization(function_node.FunctionNode):
                 if axis[i - 1] >= axis[i]:
                     msg = 'numbers in axis must be sorted in ascending order'
                     raise RuntimeError(msg)
-        elif isinstance(axis, int):
+        elif isinstance(axis, six.integer_types):
             axis = axis,
         elif axis is not None:
             raise RuntimeError('axis must be int, tuple of int or None')
@@ -422,7 +423,7 @@ class FixedBatchNormalization(function_node.FunctionNode):
                 if axis[i - 1] >= axis[i]:
                     msg = 'numbers in axis must be sorted in ascending order'
                     raise RuntimeError(msg)
-        elif isinstance(axis, int):
+        elif isinstance(axis, six.integer_types):
             axis = axis,
         elif axis is not None:
             raise RuntimeError('axis must be int, tuple of int or None')
@@ -779,10 +780,14 @@ running_var=None, decay=0.9, axis=None)
             option, numbers in the tuple must be being sorted in ascending
             order. For example, (0, 2) is OK, but (2, 0) is not.
 
-    See: `Batch Normalization: Accelerating Deep Network Training by Reducing\
-          Internal Covariate Shift <https://arxiv.org/abs/1502.03167>`_
+    See: `Batch Normalization: Accelerating Deep Network Training by Reducing
+    Internal Covariate Shift <https://arxiv.org/abs/1502.03167>`_
 
-    .. seealso:: :class:`~chainer.links.BatchNormalization`
+    .. seealso::
+
+        :class:`~chainer.links.BatchNormalization` to manage the model
+        parameters (``gamma``, ``beta``) and the statistics (``running_mean``,
+        ``running_var``).
 
     """
 

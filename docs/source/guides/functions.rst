@@ -135,8 +135,8 @@ MulAdd is simple and can be implemented as follows:
    w.grad = np.random.uniform(-1, 1, (3, 2)).astype(np.float32)
    w.backward()
 
-As per the warning above, the ``forward_cpu`` method returns a tuple of single element.
-Note that all arrays appearing in ``forward_cpu`` method are :class:`numpy.ndarray`.
+As per the warning above, the :meth:`~FunctionNode.forward_cpu` method returns a tuple of single element.
+Note that all arrays appearing in ``forward_cpu`` are :class:`numpy.ndarray`.
 The forward function is straightforward; it unpacks the input tuple, computes the output, and packs it into a tuple.
 The backward function is a bit more complicated.
 Recall the rule of differentiation of multiplication.
@@ -359,7 +359,6 @@ It might hurt performance, since the intermediate temporary arrays are read and 
 We can reduce the number of invocations by defining our own kernel.
 It also reduce the memory consumption.
 
-Most functions only require elementwise operations like MulAdd.
 CuPy provides a useful tool to define elementwise kernels, the :class:`cupy.ElementwiseKernel` class, and Chainer wraps it by :func:`chainer.backends.cuda.elementwise` function.
 Our MulAdd implementation can be improved as follows:
 
@@ -687,7 +686,7 @@ This link hides the parameters of the linear layer.
 
    An advanced tip to implement functions: if you want to preserve some information between forward and backward computations (e.g. to cache some arrays), you can store it as attributes.
    Be careful that it might increase the memory consumption during the whole forward-backward computation.
-   If you want to train very large networks on a GPU with limited memory, it is not recommended to cache arrays between forward and backward.
+   If you want to train very large networks on a GPU with limited memory, it is not recommended that you cache arrays between forward and backward.
    There is one exception for this: caching the output arrays does not change the memory consumption, because they are also held by the output Variable objects.
 
    .. warning::

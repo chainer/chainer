@@ -23,6 +23,10 @@
 #include "chainerx/python/scalar.h"
 #include "chainerx/python/testing/testing_module.h"
 
+#if CHAINERX_DEBUG
+#include <absl/debugging/failure_signal_handler.h>
+#endif
+
 namespace chainerx {
 namespace python {
 namespace python_internal {
@@ -47,12 +51,13 @@ void InitChainerxModule(pybind11::module& m) {
     InitChainerxDtype(m);
     InitChainerxError(m);
     InitChainerxScalar(m);
-    InitChainerxArrayIndex(m);
     InitChainerxArray(m);
     InitChainerxBackward(m);
     InitChainerxCheckBackward(m);
     InitChainerxRoutines(m);
     InitChainerxChainerInterop(m);
+
+    m.def("_is_debug", []() -> bool { return CHAINERX_DEBUG; });
 
     // chainerx.testing (chainerx._testing)
     //
@@ -98,5 +103,11 @@ void InitChainerxModule(pybind11::module& m) {
 }  // namespace chainerx
 
 PYBIND11_MODULE(_core, m) {  // NOLINT
+#if CHAINERX_DEBUG
+    absl::FailureSignalHandlerOptions opts;
+    opts.call_previous_handler = true;
+    absl::InstallFailureSignalHandler(opts);
+#endif
+
     chainerx::python::python_internal::InitChainerxModule(m);
 }

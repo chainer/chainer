@@ -4,13 +4,15 @@ import copy
 
 class _MultiNodeOptimizer(object):
 
-    def __init__(self, actual_optimizer, communicator):
+    def __init__(self, actual_optimizer, communicator, zero_fill):
         super(_MultiNodeOptimizer, self).__setattr__(
             'communicator', communicator)
         super(_MultiNodeOptimizer, self).__setattr__(
             'actual_optimizer', actual_optimizer)
         super(_MultiNodeOptimizer, self).__setattr__(
             'target_params', [])
+        super(_MultiNodeOptimizer, self).__setattr__(
+            'zero_fill', zero_fill)
 
     def update(self, lossfun=None, *args, **kwds):
         target = self.target
@@ -27,7 +29,7 @@ class _MultiNodeOptimizer(object):
         if self.is_changed(target):
             self.communicator.bcast_data(target)
         else:
-            self.communicator.allreduce_grad(target)
+            self.communicator.multi_node_mean_grad(target, self.zero_fill)
             self.actual_optimizer.update(None, *args, **kwds)
 
     def is_changed(self, target):
@@ -56,7 +58,7 @@ class _MultiNodeOptimizer(object):
 
 class _DoubleBufferingOptimizer(object):
 
-    def __init__(self, actual_optimizer, communicator):
+    def __init__(self, actual_optimizer, communicator, zero_fill):
         super(_DoubleBufferingOptimizer, self).__setattr__(
             'communicator', communicator)
         super(_DoubleBufferingOptimizer, self).__setattr__(
@@ -69,6 +71,8 @@ class _DoubleBufferingOptimizer(object):
             'target_params_list', [[], []])
         super(_DoubleBufferingOptimizer, self).__setattr__(
             'allreduce_grad_stream', chainer.cuda.Stream(non_blocking=True))
+        super(_DoubleBufferingOptimizer, self).__setattr__(
+            'zero_fill', zero_fill)
 
     def update(self, lossfun=None, *args, **kwds):
         target = self.target
@@ -97,16 +101,17 @@ class _DoubleBufferingOptimizer(object):
             self.wait()
             self.swap_grad(self.target_params_list[0],
                            self.target_params_list[1])
-            self.allreduce_grad_async()
+            self.multi_node_mean_grad_async()
             if self.needs_update:
                 self.actual_optimizer.update(None, *args, **kwds)
             else:
                 super(_DoubleBufferingOptimizer, self).__setattr__(
                     'needs_update', True)
 
-    def allreduce_grad_async(self):
-        self.communicator._allreduce_grad_async(
-            self.communicated_target, self.allreduce_grad_stream)
+    def multi_node_mean_grad_async(self):
+        self.communicator._multi_node_mean_grad_async(
+            self.communicated_target, self.zero_fill,
+            self.allreduce_grad_stream)
 
     def is_changed(self, target, previous_params):
         target_params = list(sorted(target.namedparams()))
@@ -142,7 +147,7 @@ class _DoubleBufferingOptimizer(object):
 
 
 def create_multi_node_optimizer(actual_optimizer, communicator,
-                                double_buffering=False):
+                                double_buffering=False, zero_fill=True):
     """Create a multi node optimizer from a Chainer optimizer.
 
     Args:
@@ -156,6 +161,12 @@ def create_multi_node_optimizer(actual_optimizer, communicator,
              the gradients of the previous iteration are used
              for update. This flag is supported by
              ``PureNcclCommunicator`` only.
+        zero_fill: A knob to control whether to fill gradients of initialized
+             and unused Link (which is None internally) with zero-valued array,
+             because the all gradients must be an array among processes for
+             performing all-reduce, which might be an array or None after
+             backward computation. Gradients of uninitialized Link are skipped.
+             If it is False, gradients of unused Link are just skipped.
     Returns:
         The multi node optimizer based on ``actual_optimizer``.
     """
@@ -165,5 +176,7 @@ def create_multi_node_optimizer(actual_optimizer, communicator,
         if not isinstance(communicator, PureNcclCommunicator):
             raise ValueError(
                 'This communicator does not support double buffering.')
-        return _DoubleBufferingOptimizer(actual_optimizer, communicator)
-    return _MultiNodeOptimizer(actual_optimizer, communicator)
+        return _DoubleBufferingOptimizer(actual_optimizer, communicator,
+                                         zero_fill)
+    return _MultiNodeOptimizer(actual_optimizer, communicator,
+                               zero_fill)

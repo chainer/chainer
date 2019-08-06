@@ -1,11 +1,43 @@
+import ctypes
 import io
+import multiprocessing
 import os
 import sys
 import unittest
 
+import mock
+
 from chainer import datasets
 from chainer import testing
 from chainer import utils
+from chainer.datasets import pickle_dataset
+
+
+class ReaderMock(object):
+    def __init__(self, io_):
+        self.io = io_
+        self._lock = multiprocessing.RLock()
+        self._hook_called = multiprocessing.Value(ctypes.c_int, 0, lock=False)
+        self._last_caller_pid = multiprocessing.Value(
+            ctypes.c_int, -1, lock=False)
+
+    @property
+    def n_hook_called(self):
+        with self._lock:
+            return self._hook_called.value
+
+    @property
+    def last_caller_pid(self):
+        with self._lock:
+            return self._last_caller_pid.value
+
+    def __getattr__(self, name):
+        return getattr(self.io, name)
+
+    def after_fork(self):
+        with self._lock:
+            self._hook_called.value += 1
+            self._last_caller_pid.value = os.getpid()
 
 
 class TestPickleDataset(unittest.TestCase):
@@ -26,6 +58,26 @@ class TestPickleDataset(unittest.TestCase):
         assert dataset[2] == 1.5
         assert dataset[1] == 'hello'
 
+    def test_after_fork(self):
+        writer = datasets.PickleDatasetWriter(self.io)
+        writer.write(1)
+        writer.flush()
+
+        reader = ReaderMock(self.io)
+        # Assign to avoid destruction of the instance
+        # before creation a child process
+        dataset = datasets.PickleDataset(reader)
+
+        assert reader.n_hook_called == 0
+        p = multiprocessing.Process()
+        p.start()
+        p.join()
+        assert reader.n_hook_called == 1
+        assert reader.last_caller_pid == p.pid
+
+        # Touch to suppress "unused variable' warning
+        del dataset
+
 
 class TestPickleDatasetHelper(unittest.TestCase):
 
@@ -43,6 +95,20 @@ class TestPickleDatasetHelper(unittest.TestCase):
 
         with datasets.open_pickle_dataset(self.path) as dataset:
             assert dataset[0] == 1
+
+    def test_file_reader_after_fork(self):
+        m = mock.mock_open()
+        with mock.patch('chainer.datasets.pickle_dataset.open', m):
+            r = pickle_dataset._FileReader(self.path)
+
+            m.assert_called_once_with(self.path, 'rb')
+            m().close.assert_not_called()
+
+            m.reset_mock()
+            r.after_fork()
+
+            m.assert_called_once_with(self.path, 'rb')
+            m().close.assert_called_once_with()
 
 
 testing.run_module(__name__, __file__)

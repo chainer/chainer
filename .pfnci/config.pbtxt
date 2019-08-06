@@ -1,0 +1,250 @@
+# config.pbtxt is a config file for PFN's CI.
+#
+# Proto type: pfnci.protos.ConfigFile (http://go/pfnci-config-proto)
+# NOTE: proto definition is still not open to the public.
+
+# Chainer unit tests with python3.7.  This contains the following tests:
+# - ChainerX C++ tests
+# - chainer_tests with python3.7 (not slow)
+# - chainerx_tests with python3.7 (not slow)
+# URL: https://ci.preferred.jp/chainer.py37/
+configs {
+  key: "chainer.py37.cpu"
+  value {
+    requirement {
+      cpu: 20
+      memory: 30
+    }
+    time_limit: {
+      seconds: 900
+    }
+    environment_variables { key: "GPU" value: "0" }
+    environment_variables {
+      key: "SPREADSHEET_ID"
+      value: "1u5OYiPOL3XRppn73XBSgR-XyDuHKb_4Ilmx1kgJfa-k"
+    }
+    command: "bash .pfnci/script.sh py37"
+  }
+}
+configs {
+  key: "chainer.py37.gpu"
+  value {
+    requirement {
+      cpu: 30
+      memory: 70
+      gpu: 2
+    }
+    time_limit: {
+      seconds: 900
+    }
+    environment_variables { key: "GPU" value: "2" }
+    # NOTE: If # of threads / # of GPUs exceeds 10, GPU tests may cause
+    # cudaErrorLaunchFailure because of insufficient memory on GPU.
+    environment_variables { key: "XPYTEST_NUM_THREADS" value: "30" }
+    environment_variables {
+      key: "SPREADSHEET_ID"
+      value: "1u5OYiPOL3XRppn73XBSgR-XyDuHKb_4Ilmx1kgJfa-k"
+    }
+    command: "bash .pfnci/script.sh py37"
+  }
+}
+# Chainer unit tests with python2.7 and python3.5.  This contains the following
+# tests:
+# - chainer_tests with python2.7 (not slow)
+# - chainer_tests with python3.5 (not slow)
+# URL: https://ci.preferred.jp/chainer.py27and35/
+configs {
+  key: "chainer.py27and35.cpu"
+  value {
+    requirement {
+      cpu: 20
+      memory: 30
+    }
+    time_limit: {
+      seconds: 900
+    }
+    environment_variables { key: "GPU" value: "0" }
+    environment_variables {
+      key: "SPREADSHEET_ID"
+      value: "1u5OYiPOL3XRppn73XBSgR-XyDuHKb_4Ilmx1kgJfa-k"
+    }
+    command: "bash .pfnci/script.sh py27and35"
+  }
+}
+configs {
+  key: "chainer.py27and35.gpu"
+  value {
+    requirement {
+      cpu: 30
+      memory: 70
+      gpu: 2
+    }
+    time_limit: {
+      seconds: 900
+    }
+    environment_variables { key: "GPU" value: "2" }
+    # NOTE: If # of threads / # of GPUs exceeds 10, GPU tests may cause
+    # cudaErrorLaunchFailure because of insufficient memory on GPU.
+    environment_variables { key: "XPYTEST_NUM_THREADS" value: "30" }
+    environment_variables {
+      key: "SPREADSHEET_ID"
+      value: "1u5OYiPOL3XRppn73XBSgR-XyDuHKb_4Ilmx1kgJfa-k"
+    }
+    command: "bash .pfnci/script.sh py27and35"
+  }
+}
+
+configs {
+  key: "chainer.py2.cv"
+  value {
+    requirement {
+      cpu: 6
+      memory: 36
+      disk: 10
+    }
+    time_limit {
+      seconds: 3600
+    }
+    command: "git clone https://github.com/chainer/chainercv.git --depth 1 && sh chainercv/.pfnci/tests.sh"
+    environment_variables {
+      key: "REPOSITORY"
+      value: "chainer"
+    }
+    environment_variables {
+      key: "PYTHON"
+      value: "2"
+    }
+    environment_variables {
+      key: "OPTIONAL_MODULES"
+      value: "1"
+    }
+  }
+}
+configs {
+  key: "chainer.py2.cv.gpu"
+  value {
+    requirement {
+      cpu: 4
+      memory: 24
+      disk: 10
+      gpu: 1
+    }
+    command: "git clone https://github.com/chainer/chainercv.git --depth 1 && sh chainercv/.pfnci/tests_gpu.sh"
+    environment_variables {
+      key: "REPOSITORY"
+      value: "chainer"
+    }
+    environment_variables {
+      key: "PYTHON"
+      value: "2"
+    }
+    environment_variables {
+      key: "OPTIONAL_MODULES"
+      value: "1"
+    }
+  }
+}
+configs {
+  key: "chainer.py2.cv.examples"
+  value {
+    requirement {
+      cpu: 6
+      memory: 36
+      disk: 10
+      gpu: 2
+    }
+    time_limit {
+      seconds: 1800
+    }
+    command: "git clone https://github.com/chainer/chainercv.git --depth 1 && sh chainercv/.pfnci/examples_tests.sh"
+    environment_variables {
+      key: "REPOSITORY"
+      value: "chainer"
+    }
+    environment_variables {
+      key: "PYTHON"
+      value: "2"
+    }
+    environment_variables {
+      key: "OPTIONAL_MODULES"
+      value: "1"
+    }
+  }
+}
+configs {
+  key: "chainer.py3.cv"
+  value {
+    requirement {
+      cpu: 6
+      memory: 36
+      disk: 10
+    }
+    time_limit {
+      seconds: 3600
+    }
+    command: "git clone https://github.com/chainer/chainercv.git --depth 1 && sh chainercv/.pfnci/tests.sh"
+    environment_variables {
+      key: "REPOSITORY"
+      value: "chainer"
+    }
+    environment_variables {
+      key: "PYTHON"
+      value: "3"
+    }
+    environment_variables {
+      key: "OPTIONAL_MODULES"
+      value: "1"
+    }
+  }
+}
+configs {
+  key: "chainer.py3.cv.gpu"
+  value {
+    requirement {
+      cpu: 4
+      memory: 24
+      disk: 10
+      gpu: 1
+    }
+    command: "git clone https://github.com/chainer/chainercv.git --depth 1 && sh chainercv/.pfnci/tests_gpu.sh"
+    environment_variables {
+      key: "REPOSITORY"
+      value: "chainer"
+    }
+    environment_variables {
+      key: "PYTHON"
+      value: "3"
+    }
+    environment_variables {
+      key: "OPTIONAL_MODULES"
+      value: "1"
+    }
+  }
+}
+configs {
+  key: "chainer.py3.cv.examples"
+  value {
+    requirement {
+      cpu: 6
+      memory: 36
+      disk: 10
+      gpu: 2
+    }
+    time_limit {
+      seconds: 1800
+    }
+    command: "git clone https://github.com/chainer/chainercv.git --depth 1 && sh chainercv/.pfnci/examples_tests.sh"
+    environment_variables {
+      key: "REPOSITORY"
+      value: "chainer"
+    }
+    environment_variables {
+      key: "PYTHON"
+      value: "3"
+    }
+    environment_variables {
+      key: "OPTIONAL_MODULES"
+      value: "1"
+    }
+  }
+}

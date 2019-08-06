@@ -1,0 +1,86 @@
+# hint.pbtxt is a config file for xpytest.
+#
+# Proto type: xpytest.proto.HintFile
+# https://github.com/chainer/xpytest/blob/master/proto/test_case.proto
+
+# Too flaky tests.  Retry up to 4 times.
+rules { name: "chainerx_tests/unit_tests/routines_tests/test_arithmetic.py" xdist: 8 deadline: 240 retry: 4 }
+rules { name: "chainerx_tests/unit_tests/routines_tests/test_math.py" xdist: 8 deadline: 240 retry: 4 }
+rules { name: "chainer_tests/functions_tests/activation_tests/test_elu.py" xdist: 2 retry: 4 }
+
+# Slow tests take 60+ seconds.
+rules { name: "chainer_tests/functions_tests/activation_tests/test_crelu.py" xdist: 4 deadline: 240 }
+rules { name: "chainer_tests/functions_tests/evaluation_tests/test_accuracy.py" xdist: 4 deadline: 240 }
+rules { name: "chainer_tests/functions_tests/loss_tests/test_softmax_cross_entropy.py" xdist: 8 deadline: 240 }
+rules { name: "chainer_tests/functions_tests/math_tests/test_sparse_matmul.py" xdist: 4 deadline: 240 }
+rules { name: "chainer_tests/functions_tests/normalization_tests/test_batch_normalization.py" xdist: 4 deadline: 240 }
+rules { name: "chainer_tests/functions_tests/pooling_tests/test_max_pooling_nd.py" xdist: 4 deadline: 240 }
+rules { name: "chainer_tests/optimizers_tests/test_optimizers_by_linear_model.py" xdist: 4 deadline: 240 }
+rules { name: "chainer_tests/testing_tests/test_function_link.py" xdist: 4 deadline: 240 }
+rules { name: "chainerx_tests/unit_tests/routines_tests/test_connection.py" xdist: 4 deadline: 240 }
+rules { name: "chainerx_tests/unit_tests/routines_tests/test_creation.py" xdist: 4 deadline: 240 }
+
+# Slow tests takes 30+ seconds, but xdist cannot be applied to.
+rules { name: "chainerx_tests/unit_tests/routines_tests/test_logic.py" deadline: 240 }
+
+# Slow tests take 30+ seconds.
+rules { name: "chainer_tests/distributions_tests/test_kldivergence.py" xdist: 2 }
+rules { name: "chainer_tests/functions_tests/activation_tests/test_log_softmax.py" xdist: 2 }
+rules { name: "chainer_tests/functions_tests/activation_tests/test_maxout.py" xdist: 2 }
+rules { name: "chainer_tests/functions_tests/activation_tests/test_prelu.py" xdist: 2 }
+rules { name: "chainer_tests/functions_tests/activation_tests/test_relu.py" xdist: 2 }
+rules { name: "chainer_tests/functions_tests/activation_tests/test_sigmoid.py" xdist: 2 }
+rules { name: "chainer_tests/functions_tests/activation_tests/test_softmax.py" xdist: 2 }
+rules { name: "chainer_tests/functions_tests/activation_tests/test_tanh.py" xdist: 2 }
+rules { name: "chainer_tests/functions_tests/array_tests/test_cast.py" xdist: 2 }
+rules { name: "chainer_tests/functions_tests/math_tests/test_basic_math.py" xdist: 2 }
+rules { name: "chainer_tests/functions_tests/math_tests/test_maximum.py" xdist: 2 }
+rules { name: "chainer_tests/functions_tests/math_tests/test_prod.py" xdist: 2 }
+rules { name: "chainer_tests/functions_tests/math_tests/test_trigonometric.py" xdist: 2 }
+rules { name: "chainer_tests/functions_tests/pooling_tests/test_average_pooling_nd.py" xdist: 2 }
+rules { name: "chainer_tests/links_tests/normalization_tests/test_batch_normalization.py" xdist: 2 }
+rules { name: "chainerx_tests/unit_tests/routines_tests/test_manipulation.py" xdist: 2 }
+rules { name: "chainerx_tests/unit_tests/test_array.py" xdist: 2 }
+
+# Slow tests take 10+ seconds.
+rules { name: "chainer_tests/functions_tests/activation_tests/test_clipped_relu.py" }
+rules { name: "chainer_tests/functions_tests/activation_tests/test_hard_sigmoid.py" }
+rules { name: "chainer_tests/functions_tests/activation_tests/test_leaky_relu.py" }
+rules { name: "chainer_tests/functions_tests/activation_tests/test_lstm.py" }
+rules { name: "chainer_tests/functions_tests/activation_tests/test_selu.py" }
+rules { name: "chainer_tests/functions_tests/activation_tests/test_slstm.py" }
+rules { name: "chainer_tests/functions_tests/activation_tests/test_softplus.py" }
+rules { name: "chainer_tests/functions_tests/array_tests/test_get_item.py" }
+rules { name: "chainer_tests/functions_tests/array_tests/test_pad_sequence.py" }
+rules { name: "chainer_tests/functions_tests/array_tests/test_tile.py" }
+rules { name: "chainer_tests/functions_tests/connection_tests/test_convolution_2d.py" }
+rules { name: "chainer_tests/functions_tests/connection_tests/test_convolution_nd.py" }
+rules { name: "chainer_tests/functions_tests/connection_tests/test_deconvolution_2d.py" }
+rules { name: "chainer_tests/functions_tests/connection_tests/test_deconvolution_nd.py" }
+rules { name: "chainer_tests/functions_tests/connection_tests/test_embed_id.py" }
+rules { name: "chainer_tests/functions_tests/loss_tests/test_contrastive.py" }
+rules { name: "chainer_tests/functions_tests/loss_tests/test_negative_sampling.py" }
+rules { name: "chainer_tests/functions_tests/loss_tests/test_sigmoid_cross_entropy.py" }
+rules { name: "chainer_tests/functions_tests/math_tests/test_fft.py" }
+rules { name: "chainer_tests/functions_tests/math_tests/test_matmul.py" }
+rules { name: "chainer_tests/functions_tests/math_tests/test_minimum.py" }
+rules { name: "chainer_tests/functions_tests/math_tests/test_sum.py" }
+rules { name: "chainer_tests/functions_tests/math_tests/test_tensordot.py" }
+rules { name: "chainer_tests/functions_tests/normalization_tests/test_batch_renormalization.py" }
+rules { name: "chainer_tests/functions_tests/normalization_tests/test_group_normalization.py" }
+rules { name: "chainer_tests/functions_tests/normalization_tests/test_l2_normalization.py" }
+rules { name: "chainer_tests/functions_tests/pooling_tests/test_max_pooling_2d.py" }
+rules { name: "chainer_tests/functions_tests/pooling_tests/test_roi_average_align_2d.py" }
+rules { name: "chainer_tests/iterators_tests/test_multiprocess_iterator.py" }
+rules { name: "chainer_tests/links_tests/connection_tests/test_n_step_gru.py" }
+rules { name: "chainer_tests/links_tests/connection_tests/test_n_step_lstm.py" }
+rules { name: "chainer_tests/links_tests/connection_tests/test_n_step_rnn.py" }
+rules { name: "chainer_tests/links_tests/normalization_tests/test_batch_normalization.py" }
+rules { name: "chainer_tests/links_tests/normalization_tests/test_batch_renormalization.py" }
+rules { name: "chainer_tests/links_tests/normalization_tests/test_group_normalization.py" }
+rules { name: "chainer_tests/test_cuda.py" }
+rules { name: "chainer_tests/test_variable.py" }
+rules { name: "chainer_tests/training_tests/updaters_tests/test_multiprocess_parallel_updater.py" }
+rules { name: "chainerx_tests/unit_tests/routines_tests/test_indexing.py" }
+rules { name: "chainerx_tests/unit_tests/routines_tests/test_linalg.py" }
+rules { name: "chainerx_tests/unit_tests/routines_tests/test_normalization.py" }

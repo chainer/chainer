@@ -11,9 +11,7 @@ from chainerx_tests import op_utils
 
 
 _expected_numeric_dtypes_comparison = [
-    (t1, t2)
-    for (t1, t2), _ in dtype_utils.result_dtypes_two_arrays
-    if all([numpy.dtype(t) != 'bool_' for t in (t1, t2)])
+    (t1, t2) for (t1, t2), _ in dtype_utils.result_numeric_dtypes_two_arrays
 ]
 
 
@@ -24,8 +22,8 @@ _expected_float_dtypes_comparison = [
 ]
 
 
-_expected_all_dtypes_comparison = _expected_numeric_dtypes_comparison + [
-    ('bool_', 'bool_'),
+_expected_all_dtypes_comparison = [
+    (t1, t2) for (t1, t2), _ in dtype_utils.result_comparable_dtypes_two_arrays
 ]
 
 
@@ -408,3 +406,42 @@ def test_logical_reductions_invalid(func, is_module, xp, shape,
                                     axis, keepdims, dtype, device):
     a = array_utils.create_dummy_ndarray(xp, shape, dtype, device)
     func(xp, a, axis, keepdims, is_module)
+
+
+@chainerx.testing.numpy_chainerx_array_equal()
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('input', [
+    numpy.asarray(0), numpy.asarray(-1), numpy.asarray(
+        10), numpy.asarray(float('inf')), numpy.asarray(-float('inf')),
+    numpy.asarray(float('nan')), numpy.full(
+        (), 2), numpy.full((0,), 2), numpy.full((2, 3), 2)
+])
+def test_isnan(xp, device, input, dtype):
+    a = xp.array(input.astype(dtype))
+    return xp.isnan(a)
+
+
+@chainerx.testing.numpy_chainerx_array_equal()
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('input', [
+    numpy.asarray(0), numpy.asarray(-1), numpy.asarray(
+        10), numpy.asarray(float('inf')), numpy.asarray(-float('inf')),
+    numpy.asarray(float('nan')), numpy.full(
+        (), 2), numpy.full((0,), 2), numpy.full((2, 3), 2)
+])
+def test_isinf(xp, device, input, dtype):
+    a = xp.array(input.astype(dtype))
+    return xp.isinf(a)
+
+
+@chainerx.testing.numpy_chainerx_array_equal()
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('input', [
+    numpy.asarray(0), numpy.asarray(-1), numpy.asarray(
+        10), numpy.asarray(float('inf')), numpy.asarray(-float('inf')),
+    numpy.asarray(float('nan')), numpy.full(
+        (), 2), numpy.full((0,), 2), numpy.full((2, 3), 2)
+])
+def test_isfinite(xp, device, input, dtype):
+    a = xp.array(input.astype(dtype))
+    return xp.isfinite(a)

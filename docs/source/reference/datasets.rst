@@ -8,15 +8,15 @@ Dataset Abstraction (``chainer.dataset``)
 
 Chainer supports a common interface for training and validation of datasets. The dataset support consists of three components: datasets, iterators, and batch conversion functions.
 
-**Dataset** represents a set of examples. The interface is only determined by combination with iterators you want to use on it. The built-in iterators of Chainer require the dataset to support ``__getitem__`` and ``__len__`` methods. In particular, the ``__getitem__`` method should support indexing by both an integer and a slice. We can easily support slice indexing by inheriting :class:`DatasetMixin`, in which case users only have to implement :meth:`~DatasetMixin.get_example` method for indexing. Basically, datasets are considered as `stateless` objects, so that we do not need to save the dataset as a checkpoint of the training procedure.
+**Dataset** represents a set of examples. The interface is only determined by combination with iterators you want to use on it. The built-in iterators of Chainer require the dataset to support ``__getitem__`` and ``__len__`` methods. In particular, the ``__getitem__`` method should support indexing by both an integer and a slice. We can easily support slice indexing by inheriting :class:`~chainer.dataset.DatasetMixin`, in which case users only have to implement :meth:`~DatasetMixin.get_example` method for indexing. Basically, datasets are considered as `stateless` objects, so that we do not need to save the dataset as a checkpoint of the training procedure.
 
-**Iterator** iterates over the dataset, and at each iteration, it yields a mini-batch of examples as a list. Iterators should support the :class:`Iterator` interface, which includes the standard iterator protocol of Python. Iterators manage where to read next, which means they are `stateful`.
+**Iterator** iterates over the dataset, and at each iteration, it yields a mini-batch of examples as a list. Iterators should support the :class:`~chainer.dataset.Iterator` interface, which includes the standard iterator protocol of Python. Iterators manage where to read next, which means they are `stateful`.
 
 **Batch conversion function** converts the mini-batch into arrays to feed to the neural nets. They are also responsible to send each array to an appropriate device.
 Chainer currently provides two implementations:
 
 - :func:`concat_examples` is a plain implementation which is used as the default choice.
-- :class:`ConcatWithAsyncTransfer` is a variant which is basically same as :func:`concat_examples` except that it overlaps other GPU computations and data transfer for the next iteration.
+- :class:`~chainer.dataset.ConcatWithAsyncTransfer` is a variant which is basically same as :func:`concat_examples` except that it overlaps other GPU computations and data transfer for the next iteration.
 
 These components are all customizable, and designed to have a minimum interface to restrict the types of datasets and ways to handle them. In most cases, though, implementations provided by Chainer itself are enough to cover the usages.
 
@@ -32,6 +32,25 @@ See :ref:`datasets` for dataset implementations.
    :nosignatures:
 
    chainer.dataset.DatasetMixin
+
+Tabular Dataset Representation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.dataset.TabularDataset
+
+Tabular Dataset Helpers
+~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.dataset.tabular.from_data
+
 
 Iterator Interface
 ~~~~~~~~~~~~~~~~~~
@@ -50,6 +69,7 @@ Batch Conversion Function
    :toctree: generated/
    :nosignatures:
 
+   chainer.dataset.Converter
    chainer.dataset.converter
 
    chainer.dataset.concat_examples
@@ -92,17 +112,17 @@ General Datasets
 
 General datasets are further divided into four types.
 
-The first one is :class:`DictDataset` and :class:`TupleDataset`, both of which combine other datasets and introduce some structures on them.
+The first one is :class:`~chainer.datasets.DictDataset` and :class:`~chainer.datasets.TupleDataset`, both of which combine other datasets and introduce some structures on them.
 
-The second one is :class:`ConcatenatedDataset` and :class:`SubDataset`.
-:class:`ConcatenatedDataset` represents a concatenation of existing datasets. It can be used to merge datasets and make a larger dataset.
-:class:`SubDataset` represents a subset of an existing dataset. It can be used to separate a dataset for hold-out validation or cross validation. Convenient functions to make random splits are also provided.
+The second one is :class:`~chainer.datasets.ConcatenatedDataset` and :class:`~chainer.datasets.SubDataset`.
+:class:`~chainer.datasets.ConcatenatedDataset` represents a concatenation of existing datasets. It can be used to merge datasets and make a larger dataset.
+:class:`~chainer.datasets.SubDataset` represents a subset of an existing dataset. It can be used to separate a dataset for hold-out validation or cross validation. Convenient functions to make random splits are also provided.
 
-The third one is :class:`TransformDataset`, which wraps around a dataset by applying a function to data indexed from the underlying dataset.
+The third one is :class:`~chainer.datasets.TransformDataset`, which wraps around a dataset by applying a function to data indexed from the underlying dataset.
 It can be used to modify behavior of a dataset that is already prepared.
 
 The last one is a group of domain-specific datasets.
-Currently, implementations for datasets of images (:class:`ImageDataset`, :class:`LabeledImageDataset`, etc.) and text (:class:`TextDataset`) are provided.
+Currently, implementations for datasets of images (:class:`~chainer.datasets.ImageDataset`, :class:`~chainer.datasets.LabeledImageDataset`, etc.) and text (:class:`~chainer.datasets.TextDataset`) are provided.
 
 
 DictDataset

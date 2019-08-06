@@ -24,8 +24,11 @@ set CHAINER_PYTHON_350_FORCE environment variable to 1."""
 requirements = {
     'install': [
         'setuptools',
-        'typing',
-        'typing_extensions',
+        # typing==3.7.4 causes error "TypeError: Instance and class checks can
+        # only be used with @runtime_checkable protocols" only with Python 2.
+        # https://github.com/chainer/chainer/pull/7562
+        'typing' + ('<=3.6.6' if sys.version_info[0] <= 2 else ''),
+        'typing_extensions' + ('<=3.6.6' if sys.version_info[0] <= 2 else ''),
         'filelock',
         'numpy>=1.9.0',
         # protobuf 3.8.0rc1 causes CI errors.
@@ -60,10 +63,6 @@ requirements = {
         'pytest-timeout<1.3.0',
     ],
 }
-
-
-if sys.version_info >= (3, 4):  # mypy requires Python 3.4 or later
-    requirements['stylecheck'].append('mypy')
 
 
 def reduce_requirements(key):
@@ -127,6 +126,7 @@ setup_kwargs = dict(
     packages=['chainer',
               'chainer.backends',
               'chainer.dataset',
+              'chainer.dataset.tabular',
               'chainer.datasets',
               'chainer.distributions',
               'chainer.exporters',
@@ -140,6 +140,7 @@ setup_kwargs = dict(
               'chainer.functions.noise',
               'chainer.functions.normalization',
               'chainer.functions.pooling',
+              'chainer.functions.rnn',
               'chainer.functions.theano',
               'chainer.functions.util',
               'chainer.function_hooks',
@@ -154,6 +155,7 @@ setup_kwargs = dict(
               'chainer.links.model',
               'chainer.links.model.vision',
               'chainer.links.normalization',
+              'chainer.links.rnn',
               'chainer.links.theano',
               'chainer.link_hooks',
               'chainer.graph_optimizations',
@@ -185,7 +187,8 @@ setup_kwargs = dict(
 
 
 build_chainerx = 0 != int(os.getenv('CHAINER_BUILD_CHAINERX', '0'))
-if os.getenv('READTHEDOCS', None) == 'True':
+if (os.getenv('READTHEDOCS', None) == 'True'
+        and os.getenv('READTHEDOCS_PROJECT', None) == 'chainer'):
     os.environ['MAKEFLAGS'] = '-j2'
     build_chainerx = True
 

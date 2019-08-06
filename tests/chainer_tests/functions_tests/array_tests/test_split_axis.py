@@ -1,6 +1,7 @@
 import unittest
 
 import numpy
+import six
 
 import chainer
 from chainer import functions
@@ -128,6 +129,23 @@ def inject_backend_tests():
         {'shape': (10, 4, 3, 2), 'axis': 0, 'ys_section': numpy.array([]),
          'slices': [slice(None, None)]
          },
+        # Functions with multiple outputs may receive `None` upstream gradients
+        # in their backward method, `split_axis` must handle this case
+        # (by constructing 0-filled variables for `None` gradients).
+        {'shape': (2, 7, 3), 'axis': 1, 'ys_section': [2, 5],
+         'slices': [
+             (slice(None), slice(None, 2)),
+             (slice(None), slice(2, 5)),
+             (slice(None), slice(5, None))],
+         'grad_outputs_is_none': [False, True, False]
+         },
+        {'shape': (2, 7, 3, 1), 'axis': 1, 'ys_section': [2, 5],
+         'slices': [
+             (slice(None), slice(None, 2)),
+             (slice(None), slice(2, 5)),
+             (slice(None), slice(5, None))],
+         'grad_outputs_is_none': [False, True, False]
+         },
     ],
     [
         {'dtype': numpy.float16},
@@ -138,11 +156,29 @@ def inject_backend_tests():
 @inject_backend_tests()
 class TestSplitAxis(testing.FunctionTestCase):
 
+    # A list of booleans. If element i is `True`, the i-th upstream gradient is
+    # generated as `None`. Default is `None`, in which case all gradients are
+    # ndarrays.
+    grad_outputs_is_none = None
+
     def generate_inputs(self):
         shape = self.shape
         dtype = self.dtype
         x = numpy.arange(numpy.prod(shape), dtype=dtype).reshape(shape)
         return x,
+
+    def generate_grad_outputs(self, outputs_template):
+        grad_outputs = tuple([
+            numpy.random.uniform(-1, 1, a.shape).astype(a.dtype)
+            for a in outputs_template])
+
+        if self.grad_outputs_is_none is not None:
+            assert len(self.grad_outputs_is_none) == len(grad_outputs)
+            grad_outputs = tuple(
+                None if is_none else g for is_none, g,
+                in six.moves.zip(self.grad_outputs_is_none, grad_outputs))
+
+        return grad_outputs
 
     def forward(self, inputs, device):
         x, = inputs

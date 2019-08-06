@@ -35,6 +35,14 @@ integral_dtypes = (
 )
 
 
+signed_integral_dtypes = (
+    'int8',
+    'int16',
+    'int32',
+    'int64',
+)
+
+
 nonfloat_dtypes = (
     'bool_',
     'int8',

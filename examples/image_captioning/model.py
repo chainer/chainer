@@ -238,24 +238,27 @@ class NStepLSTMLanguageModel(chainer.Chain):
         """Batch of image features to captions."""
         hx, cx, _ = self.reset(img_feats)
 
-        captions = self.xp.full((img_feats.shape[0], 1), bos, dtype=np.int32)
-        for i in range(max_caption_length):
-            # Create a list of the previous tokens to treat as inputs
-            xs = [Variable(self.xp.atleast_1d(c[-1])) for c in captions]
+        with chainer.using_device(self.device):
+            xp = self.xp
+            captions = xp.full(
+                (img_feats.shape[0], 1), bos, dtype=np.int32)
+            for i in range(max_caption_length):
+                # Create a list of the previous tokens to treat as inputs
+                xs = [xp.atleast_1d(c[-1]) for c in captions]
 
-            # Get the predictions `ys`
-            hx, cx, ys = self.step(hx, cx, xs)
+                # Get the predictions `ys`
+                hx, cx, ys = self.step(hx, cx, xs)
 
-            # From `ys`, get the indices for the highest confidence.
-            # These indices correspond to the predicted tokens
-            #
-            # Note that this is a greedy approach and that it can by replaced
-            # by e.g. beam search
-            pred = ys.array.argmax(axis=1).astype(np.int32)
-            captions = self.xp.hstack((captions, pred[:, None]))
+                # From `ys`, get the indices for the highest confidence.
+                # These indices correspond to the predicted tokens
+                #
+                # Note that this is a greedy approach and that it can by
+                # replaced by e.g. beam search
+                pred = ys.array.argmax(axis=1).astype(np.int32)
+                captions = xp.hstack((captions, pred[:, None]))
 
-            if (pred == eos).all():
-                break
+                if (pred == eos).all():
+                    break
         return captions
 
     def reset(self, img_feats):

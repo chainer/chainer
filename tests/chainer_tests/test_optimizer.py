@@ -4,6 +4,7 @@ import warnings
 
 import mock
 import numpy as np
+import pytest
 
 import chainer
 from chainer import backend
@@ -14,6 +15,23 @@ from chainer import serializer
 from chainer import testing
 from chainer.testing import attr
 import chainerx
+
+if chainerx.is_available():
+    import chainerx.testing
+
+
+_backend_params = [
+    # NumPy
+    {},
+    {'use_ideep': 'always'},
+    # CuPy
+    {'use_cuda': True, 'cuda_device': 0},
+    {'use_cuda': True, 'cuda_device': 1},
+    # ChainerX
+    {'use_chainerx': True, 'chainerx_device': 'native:0'},
+    {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+    {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
+]
 
 
 class TestHyperparameter(unittest.TestCase):
@@ -74,8 +92,7 @@ class DummyDeserializer(serializer.Deserializer):
         return value
 
 
-class TestUpdateRule(unittest.TestCase):
-
+def _create_update_rule(has_states):
     class SimpleUpdateRule(optimizer.UpdateRule):
         def update_core_cpu(self, param):
             pass
@@ -83,79 +100,109 @@ class TestUpdateRule(unittest.TestCase):
         def update_core_gpu(self, param):
             pass
 
+    def _init_state(data):
+        state = update_rule.state
+        state['a'] = 0
+        state['b'] = np.array([1, 2, 3], dtype=np.float32)
+
+    update_rule = SimpleUpdateRule()
+    update_rule.update_core_cpu = mock.MagicMock(
+        wraps=update_rule.update_core_cpu)
+    update_rule.update_core_gpu = mock.MagicMock(
+        wraps=update_rule.update_core_gpu)
+    update_rule.update_core_chainerx = mock.MagicMock(
+        wraps=update_rule.update_core_chainerx)
+    if has_states:
+        update_rule.init_state = _init_state
+    return update_rule
+
+
+def _create_var():
+    data = np.ones((2, 3), np.float32)
+    grad = np.ones_like(data)
+    var = chainer.Variable(data, grad=grad)
+    return var
+
+
+@testing.backend.inject_backend_tests(
+    [
+        'test_update',
+        'test_add_hook',
+        'test_add_hook_with_name',
+        'test_add_hook_with_function_name',
+    ],
+    _backend_params)
+class TestUpdateRule(unittest.TestCase):
+
     def setUp(self):
-        self.data = np.ones((2, 3), np.float32)
-        self.grad = np.ones_like(self.data)
-        self.var = chainer.Variable(self.data, grad=self.grad)
+        self.update_rule = _create_update_rule(has_states=False)
+        self.var = _create_var()
 
-        update_rule = self.SimpleUpdateRule()
-        update_rule.update_core_cpu = mock.MagicMock(
-            wraps=update_rule.update_core_cpu)
-        update_rule.update_core_gpu = mock.MagicMock(
-            wraps=update_rule.update_core_gpu)
-        update_rule.update_core_chainerx = mock.MagicMock(
-            wraps=update_rule.update_core_chainerx)
-        self.update_rule = update_rule
+    def check_update(self, backend_config):
+        var = self.var
+        var.to_device(backend_config.device)
+        update_rule = self.update_rule
 
-    def test_update_cpu(self):
-        self.update_rule.update(self.var)
-        self.assertEqual(self.update_rule.update_core_cpu.call_count, 1)
-        self.assertEqual(self.update_rule.update_core_gpu.call_count, 0)
-        self.assertEqual(self.update_rule.update_core_chainerx.call_count, 0)
+        update_rule.update(var)
 
-    @attr.gpu
-    def test_update_gpu(self):
-        self.var.to_gpu()
-        self.update_rule.update(self.var)
-        self.assertEqual(self.update_rule.update_core_cpu.call_count, 0)
-        self.assertEqual(self.update_rule.update_core_gpu.call_count, 1)
-        self.assertEqual(self.update_rule.update_core_chainerx.call_count, 0)
+        xp = backend_config.xp
 
-    @attr.chainerx
-    def test_update_chainerx(self):
-        self.var.to_chx()
-        self.update_rule.update(self.var)
-        self.assertEqual(self.update_rule.update_core_cpu.call_count, 1)
-        self.assertEqual(self.update_rule.update_core_gpu.call_count, 0)
-        self.assertEqual(self.update_rule.update_core_chainerx.call_count, 1)
+        # First check update_core_chainerx.
+        # If xp is chainerx, fallback xp is assigned to it for the second
+        # check.
+        if xp is chainerx:
+            self.assertEqual(
+                self.update_rule.update_core_chainerx.call_count, 1)
+            xp = backend_config.device.fallback_device.xp
+        else:
+            self.assertEqual(
+                self.update_rule.update_core_chainerx.call_count, 0)
 
-    @attr.chainerx
-    @attr.gpu
-    def test_update_chainerx_gpu(self):
-        self.var.to_gpu()
-        self.var.to_chx()
-        self.update_rule.update(self.var)
-        self.assertEqual(self.update_rule.update_core_cpu.call_count, 0)
-        self.assertEqual(self.update_rule.update_core_gpu.call_count, 1)
-        self.assertEqual(self.update_rule.update_core_chainerx.call_count, 1)
+        # Secondly check update_core_cpu and _gpu.
+        if xp is np:
+            self.assertEqual(update_rule.update_core_cpu.call_count, 1)
+            self.assertEqual(update_rule.update_core_gpu.call_count, 0)
+        elif xp is cuda.cupy:
+            self.assertEqual(self.update_rule.update_core_cpu.call_count, 0)
+            self.assertEqual(self.update_rule.update_core_gpu.call_count, 1)
 
-    def check_add_hook(self, hook):
-        self.update_rule.update(self.var)
+    def test_update(self, backend_config):
+        self.check_update(backend_config)
+
+    def test_add_hook(self, backend_config):
+        hook = mock.MagicMock()
+        self.update_rule.add_hook(hook)
+
+        self.check_update(backend_config)
+
         self.assertEqual(hook.call_count, 1)
-
         args = hook.call_args_list[0][0]
         self.assertEqual(len(args), 2)
         self.assertIs(args[0], self.update_rule)
         self.assertIs(args[1], self.var)
 
-    def test_add_hook(self):
-        hook = mock.MagicMock()
-        self.update_rule.add_hook(hook)
-        self.check_add_hook(hook)
-
-    def test_add_hook_with_name(self):
+    def test_add_hook_with_name(self, backend_config):
         hook = mock.MagicMock()
         self.update_rule.add_hook(hook, name='hook')
-        self.check_add_hook(hook)
 
-    def test_remove_hook(self):
+        self.check_update(backend_config)
+
+        self.assertEqual(hook.call_count, 1)
+        args = hook.call_args_list[0][0]
+        self.assertEqual(len(args), 2)
+        self.assertIs(args[0], self.update_rule)
+        self.assertIs(args[1], self.var)
+
+    def test_remove_hook(self, backend_config):
         hook = mock.MagicMock()
         self.update_rule.add_hook(hook, name='hook')
         self.update_rule.remove_hook('hook')
-        self.update_rule.update(self.var)
+
+        self.check_update(backend_config)
+
         self.assertEqual(hook.call_count, 0)
 
-    def test_add_hook_with_function_name(self):
+    def test_add_hook_with_function_name(self, backend_config):
         hook_body = mock.MagicMock()
 
         def foo(update_rule, data, grad):
@@ -163,7 +210,9 @@ class TestUpdateRule(unittest.TestCase):
 
         self.update_rule.add_hook(foo)
         self.update_rule.remove_hook('foo')
-        self.update_rule.update(self.var)
+
+        self.check_update(backend_config)
+
         self.assertEqual(hook_body.call_count, 0)
 
     def test_add_hook_no_name(self):
@@ -176,7 +225,7 @@ class TestUpdateRule(unittest.TestCase):
 
     def test_add_hook_duplicated_name(self):
         self.update_rule.add_hook(mock.MagicMock(), name='foo')
-        with self.assertRaises(ValueError):
+        with self.assertRaises(KeyError):
             self.update_rule.add_hook(mock.MagicMock(), name='foo')
 
     def test_remove_hook_not_exist(self):
@@ -193,114 +242,94 @@ class TestUpdateRule(unittest.TestCase):
         self.update_rule.update(self.var)
         self.assertEqual(self.update_rule.update_core.call_count, 1)
 
-    def setup_state(self):
-        def init_state(data):
-            state = self.update_rule.state
-            state['a'] = 0
-            state['b'] = np.array([1, 2, 3], dtype=np.float32)
-        self.update_rule.init_state = init_state
 
-    @attr.gpu
-    def test_state_copy_to_gpu(self):
-        self.setup_state()
+@testing.backend.inject_backend_tests(None, _backend_params)
+class TestOptimizerSerialize(unittest.TestCase):
 
-        def update_core(param):
-            self.assertIsInstance(self.update_rule.state['a'], int)
-            self.assertIsInstance(self.update_rule.state['b'], cuda.ndarray)
+    def setUp(self):
+        self.update_rule = _create_update_rule(has_states=True)
 
-        self.update_rule.update_core = update_core
-        self.var.to_gpu()
-        self.update_rule.update(self.var)
-
-    @attr.multi_gpu(2)
-    def test_state_copy_to_another_gpu(self):
-        self.setup_state()
-
-        def update_core(param):
-            self.assertIsInstance(self.update_rule.state['b'], cuda.ndarray)
-            self.assertEqual(self.update_rule.state['b'].device.id, 1)
-
-        # call update with arrays on GPU 0 (tested by another method)
-        self.update_rule.update_core = lambda param: None
-        self.update_rule.update(chainer.Variable(
-            cuda.to_gpu(self.data, 0), grad=cuda.to_gpu(self.grad, 0)))
-        # check if it copies the states correctly when arrays on another GPU
-        # are passed
-        self.update_rule.update_core = update_core
-        self.update_rule.update(chainer.Variable(
-            cuda.to_gpu(self.data, 1), grad=cuda.to_gpu(self.grad, 1)))
-
-    def get_target(self):
+    def get_target(self, backend_config):
         target = {}
         target['t'] = 100
         target['a'] = 1
-        target['b'] = np.array([2, 3, 4], dtype=np.float32)
+        target['b'] = (
+            backend_config.get_array(np.array([2, 3, 4], dtype=np.float32)))
         return target
 
-    @attr.gpu
-    def test_state_copy_to_cpu(self):
-        self.setup_state()
-
-        def update_core(param):
-            self.assertIsInstance(self.update_rule.state['a'], int)
-            self.assertIsInstance(self.update_rule.state['b'], np.ndarray)
-
-        self.var.to_gpu()
-        self.update_rule.update(self.var)
-        self.var.to_cpu()
-        self.update_rule.update_core = update_core
-        self.update_rule.update(self.var)
-
-    @attr.chainerx
-    def test_state_copy_to_chx(self):
-        self.setup_state()
-
-        def update_core(param):
-            self.assertIsInstance(self.update_rule.state['a'], int)
-            self.assertIsInstance(
-                self.update_rule.state['b'], chainerx.ndarray)
-
-        self.var.to_cpu()
-        self.update_rule.update(self.var)
-        self.var.to_chx()
-        self.update_rule.update_core = update_core
-        self.update_rule.update(self.var)
-
-    def test_deserialize(self):
-        self.setup_state()
-        target = self.get_target()
+    def test_deserialize(self, backend_config):
+        target = self.get_target(backend_config)
         self.update_rule.serialize(DummyDeserializer(target))
 
         self.assertEqual(self.update_rule.t, target['t'])
         self.assertIsNotNone(self.update_rule.state)
         self.assertEqual(self.update_rule.state['a'], target['a'])
-        np.testing.assert_array_equal(self.update_rule.state['b'], target['b'])
+        backend_config.xp.testing.assert_array_equal(
+            self.update_rule.state['b'], target['b'])
 
-    def test_deserialize_by_strict_deserializer(self):
-        self.setup_state()
-        target = self.get_target()
+    def test_deserialize_by_strict_deserializer(self, backend_config):
+        target = self.get_target(backend_config)
         del target['a']
         with self.assertRaises(KeyError):
             self.update_rule.serialize(DummyDeserializer(target))
 
-    def test_deserialize_by_nonstrict_deserializer(self):
-        self.setup_state()
-        target = self.get_target()
+    def test_deserialize_by_nonstrict_deserializer(self, backend_config):
+        target = self.get_target(backend_config)
         target['a'] = None
         self.update_rule.serialize(DummyDeserializer(target))
 
         self.assertEqual(self.update_rule.t, target['t'])
         self.assertIsNone(self.update_rule.state)
 
-    def test_deserialize_disabled_update_rule_by_strict_deserializer(self):
-        self.setup_state()
+    def test_deserialize_disabled_update_rule_by_strict_deserializer(
+            self, backend_config):
         self.update_rule.enabled = False
-        target = self.get_target()
+        target = self.get_target(backend_config)
         del target['a']
         self.update_rule.serialize(DummyDeserializer(target))
 
         self.assertEqual(self.update_rule.t, target['t'])
         self.assertIsNone(self.update_rule.state)
+
+
+@testing.backend.inject_backend_tests(None, _backend_params)
+@testing.backend.inject_backend_tests(None, _backend_params)
+class TestUpdateRuleCopyState(unittest.TestCase):
+
+    def setUp(self):
+        self.update_rule = _create_update_rule(has_states=True)
+
+    def test_state_copy(self, backend_config, _):
+        def update_core(param):
+            self.assertIsInstance(self.update_rule.state['a'], int)
+            self.assertTrue(
+                backend_config.device.is_array_supported(
+                    self.update_rule.state['b']))
+
+        self.update_rule.update_core = update_core
+        var = _create_var()
+        var.to_device(backend_config.device)
+        self.update_rule.update(var)
+
+    def test_state_copy_to_another_device(
+            self, backend_config1, backend_config2):
+        def update_core(param):
+            self.assertIsInstance(self.update_rule.state['a'], int)
+            self.assertTrue(
+                backend_config2.device.is_array_supported(
+                    self.update_rule.state['b']))
+
+        var1 = _create_var()
+        var1.to_device(backend_config1.device)
+        # call update with arrays on GPU 0 (tested by another method)
+        self.update_rule.update_core = lambda param: None
+        self.update_rule.update(var1)
+        # check if it copies the states correctly when arrays on another device
+        # are passed
+        self.update_rule.update_core = update_core
+        var2 = _create_var()
+        var2.to_device(backend_config2.device)
+        self.update_rule.update(var2)
 
 
 class TestOptimizer(unittest.TestCase):
@@ -415,6 +444,7 @@ class TestOptimizerHook(unittest.TestCase):
             self.optimizer.add_hook(lambda s: None, 'h1', timing='pre')
 
     def test_invalid_hook(self):
+        self.optimizer.setup(self.target)
         with self.assertRaises(TypeError):
             self.optimizer.add_hook(1)
 
@@ -432,6 +462,7 @@ class SimpleLink(chainer.Link):
             self.param.grad = g
 
 
+@testing.backend.inject_backend_tests(['test_update'], _backend_params)
 class TestGradientMethod(unittest.TestCase):
 
     def setUp(self):
@@ -443,62 +474,143 @@ class TestGradientMethod(unittest.TestCase):
                        np.arange(3).astype(np.float32)))
         self.optimizer.create_update_rule = mock.MagicMock
 
-    def setup_cpu(self):
-        self.optimizer.setup(self.target)
-
-    def setup_gpu(self, device=None):
-        self.target.to_gpu(device)
-        self.optimizer.setup(self.target)
-
-    def setup_chainerx(self, orig_xp):
-        if orig_xp is cuda.cupy:
-            self.target.to_device('cuda:0')
-        else:
-            assert orig_xp is np
-            self.target.to_device('native:0')
-        self.optimizer.setup(self.target)
-
     def test_setup(self):
         create_update_rule = mock.MagicMock()
-        self.optimizer.create_update_rule = create_update_rule
-        self.optimizer.setup(self.target)
+        target = self.target
+        optimizer = self.optimizer
+        optimizer.create_update_rule = create_update_rule
+        optimizer.setup(target)
 
         self.assertEqual(create_update_rule.call_count, 2)
         self.assertEqual(create_update_rule.call_args_list[0], [(), {}])
         self.assertEqual(create_update_rule.call_args_list[1], [(), {}])
 
-    def check_update(self):
-        self.assertEqual(self.optimizer.t, 0)
+    def test_update(self, backend_config):
+        target = self.target
+        optimizer = self.optimizer
+        target.to_device(backend_config.device)
+        optimizer.setup(target)
 
-        self.optimizer.update()
-        self.assertEqual(self.optimizer.t, 1)
+        self.assertEqual(optimizer.t, 0)
 
-        self.target[0].param.update_rule.update.assert_called_once_with(
-            self.target[0].param)
-        self.target[1].param.update_rule.update.assert_called_once_with(
-            self.target[1].param)
+        optimizer.update()
 
-    def test_update_cpu(self):
-        self.setup_cpu()
-        self.check_update()
+        self.assertEqual(optimizer.t, 1)
 
-    @attr.gpu
-    def test_update_gpu(self):
-        self.setup_gpu()
-        self.check_update()
-
-    @attr.chainerx
-    def test_update_chainerx_cpu(self):
-        self.setup_chainerx(np)
-        self.check_update()
-
-    @attr.chainerx
-    @attr.gpu
-    def test_update_chainerx_gpu(self):
-        self.setup_chainerx(cuda.cupy)
-        self.check_update()
+        param1 = target[0].param
+        param2 = target[1].param
+        param1.update_rule.update.assert_called_once_with(param1)
+        param2.update_rule.update.assert_called_once_with(param2)
 
 
+@testing.backend.inject_backend_tests(None, _backend_params)
+@testing.parameterize(*testing.product({
+    'override_pattern': [
+        'generic',  # only update_core() is overridden
+        'cpu_gpu',  # update_core_{cpu,gpu} are overridden
+        'cpu_gpu_chx',  # update_core_{cpu,gpu,chainerx} are overridden
+    ],
+}))
+class TestGradientMethodUpdate(unittest.TestCase):
+    """Ensures UpdateRule's appropriate methods are called, for various
+    override patterns and parameters with various conditions."""
+
+    def create(self, device):
+
+        class MyLink(chainer.Link):
+            def __init__(self):
+                super(MyLink, self).__init__()
+                with self.init_scope():
+                    self.p1 = chainer.Parameter()  # uninitialized
+
+                    self.p2 = chainer.Parameter(  # initialized, with grad
+                        np.array([3, 2], np.float32))
+                    self.p2.grad = np.array([13, 12], np.float32)
+
+                    self.p3 = chainer.Parameter(  # initialized, without grad
+                        np.array([5, 7], np.float32))
+
+        call_record = []
+        override_pattern = self.override_pattern
+
+        class MyUpdateRule(optimizer.UpdateRule):
+            if override_pattern == 'generic':
+                def update_core(self, param):
+                    call_record.append(('update_core', param))
+
+            elif override_pattern == 'cpu_gpu':
+                def update_core_cpu(self, param):
+                    call_record.append(('update_core_cpu', param))
+
+                def update_core_gpu(self, param):
+                    call_record.append(('update_core_gpu', param))
+
+            elif override_pattern == 'cpu_gpu_chx':
+                def update_core_cpu(self, param):
+                    call_record.append(('update_core_cpu', param))
+
+                def update_core_gpu(self, param):
+                    call_record.append(('update_core_gpu', param))
+
+                def update_core_chainerx(self, param):
+                    call_record.append(('update_core_chainerx', param))
+
+            else:
+                assert False, override_pattern
+
+        class MyOptimizer(optimizer.GradientMethod):
+            def create_update_rule(self):
+                return MyUpdateRule()
+
+        optimizer_ = MyOptimizer()
+        target = MyLink()
+        target.to_device(device)
+        optimizer_.setup(target)
+
+        return optimizer_, call_record
+
+    def test_update(self, backend_config):
+        device = backend_config.device
+        override_pattern = self.override_pattern
+        optimizer, call_record = self.create(device)
+
+        optimizer.update()
+
+        self.assertEqual(len(call_record), 3)
+
+        # Detemine the expected method name that was called.
+        if override_pattern == 'generic':
+            method_name = 'update_core'
+        elif override_pattern == 'cpu_gpu':
+            if isinstance(device, backend.ChainerxDevice):
+                xp = device.fallback_device.xp
+            else:
+                xp = device.xp
+
+            if xp is np:
+                method_name = 'update_core_cpu'
+            else:
+                assert xp is cuda.cupy
+                method_name = 'update_core_gpu'
+        elif override_pattern == 'cpu_gpu_chx':
+            if isinstance(device, backend.ChainerxDevice):
+                method_name = 'update_core_chainerx'
+            elif device.xp is np:
+                method_name = 'update_core_cpu'
+            else:
+                assert device.xp is cuda.cupy
+                method_name = 'update_core_gpu'
+        else:
+            assert False, override_pattern
+
+        # Check call record.
+        # TODO(niboshi): Check the param argument as well.
+        self.assertEqual(call_record[0][0], method_name)
+        self.assertEqual(call_record[1][0], method_name)
+        self.assertEqual(call_record[2][0], method_name)
+
+
+@testing.backend.inject_backend_tests(None, _backend_params)
 @testing.parameterize(*testing.product({
     'shape': [(4, 3, 2)],
     'dtype': [np.float16, np.float32, np.float64],
@@ -519,56 +631,31 @@ class TestGradientMethodLossScale(unittest.TestCase):
             lr = self.loss_scale
             for i in range(2):
                 self.target[i].param._loss_scale = self.loss_scale
+        # TODO(niboshi): Do not use SGD in GradientMethod test
         self.optimizer = chainer.optimizers.SGD(lr)
 
-    def setup_cpu(self):
-        self.optimizer.setup(self.target)
-
-    def setup_gpu(self, device=None):
-        self.target.to_gpu(device)
-        self.optimizer.setup(self.target)
-
-    def setup_chainerx(self, orig_xp):
-        if orig_xp is cuda.cupy:
-            self.target.to_device('cuda:0')
-        else:
-            assert orig_xp is np
-            self.target.to_device('native:0')
-        self.optimizer.setup(self.target)
-
-    def check_update(self):
-        self.optimizer.update()
-        xp = backend.get_array_module(self.target[0].param)
+    def test_update(self, backend_config):
+        if backend_config.device.name == '@cupy:1':
+            # TODO(niboshi): Fix it
+            raise unittest.SkipTest(
+                'Loss scale does not work with cupy multi-device.')
+        target = self.target
+        optimizer = self.optimizer
+        target.to_device(backend_config.device)
+        optimizer.setup(target)
+        optimizer.update()
+        xp = backend.get_array_module(target[0].param)
         expected_data = xp.zeros(self.shape, dtype=self.dtype)
         rtol, atol = 1e-4, 1e-5
         if self.dtype is np.float16:
             rtol, atol = 1e-1, 1e-2
         for i in range(2):
-            testing.assert_allclose(self.target[i].param.data, expected_data,
-                                    rtol=rtol, atol=atol)
-
-    def test_update_cpu(self):
-        self.setup_cpu()
-        self.check_update()
-
-    @attr.gpu
-    def test_update_gpu(self):
-        self.setup_gpu()
-        self.check_update()
-
-    @attr.chainerx
-    def test_update_chainerx_cpu(self):
-        self.setup_chainerx(np)
-        self.check_update()
-
-    @attr.chainerx
-    @attr.gpu
-    def test_update_chainerx_gpu(self):
-        self.setup_gpu()
-        self.setup_chainerx(cuda.cupy)
-        self.check_update()
+            testing.assert_allclose(
+                target[i].param.data, expected_data,
+                rtol=rtol, atol=atol)
 
 
+@testing.backend.inject_backend_tests(None, _backend_params)
 class TestCleargradHook(unittest.TestCase):
 
     def setUp(self):
@@ -576,21 +663,30 @@ class TestCleargradHook(unittest.TestCase):
             np.arange(6, dtype=np.float32).reshape(2, 3),
             np.arange(3, -3, -1, dtype=np.float32).reshape(2, 3))
 
-    def check_cleargrad(self):
+    def test_cleargrad(self, backend_config):
+
+        class CleargradHook(object):
+
+            name = 'Cleargrad'
+            timing = 'pre'
+
+            def __init__(self, _):
+                pass
+
+            def __call__(self, opt):
+                for param in opt.target.params():
+                    # Clear all grads
+                    param.cleargrad()
+
+        target = self.target
+        target.to_device(backend_config.device)
+        # TODO(niboshi): Do not use SGD in GradientMethod test
         opt = optimizers.SGD(lr=1)
-        opt.setup(self.target)
+        opt.setup(target)
         opt.add_hook(CleargradHook(self))
         opt.add_hook(DummyHook(self))
 
         opt.update()
-
-    def test_cleargrad_cpu(self):
-        self.check_cleargrad()
-
-    @attr.gpu
-    def test_cleargrad_gpu(self):
-        self.target.to_gpu()
-        self.check_cleargrad()
 
 
 class DummyOptimizer(chainer.GradientMethod):
@@ -617,20 +713,7 @@ class DummyHook(object):
             self.test.assertIsNotNone(param.grad)
 
 
-class CleargradHook(object):
-
-    name = 'Cleargrad'
-    timing = 'pre'
-
-    def __init__(self, _):
-        pass
-
-    def __call__(self, opt):
-        for param in opt.target.params():
-            # Clear all grads
-            param.cleargrad()
-
-
+@testing.backend.inject_backend_tests(None, _backend_params)
 class TestGradientMethodClearGrads(unittest.TestCase):
 
     def setUp(self):
@@ -641,9 +724,12 @@ class TestGradientMethodClearGrads(unittest.TestCase):
         self.optimizer.setup(self.target)
         self.optimizer.add_hook(DummyHook(self))
 
-    def test_update(self):
-        self.target.cleargrads()
-        self.optimizer.update()
+    def test_update(self, backend_config):
+        target = self.target
+        optimizer = self.optimizer
+        target.to_device(backend_config.device)
+        target.cleargrads()
+        optimizer.update()
 
 
 class TestDeprecatedOptimizerHooksEmitsWarning(unittest.TestCase):
@@ -680,6 +766,69 @@ class TestDeprecatedOptimizerHooksEmitsWarning(unittest.TestCase):
         chainer.optimizer.WeightDecay(1.)
         self.assertEqual(len(self.warnings), 1)
         self.assertIs(self.warnings[-1].category, DeprecationWarning)
+
+
+@testing.parameterize(*testing.product({
+    # None: dtype is not given by initializer.
+    # Otherwise: it's given by initializer.
+    'dtype': [None, np.float16, np.float32, np.float64]
+}))
+class TestUpdateRuleUseFp32Update(unittest.TestCase):
+
+    def test_uninitialized_parameter(self):
+        dtype = self.dtype
+
+        def initializer(array):
+            assert False  # never called
+
+        # Set initializer.dtype to specify the parameter's dtype
+        if dtype is not None:
+            initializer.dtype = dtype
+
+        # Create an uninitialized parameter
+        param = chainer.Parameter(initializer)
+        assert param.array is None
+        if dtype is not None:
+            assert param.dtype == dtype
+
+        # Create an update rule with custom update_core
+        record = []
+        update_rule = chainer.UpdateRule()
+
+        def update_core(param):
+            # param.dtype may not be retrieved because it can be uninitialized
+            # and dtype is not given (i.e. self.dtype is None)
+            try:
+                param_dtype = param.dtype
+            except RuntimeError:
+                param_dtype = None
+            record.append({
+                'param': param,
+                'dtype': param_dtype,
+            })
+
+        update_rule.update_core = update_core
+
+        # Enable fp32 update
+        update_rule.use_fp32_update()
+        # Call update_rule.update
+        update_rule.update(param)
+
+        if dtype == np.float16:
+            assert record[0]['param'] is not param
+            assert record[0]['dtype'] == np.float32
+        else:
+            assert record[0]['param'] is param
+            assert record[0]['dtype'] == dtype
+
+        # The original parameter is kept uninitialized and its dtype is
+        # unchanged.
+        assert param.array is None
+        if dtype is not None:
+            assert param.dtype == dtype
+        else:
+            with pytest.raises(RuntimeError):
+                param.dtype
 
 
 testing.run_module(__name__, __file__)
