@@ -1,6 +1,24 @@
 <div align="center"><img src="https://raw.githubusercontent.com/chainer/chainer/master/docs/image/chainer_red_h.png" width="400"/></div>
 
 # Chainer: A deep learning framework
+[![pypi](https://img.shields.io/pypi/v/chainer.svg)](https://pypi.python.org/pypi/chainer)
+[![GitHub license](https://img.shields.io/github/license/chainer/chainer.svg)](https://github.com/chainer/chainer)
+[![travis](https://img.shields.io/travis/chainer/chainer/master.svg)](https://travis-ci.org/chainer/chainer)
+[![coveralls](https://img.shields.io/coveralls/chainer/chainer.svg)](https://coveralls.io/github/chainer/chainer)
+[![Read the Docs](https://readthedocs.org/projects/chainer/badge/?version=stable)](https://docs.chainer.org/en/stable/?badge=stable)
+
+[**Website**](https://chainer.org/)
+| [**Docs**](https://docs.chainer.org/en/stable/)
+| [**Install Guide**](https://docs.chainer.org/en/stable/install.html)
+| **Tutorials** ([ja](https://tutorials.chainer.org/ja/))
+| **Examples** ([Official](https://github.com/chainer/chainer/tree/master/examples), [External](https://github.com/chainer-community/awesome-chainer))
+| [**Concepts**](https://docs.chainer.org/en/stable/guides/)
+| [**ChainerX**](#chainerx)
+
+**Forum** ([en](https://groups.google.com/forum/#!forum/chainer), [ja](https://groups.google.com/forum/#!forum/chainer-jp))
+| **Slack invitation** ([en](https://bit.ly/join-chainer-slack), [ja](https://bit.ly/join-chainer-jp-slack))
+| **Twitter** ([en](https://twitter.com/ChainerOfficial), [ja](https://twitter.com/ChainerJP))
+
 ## My Contributions (@dido1998)
 ### Before GSoC selection
 - [Implementation of sigmoid for ChainerX](https://github.com/chainer/chainer/pull/6472) [Merged]
@@ -43,23 +61,7 @@
 
 
 
-[![pypi](https://img.shields.io/pypi/v/chainer.svg)](https://pypi.python.org/pypi/chainer)
-[![GitHub license](https://img.shields.io/github/license/chainer/chainer.svg)](https://github.com/chainer/chainer)
-[![travis](https://img.shields.io/travis/chainer/chainer/master.svg)](https://travis-ci.org/chainer/chainer)
-[![coveralls](https://img.shields.io/coveralls/chainer/chainer.svg)](https://coveralls.io/github/chainer/chainer)
-[![Read the Docs](https://readthedocs.org/projects/chainer/badge/?version=stable)](https://docs.chainer.org/en/stable/?badge=stable)
 
-[**Website**](https://chainer.org/)
-| [**Docs**](https://docs.chainer.org/en/stable/)
-| [**Install Guide**](https://docs.chainer.org/en/stable/install.html)
-| **Tutorials** ([ja](https://tutorials.chainer.org/ja/))
-| **Examples** ([Official](https://github.com/chainer/chainer/tree/master/examples), [External](https://github.com/chainer-community/awesome-chainer))
-| [**Concepts**](https://docs.chainer.org/en/stable/guides/)
-| [**ChainerX**](#chainerx)
-
-**Forum** ([en](https://groups.google.com/forum/#!forum/chainer), [ja](https://groups.google.com/forum/#!forum/chainer-jp))
-| **Slack invitation** ([en](https://bit.ly/join-chainer-slack), [ja](https://bit.ly/join-chainer-jp-slack))
-| **Twitter** ([en](https://twitter.com/ChainerOfficial), [ja](https://twitter.com/ChainerJP))
 
 *Chainer* is a Python-based deep learning framework aiming at flexibility.
 It provides automatic differentiation APIs based on the **define-by-run** approach (a.k.a. dynamic computational graphs) as well as object-oriented high-level APIs to build and train neural networks.
