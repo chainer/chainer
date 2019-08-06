@@ -2,6 +2,7 @@ import unittest
 
 import numpy
 
+import chainer.functions as F
 from chainer import initializers
 from chainer.links.connection import deconvolution_nd
 from chainer import testing
@@ -107,8 +108,13 @@ class TestDeconvolutionND(testing.LinkTestCase):
 
     def forward_expected(self, link, inputs):
         x, = inputs
-        y = link(x).array
-        return y,
+        W = link.W
+        b = link.b
+        y = F.deconvolution_nd(
+            x, W, b, outsize=self.outsize,
+            stride=self.stride, pad=self.pad,
+            groups=self.groups)
+        return y.array,
 
 
 class TestDeconvolutionNDNoInitialBias(unittest.TestCase):

@@ -5,6 +5,7 @@ import six.moves.cPickle as pickle
 
 import chainer
 from chainer.backends import cuda
+from chainer import functions as F
 from chainer import initializers
 from chainer.links.connection import convolution_nd
 from chainer import testing
@@ -82,8 +83,14 @@ class TestConvolutionND(testing.LinkTestCase):
 
     def forward_expected(self, link, inputs):
         x, = inputs
-        y = link(x).array
-        return y.astype(self.dtype),
+        W = link.W
+        b = link.b
+        y = F.convolution_nd(
+            x, W, b,
+            pad=self.pad,
+            groups=self.groups,
+            stride=self.stride)
+        return y.array,
 
     def test_pickling(self, backend_config):
         x_data, = self.generate_inputs()

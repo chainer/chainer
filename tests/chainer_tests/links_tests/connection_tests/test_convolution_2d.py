@@ -5,6 +5,7 @@ import six.moves.cPickle as pickle
 
 import chainer
 from chainer.backends import cuda
+from chainer import functions as F
 from chainer import links
 from chainer import testing
 from chainer.testing import attr
@@ -35,6 +36,12 @@ class TestConvolution2D(testing.LinkTestCase):
     param_names = ('W', 'b')
 
     def setUp(self):
+        self.N = 2
+        self.in_channels = 3
+        self.out_channels = 2
+        self.ksize = 3
+        self.stride = 2
+        self.pad = 1
         if self.x_dtype == numpy.float16 or self.W_dtype == numpy.float16:
             self.check_forward_options.update({'atol': 5e-3, 'rtol': 5e-2})
             self.check_backward_options = {'atol': 3e-2, 'rtol': 5e-2}
@@ -48,21 +55,29 @@ class TestConvolution2D(testing.LinkTestCase):
         initialW, initial_bias = initializers
 
         link = links.Convolution2D(
-            3, 2, 3, stride=2, pad=1,
+            self.in_channels, self.out_channels, self.ksize,
+            stride=self.stride, pad=self.pad,
             initialW=initialW,
             initial_bias=initial_bias)
 
         return link
 
     def generate_inputs(self):
+        h, w = 4, 3
         x = numpy.random.uniform(-1, 1,
-                                 (2, 3, 4, 3)).astype(self.x_dtype)
+                                 (self.N, self.in_channels,
+                                  h, w)).astype(self.x_dtype)
         return x,
 
     def forward_expected(self, link, inputs):
         x, = inputs
-        y = link(x).array
-        return y,
+        W = link.W
+        b = link.b
+        y = F.convolution_2d(
+            x, W, b,
+            pad=self.pad,
+            stride=self.stride)
+        return y.array,
 
     def test_pickling(self, backend_config):
         x_data, = self.generate_inputs()

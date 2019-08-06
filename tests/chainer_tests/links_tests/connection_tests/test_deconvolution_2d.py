@@ -1,6 +1,7 @@
 import numpy
 
 import chainer
+import chainer.functions as F
 from chainer import links as L
 from chainer import testing
 from chainer.testing import parameterize
@@ -87,8 +88,19 @@ class TestDeconvolution2D(testing.LinkTestCase):
 
     def forward_expected(self, link, inputs):
         x, = inputs
-        y = link(x).array
-        return y,
+        W = link.W
+        if self.nobias:
+            y = F.deconvolution_2d(
+                x, W,
+                stride=self.stride, pad=self.pad,
+                dilate=self.dilate, groups=self.groups)
+        else:
+            b = link.b
+            y = F.deconvolution_2d(
+                x, W, b,
+                stride=self.stride, pad=self.pad,
+                dilate=self.dilate, groups=self.groups)
+        return y.array,
 
 
 @parameterize(
