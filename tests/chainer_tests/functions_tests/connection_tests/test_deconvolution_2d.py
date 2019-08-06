@@ -41,7 +41,7 @@ def _pair(x):
     }),
 ])))
 @testing.inject_backend_tests(
-    ['test_forward', 'test_backward', 'test_double_backward'],
+    None,
     # CPU tests
     testing.product({
         'use_cuda': [False],

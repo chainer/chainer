@@ -49,8 +49,7 @@ from chainer.utils import type_check
     'autotune': [False],
 }))
 @testing.inject_backend_tests(
-    ['test_forward', 'test_backward', 'test_double_backward',
-     'test_consistency_regression_forward'],
+    None,
     # CPU tests
     [{}]
     # GPU tests
