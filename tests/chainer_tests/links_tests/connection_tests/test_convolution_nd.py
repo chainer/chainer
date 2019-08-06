@@ -24,12 +24,9 @@ from chainer.utils import conv_nd
     'groups': [1, 2],
 })))
 @testing.inject_backend_tests(
-    ['test_forward', 'test_backward', 'test_double_backward',
-     'test_pickling'],
+    None,
     # CPU tests
-    [
-        {},
-    ]
+    [{}]
     # GPU tests
     + testing.product({
         'use_cuda': [True],
@@ -89,25 +86,24 @@ class TestConvolutionND(testing.LinkTestCase):
         return y.astype(self.dtype),
 
     def test_pickling(self, backend_config):
-        with backend_config:
-            x_data, = self.generate_inputs()
+        x_data, = self.generate_inputs()
 
-            link = self.create_link(self.generate_params())
-            link.to_device(backend_config.device)
+        link = self.create_link(self.generate_params())
+        link.to_device(backend_config.device)
 
-            x = chainer.Variable(x_data)
-            x.to_device(backend_config.device)
+        x = chainer.Variable(x_data)
+        x.to_device(backend_config.device)
 
-            y = link(x)
-            y_data1 = y.data
-            del x, y
-            pickled = pickle.dumps(link, -1)
-            del link
-            link = pickle.loads(pickled)
-            x = chainer.Variable(x_data)
-            x.to_device(backend_config.device)
-            y = link(x)
-            y_data2 = y.data
+        y = link(x)
+        y_data1 = y.data
+        del x, y
+        pickled = pickle.dumps(link, -1)
+        del link
+        link = pickle.loads(pickled)
+        x = chainer.Variable(x_data)
+        x.to_device(backend_config.device)
+        y = link(x)
+        y_data2 = y.data
 
         testing.assert_allclose(y_data1, y_data2, atol=0, rtol=0)
 
