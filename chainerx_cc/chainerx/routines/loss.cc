@@ -28,7 +28,7 @@ Array HuberLoss(const Array& x1, const Array& x2, Scalar delta) {
     return Where(abs_a < delta_array, 0.5 * Square(a), delta * (abs_a - Scalar{0.5} * delta));
 }
 
-Array Hinge(const Array& x1, const Array& x2, const std::string& norm) {
+Array Hinge(const Array& x1, const Array& x2, float norm) {
     if (GetKind(x1.dtype()) != DtypeKind::kFloat) {
         throw DtypeError{"Outputs must be of float type."};
     }
@@ -49,11 +49,7 @@ Array Hinge(const Array& x1, const Array& x2, const std::string& norm) {
     Array one_minus_diff = Where(ExpandDims(x2, 1) == Arange(num), 0, 2);
     Array bottom_diff = Maximum(0, one_minus_diff);
 
-    if (norm == "L1") {
-        return bottom_diff;
-    } else {
-        return Square(bottom_diff);
-    }
+    return Power(bottom_diff, Scalar{norm});
 }
 
 }  // namespace chainerx

@@ -14,6 +14,6 @@ Array GaussianKLDivergence(const Array& mean, const Array& ln_var);
 
 Array HuberLoss(const Array& x1, const Array& x2, Scalar delta);
 
-Array Hinge(const Array& x1, const Array& x2, const std::string& norm);
+Array Hinge(const Array& x1, const Array& x2, float norm);
 
 }  // namespace chainerx
