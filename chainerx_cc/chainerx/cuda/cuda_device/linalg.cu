@@ -370,7 +370,7 @@ CHAINERX_CUDA_REGISTER_KERNEL(InverseKernel, CudaInverseKernel);
 
 class CudaQrKernel : public QrKernel {
 public:
-    void Call(const Array& a, const Array& q, const Array& r, const Array& tau, QrMode mode = QrMode::kReduced) override {
+    void Call(const Array& a, const Array& q, const Array& r, const Array& tau, QrMode mode) override {
         Device& device = a.device();
         Dtype dtype = a.dtype();
         CudaSetDeviceScope scope{device.index()};

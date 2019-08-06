@@ -311,7 +311,7 @@ CHAINERX_NATIVE_REGISTER_KERNEL(InverseKernel, NativeInverseKernel);
 
 class NativeQrKernel : public QrKernel {
 public:
-    void Call(const Array& a, const Array& q, const Array& r, const Array& tau, QrMode mode = QrMode::kReduced) override {
+    void Call(const Array& a, const Array& q, const Array& r, const Array& tau, QrMode mode) override {
 #if CHAINERX_ENABLE_LAPACK
         CHAINERX_ASSERT(a.ndim() == 2);
 
