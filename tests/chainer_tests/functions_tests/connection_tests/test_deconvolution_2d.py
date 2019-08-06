@@ -77,16 +77,13 @@ class TestDeconvolution2DFunction(testing.FunctionTestCase):
 
         self.outsize = (outh, outw) if self.test_outsize else None
 
-        if numpy.float16 in (self.x_dtype, self.W_dtype):
-            self.check_forward_options.update({
-                'atol': 1e-3, 'rtol': 1e-2
-            })
-            self.check_backward_options.update({
-                'atol': 1e-3, 'rtol': 1e-2
-            })
-            self.check_double_backward_options.update({
-                'atol': 1e-3, 'rtol': 1e-2
-            })
+        if self.x_dtype == numpy.float16:
+            self.check_forward_options.update(atol=5e-3, rtol=5e-2)
+            self.check_backward_options.update(atol=5e-3, rtol=5e-2)
+            self.check_double_backward_options.update(atol=5e-3, rtol=5e-2)
+        elif self.W_dtype == numpy.float16:
+            self.check_backward_options.update(atol=5e-3, rtol=5e-2)
+            self.check_double_backward_options.update(atol=5e-3, rtol=5e-2)
 
     def generate_inputs(self):
         W = numpy.random.normal(
