@@ -248,8 +248,8 @@ std::tuple<Array, Array> Qr(const Array& a, QrMode mode) {
                     throw DimensionError{"ChainerX QR differentiation is not implemented for non-square R."};
                 }
 
-                const Array& gq = bctx.output_grad(0).has_value() ? *bctx.output_grad(0) : Zeros(a.shape(), a.dtype(), a.device());
-                const Array& gr = bctx.output_grad(1).has_value() ? *bctx.output_grad(1) : Zeros(a.shape(), a.dtype(), a.device());
+                const Array& gq = bctx.output_grad(0).has_value() ? *bctx.output_grad(0) : Zeros(q.shape(), q.dtype(), q.device());
+                const Array& gr = bctx.output_grad(1).has_value() ? *bctx.output_grad(1) : Zeros(r.shape(), r.dtype(), r.device());
 
                 Array m = Dot(r, gr.Transpose()) - Dot(gq.Transpose(), q);
 
