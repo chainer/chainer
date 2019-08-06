@@ -353,9 +353,9 @@ void InitChainerxLinalg(pybind11::module& m) {
             "eigh",
             [](const ArrayBodyPtr& a, const std::string& UPLO) {
                 std::tuple<Array, Array> wv = Eigh(Array{a}, UPLO);
-                Array w = std::get<0>(wv);
-                Array v = std::get<1>(wv);
-                return std::make_tuple(MoveArrayBody(Array{w}), MoveArrayBody(Array{v}));
+                Array& w = std::get<0>(wv);
+                Array& v = std::get<1>(wv);
+                return std::make_tuple(MoveArrayBody(std::move(w)), MoveArrayBody(std::move(v)));
             },
             "a"_a,
             "UPLO"_a = "L");
