@@ -294,10 +294,11 @@ void QrImpl(const Array& a, const Array& q, const Array& r, const Array& tau, Qr
     auto tau_ptr = static_cast<T*>(internal::GetRawOffsetData(tau));
 
     int info;
-    int buffersize_geqrf = -1;
+    int64_t buffersize_geqrf = -1;
     T work_query_geqrf;
     Geqrf(m, n, r_ptr, m, tau_ptr, &work_query_geqrf, buffersize_geqrf, &info);
-    buffersize_geqrf = static_cast<int>(work_query_geqrf);
+    buffersize_geqrf = static_cast<int64_t>(work_query_geqrf);
+    buffersize_geqrf = std::max({static_cast<int64_t>(1), n, buffersize_geqrf});  // buffersize >= n >= 1
 
     Array work = Empty(Shape{buffersize_geqrf}, dtype, device);
     auto work_ptr = static_cast<T*>(internal::GetRawOffsetData(work));
