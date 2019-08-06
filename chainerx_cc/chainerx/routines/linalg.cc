@@ -200,7 +200,7 @@ std::tuple<Array, Array> Qr(const Array& a, QrMode mode) {
 
     Array tau = Empty(Shape{k}, dtype, device);
     Shape q_shape{0};
-    Shape r_shape{0};
+    Shape r_shape{};
     switch (mode) {
         case QrMode::kReduced:
             q_shape = Shape{m, k};
