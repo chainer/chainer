@@ -1,6 +1,5 @@
 import numpy
 
-import chainer
 import chainer.functions as F
 from chainer import testing
 from chainer.testing import backend
@@ -235,14 +234,8 @@ class TestNStepBiRNN(testing.FunctionTestCase):
 
     def forward(self, inputs, device):
         h, ws, bs, xs = self.process_inputs(inputs)
-
-        if h.array.dtype == numpy.float64:
-            with chainer.using_config('use_cudnn', 'never'):
-                out = F.n_step_birnn(self.n_layers, 0.0, h, ws,
-                                     bs, xs, self.activation)
-        else:
-            out = F.n_step_birnn(self.n_layers, 0.0, h, ws,
-                                 bs, xs, self.activation)
+        out = F.n_step_birnn(self.n_layers, 0.0, h, ws,
+                             bs, xs, self.activation)
         rets = []
         rets.append(out[0])
         for i in range(len(out[1])):
