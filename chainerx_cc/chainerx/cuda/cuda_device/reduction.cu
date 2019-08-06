@@ -142,5 +142,39 @@ public:
 CHAINERX_CUDA_REGISTER_KERNEL(CumsumKernel, CudaCumsumKernel);
 
 }  // namespace
+
+namespace {
+
+template <typename In, typename Out>
+struct NansumImpl {
+    using InCudaType = cuda_internal::DataType<In>;
+    using OutCudaType = cuda_internal::DataType<Out>;
+    __device__ OutCudaType Identity() { return OutCudaType{0}; }
+    __device__ OutCudaType MapIn(InCudaType in, int64_t /*index*/) { return static_cast<OutCudaType>(in); }
+    __device__ void Reduce(OutCudaType next, OutCudaType& accum) { accum += next; }
+    __device__ OutCudaType MapOut(OutCudaType accum) { return accum; }
+};
+
+class CudaNansumKernel : public NansumKernel {
+public:
+    void Call(const Array& a, const Axes& axis, const Array& out) override {
+        Device& device = a.device();
+        CHAINERX_ASSERT(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
+        device.CheckDevicesCompatible(a, out);
+        CudaSetDeviceScope scope{device.index()};
+
+        auto do_nansum = [&a, &axis, &out](auto in_pt, auto out_pt) {
+            using In = typename decltype(in_pt)::type;
+            using Out = typename decltype(out_pt)::type;
+            Reduce<In, Out>(a, axis, out, NansumImpl<In, Out>{});
+        };
+
+        VisitDtype(out.dtype(), [a_dtype = a.dtype(), &do_nansum](auto out_pt) { VisitDtype(a_dtype, do_nansum, out_pt); });
+    }
+};
+
+CHAINERX_CUDA_REGISTER_KERNEL(NansumKernel, CudaNansumKernel);
+
+}  // namespace
 }  // namespace cuda
 }  // namespace chainerx

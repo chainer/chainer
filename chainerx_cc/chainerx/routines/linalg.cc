@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cstdint>
+#include <limits>
 #include <tuple>
 #include <utility>
 #include <vector>
@@ -19,7 +20,9 @@
 #include "chainerx/error.h"
 #include "chainerx/graph.h"
 #include "chainerx/kernels/linalg.h"
+#include "chainerx/routines/arithmetic.h"
 #include "chainerx/routines/creation.h"
+#include "chainerx/routines/indexing.h"
 #include "chainerx/routines/manipulation.h"
 #include "chainerx/routines/type_util.h"
 #include "chainerx/shape.h"
@@ -104,7 +107,7 @@ namespace {
 
 void CheckRankTwoArray(const Array& a) {
     if (a.ndim() != 2) {
-        throw DimensionError{"ChainerX solve supports only 2-dimensional arrays."};
+        throw DimensionError{"ChainerX linear algebra routines only support 2-dimensional arrays."};
     }
 }
 
@@ -185,6 +188,139 @@ Array Inverse(const Array& a) {
         }
         bb.Finalize();
     }
+
+    return out;
+}
+
+std::tuple<Array, Array, Array> Svd(const Array& a, bool full_matrices, bool compute_uv) {
+    CheckRankTwoArray(a);
+
+    Array u{};
+    Array s{};
+    Array vt{};
+
+    Shape u_shape;
+    Shape vt_shape;
+    int64_t m = a.shape()[0];
+    int64_t n = a.shape()[1];
+    int64_t k = std::min(m, n);
+
+    if (compute_uv) {
+        if (full_matrices) {
+            u_shape = Shape{m, m};
+            vt_shape = Shape{n, n};
+        } else {
+            u_shape = Shape{m, k};
+            vt_shape = Shape{k, n};
+        }
+    } else {
+        u_shape = Shape{0};
+        vt_shape = Shape{0};
+    }
+
+    u = Empty(u_shape, a.dtype(), a.device());
+    vt = Empty(vt_shape, a.dtype(), a.device());
+    s = Empty(Shape{k}, a.dtype(), a.device());
+
+    {
+        NoBackpropModeScope scope{};
+        a.device().backend().CallKernel<SvdKernel>(a, u, s, vt, full_matrices);
+    }
+
+    // Reference:
+    // https://j-towns.github.io/papers/svd-derivative.pdf
+    {
+        BackwardBuilder bb{"svd", a, {u, s, vt}};
+        if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+            bt.Define([a_tok = bb.RetainInput(0),
+                       u_tok = bb.RetainOutput(0),
+                       s_tok = bb.RetainOutput(1),
+                       vt_tok = bb.RetainOutput(2),
+                       full_matrices,
+                       compute_uv](BackwardContext& bctx) {
+                if (full_matrices) {
+                    throw ChainerxError{"ChainerX SVD differentiation is not implemented for full_matrices mode."};
+                }
+                if (!compute_uv) {
+                    throw ChainerxError{"ChainerX SVD differentiation cannot be computed without u, vt matrices."};
+                }
+
+                const Array& a = bctx.GetRetainedInput(a_tok);
+                const Array& u = bctx.GetRetainedOutput(u_tok);
+                const Array& s = bctx.GetRetainedOutput(s_tok);
+                const Array& vt = bctx.GetRetainedOutput(vt_tok);
+
+                auto m = a.shape()[0];
+                auto n = a.shape()[1];
+                auto k = s.shape()[0];
+
+                const Array& gu = bctx.output_grad(0).has_value() ? *bctx.output_grad(0) : Zeros(u.shape(), a.dtype(), a.device());
+                const Array& gsigma = bctx.output_grad(1).has_value() ? *bctx.output_grad(1) : Zeros(s.shape(), a.dtype(), a.device());
+                const Array& gvt = bctx.output_grad(2).has_value() ? *bctx.output_grad(2) : Zeros(vt.shape(), a.dtype(), a.device());
+
+                Array v = vt.Transpose();
+                Array gv = gvt.Transpose();
+
+                Array sigma_term = Dot(Dot(u, Diag(gsigma)), vt);
+
+                Array ut = u.Transpose();
+                Array im = Eye(m, m, 0, a.dtype(), a.device());
+                Array in = Eye(n, n, 0, a.dtype(), a.device());
+                Array sigma_mat = Diag(s);
+                Array sigma_mat_inv = Diag(Reciprocal(s));
+                Array sigma_sq = Power(s, 2);
+                Array f = ExpandDims(sigma_sq, 0) - ExpandDims(sigma_sq, 1);
+                // Invert values of f, and fill the diagonal with 0s.
+                // f has 0s on the diagonal, therefore fill it first with infinity.
+                Array mask = Eye(f.shape()[0], f.shape()[1], 0, Dtype::kBool, a.device());
+                f = Where(mask, std::numeric_limits<float>::infinity(), f);
+                f = Reciprocal(f);
+
+                Array u_term{};
+                Array utgu = Dot(u.Transpose(), gu);
+                u_term = Dot(Dot(u, f * (utgu - utgu.Transpose())), sigma_mat);
+                if (m > k) {
+                    u_term = u_term + Dot(Dot(im - Dot(u, ut), gu), sigma_mat_inv);
+                }
+                u_term = Dot(u_term, vt);
+
+                Array v_term{};
+                Array vtgv = Dot(vt, gv);
+                v_term = Dot(Dot(sigma_mat, f * (vtgv - vtgv.Transpose())), vt);
+                if (n > k) {
+                    v_term = v_term + Dot(sigma_mat_inv, Dot(gvt, in - Dot(v, vt)));
+                }
+                v_term = Dot(u, v_term);
+
+                bctx.input_grad() = u_term + sigma_term + v_term;
+            });
+        }
+        bb.Finalize();
+    }
+
+    return std::make_tuple(std::move(u), std::move(s), std::move(vt));
+}
+
+Array PseudoInverse(const Array& a, float rcond) {
+    CheckRankTwoArray(a);
+
+    Array u{};
+    Array s{};
+    Array vt{};
+
+    std::tie(u, s, vt) = Svd(a, /*full_matrices=*/false, /*compute_uv=*/true);
+
+    Array cutoff = rcond * s.Max();
+    Array cutoff_indices = s <= cutoff;
+
+    Array sinv = Reciprocal(s);
+    sinv = Where(cutoff_indices, 0, sinv);
+
+    Array out = vt.Transpose().Dot(Diag(sinv)).Dot(u.Transpose());
+
+    // Note that there is an analytical formula for the derivative:
+    // https://mathoverflow.net/questions/25778/analytical-formula-for-numerical-derivative-of-the-matrix-pseudo-inverse
+    // However, it does not hold if singular values are truncated based on rcond.
 
     return out;
 }

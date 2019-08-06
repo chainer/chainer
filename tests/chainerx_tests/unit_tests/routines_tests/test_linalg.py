@@ -104,6 +104,8 @@ class NumpyLinalgOpTest(op_utils.NumpyOpTest):
         if (device.backend.name == 'native'
                 and not chainerx.linalg._is_lapack_available()):
             pytest.skip('LAPACK is not linked to ChainerX')
+        self.check_backward_options.update({'rtol': 5e-3})
+        self.check_double_backward_options.update({'rtol': 5e-3})
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
@@ -230,6 +232,124 @@ class TestInverseDtypeFailing(NumpyLinalgOpTest):
     def forward_xp(self, inputs, xp):
         a, = inputs
         out = xp.linalg.inv(a)
+        return out,
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    chainer.testing.product({
+        'shape': [(1, 1), (2, 3), (3, 2), (6, 6)],
+        'dtype': ['float32', 'float64'],
+        'full_matrices': [False],
+        'compute_uv': [True]
+    }) + chainer.testing.product({
+        'shape': [(1, 1), (2, 3), (3, 2), (6, 6)],
+        'dtype': ['float32', 'float64'],
+        'full_matrices': [True],
+        'compute_uv': [False],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True],
+    })
+))
+class TestSVD(NumpyLinalgOpTest):
+
+    def generate_inputs(self):
+        a = numpy.random.random(self.shape).astype(self.dtype)
+        return a,
+
+    def forward_xp(self, inputs, xp):
+        a, = inputs
+        out = xp.linalg.svd(a,
+                            full_matrices=self.full_matrices,
+                            compute_uv=self.compute_uv)
+        # NOTE: cuSOLVER's (CuPy's) and NumPy's outputs of u and v might
+        # differ in signs, which is not a problem mathematically
+        if self.compute_uv:
+            u, s, v = out
+            return xp.abs(u), s, xp.abs(v)
+        else:
+            s = out
+            return s,
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize_pytest('shape', [(2, 3)])
+@chainer.testing.parameterize_pytest('dtype', ['float16'])
+class TestSVDDtypeFailing(NumpyLinalgOpTest):
+
+    forward_accept_errors = (TypeError,
+                             chainerx.DtypeError)
+
+    def generate_inputs(self):
+        a = numpy.random.random(self.shape).astype(self.dtype)
+        return a,
+
+    def forward_xp(self, inputs, xp):
+        a, = inputs
+        out = xp.linalg.svd(a)
+        u, s, v = out
+        return xp.abs(u), s, xp.abs(v)
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    chainer.testing.product({
+        'shape': [(1, 1), (2, 3), (3, 2), (6, 6)],
+        'rcond': [1e-15, 0.3, 0.5, 0.6],
+        'dtype': ['float32', 'float64']
+    })
+))
+class TestPseudoInverse(NumpyLinalgOpTest):
+
+    def generate_inputs(self):
+        a = numpy.random.random(self.shape).astype(self.dtype)
+        return a,
+
+    def forward_xp(self, inputs, xp):
+        a, = inputs
+        out = xp.linalg.pinv(a, rcond=self.rcond)
+        return out,
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    chainer.testing.product({
+        'shape': [(), ],
+        'rcond': [1e-15, ],
+        'dtype': ['float32', 'float64']
+    })
+))
+class TestPseudoInverseFailing(NumpyLinalgOpTest):
+
+    forward_accept_errors = (numpy.linalg.LinAlgError,
+                             chainerx.ChainerxError,
+                             chainerx.DimensionError)
+
+    def generate_inputs(self):
+        a = numpy.random.random(self.shape).astype(self.dtype)
+        return a,
+
+    def forward_xp(self, inputs, xp):
+        a, = inputs
+        out = xp.linalg.pinv(a, rcond=self.rcond)
+        return out,
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize_pytest('shape', [(2, 3)])
+@chainer.testing.parameterize_pytest('dtype', ['float16'])
+class TestPseudoInverseDtypeFailing(NumpyLinalgOpTest):
+
+    forward_accept_errors = (TypeError,
+                             chainerx.DtypeError)
+
+    def generate_inputs(self):
+        a = numpy.random.random(self.shape).astype(self.dtype)
+        return a,
+
+    def forward_xp(self, inputs, xp):
+        a, = inputs
+        out = xp.linalg.pinv(a)
         return out,
 
 

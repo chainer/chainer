@@ -15,6 +15,10 @@ Array Solve(const Array& a, const Array& b);
 
 Array Inverse(const Array& a);
 
+std::tuple<Array, Array, Array> Svd(const Array& a, bool full_matrices, bool compute_uv);
+
+Array PseudoInverse(const Array& a, float rcond);
+
 enum class QrMode {
     // if K = min(M, N), where `a` of shape (M, N)
     kReduced,  // returns q, r with dimensions (M, K), (K, N) (default)

@@ -29,7 +29,9 @@
 #include "chainerx/kernels/misc.h"
 #include "chainerx/macro.h"
 #include "chainerx/native/native_device.h"
+#include "chainerx/routines/arithmetic.h"
 #include "chainerx/routines/creation.h"
+#include "chainerx/routines/indexing.h"
 #include "chainerx/routines/linalg.h"
 
 namespace chainerx {
@@ -60,6 +62,32 @@ cusolverStatus_t Getrs(
         int /*ldb*/,
         int* /*devinfo*/) {
     throw DtypeError{"Only Arrays of float or double type are supported by getrs (Solve)"};
+}
+
+template <typename T>
+cusolverStatus_t GesvdBuffersize(cusolverDnHandle_t /*handle*/, int /*m*/, int /*n*/, int* /*lwork*/) {
+    throw DtypeError{"Only Arrays of float or double type are supported by gesvd (SVD)"};
+}
+
+template <typename T>
+cusolverStatus_t Gesvd(
+        cusolverDnHandle_t /*handle*/,
+        signed char /*jobu*/,
+        signed char /*jobvt*/,
+        int /*m*/,
+        int /*n*/,
+        T* /*a*/,
+        int /*lda*/,
+        T* /*s*/,
+        T* /*u*/,
+        int /*ldu*/,
+        T* /*vt*/,
+        int /*ldvt*/,
+        T* /*work*/,
+        int /*lwork*/,
+        T* /*rwork*/,
+        int* /*devinfo*/) {
+    throw DtypeError{"Only Arrays of float or double type are supported by gesvd (SVD)"};
 }
 
 template <typename T>
@@ -150,6 +178,58 @@ cusolverStatus_t Getrs<float>(
         int ldb,
         int* devinfo) {
     return cusolverDnSgetrs(handle, trans, n, nrhs, a, lda, devipiv, b, ldb, devinfo);
+}
+
+template <>
+cusolverStatus_t GesvdBuffersize<double>(cusolverDnHandle_t handle, int m, int n, int* lwork) {
+    return cusolverDnDgesvd_bufferSize(handle, m, n, lwork);
+}
+
+template <>
+cusolverStatus_t GesvdBuffersize<float>(cusolverDnHandle_t handle, int m, int n, int* lwork) {
+    return cusolverDnSgesvd_bufferSize(handle, m, n, lwork);
+}
+
+template <>
+cusolverStatus_t Gesvd<double>(
+        cusolverDnHandle_t handle,
+        signed char jobu,
+        signed char jobvt,
+        int m,
+        int n,
+        double* a,
+        int lda,
+        double* s,
+        double* u,
+        int ldu,
+        double* vt,
+        int ldvt,
+        double* work,
+        int lwork,
+        double* rwork,
+        int* devinfo) {
+    return cusolverDnDgesvd(handle, jobu, jobvt, m, n, a, lda, s, u, ldu, vt, ldvt, work, lwork, rwork, devinfo);
+}
+
+template <>
+cusolverStatus_t Gesvd<float>(
+        cusolverDnHandle_t handle,
+        signed char jobu,
+        signed char jobvt,
+        int m,
+        int n,
+        float* a,
+        int lda,
+        float* s,
+        float* u,
+        int ldu,
+        float* vt,
+        int ldvt,
+        float* work,
+        int lwork,
+        float* rwork,
+        int* devinfo) {
+    return cusolverDnSgesvd(handle, jobu, jobvt, m, n, a, lda, s, u, ldu, vt, ldvt, work, lwork, rwork, devinfo);
 }
 
 template <>
@@ -367,6 +447,132 @@ public:
 };
 
 CHAINERX_CUDA_REGISTER_KERNEL(InverseKernel, CudaInverseKernel);
+
+class CudaSvdKernel : public SvdKernel {
+public:
+    void Call(const Array& a, const Array& u, const Array& s, const Array& vt, bool full_matrices) override {
+        Device& device = a.device();
+        Dtype dtype = a.dtype();
+        CudaSetDeviceScope scope{device.index()};
+
+        CHAINERX_ASSERT(a.ndim() == 2);
+
+        bool compute_uv = u.shape()[0] != 0 && vt.shape()[0] != 0;
+
+        // cuSOLVER assumes arrays are in column-major order.
+        // In order to avoid transposing the input matrix, matrix dimensions are swapped.
+        // Since the input is assumed to be transposed, it is necessary to
+        // swap the pointers to u and vt matrices when calling Gesvd.
+        int64_t n = a.shape()[0];
+        int64_t m = a.shape()[1];
+        int64_t k = std::min(m, n);
+
+        Array x = EmptyLike(a, device);
+        Array u_temp{};
+        Array vt_temp{};
+        bool trans_flag;
+
+        // Remark: gesvd only supports m>=n.
+        // See: https://docs.nvidia.com/cuda/cusolver/index.html#cuds-lt-t-gt-gesvd
+        // Therefore for the case m<n we calculuate svd of transposed matrix,
+        // instead of calculating svd(A) = U S V^T, we compute svd(A^T) = V S U^T
+        if (m >= n) {
+            device.backend().CallKernel<CopyKernel>(a, x);
+            trans_flag = false;
+        } else {
+            m = a.shape()[0];
+            n = a.shape()[1];
+            x = x.Reshape(Shape{n, m});
+            device.backend().CallKernel<CopyKernel>(a.Transpose(), x);
+            trans_flag = true;
+
+            // Temporary arrays for u, vt are needed to store transposed results
+            Shape u_shape;
+            Shape vt_shape;
+            if (compute_uv) {
+                if (full_matrices) {
+                    u_shape = Shape{m, m};
+                    vt_shape = Shape{n, n};
+                } else {
+                    u_shape = Shape{k, m};
+                    vt_shape = Shape{n, k};
+                }
+            } else {
+                u_shape = Shape{0};
+                vt_shape = Shape{0};
+            }
+            u_temp = Empty(u_shape, dtype, device);
+            vt_temp = Empty(vt_shape, dtype, device);
+        }
+
+        int64_t ldu = m;
+        int64_t ldvt = full_matrices ? n : k;
+
+        auto svd_impl = [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            cuda_internal::DeviceInternals& device_internals = cuda_internal::GetDeviceInternals(static_cast<CudaDevice&>(device));
+
+            auto x_ptr = static_cast<T*>(internal::GetRawOffsetData(x));
+            auto s_ptr = static_cast<T*>(internal::GetRawOffsetData(s));
+            auto u_ptr = static_cast<T*>(internal::GetRawOffsetData(u));
+            auto vt_ptr = static_cast<T*>(internal::GetRawOffsetData(vt));
+            if (trans_flag) {
+                u_ptr = static_cast<T*>(internal::GetRawOffsetData(vt_temp));
+                vt_ptr = static_cast<T*>(internal::GetRawOffsetData(u_temp));
+            }
+
+            std::shared_ptr<void> devInfo = device.Allocate(sizeof(int));
+
+            int buffersize = 0;
+            device_internals.cusolverdn_handle().Call(GesvdBuffersize<T>, m, n, &buffersize);
+
+            Array work = Empty(Shape{buffersize}, dtype, device);
+            auto work_ptr = static_cast<T*>(internal::GetRawOffsetData(work));
+
+            signed char job;
+            if (compute_uv) {
+                job = full_matrices ? 'A' : 'S';
+            } else {
+                job = 'N';
+            }
+
+            // When calling Gesvd pointers to u and vt are swapped instead of transposing the input matrix.
+            device_internals.cusolverdn_handle().Call(
+                    Gesvd<T>,
+                    job,
+                    job,
+                    m,
+                    n,
+                    x_ptr,
+                    m,
+                    s_ptr,
+                    vt_ptr,
+                    ldu,
+                    u_ptr,
+                    ldvt,
+                    work_ptr,
+                    buffersize,
+                    nullptr,
+                    static_cast<int*>(devInfo.get()));
+
+            int devInfo_h = 0;
+            Device& native_device = GetDefaultContext().GetDevice({"native", 0});
+            device.MemoryCopyTo(&devInfo_h, devInfo.get(), sizeof(int), native_device);
+            if (devInfo_h != 0) {
+                throw ChainerxError{"Unsuccessful gesvd (SVD) execution. Info = ", devInfo_h};
+            }
+
+            if (trans_flag) {
+                device.backend().CallKernel<CopyKernel>(u_temp.Transpose(), u);
+                device.backend().CallKernel<CopyKernel>(vt_temp.Transpose(), vt);
+            }
+        };
+
+        VisitFloatingPointDtype(dtype, svd_impl);
+    }
+};
+
+CHAINERX_CUDA_REGISTER_KERNEL(SvdKernel, CudaSvdKernel);
 
 class CudaQrKernel : public QrKernel {
 public:
