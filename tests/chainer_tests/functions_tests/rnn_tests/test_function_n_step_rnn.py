@@ -28,14 +28,6 @@ def array(shape, dtype):
             'batches': (3, 2, 1), 'activation': 'relu'},
         {'n_layers': 2, 'hidden_size': 2, 'input_size': 3,
             'batches': (3, 2, 1), 'activation': 'tanh'},
-        {'n_layers': 4, 'hidden_size': 6, 'input_size': 3,
-            'batches': (5, 3, 1), 'activation': 'relu'},
-        {'n_layers': 4, 'hidden_size': 6, 'input_size': 3,
-            'batches': (5, 3, 1), 'activation': 'tanh'},
-        {'n_layers': 5, 'hidden_size': 10, 'input_size': 6,
-            'batches': (6, 5, 3), 'activation': 'relu'},
-        {'n_layers': 5, 'hidden_size': 10, 'input_size': 6,
-            'batches': (6, 5, 3), 'activation': 'tanh'},
     ]))
 @testing.fix_random()
 @backend.inject_backend_tests(
@@ -163,14 +155,6 @@ class TestNStepRNN(testing.FunctionTestCase):
             'batches': (3, 2, 1), 'activation': 'relu'},
         {'n_layers': 2, 'hidden_size': 2, 'input_size': 3,
             'batches': (3, 2, 1), 'activation': 'tanh'},
-        {'n_layers': 4, 'hidden_size': 6, 'input_size': 3,
-            'batches': (5, 3, 1), 'activation': 'relu'},
-        {'n_layers': 4, 'hidden_size': 6, 'input_size': 3,
-            'batches': (5, 3, 1), 'activation': 'tanh'},
-        {'n_layers': 5, 'hidden_size': 10, 'input_size': 6,
-            'batches': (6, 5, 3), 'activation': 'relu'},
-        {'n_layers': 5, 'hidden_size': 10, 'input_size': 6,
-            'batches': (6, 5, 3), 'activation': 'tanh'},
     ]))
 @testing.fix_random()
 @backend.inject_backend_tests(
@@ -196,8 +180,12 @@ class TestNStepRNN(testing.FunctionTestCase):
         })]))
 class TestNStepBiRNN(testing.FunctionTestCase):
     dodge_nondifferentiable = True
+    numerical_grad_dtype = None
 
     def setUp(self):
+        self.check_forward_options = {'atol': 1e-3, 'rtol': 1e-2}
+        self.check_backward_options = {'atol': 5e-3, 'rtol': 5e-2}
+        self.check_double_backward_options = {'atol': 5e-3, 'rtol': 5e-2}
         self.skip_double_backward_test = True
 
     def generate_inputs(self):
