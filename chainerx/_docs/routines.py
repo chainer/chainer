@@ -629,8 +629,10 @@ Returns:
     r (~chainerx.ndarray): The upper-triangular matrix.
 
 Note:
-    The ``dtype`` must be ``float32`` or ``float64`` (``float16`` is not
-    supported yet.)
+    * The ``dtype`` must be ``float32`` or ``float64`` (``float16`` is not
+      supported yet.)
+    * Backpropagation is not implemented for non-square output matrix ``r``.
+    * Backpropagation is not implemented for 'r' or 'raw' modes.
 
 .. seealso:: :func:`numpy.linalg.qr`
 """)
