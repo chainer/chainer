@@ -365,9 +365,9 @@ class TestPseudoInverseDtypeFailing(NumpyLinalgOpTest):
     }) +
     # backward for non-square `R` is not implemented
     chainer.testing.product({
-        'shape': [(2, 3), (3, 2)],
+        'shape': [(0, 3), (2, 3), (3, 2)],
         'in_dtypes': ['float32', 'float64'],
-        'mode': ['complete'],
+        'mode': ['complete', 'reduced'],
         'skip_backward_test': [True],
         'skip_double_backward_test': [True]
     }) +
