@@ -24,11 +24,16 @@ def _get_bilinear_filter(size, ndim, upsampling=True):
     return filt
 
 
-class _BilinearFilter(initializer.Initializer):
+class _SamplingFilter(initializer.Initializer):
 
-    def __init__(self, upsampling=True, dtype=None):
+    def __init__(self, upsampling=True, interpolation='bilinear', dtype=None):
         self._upsampling = upsampling
-        super(_BilinearFilter, self).__init__(dtype)
+        if interpolation == 'bilinear':
+            self._get_filter_func = _get_bilinear_filter
+        else:
+            raise ValueError(
+                'Unsupported interpolation method: {}'.format(interpolation))
+        super(_SamplingFilter, self).__init__(dtype)
 
     def __call__(self, array):
         if self.dtype is not None:
@@ -45,7 +50,7 @@ class _BilinearFilter(initializer.Initializer):
             else:
                 assert ksize == k
 
-        filt = _get_bilinear_filter(
+        filt = self._get_filter_func(
             ksize, ndim=array.ndim - 2, upsampling=self._upsampling)
         filt = xp.asarray(filt)
 
@@ -56,7 +61,7 @@ class _BilinearFilter(initializer.Initializer):
             array[range(in_c), range(out_c), ...] = filt
 
 
-class UpsamplingDeconvFilter(_BilinearFilter):
+class UpsamplingDeconvFilter(_SamplingFilter):
 
     """Initializes array with upsampling filter.
 
@@ -77,10 +82,10 @@ class UpsamplingDeconvFilter(_BilinearFilter):
             raise ValueError(
                 'Unsupported interpolation method: {}'.format(interpolation))
         super(UpsamplingDeconvFilter, self).__init__(
-            upsampling=True, dtype=dtype)
+            upsampling=True, interpolation=interpolation, dtype=dtype)
 
 
-class DownsamplingConvFilter(_BilinearFilter):
+class DownsamplingConvFilter(_SamplingFilter):
 
     """Initializes array with downsampling filter.
 
@@ -101,4 +106,4 @@ class DownsamplingConvFilter(_BilinearFilter):
             raise ValueError(
                 'Unsupported interpolation method: {}'.format(interpolation))
         super(DownsamplingConvFilter, self).__init__(
-            upsampling=False, dtype=dtype)
+            upsampling=False, interpolation=interpolation, dtype=dtype)
