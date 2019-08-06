@@ -20,49 +20,55 @@ from chainer.utils import type_check
     'groups': [1, 2],
     'nobias': [False],
     'test_outsize': [False],
-    'c_contiguous': [True],
+    'contiguous': ['C'],
     'b_dtype': [numpy.float32],
     'x_dtype': [numpy.float32],
     'W_dtype': [numpy.float32],
-    'autotune': [True, False],
 }) + testing.product({
     'dims': [(3, 2)],
     'dilate': [1, 2],
     'groups': [1],
     'nobias': [False],
     'test_outsize': [False],
-    'c_contiguous': [True],
+    'contiguous': ['C'],
     'b_dtype': [numpy.float16, numpy.float32, numpy.float64],
     'x_dtype': [numpy.float16, numpy.float32, numpy.float64],
     'W_dtype': [numpy.float16, numpy.float32, numpy.float64],
-    'autotune': [False],
 }) + testing.product({
     'dims': [(3, 2)],
     'dilate': [1, 2],
     'groups': [1],
     'nobias': [True, False],
     'test_outsize': [True, False],
-    'c_contiguous': [True, False],
+    'contiguous': ['C', None],
     'b_dtype': [numpy.float32],
     'x_dtype': [numpy.float32],
     'W_dtype': [numpy.float32],
-    'autotune': [False],
 }))
 @testing.inject_backend_tests(
     None,
-    # CPU tests
-    [{}]
-    # GPU tests
-    + testing.product({
-        'use_cuda': [True],
-        'use_cudnn': ['never', 'always'],
-    })
     # ChainerX tests
-    + [
-        {'use_chainerx': True, 'chainerx_device': 'native:0'},
-        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
-    ]
-)
+    testing.product({
+        'use_chainerx': [True],
+        'chainerx_device': ['native:0', 'cuda:0'],
+    })
+    # CPU tests
+    + testing.product({
+        'use_cuda': [False],
+        'use_ideep': ['never', 'always'],
+    })
+    # GPU tests
+    + testing.product([
+        [{'use_cuda': True}],
+        # Without cuDNN
+        testing.product({
+            'use_cudnn': ['never'],
+        })
+        # With cuDNN
+        + testing.product({
+            'use_cudnn': ['always'],
+            'autotune': [True, False],
+        })]))
 class TestDeconvolutionND(testing.FunctionTestCase):
 
     def setUp(self):
@@ -92,14 +98,11 @@ class TestDeconvolutionND(testing.FunctionTestCase):
         self.check_double_backward_options.update({'atol': 5e-3, 'rtol': 5e-2})
         if (self.x_dtype == numpy.float16 or self.W_dtype == numpy.float16
                 or self.b_dtype == numpy.float16):
-            self.check_forward_options.update({'atol': 5e-4, 'rtol': 5e-3})
+            self.check_forward_options.update({'atol': 5e-3, 'rtol': 5e-3})
             self.check_backward_options.update({
                 'atol': 2 ** -4, 'rtol': 2 ** -4})
             self.check_double_backward_options.update({
                 'atol': 2 ** -4, 'rtol': 2 ** -4})
-
-    def before_test(self, test_name):
-        self.backend_config.autotune = self.autotune
 
     def generate_inputs(self):
         W = numpy.random.normal(

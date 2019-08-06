@@ -20,7 +20,7 @@ def _pair(x):
 
 @parameterize(*(testing.product([
     testing.product({
-        'c_contiguous': [True],
+        'contiguous': ['C'],
         'test_outsize': [True, False],
         'nobias': [True],
         'stride': [1, 2],
@@ -30,7 +30,7 @@ def _pair(x):
         'groups': [1, 2],
     })
     + testing.product({
-        'c_contiguous': [False],
+        'contiguous': [None],
         'test_outsize': [True],
         'nobias': [False],
         'stride': [1, 2],
@@ -113,6 +113,12 @@ class TestDeconvolution2DFunction(testing.FunctionTestCase):
             return x, W, b
 
     def forward_expected(self, inputs):
+        """
+        Current forward_expected implementation depends on
+        F.deconvolution_2d itself and thus it's only capable
+        of checking consistency between backends, not absolute
+        correctness of computations
+        """
         if self.nobias:
             x, W = inputs
             b = None
