@@ -38,14 +38,9 @@ class TestConvolution2D(testing.LinkTestCase):
     param_names = ('W', 'b')
 
     def setUp(self):
-        self.check_backward_options.update({
-            'atol': 5e-4, 'rtol': 5e-3
-        })
         if self.x_dtype == numpy.float16 or self.W_dtype == numpy.float16:
             self.check_forward_options.update({'atol': 5e-3, 'rtol': 5e-2})
-            self.check_backward_options.update({
-                'atol': 1e-3, 'rtol': 1e-3
-            })
+            self.check_backward_options = {'atol': 3e-2, 'rtol': 5e-2}
 
     def generate_params(self):
         initialW = chainer.initializers.Normal(1, self.W_dtype)

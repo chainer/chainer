@@ -52,8 +52,7 @@ class TestDeconvolution2D(testing.LinkTestCase):
         else:
             TestDeconvolution2D.param_names = ('W', 'b')
 
-        self.check_backward_options.update({
-            'atol': 1e-3, 'rtol': 1e-2})
+        self.check_backward_options.update({'atol': 1e-3, 'rtol': 1e-2})
 
     def generate_inputs(self):
         N = 2
@@ -126,6 +125,7 @@ class TestDeconvolution2DParameterShapePlaceholder(testing.LinkTestCase):
             self.param_names = ('W',)
         else:
             self.param_names = ('W', 'b')
+        self.check_backward_options.update({'atol': 1e-4, 'rtol': 1e-3})
 
     def generate_inputs(self):
         N = 2
