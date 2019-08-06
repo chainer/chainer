@@ -8,7 +8,7 @@ from chainer import initializer
 
 
 def _get_bilinear_filter(size, ndim, upsampling=True):
-    """Make a ND bilinear kernel suitable for up/downsampling"""
+    """Make a 2D and 3D bilinear kernel suitable for up/downsampling"""
     factor = (size + 1) // 2
     if size % 2 == 1:
         center = factor - 1.
