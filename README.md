@@ -1,3 +1,43 @@
+## My Contributions (@dido1998)
+### Before GSoC selection
+- [Implementation of sigmoid for ChainerX](https://github.com/chainer/chainer/pull/6472) [Merged]
+
+  Implemented the sigmoid routine and wrote corresponding tests.
+- [Dot Product for higher dimensions for ChainerX](https://github.com/chainer/chainer/pull/6476) [Merged]
+
+  ChainerX only supported dot for <=2-dimensional arrays, after this it was able to support higher dimensions also.
+- [Elementwise power operator for ChainerX](https://github.com/chainer/chainer/pull/6496) [Merged]
+
+  This supports array^array, scalar^array and array^scalar.
+- [Implementation of absolute for ChainerX](https://github.com/chainer/chainer/pull/6715) [Merged]
+- [Implementation of Relu for ChainerX](https://github.com/chainer/chainer/pull/6731) [Merged]
+
+### After GSoC selection
+- [LSTM implementation for ChainerX](https://github.com/chainer/chainer/pull/7282) [Open]
+
+  This includes the CPU and GPU(CUDNN) implementation of multilayer uni-directional and bi-directional LSTMs.
+- [GRU implementation for ChainerX](https://github.com/chainer/chainer/pull/7678) [Open]
+
+  This includes the CPU and GPU(CUDNN) implementation of multilayer uni-directional and bi-directional GRUs.
+- [Vanilla RNN implementation for ChainerX](https://github.com/chainer/chainer/pull/7764) [Open]
+
+  This includes the CPU and GPU(CUDNN) implementation of multilayer uni-directional and bi-directional RNNs.
+- [TreeLSTM implementation for ChainerX](https://github.com/chainer/chainer/pull/7720) [Open]
+
+  This includes the implementation of tree-lstm.
+- [SLSTM implementation for ChainerX](https://github.com/chainer/chainer/pull/7783) [Open]
+
+  This includes the implementation of slstm.
+- [Word embeddings for ChainerX](https://github.com/chainer/chainer/pull/7784) [Open]
+  Word embeddings support for ChainerX
+#### the below PRs are made for modification of Chainer tests to incorporate tests for chainerx counterparts of the Chainer routines that the corresponding tests are written for.
+- [Simplify n_step_gru tests](https://github.com/chainer/chainer/pull/7806) [Merged]
+- [Simplify slstm test](https://github.com/chainer/chainer/pull/7805) [Merged]
+- [Simplify lstm test](https://github.com/chainer/chainer/pull/7808) [Open]
+- [Simplify n_step_lstm test](https://github.com/chainer/chainer/pull/7807) [Open]
+- [Simplify n_step_rnn test](https://github.com/chainer/chainer/pull/7804) [Open]
+
+
 <div align="center"><img src="https://raw.githubusercontent.com/chainer/chainer/master/docs/image/chainer_red_h.png" width="400"/></div>
 
 # Chainer: A deep learning framework
@@ -25,38 +65,9 @@ It provides automatic differentiation APIs based on the **define-by-run** approa
 It also supports CUDA/cuDNN using [CuPy](https://github.com/cupy/cupy) for high performance training and inference.
 For more details about Chainer, see the documents and resources listed above and join the community in Forum, Slack, and Twitter.
 
-## My Contributions (@dido1998)
-### Before GSoC selection
-- [Implementation of sigmoid for ChainerX](https://github.com/chainer/chainer/pull/6472)[Merged]
 
-  Implemented the sigmoid routine and wrote corresponding tests.
-- [Dot Product for higher dimensions for ChainerX](https://github.com/chainer/chainer/pull/6476)[Merged]
 
-  ChainerX only supported dot for <=2-dimensional arrays, after this it was able to support higher dimensions also.
-- [Elementwise power operator for ChainerX](https://github.com/chainer/chainer/pull/6496)[Merged]
-
-  This supports array^array, scalar^array and array^scalar.
-- [Implementation of absolute for ChainerX](https://github.com/chainer/chainer/pull/6715) [Merged]
-- [Implementation of Relu for ChainerX] (https://github.com/chainer/chainer/pull/6731)[Merged]
-
-### After GSoC selection
-- [LSTM implementation for ChainerX](https://github.com/chainer/chainer/pull/7282)[open]
-
-  This includes the CPU and GPU(CUDNN) implementation of multilayer uni-directional and bi-directional LSTMs.
-- [GRU implementation for ChainerX](https://github.com/chainer/chainer/pull/7678)[open]
-
-  This includes the CPU and GPU(CUDNN) implementation of multilayer uni-directional and bi-directional GRUs.
-- [Vanilla RNN implementation for ChainerX](https://github.com/chainer/chainer/pull/7764)[open]
-
-  This includes the CPU and GPU(CUDNN) implementation of multilayer uni-directional and bi-directional RNNs.
-- [TreeLSTM implementation for ChainerX](https://github.com/chainer/chainer/pull/7720)[open]
-
-  This includes the implementation of tree-lstm.
-- [SLSTM implementation for ChainerX](https://github.com/chainer/chainer/pull/7783)[open]
-
-  This includes the implementation of slstm.
-- [Word embeddings for ChainerX](https://github.com/chainer/chainer/pull/7784)[open]
-  Word embeddings support for ChainerX
+  
   
 
 ## Stable version
