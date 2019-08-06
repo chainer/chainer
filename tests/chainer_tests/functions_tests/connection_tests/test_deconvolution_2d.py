@@ -43,18 +43,29 @@ def _pair(x):
 @testing.inject_backend_tests(
     ['test_forward', 'test_backward', 'test_double_backward'],
     # CPU tests
-    [{}]
-    # GPU tests
-    + testing.product({
-        'use_cuda': [True],
-        'use_cudnn': ['never', 'always'],
+    testing.product({
+        'use_cuda': [False],
+        'use_ideep': ['never', 'always'],
     })
+    # GPU tests
+    + testing.product([
+        [{'use_cuda': True}],
+
+        # Without cuDNN
+        testing.product({
+            'use_cudnn': ['never'],
+        })
+        # With cuDNN
+        + testing.product({
+            'use_cudnn': ['always'],
+            'cudnn_deterministic': [True, False],
+            'autotune': [True, False],
+        })])
     # ChainerX tests
-    + [
-        {'use_chainerx': True, 'chainerx_device': 'native:0'},
-        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
-    ]
-)
+    + testing.product({
+        'use_chainerx': [True],
+        'chainerx_device': ['native:0', 'cuda:0'],
+    }))
 class TestDeconvolution2DFunction(testing.FunctionTestCase):
 
     def setUp(self):
