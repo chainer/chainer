@@ -530,7 +530,7 @@ class BuildingBlock(link.Chain):
     """A building block that consists of several Bottleneck layers.
 
     Args:
-        n_layer (int): Number of layers used in the building block.
+        n_layers (int): Number of layers used in the building block.
         in_channels (int): Number of channels of input arrays.
         mid_channels (int): Number of channels of intermediate arrays.
         out_channels (int): Number of channels of output arrays.
@@ -545,7 +545,7 @@ class BuildingBlock(link.Chain):
             (Facebook ResNet).
     """
 
-    def __init__(self, n_layer, in_channels, mid_channels,
+    def __init__(self, n_layers, in_channels, mid_channels,
                  out_channels, stride, initialW=None, downsample_fb=False):
         super(BuildingBlock, self).__init__()
         with self.init_scope():
@@ -553,7 +553,7 @@ class BuildingBlock(link.Chain):
                 in_channels, mid_channels, out_channels, stride,
                 initialW, downsample_fb)
             self._forward = ['a']
-            for i in range(n_layer - 1):
+            for i in range(n_layers - 1):
                 name = 'b{}'.format(i + 1)
                 bottleneck = BottleneckB(out_channels, mid_channels, initialW)
                 setattr(self, name, bottleneck)
