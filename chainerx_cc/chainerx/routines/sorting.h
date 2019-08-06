@@ -11,4 +11,6 @@ Array ArgMax(const Array& a, const OptionalAxes& axis = absl::nullopt);
 
 Array ArgMin(const Array& a, const OptionalAxes& axis = absl::nullopt);
 
+Array CountNonzero(const Array& a, const OptionalAxes& axis = absl::nullopt);
+
 }  // namespace chainerx

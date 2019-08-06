@@ -1252,8 +1252,9 @@ class TestTrilTriu(op_utils.NumpyOpTest):
         self.dtype = float_dtype
         # backward with float16 sometimes does not pass tests with default rtol
         if self.dtype == 'float16':
-            self.check_backward_options.update({'rtol': 5e-3})
-            self.check_double_backward_options.update({'rtol': 5e-3})
+            self.check_backward_options.update({'rtol': 2e-3, 'atol': 2e-3})
+            self.check_double_backward_options.update(
+                {'rtol': 2e-3, 'atol': 2e-3})
 
     def generate_inputs(self):
         a = numpy.random.random(self.shape).astype(self.dtype)

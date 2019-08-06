@@ -7,6 +7,7 @@ import six
 import chainer
 from chainer.backends import cuda
 from chainer.backends import intel64
+import chainerx
 
 
 class _RuntimeInfo(object):
@@ -18,6 +19,7 @@ class _RuntimeInfo(object):
 
     def __init__(self):
         self.chainer_version = chainer.__version__
+        self.chainerx_available = chainerx.is_available()
         self.numpy_version = numpy.__version__
         self.platform_version = platform.platform()
         if cuda.available:
@@ -33,6 +35,8 @@ class _RuntimeInfo(object):
         s = six.StringIO()
         s.write('''Platform: {}\n'''.format(self.platform_version))
         s.write('''Chainer: {}\n'''.format(self.chainer_version))
+        s.write('''ChainerX: {}\n'''.format(
+            'Available' if self.chainerx_available else 'Not Available'))
         s.write('''NumPy: {}\n'''.format(self.numpy_version))
         if self.cuda_info is None:
             s.write('''CuPy: Not Available\n''')
