@@ -241,26 +241,26 @@ std::tuple<Array, Array> Qr(const Array& a, QrMode mode) {
                 }
 
                 const Array& a = bctx.GetRetainedInput(a_tok);
-                const Array& Q = bctx.GetRetainedOutput(q_tok);
-                const Array& R = bctx.GetRetainedOutput(r_tok);
+                const Array& q = bctx.GetRetainedOutput(q_tok);
+                const Array& r = bctx.GetRetainedOutput(r_tok);
 
-                if (R.shape()[0] != R.shape()[1]) {
+                if (r.shape()[0] != r.shape()[1]) {
                     throw DimensionError{"ChainerX QR differentiation is not implemented for non-square R."};
                 }
 
-                const Array& dQ = bctx.output_grad(0).has_value() ? *bctx.output_grad(0) : Zeros(a.shape(), a.dtype(), a.device());
-                const Array& dR = bctx.output_grad(1).has_value() ? *bctx.output_grad(1) : Zeros(a.shape(), a.dtype(), a.device());
+                const Array& gq = bctx.output_grad(0).has_value() ? *bctx.output_grad(0) : Zeros(a.shape(), a.dtype(), a.device());
+                const Array& gr = bctx.output_grad(1).has_value() ? *bctx.output_grad(1) : Zeros(a.shape(), a.dtype(), a.device());
 
-                Array M = Dot(R, dR.Transpose()) - Dot(dQ.Transpose(), Q);
+                Array m = Dot(r, gr.Transpose()) - Dot(gq.Transpose(), q);
 
                 // Here a symmetric matrix is created from the square matrix M
                 // by setting the upper triangle to be equal to the lower triangle, leaving
                 // lower triangle and diagonal unchanged.
-                Array M_sym = Tril(M, 0) + Tril(M, -1).Transpose();
-                Array rhs = dQ + Dot(Q, M_sym);
+                Array m_sym = Tril(m, 0) + Tril(m, -1).Transpose();
+                Array rhs = gq + Dot(q, m_sym);
 
                 // Note that rhs * R^(-T) = (R^(-1) * rhs^T)^T
-                bctx.input_grad() = Solve(R, rhs.Transpose()).Transpose();
+                bctx.input_grad() = Solve(r, rhs.Transpose()).Transpose();
             });
         }
         bb.Finalize();
