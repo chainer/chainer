@@ -1,3 +1,6 @@
+<div align="center"><img src="https://raw.githubusercontent.com/chainer/chainer/master/docs/image/chainer_red_h.png" width="400"/></div>
+
+# Chainer: A deep learning framework
 ## My Contributions (@dido1998)
 ### Before GSoC selection
 - [Implementation of sigmoid for ChainerX](https://github.com/chainer/chainer/pull/6472) [Merged]
@@ -38,9 +41,7 @@
 - [Simplify n_step_rnn test](https://github.com/chainer/chainer/pull/7804) [Open]
 
 
-<div align="center"><img src="https://raw.githubusercontent.com/chainer/chainer/master/docs/image/chainer_red_h.png" width="400"/></div>
 
-# Chainer: A deep learning framework
 
 [![pypi](https://img.shields.io/pypi/v/chainer.svg)](https://pypi.python.org/pypi/chainer)
 [![GitHub license](https://img.shields.io/github/license/chainer/chainer.svg)](https://github.com/chainer/chainer)
