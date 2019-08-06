@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -348,6 +349,26 @@ void InitChainerxLinalg(pybind11::module& m) {
     mlinalg.def(
             "solve", [](const ArrayBodyPtr& a, const ArrayBodyPtr& b) { return MoveArrayBody(Solve(Array{a}, Array{b})); }, "a"_a, "b"_a);
     mlinalg.def("inv", [](const ArrayBodyPtr& a) { return MoveArrayBody(Inverse(Array{a})); }, "a"_a);
+    mlinalg.def(
+            "svd",
+            [](const ArrayBodyPtr& a, bool full_matrices, bool compute_uv) -> py::object {
+                std::tuple<Array, Array, Array> usvt = Svd(Array{a}, full_matrices, compute_uv);
+                Array& u = std::get<0>(usvt);
+                Array& s = std::get<1>(usvt);
+                Array& vt = std::get<2>(usvt);
+                if (!compute_uv) {
+                    return py::cast(MoveArrayBody(std::move(s)));
+                }
+                return py::make_tuple(MoveArrayBody(std::move(u)), MoveArrayBody(std::move(s)), MoveArrayBody(std::move(vt)));
+            },
+            "a"_a,
+            "full_matrices"_a = true,
+            "compute_uv"_a = true);
+    mlinalg.def(
+            "pinv",
+            [](const ArrayBodyPtr& a, float rcond) { return MoveArrayBody(PseudoInverse(Array{a}, rcond)); },
+            "a"_a,
+            "rcond"_a = 1e-15);
     mlinalg.def("cholesky", [](const ArrayBodyPtr& a) { return MoveArrayBody(Cholesky(Array{a})); }, "a"_a);
 }
 
@@ -825,6 +846,18 @@ void InitChainerxReduction(pybind11::module& m) {
           [](const ArrayBodyPtr& a, const absl::optional<int8_t>& axis) { return MoveArrayBody(Cumsum(Array{a}, axis)); },
           "a"_a,
           "axis"_a = nullptr);
+    m.def("nansum",
+          [](const ArrayBodyPtr& a, int8_t axis, bool keepdims) { return MoveArrayBody(Nansum(Array{a}, Axes{axis}, keepdims)); },
+          "a"_a,
+          "axis"_a,
+          "keepdims"_a = false);
+    m.def("nansum",
+          [](const ArrayBodyPtr& a, const absl::optional<std::vector<int8_t>>& axis, bool keepdims) {
+              return MoveArrayBody(Nansum(Array{a}, ToAxes(axis), keepdims));
+          },
+          "a"_a,
+          "axis"_a = nullptr,
+          "keepdims"_a = false);
 }
 
 void InitChainerxRounding(pybind11::module& m) {
@@ -865,6 +898,16 @@ void InitChainerxSorting(pybind11::module& m) {
           "axis"_a = nullptr);
     m.def("argmin",
           [](const ArrayBodyPtr& a, const absl::optional<int8_t>& axis) { return MoveArrayBody(ArgMin(Array{a}, ToAxes(axis))); },
+          "a"_a,
+          "axis"_a = nullptr);
+    m.def("count_nonzero",
+          [](const ArrayBodyPtr& a, int8_t axis) { return MoveArrayBody(CountNonzero(Array{a}, Axes{axis})); },
+          "a"_a,
+          "axis"_a);
+    m.def("count_nonzero",
+          [](const ArrayBodyPtr& a, const absl::optional<std::vector<int8_t>>& axis) {
+              return MoveArrayBody(CountNonzero(Array{a}, ToAxes(axis)));
+          },
           "a"_a,
           "axis"_a = nullptr);
 }

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <tuple>
+
 #include "chainerx/array.h"
 #include "chainerx/kernel.h"
 
@@ -28,6 +30,13 @@ public:
     static const char* name() { return "Inverse"; }
 
     virtual void Call(const Array& a, const Array& out) = 0;
+};
+
+class SvdKernel : public Kernel {
+public:
+    static const char* name() { return "Svd"; }
+
+    virtual void Call(const Array& a, const Array& u, const Array& s, const Array& vt, bool full_matrices) = 0;
 };
 
 class CholeskyKernel : public Kernel {
