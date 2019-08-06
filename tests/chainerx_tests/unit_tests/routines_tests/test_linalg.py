@@ -357,7 +357,7 @@ class TestPseudoInverseDtypeFailing(NumpyLinalgOpTest):
 @chainer.testing.parameterize(*(
     # backward for 'r', 'raw' modes is not implemented
     chainer.testing.product({
-        'shape': [(1, 1), (2, 3), (3, 2), (6, 6)],
+        'shape': [(0, 3), (1, 1), (2, 3), (3, 2), (6, 6)],
         'in_dtypes': ['float32', 'float64'],
         'mode': ['r', 'raw'],
         'skip_backward_test': [True],

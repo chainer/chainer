@@ -287,6 +287,7 @@ void QrImpl(const Array& a, const Array& q, const Array& r, const Array& tau, Qr
     int64_t m = a.shape()[0];
     int64_t n = a.shape()[1];
     int64_t k = std::min(m, n);
+    int64_t lda = std::max(static_cast<int64_t>(1), m);
 
     Array R = a.Transpose().Copy();  // QR decomposition is done in-place
 
@@ -296,14 +297,14 @@ void QrImpl(const Array& a, const Array& q, const Array& r, const Array& tau, Qr
     int info;
     int64_t buffersize_geqrf = -1;
     T work_query_geqrf;
-    Geqrf(m, n, r_ptr, m, tau_ptr, &work_query_geqrf, buffersize_geqrf, &info);
+    Geqrf(m, n, r_ptr, lda, tau_ptr, &work_query_geqrf, buffersize_geqrf, &info);
     buffersize_geqrf = static_cast<int64_t>(work_query_geqrf);
     buffersize_geqrf = std::max({static_cast<int64_t>(1), n, buffersize_geqrf});  // buffersize >= n >= 1
 
     Array work = Empty(Shape{buffersize_geqrf}, dtype, device);
     auto work_ptr = static_cast<T*>(internal::GetRawOffsetData(work));
 
-    Geqrf(m, n, r_ptr, m, tau_ptr, work_ptr, buffersize_geqrf, &info);
+    Geqrf(m, n, r_ptr, lda, tau_ptr, work_ptr, buffersize_geqrf, &info);
 
     if (info != 0) {
         throw ChainerxError{"Unsuccessful geqrf (QR) execution. Info = ", info};
@@ -337,13 +338,13 @@ void QrImpl(const Array& a, const Array& q, const Array& r, const Array& tau, Qr
 
     int buffersize_orgqr = -1;
     T work_query_orgqr;
-    Orgqr(m, mc, k, q_ptr, m, tau_ptr, &work_query_orgqr, buffersize_orgqr, &info);
+    Orgqr(m, mc, k, q_ptr, lda, tau_ptr, &work_query_orgqr, buffersize_orgqr, &info);
     buffersize_orgqr = static_cast<int>(work_query_orgqr);
 
     Array work_orgqr = Empty(Shape{buffersize_orgqr}, dtype, device);
     auto work_orgqr_ptr = static_cast<T*>(internal::GetRawOffsetData(work_orgqr));
 
-    Orgqr(m, mc, k, q_ptr, m, tau_ptr, work_orgqr_ptr, buffersize_orgqr, &info);
+    Orgqr(m, mc, k, q_ptr, lda, tau_ptr, work_orgqr_ptr, buffersize_orgqr, &info);
 
     if (info != 0) {
         throw ChainerxError{"Unsuccessful orgqr (QR) execution. Info = ", info};

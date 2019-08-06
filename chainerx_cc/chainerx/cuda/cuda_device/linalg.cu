@@ -335,6 +335,7 @@ void QrImpl(const Array& a, const Array& q, const Array& r, const Array& tau, Qr
     int64_t m = a.shape()[0];
     int64_t n = a.shape()[1];
     int64_t k = std::min(m, n);
+    int64_t lda = std::max(static_cast<int64_t>(1), m);
 
     Array R = a.Transpose().Copy();  // QR decomposition is done in-place
 
@@ -346,13 +347,13 @@ void QrImpl(const Array& a, const Array& q, const Array& r, const Array& tau, Qr
     std::shared_ptr<void> devInfo = device.Allocate(sizeof(int));
 
     int buffersize_geqrf = 0;
-    device_internals.cusolverdn_handle().Call(GeqrfBufferSize<T>, m, n, r_ptr, n, &buffersize_geqrf);
+    device_internals.cusolverdn_handle().Call(GeqrfBufferSize<T>, m, n, r_ptr, lda, &buffersize_geqrf);
 
     Array work = Empty(Shape{buffersize_geqrf}, dtype, device);
     auto work_ptr = static_cast<T*>(internal::GetRawOffsetData(work));
 
     device_internals.cusolverdn_handle().Call(
-            Geqrf<T>, m, n, r_ptr, m, tau_ptr, work_ptr, buffersize_geqrf, static_cast<int*>(devInfo.get()));
+            Geqrf<T>, m, n, r_ptr, lda, tau_ptr, work_ptr, buffersize_geqrf, static_cast<int*>(devInfo.get()));
 
     int devInfo_h = 0;
     Device& native_device = GetDefaultContext().GetDevice({"native", 0});
@@ -388,12 +389,12 @@ void QrImpl(const Array& a, const Array& q, const Array& r, const Array& tau, Qr
     auto q_ptr = static_cast<T*>(internal::GetRawOffsetData(Q));
 
     int buffersize_orgqr = 0;
-    device_internals.cusolverdn_handle().Call(OrgqrBufferSize<T>, m, mc, k, q_ptr, m, tau_ptr, &buffersize_orgqr);
+    device_internals.cusolverdn_handle().Call(OrgqrBufferSize<T>, m, mc, k, q_ptr, lda, tau_ptr, &buffersize_orgqr);
 
     work = Empty(Shape{buffersize_orgqr}, dtype, device);
 
     device_internals.cusolverdn_handle().Call(
-            Orgqr<T>, m, mc, k, q_ptr, m, tau_ptr, work_ptr, buffersize_orgqr, static_cast<int*>(devInfo.get()));
+            Orgqr<T>, m, mc, k, q_ptr, lda, tau_ptr, work_ptr, buffersize_orgqr, static_cast<int*>(devInfo.get()));
 
     device.MemoryCopyTo(&devInfo_h, devInfo.get(), sizeof(int), native_device);
     if (devInfo_h != 0) {
