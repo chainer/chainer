@@ -367,12 +367,12 @@ void InitChainerxLinalg(pybind11::module& m) {
                     throw py::value_error{"mode must be 'reduced', 'complete', 'r', or 'raw'"};
                 }
                 std::tuple<Array, Array> qr = Qr(a_array, qrmode);
-                Array q = std::get<0>(qr);
-                Array r = std::get<1>(qr);
+                Array& q = std::get<0>(qr);
+                Array& r = std::get<1>(qr);
                 if (mode == "r") {
-                    return py::cast(MoveArrayBody(Array{r}));
+                    return py::cast(MoveArrayBody(std::move(r)));
                 }
-                return py::make_tuple(MoveArrayBody(Array{q}), MoveArrayBody(Array{r}));
+                return py::make_tuple(MoveArrayBody(std::move(q)), MoveArrayBody(std::move(r)));
             },
             "a"_a,
             "mode"_a = "reduced");
