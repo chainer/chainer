@@ -19,7 +19,7 @@
 | **Slack invitation** ([en](https://bit.ly/join-chainer-slack), [ja](https://bit.ly/join-chainer-jp-slack))
 | **Twitter** ([en](https://twitter.com/ChainerOfficial), [ja](https://twitter.com/ChainerJP))
 
-## My Contributions (@dido1998)
+## My Contributions (Aniket Didolkar)
 ### Before GSoC selection
 - [Implementation of sigmoid for ChainerX](https://github.com/chainer/chainer/pull/6472) [Merged]
 
