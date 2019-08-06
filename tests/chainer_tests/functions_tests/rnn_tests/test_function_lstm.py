@@ -126,14 +126,12 @@ class TestLSTM(testing.FunctionTestCase):
         c_shape = c.shape
         h_shape = h.shape
         if self.grad_outputs[0] is True:
-            grad_out.append(numpy.random.uniform(-1, 1,
-                                                 c_shape).astype(c.dtype))
+            grad_out.append(_shaped_random(c_shape, c.dtype))
         else:
             grad_out.append(None)
 
         if self.grad_outputs[1] is True:
-            grad_out.append(numpy.random.uniform(-1, 1,
-                                                 h_shape).astype(h.dtype))
+            grad_out.append(_shaped_random(h_shape, h.dtype))
         else:
             grad_out.append(None)
         return tuple(grad_out)
