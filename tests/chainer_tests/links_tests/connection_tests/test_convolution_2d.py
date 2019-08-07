@@ -17,8 +17,7 @@ from chainer.utils import conv
     'W_dtype': [numpy.float16, numpy.float32, numpy.float64],
 }))
 @testing.inject_backend_tests(
-    ['test_forward', 'test_backward',
-     'test_pickling'],
+    None,
     # CPU tests
     [{}]
     # GPU tests
@@ -35,6 +34,8 @@ from chainer.utils import conv
 class TestConvolution2D(testing.LinkTestCase):
 
     param_names = ('W', 'b')
+
+    skip_double_backward_test = True
 
     def setUp(self):
         self.N = 2
@@ -141,8 +142,7 @@ class TestConvolution2DIm2ColConsistency(unittest.TestCase):
                   ((2, 3), {'stride': 2, 'pad': 1})],
 }))
 @testing.inject_backend_tests(
-    ['test_forward', 'test_backward',
-     'test_pickling'],
+    None,
     # CPU tests
     [{}]
     # GPU tests
@@ -159,6 +159,8 @@ class TestConvolution2DIm2ColConsistency(unittest.TestCase):
 class TestConvolution2DParameterShapePlaceholder(testing.LinkTestCase):
 
     param_names = ('W', 'b')
+
+    skip_double_backward_test = True
 
     def before_test(self, test_name):
         # cuDNN 5 and 5.1 results suffer from precision issues
