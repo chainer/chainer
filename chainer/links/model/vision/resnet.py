@@ -1,6 +1,7 @@
 import collections
 import os
 import sys
+import warnings
 
 import numpy
 try:
@@ -549,6 +550,12 @@ class BuildingBlock(link.Chain):
                  out_channels=None, stride=None, initialW=None,
                  downsample_fb=None, n_layer=None):
         super(BuildingBlock, self).__init__()
+
+        if n_layer is not None:
+            warnings.warn('Argument `n_layer` is deprecated. '
+                          'Please use `n_layers` instead')
+            n_layers = n_layer
+
         with self.init_scope():
             self.a = BottleneckA(
                 in_channels, mid_channels, out_channels, stride,
