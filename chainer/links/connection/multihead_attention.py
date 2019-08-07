@@ -197,6 +197,8 @@ class MultiHeadAttention(link.Chain):
 
         """
 
+        chainer.utils.experimental('chainer.links.MultiHeadAttention')
+
         if hasattr(self, 'proj_in_W'):
             proj_in_W = self.proj_in_W
         else:

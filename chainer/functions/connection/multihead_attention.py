@@ -114,6 +114,7 @@ def multihead_attention(
     .. seealso:: :class:`~chainer.links.MultiHeadAttention`
 
     """
+    chainer.utils.experimental('chainer.functions.multihead_attention')
 
     are_different = isinstance(proj_in_W, tuple)
 
