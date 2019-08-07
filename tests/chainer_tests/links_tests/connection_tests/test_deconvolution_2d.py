@@ -58,8 +58,8 @@ class TestDeconvolution2D(testing.LinkTestCase):
 
     def before_test(self, test_name):
         # cuDNN 5 and 5.1 results suffer from precision issues
-        using_old_cudnn = (self.backend_config.xp is cuda.cupy and
-                           self.backend_config.use_cudnn == 'always'
+        using_old_cudnn = (self.backend_config.xp is cuda.cupy
+                           and self.backend_config.use_cudnn == 'always'
                            and cuda.cuda.cudnn.getVersion() < 6000)
         if using_old_cudnn:
             self.check_backward_options.update({'atol': 3e-2, 'rtol': 5e-2})
@@ -150,8 +150,8 @@ class TestDeconvolution2DParameterShapePlaceholder(testing.LinkTestCase):
 
     def before_test(self, test_name):
         # cuDNN 5 and 5.1 results suffer from precision issues
-        using_old_cudnn = (self.backend_config.xp is cuda.cupy and
-                           self.backend_config.use_cudnn == 'always'
+        using_old_cudnn = (self.backend_config.xp is cuda.cupy
+                           and self.backend_config.use_cudnn == 'always'
                            and cuda.cuda.cudnn.getVersion() < 6000)
         if using_old_cudnn:
             self.check_backward_options.update({'atol': 3e-2, 'rtol': 5e-2})
