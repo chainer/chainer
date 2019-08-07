@@ -11,7 +11,7 @@ from chainer.testing import backend
 
 
 @testing.parameterize(*(testing.product({
-    'c_contiguous': [True, False],
+    'contiguous': ['C', None],
     'cover_all': [True, False],
     'x_dtype': [numpy.float32],
     'W_dtype': [numpy.float32],
@@ -19,7 +19,7 @@ from chainer.testing import backend
     'groups': [1, 2],
     'nobias': [True, False],
 }) + testing.product({
-    'c_contiguous': [False],
+    'contiguous': [None],
     'cover_all': [False],
     'x_dtype': [numpy.float16, numpy.float32, numpy.float64],
     'W_dtype': [numpy.float16, numpy.float32, numpy.float64],
@@ -102,6 +102,12 @@ class TestConvolution2DFunction(testing.FunctionTestCase):
             return x, W, b
 
     def forward_expected(self, inputs):
+        """
+        Current forward_expected implementation depends on
+        F.convolution_2d itself and thus it's only capable
+        of checking consistency between backends, not absolute
+        correctness of computations
+        """
         if self.nobias:
             x, W = inputs
             b = None
