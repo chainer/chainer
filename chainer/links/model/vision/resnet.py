@@ -545,8 +545,9 @@ class BuildingBlock(link.Chain):
             (Facebook ResNet).
     """
 
-    def __init__(self, n_layers, in_channels, mid_channels,
-                 out_channels, stride, initialW=None, downsample_fb=False):
+    def __init__(self, n_layers=None, in_channels=None, mid_channels=None,
+                 out_channels=None, stride=None, initialW=None,
+                 downsample_fb=None, n_layer=None):
         super(BuildingBlock, self).__init__()
         with self.init_scope():
             self.a = BottleneckA(
