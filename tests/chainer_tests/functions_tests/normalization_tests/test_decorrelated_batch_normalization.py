@@ -5,31 +5,43 @@ from chainer import testing
 
 
 def _decorrelated_batch_normalization(x, mean, projection, groups):
+    xs = numpy.split(x, groups, axis=1)
+    assert mean.shape[0] == groups
+    assert projection.shape[0] == groups
+    ys = [
+        _decorrelated_batch_normalization_1group(xi, m, p)
+        for (xi, m, p) in zip(xs, mean, projection)]
+    return numpy.concatenate(ys, axis=1)
+
+
+def _decorrelated_batch_normalization_1group(x, mean, projection):
     spatial_ndim = len(x.shape[2:])
     spatial_axis = tuple(range(2, 2 + spatial_ndim))
-    b, c = x.shape[:2]
-    g = groups
-    C = c // g
-    x = x.reshape((b * g, C) + x.shape[2:])
+    b, C = x.shape[:2]
     x_hat = x.transpose((1, 0) + spatial_axis).reshape(C, -1)
     y_hat = projection.dot(x_hat - mean[:, None])
-    y = y_hat.reshape((C, b * g) + x.shape[2:]).transpose(
+    y = y_hat.reshape((C, b) + x.shape[2:]).transpose(
         (1, 0) + spatial_axis)
-    y = y.reshape((-1, c) + x.shape[2:])
     return y
 
 
 def _calc_projection(x, mean, eps, groups):
+    xs = numpy.split(x, groups, axis=1)
+    assert mean.shape[0] == groups
+    projections = [
+        _calc_projection_1group(xi, m, eps)
+        for (xi, m) in zip(xs, mean)]
+    return numpy.concatenate([p[None] for p in projections])
+
+
+def _calc_projection_1group(x, mean, eps):
     spatial_ndim = len(x.shape[2:])
     spatial_axis = tuple(range(2, 2 + spatial_ndim))
-    b, c = x.shape[:2]
-    g = groups
-    C = c // g
-    m = b * g
+    b, C = x.shape[:2]
+    m = b
     for i in spatial_axis:
         m *= x.shape[i]
 
-    x = x.reshape((b * g, C) + x.shape[2:])
     x_hat = x.transpose((1, 0) + spatial_axis).reshape(C, -1)
     mean = x_hat.mean(axis=1)
     x_hat = x_hat - mean[:, None]
@@ -37,6 +49,11 @@ def _calc_projection(x, mean, eps, groups):
     eigvals, eigvectors = numpy.linalg.eigh(cov)
     projection = eigvectors.dot(numpy.diag(eigvals ** -0.5)).dot(eigvectors.T)
     return projection
+
+
+def _calc_mean(x, groups):
+    axis = (0,) + tuple(range(2, x.ndim))
+    return x.mean(axis=axis).reshape(groups, -1)
 
 
 @testing.parameterize(*(testing.product({
@@ -74,9 +91,8 @@ class TestDecorrelatedBatchNormalization(testing.FunctionTestCase):
     skip_double_backward_test = True
 
     def setUp(self):
-        self.decay = 0.9
-        check_forward_options = {'atol': 1e-4, 'rtol': 1e-3}
-        check_backward_options = {'atol': 1e-4, 'rtol': 1e-3}
+        check_forward_options = {'atol': 1e-3, 'rtol': 1e-3}
+        check_backward_options = {'atol': 1e-3, 'rtol': 1e-3}
         if self.dtype == numpy.float16:
             check_forward_options = {'atol': 1e-2, 'rtol': 1e-2}
             check_backward_options = {'atol': 1e-2, 'rtol': 1e-2}
@@ -99,16 +115,11 @@ class TestDecorrelatedBatchNormalization(testing.FunctionTestCase):
 
     def forward_expected(self, inputs):
         x, = inputs
-        C = self.n_channels // self.groups
-        head_ndim = 2
-        spatial_axis = tuple(range(head_ndim, x.ndim))
-        x_hat = x.reshape((5 * self.groups, C) + x.shape[2:])
-        x_hat = x_hat.transpose((1, 0) + spatial_axis).reshape(C, -1)
-        mean = x_hat.mean(axis=1)
-        projection = _calc_projection(x, mean, self.eps, self.groups)
-
+        groups = self.groups
+        mean = _calc_mean(x, groups)
+        projection = _calc_projection(x, mean, self.eps, groups)
         return _decorrelated_batch_normalization(
-            x, mean, projection, self.groups),
+            x, mean, projection, groups),
 
 
 @testing.parameterize(*(testing.product({
@@ -147,8 +158,10 @@ class TestFixedDecorrelatedBatchNormalization(testing.FunctionTestCase):
     def setUp(self):
         C = self.n_channels // self.groups
         dtype = self.dtype
-        self.mean = numpy.random.uniform(-1, 1, C).astype(dtype)
-        self.projection = numpy.random.uniform(0.5, 1, (C, C)).astype(dtype)
+        self.mean = numpy.random.uniform(
+            -1, 1, (self.groups, C)).astype(dtype)
+        self.projection = numpy.random.uniform(
+            0.5, 1, (self.groups, C, C)).astype(dtype)
 
         check_forward_options = {'atol': 1e-4, 'rtol': 1e-3}
         check_backward_options = {'atol': 1e-4, 'rtol': 1e-3}
