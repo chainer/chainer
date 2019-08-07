@@ -1,9 +1,11 @@
+import warnings
+
 from chainermn.communicators.communicator_base import CommunicatorBase  # NOQA
 
 
 def create_communicator(
         communicator_name='pure_nccl', mpi_comm=None,
-        allreduce_grad_dtype=None, batched_copy=False):
+        allreduce_grad_dtype=None, batched_copy=None):
     """Create a ChainerMN communicator.
 
     Different communicators provide different approaches of communication, so
@@ -76,6 +78,15 @@ def create_communicator(
                               'Please read the Chainer official document '
                               'and setup MPI and mpi4py.')
         mpi_comm = mpi4py.MPI.COMM_WORLD
+
+    if batched_copy is not None:
+        warnings.warn("'batched_copy' is now enabled as default. "
+                      "The option 'batched_copy' is deprecated, "
+                      "and will be removed in next version",
+                      DeprecationWarning)
+
+    else:
+        batched_copy = True
 
     if communicator_name != 'pure_nccl' and allreduce_grad_dtype is not None:
         raise ValueError(
