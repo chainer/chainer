@@ -1,5 +1,7 @@
 #pragma once
 
+#include <tuple>
+
 #include <absl/types/optional.h>
 #include <string>
 #include <tuple>
@@ -14,6 +16,10 @@ Array Dot(const Array& a, const Array& b, absl::optional<Dtype> out_dtype = absl
 Array Solve(const Array& a, const Array& b);
 
 Array Inverse(const Array& a);
+
+std::tuple<Array, Array, Array> Svd(const Array& a, bool full_matrices, bool compute_uv);
+
+Array PseudoInverse(const Array& a, float rcond);
 
 std::tuple<Array, Array> Eigh(const Array& a, const std::string& uplo);
 

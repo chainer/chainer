@@ -33,6 +33,13 @@ public:
     virtual void Call(const Array& a, const Array& out) = 0;
 };
 
+class SvdKernel : public Kernel {
+public:
+    static const char* name() { return "Svd"; }
+
+    virtual void Call(const Array& a, const Array& u, const Array& s, const Array& vt, bool full_matrices) = 0;
+};
+
 class SyevdKernel : public Kernel {
 public:
     static const char* name() { return "Syevd"; }
