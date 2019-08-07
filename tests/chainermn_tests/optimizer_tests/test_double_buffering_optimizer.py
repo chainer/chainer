@@ -93,7 +93,7 @@ class TestDoubleBufferingOptimizer(unittest.TestCase):
         self.check_update(False)
 
     @chainer.testing.attr.gpu
-    def test_update_without_batched_copy(self):
+    def test_update_with_batched_copy(self):
         self.check_update(True)
 
 
@@ -224,5 +224,5 @@ class TestDoubleBufferingOptimizerWithDynamicModel(unittest.TestCase):
         self.check_update(False)
 
     @chainer.testing.attr.gpu
-    def test_update_without_batched_copy(self):
+    def test_update_with_batched_copy(self):
         self.check_update(True)
