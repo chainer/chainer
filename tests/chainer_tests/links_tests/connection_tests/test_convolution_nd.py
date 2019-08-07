@@ -52,10 +52,20 @@ class TestConvolutionND(testing.LinkTestCase):
 
         self.x_shape = (2, 4) + self.dims
 
-        self.check_backward_options = {'eps': 1e-2, 'atol': 1e-3, 'rtol': 1e-3}
+        self.check_backward_options.update({'eps': 1e-2,
+                                            'atol': 1e-3, 'rtol': 1e-3})
         if self.dtype == numpy.float16:
-            self.check_backward_options = {
-                'eps': 2 ** -4, 'atol': 2 ** -4, 'rtol': 2 ** -4}
+            self.check_backward_options.update({
+                'eps': 2 ** -4, 'atol': 2 ** -4, 'rtol': 2 ** -4})
+
+    def before_test(self, test_name):
+        # cuDNN 5 and 5.1 results suffer from precision issues
+        using_old_cudnn = (self.backend_config.xp is cuda.cupy and
+                           self.backend_config.use_cudnn == 'always'
+                           and cuda.cuda.cudnn.getVersion() < 6000)
+        if using_old_cudnn:
+            self.check_backward_options.update({
+                'eps': 2 ** -4, 'atol': 2 ** -4, 'rtol': 2 ** -4})
 
     def generate_params(self):
         initial_bias = initializers.Uniform(scale=1., dtype=self.dtype)

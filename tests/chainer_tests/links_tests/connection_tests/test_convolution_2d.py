@@ -17,7 +17,8 @@ from chainer.utils import conv
     'W_dtype': [numpy.float16, numpy.float32, numpy.float64],
 }))
 @testing.inject_backend_tests(
-    None,
+    ['test_forward', 'test_backward',
+     'test_pickling'],
     # CPU tests
     [{}]
     # GPU tests
@@ -44,7 +45,15 @@ class TestConvolution2D(testing.LinkTestCase):
         self.pad = 1
         if self.x_dtype == numpy.float16 or self.W_dtype == numpy.float16:
             self.check_forward_options.update({'atol': 5e-3, 'rtol': 5e-2})
-            self.check_backward_options = {'atol': 3e-2, 'rtol': 5e-2}
+            self.check_backward_options.update({'atol': 3e-2, 'rtol': 5e-2})
+
+    def before_test(self, test_name):
+        # cuDNN 5 and 5.1 results suffer from precision issues
+        using_old_cudnn = (self.backend_config.xp is cuda.cupy and
+                           self.backend_config.use_cudnn == 'always'
+                           and cuda.cuda.cudnn.getVersion() < 6000)
+        if using_old_cudnn:
+            self.check_backward_options.update({'atol': 3e-2, 'rtol': 5e-2})
 
     def generate_params(self):
         initialW = chainer.initializers.Normal(1, self.W_dtype)
@@ -132,7 +141,8 @@ class TestConvolution2DIm2ColConsistency(unittest.TestCase):
                   ((2, 3), {'stride': 2, 'pad': 1})],
 }))
 @testing.inject_backend_tests(
-    None,
+    ['test_forward', 'test_backward',
+     'test_pickling'],
     # CPU tests
     [{}]
     # GPU tests
@@ -149,6 +159,14 @@ class TestConvolution2DIm2ColConsistency(unittest.TestCase):
 class TestConvolution2DParameterShapePlaceholder(testing.LinkTestCase):
 
     param_names = ('W', 'b')
+
+    def before_test(self, test_name):
+        # cuDNN 5 and 5.1 results suffer from precision issues
+        using_old_cudnn = (self.backend_config.xp is cuda.cupy and
+                           self.backend_config.use_cudnn == 'always'
+                           and cuda.cuda.cudnn.getVersion() < 6000)
+        if using_old_cudnn:
+            self.check_backward_options.update({'atol': 3e-2, 'rtol': 5e-2})
 
     def generate_params(self):
         return ()

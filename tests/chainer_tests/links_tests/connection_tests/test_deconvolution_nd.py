@@ -2,6 +2,7 @@ import unittest
 
 import numpy
 
+from chainer.backends import cuda
 import chainer.functions as F
 from chainer import initializers
 from chainer.links.connection import deconvolution_nd
@@ -78,6 +79,15 @@ class TestDeconvolutionND(testing.LinkTestCase):
             'eps': 1e-2, 'atol': 1e-4, 'rtol': 1e-3})
         if self.dtype == numpy.float16:
             self.check_forward_options.update({'atol': 5e-3, 'rtol': 5e-2})
+            self.check_backward_options.update({
+                'eps': 2 ** -3, 'atol': 1e-2, 'rtol': 1e-1})
+
+    def before_test(self, test_name):
+        # cuDNN 5 and 5.1 results suffer from precision issues
+        using_old_cudnn = (self.backend_config.xp is cuda.cupy and
+                           self.backend_config.use_cudnn == 'always'
+                           and cuda.cuda.cudnn.getVersion() < 6000)
+        if using_old_cudnn:
             self.check_backward_options.update({
                 'eps': 2 ** -3, 'atol': 1e-2, 'rtol': 1e-1})
 
