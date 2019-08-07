@@ -51,7 +51,6 @@ step_before_install_chainer_test() {
     # Remove oclint as it conflicts with GCC (indirect dependency of hdf5)
     if [[ $TRAVIS_OS_NAME = "osx" ]]; then
         brew update >/dev/null
-        brew uninstall openssl@1.1 || :  # tentative workaround: pyenv/pyenv#1302
         brew outdated pyenv || brew upgrade pyenv
 
         PYTHON_CONFIGURE_OPTS="--enable-unicode=ucs2" pyenv install -ks $PYTHON_VERSION
@@ -69,7 +68,7 @@ step_before_install_chainermn_test_deps() {
             sudo apt-get install -y "${pkgs[@]}"
             ;;
         osx)
-            brew install open-mpi
+            brew install open-mpi hwloc
             ;;
         *)
             false
@@ -80,6 +79,16 @@ step_before_install_chainermn_test_deps() {
 
 step_install_chainermn_test_deps() {
     pip install mpi4py
+}
+
+
+step_before_install_chainerx_test_deps() {
+    # LAPACK is installed only for Linux
+    # OSX has LAPACK available natively with Accelerate framework
+    # Currently Windows is not tested
+    if [[ $TRAVIS_OS_NAME = "linux" ]]; then
+        sudo apt-get install -y libblas-dev liblapack-dev
+    fi
 }
 
 

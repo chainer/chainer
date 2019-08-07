@@ -55,6 +55,10 @@ std::vector<Array> DSplit(const Array& ary, std::vector<int64_t> indices);
 
 Array Swapaxes(const Array& a, int8_t axis1, int8_t axis2);
 
+Array Repeat(const Array& a, int64_t repeats, absl::optional<int8_t> axis);
+
+Array Repeat(const Array& a, const std::vector<int64_t>& repeats, absl::optional<int8_t> axis);
+
 Array ExpandDims(const Array& a, int8_t axis);
 
 Array Flip(const Array& m, const OptionalAxes& axes = absl::nullopt);

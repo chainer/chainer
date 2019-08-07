@@ -171,6 +171,31 @@ public:
 
 CHAINERX_NATIVE_REGISTER_KERNEL(CumsumKernel, NativeCumsumKernel);
 
+class NativeNansumKernel : public NansumKernel {
+public:
+    void Call(const Array& a, const Axes& axis, const Array& out) override {
+        CHAINERX_ASSERT(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
+        a.device().CheckDevicesCompatible(a, out);
+
+        auto do_nansum = [&a, &axis, &out](auto in_pt, auto out_pt) {
+            using In = typename decltype(in_pt)::type;
+            using Out = typename decltype(out_pt)::type;
+            using Accum = std::conditional_t<std::is_same<Out, Float16>{}, float, Out>;
+            struct Impl {
+                Accum Identity() { return Accum{0}; }
+                Accum MapIn(In in, int64_t /*index*/) { return static_cast<Accum>(in); }
+                void Reduce(Accum next, Accum& accum) { accum += next; }
+                Out MapOut(Accum accum) { return static_cast<Out>(accum); }
+            };
+            Reduce<In, Out>(a, axis, out, Impl{});
+        };
+
+        VisitDtype(out.dtype(), [a_dtype = a.dtype(), &do_nansum](auto out_pt) { VisitDtype(a_dtype, do_nansum, out_pt); });
+    }
+};
+
+CHAINERX_NATIVE_REGISTER_KERNEL(NansumKernel, NativeNansumKernel);
+
 }  // namespace
 }  // namespace native
 }  // namespace chainerx
