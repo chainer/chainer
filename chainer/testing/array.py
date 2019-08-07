@@ -36,19 +36,28 @@ def assert_allclose(x, y, atol=1e-5, rtol=1e-4, verbose=True):
             xx = numpy.atleast_1d(x)
             yy = numpy.atleast_1d(y)
             err = numpy.abs(xx - yy)
-            tol_err = atol + rtol * numpy.abs(yy).astype(numpy.float64)
+
+            tol_rtol = rtol * numpy.abs(yy).astype(numpy.float64)
+            tol_err = atol + tol_rtol
+
             i = numpy.unravel_index(
                 numpy.argmax(err.astype(numpy.float64) - tol_err), err.shape)
+
             if yy[i] == 0:
                 rel_err = 'inf'
             else:
                 rel_err = err[i] / numpy.abs(yy[i])
+
             f.write(
                 '  i: {}\n'.format(i) +
                 '  x[i]: {}\n'.format(xx[i]) +
                 '  y[i]: {}\n'.format(yy[i]) +
                 '  relative error[i]: {}\n'.format(rel_err) +
-                '  absolute error[i]: {}\n'.format(err[i]))
+                '  absolute error[i]: {}\n'.format(err[i]) +
+                '  relative tolerance * |y[i]|: {}\n'.format(tol_rtol[i]) +
+                '  absolute tolerance: {}\n'.format(atol) +
+                '  total tolerance: {}\n'.format(tol_err[i]))
+
         opts = numpy.get_printoptions()
         try:
             numpy.set_printoptions(threshold=10000)
@@ -77,7 +86,7 @@ def _as_noncontiguous_array(array):
 
         device = backend.get_device_from_array(a)
         xp = device.xp
-        slices = (slice(None, None, 2),) * a.ndim
+        slices = (slice(None, None, -2),) * a.ndim
         with chainer.using_device(device):
             ret = xp.empty(tuple([s * 2 for s in a.shape]), dtype=a.dtype)
             ret[slices] = a

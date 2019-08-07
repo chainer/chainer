@@ -1,6 +1,7 @@
 import warnings
 
 import numpy
+import six
 
 import chainer
 from chainer import backend
@@ -58,7 +59,7 @@ class BatchNormalization(function_node.FunctionNode):
                 if axis[i - 1] >= axis[i]:
                     msg = 'numbers in axis must be sorted in ascending order'
                     raise RuntimeError(msg)
-        elif isinstance(axis, int):
+        elif isinstance(axis, six.integer_types):
             axis = axis,
         elif axis is not None:
             raise RuntimeError('axis must be int, tuple of int or None')
@@ -422,7 +423,7 @@ class FixedBatchNormalization(function_node.FunctionNode):
                 if axis[i - 1] >= axis[i]:
                     msg = 'numbers in axis must be sorted in ascending order'
                     raise RuntimeError(msg)
-        elif isinstance(axis, int):
+        elif isinstance(axis, six.integer_types):
             axis = axis,
         elif axis is not None:
             raise RuntimeError('axis must be int, tuple of int or None')

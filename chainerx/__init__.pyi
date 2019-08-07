@@ -451,6 +451,12 @@ class ndarray:
     def swapaxes(self, axis1: int, axis2: int) -> ndarray: ...
 
     @tp.overload
+    def repeat(self, repeats: int, axis: tp.Optional[int]=None) -> ndarray: ...
+
+    @tp.overload
+    def repeat(self, repeats: tp.Tuple[int, ...], axis: tp.Optional[int]=None) -> ndarray: ...
+
+    @tp.overload
     def sum(self, axis: int, keepdims: bool=...) -> ndarray: ...
 
     @tp.overload
@@ -847,6 +853,11 @@ def moveaxis(a: ndarray, source: tp.Union[int, tp.Tuple[int, ...]],
 def multiply(x1: tp.Any, x2: tp.Any) -> ndarray: ...
 
 
+def nansum(a: ndarray,
+        axis: tp.Optional[tp.Union[int, tp.List[int]]]=None,
+        keepdims: bool=...) -> ndarray: ...
+
+
 def negative(x: ndarray) -> ndarray: ...
 
 
@@ -882,6 +893,8 @@ def relu(x: ndarray) -> ndarray: ...
 def softmax(
         x: ndarray,
         axis: tp.Optional[tp.Union[int, tp.List[int]]]=None) -> ndarray: ...
+
+def softplus(x: ndarray, beta: double=1.0) -> ndarray: ...
 
 def split(
         ary: ndarray,
@@ -923,7 +936,23 @@ def sum(a: ndarray,
         keepdims: bool=...) -> ndarray: ...
 
 
+def count_nonzero(
+        a: ndarray,
+        axis: tp.Optional[tp.Union[int, tp.List[int]]]=None) -> ndarray: ...
+
+
+def cumsum(
+        x: ndarray,
+        axis: tp.Optional[int]=None) -> ndarray: ...
+
+
 def swapaxes(a: ndarray, axis1: int, axis2: int) -> ndarray: ...
+
+@tp.overload
+def repeat(a: ndarray, repeats: int, axis: tp.Optional[int]=None) -> ndarray: ...
+
+@tp.overload
+def repeat(a: ndarray, repeats: tp.Tuple[int, ...], axis: tp.Optional[int]=None) -> ndarray: ...
 
 
 def take(a: ndarray, indices: ndarray, axis: tp.Optional[int]) -> ndarray: ...
@@ -944,6 +973,20 @@ def _to_cupy(array: ndarray) -> numpy.ndarray: ...
 def transpose(
         a: ndarray,
         axes: tp.Optional[tp.Union[int, tp.List[int]]]=None) -> ndarray: ...
+
+
+def tri(N: int,
+        M: tp.Optional[int]=None,
+        k: int=...,
+        dtype: tp.Optional[tp.Any]=...,
+        device: tp.Optional[Device]=None) -> ndarray: ...
+
+
+def tril(m: ndarray, k: int=...) -> ndarray: ...
+
+
+def triu(m: ndarray, k: int=...) -> ndarray: ...
+
 
 def vstack(arrays: tp.List[ndarray]) -> ndarray: ...
 

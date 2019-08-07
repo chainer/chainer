@@ -49,6 +49,9 @@ std::vector<absl::optional<Array>> Grad(
         const std::vector<ConstArrayRef>& outputs,
         const std::vector<ConstArrayRef>& inputs,
         const absl::optional<BackpropId>& backprop_id = absl::nullopt,
-        DoubleBackpropOption double_backprop = DoubleBackpropOption::kDisable);
+        DoubleBackpropOption double_backprop = DoubleBackpropOption::kDisable,
+        bool set_grad = false,
+        bool retain_grad = false,
+        const std::vector<ConstArrayRef>& grad_outputs = {});
 
 }  // namespace chainerx
