@@ -7,8 +7,8 @@ from chainer import initializer
 # https://github.com/shelhamer/fcn.berkeleyvision.org/blob/master/surgery.py
 
 
-def _get_bilinear_filter(size, ndim, upsampling=True):
-    """Make a 2D and 3D bilinear kernel suitable for up/downsampling"""
+def _get_linear_filter(size, ndim, upsampling=True):
+    """Make a 2D and 3D linear kernel suitable for up/downsampling"""
     factor = (size + 1) // 2
     if size % 2 == 1:
         center = factor - 1.
@@ -26,10 +26,10 @@ def _get_bilinear_filter(size, ndim, upsampling=True):
 
 class _SamplingFilter(initializer.Initializer):
 
-    def __init__(self, upsampling=True, interpolation='bilinear', dtype=None):
+    def __init__(self, upsampling=True, interpolation='linear', dtype=None):
         self._upsampling = upsampling
-        if interpolation == 'bilinear':
-            self._get_filter_func = _get_bilinear_filter
+        if interpolation == 'linear':
+            self._get_filter_func = _get_linear_filter
         else:
             raise ValueError(
                 'Unsupported interpolation method: {}'.format(interpolation))
@@ -73,12 +73,12 @@ class UpsamplingDeconvFilter(_SamplingFilter):
 
     Attributes:
         interpolation (str): Upsampling interpolation method.
-        Default is 'bilinear'.
+        Default is 'linear'.
 
     """
 
-    def __init__(self, interpolation='bilinear', dtype=None):
-        if interpolation != 'bilinear':
+    def __init__(self, interpolation='linear', dtype=None):
+        if interpolation != 'linear':
             raise ValueError(
                 'Unsupported interpolation method: {}'.format(interpolation))
         super(UpsamplingDeconvFilter, self).__init__(
@@ -97,12 +97,12 @@ class DownsamplingConvFilter(_SamplingFilter):
 
     Attributes:
         interpolation (str): Downsampling interpolation method.
-        Default is 'bilinear'.
+        Default is 'linear'.
 
     """
 
-    def __init__(self, interpolation='bilinear', dtype=None):
-        if interpolation != 'bilinear':
+    def __init__(self, interpolation='linear', dtype=None):
+        if interpolation != 'linear':
             raise ValueError(
                 'Unsupported interpolation method: {}'.format(interpolation))
         super(DownsamplingConvFilter, self).__init__(

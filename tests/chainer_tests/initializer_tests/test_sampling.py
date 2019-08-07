@@ -12,7 +12,7 @@ import numpy
         initializers.UpsamplingDeconvFilter,
         initializers.DownsamplingConvFilter,
     ],
-    'interpolation': ['bilinear'],
+    'interpolation': ['linear'],
     'shape': [(5, 5, 3, 3), (5, 1, 3, 3)],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
 }))
