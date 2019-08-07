@@ -55,6 +55,7 @@ class TestConvolutionND(testing.LinkTestCase):
         self.check_backward_options.update({'eps': 1e-2,
                                             'atol': 1e-3, 'rtol': 1e-3})
         if self.dtype == numpy.float16:
+            self.check_forward_options.update({'atol': 5e-4, 'rtol': 5e-3})
             self.check_backward_options.update({
                 'eps': 2 ** -4, 'atol': 2 ** -4, 'rtol': 2 ** -4})
 
