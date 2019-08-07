@@ -144,6 +144,7 @@ Neural network connections
    chainer.functions.embed_id
    chainer.functions.linear
    chainer.functions.local_convolution_2d
+   chainer.functions.multihead_attention
    chainer.functions.n_step_bigru
    chainer.functions.n_step_bilstm
    chainer.functions.n_step_birnn
