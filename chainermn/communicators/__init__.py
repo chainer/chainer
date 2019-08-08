@@ -1,3 +1,5 @@
+import warnings
+
 from chainer.utils import argument
 
 from chainermn.communicators.communicator_base import CommunicatorBase  # NOQA
@@ -79,8 +81,13 @@ def create_communicator(
         mpi_comm = mpi4py.MPI.COMM_WORLD
 
     allreduce_grad_dtype, batched_copy = argument.parse_kwargs(
-        kwargs, ('allreduce_grad_dtype', None), ('batched_copy', False))
+        kwargs, ('allreduce_grad_dtype', None), ('batched_copy', True))
     argument.assert_kwargs_empty(kwargs)
+
+    if 'batched_copy' in kwargs:
+        warnings.warn("The option 'batched_copy' is enabled by default "
+                      "it is deprecated, and will be removed in next version",
+                      DeprecationWarning)
 
     if communicator_name != 'pure_nccl' and allreduce_grad_dtype is not None:
         raise ValueError(
