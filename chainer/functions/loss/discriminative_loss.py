@@ -17,7 +17,7 @@ class DiscriminativeMarginBasedClusteringLoss(object):
     https://arxiv.org/abs/1708.02551
     It calculates pixel embeddings, and calculates three different terms
     based on those embeddings and applies them as loss.
-    This loss is penalizes the pixel embeddings according to following items:
+    This loss penalizes the pixel embeddings according to following items:
 
     Same instance's embeddings have to be closer to each other (pull force)
     Different instance's, they have to be further away (push force).
@@ -80,25 +80,27 @@ class DiscriminativeMarginBasedClusteringLoss(object):
         shape = embeddings.shape
         assert len(shape) == 4
 
+        b = embeddings.shape[0]
+
         xp = backend.get_array_module(embeddings)
 
         unique_label_idx = xp.unique(labels)
         # Remove background label
         unique_label_idx = unique_label_idx[unique_label_idx >= 0]
 
-        var_loss = xp.zeros((shape[0],))
+        var_loss = xp.zeros((b,))
         means = []
 
         # Find active labels per batch item
-        active_id_count = xp.zeros((shape[0], ))
+        active_id_count = xp.zeros((b, ), dtype=embeddings.dtype)
         active_idxs = []
-        for b_idx in range(shape[0]):
+        for b_idx in range(b):
             active_id = xp.unique(labels[b_idx])
             active_id = active_id[active_id >= 0]
             active_idxs.append(active_id)
             active_id_count[b_idx] = len(active_id)
 
-        # Calculate mean embeddings ans variance loss
+        # Calculate mean embeddings and variance loss
         for idx in unique_label_idx:
             mask = labels == idx
 
@@ -125,9 +127,9 @@ class DiscriminativeMarginBasedClusteringLoss(object):
         # Calculate mean distance loss
         means = stack(means, 1)
 
-        dist_loss = 0.0
+        dist_loss = xp.asarray([0.0], dtype=embeddings.dtype)
         counter = 0
-        for b_idx in range(shape[0]):
+        for b_idx in range(b):
             active_ids = active_idxs[b_idx]
             for c1_idx in range(len(active_ids)):
                 for c2_idx in range(c1_idx + 1, len(active_ids)):
