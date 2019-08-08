@@ -548,13 +548,14 @@ class BuildingBlock(link.Chain):
 
     def __init__(self, n_layers=None, in_channels=None, mid_channels=None,
                  out_channels=None, stride=None, initialW=None,
-                 downsample_fb=None, n_layer=None):
+                 downsample_fb=None, **kwargs):
         super(BuildingBlock, self).__init__()
 
-        if n_layer is not None:
-            warnings.warn('Argument `n_layer` is deprecated. '
-                          'Please use `n_layers` instead')
-            n_layers = n_layer
+        if 'n_layer' in kwargs:
+            warnings.warn(
+                'Argument `n_layer` is deprecated. '
+                'Please use `n_layers` instead')
+            n_layers = kwargs['n_layer']
 
         with self.init_scope():
             self.a = BottleneckA(
