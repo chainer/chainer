@@ -17,9 +17,10 @@ class DiscriminativeMarginBasedClusteringLoss(object):
     https://arxiv.org/abs/1708.02551
     It calculates pixel embeddings, and calculates three different terms
     based on those embeddings and applies them as loss.
-    The main idea is that the pixel embeddings
-    for same instances have to be closer to each other (pull force),
-    for different instances, they have to be further away (push force).
+    This loss is penalizes the pixel embeddings according to following items:
+
+    Same instance's embeddings have to be closer to each other (pull force)
+    Different instance's, they have to be further away (push force).
     The loss also brings a weak regularization term to prevent overfitting.
     This loss function calculates the following three parameters:
 
@@ -83,7 +84,7 @@ class DiscriminativeMarginBasedClusteringLoss(object):
 
         unique_label_idx = xp.unique(labels)
         # Remove background label
-        unique_label_idx = unique_label_idx[unique_label_idx > 0]
+        unique_label_idx = unique_label_idx[unique_label_idx >= 0]
 
         var_loss = xp.zeros((shape[0],))
         means = []
@@ -93,7 +94,7 @@ class DiscriminativeMarginBasedClusteringLoss(object):
         active_idxs = []
         for b_idx in range(shape[0]):
             active_id = xp.unique(labels[b_idx])
-            active_id = active_id[active_id > 0]
+            active_id = active_id[active_id >= 0]
             active_idxs.append(active_id)
             active_id_count[b_idx] = len(active_id)
 
@@ -116,7 +117,8 @@ class DiscriminativeMarginBasedClusteringLoss(object):
             local_var_loss = self.norm(local_var_loss, 1)
             local_var_loss = relu(local_var_loss - self.delta_v) ** 2
             local_var_loss = c_sum(local_var_loss, (1, 2))
-            var_loss += local_var_loss / (xp.maximum(active_id_count, 1) * number_of_pixels[:, 0])
+            dividend = xp.maximum(active_id_count, 1) * number_of_pixels[:, 0]
+            var_loss += local_var_loss / dividend
 
         var_loss = average(var_loss)
 
@@ -139,7 +141,9 @@ class DiscriminativeMarginBasedClusteringLoss(object):
         # Calculate regularization term
         reg_loss = average(self.norm(means, (1, 2)) / active_id_count)
 
-        rtn = self.alpha * var_loss, self.beta * dist_loss, self.gamma * reg_loss
+        rtn = (self.alpha * var_loss,
+               self.beta * dist_loss,
+               self.gamma * reg_loss)
         return rtn
 
 
@@ -170,10 +174,15 @@ def discriminative_margin_based_clustering_loss(
     Regularization loss
         Small regularization loss to penalize weights against overfitting.
 
+    For the labels, any positive value, including zero will be handled as a
+    separate instance. Any negative value in the ground truth will be
+    will be exempt from loss calculation. This loss is designed for dense
+    labels. Hence, the performance is not optimized for sparse label arrays.
+
     Args:
         embeddings (:class:`~chainer.Variable` or :ref:`ndarray`):
             predicted embedding vectors
-            (batch size, max embedding dimensions, height, width)
+            (batch size, embedding dimensions, height, width)
 
         labels (:ref:`ndarray`):
             instance segmentation ground truth
