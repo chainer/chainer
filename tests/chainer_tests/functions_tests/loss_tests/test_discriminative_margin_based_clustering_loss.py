@@ -51,7 +51,8 @@ class TestDiscriminativeMarginBasedClusteringLoss(unittest.TestCase):
         step_size = self.height // 10   # Create 10 different instances
         for b_idx in range(self.batch):
             for idx in range(10):
-                self.gt[b_idx, (step_size * idx):(step_size * (idx + 1)), :] = b_idx * 10 + idx
+                self.gt[b_idx, (step_size * idx):(step_size * (idx + 1)), :] =\
+                    b_idx * 10 + idx
 
         self.y = (numpy.asarray(self.result_l_dist),
                   numpy.asarray(self.result_l_var),
@@ -59,8 +60,8 @@ class TestDiscriminativeMarginBasedClusteringLoss(unittest.TestCase):
 
     def get_result(self, embeddings, labels):
         out = functions.discriminative_margin_based_clustering_loss(
-            embeddings, labels,
-            self.delta_v, self.delta_d, self.norm, self.alpha, self.beta, self.gamma)
+            embeddings, labels, self.delta_v, self.delta_d,
+            self.norm, self.alpha, self.beta, self.gamma)
         return out
 
     def check_forward_cpu(self, embeddings, labels, t_data):
