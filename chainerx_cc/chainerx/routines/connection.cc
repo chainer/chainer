@@ -375,6 +375,23 @@ Array Linear(const Array& x, const Array& w, const absl::optional<Array>& b, uin
     return out_matrix.Reshape(out_shape);
 }
 
+std::vector<Array> _extract_gates(Array x) {
+    StackVector<int64_t, kMaxNdim> shape_vec;
+    shape_vec.push_back(x.shape()[0]);
+    shape_vec.push_back(static_cast<int>(x.shape()[1] / 4));
+    shape_vec.push_back(4);
+    for (int i = 2; i < x.ndim(); i++) {
+        shape_vec.push_back(x.shape()[i]);
+    }
+    Shape shape{shape_vec};
+    Array x_r = Reshape(x, shape);
+    std::vector<Array> gates = Split(x_r, 4, 2);
+    for (uint i = 0; i < gates.size(); i++) {
+        gates[i] = Squeeze(gates[i]);
+    }
+    return gates;
+}
+
 std::vector<Array> lstm(const Array& c, const Array& x) {
     if (x.shape()[0] > c.shape()[0]) {
         throw DimensionError{"The batch size of x must be equal to or less than the size of c"};
@@ -388,18 +405,21 @@ std::vector<Array> lstm(const Array& c, const Array& x) {
     if (c.dtype() != x.dtype()) {
         throw DtypeError{"Datatypes of c and x should be equal got", c.dtype(), "and ", x.dtype()};
     }
-
-    Array x1 = x.Reshape(Shape{x.shape()[0], x.shape()[1] / 4, 4});
-
-    std::vector<Array> x_split = Split(x1, 4, 2);
-    x_split[0] = Tanh(x_split[0].Reshape(Shape{x.shape()[0], x.shape()[1] / 4}));
-    x_split[1] = Sigmoid(x_split[1].Reshape(Shape{x.shape()[0], x.shape()[1] / 4}));
-    x_split[2] = Sigmoid(x_split[2].Reshape(Shape{x.shape()[0], x.shape()[1] / 4}));
-    x_split[3] = Sigmoid(x_split[3].Reshape(Shape{x.shape()[0], x.shape()[1] / 4}));
+    std::vector<Array> x_split = _extract_gates(x); 
+    x_split[0] = Tanh(x_split[0]);
+    x_split[1] = Sigmoid(x_split[1]);
+    x_split[2] = Sigmoid(x_split[2]);
+    x_split[3] = Sigmoid(x_split[3]);
     if (x.shape()[0] < c.shape()[0]) {
         Dtype dtype = x.dtype();
-
-        Shape out_shape{c.shape()[0] - x.shape()[0], x_split[0].shape()[1]};
+        StackVector<int64_t, kMaxNdim> shape_vec;
+        shape_vec.push_back(c.shape()[0] - x.shape()[0]);
+        shape_vec.push_back(x_split[0].shape()[1]);
+        for (int i = 2; i < x_split[0].ndim(); i++)
+        {
+            shape_vec.push_back(x_split[0].shape()[i]);
+        }
+        Shape out_shape{shape_vec}; 
         Array z[4];
         for (int i = 0; i < 4; i++) {
             if (i == 2) {

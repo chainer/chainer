@@ -2,6 +2,7 @@ import numpy
 import six
 
 import chainer
+import chainerx
 from chainer import backend
 from chainer.backends import cuda
 from chainer.backends import intel64
@@ -78,6 +79,11 @@ class LSTM(function_node.FunctionNode):
         )
         for i in six.moves.range(2, type_check.eval(c_type.ndim)):
             type_check.expect(x_type.shape[i] == c_type.shape[i])
+
+    def forward_chainerx(self, inputs):
+        c, x = inputs
+        c_next, h = chainerx.lstm(c, x)
+        return c_next, h
 
     def forward(self, inputs):
         self.retain_inputs((0, 1))
