@@ -397,10 +397,11 @@ void QrImpl(const Array& a, const Array& q, const Array& r, const Array& tau, Qr
     int buffersize_orgqr = 0;
     device_internals.cusolverdn_handle().Call(OrgqrBufferSize<T>, m, mc, k, q_ptr, lda, tau_ptr, &buffersize_orgqr);
 
-    work = Empty(Shape{buffersize_orgqr}, dtype, device);
+    Array work_orgqr = Empty(Shape{buffersize_orgqr}, dtype, device);
+    auto work_orgqr_ptr = static_cast<T*>(internal::GetRawOffsetData(work_orgqr));
 
     device_internals.cusolverdn_handle().Call(
-            Orgqr<T>, m, mc, k, q_ptr, lda, tau_ptr, work_ptr, buffersize_orgqr, static_cast<int*>(devInfo.get()));
+            Orgqr<T>, m, mc, k, q_ptr, lda, tau_ptr, work_orgqr_ptr, buffersize_orgqr, static_cast<int*>(devInfo.get()));
 
     device.MemoryCopyTo(&devInfo_h, devInfo.get(), sizeof(int), native_device);
     if (devInfo_h != 0) {
