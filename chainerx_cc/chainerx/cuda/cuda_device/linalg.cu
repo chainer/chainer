@@ -337,11 +337,11 @@ void QrImpl(const Array& a, const Array& q, const Array& r, const Array& tau, Qr
     int64_t k = std::min(m, n);
     int64_t lda = std::max(static_cast<int64_t>(1), m);
 
-    Array R = a.Transpose().Copy();  // QR decomposition is done in-place
+    Array r_temp = a.Transpose().Copy();  // QR decomposition is done in-place
 
     cuda_internal::DeviceInternals& device_internals = cuda_internal::GetDeviceInternals(static_cast<CudaDevice&>(device));
 
-    auto r_ptr = static_cast<T*>(internal::GetRawOffsetData(R));
+    auto r_ptr = static_cast<T*>(internal::GetRawOffsetData(r_temp));
     auto tau_ptr = static_cast<T*>(internal::GetRawOffsetData(tau));
 
     std::shared_ptr<void> devInfo = device.Allocate(sizeof(int));
@@ -363,14 +363,14 @@ void QrImpl(const Array& a, const Array& q, const Array& r, const Array& tau, Qr
     }
 
     if (mode == QrMode::kR) {
-        R = R.At(std::vector<ArrayIndex>{Slice{}, Slice{0, k}}).Transpose();  // R = R[:, 0:k].T
-        R = Triu(R, 0);
-        device.backend().CallKernel<CopyKernel>(R, r);
+        r_temp = r_temp.At(std::vector<ArrayIndex>{Slice{}, Slice{0, k}}).Transpose();  // R = R[:, 0:k].T
+        r_temp = Triu(r_temp, 0);
+        device.backend().CallKernel<CopyKernel>(r_temp, r);
         return;
     }
 
     if (mode == QrMode::kRaw) {
-        device.backend().CallKernel<CopyKernel>(R, r);
+        device.backend().CallKernel<CopyKernel>(r_temp, r);
         return;
     }
 
@@ -383,7 +383,7 @@ void QrImpl(const Array& a, const Array& q, const Array& r, const Array& tau, Qr
         mc = k;
         q_shape = Shape{n, m};
     }
-    Array Q = Empty(q_shape, dtype, device);
+    Array q_temp = Empty(q_shape, dtype, device);
 
     // cuSOLVER does not return correct result in this case
     if (mode == QrMode::kComplete && n == 0) {
@@ -391,8 +391,8 @@ void QrImpl(const Array& a, const Array& q, const Array& r, const Array& tau, Qr
         return;
     }
 
-    device.backend().CallKernel<CopyKernel>(R, Q.At(std::vector<ArrayIndex>{Slice{0, n}, Slice{}}));  // Q[0:n, :] = R
-    auto q_ptr = static_cast<T*>(internal::GetRawOffsetData(Q));
+    device.backend().CallKernel<CopyKernel>(r_temp, q_temp.At(std::vector<ArrayIndex>{Slice{0, n}, Slice{}}));  // Q[0:n, :] = R
+    auto q_ptr = static_cast<T*>(internal::GetRawOffsetData(q_temp));
 
     int buffersize_orgqr = 0;
     device_internals.cusolverdn_handle().Call(OrgqrBufferSize<T>, m, mc, k, q_ptr, lda, tau_ptr, &buffersize_orgqr);
@@ -407,12 +407,12 @@ void QrImpl(const Array& a, const Array& q, const Array& r, const Array& tau, Qr
         throw ChainerxError{"Unsuccessful orgqr (QR) execution. Info = ", devInfo_h};
     }
 
-    Q = Q.At(std::vector<ArrayIndex>{Slice{0, mc}, Slice{}}).Transpose();  // Q = Q[0:mc, :].T
-    R = R.At(std::vector<ArrayIndex>{Slice{}, Slice{0, mc}}).Transpose();  // R = R[:, 0:mc].T
-    R = Triu(R, 0);
+    q_temp = q_temp.At(std::vector<ArrayIndex>{Slice{0, mc}, Slice{}}).Transpose();  // Q = Q[0:mc, :].T
+    r_temp = r_temp.At(std::vector<ArrayIndex>{Slice{}, Slice{0, mc}}).Transpose();  // R = R[:, 0:mc].T
+    r_temp = Triu(r_temp, 0);
 
-    device.backend().CallKernel<CopyKernel>(Q, q);
-    device.backend().CallKernel<CopyKernel>(R, r);
+    device.backend().CallKernel<CopyKernel>(q_temp, q);
+    device.backend().CallKernel<CopyKernel>(r_temp, r);
 }
 
 }  // namespace

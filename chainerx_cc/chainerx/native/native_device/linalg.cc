@@ -289,9 +289,9 @@ void QrImpl(const Array& a, const Array& q, const Array& r, const Array& tau, Qr
     int64_t k = std::min(m, n);
     int64_t lda = std::max(static_cast<int64_t>(1), m);
 
-    Array R = a.Transpose().Copy();  // QR decomposition is done in-place
+    Array r_temp = a.Transpose().Copy();  // QR decomposition is done in-place
 
-    auto r_ptr = static_cast<T*>(internal::GetRawOffsetData(R));
+    auto r_ptr = static_cast<T*>(internal::GetRawOffsetData(r_temp));
     auto tau_ptr = static_cast<T*>(internal::GetRawOffsetData(tau));
 
     int info;
@@ -311,14 +311,14 @@ void QrImpl(const Array& a, const Array& q, const Array& r, const Array& tau, Qr
     }
 
     if (mode == QrMode::kR) {
-        R = R.At(std::vector<ArrayIndex>{Slice{}, Slice{0, k}}).Transpose();  // R = R[:, 0:k].T
-        R = Triu(R, 0);
-        device.backend().CallKernel<CopyKernel>(R, r);
+        r_temp = r_temp.At(std::vector<ArrayIndex>{Slice{}, Slice{0, k}}).Transpose();  // R = R[:, 0:k].T
+        r_temp = Triu(r_temp, 0);
+        device.backend().CallKernel<CopyKernel>(r_temp, r);
         return;
     }
 
     if (mode == QrMode::kRaw) {
-        device.backend().CallKernel<CopyKernel>(R, r);
+        device.backend().CallKernel<CopyKernel>(r_temp, r);
         return;
     }
 
@@ -331,10 +331,10 @@ void QrImpl(const Array& a, const Array& q, const Array& r, const Array& tau, Qr
         mc = k;
         q_shape = Shape{n, m};
     }
-    Array Q = Empty(q_shape, dtype, device);
+    Array q_temp = Empty(q_shape, dtype, device);
 
-    device.backend().CallKernel<CopyKernel>(R, Q.At(std::vector<ArrayIndex>{Slice{0, n}, Slice{}}));  // Q[0:n, :] = R
-    auto q_ptr = static_cast<T*>(internal::GetRawOffsetData(Q));
+    device.backend().CallKernel<CopyKernel>(r_temp, q_temp.At(std::vector<ArrayIndex>{Slice{0, n}, Slice{}}));  // Q[0:n, :] = R
+    auto q_ptr = static_cast<T*>(internal::GetRawOffsetData(q_temp));
 
     int buffersize_orgqr = -1;
     T work_query_orgqr;
@@ -350,12 +350,12 @@ void QrImpl(const Array& a, const Array& q, const Array& r, const Array& tau, Qr
         throw ChainerxError{"Unsuccessful orgqr (QR) execution. Info = ", info};
     }
 
-    Q = Q.At(std::vector<ArrayIndex>{Slice{0, mc}, Slice{}}).Transpose();  // Q = Q[0:mc, :].T
-    R = R.At(std::vector<ArrayIndex>{Slice{}, Slice{0, mc}}).Transpose();  // R = R[:, 0:mc].T
-    R = Triu(R, 0);
+    q_temp = q_temp.At(std::vector<ArrayIndex>{Slice{0, mc}, Slice{}}).Transpose();  // Q = Q[0:mc, :].T
+    r_temp = r_temp.At(std::vector<ArrayIndex>{Slice{}, Slice{0, mc}}).Transpose();  // R = R[:, 0:mc].T
+    r_temp = Triu(r_temp, 0);
 
-    device.backend().CallKernel<CopyKernel>(Q, q);
-    device.backend().CallKernel<CopyKernel>(R, r);
+    device.backend().CallKernel<CopyKernel>(q_temp, q);
+    device.backend().CallKernel<CopyKernel>(r_temp, r);
 }
 
 }  // namespace
