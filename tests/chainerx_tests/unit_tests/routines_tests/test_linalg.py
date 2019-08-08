@@ -359,7 +359,7 @@ class TestPseudoInverseDtypeFailing(NumpyLinalgOpTest):
 @chainer.testing.parameterize(*(
     # backward for 'r', 'raw' modes is not implemented
     chainer.testing.product({
-        'shape': [(0, 3), (1, 1), (2, 3), (3, 2), (6, 6)],
+        'shape': [(0, 3), (3, 0), (1, 1), (2, 3), (3, 2), (6, 6)],
         'in_dtypes': ['float32', 'float64'],
         'mode': ['r', 'raw'],
         'skip_backward_test': [True],
@@ -367,7 +367,7 @@ class TestPseudoInverseDtypeFailing(NumpyLinalgOpTest):
     }) +
     # backward for non-square `R` is not implemented
     chainer.testing.product({
-        'shape': [(0, 3), (2, 3), (3, 2)],
+        'shape': [(0, 3), (3, 0), (2, 3), (3, 2)],
         'in_dtypes': ['float32', 'float64'],
         'mode': ['complete', 'reduced'],
         'skip_backward_test': [True],
@@ -384,6 +384,9 @@ class TestPseudoInverseDtypeFailing(NumpyLinalgOpTest):
     })
 ))
 class TestQR(NumpyLinalgOpTest):
+
+    # For input with shape (N, 0) strides are different
+    check_numpy_strides_compliance = False
 
     def generate_inputs(self):
         a = numpy.random.random(self.shape).astype(self.in_dtypes)
