@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <iterator>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -22,6 +23,7 @@
 #include "chainerx/macro.h"
 #include "chainerx/routines/arithmetic.h"
 #include "chainerx/routines/creation.h"
+#include "chainerx/routines/reduction.h"
 #include "chainerx/routines/type_util.h"
 #include "chainerx/shape.h"
 #include "chainerx/slice.h"
@@ -293,15 +295,17 @@ Array Where(const Array& condition, Scalar x, Scalar y) {
     return out;
 }
 
-Array Nonzero(const Array& a) {
-    Array condition = a != 0.0;
-    // Initialize out with appropriate shape
-
+std::vector<Array> Nonzero(const Array& a) {
+    Array a_flatten = a.Reshape(Shape{a.GetTotalSize()});
+    Array num_nonzero = (a_flatten != ZerosLike(a_flatten)).Sum();
+    Shape shape{num_nonzero.at({0})};
+    std::vector<int64_t> out(1, Empty(shape, a_flatten.dtype(), a_flatten.device()));
+    Array scan_index = Cumsum(a_flatten);
     {
         NoBackpropModeScope scope{};
-        a.device().backend().CallKernel<NonzeroKernel>(a, out);
+        a.device().backend().CallKernel<NonzeroKernel>(a_flatten, scan_index, out);
     }
-
+    // Separate out into ndim arrays for multi dim case
     return out;
 }
 

@@ -249,29 +249,23 @@ CHAINERX_NATIVE_REGISTER_KERNEL(WhereASSKernel, NativeWhereASSKernel);
 
 class NativeNonzeroKernel : public NonzeroKernel {
 public:
-    void Call(const Array& a, const Array& out) override {
-        Device& device = a.device();
-        device.CheckDevicesCompatible(a, out);
-        const Array& a_cast = a.dtype() == out.dtype() ? a : a.AsType(out.dtype());
+    void Call(const Array& a, const Array& scan_index, std::vector<int64_t>& out) override {
 
-        VisitDtype(out.dtype(), [&](auto pt) {
+        VisitDtype(a.dtype(), [&](auto pt) {
             using T = typename decltype(pt)::type;
-            IndexableArray<const T> a_iarray{a_cast};
-            IndexableArray<const T> out_iarray{out};
-            Indexer<> a_indexer{a.shape()};
-            Indexer<> out_indexer{out.shape()};
-
-            it_a = a_indexer.It(0);
-            it_out = out_indexer.It(0);
-
-            for (auto it = it_a; it; ++it) {
-                if (a_iarray[it] != 0) {
-                    out_iarray[it_out++] = it;
+            struct Impl {
+                void operator()(int64_t i, T a, T scan_index, std::vector<int64_t>& out) {
+                    if (a != 0) {
+                        out.at(int64_t(scan_index - (T)(1.0))) = i;
+                    }
                 }
-            }
+            };
+            Elementwise<const T, const T, std::vector<int64_t>>(Impl{}, a, out);
         });
     }
-}
+};
+
+CHAINERX_NATIVE_REGISTER_KERNEL(NonzeroKernel, NativeNonzeroKernel);
 
 }  // namespace
 }  // namespace native

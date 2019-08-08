@@ -376,6 +376,35 @@ public:
 
 CHAINERX_CUDA_REGISTER_KERNEL(WhereASSKernel, CudaWhereASSKernel);
 
+template <typename T>
+struct NonzeroImpl {
+    using CudaType = cuda_internal::DataType<T>;
+    CudaType a;
+    CudaType scan_index;
+    __device__ void operator()(int64_t i, std::vector<int64_t>& out) {
+        if (a != 0) {
+            out[int64_t(scan_index - 1)] = i;
+        }
+    }
+};
+
+class CudaNonzeroKernel : public NonzeroKernel {
+public:
+    void Call(const Array& a, std::vector<int64_t>& out) override {
+        Device& device = a.device();
+        device.CheckDevicesCompatible(a, out);
+
+        CudaSetDeviceScope scope{device.index()};
+        VisitDtype(a.dtype(), [&](auto x_pt) {
+            using T = typename decltype(x_pt)::type;
+            using CudaType = cuda_internal::DataType<T>;
+            Elementwise<std::vector<int64_t>>(NonzeroImpl<T>{static_cast<CudaType>(a)}, out);
+        });
+    }
+};
+
+CHAINERX_CUDA_REGISTER_KERNEL(NonzeroKernel, CudaNonzeroKernel);
+
 }  // namespace
 }  // namespace cuda
 }  // namespace chainerx
