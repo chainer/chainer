@@ -1,19 +1,22 @@
 import unittest
+import six
 
 import numpy
 
-import chainer
 from chainer.backends import cuda
-from chainer import functions
 from chainer import gradient_check
+import chainer.functions as F
 from chainer import testing
 from chainer.functions.rnn import lstm
 from chainer.testing import backend
 
 
-def _sigmoid(x):
-    half = x.dtype.type(0.5)
-    return numpy.tanh(x * half) * half + half
+def sigmoid(x):
+    return numpy.tanh(x * 0.5) * 0.5 + 0.5
+
+
+def _shaped_random(shape, dtype):
+    return numpy.random.uniform(-1, 1, shape).astype(dtype)
 
 
 def inject_backend_tests(method_names):
@@ -29,151 +32,109 @@ def inject_backend_tests(method_names):
     return decorator
 
 
-@testing.parameterize(*(testing.product({
-    'batch': [3, 2, 0],
-    'dtype': [numpy.float32],
-}) + testing.product({
-    'batch': [3],
-    'dtype': [numpy.float16, numpy.float32, numpy.float64],
-})))
+@testing.parameterize(*testing.product_dict(
+    [
+        {'c_shape': (10, 3), 'x_shape': (10, 12)},
+        {'c_shape': (20, 32, 4), 'x_shape': (16, 128, 4)},
+        {'c_shape': (32, 100, 3, 5), 'x_shape': (32, 400, 3, 5)},
+        {'c_shape': (16, 20), 'x_shape': (2, 80)},
+        {'c_shape': (16, 20), 'x_shape': (0, 80)},
+        {'c_shape': (0, 0), 'x_shape': (0, 0)},
+        {'c_shape': (8, 0), 'x_shape': (2, 0)},
+    ], [
+        {'dtype': numpy.float16},
+        {'dtype': numpy.float32},
+        {'dtype': numpy.float64},
+    ], [
+        {'grad_outputs': (True, True)},
+        {'grad_outputs': (True, False)},
+        {'grad_outputs': (False, True)},
+    ]
+))
 @testing.fix_random()
-@inject_backend_tests([
-    'test_forward',
-    'test_flat_forward',
-    'test_full_backward',
-    'test_flat_full_backward',
-    'test_no_gc_backward',
-    'test_flat_no_gc_backward',
-    'test_no_gh_backward',
-    'test_flat_no_gh_backward',
-    'test_double_backward'])
-class TestLSTM(unittest.TestCase):
+@backend.inject_backend_tests(
+    None,
+    # ChainerX tests
+    testing.product({
+        'use_chainerx': [True],
+        'chainerx_device': ['native:0', 'cuda:0'],
+    })
+    # CPU tests
+    + testing.product({
+        'use_cuda': [False],
+        'use_ideep': ['never', 'always'],
+    })
+    # GPU tests
+    + testing.product([
+        [{'use_cuda': True}],
+
+        # Without cuDNN
+        testing.product({
+            'use_cudnn': ['never'],
+        })
+        # With cuDNN
+        + testing.product({
+            'use_cudnn': ['always'],
+            'cudnn_deterministic': [True, False],
+            'autotune': [True, False],
+        })]))
+class TestLSTM(testing.FunctionTestCase):
+
+    dodge_nondifferentiable = True
 
     def setUp(self):
-        dtype = self.dtype
-        hidden_shape = (3, 2, 4)
-        x_shape = (self.batch, 8, 4)
-        y_shape = (self.batch, 2, 4)
-
-        c_prev = numpy.random.uniform(-1, 1, hidden_shape).astype(dtype)
-        x = numpy.random.uniform(-1, 1, x_shape).astype(dtype)
-
-        gc = numpy.random.uniform(-1, 1, hidden_shape).astype(dtype)
-        gh = numpy.random.uniform(-1, 1, y_shape).astype(dtype)
-
-        ggc = numpy.random.uniform(-1, 1, hidden_shape).astype(dtype)
-        ggx = numpy.random.uniform(-1, 1, x_shape).astype(dtype)
-
-        self.inputs = [c_prev, x]
-        self.grad_outputs = [gc, gh]
-        self.grad_grad_inputs = [ggc, ggx]
-
-        self.check_forward_options = {}
-        self.check_backward_options = {'dtype': numpy.float64}
-        self.check_double_backward_options = {'dtype': numpy.float64}
         if self.dtype == numpy.float16:
             self.check_forward_options = {'atol': 1e-3, 'rtol': 1e-2}
-            self.check_backward_options = {
-                'dtype': numpy.float64, 'atol': 5e-3, 'rtol': 5e-2}
-            self.check_double_backward_options = {
-                'dtype': numpy.float64, 'atol': 5e-3, 'rtol': 5e-2}
+            self.check_backward_options = {'atol': 5e-3, 'rtol': 5e-2}
+            self.check_double_backward_options = {'atol': 5e-3, 'rtol': 5e-2}
+        if self.grad_outputs[0] is False or self.grad_outputs[1] is False:
+            self.skip_double_backward_test = True
 
-    def flat(self, arrays):
-        return [None if a is None else a[:, :, 0] for a in arrays]
+    def generate_inputs(self):
+        c = _shaped_random(self.c_shape, self.dtype)
+        x = _shaped_random(self.x_shape, self.dtype)
+        return c, x,
 
-    def forward_cpu(self, inputs):
-        c_prev, x = inputs
+    def forward(self, inputs, device):
+        c, x = inputs
+        c, h = F.lstm(c, x)
+        return c, h,
+
+    def forward_expected(self, inputs):
+        c, x = inputs
         batch = x.shape[0]
-        a_in = x[:, [0, 4]]
-        i_in = x[:, [1, 5]]
-        f_in = x[:, [2, 6]]
-        o_in = x[:, [3, 7]]
-        c_expect = (_sigmoid(i_in) * numpy.tanh(a_in)
-                    + _sigmoid(f_in) * c_prev[:batch])
-        h_expect = _sigmoid(o_in) * numpy.tanh(c_expect)
-        return c_expect, h_expect
 
-    def check_forward(self, inputs, backend_config):
-        # Compute expected out
-        c_prev, x = inputs
-        batch = x.shape[0]
-        c_expect_2 = c_prev[batch:]
-        c_expect_1, h_expect = self.forward_cpu(inputs)
+        def _extract_gates(x):
+            r = x.reshape((len(x), x.shape[1] // 4, 4) + x.shape[2:])
+            return [r[:, :, i] for i in six.moves.range(4)]
+        a, i, f, o = _extract_gates(x)
+        a = numpy.tanh(a)
+        i = sigmoid(i)
+        f = sigmoid(f)
+        o = sigmoid(o)
+        c_exp = numpy.zeros_like(c)
+        c_exp[:batch] = a * i + f * c[:batch]
+        h_exp = o * numpy.tanh(c_exp[:batch])
+        c_exp[batch:] = c[batch:]
+        return c_exp, h_exp,
 
-        if backend_config.use_cuda:
-            inputs = cuda.to_gpu(inputs)
-        inputs = [chainer.Variable(xx) for xx in inputs]
+    def generate_grad_outputs(self, outputs_template):
+        grad_out = []
+        c = outputs_template[0]
+        h = outputs_template[1]
 
-        with backend_config:
-            c, h = functions.lstm(*inputs)
-            assert c.data.dtype == self.dtype
-            assert h.data.dtype == self.dtype
+        c_shape = c.shape
+        h_shape = h.shape
+        if self.grad_outputs[0] is True:
+            grad_out.append(_shaped_random(c_shape, c.dtype))
+        else:
+            grad_out.append(None)
 
-        testing.assert_allclose(
-            c_expect_1, c.data[:batch], **self.check_forward_options)
-        testing.assert_allclose(
-            c_expect_2, c.data[batch:], **self.check_forward_options)
-        testing.assert_allclose(
-            h_expect, h.data, **self.check_forward_options)
-
-    def test_forward(self, backend_config):
-        self.check_forward(self.inputs, backend_config)
-
-    def test_flat_forward(self, backend_config):
-        self.check_forward(self.flat(self.inputs), backend_config)
-
-    def check_backward(self, inputs, grad_outputs, backend_config):
-        if backend_config.use_cuda:
-            inputs = cuda.to_gpu(inputs)
-            grad_outputs = cuda.to_gpu(grad_outputs)
-
-        with backend_config:
-            gradient_check.check_backward(
-                functions.lstm, inputs, grad_outputs,
-                **self.check_backward_options)
-
-    def test_full_backward(self, backend_config):
-        self.check_backward(self.inputs, self.grad_outputs, backend_config)
-
-    def test_flat_full_backward(self, backend_config):
-        self.check_backward(
-            self.flat(self.inputs), self.flat(self.grad_outputs),
-            backend_config)
-
-    def test_no_gc_backward(self, backend_config):
-        grad_outputs = [None, self.grad_outputs[1]]
-        self.check_backward(self.inputs, grad_outputs, backend_config)
-
-    def test_flat_no_gc_backward(self, backend_config):
-        grad_outputs = [None, self.grad_outputs[1]]
-        self.check_backward(
-            self.flat(self.inputs), self.flat(grad_outputs), backend_config)
-
-    def test_no_gh_backward(self, backend_config):
-        grad_outputs = [self.grad_outputs[0], None]
-        self.check_backward(self.inputs, grad_outputs, backend_config)
-
-    def test_flat_no_gh_backward(self, backend_config):
-        grad_outputs = [self.grad_outputs[0], None]
-        self.check_backward(
-            self.flat(self.inputs), self.flat(grad_outputs), backend_config)
-
-    def check_double_backward(
-            self, inputs, grad_outputs, grad_grad_inputs, backend_config):
-        if backend_config.use_cuda:
-            inputs = cuda.to_gpu(inputs)
-            grad_outputs = cuda.to_gpu(grad_outputs)
-            grad_grad_inputs = cuda.to_gpu(grad_grad_inputs)
-
-        with backend_config:
-            gradient_check.check_double_backward(
-                chainer.functions.lstm, inputs, grad_outputs, grad_grad_inputs,
-                **self.check_double_backward_options)
-
-    def test_double_backward(self, backend_config):
-        self.check_double_backward(
-            self.inputs, self.grad_outputs, self.grad_grad_inputs,
-            backend_config)
+        if self.grad_outputs[1] is True:
+            grad_out.append(_shaped_random(h_shape, h.dtype))
+        else:
+            grad_out.append(None)
+        return tuple(grad_out)
 
 
 @testing.parameterize(*(testing.product({

@@ -213,7 +213,8 @@ class TestLogSumExp(math_utils.UnaryMathTestBase, op_utils.NumpyOpTest):
 
     def setup(self):
         super().setup()
-        if self.in_dtypes == 'float16':
+        in_dtype, = self.in_dtypes
+        if in_dtype == 'float16':
             # TODO(imanishi): Support device implementation and remove this.
             self.check_forward_options.update({'rtol': 3e-3, 'atol': 3e-3})
 
