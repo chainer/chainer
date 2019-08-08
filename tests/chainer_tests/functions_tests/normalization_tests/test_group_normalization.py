@@ -76,13 +76,6 @@ class TestGroupNormalization(testing.FunctionTestCase):
             retry += 1
             assert retry <= 10, 'Too many retries to generate inputs'
 
-        if True:
-            v = x[0, :x.shape[1]//self.groups]
-            tmp = numpy.random.uniform(0, 1, v.shape).astype(self.dtype)
-            tmp -= tmp.mean()
-            tmp /= tmp.std()
-            v[...] = tmp * min_std
-
         gamma = numpy.random.uniform(-1, 1, shape[1]).astype(self.dtype)
         beta = numpy.random.uniform(-1, 1, shape[1]).astype(self.dtype)
         return x, gamma, beta
