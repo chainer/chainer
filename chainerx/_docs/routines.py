@@ -4,6 +4,7 @@ from chainerx import _docs
 
 def set_docs():
     _docs_creation()
+    _docs_evaluation()
     _docs_indexing()
     _docs_linalg()
     _docs_logic()
@@ -415,6 +416,55 @@ Note:
     The argument ``v`` does not support array-like objects yet.
 
 .. seealso:: :func:`numpy.diagflat`
+""")
+
+
+def _docs_evaluation():
+    _docs.set_doc(
+        chainerx.accuracy,
+        """accuracy(y, t, ignore_label=None)
+Computes multiclass classification accuracy of the minibatch.
+
+Args:
+    y (~chainerx.ndarray):
+        Array whose (i, j, k, ...)-th element indicates the score of
+        the class j at the (i, k, ...)-th sample.
+        The prediction label :math:`\\hat t` is calculated by the formula
+        :math:`\\hat t(i, k, ...) = \\operatorname{\\mathrm{argmax}}_j \
+y(i, j, k, ...)`.
+    t (~chainerx.ndarray):
+        Array of ground truth labels.
+    ignore_label (int or None): Skip calculating accuracy
+        if the true label is ``ignore_label``.
+
+Returns:
+    :func:`~chainerx.ndarray`: A variable holding a scalar \
+array of the accuracy.
+
+Note:
+    This function is non-differentiable.
+
+.. seealso:: :func:`chainer.functions.accuracy`
+
+.. admonition:: Example
+
+    We show the most common case, when ``y`` is the two dimensional array.
+
+    >>> y = chainerx.array([[0.1, 0.7, 0.2], # prediction label is 1
+    ...                     [8.0, 1.0, 2.0], # prediction label is 0
+    ...                     [-8.0, 1.0, 2.0], # prediction label is 2
+    ...                     [-8.0, -1.0, -2.0]]) # prediction label is 1
+    >>> t = chainerx.array([1, 0, 2, 1], chainerx.int32)
+    >>> chainerx.accuracy(y, t) \
+# 100% accuracy because all samples are correct
+    array(1., shape=(), dtype=float64, device='native:0')
+    >>> t = chainerx.array([1, 0, 0, 0], chainerx.int32)
+    >>> chainerx.accuracy(y, t) \
+# 50% accuracy because 1st and 2nd samples are correct
+    array(0.5, shape=(), dtype=float64, device='native:0')
+    >>> chainerx.accuracy(y, t, ignore_label=0) \
+# 100% accuracy because of ignoring the 2nd, 3rd and 4th samples.
+    array(1., shape=(), dtype=float64, device='native:0')
 """)
 
 
