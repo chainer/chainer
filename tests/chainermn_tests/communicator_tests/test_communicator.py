@@ -186,12 +186,19 @@ def create_communicator(param, use_gpu):
     if use_gpu and not param.nccl1 and nccl.get_build_version() < 2000:
         pytest.skip('This test requires NCCL version >= 2.0')
 
+    communicator = param.communicator_class(mpi_comm)
+    communicator.set_config('batched_copy', param.batched_copy)
+    value = communicator.get_config('batched_copy')
+    assert param.batched_copy == value
+
+    with pytest.raises(ValueError):
+        communicator.set_config('blah blah blah')
+
     if param.communicator_class is PureNcclCommunicator:
-        communicator = param.communicator_class(
-            mpi_comm, allreduce_grad_dtype=param.allreduce_grad_dtype,
-            batched_copy=param.batched_copy)
-    else:
-        communicator = param.communicator_class(mpi_comm)
+        communicator.set_config('allreduce_grad_dtype',
+                                param.allreduce_grad_dtype)
+        value = communicator.get_config('allreduce_grad_dtype')
+        assert param.allreduce_grad_dtype == value
 
     if use_gpu:
         chainer.cuda.get_device_from_id(communicator.intra_rank).use()
@@ -346,12 +353,14 @@ def check_multi_node_mean_grad_mixed_dtype(param, model, use_gpu):
         if inter_size > 1:
             pytest.skip('This test is for single node only')
 
+    communicator = comm_class(mpi_comm)
+    communicator.set_config('batched_copy', param.batched_copy)
+
     if comm_class is PureNcclCommunicator:
-        communicator = comm_class(
-            mpi_comm, allreduce_grad_dtype=param.allreduce_grad_dtype,
-            batched_copy=param.batched_copy)
-    else:
-        communicator = comm_class(mpi_comm)
+        communicator.set_config('allreduce_grad_dtype',
+                                param.allreduce_grad_dtype)
+        value = communicator.get_config('allreduce_grad_dtype')
+        assert param.allreduce_grad_dtype == value
 
     mpi_comm.barrier()
 
@@ -900,3 +909,14 @@ class TestMpiCommunicatorBase(unittest.TestCase):
         self.check_send_recv_obj(5, tag=5, use_any_recv=False, use_status=True)
 
         self.teardown()
+
+    def test_config(self):
+        self.setup()
+        assert self.communicator.batched_copy
+        assert self.communicator.get_config('batched_copy')
+        self.communicator.set_config('batched_copy', False)
+        assert not self.communicator.batched_copy
+        assert not self.communicator.get_config('batched_copy')
+        self.communicator.set_config('batched_copy')
+        assert self.communicator.batched_copy
+        assert self.communicator.get_config('batched_copy')
