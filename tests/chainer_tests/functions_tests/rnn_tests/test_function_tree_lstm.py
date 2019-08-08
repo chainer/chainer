@@ -56,15 +56,14 @@ def _shaped_random_array(shape, dtype):
         })]))
 class TestTreeLSTM(testing.FunctionTestCase):
 
-    dodge_nondifferentiable = True
-
     def setUp(self):
-        self.check_forward_options.update({
-            'rtol': 1e-2, 'atol': 1e-2})
-        self.check_backward_options.update({
-            'rtol': 1e-2, 'atol': 1e-2})
-        self.check_double_backward_options.update({
-            'rtol': 5e-3, 'atol': 5e-2})
+        if self.dtype == numpy.float16:
+            self.check_forward_options.update({
+                'rtol': 1e-2, 'atol': 1e-2})
+            self.check_backward_options.update({
+                'rtol': 1e-2, 'atol': 1e-2})
+            self.check_double_backward_options.update({
+                'rtol': 5e-3, 'atol': 5e-2})
         self.skip_double_backward_test = True
 
     def generate_inputs(self):
@@ -87,11 +86,11 @@ class TestTreeLSTM(testing.FunctionTestCase):
         def _extract_gates(x, n_split=5):
             r = x.reshape(
                 (x.shape[0], n_split, x.shape[1] // n_split) + x.shape[2:])
-            return (r[:, i, :] for i in six.moves.range(n_split))
+            return [r[:, i, :] for i in six.moves.range(n_split)]
 
         cs, x = inputs[:-1], inputs[-1]
         n_ary = len(cs)
-        gates = list(_extract_gates(x, 3 + n_ary))
+        gates = _extract_gates(x, 3 + n_ary)
         a, i, o = gates[:3]
         fs = gates[3:]
         a = numpy.tanh(a)
