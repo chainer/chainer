@@ -206,7 +206,7 @@ std::vector<std::vector<Array>> n_step_rnn_impl(
         const int8_t mode,
         absl::optional<std::string> activation) {
     int8_t direction = use_bidirection ? 2 : 1;
-    if (hx.device().backend().GetName() == "cuda") {
+    if (hx.device().backend().GetName() == "cuda" && hx.dtype() == Dtype::kFloat32) {
         std::vector<std::vector<Array>> out;
         std::shared_ptr<RnnGradState> state{};
         {
