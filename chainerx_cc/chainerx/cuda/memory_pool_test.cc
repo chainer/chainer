@@ -423,16 +423,16 @@ TEST(MemoryPoolTest, Hook) {
 
     size_t total_memory = 0;
     std::map<void*, size_t> memories;
-    auto malloc_postprocess_hook = [&total_memory, &memories](size_t budget, void* ptr) {
-        memories[ptr] += budget;
-        total_memory += budget;
+    auto malloc_postprocess_hook = [&total_memory, &memories](size_t bytesize, void* ptr, const MemoryPool&) {
+        memories[ptr] += bytesize;
+        total_memory += bytesize;
     };
-    auto free_preprocess_hook = [&total_memory, &memories](void* ptr) {
+    auto free_preprocess_hook = [&total_memory, &memories](void* ptr, const MemoryPool&) {
         auto found = memories.find(ptr);
         ASSERT_TRUE(found != memories.end());
-        const size_t budget = found->second;
+        const size_t bytesize = found->second;
         memories.erase(found);
-        total_memory -= budget;
+        total_memory -= bytesize;
     };
     memory_pool.SetMallocPostprocessHook(malloc_postprocess_hook);
     memory_pool.SetFreePreprocessHook(free_preprocess_hook);

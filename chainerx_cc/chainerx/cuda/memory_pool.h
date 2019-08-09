@@ -137,10 +137,10 @@ public:
 
     void FreeNoExcept(void* ptr) noexcept;
 
-    void SetMallocPreprocessHook(std::function<void(size_t)> hook);
-    void SetMallocPostprocessHook(std::function<void(size_t, void*)> hook);
-    void SetFreePreprocessHook(const std::function<void(void*)> hook);
-    void SetFreePostprocessHook(const std::function<void(void*)> hook);
+    void SetMallocPreprocessHook(std::function<void(size_t, const MemoryPool&)> hook);
+    void SetMallocPostprocessHook(std::function<void(size_t, void*, const MemoryPool&)> hook);
+    void SetFreePreprocessHook(const std::function<void(void*, const MemoryPool&)> hook);
+    void SetFreePostprocessHook(const std::function<void(void*, const MemoryPool&)> hook);
 
 private:
     friend class cuda_internal::MemoryPoolTest;  // for unit-tests
@@ -162,10 +162,10 @@ private:
     std::mutex in_use_mutex_;
     std::mutex free_bins_mutex_;
 
-    std::function<void(size_t)> malloc_preprocess_hook_;
-    std::function<void(size_t, void*)> malloc_postprocess_hook_;
-    std::function<void(void*)> free_preprocess_hook_;
-    std::function<void(void*)> free_postprocess_hook_;
+    std::function<void(size_t, const MemoryPool&)> malloc_preprocess_hook_;
+    std::function<void(size_t, void*, const MemoryPool&)> malloc_postprocess_hook_;
+    std::function<void(void*, const MemoryPool&)> free_preprocess_hook_;
+    std::function<void(void*, const MemoryPool&)> free_postprocess_hook_;
 };
 
 }  // namespace cuda

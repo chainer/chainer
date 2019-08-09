@@ -204,7 +204,7 @@ void MemoryPool::FreeUnusedBlocks() {
 
 void* MemoryPool::Malloc(size_t bytesize) {
     if (malloc_preprocess_hook_) {
-        malloc_preprocess_hook_(bytesize);
+        malloc_preprocess_hook_(bytesize, *this);
     }
 
     if (bytesize == 0) {
@@ -253,7 +253,7 @@ void* MemoryPool::Malloc(size_t bytesize) {
     }
 
     if (malloc_postprocess_hook_) {
-        malloc_postprocess_hook_(bytesize, chunk_ptr);
+        malloc_postprocess_hook_(bytesize, chunk_ptr, *this);
     }
 
     return chunk_ptr;
@@ -261,7 +261,7 @@ void* MemoryPool::Malloc(size_t bytesize) {
 
 void MemoryPool::Free(void* ptr) {
     if (free_preprocess_hook_) {
-        free_preprocess_hook_(ptr);
+        free_preprocess_hook_(ptr, *this);
     }
 
     if (ptr == nullptr) {
@@ -305,7 +305,7 @@ void MemoryPool::Free(void* ptr) {
 
     if (free_postprocess_hook_) {
         // TODO(mkusumoto): Is this a valid call?
-        free_postprocess_hook_(ptr);
+        free_postprocess_hook_(ptr, *this);
     }
 }
 
@@ -317,13 +317,13 @@ void MemoryPool::FreeNoExcept(void* ptr) noexcept {
     }
 }
 
-void MemoryPool::SetMallocPreprocessHook(std::function<void(size_t)> hook) { malloc_preprocess_hook_ = hook; }
+void MemoryPool::SetMallocPreprocessHook(std::function<void(size_t, const MemoryPool&)> hook) { malloc_preprocess_hook_ = hook; }
 
-void MemoryPool::SetMallocPostprocessHook(std::function<void(size_t, void*)> hook) { malloc_postprocess_hook_ = hook; }
+void MemoryPool::SetMallocPostprocessHook(std::function<void(size_t, void*, const MemoryPool&)> hook) { malloc_postprocess_hook_ = hook; }
 
-void MemoryPool::SetFreePreprocessHook(const std::function<void(void*)> hook) { free_preprocess_hook_ = hook; }
+void MemoryPool::SetFreePreprocessHook(const std::function<void(void*, const MemoryPool&)> hook) { free_preprocess_hook_ = hook; }
 
-void MemoryPool::SetFreePostprocessHook(const std::function<void(void*)> hook) { free_postprocess_hook_ = hook; }
+void MemoryPool::SetFreePostprocessHook(const std::function<void(void*, const MemoryPool&)> hook) { free_postprocess_hook_ = hook; }
 
 }  // namespace cuda
 }  // namespace chainerx
