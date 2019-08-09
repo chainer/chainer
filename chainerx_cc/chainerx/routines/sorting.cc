@@ -11,9 +11,9 @@
 #include "chainerx/error.h"
 #include "chainerx/kernels/sorting.h"
 #include "chainerx/routines/creation.h"
-#include "chainerx/routines/reduction.h"
 #include "chainerx/routines/indexing.h"
 #include "chainerx/routines/logic.h"
+#include "chainerx/routines/reduction.h"
 #include "chainerx/shape.h"
 
 namespace chainerx {
