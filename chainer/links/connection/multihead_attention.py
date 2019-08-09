@@ -1,6 +1,6 @@
 import typing as tp
 
-
+import chainer
 from chainer import functions
 from chainer import initializers
 from chainer import link

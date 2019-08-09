@@ -24,7 +24,7 @@ from chainer.links.connection.inceptionbn import InceptionBN  # NOQA
 from chainer.links.connection.linear import Linear  # NOQA
 from chainer.links.connection.local_convolution_2d import LocalConvolution2D  # NOQA
 from chainer.links.connection.mlp_convolution_2d import MLPConvolution2D  # NOQA
-from chainer.links.connection.multihead_attention import MultiHead Attention  # NOQA
+from chainer.links.connection.multihead_attention import MultiHeadAttention  # NOQA
 from chainer.links.connection.parameter import Parameter  # NOQA
 from chainer.links.connection.scale import Scale  # NOQA
 from chainer.links.loss.black_out import BlackOut  # NOQA
