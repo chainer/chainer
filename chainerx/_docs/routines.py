@@ -681,13 +681,17 @@ Returns:
         ``v`` contains eigenvectors. ``v[:, i]`` is an eigenvector
         corresponding to an eigenvalue ``w[i]``.
 
+Note:
+    The ``dtype`` must be ``float32`` or ``float64`` (``float16`` is not
+    supported yet.)
+
 .. seealso:: :func:`numpy.linalg.eigh`
 """)
 
     _docs.set_doc(
         chainerx.linalg.eigvalsh,
         """eigvalsh(a, UPLO='L')
-Compute the eigenvalues and eigenvectors of a real symmetric matrix.
+Compute the eigenvalues of a real symmetric matrix.
 
 Main difference from eigh: the eigenvectors are not computed.
 
@@ -700,6 +704,12 @@ Args:
 
 Returns:
     :class:`~chainerx.ndarray`: Returns eigenvalues as a vector.
+
+Note:
+    * The ``dtype`` must be ``float32`` or ``float64`` (``float16`` is not
+      supported yet.)
+    * Backpropagation requires eigenvectors and, therefore, is not implemented
+      for this function. ``linalg.eigh`` should be used instead.
 
 .. seealso:: :func:`numpy.linalg.eigvalsh`
 """)
