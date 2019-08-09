@@ -317,21 +317,13 @@ void MemoryPool::FreeNoExcept(void* ptr) noexcept {
     }
 }
 
-void MemoryPool::SetMallocPreprocessHook(std::function<void(size_t)> hook) {
-    malloc_preprocess_hook_ = hook;
-}
+void MemoryPool::SetMallocPreprocessHook(std::function<void(size_t)> hook) { malloc_preprocess_hook_ = hook; }
 
-void MemoryPool::SetMallocPostprocessHook(std::function<void(size_t, void*)> hook) {
-    malloc_postprocess_hook_ = hook;
-}
+void MemoryPool::SetMallocPostprocessHook(std::function<void(size_t, void*)> hook) { malloc_postprocess_hook_ = hook; }
 
-void MemoryPool::SetFreePreprocessHook(const std::function<void(void*)> hook) {
-    free_preprocess_hook_ = hook;
-}
+void MemoryPool::SetFreePreprocessHook(const std::function<void(void*)> hook) { free_preprocess_hook_ = hook; }
 
-void MemoryPool::SetFreePostprocessHook(const std::function<void(void*)> hook) {
-    free_postprocess_hook_ = hook;
-}
+void MemoryPool::SetFreePostprocessHook(const std::function<void(void*)> hook) { free_postprocess_hook_ = hook; }
 
 }  // namespace cuda
 }  // namespace chainerx
