@@ -418,7 +418,7 @@ TEST(MemoryPoolTest, MallocFreeThreadSafe) {
     });
 }
 
-TEST(MemoryPoolTest, HookTest) {
+TEST(MemoryPoolTest, Hook) {
     MemoryPool memory_pool{0, std::make_unique<FixedCapacityDummyAllocator>(0xffffffffU)};
 
     size_t total_memory = 0;
