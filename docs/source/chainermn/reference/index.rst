@@ -10,7 +10,7 @@ Communicators
 .. autofunction:: create_communicator
 .. autoclass:: CommunicatorBase
     :members: rank, intra_rank, inter_rank, inter_size, size,
-              alltoall, split, send, recv, bcast, gather, allreduce,
+              alltoall, split, send, recv, bcast, gather, allreduce, scatter,
               send_obj, recv_obj, bcast_obj, gather_obj,
               allreduce_obj, bcast_data, multi_node_mean_grad, allreduce_grad,
               allgather, finalize
