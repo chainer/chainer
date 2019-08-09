@@ -544,6 +544,11 @@ class BuildingBlock(link.Chain):
             If this argument is specified as ``True``, it performs downsampling
             by placing stride 2 on the 3x3 convolutional layers
             (Facebook ResNet).
+
+    .. note::
+       `n_layers` is replaced with `n_layer`.
+       `n_layer` is now deprecated for consistency of naming choice.
+
     """
 
     def __init__(self, n_layers=None, in_channels=None, mid_channels=None,
