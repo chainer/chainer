@@ -40,7 +40,7 @@ class GroupNormalizationTest(unittest.TestCase):
             if x_groups.std(axis=2).min() >= min_std:
                 break
             retry += 1
-            assert retry <= 10, 'Too many retries to generate inputs'
+            assert retry <= 20, 'Too many retries to generate inputs'
 
         return x,
 

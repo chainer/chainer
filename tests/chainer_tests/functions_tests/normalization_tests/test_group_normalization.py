@@ -74,7 +74,7 @@ class TestGroupNormalization(testing.FunctionTestCase):
             if x_groups.std(axis=2).min() >= min_std:
                 break
             retry += 1
-            assert retry <= 10, 'Too many retries to generate inputs'
+            assert retry <= 20, 'Too many retries to generate inputs'
 
         gamma = numpy.random.uniform(-1, 1, shape[1]).astype(self.dtype)
         beta = numpy.random.uniform(-1, 1, shape[1]).astype(self.dtype)
