@@ -17,8 +17,8 @@ from chainer.testing import attr
     'beta': [1],
     'gamma': [0.001],
     'norm': [1],
-    'result_l_dist': [24.85508332],
-    'result_l_var': [79.16666667],
+    'result_l_dist': [185.15133466],
+    'result_l_var': [64.81721673],
     'result_l_reg': [1.00000305]
 }) + testing.product(({
     'delta_v': [3],
@@ -27,9 +27,9 @@ from chainer.testing import attr
     'beta': [0.1],
     'gamma': [0.1],
     'norm': [2],
-    'result_l_dist': [0.0],
-    'result_l_var': [33.2064643],
-    'result_l_reg': [8.2517263]
+    'result_l_dist': [0.59867187],
+    'result_l_var': [27.54858666],
+    'result_l_reg': [7.86060391]
 })))
 class TestDiscriminativeMarginBasedClusteringLoss(unittest.TestCase):
 
