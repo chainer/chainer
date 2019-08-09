@@ -481,7 +481,7 @@ CHAINERX_CUDA_REGISTER_KERNEL(SvdKernel, CudaSvdKernel);
 
 class CudaSyevdKernel : public SyevdKernel {
 public:
-    void Call(const Array& a, const Array& w, const Array& v, const std::string& UPLO, bool compute_eigen_vector) override {
+    void Call(const Array& a, const Array& w, const Array& v, const std::string& uplo, bool compute_eigen_vector) override {
         Device& device = a.device();
         Dtype dtype = a.dtype();
         CudaSetDeviceScope scope{device.index()};
@@ -507,14 +507,11 @@ public:
 
             // cuSOLVER assumes that arrays are stored in column-major order
             // The uplo argument is swapped instead of transposing the input matrix
-            cublasFillMode_t uplo = CUBLAS_FILL_MODE_UPPER;
-            if (UPLO == "U") {
-                uplo = CUBLAS_FILL_MODE_LOWER;
-            }
+            cublasFillMode_t uplo_cublas = (uplo == "U") ? CUBLAS_FILL_MODE_LOWER : CUBLAS_FILL_MODE_UPPER;
 
             int buffersize = 0;
             // When calling Syevd matrix dimensions are swapped instead of transposing the input matrix
-            device_internals.cusolverdn_handle().Call(SyevdBuffersize<T>, jobz, uplo, n, v_ptr, m, w_ptr, &buffersize);
+            device_internals.cusolverdn_handle().Call(SyevdBuffersize<T>, jobz, uplo_cublas, n, v_ptr, m, w_ptr, &buffersize);
 
             Array work = Empty(Shape{buffersize}, dtype, device);
             auto work_ptr = static_cast<T*>(internal::GetRawOffsetData(work));
@@ -522,7 +519,7 @@ public:
             std::shared_ptr<void> devInfo = device.Allocate(sizeof(int));
 
             device_internals.cusolverdn_handle().Call(
-                    Syevd<T>, jobz, uplo, n, v_ptr, m, w_ptr, work_ptr, buffersize, static_cast<int*>(devInfo.get()));
+                    Syevd<T>, jobz, uplo_cublas, n, v_ptr, m, w_ptr, work_ptr, buffersize, static_cast<int*>(devInfo.get()));
 
             int devInfo_h = 0;
             Device& native_device = GetDefaultContext().GetDevice({"native", 0});

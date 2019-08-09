@@ -44,7 +44,7 @@ class SyevdKernel : public Kernel {
 public:
     static const char* name() { return "Syevd"; }
 
-    virtual void Call(const Array& a, const Array& w, const Array& v, const std::string& UPLO, bool compute_eigen_vector) = 0;
+    virtual void Call(const Array& a, const Array& w, const Array& v, const std::string& uplo, bool compute_eigen_vector) = 0;
 };
 
 }  // namespace chainerx

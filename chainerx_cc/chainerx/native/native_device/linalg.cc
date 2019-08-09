@@ -392,7 +392,7 @@ CHAINERX_NATIVE_REGISTER_KERNEL(SvdKernel, NativeSvdKernel);
 
 class NativeSyevdKernel : public SyevdKernel {
 public:
-    void Call(const Array& a, const Array& w, const Array& v, const std::string& UPLO, bool compute_eigen_vector) override {
+    void Call(const Array& a, const Array& w, const Array& v, const std::string& uplo, bool compute_eigen_vector) override {
 #if CHAINERX_ENABLE_LAPACK
         Device& device = a.device();
         Dtype dtype = a.dtype();
@@ -416,14 +416,9 @@ public:
                 jobz = 'V';
             }
 
-            char uplo = UPLO.c_str()[0];
             // LAPACK assumes that arrays are stored in column-major order
             // The uplo argument is swapped instead of transposing the input matrix
-            if (uplo == 'U') {
-                uplo = 'L';
-            } else {
-                uplo = 'U';
-            }
+            char uplo_char = (uplo == "U") ? 'L' : 'U';
 
             int info;
             int lwork = -1;
@@ -432,7 +427,7 @@ public:
             int iwork_size;
 
             // When calling Syevd matrix dimensions are swapped instead of transposing the input matrix
-            Syevd<T>(jobz, uplo, n, v_ptr, m, w_ptr, &work_size, lwork, &iwork_size, liwork, &info);
+            Syevd<T>(jobz, uplo_char, n, v_ptr, m, w_ptr, &work_size, lwork, &iwork_size, liwork, &info);
 
             lwork = static_cast<int>(work_size);
             Array work = Empty(Shape{lwork}, dtype, device);
@@ -442,7 +437,7 @@ public:
             Array iwork = Empty(Shape{liwork}, Dtype::kInt32, device);
             auto iwork_ptr = static_cast<int*>(internal::GetRawOffsetData(iwork));
 
-            Syevd<T>(jobz, uplo, n, v_ptr, m, w_ptr, work_ptr, lwork, iwork_ptr, liwork, &info);
+            Syevd<T>(jobz, uplo_char, n, v_ptr, m, w_ptr, work_ptr, lwork, iwork_ptr, liwork, &info);
 
             if (info != 0) {
                 throw ChainerxError{"Unsuccessful syevd (Eigen Decomposition) execution. Info = ", info};
@@ -454,7 +449,7 @@ public:
         (void)a;  // unused
         (void)w;  // unused
         (void)v;  // unused
-        (void)UPLO;  // unused
+        (void)uplo;  // unused
         (void)compute_eigen_vector;  // unused
         throw ChainerxError{"LAPACK is not linked to ChainerX."};
 #endif  // CHAINERX_LAPACK_AVAILABLE
