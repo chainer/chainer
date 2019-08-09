@@ -213,14 +213,14 @@ class CommunicatorBase(six.with_metaclass(ABCMeta)):
     def scatter(self, xs, root=0):
         """A primitive of inter-process scatter communication.
 
-         This method tries to invoke scatter communication within the
+        This method tries to invoke scatter communication within the
         communicator. All processes in the communicator are expected to
         invoke ``scatter()``.
 
-         Args:
+        Args:
             xs (tuple of numpy/cupy array): Arrays to be scattered.
             root (int): Rank of root process.
-         Returns:
+        Returns:
             ys (numpy/cupy array): Received arrays.
         """
         raise NotImplementedError()
