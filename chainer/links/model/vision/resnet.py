@@ -531,6 +531,9 @@ class BuildingBlock(link.Chain):
     """A building block that consists of several Bottleneck layers.
 
     Args:
+        n_layer (int): *(deprecated since v7.0.0)*
+            `n_layer` is now deprecated for consistency of naming choice.
+            Please use `n_layers` instead.
         n_layers (int): Number of layers used in the building block.
         in_channels (int): Number of channels of input arrays.
         mid_channels (int): Number of channels of intermediate arrays.
@@ -544,10 +547,6 @@ class BuildingBlock(link.Chain):
             If this argument is specified as ``True``, it performs downsampling
             by placing stride 2 on the 3x3 convolutional layers
             (Facebook ResNet).
-
-    .. note::
-       `n_layers` is replaced with `n_layer`.
-       `n_layer` is now deprecated for consistency of naming choice.
 
     """
 
