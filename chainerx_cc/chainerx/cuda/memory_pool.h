@@ -137,6 +137,11 @@ public:
 
     void FreeNoExcept(void* ptr) noexcept;
 
+    void SetMallocPreprocessHook(std::function<void(size_t)> hook);
+    void SetMallocPostprocessHook(std::function<void(size_t, void*)> hook);
+    void SetFreePreprocessHook(const std::function<void(void*)> hook);
+    void SetFreePostprocessHook(const std::function<void(void*)> hook);
+
 private:
     friend class cuda_internal::MemoryPoolTest;  // for unit-tests
 
@@ -156,6 +161,11 @@ private:
     cuda_internal::FreeBinsMap free_bins_;  // allocation size => cuda_internal::FreeList
     std::mutex in_use_mutex_;
     std::mutex free_bins_mutex_;
+
+    std::function<void(size_t)> malloc_preprocess_hook_;
+    std::function<void(size_t, void*)> malloc_postprocess_hook_;
+    std::function<void(void*)> free_preprocess_hook_;
+    std::function<void(void*)> free_postprocess_hook_;
 };
 
 }  // namespace cuda

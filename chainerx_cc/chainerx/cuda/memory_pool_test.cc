@@ -418,6 +418,49 @@ TEST(MemoryPoolTest, MallocFreeThreadSafe) {
     });
 }
 
+TEST(MemoryPoolTest, HookTest) {
+    MemoryPool memory_pool{0, std::make_unique<FixedCapacityDummyAllocator>(0xffffffffU)};
+
+    size_t total_memory = 0;
+    std::map<void*, size_t> memories;
+    auto malloc_postprocess_hook = [&total_memory, &memories](size_t budget, void* ptr) {
+        memories[ptr] += budget;
+        total_memory += budget;
+    };
+    auto free_preprocess_hook = [&total_memory, &memories](void* ptr) {
+        auto found = memories.find(ptr);
+        ASSERT_TRUE(found != memories.end());
+        const size_t budget = found->second;
+        memories.erase(found);
+        total_memory -= budget;
+    };
+    memory_pool.SetMallocPostprocessHook(malloc_postprocess_hook);
+    memory_pool.SetFreePreprocessHook(free_preprocess_hook);
+
+    EXPECT_EQ(total_memory, 0);
+    EXPECT_EQ(memories.size(), 0);
+
+    void* ptr1 = memory_pool.Malloc(12);
+
+    EXPECT_EQ(total_memory, 12);
+    EXPECT_EQ(memories.size(), 1);
+
+    void* ptr2 = memory_pool.Malloc(300);
+
+    EXPECT_EQ(total_memory, 312);
+    EXPECT_EQ(memories.size(), 2);
+
+    memory_pool.Free(ptr1);
+
+    EXPECT_EQ(total_memory, 300);
+    EXPECT_EQ(memories.size(), 1);
+
+    memory_pool.Free(ptr2);
+
+    EXPECT_EQ(total_memory, 0);
+    EXPECT_EQ(memories.size(), 0);
+}
+
 }  // namespace
 }  // namespace cuda
 }  // namespace chainerx
