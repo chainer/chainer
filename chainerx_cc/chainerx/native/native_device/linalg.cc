@@ -411,10 +411,7 @@ public:
             auto v_ptr = static_cast<T*>(internal::GetRawOffsetData(v));
             auto w_ptr = static_cast<T*>(internal::GetRawOffsetData(w));
 
-            char jobz = 'N';
-            if (compute_v) {
-                jobz = 'V';
-            }
+            char jobz = compute_v ? 'V' : 'N';
 
             // LAPACK assumes that arrays are stored in column-major order
             // The uplo argument is swapped instead of transposing the input matrix

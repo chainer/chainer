@@ -500,10 +500,7 @@ public:
             auto v_ptr = static_cast<T*>(internal::GetRawOffsetData(v));
             auto w_ptr = static_cast<T*>(internal::GetRawOffsetData(w));
 
-            cusolverEigMode_t jobz = CUSOLVER_EIG_MODE_NOVECTOR;
-            if (compute_v) {
-                jobz = CUSOLVER_EIG_MODE_VECTOR;
-            }
+            cusolverEigMode_t jobz = compute_v ? CUSOLVER_EIG_MODE_VECTOR : CUSOLVER_EIG_MODE_NOVECTOR;
 
             // cuSOLVER assumes that arrays are stored in column-major order
             // The uplo argument is swapped instead of transposing the input matrix
