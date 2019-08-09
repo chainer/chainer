@@ -1,8 +1,9 @@
 #pragma once
 
-#include <absl/types/optional.h>
 #include <string>
 #include <tuple>
+
+#include <absl/types/optional.h>
 
 #include "chainerx/array.h"
 #include "chainerx/dtype.h"
