@@ -355,8 +355,8 @@ std::tuple<Array, Array> Eigh(const Array& a, const std::string& uplo) {
                 Array vt = v.Transpose();
 
                 Array f = ExpandDims(w, 0) - ExpandDims(w, 1);
-                // Invert values of F, and fill the diagonal with 0s.
-                // F has 0s on the diagonal, therefore fill it first with infinity.
+                // Invert values of `f`, and fill the diagonal with 0s.
+                // `f` has 0s on the diagonal, therefore fill it first with infinity.
                 Array mask = Eye(f.shape()[0], f.shape()[1], 0, Dtype::kBool, a.device());
                 f = Where(mask, std::numeric_limits<float>::infinity(), f);
                 f = Reciprocal(f);
