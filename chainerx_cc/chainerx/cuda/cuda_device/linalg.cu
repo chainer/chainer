@@ -481,7 +481,7 @@ CHAINERX_CUDA_REGISTER_KERNEL(SvdKernel, CudaSvdKernel);
 
 class CudaSyevdKernel : public SyevdKernel {
 public:
-    void Call(const Array& a, const Array& w, const Array& v, const std::string& uplo, bool compute_eigen_vector) override {
+    void Call(const Array& a, const Array& w, const Array& v, const std::string& uplo, bool compute_v) override {
         Device& device = a.device();
         Dtype dtype = a.dtype();
         CudaSetDeviceScope scope{device.index()};
@@ -501,7 +501,7 @@ public:
             auto w_ptr = static_cast<T*>(internal::GetRawOffsetData(w));
 
             cusolverEigMode_t jobz = CUSOLVER_EIG_MODE_NOVECTOR;
-            if (compute_eigen_vector) {
+            if (compute_v) {
                 jobz = CUSOLVER_EIG_MODE_VECTOR;
             }
 

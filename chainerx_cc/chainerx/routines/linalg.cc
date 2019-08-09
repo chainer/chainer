@@ -335,7 +335,7 @@ std::tuple<Array, Array> Eigh(const Array& a, const std::string& uplo) {
 
     {
         NoBackpropModeScope scope{};
-        a.device().backend().CallKernel<SyevdKernel>(a, w, v, uplo, /*compute_eigen_vector=*/true);
+        a.device().backend().CallKernel<SyevdKernel>(a, w, v, uplo, /*compute_v=*/true);
         v = v.Transpose();
     }
 
@@ -379,7 +379,7 @@ Array Eigvalsh(const Array& a, const std::string& uplo) {
 
     {
         NoBackpropModeScope scope{};
-        a.device().backend().CallKernel<SyevdKernel>(a, w, v, uplo, /*compute_eigen_vector=*/false);
+        a.device().backend().CallKernel<SyevdKernel>(a, w, v, uplo, /*compute_v=*/false);
     }
 
     return w;

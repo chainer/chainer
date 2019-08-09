@@ -392,7 +392,7 @@ CHAINERX_NATIVE_REGISTER_KERNEL(SvdKernel, NativeSvdKernel);
 
 class NativeSyevdKernel : public SyevdKernel {
 public:
-    void Call(const Array& a, const Array& w, const Array& v, const std::string& uplo, bool compute_eigen_vector) override {
+    void Call(const Array& a, const Array& w, const Array& v, const std::string& uplo, bool compute_v) override {
 #if CHAINERX_ENABLE_LAPACK
         Device& device = a.device();
         Dtype dtype = a.dtype();
@@ -412,7 +412,7 @@ public:
             auto w_ptr = static_cast<T*>(internal::GetRawOffsetData(w));
 
             char jobz = 'N';
-            if (compute_eigen_vector) {
+            if (compute_v) {
                 jobz = 'V';
             }
 
