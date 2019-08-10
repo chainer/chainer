@@ -547,6 +547,7 @@ void InitChainerxManipulation(pybind11::module& m) {
           [](const ArrayBodyPtr& a, int8_t axes) { return MoveArrayBody(Transpose(Array{a}, {axes})); },
           "a"_a,
           "axes"_a = nullptr);
+    m.def("flatten", [](const ArrayBodyPtr& a) { return MoveArrayBody(Flatten(Array{a})); }, "a"_a);
     m.def("flip",
           [](const ArrayBodyPtr& m, const absl::optional<std::vector<int8_t>>& axes) {
               return MoveArrayBody(Flip(Array{m}, ToAxes(axes)));

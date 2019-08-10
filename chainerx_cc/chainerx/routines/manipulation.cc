@@ -737,6 +737,11 @@ Array ExpandDims(const Array& a, int8_t axis) {
     return out;
 }
 
+Array Flatten(const Array& a) {
+    Array out = a.Reshape({a.GetTotalSize()});
+    return out;
+}
+
 Array Flip(const Array& m, const OptionalAxes& axes) {
     Axes real_axes;
     if (axes.has_value()) {

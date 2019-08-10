@@ -311,6 +311,26 @@ class TestReshapeArg(op_utils.NumpyOpTest):
         return b,
 
 
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize_pytest('a_shape,b_shape', _reshape_shape)
+class TestFlatten(op_utils.NumpyOpTest):
+
+    forward_accept_errors = (TypeError, chainerx.ChainerxError)
+    check_numpy_strides_compliance = False
+
+    def generate_inputs(self):
+        a = array_utils.shaped_arange(self.a_shape, 'float64')
+        return a,
+
+    def forward_xp(self, inputs, xp):
+        a, = inputs
+        if xp is chainerx:
+            b = xp.flatten(a)
+        else:
+            b = a.flatten()
+        return b,
+
+
 @pytest.mark.parametrize('shape1,shape2', [
     ((), (0,)),
     ((), (2,)),

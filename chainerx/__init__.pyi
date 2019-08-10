@@ -704,6 +704,9 @@ def fixed_batch_norm(
         axis: tp.Optional[tp.Union[int, tp.List[int]]]=None) -> ndarray: ...
 
 
+def flatten(a: ndarray) -> ndarray: ...
+
+
 def flip(
         a: ndarray,
         axes: tp.Optional[tp.Union[int, tp.List[int]]]=None) -> ndarray: ...
