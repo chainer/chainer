@@ -23,6 +23,8 @@
 #include "chainerx/macro.h"
 #include "chainerx/routines/arithmetic.h"
 #include "chainerx/routines/creation.h"
+#include "chainerx/routines/manipulation.h"
+#include "chainerx/routines/misc.h"
 #include "chainerx/routines/reduction.h"
 #include "chainerx/routines/type_util.h"
 #include "chainerx/shape.h"
@@ -295,18 +297,16 @@ Array Where(const Array& condition, Scalar x, Scalar y) {
     return out;
 }
 
-std::vector<Array> Nonzero(const Array& a) {
-    Array a_flatten = a.Reshape(Shape{a.GetTotalSize()});
-    Array num_nonzero = (a_flatten != ZerosLike(a_flatten)).Sum();
-    Shape shape{num_nonzero.at({0})};
-    std::vector<int64_t> out(1, Empty(shape, a_flatten.dtype(), a_flatten.device()));
-    Array scan_index = Cumsum(a_flatten);
-    {
-        NoBackpropModeScope scope{};
-        a.device().backend().CallKernel<NonzeroKernel>(a_flatten, scan_index, out);
-    }
-    // Separate out into ndim arrays for multi dim case
-    return out;
+Array Nonzero(const Array& a) {
+    int64_t total_size = a.GetTotalSize();
+    Array a_flatten = a.Reshape({total_size});
+    Array is_nonzero = a_flatten != ZerosLike(a_flatten);
+    int64_t count_nonzero = static_cast<int64_t>(AsScalar(is_nonzero.Sum()));
+    Array out_flatten = Zeros(Shape{count_nonzero}, a.dtype(), a.device());
+    Array addat_index = Maximum(Cumsum(a_flatten) - 1, Scalar{0});
+    out_flatten = AddAt(out_flatten, addat_index, 0, a_flatten);
+    // Reshape outputs to arrays for each dimension.
+    return out_flatten;
 }
 
 }  // namespace chainerx

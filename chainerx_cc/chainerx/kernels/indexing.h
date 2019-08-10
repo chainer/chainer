@@ -50,11 +50,4 @@ public:
     virtual void Call(const Array& condition, Scalar x, Scalar y, const Array& out) = 0;
 };
 
-class NonzeroKernel : public Kernel {
-    public:
-        static const char* name() { return "Nonzero"; }
-
-        virtual void Call(const Array& a, const Array& scan_index, std::vector<int64_t>& out) = 0;
-};
-
 }  // namespace chainerx

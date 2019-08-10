@@ -247,26 +247,6 @@ public:
 
 CHAINERX_NATIVE_REGISTER_KERNEL(WhereASSKernel, NativeWhereASSKernel);
 
-class NativeNonzeroKernel : public NonzeroKernel {
-public:
-    void Call(const Array& a, const Array& scan_index, std::vector<int64_t>& out) override {
-
-        VisitDtype(a.dtype(), [&](auto pt) {
-            using T = typename decltype(pt)::type;
-            struct Impl {
-                void operator()(int64_t i, T a, T scan_index, std::vector<int64_t>& out) {
-                    if (a != 0) {
-                        out.at(int64_t(scan_index - (T)(1.0))) = i;
-                    }
-                }
-            };
-            Elementwise<const T, const T, std::vector<int64_t>>(Impl{}, a, out);
-        });
-    }
-};
-
-CHAINERX_NATIVE_REGISTER_KERNEL(NonzeroKernel, NativeNonzeroKernel);
-
 }  // namespace
 }  // namespace native
 }  // namespace chainerx
