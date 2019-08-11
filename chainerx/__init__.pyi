@@ -869,6 +869,9 @@ def ones(shape: tp.Union[int, tp.Sequence[int]],
 def ones_like(a: ndarray, device: tp.Optional[Device]=None) -> ndarray: ...
 
 
+def ravel(a: ndarray) -> ndarray: ...
+
+
 def reshape(
         a: ndarray,
         newshape: tp.Union[int, tp.Sequence[int]]) -> ndarray: ...

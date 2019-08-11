@@ -1417,3 +1417,20 @@ def test_moveaxis_invalid(xp, shape, source, dst):
     a = array_utils.uniform(shape, 'float')
     a = xp.array(a)
     return xp.moveaxis(a, source, dst)
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize_pytest('a_shape,b_shape', _reshape_shape)
+class TestRavel(op_utils.NumpyOpTest):
+
+    forward_accept_errors = (TypeError, chainerx.ChainerxError)
+    check_numpy_strides_compliance = False
+
+    def generate_inputs(self):
+        a = array_utils.shaped_arange(self.a_shape, 'float64')
+        return a,
+
+    def forward_xp(self, inputs, xp):
+        a, = inputs
+        b = xp.ravel(a)
+        return b,
