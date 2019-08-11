@@ -23,7 +23,10 @@ def _check_and_compute_group_shape(size, groups, group_size):
 
 class DecorrelatedBatchNormalization(link.Link):
 
-    """Decorrelated batch normalization layer.
+    """__init__(self, size, groups=16, decay=0.9, eps=2e-5, \
+dtype=numpy.float32, *, group_size=None)
+
+    Decorrelated batch normalization layer.
 
     This link wraps the
     :func:`~chainer.functions.decorrelated_batch_normalization` and
@@ -54,6 +57,7 @@ class DecorrelatedBatchNormalization(link.Link):
             which is used during training.
         eps (float): Epsilon value for numerical stability.
         dtype (numpy.dtype): Type to use in computing.
+        group_size (int): Size of each group to use for group whitening.
 
     See: `Decorrelated Batch Normalization <https://arxiv.org/abs/1804.08450>`_
 
