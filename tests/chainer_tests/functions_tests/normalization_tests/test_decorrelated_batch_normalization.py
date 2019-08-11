@@ -56,17 +56,36 @@ def _calc_mean(x, groups):
     return x.mean(axis=axis).reshape(groups, -1)
 
 
+def _parse_group_kwargs(n_channels, groups, group_size=None):
+    if group_size is None:
+        if groups is None:
+            group_size = 16
+        else:
+            return groups, n_channels // groups
+    if groups is None:
+        groups = n_channels // group_size
+    return groups, group_size
+
+
 @testing.parameterize(*(testing.product({
     'n_channels': [8],
     'ndim': [0, 2],
-    'groups': [1, 2],
+    'group_kwargs': [
+        {'groups': 1, 'group_size': 8},
+        {'groups': 2},
+        {'groups': None, 'group_size': 2},
+    ],
     'eps': [2e-5, 5e-1],
     'dtype': [numpy.float32],
     'contiguous': ['C', None],
 }) + testing.product({
     'n_channels': [8],
     'ndim': [1],
-    'groups': [1, 2],
+    'group_kwargs': [
+        {'groups': 1, 'group_size': 8},
+        {'groups': 2},
+        {'groups': None, 'group_size': 2},
+    ],
     'eps': [2e-5, 5e-1],
     # NOTE(crcrpar): np.linalg.eigh does not support float16
     'dtype': [numpy.float32, numpy.float64],
@@ -111,11 +130,11 @@ class TestDecorrelatedBatchNormalization(testing.FunctionTestCase):
     def forward(self, inputs, device):
         x, = inputs
         return functions.decorrelated_batch_normalization(
-            x, groups=self.groups, eps=self.eps),
+            x, eps=self.eps, **self.group_kwargs),
 
     def forward_expected(self, inputs):
         x, = inputs
-        groups = self.groups
+        groups, _ = _parse_group_kwargs(self.n_channels, **self.group_kwargs)
         mean = _calc_mean(x, groups)
         projection = _calc_projection(x, mean, self.eps, groups)
         return _decorrelated_batch_normalization(
@@ -125,14 +144,22 @@ class TestDecorrelatedBatchNormalization(testing.FunctionTestCase):
 @testing.parameterize(*(testing.product({
     'n_channels': [8],
     'ndim': [0, 1, 2],
-    'groups': [1, 2],
+    'group_kwargs': [
+        {'groups': 1, 'group_size': 8},
+        {'groups': 2},
+        {'groups': None, 'group_size': 2},
+    ],
     'eps': [2e-5, 5e-1],
     'dtype': [numpy.float32],
     'contiguous': ['C', None],
 }) + testing.product({
     'n_channels': [8],
     'ndim': [1],
-    'groups': [1, 2],
+    'group_kwargs': [
+        {'groups': 1, 'group_size': 8},
+        {'groups': 2},
+        {'groups': None, 'group_size': 2},
+    ],
     'eps': [2e-5, 5e-1],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'contiguous': ['C', None],
@@ -156,12 +183,13 @@ class TestFixedDecorrelatedBatchNormalization(testing.FunctionTestCase):
     skip_double_backward_test = True
 
     def setUp(self):
-        C = self.n_channels // self.groups
+        groups, C = _parse_group_kwargs(self.n_channels, **self.group_kwargs)
+        C = self.n_channels // groups
         dtype = self.dtype
         self.mean = numpy.random.uniform(
-            -1, 1, (self.groups, C)).astype(dtype)
+            -1, 1, (groups, C)).astype(dtype)
         self.projection = numpy.random.uniform(
-            0.5, 1, (self.groups, C, C)).astype(dtype)
+            0.5, 1, (groups, C, C)).astype(dtype)
 
         check_forward_options = {'atol': 1e-4, 'rtol': 1e-3}
         check_backward_options = {'atol': 1e-4, 'rtol': 1e-3}
@@ -185,15 +213,16 @@ class TestFixedDecorrelatedBatchNormalization(testing.FunctionTestCase):
         mean = device.send_array(self.mean.copy())
         projection = device.send_array(self.projection.copy())
         return functions.fixed_decorrelated_batch_normalization(
-            x, mean, projection, groups=self.groups
+            x, mean, projection, **self.group_kwargs
         ),
 
     def forward_expected(self, inputs):
         x, = inputs
         mean = self.mean.copy()
         projection = self.projection.copy()
+        groups, _ = _parse_group_kwargs(self.n_channels, **self.group_kwargs)
         return _decorrelated_batch_normalization(
-            x, mean, projection, self.groups),
+            x, mean, projection, groups),
 
 
 testing.run_module(__name__, __file__)

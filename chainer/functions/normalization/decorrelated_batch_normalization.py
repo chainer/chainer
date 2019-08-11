@@ -56,9 +56,13 @@ def _calc_axis_and_m(x_shape, batch_size):
 
 class DecorrelatedBatchNormalization(function_node.FunctionNode):
 
-    def __init__(self, groups=16, eps=2e-5, mean=None, projection=None,
-                 decay=0.9):
+    def __init__(
+            self, groups=None, group_size=None, eps=2e-5,
+            mean=None, projection=None, decay=0.9):
+        if group_size is None and groups is None:
+            group_size = 16
         self.groups = groups
+        self.group_size = group_size
 
         self.running_mean = mean
         self.running_projection = projection
@@ -72,11 +76,22 @@ class DecorrelatedBatchNormalization(function_node.FunctionNode):
         x_type = in_types[0]
         type_check.expect(
             x_type.dtype.kind == 'f',
-            x_type.shape[1] % self.groups == 0,
         )
         type_check.expect(
             x_type.ndim >= 2,
         )
+        if self.group_size is None:
+            type_check.expect(
+                x_type.shape[1] % self.groups == 0,
+            )
+        elif self.groups is None:
+            type_check.expect(
+                x_type.shape[1] % self.group_size == 0,
+            )
+        else:
+            type_check.expect(
+                x_type.shape[1] == self.groups * self.group_size,
+            )
 
     def forward(self, inputs):
         self.retain_inputs(())
@@ -85,7 +100,12 @@ class DecorrelatedBatchNormalization(function_node.FunctionNode):
         x_shape = x.shape
         b, c = x_shape[:2]
         g = self.groups
-        C = c // g
+        C = self.group_size
+        if C is None:
+            self.group_size = C = c // g
+        elif g is None:
+            self.groups = g = c // C
+        self.group_shape = g, C
         spatial_axis, m = _calc_axis_and_m(x_shape, b)
 
         # (g, C, m)
@@ -128,14 +148,14 @@ class DecorrelatedBatchNormalization(function_node.FunctionNode):
         gy, = grad_outputs
 
         f = DecorrelatedBatchNormalizationGrad(
-            self.groups, self.eigvals, self.eigvectors, self.y_hat_pca)
+            self.group_shape, self.eigvals, self.eigvectors, self.y_hat_pca)
         return f.apply((gy,))
 
 
 class DecorrelatedBatchNormalizationGrad(function_node.FunctionNode):
 
-    def __init__(self, groups, eigvals, eigvectors, y_hat_pca):
-        self.groups = groups
+    def __init__(self, group_shape, eigvals, eigvectors, y_hat_pca):
+        self.group_shape = group_shape
         self.eigvals = eigvals
         self.eigvectors = eigvectors
         self.y_hat_pca = y_hat_pca
@@ -146,8 +166,7 @@ class DecorrelatedBatchNormalizationGrad(function_node.FunctionNode):
         xp = backend.get_array_module(gy)
         gy_shape = gy.shape
         b, c = gy_shape[:2]
-        g = self.groups
-        C = c // g
+        g, C = self.group_shape
         spatial_axis, m = _calc_axis_and_m(gy_shape, b)
         arange_C = numpy.arange(C)
         diag_indices = slice(None), arange_C, arange_C
@@ -200,8 +219,11 @@ class DecorrelatedBatchNormalizationGrad(function_node.FunctionNode):
 
 class FixedDecorrelatedBatchNormalization(function_node.FunctionNode):
 
-    def __init__(self, groups):
+    def __init__(self, groups, group_size):
+        if group_size is None and groups is None:
+            group_size = 16
         self.groups = groups
+        self.group_size = group_size
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 3)
@@ -222,7 +244,12 @@ class FixedDecorrelatedBatchNormalization(function_node.FunctionNode):
         x_shape = x.shape
         b, c = x_shape[:2]
         g = self.groups
-        C = c // g
+        C = self.group_size
+        if C is None:
+            self.group_size = C = c // g
+        elif g is None:
+            self.groups = g = c // C
+        self.group_shape = g, C
         spatial_axis, m = _calc_axis_and_m(x_shape, b)
 
         x_hat = x.transpose((1, 0) + spatial_axis).reshape(g, C, m)
@@ -238,14 +265,14 @@ class FixedDecorrelatedBatchNormalization(function_node.FunctionNode):
     def backward(self, indexes, grad_outputs):
         x, mean, projection = self.get_retained_inputs()
         gy,  = grad_outputs
-        f = FixedDecorrelatedBatchNormalizationGrad(self.groups)
+        f = FixedDecorrelatedBatchNormalizationGrad(self.group_shape)
         return f.apply((x, mean, projection, gy))
 
 
 class FixedDecorrelatedBatchNormalizationGrad(function_node.FunctionNode):
 
-    def __init__(self, groups):
-        self.groups = groups
+    def __init__(self, group_shape):
+        self.group_shape = group_shape
 
     def forward(self, inputs):
         self.retain_inputs(())
@@ -253,8 +280,7 @@ class FixedDecorrelatedBatchNormalizationGrad(function_node.FunctionNode):
         xp = backend.get_array_module(x)
         gy_shape = gy.shape
         b, c = gy_shape[:2]
-        g = self.groups
-        C = c // g
+        g, C = self.group_shape
         spatial_axis, m = _calc_axis_and_m(gy_shape, b)
 
         gy_hat = gy.transpose((1, 0) + spatial_axis).reshape(g, C, m)
@@ -275,8 +301,8 @@ class FixedDecorrelatedBatchNormalizationGrad(function_node.FunctionNode):
 
 
 def decorrelated_batch_normalization(x, **kwargs):
-    """decorrelated_batch_normalization(x, *, groups=16, eps=2e-5, \
-running_mean=None, running_projection=None, decay=0.9)
+    """decorrelated_batch_normalization(x, *, groups=16, group_size=None, \
+eps=2e-5, running_mean=None, running_projection=None, decay=0.9)
 
     Decorrelated batch normalization function.
 
@@ -308,18 +334,23 @@ running_mean=None, running_projection=None, decay=0.9)
     .. seealso:: :class:`~chainer.links.DecorrelatedBatchNormalization`
 
     """
-    groups, eps, running_mean, running_projection, decay = \
+    groups, group_size, eps, running_mean, running_projection, decay = \
         argument.parse_kwargs(
-            kwargs, ('groups', 16), ('eps', 2e-5), ('running_mean', None),
-            ('running_projection', None), ('decay', 0.9))
+            kwargs, ('groups', 16), ('group_size', None), ('eps', 2e-5),
+            ('running_mean', None), ('running_projection', None),
+            ('decay', 0.9))
 
     f = DecorrelatedBatchNormalization(
-        groups, eps, running_mean, running_projection, decay)
+        groups, group_size, eps, running_mean, running_projection, decay)
     return f.apply((x,))[0]
 
 
-def fixed_decorrelated_batch_normalization(x, mean, projection, groups=16):
-    """Decorrelated batch normalization function with fixed statistics.
+def fixed_decorrelated_batch_normalization(
+        x, mean, projection, groups=16, **kwargs):
+    """fixed_decorrelated_batch_normalization(x, mean, projection, groups=16, \
+*, group_size=None):
+
+    Decorrelated batch normalization function with fixed statistics.
 
     This is a variant of decorrelated batch normalization, where the mean and
     projection statistics are given by the caller as fixed variables. This is
@@ -343,5 +374,7 @@ def fixed_decorrelated_batch_normalization(x, mean, projection, groups=16):
        :class:`~chainer.links.DecorrelatedBatchNormalization`
 
     """
-    f = FixedDecorrelatedBatchNormalization(groups)
+    group_size, = argument.parse_kwargs(
+        kwargs, ('group_size', None))
+    f = FixedDecorrelatedBatchNormalization(groups, group_size)
     return f.apply((x, mean, projection))[0]
