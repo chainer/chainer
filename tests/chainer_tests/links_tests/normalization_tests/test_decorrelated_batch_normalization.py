@@ -65,9 +65,24 @@ def _calc_mean(x, groups):
     return x.mean(axis=axis).reshape(groups, -1)
 
 
+def _parse_group_kwargs(n_channels, groups, group_size=None):
+    if group_size is None:
+        if groups is None:
+            group_size = 16
+        else:
+            return groups, n_channels // groups
+    if groups is None:
+        groups = n_channels // group_size
+    return groups, group_size
+
+
 @testing.parameterize(*(testing.product({
     'n_channels': [8],
-    'groups': [1, 2],
+    'group_kwargs': [
+        {'groups': 1, 'group_size': 8},
+        {'groups': 2},
+        {'groups': None, 'group_size': 2},
+    ],
     'test': [True, False],
     'ndim': [0, 2],
     # NOTE(crcrpar): np.linalg.eigh does not support float16
@@ -76,10 +91,10 @@ def _calc_mean(x, groups):
 class DecorrelatedBatchNormalizationTest(unittest.TestCase):
 
     def setUp(self):
-        C = self.n_channels // self.groups
+        groups, C = _parse_group_kwargs(self.n_channels, **self.group_kwargs)
 
         self.link = links.DecorrelatedBatchNormalization(
-            self.n_channels, groups=self.groups, dtype=self.dtype)
+            self.n_channels, groups=groups, dtype=self.dtype)
         self.link.cleargrads()
 
         shape = (5, self.n_channels) + (2,) * self.ndim
@@ -88,16 +103,16 @@ class DecorrelatedBatchNormalizationTest(unittest.TestCase):
 
         if self.test:
             self.mean = numpy.random.uniform(
-                -1, 1, (self.groups, C)).astype(self.dtype)
+                -1, 1, (groups, C)).astype(self.dtype)
             self.projection = numpy.random.uniform(
-                0.5, 1, (self.groups, C, C)).astype(
+                0.5, 1, (groups, C, C)).astype(
                 self.dtype)
             self.link.avg_mean[...] = self.mean
             self.link.avg_projection[...] = self.projection
         else:
-            self.mean = _calc_mean(self.x, self.groups)
+            self.mean = _calc_mean(self.x, groups)
             self.projection = _calc_projection(self.x, self.mean,
-                                               self.link.eps, self.groups)
+                                               self.link.eps, groups)
         self.check_forward_options = {'atol': 1e-4, 'rtol': 1e-3}
         self.check_backward_options = {'atol': 5e-3, 'rtol': 1e-3}
         if self.dtype == numpy.float32:
@@ -109,8 +124,9 @@ class DecorrelatedBatchNormalizationTest(unittest.TestCase):
             y = self.link(x)
             self.assertEqual(y.dtype, self.dtype)
 
+        groups, _ = _parse_group_kwargs(self.n_channels, **self.group_kwargs)
         y_expect = _decorrelated_batch_normalization(
-            self.x, self.mean, self.projection, self.groups)
+            self.x, self.mean, self.projection, groups)
 
         testing.assert_allclose(
             y_expect, y.array, **self.check_forward_options)

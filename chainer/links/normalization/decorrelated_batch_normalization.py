@@ -11,6 +11,16 @@ import chainer.serializer as serializer_mod
 from chainer.utils import argument
 
 
+def _check_and_compute_group_shape(size, groups, group_size):
+    if group_size is None:
+        group_size, err = divmod(size, groups)
+    elif groups is None:
+        groups, err = divmod(size, group_size)
+    else:
+        err = size - groups * group_size
+    return err, groups, group_size
+
+
 class DecorrelatedBatchNormalization(link.Link):
 
     """Decorrelated batch normalization layer.
@@ -65,9 +75,20 @@ class DecorrelatedBatchNormalization(link.Link):
     """
 
     def __init__(self, size, groups=16, decay=0.9, eps=2e-5,
-                 dtype=numpy.float32):
+                 dtype=numpy.float32, **kwargs):
         super(DecorrelatedBatchNormalization, self).__init__()
-        C = size // groups
+        group_size, = argument.parse_kwargs(
+            kwargs, ('group_size', None))
+
+        if group_size is None and groups is None:
+            group_size = 16
+        err, groups, C = _check_and_compute_group_shape(
+            size, groups, group_size)
+        if err:
+            raise ValueError(
+                'Cannot satisfy `size == groups * group_size. '
+                'size = {}, groups = {}, group_size = {}'.format(
+                    size, groups, group_size))
         self.avg_mean = numpy.zeros((groups, C), dtype=dtype)
         self.register_persistent('avg_mean')
         avg_projection = numpy.zeros((groups, C, C), dtype=dtype)
