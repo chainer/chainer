@@ -61,8 +61,6 @@ Array Repeat(const Array& a, const std::vector<int64_t>& repeats, absl::optional
 
 Array ExpandDims(const Array& a, int8_t axis);
 
-Array Flatten(const Array& a);
-
 Array Flip(const Array& m, const OptionalAxes& axes = absl::nullopt);
 
 Array Fliplr(const Array& m);
