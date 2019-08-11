@@ -364,6 +364,8 @@ class ndarray:
 
     def argmin(self, axis: tp.Optional[int]=None) -> ndarray: ...
 
+    def flatten(self) -> ndarray: ...
+
     @tp.overload
     def as_grad_stopped(self, copy: bool=...) -> ndarray: ...
 
@@ -702,9 +704,6 @@ def fixed_batch_norm(
         var: ndarray,
         eps: float=...,
         axis: tp.Optional[tp.Union[int, tp.List[int]]]=None) -> ndarray: ...
-
-
-def flatten(a: ndarray) -> ndarray: ...
 
 
 def flip(

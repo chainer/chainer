@@ -551,6 +551,7 @@ void InitChainerxArray(pybind11::module& m) {
               return;
           },
           "value"_a);
+    c.def("flatten", [](const ArrayBodyPtr& self) { return MoveArrayBody(Array{self}.Flatten()); });
 
     c.def("require_grad",
           [](const ArrayBodyPtr& self, const absl::optional<BackpropId>& backprop_id) {

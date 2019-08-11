@@ -324,10 +324,7 @@ class TestFlatten(op_utils.NumpyOpTest):
 
     def forward_xp(self, inputs, xp):
         a, = inputs
-        if xp is chainerx:
-            b = xp.flatten(a)
-        else:
-            b = a.flatten()
+        b = a.flatten()
         return b,
 
 
