@@ -50,14 +50,14 @@ dtype=numpy.float32, *, group_size=None)
     fine-tuning mode.
 
     Args:
-        size (int or tuple of ints): Size (or shape) of channel
-            dimensions.
-        groups (int): Number of groups to use for group whitening.
+        size (int): Size of channel dimension.
+        groups (int or None): Number of groups to use for group whitening.
         decay (float): Decay rate of moving average
             which is used during training.
         eps (float): Epsilon value for numerical stability.
         dtype (numpy.dtype): Type to use in computing.
-        group_size (int): Size of each group to use for group whitening.
+        group_size (int or None): Size of each group to use for group
+            whitening.
 
     See: `Decorrelated Batch Normalization <https://arxiv.org/abs/1804.08450>`_
 

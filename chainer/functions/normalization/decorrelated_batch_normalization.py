@@ -311,8 +311,9 @@ eps=2e-5, running_mean=None, running_projection=None, decay=0.9)
 
     Args:
         x (:class:`~chainer.Variable`): Input variable.
-        groups (int): Number of groups to use for group whitening.
-        group_size (int): Size of each group to use for group whitening.
+        groups (int or None): Number of groups to use for group whitening.
+        group_size (int or None): Size of each group to use for group
+            whitening.
         eps (float): Epsilon value for numerical stability.
         running_mean (:ref:`ndarray`): Expected value of the mean. This is a
             running average of the mean over several mini-batches using
@@ -364,8 +365,9 @@ def fixed_decorrelated_batch_normalization(
             Shifting parameter of input.
         projection (:class:`~chainer.Variable` or :ref:`ndarray`):
             Projection matrix for decorrelation of input.
-        groups (int): Number of groups to use for group whitening.
-        group_size (int): Size of each group to use for group whitening.
+        groups (int or None): Number of groups to use for group whitening.
+        group_size (int or None): Size of each group to use for group
+            whitening.
 
     Returns:
         ~chainer.Variable: The output variable which has the same shape as
