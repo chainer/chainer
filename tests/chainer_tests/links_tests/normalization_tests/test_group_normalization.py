@@ -11,94 +11,123 @@ from chainer import testing
 from chainer.testing import attr
 
 
-@testing.parameterize(*(testing.product({
-    'shape': [(1, 4, 5, 3), (5, 4, 7), (3, 20)],
-    'groups': [1, 2, 4],
-    'dtype': [numpy.float32],
-})))
-class GroupNormalizationTest(unittest.TestCase):
+def _simple_group_normalization(x, groups, gamma, beta, eps=1e-5):
+    batch_size, channels = x.shape[:2]
+    x_reshape = x.reshape(batch_size, groups, channels // groups, -1)
+
+    mean = numpy.mean(x_reshape, axis=(2, 3), keepdims=True)
+    var = numpy.var(x_reshape, axis=(2, 3), keepdims=True)
+    std = numpy.sqrt(var + eps, dtype=x.dtype)
+
+    x_hat = (x_reshape - mean) / std
+    x_hat = x_hat.reshape(x.shape)
+
+    for i in six.moves.xrange(x.ndim):
+        if i != 1:  # except for channel dim
+            gamma = numpy.expand_dims(gamma, i)
+            beta = numpy.expand_dims(beta, i)
+
+    return x_hat * gamma + beta
+
+
+class GroupNormalizationTestBase(object):
+
+    param_names = ('gamma', 'beta')
 
     def setUp(self):
-        self.link = links.GroupNormalization(self.groups)
-        self.link.cleargrads()
+        if self.dtype == chainer.mixed16:
+            self.highprec_dtype = numpy.float32
+        else:
+            self.highprec_dtype = self.dtype
 
-        self.x, = self.generate_inputs()
-        self.gy = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
-
+        self.eps = 1e-5
         self.check_forward_options = {'atol': 1e-4, 'rtol': 1e-3}
-        self.check_backward_options = {'atol': 1e-3, 'rtol': 1e-2}
+        self.check_backward_options = {'atol': 1e-4, 'rtol': 1e-3}
+        if self.dtype in (numpy.float16, chainer.mixed16):
+            self.check_forward_options = {'atol': 1e-2, 'rtol': 1e-1}
+            self.check_backward_options = {'atol': 5e-1, 'rtol': 1e-1}
+
+    def before_test(self, test_name):
+        if (self.dtype == chainer.mixed16
+                and self.backend_config.xp is chainerx):
+            raise unittest.SkipTest(
+                'ChainerX does not yet support mixed-FP16 mode.')
+
+    def generate_params(self):
+        initial_gamma = numpy.random.uniform(
+            -1, 1, (self.groups,)).astype(self.highprec_dtype)
+        initial_beta = numpy.random.uniform(
+            -1, 1, (self.groups,)).astype(self.highprec_dtype)
+        return initial_gamma, initial_beta
+
+    def create_link(self, initializers):
+        initial_gamma, initial_beta = initializers
+
+        link = links.GroupNormalization(
+            groups=self.groups,
+            initial_gamma=initial_gamma, initial_beta=initial_beta,
+            eps=self.eps
+        )
+        return link
 
     def generate_inputs(self):
-        shape = self.shape
-
-        # sample x such that x.std >= min_std
-        min_std = 0.02
-        retry = 0
-        while True:
-            x = numpy.random.uniform(-1, 1, shape).astype(self.dtype)
-            x_groups = x.reshape(shape[0], self.groups, -1)
-            if x_groups.std(axis=2).min() >= min_std:
-                break
-            retry += 1
-            assert retry <= 20, 'Too many retries to generate inputs'
-
+        x = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
         return x,
 
-    def check_forward(self, x_data):
-        y = self.link(x_data)
-        self.assertEqual(y.data.dtype, self.dtype)
+    def forward(self, link, inputs, device):
+        x, = inputs
+        y = link(x)
+        return y,
 
-        # Verify that forward isn't be affected by batch size
-        if self.shape[0] > 1:
-            xp = backend.get_array_module(x_data)
+    def forward_expected(self, link, inputs):
+        gamma = link.gamma.array
+        beta = link.beta.array
+        x, = inputs
+
+        y = _simple_group_normalization(x, self.groups, gamma, beta, self.eps)
+
+        y_one_each = None
+        if len(x) > 1:
             y_one_each = chainer.functions.concat(
-                [self.link(xp.expand_dims(one_x, axis=0))
-                 for one_x in x_data], axis=0)
+                [self.link(numpy.expand_dims(one_x, axis=0))
+                 for one_x in x_data], axis=0).array
+
+        return y.astype(self.dtype), y_one_each
+
+    def check_forward_outputs(self, outputs, expected_outputs):
+        expected, no_bs_effect = expected_outputs
+        super(GroupNormalizationTestBase, self).check_forward_outputs(
+            outputs, expected_outputs)
+        y, = outputs
+        assert y.dtype == chainer.get_dtype(self.dtype)
+        if no_bs_effect is not None:
             testing.assert_allclose(
-                y.data, y_one_each.data, **self.check_forward_options)
+                y.array, no_bs_effect, **self.check_forward_options)
 
-    def test_forward_cpu(self):
-        self.check_forward(self.x)
 
-    @attr.gpu
-    def test_forward_gpu(self):
-        self.link.to_gpu()
-        self.check_forward(cuda.to_gpu(self.x))
+@testing.parameterize(*testing.product({
+    'shape': [(1, 4, 5, 3), (5, 4, 7), (3, 20)],
+    'groups': [1, 2, 4],
+    'dtype': [numpy.float16, numpy.float32, numpy.float64, chainer.mixed16],
+}))
+@testing.inject_backend_tests(
+    None,
+    [
+        {}, {'ideep': 'always'},
+    ]
+    + testing.product({
+        'use_cuda': [True],
+        'cuda_device': [0, 1],
+        'use_cudnn': ['never', 'always'],
+    })
+    + testing.product({
+        'use_chainerx': [True],
+        'chaienrx_device': ['native:0', 'cuda:0', 'cuda:1'],
+    })
+)
+class GroupNormalizationTest(GroupNormalizationTestBase, testing.LinkTestCase):
 
-    @attr.cudnn
-    def test_forward_gpu_without_cudnn(self):
-        self.link.use_cudnn = False
-        self.test_forward_gpu()
-
-    @attr.multi_gpu(2)
-    def test_forward_multi_gpu(self):
-        with cuda.get_device_from_id(1):
-            self.link.to_gpu()
-            x = cuda.to_gpu(self.x)
-        with cuda.get_device_from_id(0):
-            self.check_forward(x)
-
-    def check_backward(self, x_data, y_grad):
-        gradient_check.check_backward(
-            self.link, x_data, y_grad,
-            (self.link.gamma, self.link.beta),
-            eps=1e-2, **self.check_backward_options)
-
-    def test_backward_cpu(self):
-        self.link(numpy.zeros(self.shape, dtype='f'))
-        self.check_backward(self.x, self.gy)
-
-    @attr.gpu
-    def test_backward_gpu(self):
-        self.link.to_gpu()
-        self.link(cuda.cupy.zeros(self.shape, dtype='f'))
-        self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
-
-    @attr.cudnn
-    def test_backward_gpu_without_cudnn(self):
-        self.link.use_cudnn = False
-        self.link(numpy.zeros(self.shape, dtype='f'))
-        self.test_backward_gpu()
+    pass
 
 
 @testing.parameterize(*testing.product({
@@ -132,64 +161,99 @@ class TestInitialize(unittest.TestCase):
 
 @testing.parameterize(*testing.product({
     'size': [3, 30],
-    'groups': [1, 3]
+    'groups': [1, 3],
+    'dtype': [numpy.float32],
 }))
+@testing.inject_backend_tests(
+    ['test_initialization'],
+    [
+        {},
+        {'use_ideep': 'always'},
+        {'use_cuda': True},
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+    ]
+)
 class TestDefaultInitializer(unittest.TestCase):
 
     def setUp(self):
         self.size = 3
-        self.link = links.GroupNormalization(self.groups)
         self.shape = (1, self.size, 1)
+        self.link = links.GroupNormalization(self.groups)
+        self.x = numpy.ones(self.shape, dtype=self.dtype)
 
-    def test_initialize_cpu(self):
-        self.link(numpy.zeros(self.shape, dtype='f'))
-        testing.assert_allclose(numpy.ones(self.size), self.link.gamma.data)
+    def test_initialization(self, backend_config):
+        x = backend_config.get_array(self.x)
+        link = self.link.to_device(backend_config.device)
+        with backend_config:
+            link(x)
+        testing.assert_allclose(self.x, self.link.gamma.array)
         testing.assert_allclose(
-            numpy.zeros(self.size), self.link.beta.data)
-
-    @attr.gpu
-    def test_initialize_gpu(self):
-        self.link.to_gpu()
-        self.link(cuda.cupy.zeros(self.shape, dtype='f'))
-        testing.assert_allclose(numpy.ones(self.size), self.link.gamma.data)
-        testing.assert_allclose(
-            numpy.zeros(self.size), self.link.beta.data)
+            numpy.zeros(self.shape, self.dtype), self.link.beta.array)
 
 
 @testing.parameterize(*testing.product({
     'shape': [(2,), ()],
+    'groups': [3],
+    'dtype': [numpy.float32],
 }))
+@testing.inject_backend_tests(
+    ['test_ivnvalid_shape'],
+    [
+        {},
+        {'use_ideep': 'always'},
+        {'use_cuda': True},
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+    ]
+)
 class TestInvalidInput(unittest.TestCase):
 
     def setUp(self):
-        self.link = links.GroupNormalization(groups=3)
+        self.link = links.GroupNormalization(groups=self.groups)
+        self.x = numpy.zeros(self.shape, dtype=self.dtype)
 
-    def test_invalid_shape_cpu(self):
-        with self.assertRaises(ValueError):
-            self.link(chainer.Variable(numpy.zeros(self.shape, dtype='f')))
-
-    @attr.gpu
-    def test_invalid_shape_gpu(self):
-        self.link.to_gpu()
-        with self.assertRaises(ValueError):
-            self.link(chainer.Variable(cuda.cupy.zeros(self.shape, dtype='f')))
+    def test_invalid_shape(self):
+        with pytest.raises(ValueError):
+            self.link.to_device(
+                backend_config.device
+            )(backend_config.get_array(self.x))
 
 
+@testing.parameterize(*testing.product({
+    'shape': [(2, 5, 2)],
+    'dtype': [numpy.float32],
+}))
+@testing.inject_backend_tests(
+    ['test_invalid_groups', 'test_invalid_type_groups'],
+    [
+        {},
+        {'use_ideep': True},
+        {'use_cuda': True},
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+    ]
+)
 class TestInvalidInitialize(unittest.TestCase):
 
     def setUp(self):
         shape = (2, 5, 2)
         self.x = chainer.Variable(numpy.zeros(shape, dtype='f'))
 
-    def test_invalid_groups(self):
+    def test_invalid_groups(self, backend_config):
         self.link = links.GroupNormalization(groups=3)
-        with self.assertRaises(ValueError):
-            self.link(self.x)
+        with pytest.raises(ValueError):
+            with backend_config:
+                self.link.to_device(
+                    backend_config.device
+                )(backend_config.get_array(self.x))
 
     def test_invalid_type_groups(self):
         self.link = links.GroupNormalization(groups=3.5)
-        with self.assertRaises(TypeError):
-            self.link(self.x)
+        with pytest.raises(TypeError):
+            self.link.to_device(
+                backend_config.device
+            )(backend_config.get_array(self.x))
 
 
 testing.run_module(__name__, __file__)
