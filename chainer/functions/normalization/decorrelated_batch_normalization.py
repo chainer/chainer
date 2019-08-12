@@ -350,7 +350,7 @@ eps=2e-5, running_mean=None, running_projection=None, decay=0.9)
 def fixed_decorrelated_batch_normalization(
         x, mean, projection, groups=16, **kwargs):
     """fixed_decorrelated_batch_normalization(x, mean, projection, groups=16, \
-*, group_size=None):
+*, group_size=None)
 
     Decorrelated batch normalization function with fixed statistics.
 
