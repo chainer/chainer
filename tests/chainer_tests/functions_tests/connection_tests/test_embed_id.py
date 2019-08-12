@@ -13,7 +13,9 @@ from chainer.testing import backend
 
 @testing.parameterize(*testing.product_dict(
     [
-        {'x': (0, 1, 2), 'w_shape': (5, 3), 'ignore_label': 0},
+        {'x': (0, 1, 2), 'w_shape': (5, 3), 'ignore_label': None},
+        {'x': (2, 1, 2), 'w_shape': (6, 3), 'ignore_label': None},
+        {'x': (3, 1), 'w_shape': (4, 3), 'ignore_label': None},
     ], [
         {'w_dtype': numpy.float16},
         {'w_dtype': numpy.float32},
@@ -52,6 +54,15 @@ from chainer.testing import backend
             'autotune': [True, False],
         })]))
 class TestEmbedID(testing.FunctionTestCase):
+
+    def setUp(self):
+        if self.w_dtype == numpy.float16:
+            self.check_forward_options.update({
+                'rtol': 1e-2, 'atol': 1e-2})
+            self.check_backward_options.update({
+                'rtol': 1e-2, 'atol': 1e-2})
+            self.check_double_backward_options.update({
+                'rtol': 5e-3, 'atol': 5e-2})
 
     def generate_inputs(self):
         x = numpy.array(self.x).astype(self.x_dtype)
