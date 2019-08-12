@@ -657,7 +657,7 @@ Array Swapaxes(const Array& a, int8_t axis1, int8_t axis2) {
 }
 
 Array Ravel(const Array& a) {
-    Array out = a.Copy().Reshape({a.GetTotalSize()});
+    Array out = a.Reshape({a.GetTotalSize()});
     return out;
 }
 
