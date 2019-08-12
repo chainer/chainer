@@ -1421,6 +1421,7 @@ def test_moveaxis_invalid(xp, shape, source, dst):
 
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize_pytest('a_shape,b_shape', _reshape_shape)
+@chainer.testing.parameterize_pytest('is_module', [True, False])
 class TestRavel(op_utils.NumpyOpTest):
 
     forward_accept_errors = (TypeError, chainerx.ChainerxError)
@@ -1432,5 +1433,8 @@ class TestRavel(op_utils.NumpyOpTest):
 
     def forward_xp(self, inputs, xp):
         a, = inputs
-        b = xp.ravel(a)
+        if self.is_module:
+            b = xp.ravel(a)
+        else:
+            b = a.ravel()
         return b,

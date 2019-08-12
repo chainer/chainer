@@ -321,6 +321,8 @@ Array Array::At(const std::vector<ArrayIndex>& indices) const { return internal:
 
 Array Array::Transpose(const OptionalAxes& axes) const { return chainerx::Transpose(*this, axes); }
 
+Array Array::Ravel() const { return chainerx::Ravel(*this); }
+
 Array Array::Reshape(const Shape& newshape) const { return chainerx::Reshape(*this, newshape); }
 
 Array Array::Squeeze(const OptionalAxes& axis) const { return chainerx::Squeeze(*this, axis); }
