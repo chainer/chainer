@@ -65,7 +65,7 @@ def _calc_mean(x, groups):
     return x.mean(axis=axis).reshape(groups, -1)
 
 
-def _parse_group_kwargs(n_channels, groups, group_size=None):
+def _parse_group_kwargs(n_channels, groups=None, group_size=None):
     if group_size is None:
         if groups is None:
             group_size = 16
@@ -81,7 +81,7 @@ def _parse_group_kwargs(n_channels, groups, group_size=None):
     'group_kwargs': [
         {'groups': 1, 'group_size': 8},
         {'groups': 2},
-        {'groups': None, 'group_size': 2},
+        {'group_size': 2},
     ],
     'test': [True, False],
     'ndim': [0, 2],

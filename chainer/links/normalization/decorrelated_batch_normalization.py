@@ -57,7 +57,7 @@ dtype=numpy.float32, *, group_size=None)
         eps (float): Epsilon value for numerical stability.
         dtype (numpy.dtype): Type to use in computing.
         group_size (int or None): Size of each group to use for group
-            whitening.
+            whitening.  The default value is ``16`` unless ``groups`` is set.
 
     See: `Decorrelated Batch Normalization <https://arxiv.org/abs/1804.08450>`_
 

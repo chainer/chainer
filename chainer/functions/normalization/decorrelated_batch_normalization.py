@@ -301,7 +301,7 @@ class FixedDecorrelatedBatchNormalizationGrad(function_node.FunctionNode):
 
 
 def decorrelated_batch_normalization(x, **kwargs):
-    """decorrelated_batch_normalization(x, *, groups=16, group_size=None, \
+    """decorrelated_batch_normalization(x, *, groups=None, group_size=None, \
 eps=2e-5, running_mean=None, running_projection=None, decay=0.9)
 
     Decorrelated batch normalization function.
@@ -313,7 +313,7 @@ eps=2e-5, running_mean=None, running_projection=None, decay=0.9)
         x (:class:`~chainer.Variable`): Input variable.
         groups (int or None): Number of groups to use for group whitening.
         group_size (int or None): Size of each group to use for group
-            whitening.
+            whitening.  The default value is ``16`` unless ``groups`` is set.
         eps (float): Epsilon value for numerical stability.
         running_mean (:ref:`ndarray`): Expected value of the mean. This is a
             running average of the mean over several mini-batches using
@@ -338,7 +338,7 @@ eps=2e-5, running_mean=None, running_projection=None, decay=0.9)
     """
     groups, group_size, eps, running_mean, running_projection, decay = \
         argument.parse_kwargs(
-            kwargs, ('groups', 16), ('group_size', None), ('eps', 2e-5),
+            kwargs, ('groups', None), ('group_size', None), ('eps', 2e-5),
             ('running_mean', None), ('running_projection', None),
             ('decay', 0.9))
 
@@ -348,9 +348,9 @@ eps=2e-5, running_mean=None, running_projection=None, decay=0.9)
 
 
 def fixed_decorrelated_batch_normalization(
-        x, mean, projection, groups=16, **kwargs):
-    """fixed_decorrelated_batch_normalization(x, mean, projection, groups=16, \
-*, group_size=None):
+        x, mean, projection, groups=None, **kwargs):
+    """fixed_decorrelated_batch_normalization(x, mean, projection, \
+groups=None, *, group_size=None):
 
     Decorrelated batch normalization function with fixed statistics.
 
@@ -367,7 +367,7 @@ def fixed_decorrelated_batch_normalization(
             Projection matrix for decorrelation of input.
         groups (int or None): Number of groups to use for group whitening.
         group_size (int or None): Size of each group to use for group
-            whitening.
+            whitening.  The default value is ``16`` unless ``groups`` is set.
 
     Returns:
         ~chainer.Variable: The output variable which has the same shape as
