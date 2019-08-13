@@ -354,8 +354,7 @@ Array Array::Take(const Array& indices, int8_t axis) const { return chainerx::Ta
 Array Array::Copy() const { return chainerx::Copy(*this); }
 
 Array Array::Flatten() const {
-    Array a = chainerx::Copy(*this);
-    Array out = chainerx::Reshape(a, {a.GetTotalSize()});
+    Array out = (*this).Copy().Reshape({(*this).GetTotalSize()});
     return out;
 }
 
