@@ -1,6 +1,5 @@
 #pragma once
 
-#include <string>
 #include <tuple>
 
 #include "chainerx/array.h"
