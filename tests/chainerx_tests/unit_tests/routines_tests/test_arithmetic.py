@@ -1019,9 +1019,9 @@ class TestTrueDivide(math_utils.BinaryMathTestBase, op_utils.NumpyOpTest):
         dtype1, dtype2 = self.in_dtypes
         if dtype1 == 'float16' or dtype2 == 'float16':
             self.check_forward_options.update({'rtol': 5e-3, 'atol': 5e-3})
-            self.check_backward_options.update({'rtol': 5e-3, 'atol': 5e-3})
+            self.check_backward_options.update({'rtol': 1e-2, 'atol': 5e-3})
             self.check_double_backward_options.update(
-                {'rtol': 5e-3, 'atol': 5e-3})
+                {'rtol': 1e-2, 'atol': 5e-3})
 
     def generate_inputs(self):
         a, b = super().generate_inputs()
