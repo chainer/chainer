@@ -117,6 +117,13 @@ void CheckSquareMatrix(const Array& a) {
     }
 }
 
+void CheckUplo(char uplo) {
+    char uplo_uppercase = toupper(uplo);
+    if (uplo_uppercase != 'U' && uplo_uppercase != 'L') {
+        throw ChainerxError{"UPLO argument must be 'L' or 'U'."};
+    }
+}
+
 }  // namespace
 
 Array Solve(const Array& a, const Array& b) {
@@ -328,6 +335,7 @@ Array PseudoInverse(const Array& a, float rcond) {
 std::tuple<Array, Array> Eigh(const Array& a, char uplo) {
     CheckRankTwoArray(a);
     CheckSquareMatrix(a);
+    CheckUplo(uplo);
 
     Array w = Empty(Shape{a.shape()[0]}, a.dtype(), a.device());
     Array v = Empty(a.shape(), a.dtype(), a.device());
@@ -372,6 +380,7 @@ std::tuple<Array, Array> Eigh(const Array& a, char uplo) {
 Array Eigvalsh(const Array& a, char uplo) {
     CheckRankTwoArray(a);
     CheckSquareMatrix(a);
+    CheckUplo(uplo);
 
     Array w = Empty(Shape{a.shape()[0]}, a.dtype(), a.device());
     Array v = Empty(a.shape(), a.dtype(), a.device());

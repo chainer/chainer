@@ -358,7 +358,7 @@ class TestPseudoInverseDtypeFailing(NumpyLinalgOpTest):
     chainer.testing.product({
         'shape': [(1, 1), (3, 3), (6, 6)],
         'in_dtypes': ['float32', 'float64'],
-        'UPLO': ['U', 'L']
+        'UPLO': ['u', 'L']
     })
 ))
 class TestEigh(NumpyLinalgOpTest):
@@ -376,7 +376,7 @@ class TestEigh(NumpyLinalgOpTest):
             return (L + L.T)/2.
         a = symmetrize(a)
 
-        w, v = xp.linalg.eigh(a)
+        w, v = xp.linalg.eigh(a, UPLO=self.UPLO)
 
         # The sign of eigenvectors is not unique,
         # therefore absolute values are compared
@@ -388,14 +388,18 @@ class TestEigh(NumpyLinalgOpTest):
     chainer.testing.product({
         'shape': [(), (2, 3), (3, 2)],
         'in_dtypes': ['float32', 'float64'],
-        'skip_backward_test': [True],
-        'skip_double_backward_test': [True]
+        'UPLO': [None, 'A', 'wrong']
     })
 ))
 class TestEighFailing(NumpyLinalgOpTest):
 
     forward_accept_errors = (numpy.linalg.LinAlgError,
-                             chainerx.DimensionError)
+                             chainerx.DimensionError,
+                             ValueError,
+                             chainerx.ChainerxError,
+                             # for 'UPLO'=None
+                             AttributeError,
+                             TypeError)
 
     def generate_inputs(self):
         a = numpy.random.random(self.shape).astype(self.in_dtypes)
@@ -403,7 +407,7 @@ class TestEighFailing(NumpyLinalgOpTest):
 
     def forward_xp(self, inputs, xp):
         a, = inputs
-        w, v = xp.linalg.eigh(a)
+        w, v = xp.linalg.eigh(a, UPLO=self.UPLO)
         return w, v
 
 
@@ -434,7 +438,7 @@ class TestEighDtypeFailing(NumpyLinalgOpTest):
     chainer.testing.product({
         'shape': [(1, 1), (3, 3), (6, 6)],
         'in_dtypes': ['float32', 'float64'],
-        'UPLO': ['U', 'L'],
+        'UPLO': ['u', 'L'],
         'skip_backward_test': [True],
         'skip_double_backward_test': [True]
     })
@@ -447,7 +451,7 @@ class TestEigvalsh(NumpyLinalgOpTest):
 
     def forward_xp(self, inputs, xp):
         a, = inputs
-        w = xp.linalg.eigvalsh(a)
+        w = xp.linalg.eigvalsh(a, UPLO=self.UPLO)
         return w,
 
 
@@ -455,13 +459,19 @@ class TestEigvalsh(NumpyLinalgOpTest):
 @chainer.testing.parameterize(*(
     chainer.testing.product({
         'shape': [(), (2, 3), (3, 2)],
-        'in_dtypes': ['float32', 'float64']
+        'in_dtypes': ['float32', 'float64'],
+        'UPLO': [None, 'A', 'wrong']
     })
 ))
 class TestEigvalshFailing(NumpyLinalgOpTest):
 
     forward_accept_errors = (numpy.linalg.LinAlgError,
-                             chainerx.DimensionError)
+                             chainerx.DimensionError,
+                             ValueError,
+                             chainerx.ChainerxError,
+                             # for 'UPLO'=None
+                             AttributeError,
+                             TypeError)
 
     def generate_inputs(self):
         a = numpy.random.random(self.shape).astype(self.in_dtypes)
@@ -469,7 +479,7 @@ class TestEigvalshFailing(NumpyLinalgOpTest):
 
     def forward_xp(self, inputs, xp):
         a, = inputs
-        w = xp.linalg.eigvalsh(a)
+        w = xp.linalg.eigvalsh(a, UPLO=self.UPLO)
         return w,
 
 
