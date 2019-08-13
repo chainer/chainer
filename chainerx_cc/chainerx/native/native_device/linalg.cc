@@ -447,7 +447,7 @@ public:
         (void)w;  // unused
         (void)v;  // unused
         (void)uplo;  // unused
-        (void)compute_eigen_vector;  // unused
+        (void)compute_v;  // unused
         throw ChainerxError{"LAPACK is not linked to ChainerX."};
 #endif  // CHAINERX_LAPACK_AVAILABLE
     }
