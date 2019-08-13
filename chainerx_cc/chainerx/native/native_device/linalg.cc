@@ -415,7 +415,7 @@ public:
 
             // LAPACK assumes that arrays are stored in column-major order
             // The uplo argument is swapped instead of transposing the input matrix
-            char uplo_swapped = (uplo == 'U') ? 'L' : 'U';
+            char uplo_swapped = uplo == 'U' ? 'L' : 'U';
 
             int info;
             int lwork = -1;
