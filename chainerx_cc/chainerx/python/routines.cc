@@ -372,7 +372,7 @@ void InitChainerxLinalg(pybind11::module& m) {
     mlinalg.def(
             "eigh",
             [](const ArrayBodyPtr& a, const std::string& UPLO) {
-                std::tuple<Array, Array> wv = Eigh(Array{a}, UPLO);
+                std::tuple<Array, Array> wv = Eigh(Array{a}, UPLO.c_str()[0]);
                 Array& w = std::get<0>(wv);
                 Array& v = std::get<1>(wv);
                 return std::make_tuple(MoveArrayBody(std::move(w)), MoveArrayBody(std::move(v)));
@@ -381,7 +381,7 @@ void InitChainerxLinalg(pybind11::module& m) {
             "UPLO"_a = "L");
     mlinalg.def(
             "eigvalsh",
-            [](const ArrayBodyPtr& a, const std::string& UPLO) { return MoveArrayBody(Eigvalsh(Array{a}, UPLO)); },
+            [](const ArrayBodyPtr& a, const std::string& UPLO) { return MoveArrayBody(Eigvalsh(Array{a}, UPLO.c_str()[0])); },
             "a"_a,
             "UPLO"_a = "L");
 }

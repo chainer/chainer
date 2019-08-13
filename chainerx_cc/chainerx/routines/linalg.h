@@ -20,8 +20,8 @@ std::tuple<Array, Array, Array> Svd(const Array& a, bool full_matrices, bool com
 
 Array PseudoInverse(const Array& a, float rcond);
 
-std::tuple<Array, Array> Eigh(const Array& a, const std::string& uplo);
+std::tuple<Array, Array> Eigh(const Array& a, char uplo);
 
-Array Eigvalsh(const Array& a, const std::string& uplo);
+Array Eigvalsh(const Array& a, char uplo);
 
 }  // namespace chainerx

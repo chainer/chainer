@@ -326,7 +326,7 @@ Array PseudoInverse(const Array& a, float rcond) {
     return out;
 }
 
-std::tuple<Array, Array> Eigh(const Array& a, const std::string& uplo) {
+std::tuple<Array, Array> Eigh(const Array& a, char uplo) {
     CheckRankTwoArray(a);
     CheckSquareMatrix(a);
 
@@ -370,7 +370,7 @@ std::tuple<Array, Array> Eigh(const Array& a, const std::string& uplo) {
     return std::make_tuple(std::move(w), std::move(v));
 }
 
-Array Eigvalsh(const Array& a, const std::string& uplo) {
+Array Eigvalsh(const Array& a, char uplo) {
     CheckRankTwoArray(a);
     CheckSquareMatrix(a);
 

@@ -481,7 +481,7 @@ CHAINERX_CUDA_REGISTER_KERNEL(SvdKernel, CudaSvdKernel);
 
 class CudaSyevdKernel : public SyevdKernel {
 public:
-    void Call(const Array& a, const Array& w, const Array& v, const std::string& uplo, bool compute_v) override {
+    void Call(const Array& a, const Array& w, const Array& v, char uplo, bool compute_v) override {
         Device& device = a.device();
         Dtype dtype = a.dtype();
         CudaSetDeviceScope scope{device.index()};
@@ -504,7 +504,7 @@ public:
 
             // cuSOLVER assumes that arrays are stored in column-major order
             // The uplo argument is swapped instead of transposing the input matrix
-            cublasFillMode_t uplo_cublas = (uplo == "U") ? CUBLAS_FILL_MODE_LOWER : CUBLAS_FILL_MODE_UPPER;
+            cublasFillMode_t uplo_cublas = (uplo == 'U') ? CUBLAS_FILL_MODE_LOWER : CUBLAS_FILL_MODE_UPPER;
 
             int buffersize = 0;
             // When calling Syevd matrix dimensions are swapped instead of transposing the input matrix
