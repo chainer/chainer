@@ -68,9 +68,9 @@ class BinaryMathTestBase(object):
 
         if in_dtype1 == 'float16' or in_dtype2 == 'float16':
             self.check_forward_options.update({'rtol': 1e-3, 'atol': 1e-3})
-            self.check_backward_options.update({'rtol': 1e-3, 'atol': 1e-3})
+            self.check_backward_options.update({'rtol': 1e-2, 'atol': 3e-3})
             self.check_double_backward_options.update(
-                {'rtol': 1e-3, 'atol': 1e-3})
+                {'rtol': 1e-2, 'atol': 3e-3})
 
     def generate_inputs(self):
         in_dtype1, in_dtype2 = self.in_dtypes
