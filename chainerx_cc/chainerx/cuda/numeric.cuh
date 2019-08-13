@@ -88,12 +88,6 @@ __device__ inline float Exp2(float x) { return std::exp2f(x); }
 
 __device__ inline cuda::Float16 Exp2(cuda::Float16 x) { return cuda::Float16{std::exp2f(static_cast<float>(x))}; }
 
-__device__ inline float Fmod(float x1, float x2) { return std::fmod(x1, x2); }
-
-__device__ inline cuda::Float16 Fmod(cuda::Float16 x1, cuda::Float16 x2) {
-    return cuda::Float16{std::fmod(static_cast<float>(x1), static_cast<float>(x2))};
-}
-
 #define CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(name, func) \
     template <typename T>                                       \
     __device__ inline T name(T x) {                             \
