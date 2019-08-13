@@ -513,16 +513,16 @@ public:
             Array work = Empty(Shape{buffersize}, dtype, device);
             auto work_ptr = static_cast<T*>(internal::GetRawOffsetData(work));
 
-            std::shared_ptr<void> devInfo = device.Allocate(sizeof(int));
+            std::shared_ptr<void> devinfo = device.Allocate(sizeof(int));
 
             device_internals.cusolverdn_handle().Call(
-                    Syevd<T>, jobz, uplo_cublas, n, v_ptr, m, w_ptr, work_ptr, buffersize, static_cast<int*>(devInfo.get()));
+                    Syevd<T>, jobz, uplo_cublas, n, v_ptr, m, w_ptr, work_ptr, buffersize, static_cast<int*>(devinfo.get()));
 
-            int devInfo_h = 0;
+            int devinfo_h = 0;
             Device& native_device = GetDefaultContext().GetDevice({"native", 0});
-            device.MemoryCopyTo(&devInfo_h, devInfo.get(), sizeof(int), native_device);
-            if (devInfo_h != 0) {
-                throw ChainerxError{"Unsuccessful syevd (Eigen Decomposition) execution. Info = ", devInfo_h};
+            device.MemoryCopyTo(&devinfo_h, devinfo.get(), sizeof(int), native_device);
+            if (devinfo_h != 0) {
+                throw ChainerxError{"Unsuccessful syevd (Eigen Decomposition) execution. Info = ", devinfo_h};
             }
         };
 
