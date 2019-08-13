@@ -209,6 +209,22 @@ class CommunicatorBase(six.with_metaclass(ABCMeta)):
         '''
         raise NotImplementedError()
 
+    @abstractmethod
+    def scatter(self, xs, root=0):
+        """A primitive of inter-process scatter communication.
+
+        This method tries to invoke scatter communication within the
+        communicator. All processes in the communicator are expected to
+        invoke ``scatter()``.
+
+        Args:
+            xs (tuple of numpy/cupy array): Arrays to be scattered.
+            root (int): Rank of root process.
+        Returns:
+            ys (numpy/cupy array): Received arrays.
+        """
+        raise NotImplementedError()
+
     def finalize(self):
         """Finalizes and cleans up internal resource.
 
