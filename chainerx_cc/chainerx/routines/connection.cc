@@ -405,7 +405,7 @@ std::vector<Array> lstm(const Array& c, const Array& x) {
     if (c.dtype() != x.dtype()) {
         throw DtypeError{"Datatypes of c and x should be equal got", c.dtype(), "and ", x.dtype()};
     }
-    std::vector<Array> x_split = _extract_gates(x); 
+    std::vector<Array> x_split = _extract_gates(x);
     x_split[0] = Tanh(x_split[0]);
     x_split[1] = Sigmoid(x_split[1]);
     x_split[2] = Sigmoid(x_split[2]);
@@ -415,11 +415,10 @@ std::vector<Array> lstm(const Array& c, const Array& x) {
         StackVector<int64_t, kMaxNdim> shape_vec;
         shape_vec.push_back(c.shape()[0] - x.shape()[0]);
         shape_vec.push_back(x_split[0].shape()[1]);
-        for (int i = 2; i < x_split[0].ndim(); i++)
-        {
+        for (int i = 2; i < x_split[0].ndim(); i++) {
             shape_vec.push_back(x_split[0].shape()[i]);
         }
-        Shape out_shape{shape_vec}; 
+        Shape out_shape{shape_vec};
         Array z[4];
         for (int i = 0; i < 4; i++) {
             if (i == 2) {
