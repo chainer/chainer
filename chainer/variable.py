@@ -1429,6 +1429,10 @@ class Variable(object):
                 parameters are divided by the factor just before the parameters
                 are to be updated.
         """
+        if self.shape != () and self.grad is None:
+            raise RuntimeError(
+                'Variable.backward() can only be called if either the shape '
+                'of the variable is () or its gradient is manually set.')
         if self._has_chainerx_array:
             if retain_grad:
                 raise RuntimeError(

@@ -1454,6 +1454,18 @@ class TestVariableDataAssign(unittest.TestCase):
         assert x.data is x.node.data
 
 
+class TestVariableBackwardWithoutGrad(unittest.TestCase):
+    # If one forgets to set a grad, the error from backward() should be
+    # informative.
+
+    def test_variable_backward_without_grad(self):
+        x_np = np.ones((3, 2), np.float32)
+        x = chainer.Variable(x_np)
+        y = x ** 2
+        with pytest.raises(RuntimeError, match=r'backward.*gradient'):
+            y.backward()
+
+
 class TestParameter(unittest.TestCase):
 
     def setUp(self):
