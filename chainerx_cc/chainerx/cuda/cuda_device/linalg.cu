@@ -486,14 +486,14 @@ public:
             Array work = Empty(Shape{work_size}, dtype, device);
             auto work_ptr = static_cast<T*>(internal::GetRawOffsetData(work));
 
-            std::shared_ptr<void> devInfo = device.Allocate(sizeof(int));
-            device_internals.cusolverdn_handle().Call(Potrf<T>, uplo, N, out_ptr, N, work_ptr, work_size, static_cast<int*>(devInfo.get()));
+            std::shared_ptr<void> devinfo = device.Allocate(sizeof(int));
+            device_internals.cusolverdn_handle().Call(Potrf<T>, uplo, N, out_ptr, N, work_ptr, work_size, static_cast<int*>(devinfo.get()));
 
-            int devInfo_h = 0;
+            int devinfo_h = 0;
             Device& native_device = GetDefaultContext().GetDevice({"native", 0});
-            device.MemoryCopyTo(&devInfo_h, devInfo.get(), sizeof(int), native_device);
-            if (devInfo_h != 0) {
-                throw ChainerxError{"Unsuccessful potrf (Cholesky) execution. Info = ", devInfo_h};
+            device.MemoryCopyTo(&devinfo_h, devinfo.get(), sizeof(int), native_device);
+            if (devinfo_h != 0) {
+                throw ChainerxError{"Unsuccessful potrf (Cholesky) execution. Info = ", devinfo_h};
             }
         };
 
