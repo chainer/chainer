@@ -71,10 +71,7 @@ class TestEmbedID(testing.FunctionTestCase):
 
     def forward(self, inputs, device):
         x, w = inputs
-        if self.ignore_label is None:
-            out = chainer.functions.embed_id(x, w)
-        else:
-            out = chainer.functions.embed_id(x, w, self.ignore_label)
+        out = chainer.functions.embed_id(x, w, self.ignore_label)
         return out,
 
     def forward_expected(self, inputs):
