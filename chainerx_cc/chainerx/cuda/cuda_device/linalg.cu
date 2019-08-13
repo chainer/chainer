@@ -344,7 +344,7 @@ void QrImpl(const Array& a, const Array& q, const Array& r, const Array& tau, Qr
     auto r_ptr = static_cast<T*>(internal::GetRawOffsetData(r_temp));
     auto tau_ptr = static_cast<T*>(internal::GetRawOffsetData(tau));
 
-    std::shared_ptr<void> devInfo = device.Allocate(sizeof(int));
+    std::shared_ptr<void> devinfo = device.Allocate(sizeof(int));
 
     int buffersize_geqrf = 0;
     device_internals.cusolverdn_handle().Call(GeqrfBufferSize<T>, m, n, r_ptr, lda, &buffersize_geqrf);
@@ -353,13 +353,13 @@ void QrImpl(const Array& a, const Array& q, const Array& r, const Array& tau, Qr
     auto work_ptr = static_cast<T*>(internal::GetRawOffsetData(work));
 
     device_internals.cusolverdn_handle().Call(
-            Geqrf<T>, m, n, r_ptr, lda, tau_ptr, work_ptr, buffersize_geqrf, static_cast<int*>(devInfo.get()));
+            Geqrf<T>, m, n, r_ptr, lda, tau_ptr, work_ptr, buffersize_geqrf, static_cast<int*>(devinfo.get()));
 
-    int devInfo_h = 0;
+    int devinfo_h = 0;
     Device& native_device = GetDefaultContext().GetDevice({"native", 0});
-    device.MemoryCopyTo(&devInfo_h, devInfo.get(), sizeof(int), native_device);
-    if (devInfo_h != 0) {
-        throw ChainerxError{"Unsuccessful geqrf (QR) execution. Info = ", devInfo_h};
+    device.MemoryCopyTo(&devinfo_h, devinfo.get(), sizeof(int), native_device);
+    if (devinfo_h != 0) {
+        throw ChainerxError{"Unsuccessful geqrf (QR) execution. Info = ", devinfo_h};
     }
 
     if (mode == QrMode::kR) {
@@ -401,11 +401,11 @@ void QrImpl(const Array& a, const Array& q, const Array& r, const Array& tau, Qr
     auto work_orgqr_ptr = static_cast<T*>(internal::GetRawOffsetData(work_orgqr));
 
     device_internals.cusolverdn_handle().Call(
-            Orgqr<T>, m, mc, k, q_ptr, lda, tau_ptr, work_orgqr_ptr, buffersize_orgqr, static_cast<int*>(devInfo.get()));
+            Orgqr<T>, m, mc, k, q_ptr, lda, tau_ptr, work_orgqr_ptr, buffersize_orgqr, static_cast<int*>(devinfo.get()));
 
-    device.MemoryCopyTo(&devInfo_h, devInfo.get(), sizeof(int), native_device);
-    if (devInfo_h != 0) {
-        throw ChainerxError{"Unsuccessful orgqr (QR) execution. Info = ", devInfo_h};
+    device.MemoryCopyTo(&devinfo_h, devinfo.get(), sizeof(int), native_device);
+    if (devinfo_h != 0) {
+        throw ChainerxError{"Unsuccessful orgqr (QR) execution. Info = ", devinfo_h};
     }
 
     q_temp = q_temp.At(std::vector<ArrayIndex>{Slice{0, mc}, Slice{}}).Transpose();  // Q = Q[0:mc, :].T
