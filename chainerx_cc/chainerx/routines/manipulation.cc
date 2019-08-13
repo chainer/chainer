@@ -656,10 +656,7 @@ Array Swapaxes(const Array& a, int8_t axis1, int8_t axis2) {
     return out;
 }
 
-Array Ravel(const Array& a) {
-    Array out = a.Reshape({a.GetTotalSize()});
-    return out;
-}
+Array Ravel(const Array& a) { return a.Reshape({a.GetTotalSize()}); }
 
 Array Repeat(const Array& a, int64_t repeats, absl::optional<int8_t> axis) {
     if (repeats < 0) {
