@@ -303,12 +303,18 @@ class TestLogicalBinary(op_utils.NumpyOpTest):
         return y1, y2
 
 
-def compute_all(xp, a, axis, keepdims):
-    return xp.all(a, axis=axis, keepdims=keepdims)
+def compute_all(xp, a, axis, keepdims, is_module):
+    if is_module:
+        return xp.all(a, axis=axis, keepdims=keepdims)
+    else:
+        return a.all(axis=axis, keepdims=keepdims)
 
 
-def compute_any(xp, a, axis, keepdims):
-    return xp.any(a, axis=axis, keepdims=keepdims)
+def compute_any(xp, a, axis, keepdims, is_module):
+    if is_module:
+        return xp.any(a, axis=axis, keepdims=keepdims)
+    else:
+        return a.any(axis=axis, keepdims=keepdims)
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
@@ -350,7 +356,8 @@ def compute_any(xp, a, axis, keepdims):
         # With all zero,
         # partially zero,
         # all non-zero arrays
-        'probs': [0.0, 0.6, 1.0]
+        'probs': [0.0, 0.6, 1.0],
+        'is_module': [True, False],
     })
 ))
 class TestLogicalReductions(op_utils.NumpyOpTest):
@@ -367,7 +374,7 @@ class TestLogicalReductions(op_utils.NumpyOpTest):
 
     def forward_xp(self, inputs, xp):
         a, = inputs
-        y = self.func(xp, a, self.axis, self.keepdims)
+        y = self.func(xp, a, self.axis, self.keepdims, self.is_module)
         return y,
 
 
@@ -392,7 +399,8 @@ class TestLogicalReductions(op_utils.NumpyOpTest):
     compute_all,
     compute_any
 ])
+@pytest.mark.parametrize('is_module', [False, True])
 def test_logical_reductions_invalid(func, is_module, xp, shape,
                                     axis, keepdims, dtype, device):
     a = array_utils.create_dummy_ndarray(xp, shape, dtype, device)
-    func(xp, a, axis, keepdims)
+    func(xp, a, axis, keepdims, is_module)

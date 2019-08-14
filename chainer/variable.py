@@ -1604,6 +1604,124 @@ class Variable(object):
     __hash__ = None  # type: tp.Callable[[object], int]
 
 
+def backward(outputs, grad_outputs=None, **kwargs):
+    """Runs from variables simultaneously.
+
+    Args:
+        enable_double_backprop (bool): If ``True``,
+            computational trace of the whole backpropagation procedure is
+            recorded to the computational graph so that one can further do
+            backpropagation from the resulting gradients. Note that
+            enabling it results in larger memory consumption needed to
+            store the gradients w.r.t intermediate variables that are
+            required for the second gradient computation.
+
+    .. seealso::
+       :meth:`chainer.Variable.backward`
+       :func:`chainer.grad`
+
+    """
+    enable_double_backprop, = argument.parse_kwargs(
+        kwargs, ('enable_double_backprop', False),
+        retain_grad='semantics for retain_grad=True is under discussion',
+        loss_scale='chainer.backward does not support loss_scale option',
+    )
+    if not isinstance(outputs, (tuple, list)):
+        raise TypeError(
+            'outputs must be a tuple or a list, not {}.'.format(type(outputs)))
+    for v in outputs:
+        if not isinstance(v, Variable):
+            raise TypeError(
+                'each output must be a Variable, not {}'.format(type(v)))
+    if grad_outputs is not None:
+        if not isinstance(grad_outputs, (tuple, list)):
+            raise TypeError(
+                'grad_outputs must be None, a tuple, or a list, not {}.'
+                .format(type(grad_outputs)))
+        if len(outputs) != len(grad_outputs):
+            raise ValueError(
+                'grad_outputs must be of the same length as outputs.\n'
+                'len(outputs) = {}, len(grad_outputs) = {}'
+                .format(len(outputs), len(grad_outputs)))
+
+    is_chainerx = [v._has_chainerx_array for v in outputs]
+
+    if any(is_chainerx):
+        if not all(is_chainerx):
+            # The restriction is required as soon as the workarounds below
+            # are removed.
+            raise ValueError('cannot mix chainerx and other backends')
+
+        # Cannot use chainerx.backward directly, because it does not follow
+        # retain_grad=False
+        # TODO(kataoka): Fix chainerx.backward and remove this workaround
+        if grad_outputs is None:
+            grad_outputs = []
+            for y in outputs:
+                grad_outputs.append(y.grad_var)
+                y.grad_var = None
+
+        # The check is required because chainerx.backward sets default grads.
+        # TODO(kataoka): Fix chainerx.backward and remove this workaround
+        indices = [i for i, gy in enumerate(grad_outputs) if gy is not None]
+        outputs = [outputs[i] for i in indices]
+        grad_outputs = [grad_outputs[i] for i in indices]
+
+        # Use new variables to start backprop
+        # TODO(kataoka): Implement chainerx.backward(output, grad_outputs)
+        # and remove this workaround.
+        outputs = chainer.functions.identity(*outputs)
+        if not isinstance(outputs, tuple):
+            outputs = outputs,
+        grad_outputs = chainer.functions.identity(*grad_outputs)
+        if not isinstance(grad_outputs, tuple):
+            grad_outputs = grad_outputs,
+
+        # TODO(kataoka): Even after F.identity, non-float grad cannot be set.
+        # Move the check to elsewhere and remove this workaround.
+        outputs_ = []
+        for y, gy in zip(outputs, grad_outputs):
+            if not y.requires_grad and gy is not None:
+                warnings.warn(
+                    'Some of grads are ignored by chainer.backward.\n'
+                    'backend: ChainerX, '
+                    'output.dtype: {}, grad_output.dtype: {}'.format(
+                        y.dtype, gy.dtype),
+                    RuntimeWarning)
+                continue
+            y.grad_var = gy
+            outputs_.append(y)
+        outputs = outputs_
+        del outputs_
+
+        # See also the ChainerX case of Variable.backward
+        arrs = []
+        for y in outputs:
+            arr = y._data[0]
+            assert isinstance(arr, chainerx.ndarray)
+            arrs.append(arr)
+        chainerx.backward(
+            arrs, enable_double_backprop=enable_double_backprop)
+        return
+
+    if grad_outputs is None:
+        grad_outputs = []
+        for y in outputs:
+            grad_var = y.grad_var
+            if grad_var is None:
+                warnings.warn(
+                    'outputs contains a Variable without grad, or '
+                    'duplicate outputs. Note that'
+                    'chainer.backward does not have default grad.',
+                    RuntimeWarning)
+            y.grad_var = None
+            grad_outputs.append(grad_var)
+    outputs = [
+        (y.node, gy) for y, gy in zip(outputs, grad_outputs) if gy is not None]
+    with chainer.using_config('enable_backprop', enable_double_backprop):
+        _backprop_to_all(outputs, False, None)
+
+
 def _backprop_to_all(outputs, retain_grad, loss_scale):
     """Backprop to all input variables
 

@@ -13,6 +13,7 @@
 #include "chainerx/dtype.h"
 #include "chainerx/indexable_array.h"
 #include "chainerx/indexer.h"
+#include "chainerx/kernels/pooling.h"
 #include "chainerx/native/native_backend.h"
 #include "chainerx/routines/pooling.h"
 #include "chainerx/scalar.h"

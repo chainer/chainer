@@ -17,12 +17,13 @@
 #include "chainerx/cuda/cuda_set_device_scope.h"
 #include "chainerx/cuda/cudnn.h"
 #include "chainerx/cuda/data_type.cuh"
-#include "chainerx/cuda/op_regist.h"
+#include "chainerx/cuda/kernel_regist.h"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
 #include "chainerx/error.h"
 #include "chainerx/indexable_array.h"
 #include "chainerx/indexer.h"
+#include "chainerx/kernels/pooling.h"
 #include "chainerx/macro.h"
 #include "chainerx/numeric_limits.h"
 #include "chainerx/routines/connection.h"
@@ -258,7 +259,7 @@ Array MaxPoolGradGrad(
     return actual_ggout;
 }
 
-class CudaMaxPoolOp : public MaxPoolOp {
+class CudaMaxPoolKernel : public MaxPoolKernel {
 public:
     std::tuple<Array, std::unique_ptr<MaxPoolGradState>> Call(
             const Array& x,
@@ -278,9 +279,9 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(MaxPoolOp, CudaMaxPoolOp);
+CHAINERX_CUDA_REGISTER_KERNEL(MaxPoolKernel, CudaMaxPoolKernel);
 
-class CudaMaxPoolGradOp : public MaxPoolGradOp {
+class CudaMaxPoolGradKernel : public MaxPoolGradKernel {
 public:
     std::tuple<Array, std::unique_ptr<MaxPoolGradGradState>> Call(
             const Array& gout,
@@ -305,9 +306,9 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(MaxPoolGradOp, CudaMaxPoolGradOp);
+CHAINERX_CUDA_REGISTER_KERNEL(MaxPoolGradKernel, CudaMaxPoolGradKernel);
 
-class CudaMaxPoolGradGradOp : public MaxPoolGradGradOp {
+class CudaMaxPoolGradGradKernel : public MaxPoolGradGradKernel {
 public:
     Array Call(
             const Array& ggx,
@@ -328,7 +329,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(MaxPoolGradGradOp, CudaMaxPoolGradGradOp);
+CHAINERX_CUDA_REGISTER_KERNEL(MaxPoolGradGradKernel, CudaMaxPoolGradGradKernel);
 
 cudnnPoolingMode_t GetCudnnPoolingMode(AveragePoolPadMode pad_mode) {
     switch (pad_mode) {
@@ -341,7 +342,7 @@ cudnnPoolingMode_t GetCudnnPoolingMode(AveragePoolPadMode pad_mode) {
     }
 }
 
-class CudaAveragePoolOp : public AveragePoolOp {
+class CudaAveragePoolKernel : public AveragePoolKernel {
 public:
     std::tuple<Array, std::unique_ptr<AveragePoolGradState>> Call(
             const Array& x,
@@ -361,9 +362,9 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(AveragePoolOp, CudaAveragePoolOp);
+CHAINERX_CUDA_REGISTER_KERNEL(AveragePoolKernel, CudaAveragePoolKernel);
 
-class CudaAveragePoolGradOp : public AveragePoolGradOp {
+class CudaAveragePoolGradKernel : public AveragePoolGradKernel {
 public:
     Array Call(
             const Array& gout,
@@ -384,7 +385,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_CUDA(AveragePoolGradOp, CudaAveragePoolGradOp);
+CHAINERX_CUDA_REGISTER_KERNEL(AveragePoolGradKernel, CudaAveragePoolGradKernel);
 
 }  // namespace
 }  // namespace cuda

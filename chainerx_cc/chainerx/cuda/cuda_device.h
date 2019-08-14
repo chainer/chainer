@@ -21,6 +21,8 @@
 #include "chainerx/cuda/memory_pool.h"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
+#include "chainerx/kernels/normalization.h"
+#include "chainerx/kernels/pooling.h"
 #include "chainerx/routines/normalization.h"
 #include "chainerx/routines/pooling.h"
 #include "chainerx/scalar.h"

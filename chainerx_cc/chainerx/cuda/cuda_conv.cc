@@ -20,6 +20,7 @@
 #include "chainerx/dtype.h"
 #include "chainerx/error.h"
 #include "chainerx/hash_combine.h"
+#include "chainerx/kernels/connection.h"
 #include "chainerx/macro.h"
 #include "chainerx/routines/connection.h"
 #include "chainerx/routines/creation.h"

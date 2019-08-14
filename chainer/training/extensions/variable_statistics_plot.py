@@ -187,7 +187,7 @@ class VariableStatisticsPlot(extension.Extension):
                  plot_mean=True, plot_std=True,
                  percentile_sigmas=(
                      0, 0.13, 2.28, 15.87, 50, 84.13, 97.72, 99.87, 100),
-                 trigger=(1, 'epoch'), filename='statistics.png',
+                 trigger=(1, 'epoch'), filename=None,
                  figsize=None, marker=None, grid=True, **kwargs):
 
         file_name, = argument.parse_kwargs(
@@ -195,9 +195,7 @@ class VariableStatisticsPlot(extension.Extension):
         )
         if filename is None:
             filename = file_name
-
-        if filename is None:
-            raise ValueError('Missing output file name of statstics plot')
+        del file_name  # avoid accidental use
 
         self._vars = _unpack_variables(targets)
         if len(self._vars) == 0:

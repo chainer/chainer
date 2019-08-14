@@ -16,6 +16,7 @@
 #include "chainerx/enum.h"
 #include "chainerx/error.h"
 #include "chainerx/graph.h"
+#include "chainerx/kernels/math.h"
 #include "chainerx/macro.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/logic.h"
@@ -123,7 +124,7 @@ void AddImpl(const Array& x1, const Array& x2, const Array& out) {
 
     {
         NoBackpropModeScope scope{};
-        x1.device().backend().CallOp<AddOp>(x1, x2, out);
+        x1.device().backend().CallKernel<AddKernel>(x1, x2, out);
     }
 
     {
@@ -147,7 +148,7 @@ void AddImpl(const Array& x1, const Array& x2, const Array& out) {
 void AddASImpl(const Array& x1, Scalar x2, const Array& out) {
     {
         NoBackpropModeScope scope{};
-        x1.device().backend().CallOp<AddASOp>(x1, x2, out);
+        x1.device().backend().CallKernel<AddASKernel>(x1, x2, out);
     }
 
     BackwardBuilder bb{"add_scalar", x1, out};
@@ -182,7 +183,7 @@ void SubtractImpl(const Array& x1, const Array& x2, const Array& out) {
 
     {
         NoBackpropModeScope scope{};
-        x1.device().backend().CallOp<SubtractOp>(x1, x2, out);
+        x1.device().backend().CallKernel<SubtractKernel>(x1, x2, out);
     }
 
     {
@@ -206,7 +207,7 @@ void SubtractImpl(const Array& x1, const Array& x2, const Array& out) {
 void SubtractASImpl(const Array& x1, Scalar x2, const Array& out) {
     {
         NoBackpropModeScope scope{};
-        x1.device().backend().CallOp<SubtractASOp>(x1, x2, out);
+        x1.device().backend().CallKernel<SubtractASKernel>(x1, x2, out);
     }
 
     BackwardBuilder bb{"subtract_scalar", x1, out};
@@ -249,7 +250,7 @@ void MultiplyImpl(const Array& x1, const Array& x2, const Array& out) {
 
     {
         NoBackpropModeScope scope{};
-        x1.device().backend().CallOp<MultiplyOp>(x1, x2, out);
+        x1.device().backend().CallKernel<MultiplyKernel>(x1, x2, out);
     }
 
     {
@@ -275,7 +276,7 @@ void MultiplyImpl(const Array& x1, const Array& x2, const Array& out) {
 void MultiplyASImpl(const Array& x1, Scalar x2, const Array& out) {
     {
         NoBackpropModeScope scope{};
-        x1.device().backend().CallOp<MultiplyASOp>(x1, x2, out);
+        x1.device().backend().CallKernel<MultiplyASKernel>(x1, x2, out);
     }
 
     BackwardBuilder bb{"multiply_scalar", x1, out};
@@ -309,12 +310,12 @@ void FloorDivideImpl(const Array& x1, const Array& x2, const Array& out) {
     CheckEqual(x1.shape(), x2.shape());
 
     NoBackpropModeScope scope{};
-    x1.device().backend().CallOp<FloorDivideOp>(x1, x2, out);
+    x1.device().backend().CallKernel<FloorDivideKernel>(x1, x2, out);
 }
 
 void FloorDivideASImpl(const Array& x1, Scalar x2, const Array& out) {
     NoBackpropModeScope scope{};
-    x1.device().backend().CallOp<FloorDivideASOp>(x1, x2, out);
+    x1.device().backend().CallKernel<FloorDivideASKernel>(x1, x2, out);
 }
 
 namespace internal {
@@ -342,7 +343,7 @@ void DivideImpl(const Array& x1, const Array& x2, const Array& out) {
 
     {
         NoBackpropModeScope scope{};
-        x1.device().backend().CallOp<DivideOp>(x1, x2, out);
+        x1.device().backend().CallKernel<DivideKernel>(x1, x2, out);
     }
 
     {
@@ -369,7 +370,7 @@ void DivideImpl(const Array& x1, const Array& x2, const Array& out) {
 void DivideASImpl(const Array& x1, Scalar x2, const Array& out) {
     {
         NoBackpropModeScope scope{};
-        x1.device().backend().CallOp<DivideASOp>(x1, x2, out);
+        x1.device().backend().CallKernel<DivideASKernel>(x1, x2, out);
     }
 
     BackwardBuilder bb{"divide_scalar", x1, out};
@@ -452,7 +453,7 @@ Array Sum(const Array& a, const OptionalAxes& axis, bool keepdims) {
     Array out = internal::EmptyReduced(a.shape(), out_dtype, sorted_axis, keepdims, a.device());
     {
         NoBackpropModeScope scope{};
-        a.device().backend().CallOp<SumOp>(a, sorted_axis, out);
+        a.device().backend().CallKernel<SumKernel>(a, sorted_axis, out);
     }
 
     BackwardBuilder bb{"sum", a, out};
@@ -488,10 +489,55 @@ Array AMax(const Array& a, const OptionalAxes& axis, bool keepdims) {
 
     {
         NoBackpropModeScope scope{};
-        a.device().backend().CallOp<AMaxOp>(a, sorted_axis, out);
+        a.device().backend().CallKernel<AMaxKernel>(a, sorted_axis, out);
     }
 
     BackwardBuilder bb{"amax", a, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        // a and out are used only for restoring the mask. We don't need graph nodes.
+        bt.Define([sorted_axis, a = a.AsGradStopped(), out = out.AsGradStopped(), keepdims](BackwardContext& bctx) {
+            const Array& gout = *bctx.output_grad();
+            CHAINERX_ASSERT(std::is_sorted(sorted_axis.begin(), sorted_axis.end()));
+
+            Array reshaped_gout{};
+            Array reshaped_out{};
+            if (keepdims) {
+                reshaped_gout = gout;
+                reshaped_out = out;
+            } else {
+                // Add broadcastable dimensions to out and gout
+                // for each one that was reduced in the forward operation
+                Shape shape = internal::ReduceShape(a.shape(), sorted_axis, true);
+                reshaped_gout = gout.Reshape(shape);
+                reshaped_out = out.Reshape(shape);
+            }
+
+            // Compute the gradient
+            // TODO(sonots): Use `where` if it becomes available.
+            Array cond = (a == reshaped_out).AsType(gout.dtype(), false);
+            bctx.input_grad() = reshaped_gout * cond;
+        });
+    }
+    bb.Finalize();
+    return out;
+}
+
+Array AMin(const Array& a, const OptionalAxes& axis, bool keepdims) {
+    Axes sorted_axis = internal::GetSortedAxesOrAll(axis, a.ndim());
+    Array out = internal::EmptyReduced(a.shape(), a.dtype(), sorted_axis, keepdims, a.device());
+
+    for (int8_t i : sorted_axis) {
+        if (a.shape()[i] == 0) {
+            throw DimensionError{"cannot compute the minimum along zero-sized axis"};
+        }
+    }
+
+    {
+        NoBackpropModeScope scope{};
+        a.device().backend().CallKernel<AMinKernel>(a, sorted_axis, out);
+    }
+
+    BackwardBuilder bb{"amin", a, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
         // a and out are used only for restoring the mask. We don't need graph nodes.
         bt.Define([sorted_axis, a = a.AsGradStopped(), out = out.AsGradStopped(), keepdims](BackwardContext& bctx) {
@@ -532,7 +578,7 @@ Array IfLessElse(const Array& x1, Scalar x2, Scalar pos, const Array& neg) {
 
     {
         NoBackpropModeScope scope{};
-        x1.device().backend().CallOp<IfLessElseASSAOp>(x1, x2, pos, neg, out);
+        x1.device().backend().CallKernel<IfLessElseASSAKernel>(x1, x2, pos, neg, out);
     }
 
     BackwardBuilder bb{"if_less_else", neg, out};
@@ -567,7 +613,7 @@ Array IfGreaterElse(const Array& x1, Scalar x2, Scalar pos, const Array& neg) {
 
     {
         NoBackpropModeScope scope{};
-        x1.device().backend().CallOp<IfGreaterElseASSAOp>(x1, x2, pos, neg, out);
+        x1.device().backend().CallKernel<IfGreaterElseASSAKernel>(x1, x2, pos, neg, out);
     }
 
     BackwardBuilder bb{"if_greater_else", neg, out};
@@ -590,7 +636,7 @@ void IfGreaterElseImpl(const Array& x1, const Array& x2, const Array& pos, const
     CheckEqual(x1.shape(), x2.shape());
     {
         NoBackpropModeScope scope{};
-        x1.device().backend().CallOp<IfGreaterElseAAAAOp>(x1, x2, pos, neg, out);
+        x1.device().backend().CallKernel<IfGreaterElseAAAAKernel>(x1, x2, pos, neg, out);
     }
     {
         BackwardBuilder bb{"if_greater_else", {pos, neg}, out};
@@ -622,12 +668,23 @@ void MinimumImpl(const Array& x1, const Array& x2, const Array& out) { IfGreater
 
 }  // namespace
 
+namespace {
+
+void MaximumImpl(const Array& x1, const Array& x2, const Array& out) { IfGreaterElseImpl(x1, x2, x1, x2, out); }
+
+}  // namespace
+
 Array Maximum(const Array& x1, Scalar x2) {
     // TODO(niboshi): IfLessElse redundantly casts x1 twice.
     return IfLessElse(x1, x2, x2, x1);  // x1 < x2 ? x2 : x1
 }
 
 Array Maximum(Scalar x1, const Array& x2) { return Maximum(x2, x1); }
+
+Array Maximum(const Array& x1, const Array& x2) {
+    Dtype dtype = GetArithmeticResultDtype(x1, x2);
+    return BroadcastBinary(&MaximumImpl, x1, x2, dtype);  // x1 > x2 ? x1 : x2
+}
 
 Array Minimum(const Array& x1, Scalar x2) {
     // TODO(niboshi): IfGreaterElse redundantly casts x1 twice.
@@ -647,7 +704,7 @@ Array Exp(const Array& x) {
 
     {
         NoBackpropModeScope scope{};
-        x.device().backend().CallOp<ExpOp>(x, out);
+        x.device().backend().CallKernel<ExpKernel>(x, out);
     }
 
     BackwardBuilder bb{"exp", x, out};
@@ -668,7 +725,7 @@ Array Log(const Array& x) {
 
     {
         NoBackpropModeScope scope{};
-        x.device().backend().CallOp<LogOp>(x, out);
+        x.device().backend().CallKernel<LogKernel>(x, out);
     }
 
     BackwardBuilder bb{"log", x, out};
@@ -715,7 +772,7 @@ Array Square(const Array& x) {
 
     {
         NoBackpropModeScope scope{};
-        x.device().backend().CallOp<SquareOp>(x, out);
+        x.device().backend().CallKernel<SquareKernel>(x, out);
     }
 
     BackwardBuilder bb{"square", x, out};
@@ -738,7 +795,7 @@ Array Sqrt(const Array& x) {
 
     {
         NoBackpropModeScope scope{};
-        x.device().backend().CallOp<SqrtOp>(x, out);
+        x.device().backend().CallKernel<SqrtKernel>(x, out);
     }
 
     BackwardBuilder bb{"sqrt", x, out};
@@ -760,7 +817,7 @@ Array Tanh(const Array& x) {
 
     {
         NoBackpropModeScope scope{};
-        x.device().backend().CallOp<TanhOp>(x, out);
+        x.device().backend().CallKernel<TanhKernel>(x, out);
     }
 
     BackwardBuilder bb{"tanh", x, out};
@@ -782,7 +839,7 @@ Array Sin(const Array& x) {
 
     {
         NoBackpropModeScope scope{};
-        x.device().backend().CallOp<SinOp>(x, out);
+        x.device().backend().CallKernel<SinKernel>(x, out);
     }
 
     BackwardBuilder bb{"sin", x, out};
@@ -804,7 +861,7 @@ Array Cos(const Array& x) {
 
     {
         NoBackpropModeScope scope{};
-        x.device().backend().CallOp<CosOp>(x, out);
+        x.device().backend().CallKernel<CosKernel>(x, out);
     }
 
     BackwardBuilder bb{"cos", x, out};
@@ -826,7 +883,7 @@ Array Tan(const Array& x) {
 
     {
         NoBackpropModeScope scope{};
-        x.device().backend().CallOp<TanOp>(x, out);
+        x.device().backend().CallKernel<TanKernel>(x, out);
     }
 
     BackwardBuilder bb{"tan", x, out};
@@ -849,7 +906,7 @@ Array Arcsin(const Array& x) {
 
     {
         NoBackpropModeScope scope{};
-        x.device().backend().CallOp<ArcsinOp>(x, out);
+        x.device().backend().CallKernel<ArcsinKernel>(x, out);
     }
 
     BackwardBuilder bb{"arcsin", x, out};
@@ -871,7 +928,7 @@ Array Arccos(const Array& x) {
 
     {
         NoBackpropModeScope scope{};
-        x.device().backend().CallOp<ArccosOp>(x, out);
+        x.device().backend().CallKernel<ArccosKernel>(x, out);
     }
 
     BackwardBuilder bb{"arccos", x, out};
@@ -893,7 +950,7 @@ Array Arctan(const Array& x) {
 
     {
         NoBackpropModeScope scope{};
-        x.device().backend().CallOp<ArctanOp>(x, out);
+        x.device().backend().CallKernel<ArctanKernel>(x, out);
     }
 
     BackwardBuilder bb{"arctan", x, out};
@@ -915,7 +972,7 @@ Array Sinh(const Array& x) {
 
     {
         NoBackpropModeScope scope{};
-        x.device().backend().CallOp<SinhOp>(x, out);
+        x.device().backend().CallKernel<SinhKernel>(x, out);
     }
 
     BackwardBuilder bb{"sinh", x, out};
@@ -937,7 +994,7 @@ Array Cosh(const Array& x) {
 
     {
         NoBackpropModeScope scope{};
-        x.device().backend().CallOp<CoshOp>(x, out);
+        x.device().backend().CallKernel<CoshKernel>(x, out);
     }
 
     BackwardBuilder bb{"cosh", x, out};
@@ -959,7 +1016,7 @@ Array Arcsinh(const Array& x) {
 
     {
         NoBackpropModeScope scope{};
-        x.device().backend().CallOp<ArcsinhOp>(x, out);
+        x.device().backend().CallKernel<ArcsinhKernel>(x, out);
     }
 
     BackwardBuilder bb{"arcsinh", x, out};
@@ -981,7 +1038,7 @@ Array Arccosh(const Array& x) {
 
     {
         NoBackpropModeScope scope{};
-        x.device().backend().CallOp<ArccoshOp>(x, out);
+        x.device().backend().CallKernel<ArccoshKernel>(x, out);
     }
 
     BackwardBuilder bb{"arccosh", x, out};
@@ -1002,7 +1059,7 @@ Array Ceil(const Array& x) {
     Array out = Empty(x.shape(), dtype, x.device());
     {
         NoBackpropModeScope scope{};
-        x.device().backend().CallOp<CeilOp>(x, out);
+        x.device().backend().CallKernel<CeilKernel>(x, out);
     }
     return out;
 }
@@ -1012,7 +1069,7 @@ Array Floor(const Array& x) {
     Array out = Empty(x.shape(), dtype, x.device());
     {
         NoBackpropModeScope scope{};
-        x.device().backend().CallOp<FloorOp>(x, out);
+        x.device().backend().CallKernel<FloorKernel>(x, out);
     }
     return out;
 }
@@ -1021,7 +1078,7 @@ Array IsNan(const Array& x) {
     Array out = Empty(x.shape(), Dtype::kBool, x.device());
     {
         NoBackpropModeScope scope{};
-        x.device().backend().CallOp<IsNanOp>(x, out);
+        x.device().backend().CallKernel<IsNanKernel>(x, out);
     }
     return out;
 }
@@ -1030,7 +1087,7 @@ Array IsInf(const Array& x) {
     Array out = Empty(x.shape(), Dtype::kBool, x.device());
     {
         NoBackpropModeScope scope{};
-        x.device().backend().CallOp<IsInfOp>(x, out);
+        x.device().backend().CallKernel<IsInfKernel>(x, out);
     }
     return out;
 }

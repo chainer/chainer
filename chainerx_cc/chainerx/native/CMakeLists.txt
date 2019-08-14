@@ -3,7 +3,7 @@ install(FILES
     native_backend.h
     data_type.h
     elementwise.h
-    op_regist.h
+    kernel_regist.h
     reduce.h
     col2im.h
     im2col.h

@@ -379,6 +379,16 @@ class ndarray:
             axis: tp.Optional[tp.Tuple[int, ...]]=None,
             keepdims: bool=...) -> ndarray: ...
 
+    @tp.overload
+    def min(self,
+            axis: int,
+            keepdims: bool=...) -> ndarray: ...
+
+    @tp.overload
+    def min(self,
+            axis: tp.Optional[tp.Tuple[int, ...]]=None,
+            keepdims: bool=...) -> ndarray: ...
+
     def ravel(self) -> ndarray: ...
 
     def require_grad(
@@ -447,6 +457,11 @@ def any(x: ndarray) -> ndarray: ...
 
 
 def amax(a: ndarray,
+         axis: tp.Union[int, tp.Optional[tp.List[int]]]=None,
+         keepdims: bool=...) -> ndarray: ...
+
+
+def amin(a: ndarray,
          axis: tp.Union[int, tp.Optional[tp.List[int]]]=None,
          keepdims: bool=...) -> ndarray: ...
 
@@ -786,6 +801,9 @@ def tanh(x: ndarray) -> ndarray: ...
 
 
 def to_numpy(array: ndarray, copy: bool=...) -> numpy.ndarray: ...
+
+
+def _to_cupy(array: ndarray) -> numpy.ndarray: ...
 
 
 def transpose(
