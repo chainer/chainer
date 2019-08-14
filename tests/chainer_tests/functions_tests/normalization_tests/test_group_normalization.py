@@ -63,9 +63,21 @@ class TestGroupNormalization(testing.FunctionTestCase):
                 {'atol': 1e-2, 'rtol': 1e-2})
 
     def generate_inputs(self):
-        x = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
-        gamma = numpy.random.uniform(-1, 1, self.shape[1]).astype(self.dtype)
-        beta = numpy.random.uniform(-1, 1, self.shape[1]).astype(self.dtype)
+        shape = self.shape
+
+        # sample x such that x.std >= min_std
+        min_std = 0.2 if self.dtype == numpy.float16 else 0.02
+        retry = 0
+        while True:
+            x = numpy.random.uniform(-1, 1, shape).astype(self.dtype)
+            x_groups = x.reshape(shape[0], self.groups, -1)
+            if x_groups.std(axis=2).min() >= min_std:
+                break
+            retry += 1
+            assert retry <= 20, 'Too many retries to generate inputs'
+
+        gamma = numpy.random.uniform(-1, 1, shape[1]).astype(self.dtype)
+        beta = numpy.random.uniform(-1, 1, shape[1]).astype(self.dtype)
         return x, gamma, beta
 
     def forward(self, inputs, device):

@@ -1,5 +1,3 @@
-import warnings
-
 from chainermn.communicators.communicator_base import CommunicatorBase  # NOQA
 
 
@@ -10,9 +8,10 @@ def create_communicator(
 
     Different communicators provide different approaches of communication, so
     they have different performance charasteristics. The default communicator
-    ``hierarchical`` is expected to generally perform well on a variety of
+    ``pure_nccl`` is expected to generally perform well on a variety of
     environments, so one need not to change communicators in most cases.
-    However, choosing proper communicator may give better performance.
+    However, you may need to choose other communicators depending on
+    your computing platform and the availability of NCCL library.
     The following communicators are available.
 
     +---------------+---+---+--------+--------------------------------------+
@@ -20,12 +19,6 @@ def create_communicator(
     +===============+===+===+========+======================================+
     |pure_nccl      |   |OK |Required|``pure_nccl`` is recommended when     |
     |               |   |   |(>= v2) |NCCL2 is available in the environment.|
-    +---------------+---+---+--------+--------------------------------------+
-    |hierarchical   |   |OK |Required|Each node has a single NIC or HCA     |
-    +---------------+---+---+--------+--------------------------------------+
-    |two_dimensional|   |OK |Required|Each node has multiple NICs or HCAs   |
-    +---------------+---+---+--------+--------------------------------------+
-    |single_node    |   |OK |Required|Single node with multiple GPUs        |
     +---------------+---+---+--------+--------------------------------------+
     |flat           |   |OK |        |N/A                                   |
     +---------------+---+---+--------+--------------------------------------+
@@ -56,14 +49,13 @@ def create_communicator(
     | numpy.float32       | FP32    |   FP16           | FP32          |
     +---------------------+---------+------------------+---------------+
 
-    Other communicator, including flat and hierarchical, support only
+    Other communicators, namely ``flat`` and ``naive``, support only
     float32 communication, no matter what the model is. This is due to
     MPI's limited support of float16.
 
     Args:
         communicator_name: The name of communicator (``naive``, ``flat``,
-          ``hierarchical``, ``two_dimensional``, ``pure_nccl``, or
-          ``single_node``)
+          or ``pure_nccl``)
         mpi_comm: MPI4py communicator
         allreduce_grad_dtype: Data type of gradient used in All-Reduce.
           If ``None``, the dtype of a model is used.
@@ -89,46 +81,24 @@ def create_communicator(
         raise ValueError(
             'allreduce_grad_dtype is only available'
             'at \'pure_nccl\' communicator.')
-    if communicator_name != 'pure_nccl' and batched_copy:
-        raise ValueError(
-            'batched_copy is only available'
-            'at \'pure_nccl\' communicator.')
 
     if communicator_name == 'naive':
         from chainermn.communicators.naive_communicator \
             import NaiveCommunicator
-        return NaiveCommunicator(mpi_comm=mpi_comm)
+        return NaiveCommunicator(mpi_comm=mpi_comm,
+                                 batched_copy=batched_copy)
 
     elif communicator_name == 'flat':
         from chainermn.communicators.flat_communicator \
             import FlatCommunicator
-        return FlatCommunicator(mpi_comm=mpi_comm)
-
-    elif communicator_name == 'hierarchical':
-        from chainermn.communicators.hierarchical_communicator \
-            import HierarchicalCommunicator
-        warnings.warn('hierarchical communicator is deprecated.',
-                      DeprecationWarning)
-        return HierarchicalCommunicator(mpi_comm=mpi_comm)
-
-    elif communicator_name == 'two_dimensional':
-        from chainermn.communicators.two_dimensional_communicator \
-            import TwoDimensionalCommunicator
-        warnings.warn('two_dimensional communicator is deprecated.',
-                      DeprecationWarning)
-        return TwoDimensionalCommunicator(mpi_comm=mpi_comm)
-
-    elif communicator_name == 'single_node':
-        warnings.warn('single_node communicator is deprecated.',
-                      DeprecationWarning)
-        from chainermn.communicators.single_node_communicator \
-            import SingleNodeCommunicator
-        return SingleNodeCommunicator(mpi_comm=mpi_comm)
+        return FlatCommunicator(mpi_comm=mpi_comm,
+                                batched_copy=batched_copy)
 
     elif communicator_name == 'non_cuda_aware':
         from chainermn.communicators.non_cuda_aware_communicator \
             import NonCudaAwareCommunicator
-        return NonCudaAwareCommunicator(mpi_comm=mpi_comm)
+        return NonCudaAwareCommunicator(mpi_comm=mpi_comm,
+                                        batched_copy=batched_copy)
 
     elif communicator_name == 'pure_nccl':
         from chainermn.communicators.pure_nccl_communicator \
@@ -140,7 +110,8 @@ def create_communicator(
     elif communicator_name == 'dummy':
         from chainermn.communicators.dummy_communicator \
             import DummyCommunicator
-        return DummyCommunicator(mpi_comm=mpi_comm)
+        return DummyCommunicator(mpi_comm=mpi_comm,
+                                 batched_copy=batched_copy)
 
     else:
         raise ValueError(

@@ -11,7 +11,7 @@ from chainer.testing import backend
 
 
 @testing.parameterize(*(testing.product({
-    'c_contiguous': [True, False],
+    'contiguous': ['C', None],
     'cover_all': [True, False],
     'x_dtype': [numpy.float32],
     'W_dtype': [numpy.float32],
@@ -19,7 +19,7 @@ from chainer.testing import backend
     'groups': [1, 2],
     'nobias': [True, False],
 }) + testing.product({
-    'c_contiguous': [False],
+    'contiguous': [None],
     'cover_all': [False],
     'x_dtype': [numpy.float16, numpy.float32, numpy.float64],
     'W_dtype': [numpy.float16, numpy.float32, numpy.float64],
@@ -86,6 +86,17 @@ class TestConvolution2DFunction(testing.FunctionTestCase):
                 'atol': 1e-3, 'rtol': 1e-3
             })
 
+    def before_test(self, test_name):
+        # cuDNN 5 and 5.1 results suffer from precision issues
+        using_old_cudnn = (self.backend_config.xp is cuda.cupy
+                           and self.backend_config.use_cudnn == 'always'
+                           and cuda.cuda.cudnn.getVersion() < 6000)
+        if using_old_cudnn:
+            self.check_backward_options.update({
+                'atol': 1e-3, 'rtol': 1e-3})
+            self.check_double_backward_options.update({
+                'atol': 1e-3, 'rtol': 1e-3})
+
     def generate_inputs(self):
         W = numpy.random.normal(
             0, numpy.sqrt(1. / (self.kh * self.kw * self.in_channels_a_group)),
@@ -102,6 +113,12 @@ class TestConvolution2DFunction(testing.FunctionTestCase):
             return x, W, b
 
     def forward_expected(self, inputs):
+        """
+        Current forward_expected implementation depends on
+        F.convolution_2d itself and thus it's only capable
+        of checking consistency between backends, not absolute
+        correctness of computations
+        """
         if self.nobias:
             x, W = inputs
             b = None

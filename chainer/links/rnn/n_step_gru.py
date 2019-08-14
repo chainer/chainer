@@ -1,5 +1,5 @@
-from chainer.functions.connection import n_step_gru as rnn
-from chainer.links.connection import n_step_rnn
+from chainer.functions.rnn import n_step_gru as rnn
+from chainer.links.rnn import n_step_rnn
 
 
 class NStepGRUBase(n_step_rnn.NStepRNNBase):
