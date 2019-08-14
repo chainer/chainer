@@ -29,7 +29,19 @@ ArrayBodyPtr MakeArray(pybind11::handle object, const absl::optional<Dtype>& dty
 // Makes an array from a NumPy array. Shape, dtype, strides will be kept.
 ArrayBodyPtr MakeArrayFromNumpyArray(pybind11::array array, Device& device);
 
-void InitChainerxArray(pybind11::module& m);
+void InitChainerxArrayConversion(pybind11::module& m);
+
+void InitChainerxArrayManipulation(pybind11::module& m);
+
+void InitChainerxArrayComparison(pybind11::module& m);
+
+void InitChainerxArrayUnary(pybind11::module& m);
+
+void InitChainerxArrayInPlace(pybind11::module& m);
+
+void InitChainerxArrayArithmetic(pybind11::module& m);
+
+void InitChainerxArraySpecial(pybind11::module& m);
 
 }  // namespace python_internal
 }  // namespace python
