@@ -162,7 +162,6 @@ class TestBackwardAccumulate(unittest.TestCase):
         y = muladd(a, b, c)
         y.grad = self.gy
         y.backward()
-        assert y.grad is self.gy
 
         inputs2 = self._get_inputs()
         a2, b2, c2 = [inputs2[i] for i in self.var_mapping]

@@ -1624,23 +1624,18 @@ def _backprop_to_all(outputs, retain_grad, loss_scale):
         _, _, func = heapq.heappop(cand_funcs)
         inputs = func.inputs
         target_input_indexes = tuple([
-            i
-            for i, x in enumerate(inputs)
-            if x.requires_grad
+            i for i, x in enumerate(inputs) if x.requires_grad
         ])
-        out_grad = [
-            grads.pop(y())  # access via weak ref
-            for y in func.outputs
-        ]
-        for y, gy in six.moves.zip(func.outputs, out_grad):
-            y = y()
+        outputs = [y() for y in func.outputs]  # access via weak ref
+        out_grad = [grads.pop(y) for y in outputs]
+        for y, gy in six.moves.zip(outputs, out_grad):
             if y is not None and weakref.ref(y) not in root_nodes:
                 y._set_grad_var_if_available(
                     gy if retain_grad else None)
             del y, gy
 
         if not target_input_indexes:
-            del out_grad
+            del outputs, out_grad
             x = None  # fix Python 2
             continue
 
@@ -1694,7 +1689,7 @@ def _backprop_to_all(outputs, retain_grad, loss_scale):
             for gx_elem in gx:
                 if gx_elem is not None:
                     _check_grad_type(func, x, True, gx_elem.array)
-            del gx_elem
+            del gx_elem  # to reduce memory usage
 
             if x.creator_node is None:  # leaf
                 leaf_nodes.add(x)
