@@ -29,6 +29,44 @@ def _assert_arrays_equal(array, expected_array):
     assert (array == expected_array).all()
 
 
+def _shaped_random(shape, dtype):
+    if isinstance(shape, int):
+        shape = (shape,)
+    return numpy.asarray(numpy.random.randn(*shape)).astype(dtype)
+
+
+_inject_backend_tests = testing.backend.inject_backend_tests(
+    None,
+    [
+        # NumPy
+        {},
+        # iDeep
+        {'use_ideep': 'always'},
+        # CuPy
+        {'use_cuda': True, 'cuda_device': 0},
+        {'use_cuda': True, 'cuda_device': 1},
+        # ChainerX
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
+    ])
+
+
+_inject_backend_tests_no_intel64 = testing.backend.inject_backend_tests(
+    None,
+    [
+        # NumPy
+        {},
+        # CuPy
+        {'use_cuda': True, 'cuda_device': 0},
+        {'use_cuda': True, 'cuda_device': 1},
+        # ChainerX
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
+    ])
+
+
 class LinkTestBase(object):
 
     def setUp(self):
@@ -550,47 +588,6 @@ class TestLink(LinkTestBase, unittest.TestCase):
         numpy.testing.assert_array_equal(self.link.u.grad, gu_expect)
         self.assertIsNone(self.link.v.grad, None)
 
-    def test_serialize(self):
-        serializer = mock.MagicMock(return_value=3)
-        l = chainer.Link()
-        with l.init_scope():
-            l.x = chainer.Parameter(shape=(2, 3))
-            l.y = chainer.Parameter(shape=2)
-        l.add_persistent('z', 1)
-        l.serialize(serializer)
-        self.assertEqual(serializer.call_count, 3)
-        serializer.assert_any_call('x', l.x.data)
-        serializer.assert_any_call('y', l.y.data)
-        serializer.assert_any_call('z', 1)
-        self.assertEqual(l.z, 3)
-
-    def test_serialize_param_shape_placeholder(self):
-        serializer = mock.MagicMock(return_value=3)
-        l = chainer.Link()
-        with l.init_scope():
-            l.y = chainer.Parameter(shape=2)
-            l.x = chainer.Parameter()
-        l.x.initialize((2, 3))
-        l.add_persistent('z', 1)
-        l.serialize(serializer)
-        self.assertEqual(serializer.call_count, 3)
-        serializer.assert_any_call('x', l.x.data)
-        serializer.assert_any_call('y', l.y.data)
-        serializer.assert_any_call('z', 1)
-        self.assertEqual(l.z, 3)
-
-    def test_serialize_deserialize_to_uninitialized_param(self):
-        ret = numpy.random.rand(2, 3).astype('f')
-        serializer = mock.MagicMock(return_value=ret)
-        l = chainer.Link()
-        with l.init_scope():
-            l.x = chainer.Parameter()
-        l.serialize(serializer)
-        self.assertEqual(serializer.call_count, 1)
-        serializer.assert_any_call('x', None)
-        self.assertIsInstance(l.x.data, numpy.ndarray)
-        numpy.testing.assert_array_equal(l.x.data, ret)
-
     def test_enable_update(self):
         self.link.enable_update()
         self.assertTrue(self.link.x.update_rule.enabled)
@@ -623,19 +620,217 @@ class TestLink(LinkTestBase, unittest.TestCase):
         assert not w
 
 
-@testing.backend.inject_backend_tests(
-    None,
-    [
-        # NumPy
-        {},
-        # CuPy
-        {'use_cuda': True, 'cuda_device': 0},
-        {'use_cuda': True, 'cuda_device': 1},
-        # ChainerX
-        {'use_chainerx': True, 'chainerx_device': 'native:0'},
-        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
-        {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
-    ])
+@_inject_backend_tests
+@testing.parameterize_pytest(
+    'shape_x,shape_y', [
+        ((2, 3), 2),
+        ((2, 3), ()),
+        ((2, 3), (1, 0, 3)),
+    ]
+)
+class TestLinkSerializeDeserialize(unittest.TestCase):
+
+    def test_serialize(self, backend_config):
+        call_record = []
+
+        def serializer(key, value):
+            call_record.append((key, value))
+            return value
+
+        l = chainer.Link()
+        with l.init_scope():
+            l.x = chainer.Parameter(shape=self.shape_x)
+            l.y = chainer.Parameter(shape=self.shape_y)
+        l.add_persistent('z', 1)
+        l.to_device(backend_config.device)
+
+        old_x_data = l.x.array
+        old_y_data = l.y.array
+        old_z = l.z
+
+        l.serialize(serializer)
+
+        # Link data are not modified
+        self.assertIs(l.x.array, old_x_data)
+        self.assertIs(l.y.array, old_y_data)
+        self.assertEqual(l.z, old_z)
+
+        # Check inputs to the serializer
+        self.assertEqual(len(call_record), 3)
+        call_record = sorted(call_record)
+        self.assertEqual(call_record[0][0], 'x')
+        self.assertIs(call_record[0][1], l.x.array)
+        self.assertEqual(call_record[1][0], 'y')
+        self.assertIs(call_record[1][1], l.y.array)
+        self.assertEqual(call_record[2][0], 'z')
+        self.assertEqual(call_record[2][1], old_z)
+
+    def test_deserialize(self, backend_config):
+        call_record = []
+
+        state = {
+            'x': _shaped_random(self.shape_x, 'float32'),
+            'y': _shaped_random(self.shape_y, 'float32'),
+            'z': numpy.random.randn(),
+        }
+
+        def deserializer(key, value):
+            call_record.append((key, value))
+            if key == 'z':
+                return state[key]  # scalar
+            value[...] = backend_config.device.send(state[key])
+            return value
+
+        l = chainer.Link()
+        with l.init_scope():
+            l.x = chainer.Parameter(shape=self.shape_x)
+            l.y = chainer.Parameter(shape=self.shape_y)
+        l.add_persistent('z', 1)
+        l.to_device(backend_config.device)
+
+        old_x_data = l.x.array
+        old_y_data = l.y.array
+        old_z = l.z
+
+        l.serialize(deserializer)
+
+        # Check link data
+        self.assertIs(l.x.array, old_x_data)
+        self.assertIs(l.y.array, old_y_data)
+        _assert_arrays_equal(l.x.array, state['x'])
+        _assert_arrays_equal(l.y.array, state['y'])
+        self.assertEqual(l.z, state['z'])
+
+        # Check inputs to the deserializer
+        self.assertEqual(len(call_record), 3)
+        call_record = sorted(call_record)
+        self.assertEqual(call_record[0][0], 'x')
+        self.assertIs(call_record[0][1], l.x.array)
+        self.assertEqual(call_record[1][0], 'y')
+        self.assertIs(call_record[1][1], l.y.array)
+        self.assertEqual(call_record[2][0], 'z')
+        self.assertEqual(call_record[2][1], old_z)
+
+    def test_deserialize_uninitialized1(self, backend_config):
+        # Deserializes uninitialized parameters into initialized ones.
+        # TODO(niboshi): Currently the existing initialized parameters are
+        # untouched, but maybe uninitialized state should be restored? (#7916)
+        call_record = []
+
+        def deserializer(key, value):
+            call_record.append((key, value))
+            return None  # to be uninitialized
+
+        l = chainer.Link()
+        with l.init_scope():
+            l.x = chainer.Parameter(shape=self.shape_x)  # initialized
+            l.y = chainer.Parameter(shape=self.shape_y)  # initialized
+        l.to_device(backend_config.device)
+
+        old_x_data = l.x.array
+        old_y_data = l.y.array
+
+        l.serialize(deserializer)
+
+        # Link is kept untouched
+        self.assertIs(l.x.array, old_x_data)
+        self.assertIs(l.y.array, old_y_data)
+
+        # Check inputs to the deserializer
+        self.assertEqual(len(call_record), 2)
+        call_record = sorted(call_record)
+        self.assertEqual(call_record[0][0], 'x')
+        self.assertIs(call_record[0][1], l.x.array)
+        self.assertEqual(call_record[1][0], 'y')
+
+    def test_deserialize_uninitialized2(self, backend_config):
+        # Deserializes initialized parameters into uninitialized ones.
+        call_record = []
+
+        state = {
+            'x': _shaped_random(self.shape_x, 'float32'),
+            'y': _shaped_random(self.shape_y, 'float32'),
+            'z': numpy.random.randn(),
+        }
+
+        def deserializer(key, value):
+            call_record.append((key, value))
+            # to be initialized
+            return backend_config.device.send(state[key])
+
+        l = chainer.Link()
+        with l.init_scope():
+            l.x = chainer.Parameter()  # uninitialized
+            l.y = chainer.Parameter()  # uninitialized
+        l.to_device(backend_config.device)
+
+        l.serialize(deserializer)
+
+        # Link is initialized
+        self.assertIsNotNone(l.x.array)
+        self.assertIsNotNone(l.y.array)
+        _assert_arrays_equal(l.x.array, state['x'])
+        _assert_arrays_equal(l.y.array, state['y'])
+
+        # Check inputs to the deserializer
+        self.assertEqual(len(call_record), 2)
+        call_record = sorted(call_record)
+        self.assertEqual(call_record[0][0], 'x')
+        self.assertIs(call_record[0][1], None)
+        self.assertEqual(call_record[1][0], 'y')
+        self.assertIs(call_record[1][1], None)
+
+
+@_inject_backend_tests
+class TestLinkSerializeDeserializedUninitializedParameter(unittest.TestCase):
+
+    def test_serialize(self, backend_config):
+        call_record = []
+
+        def serializer(key, value):
+            call_record.append((key, value))
+            return value
+
+        l = chainer.Link()
+        with l.init_scope():
+            l.x = chainer.Parameter()  # uninitialized
+        l.to_device(backend_config.device)
+
+        l.serialize(serializer)
+
+        # Link is kept uninitialized
+        self.assertIsNone(l.x.array)
+
+        # Check inputs to the serializer
+        self.assertEqual(len(call_record), 1)
+        self.assertEqual(call_record[0][0], 'x')
+        self.assertIs(call_record[0][1], None)
+
+    def test_deserialize(self, backend_config):
+        # Deserializes uninitialized parameters into uninitialied ones.
+        call_record = []
+
+        def serializer(key, value):
+            call_record.append((key, value))
+            return None  # to be uninitialized
+
+        l = chainer.Link()
+        with l.init_scope():
+            l.x = chainer.Parameter()  # uninitialized
+        l.to_device(backend_config.device)
+
+        l.serialize(serializer)
+
+        # Link is kept uninitialized
+        self.assertIsNone(l.x.array)
+
+        # Check inputs to the serializer
+        self.assertEqual(len(call_record), 1)
+        self.assertEqual(call_record[0][0], 'x')
+        self.assertIs(call_record[0][1], None)
+
+
+@_inject_backend_tests_no_intel64
 @attr.chainerx
 class TestLinkFromToChainerx(LinkTestBase, unittest.TestCase):
 
@@ -1252,19 +1447,7 @@ Chain(
         assert not w
 
 
-@testing.backend.inject_backend_tests(
-    None,
-    [
-        # NumPy
-        {},
-        # CuPy
-        {'use_cuda': True, 'cuda_device': 0},
-        {'use_cuda': True, 'cuda_device': 1},
-        # ChainerX
-        {'use_chainerx': True, 'chainerx_device': 'native:0'},
-        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
-        {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
-    ])
+@_inject_backend_tests_no_intel64
 @attr.chainerx
 class TestChainFromToChainerx(ChainTestBase, unittest.TestCase):
 
@@ -2464,6 +2647,34 @@ class TestLinkOverrideToDeviceMethods(unittest.TestCase):
         l = cls()
         l.to_intel64()
         assert l.child.to_method_called == 1
+
+
+@_inject_backend_tests
+class TestSerialize(unittest.TestCase):
+    def setUp(self):
+        self.array = numpy.array([1, 2, 3], dtype=numpy.float32)
+        self.serializer = mock.MagicMock(return_value=self.array)
+
+        link = chainer.Link()
+        with link.init_scope():
+            link.x = chainer.Parameter()
+            link.y = chainer.Parameter()
+        link.add_persistent('z', None)
+        self.link = link
+
+    def test_serialize_numpy(self, backend_config):
+        array = self.array
+        link = self.link
+        serializer = self.serializer
+
+        link.to_device(backend_config.device)
+        link.serialize(serializer)
+
+        self.assertEqual(serializer.call_count, 3)
+        cpu_device = chainer.backend.CpuDevice()
+        numpy.testing.assert_array_equal(cpu_device.send(link.x.array), array)
+        numpy.testing.assert_array_equal(cpu_device.send(link.y.array), array)
+        numpy.testing.assert_array_equal(cpu_device.send(link.z), array)
 
 
 testing.run_module(__name__, __file__)
