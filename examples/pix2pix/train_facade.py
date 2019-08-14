@@ -31,7 +31,7 @@ def main():
                         help='Directory of image files.')
     parser.add_argument('--out', '-o', default='result',
                         help='Directory to output the result')
-    parser.add_argument('--resume', '-r', default='',
+    parser.add_argument('--resume', '-r', type=str,
                         help='Resume the training from snapshot')
     parser.add_argument('--seed', type=int, default=0,
                         help='Random seed')
@@ -106,7 +106,7 @@ def main():
             5, 5, args.seed, args.out),
         trigger=snapshot_interval)
 
-    if args.resume:
+    if args.resume is not None:
         # Resume from a snapshot
         chainer.serializers.load_npz(args.resume, trainer)
 

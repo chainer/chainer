@@ -20,6 +20,7 @@ _min_max_single_axis_params = [
     (numpy.asarray([4, 1, 4, 1]), 0),
     (numpy.asarray([[4, 4, 1, 1], [4, 1, 4, 1]]), 0),
     (numpy.asarray([[4, 4, 1, 1], [4, 1, 4, 1]]).T, 1),
+    (numpy.asarray([-2, -3, -1]), 0),
     (numpy.asarray([-0.0, +0.0, +0.0, -0.0]), None),
     (numpy.asarray([[True, True, False, False],
                     [True, False, True, False]]), 0),

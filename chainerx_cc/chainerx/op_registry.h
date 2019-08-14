@@ -62,7 +62,7 @@ namespace internal {
 template <typename BackendType, typename KeyOpType, typename OpType>
 class OpRegistrar {
 public:
-    OpRegistrar() {
+    OpRegistrar() noexcept {
         OpRegistry& op_registry = BackendType::GetGlobalOpRegistry();
         op_registry.RegisterOp<KeyOpType, OpType>();
     }

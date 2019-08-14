@@ -383,6 +383,26 @@ void InitChainerxArray(pybind11::module& m) {
           },
           py::arg("axis") = nullptr,
           py::arg("keepdims") = false);
+    c.def("mean",
+          [](const ArrayBodyPtr& self, int8_t axis, bool keepdims) { return MoveArrayBody(Array{self}.Mean(Axes{axis}, keepdims)); },
+          py::arg("axis"),
+          py::arg("keepdims") = false);
+    c.def("mean",
+          [](const ArrayBodyPtr& self, const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) {
+              return MoveArrayBody(Array{self}.Mean(ToAxes(axis), keepdims));
+          },
+          py::arg("axis") = nullptr,
+          py::arg("keepdims") = false);
+    c.def("var",
+          [](const ArrayBodyPtr& self, int8_t axis, bool keepdims) { return MoveArrayBody(Array{self}.Var(Axes{axis}, keepdims)); },
+          py::arg("axis"),
+          py::arg("keepdims") = false);
+    c.def("var",
+          [](const ArrayBodyPtr& self, const nonstd::optional<std::vector<int8_t>>& axis, bool keepdims) {
+              return MoveArrayBody(Array{self}.Var(ToAxes(axis), keepdims));
+          },
+          py::arg("axis") = nullptr,
+          py::arg("keepdims") = false);
     c.def("argmax",
           [](const ArrayBodyPtr& self, const nonstd::optional<int8_t>& axis) { return MoveArrayBody(ArgMax(Array{self}, ToAxes(axis))); },
           py::arg("axis") = nullptr);

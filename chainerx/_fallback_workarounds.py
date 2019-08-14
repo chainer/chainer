@@ -136,6 +136,14 @@ def _populate_module_functions():
 
     chainerx.vstack = _vstack
 
+    def _sign(arr):
+        xp, dev, arr = _from_chx(arr)
+        with dev:
+            ret = xp.sign(arr)
+        return _to_chx(ret)
+
+    chainerx.sign = _sign
+
 
 def _populate_ndarray():
     ndarray = chainerx.ndarray
@@ -176,7 +184,10 @@ def _populate_ndarray():
                 'supported for arrays that are connected to a graph.')
 
         xp, dev, self = _from_chx(self)
-        _, _, key = _from_chx(key)
+        if isinstance(key, tuple):
+            key = tuple([_from_chx(k)[2] for k in key])
+        else:
+            _, _, key = _from_chx(key)
         _, _, value = _from_chx(value)
 
         with dev:

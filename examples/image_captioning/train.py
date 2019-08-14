@@ -16,6 +16,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--out', type=str, default='result',
                         help='Output directory')
+    parser.add_argument('--resume', '-r', type=str,
+                        help='Resume the training from snapshot')
     parser.add_argument('--mscoco-root', type=str, default='data',
                         help='MSOCO dataset root directory')
     parser.add_argument('--max-iters', type=int, default=50000,
@@ -133,10 +135,17 @@ def main():
     # Save model snapshots so that later on, we can load them and generate new
     # captions for any image. This can be done in the `predict.py` script
     trainer.extend(
+        extensions.snapshot(filename='snapshot_{.updater.iteration}'),
+        trigger=(args.snapshot_iter, 'iteration')
+    )
+    trainer.extend(
         extensions.snapshot_object(model, 'model_{.updater.iteration}'),
         trigger=(args.snapshot_iter, 'iteration')
     )
     trainer.extend(extensions.ProgressBar())
+
+    if args.resume is not None:
+        chainer.serializers.load_npz(args.resume, trainer)
     trainer.run()
 
 

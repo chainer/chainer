@@ -21,6 +21,7 @@ install(FILES
     logic.h
     manipulation.h
     math.h
+    misc.h
     normalization.h
     pooling.h
     routines_util.h

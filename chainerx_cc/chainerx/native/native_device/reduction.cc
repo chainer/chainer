@@ -11,6 +11,7 @@
 #include "chainerx/native/reduce.h"
 #include "chainerx/numeric.h"
 #include "chainerx/numeric_limits.h"
+#include "chainerx/routines/math.h"
 #include "chainerx/routines/sorting.h"
 #include "chainerx/shape.h"
 
@@ -19,8 +20,8 @@ namespace native {
 namespace {
 
 class NativeArgMaxOp : public ArgMaxOp {
-protected:
-    void Impl(const Array& a, const Axes& axis, const Array& out) override {
+public:
+    void Call(const Array& a, const Axes& axis, const Array& out) override {
         CHAINERX_ASSERT(std::all_of(axis.begin(), axis.end(), [&a](int8_t i) { return a.shape()[i] > 0; }));
         CHAINERX_ASSERT(internal::IsValidReductionShape(a.shape(), axis, out.shape(), false));
         a.device().CheckDevicesCompatible(a, out);
@@ -49,47 +50,56 @@ protected:
 
 CHAINERX_REGISTER_OP_NATIVE(ArgMaxOp, NativeArgMaxOp);
 
-}  // namespace
+class NativeSumOp : public SumOp {
+public:
+    void Call(const Array& a, const Axes& axis, const Array& out) override {
+        CHAINERX_ASSERT(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
+        a.device().CheckDevicesCompatible(a, out);
 
-void NativeDevice::Sum(const Array& a, const Axes& axis, const Array& out) {
-    CHAINERX_ASSERT(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
-    CheckDevicesCompatible(a, out);
-
-    auto do_sum = [&a, &axis, &out](auto in_pt, auto out_pt) {
-        using In = typename decltype(in_pt)::type;
-        using Out = typename decltype(out_pt)::type;
-        using Accum = std::conditional_t<std::is_same<Out, Float16>{}, float, Out>;
-        struct Impl {
-            Accum Identity() { return Accum{0}; }
-            Accum MapIn(In in, int64_t /*index*/) { return static_cast<Accum>(in); }
-            void Reduce(Accum next, Accum& accum) { accum += next; }
-            Out MapOut(Accum accum) { return static_cast<Out>(accum); }
+        auto do_sum = [&a, &axis, &out](auto in_pt, auto out_pt) {
+            using In = typename decltype(in_pt)::type;
+            using Out = typename decltype(out_pt)::type;
+            using Accum = std::conditional_t<std::is_same<Out, Float16>{}, float, Out>;
+            struct Impl {
+                Accum Identity() { return Accum{0}; }
+                Accum MapIn(In in, int64_t /*index*/) { return static_cast<Accum>(in); }
+                void Reduce(Accum next, Accum& accum) { accum += next; }
+                Out MapOut(Accum accum) { return static_cast<Out>(accum); }
+            };
+            Reduce<In, Out>(a, axis, out, Impl{});
         };
-        Reduce<In, Out>(a, axis, out, Impl{});
-    };
 
-    VisitDtype(out.dtype(), [a_dtype = a.dtype(), &do_sum](auto out_pt) { VisitDtype(a_dtype, do_sum, out_pt); });
-}
+        VisitDtype(out.dtype(), [a_dtype = a.dtype(), &do_sum](auto out_pt) { VisitDtype(a_dtype, do_sum, out_pt); });
+    }
+};
 
-void NativeDevice::AMax(const Array& a, const Axes& axis, const Array& out) {
-    CHAINERX_ASSERT(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
-    CheckDevicesCompatible(a, out);
+CHAINERX_REGISTER_OP_NATIVE(SumOp, NativeSumOp);
 
-    VisitDtype(a.dtype(), [&a, &axis, &out](auto pt) {
-        using T = typename decltype(pt)::type;
-        struct Impl {
-            T Identity() { return NumericLimits<T>::LowestOrInf(); }
-            T MapIn(T in, int64_t /*index*/) { return in; }
-            void Reduce(T next, T& accum) {
-                if (chainerx::IsNan(next) || accum < next) {
-                    accum = next;
+class NativeAMaxOp : public AMaxOp {
+public:
+    void Call(const Array& a, const Axes& axis, const Array& out) override {
+        CHAINERX_ASSERT(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
+        a.device().CheckDevicesCompatible(a, out);
+
+        VisitDtype(a.dtype(), [&a, &axis, &out](auto pt) {
+            using T = typename decltype(pt)::type;
+            struct Impl {
+                T Identity() { return NumericLimits<T>::LowestOrInf(); }
+                T MapIn(T in, int64_t /*index*/) { return in; }
+                void Reduce(T next, T& accum) {
+                    if (chainerx::IsNan(next) || accum < next) {
+                        accum = next;
+                    }
                 }
-            }
-            T MapOut(T accum) { return accum; }
-        };
-        Reduce<T, T>(a, axis, out, Impl{});
-    });
-}
+                T MapOut(T accum) { return accum; }
+            };
+            Reduce<T, T>(a, axis, out, Impl{});
+        });
+    }
+};
 
+CHAINERX_REGISTER_OP_NATIVE(AMaxOp, NativeAMaxOp);
+
+}  // namespace
 }  // namespace native
 }  // namespace chainerx

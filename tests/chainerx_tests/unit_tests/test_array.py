@@ -209,12 +209,12 @@ def test_view_must_not_share_properties():
 # TODO(beam2d): use fixtures.
 @pytest.mark.parametrize(
     'src_dtype',
-    ['bool_', 'uint8', 'int8', 'int16', 'int32', 'int64', 'float32',
-     'float64'])
+    ['bool_', 'uint8', 'int8', 'int16', 'int32', 'int64', 'float16',
+     'float32', 'float64'])
 @pytest.mark.parametrize(
     'dst_dtype',
-    ['bool_', 'uint8', 'int8', 'int16', 'int32', 'int64', 'float32',
-     'float64'])
+    ['bool_', 'uint8', 'int8', 'int16', 'int32', 'int64', 'float16',
+     'float32', 'float64'])
 def test_astype(xp, shape, device, copy, src_dtype, dst_dtype):
     a = array_utils.create_dummy_ndarray(xp, shape, src_dtype)
 

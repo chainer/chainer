@@ -72,9 +72,9 @@ class TestConvolutionND(testing.FunctionTestCase):
             for (d, k, s, p, di)
             in zip(self.dims, self.ksize, self.stride, self.pad, self.dilate))
 
-        self.check_backward_options.update({'atol': 3e-5, 'rtol': 3e-4})
+        self.check_backward_options.update({'atol': 5e-5, 'rtol': 5e-4})
         self.check_double_backward_options.update(
-            {'atol': 3e-5, 'rtol': 3e-4})
+            {'atol': 5e-4, 'rtol': 5e-3})
         if self.x_dtype == numpy.float16 or self.W_dtype == numpy.float16:
             self.check_forward_options.update({'atol': 5e-4, 'rtol': 5e-3})
             self.check_backward_options.update({

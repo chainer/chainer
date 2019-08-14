@@ -324,7 +324,10 @@ Array CudaConv::Conv(
     CudnnConvolutionDescriptor conv_desc{dtypes.conv_dtype, pad, stride, nonstd::nullopt /*dilation*/, 1 /*groups*/};
 
     size_t max_workspace_size = backend.GetCudnnMaxWorkspaceSize();
-    CudnnHandle& handle = device.cudnn_handle();
+
+    cuda_internal::DeviceInternals& device_internals = cuda_internal::GetDeviceInternals(device);
+
+    CudnnHandle& handle = device_internals.cudnn_handle();
 
     // auto tune
     std::pair<cudnnConvolutionFwdAlgo_t, size_t> algo_workspace_size = FindConvolutionForwardAlgorithm(
@@ -422,7 +425,10 @@ Array CudaConv::ConvTranspose(
     CudnnConvolutionDescriptor conv_desc{dtypes.conv_dtype, pad, stride, nonstd::nullopt /*dilation*/, 1 /*group*/};
 
     size_t max_workspace_size = backend.GetCudnnMaxWorkspaceSize();
-    CudnnHandle& handle = device.cudnn_handle();
+
+    cuda_internal::DeviceInternals& device_internals = cuda_internal::GetDeviceInternals(device);
+
+    CudnnHandle& handle = device_internals.cudnn_handle();
 
     // auto tune
     std::pair<cudnnConvolutionBwdDataAlgo_t, size_t> algo_workspace_size = FindConvolutionBackwardDataAlgorithm(
@@ -516,7 +522,10 @@ Array CudaConv::ConvGradWeight(
     CudnnConvolutionDescriptor conv_desc{dtypes.conv_dtype, pad, stride, nonstd::nullopt /*dilation*/, 1 /*groups*/};
 
     size_t max_workspace_size = backend.GetCudnnMaxWorkspaceSize();
-    CudnnHandle& handle = device.cudnn_handle();
+
+    cuda_internal::DeviceInternals& device_internals = cuda_internal::GetDeviceInternals(device);
+
+    CudnnHandle& handle = device_internals.cudnn_handle();
 
     // auto tune
     std::pair<cudnnConvolutionBwdFilterAlgo_t, size_t> algo_workspace_size = FindConvolutionBackwardFilterAlgorithm(

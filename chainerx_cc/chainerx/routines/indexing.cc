@@ -4,7 +4,6 @@
 #include <cstdint>
 #include <iterator>
 #include <string>
-#include <utility>
 #include <vector>
 
 #include "nonstd/optional.hpp"
@@ -20,6 +19,7 @@
 #include "chainerx/graph.h"
 #include "chainerx/macro.h"
 #include "chainerx/routines/creation.h"
+#include "chainerx/routines/math.h"
 #include "chainerx/shape.h"
 #include "chainerx/slice.h"
 #include "chainerx/strides.h"
@@ -44,7 +44,7 @@ Array AddAt(const Array& a, const std::vector<ArrayIndex>& indices, const Array&
 
     {
         NoBackpropModeScope scope{};
-        a.device().Add(b, out_view, out_view);
+        a.device().backend().CallOp<AddOp>(b, out_view, out_view);
     }
 
     {
@@ -123,16 +123,18 @@ Array At(const Array& a, const std::vector<ArrayIndex>& indices) {
 //
 // It is not in-place operation: the input arrays are not altered.
 // It is differentiable with respect to `a` and `b`.
-void AddAtOp::Call(const Array& a, const Array& indices, int8_t axis, const Array& b, const Array& out) {
+Array AddAt(const Array& a, const Array& indices, int8_t axis, const Array& b) {
     CHAINERX_ASSERT(0 <= axis && axis < a.ndim());
     CHAINERX_ASSERT(b.ndim() == indices.ndim() + a.ndim() - 1);
     CheckEqual(a.dtype(), b.dtype());
 
     CHAINERX_ASSERT(internal::GetArrayBody(indices)->nodes().empty());
 
+    Array out = EmptyLike(a, a.device());
+
     {
         NoBackpropModeScope scope{};
-        Impl(a, indices, axis, b, out);
+        a.device().backend().CallOp<AddAtOp>(a, indices, axis, b, out);
     }
 
     {
@@ -146,9 +148,11 @@ void AddAtOp::Call(const Array& a, const Array& indices, int8_t axis, const Arra
         }
         bb.Finalize();
     }
+
+    return out;
 }
 
-Array TakeOp::Call(const Array& a, const Array& indices, int8_t axis) {
+Array Take(const Array& a, const Array& indices, int8_t axis) {
     DtypeKind indices_kind = GetKind(indices.dtype());
     if (!(indices_kind == DtypeKind::kInt || indices_kind == DtypeKind::kUInt)) {
         throw DtypeError{"Dtype ", GetDtypeName(indices.dtype()), " cannot be used as an indices array."};
@@ -166,7 +170,7 @@ Array TakeOp::Call(const Array& a, const Array& indices, int8_t axis) {
 
     {
         NoBackpropModeScope scope{};
-        Impl(a, indices, axis_norm, out);
+        a.device().backend().CallOp<TakeOp>(a, indices, axis_norm, out);
     }
 
     BackwardBuilder bb{"take", a, out};
@@ -174,9 +178,9 @@ Array TakeOp::Call(const Array& a, const Array& indices, int8_t axis) {
         CHAINERX_ASSERT(internal::GetArrayBody(indices)->nodes().empty());
         bt.Define([indices, axis_norm, a_shape = a.shape()](BackwardContext& bctx) {
             const Array& gout = *bctx.output_grad();
-            Array gx = Zeros(a_shape, gout.dtype(), gout.device());
-            AddAt(gx, indices, axis_norm, gout, gx);
-            bctx.input_grad() = std::move(gx);
+            // TODO(hvy): Reduce memory allocation for computing the input gradient, i.e. do not allocate a zero-filled array in addition to
+            // the output of `AddAt`.
+            bctx.input_grad() = AddAt(Zeros(a_shape, gout.dtype(), gout.device()), indices, axis_norm, gout);
         });
     }
     bb.Finalize();

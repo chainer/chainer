@@ -4,6 +4,7 @@ import unittest
 
 import mock
 import numpy
+import pytest
 import six
 
 import chainer
@@ -102,6 +103,8 @@ class TestNpzDeserializer(unittest.TestCase):
             savez = numpy.savez_compressed if self.compress else numpy.savez
             savez(
                 f, **{'x/': None, 'y': self.data, 'z': numpy.asarray(10),
+                      'zf32': numpy.array(-2**60, dtype=numpy.float32),
+                      'zi64': numpy.array(-2**60, dtype=numpy.int64),
                       'w': None})
 
         self.npzfile = numpy.load(path)
@@ -188,6 +191,21 @@ class TestNpzDeserializer(unittest.TestCase):
         z = 5
         ret = self.deserializer('z', z)
         self.assertEqual(ret, 10)
+
+    def test_deserialize_int64_to_int(self):
+        z = int(5)
+        ret = self.deserializer('zi64', z)
+        assert ret == -2**60
+
+    def test_deserialize_int64_to_uint32(self):
+        z = numpy.uint32(5)
+        with pytest.raises(TypeError):
+            self.deserializer('zi64', z)
+
+    def test_deserialize_float32_to_int(self):
+        z = int(5)
+        with pytest.raises(TypeError):
+            self.deserializer('zf32', z)
 
     def test_deserialize_none(self):
         ret = self.deserializer('w', None)

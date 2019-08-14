@@ -1,11 +1,38 @@
 #pragma once
 
+#include <mutex>
+
 #include <cublas_v2.h>
 
 #include "chainerx/error.h"
 
 namespace chainerx {
 namespace cuda {
+
+void CheckCublasError(cublasStatus_t status);
+
+namespace cuda_internal {
+
+class CublasHandle {
+public:
+    explicit CublasHandle(int device_index) : device_index_{device_index} {}
+    ~CublasHandle();
+
+    template <class Func, class... Args>
+    void Call(Func&& func, Args&&... args) {
+        std::lock_guard<std::mutex> lock{handle_mutex_};
+        CheckCublasError(func(handle(), args...));
+    }
+
+private:
+    cublasHandle_t handle();
+
+    int device_index_;
+    std::mutex handle_mutex_{};
+    cublasHandle_t handle_{};
+};
+
+}  // namespace cuda_internal
 
 class CublasError : public ChainerxError {
 public:
@@ -15,8 +42,6 @@ public:
 private:
     cublasStatus_t status_;
 };
-
-void CheckCublasError(cublasStatus_t status);
 
 }  // namespace cuda
 }  // namespace chainerx

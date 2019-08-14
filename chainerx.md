@@ -40,7 +40,7 @@ Yes, it is possible. See the code samples below.
 
 It is almost identical to the Python interface with a 1-to-1 mapping.
 The binding layer is thin and many of the types defined in C++ have Python equivalent classes.
-The bindings are defined [here](https://github.com/pfnet/chainerx/tree/master/chainerx_cc/chainerx/python).
+The bindings are defined [here](https://github.com/chainer/chainer/tree/master/chainerx_cc/chainerx/python).
 
 ## Product Backlog
 

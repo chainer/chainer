@@ -102,7 +102,7 @@ MulAdd is simple and can be implemented as follows:
 
            # Mark inputs (``x`` and ``y``) as retained so that it can be
            # accessed during the backward process.
-           selt.retain_inputs((0, 1))
+           self.retain_inputs((0, 1))
 
            # Compute results.
            w = x * y + z
@@ -131,7 +131,7 @@ MulAdd is simple and can be implemented as follows:
    x = Variable(np.random.uniform(-1, 1, (3, 2)).astype(np.float32))
    y = Variable(np.random.uniform(-1, 1, (3, 2)).astype(np.float32))
    z = Variable(np.random.uniform(-1, 1, (3, 2)).astype(np.float32))
-   w = MulAdd().apply((x, y, z))
+   w, = MulAdd().apply((x, y, z))
    w.grad = np.random.uniform(-1, 1, (3, 2)).astype(np.float32)
    w.backward()
 
@@ -174,7 +174,7 @@ You can easily predict that the method we have to write is named :meth:`~Functio
 
            # Mark inputs (``x`` and ``y``) as retained so that it can be
            # accessed during the backward process.
-           selt.retain_inputs((0, 1))
+           self.retain_inputs((0, 1))
 
            # Compute results.
            w = x * y + z
@@ -201,7 +201,7 @@ In that case, we can reduce them io :meth:`~FunctionNode.forward`.
 
            # Mark inputs (``x`` and ``y``) as retained so that it can be
            # accessed during the backward process.
-           selt.retain_inputs((0, 1))
+           self.retain_inputs((0, 1))
 
            # Compute results.
            w = x * y + z
@@ -224,7 +224,7 @@ In that case, we can reduce them io :meth:`~FunctionNode.forward`.
    x = Variable(np.random.uniform(-1, 1, (3, 2)).astype(np.float32))
    y = Variable(np.random.uniform(-1, 1, (3, 2)).astype(np.float32))
    z = Variable(np.random.uniform(-1, 1, (3, 2)).astype(np.float32))
-   w = MulAdd().apply((x, y, z))
+   w, = MulAdd().apply((x, y, z))
    w.grad = np.random.uniform(-1, 1, (3, 2)).astype(np.float32)
    w.backward()
 
@@ -237,7 +237,7 @@ The MulAdd function can be used as follows:
    x = Variable(np.random.uniform(-1, 1, (3, 2)).astype(np.float32))
    y = Variable(np.random.uniform(-1, 1, (3, 2)).astype(np.float32))
    z = Variable(np.random.uniform(-1, 1, (3, 2)).astype(np.float32))
-   w = MulAdd().apply((x, y, z))
+   w, = MulAdd().apply((x, y, z))
 
 It looks a bit ugly: we have to explicitly instantiate MulAdd before applying it to variables.
 We also have to be careful that one instance of MulAdd must not be used multiple times, since it acts as a node in the computational graph.
@@ -267,11 +267,13 @@ It can be written straight-forward as follows:
 
    class ExpAdd(FunctionNode):
        def forward_cpu(self, inputs):
+           self.retain_inputs((0, 1))
            x, y = inputs
            z = np.exp(x) + np.exp(y)
            return z,
 
        def forward_gpu(self, inputs):
+           self.retain_inputs((0, 1))
            cupy = cuda.cupy
            x, y = inputs
            z = cupy.exp(x) + cupy.exp(y)
@@ -286,7 +288,8 @@ It can be written straight-forward as follows:
            return gx, gy
 
    def expadd(x, y):
-       return ExpAdd().apply((x, y))
+       z, = ExpAdd().apply((x, y))
+       return z
 
 .. testcode::
    :hide:
@@ -313,6 +316,7 @@ See the following code:
 
    class ExpAdd(FunctionNode):
        def forward(self, inputs):
+           self.retain_inputs((0, 1))
            xp = backend.get_array_module(*inputs)
            x, y = inputs
            z = xp.exp(x) + xp.exp(y)
@@ -327,7 +331,8 @@ See the following code:
            return gx, gy
 
    def expadd(x, y):
-       return ExpAdd()(x, y)
+       z, = ExpAdd().apply((x, y))
+       return z
 
 .. testcode::
    :hide:
@@ -362,13 +367,13 @@ Our MulAdd implementation can be improved as follows:
 
    class MulAdd(FunctionNode):
        def forward_cpu(self, inputs):
-           selt.retain_inputs((0, 1))
+           self.retain_inputs((0, 1))
            x, y, z = inputs
            w = x * y + z
            return w,
 
        def forward_gpu(self, inputs):
-           selt.retain_inputs((0, 1))
+           self.retain_inputs((0, 1))
            x, y, z = inputs
            w = cuda.cupy.elementwise(
                'float32 x, float32 y, float32 z',
@@ -543,7 +548,7 @@ We can mix them in one invocation of :func:`chainer.testing.assert_allclose`.
 The default values of optional arguments are also different.
 
 Here is a typical usage of gradient checking utilities.
-This is a test example of :func:`functions.relu` function
+This is a test example of :func:`functions.relu` function:
 
 .. testcode::
 
@@ -556,7 +561,7 @@ This is a test example of :func:`functions.relu` function
            x = Variable(np.random.randn(3, 2).astype(np.float32))
            y = F.relu(x)
            y.grad = np.random.randn(3, 2).astype(np.float32)
-           y.backward()
+           y.backward(retain_grad=True)
 
            def f():
                return F.relu(x).array,
@@ -728,6 +733,7 @@ Here are the key differences between :class:`Function` and :class:`FunctionNode`
     * :class:`Function` is a callable, whereas :class:`FunctionNode` is not.
 
       You need to use ``f.apply((x,))`` instead of ``f(x)``.
+      Note that :meth:`~chainer.FunctionNode.apply` always returns outputs as :class:`tuple` even if the function generates only one output value.
 
 
 When migrating from old-style to new-style, typically you will need to write a new function class that implements the first-order gradient of the original function.
