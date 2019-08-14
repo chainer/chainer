@@ -239,16 +239,21 @@ int64_t Mod(int64_t x, int64_t y) {
     if (x == 0 || y == 0) {
         return 0;
     }
+    int64_t z = abs(x) % abs(y);
     if (x < 0) {
         if (y > 0) {
-            return (y - (-x) % y) % y;
+            //T z = (-x) % y;
+            return z == 0 ? 0 : y - z;
         }
-        return -(-x % (-y));
+        //return -(-x % (-y));
+        return -z;
     }
     if (y < 0) {
-        return (y + x % (-y)) % y;
+        //T z = x % (-y);
+        return z == 0 ? 0 : y + z;
     }
-    return x % y;
+    //return x % y;
+    return z;
 }
 int8_t Mod(int8_t x, int8_t y) { return static_cast<int8_t>(Mod(static_cast<int64_t>(x), static_cast<int64_t>(y))); }
 int16_t Mod(int16_t x, int16_t y) { return static_cast<int16_t>(Mod(static_cast<int64_t>(x), static_cast<int64_t>(y))); }
@@ -259,36 +264,29 @@ uint8_t Mod(uint8_t x, uint8_t y) {
     }
     return x % y;
 }
-float Mod(float x, float y) {
+template <typename T>
+T ModFloatImpl(T x, T y) {
     if (x == 0 || y == 0) {
         return 0;
     }
+    T z = std::fmod(std::fabs(x), std::fabs(y));
     if (x < 0) {
         if (y > 0) {
-            return std::fmod(y - std::fmod(-x, y), y);
+            //T z = std::fmod(-x, y);
+            return z == 0 ? 0 : y - z;
         }
-        return -std::fmod(-x, -y);
+        //return -std::fmod(-x, -y);
+        return -z;
     }
     if (y < 0) {
-        return std::fmod(y + std::fmod(x, -y), y);
+        //T z = std::fmod(x, -y);
+        return z == 0 ? 0 : y + z;
     }
-    return std::fmod(x, y);
+    //return std::fmod(x, y);
+    return z;
 }
-double Mod(double x, double y) {
-    if (x == 0 || y == 0) {
-        return 0;
-    }
-    if (x < 0) {
-        if (y > 0) {
-            return std::fmod(y - std::fmod(-x, y), y);
-        }
-        return -std::fmod(-x, -y);
-    }
-    if (y < 0) {
-        return std::fmod(y + std::fmod(x, -y), y);
-    }
-    return std::fmod(x, y);
-}
+double Mod(double x, double y) { return ModFloatImpl(x, y); }
+float Mod(float x, float y) { return ModFloatImpl(x, y); }
 chainerx::Float16 Mod(chainerx::Float16 x, chainerx::Float16 y) {
     return chainerx::Float16{Mod(static_cast<float>(x), static_cast<float>(y))};
 }
