@@ -77,7 +77,6 @@ def _calc_mean(x, groups):
     # GPU tests
     + testing.product({
         'use_cuda': [True],
-        'use_cudnn': ['never', 'always'],
         'cuda_device': [0, 1],
     })
     # ChainerX tests
