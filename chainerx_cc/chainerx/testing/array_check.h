@@ -13,6 +13,7 @@
 #include "chainerx/array_node.h"
 #include "chainerx/indexable_array.h"
 #include "chainerx/indexer.h"
+#include "chainerx/native/data_type.h"
 #include "chainerx/numeric.h"
 
 namespace chainerx {
@@ -101,16 +102,19 @@ void ExpectDataEqual(Container&& expected_data, const Array& actual) {
 template <typename T>
 void ExpectDataEqual(T expected, const Array& actual) {
     Array native_actual = actual.ToNative();
-    IndexableArray<const T> actual_iarray{native_actual};
-    Indexer<> indexer{actual.shape()};
-    for (auto it = indexer.It(0); it; ++it) {
-        T actual_value = actual_iarray[it];
-        if (IsNan(expected)) {
-            EXPECT_TRUE(IsNan(actual_value)) << "where i is " << it.raw_index();
-        } else {
-            EXPECT_EQ(expected, actual_value) << "where i is " << it.raw_index();
+    VisitDtype(actual.dtype(), [&](auto pt) {
+        using U = typename decltype(pt)::type;
+        IndexableArray<const U> actual_iarray{native_actual};
+        Indexer<> indexer{actual.shape()};
+        for (auto it = indexer.It(0); it; ++it) {
+            U actual_value = native::StorageToDataType<const U>(actual_iarray[it]);
+            if (IsNan(expected)) {
+                EXPECT_TRUE(IsNan(actual_value)) << "where i is " << it.raw_index();
+            } else {
+                EXPECT_EQ(expected, actual_value) << "where i is " << it.raw_index();
+            }
         }
-    }
+    });
 }
 
 }  // namespace testing

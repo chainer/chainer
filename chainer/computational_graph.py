@@ -46,9 +46,9 @@ class DotNode(object):
                 node.
         """
 
-        attributes = ["%s=\"%s\"" % (k, v) for (k, v)
+        attributes = ['%s="%s"' % (k, v) for (k, v)
                       in self.attribute.items()]
-        return "%s [%s];" % (self.id_, ",".join(attributes))
+        return '%s [%s];' % (self.id_, ','.join(attributes))
 
 
 class ComputationalGraph(object):
@@ -144,9 +144,9 @@ class ComputationalGraph(object):
             edge = (head_node.id_, tail_node.id_)
             if edge in drawn_edges:
                 continue
-            ret += "%s -> %s;" % edge
+            ret += '%s -> %s;' % edge
             drawn_edges.append(edge)
-        ret += "}"
+        ret += '}'
         return ret
 
     def dump(self, format='dot'):

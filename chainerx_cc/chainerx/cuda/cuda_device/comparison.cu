@@ -9,8 +9,10 @@
 #include "chainerx/cuda/cuda_set_device_scope.h"
 #include "chainerx/cuda/data_type.cuh"
 #include "chainerx/cuda/elementwise.cuh"
+#include "chainerx/cuda/op_regist.h"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
+#include "chainerx/routines/logic.h"
 
 namespace chainerx {
 namespace cuda {
@@ -22,18 +24,23 @@ struct EqualImpl {
     __device__ void operator()(int64_t /*i*/, CudaType x1, CudaType x2, bool& out) { out = x1 == x2; }
 };
 
-}  // namespace
+class CudaEqualOp : public EqualOp {
+protected:
+    void Impl(const Array& x1, const Array& x2, const Array& out) override {
+        Device& device = x1.device();
+        device.CheckDevicesCompatible(x1, x2, out);
+        Dtype dtype = PromoteTypes(x1.dtype(), x2.dtype());
+        const Array& x1_cast = x1.dtype() == dtype ? x1 : x1.AsType(dtype);
+        const Array& x2_cast = x2.dtype() == dtype ? x2 : x2.AsType(dtype);
+        CudaSetDeviceScope scope{device.index()};
+        VisitDtype(dtype, [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            Elementwise<const T, const T, bool>(EqualImpl<T>{}, x1_cast, x2_cast, out);
+        });
+    }
+};
 
-void CudaDevice::Equal(const Array& x1, const Array& x2, const Array& out) {
-    CheckDevicesCompatible(x1, x2, out);
-    CudaSetDeviceScope scope{index()};
-    VisitDtype(x1.dtype(), [&](auto pt) {
-        using T = typename decltype(pt)::type;
-        Elementwise<const T, const T, bool>(EqualImpl<T>{}, x1, x2, out);
-    });
-}
-
-namespace {
+CHAINERX_REGISTER_OP_CUDA(EqualOp, CudaEqualOp);
 
 template <typename T>
 struct NotEqualImpl {
@@ -41,18 +48,23 @@ struct NotEqualImpl {
     __device__ void operator()(int64_t /*i*/, CudaType x1, CudaType x2, bool& out) { out = x1 != x2; }
 };
 
-}  // namespace
+class CudaNotEqualOp : public NotEqualOp {
+protected:
+    void Impl(const Array& x1, const Array& x2, const Array& out) override {
+        Device& device = x1.device();
+        device.CheckDevicesCompatible(x1, x2, out);
+        Dtype dtype = PromoteTypes(x1.dtype(), x2.dtype());
+        const Array& x1_cast = x1.dtype() == dtype ? x1 : x1.AsType(dtype);
+        const Array& x2_cast = x2.dtype() == dtype ? x2 : x2.AsType(dtype);
+        CudaSetDeviceScope scope{device.index()};
+        VisitDtype(dtype, [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            Elementwise<const T, const T, bool>(NotEqualImpl<T>{}, x1_cast, x2_cast, out);
+        });
+    }
+};
 
-void CudaDevice::NotEqual(const Array& x1, const Array& x2, const Array& out) {
-    CheckDevicesCompatible(x1, x2, out);
-    CudaSetDeviceScope scope{index()};
-    VisitDtype(x1.dtype(), [&](auto pt) {
-        using T = typename decltype(pt)::type;
-        Elementwise<const T, const T, bool>(NotEqualImpl<T>{}, x1, x2, out);
-    });
-}
-
-namespace {
+CHAINERX_REGISTER_OP_CUDA(NotEqualOp, CudaNotEqualOp);
 
 template <typename T>
 struct GreaterImpl {
@@ -60,18 +72,23 @@ struct GreaterImpl {
     __device__ void operator()(int64_t /*i*/, CudaType x1, CudaType x2, bool& out) { out = x1 > x2; }
 };
 
-}  // namespace
+class CudaGreaterOp : public GreaterOp {
+protected:
+    void Impl(const Array& x1, const Array& x2, const Array& out) override {
+        Device& device = x1.device();
+        device.CheckDevicesCompatible(x1, x2, out);
+        Dtype dtype = PromoteTypes(x1.dtype(), x2.dtype());
+        const Array& x1_cast = x1.dtype() == dtype ? x1 : x1.AsType(dtype);
+        const Array& x2_cast = x2.dtype() == dtype ? x2 : x2.AsType(dtype);
+        CudaSetDeviceScope scope{device.index()};
+        VisitDtype(dtype, [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            Elementwise<const T, const T, bool>(GreaterImpl<T>{}, x1_cast, x2_cast, out);
+        });
+    }
+};
 
-void CudaDevice::Greater(const Array& x1, const Array& x2, const Array& out) {
-    CheckDevicesCompatible(x1, x2, out);
-    CudaSetDeviceScope scope{index()};
-    VisitDtype(x1.dtype(), [&](auto pt) {
-        using T = typename decltype(pt)::type;
-        Elementwise<const T, const T, bool>(GreaterImpl<T>{}, x1, x2, out);
-    });
-}
-
-namespace {
+CHAINERX_REGISTER_OP_CUDA(GreaterOp, CudaGreaterOp);
 
 template <typename T>
 struct GreaterEqualImpl {
@@ -79,18 +96,23 @@ struct GreaterEqualImpl {
     __device__ void operator()(int64_t /*i*/, CudaType x1, CudaType x2, bool& out) { out = x1 >= x2; }
 };
 
-}  // namespace
+class CudaGreaterEqualOp : public GreaterEqualOp {
+protected:
+    void Impl(const Array& x1, const Array& x2, const Array& out) override {
+        Device& device = x1.device();
+        device.CheckDevicesCompatible(x1, x2, out);
+        Dtype dtype = PromoteTypes(x1.dtype(), x2.dtype());
+        const Array& x1_cast = x1.dtype() == dtype ? x1 : x1.AsType(dtype);
+        const Array& x2_cast = x2.dtype() == dtype ? x2 : x2.AsType(dtype);
+        CudaSetDeviceScope scope{device.index()};
+        VisitDtype(dtype, [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            Elementwise<const T, const T, bool>(GreaterEqualImpl<T>{}, x1_cast, x2_cast, out);
+        });
+    }
+};
 
-void CudaDevice::GreaterEqual(const Array& x1, const Array& x2, const Array& out) {
-    CheckDevicesCompatible(x1, x2, out);
-    CudaSetDeviceScope scope{index()};
-    VisitDtype(x1.dtype(), [&](auto pt) {
-        using T = typename decltype(pt)::type;
-        Elementwise<const T, const T, bool>(GreaterEqualImpl<T>{}, x1, x2, out);
-    });
-}
-
-namespace {
+CHAINERX_REGISTER_OP_CUDA(GreaterEqualOp, CudaGreaterEqualOp);
 
 template <typename T>
 struct LogicalNotImpl {
@@ -98,16 +120,21 @@ struct LogicalNotImpl {
     __device__ void operator()(int64_t /*i*/, CudaType x, bool& out) { out = !x; }
 };
 
+class CudaLogicalNotOp : public LogicalNotOp {
+protected:
+    void Impl(const Array& x, const Array& out) override {
+        Device& device = x.device();
+        device.CheckDevicesCompatible(x, out);
+        CudaSetDeviceScope scope{device.index()};
+        VisitDtype(x.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            Elementwise<const T, bool>(LogicalNotImpl<T>{}, x, out);
+        });
+    }
+};
+
+CHAINERX_REGISTER_OP_CUDA(LogicalNotOp, CudaLogicalNotOp);
+
 }  // namespace
-
-void CudaDevice::LogicalNot(const Array& x, const Array& out) {
-    CheckDevicesCompatible(x, out);
-    CudaSetDeviceScope scope{index()};
-    VisitDtype(x.dtype(), [&](auto pt) {
-        using T = typename decltype(pt)::type;
-        Elementwise<const T, bool>(LogicalNotImpl<T>{}, x, out);
-    });
-}
-
 }  // namespace cuda
 }  // namespace chainerx

@@ -222,8 +222,8 @@ class MultiNodeChainList(chainer.ChainList):
                 x = f(*tuple(xs))
 
             if rank_out is None:  # Return outputs.
-                assert y is None, "MultiNodeChainList cannot have more than "\
-                    "two computational graph component whose rank_out is None"
+                assert y is None, 'MultiNodeChainList cannot have more than '\
+                    'two computational graph component whose rank_out is None'
                 y = x  # model output
                 delegate_variable = y
 

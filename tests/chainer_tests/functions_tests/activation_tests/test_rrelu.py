@@ -20,6 +20,11 @@ from chainer.testing import attr
         'use_cuda': [True],
         'cuda_device': [0, 1],
     })
+    # ChainerX tests
+    + testing.product({
+        'use_chainerx': [True],
+        'chainerx_device': ['native:0', 'cuda:0', 'cuda:1'],
+    })
 )
 @testing.parameterize(*testing.product({
     'train': [True, False],

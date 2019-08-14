@@ -86,7 +86,7 @@ class TestFunctionNode(unittest.TestCase):
         self.f.forward_cpu = mock.MagicMock(return_value=(self.y1, self.y2))
 
     def setup_gpu(self):
-        self._setup(chainer.get_device((cuda.cupy, 0)))
+        self._setup(backend.GpuDevice.from_device_id(0))
         self.f.forward_gpu = mock.MagicMock(return_value=(self.y1, self.y2))
 
     def setup_chainerx(self, device_name='native:0'):
@@ -361,7 +361,7 @@ class TestFunctionNodeMixChainerxAndXpArrays(unittest.TestCase):
     def check_mix_xp(self, xp):
         xp_x1 = xp.random.randn(2, 3).astype(numpy.float32)
         xp_x2 = xp.random.randn(2, 3).astype(numpy.float32)
-        x2 = backend.to_chainerx(xp_x2)
+        x2 = backend.to_chx(xp_x2)
         y, = self.SimpleFunctionNode(xp).apply((xp_x1, x2))
 
         assert isinstance(y.array, chainerx.ndarray)
@@ -851,6 +851,22 @@ class TestGradTypeCheck(unittest.TestCase):
             chainer.grad([y], [x], gx, [gy])
         with self.assertRaises(TypeError):
             chainer.grad([y], [x], [gx], gy)
+
+
+class TestGradValueCheck(unittest.TestCase):
+
+    def test_length_check(self):
+        x = chainer.Variable(numpy.array(3, numpy.float32))
+        y = chainer.functions.identity(x)
+
+        with self.assertRaises(ValueError):
+            chainer.grad([y], [x], [], [None])
+        with self.assertRaises(ValueError):
+            chainer.grad([y], [x], [None, None], [None])
+        with self.assertRaises(ValueError):
+            chainer.grad([y], [x], [None], [])
+        with self.assertRaises(ValueError):
+            chainer.grad([y], [x], [None], [None, None])
 
 
 class GradTestBase(object):

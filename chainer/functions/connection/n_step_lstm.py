@@ -73,11 +73,12 @@ def n_step_lstm(
     Args:
         n_layers(int): The number of layers.
         dropout_ratio(float): Dropout ratio.
-        hx (~chainer.Variable): Variable holding stacked hidden states.
+        hx (:class:`~chainer.Variable`):
+            Variable holding stacked hidden states.
             Its shape is ``(S, B, N)`` where ``S`` is the number of layers and
             is equal to ``n_layers``, ``B`` is the mini-batch size, and ``N``
             is the dimension of the hidden units.
-        cx (~chainer.Variable): Variable holding stacked cell states.
+        cx (:class:`~chainer.Variable`): Variable holding stacked cell states.
             It has the same shape as ``hx``.
         ws (list of list of :class:`~chainer.Variable`): Weight matrices.
             ``ws[i]`` represents the weights for the i-th layer.
@@ -226,12 +227,13 @@ def n_step_bilstm(
     Args:
         n_layers(int): The number of layers.
         dropout_ratio(float): Dropout ratio.
-        hx (~chainer.Variable): Variable holding stacked hidden states.
+        hx (:class:`~chainer.Variable`):
+            Variable holding stacked hidden states.
             Its shape is ``(2S, B, N)`` where ``S`` is the number of layers and
             is equal to ``n_layers``, ``B`` is the mini-batch size, and ``N``
             is the dimension of the hidden units. Because of bi-direction, the
             first dimension length is ``2S``.
-        cx (~chainer.Variable): Variable holding stacked cell states.
+        cx (:class:`~chainer.Variable`): Variable holding stacked cell states.
             It has the same shape as ``hx``.
         ws (list of list of :class:`~chainer.Variable`): Weight matrices.
             ``ws[2 * l + m]`` represents the weights for the l-th layer of
@@ -342,11 +344,12 @@ def n_step_lstm_base(
     Args:
         n_layers(int): The number of layers.
         dropout_ratio(float): Dropout ratio.
-        hx (~chainer.Variable): Variable holding stacked hidden states.
+        hx (:class:`~chainer.Variable`):
+            Variable holding stacked hidden states.
             Its shape is ``(S, B, N)`` where ``S`` is the number of layers and
             is equal to ``n_layers``, ``B`` is the mini-batch size, and ``N``
             is the dimension of the hidden units.
-        cx (~chainer.Variable): Variable holding stacked cell states.
+        cx (:class:`~chainer.Variable`): Variable holding stacked cell states.
             It has the same shape as ``hx``.
         ws (list of list of :class:`~chainer.Variable`): Weight matrices.
             ``ws[i]`` represents the weights for the i-th layer.
@@ -418,10 +421,11 @@ def n_step_lstm_base(
         xp is chainerx and hx.device.device.backend.name == 'cuda')
 
     if use_cuda and chainer.should_use_cudnn('>=auto', 5000):
-        states = cuda.get_cudnn_dropout_states()
-        states.set_dropout_ratio(dropout_ratio)
         lengths = [len(x) for x in xs]
         xs = chainer.functions.concat(xs, axis=0)
+        with chainer.using_device(xs.device):
+            states = cuda.get_cudnn_dropout_states()
+            states.set_dropout_ratio(dropout_ratio)
 
         w = n_step_rnn.cudnn_rnn_weight_concat(
             n_layers, states, use_bi_direction, 'lstm', ws, bs)

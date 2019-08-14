@@ -49,8 +49,8 @@ def gaussian_kl_divergence(mean, ln_var, reduce='sum'):
     """
     if reduce not in ('sum', 'mean', 'no'):
         raise ValueError(
-            "only 'sum', 'mean' and 'no' are valid for 'reduce', but '%s'"
-            ' is given' % reduce)
+            'only \'sum\', \'mean\' and \'no\' are valid for \'reduce\', but '
+            '\'%s\' is given' % reduce)
 
     var = exponential.exp(ln_var)
     mean_square = mean * mean
@@ -108,8 +108,8 @@ def bernoulli_nll(x, y, reduce='sum'):
     """
     if reduce not in ('sum', 'mean', 'no'):
         raise ValueError(
-            "only 'sum', 'mean' and 'no' are valid for 'reduce', but '%s'"
-            ' is given' % reduce)
+            'only \'sum\', \'mean\' and \'no\' are valid for \'reduce\', but '
+            '\'%s\' is given' % reduce)
 
     loss = softplus.softplus(y) - x * y
     if reduce == 'sum':
@@ -164,8 +164,8 @@ def gaussian_nll(x, mean, ln_var, reduce='sum'):
     """
     if reduce not in ('sum', 'mean', 'no'):
         raise ValueError(
-            "only 'sum', 'mean' and 'no' are valid for 'reduce', but '%s'"
-            ' is given' % reduce)
+            'only \'sum\', \'mean\' and \'no\' are valid for \'reduce\', but '
+            '\'%s\' is given' % reduce)
 
     x_prec = exponential.exp(-ln_var)
     x_diff = x - mean

@@ -3,7 +3,11 @@
 #include <memory>
 #include <mutex>
 #include <string>
+#include <utility>
 #include <vector>
+
+#include "chainerx/op.h"
+#include "chainerx/op_registry.h"
 
 namespace chainerx {
 
@@ -21,6 +25,9 @@ public:
     Backend& operator=(const Backend&) = delete;
     Backend& operator=(Backend&&) = delete;
 
+    // Initializes the backend instantce.
+    virtual void Initialize();
+
     // Returns the name of this backend. This name should be unique within the context.
     virtual std::string GetName() const = 0;
 
@@ -29,8 +36,11 @@ public:
     // This count is usually configurable by backend specific ways.
     virtual int GetDeviceCount() const = 0;
 
-    //
+    // Returns the context.
     Context& context() const { return context_; }
+
+    // Returns the op registry.
+    OpRegistry& op_registry() { return op_registry_; }
 
     // Returns the device for the given index.
     //
@@ -39,6 +49,17 @@ public:
 
     // Queries if the backend supports data transfer between two devices.
     virtual bool SupportsTransfer(Device& src_device, Device& dst_device) = 0;
+
+    // Calls the op implementation.
+    template <typename OpType, typename... Args>
+    auto CallOp(Args&&... args) {
+        Op& op = op_registry_.GetOp<OpType>();
+        return dynamic_cast<OpType&>(op).Call(std::forward<Args>(args)...);
+    }
+
+protected:
+    // Returns a backend-specific global op registry.
+    virtual OpRegistry& GetParentOpRegistry() = 0;
 
 private:
     // Creates a new device.
@@ -50,6 +71,8 @@ private:
     std::vector<std::unique_ptr<Device>> devices_;
 
     std::mutex devices_mutex_;
+
+    OpRegistry op_registry_;
 };
 
 }  // namespace chainerx

@@ -211,8 +211,8 @@ def static_forward_optimizations(func, inputs):
     schedule_function = chainer.config.schedule_func
     if not func._supports_static_optimizations:
         if schedule_function.verbosity_level >= 2:
-            print("Adding automatic static graph support to "
-                  "function: ", func)
+            print('Adding automatic static graph support to '
+                  'function: ', func)
 
         @static_code(func_name=str(func))
         def generic_static_forward(func, inputs):

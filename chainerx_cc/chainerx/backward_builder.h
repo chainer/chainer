@@ -111,7 +111,7 @@ public:
 
         // Collect input ArrayNodes, grouped by graph considering IsBackpropRequired.
         // This functions is only called once in the constructor.
-        void KeepGraphsAndArrayNodesThatRequireDefinition();
+        std::unordered_map<BackpropId, InputArrayNodes> CreateInputArrayNodesMap() const;
 
         BackwardBuilder& builder_;
         std::vector<size_t> input_indices_;

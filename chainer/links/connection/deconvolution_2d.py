@@ -133,9 +133,9 @@ groups=1)
 
         dilate, groups, = argument.parse_kwargs(
             kwargs, ('dilate', 1), ('groups', 1),
-            deterministic="deterministic argument is not supported anymore. "
-            "Use chainer.using_config('cudnn_deterministic', value) "
-            "context where value is either `True` or `False`.")
+            deterministic='deterministic argument is not supported anymore. '
+            'Use chainer.using_config(\'cudnn_deterministic\', value) '
+            'context where value is either `True` or `False`.')
 
         if ksize is None:
             out_channels, ksize, in_channels = in_channels, out_channels, None

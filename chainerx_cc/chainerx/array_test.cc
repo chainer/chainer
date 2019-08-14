@@ -454,8 +454,8 @@ TEST_P(ArrayTest, FillInplaceWithBackpropRequiredNotAllowed) {
     ASSERT_TRUE(b.IsBackpropRequired(backprop_id));
     ASSERT_FALSE(b.IsGradRequired(backprop_id));
 
-    EXPECT_THROW(a.Fill(Scalar{1, dtype}), ChainerxError);
-    EXPECT_THROW(b.Fill(Scalar{1, dtype}), ChainerxError);
+    EXPECT_THROW(a.Fill(Scalar{1.f}), ChainerxError);
+    EXPECT_THROW(b.Fill(Scalar{1.f}), ChainerxError);
 }
 
 TEST_P(ArrayTest, Negative) {
@@ -1040,8 +1040,8 @@ TEST_P(ArrayTest, AsTypeDoubleBackward) {
     Array a = (*testing::BuildArray(shape).WithLinearData<InT>(-3).WithPadding(1)).RequireGrad();
     Array go = (*testing::BuildArray(shape).WithLinearData<OutT>(-0.1, 0.1).WithPadding(1)).RequireGrad();
     Array ggi = testing::BuildArray(shape).WithLinearData<InT>(-0.1, 0.1).WithPadding(1);
-    Array a_eps = Full(shape, 1e-3f);
-    Array go_eps = Full(shape, 1e-3);
+    Array a_eps = Full(shape, 1e-3, Dtype::kFloat32);
+    Array go_eps = Full(shape, 1e-3, Dtype::kFloat64);
 
     CheckDoubleBackwardComputation(
             [](const std::vector<Array>& xs) -> std::vector<Array> {

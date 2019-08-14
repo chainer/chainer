@@ -505,9 +505,9 @@ def test_backprop_multiple_outputs(method):
 
 def test_create_and_release_backprop_id():
     context = chainerx.Context()
-    backprop_id = context.make_backprop_id("bp1")
+    backprop_id = context.make_backprop_id('bp1')
 
-    assert "bp1" == backprop_id.name
+    assert 'bp1' == backprop_id.name
     assert context == backprop_id.context
 
     context._check_valid_backprop_id(backprop_id)

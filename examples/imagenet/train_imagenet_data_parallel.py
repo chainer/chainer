@@ -50,7 +50,7 @@ def main():
                         help='Learning minibatch size')
     parser.add_argument('--epoch', '-E', type=int, default=10,
                         help='Number of epochs to train')
-    parser.add_argument('--gpus', '-g', type=int, nargs="*",
+    parser.add_argument('--gpus', '-g', type=int, nargs='*',
                         default=[0, 1, 2, 3])
     parser.add_argument('--initmodel',
                         help='Initialize the model from given file')

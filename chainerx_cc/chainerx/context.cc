@@ -116,6 +116,10 @@ Backend& Context::GetBackend(const std::string& backend_name) {
         // In that case, the backend created above is thrown away.
         std::lock_guard<std::mutex> lock{mutex_};
         auto pair = backends_.emplace(backend_name, std::move(backend));
+        // Initialize the backend only if emplaced.
+        if (pair.second) {
+            pair.first->second->Initialize();
+        }
         return *pair.first->second;
     }
 }

@@ -10,6 +10,7 @@ from chainer.distributions.exponential import Exponential  # NOQA
 from chainer.distributions.gamma import Gamma  # NOQA
 from chainer.distributions.geometric import Geometric  # NOQA
 from chainer.distributions.gumbel import Gumbel  # NOQA
+from chainer.distributions.independent import Independent  # NOQA
 from chainer.distributions.laplace import Laplace  # NOQA
 from chainer.distributions.log_normal import LogNormal  # NOQA
 from chainer.distributions.multivariate_normal import MultivariateNormal  # NOQA

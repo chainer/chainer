@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import warnings
 import weakref
 
@@ -194,8 +195,8 @@ class FunctionAdapter(function_node.FunctionNode):
         is_chainerx_fallback_mode = self._is_chainerx_fallback_mode
         if is_chainerx_fallback_mode:
             # Convert input and output gradients to numpy/cupy
-            in_data = backend.from_chainerx(in_data)
-            grad_out_data = backend.from_chainerx(grad_out_data)
+            in_data = backend.from_chx(in_data)
+            grad_out_data = backend.from_chx(grad_out_data)
 
         # Call Function.backward
         with cuda.get_device_from_array(*(in_data + grad_out_data)):
@@ -214,7 +215,7 @@ class FunctionAdapter(function_node.FunctionNode):
 
         # Convert input gradients back to ChainerX
         if is_chainerx_fallback_mode:
-            gxs = backend.to_chainerx(gxs)
+            gxs = backend.to_chx(gxs)
 
         ret = []
         for i in target_input_indexes:
@@ -365,7 +366,7 @@ class Function(object):
 
         """
         if self.node._is_chainerx_fallback_mode:
-            return backend.from_chainerx(self.node.output_data)
+            return backend.from_chx(self.node.output_data)
         return self.node.output_data
 
     @property

@@ -68,7 +68,7 @@ class TestGetItem(unittest.TestCase):
 
     def test_str(self):
         self.assertEqual('x[1]', str(self.v1))
-        self.assertEqual("y['a']", str(self.v2))
+        self.assertEqual('y[\'a\']', str(self.v2))
 
         x = self.x
         self.assertEqual('x[:]', str(x[:]))
@@ -370,8 +370,8 @@ class TestSameTypes(unittest.TestCase):
         x = numpy.array([0])
         y = numpy.array([[1], [2]])
         with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            z = numpy.matrix("3,4; 5,6")
+            warnings.simplefilter('ignore')
+            z = numpy.matrix('3,4; 5,6')
         self.assertTrue(T.same_types(x, y, z))
 
     @attr.gpu

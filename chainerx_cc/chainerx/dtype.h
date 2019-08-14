@@ -216,6 +216,8 @@ inline DtypeKind GetKind(Dtype dtype) {
     return VisitDtype(dtype, [](auto pt) { return decltype(pt)::kKind; });
 }
 
+Dtype PromoteTypes(Dtype dt1, Dtype dt2);
+
 // const char* representation of dtype compatible to NumPy's dtype name.
 inline const char* GetDtypeName(Dtype dtype) {
     return VisitDtype(dtype, [](auto pt) { return decltype(pt)::GetName(); });

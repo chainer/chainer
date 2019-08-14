@@ -270,9 +270,9 @@ private:
     std::shared_ptr<internal::ArrayBody> body_;
 };
 
-inline Array operator+(Scalar lhs, const Array& rhs) { return rhs + lhs; }
-inline Array operator-(Scalar lhs, const Array& rhs) { return -rhs + lhs; }
-inline Array operator*(Scalar lhs, const Array& rhs) { return rhs * lhs; }
+Array operator+(Scalar lhs, const Array& rhs);
+Array operator-(Scalar lhs, const Array& rhs);
+Array operator*(Scalar lhs, const Array& rhs);
 // TODO(hvy): Implement Scalar / Array using e.g. multiplication with reciprocal.
 
 namespace internal {

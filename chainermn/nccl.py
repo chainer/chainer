@@ -1,4 +1,5 @@
 try:
+    from cupy.cuda.nccl import get_build_version  # NOQA
     from cupy.cuda.nccl import get_unique_id  # NOQA
     from cupy.cuda.nccl import get_version  # NOQA
     from cupy.cuda.nccl import NCCL_FLOAT  # NOQA

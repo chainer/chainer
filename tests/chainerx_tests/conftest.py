@@ -30,8 +30,8 @@ def pytest_generate_tests(metafunc):
 
 def _register_cuda_marker(config):
     config.addinivalue_line(
-        "markers",
-        "cuda(num=1): mark tests needing the specified number of NVIDIA GPUs.")
+        'markers',
+        'cuda(num=1): mark tests needing the specified number of NVIDIA GPUs.')
 
 
 def _setup_cuda_marker(item):

@@ -12,6 +12,7 @@ Utilities across backends
    :nosignatures:
 
    chainer.backend.copyto
+   chainer.backend.get_array_module
 
 CUDA
 ----

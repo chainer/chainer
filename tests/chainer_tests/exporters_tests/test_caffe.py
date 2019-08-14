@@ -1,13 +1,20 @@
 import os
 import unittest
+import warnings
 
 import numpy
 
 import chainer
-from chainer.exporters import caffe
 import chainer.functions as F
 import chainer.links as L
 from chainer import testing
+
+
+# The caffe submodule relies on protobuf which under protobuf==3.7.0 and
+# Python 3.7 raises a DeprecationWarning from the collections module.
+with warnings.catch_warnings():
+    warnings.filterwarnings(action='ignore', category=DeprecationWarning)
+    from chainer.exporters import caffe
 
 
 # @testing.parameterize([

@@ -31,6 +31,10 @@ cudnnDataType_t GetCudnnDataType(Dtype dtype) {
             return CUDNN_DATA_FLOAT;
         case Dtype::kFloat64:
             return CUDNN_DATA_DOUBLE;
+        case Dtype::kInt8:
+            return CUDNN_DATA_INT8;
+        case Dtype::kInt32:
+            return CUDNN_DATA_INT32;
         default:
             throw DtypeError{"Dtype ", dtype, " is not supported in cuDNN"};
     }

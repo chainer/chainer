@@ -387,6 +387,10 @@ template Array& Array::RequireGradImpl<Array>(Array& array, const nonstd::option
 
 std::string Array::ToString() const { return ArrayRepr(*this); }
 
+Array operator+(Scalar lhs, const Array& rhs) { return Add(lhs, rhs); }
+Array operator-(Scalar lhs, const Array& rhs) { return Subtract(lhs, rhs); }
+Array operator*(Scalar lhs, const Array& rhs) { return Multiply(lhs, rhs); }
+
 namespace {
 
 using internal::ArrayNode;

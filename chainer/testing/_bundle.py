@@ -1,7 +1,6 @@
 import collections
 import inspect
 import sys
-import unittest
 
 
 # A tuple that represents a test case.
@@ -23,8 +22,9 @@ class _ParameterizedTestCaseBundle(object):
 
 
 def make_decorator(test_case_generator):
-    # `test_case_generator` is a callable that receives the source TestCase
-    # class and returns an iterable of generated test cases.
+    # `test_case_generator` is a callable that receives the source test class
+    # (typically a subclass of unittest.TestCase) and returns an iterable of
+    # generated test cases.
     # Each element of the iterable is a 3-element tuple:
     # [0] Generated class name
     # [1] Dict of members
@@ -39,12 +39,10 @@ def make_decorator(test_case_generator):
         else:
             # Input is a bare test case, i.e. not one generated from another
             # parameterize.
-            assert issubclass(cases, unittest.TestCase)
             cases = [_TestCaseTuple(cases, None, None)]
 
         generated_cases = []
         for klass, mod_name, cls_name in cases:
-            assert issubclass(klass, unittest.TestCase)
             if mod_name is not None:
                 # The input is a parameterized test case.
                 # Remove it from its module.

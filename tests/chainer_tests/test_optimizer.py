@@ -113,7 +113,7 @@ class TestUpdateRule(unittest.TestCase):
 
     @attr.chainerx
     def test_update_chainerx(self):
-        self.var.to_chainerx()
+        self.var.to_chx()
         self.update_rule.update(self.var)
         self.assertEqual(self.update_rule.update_core_cpu.call_count, 1)
         self.assertEqual(self.update_rule.update_core_gpu.call_count, 0)
@@ -123,7 +123,7 @@ class TestUpdateRule(unittest.TestCase):
     @attr.gpu
     def test_update_chainerx_gpu(self):
         self.var.to_gpu()
-        self.var.to_chainerx()
+        self.var.to_chx()
         self.update_rule.update(self.var)
         self.assertEqual(self.update_rule.update_core_cpu.call_count, 0)
         self.assertEqual(self.update_rule.update_core_gpu.call_count, 1)
@@ -252,7 +252,7 @@ class TestUpdateRule(unittest.TestCase):
         self.update_rule.update(self.var)
 
     @attr.chainerx
-    def test_state_copy_to_chainerx(self):
+    def test_state_copy_to_chx(self):
         self.setup_state()
 
         def update_core(param):
@@ -262,7 +262,7 @@ class TestUpdateRule(unittest.TestCase):
 
         self.var.to_cpu()
         self.update_rule.update(self.var)
-        self.var.to_chainerx()
+        self.var.to_chx()
         self.update_rule.update_core = update_core
         self.update_rule.update(self.var)
 

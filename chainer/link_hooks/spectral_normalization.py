@@ -167,7 +167,7 @@ class SpectralNormalization(link_hook.LinkHook):
         # Define axis and register ``u`` if the weight is initialized.
         if not hasattr(link, self.weight_name):
             raise ValueError(
-                "Weight '{}' does not exist!".format(self.weight_name))
+                'Weight \'{}\' does not exist!'.format(self.weight_name))
         if isinstance(link, (L.Deconvolution2D, L.DeconvolutionND)):
             self.axis = 1
         if getattr(link, self.weight_name).array is not None:

@@ -77,6 +77,10 @@ class Pareto(distribution.Distribution):
             self.alpha.data > 1,
             mean, xp.array(xp.inf, mean.dtype))
 
+    @property
+    def params(self):
+        return {'scale': self.scale, 'alpha': self.alpha}
+
     def sample_n(self, n):
         xp = cuda.get_array_module(self.scale)
         if xp is cuda.cupy:
