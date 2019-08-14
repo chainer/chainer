@@ -9,6 +9,8 @@
             s_native_backend_kernel_##kernel_cls{};  // NOLINT(cert-err58-cpp)
 
 #define CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_UNARY_KERNEL(key_kernel_cls, kernel_body, visit_dtype) \
+                                                                                                      \
+    /* NOLINTNEXTLINE(misc-macro-parentheses) */                                                      \
     class Native##key_kernel_cls : public key_kernel_cls {                                            \
     public:                                                                                           \
         void Call(const Array& x, const Array& out) override {                                        \
@@ -37,6 +39,8 @@
     CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_UNARY_KERNEL(key_kernel_cls, kernel_body, VisitDtype)
 
 #define CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_BINARY_KERNEL(key_kernel_cls, kernel_body, visit_dtype) \
+                                                                                                       \
+    /* NOLINTNEXTLINE(misc-macro-parentheses) */                                                       \
     class Native##key_kernel_cls : public key_kernel_cls {                                             \
     public:                                                                                            \
         void Call(const Array& x1, const Array& x2, const Array& out) override {                       \

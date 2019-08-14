@@ -27,21 +27,28 @@ class DeviceResident(utils.enable_final(meta_base=abc.ABCMeta)):
             if _is_to_device_method_overridden(self, m)])
 
     def device_resident_accept(self, visitor):
-        """Applies the visitor to all the device objects in this instance."""
+        """Applies the visitor to all the device objects in this instance.
+
+        Args:
+            visitor(~chainer.device_resident.DeviceResidentsVisitor): Visitor.
+
+        This method should be overridden if the concrete class has custom
+        sub-hierarchy of device resident objects.
+        """
         visitor.visit_device_resident(self)
 
     @property
     def device(self):
-        """Returns the device"""
+        """:class:`~chainer.backend.Device` instance."""
         return self._device
 
     @property
     def xp(self):
         # type: () -> types.Xp
-        """Array module for this link.
+        """Array module corresponding to the device.
 
-        Depending on which of CPU/GPU this link is on, this property returns
-        :mod:`numpy` or :mod:`cupy`.
+        Depending on the device in which this object resides, this property
+        returns :mod:`numpy`, :mod:`cupy` or :mod:`chainerx`.
 
         """
         device = self.device
@@ -54,8 +61,8 @@ class DeviceResident(utils.enable_final(meta_base=abc.ABCMeta)):
         """Copies parameter variables and persistent values to CPU.
 
         This method does not handle non-registered attributes. If some of such
-        attributes must be copied to CPU, the link implementation must
-        override :meth:`Link.to_device` to do so.
+        attributes must be copied to CPU, the link implementation should
+        override :meth:`~DeviceResident.device_resident_accept` to do so.
 
         Returns: self
 
@@ -77,7 +84,7 @@ class DeviceResident(utils.enable_final(meta_base=abc.ABCMeta)):
 
         This method does not handle non-registered attributes. If some of such
         attributes must be copied to GPU, the link implementation must
-        override :meth:`Link.to_device` to do so.
+        override :meth:`~DeviceResident.device_resident_accept` to do so.
 
         Args:
             device: Target device specifier. If omitted, the current device is
@@ -180,10 +187,13 @@ def _is_to_device_method_overridden(device_resident, method_name):
 class DeviceResidentsVisitor(object):
 
     """Base class of visitors that visits device resident objects recursively.
+
+    ..  seealso::
+        :class:`chainer.DeviceResident`
     """
 
     def visit_device_resident(self, device_resident):
-        """Processes a :class:`DeviceResident` instance."""
+        """Processes a :class:`~chainer.DeviceResident` instance."""
         raise NotImplementedError()
 
     def visit_array(self, arr):
@@ -195,7 +205,8 @@ class DeviceResidentsVisitor(object):
         raise NotImplementedError()
 
     def visit_variable(self, param):
-        """Processes a variable or a parameter."""
+        """Processes a :class:`~chainer.Variable` or a \
+:class:`~chainer.Parameter`."""
         raise NotImplementedError()
 
 

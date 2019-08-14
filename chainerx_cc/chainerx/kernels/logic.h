@@ -55,6 +55,13 @@ public:
     virtual void Call(const Array& x1, const Array& x2, const Array& out) = 0;
 };
 
+class LogicalXorKernel : public Kernel {
+public:
+    static const char* name() { return "LogicalXor"; }
+
+    virtual void Call(const Array& x1, const Array& x2, const Array& out) = 0;
+};
+
 class AllKernel : public Kernel {
 public:
     static const char* name() { return "All"; }

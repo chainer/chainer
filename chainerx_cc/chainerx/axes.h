@@ -27,6 +27,8 @@ public:
 
     Axes() = default;
 
+    ~Axes() = default;
+
     // by iterators
     template <typename InputIt>
     Axes(InputIt first, InputIt last) {
@@ -72,7 +74,7 @@ public:
     gsl::span<const int8_t> span() const { return {*this}; }
 };
 
-std::ostream& operator<<(std::ostream&, const Axes&);
+std::ostream& operator<<(std::ostream& os, const Axes& axes);
 
 using OptionalAxes = OptionalContainerArg<Axes>;
 

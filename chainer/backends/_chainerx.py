@@ -10,6 +10,8 @@ import chainerx
 
 class ChainerxDevice(_backend.Device):
 
+    """Device for ChainerX backend"""
+
     def __init__(self, device):
         # type: (chainerx.Device) -> None
 
@@ -64,6 +66,9 @@ class ChainerxDevice(_backend.Device):
     def __repr__(self):
         return '<{} {}>'.format(
             self.__class__.__name__, self.device.name)
+
+    def __str__(self):
+        return self.device.name
 
     def create_context(self):
         # Returns a context that sets the default device.

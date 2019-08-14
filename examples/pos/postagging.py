@@ -7,7 +7,6 @@ import six
 
 import chainer
 from chainer import datasets
-import chainer.functions as F
 import chainer.links as L
 from chainer import reporter
 from chainer import training
@@ -23,28 +22,19 @@ class CRF(chainer.Chain):
             self.crf = L.CRF1d(n_pos)
 
     def forward(self, xs, ys):
-        # Before making a transpose, you need to sort two lists in descending
-        # order of length.
-        inds = numpy.argsort([-len(x) for x in xs]).astype(numpy.int32)
-        xs = [xs[i] for i in inds]
-        ys = [ys[i] for i in inds]
-
-        # Make transposed sequences.
-        # Now xs[t] is a batch of words at time t.
-        xs = F.transpose_sequence(xs)
-        ys = F.transpose_sequence(ys)
-
         # h[i] is feature vector for each batch of words.
         hs = [self.feature(x) for x in xs]
-        loss = self.crf(hs, ys)
+        loss = self.crf(hs, ys, transpose=True)
         reporter.report({'loss': loss}, self)
 
         # To predict labels, call argmax method.
-        _, predict = self.crf.argmax(hs)
+        _, predict = self.crf.argmax(hs, transpose=True)
         correct = 0
         total = 0
         for y, p in six.moves.zip(ys, predict):
-            correct += self.xp.sum(y.array == p)
+            # NOTE y is ndarray because
+            # it does not pass to transpose_sequence
+            correct += self.xp.sum(y == p)
             total += len(y)
         reporter.report({'correct': correct}, self)
         reporter.report({'total': total}, self)
@@ -53,9 +43,10 @@ class CRF(chainer.Chain):
 
     def argmax(self, xs):
         hs = [self.feature(x) for x in xs]
-        return self.crf.argmax(hs)
+        return self.crf.argmax(hs, transpose=True)
 
 
+@chainer.dataset.converter()
 def convert(batch, device):
     sentences = [
         chainer.dataset.to_device(device, sentence) for sentence, _ in batch]
@@ -70,12 +61,19 @@ def main():
                         help='Number of images in each mini batch')
     parser.add_argument('--epoch', '-e', type=int, default=20,
                         help='Number of sweeps over the dataset to train')
-    parser.add_argument('--gpu', '-g', type=int, default=-1,
-                        help='GPU ID (negative value indicates CPU)')
+    parser.add_argument('--device', '-d', type=str, default='-1',
+                        help='Device specifier. Either ChainerX device '
+                        'specifier or an integer. If non-negative integer, '
+                        'CuPy arrays with specified device id are used. If '
+                        'negative integer, NumPy arrays are used')
     parser.add_argument('--out', '-o', default='result',
                         help='Directory to output the result')
     parser.add_argument('--resume', '-r', default='',
                         help='Resume the training from snapshot')
+    group = parser.add_argument_group('deprecated arguments')
+    group.add_argument('--gpu', '-g', dest='device',
+                       type=int, nargs='?', const=0,
+                       help='GPU ID (negative value indicates CPU)')
     args = parser.parse_args()
 
     vocab = collections.defaultdict(lambda: len(vocab))
@@ -93,10 +91,12 @@ def main():
     print('# of words: {}'.format(len(vocab)))
     print('# of pos: {}'.format(len(pos_vocab)))
 
+    device = chainer.get_device(args.device)
+    device.use()
+
     model = CRF(len(vocab), len(pos_vocab))
-    if args.gpu >= 0:
-        chainer.backends.cuda.get_device_from_id(args.gpu).use()
-        model.to_gpu(args.gpu)
+    model.to_device(device)
+
     optimizer = chainer.optimizers.Adam()
     optimizer.setup(model)
     optimizer.add_hook(chainer.optimizer.WeightDecay(0.0001))
@@ -108,11 +108,11 @@ def main():
     test_iter = chainer.iterators.SerialIterator(test_data, args.batchsize,
                                                  repeat=False, shuffle=False)
     updater = training.updaters.StandardUpdater(
-        train_iter, optimizer, converter=convert, device=args.gpu)
+        train_iter, optimizer, converter=convert, device=device)
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.out)
 
     evaluator = extensions.Evaluator(
-        test_iter, model, device=args.gpu, converter=convert)
+        test_iter, model, device=device, converter=convert)
     # Only validate in each 1000 iteration
     trainer.extend(evaluator, trigger=(1000, 'iteration'))
     trainer.extend(extensions.LogReport(trigger=(100, 'iteration')),

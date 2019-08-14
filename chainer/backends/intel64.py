@@ -25,6 +25,8 @@ except ImportError as e:
 
 class Intel64Device(_backend.Device):
 
+    """Device for Intel64 (Intel Architecture) backend with iDeep"""
+
     def __init__(self):
         check_ideep_available()
         super(Intel64Device, self).__init__()
@@ -48,6 +50,9 @@ class Intel64Device(_backend.Device):
 
     def __repr__(self):
         return '<{}>'.format(self.__class__.__name__)
+
+    def __str__(self):
+        return '@intel64'
 
     def send_array(self, array):
         if isinstance(array, ideep.mdarray):

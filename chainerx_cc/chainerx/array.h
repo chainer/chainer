@@ -48,6 +48,8 @@ class Array {
 public:
     Array() = default;
 
+    ~Array() = default;
+
     // TODO(hvy): Consider making this contructor private and prohibit body from being null (assert that given body is not null).
     explicit Array(std::shared_ptr<internal::ArrayBody> body) : body_{std::move(body)} {
         if (body_ == nullptr) {
@@ -82,6 +84,12 @@ public:
     Array& operator*=(Scalar rhs);
     Array& operator/=(const Array& rhs);
     Array& operator/=(Scalar rhs);
+    Array& operator&=(const Array& rhs);
+    Array& operator&=(Scalar rhs);
+    Array& operator|=(const Array& rhs);
+    Array& operator|=(Scalar rhs);
+    Array& operator^=(const Array& rhs);
+    Array& operator^=(Scalar rhs);
 
     const Array& operator+=(const Array& rhs) const;
     const Array& operator+=(Scalar rhs) const;
@@ -91,6 +99,12 @@ public:
     const Array& operator*=(Scalar rhs) const;
     const Array& operator/=(const Array& rhs) const;
     const Array& operator/=(Scalar rhs) const;
+    const Array& operator&=(const Array& rhs) const;
+    const Array& operator&=(Scalar rhs) const;
+    const Array& operator|=(const Array& rhs) const;
+    const Array& operator|=(Scalar rhs) const;
+    const Array& operator^=(const Array& rhs) const;
+    const Array& operator^=(Scalar rhs) const;
 
     Array operator+(const Array& rhs) const;
     Array operator+(Scalar rhs) const;
@@ -100,6 +114,12 @@ public:
     Array operator*(Scalar rhs) const;
     Array operator/(const Array& rhs) const;
     Array operator/(Scalar rhs) const;
+    Array operator&(const Array& rhs) const;
+    Array operator&(Scalar rhs) const;
+    Array operator|(const Array& rhs) const;
+    Array operator|(Scalar rhs) const;
+    Array operator^(const Array& rhs) const;
+    Array operator^(Scalar rhs) const;
 
     // Returns a view selected with the indices.
     Array At(const std::vector<ArrayIndex>& indices) const;
@@ -117,12 +137,18 @@ public:
     // If no axes can be removed, an array with aliased data is returned.
     Array Squeeze(const OptionalAxes& axis = nonstd::nullopt) const;
 
+    // Interchange two axes of an array.
+    Array Swapaxes(int8_t axis1, int8_t axis2) const;
+
     // Broadcasts the array to the specified shape.
     // Returned array is always a view to this array.
     Array BroadcastTo(const Shape& shape) const;
 
     // Returns the indices of the maximum values along the given axis.
     Array ArgMax(const OptionalAxes& axis = nonstd::nullopt) const;
+
+    // Returns the indices of the minimum values along the given axis.
+    Array ArgMin(const OptionalAxes& axis = nonstd::nullopt) const;
 
     // Returns a sum of the array.
     // If `axis` is set, it will be summed over the specified axes.
@@ -286,7 +312,7 @@ private:
 Array operator+(Scalar lhs, const Array& rhs);
 Array operator-(Scalar lhs, const Array& rhs);
 Array operator*(Scalar lhs, const Array& rhs);
-// TODO(hvy): Implement Scalar / Array using e.g. multiplication with reciprocal.
+Array operator/(Scalar lhs, const Array& rhs);
 
 namespace internal {
 

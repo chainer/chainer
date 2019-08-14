@@ -1,5 +1,6 @@
 import os
 import sys
+import warnings
 
 
 if sys.version_info[0] < 3:
@@ -70,3 +71,9 @@ else:
 
 def is_available():
     return _available
+
+
+if _available and _core._is_debug():
+    # Warn if the ChainerX core binary is built in debug mode
+    warnings.warn(
+        'ChainerX core binary is built in debug mode.', stacklevel=2)

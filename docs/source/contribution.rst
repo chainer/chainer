@@ -25,7 +25,7 @@ Development Cycle
 -----------------
 
 This section explains the development process of Chainer.
-Before contributing to Chainer, it is strongly recommended to understand the development cycle.
+Before contributing to Chainer, it is strongly recommended that you understand the development cycle.
 
 Versioning
 ~~~~~~~~~~
@@ -154,7 +154,7 @@ You can contain your thoughts on **how** to realize it into the feature requests
 
 .. warning::
 
-   If you have a question on usages of Chainer, it is highly recommended to send a post to `StackOverflow <https://stackoverflow.com/>`_ or `Chainer User Group <https://groups.google.com/forum/#!forum/chainer>`_ instead of the issue tracker.
+   If you have a question on usages of Chainer, it is highly recommended that you send a post to `StackOverflow <https://stackoverflow.com/>`_ or `Chainer User Group <https://groups.google.com/forum/#!forum/chainer>`_ instead of the issue tracker.
    The issue tracker is not a place to share knowledge on practices.
    We may suggest these places and immediately close how-to question issues.
 
@@ -186,7 +186,7 @@ Note that this automatic PR test only includes CPU tests.
    We are also running continuous integration with GPU tests for the ``master`` branch and the versioned branch of the latest major version.
    Since this service is currently running on our internal server, we do not use it for automatic PR tests to keep the server secure.
 
-If you are planning to add a new feature or modify existing APIs, **it is recommended to open an issue and discuss the design first.**
+If you are planning to add a new feature or modify existing APIs, **it is recommended that you open an issue and discuss the design first.**
 The design discussion needs lower cost for the core developers than code review.
 Following the consequences of the discussions, you can send a PR that is smoothly reviewed in a shorter time.
 

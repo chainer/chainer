@@ -2,7 +2,7 @@ import copy
 
 import six
 
-from chainer.backends import cuda
+import chainer
 from chainer.dataset import convert
 from chainer import function
 from chainer.training.updaters import standard_updater
@@ -82,11 +82,9 @@ class ParallelUpdater(standard_updater.StandardUpdater):
             models = {'main': optimizer.target}
             for name in names:
                 model = copy.deepcopy(optimizer.target)
-                if devices[name] >= 0:
-                    model.to_gpu(devices[name])
+                model.to_device(devices[name])
                 models[name] = model
-            if devices['main'] >= 0:
-                optimizer.target.to_gpu(devices['main'])
+            optimizer.target.to_device(devices['main'])
 
         self._devices = devices
         self._models = models
@@ -128,9 +126,7 @@ class ParallelUpdater(standard_updater.StandardUpdater):
             loss_func = self.loss_func or model
 
             with function.force_backprop_mode():
-                dev_id = self._devices[model_key]
-                dev_id = dev_id if 0 <= dev_id else None
-                with cuda.get_device_from_id(dev_id):
+                with chainer.using_device(self._devices[model_key]):
                     if isinstance(in_arrays, tuple):
                         loss = loss_func(*in_arrays)
                     elif isinstance(in_arrays, dict):

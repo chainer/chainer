@@ -10,6 +10,7 @@ Variable classes and utilities
 
    chainer.Variable
    chainer.as_variable
+   chainer.backward
    chainer.Parameter
    chainer.variable.VariableNode
 
@@ -22,10 +23,10 @@ N-dimensional array
 :class:`chainer.Variable` holds its value as an n-dimensional array (ndarray).
 Chainer supports the following classes:
 
-* :class:`numpy.ndarray`, including :class:`ideep4py.mdarray`
+* :class:`numpy.ndarray`, including ``ideep4py.mdarray``
 * :class:`cupy.ndarray`
 * :class:`chainerx.ndarray`
 
 .. note::
-    Python scalars (:class:`float`, etc.) and NumPy scalars (``numpy.float16``, ``numpy.float32``, etc.) cannot be used as :attr:`chainer.Variable.array`.
+    Python scalars (``float``, etc.) and NumPy scalars (``numpy.float16``, ``numpy.float32``, etc.) cannot be used as :attr:`chainer.Variable.array`.
     See also :func:`chainer.utils.force_array`.

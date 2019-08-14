@@ -5,8 +5,6 @@ import numpy
 import chainer
 from chainer import backend
 from chainer.backends import _chainerx  # NOQA
-from chainer.backends import _cpu
-from chainer.backends import cuda
 import chainerx
 
 # import class and function
@@ -71,20 +69,11 @@ def generate_array(initializer, shape, xp, dtype=None, device=None):
         # ChainerX array.
         # TODO(sonots): Directly use initializer after ChainerX
         # supports random.
-        chx_device = backend_device.device  # type: ignore
-        # TODO(okapies): remove 'type: ignore' when chainerx implements sequence support for empty() # NOQA
-        array = chainerx.empty(shape, dtype=dtype, device=chx_device)  # type: ignore # NOQA
-        if chx_device.backend.name == 'native':
-            temp_array = _cpu._to_cpu(array)
-            temp_device = cuda.DummyDevice  # type: cuda.Device
-        elif chx_device.backend.name == 'cuda':
-            temp_array = cuda.to_gpu(array, chx_device.index)
-            temp_device = cuda.Device(chx_device.index)
-        else:
-            raise RuntimeError('ChainerX backend: {} is not supported.'.format(
-                chx_device.backend.name))
-        with temp_device:
-            initializer(temp_array)
+        chx_device = backend_device.device
+        array = chainerx.empty(shape, dtype=dtype, device=chx_device)
+        fallback_device = backend_device.fallback_device
+        with chainer.using_device(fallback_device):
+            initializer(fallback_device.send(array))
         return array
 
     with chainer.using_device(backend_device):

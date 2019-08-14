@@ -32,10 +32,9 @@ def _copy_arrays(xs):
 
 
 def _ones_like(arr):
-    device = cuda.get_device_from_array(arr)
-    xp = backend.get_array_module(arr)
-    with device:
-        return xp.ones_like(arr)
+    device = backend.get_device_from_array(arr)
+    with chainer.using_device(device):
+        return device.xp.ones_like(arr)
 
 
 def _make_outputs_props_in_error_message(outputs, grad_outputs):
@@ -440,7 +439,7 @@ class _CheckBackward(object):
         device = backend.get_device_from_array(*xs)
 
         if device.xp is chainerx:
-            if len(params) > 0 and not is_immutable_params:
+            if params and not is_immutable_params:
                 raise NotImplementedError(
                     'gradient_check does not support params argument for '
                     'ChainerX arrays')

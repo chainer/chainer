@@ -1,56 +1,53 @@
-import unittest
-
 import numpy
 
-import chainer
-from chainer.backends import cuda
-import chainer.functions as F
+from chainer import functions
 from chainer import testing
-from chainer.testing import attr
-
-
-class UnaryFunctionsTestBase(unittest.TestCase):
-
-    def make_data(self):
-        raise NotImplementedError
-
-    def setUp(self):
-        self.eps = 1e-3
-        while True:
-            self.x = self.make_data()
-            if (numpy.abs(self.x - numpy.round(self.x)) > self.eps * 10).all():
-                break
-
-    def check_forward(self, op, op_xp, x_data):
-        x = chainer.Variable(x_data)
-        y = op(x)
-        self.assertEqual(x.data.dtype, y.data.dtype)
-        v = op_xp(x_data)
-        testing.assert_allclose(v, y.data, atol=1e-7, rtol=1e-7)
-
-    def check_forward_cpu(self, op, op_xp):
-        self.check_forward(op, op_xp, self.x)
-
-    def check_forward_gpu(self, op, op_xp):
-        self.check_forward(op, op_xp, cuda.to_gpu(self.x))
 
 
 @testing.parameterize(*testing.product({
     'shape': [(3, 2), ()],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
 }))
-class TestFix(UnaryFunctionsTestBase):
+@testing.fix_random()
+@testing.inject_backend_tests(
+    None,
+    # CPU tests
+    [
+        {},
+    ]
+    # GPU tests
+    + testing.product({
+        'use_cuda': [True],
+        'cuda_device': [0, 1],
+    })
+    # ChainerX tests
+    + testing.product({
+        'use_chainerx': [True],
+        'chainerx_device': ['native:0', 'cuda:0', 'cuda:1'],
+    })
+)
+class TestFix(testing.FunctionTestCase):
 
-    def make_data(self):
-        x = numpy.random.uniform(-10.0, 10.0, self.shape).astype(self.dtype)
-        return x
+    skip_backward_test = True
+    skip_double_backward_test = True
 
-    def test_forward_cpu(self):
-        self.check_forward_cpu(F.fix, numpy.fix)
+    def generate_inputs(self):
+        while True:
+            x = numpy.random.uniform(
+                -10.0, 10.0, self.shape).astype(self.dtype)
+            if (numpy.abs(x - numpy.round(x)) > 1e-2).all():
+                return x,
 
-    @attr.gpu
-    def test_forward_gpu(self):
-        self.check_forward_gpu(F.fix, cuda.cupy.fix)
+    def forward(self, inputs, device):
+        x, = inputs
+        y = functions.fix(x)
+        return y,
+
+    def forward_expected(self, inputs):
+        x, = inputs
+        expected = numpy.fix(x)
+        expected = numpy.asarray(expected)
+        return expected,
 
 
 testing.run_module(__name__, __file__)

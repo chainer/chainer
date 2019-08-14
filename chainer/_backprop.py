@@ -8,16 +8,29 @@ import six
 
 import chainer
 from chainer import _backprop_utils
-from chainer.backends import cuda
+from chainer import backend
 import chainer.utils._collections
 from chainer.utils import argument
 import chainerx
 
 
 def backward(outputs, grad_outputs=None, **kwargs):
-    """Runs from variables simultaneously.
+    """backward(outputs, grad_outputs=None, *, enable_double_backprop=False)
+
+    Runs backpropagation from variables simultaneously.
+
+    .. warning::
+
+        This feature is experimental. The interface can change in the future.
 
     Args:
+        outputs (tuple or list of :class:`~chainer.Variable`):
+            A sequence of output variables from which backprop starts.
+        grad_outputs (None or tuple or list of :class:`~chainer.Variable`):
+            A sequence of variables that gives the initial value of each output
+            gradient.
+            If this argument is ``None``, backprop uses
+            :attr:`~chainer.Variable.grad_var` of ``outputs``.
         enable_double_backprop (bool): If ``True``,
             computational trace of the whole backpropagation procedure is
             recorded to the computational graph so that one can further do
@@ -122,7 +135,7 @@ def backward(outputs, grad_outputs=None, **kwargs):
                 warnings.warn(
                     'outputs contains a Variable without grad, or '
                     'duplicate outputs. Note that'
-                    'chainer.backward does not have default grad.',
+                    'chainer.backward does not set default grad.',
                     RuntimeWarning)
             y.grad_var = None
             grad_outputs.append(grad_var)
@@ -208,7 +221,8 @@ def _backprop_to_all(outputs, retain_grad, loss_scale):
         else:
             hooks = base_hooks
 
-        with cuda.get_device_from_array(*(in_data + out_grad_array)):
+        with chainer.using_device(
+                backend.get_device_from_array(*(in_data + out_grad_array))):
             for hook in hooks:
                 hook.backward_preprocess(
                     func, tuple(in_data), tuple(out_grad_array))
