@@ -77,7 +77,7 @@ class Orthogonal(initializer.Initializer):
             if (in_dim > out_dim and self._checks[0]) or (
                     in_dim < out_dim and self._checks[1]):
                 raise ValueError(
-                    'Cannot make orthogonal {}.'
+                    'Cannot make orthogonal {}. '
                     'shape = {}, interpreted as '
                     '{}-dim input and {}-dim output.'.format(
                         self.mode, array.shape, in_dim, out_dim))
