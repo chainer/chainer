@@ -157,8 +157,7 @@ ArrayBodyPtr MakeArray(py::handle object, const absl::optional<Dtype>& dtype, bo
     return MakeArrayFromNumpyArray(np_array, device);
 }
 
-void InitChainerxArrayConversion(pybind11::module& m) {
-    py::class_<ArrayBody, ArrayBodyPtr> c{m, "ndarray", py::buffer_protocol()};
+void InitChainerxArrayConversion(pybind11::module& m, py::class_<ArrayBody, ArrayBodyPtr> c) {
     // TODO(hvy): Support all arguments in the constructor of numpy.ndarray.
     c.def(py::init([](py::handle shape, py::handle dtype, py::handle device) {
               return MoveArrayBody(Empty(ToShape(shape), GetDtype(dtype), GetDevice(device)));
@@ -223,8 +222,7 @@ void InitChainerxArrayConversion(pybind11::module& m) {
           "value"_a);
 }
 
-void InitChainerxArrayManipulation(pybind11::module& m) {
-    py::class_<ArrayBody, ArrayBodyPtr> c{m, "ndarray", py::buffer_protocol()};
+void InitChainerxArrayManipulation(py::class_<ArrayBody, ArrayBodyPtr> c) {
     c.def("take",
           [](const ArrayBodyPtr& self, py::handle indices, const absl::optional<int8_t>& axis) {
               if (!axis.has_value()) {
@@ -287,8 +285,7 @@ void InitChainerxArrayManipulation(pybind11::module& m) {
     c.def("flatten", [](const ArrayBodyPtr& self) { return MoveArrayBody(Array{self}.Flatten()); });
 }
 
-void InitChainerxArrayComparison(pybind11::module& m) {
-    py::class_<ArrayBody, ArrayBodyPtr> c{m, "ndarray", py::buffer_protocol()};
+void InitChainerxArrayComparison(py::class_<ArrayBody, ArrayBodyPtr> c) {
     c.def("__eq__",
           [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(Array{self} == Array{rhs}); },
           py::is_operator());
@@ -351,14 +348,12 @@ void InitChainerxArrayComparison(pybind11::module& m) {
           py::is_operator());
 }
 
-void InitChainerxArrayUnary(pybind11::module& m) {
-    py::class_<ArrayBody, ArrayBodyPtr> c{m, "ndarray", py::buffer_protocol()};
+void InitChainerxArrayUnary(py::class_<ArrayBody, ArrayBodyPtr> c) {
     c.def("__neg__", [](const ArrayBodyPtr& self) { return MoveArrayBody(-Array{self}); });
     c.def("__abs__", [](const ArrayBodyPtr& self) { return MoveArrayBody(Absolute(Array{self})); }, py::is_operator());
 }
 
-void InitChainerxArrayInPlace(pybind11::module& m) {
-    py::class_<ArrayBody, ArrayBodyPtr> c{m, "ndarray", py::buffer_protocol()};
+void InitChainerxArrayInPlace(py::class_<ArrayBody, ArrayBodyPtr> c) {
     c.def("__iadd__",
           [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(std::move(Array{self} += Array{rhs})); },
           py::is_operator());
@@ -411,8 +406,7 @@ void InitChainerxArrayInPlace(pybind11::module& m) {
           py::is_operator());
 }
 
-void InitChainerxArrayArithmetic(pybind11::module& m) {
-    py::class_<ArrayBody, ArrayBodyPtr> c{m, "ndarray", py::buffer_protocol()};
+void InitChainerxArrayArithmetic(py::class_<ArrayBody, ArrayBodyPtr> c) {
     c.def("__add__",
           [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(Array{self} + Array{rhs}); },
           py::is_operator());
@@ -475,8 +469,7 @@ void InitChainerxArrayArithmetic(pybind11::module& m) {
     c.def("__rrshift__", [](const ArrayBodyPtr& self, Scalar lhs) { return MoveArrayBody(lhs >> Array{self}); }, py::is_operator());
 }
 
-void InitChainerxCalculation(pybind11::module& m) {
-    py::class_<ArrayBody, ArrayBodyPtr> c{m, "ndarray", py::buffer_protocol()};
+void InitChainerxCalculation(py::class_<ArrayBody, ArrayBodyPtr> c) {
     c.def("sum",
           [](const ArrayBodyPtr& self, int8_t axis, bool keepdims) { return MoveArrayBody(Array{self}.Sum(Axes{axis}, keepdims)); },
           "axis"_a,
@@ -555,8 +548,7 @@ void InitChainerxCalculation(pybind11::module& m) {
           "axis"_a = nullptr);
 }
 
-void InitChainerxArraySpecial(pybind11::module& m) {
-    py::class_<ArrayBody, ArrayBodyPtr> c{m, "ndarray", py::buffer_protocol()};
+void InitChainerxArraySpecial(pybind11::module& m, py::class_<ArrayBody, ArrayBodyPtr> c) {
     c.def("__len__", [](const ArrayBodyPtr& self) -> size_t {
         // TODO(hvy): Do bounds cheking. For reference, Chainer throws an AttributeError.
         if (self->ndim() == 0) {
@@ -709,6 +701,17 @@ void InitChainerxArraySpecial(pybind11::module& m) {
               return self->GetArrayNode(actual_backprop_id)->creator_op_node() != nullptr;
           },
           "backprop_id"_a = nullptr);
+}
+
+void InitChainerxArray(pybind11::module& m) {
+    py::class_<ArrayBody, ArrayBodyPtr> c{m, "ndarray", py::buffer_protocol()};
+    InitChainerxArrayConversion(m, c);
+    InitChainerxArrayComparison(c);
+    InitChainerxArrayManipulation(c);
+    InitChainerxArrayUnary(c);
+    InitChainerxArrayInPlace(c);
+    InitChainerxArrayArithmetic(c);
+    InitChainerxArraySpecial(m, c);
 }
 
 }  // namespace python_internal
