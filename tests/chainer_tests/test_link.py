@@ -52,6 +52,21 @@ _inject_backend_tests = testing.backend.inject_backend_tests(
     ])
 
 
+_inject_backend_tests_no_intel64 = testing.backend.inject_backend_tests(
+    None,
+    [
+        # NumPy
+        {},
+        # CuPy
+        {'use_cuda': True, 'cuda_device': 0},
+        {'use_cuda': True, 'cuda_device': 1},
+        # ChainerX
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
+    ])
+
+
 class LinkTestBase(object):
 
     def setUp(self):
@@ -827,7 +842,7 @@ class TestLinkSerializeDeserializedUninitializedParameter(unittest.TestCase):
         self.assertIs(call_record[0][1], None)
 
 
-@_inject_backend_tests
+@_inject_backend_tests_no_intel64
 @attr.chainerx
 class TestLinkFromToChainerx(LinkTestBase, unittest.TestCase):
 
@@ -1447,7 +1462,7 @@ Chain(
         assert not w
 
 
-@_inject_backend_tests
+@_inject_backend_tests_no_intel64
 @attr.chainerx
 class TestChainFromToChainerx(ChainTestBase, unittest.TestCase):
 
