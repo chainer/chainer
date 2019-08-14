@@ -204,11 +204,6 @@ void InitChainerxArrayConversion(pybind11::module& m, py::class_<ArrayBody, Arra
         }
     });
     c.def("view", [](const ArrayBodyPtr& self) { return MoveArrayBody(Array{self}.MakeView()); });
-    c.def("to_device", [](const ArrayBodyPtr& self, py::handle device) { return MoveArrayBody(Array{self}.ToDevice(GetDevice(device))); });
-    c.def("to_device", [](const ArrayBodyPtr& self, const std::string& backend_name, int index) {
-        Device& device = GetDefaultContext().GetDevice({backend_name, index});
-        return MoveArrayBody(Array{self}.ToDevice(device));
-    });
     c.def("astype",
           [](const ArrayBodyPtr& self, py::handle dtype, bool copy) { return MoveArrayBody(Array{self}.AsType(GetDtype(dtype), copy)); },
           "dtype"_a,
@@ -560,17 +555,6 @@ void InitChainerxArraySpecial(pybind11::module& m, py::class_<ArrayBody, ArrayBo
     c.def("__int__", [](const ArrayBodyPtr& self) -> int64_t { return static_cast<int64_t>(AsScalar(Array{self})); });
     c.def("__float__", [](const ArrayBodyPtr& self) -> double { return static_cast<double>(AsScalar(Array{self})); });
     c.def("__repr__", [](const ArrayBodyPtr& self) { return Array{self}.ToString(); });
-    c.def("as_grad_stopped",
-          [](const ArrayBodyPtr& self, bool copy) {
-              return MoveArrayBody(Array{self}.AsGradStopped(copy ? CopyKind::kCopy : CopyKind::kView));
-          },
-          "copy"_a = false);
-    c.def("as_grad_stopped",
-          [](const ArrayBodyPtr& self, const std::vector<BackpropId>& backprop_ids, bool copy) {
-              return MoveArrayBody(Array{self}.AsGradStopped(backprop_ids, copy ? CopyKind::kCopy : CopyKind::kView));
-          },
-          py::arg().noconvert(),
-          "copy"_a = false);
     c.def("__getitem__", [](const ArrayBodyPtr& self, py::handle key) { return MoveArrayBody(Array{self}.At(MakeArrayIndices(key))); });
     c.def("require_grad",
           [](const ArrayBodyPtr& self, const absl::optional<BackpropId>& backprop_id) {
@@ -705,6 +689,24 @@ void InitChainerxArraySpecial(pybind11::module& m, py::class_<ArrayBody, ArrayBo
 
 void InitChainerxArray(pybind11::module& m) {
     py::class_<ArrayBody, ArrayBodyPtr> c{m, "ndarray", py::buffer_protocol()};
+
+    c.def("to_device", [](const ArrayBodyPtr& self, py::handle device) { return MoveArrayBody(Array{self}.ToDevice(GetDevice(device))); });
+    c.def("to_device", [](const ArrayBodyPtr& self, const std::string& backend_name, int index) {
+        Device& device = GetDefaultContext().GetDevice({backend_name, index});
+        return MoveArrayBody(Array{self}.ToDevice(device));
+    });
+    c.def("as_grad_stopped",
+          [](const ArrayBodyPtr& self, bool copy) {
+              return MoveArrayBody(Array{self}.AsGradStopped(copy ? CopyKind::kCopy : CopyKind::kView));
+          },
+          "copy"_a = false);
+    c.def("as_grad_stopped",
+          [](const ArrayBodyPtr& self, const std::vector<BackpropId>& backprop_ids, bool copy) {
+              return MoveArrayBody(Array{self}.AsGradStopped(backprop_ids, copy ? CopyKind::kCopy : CopyKind::kView));
+          },
+          py::arg().noconvert(),
+          "copy"_a = false);
+
     InitChainerxArrayConversion(m, c);
     InitChainerxArrayComparison(c);
     InitChainerxArrayManipulation(c);
