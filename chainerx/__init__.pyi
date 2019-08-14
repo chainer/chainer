@@ -853,6 +853,11 @@ def moveaxis(a: ndarray, source: tp.Union[int, tp.Tuple[int, ...]],
 def multiply(x1: tp.Any, x2: tp.Any) -> ndarray: ...
 
 
+def nansum(a: ndarray,
+        axis: tp.Optional[tp.Union[int, tp.List[int]]]=None,
+        keepdims: bool=...) -> ndarray: ...
+
+
 def negative(x: ndarray) -> ndarray: ...
 
 
@@ -932,6 +937,11 @@ def subtract(x1: tp.Any, x2: tp.Any) -> ndarray: ...
 def sum(a: ndarray,
         axis: tp.Optional[tp.Union[int, tp.List[int]]]=None,
         keepdims: bool=...) -> ndarray: ...
+
+
+def count_nonzero(
+        a: ndarray,
+        axis: tp.Optional[tp.Union[int, tp.List[int]]]=None) -> ndarray: ...
 
 
 def cumsum(

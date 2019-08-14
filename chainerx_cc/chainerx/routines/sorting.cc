@@ -11,6 +11,7 @@
 #include "chainerx/error.h"
 #include "chainerx/kernels/sorting.h"
 #include "chainerx/routines/creation.h"
+#include "chainerx/routines/reduction.h"
 #include "chainerx/shape.h"
 
 namespace chainerx {
@@ -78,6 +79,12 @@ Array ArgMin(const Array& a, const OptionalAxes& axis) {
         NoBackpropModeScope scope{};
         a.device().backend().CallKernel<ArgMinKernel>(a, sorted_axis, out);
     }
+    return out;
+}
+
+Array CountNonzero(const Array& a, const OptionalAxes& axis) {
+    // TODO(aksub99): Fix after NotEqual(Array, Scalar) is supported.
+    Array out = (a != ZerosLike(a)).Sum(axis);
     return out;
 }
 
