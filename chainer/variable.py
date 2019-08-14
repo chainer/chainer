@@ -1434,7 +1434,8 @@ class Variable(object):
                 _backprop_to_all([self], retain_grad, loss_scale)
             return
 
-        ref_self = [self]
+        weakref_self = weakref.ref(self)
+        outputs = [self]
 
         def cont(**kwargs):
             assert_moved = True
@@ -1444,12 +1445,10 @@ class Variable(object):
                     ('_assert_moved', assert_moved),
                 )
 
-            if not ref_self:
+            if not outputs:
                 raise RuntimeError(
                     'the continuation Variable.backward(_return_cont=True) '
                     'has been consumed')
-            weakref_self = weakref.ref(ref_self[0])
-            outputs = ref_self
             with chainer.using_config(
                     'enable_backprop', enable_double_backprop):
                 _backprop_to_all(outputs, retain_grad, loss_scale)
