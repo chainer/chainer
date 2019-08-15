@@ -60,7 +60,7 @@ $ nvidia-docker run -it chainer/chainer /bin/bash
 ## Contribution
 
 Any contributions to Chainer are welcome!
-If you want to file an issue or send a pull request, [please follow the contribution guide](https://docs.chainer.org/en/stable/contribution.html).
+If you want to file an issue or send a pull request, [please follow the contribution guide](https://docs.chainer.org/en/latest/contribution.html).
 
 
 ## ChainerX
