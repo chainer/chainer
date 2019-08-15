@@ -34,7 +34,7 @@ def _make_class_name(base_class_name, i_param, param):
     PARAMS_MAXLEN = 5000  # Length limit of the whole parameters part
     param_strs = [
         '{}={}'.format(k, _shorten(_param_to_str(v), SINGLE_PARAM_MAXLEN))
-        for k, v in param.items()]
+        for k, v in sorted(param.items())]
     param_strs = _shorten(', '.join(param_strs), PARAMS_MAXLEN)
     cls_name = '{}_param_{}_{{{}}}'.format(
         base_class_name, i_param, param_strs)
@@ -52,7 +52,7 @@ def _parameterize_test_case_generator(base, params):
             return '%s  parameter: %s' % (name, param)
 
         mb = {'__str__': __str__}
-        for k, v in six.iteritems(param):
+        for k, v in sorted(param.items()):
             if isinstance(v, types.FunctionType):
 
                 def create_new_v():
@@ -84,7 +84,7 @@ def _parameterize_test_case_generator(base, params):
                     s.write('Base test method: {}.{}\n'.format(
                         base.__name__, base_method.__name__))
                     s.write('Test parameters:\n')
-                    for k, v in six.iteritems(param2):
+                    for k, v in sorted(param2.items()):
                         s.write('  {}: {}\n'.format(k, v))
                     utils._raise_from(e.__class__, s.getvalue(), e)
             return new_method
