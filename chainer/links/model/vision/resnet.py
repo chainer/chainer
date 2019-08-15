@@ -558,7 +558,8 @@ class BuildingBlock(link.Chain):
         if 'n_layer' in kwargs:
             warnings.warn(
                 'Argument `n_layer` is deprecated. '
-                'Please use `n_layers` instead')
+                'Please use `n_layers` instead',
+                DeprecationWarning)
             n_layers = kwargs['n_layer']
 
         with self.init_scope():
