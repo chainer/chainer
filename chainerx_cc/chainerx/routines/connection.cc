@@ -392,8 +392,6 @@ Array Linear(const Array& x, const Array& w, const absl::optional<Array>& b, uin
     return out_matrix.Reshape(out_shape);
 }
 
-
-
 std::vector<Array> Lstm(const Array& c, const Array& x) {
     if (x.shape()[0] > c.shape()[0]) {
         throw DimensionError{"The batch size of x must be equal to or less than the size of c"};

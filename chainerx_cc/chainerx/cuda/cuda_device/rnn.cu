@@ -161,7 +161,9 @@ std::vector<Array> WeightsBackward(
 
                 cudnnGetFilterNdDescriptor(lin_layer_mat_desc, 3, &data_type, &format, &nb_dims, filter_dim_a);
                 InitGPUData(
-                        reinterpret_cast<float*>(internal::GetRawOffsetData(m)), filter_dim_a[0] * filter_dim_a[1] * filter_dim_a[2], m_offset);
+                        reinterpret_cast<float*>(internal::GetRawOffsetData(m)),
+                        filter_dim_a[0] * filter_dim_a[1] * filter_dim_a[2],
+                        m_offset);
                 cudnnDestroyFilterDescriptor(lin_layer_mat_desc);
                 ret.emplace_back(m);
                 cudnnFilterDescriptor_t lin_layer_bias_desc;
@@ -180,7 +182,9 @@ std::vector<Array> WeightsBackward(
                 Array b = AsContiguous(Zeros(bs[index][lin_layer_id].shape(), type, bs[index][lin_layer_id].device()));
                 cudnnGetFilterNdDescriptor(lin_layer_bias_desc, 3, &data_type, &format, &nb_dims, filter_dim_a);
                 InitGPUData(
-                        reinterpret_cast<float*>(internal::GetRawOffsetData(b)), filter_dim_a[0] * filter_dim_a[1] * filter_dim_a[2], b_offset);
+                        reinterpret_cast<float*>(internal::GetRawOffsetData(b)),
+                        filter_dim_a[0] * filter_dim_a[1] * filter_dim_a[2],
+                        b_offset);
                 cudnnDestroyFilterDescriptor(lin_layer_bias_desc);
                 ret.emplace_back(b);
             }
@@ -188,7 +192,7 @@ std::vector<Array> WeightsBackward(
     }
     return ret;
 }
-}
+} // namespace
 
 class CudaRnnKernel : public RnnKernel {
 public:

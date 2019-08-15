@@ -429,7 +429,7 @@ std::vector<std::vector<Array>> NStepRnnImpl(
         return rnn_out;
     }
 }
-}
+} // namespace
 
 std::vector<std::vector<Array>> NStepLstm(
         int64_t n_layers,
