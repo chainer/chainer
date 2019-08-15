@@ -54,6 +54,23 @@ int64_t GetConvTransposeOutDim(int64_t in_dim, int64_t kernel_size, int64_t stri
     return stride * (in_dim - 1) + kernel_size - 2 * pad;
 }
 
+std::vector<Array> ExtractGates(Array x) {
+    StackVector<int64_t, kMaxNdim> shape_vec;
+    shape_vec.emplace_back(x.shape()[0]);
+    shape_vec.emplace_back(static_cast<int64_t>(x.shape()[1] / 4));
+    shape_vec.emplace_back(4);
+    for (int64_t i = 2; i < x.ndim(); i++) {
+        shape_vec.emplace_back(x.shape()[i]);
+    }
+    Shape shape{shape_vec};
+    Array x_r = Reshape(x, shape);
+    std::vector<Array> gates = Split(x_r, 4, 2);
+    for (size_t i = 0; i < gates.size(); i++) {
+        gates[i] = Squeeze(gates[i]);
+    }
+    return gates;
+}
+
 }  // namespace internal
 
 namespace {
@@ -375,22 +392,7 @@ Array Linear(const Array& x, const Array& w, const absl::optional<Array>& b, uin
     return out_matrix.Reshape(out_shape);
 }
 
-std::vector<Array> ExtractGates(Array x) {
-    StackVector<int64_t, kMaxNdim> shape_vec;
-    shape_vec.emplace_back(x.shape()[0]);
-    shape_vec.emplace_back(static_cast<int64_t>(x.shape()[1] / 4));
-    shape_vec.emplace_back(4);
-    for (int64_t i = 2; i < x.ndim(); i++) {
-        shape_vec.emplace_back(x.shape()[i]);
-    }
-    Shape shape{shape_vec};
-    Array x_r = Reshape(x, shape);
-    std::vector<Array> gates = Split(x_r, 4, 2);
-    for (size_t i = 0; i < gates.size(); i++) {
-        gates[i] = Squeeze(gates[i]);
-    }
-    return gates;
-}
+
 
 std::vector<Array> Lstm(const Array& c, const Array& x) {
     if (x.shape()[0] > c.shape()[0]) {
@@ -405,7 +407,7 @@ std::vector<Array> Lstm(const Array& c, const Array& x) {
     if (c.dtype() != x.dtype()) {
         throw DtypeError{"Datatypes of c and x should be equal got", c.dtype(), "and ", x.dtype()};
     }
-    std::vector<Array> x_split = ExtractGates(x);
+    std::vector<Array> x_split = internal::ExtractGates(x);
     x_split[0] = Tanh(x_split[0]);
     x_split[1] = Sigmoid(x_split[1]);
     x_split[2] = Sigmoid(x_split[2]);

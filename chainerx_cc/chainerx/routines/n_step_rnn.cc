@@ -36,6 +36,8 @@
 #include "chainerx/routines/type_util.h"
 namespace chainerx {
 
+namespace {
+
 Array StackWeight(const std::vector<Array>& ws) {
     Array w = Stack(ws, 1);
     StackVector<int64_t, kMaxNdim> shape_vec;
@@ -83,7 +85,7 @@ std::vector<Array> GruImpl(
     return out;
 }
 
-std::vector<Array> _lstm(
+std::vector<Array> LstmImpl(
         const Array& x,
         const Array& h,
         const absl::optional<Array>& c,
@@ -427,6 +429,7 @@ std::vector<std::vector<Array>> NStepRnnImpl(
         return rnn_out;
     }
 }
+}
 
 std::vector<std::vector<Array>> NStepLstm(
         int64_t n_layers,
@@ -436,7 +439,7 @@ std::vector<std::vector<Array>> NStepLstm(
         const std::vector<std::vector<Array>>& bs,
         std::vector<Array>& xs) {
     hx.device().CheckDevicesCompatible(hx, cx, ws[0][0], bs[0][0], xs[0]);
-    return NStepRnnImpl(&_lstm, n_layers, hx, absl::optional<Array>{cx}, ws, bs, xs, 0, 1, absl::nullopt);
+    return NStepRnnImpl(&LstmImpl, n_layers, hx, absl::optional<Array>{cx}, ws, bs, xs, 0, 1, absl::nullopt);
 }
 
 std::vector<std::vector<Array>> NStepBiLstm(
@@ -447,7 +450,7 @@ std::vector<std::vector<Array>> NStepBiLstm(
         const std::vector<std::vector<Array>>& bs,
         std::vector<Array>& xs) {
     hx.device().CheckDevicesCompatible(hx, cx, ws[0][0], bs[0][0], xs[0]);
-    return NStepRnnImpl(&_lstm, n_layers, hx, absl::optional<Array>{cx}, ws, bs, xs, 1, 1, absl::nullopt);
+    return NStepRnnImpl(&LstmImpl, n_layers, hx, absl::optional<Array>{cx}, ws, bs, xs, 1, 1, absl::nullopt);
 }
 
 std::vector<std::vector<Array>> NStepGru(
