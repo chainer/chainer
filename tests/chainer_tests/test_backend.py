@@ -24,18 +24,22 @@ class _TestCopyToBase(object):
     def _get_dst(self):
         raise NotImplementedError
 
+    @staticmethod
+    def _to_cpu(arr):
+        return backend.CpuDevice().send(arr)
+
     def test_from_cpu(self):
         src = self.src_data
         dst = self._get_dst()
         backend.copyto(dst, src)
-        numpy.testing.assert_array_equal(cuda.to_cpu(dst), self.src_data)
+        numpy.testing.assert_array_equal(self._to_cpu(dst), self.src_data)
 
     @attr.gpu
     def test_from_gpu(self):
         src = cuda.cupy.array(self.src_data)
         dst = self._get_dst()
         backend.copyto(dst, src)
-        numpy.testing.assert_array_equal(cuda.to_cpu(dst), self.src_data)
+        numpy.testing.assert_array_equal(self._to_cpu(dst), self.src_data)
 
     @attr.ideep
     def test_from_ideep(self):
@@ -43,7 +47,22 @@ class _TestCopyToBase(object):
         dst = self._get_dst()
         assert isinstance(src, intel64.mdarray)
         backend.copyto(dst, src)
-        numpy.testing.assert_array_equal(cuda.to_cpu(dst), self.src_data)
+        numpy.testing.assert_array_equal(self._to_cpu(dst), self.src_data)
+
+    @attr.chainerx
+    def test_from_chx_native(self):
+        src = chainerx.array(self.src_data, device='native')
+        dst = self._get_dst()
+        backend.copyto(dst, src)
+        numpy.testing.assert_array_equal(self._to_cpu(dst), self.src_data)
+
+    @attr.chainerx
+    @attr.gpu
+    def test_from_chx_cuda(self):
+        src = chainerx.array(self.src_data, device='cuda:0')
+        dst = self._get_dst()
+        backend.copyto(dst, src)
+        numpy.testing.assert_array_equal(self._to_cpu(dst), self.src_data)
 
 
 class TestCopyToCPU(_TestCopyToBase, unittest.TestCase):
@@ -71,6 +90,19 @@ class TestCopyToIDeep(_TestCopyToBase, unittest.TestCase):
         dst = intel64.ideep.array(self.src_data)
         assert isinstance(dst, intel64.mdarray)
         return dst
+
+
+@attr.chainerx
+class TestCopyToChxNative(_TestCopyToBase, unittest.TestCase):
+    def _get_dst(self):
+        return chainerx.array(self.dst_data, device='native')
+
+
+@attr.chainerx
+@attr.gpu
+class TestCopyToChxCuda(_TestCopyToBase, unittest.TestCase):
+    def _get_dst(self):
+        return chainerx.array(self.dst_data, device='cuda:0')
 
 
 class TestCopyToError(unittest.TestCase):
