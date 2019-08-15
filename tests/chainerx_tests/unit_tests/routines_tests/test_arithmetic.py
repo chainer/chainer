@@ -1268,9 +1268,9 @@ class TestPower(math_utils.BinaryMathTestBase, op_utils.NumpyOpTest):
         super().setup()
         in_dtype1, in_dtype2 = self.in_dtypes
         if in_dtype1 == 'float16' or in_dtype2 == 'float16':
-            self.check_backward_options.update({'rtol': 5e-3, 'atol': 5e-3})
+            self.check_backward_options.update({'rtol': 5e-2, 'atol': 5e-2})
             self.check_double_backward_options.update(
-                {'rtol': 5e-3, 'atol': 5e-3})
+                {'rtol': 5e-2, 'atol': 5e-2})
 
     def func(self, xp, a, b):
         if self.is_module:
