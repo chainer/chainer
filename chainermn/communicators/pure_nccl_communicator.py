@@ -55,6 +55,8 @@ class PureNcclCommunicator(mpi_communicator_base.MpiCommunicatorBase):
     def finalize(self):
         super(PureNcclCommunicator, self).finalize()
         if self.nccl_comm is not None:
+            chainer.cuda.Stream.null.synchronize()
+            self.mpi_comm.barrier()
             self.nccl_comm.destroy()
             self.nccl_comm = None
 

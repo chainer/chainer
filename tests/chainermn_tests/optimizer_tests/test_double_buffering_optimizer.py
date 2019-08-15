@@ -21,7 +21,7 @@ class ExampleModel(chainer.Chain):
 
 class TestDoubleBufferingOptimizer(unittest.TestCase):
 
-    def setup_gpu(self, batched_copy):
+    def setup(self, batched_copy):
         if nccl.get_build_version() < 2000:
             pytest.skip('This test requires NCCL version >= 2.0')
         self.comm = chainermn.create_communicator('pure_nccl',
@@ -40,7 +40,7 @@ class TestDoubleBufferingOptimizer(unittest.TestCase):
         self.actual_optimizer.create_update_rule = mock.MagicMock
 
     def check_update(self, batched_copy):
-        self.setup_gpu(batched_copy)
+        self.setup(batched_copy)
         self.optimizer = chainermn.create_multi_node_optimizer(
             self.actual_optimizer, self.comm, double_buffering=True)
         opt = self.optimizer.setup(self.target)
@@ -108,7 +108,7 @@ class DynamicExampleModel(chainer.Chain):
 
 class TestDoubleBufferingOptimizerWithDynamicModel(unittest.TestCase):
 
-    def setup_gpu(self, batched_copy):
+    def setup(self, batched_copy):
         if nccl.get_build_version() < 2000:
             pytest.skip('This test requires NCCL version >= 2.0')
         self.comm = chainermn.create_communicator('pure_nccl',
@@ -125,7 +125,7 @@ class TestDoubleBufferingOptimizerWithDynamicModel(unittest.TestCase):
         self.actual_optimizer.create_update_rule = mock.MagicMock
 
     def check_update(self, batched_copy):
-        self.setup_gpu(batched_copy)
+        self.setup(batched_copy)
         self.optimizer = chainermn.create_multi_node_optimizer(
             self.actual_optimizer, self.comm, double_buffering=True)
         opt = self.optimizer.setup(self.target)
