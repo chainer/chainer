@@ -5,25 +5,95 @@ import six
 import numpy as np
 
 import chainer
+from chainer import functions as F
 from chainer import optimizers
 from chainer import testing
 
 
-@testing.parameterize(*testing.product({
-    'impl': [
-        optimizers.AdaDelta,
-        optimizers.AdaGrad,
-        optimizers.Adam,
-        optimizers.CorrectedMomentumSGD,
-        optimizers.MomentumSGD,
-        optimizers.MSVAG,
-        optimizers.NesterovAG,
-        optimizers.RMSprop,
-        optimizers.RMSpropGraves,
-        optimizers.SGD,
-        optimizers.SMORMS3,
-    ]
+_all_optimizers = [
+    'AdaDelta',
+    'AdaGrad',
+    'Adam',
+    'CorrectedMomentumSGD',
+    'MomentumSGD',
+    'MSVAG',
+    'NesterovAG',
+    'RMSprop',
+    'RMSpropGraves',
+    'SGD',
+    'SMORMS3',
+]
+
+
+_parameterize_optimizers = testing.parameterize(*testing.product({
+    'optimizer_impl': [getattr(chainer.optimizers, o) for o in _all_optimizers]
 }))
+
+
+class SimpleChain(chainer.Chain):
+
+    def __init__(self, shape=()):
+        super(SimpleChain, self).__init__()
+        w_np = np.asarray(np.random.randn(*shape)).astype(np.float32)
+        with self.init_scope():
+            self.w = chainer.Parameter(w_np, name='w')
+
+    def __call__(self, x):
+        return F.sum((x - self.w) ** 2)
+
+
+@testing.backend.inject_backend_tests(
+    None,
+    [
+        # CPU
+        {},
+        # Intel
+        {'use_ideep': True},
+        # CUDA
+        {'use_cuda': True, 'cuda_device': 0},
+        {'use_cuda': True, 'cuda_device': 1},
+        # ChainerX
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
+    ]
+)
+@testing.parameterize(*(
+    # Optimizers constructed with default arguments
+    [
+        {
+            'optimizer': o,
+            'kwargs': {}
+        }
+        for o in _all_optimizers]
+    # https://chainer/chainer/issues/7424
+    + [
+        {
+            'optimizer': 'Adam',
+            'kwargs': {'weight_decay_rate': 0.5},
+        }]
+))
+@testing.parameterize(*testing.product(
+    {'shape': [(2, 3), (), (1, 0, 2)]}
+))
+class TestOptimizer(unittest.TestCase):
+
+    def test_optimizer(self, backend_config):
+        device = backend_config.device
+        target = SimpleChain(self.shape)
+        target.to_device(device)
+        optimizer_cls = getattr(chainer.optimizers, self.optimizer)
+        optimizer = optimizer_cls(**self.kwargs)
+        optimizer.setup(target)
+
+        x_np = np.asarray(np.random.randn(*self.shape)).astype(np.float32)
+        x = chainer.Variable(device.send(x_np))
+
+        # Just ensures no error occurs. No numerical check is performed.
+        optimizer.update(target, x)
+
+
+@_parameterize_optimizers
 class TestOptimizerHyperparameter(unittest.TestCase):
 
     def setUp(self):
@@ -32,7 +102,7 @@ class TestOptimizerHyperparameter(unittest.TestCase):
             self.target.w = chainer.Parameter()
 
     def create(self, *args, **kwargs):
-        self.optimizer = self.impl(*args, **kwargs)
+        self.optimizer = self.optimizer_impl(*args, **kwargs)
         self.optimizer.setup(self.target)
 
     def get_hyperparam(self, name):
@@ -63,39 +133,14 @@ class WeightSaveHook(object):
         self.value = np.copy(p)
 
 
-class SimpleChain(chainer.Chain):
-
-    def __init__(self):
-        super(SimpleChain, self).__init__()
-        with self.init_scope():
-            self.w = chainer.Parameter(42, (), 'w')
-
-    def __call__(self, x):
-        return (x - self.w) ** 2
-
-
-@testing.parameterize(*testing.product({
-    'impl': [
-        optimizers.AdaDelta,
-        optimizers.AdaGrad,
-        optimizers.Adam,
-        optimizers.CorrectedMomentumSGD,
-        optimizers.MomentumSGD,
-        optimizers.MSVAG,
-        optimizers.NesterovAG,
-        optimizers.RMSprop,
-        optimizers.RMSpropGraves,
-        optimizers.SGD,
-        optimizers.SMORMS3,
-    ]
-}))
+@_parameterize_optimizers
 class TestOptimizerHooks(unittest.TestCase):
 
     def setUp(self):
         self.target = SimpleChain()
 
     def create(self, *args, **kwargs):
-        self.optimizer = self.impl(*args, **kwargs)
+        self.optimizer = self.optimizer_impl(*args, **kwargs)
         self.optimizer.setup(self.target)
 
     def get_hyperparam(self, name):
@@ -138,28 +183,14 @@ class TestOptimizerHooks(unittest.TestCase):
         self.assertNotEqual(h_pre.value, h_post.value)
 
 
-@testing.parameterize(*testing.product({
-    'impl': [
-        optimizers.AdaDelta,
-        optimizers.AdaGrad,
-        optimizers.Adam,
-        optimizers.CorrectedMomentumSGD,
-        optimizers.MomentumSGD,
-        optimizers.MSVAG,
-        optimizers.NesterovAG,
-        optimizers.RMSprop,
-        optimizers.RMSpropGraves,
-        optimizers.SGD,
-        optimizers.SMORMS3,
-    ]
-}))
+@_parameterize_optimizers
 class TestOptimizerLossScaling(unittest.TestCase):
 
     def setUp(self):
         self.target = SimpleChain()
 
     def create(self, *args, **kwargs):
-        self.optimizer = self.impl(*args, **kwargs)
+        self.optimizer = self.optimizer_impl(*args, **kwargs)
         self.optimizer.setup(self.target)
 
     def test_invalid_configs(self):
