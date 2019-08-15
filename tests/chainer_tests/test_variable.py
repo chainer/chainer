@@ -672,8 +672,8 @@ class TestVariable(unittest.TestCase):
         cp.testing.assert_array_equal(x.grad, d.grad)
 
 
-@testing.backend.inject_backend_tests(None, _chainerx_backend_params)
-@testing.backend.inject_backend_tests(None, _chainerx_backend_params)
+@testing.backend.inject_backend_tests(None, _backend_params)
+@testing.backend.inject_backend_tests(None, _backend_params)
 @testing.parameterize(*testing.product({'shape': [(10,), (0,), ()]}))
 class TestVariableCopydata(unittest.TestCase):
 

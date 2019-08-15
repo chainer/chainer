@@ -1,6 +1,7 @@
 import collections
 import os
 import sys
+import warnings
 
 import numpy
 try:
@@ -530,7 +531,10 @@ class BuildingBlock(link.Chain):
     """A building block that consists of several Bottleneck layers.
 
     Args:
-        n_layer (int): Number of layers used in the building block.
+        n_layer (int): *(deprecated since v7.0.0)*
+            `n_layer` is now deprecated for consistency of naming choice.
+            Please use `n_layers` instead.
+        n_layers (int): Number of layers used in the building block.
         in_channels (int): Number of channels of input arrays.
         mid_channels (int): Number of channels of intermediate arrays.
         out_channels (int): Number of channels of output arrays.
@@ -543,17 +547,27 @@ class BuildingBlock(link.Chain):
             If this argument is specified as ``True``, it performs downsampling
             by placing stride 2 on the 3x3 convolutional layers
             (Facebook ResNet).
+
     """
 
-    def __init__(self, n_layer, in_channels, mid_channels,
-                 out_channels, stride, initialW=None, downsample_fb=False):
+    def __init__(self, n_layers=None, in_channels=None, mid_channels=None,
+                 out_channels=None, stride=None, initialW=None,
+                 downsample_fb=None, **kwargs):
         super(BuildingBlock, self).__init__()
+
+        if 'n_layer' in kwargs:
+            warnings.warn(
+                'Argument `n_layer` is deprecated. '
+                'Please use `n_layers` instead',
+                DeprecationWarning)
+            n_layers = kwargs['n_layer']
+
         with self.init_scope():
             self.a = BottleneckA(
                 in_channels, mid_channels, out_channels, stride,
                 initialW, downsample_fb)
             self._forward = ['a']
-            for i in range(n_layer - 1):
+            for i in range(n_layers - 1):
                 name = 'b{}'.format(i + 1)
                 bottleneck = BottleneckB(out_channels, mid_channels, initialW)
                 setattr(self, name, bottleneck)

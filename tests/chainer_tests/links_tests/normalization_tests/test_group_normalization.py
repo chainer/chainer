@@ -22,11 +22,27 @@ class GroupNormalizationTest(unittest.TestCase):
         self.link = links.GroupNormalization(self.groups)
         self.link.cleargrads()
 
-        self.x = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        self.x, = self.generate_inputs()
         self.gy = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
 
         self.check_forward_options = {'atol': 1e-4, 'rtol': 1e-3}
         self.check_backward_options = {'atol': 1e-3, 'rtol': 1e-2}
+
+    def generate_inputs(self):
+        shape = self.shape
+
+        # sample x such that x.std >= min_std
+        min_std = 0.02
+        retry = 0
+        while True:
+            x = numpy.random.uniform(-1, 1, shape).astype(self.dtype)
+            x_groups = x.reshape(shape[0], self.groups, -1)
+            if x_groups.std(axis=2).min() >= min_std:
+                break
+            retry += 1
+            assert retry <= 20, 'Too many retries to generate inputs'
+
+        return x,
 
     def check_forward(self, x_data):
         y = self.link(x_data)

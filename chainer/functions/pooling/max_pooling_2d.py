@@ -106,7 +106,7 @@ class MaxPooling2D(pooling_2d.Pooling2D):
                for (int y = in_y_0; y < in_y_1; ++y) {
                  int offset_y = w * (y + h * c0);
                  for (int x = in_x_0; x < in_x_1; ++x) {
-                   float v = in[x + offset_y];
+                   T v = in[x + offset_y];
                    if (maxval < v) {
                      maxval   = v;
                      argmax_y = y;
@@ -164,8 +164,8 @@ class MaxPooling2DGrad(function_node.FunctionNode):
         gcol = numpy.zeros(
             (n * c * out_h * out_w * kh * kw), dtype=self._in_dtype)
 
-        indexes = self.indexes.flatten()
-        indexes += numpy.arange(0, indexes.size * kh * kw, kh * kw)
+        indexes = self.indexes.ravel() + numpy.arange(
+            0, self.indexes.size * kh * kw, kh * kw)
 
         gcol[indexes] = gy[0].ravel()
         gcol = gcol.reshape(n, c, out_h, out_w, kh, kw)
