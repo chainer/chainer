@@ -235,6 +235,8 @@ public:
 
 CHAINERX_NATIVE_REGISTER_KERNEL(PowerSAKernel, NativePowerSAKernel);
 
+CHAINERX_NATIVE_REGISTER_ELTWISE_BINARY_KERNEL(FmodKernel, { out = chainerx::Fmod(x1, x2); });
+
 }  // namespace
 }  // namespace native
 }  // namespace chainerx
