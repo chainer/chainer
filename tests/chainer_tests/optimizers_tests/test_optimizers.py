@@ -14,10 +14,6 @@ _all_optimizers = [
     'AdaDelta',
     'AdaGrad',
     'Adam',
-    'AdamW',
-    'AMSGrad',
-    'AdaBound',
-    'AMSBound',
     'CorrectedMomentumSGD',
     'MomentumSGD',
     'MSVAG',
@@ -106,25 +102,13 @@ class TestOptimizerHyperparameter(unittest.TestCase):
             self.target.w = chainer.Parameter()
 
     def create(self, *args, **kwargs):
-        self.optimizer = self.impl(*args, **kwargs)
+        self.optimizer = self.optimizer_impl(*args, **kwargs)
         self.optimizer.setup(self.target)
 
     def get_hyperparam(self, name):
         return getattr(self.target.w.update_rule.hyperparam, name)
 
     def test_hyperparams(self):
-        # TODO(niboshi): The following optimizers do not pass this test
-        # because their __init__ do not accept some hyperparameters.
-        # The test should be fixed.
-        if self.optimizer_impl in (
-                chainer.optimizers.AdamW,
-                chainer.optimizers.AMSGrad,
-                chainer.optimizers.AdaBound,
-                chainer.optimizers.AMSBound,
-        ):
-            raise unittest.SkipTest(
-                'The optimizer is incompatible with this test')
-
         self.create()
         default = self.optimizer.hyperparam.get_dict()
         for name, default_value in six.iteritems(default):
@@ -156,7 +140,7 @@ class TestOptimizerHooks(unittest.TestCase):
         self.target = SimpleChain()
 
     def create(self, *args, **kwargs):
-        self.optimizer = self.impl(*args, **kwargs)
+        self.optimizer = self.optimizer_impl(*args, **kwargs)
         self.optimizer.setup(self.target)
 
     def get_hyperparam(self, name):
@@ -199,28 +183,14 @@ class TestOptimizerHooks(unittest.TestCase):
         self.assertNotEqual(h_pre.value, h_post.value)
 
 
-@testing.parameterize(*testing.product({
-    'impl': [
-        optimizers.AdaDelta,
-        optimizers.AdaGrad,
-        optimizers.Adam,
-        optimizers.CorrectedMomentumSGD,
-        optimizers.MomentumSGD,
-        optimizers.MSVAG,
-        optimizers.NesterovAG,
-        optimizers.RMSprop,
-        optimizers.RMSpropGraves,
-        optimizers.SGD,
-        optimizers.SMORMS3,
-    ]
-}))
+@_parameterize_optimizers
 class TestOptimizerLossScaling(unittest.TestCase):
 
     def setUp(self):
         self.target = SimpleChain()
 
     def create(self, *args, **kwargs):
-        self.optimizer = self.impl(*args, **kwargs)
+        self.optimizer = self.optimizer_impl(*args, **kwargs)
         self.optimizer.setup(self.target)
 
     def test_invalid_configs(self):
