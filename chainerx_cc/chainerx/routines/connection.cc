@@ -375,24 +375,24 @@ Array Linear(const Array& x, const Array& w, const absl::optional<Array>& b, uin
     return out_matrix.Reshape(out_shape);
 }
 
-std::vector<Array> _extract_gates(Array x) {
+std::vector<Array> ExtractGates(Array x) {
     StackVector<int64_t, kMaxNdim> shape_vec;
-    shape_vec.push_back(x.shape()[0]);
-    shape_vec.push_back(static_cast<int>(x.shape()[1] / 4));
-    shape_vec.push_back(4);
-    for (int i = 2; i < x.ndim(); i++) {
-        shape_vec.push_back(x.shape()[i]);
+    shape_vec.emplace_back(x.shape()[0]);
+    shape_vec.emplace_back(static_cast<int64_t>(x.shape()[1] / 4));
+    shape_vec.emplace_back(4);
+    for (int64_t i = 2; i < x.ndim(); i++) {
+        shape_vec.emplace_back(x.shape()[i]);
     }
     Shape shape{shape_vec};
     Array x_r = Reshape(x, shape);
     std::vector<Array> gates = Split(x_r, 4, 2);
-    for (uint i = 0; i < gates.size(); i++) {
+    for (size_t i = 0; i < gates.size(); i++) {
         gates[i] = Squeeze(gates[i]);
     }
     return gates;
 }
 
-std::vector<Array> lstm(const Array& c, const Array& x) {
+std::vector<Array> Lstm(const Array& c, const Array& x) {
     if (x.shape()[0] > c.shape()[0]) {
         throw DimensionError{"The batch size of x must be equal to or less than the size of c"};
     }
@@ -405,7 +405,7 @@ std::vector<Array> lstm(const Array& c, const Array& x) {
     if (c.dtype() != x.dtype()) {
         throw DtypeError{"Datatypes of c and x should be equal got", c.dtype(), "and ", x.dtype()};
     }
-    std::vector<Array> x_split = _extract_gates(x);
+    std::vector<Array> x_split = ExtractGates(x);
     x_split[0] = Tanh(x_split[0]);
     x_split[1] = Sigmoid(x_split[1]);
     x_split[2] = Sigmoid(x_split[2]);
@@ -413,22 +413,22 @@ std::vector<Array> lstm(const Array& c, const Array& x) {
     if (x.shape()[0] < c.shape()[0]) {
         Dtype dtype = x.dtype();
         StackVector<int64_t, kMaxNdim> shape_vec;
-        shape_vec.push_back(c.shape()[0] - x.shape()[0]);
-        shape_vec.push_back(x_split[0].shape()[1]);
-        for (int i = 2; i < x_split[0].ndim(); i++) {
-            shape_vec.push_back(x_split[0].shape()[i]);
+        shape_vec.emplace_back(c.shape()[0] - x.shape()[0]);
+        shape_vec.emplace_back(x_split[0].shape()[1]);
+        for (int64_t i = 2; i < x_split[0].ndim(); i++) {
+            shape_vec.emplace_back(x_split[0].shape()[i]);
         }
         Shape out_shape{shape_vec};
         Array z[4];
-        for (int i = 0; i < 4; i++) {
+        for (int64_t i = 0; i < 4; i++) {
             if (i == 2) {
                 z[i] = Ones(out_shape, dtype, x.device());
             } else {
                 z[i] = Zeros(out_shape, dtype, x.device());
             }
             std::vector<Array> v;
-            v.push_back(x_split[i]);
-            v.push_back(z[i]);
+            v.emplace_back(x_split[i]);
+            v.emplace_back(z[i]);
             x_split[i] = Concatenate(v, 0);
         }
     }
@@ -436,11 +436,11 @@ std::vector<Array> lstm(const Array& c, const Array& x) {
     Array h = x_split[3] * Tanh(new_c);
     std::vector<Array> out;
     std::vector<int64_t> indices;
-    indices.push_back(x.shape()[0]);
-    indices.push_back(h.shape()[0]);
+    indices.emplace_back(x.shape()[0]);
+    indices.emplace_back(h.shape()[0]);
     std::vector<Array> h_new = Split(h, indices, 0);
-    out.push_back(h_new[0]);
-    out.push_back(new_c);
+    out.emplace_back(h_new[0]);
+    out.emplace_back(new_c);
     return out;
 }
 

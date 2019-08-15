@@ -36,13 +36,13 @@
 #include "chainerx/routines/type_util.h"
 namespace chainerx {
 
-Array _stack_weight(const std::vector<Array>& ws) {
+Array StackWeight(const std::vector<Array>& ws) {
     Array w = Stack(ws, 1);
     StackVector<int64_t, kMaxNdim> shape_vec;
-    shape_vec.push_back(w.shape()[0] * w.shape()[1]);
+    shape_vec.emplace_back(w.shape()[0] * w.shape()[1]);
 
     for (int64_t i = 2; i < w.ndim(); i++) {
-        shape_vec.push_back(w.shape()[i]);
+        shape_vec.emplace_back(w.shape()[i]);
     }
 
     Shape shape{shape_vec};
@@ -51,7 +51,7 @@ Array _stack_weight(const std::vector<Array>& ws) {
     return w;
 }
 
-std::vector<Array> _gru(
+std::vector<Array> GruImpl(
         const Array& x,
         const Array& h,
         const absl::optional<Array>& c,
@@ -79,7 +79,7 @@ std::vector<Array> _gru(
     std::vector<Array> out{};
     out.reserve(1);
     Array f = (1 - z) * h_bar + z * h;
-    out.push_back(f);
+    out.emplace_back(f);
     return out;
 }
 
@@ -92,22 +92,22 @@ std::vector<Array> _lstm(
         absl::optional<std::string> activation) {
     activation.has_value();
     std::vector<Array> ws_0_4{ws[2], ws[0], ws[1], ws[3]};
-    Array xw = _stack_weight(ws_0_4);
+    Array xw = StackWeight(ws_0_4);
     std::vector<Array> ws_5_8{ws[6], ws[4], ws[5], ws[7]};
-    Array hw = _stack_weight(ws_5_8);
+    Array hw = StackWeight(ws_5_8);
     std::vector<Array> bs_0_4{bs[2], bs[0], bs[1], bs[3]};
-    Array xb = _stack_weight(bs_0_4);
+    Array xb = StackWeight(bs_0_4);
     std::vector<Array> bs_5_8{bs[6], bs[4], bs[5], bs[7]};
-    Array hb = _stack_weight(bs_5_8);
+    Array hb = StackWeight(bs_5_8);
 
     Array lstm_in = Linear(x, xw, xb) + Linear(h, hw, hb);
 
-    std::vector<Array> lstm_out = lstm(*c, lstm_in);
+    std::vector<Array> lstm_out = Lstm(*c, lstm_in);
 
     return lstm_out;
 }
 
-std::vector<Array> _rnn(
+std::vector<Array> RnnImpl(
         const Array& x,
         const Array& h,
         const absl::optional<Array>& c,
@@ -132,12 +132,12 @@ std::vector<Array> _rnn(
     } else {
         rnn_act = Relu(rnn_in);
     }
-    out.push_back(rnn_act);
+    out.emplace_back(rnn_act);
     return out;
 }
 
 template <typename Impl>
-std::vector<std::vector<Array>> _one_directional_loop(
+std::vector<std::vector<Array>> OneDirectionalLoop(
         Impl&& impl,
         std::vector<Array>& xs,
         Array h,
@@ -151,29 +151,29 @@ std::vector<std::vector<Array>> _one_directional_loop(
         *c = Reshape(*c, h_shape);
     }
     std::vector<Array> h_list;
-    for (uint i = 0; i < xs.size(); i++) {
+    for (size_t i = 0; i < xs.size(); i++) {
         Array x_t = xs[i];
 
         if (x_t.shape()[0] > h.shape()[0]) {
             throw DimensionError{"The batch size of x must be equal to or less than the size of state", x_t.shape(), ' ', h.shape()};
         }
         std::vector<int64_t> indices_h;
-        indices_h.push_back(x_t.shape()[0]);
-        indices_h.push_back(h.shape()[0]);
+        indices_h.emplace_back(x_t.shape()[0]);
+        indices_h.emplace_back(h.shape()[0]);
         std::vector<Array> h_split = Split(h, indices_h, 0);
         std::vector<Array> c_split;
         std::vector<Array> h_c;
         if (c.has_value()) {
             std::vector<int64_t> indices_c;
-            indices_c.push_back(x_t.shape()[0]);
-            indices_c.push_back(c->shape()[0]);
+            indices_c.emplace_back(x_t.shape()[0]);
+            indices_c.emplace_back(c->shape()[0]);
             c_split = Split(*c, indices_c, 0);
             h_c = impl(xs[i], h_split[0], c_split[0], ws, b, activation);
         } else {
             h_c = impl(xs[i], h_split[0], c, ws, b, activation);
         }
 
-        h_list.push_back(h_c[0]);
+        h_list.emplace_back(h_c[0]);
         h_split[0] = h_c[0];
         if (c.has_value()) {
             c_split[0] = h_c[1];
@@ -183,18 +183,18 @@ std::vector<std::vector<Array>> _one_directional_loop(
     }
     std::vector<std::vector<Array>> out;
     std::vector<Array> state;
-    state.push_back(h);
+    state.emplace_back(h);
     if (c.has_value()) {
-        state.push_back(*c);
+        state.emplace_back(*c);
     }
-    out.push_back(state);
-    out.push_back(h_list);
+    out.emplace_back(state);
+    out.emplace_back(h_list);
 
     return out;
 }
 
 template <typename Impl>
-std::vector<std::vector<Array>> n_step_rnn_impl(
+std::vector<std::vector<Array>> NStepRnnImpl(
         Impl&& impl,
         int64_t n_layers,
         Array hx,
@@ -216,43 +216,43 @@ std::vector<std::vector<Array>> n_step_rnn_impl(
         }
         {
             std::vector<ConstArrayRef> inp;
-            inp.push_back(hx);
+            inp.emplace_back(hx);
 
             if (cx.has_value()) {
-                inp.push_back(*cx);
+                inp.emplace_back(*cx);
             }
             for (int64_t i = 0; i < n_layers; i++) {
                 for (int8_t di = 0; di < direction; di++) {
-                    for (uint j = 0; j < ws[0].size(); j++) {
-                        int index = direction * i + di;
-                        inp.push_back(ws[index][j]);
-                        inp.push_back(bs[index][j]);
+                    for (size_t j = 0; j < ws[0].size(); j++) {
+                        int64_t index = direction * i + di;
+                        inp.emplace_back(ws[index][j]);
+                        inp.emplace_back(bs[index][j]);
                     }
                 }
             }
 
             std::vector<ConstArrayRef> out_grad;
-            out_grad.push_back(out[0][0]);
+            out_grad.emplace_back(out[0][0]);
             if (cx.has_value()) {
-                out_grad.push_back(out[0][1]);
+                out_grad.emplace_back(out[0][1]);
             }
-            for (uint i = 0; i < xs.size(); i++) {
-                inp.push_back(xs[i]);
-                out_grad.push_back(out[1][i]);
+            for (size_t i = 0; i < xs.size(); i++) {
+                inp.emplace_back(xs[i]);
+                out_grad.emplace_back(out[1][i]);
             }
             std::vector<size_t> ind;
-            for (uint i = 0; i < inp.size(); i++) {
-                ind.push_back(i);
+            for (size_t i = 0; i < inp.size(); i++) {
+                ind.emplace_back(i);
             }
             BackwardBuilder bb{"rnn_backward", std::move(inp), out_grad};
 
             std::vector<size_t> out_retain;
-            uint start = 1;
+            size_t start = 1;
             if (cx.has_value()) {
                 start = 2;
             }
-            for (uint i = start; i < xs.size() + start; i++) {
-                out_retain.push_back(i);
+            for (size_t i = start; i < xs.size() + start; i++) {
+                out_retain.emplace_back(i);
             }
 
             if (BackwardBuilder::Target bt = bb.CreateTarget(ind)) {
@@ -267,7 +267,7 @@ std::vector<std::vector<Array>> n_step_rnn_impl(
                            use_bidirection](BackwardContext& bctx) {
                     Array hx = bctx.GetRetainedInput(input_toks[0]);
                     absl::optional<Array> cx = absl::nullopt;
-                    int cnt = 1;
+                    int64_t cnt = 1;
                     if (cx_exists) {
                         cx = absl::optional<Array>{bctx.GetRetainedInput(input_toks[1])};
                         cnt = 2;
@@ -275,26 +275,26 @@ std::vector<std::vector<Array>> n_step_rnn_impl(
                     std::vector<std::vector<Array>> ws;
                     std::vector<std::vector<Array>> bs;
 
-                    for (int i = 0; i < n_layers; i++) {
+                    for (int64_t i = 0; i < n_layers; i++) {
                         for (int8_t di = 0; di < direction; di++) {
                             std::vector<Array> ws_i;
                             std::vector<Array> bs_i;
-                            for (uint j = 0; j < w_size; j++) {
-                                ws_i.push_back(bctx.GetRetainedInput(input_toks[cnt++]));
-                                bs_i.push_back(bctx.GetRetainedInput(input_toks[cnt++]));
+                            for (size_t j = 0; j < w_size; j++) {
+                                ws_i.emplace_back(bctx.GetRetainedInput(input_toks[cnt++]));
+                                bs_i.emplace_back(bctx.GetRetainedInput(input_toks[cnt++]));
                             }
-                            ws.push_back(ws_i);
-                            bs.push_back(bs_i);
+                            ws.emplace_back(ws_i);
+                            bs.emplace_back(bs_i);
                         }
                     }
 
                     std::vector<Array> xs;
-                    for (uint i = cnt; i < cnt + timesteps; i++) {
-                        xs.push_back(bctx.GetRetainedInput(input_toks[i]));
+                    for (size_t i = cnt; i < cnt + timesteps; i++) {
+                        xs.emplace_back(bctx.GetRetainedInput(input_toks[i]));
                     }
                     std::vector<Array> out;
-                    for (uint i = 0; i < timesteps; i++) {
-                        out.push_back(bctx.GetRetainedOutput(out_toks[i]));
+                    for (size_t i = 0; i < timesteps; i++) {
+                        out.emplace_back(bctx.GetRetainedOutput(out_toks[i]));
                     }
                     const absl::optional<Array> dhy_n = bctx.output_grad(0);
                     Array dhy;
@@ -304,7 +304,7 @@ std::vector<std::vector<Array>> n_step_rnn_impl(
                         dhy = Zeros(hx.shape(), hx.dtype(), hx.device());
                     }
                     absl::optional<Array> dcy = absl::nullopt;
-                    uint out_grad_start = 1;
+                    size_t out_grad_start = 1;
                     if (cx_exists) {
                         out_grad_start = 2;
                         const absl::optional<Array> dcy_n = bctx.output_grad(1);
@@ -315,7 +315,7 @@ std::vector<std::vector<Array>> n_step_rnn_impl(
                         }
                     }
                     std::vector<Array> dout;
-                    for (uint i = out_grad_start; i < timesteps + out_grad_start; i++) {
+                    for (size_t i = out_grad_start; i < timesteps + out_grad_start; i++) {
                         const absl::optional<Array> temp_n = bctx.output_grad(i);
                         Array temp;
                         if (temp_n.has_value()) {
@@ -323,23 +323,23 @@ std::vector<std::vector<Array>> n_step_rnn_impl(
                         } else {
                             temp = Zeros({xs[i - out_grad_start].shape()[0], hx.shape()[2] * direction}, hx.dtype(), hx.device());
                         }
-                        dout.push_back(temp);
+                        dout.emplace_back(temp);
                     }
 
                     std::vector<std::vector<Array>> grad = hx.device().backend().CallKernel<RnnBackwardKernel>(
                             n_layers, hx, cx, ws, bs, xs, dhy, dcy, out, dout, use_bidirection, state);
                     bctx.input_grad(0) = grad[0][0];
-                    int grad_ind = 1;
+                    int64_t grad_ind = 1;
 
                     if (cx_exists) {
                         grad_ind = 2;
                         bctx.input_grad(1) = grad[0][1];
                     }
 
-                    int initial_grad_ind = grad_ind;
+                    int64_t initial_grad_ind = grad_ind;
                     for (int64_t i = 0; i < n_layers; i++) {
                         for (int8_t di = 0; di < direction; di++) {
-                            for (uint j = 0; j < w_size; j++) {
+                            for (size_t j = 0; j < w_size; j++) {
                                 bctx.input_grad(grad_ind) = grad[1][grad_ind - initial_grad_ind];
                                 grad_ind++;
                                 bctx.input_grad(grad_ind) = grad[1][grad_ind - initial_grad_ind];
@@ -347,7 +347,7 @@ std::vector<std::vector<Array>> n_step_rnn_impl(
                             }
                         }
                     }
-                    for (uint i = 0; i < timesteps; i++) {
+                    for (size_t i = 0; i < timesteps; i++) {
                         bctx.input_grad(grad_ind) = grad[2][i];
                         grad_ind++;
                     }
@@ -364,11 +364,11 @@ std::vector<std::vector<Array>> n_step_rnn_impl(
             std::vector<Array> cx_list_temp;
             cx_list_temp = Split(*cx, cx->shape()[0], 0);
             for (Array a : cx_list_temp) {
-                cx_list.push_back(absl::optional<Array>{a});
+                cx_list.emplace_back(absl::optional<Array>{a});
             }
         } else {
             for (int64_t i = 0; i < hx.shape()[0]; i++) {
-                cx_list.push_back(zero_grad_);
+                cx_list.emplace_back(zero_grad_);
             }
         }
 
@@ -380,10 +380,10 @@ std::vector<std::vector<Array>> n_step_rnn_impl(
             xs = xs_next;
             idx = direction * layer;
             std::vector<std::vector<Array>> one_directional_out_fw =
-                    _one_directional_loop(impl, xs, hx_list[idx], cx_list[idx], ws[idx], bs[idx], activation);
-            hy.push_back(one_directional_out_fw[0][0]);
+                    OneDirectionalLoop(impl, xs, hx_list[idx], cx_list[idx], ws[idx], bs[idx], activation);
+            hy.emplace_back(one_directional_out_fw[0][0]);
             if (cx.has_value()) {
-                cy.push_back(one_directional_out_fw[0][1]);
+                cy.emplace_back(one_directional_out_fw[0][1]);
             }
             std::vector<Array> h_forward = one_directional_out_fw[1];
             if (use_bidirection) {
@@ -392,19 +392,19 @@ std::vector<std::vector<Array>> n_step_rnn_impl(
                 std::reverse(xs.begin(), xs.end());
 
                 std::vector<std::vector<Array>> one_directional_out_bw =
-                        _one_directional_loop(impl, xs, hx_list[idx], cx_list[idx], ws[idx], bs[idx], activation);
+                        OneDirectionalLoop(impl, xs, hx_list[idx], cx_list[idx], ws[idx], bs[idx], activation);
                 std::reverse(one_directional_out_bw[1].begin(), one_directional_out_bw[1].end());
                 std::vector<Array> h_backward = one_directional_out_bw[1];
                 xs_next.clear();
-                for (uint i = 0; i < h_backward.size(); i++) {
+                for (size_t i = 0; i < h_backward.size(); i++) {
                     std::vector<Array> h_f_b;
-                    h_f_b.push_back(h_forward[i]);
-                    h_f_b.push_back(h_backward[i]);
-                    xs_next.push_back(Concatenate(h_f_b, 1));
+                    h_f_b.emplace_back(h_forward[i]);
+                    h_f_b.emplace_back(h_backward[i]);
+                    xs_next.emplace_back(Concatenate(h_f_b, 1));
                 }
-                hy.push_back(one_directional_out_bw[0][0]);
+                hy.emplace_back(one_directional_out_bw[0][0]);
                 if (cx.has_value()) {
-                    cy.push_back(one_directional_out_bw[0][1]);
+                    cy.emplace_back(one_directional_out_bw[0][1]);
                 }
             } else {
                 xs_next = h_forward;
@@ -417,18 +417,18 @@ std::vector<std::vector<Array>> n_step_rnn_impl(
             c = Stack(cy, 0);
         }
         std::vector<Array> state;
-        state.push_back(h);
+        state.emplace_back(h);
         if (cx.has_value()) {
-            state.push_back(c);
+            state.emplace_back(c);
         }
         std::vector<std::vector<Array>> rnn_out;
-        rnn_out.push_back(state);
-        rnn_out.push_back(ys);
+        rnn_out.emplace_back(state);
+        rnn_out.emplace_back(ys);
         return rnn_out;
     }
 }
 
-std::vector<std::vector<Array>> n_step_lstm(
+std::vector<std::vector<Array>> NStepLstm(
         int64_t n_layers,
         Array hx,
         Array cx,
@@ -436,10 +436,10 @@ std::vector<std::vector<Array>> n_step_lstm(
         const std::vector<std::vector<Array>>& bs,
         std::vector<Array>& xs) {
     hx.device().CheckDevicesCompatible(hx, cx, ws[0][0], bs[0][0], xs[0]);
-    return n_step_rnn_impl(&_lstm, n_layers, hx, absl::optional<Array>{cx}, ws, bs, xs, 0, 1, absl::nullopt);
+    return NStepRnnImpl(&_lstm, n_layers, hx, absl::optional<Array>{cx}, ws, bs, xs, 0, 1, absl::nullopt);
 }
 
-std::vector<std::vector<Array>> n_step_bilstm(
+std::vector<std::vector<Array>> NStepBiLstm(
         int64_t n_layers,
         Array hx,
         Array cx,
@@ -447,10 +447,10 @@ std::vector<std::vector<Array>> n_step_bilstm(
         const std::vector<std::vector<Array>>& bs,
         std::vector<Array>& xs) {
     hx.device().CheckDevicesCompatible(hx, cx, ws[0][0], bs[0][0], xs[0]);
-    return n_step_rnn_impl(&_lstm, n_layers, hx, absl::optional<Array>{cx}, ws, bs, xs, 1, 1, absl::nullopt);
+    return NStepRnnImpl(&_lstm, n_layers, hx, absl::optional<Array>{cx}, ws, bs, xs, 1, 1, absl::nullopt);
 }
 
-std::vector<std::vector<Array>> n_step_gru(
+std::vector<std::vector<Array>> NStepGru(
         int64_t n_layers,
         Array hx,
         const std::vector<std::vector<Array>>& ws,
@@ -458,10 +458,10 @@ std::vector<std::vector<Array>> n_step_gru(
         std::vector<Array>& xs) {
     hx.device().CheckDevicesCompatible(hx, ws[0][0], bs[0][0], xs[0]);
 
-    return n_step_rnn_impl(&_gru, n_layers, hx, absl::nullopt, ws, bs, xs, 0, 0, absl::nullopt);
+    return NStepRnnImpl(&GruImpl, n_layers, hx, absl::nullopt, ws, bs, xs, 0, 0, absl::nullopt);
 }
 
-std::vector<std::vector<Array>> n_step_bigru(
+std::vector<std::vector<Array>> NStepBiGru(
         int64_t n_layers,
         Array hx,
         const std::vector<std::vector<Array>>& ws,
@@ -469,10 +469,10 @@ std::vector<std::vector<Array>> n_step_bigru(
         std::vector<Array>& xs) {
     hx.device().CheckDevicesCompatible(hx, ws[0][0], bs[0][0], xs[0]);
 
-    return n_step_rnn_impl(&_gru, n_layers, hx, absl::nullopt, ws, bs, xs, 1, 0, absl::nullopt);
+    return NStepRnnImpl(&GruImpl, n_layers, hx, absl::nullopt, ws, bs, xs, 1, 0, absl::nullopt);
 }
 
-std::vector<std::vector<Array>> n_step_rnn(
+std::vector<std::vector<Array>> NStepRnn(
         int64_t n_layers,
         Array hx,
         const std::vector<std::vector<Array>>& ws,
@@ -480,10 +480,10 @@ std::vector<std::vector<Array>> n_step_rnn(
         std::vector<Array>& xs,
         absl::optional<std::string> activation) {
     hx.device().CheckDevicesCompatible(hx, ws[0][0], bs[0][0], xs[0]);
-    return n_step_rnn_impl(&_rnn, n_layers, hx, absl::nullopt, ws, bs, xs, 0, 2, activation);
+    return NStepRnnImpl(&RnnImpl, n_layers, hx, absl::nullopt, ws, bs, xs, 0, 2, activation);
 }
 
-std::vector<std::vector<Array>> n_step_birnn(
+std::vector<std::vector<Array>> NStepBiRnn(
         int64_t n_layers,
         Array hx,
         const std::vector<std::vector<Array>>& ws,
@@ -491,7 +491,7 @@ std::vector<std::vector<Array>> n_step_birnn(
         std::vector<Array>& xs,
         absl::optional<std::string> activation) {
     hx.device().CheckDevicesCompatible(hx, ws[0][0], bs[0][0], xs[0]);
-    return n_step_rnn_impl(&_rnn, n_layers, hx, absl::nullopt, ws, bs, xs, 1, 2, activation);
+    return NStepRnnImpl(&RnnImpl, n_layers, hx, absl::nullopt, ws, bs, xs, 1, 2, activation);
 }
 
 }  // namespace chainerx

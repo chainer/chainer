@@ -41,34 +41,34 @@ namespace chainerx {
 namespace cuda {
 namespace {
 
-__global__ void initGPUData_ker(float* data, int numElements, float* value) {
-    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+__global__ void InitGPUDataKer(float* data, int64_t numElements, float* value) {
+    int64_t tid = blockIdx.x * blockDim.x + threadIdx.x;
     if (tid < numElements) {
         data[tid] = value[tid];
     }
 }
 
-void initGPUData(float* data, int numElements, float* value) {
+void InitGPUData(float* data, int64_t numElements, float* value) {
     dim3 gridDim;
     dim3 blockDim;
     blockDim.x = 1024;
     gridDim.x = (numElements + blockDim.x - 1) / blockDim.x;
-    initGPUData_ker<<<gridDim, blockDim>>>(data, numElements, value);
+    InitGPUDataKer<<<gridDim, blockDim>>>(data, numElements, value);
 }
 
-void weights_forward(
+void WeightsForward(
         cuda_internal::DeviceInternals& device_internals,
         cudnnRNNDescriptor_t rnn_desc,
         const std::vector<std::vector<Array>> ws,
         const std::vector<std::vector<Array>> bs,
-        int n_layers,
-        int num_directions,
+        int64_t n_layers,
+        int64_t num_directions,
         cudnnTensorDescriptor_t x_desc,
         cudnnFilterDescriptor_t w_desc,
         Array& w) {
-    for (int layer = 0; layer < n_layers; layer++) {
+    for (int64_t layer = 0; layer < n_layers; layer++) {
         for (int8_t di = 0; di < num_directions; di++) {
-            for (uint lin_layer_id = 0; lin_layer_id < ws[0].size(); lin_layer_id++) {
+            for (size_t lin_layer_id = 0; lin_layer_id < ws[0].size(); lin_layer_id++) {
                 int64_t index = num_directions * layer + di;
                 cudnnFilterDescriptor_t linlayermatdesc;
                 cudnnCreateFilterDescriptor(&linlayermatdesc);
@@ -90,7 +90,7 @@ void weights_forward(
 
                 cudnnGetFilterNdDescriptor(linlayermatdesc, 3, &dataType, &format, &nbDims, filterDimA);
                 Array w_temp = AsContiguous(ws[index][lin_layer_id].AsType(Dtype::kFloat32));
-                initGPUData(
+                InitGPUData(
                         m_offset,
                         filterDimA[0] * filterDimA[1] * filterDimA[2],
                         reinterpret_cast<float*>(internal::GetRawOffsetData(w_temp)));
@@ -111,7 +111,7 @@ void weights_forward(
                         reinterpret_cast<void**>(&b_offset));
                 cudnnGetFilterNdDescriptor(linlayerbiasdesc, 3, &dataType, &format, &nbDims, filterDimA);
                 Array b_temp = AsContiguous(bs[index][lin_layer_id].AsType(Dtype::kFloat32));
-                initGPUData(
+                InitGPUData(
                         b_offset,
                         filterDimA[0] * filterDimA[1] * filterDimA[2],
                         reinterpret_cast<float*>(internal::GetRawOffsetData(b_temp)));
@@ -121,7 +121,7 @@ void weights_forward(
     }
 }
 
-std::vector<Array> weights_backward(
+std::vector<Array> WeightsBackward(
         CudaDevice& device,
         cudnnRNNDescriptor_t& rnn_desc,
         cudnnTensorDescriptor_t dummy_x_desc,
@@ -136,7 +136,7 @@ std::vector<Array> weights_backward(
     std::vector<Array> ret;
     for (int64_t layer = 0; layer < n_layers; layer++) {
         for (int8_t di = 0; di < num_directions; di++) {
-            for (uint lin_layer_id = 0; lin_layer_id < ws[0].size(); lin_layer_id++) {
+            for (size_t lin_layer_id = 0; lin_layer_id < ws[0].size(); lin_layer_id++) {
                 int64_t index = num_directions * layer + di;
                 cudnnFilterDescriptor_t linlayermatdesc;
                 cudnnCreateFilterDescriptor(&linlayermatdesc);
@@ -158,10 +158,10 @@ std::vector<Array> weights_backward(
                 int filterDimA[3];
 
                 cudnnGetFilterNdDescriptor(linlayermatdesc, 3, &dataType, &format, &nbDims, filterDimA);
-                initGPUData(
+                InitGPUData(
                         reinterpret_cast<float*>(internal::GetRawOffsetData(m)), filterDimA[0] * filterDimA[1] * filterDimA[2], m_offset);
                 cudnnDestroyFilterDescriptor(linlayermatdesc);
-                ret.push_back(m);
+                ret.emplace_back(m);
                 cudnnFilterDescriptor_t linlayerbiasdesc;
                 cudnnCreateFilterDescriptor(&linlayerbiasdesc);
                 float* b_offset;
@@ -177,10 +177,10 @@ std::vector<Array> weights_backward(
                         reinterpret_cast<void**>(&b_offset));
                 Array b = AsContiguous(Zeros(bs[index][lin_layer_id].shape(), type, bs[index][lin_layer_id].device()));
                 cudnnGetFilterNdDescriptor(linlayerbiasdesc, 3, &dataType, &format, &nbDims, filterDimA);
-                initGPUData(
+                InitGPUData(
                         reinterpret_cast<float*>(internal::GetRawOffsetData(b)), filterDimA[0] * filterDimA[1] * filterDimA[2], b_offset);
                 cudnnDestroyFilterDescriptor(linlayerbiasdesc);
-                ret.push_back(b);
+                ret.emplace_back(b);
             }
         }
     }
@@ -253,14 +253,14 @@ public:
         std::vector<cuda_internal::CudnnTensorDescriptor> ys_desc;
         std::vector<Array> ys;
         std::vector<Array> xs_cont;
-        for (uint i = 0; i < xs.size(); i++) {
+        for (size_t i = 0; i < xs.size(); i++) {
             Shape xs_shape{xs[i].shape()[0], xs[i].shape()[1], 1};
             Shape ys_shape{xs[i].shape()[0], num_directions * hidden_dim, 1};
-            xs_cont.push_back(AsContiguous(xs[i].AsType(Dtype::kFloat32)));
-            ys.push_back(
+            xs_cont.emplace_back(AsContiguous(xs[i].AsType(Dtype::kFloat32)));
+            ys.emplace_back(
                     AsContiguous(Zeros({xs_cont[i].shape()[0], num_directions * hidden_dim}, xs_cont[i].dtype(), xs_cont[i].device())));
-            xs_desc.push_back(cuda_internal::CudnnTensorDescriptor(Reshape(xs_cont[i], xs_shape)));
-            ys_desc.push_back(cuda_internal::CudnnTensorDescriptor(Reshape(ys[i], ys_shape)));
+            xs_desc.emplace_back(cuda_internal::CudnnTensorDescriptor(Reshape(xs_cont[i], xs_shape)));
+            ys_desc.emplace_back(cuda_internal::CudnnTensorDescriptor(Reshape(ys[i], ys_shape)));
             x_desc[i] = *xs_desc[i];
             y_desc[i] = *ys_desc[i];
         }
@@ -269,10 +269,10 @@ public:
 
         size_t weight_size;
         device_internals.cudnn_handle().Call(cudnnGetRNNParamsSize, rnn_desc, x_desc[0], &weight_size, CUDNN_DATA_FLOAT);
-        Array w = AsContiguous(Zeros({static_cast<int>(weight_size) / 4, 1, 1}, x.dtype(), x.device()));
+        Array w = AsContiguous(Zeros({static_cast<int64_t>(weight_size) / 4, 1, 1}, x.dtype(), x.device()));
         cuda_internal::CudnnFilterDescriptor wDesc{w};
 
-        weights_forward(device_internals, rnn_desc, ws, bs, n_layers, num_directions, x_desc[0], *wDesc, w);
+        WeightsForward(device_internals, rnn_desc, ws, bs, n_layers, num_directions, x_desc[0], *wDesc, w);
         size_t workSize;
         size_t reserve_size;
         device_internals.cudnn_handle().Call(cudnnGetRNNWorkspaceSize, rnn_desc, xs.size(), x_desc, &workSize);
@@ -316,11 +316,11 @@ public:
                 internal::GetRawOffsetData(reserve),
                 reserve_size);
         std::vector<int64_t> split_indices;
-        for (uint i = 0; i < xs.size() - 1; i++) {
+        for (size_t i = 0; i < xs.size() - 1; i++) {
             if (i != 0) {
-                split_indices.push_back(split_indices[i - 1] + xs[i].shape()[0]);
+                split_indices.emplace_back(split_indices[i - 1] + xs[i].shape()[0]);
             } else {
-                split_indices.push_back(xs[i].shape()[0]);
+                split_indices.emplace_back(xs[i].shape()[0]);
             }
         }
 
@@ -329,13 +329,13 @@ public:
         ys = Split(y, split_indices, 0);
 
         std::vector<Array> out_states;
-        out_states.push_back(hy.AsType(type));
+        out_states.emplace_back(hy.AsType(type));
         if (cx.has_value()) {
-            out_states.push_back(cy.AsType(type));
+            out_states.emplace_back(cy.AsType(type));
         }
         std::vector<std::vector<Array>> ret;
-        ret.push_back(out_states);
-        ret.push_back(ys);
+        ret.emplace_back(out_states);
+        ret.emplace_back(ys);
         return std::make_tuple(std::move(ret), std::move(state));
     }
 };
@@ -375,21 +375,21 @@ public:
         cudnnTensorDescriptor_t* ys_desc = reinterpret_cast<cudnnTensorDescriptor_t*>(malloc(xs.size() * sizeof(cudnnTensorDescriptor_t)));
         cudnnTensorDescriptor_t* dys_desc = reinterpret_cast<cudnnTensorDescriptor_t*>(malloc(xs.size() * sizeof(cudnnTensorDescriptor_t)));
         std::vector<Array> xs_cont;
-        for (uint i = 0; i < xs.size(); i++) {
+        for (size_t i = 0; i < xs.size(); i++) {
             Shape xs_shape{xs[i].shape()[0], xs[i].shape()[1], 1};
             Shape ys_shape{ys[i].shape()[0], ys[i].shape()[1], 1};
 
-            xs_cont.push_back(AsContiguous(xs[i].AsType(Dtype::kFloat32)));
+            xs_cont.emplace_back(AsContiguous(xs[i].AsType(Dtype::kFloat32)));
             ys[i] = AsContiguous(ys[i].AsType(Dtype::kFloat32));
             dys[i] = AsContiguous(dys[i].AsType(Dtype::kFloat32));
-            xsDesc.push_back(cuda_internal::CudnnTensorDescriptor(Reshape(xs_cont[i], xs_shape)));
+            xsDesc.emplace_back(cuda_internal::CudnnTensorDescriptor(Reshape(xs_cont[i], xs_shape)));
             xs_desc[i] = *xsDesc[i];
-            dxs.push_back(AsContiguous(Zeros(xs_cont[i].shape(), xs_cont[i].dtype(), xs_cont[i].device())));
-            dxsDesc.push_back(cuda_internal::CudnnTensorDescriptor(Reshape(dxs[i], xs_shape)));
+            dxs.emplace_back(AsContiguous(Zeros(xs_cont[i].shape(), xs_cont[i].dtype(), xs_cont[i].device())));
+            dxsDesc.emplace_back(cuda_internal::CudnnTensorDescriptor(Reshape(dxs[i], xs_shape)));
             dxs_desc[i] = *dxsDesc[i];
-            ysDesc.push_back(cuda_internal::CudnnTensorDescriptor(Reshape(ys[i], ys_shape)));
+            ysDesc.emplace_back(cuda_internal::CudnnTensorDescriptor(Reshape(ys[i], ys_shape)));
             ys_desc[i] = *ysDesc[i];
-            dysDesc.push_back(cuda_internal::CudnnTensorDescriptor(Reshape(dys[i], ys_shape)));
+            dysDesc.emplace_back(cuda_internal::CudnnTensorDescriptor(Reshape(dys[i], ys_shape)));
             dys_desc[i] = *dysDesc[i];
         }
         Array dx = AsContiguous(Concatenate(dxs, 0));
@@ -473,24 +473,24 @@ public:
                 reserve_size);
 
         std::vector<int64_t> split_indices;
-        for (uint i = 0; i < xs.size() - 1; i++) {
+        for (size_t i = 0; i < xs.size() - 1; i++) {
             if (i != 0) {
-                split_indices.push_back(split_indices[i - 1] + xs[i].shape()[0]);
+                split_indices.emplace_back(split_indices[i - 1] + xs[i].shape()[0]);
             } else {
-                split_indices.push_back(xs[i].shape()[0]);
+                split_indices.emplace_back(xs[i].shape()[0]);
             }
         }
         dx = dx.AsType(type);
         dxs = Split(dx, split_indices, 0);
         std::vector<Array> dstate;
-        dstate.push_back(dhx.AsType(type));
+        dstate.emplace_back(dhx.AsType(type));
         if (cx.has_value()) {
-            dstate.push_back(dcx.AsType(type));
+            dstate.emplace_back(dcx.AsType(type));
         }
         std::vector<std::vector<Array>> ret;
-        ret.push_back(dstate);
-        ret.push_back(weights_backward(device, rnn_desc, dxs_desc[0], *dwDesc, dw, ws, bs, n_layers, num_directions, type));
-        ret.push_back(dxs);
+        ret.emplace_back(dstate);
+        ret.emplace_back(WeightsBackward(device, rnn_desc, dxs_desc[0], *dwDesc, dw, ws, bs, n_layers, num_directions, type));
+        ret.emplace_back(dxs);
         return ret;
     }
 };
