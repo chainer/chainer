@@ -39,7 +39,7 @@ from chainer.testing import attr
 class TestCast(unittest.TestCase):
 
     def setUp(self):
-        self.x = numpy.random.uniform(-1, 1, self.shape).astype(self.in_type)
+        self.x = self.generate_inputs()
         self.g = numpy.random.uniform(-1, 1, self.shape).astype(self.out_type)
 
     def check_forward(self, x_data):
@@ -66,6 +66,17 @@ class TestCast(unittest.TestCase):
         gradient_check.check_backward(
             func, x_data, g_data, dtype='d',
             eps=2.0 ** -2, atol=1e-2, rtol=1e-3)
+
+    def generate_inputs(self):
+        x = numpy.asarray(numpy.random.randn(*self.shape)).astype(self.in_type)
+        # The result of a cast from a negative floating-point number to
+        # an unsigned integer is not specified. Avoid testing that condition.
+        float_to_uint = (
+            issubclass(self.in_type, numpy.floating)
+            and issubclass(self.out_type, numpy.unsignedinteger))
+        if float_to_uint:
+            x[x < 0] *= -1
+        return x
 
     def test_backward_cpu(self):
         self.check_backward(self.x, self.g)
