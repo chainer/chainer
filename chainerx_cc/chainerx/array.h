@@ -201,6 +201,8 @@ public:
     // It will be always C-contiguous.
     Array Copy() const;
 
+    Array Flatten() const;
+
     // Creates a view.
     // It creates a new array node and connects graphs.
     Array MakeView() const;
