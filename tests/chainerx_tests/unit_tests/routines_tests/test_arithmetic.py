@@ -10,6 +10,8 @@ from chainerx_tests import dtype_utils
 from chainerx_tests import math_utils
 from chainerx_tests import op_utils
 
+def test_mod_remainder():
+    assert chainerx.remainder is chainerx.mod
 
 _in_out_dtypes_arithmetic_invalid = [
     (('bool_', 'bool_'), 'bool_'),
@@ -1436,8 +1438,17 @@ class TestReciprocal(math_utils.UnaryMathTestBase, op_utils.NumpyOpTest):
         'input_rhs': [3, -3, 'random'],
         'is_module': [True, False],
     })
-    # Remove special values test
+    # Special values. Remove nan/inf
     # since chainerx.remainder returns nan when numpy.remainder returns inf
+    + chainer.testing.product({
+        'in_shapes': [((2, 3), (2, 3))],
+        'in_dtypes,out_dtype': _in_out_dtypes_arithmetic,
+        'input_lhs': [-1, 0, 1, 2],
+        'input_rhs': [-1, 1, 2],
+        'is_module': [False],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True],
+    })
 ))
 class TestRemainder(math_utils.BinaryMathTestBase, op_utils.NumpyOpTest):
     dodge_nondifferentiable = True
@@ -1455,14 +1466,10 @@ class TestRemainder(math_utils.BinaryMathTestBase, op_utils.NumpyOpTest):
         a, b = super().generate_inputs()
         if self.input_rhs == 'random':
             # Avoid (-0.5, 0.5) interval
-            with math_utils.IgnoreNumpyFloatingPointError():
-                b[numpy.logical_and(-0.5 < b, b < 0.5)] = 1.1
+            b[numpy.logical_and(-0.5 < b, b < 0.5)] = 1.1
         return a, b
 
     def func(self, xp, a, b):
-        print("test")
-        print(a)
-        print(b)
         if self.is_module:
             return xp.remainder(a, b)
         else:
@@ -1501,8 +1508,16 @@ def test_remainder_invalid_dtypes(device, dtypes, is_module):
         'input_lhs': [5, -5, 'random'],
         'input_rhs': [3, -3, 'random'],
     })
-    # Remove special values test
+    # Special values. Remove nan/inf
     # since chainerx.remainder returns nan when numpy.remainder returns inf
+    + chainer.testing.product({
+        'in_shapes': [((2, 3), (2, 3))],
+        'in_dtypes,out_dtype': _in_out_dtypes_inplace_arithmetic,
+        'input_lhs': [-1, 0, 1, 2],
+        'input_rhs': [-1, 1, 2],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True],
+    })
 ))
 class TestIRemainder(
         math_utils.InplaceBinaryMathTestBase, op_utils.NumpyOpTest):
@@ -1521,8 +1536,7 @@ class TestIRemainder(
         a, b = super().generate_inputs()
         if self.input_rhs == 'random':
             # Avoid (-0.5, 0.5) interval
-            with math_utils.IgnoreNumpyFloatingPointError():
-                b[numpy.logical_and(-0.5 < b, b < 0.5)] = 1
+            b[numpy.logical_and(-0.5 < b, b < 0.5)] = 1
         return a, b
 
     def func(self, xp, a, b):
@@ -1569,8 +1583,18 @@ def test_iremainder_invalid_dtypes(device, dtypes):
         'is_module': [True, False],
         'is_scalar_rhs': [True, False],
     })
-    # Remove special values test
+    # Special values. Remove nan/inf
     # since chainerx.remainder returns nan when numpy.remainder returns inf
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,scalar_type,out_dtype': _in_out_dtypes_arithmetic_scalar,
+        'input': [-1, 1, 2],
+        'scalar_value': [1, 2],
+        'is_module': [False],
+        'is_scalar_rhs': [False, True],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True],
+    })
 ))
 class TestRemainderScalar(math_utils.MathScalarTestBase, op_utils.NumpyOpTest):
     dodge_nondifferentiable = True
@@ -1588,6 +1612,8 @@ class TestRemainderScalar(math_utils.MathScalarTestBase, op_utils.NumpyOpTest):
         return super().generate_inputs()
 
     def func_scalar(self, xp, a, scalar):
+        print(a)
+        print(scalar)
         if self.is_module:
             if self.is_scalar_rhs:
                 return a % scalar
@@ -1618,8 +1644,17 @@ class TestRemainderScalar(math_utils.MathScalarTestBase, op_utils.NumpyOpTest):
         'input': ['random'],
         'scalar_value': [2, 3],
     })
-    # Remove special values test
+    # Special values. Remove nan/inf
     # since chainerx.remainder returns nan when numpy.remainder returns inf
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,scalar_type,out_dtype':
+            _in_out_dtypes_inplace_arithmetic_scalar,
+        'input': [-1, 0, 1, 2],
+        'scalar_value': [-1, 1, 2],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True],
+    })
 ))
 class TestIRemainderScalar(
         math_utils.InplaceMathScalarTestBase, op_utils.NumpyOpTest):

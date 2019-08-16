@@ -314,7 +314,7 @@ __device__ T ModFloatImpl(T x, T y) {
     if (x == 0 || y == 0) {
         return 0;
     }
-    T z = std::fmod(std::fabs(x), std::fabs(y));
+    T z = std::fmod(std::fabs(x), y);
     if (x < 0) {
         if (y > 0) {
             return z == 0 ? 0 : y - z;
