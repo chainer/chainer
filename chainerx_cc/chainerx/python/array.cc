@@ -157,17 +157,130 @@ ArrayBodyPtr MakeArray(py::handle object, const absl::optional<Dtype>& dtype, bo
     return MakeArrayFromNumpyArray(np_array, device);
 }
 
-void InitChainerxArrayOperator(py::class_<ArrayBody, ArrayBodyPtr> c) {
-    c.def("__len__", [](const ArrayBodyPtr& self) -> size_t {
-        // TODO(hvy): Do bounds cheking. For reference, Chainer throws an AttributeError.
-        if (self->ndim() == 0) {
-            throw pybind11::type_error{"len() of unsized object"};
+void InitChainerxArrayConversion(pybind11::module& m, py::class_<ArrayBody, ArrayBodyPtr>& c) {
+    // TODO(hvy): Support all arguments in the constructor of numpy.ndarray.
+    c.def(py::init([](py::handle shape, py::handle dtype, py::handle device) {
+              return MoveArrayBody(Empty(ToShape(shape), GetDtype(dtype), GetDevice(device)));
+          }),
+          "shape"_a,
+          "dtype"_a,
+          "device"_a = nullptr);
+    c.def_property_readonly("__array_priority__", [](const ArrayBodyPtr & /*self*/) -> double { return 100.; });
+    m.def("to_numpy",
+          [m](const ArrayBodyPtr& array, bool copy) { return MakeNumpyArrayFromArray(m, array, copy); },
+          "array"_a,
+          "copy"_a = true);
+    m.def("_to_cupy", [m](py::handle array) { return MakeCupyArrayFromArray(m, array); }, "array"_a);
+    // This is currently for internal use (from Chainer) to support CuPy.
+    // TODO(niboshi): Remove this once it will be possible to import cupy.ndarray using chx.array / chx.asarray.
+    m.def("_fromrawpointer",
+          [](intptr_t ptr, py::handle shape, py::handle dtype, const py::tuple& strides, py::handle device, int64_t offset, py::object base)
+                  -> ArrayBodyPtr {
+              // TODO(niboshi): Expose `base` as `ndarray.base` attribute.
+              void* c_ptr = reinterpret_cast<void*>(ptr);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+              // Note that inc_ref() / dec_ref() is performed by the lambda capture.
+              std::shared_ptr<void> data{c_ptr, [base](void*) {}};
+              return MoveArrayBody(FromData(ToShape(shape), GetDtype(dtype), data, ToStrides(strides), offset, GetDevice(device)));
+          });
+    c.def(py::pickle(
+            [m](const ArrayBodyPtr& self) -> py::tuple { return py::make_tuple(MakeNumpyArrayFromArray(m, self, true), self->device()); },
+            [](py::tuple state) -> ArrayBodyPtr {
+                py::array numpy_array = state[0];
+                Device& device = py::cast<Device&>(state[1]);
+                return MakeArrayFromNumpyArray(numpy_array, device);
+            }));
+    // TODO(niboshi): Support arguments
+    c.def("item", [](const ArrayBodyPtr& a) -> py::object {
+        Scalar s = AsScalar(Array{a});
+        switch (s.kind()) {
+            case DtypeKind::kBool:
+                return py::bool_{static_cast<bool>(s)};
+            case DtypeKind::kInt:
+                return py::int_{static_cast<int64_t>(s)};
+            case DtypeKind::kFloat:
+                return py::float_{static_cast<double>(s)};
+            default:
+                CHAINERX_NEVER_REACH();
         }
-        return self->shape().front();
     });
-    c.def("__bool__", [](const ArrayBodyPtr& self) -> bool { return static_cast<bool>(AsScalar(Array{self})); });
-    c.def("__int__", [](const ArrayBodyPtr& self) -> int64_t { return static_cast<int64_t>(AsScalar(Array{self})); });
-    c.def("__float__", [](const ArrayBodyPtr& self) -> double { return static_cast<double>(AsScalar(Array{self})); });
+    c.def("view", [](const ArrayBodyPtr& self) { return MoveArrayBody(Array{self}.MakeView()); });
+    c.def("astype",
+          [](const ArrayBodyPtr& self, py::handle dtype, bool copy) { return MoveArrayBody(Array{self}.AsType(GetDtype(dtype), copy)); },
+          "dtype"_a,
+          "copy"_a = true);
+    c.def("copy", [](const ArrayBodyPtr& self) { return MoveArrayBody(Array{self}.Copy()); });
+    c.def("fill",
+          [](const ArrayBodyPtr& self, Scalar value) {
+              Array{self}.Fill(value);
+              return;
+          },
+          "value"_a);
+}
+
+void InitChainerxArrayManipulation(py::class_<ArrayBody, ArrayBodyPtr>& c) {
+    c.def("take",
+          [](const ArrayBodyPtr& self, py::handle indices, const absl::optional<int8_t>& axis) {
+              if (!axis.has_value()) {
+                  throw NotImplementedError{"axis=None is not yet supported for chainerx.ndarray.take."};
+              }
+              if (py::isinstance<ArrayBody>(indices)) {
+                  return MoveArrayBody(Array{self}.Take(Array{py::cast<ArrayBodyPtr>(indices)}, axis.value()));
+              }
+              if (py::isinstance<py::sequence>(indices)) {
+                  absl::optional<Dtype> dtype = Dtype::kInt64;
+                  return MoveArrayBody(Array{self}.Take(Array{MakeArray(indices, dtype, false, self->device())}, axis.value()));
+              }
+              if (py::isinstance<py::array>(indices)) {
+                  return MoveArrayBody(
+                          Array{self}.Take(Array{MakeArrayFromNumpyArray(py::cast<py::array>(indices), self->device())}, axis.value()));
+              }
+              throw py::type_error{"only integers, slices (`:`), sequence, numpy.ndarray and chainerx.newaxis (`None`) are valid indices"};
+          },
+          "indices"_a,
+          "axis"_a = nullptr);
+    c.def("transpose",
+          [](const ArrayBodyPtr& self, const absl::optional<std::vector<int8_t>>& axes) {
+              return MoveArrayBody(Array{self}.Transpose(ToAxes(axes)));
+          },
+          "axes"_a = nullptr);
+    c.def("transpose", [](const ArrayBodyPtr& self, py::args args) { return MoveArrayBody(Array{self}.Transpose(ToAxes(args))); });
+    c.def("reshape", [](const ArrayBodyPtr& self, py::handle shape) { return MoveArrayBody(Array{self}.Reshape(ToShape(shape))); });
+    c.def("reshape", [](const ArrayBodyPtr& self, const std::vector<int64_t>& shape) {
+        return MoveArrayBody(Array{self}.Reshape({shape.begin(), shape.end()}));
+    });
+    c.def("reshape", [](const ArrayBodyPtr& self, py::args args) {
+        if (args.size() == 0) {
+            throw ChainerxError{"Reshape takes exactly 1 argument (0 given)."};
+        }
+        return MoveArrayBody(Array{self}.Reshape(ToShape(args)));
+    });
+    c.def("squeeze",
+          [](const ArrayBodyPtr& self, const absl::optional<std::vector<int8_t>>& axis) {
+              return MoveArrayBody(Array{self}.Squeeze(ToAxes(axis)));
+          },
+          "axis"_a = nullptr);
+    c.def("squeeze", [](const ArrayBodyPtr& self, int8_t axis) { return MoveArrayBody(Array{self}.Squeeze(Axes{axis})); }, "axis"_a);
+    c.def("swapaxes",
+          [](const ArrayBodyPtr& self, int8_t axis1, int8_t axis2) { return MoveArrayBody(Array{self}.Swapaxes(axis1, axis2)); },
+          "axis1"_a,
+          "axis2"_a);
+    c.def("repeat",
+          [](const ArrayBodyPtr& self, int64_t repeats, absl::optional<int8_t> axis) {
+              return MoveArrayBody(Repeat(Array{self}, repeats, axis));
+          },
+          "repeats"_a,
+          "axis"_a = nullptr);
+    c.def("repeat",
+          [](const ArrayBodyPtr& self, const std::vector<int64_t>& repeats, absl::optional<int8_t> axis) {
+              return MoveArrayBody(Repeat(Array{self}, repeats, axis));
+          },
+          "repeats"_a,
+          "axis"_a = nullptr);
+    c.def("dot", [](const ArrayBodyPtr& self, const ArrayBodyPtr& b) { return MoveArrayBody(Array{self}.Dot(Array{b})); }, "b"_a);
+    c.def("flatten", [](const ArrayBodyPtr& self) { return MoveArrayBody(Array{self}.Flatten()); });
+}
+
+void InitChainerxArrayComparison(py::class_<ArrayBody, ArrayBodyPtr>& c) {
     c.def("__eq__",
           [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(Array{self} == Array{rhs}); },
           py::is_operator());
@@ -228,8 +341,14 @@ void InitChainerxArrayOperator(py::class_<ArrayBody, ArrayBodyPtr> c) {
               return MoveArrayBody(self_array <= FullLike(self_array, rhs, self->device()));
           },
           py::is_operator());
+}
+
+void InitChainerxArrayUnary(py::class_<ArrayBody, ArrayBodyPtr>& c) {
     c.def("__neg__", [](const ArrayBodyPtr& self) { return MoveArrayBody(-Array{self}); });
     c.def("__abs__", [](const ArrayBodyPtr& self) { return MoveArrayBody(Absolute(Array{self})); }, py::is_operator());
+}
+
+void InitChainerxArrayInPlace(py::class_<ArrayBody, ArrayBodyPtr>& c) {
     c.def("__iadd__",
           [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(std::move(Array{self} += Array{rhs})); },
           py::is_operator());
@@ -288,6 +407,9 @@ void InitChainerxArrayOperator(py::class_<ArrayBody, ArrayBodyPtr> c) {
     c.def("__irshift__",
           [](const ArrayBodyPtr& self, Scalar rhs) { return MoveArrayBody(std::move(Array{self} >>= rhs)); },
           py::is_operator());
+}
+
+void InitChainerxArrayArithmetic(py::class_<ArrayBody, ArrayBodyPtr>& c) {
     c.def("__add__",
           [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(Array{self} + Array{rhs}); },
           py::is_operator());
@@ -360,218 +482,7 @@ void InitChainerxArrayOperator(py::class_<ArrayBody, ArrayBodyPtr> c) {
     c.def("__rrshift__", [](const ArrayBodyPtr& self, Scalar lhs) { return MoveArrayBody(lhs >> Array{self}); }, py::is_operator());
 }
 
-void InitChainerxArrayMethod(pybind11::module& m, py::class_<ArrayBody, ArrayBodyPtr> c) {
-    // TODO(niboshi): Support arguments
-    c.def("item", [](const ArrayBodyPtr& a) -> py::object {
-        Scalar s = AsScalar(Array{a});
-        switch (s.kind()) {
-            case DtypeKind::kBool:
-                return py::bool_{static_cast<bool>(s)};
-            case DtypeKind::kInt:
-                return py::int_{static_cast<int64_t>(s)};
-            case DtypeKind::kFloat:
-                return py::float_{static_cast<double>(s)};
-            default:
-                CHAINERX_NEVER_REACH();
-        }
-    });
-    c.def("view", [](const ArrayBodyPtr& self) { return MoveArrayBody(Array{self}.MakeView()); });
-    c.def("__repr__", [](const ArrayBodyPtr& self) { return Array{self}.ToString(); });
-    c.def("to_device", [](const ArrayBodyPtr& self, py::handle device) { return MoveArrayBody(Array{self}.ToDevice(GetDevice(device))); });
-    c.def("to_device", [](const ArrayBodyPtr& self, const std::string& backend_name, int index) {
-        Device& device = GetDefaultContext().GetDevice({backend_name, index});
-        return MoveArrayBody(Array{self}.ToDevice(device));
-    });
-    c.def("as_grad_stopped",
-          [](const ArrayBodyPtr& self, bool copy) {
-              return MoveArrayBody(Array{self}.AsGradStopped(copy ? CopyKind::kCopy : CopyKind::kView));
-          },
-          "copy"_a = false);
-    c.def("as_grad_stopped",
-          [](const ArrayBodyPtr& self, const std::vector<BackpropId>& backprop_ids, bool copy) {
-              return MoveArrayBody(Array{self}.AsGradStopped(backprop_ids, copy ? CopyKind::kCopy : CopyKind::kView));
-          },
-          py::arg().noconvert(),
-          "copy"_a = false);
-    c.def("astype",
-          [](const ArrayBodyPtr& self, py::handle dtype, bool copy) { return MoveArrayBody(Array{self}.AsType(GetDtype(dtype), copy)); },
-          "dtype"_a,
-          "copy"_a = true);
-    c.def("copy", [](const ArrayBodyPtr& self) { return MoveArrayBody(Array{self}.Copy()); });
-    c.def("__getitem__", [](const ArrayBodyPtr& self, py::handle key) { return MoveArrayBody(Array{self}.At(MakeArrayIndices(key))); });
-    c.def("take",
-          [](const ArrayBodyPtr& self, py::handle indices, const absl::optional<int8_t>& axis) {
-              if (!axis.has_value()) {
-                  throw NotImplementedError{"axis=None is not yet supported for chainerx.ndarray.take."};
-              }
-              if (py::isinstance<ArrayBody>(indices)) {
-                  return MoveArrayBody(Array{self}.Take(Array{py::cast<ArrayBodyPtr>(indices)}, axis.value()));
-              }
-              if (py::isinstance<py::sequence>(indices)) {
-                  absl::optional<Dtype> dtype = Dtype::kInt64;
-                  return MoveArrayBody(Array{self}.Take(Array{MakeArray(indices, dtype, false, self->device())}, axis.value()));
-              }
-              if (py::isinstance<py::array>(indices)) {
-                  return MoveArrayBody(
-                          Array{self}.Take(Array{MakeArrayFromNumpyArray(py::cast<py::array>(indices), self->device())}, axis.value()));
-              }
-              throw py::type_error{"only integers, slices (`:`), sequence, numpy.ndarray and chainerx.newaxis (`None`) are valid indices"};
-          },
-          "indices"_a,
-          "axis"_a = nullptr);
-    c.def("transpose",
-          [](const ArrayBodyPtr& self, const absl::optional<std::vector<int8_t>>& axes) {
-              return MoveArrayBody(Array{self}.Transpose(ToAxes(axes)));
-          },
-          "axes"_a = nullptr);
-    c.def("transpose", [](const ArrayBodyPtr& self, py::args args) { return MoveArrayBody(Array{self}.Transpose(ToAxes(args))); });
-    c.def("reshape", [](const ArrayBodyPtr& self, py::handle shape) { return MoveArrayBody(Array{self}.Reshape(ToShape(shape))); });
-    c.def("reshape", [](const ArrayBodyPtr& self, const std::vector<int64_t>& shape) {
-        return MoveArrayBody(Array{self}.Reshape({shape.begin(), shape.end()}));
-    });
-    c.def("reshape", [](const ArrayBodyPtr& self, py::args args) {
-        if (args.size() == 0) {
-            throw ChainerxError{"Reshape takes exactly 1 argument (0 given)."};
-        }
-        return MoveArrayBody(Array{self}.Reshape(ToShape(args)));
-    });
-    c.def("squeeze",
-          [](const ArrayBodyPtr& self, const absl::optional<std::vector<int8_t>>& axis) {
-              return MoveArrayBody(Array{self}.Squeeze(ToAxes(axis)));
-          },
-          "axis"_a = nullptr);
-    c.def("squeeze", [](const ArrayBodyPtr& self, int8_t axis) { return MoveArrayBody(Array{self}.Squeeze(Axes{axis})); }, "axis"_a);
-    c.def("swapaxes",
-          [](const ArrayBodyPtr& self, int8_t axis1, int8_t axis2) { return MoveArrayBody(Array{self}.Swapaxes(axis1, axis2)); },
-          "axis1"_a,
-          "axis2"_a);
-    c.def("repeat",
-          [](const ArrayBodyPtr& self, int64_t repeats, absl::optional<int8_t> axis) {
-              return MoveArrayBody(Repeat(Array{self}, repeats, axis));
-          },
-          "repeats"_a,
-          "axis"_a = nullptr);
-    c.def("repeat",
-          [](const ArrayBodyPtr& self, const std::vector<int64_t>& repeats, absl::optional<int8_t> axis) {
-              return MoveArrayBody(Repeat(Array{self}, repeats, axis));
-          },
-          "repeats"_a,
-          "axis"_a = nullptr);
-    // TODO(hvy): Support all arguments in the constructor of numpy.ndarray.
-    c.def(py::init([](py::handle shape, py::handle dtype, py::handle device) {
-              return MoveArrayBody(Empty(ToShape(shape), GetDtype(dtype), GetDevice(device)));
-          }),
-          "shape"_a,
-          "dtype"_a,
-          "device"_a = nullptr);
-    c.def_property_readonly("__array_priority__", [](const ArrayBodyPtr & /*self*/) -> double { return 100.; });
-    m.def("to_numpy",
-          [m](const ArrayBodyPtr& array, bool copy) { return MakeNumpyArrayFromArray(m, array, copy); },
-          "array"_a,
-          "copy"_a = true);
-    m.def("_to_cupy", [m](py::handle array) { return MakeCupyArrayFromArray(m, array); }, "array"_a);
-    // This is currently for internal use (from Chainer) to support CuPy.
-    // TODO(niboshi): Remove this once it will be possible to import cupy.ndarray using chx.array / chx.asarray.
-    m.def("_fromrawpointer",
-          [](intptr_t ptr, py::handle shape, py::handle dtype, const py::tuple& strides, py::handle device, int64_t offset, py::object base)
-                  -> ArrayBodyPtr {
-              // TODO(niboshi): Expose `base` as `ndarray.base` attribute.
-              void* c_ptr = reinterpret_cast<void*>(ptr);  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
-              // Note that inc_ref() / dec_ref() is performed by the lambda capture.
-              std::shared_ptr<void> data{c_ptr, [base](void*) {}};
-              return MoveArrayBody(FromData(ToShape(shape), GetDtype(dtype), data, ToStrides(strides), offset, GetDevice(device)));
-          });
-    c.def(py::pickle(
-            [m](const ArrayBodyPtr& self) -> py::tuple { return py::make_tuple(MakeNumpyArrayFromArray(m, self, true), self->device()); },
-            [](py::tuple state) -> ArrayBodyPtr {
-                py::array numpy_array = state[0];
-                Device& device = py::cast<Device&>(state[1]);
-                return MakeArrayFromNumpyArray(numpy_array, device);
-            }));
-    // TODO(niboshi): Support arguments
-    c.def("item", [](const ArrayBodyPtr& a) -> py::object {
-        Scalar s = AsScalar(Array{a});
-        switch (s.kind()) {
-            case DtypeKind::kBool:
-                return py::bool_{static_cast<bool>(s)};
-            case DtypeKind::kInt:
-                return py::int_{static_cast<int64_t>(s)};
-            case DtypeKind::kFloat:
-                return py::float_{static_cast<double>(s)};
-            default:
-                CHAINERX_NEVER_REACH();
-        }
-    });
-    c.def("view", [](const ArrayBodyPtr& self) { return MoveArrayBody(Array{self}.MakeView()); });
-    c.def("__repr__", [](const ArrayBodyPtr& self) { return Array{self}.ToString(); });
-    c.def("to_device", [](const ArrayBodyPtr& self, py::handle device) { return MoveArrayBody(Array{self}.ToDevice(GetDevice(device))); });
-    c.def("to_device", [](const ArrayBodyPtr& self, const std::string& backend_name, int index) {
-        Device& device = GetDefaultContext().GetDevice({backend_name, index});
-        return MoveArrayBody(Array{self}.ToDevice(device));
-    });
-    c.def("as_grad_stopped",
-          [](const ArrayBodyPtr& self, bool copy) {
-              return MoveArrayBody(Array{self}.AsGradStopped(copy ? CopyKind::kCopy : CopyKind::kView));
-          },
-          "copy"_a = false);
-    c.def("as_grad_stopped",
-          [](const ArrayBodyPtr& self, const std::vector<BackpropId>& backprop_ids, bool copy) {
-              return MoveArrayBody(Array{self}.AsGradStopped(backprop_ids, copy ? CopyKind::kCopy : CopyKind::kView));
-          },
-          py::arg().noconvert(),
-          "copy"_a = false);
-    c.def("astype",
-          [](const ArrayBodyPtr& self, py::handle dtype, bool copy) { return MoveArrayBody(Array{self}.AsType(GetDtype(dtype), copy)); },
-          "dtype"_a,
-          "copy"_a = true);
-    c.def("copy", [](const ArrayBodyPtr& self) { return MoveArrayBody(Array{self}.Copy()); });
-    c.def("__getitem__", [](const ArrayBodyPtr& self, py::handle key) { return MoveArrayBody(Array{self}.At(MakeArrayIndices(key))); });
-    c.def("take",
-          [](const ArrayBodyPtr& self, py::handle indices, const absl::optional<int8_t>& axis) {
-              if (!axis.has_value()) {
-                  throw NotImplementedError{"axis=None is not yet supported for chainerx.ndarray.take."};
-              }
-              if (py::isinstance<ArrayBody>(indices)) {
-                  return MoveArrayBody(Array{self}.Take(Array{py::cast<ArrayBodyPtr>(indices)}, axis.value()));
-              }
-              if (py::isinstance<py::sequence>(indices)) {
-                  absl::optional<Dtype> dtype = Dtype::kInt64;
-                  return MoveArrayBody(Array{self}.Take(Array{MakeArray(indices, dtype, false, self->device())}, axis.value()));
-              }
-              if (py::isinstance<py::array>(indices)) {
-                  return MoveArrayBody(
-                          Array{self}.Take(Array{MakeArrayFromNumpyArray(py::cast<py::array>(indices), self->device())}, axis.value()));
-              }
-              throw py::type_error{"only integers, slices (`:`), sequence, numpy.ndarray and chainerx.newaxis (`None`) are valid indices"};
-          },
-          "indices"_a,
-          "axis"_a = nullptr);
-    c.def("transpose",
-          [](const ArrayBodyPtr& self, const absl::optional<std::vector<int8_t>>& axes) {
-              return MoveArrayBody(Array{self}.Transpose(ToAxes(axes)));
-          },
-          "axes"_a = nullptr);
-    c.def("transpose", [](const ArrayBodyPtr& self, py::args args) { return MoveArrayBody(Array{self}.Transpose(ToAxes(args))); });
-    c.def("reshape", [](const ArrayBodyPtr& self, py::handle shape) { return MoveArrayBody(Array{self}.Reshape(ToShape(shape))); });
-    c.def("reshape", [](const ArrayBodyPtr& self, const std::vector<int64_t>& shape) {
-        return MoveArrayBody(Array{self}.Reshape({shape.begin(), shape.end()}));
-    });
-    c.def("reshape", [](const ArrayBodyPtr& self, py::args args) {
-        if (args.size() == 0) {
-            throw ChainerxError{"Reshape takes exactly 1 argument (0 given)."};
-        }
-        return MoveArrayBody(Array{self}.Reshape(ToShape(args)));
-    });
-    c.def("squeeze",
-          [](const ArrayBodyPtr& self, const absl::optional<std::vector<int8_t>>& axis) {
-              return MoveArrayBody(Array{self}.Squeeze(ToAxes(axis)));
-          },
-          "axis"_a = nullptr);
-    c.def("squeeze", [](const ArrayBodyPtr& self, int8_t axis) { return MoveArrayBody(Array{self}.Squeeze(Axes{axis})); }, "axis"_a);
-    c.def("swapaxes",
-          [](const ArrayBodyPtr& self, int8_t axis1, int8_t axis2) { return MoveArrayBody(Array{self}.Swapaxes(axis1, axis2)); },
-          "axis1"_a,
-          "axis2"_a);
+void InitChainerxArrayCalculation(py::class_<ArrayBody, ArrayBodyPtr>& c) {
     c.def("sum",
           [](const ArrayBodyPtr& self, int8_t axis, bool keepdims) { return MoveArrayBody(Array{self}.Sum(Axes{axis}, keepdims)); },
           "axis"_a,
@@ -648,14 +559,21 @@ void InitChainerxArrayMethod(pybind11::module& m, py::class_<ArrayBody, ArrayBod
     c.def("argmin",
           [](const ArrayBodyPtr& self, const absl::optional<int8_t>& axis) { return MoveArrayBody(ArgMin(Array{self}, ToAxes(axis))); },
           "axis"_a = nullptr);
-    c.def("dot", [](const ArrayBodyPtr& self, const ArrayBodyPtr& b) { return MoveArrayBody(Array{self}.Dot(Array{b})); }, "b"_a);
-    c.def("fill",
-          [](const ArrayBodyPtr& self, Scalar value) {
-              Array{self}.Fill(value);
-              return;
-          },
-          "value"_a);
+}
 
+void InitChainerxArraySpecial(pybind11::module& m, py::class_<ArrayBody, ArrayBodyPtr>& c) {
+    c.def("__len__", [](const ArrayBodyPtr& self) -> size_t {
+        // TODO(hvy): Do bounds cheking. For reference, Chainer throws an AttributeError.
+        if (self->ndim() == 0) {
+            throw pybind11::type_error{"len() of unsized object"};
+        }
+        return self->shape().front();
+    });
+    c.def("__bool__", [](const ArrayBodyPtr& self) -> bool { return static_cast<bool>(AsScalar(Array{self})); });
+    c.def("__int__", [](const ArrayBodyPtr& self) -> int64_t { return static_cast<int64_t>(AsScalar(Array{self})); });
+    c.def("__float__", [](const ArrayBodyPtr& self) -> double { return static_cast<double>(AsScalar(Array{self})); });
+    c.def("__repr__", [](const ArrayBodyPtr& self) { return Array{self}.ToString(); });
+    c.def("__getitem__", [](const ArrayBodyPtr& self, py::handle key) { return MoveArrayBody(Array{self}.At(MakeArrayIndices(key))); });
     c.def("require_grad",
           [](const ArrayBodyPtr& self, const absl::optional<BackpropId>& backprop_id) {
               return MoveArrayBody(std::move(Array{self}.RequireGrad(backprop_id)));
@@ -789,8 +707,32 @@ void InitChainerxArrayMethod(pybind11::module& m, py::class_<ArrayBody, ArrayBod
 
 void InitChainerxArray(pybind11::module& m) {
     py::class_<ArrayBody, ArrayBodyPtr> c{m, "ndarray", py::buffer_protocol()};
-    InitChainerxArrayMethod(m, c);
-    InitChainerxArrayOperator(c);
+
+    c.def("to_device", [](const ArrayBodyPtr& self, py::handle device) { return MoveArrayBody(Array{self}.ToDevice(GetDevice(device))); });
+    c.def("to_device", [](const ArrayBodyPtr& self, const std::string& backend_name, int index) {
+        Device& device = GetDefaultContext().GetDevice({backend_name, index});
+        return MoveArrayBody(Array{self}.ToDevice(device));
+    });
+    c.def("as_grad_stopped",
+          [](const ArrayBodyPtr& self, bool copy) {
+              return MoveArrayBody(Array{self}.AsGradStopped(copy ? CopyKind::kCopy : CopyKind::kView));
+          },
+          "copy"_a = false);
+    c.def("as_grad_stopped",
+          [](const ArrayBodyPtr& self, const std::vector<BackpropId>& backprop_ids, bool copy) {
+              return MoveArrayBody(Array{self}.AsGradStopped(backprop_ids, copy ? CopyKind::kCopy : CopyKind::kView));
+          },
+          py::arg().noconvert(),
+          "copy"_a = false);
+
+    InitChainerxArrayConversion(m, c);
+    InitChainerxArrayComparison(c);
+    InitChainerxArrayManipulation(c);
+    InitChainerxArrayUnary(c);
+    InitChainerxArrayInPlace(c);
+    InitChainerxArrayArithmetic(c);
+    InitChainerxArrayCalculation(c);
+    InitChainerxArraySpecial(m, c);
 }
 
 }  // namespace python_internal

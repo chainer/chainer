@@ -377,6 +377,11 @@ Array Array::Take(const Array& indices, int8_t axis) const { return chainerx::Ta
 
 Array Array::Copy() const { return chainerx::Copy(*this); }
 
+Array Array::Flatten() const {
+    Array out = (*this).Copy().Reshape({(*this).GetTotalSize()});
+    return out;
+}
+
 Array Array::MakeView() const {
     Array out{shape(), strides(), dtype(), device(), data(), offset()};
 
