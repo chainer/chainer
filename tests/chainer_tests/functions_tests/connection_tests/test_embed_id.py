@@ -61,21 +61,20 @@ class TestEmbedID(testing.FunctionTestCase):
 
     def generate_inputs(self):
         x = numpy.array(self.x).astype(self.x_dtype)
-        w = numpy.random.uniform(-1, 1, self.w_shape).astype(self.w_dtype)
-        return x, w,
+        W = numpy.random.uniform(-1, 1, self.w_shape).astype(self.w_dtype)
+        return x, W,
 
     def forward(self, inputs, device):
-        x, w = inputs
-        out = chainer.functions.embed_id(x, w, self.ignore_label)
+        x, W = inputs
+        out = chainer.functions.embed_id(x, W, self.ignore_label)
         return out,
 
     def forward_expected(self, inputs):
-        x, w = inputs
+        x, W = inputs
         if self.ignore_label is not None:
             mask = (x == self.ignore_label)
-            return numpy.where(mask[..., None], 0, w[numpy.where(mask, 0, x)]),
-
-        return w[x],
+            return numpy.where(mask[..., None], 0, W[numpy.where(mask, 0, x)]),
+        return W[x],
 
 
 @testing.parameterize(
