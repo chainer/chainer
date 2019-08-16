@@ -16,6 +16,8 @@ namespace chainerx {
 // If the array is not single-element, DimensionError is thrown.
 Scalar AsScalar(const Array& a);
 
+Array Ravel(const Array& a);
+
 // Returns a view where the specified axis is moved to start.
 Array RollAxis(const Array& a, int8_t axis, int8_t start = 0);
 

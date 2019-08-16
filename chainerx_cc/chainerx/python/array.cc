@@ -243,6 +243,7 @@ void InitChainerxArrayManipulation(py::class_<ArrayBody, ArrayBodyPtr>& c) {
               return MoveArrayBody(Array{self}.Transpose(ToAxes(axes)));
           },
           "axes"_a = nullptr);
+    c.def("ravel", [](const ArrayBodyPtr& self) { return MoveArrayBody(Array{self}.Ravel()); });
     c.def("transpose", [](const ArrayBodyPtr& self, py::args args) { return MoveArrayBody(Array{self}.Transpose(ToAxes(args))); });
     c.def("reshape", [](const ArrayBodyPtr& self, py::handle shape) { return MoveArrayBody(Array{self}.Reshape(ToShape(shape))); });
     c.def("reshape", [](const ArrayBodyPtr& self, const std::vector<int64_t>& shape) {

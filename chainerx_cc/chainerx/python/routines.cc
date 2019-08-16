@@ -556,6 +556,7 @@ void InitChainerxManipulation(pybind11::module& m) {
     m.def("flip", [](const ArrayBodyPtr& m, int8_t axes) { return MoveArrayBody(Flip(Array{m}, {axes})); }, "m"_a, "axes"_a = nullptr);
     m.def("fliplr", [](const ArrayBodyPtr& m) { return MoveArrayBody(Fliplr(Array{m})); }, "m"_a);
     m.def("flipud", [](const ArrayBodyPtr& m) { return MoveArrayBody(Flipud(Array{m})); }, "m"_a);
+    m.def("ravel", [](const ArrayBodyPtr& a) { return MoveArrayBody(Ravel(Array{a})); }, "a"_a);
     m.def("rollaxis",
           [](const ArrayBodyPtr& a, int8_t axis, int8_t start) { return MoveArrayBody(RollAxis(Array{a}, axis, start)); },
           "a"_a,

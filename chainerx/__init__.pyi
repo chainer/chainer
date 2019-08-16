@@ -366,6 +366,8 @@ class ndarray:
 
     def flatten(self) -> ndarray: ...
 
+    def ravel(self) -> ndarray: ...
+
     @tp.overload
     def as_grad_stopped(self, copy: bool=...) -> ndarray: ...
 
@@ -1056,10 +1058,6 @@ def loadtxt(
         ndmin: int=...,
         encoding: tp.Optional[str]=...,
         device: tp.Optional[Device]=None) -> ndarray: ...
-
-
-# chainerx/manipulation/shape.py
-def ravel(a: ndarray) -> ndarray: ...
 
 
 # chainerx/math/misc.py
