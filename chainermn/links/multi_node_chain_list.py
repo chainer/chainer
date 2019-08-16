@@ -222,8 +222,9 @@ class MultiNodeChainList(chainer.ChainList):
                 x = f(*tuple(xs))
 
             if rank_out is None:  # Return outputs.
-                assert y is None, 'MultiNodeChainList cannot have more than '\
-                    'two computational graph component whose rank_out is None'
+                assert y is None, (
+                    'MultiNodeChainList cannot have more than '
+                    'two computational graph component whose rank_out is None')
                 y = x  # model output
                 delegate_variable = y
 
@@ -255,7 +256,7 @@ class MultiNodeChainList(chainer.ChainList):
 
         if not comm_queue.empty():
             raise ValueError(
-                'Communication queue is not empty at the end of forward.'
+                'Communication queue is not empty at the end of forward. '
                 'Make sure if all rank_in and rank_out correspond each other.')
 
         # Return.

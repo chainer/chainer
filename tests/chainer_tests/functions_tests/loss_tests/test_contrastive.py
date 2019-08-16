@@ -15,7 +15,7 @@ from chainer.testing import attr
 @testing.parameterize(*testing.product_dict(
     [{'dtype': numpy.float16,
       'forward_options': {'rtol': 1e-2, 'atol': 1e-2},
-      'backward_options': {'rtol': 1e-2, 'atol': 1e-3},
+      'backward_options': {'rtol': 1e-2, 'atol': 1e-2},
       'double_backward_options': {'rtol': 3e-1, 'atol': 3e-1}},
      {'dtype': numpy.float32,
       'forward_options': {'rtol': 1e-2},

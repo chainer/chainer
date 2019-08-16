@@ -31,7 +31,7 @@ configs {
   value {
     requirement {
       cpu: 30
-      memory: 70
+      memory: 80
       gpu: 2
     }
     time_limit: {
@@ -76,7 +76,7 @@ configs {
   value {
     requirement {
       cpu: 30
-      memory: 70
+      memory: 80
       gpu: 2
     }
     time_limit: {

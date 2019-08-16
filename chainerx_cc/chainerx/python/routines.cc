@@ -911,6 +911,14 @@ void InitChainerxSorting(pybind11::module& m) {
           },
           "a"_a,
           "axis"_a = nullptr);
+    m.def("nanargmax",
+          [](const ArrayBodyPtr& a, const absl::optional<int8_t>& axis) { return MoveArrayBody(NanArgMax(Array{a}, ToAxes(axis))); },
+          "a"_a,
+          "axis"_a = nullptr);
+    m.def("nanargmin",
+          [](const ArrayBodyPtr& a, const absl::optional<int8_t>& axis) { return MoveArrayBody(NanArgMin(Array{a}, ToAxes(axis))); },
+          "a"_a,
+          "axis"_a = nullptr);
 }
 
 void InitChainerxStatistics(pybind11::module& m) {
