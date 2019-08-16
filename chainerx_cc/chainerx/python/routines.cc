@@ -702,8 +702,8 @@ void InitChainerxActivation(pybind11::module& m) {
     m.def("tree_lstm", [](py::args args) {
         std::vector<ArrayBodyPtr> arrays = py::cast<std::vector<ArrayBodyPtr>>(args);
         std::vector<Array> input;
-        for (uint i = 0; i < arrays.size(); i++) {
-            input.push_back(Array{arrays[i]});
+        for (size_t i = 0; i < arrays.size(); i++) {
+            input.emplace_back(Array{arrays[i]});
         }
         return ToTuple(TreeLstm(input));
     });
