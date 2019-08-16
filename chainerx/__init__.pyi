@@ -871,9 +871,6 @@ def ones(shape: tp.Union[int, tp.Sequence[int]],
 def ones_like(a: ndarray, device: tp.Optional[Device]=None) -> ndarray: ...
 
 
-def ravel(a: ndarray) -> ndarray: ...
-
-
 def reshape(
         a: ndarray,
         newshape: tp.Union[int, tp.Sequence[int]]) -> ndarray: ...
@@ -1061,10 +1058,6 @@ def loadtxt(
         ndmin: int=...,
         encoding: tp.Optional[str]=...,
         device: tp.Optional[Device]=None) -> ndarray: ...
-
-
-# chainerx/manipulation/shape.py
-def ravel(a: ndarray) -> ndarray: ...
 
 
 # chainerx/math/misc.py
