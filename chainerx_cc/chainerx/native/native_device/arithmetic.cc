@@ -242,17 +242,13 @@ int64_t Mod(int64_t x, int64_t y) {
     int64_t z = abs(x) % abs(y);
     if (x < 0) {
         if (y > 0) {
-            //T z = (-x) % y;
             return z == 0 ? 0 : y - z;
         }
-        //return -(-x % (-y));
         return -z;
     }
     if (y < 0) {
-        //T z = x % (-y);
         return z == 0 ? 0 : y + z;
     }
-    //return x % y;
     return z;
 }
 int8_t Mod(int8_t x, int8_t y) { return static_cast<int8_t>(Mod(static_cast<int64_t>(x), static_cast<int64_t>(y))); }
@@ -272,17 +268,13 @@ T ModFloatImpl(T x, T y) {
     T z = std::fmod(std::fabs(x), std::fabs(y));
     if (x < 0) {
         if (y > 0) {
-            //T z = std::fmod(-x, y);
             return z == 0 ? 0 : y - z;
         }
-        //return -std::fmod(-x, -y);
         return -z;
     }
     if (y < 0) {
-        //T z = std::fmod(x, -y);
         return z == 0 ? 0 : y + z;
     }
-    //return std::fmod(x, y);
     return z;
 }
 double Mod(double x, double y) { return ModFloatImpl(x, y); }
