@@ -192,7 +192,7 @@ std::vector<Array> WeightsBackward(
     }
     return ret;
 }
-} // namespace
+}  // namespace
 
 class CudaRnnKernel : public RnnKernel {
 public:
