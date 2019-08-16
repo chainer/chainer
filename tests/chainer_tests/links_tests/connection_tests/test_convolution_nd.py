@@ -5,13 +5,11 @@ import six.moves.cPickle as pickle
 
 import chainer
 from chainer.backends import cuda
-from chainer import gradient_check
+from chainer import functions as F
 from chainer import initializers
 from chainer.links.connection import convolution_nd
 from chainer import testing
 from chainer.testing import attr
-from chainer.testing import condition
-from chainer.utils import conv
 from chainer.utils import conv_nd
 
 
@@ -26,37 +24,125 @@ from chainer.utils import conv_nd
     'in_channels': [4, None, 'omit'],
     'groups': [1, 2],
 })))
-class TestConvolutionND(unittest.TestCase):
+@testing.inject_backend_tests(
+    None,
+    # CPU tests
+    [{}]
+    # GPU tests
+    + testing.product({
+        'use_cuda': [True],
+        'use_cudnn': ['never', 'always'],
+        'cuda_device': [0, 1],
+    })
+    # ChainerX tests
+    + [
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
+    ])
+class TestConvolutionND(testing.LinkTestCase):
+
+    param_names = ('W', 'b')
 
     def setUp(self):
-        ndim = len(self.dims)
-        self.ksize = (3,) * ndim
-        self.stride = (2,) * ndim
-        self.pad = (1,) * ndim
+        self.ndim = len(self.dims)
+        self.ksize = (3,) * self.ndim
+        self.stride = (2,) * self.ndim
+        self.pad = (1,) * self.ndim
+
+        self.x_shape = (2, 4) + self.dims
+
+        self.check_backward_options.update({'eps': 1e-2,
+                                            'atol': 1e-3, 'rtol': 1e-3})
+        if self.dtype == numpy.float16:
+            self.check_forward_options.update({'atol': 5e-3, 'rtol': 5e-2})
+            self.check_backward_options.update({
+                'eps': 2 ** -4, 'atol': 2 ** -4, 'rtol': 2 ** -4})
+
+    def before_test(self, test_name):
+        # cuDNN 5 and 5.1 results suffer from precision issues
+        using_old_cudnn = (self.backend_config.xp is cuda.cupy
+                           and self.backend_config.use_cudnn == 'always'
+                           and cuda.cuda.cudnn.getVersion() < 6000)
+        if using_old_cudnn:
+            self.check_backward_options.update({
+                'eps': 2 ** -4, 'atol': 2 ** -4, 'rtol': 2 ** -4})
+
+    def generate_params(self):
+        initial_bias = initializers.Uniform(scale=1., dtype=self.dtype)
+        return initial_bias,
+
+    def create_link(self, initializers):
+        initial_bias, = initializers
 
         if self.in_channels == 'omit':
-            self.link = convolution_nd.ConvolutionND(
-                ndim, 2, self.ksize, stride=self.stride,
+            link = convolution_nd.ConvolutionND(
+                self.ndim, 2, self.ksize, stride=self.stride,
                 pad=self.pad, groups=self.groups,
-                initial_bias=initializers.Uniform(scale=1., dtype=self.dtype))
+                initial_bias=initial_bias)
         else:
-            self.link = convolution_nd.ConvolutionND(
-                ndim, self.in_channels, 2, self.ksize, stride=self.stride,
+            link = convolution_nd.ConvolutionND(
+                self.ndim, self.in_channels, 2, self.ksize, stride=self.stride,
                 pad=self.pad, groups=self.groups,
-                initial_bias=initializers.Uniform(scale=1., dtype=self.dtype))
-        self.link.cleargrads()
+                initial_bias=initial_bias)
 
-        x_shape = (2, 4) + self.dims
-        self.x = numpy.random.uniform(-1, 1, x_shape).astype(self.dtype)
-        gy_shape = (2, 2) + tuple(
-            conv.get_conv_outsize(d, k, s, p) for (d, k, s, p) in zip(
-                self.dims, self.ksize, self.stride, self.pad))
-        self.gy = numpy.random.uniform(-1, 1, gy_shape).astype(self.dtype)
+        return link
 
-        self.check_backward_options = {'eps': 1e-2, 'atol': 1e-3, 'rtol': 1e-3}
-        if self.dtype == numpy.float16:
-            self.check_backward_options = {
-                'eps': 2 ** -4, 'atol': 2 ** -4, 'rtol': 2 ** -4}
+    def generate_inputs(self):
+        x = numpy.random.uniform(-1, 1, self.x_shape).astype(self.dtype)
+        return x,
+
+    def forward_expected(self, link, inputs):
+        x, = inputs
+        W = link.W
+        b = link.b
+        y = F.convolution_nd(
+            x, W, b,
+            pad=self.pad,
+            groups=self.groups,
+            stride=self.stride)
+        return y.array,
+
+    def test_pickling(self, backend_config):
+        x_data, = self.generate_inputs()
+
+        link = self.create_link(self.generate_params())
+        link.to_device(backend_config.device)
+
+        x = chainer.Variable(x_data)
+        x.to_device(backend_config.device)
+
+        y = link(x)
+        y_data1 = y.data
+        del x, y
+        pickled = pickle.dumps(link, -1)
+        del link
+        link = pickle.loads(pickled)
+        x = chainer.Variable(x_data)
+        x.to_device(backend_config.device)
+        y = link(x)
+        y_data2 = y.data
+
+        testing.assert_allclose(y_data1, y_data2, atol=0, rtol=0)
+
+
+@testing.parameterize(*(testing.product({
+    'dims': [(3, 4), (3, 4, 3)],
+    'dtype': [numpy.float32],
+}) + testing.product({
+    'dims': [(5,)],
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
+})))
+class TestConvolutionNDIm2ColConsistency(unittest.TestCase):
+
+    def setUp(self):
+        self.ndim = len(self.dims)
+        self.ksize = (3,) * self.ndim
+        self.stride = (2,) * self.ndim
+        self.pad = (1,) * self.ndim
+
+        self.x_shape = (2, 4) + self.dims
+        self.x = numpy.random.uniform(-1, 1, self.x_shape).astype(self.dtype)
 
     @attr.gpu
     def test_im2col_consistency(self):
@@ -73,76 +159,6 @@ class TestConvolutionND(unittest.TestCase):
         im_gpu = conv_nd.col2im_nd_gpu(
             cuda.to_gpu(col), self.stride, self.pad, self.dims)
         testing.assert_allclose(im_cpu, im_gpu.get())
-
-    def check_forward_consistency(self):
-        x_cpu = chainer.Variable(self.x)
-        y_cpu = self.link(x_cpu)
-        self.assertEqual(y_cpu.data.dtype, self.dtype)
-
-        self.link.to_gpu()
-        x_gpu = chainer.Variable(cuda.to_gpu(self.x))
-        y_gpu = self.link(x_gpu)
-        self.assertEqual(y_gpu.data.dtype, self.dtype)
-
-        testing.assert_allclose(y_cpu.data, y_gpu.data.get())
-
-    @attr.cudnn
-    @condition.retry(3)
-    def test_forward_consistency(self):
-        self.check_forward_consistency()
-
-    @attr.gpu
-    @condition.retry(3)
-    def test_forward_consistency_im2col(self):
-        with chainer.using_config('use_cudnn', 'never'):
-            self.check_forward_consistency()
-
-    def check_backward(self, x_data, y_grad):
-        gradient_check.check_backward(
-            self.link, x_data, y_grad, (self.link.W, self.link.b),
-            **self.check_backward_options)
-
-    @condition.retry(3)
-    def test_backward_cpu(self):
-        self.check_backward(self.x, self.gy)
-
-    @attr.cudnn
-    @condition.retry(3)
-    def test_backward_gpu(self):
-        self.link.to_gpu()
-        self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
-
-    @attr.gpu
-    @condition.retry(3)
-    def test_backward_gpu_im2col(self):
-        self.link.to_gpu()
-        with chainer.using_config('use_cudnn', 'never'):
-            self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
-
-    def check_pickling(self, x_data):
-        x = chainer.Variable(x_data)
-        y = self.link(x)
-        y_data1 = y.data
-
-        del x, y
-
-        pickled = pickle.dumps(self.link, -1)
-        del self.link
-        self.link = pickle.loads(pickled)
-
-        x = chainer.Variable(x_data)
-        y = self.link(x)
-        y_data2 = y.data
-
-        testing.assert_allclose(y_data1, y_data2, atol=0, rtol=0)
-
-    def test_pickling_cpu(self):
-        self.check_pickling(self.x)
-
-    @attr.gpu
-    def test_pickling_gpu(self):
-        self.link.to_gpu()
-        self.check_pickling(cuda.to_gpu(self.x))
 
 
 class TestConvolutionNDNoInitialBias(unittest.TestCase):

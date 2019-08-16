@@ -18,9 +18,17 @@ def _pair(x):
 
 
 @testing.parameterize(*testing.product({
-    'sampling_ratio': [None, 1, 2, (None, 3), (1, 2)],
-    'outsize': [5, 7, (5, 7)],
-    'spatial_scale': [0.6, 1.0, 2.0],
+    'sampling_ratio': [
+        None, 1, 2, (None, 3), (1, 2),
+        (numpy.int32(1), numpy.int32(2)),
+    ],
+    'outsize': [
+        5, 7, (5, 7),
+        (numpy.int32(5), numpy.int32(7)),
+    ],
+    'spatial_scale': [
+        0.6, 1.0, 2.0, numpy.float32(0.6),
+    ],
 }))
 class TestROIAlign2D(unittest.TestCase):
 

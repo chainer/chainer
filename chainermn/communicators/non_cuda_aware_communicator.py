@@ -43,6 +43,8 @@ class NonCudaAwareCommunicator(mpi_communicator_base.MpiCommunicatorBase):
     def finalize(self):
         super(NonCudaAwareCommunicator, self).finalize()
         if self.intra_nccl_comm is not None:
+            chainer.cuda.Stream.null.synchronize()
+            self.mpi_comm.barrier()
             self.intra_nccl_comm.destroy()
             self.intra_nccl_comm = None
 
