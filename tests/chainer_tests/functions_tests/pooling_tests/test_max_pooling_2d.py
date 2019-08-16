@@ -88,35 +88,6 @@ class TestMaxPooling2D(testing.FunctionTestCase):
         x = chainer.Variable(x_data)
         functions.max_pooling_2d(x, 6, stride=6, pad=0)
 
-    def test_forward_output_size_zero(self, backend_config):
-        with self.assertRaises(Exception):
-            x = numpy.random.rand(4, 4, 1, 4).astype(self.dtype)
-            # TODO(sonots): Cleanup to use testing.backend.get_array after
-            # chainerx.asfortranarray is implemented.
-            if (backend_config.use_cuda
-                or (backend_config.use_chainerx
-                    and backend_config.chainerx_device.startswith('cuda:'))):
-                x = cuda.to_gpu(x)
-            if backend_config.use_chainerx:
-                x = chainer.backend.to_chx(x)
-            x = chainer.Variable(x)
-            with backend_config:
-                functions.max_pooling_2d(x, 3, stride=2)
-
-        with self.assertRaises(Exception):
-            x = numpy.random.rand(4, 4, 4, 1).astype(self.dtype)
-            # TODO(sonots): Cleanup to use testing.backend.get_array after
-            # chainerx.asfortranarray is implemented.
-            if (backend_config.use_cuda
-                or (backend_config.use_chainerx
-                    and backend_config.chainerx_device.startswith('cuda:'))):
-                x = cuda.to_gpu(x)
-            if backend_config.use_chainerx:
-                x = chainer.backend.to_chx(x)
-            x = chainer.Variable(x)
-            with backend_config:
-                functions.max_pooling_2d(x, 3, stride=2)
-
 
 @testing.parameterize(*testing.product({
     'use_cudnn': ['always', 'auto', 'never'],

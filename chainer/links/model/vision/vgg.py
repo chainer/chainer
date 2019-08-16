@@ -19,7 +19,7 @@ from chainer.functions.activation.softmax import softmax
 from chainer.functions.array.reshape import reshape
 from chainer.functions.math.sum import sum
 from chainer.functions.noise.dropout import dropout
-from chainer.functions.pooling.max_pooling_2d import max_pooling_2d
+from chainer.functions.pooling.max_pooling_nd import max_pooling_2d
 from chainer.initializers import constant
 from chainer.initializers import normal
 from chainer import link
