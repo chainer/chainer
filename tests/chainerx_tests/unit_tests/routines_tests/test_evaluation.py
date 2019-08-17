@@ -62,6 +62,6 @@ class TestAccuracy(EvalBase):
     skip_double_backward_test = True
 
     def forward_xp(self, inputs, xp):
-        x, t = inputs
-        out = xp.accuracy(x, t, self.ignore_label)
+        y, t = inputs
+        out = xp.accuracy(y, t, self.ignore_label)
         return out,

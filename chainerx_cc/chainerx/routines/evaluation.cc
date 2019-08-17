@@ -21,23 +21,23 @@
 
 namespace chainerx {
 
-Array Accuracy(const Array& x1, const Array& x2, const absl::optional<int8_t>& ignore_label) {
+Array Accuracy(const Array& y, const Array& t, const absl::optional<int8_t>& ignore_label) {
     if (ignore_label.has_value()) {
-        Array ignore = chainerx::FullLike(x2, Scalar{*ignore_label});
-        Array mask = Equal(x2, ignore);
+        Array ignore = chainerx::FullLike(t, Scalar{*ignore_label});
+        Array mask = Equal(t, ignore);
         Array ignore_cnt = Sum(mask);
-        Array pred = Where(mask, ignore, ArgMax(x1, 1).Reshape(x2.shape()));
-        Array count = Sum(Equal(pred, x2)) - ignore_cnt;
-        Scalar size{x2.GetTotalSize()};
+        Array pred = Where(mask, ignore, ArgMax(y, 1).Reshape(t.shape()));
+        Array count = Sum(Equal(pred, t)) - ignore_cnt;
+        Scalar size{t.GetTotalSize()};
         Scalar total = size - AsScalar(ignore_cnt);
         if (total == 0.0) {
-            return Array{0}.AsType(x1.dtype());
+            return Array{0}.AsType(y.dtype());
         } else {
-            return Divide(count, total).AsType(x1.dtype());
+            return Divide(count, total).AsType(y.dtype());
         }
     } else {
-        Array pred = ArgMax(x1, 1).Reshape(x2.shape());
-        return Mean(Equal(pred, x2).AsType(x1.dtype()));
+        Array pred = ArgMax(y, 1).Reshape(t.shape());
+        return Mean(Equal(pred, t).AsType(y.dtype()));
     }
 }
 
