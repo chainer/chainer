@@ -22,6 +22,12 @@
 namespace chainerx {
 
 Array Accuracy(const Array& y, const Array& t, const absl::optional<int8_t>& ignore_label) {
+    if (GetKind(y.dtype()) != DtypeKind::kFloat) {
+        throw DtypeError{"y must be of float type."};
+    }
+    if (GetKind(t.dtype()) != DtypeKind::kInt) {
+        throw DtypeError{"t must be of int type."};
+    }
     if (ignore_label.has_value()) {
         Array ignore = chainerx::FullLike(t, Scalar{*ignore_label});
         Array mask = Equal(t, ignore);
