@@ -79,7 +79,7 @@ def create_communicator(
 
     if communicator_name != 'pure_nccl' and allreduce_grad_dtype is not None:
         raise ValueError(
-            'allreduce_grad_dtype is only available'
+            'allreduce_grad_dtype is only available '
             'at \'pure_nccl\' communicator.')
 
     if communicator_name == 'naive':
