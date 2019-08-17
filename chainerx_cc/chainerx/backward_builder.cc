@@ -159,7 +159,7 @@ std::vector<RetainedInputToken> BackwardBuilder::RetainInput(std::vector<size_t>
     for (size_t i : indices) {
         CHAINERX_ASSERT(i < inputs_.size());
         input_retention_record_.Record(i);
-        token.push_back({internal::GetArrayBody(gsl::at(inputs_, i))->GetParams(), i});
+        token.emplace_back((RetainedInputToken){internal::GetArrayBody(gsl::at(inputs_, i))->GetParams(), i});
     }
     return token;
 }
@@ -175,7 +175,7 @@ std::vector<RetainedOutputToken> BackwardBuilder::RetainOutput(std::vector<size_
     for (size_t i : indices) {
         CHAINERX_ASSERT(i < outputs_.size());
         output_retention_record_.Record(i);
-        token.push_back({internal::GetArrayBody(gsl::at(outputs_, i))->GetParams(), i});
+        token.emplace_back((RetainedOutputToken){internal::GetArrayBody(gsl::at(outputs_, i))->GetParams(), i});
     }
     return token;
 }

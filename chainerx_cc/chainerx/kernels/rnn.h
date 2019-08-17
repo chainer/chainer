@@ -42,8 +42,8 @@ public:
             const std::vector<std::vector<Array>>& ws,
             const std::vector<std::vector<Array>>& bs,
             const std::vector<Array>& xs,
-            const int8_t bidirectional,
-            const int8_t mode,
+            int8_t bidirectional,
+            int8_t mode,
             absl::optional<std::string> activation) = 0;
 };
 
@@ -61,7 +61,7 @@ public:
             absl::optional<Array> dcy,
             std::vector<Array> ys,
             std::vector<Array> dys,
-            const int8_t bidirectional,
+            int8_t bidirectional,
             const std::shared_ptr<chainerx::RnnGradState>& state) = 0;
 };
 

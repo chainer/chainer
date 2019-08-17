@@ -120,17 +120,17 @@ private:
 };
 
 struct GenericRnnGradState : public RnnGradState {
-    GenericRnnGradState(cudnnRNNDescriptor_t rnn_desc, cudnnFilterDescriptor_t wDesc, Array w, Array reserve, Array workspace)
-        : rnn_desc_{rnn_desc}, wDesc_{wDesc}, w_{w}, reserve_{reserve}, workspace_{workspace} {}
+    GenericRnnGradState(cudnnRNNDescriptor_t rnn_desc, cudnnFilterDescriptor_t w_desc, Array w, Array reserve, Array workspace)
+        : rnn_desc_{rnn_desc}, w_desc_{w_desc}, w_{std::move(w)}, reserve_{std::move(reserve)}, workspace_{std::move(workspace)} {}
     cudnnRNNDescriptor_t rnn_desc() { return rnn_desc_; }
-    cudnnFilterDescriptor_t wDesc() { return wDesc_; }
+    cudnnFilterDescriptor_t wDesc() { return w_desc_; }
     Array w() { return w_; }
     Array reserve() { return reserve_; }
     Array workspace() { return workspace_; }
 
 private:
     cudnnRNNDescriptor_t rnn_desc_;
-    cudnnFilterDescriptor_t wDesc_;
+    cudnnFilterDescriptor_t w_desc_;
     Array w_;
     Array reserve_;
     Array workspace_;

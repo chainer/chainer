@@ -7,6 +7,7 @@
 #include <vector>
 
 #include <absl/types/optional.h>
+#include <gsl/gsl>
 
 #include "chainerx/array.h"
 #include "chainerx/backprop_mode.h"
@@ -54,7 +55,7 @@ int64_t GetConvTransposeOutDim(int64_t in_dim, int64_t kernel_size, int64_t stri
     return stride * (in_dim - 1) + kernel_size - 2 * pad;
 }
 
-std::vector<Array> ExtractGates(Array x) {
+std::vector<Array> ExtractGates(const Array& x) {
     StackVector<int64_t, kMaxNdim> shape_vec;
     shape_vec.emplace_back(x.shape()[0]);
     shape_vec.emplace_back(static_cast<int64_t>(x.shape()[1] / 4));
@@ -65,8 +66,9 @@ std::vector<Array> ExtractGates(Array x) {
     Shape shape{shape_vec};
     Array x_r = Reshape(x, shape);
     std::vector<Array> gates = Split(x_r, 4, 2);
-    for (size_t i = 0; i < gates.size(); i++) {
-        gates[i] = Squeeze(gates[i]);
+    int index = 0;
+    for (auto& gate : gates) {
+        gates[index++] = Squeeze(gate);
     }
     return gates;
 }
@@ -422,13 +424,13 @@ std::vector<Array> Lstm(const Array& c, const Array& x) {
         Array z[4];
         for (int64_t i = 0; i < 4; i++) {
             if (i == 2) {
-                z[i] = Ones(out_shape, dtype, x.device());
+                gsl::at(z, i) = Ones(out_shape, dtype, x.device());
             } else {
-                z[i] = Zeros(out_shape, dtype, x.device());
+                gsl::at(z, i) = Zeros(out_shape, dtype, x.device());
             }
             std::vector<Array> v;
             v.emplace_back(x_split[i]);
-            v.emplace_back(z[i]);
+            v.emplace_back(gsl::at(z, i));
             x_split[i] = Concatenate(v, 0);
         }
     }

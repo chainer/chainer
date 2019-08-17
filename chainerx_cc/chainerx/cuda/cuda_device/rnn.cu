@@ -54,7 +54,7 @@ void InitGPUData(float* data, int64_t num_elements, float* value) {
     dim3 grid_dim;
     dim3 block_dim;
     block_dim.x = 1024;
-    grid_dim.x = (num_elements + blockDim.x - 1) / blockDim.x;
+    grid_dim.x = (num_elements + block_dim.x - 1) / block_dim.x;
     InitGpuDataKer<<<grid_dim, block_dim>>>(data, num_elements, value);
 }
 
@@ -203,8 +203,8 @@ public:
             const std::vector<std::vector<Array>>& ws,
             const std::vector<std::vector<Array>>& bs,
             const std::vector<Array>& xs,
-            const int8_t bidirectional,
-            const int8_t mode,
+            int8_t bidirectional,
+            int8_t mode,
             absl::optional<std::string> activation) override {
         CudaDevice& device = dynamic_cast<CudaDevice&>(hx.device());
         CudaSetDeviceScope scope{device.index()};
@@ -362,7 +362,7 @@ public:
             absl::optional<Array> dcy,
             std::vector<Array> ys,
             std::vector<Array> dys,
-            const int8_t bidirectional,
+            int8_t bidirectional,
             const std::shared_ptr<chainerx::RnnGradState>& state) override {
         CudaDevice& device = dynamic_cast<CudaDevice&>(hx.device());
         CudaSetDeviceScope scope{device.index()};
