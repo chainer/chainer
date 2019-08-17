@@ -281,7 +281,7 @@ void InitChainerxCreation(pybind11::module& m) {
 void InitChainerxEvaluation(pybind11::module& m) {
     // evaluation routines
     m.def("accuracy",
-          [](const ArrayBodyPtr& y, const ArrayBodyPtr& t, const absl::optional<int8_t>& ignore_label) {
+          [](const ArrayBodyPtr& y, const ArrayBodyPtr& t, const absl::optional<int64_t>& ignore_label) {
               return MoveArrayBody(Accuracy(Array{y}, Array{t}, ignore_label));
           },
           "y"_a,
