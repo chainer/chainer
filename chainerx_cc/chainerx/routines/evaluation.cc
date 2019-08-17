@@ -30,8 +30,8 @@ Array Accuracy(const Array& y, const Array& t, const absl::optional<int8_t>& ign
         Array count = Sum(Equal(pred, t)) - ignore_cnt;
         Scalar size{t.GetTotalSize()};
         Scalar total = size - AsScalar(ignore_cnt);
-        if (total == 0.0) {
-            return Array{0}.AsType(y.dtype());
+        if (total == 0) {
+            return Zeros({1}, y.dtype());
         } else {
             return Divide(count, total).AsType(y.dtype());
         }

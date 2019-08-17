@@ -20,8 +20,8 @@ _in_out_eval_dtypes = [
 class EvalBase(op_utils.ChainerOpTest):
 
     def generate_inputs(self):
-        x_dtype, t_dtype = self.in_dtypes
-        y = numpy.random.uniform(-1, 1, self.x_shape).astype(x_dtype)
+        y_dtype, t_dtype = self.in_dtypes
+        y = numpy.random.uniform(-1, 1, self.y_shape).astype(y_dtype)
         targ = numpy.random.randint(
             3, size=self.t_shape).astype(t_dtype)
         return y, targ
@@ -41,7 +41,9 @@ class EvalBase(op_utils.ChainerOpTest):
 @chainer.testing.parameterize(*(
     chainer.testing.product([
         chainer.testing.from_pytest_parameterize(
-            'x_shape,t_shape', [
+            'y_shape,t_shape', [
+                ((10, 1), (10,)),
+                ((5, 1), (5,)),
                 ((10, 3), (10,)),
                 ((10, 3, 1), (10,)),
                 ((10, 3, 1, 1), (10,)),
@@ -60,6 +62,14 @@ class TestAccuracy(EvalBase):
 
     skip_backward_test = True
     skip_double_backward_test = True
+
+    def generate_inputs(self):
+        y, t = super().generate_inputs()
+        # TODO(aksub99): Improve tests for the case
+        # where all labels are ignored.
+        if y.shape == (10, 1) or y.shape == (5, 1):
+            self.ignore_label = 0
+        return y, t
 
     def forward_xp(self, inputs, xp):
         y, t = inputs
