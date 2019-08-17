@@ -28,7 +28,7 @@ public:
 
 class ArcsinhKernel : public Kernel {
 public:
-    static const char* name() { return "Archsinh"; }
+    static const char* name() { return "Arcsinh"; }
 
     virtual void Call(const Array& x, const Array& out) = 0;
 };
