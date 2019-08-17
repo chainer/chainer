@@ -27,7 +27,7 @@ namespace chainerx {
 
 namespace {
 
-    std::vector<Array> ExtractGates(Array x, int64_t n_splits) {
+std::vector<Array> ExtractGates(Array x, int64_t n_splits) {
     StackVector<int64_t, kMaxNdim> shape_vec;
     shape_vec.emplace_back(x.shape()[0]);
     shape_vec.emplace_back(n_splits);
@@ -41,7 +41,7 @@ namespace {
     return x_split;
 }
 
-}  // namespace  
+}  // namespace
 
 Array ClippedRelu(const Array& x, Scalar z) {
     Dtype dtype = internal::GetMathResultDtype(x.dtype());
