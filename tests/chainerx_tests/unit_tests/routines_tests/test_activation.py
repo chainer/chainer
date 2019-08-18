@@ -1,7 +1,6 @@
 import random
 import chainer
 import numpy
-import chainerx
 
 from chainer import utils
 from chainerx_tests import array_utils
