@@ -27,7 +27,7 @@ namespace chainerx {
 
 namespace {
 
-    std::vector<Array> ExtractGates(Array x, int64_t n_splits, int64_t axis) {
+std::vector<Array> ExtractGates(Array x, int64_t n_splits, int64_t axis) {
     StackVector<int64_t, kMaxNdim> shape_vec;
     shape_vec.emplace_back(x.shape()[0]);
     if (axis == 1) {
