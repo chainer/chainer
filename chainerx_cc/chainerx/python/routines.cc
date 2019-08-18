@@ -647,17 +647,6 @@ void InitChainerxActivation(pybind11::module& m) {
           [](const ArrayBodyPtr& x, Scalar slope) { return MoveArrayBody(LeakyRelu(Array{x}, slope)); },
           "x"_a,
           "slope"_a = 0.2);
-    m.def("tree_lstm", [](py::args args) {
-        std::vector<ArrayBodyPtr> arrays = py::cast<std::vector<ArrayBodyPtr>>(args);
-        std::vector<Array> input;
-        for (uint i = 0; i < arrays.size(); i++) {
-            input.push_back(Array{arrays[i]});
-        }
-        return ToTuple(TreeLstm(input));
-    });
-    m.def("slstm", [](const ArrayBodyPtr& c1, const ArrayBodyPtr& c2, const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) {
-        return ToTuple(SLSTM(Array{c1}, Array{c2}, Array{x1}, Array{x2}));
-    });
     m.def("softplus", [](const ArrayBodyPtr& x, double beta) { return MoveArrayBody(Softplus(Array{x}, beta)); }, "x"_a, "beta"_a = 1.0);
 }
 
