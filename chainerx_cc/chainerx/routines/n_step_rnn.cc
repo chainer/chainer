@@ -197,7 +197,7 @@ template <typename Impl>
 std::vector<std::vector<Array>> NStepRnnImpl(
         Impl&& impl,
         int64_t n_layers,
-        Array hx,
+        const Array& hx,
         absl::optional<Array> cx,
         const std::vector<std::vector<Array>>& ws,
         const std::vector<std::vector<Array>>& bs,
@@ -439,7 +439,7 @@ std::vector<std::vector<Array>> NStepLstm(
         const std::vector<std::vector<Array>>& bs,
         std::vector<Array>& xs) {
     hx.device().CheckDevicesCompatible(hx, cx, ws[0][0], bs[0][0], xs[0]);
-    return NStepRnnImpl(&LstmImpl, n_layers, std::move(hx), absl::optional<Array>{cx}, ws, bs, xs, 0, 1, absl::nullopt);
+    return NStepRnnImpl(&LstmImpl, n_layers, hx, absl::optional<Array>{cx}, ws, bs, xs, 0, 1, absl::nullopt);
 }
 
 std::vector<std::vector<Array>> NStepBiLstm(
@@ -450,7 +450,7 @@ std::vector<std::vector<Array>> NStepBiLstm(
         const std::vector<std::vector<Array>>& bs,
         std::vector<Array>& xs) {
     hx.device().CheckDevicesCompatible(hx, cx, ws[0][0], bs[0][0], xs[0]);
-    return NStepRnnImpl(&LstmImpl, n_layers, std::move(hx), absl::optional<Array>{cx}, ws, bs, xs, 1, 1, absl::nullopt);
+    return NStepRnnImpl(&LstmImpl, n_layers, hx, absl::optional<Array>{cx}, ws, bs, xs, 1, 1, absl::nullopt);
 }
 
 std::vector<std::vector<Array>> NStepGru(
@@ -461,7 +461,7 @@ std::vector<std::vector<Array>> NStepGru(
         std::vector<Array>& xs) {
     hx.device().CheckDevicesCompatible(hx, ws[0][0], bs[0][0], xs[0]);
 
-    return NStepRnnImpl(&GruImpl, n_layers, std::move(hx), absl::nullopt, ws, bs, xs, 0, 0, absl::nullopt);
+    return NStepRnnImpl(&GruImpl, n_layers, hx, absl::nullopt, ws, bs, xs, 0, 0, absl::nullopt);
 }
 
 std::vector<std::vector<Array>> NStepBiGru(
@@ -472,7 +472,7 @@ std::vector<std::vector<Array>> NStepBiGru(
         std::vector<Array>& xs) {
     hx.device().CheckDevicesCompatible(hx, ws[0][0], bs[0][0], xs[0]);
 
-    return NStepRnnImpl(&GruImpl, n_layers, std::move(hx), absl::nullopt, ws, bs, xs, 1, 0, absl::nullopt);
+    return NStepRnnImpl(&GruImpl, n_layers, hx, absl::nullopt, ws, bs, xs, 1, 0, absl::nullopt);
 }
 
 std::vector<std::vector<Array>> NStepRnn(
@@ -483,7 +483,7 @@ std::vector<std::vector<Array>> NStepRnn(
         std::vector<Array>& xs,
         absl::optional<std::string> activation) {
     hx.device().CheckDevicesCompatible(hx, ws[0][0], bs[0][0], xs[0]);
-    return NStepRnnImpl(&RnnImpl, n_layers, std::move(hx), absl::nullopt, ws, bs, xs, 0, 2, std::move(activation));
+    return NStepRnnImpl(&RnnImpl, n_layers, hx, absl::nullopt, ws, bs, xs, 0, 2, std::move(activation));
 }
 
 std::vector<std::vector<Array>> NStepBiRnn(
@@ -494,7 +494,7 @@ std::vector<std::vector<Array>> NStepBiRnn(
         std::vector<Array>& xs,
         absl::optional<std::string> activation) {
     hx.device().CheckDevicesCompatible(hx, ws[0][0], bs[0][0], xs[0]);
-    return NStepRnnImpl(&RnnImpl, n_layers, std::move(hx), absl::nullopt, ws, bs, xs, 1, 2, std::move(activation));
+    return NStepRnnImpl(&RnnImpl, n_layers, hx, absl::nullopt, ws, bs, xs, 1, 2, std::move(activation));
 }
 
 }  // namespace chainerx
