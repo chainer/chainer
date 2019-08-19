@@ -350,20 +350,19 @@ std::tuple<Array, Array> Eigh(const Array& a, char uplo) {
     {
         BackwardBuilder bb{"eigh", a, {w, v}};
         if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-            bt.Define([a_tok = bb.RetainInput(0), w_tok = bb.RetainOutput(0), v_tok = bb.RetainOutput(1)](BackwardContext& bctx) {
-                const Array& a = bctx.GetRetainedInput(a_tok);
+            bt.Define([w_tok = bb.RetainOutput(0), v_tok = bb.RetainOutput(1), a_dtype = a.dtype(), &a_device = a.device()](BackwardContext& bctx) {
                 const Array& w = bctx.GetRetainedOutput(w_tok);
                 const Array& v = bctx.GetRetainedOutput(v_tok);
 
-                const Array& gw = bctx.output_grad(0).has_value() ? *bctx.output_grad(0) : Zeros(w.shape(), a.dtype(), a.device());
-                const Array& gv = bctx.output_grad(1).has_value() ? *bctx.output_grad(1) : Zeros(v.shape(), a.dtype(), a.device());
+                const Array& gw = bctx.output_grad(0).has_value() ? *bctx.output_grad(0) : Zeros(w.shape(), a_dtype, a_device);
+                const Array& gv = bctx.output_grad(1).has_value() ? *bctx.output_grad(1) : Zeros(v.shape(), a_dtype, a_device);
 
                 Array vt = v.Transpose();
 
                 Array f = ExpandDims(w, 0) - ExpandDims(w, 1);
                 // Invert values of `f`, and fill the diagonal with 0s.
                 // `f` has 0s on the diagonal, therefore fill it first with infinity.
-                Array mask = Eye(f.shape()[0], f.shape()[1], 0, Dtype::kBool, a.device());
+                Array mask = Eye(f.shape()[0], f.shape()[1], 0, Dtype::kBool, a_device);
                 f = Where(mask, std::numeric_limits<float>::infinity(), f);
                 f = Reciprocal(f);
 
