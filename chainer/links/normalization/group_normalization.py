@@ -58,13 +58,9 @@ class GroupNormalization(link.Link):
 
         with self.init_scope():
             self.groups = groups
-            if initial_gamma is None:
-                initial_gamma = 1
             gamma_initializer = \
                 initializers._get_initializer(initial_gamma)
             gamma_initializer.dtype = highprec_dtype
-            if initial_beta is None:
-                initial_beta = 0
             beta_initializer = \
                 initializers._get_initializer(initial_beta)
             beta_initializer.dtype = highprec_dtype
