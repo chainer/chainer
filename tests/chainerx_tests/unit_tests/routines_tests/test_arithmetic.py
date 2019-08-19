@@ -1438,8 +1438,8 @@ class TestReciprocal(math_utils.UnaryMathTestBase, op_utils.NumpyOpTest):
         'input_rhs': [3, -3, 'random'],
         'is_module': [True, False],
     })
-    # Special values. Remove nan/inf
-    # since chainerx.remainder returns nan when numpy.remainder returns inf
+    # Special values.
+    # TODO(nakasuka): Add tests for inf and NaN.
     + chainer.testing.product({
         'in_shapes': [((2, 3), (2, 3))],
         'in_dtypes,out_dtype': _in_out_dtypes_arithmetic,
@@ -1508,8 +1508,8 @@ def test_remainder_invalid_dtypes(device, dtypes, is_module):
         'input_lhs': [5, -5, 'random'],
         'input_rhs': [3, -3, 'random'],
     })
-    # Special values. Remove nan/inf
-    # since chainerx.remainder returns nan when numpy.remainder returns inf
+    # Special values.
+    # TODO(nakasuka): Add tests for inf and NaN.
     + chainer.testing.product({
         'in_shapes': [((2, 3), (2, 3))],
         'in_dtypes,out_dtype': _in_out_dtypes_inplace_arithmetic,
@@ -1583,8 +1583,8 @@ def test_iremainder_invalid_dtypes(device, dtypes):
         'is_module': [True, False],
         'is_scalar_rhs': [True, False],
     })
-    # Special values. Remove nan/inf
-    # since chainerx.remainder returns nan when numpy.remainder returns inf
+    # Special values.
+    # TODO(nakasuka): Add tests for inf and NaN.
     + chainer.testing.product({
         'shape': [(2, 3)],
         'in_dtypes,scalar_type,out_dtype': _in_out_dtypes_arithmetic_scalar,
@@ -1600,20 +1600,17 @@ class TestRemainderScalar(math_utils.MathScalarTestBase, op_utils.NumpyOpTest):
     dodge_nondifferentiable = True
 
     def generate_inputs(self):
-        # Do not divide by small number to avoid ridiculously large outputs.
+        # Avoid (-0.5, 0.5) interval
         if not self.is_scalar_rhs and self.input == 'random':
             in_dtype, = self.in_dtypes
             low = -5 if numpy.dtype(in_dtype).kind != 'u' else 2
             high = 5
             x = array_utils.uniform(self.shape, in_dtype, low=low, high=high)
-            x[(-1 < x) & (x < 0)] = -2
-            x[(0 <= x) & (x < 1)] = 2
+            x[numpy.logical_and(-0.5 < x, x < 0.5)] = 1
             return x,
         return super().generate_inputs()
 
     def func_scalar(self, xp, a, scalar):
-        print(a)
-        print(scalar)
         if self.is_module:
             if self.is_scalar_rhs:
                 return a % scalar
@@ -1644,8 +1641,8 @@ class TestRemainderScalar(math_utils.MathScalarTestBase, op_utils.NumpyOpTest):
         'input': ['random'],
         'scalar_value': [2, 3],
     })
-    # Special values. Remove nan/inf
-    # since chainerx.remainder returns nan when numpy.remainder returns inf
+    # Special values.
+    # TODO(nakasuka): Add tests for inf and NaN.
     + chainer.testing.product({
         'shape': [(2, 3)],
         'in_dtypes,scalar_type,out_dtype':

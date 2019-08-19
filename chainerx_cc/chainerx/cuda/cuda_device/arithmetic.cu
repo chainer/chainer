@@ -288,10 +288,7 @@ __device__ T ModSignedIntegerImpl(T x, T y) {
         return 0;
     }
     T ret = x % y;
-    if (ret > 0 && y < 0) {
-        return y + ret;
-    }
-    if (ret < 0 && y > 0) {
+    if ((ret > 0 && y < 0) || (ret < 0 && y > 0)){
         return y + ret;
     }
     return ret;
@@ -312,10 +309,7 @@ __device__ T ModFloatImpl(T x, T y) {
         return NAN;
     }
     T ret = std::fmod(x, y);
-    if (ret > 0 && y < 0) {
-        return y + ret;
-    }
-    if (ret < 0 && y > 0) {
+    if ((ret > 0 && y < 0) || (ret < 0 && y > 0)){
         return y + ret;
     }
     return ret;
