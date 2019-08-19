@@ -179,7 +179,7 @@ TEST(CudaDeviceTest, MemoryPoolHook) {
     CudaDevice& device = GetCudaDevice(ctx, 0);
     const std::shared_ptr<MemoryPool> memory_pool = device.device_memory_pool();
     bool called = false;
-    auto hook = [&called](size_t, MemoryPool&) { called = true; };
+    auto hook = [&called](MemoryPool&, size_t) { called = true; };
     memory_pool->SetMallocPreprocessHook(hook);
 
     EXPECT_FALSE(called);

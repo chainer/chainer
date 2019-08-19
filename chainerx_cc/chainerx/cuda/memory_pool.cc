@@ -204,7 +204,7 @@ void MemoryPool::FreeUnusedBlocks() {
 
 void* MemoryPool::Malloc(size_t bytesize) {
     if (malloc_preprocess_hook_) {
-        malloc_preprocess_hook_(bytesize, *this);
+        malloc_preprocess_hook_(*this, bytesize);
     }
 
     if (bytesize == 0) {
@@ -253,7 +253,7 @@ void* MemoryPool::Malloc(size_t bytesize) {
     }
 
     if (malloc_postprocess_hook_) {
-        malloc_postprocess_hook_(bytesize, chunk_ptr, *this);
+        malloc_postprocess_hook_(*this, bytesize, chunk_ptr);
     }
 
     return chunk_ptr;
@@ -261,7 +261,7 @@ void* MemoryPool::Malloc(size_t bytesize) {
 
 void MemoryPool::Free(void* ptr) {
     if (free_preprocess_hook_) {
-        free_preprocess_hook_(ptr, *this);
+        free_preprocess_hook_(*this, ptr);
     }
 
     if (ptr == nullptr) {
@@ -302,11 +302,6 @@ void MemoryPool::Free(void* ptr) {
 
         PushIntoFreeList(std::move(chunk));
     }
-
-    if (free_postprocess_hook_) {
-        // TODO(mkusumoto): Is this a valid call?
-        free_postprocess_hook_(ptr, *this);
-    }
 }
 
 void MemoryPool::FreeNoExcept(void* ptr) noexcept {
@@ -317,13 +312,11 @@ void MemoryPool::FreeNoExcept(void* ptr) noexcept {
     }
 }
 
-void MemoryPool::SetMallocPreprocessHook(std::function<void(size_t, MemoryPool&)> hook) { malloc_preprocess_hook_ = hook; }
+void MemoryPool::SetMallocPreprocessHook(std::function<void(MemoryPool&, size_t)> hook) { malloc_preprocess_hook_ = std::move(hook); }
 
-void MemoryPool::SetMallocPostprocessHook(std::function<void(size_t, void*, MemoryPool&)> hook) { malloc_postprocess_hook_ = hook; }
+void MemoryPool::SetMallocPostprocessHook(std::function<void(MemoryPool&, size_t, void*)> hook) { malloc_postprocess_hook_ = std::move(hook); }
 
-void MemoryPool::SetFreePreprocessHook(const std::function<void(void*, MemoryPool&)> hook) { free_preprocess_hook_ = hook; }
-
-void MemoryPool::SetFreePostprocessHook(const std::function<void(void*, MemoryPool&)> hook) { free_postprocess_hook_ = hook; }
+void MemoryPool::SetFreePreprocessHook(std::function<void(MemoryPool&, void*)> hook) { free_preprocess_hook_ = std::move(hook); }
 
 }  // namespace cuda
 }  // namespace chainerx
