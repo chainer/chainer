@@ -17,8 +17,8 @@
 namespace chainerx {
 
 namespace internal {
-CHAINERX_REGISTER_KEY_KERNEL(AMax)
-CHAINERX_REGISTER_KEY_KERNEL(AMin)
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(AMax)
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(AMin)
 }  // namespace internal
 
 namespace native {

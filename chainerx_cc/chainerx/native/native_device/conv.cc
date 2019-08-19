@@ -30,9 +30,9 @@
 namespace chainerx {
 
 namespace internal {
-CHAINERX_REGISTER_KEY_KERNEL(Conv)
-CHAINERX_REGISTER_KEY_KERNEL(ConvTranspose)
-CHAINERX_REGISTER_KEY_KERNEL(ConvGradWeight)
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(Conv)
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(ConvTranspose)
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(ConvGradWeight)
 }  // namespace internal
 
 namespace native {

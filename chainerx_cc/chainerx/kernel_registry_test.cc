@@ -15,6 +15,7 @@
 #include "chainerx/util.h"
 
 namespace chainerx {
+namespace {
 
 class MyKernel : public Kernel {
 public:
@@ -30,22 +31,24 @@ public:
     virtual std::string Call(const std::string& a, float b) { return a + std::to_string(b); }
 };
 
-class MyChild2Kernel : public Kernel {
+class MyChildKernel2 : public Kernel {
 public:
     virtual std::string Call(int a, const std::string& b) { return std::to_string(a) + b; }
 };
 
-class MyParent2Kernel : public Kernel {
+class MyParentKernel2 : public Kernel {
 public:
     virtual std::string Call(const std::string& a, float b) { return a + std::to_string(b); }
 };
 
+}  // namespace
+
 namespace internal {
-CHAINERX_REGISTER_KEY_KERNEL(My);
-CHAINERX_REGISTER_KEY_KERNEL(MyChild);
-CHAINERX_REGISTER_KEY_KERNEL(MyParent);
-CHAINERX_REGISTER_KEY_KERNEL(MyChild2);
-CHAINERX_REGISTER_KEY_KERNEL(MyParent2);
+CHAINERX_REGISTER_KEY_KERNEL(MyKernel);
+CHAINERX_REGISTER_KEY_KERNEL(MyChildKernel);
+CHAINERX_REGISTER_KEY_KERNEL(MyParentKernel);
+CHAINERX_REGISTER_KEY_KERNEL(MyChildKernel2);
+CHAINERX_REGISTER_KEY_KERNEL(MyParentKernel2);
 }  // namespace internal
 
 namespace {
@@ -131,10 +134,10 @@ TEST(KernelRegistryTest, KernelRegistryThreadSafe) {
                 kernel_registry1.GetKernel<MyParentKernel>();
                 break;
             case 2:
-                kernel_registry1.RegisterKernel<MyChild2Kernel, MyChild2Kernel>();
+                kernel_registry1.RegisterKernel<MyChildKernel2, MyChildKernel2>();
                 break;
             case 3:
-                parent_kernel_registry.RegisterKernel<MyParent2Kernel, MyParent2Kernel>();
+                parent_kernel_registry.RegisterKernel<MyParentKernel2, MyParentKernel2>();
                 break;
             default:
                 CHAINERX_NEVER_REACH();

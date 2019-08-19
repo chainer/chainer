@@ -4,9 +4,9 @@
 namespace chainerx {
 
 namespace internal {
-CHAINERX_REGISTER_KEY_KERNEL(BatchNorm)
-CHAINERX_REGISTER_KEY_KERNEL(BatchNormGrad)
-CHAINERX_REGISTER_KEY_KERNEL(FixedBatchNorm)
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(BatchNorm)
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(BatchNormGrad)
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(FixedBatchNorm)
 }  // namespace internal
 
 namespace native {

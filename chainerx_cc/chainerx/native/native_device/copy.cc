@@ -12,7 +12,7 @@
 namespace chainerx {
 
 namespace internal {
-CHAINERX_REGISTER_KEY_KERNEL(Copy)
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(Copy)
 }  // namespace internal
 
 namespace native {

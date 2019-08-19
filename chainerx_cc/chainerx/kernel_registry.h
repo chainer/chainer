@@ -18,15 +18,17 @@ template <typename KeyKernelType>
 std::type_index GetKeyKernelTypeIndex();
 
 // Note this macro must be used in `chainerx::internal` namespace.
-#define CHAINERX_REGISTER_KEY_KERNEL(name)                            \
-    template <>                                                       \
-    const char* GetKeyKernelName<chainerx::name##Kernel>() {          \
-        return #name;                                                 \
-    }                                                                 \
-    template <>                                                       \
-    std::type_index GetKeyKernelTypeIndex<chainerx::name##Kernel>() { \
-        return typeid(chainerx::name##Kernel);                        \
+#define CHAINERX_REGISTER_KEY_KERNEL(cls, name)    \
+    template <>                                    \
+    const char* GetKeyKernelName<cls>() {          \
+        return #name;                              \
+    }                                              \
+    template <>                                    \
+    std::type_index GetKeyKernelTypeIndex<cls>() { \
+        return typeid(cls);                        \
     }
+
+#define CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(cls) CHAINERX_REGISTER_KEY_KERNEL(chainerx::cls##Kernel, cls)
 
 }  // namespace internal
 

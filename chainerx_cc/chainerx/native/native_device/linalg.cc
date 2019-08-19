@@ -81,10 +81,10 @@ void sorgqr_(int* m, int* n, int* k, float* a, int* lda, float* tau, float* work
 namespace chainerx {
 
 namespace internal {
-CHAINERX_REGISTER_KEY_KERNEL(Dot)
-CHAINERX_REGISTER_KEY_KERNEL(Solve)
-CHAINERX_REGISTER_KEY_KERNEL(Inverse)
-CHAINERX_REGISTER_KEY_KERNEL(Svd)
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(Dot)
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(Solve)
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(Inverse)
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(Svd)
 }  // namespace internal
 
 namespace native {
