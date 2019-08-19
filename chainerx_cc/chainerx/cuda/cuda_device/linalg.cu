@@ -356,7 +356,7 @@ public:
                 vt_ptr = static_cast<T*>(internal::GetRawOffsetData(u_temp));
             }
 
-            std::shared_ptr<void> devInfo = device.Allocate(sizeof(int));
+            std::shared_ptr<void> devinfo = device.Allocate(sizeof(int));
 
             int buffersize = 0;
             device_internals.cusolverdn_handle().Call(GesvdBuffersize<T>, m, n, &buffersize);
@@ -388,13 +388,13 @@ public:
                     work_ptr,
                     buffersize,
                     nullptr,
-                    static_cast<int*>(devInfo.get()));
+                    static_cast<int*>(devinfo.get()));
 
-            int devInfo_h = 0;
+            int devinfo_h = 0;
             Device& native_device = GetDefaultContext().GetDevice({"native", 0});
-            device.MemoryCopyTo(&devInfo_h, devInfo.get(), sizeof(int), native_device);
-            if (devInfo_h != 0) {
-                throw ChainerxError{"Unsuccessful gesvd (SVD) execution. Info = ", devInfo_h};
+            device.MemoryCopyTo(&devinfo_h, devinfo.get(), sizeof(int), native_device);
+            if (devinfo_h != 0) {
+                throw ChainerxError{"Unsuccessful gesvd (SVD) execution. Info = ", devinfo_h};
             }
 
             if (trans_flag) {

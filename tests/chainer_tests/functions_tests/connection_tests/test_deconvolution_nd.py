@@ -104,6 +104,17 @@ class TestDeconvolutionND(testing.FunctionTestCase):
             self.check_double_backward_options.update({
                 'atol': 2 ** -4, 'rtol': 2 ** -4})
 
+    def before_test(self, test_name):
+        # cuDNN 5 and 5.1 results suffer from precision issues
+        using_old_cudnn = (self.backend_config.xp is cuda.cupy
+                           and self.backend_config.use_cudnn == 'always'
+                           and cuda.cuda.cudnn.getVersion() < 6000)
+        if using_old_cudnn:
+            self.check_backward_options.update({
+                'atol': 1e-3, 'rtol': 1e-3})
+            self.check_double_backward_options.update({
+                'atol': 1e-3, 'rtol': 1e-3})
+
     def generate_inputs(self):
         W = numpy.random.normal(
             0, self.W_scale, self.W_shape).astype(self.W_dtype)

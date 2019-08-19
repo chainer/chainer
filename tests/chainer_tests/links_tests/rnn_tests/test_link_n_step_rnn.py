@@ -22,13 +22,13 @@ def relu(x):
 class TestNStepRNN(unittest.TestCase):
 
     lengths = [3, 1, 2]
-    n_layer = 2
+    n_layers = 2
     in_size = 3
     out_size = 2
     dropout = 0.0
 
     def setUp(self):
-        shape = (self.n_layer, len(self.lengths), self.out_size)
+        shape = (self.n_layers, len(self.lengths), self.out_size)
         if self.hidden_none:
             self.h = numpy.zeros(shape, 'f')
         else:
@@ -46,7 +46,7 @@ class TestNStepRNN(unittest.TestCase):
         elif self.activation == 'relu':
             rnn_link_class = links.NStepRNNReLU
         self.rnn = rnn_link_class(
-            self.n_layer, self.in_size, self.out_size, self.dropout)
+            self.n_layers, self.in_size, self.out_size, self.dropout)
 
         for layer in self.rnn:
             for p in layer.params():
@@ -70,7 +70,7 @@ class TestNStepRNN(unittest.TestCase):
         self.rnn.to_cpu()
 
         for batch, seq in enumerate(self.xs):
-            for layer in range(self.n_layer):
+            for layer in range(self.n_layers):
                 p = self.rnn[layer]
                 h_prev = self.h[layer, batch]
                 hs = []
@@ -205,13 +205,13 @@ class TestNStepRNN(unittest.TestCase):
 class TestNStepBiRNN(unittest.TestCase):
 
     lengths = [3, 1, 2]
-    n_layer = 2
+    n_layers = 2
     in_size = 3
     out_size = 2
     dropout = 0.0
 
     def setUp(self):
-        shape = (self.n_layer * 2, len(self.lengths), self.out_size)
+        shape = (self.n_layers * 2, len(self.lengths), self.out_size)
         if self.hidden_none:
             self.h = numpy.zeros(shape, 'f')
         else:
@@ -229,7 +229,7 @@ class TestNStepBiRNN(unittest.TestCase):
         elif self.activation == 'relu':
             rnn_link_class = links.NStepBiRNNReLU
         self.rnn = rnn_link_class(
-            self.n_layer, self.in_size, self.out_size, self.dropout)
+            self.n_layers, self.in_size, self.out_size, self.dropout)
 
         for layer in self.rnn:
             for p in layer.params():
@@ -253,7 +253,7 @@ class TestNStepBiRNN(unittest.TestCase):
         self.rnn.to_cpu()
 
         for batch, seq in enumerate(self.xs):
-            for layer in range(self.n_layer):
+            for layer in range(self.n_layers):
                 # forward
                 di = 0
                 layer_idx = layer * 2 + di

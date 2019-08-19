@@ -225,22 +225,24 @@ class SLSTMGrad(function.Function):
         c_prev1, c_prev2, x1, x2, c, gc, gh = inputs
         ggc_prev1, ggc_prev2, ggx1, ggx2 = grads
 
-        if gc is None:
-            gc = xp.zeros_like(c)
-        if gh is None:
-            gh = xp.zeros_like(c)
+        gc_is_none = gc is None
+        gh_is_none = gh is None
+        if gc_is_none:
+            gc = 0
+        if gh_is_none:
+            gh = 0
         if ggc_prev1 is None:
-            ggc_prev1 = xp.zeros_like(c_prev1)
+            ggc_prev1 = 0
         if ggc_prev2 is None:
-            ggc_prev2 = xp.zeros_like(c_prev2)
+            ggc_prev2 = 0
 
         gc_prev1 = xp.empty_like(c_prev1)
         gc_prev2 = xp.empty_like(c_prev2)
         gx1 = xp.empty_like(x1)
         gx2 = xp.empty_like(x2)
         gc_next = xp.empty_like(c)
-        ggc = xp.empty_like(ggc_prev1)
-        ggh = xp.empty_like(gh)
+        ggc = xp.empty_like(c_prev1)
+        ggh = xp.empty_like(c)
 
         a1, i1, f1, o1 = _extract_gates(x1)
         a2, i2, f2, o2 = _extract_gates(x2)
@@ -258,6 +260,13 @@ class SLSTMGrad(function.Function):
                               c_prev2, a2, i2, f2, o, c, gc, gh,
                               ggc_prev1, gga1, ggi1, ggf1, ggo1,
                               ggc_prev2, gga2, ggi2, ggf2, ggo2)
+
+        # If inputs were omitted, omit their gradients.
+        if gc_is_none:
+            ggc = None
+        if gh_is_none:
+            ggh = None
+
         return gc_prev1, gc_prev2, gx1, gx2, gc_next, ggc, ggh
 
 
