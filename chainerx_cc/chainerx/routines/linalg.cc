@@ -341,9 +341,7 @@ Array Cholesky(const Array& a) {
     {
         BackwardBuilder bb{"cholesky", a, out};
         if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-            bt.Define([a_tok = bb.RetainInput(0), out_tok = bb.RetainOutput(0), a_dtype = a.dtype(), &a_device = a.device()](
-                              BackwardContext& bctx) {
-                const Array& a = bctx.GetRetainedInput(a_tok);
+            bt.Define([out_tok = bb.RetainOutput(0), a_dtype = a.dtype(), &a_device = a.device()](BackwardContext& bctx) {
                 const Array& L = bctx.GetRetainedOutput(out_tok);
                 const Array& gL = *bctx.output_grad();
 
