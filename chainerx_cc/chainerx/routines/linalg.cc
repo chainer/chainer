@@ -343,7 +343,6 @@ std::tuple<Array, Array> Eigh(const Array& a, char uplo) {
     {
         NoBackpropModeScope scope{};
         a.device().backend().CallKernel<SyevdKernel>(a, w, v, uplo, /*compute_v=*/true);
-        v = v.Transpose();
     }
 
     // Reference:

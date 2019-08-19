@@ -524,6 +524,9 @@ public:
             if (devinfo_h != 0) {
                 throw ChainerxError{"Unsuccessful syevd (Eigen Decomposition) execution. Info = ", devinfo_h};
             }
+
+            // v is stored now in column-major order, need to transform it to row-major
+            device.backend().CallKernel<CopyKernel>(v.Transpose(), v);
         };
 
         VisitFloatingPointDtype(dtype, syevd_impl);
