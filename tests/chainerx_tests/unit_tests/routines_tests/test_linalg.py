@@ -9,8 +9,6 @@ from chainerx_tests import array_utils
 from chainerx_tests import dtype_utils
 from chainerx_tests import op_utils
 
-from distutils.version import LooseVersion
-
 
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize_pytest('a_shape,b_shape', [
@@ -394,7 +392,7 @@ class TestQR(NumpyLinalgOpTest):
 
     def forward_xp(self, inputs, xp):
         a, = inputs
-        if (LooseVersion(numpy.__version__) < LooseVersion('1.16.0')
+        if (numpy.lib.NumpyVersion(numpy.__version__) < '1.16.0'
                 and a.size == 0):
             pytest.skip('Older NumPy versions do not work with empty arrays')
         out = xp.linalg.qr(a, mode=self.mode)
