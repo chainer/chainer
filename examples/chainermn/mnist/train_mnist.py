@@ -83,7 +83,6 @@ def main():
 
     model = L.Classifier(MLP(args.unit, 10))
 
-    print(device)
     model.to_device(device)
 
     # Create a multi node optimizer from a standard Chainer optimizer.
