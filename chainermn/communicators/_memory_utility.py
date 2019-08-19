@@ -93,7 +93,7 @@ class DeviceMemory(object):
                 array,
                 array.device.index),
             0)
-            
+
     def from_device(self, src, size, offset=0, stream=None):
         dst = self.memory + offset
         xp = chainer.backend.get_array_module(src)
@@ -414,4 +414,3 @@ def _cupy_batched_unpack_params():
             }
        }
     }''', 'cupy_batched_unpack_params')
-
