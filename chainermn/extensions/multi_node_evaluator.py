@@ -220,7 +220,7 @@ def create_multi_node_evaluator(actual_evaluator, communicator):
         local_mean_dict = self._mn_original_evaluate()
 
         # ChainerX support:
-        # We need convert chainerx ndarray to CuPy array because
+        # We need convert chainerx ndarray to Native array because
         #   (1) allreduce_obj is used to compute global mean values
         #   (2) allreduce_obj calls mpi4py.allreduce, which pickles the object
         #   (3) chainerx.ndarray preserves CUDA device internally when pickled
