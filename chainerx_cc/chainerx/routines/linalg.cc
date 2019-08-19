@@ -370,12 +370,11 @@ std::tuple<Array, Array> Qr(const Array& a, QrMode mode) {
     {
         BackwardBuilder bb{"qr", a, {q, r}};
         if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-            bt.Define([a_tok = bb.RetainInput(0), q_tok = bb.RetainOutput(0), r_tok = bb.RetainOutput(1), mode](BackwardContext& bctx) {
+            bt.Define([q_tok = bb.RetainOutput(0), r_tok = bb.RetainOutput(1), mode](BackwardContext& bctx) {
                 if (mode == QrMode::kR || mode == QrMode::kRaw) {
                     throw ChainerxError{"ChainerX QR differentiation is not implemented for 'r' or 'raw' modes."};
                 }
 
-                const Array& a = bctx.GetRetainedInput(a_tok);
                 const Array& q = bctx.GetRetainedOutput(q_tok);
                 const Array& r = bctx.GetRetainedOutput(r_tok);
 
