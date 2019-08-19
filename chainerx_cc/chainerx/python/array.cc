@@ -61,7 +61,7 @@ using py::literals::operator""_a;
 
 py::tuple ToTuple(const std::vector<Array>& ary) {
     py::tuple ret{ary.size()};
-    for (uint i = 0; i < ary.size(); i++) {
+    for (size_t i = 0; i < ary.size(); i++) {
         ret[i] = GetArrayBody(ary[i]);
     }
     return ret;
