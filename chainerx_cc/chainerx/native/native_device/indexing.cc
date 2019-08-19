@@ -15,6 +15,16 @@
 #include "chainerx/shape.h"
 
 namespace chainerx {
+
+namespace internal {
+CHAINERX_REGISTER_KEY_KERNEL(AddAt)
+CHAINERX_REGISTER_KEY_KERNEL(Take)
+CHAINERX_REGISTER_KEY_KERNEL(Where)
+CHAINERX_REGISTER_KEY_KERNEL(WhereAAS)
+CHAINERX_REGISTER_KEY_KERNEL(WhereASA)
+CHAINERX_REGISTER_KEY_KERNEL(WhereASS)
+}  // namespace internal
+
 namespace native {
 namespace {
 

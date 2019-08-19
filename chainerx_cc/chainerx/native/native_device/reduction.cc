@@ -17,6 +17,17 @@
 #include "chainerx/shape.h"
 
 namespace chainerx {
+
+namespace internal {
+CHAINERX_REGISTER_KEY_KERNEL(ArgMax)
+CHAINERX_REGISTER_KEY_KERNEL(ArgMin)
+CHAINERX_REGISTER_KEY_KERNEL(NanArgMax)
+CHAINERX_REGISTER_KEY_KERNEL(NanArgMin)
+CHAINERX_REGISTER_KEY_KERNEL(Sum)
+CHAINERX_REGISTER_KEY_KERNEL(Cumsum)
+CHAINERX_REGISTER_KEY_KERNEL(Nansum)
+}  // namespace internal
+
 namespace native {
 namespace {
 

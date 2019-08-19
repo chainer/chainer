@@ -13,6 +13,18 @@
 #include "chainerx/routines/type_util.h"
 
 namespace chainerx {
+
+namespace internal {
+CHAINERX_REGISTER_KEY_KERNEL(Fill)
+CHAINERX_REGISTER_KEY_KERNEL(Sqrt)
+CHAINERX_REGISTER_KEY_KERNEL(Square)
+CHAINERX_REGISTER_KEY_KERNEL(Fabs)
+CHAINERX_REGISTER_KEY_KERNEL(Sign)
+CHAINERX_REGISTER_KEY_KERNEL(IfLessElseASSA)
+CHAINERX_REGISTER_KEY_KERNEL(IfGreaterElseASSA)
+CHAINERX_REGISTER_KEY_KERNEL(IfGreaterElseAAAA)
+}  // namespace internal
+
 namespace native {
 namespace {
 

@@ -17,6 +17,16 @@
 #include "chainerx/shape.h"
 
 namespace chainerx {
+
+namespace internal {
+CHAINERX_REGISTER_KEY_KERNEL(Arange)
+CHAINERX_REGISTER_KEY_KERNEL(Identity)
+CHAINERX_REGISTER_KEY_KERNEL(Eye)
+CHAINERX_REGISTER_KEY_KERNEL(Diagflat)
+CHAINERX_REGISTER_KEY_KERNEL(Linspace)
+CHAINERX_REGISTER_KEY_KERNEL(Tri)
+}  // namespace internal
+
 namespace native {
 namespace {
 

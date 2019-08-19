@@ -1,5 +1,0 @@
-#include "chainerx/kernels/connection.h"
-
-CHAINERX_REGISTER_KEY_KERNEL(ConvKernel)
-CHAINERX_REGISTER_KEY_KERNEL(ConvTransposeKernel)
-CHAINERX_REGISTER_KEY_KERNEL(ConvGradWeightKernel)

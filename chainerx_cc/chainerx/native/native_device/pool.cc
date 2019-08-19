@@ -33,6 +33,15 @@
 #include "chainerx/shape.h"
 
 namespace chainerx {
+
+namespace internal {
+CHAINERX_REGISTER_KEY_KERNEL(MaxPool)
+CHAINERX_REGISTER_KEY_KERNEL(MaxPoolGrad)
+CHAINERX_REGISTER_KEY_KERNEL(MaxPoolGradGrad)
+CHAINERX_REGISTER_KEY_KERNEL(AveragePool)
+CHAINERX_REGISTER_KEY_KERNEL(AveragePoolGrad)
+}  // namespace internal
+
 namespace native {
 namespace {
 

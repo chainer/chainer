@@ -1,6 +1,0 @@
-#include "chainerx/kernels/linalg.h"
-
-CHAINERX_REGISTER_KEY_KERNEL(DotKernel)
-CHAINERX_REGISTER_KEY_KERNEL(SolveKernel)
-CHAINERX_REGISTER_KEY_KERNEL(InverseKernel)
-CHAINERX_REGISTER_KEY_KERNEL(SvdKernel)
