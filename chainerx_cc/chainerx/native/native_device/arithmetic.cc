@@ -240,7 +240,7 @@ int64_t Mod(int64_t x, int64_t y) {
         return 0;
     }
     int64_t ret = x % y;
-    if ((ret > 0 && y < 0) || (ret < 0 && y > 0)){
+    if ((ret > 0 && y < 0) || (ret < 0 && y > 0)) {
         return y + ret;
     }
     return ret;
@@ -260,7 +260,7 @@ T ModFloatImpl(T x, T y) {
         return NAN;
     }
     T ret = std::fmod(x, y);
-    if ((ret > 0 && y < 0) || (ret < 0 && y > 0)){
+    if ((ret > 0 && y < 0) || (ret < 0 && y > 0)) {
         return y + ret;
     }
     return ret;

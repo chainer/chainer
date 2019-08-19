@@ -10,8 +10,10 @@ from chainerx_tests import dtype_utils
 from chainerx_tests import math_utils
 from chainerx_tests import op_utils
 
+
 def test_mod_remainder():
     assert chainerx.remainder is chainerx.mod
+
 
 _in_out_dtypes_arithmetic_invalid = [
     (('bool_', 'bool_'), 'bool_'),
