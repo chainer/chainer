@@ -314,7 +314,9 @@ void MemoryPool::FreeNoExcept(void* ptr) noexcept {
 
 void MemoryPool::SetMallocPreprocessHook(std::function<void(MemoryPool&, size_t)> hook) { malloc_preprocess_hook_ = std::move(hook); }
 
-void MemoryPool::SetMallocPostprocessHook(std::function<void(MemoryPool&, size_t, void*)> hook) { malloc_postprocess_hook_ = std::move(hook); }
+void MemoryPool::SetMallocPostprocessHook(std::function<void(MemoryPool&, size_t, void*)> hook) {
+    malloc_postprocess_hook_ = std::move(hook);
+}
 
 void MemoryPool::SetFreePreprocessHook(std::function<void(MemoryPool&, void*)> hook) { free_preprocess_hook_ = std::move(hook); }
 
