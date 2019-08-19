@@ -13,9 +13,9 @@ from chainer.testing import backend
 
 @testing.parameterize(*testing.product_dict(
     [
-        {'x': (0, 1, 2), 'w_shape': (5, 3), 'ignore_label': None},
+        {'x': (0, 1, 2), 'w_shape': (5, 3), 'ignore_label': 1},
         {'x': (2, 1, 2), 'w_shape': (6, 3), 'ignore_label': None},
-        {'x': (3, 1), 'w_shape': (4, 3), 'ignore_label': None},
+        {'x': (3, 1), 'w_shape': (4, 3), 'ignore_label': 3},
     ], [
         {'w_dtype': numpy.float16},
         {'w_dtype': numpy.float32},
