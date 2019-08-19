@@ -83,6 +83,9 @@ class DeviceMemory(object):
             self.memory = cp.cuda.alloc(size)
 
     def _get_memory_pointer_from_chainerx(self, array):
+        # Currently, ChainerMN requires CuPy to support ChainerX.
+        # This is because ChainerX's backend does not provide a raw
+        # memory pointer class.
         return cp.cuda.MemoryPointer(
             cp.cuda.UnownedMemory(
                 array.data_ptr + array.offset,
