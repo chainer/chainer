@@ -102,7 +102,8 @@ class DeviceMemory(object):
         elif xp == chx:
             src_data = self._get_memory_pointer_from_chainerx(src)
         else:
-            raise ValueError('{} is an unsupported array module'.format(type(src)))
+            raise ValueError(
+                '{} is from an unsupported array module'.format(type(src)))
         if stream is None:
             dst.copy_from_device(src_data, size)
         else:
@@ -116,7 +117,8 @@ class DeviceMemory(object):
         elif xp == chx:
             dst_data = self._get_memory_pointer_from_chainerx(dst)
         else:
-            raise ValueError('{} is an unsupported array module'.format(type(dst)))
+            raise ValueError(
+                '{} is from an unsupported array module'.format(type(dst)))
         if stream is None:
             dst_data.copy_from_device(src, size)
         else:
@@ -216,7 +218,7 @@ def get_device_memory_pointer(array):
 
     if xp is np:
         return array
-    elif _cupy_avail and xp is cp:
+    elif xp is cp:
         return ctypes.cast(
             array.data.ptr,
             ctypes.POINTER(ctypes.c_ubyte * array.nbytes)
@@ -231,7 +233,8 @@ def get_device_memory_pointer(array):
             ctypes.POINTER(ctypes.c_ubyte * array.nbytes)
         ).contents
     else:
-        raise ValueError('{} is an unsupported array module'.format(type(array)))
+        raise ValueError(
+            '{} is from an unsupported array module'.format(type(array)))
 
 
 def _batched_pack_params(params_data, buffer, dtype, stream=None):
