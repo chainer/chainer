@@ -435,7 +435,7 @@ TEST(MemoryPoolTest, Hook) {
         total_memory -= bytesize;
     };
     memory_pool.SetMallocPostprocessHook(malloc_postprocess_hook);
-    memory_pool.SetFreePreprocessHook(free_preprocess_hook);
+    memory_pool.SetFreeHook(free_preprocess_hook);
 
     EXPECT_EQ(total_memory, 0);
     EXPECT_EQ(memories.size(), 0);

@@ -318,7 +318,7 @@ void MemoryPool::SetMallocPostprocessHook(std::function<void(MemoryPool&, size_t
     malloc_postprocess_hook_ = std::move(hook);
 }
 
-void MemoryPool::SetFreePreprocessHook(std::function<void(MemoryPool&, void*)> hook) { free_preprocess_hook_ = std::move(hook); }
+void MemoryPool::SetFreeHook(std::function<void(MemoryPool&, void*)> hook) { free_preprocess_hook_ = std::move(hook); }
 
 }  // namespace cuda
 }  // namespace chainerx

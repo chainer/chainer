@@ -139,7 +139,7 @@ public:
 
     void SetMallocPreprocessHook(std::function<void(MemoryPool&, size_t)> hook);
     void SetMallocPostprocessHook(std::function<void(MemoryPool&, size_t, void*)> hook);
-    void SetFreePreprocessHook(std::function<void(MemoryPool&, void*)> hook);
+    void SetFreeHook(std::function<void(MemoryPool&, void*)> hook);
 
 private:
     friend class cuda_internal::MemoryPoolTest;  // for unit-tests
