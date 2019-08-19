@@ -12,6 +12,7 @@ install(FILES
     normalization.h
     pooling.h
     rnn.h
+    reduction.h
     rounding.h
     sorting.h
     statistics.h
@@ -32,6 +33,7 @@ add_library(chainerx_kernels STATIC
     misc.cc
     normalization.cc
     pooling.cc
+    reduction.cc
     rounding.cc
     sorting.cc
     statistics.cc
