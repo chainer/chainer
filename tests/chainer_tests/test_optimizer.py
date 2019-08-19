@@ -635,10 +635,6 @@ class TestGradientMethodLossScale(unittest.TestCase):
         self.optimizer = chainer.optimizers.SGD(lr)
 
     def test_update(self, backend_config):
-        if backend_config.device.name == '@cupy:1':
-            # TODO(niboshi): Fix it
-            raise unittest.SkipTest(
-                'Loss scale does not work with cupy multi-device.')
         target = self.target
         optimizer = self.optimizer
         target.to_device(backend_config.device)
