@@ -788,6 +788,15 @@ def linear(
         b: tp.Optional[ndarray]=None,
         n_batch_axes: int=1) -> ndarray: ...
 
+def lstm(c:ndarray, x:ndarray) -> tp.Tuple[ndarray, ...]: ...
+
+def n_step_lstm(
+    n_layers: int, 
+    hx: ndarray,
+    cx: ndarray,
+    ws: tp.any,
+    bs: tp.any,
+    xs: tp.List[ndarray]) -> tp.Tuple[tp.List[ndarray], ...]: ...
 
 def linspace(
         start: tp.Any,

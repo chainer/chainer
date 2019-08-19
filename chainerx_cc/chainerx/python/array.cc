@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <tuple>
 #include <utility>
@@ -51,12 +52,21 @@ namespace python {
 namespace python_internal {
 namespace {
 
+using internal::GetArrayBody;
 using internal::MoveArrayBody;
 
 }  // namespace
 
 namespace py = pybind11;
 using py::literals::operator""_a;
+
+std::vector<ArrayBodyPtr> ToArrayBodyPtr(const std::vector<Array>& ary) {
+    std::vector<ArrayBodyPtr> ret{ary.size()};
+    for (uint i = 0; i < ary.size(); i++) {
+        ret[i] = GetArrayBody(ary[i]);
+    }
+    return ret;
+}
 
 ArrayBodyPtr MakeArrayFromNumpyArray(py::array array, Device& device) {
     Shape shape{array.shape(), array.shape() + array.ndim()};
