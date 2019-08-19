@@ -350,7 +350,8 @@ std::tuple<Array, Array> Eigh(const Array& a, char uplo) {
     {
         BackwardBuilder bb{"eigh", a, {w, v}};
         if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-            bt.Define([w_tok = bb.RetainOutput(0), v_tok = bb.RetainOutput(1), a_dtype = a.dtype(), &a_device = a.device()](BackwardContext& bctx) {
+            bt.Define([w_tok = bb.RetainOutput(0), v_tok = bb.RetainOutput(1), a_dtype = a.dtype(), &a_device = a.device()](
+                              BackwardContext& bctx) {
                 const Array& w = bctx.GetRetainedOutput(w_tok);
                 const Array& v = bctx.GetRetainedOutput(v_tok);
 
