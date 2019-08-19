@@ -12,9 +12,14 @@ namespace chainerx {
 
 namespace internal {
 
-template <typename KeyKernelType> std::type_index GetTypeIndex();
+template <typename KeyKernelType>
+std::type_index GetTypeIndex();
 
-#define CHAINERX_REGISTER_KEY_KERNEL(key_cls) template<> std::type_index chainerx::internal::GetTypeIndex<chainerx::key_cls>() { return typeid(chainerx::key_cls); }
+#define CHAINERX_REGISTER_KEY_KERNEL(key_cls)                               \
+    template <>                                                             \
+    std::type_index chainerx::internal::GetTypeIndex<chainerx::key_cls>() { \
+        return typeid(chainerx::key_cls);                                   \
+    }
 
 }  // namespace internal
 
