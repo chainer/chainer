@@ -337,6 +337,12 @@ void QrImpl(const Array& a, const Array& q, const Array& r, const Array& tau, Qr
     int64_t k = std::min(m, n);
     int64_t lda = std::max(int64_t{1}, m);
 
+    // cuSOLVER does not return correct result in this case
+    if (mode == QrMode::kComplete && n == 0) {
+        device.backend().CallKernel<IdentityKernel>(q);
+        return;
+    }
+
     Array r_temp = a.Transpose().Copy();  // QR decomposition is done in-place
 
     cuda_internal::DeviceInternals& device_internals = cuda_internal::GetDeviceInternals(static_cast<CudaDevice&>(device));
@@ -384,12 +390,6 @@ void QrImpl(const Array& a, const Array& q, const Array& r, const Array& tau, Qr
         q_shape = Shape{n, m};
     }
     Array q_temp = Empty(q_shape, dtype, device);
-
-    // cuSOLVER does not return correct result in this case
-    if (mode == QrMode::kComplete && n == 0) {
-        device.backend().CallKernel<IdentityKernel>(q);
-        return;
-    }
 
     device.backend().CallKernel<CopyKernel>(r_temp, q_temp.At(std::vector<ArrayIndex>{Slice{0, n}, Slice{}}));  // Q[0:n, :] = R
     auto q_ptr = static_cast<T*>(internal::GetRawOffsetData(q_temp));
