@@ -335,7 +335,7 @@ void QrImpl(const Array& a, const Array& q, const Array& r, const Array& tau, Qr
     int64_t m = a.shape()[0];
     int64_t n = a.shape()[1];
     int64_t k = std::min(m, n);
-    int64_t lda = std::max(static_cast<int64_t>(1), m);
+    int64_t lda = std::max(int64_t{1}, m);
 
     Array r_temp = a.Transpose().Copy();  // QR decomposition is done in-place
 

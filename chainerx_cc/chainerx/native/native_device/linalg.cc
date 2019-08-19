@@ -287,7 +287,7 @@ void QrImpl(const Array& a, const Array& q, const Array& r, const Array& tau, Qr
     int64_t m = a.shape()[0];
     int64_t n = a.shape()[1];
     int64_t k = std::min(m, n);
-    int64_t lda = std::max(static_cast<int64_t>(1), m);
+    int64_t lda = std::max(int64_t{1}, m);
 
     Array r_temp = a.Transpose().Copy();  // QR decomposition is done in-place
 
@@ -299,7 +299,7 @@ void QrImpl(const Array& a, const Array& q, const Array& r, const Array& tau, Qr
     T work_query_geqrf;
     Geqrf(m, n, r_ptr, lda, tau_ptr, &work_query_geqrf, buffersize_geqrf, &info);
     buffersize_geqrf = static_cast<int64_t>(work_query_geqrf);
-    buffersize_geqrf = std::max({static_cast<int64_t>(1), n, buffersize_geqrf});  // buffersize >= n >= 1
+    buffersize_geqrf = std::max({int64_t{1}, n, buffersize_geqrf});  // buffersize >= n >= 1
 
     Array work = Empty(Shape{buffersize_geqrf}, dtype, device);
     auto work_ptr = static_cast<T*>(internal::GetRawOffsetData(work));
