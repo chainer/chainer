@@ -66,9 +66,8 @@ std::vector<Array> ExtractGates(const Array& x) {
     Shape shape{shape_vec};
     Array x_r = Reshape(x, shape);
     std::vector<Array> gates = Split(x_r, 4, 2);
-    int index = 0;
     for (auto& gate : gates) {
-        gates[index++] = Squeeze(gate);
+        gate = Squeeze(gate);
     }
     return gates;
 }

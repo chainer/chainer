@@ -154,20 +154,18 @@ std::vector<std::vector<Array>> OneDirectionalLoop(
     }
     std::vector<Array> h_list;
     for (auto& x : xs) {
-        Array x_t = x;
-
-        if (x_t.shape()[0] > h.shape()[0]) {
-            throw DimensionError{"The batch size of x must be equal to or less than the size of state", x_t.shape(), ' ', h.shape()};
+        if (x.shape()[0] > h.shape()[0]) {
+            throw DimensionError{"The batch size of x must be equal to or less than the size of state", x.shape(), ' ', h.shape()};
         }
         std::vector<int64_t> indices_h;
-        indices_h.emplace_back(x_t.shape()[0]);
+        indices_h.emplace_back(x.shape()[0]);
         indices_h.emplace_back(h.shape()[0]);
         std::vector<Array> h_split = Split(h, indices_h, 0);
         std::vector<Array> c_split;
         std::vector<Array> h_c;
         if (c.has_value()) {
             std::vector<int64_t> indices_c;
-            indices_c.emplace_back(x_t.shape()[0]);
+            indices_c.emplace_back(x.shape()[0]);
             indices_c.emplace_back(c->shape()[0]);
             c_split = Split(*c, indices_c, 0);
             h_c = impl(x, h_split[0], c_split[0], ws, b, activation);
