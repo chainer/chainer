@@ -62,14 +62,14 @@ using py::literals::operator""_a;
 
 py::tuple ToTuple(const std::vector<Array>& ary) {
     py::tuple ret{ary.size()};
-     for (size_t i = 0; i < ary.size(); i++) {
+    for (size_t i = 0; i < ary.size(); i++) {
         ret[i] = GetArrayBody(ary[i]);
     }
     return ret;
 }
 
 std::vector<ArrayBodyPtr> ToArrayBodyPtr(const std::vector<Array>& ary) {
-    std::vector<ArrayBodyPtr> ret{ary.size()};   
+    std::vector<ArrayBodyPtr> ret{ary.size()};
     for (size_t i = 0; i < ary.size(); i++) {
         ret[i] = GetArrayBody(ary[i]);
     }
