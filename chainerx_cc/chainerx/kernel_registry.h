@@ -21,14 +21,14 @@ std::type_index GetKeyKernelTypeIndex();
 #define CHAINERX_REGISTER_KEY_KERNEL(cls, name)    \
     template <>                                    \
     const char* GetKeyKernelName<cls>() {          \
-        return #name;                              \
+        return name;                               \
     }                                              \
     template <>                                    \
     std::type_index GetKeyKernelTypeIndex<cls>() { \
         return typeid(cls);                        \
     }
 
-#define CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(cls) CHAINERX_REGISTER_KEY_KERNEL(chainerx::cls##Kernel, cls)
+#define CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(cls) CHAINERX_REGISTER_KEY_KERNEL(chainerx::cls##Kernel, #cls)
 
 }  // namespace internal
 

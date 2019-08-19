@@ -44,11 +44,11 @@ public:
 }  // namespace
 
 namespace internal {
-CHAINERX_REGISTER_KEY_KERNEL(MyKernel);
-CHAINERX_REGISTER_KEY_KERNEL(MyChildKernel);
-CHAINERX_REGISTER_KEY_KERNEL(MyParentKernel);
-CHAINERX_REGISTER_KEY_KERNEL(MyChildKernel2);
-CHAINERX_REGISTER_KEY_KERNEL(MyParentKernel2);
+CHAINERX_REGISTER_KEY_KERNEL(MyKernel, "mykernel");
+CHAINERX_REGISTER_KEY_KERNEL(MyChildKernel, "mychildkernel");
+CHAINERX_REGISTER_KEY_KERNEL(MyParentKernel, "myparentkernel");
+CHAINERX_REGISTER_KEY_KERNEL(MyChildKernel2, "mychildkernel2");
+CHAINERX_REGISTER_KEY_KERNEL(MyParentKernel2, "myparentkernel2");
 }  // namespace internal
 
 namespace {
