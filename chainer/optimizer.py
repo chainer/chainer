@@ -244,6 +244,10 @@ class UpdateRule(object):
 
         self.t += 1
 
+        with chainer.using_device(param.device):
+            self.__update(param)
+
+    def __update(self, param):
         try:
             param_dtype = param.dtype
         except RuntimeError:

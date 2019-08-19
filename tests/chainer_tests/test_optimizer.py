@@ -530,12 +530,8 @@ class TestGradientMethodLossScale(unittest.TestCase):
         self.target.to_gpu(device)
         self.optimizer.setup(self.target)
 
-    def setup_chainerx(self, orig_xp):
-        if orig_xp is cuda.cupy:
-            self.target.to_device('cuda:0')
-        else:
-            assert orig_xp is np
-            self.target.to_device('native:0')
+    def setup_chainerx(self, device):
+        self.target.to_device(device)
         self.optimizer.setup(self.target)
 
     def check_update(self):
@@ -558,16 +554,28 @@ class TestGradientMethodLossScale(unittest.TestCase):
         self.setup_gpu()
         self.check_update()
 
+    @attr.multi_gpu(2)
+    def test_update_multi_gpu(self):
+        self.setup_gpu(1)
+        self.check_update()
+
     @attr.chainerx
     def test_update_chainerx_cpu(self):
-        self.setup_chainerx(np)
+        self.setup_chainerx('native:0')
         self.check_update()
 
     @attr.chainerx
     @attr.gpu
     def test_update_chainerx_gpu(self):
         self.setup_gpu()
-        self.setup_chainerx(cuda.cupy)
+        self.setup_chainerx('cuda:0')
+        self.check_update()
+
+    @attr.chainerx
+    @attr.multi_gpu(2)
+    def test_update_chainerx_multi_gpu(self):
+        self.setup_gpu(1)
+        self.setup_chainerx('cuda:1')
         self.check_update()
 
 
