@@ -122,7 +122,6 @@ def _populate_module_functions():
     chainerx.broadcast_arrays = _broadcast_arrays
 
 
-
 def _populate_ndarray():
     ndarray = chainerx.ndarray
 
