@@ -127,9 +127,11 @@ if(MSVC)
         PUBLIC
         ${CMAKE_DL_LIBS})
 
+    target_link_options(chainerx PUBLIC /wholearchive:$<TARGET_FILE:chainerx_kernels>)
     target_link_options(chainerx PUBLIC /wholearchive:$<TARGET_FILE:chainerx_routines>)
     target_link_options(chainerx PUBLIC /wholearchive:$<TARGET_FILE:chainerx_native>)
     target_link_options(chainerx PUBLIC /wholearchive:$<TARGET_FILE:chainerx_testing>)
+    target_link_libraries(chainerx PRIVATE chainerx_kernels)
     target_link_libraries(chainerx PRIVATE chainerx_routines)
     target_link_libraries(chainerx PRIVATE chainerx_native)
     target_link_libraries(chainerx PRIVATE chainerx_testing)
@@ -144,6 +146,7 @@ elseif(${APPLE})
         PUBLIC
         ${CMAKE_DL_LIBS})
 
+    target_link_libraries(chainerx PRIVATE -Wl,-force_load chainerx_kernels)
     target_link_libraries(chainerx PRIVATE -Wl,-force_load chainerx_routines)
     target_link_libraries(chainerx PRIVATE -Wl,-force_load chainerx_native)
     target_link_libraries(chainerx PRIVATE -Wl,-force_load chainerx_testing)
@@ -160,6 +163,7 @@ else()
         PRIVATE
         -Wl,--whole-archive)
 
+    target_link_libraries(chainerx PRIVATE chainerx_kernels)
     target_link_libraries(chainerx PRIVATE chainerx_routines)
     target_link_libraries(chainerx PRIVATE chainerx_native)
     target_link_libraries(chainerx PRIVATE chainerx_testing)

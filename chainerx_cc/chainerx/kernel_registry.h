@@ -10,6 +10,14 @@
 
 namespace chainerx {
 
+namespace internal {
+
+template <typename KeyKernelType> std::type_index GetTypeIndex();
+
+#define CHAINERX_REGISTER_KEY_KERNEL(key_cls) template<> std::type_index chainerx::internal::GetTypeIndex<chainerx::key_cls>() { return typeid(chainerx::key_cls); }
+
+}  // namespace internal
+
 // Manages dynamic registration and dispatch of kernels.
 // This class is hierarchical: it has an optional pointer to a parent KernelRegistry and falls back if a kernel is not found in this
 // instance.
@@ -26,7 +34,7 @@ public:
     void RegisterKernel() {
         static_assert(std::is_base_of<KeyKernelType, KernelType>::value, "KernelType must be a subclass of KeyKernelType.");
         std::lock_guard<std::mutex> lock{*mutex_};
-        auto pair = kernels_.emplace(std::type_index{typeid(KeyKernelType)}, std::make_unique<KernelType>());
+        auto pair = kernels_.emplace(internal::GetTypeIndex<KeyKernelType>(), std::make_unique<KernelType>());
         if (!pair.second) {
             throw ChainerxError{"Duplicate kernel: ", KeyKernelType::name()};
         }
@@ -35,7 +43,7 @@ public:
     // Looks up a kernel.
     template <typename KeyKernelType>
     Kernel& GetKernel() {
-        std::type_index key{typeid(KeyKernelType)};
+        std::type_index key{internal::GetTypeIndex<KeyKernelType>()};
         {
             std::lock_guard<std::mutex> lock{*mutex_};
             auto it = kernels_.find(key);

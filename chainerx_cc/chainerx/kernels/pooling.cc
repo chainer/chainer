@@ -1,0 +1,7 @@
+#include "chainerx/kernels/pooling.h"
+
+CHAINERX_REGISTER_KEY_KERNEL(MaxPoolKernel)
+CHAINERX_REGISTER_KEY_KERNEL(MaxPoolGradKernel)
+CHAINERX_REGISTER_KEY_KERNEL(MaxPoolGradGradKernel)
+CHAINERX_REGISTER_KEY_KERNEL(AveragePoolKernel)
+CHAINERX_REGISTER_KEY_KERNEL(AveragePoolGradKernel)

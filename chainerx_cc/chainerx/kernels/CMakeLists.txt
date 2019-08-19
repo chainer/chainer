@@ -18,3 +18,22 @@ install(FILES
     trigonometric.h
     DESTINATION include/chainerx/kernels
     )
+
+add_library(chainerx_kernels STATIC
+    arithmetic.cc
+    binary.cc
+    connection.cc
+    creation.cc
+    explog.cc
+    hyperbolic.cc
+    indexing.cc
+    linalg.cc
+    logic.cc
+    misc.cc
+    normalization.cc
+    pooling.cc
+    rounding.cc
+    sorting.cc
+    statistics.cc
+    trigonometric.cc
+    )
