@@ -163,7 +163,7 @@ private:
 
     std::function<void(MemoryPool&, size_t)> malloc_preprocess_hook_;
     std::function<void(MemoryPool&, size_t, void*)> malloc_postprocess_hook_;
-    std::function<void(MemoryPool&, void*)> free_preprocess_hook_;
+    std::function<void(MemoryPool&, void*)> free_hook_;
 };
 
 }  // namespace cuda

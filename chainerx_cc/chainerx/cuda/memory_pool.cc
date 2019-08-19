@@ -260,8 +260,8 @@ void* MemoryPool::Malloc(size_t bytesize) {
 }
 
 void MemoryPool::Free(void* ptr) {
-    if (free_preprocess_hook_) {
-        free_preprocess_hook_(*this, ptr);
+    if (free_hook_) {
+        free_hook_(*this, ptr);
     }
 
     if (ptr == nullptr) {
@@ -318,7 +318,7 @@ void MemoryPool::SetMallocPostprocessHook(std::function<void(MemoryPool&, size_t
     malloc_postprocess_hook_ = std::move(hook);
 }
 
-void MemoryPool::SetFreeHook(std::function<void(MemoryPool&, void*)> hook) { free_preprocess_hook_ = std::move(hook); }
+void MemoryPool::SetFreeHook(std::function<void(MemoryPool&, void*)> hook) { free_hook_ = std::move(hook); }
 
 }  // namespace cuda
 }  // namespace chainerx
