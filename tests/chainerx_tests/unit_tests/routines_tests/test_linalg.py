@@ -111,7 +111,7 @@ class NumpyLinalgOpTest(op_utils.NumpyOpTest):
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
     chainer.testing.product({
-        'shape': [(1, 1), (3, 3), (6, 6)],
+        'shape': [(0, 0), (1, 1), (3, 3), (6, 6)],
         'b_columns': [(), (1,), (3,), (4,)],
         'dtypes': [
             ('float32', 'float32'),

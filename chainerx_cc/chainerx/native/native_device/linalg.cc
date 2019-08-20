@@ -200,7 +200,7 @@ void SolveImpl(const Array& a, const Array& b, const Array& out) {
     auto out_ptr = static_cast<T*>(internal::GetRawOffsetData(out_transposed));
 
     int info;
-    Gesv(n, nrhs, lu_ptr, n, ipiv_ptr, out_ptr, n, &info);
+    Gesv(n, nrhs, lu_ptr, std::max(int64_t{1}, n), ipiv_ptr, out_ptr, std::max(int64_t{1}, n), &info);
 
     if (info != 0) {
         throw ChainerxError{"Unsuccessful gesv (Solve) execution. Info = ", info};
