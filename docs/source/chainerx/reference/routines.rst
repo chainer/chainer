@@ -255,7 +255,7 @@ Pooling
    chainerx.average_pool
 
 RNN
-----------
+---
 
 .. autosummary::
    :toctree: generated/
