@@ -487,7 +487,8 @@ public:
             auto work_ptr = static_cast<T*>(internal::GetRawOffsetData(work));
 
             std::shared_ptr<void> devinfo = device.Allocate(sizeof(int));
-            device_internals.cusolverdn_handle().Call(Potrf<T>, uplo, n, out_ptr, std::max(int64_t{1}, n), work_ptr, work_size, static_cast<int*>(devinfo.get()));
+            device_internals.cusolverdn_handle().Call(
+                    Potrf<T>, uplo, n, out_ptr, std::max(int64_t{1}, n), work_ptr, work_size, static_cast<int*>(devinfo.get()));
 
             int devinfo_h = 0;
             Device& native_device = GetDefaultContext().GetDevice({"native", 0});
