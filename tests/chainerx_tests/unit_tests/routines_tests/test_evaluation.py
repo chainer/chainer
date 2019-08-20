@@ -1,9 +1,11 @@
 import chainer
 from chainer import functions as F
 import numpy
+import pytest
 
 import chainerx
 
+from chainerx_tests import array_utils
 from chainerx_tests import op_utils
 
 
@@ -14,6 +16,28 @@ _in_out_eval_dtypes = [
     (('float32', 'int16')),
     (('float64', 'int16')),
     (('float64', 'int32')),
+]
+
+
+_accuracy_params = [
+    ((10, 1), (10,)),
+    ((5, 1), (5,)),
+    ((10, 3), (10,)),
+    ((10, 3, 1), (10,)),
+    ((10, 3, 1, 1), (10,)),
+    ((10, 3, 5), (10, 5)),
+    ((10, 3, 5, 4), (10, 5, 4)),
+    ((10, 3, 5, 4, 1), (10, 5, 4)),
+    ((10, 3, 5, 4, 1, 1), (10, 5, 4)),
+]
+
+
+_invalid_accuracy_dtypes = [
+    (('int16', 'float16')),
+    (('int32', 'int32')),
+    (('float32', 'float32')),
+    (('float64', 'float64')),
+    (('int64', 'float64')),
 ]
 
 
@@ -41,17 +65,7 @@ class EvalBase(op_utils.ChainerOpTest):
 @chainer.testing.parameterize(*(
     chainer.testing.product([
         chainer.testing.from_pytest_parameterize(
-            'y_shape,t_shape', [
-                ((10, 1), (10,)),
-                ((5, 1), (5,)),
-                ((10, 3), (10,)),
-                ((10, 3, 1), (10,)),
-                ((10, 3, 1, 1), (10,)),
-                ((10, 3, 5), (10, 5)),
-                ((10, 3, 5, 4), (10, 5, 4)),
-                ((10, 3, 5, 4, 1), (10, 5, 4)),
-                ((10, 3, 5, 4, 1, 1), (10, 5, 4))
-            ]),
+            'y_shape,t_shape', _accuracy_params),
         chainer.testing.from_pytest_parameterize(
             'in_dtypes', _in_out_eval_dtypes),
         chainer.testing.from_pytest_parameterize(
@@ -76,3 +90,15 @@ class TestAccuracy(EvalBase):
         y, t = inputs
         out = xp.accuracy(y, t, self.ignore_label)
         return out,
+
+
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('y_shape,t_shape', _accuracy_params)
+@pytest.mark.parametrize('in_dtypes', _invalid_accuracy_dtypes)
+@pytest.mark.parametrize('ignore_label', [None, 0])
+def test_accuracy_invalid(device, y_shape, t_shape, ignore_label, in_dtypes):
+    dtype1, dtype2 = in_dtypes
+    y = array_utils.create_dummy_ndarray(chainerx, y_shape, dtype1)
+    t = array_utils.create_dummy_ndarray(chainerx, t_shape, dtype2)
+    with pytest.raises(chainerx.DtypeError):
+        chainerx.accuracy(y, t, ignore_label=ignore_label)

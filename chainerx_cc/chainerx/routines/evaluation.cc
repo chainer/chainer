@@ -28,6 +28,9 @@ Array Accuracy(const Array& y, const Array& t, const absl::optional<int64_t>& ig
     if (GetKind(t.dtype()) != DtypeKind::kInt) {
         throw DtypeError{"t must be of int type."};
     }
+    if (y.shape()[0] != t.shape()[0]) {
+        throw DimensionError{"y.shape[0] must be equal to t.shape[0]."};
+    }
     if (ignore_label.has_value()) {
         Array ignore = chainerx::FullLike(t, Scalar{*ignore_label});
         Array mask = Equal(t, ignore);
