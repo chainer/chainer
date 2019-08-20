@@ -193,11 +193,13 @@ void InitChainerxArrayConversion(pybind11::module& m, py::class_<ArrayBody, Arra
               return MoveArrayBody(FromData(ToShape(shape), GetDtype(dtype), data, ToStrides(strides), offset, GetDevice(device)));
           });
     c.def(py::pickle(
-            [m](const ArrayBodyPtr& self) -> py::tuple { return py::make_tuple(MakeNumpyArrayFromArray(m, self, true), self->device()); },
+            [m](const ArrayBodyPtr& self) -> py::tuple {
+                return py::make_tuple(MakeNumpyArrayFromArray(m, self, true), PyDevice{self->device()});
+            },
             [](py::tuple state) -> ArrayBodyPtr {
                 py::array numpy_array = state[0];
-                Device& device = py::cast<Device&>(state[1]);
-                return MakeArrayFromNumpyArray(numpy_array, device);
+                PyDevice device = py::cast<PyDevice>(state[1]);
+                return MakeArrayFromNumpyArray(numpy_array, device.device());
             }));
     // TODO(niboshi): Support arguments
     c.def("item", [](const ArrayBodyPtr& a) -> py::object {
@@ -635,8 +637,7 @@ void InitChainerxArraySpecial(pybind11::module& m, py::class_<ArrayBody, ArrayBo
     c.def("cleargrad",
           [](const ArrayBodyPtr& self, const absl::optional<BackpropId>& backprop_id) { Array{self}.ClearGrad(backprop_id); },
           "backprop_id"_a = nullptr);
-    c.def_property_readonly(
-            "device", [](const ArrayBodyPtr& self) -> Device& { return self->device(); }, py::return_value_policy::reference);
+    c.def_property_readonly("device", [](const ArrayBodyPtr& self) -> PyDevice { return PyDevice{self->device()}; });
     c.def_property_readonly("dtype", [m](const ArrayBodyPtr& self) { return GetNumpyDtypeFromModule(m, self->dtype()); });
     c.def_property_readonly("itemsize", [](const ArrayBodyPtr& self) { return self->GetItemSize(); });
     c.def_property_readonly("is_contiguous", [](const ArrayBodyPtr& self) { return self->IsContiguous(); });

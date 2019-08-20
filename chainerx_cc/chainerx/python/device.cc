@@ -54,8 +54,8 @@ private:
 };
 
 void InitChainerxDevice(pybind11::module& m) {
-    py::class_<Device> c{m, "Device"};
-    c.def("__reduce__", [](Device& self) {
+    py::class_<PyDevice> c{m, "Device"};
+    c.def("__reduce__", [](const PyDevice& self) {
         // Implements serialization of Device instance.
         // Note that the deserialization function chainerx._device._recover_device() is implemented in .py code, because the function itself
         // would be unpicklable if it were defined with pybind. (pybind-generated function cannot be pickled.)
@@ -65,12 +65,12 @@ void InitChainerxDevice(pybind11::module& m) {
         py::tuple args = py::make_tuple(backend_name, device_index);
         return py::make_tuple(py::module::import("chainerx").attr("_device").attr("_recover_device"), args);
     });
-    c.def("__repr__", &Device::name);
-    c.def("synchronize", &Device::Synchronize);
-    c.def_property_readonly("name", &Device::name);
-    c.def_property_readonly("backend", &Device::backend, py::return_value_policy::reference);
-    c.def_property_readonly("context", &Device::context, py::return_value_policy::reference);
-    c.def_property_readonly("index", &Device::index);
+    c.def("__repr__", &PyDevice::name);
+    c.def("synchronize", &PyDevice::Synchronize);
+    c.def_property_readonly("name", &PyDevice::name);
+    c.def_property_readonly("backend", &PyDevice::backend, py::return_value_policy::reference);
+    c.def_property_readonly("context", &PyDevice::context, py::return_value_policy::reference);
+    c.def_property_readonly("index", &PyDevice::index);
 
     m.def("get_default_device", []() -> Device& { return GetDefaultDevice(); }, py::return_value_policy::reference);
     m.def("set_default_device", [](Device& device) { SetDefaultDevice(&device); });
