@@ -226,8 +226,8 @@ def get_device_memory_pointer(array):
     elif xp is chx:
         backend_name = array.device.backend.name
         if backend_name not in ['native', 'cuda']:
-            raise ValueError('{} is an unsupported backend in ChainerMN'.format(
-                backend_name))
+            raise ValueError(
+                '{} is an unsupported backend'.format(backend_name))
         return ctypes.cast(
             array.data_ptr,
             ctypes.POINTER(ctypes.c_ubyte * array.nbytes)
