@@ -37,7 +37,7 @@ Array Accuracy(const Array& y, const Array& t, const absl::optional<int64_t>& ig
         Scalar size{t.GetTotalSize()};
         Scalar total = size - AsScalar(ignore_cnt);
         if (total == 0) {
-            return Zeros({1}, y.dtype());
+            return Zeros({}, y.dtype());
         } else {
             return Divide(count, total).AsType(y.dtype());
         }

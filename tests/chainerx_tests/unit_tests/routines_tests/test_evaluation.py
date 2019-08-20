@@ -8,12 +8,12 @@ from chainerx_tests import op_utils
 
 
 _in_out_eval_dtypes = [
-    (('float16', 'int16'), 'float32'),
-    (('float32', 'int32'), 'float32'),
-    (('float64', 'int64'), 'float64'),
-    (('float32', 'int16'), 'float32'),
-    (('float64', 'int16'), 'float64'),
-    (('float64', 'int32'), 'float64'),
+    (('float16', 'int16')),
+    (('float32', 'int32')),
+    (('float64', 'int64')),
+    (('float32', 'int16')),
+    (('float64', 'int16')),
+    (('float64', 'int32')),
 ]
 
 
@@ -53,7 +53,7 @@ class EvalBase(op_utils.ChainerOpTest):
                 ((10, 3, 5, 4, 1, 1), (10, 5, 4))
             ]),
         chainer.testing.from_pytest_parameterize(
-            'in_dtypes,out_dtype', _in_out_eval_dtypes),
+            'in_dtypes', _in_out_eval_dtypes),
         chainer.testing.from_pytest_parameterize(
             'ignore_label', [None, 0])
     ])
@@ -69,6 +69,7 @@ class TestAccuracy(EvalBase):
         # where all labels are ignored.
         if y.shape == (10, 1) or y.shape == (5, 1):
             self.ignore_label = 0
+            t[True] = 0
         return y, t
 
     def forward_xp(self, inputs, xp):
