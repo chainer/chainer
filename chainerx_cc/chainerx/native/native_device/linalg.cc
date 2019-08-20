@@ -424,7 +424,7 @@ public:
             int iwork_size;
 
             // When calling Syevd matrix dimensions are swapped instead of transposing the input matrix
-            Syevd<T>(jobz, uplo_swapped, n, v_ptr, m, w_ptr, &work_size, lwork, &iwork_size, liwork, &info);
+            Syevd<T>(jobz, uplo_swapped, n, v_ptr, std::max(int64_t{1}, m), w_ptr, &work_size, lwork, &iwork_size, liwork, &info);
 
             lwork = static_cast<int>(work_size);
             Array work = Empty(Shape{lwork}, dtype, device);
@@ -434,7 +434,7 @@ public:
             Array iwork = Empty(Shape{liwork}, Dtype::kInt32, device);
             auto iwork_ptr = static_cast<int*>(internal::GetRawOffsetData(iwork));
 
-            Syevd<T>(jobz, uplo_swapped, n, v_ptr, m, w_ptr, work_ptr, lwork, iwork_ptr, liwork, &info);
+            Syevd<T>(jobz, uplo_swapped, n, v_ptr, std::max(int64_t{1}, m), w_ptr, work_ptr, lwork, iwork_ptr, liwork, &info);
 
             if (info != 0) {
                 throw ChainerxError{"Unsuccessful syevd (Eigen Decomposition) execution. Info = ", info};

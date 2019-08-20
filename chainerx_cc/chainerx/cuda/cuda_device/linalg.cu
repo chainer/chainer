@@ -508,7 +508,7 @@ public:
 
             int buffersize = 0;
             // When calling Syevd matrix dimensions are swapped instead of transposing the input matrix
-            device_internals.cusolverdn_handle().Call(SyevdBuffersize<T>, jobz, uplo_cublas, n, v_ptr, m, w_ptr, &buffersize);
+            device_internals.cusolverdn_handle().Call(SyevdBuffersize<T>, jobz, uplo_cublas, n, v_ptr, std::max(int64_t{1}, m), w_ptr, &buffersize);
 
             Array work = Empty(Shape{buffersize}, dtype, device);
             auto work_ptr = static_cast<T*>(internal::GetRawOffsetData(work));
@@ -516,7 +516,7 @@ public:
             std::shared_ptr<void> devinfo = device.Allocate(sizeof(int));
 
             device_internals.cusolverdn_handle().Call(
-                    Syevd<T>, jobz, uplo_cublas, n, v_ptr, m, w_ptr, work_ptr, buffersize, static_cast<int*>(devinfo.get()));
+                    Syevd<T>, jobz, uplo_cublas, n, v_ptr, std::max(int64_t{1}, m), w_ptr, work_ptr, buffersize, static_cast<int*>(devinfo.get()));
 
             int devinfo_h = 0;
             Device& native_device = GetDefaultContext().GetDevice({"native", 0});
