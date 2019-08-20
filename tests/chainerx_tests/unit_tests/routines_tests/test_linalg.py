@@ -294,12 +294,15 @@ class TestSVDDtypeFailing(NumpyLinalgOpTest):
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
     chainer.testing.product({
-        'shape': [(1, 1), (2, 3), (3, 2), (6, 6)],
+        'shape': [(0, 0), (0, 3), (3, 0), (1, 1), (2, 3), (3, 2), (6, 6)],
         'rcond': [1e-15, 0.3, 0.5, 0.6],
         'dtype': ['float32', 'float64']
     })
 ))
 class TestPseudoInverse(NumpyLinalgOpTest):
+
+    # For zero sized input strides are different
+    check_numpy_strides_compliance = False
 
     def generate_inputs(self):
         a = numpy.random.random(self.shape).astype(self.dtype)

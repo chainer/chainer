@@ -315,6 +315,13 @@ Array PseudoInverse(const Array& a, float rcond) {
 
     std::tie(u, s, vt) = Svd(a, /*full_matrices=*/false, /*compute_uv=*/true);
 
+    // Computing the maximum along zero-sized axis is not supported
+    // therefore return earlier
+    if (a.shape().GetTotalSize() == 0) {
+        // Copy instead of new empty array is used so that backward does not raise errors
+        return Copy(a.Transpose());
+    }
+
     Array cutoff = rcond * s.Max();
     Array cutoff_indices = s <= cutoff;
 
