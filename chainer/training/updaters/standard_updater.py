@@ -1,3 +1,5 @@
+import warnings
+
 import six
 
 import chainer
@@ -104,7 +106,14 @@ loss_func=None, loss_scale=None, auto_new_epoch=True, *, input_device=None)
                     # Do not transfer between different cupy devices.
                     # TODO(niboshi): Detect GPU-to-GPU transfer and raise
                     # FutureWarning. Eventually replace it with to_device.
-                    optimizer.target.to_gpu(device.device.id)
+                    with warnings.catch_warnings():
+                        warnings.filterwarnings(
+                            'ignore',
+                            message='.*GPU',
+                            category=RuntimeWarning,
+                            module='chainer.device_resident',
+                        )
+                        optimizer.target.to_gpu(device.device.id)
                 else:
                     optimizer.target.to_device(device)
 

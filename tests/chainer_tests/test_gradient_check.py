@@ -449,7 +449,7 @@ class NumericalGradientDetectNondifferentiableTest(unittest.TestCase):
                 'input: {}\n'
                 'xp: {}\n\n'
                 '{}: {}'
-                ''.format(
+                .format(
                     func_name, eps, input, xp.__name__,
                     e.__class__.__name__, e))
 

@@ -1,6 +1,12 @@
 #pragma once
 
+#include <cstddef>
+#include <cstdint>
 #include <memory>
+#include <string>
+#include <tuple>
+#include <utility>
+#include <vector>
 
 #include <absl/types/optional.h>
 
@@ -25,6 +31,8 @@ using ConstArrayBodyPtr = std::shared_ptr<const ArrayBody>;
 ArrayBodyPtr MakeArray(pybind11::handle object, pybind11::handle dtype, bool copy, pybind11::handle device);
 
 ArrayBodyPtr MakeArray(pybind11::handle object, const absl::optional<Dtype>& dtype, bool copy, Device& device);
+
+std::vector<ArrayBodyPtr> ToArrayBodyPtr(const std::vector<Array>& ary);
 
 // Makes an array from a NumPy array. Shape, dtype, strides will be kept.
 ArrayBodyPtr MakeArrayFromNumpyArray(pybind11::array array, Device& device);

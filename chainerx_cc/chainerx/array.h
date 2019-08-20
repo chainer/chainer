@@ -139,6 +139,8 @@ public:
     // Returns a transposed view of the array.
     Array Transpose(const OptionalAxes& axes = absl::nullopt) const;
 
+    Array Ravel() const;
+
     // Returns a reshaped array.
     // TODO(niboshi): Support shape with dimension -1.
     Array Reshape(const Shape& newshape) const;
@@ -200,6 +202,8 @@ public:
     // It will be connected to all the graphs.
     // It will be always C-contiguous.
     Array Copy() const;
+
+    Array Flatten() const;
 
     // Creates a view.
     // It creates a new array node and connects graphs.

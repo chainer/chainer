@@ -195,7 +195,7 @@ def get_device_memory_pointer(array):
         ).contents
 
 
-def _batched_pack_params(params_data, buffer, dtype):
+def _batched_pack_params(params_data, buffer, dtype, stream=None):
     n_params = params_data.n_params
     n_elems = params_data.n_elems
     params_dptr = params_data.dptr
@@ -204,13 +204,16 @@ def _batched_pack_params(params_data, buffer, dtype):
     buf_dtype = _communication_utility._get_nccl_type_id(dtype)
     n_threads = 128
     n_blocks = (n_elems + n_threads - 1) // n_threads
-    _cupy_batched_pack_params()(
-        (n_blocks, ), (n_threads, ),
-        (buffer.memory.ptr, buf_dtype, n_elems,
-         params_dptr, params_dtype, params_size_csum, n_params))
+    if stream is None:
+        stream = cp.cuda.get_current_stream()
+    with stream:
+        _cupy_batched_pack_params()(
+            (n_blocks, ), (n_threads, ),
+            (buffer.memory.ptr, buf_dtype, n_elems,
+             params_dptr, params_dtype, params_size_csum, n_params))
 
 
-def _batched_unpack_params(params_data, buffer, dtype):
+def _batched_unpack_params(params_data, buffer, dtype, stream=None):
     n_params = params_data.n_params
     n_elems = params_data.n_elems
     params_dptr = params_data.dptr
@@ -219,10 +222,13 @@ def _batched_unpack_params(params_data, buffer, dtype):
     buf_dtype = _communication_utility._get_nccl_type_id(dtype)
     n_threads = 128
     n_blocks = (n_elems + n_threads - 1) // n_threads
-    _cupy_batched_unpack_params()(
-        (n_blocks, ), (n_threads, ),
-        (buffer.memory.ptr, buf_dtype, n_elems,
-         params_dptr, params_dtype, params_size_csum, n_params))
+    if stream is None:
+        stream = cp.cuda.get_current_stream()
+    with stream:
+        _cupy_batched_unpack_params()(
+            (n_blocks, ), (n_threads, ),
+            (buffer.memory.ptr, buf_dtype, n_elems,
+             params_dptr, params_dtype, params_size_csum, n_params))
 
 
 def _cupy_batched_pack_params():
