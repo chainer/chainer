@@ -1035,12 +1035,8 @@ def grad(outputs, inputs, grad_outputs=None, grad_inputs=None, set_grad=False,
         if grad_inputs:
             grads = [g+gi._data[0] for g, gi in zip(grads, grad_inputs)]
 
-        i_vars = [variable.Variable(g, requires_grad=g.is_backprop_required())
-                  for g in grads]
-        if loss_scale:
-            for var in i_vars:
-                var._loss_scale = loss_scale
-        return i_vars
+        return [variable.Variable(g, requires_grad=g.is_backprop_required())
+                for g in grads]
 
     elif n_chx_inputs > 0:
         raise TypeError(

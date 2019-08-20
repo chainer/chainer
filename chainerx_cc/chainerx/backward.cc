@@ -1,5 +1,4 @@
 #include "chainerx/backward.h"
-#include <absl/debugging/failure_signal_handler.h>
 
 #include <algorithm>
 #include <functional>
@@ -254,6 +253,7 @@ public:
     void Run() {
         CHAINERX_ASSERT(output_array_nodes_.size() == outputs_.size());
 
+        float initial_out_value = loss_scale_.has_value() ? loss_scale_.value() : 1.0;
         // Push initial output array nodes
         for (size_t i = 0; i < outputs_.size(); ++i) {
             const Array& output = outputs_[i];
@@ -265,11 +265,7 @@ public:
 
                 // Set unset output gradients to the default value of one
                 if (!emplace_result.first->second.get().has_value()) {
-                    if (loss_scale_.has_value()) {
-                        emplace_result.first->second.get() = OnesLike(output, output.device()) * loss_scale_.value();
-                    } else {
-                        emplace_result.first->second.get() = OnesLike(output, output.device());
-                    }
+                    emplace_result.first->second.get() = FullLike(output, initial_out_value, output.device());
                 }
 
                 PushCreatorOpNode(array_node);
@@ -312,6 +308,15 @@ public:
                 for (auto it = range.first; it != range.second; ++it) {
                     size_t n_removed = array_node_grad_map_.erase(it->second.get());
                     CHAINERX_ASSERT(n_removed > 0);
+                }
+            }
+        }
+
+        if (loss_scale_.has_value()) {
+            for (auto grad_ref : to_scale_back_nodes_) {
+                if (grad_ref->get().has_value()) {
+                    Array& grad = grad_ref->get().value();
+                    grad = grad / loss_scale_.value();
                 }
             }
         }
@@ -412,6 +417,10 @@ private:
                             body->ClearGrad(backprop_id_);
                         }
                     }
+                    if (loss_scale_.has_value() && body != nullptr && (body->IsGradRequired(backprop_id_) || retain_grad_)) {
+                        internal::GradRef& input_grad = array_node_grad_map_.at(output_array_node.get());
+                        to_scale_back_nodes_.insert(&input_grad);
+                    }
                 }
             }
         }
@@ -467,7 +476,11 @@ private:
                 const std::shared_ptr<ArrayNode>& input_array_node = gsl::at(op_node->input_array_nodes(), i_input_grad);
                 CHAINERX_ASSERT(input_array_node != nullptr);
                 absl::optional<Array>& input_grad = input_grads[i_input_grad];
-
+                if (loss_scale_.has_value() && input_array_node->creator_op_node() == nullptr) {
+                    // Scale gradient back for input nodes
+                    internal::GradRef& input_grad = array_node_grad_map_.at(input_array_node.get());
+                    to_scale_back_nodes_.insert(&input_grad);
+                }
                 try {
                     internal::SetGrad(
                             input_grad,
@@ -592,18 +605,27 @@ private:
 
     // To apply the loss scale while going backward
     const absl::optional<float>& loss_scale_;
+
+    std::unordered_set<internal::GradRef*> to_scale_back_nodes_;
 };
 
 }  // namespace
 
-void Backward(const Array& output, const absl::optional<BackpropId>& backprop_id, DoubleBackpropOption double_backprop, const absl::optional<float>& loss_scale) {
+void Backward(
+        const Array& output,
+        const absl::optional<BackpropId>& backprop_id,
+        DoubleBackpropOption double_backprop,
+        const absl::optional<float>& loss_scale) {
     BackpropId actual_backprop_id = internal::GetArrayBackpropId(output, backprop_id);
     std::vector<ConstArrayRef> outputs{output};  // Do not inline it; we need to guarantee that the vector is alive until Run() finishes.
     BackwardImpl{{}, outputs, actual_backprop_id, double_backprop, loss_scale}.Run();
 }
 
 void Backward(
-        const std::vector<ConstArrayRef>& outputs, const absl::optional<BackpropId>& backprop_id, DoubleBackpropOption double_backprop, const absl::optional<float>& loss_scale) {
+        const std::vector<ConstArrayRef>& outputs,
+        const absl::optional<BackpropId>& backprop_id,
+        DoubleBackpropOption double_backprop,
+        const absl::optional<float>& loss_scale) {
     if (outputs.empty()) {
         return;
     }
@@ -659,7 +681,6 @@ std::vector<absl::optional<Array>> Grad(
             array_node_grad_map.emplace(array_node.get(), internal::GradRef{&output_grads.back()});
         }
     }
-
     BackwardImpl{inputs, outputs, actual_backprop_id, double_backprop, std::move(array_node_grad_map), retain_grad, loss_scale}.Run();
 
     for (size_t i = 0; i < input_grads.size(); ++i) {

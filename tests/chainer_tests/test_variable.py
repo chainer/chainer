@@ -2824,13 +2824,14 @@ class TestLossScale(unittest.TestCase):
         self.x = np.random.uniform(-1, 1, self.in_shape).astype(self.dtype)
         self.y = np.random.uniform(-1, 1, self.in_shape).astype(self.dtype)
 
-    def check_loss_scale(self, x_data, y_data):
+    def check_loss_scale(self, x_data, y_data, chainerx=False):
         x = chainer.Variable(x_data)
         y = chainer.Variable(y_data)
         z = x * y
         loss = F.sum(z)
         loss.backward(loss_scale=self.loss_scale)
-        if self.loss_scale is not None:
+        # ChainerX scales back gradients on the backward method
+        if not chainerx and self.loss_scale is not None:
             x.grad /= self.loss_scale
             y.grad /= self.loss_scale
         rtol, atol = 1e-4, 1e-5
@@ -2847,10 +2848,17 @@ class TestLossScale(unittest.TestCase):
         self.check_loss_scale(cuda.to_gpu(self.x), cuda.to_gpu(self.y))
 
     @attr.chainerx
-    def test_loss_chainerx_cpu(self):
-        x = chainerx.array(self.x)
-        y = chainerx.array(self.y)
-        self.check_loss_scale(x, y)
+    def test_loss_scale_chainerx_cpu(self):
+        x = chainerx.array(self.x, device='native:0')
+        y = chainerx.array(self.y, device='native:0')
+        self.check_loss_scale(x, y, chainerx=True)
+
+    @attr.gpu
+    @attr.chainerx
+    def test_loss_scale_chainerx_gpu(self):
+        x = chainerx.array(self.x, device='cuda:0')
+        y = chainerx.array(self.y, device='cuda:0')
+        self.check_loss_scale(x, y, chainerx=True)
 
 
 @testing.parameterize(*testing.product({

@@ -1435,7 +1435,7 @@ class Variable(object):
                     'retain_grad is not supported for ChainerX array.')
             arr = self._data[0]
             assert isinstance(arr, chainerx.ndarray)
-            # pybind has issues when converting opt<int> -> opt<float>
+            # pybind has issues when converting int -> opt<float>
             if loss_scale:
                 loss_scale = float(loss_scale)
             chainerx.backward(
