@@ -214,6 +214,13 @@ void InverseImpl(const Array& a, const Array& out) {
     Device& device = a.device();
     Dtype dtype = a.dtype();
 
+    // 'getri' segfaults for 0-sized array, documentation says that minimum size is 1
+    // NumPy works for 0-sized array because 'gesv' routine is used
+    // to obtain the inverse via solving the linear system.
+    if (a.shape().GetTotalSize() == 0) {
+        return;
+    }
+
     device.backend().CallKernel<CopyKernel>(a, out);
     auto out_ptr = static_cast<T*>(internal::GetRawOffsetData(out));
 
