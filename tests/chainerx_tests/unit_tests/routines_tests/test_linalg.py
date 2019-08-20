@@ -108,6 +108,13 @@ class NumpyLinalgOpTest(op_utils.NumpyOpTest):
         self.check_double_backward_options.update({'rtol': 5e-3})
 
 
+_numpy_does_not_support_0d_input113 = \
+    numpy.lib.NumpyVersion(numpy.__version__) < '1.13.0'
+
+_numpy_does_not_support_0d_input116 = \
+    numpy.lib.NumpyVersion(numpy.__version__) < '1.16.0'
+
+
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
     chainer.testing.product({
@@ -259,6 +266,10 @@ class TestSVD(NumpyLinalgOpTest):
 
     def forward_xp(self, inputs, xp):
         a, = inputs
+
+        if (_numpy_does_not_support_0d_input116 and a.size == 0):
+            pytest.skip('Older NumPy versions do not work with empty arrays')
+
         out = xp.linalg.svd(a,
                             full_matrices=self.full_matrices,
                             compute_uv=self.compute_uv)
@@ -310,6 +321,10 @@ class TestPseudoInverse(NumpyLinalgOpTest):
 
     def forward_xp(self, inputs, xp):
         a, = inputs
+
+        if (_numpy_does_not_support_0d_input113 and a.size == 0):
+            pytest.skip('Older NumPy versions do not work with empty arrays')
+
         out = xp.linalg.pinv(a, rcond=self.rcond)
         return out,
 
