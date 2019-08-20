@@ -108,6 +108,10 @@ class NumpyLinalgOpTest(op_utils.NumpyOpTest):
         self.check_double_backward_options.update({'rtol': 5e-3})
 
 
+_numpy_does_not_support_0d_input = \
+    numpy.lib.NumpyVersion(numpy.__version__) < '1.13.0'
+
+
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
     chainer.testing.product({
@@ -356,11 +360,14 @@ class TestPseudoInverseDtypeFailing(NumpyLinalgOpTest):
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
     chainer.testing.product({
-        'shape': [(1, 1), (3, 3), (6, 6)],
+        'shape': [(0, 0), (1, 1), (3, 3), (6, 6)],
         'in_dtypes': ['float32', 'float64']
     })
 ))
 class TestCholesky(NumpyLinalgOpTest):
+
+    # For input with shape (0, 0) strides are different
+    check_numpy_strides_compliance = False
 
     def generate_inputs(self):
         a = numpy.random.random(self.shape).astype(self.in_dtypes)
@@ -370,6 +377,9 @@ class TestCholesky(NumpyLinalgOpTest):
 
     def forward_xp(self, inputs, xp):
         a, = inputs
+
+        if (_numpy_does_not_support_0d_input and a.size == 0):
+            pytest.skip('Older NumPy versions do not work with empty arrays')
 
         # Input has to be symmetrized for backward test to work
         a = (a + a.T)/2. + 1e-3 * xp.eye(*self.shape)

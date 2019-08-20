@@ -403,10 +403,10 @@ public:
             char uplo = 'U';
 
             auto out_ptr = static_cast<T*>(internal::GetRawOffsetData(out));
-            int64_t N = a.shape()[0];
+            int64_t n = a.shape()[0];
 
             int info;
-            Potrf<T>(uplo, N, out_ptr, N, &info);
+            Potrf<T>(uplo, n, out_ptr, std::max(int64_t{1}, n), &info);
 
             if (info != 0) {
                 throw ChainerxError{"Unsuccessful potrf (Cholesky) execution. Info = ", info};
