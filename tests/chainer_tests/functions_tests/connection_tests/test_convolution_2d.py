@@ -95,7 +95,7 @@ class TestConvolution2DFunction(testing.FunctionTestCase):
             self.check_backward_options.update({
                 'atol': 1e-3, 'rtol': 1e-3})
             self.check_double_backward_options.update({
-                'atol': 1e-3, 'rtol': 1e-3})
+                'atol': 1e-2, 'rtol': 1e-2})
 
     def generate_inputs(self):
         W = numpy.random.normal(
