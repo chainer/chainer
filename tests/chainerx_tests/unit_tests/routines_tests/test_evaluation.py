@@ -69,7 +69,7 @@ class TestAccuracy(EvalBase):
         # where all labels are ignored.
         if y.shape == (10, 1) or y.shape == (5, 1):
             self.ignore_label = 0
-            t[True] = 0
+            t.fill(self.ignore_label)
         return y, t
 
     def forward_xp(self, inputs, xp):
