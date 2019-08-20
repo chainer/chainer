@@ -340,8 +340,9 @@ public:
             vt_temp = Empty(vt_shape, dtype, device);
         }
 
-        int64_t ldu = m;
-        int64_t ldvt = full_matrices ? n : k;
+        int64_t lda = std::max(int64_t{1}, m);
+        int64_t ldu = std::max(int64_t{1}, m);
+        int64_t ldvt = full_matrices ? std::max(int64_t{1}, n) : std::max(int64_t{1}, k);
 
         auto svd_impl = [&](auto pt) {
             using T = typename decltype(pt)::type;
@@ -379,7 +380,7 @@ public:
                     m,
                     n,
                     x_ptr,
-                    m,
+                    lda,
                     s_ptr,
                     vt_ptr,
                     ldu,

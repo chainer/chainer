@@ -238,12 +238,12 @@ class TestInverseDtypeFailing(NumpyLinalgOpTest):
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
     chainer.testing.product({
-        'shape': [(1, 1), (2, 3), (3, 2), (6, 6)],
+        'shape': [(0, 0), (0, 3), (3, 0), (1, 1), (2, 3), (3, 2), (6, 6)],
         'dtype': ['float32', 'float64'],
         'full_matrices': [False],
         'compute_uv': [True]
     }) + chainer.testing.product({
-        'shape': [(1, 1), (2, 3), (3, 2), (6, 6)],
+        'shape': [(0, 0), (0, 3), (3, 0), (1, 1), (2, 3), (3, 2), (6, 6)],
         'dtype': ['float32', 'float64'],
         'full_matrices': [True],
         'compute_uv': [False],

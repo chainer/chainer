@@ -305,8 +305,9 @@ public:
         int64_t n = a.shape()[0];
         int64_t m = a.shape()[1];
         int64_t k = std::min(m, n);
-        int64_t ldu = m;
-        int64_t ldvt = full_matrices ? n : k;
+        int64_t lda = std::max(int64_t{1}, m);
+        int64_t ldu = std::max(int64_t{1}, m);
+        int64_t ldvt = full_matrices ? std::max(int64_t{1}, n) : std::max(int64_t{1}, k);
 
         Array x = EmptyLike(a, device);
         device.backend().CallKernel<CopyKernel>(a, x);
@@ -333,13 +334,13 @@ public:
             int buffersize = -1;
             T work_size;
             // When calling Gesdd pointers to u and vt are swapped instead of transposing the input matrix.
-            Gesdd(job, m, n, x_ptr, m, s_ptr, vt_ptr, ldu, u_ptr, ldvt, &work_size, buffersize, iwork_ptr, &info);
+            Gesdd(job, m, n, x_ptr, lda, s_ptr, vt_ptr, ldu, u_ptr, ldvt, &work_size, buffersize, iwork_ptr, &info);
             buffersize = static_cast<int>(work_size);
 
             Array work = Empty(Shape{buffersize}, dtype, device);
             auto work_ptr = static_cast<T*>(internal::GetRawOffsetData(work));
 
-            Gesdd(job, m, n, x_ptr, m, s_ptr, vt_ptr, ldu, u_ptr, ldvt, work_ptr, buffersize, iwork_ptr, &info);
+            Gesdd(job, m, n, x_ptr, lda, s_ptr, vt_ptr, ldu, u_ptr, ldvt, work_ptr, buffersize, iwork_ptr, &info);
 
             if (info != 0) {
                 throw ChainerxError{"Unsuccessful gesdd (SVD) execution. Info = ", info};
