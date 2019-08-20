@@ -39,6 +39,7 @@ CUDA_ADD_LIBRARY(chainerx_cuda STATIC
     cuda_device/memory.cc
     cuda_device/misc.cu
     cuda_device/pool.cu
+    cuda_device/rnn.cu
     cuda_device/reduction.cu
     cuda_device/rounding.cu
     cuda_device/statistics.cu

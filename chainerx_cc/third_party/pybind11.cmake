@@ -11,4 +11,7 @@ ExternalProject_Add(pybind11
     BUILD_COMMAND     ""
     INSTALL_COMMAND   ""
     TEST_COMMAND      ""
+    CMAKE_ARGS
+        -DCMAKE_INSTALL_MESSAGE=LAZY
+        -DCMAKE_POSITION_INDEPENDENT_CODE=ON
     )

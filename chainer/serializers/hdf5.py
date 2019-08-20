@@ -3,6 +3,7 @@ import sys
 import numpy
 import six
 
+from chainer.backends import _chainerx
 from chainer.backends import _cpu
 from chainer.backends import cuda
 from chainer.backends import intel64
@@ -155,8 +156,8 @@ class HDF5Deserializer(serializer.Deserializer):
         if value is None:
             return numpy.asarray(dataset)
         if isinstance(value, chainerx.ndarray):
-            value_view = chainerx.to_numpy(value, copy=False)
-            dataset.read_direct(value_view)
+            value[...] = _chainerx._array_to_chainerx(
+                numpy.asarray(dataset), value.device)
         elif isinstance(value, numpy.ndarray):
             dataset.read_direct(value)
         elif isinstance(value, cuda.ndarray):

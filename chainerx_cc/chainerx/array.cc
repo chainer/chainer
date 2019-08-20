@@ -321,6 +321,8 @@ Array Array::At(const std::vector<ArrayIndex>& indices) const { return internal:
 
 Array Array::Transpose(const OptionalAxes& axes) const { return chainerx::Transpose(*this, axes); }
 
+Array Array::Ravel() const { return chainerx::Ravel(*this); }
+
 Array Array::Reshape(const Shape& newshape) const { return chainerx::Reshape(*this, newshape); }
 
 Array Array::Squeeze(const OptionalAxes& axis) const { return chainerx::Squeeze(*this, axis); }
@@ -352,6 +354,11 @@ Array Array::Dot(const Array& b) const { return chainerx::Dot(*this, b); }
 Array Array::Take(const Array& indices, int8_t axis) const { return chainerx::Take(*this, indices, axis); }
 
 Array Array::Copy() const { return chainerx::Copy(*this); }
+
+Array Array::Flatten() const {
+    Array out = (*this).Copy().Reshape({(*this).GetTotalSize()});
+    return out;
+}
 
 Array Array::MakeView() const {
     Array out{shape(), strides(), dtype(), device(), data(), offset()};

@@ -712,7 +712,7 @@ class MpiCommunicatorBase(communicator_base.CommunicatorBase):
                                                      attr_name, zero_fill)
             _memory_utility._batched_pack_params(
                 params_data, buffer,
-                allreduce_grad_dtype)
+                allreduce_grad_dtype, stream=stream)
             self.params_data = params_data
         else:
             _memory_utility.pack_params(
@@ -734,7 +734,7 @@ class MpiCommunicatorBase(communicator_base.CommunicatorBase):
                     params, attr_name, zero_fill)
             _memory_utility._batched_unpack_params(
                 params_data, buffer,
-                allreduce_grad_dtype)
+                allreduce_grad_dtype, stream=stream)
             return
         else:
             _memory_utility.unpack_params(

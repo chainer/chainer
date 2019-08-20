@@ -84,7 +84,14 @@ class TestCast(testing.FunctionTestCase):
             'eps': 2.0 ** -2, 'atol': 1e-2, 'rtol': 1e-3}
 
     def generate_inputs(self):
-        x = numpy.random.uniform(-1, 1, self.shape).astype(self.in_type)
+        x = numpy.asarray(numpy.random.randn(*self.shape)).astype(self.in_type)
+        # The result of a cast from a negative floating-point number to
+        # an unsigned integer is not specified. Avoid testing that condition.
+        float_to_uint = (
+            issubclass(self.in_type, numpy.floating)
+            and issubclass(self.out_type, numpy.unsignedinteger))
+        if float_to_uint:
+            x[x < 0] *= -1
         return x,
 
     def forward_expected(self, inputs):
