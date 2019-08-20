@@ -1455,6 +1455,14 @@ class TestReciprocal(math_utils.UnaryMathTestBase, op_utils.NumpyOpTest):
 class TestRemainder(math_utils.BinaryMathTestBase, op_utils.NumpyOpTest):
     dodge_nondifferentiable = True
 
+    def setup(self):
+        super().setup()
+        dtype1, dtype2 = self.in_dtypes
+        if dtype1 == 'float16' or dtype2 == 'float16':
+            self.check_backward_options.update({'rtol': 1e-2, 'atol': 1e-2})
+            self.check_double_backward_options.update(
+                {'rtol': 1e-2, 'atol': 1e-2})
+
     def generate_inputs(self):
         a, b = super().generate_inputs()
         if self.input_rhs == 'random':
@@ -1515,6 +1523,14 @@ def test_remainder_invalid_dtypes(device, dtypes, is_module):
 class TestIRemainder(
         math_utils.InplaceBinaryMathTestBase, op_utils.NumpyOpTest):
     dodge_nondifferentiable = True
+
+    def setup(self):
+        super().setup()
+        dtype1, dtype2 = self.in_dtypes
+        if dtype1 == 'float16' or dtype2 == 'float16':
+            self.check_backward_options.update({'rtol': 1e-2, 'atol': 1e-2})
+            self.check_double_backward_options.update(
+                {'rtol': 1e-2, 'atol': 1e-2})
 
     def generate_inputs(self):
         a, b = super().generate_inputs()
