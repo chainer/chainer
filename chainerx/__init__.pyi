@@ -364,6 +364,10 @@ class ndarray:
 
     def argmin(self, axis: tp.Optional[int]=None) -> ndarray: ...
 
+    def flatten(self) -> ndarray: ...
+
+    def ravel(self) -> ndarray: ...
+
     @tp.overload
     def as_grad_stopped(self, copy: bool=...) -> ndarray: ...
 
@@ -784,6 +788,15 @@ def linear(
         b: tp.Optional[ndarray]=None,
         n_batch_axes: int=1) -> ndarray: ...
 
+def lstm(c:ndarray, x:ndarray) -> tp.Tuple[ndarray, ...]: ...
+
+def n_step_lstm(
+    n_layers: int, 
+    hx: ndarray,
+    cx: ndarray,
+    ws: tp.any,
+    bs: tp.any,
+    xs: tp.List[ndarray]) -> tp.Tuple[tp.List[ndarray], ...]: ...
 
 def linspace(
         start: tp.Any,
@@ -882,6 +895,10 @@ def sin(x: ndarray) -> ndarray: ...
 def sinh(x: ndarray) -> ndarray: ...
 
 def sigmoid(x: ndarray) -> ndarray: ...
+
+def sigmoid_cross_entropy(
+        x1: ndarray,
+        x2: ndarray) -> ndarray: ...
 
 def relu(x: ndarray) -> ndarray: ...
 
@@ -1054,10 +1071,6 @@ def loadtxt(
         ndmin: int=...,
         encoding: tp.Optional[str]=...,
         device: tp.Optional[Device]=None) -> ndarray: ...
-
-
-# chainerx/manipulation/shape.py
-def ravel(a: ndarray) -> ndarray: ...
 
 
 # chainerx/math/misc.py
