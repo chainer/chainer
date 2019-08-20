@@ -108,6 +108,10 @@ class NumpyLinalgOpTest(op_utils.NumpyOpTest):
         self.check_double_backward_options.update({'rtol': 5e-3})
 
 
+_numpy_does_not_support_0d_input = \
+    numpy.lib.NumpyVersion(numpy.__version__) < '1.13.0'
+
+
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
     chainer.testing.product({
@@ -370,6 +374,9 @@ class TestEigh(NumpyLinalgOpTest):
     def forward_xp(self, inputs, xp):
         a, = inputs
 
+        if (_numpy_does_not_support_0d_input and a.size == 0):
+            pytest.skip('Older NumPy versions do not work with empty arrays')
+
         # Input has to be symmetrized for backward test to work
         def symmetrize(A):
             L = xp.tril(A)
@@ -451,6 +458,10 @@ class TestEigvalsh(NumpyLinalgOpTest):
 
     def forward_xp(self, inputs, xp):
         a, = inputs
+
+        if (_numpy_does_not_support_0d_input and a.size == 0):
+            pytest.skip('Older NumPy versions do not work with empty arrays')
+
         w = xp.linalg.eigvalsh(a, UPLO=self.UPLO)
         return w,
 
