@@ -231,7 +231,7 @@ def create_multi_node_evaluator(actual_evaluator, communicator):
             # Results of evaluation is fairly small, so
             # the ndarray is transferred to CPU and allreduce()-ed.
             local_mean_dict = {
-                name: backends._cpu._array_to_cpu(value)
+                name: chx.to_numpy(value)
                 for name, value in local_mean_dict.items()
             }
 
