@@ -1904,63 +1904,71 @@ Note:
     _docs.set_doc(
         chainerx.slstm,
         """slstm(c_prev1, c_prev2, x1, x2)
-    S-LSTM units as an activation function.
-    This function implements S-LSTM unit. It is an extension of LSTM unit
-    applied to tree structures.
-    The function is applied to binary trees. Each node has two child nodes.
-    It gets four arguments, previous cell states ``c_prev1`` and ``c_prev2``,
-    and input arrays ``x1`` and ``x2``.
-    First both input arrays ``x1`` and ``x2`` are split into eight arrays
-    :math:`a_1, i_1, f_1, o_1`, and :math:`a_2, i_2, f_2, o_2`. They have the
-    same shape along the second axis.
-    It means that ``x1`` and ``x2`` 's second axis must have 4 times
-    the length of ``c_prev1`` and ``c_prev2``.
-    The split input arrays are corresponding to:
-        - :math:`a_i` : sources of cell input
-        - :math:`i_i` : sources of input gate
-        - :math:`f_i` : sources of forget gate
-        - :math:`o_i` : sources of output gate
-    It computes the updated cell state ``c`` and the outgoing signal
-    ``h`` as:
-    .. math::
-        c &= \\tanh(a_1 + a_2) \\sigma(i_1 + i_2)
-           + c_{\\text{prev}1} \\sigma(f_1)
-           + c_{\\text{prev}2} \\sigma(f_2), \\\\
-        h &= \\tanh(c) \\sigma(o_1 + o_2),
-    where :math:`\\sigma` is the elementwise sigmoid function.
-    The function returns ``c`` and ``h`` as a tuple.
-    Args:
-        c_prev1 (:class:`~chainerx.array`):
-            Variable that holds the previous cell state of the first child
-            node. The cell state should be a zero array or the output of
-            the previous call of LSTM.
-        c_prev2 (:class:`~chainerx.array`):
-            Variable that holds the previous cell state of the second child
-            node.
-        x1 (:class:`~chainerx.array`):
-            Variable that holds the sources of cell input, input gate, forget
-            gate and output gate from the first child node. It must have the
-            second dimension whose size is four times of that of the cell
-            state.
-        x2 (:class:`~chainerx.array`):
-            Variable that holds the input sources from the second child node.
-    Returns:
-        tuple: Two :class:`~chainerx.array` objects ``c`` and ``h``. ``c`` is
-        the cell state. ``h`` indicates the outgoing signal.
-    See detail in paper: `Long Short-Term Memory Over Tree Structures
-    <https://arxiv.org/abs/1503.04881>`_.
-    .. admonition:: Example
-        Assuming ``c1``, ``c2`` is the previous cell state of children,
-        and ``h1``, ``h2`` is the previous outgoing signal from children.
-        Each of ``c1``, ``c2``, ``h1`` and ``h2`` has ``n_units`` channels.
-        Most typical preparation of ``x1``, ``x2`` is:
-        >>> n_units = 100
-        >>> c1 = chainer.ones((1, n_units), np.float32)
-        >>> c2 = chainer.ones((1, n_units), np.float32)
-        >>> x1 = chainerx.ones((1, 4 * n_units), chainerx.float32)
-        >>> x2 = chainerx.ones((1, 4 * n_units), chainerx.float32)
-        >>> c, h = chainerx.slstm(c1, c2, x1, x2)
-        """)
+S-LSTM units as an activation function.
+This function implements S-LSTM unit. It is an extension of LSTM unit
+applied to tree structures.
+The function is applied to binary trees. Each node has two child nodes.
+It gets four arguments, previous cell states ``c_prev1`` and ``c_prev2``,
+and input arrays ``x1`` and ``x2``.
+First both input arrays ``x1`` and ``x2`` are split into eight arrays
+:math:`a_1, i_1, f_1, o_1`, and :math:`a_2, i_2, f_2, o_2`. They have the
+same shape along the second axis.
+It means that ``x1`` and ``x2`` 's second axis must have 4 times
+the length of ``c_prev1`` and ``c_prev2``.
+The split input arrays are corresponding to:
+    - :math:`a_i` : sources of cell input
+    - :math:`i_i` : sources of input gate
+    - :math:`f_i` : sources of forget gate
+    - :math:`o_i` : sources of output gate
+It computes the updated cell state ``c`` and the outgoing signal
+``h`` as.
+
+.. math::
+    c &= \\tanh(a_1 + a_2) \\sigma(i_1 + i_2)
+       + c_{\\text{prev}1} \\sigma(f_1)
+       + c_{\\text{prev}2} \\sigma(f_2), \\\\
+    h &= \\tanh(c) \\sigma(o_1 + o_2),
+
+where :math:`\\sigma` is the elementwise sigmoid function.
+The function returns ``c`` and ``h`` as a tuple.
+
+Args:
+    c_prev1 (:class:`~chainerx.array`):
+        Variable that holds the previous cell state of the first child
+        node. The cell state should be a zero array or the output of
+        the previous call of LSTM.
+    c_prev2 (:class:`~chainerx.array`):
+        Variable that holds the previous cell state of the second child
+        node.
+    x1 (:class:`~chainerx.array`):
+        Variable that holds the sources of cell input, input gate, forget
+        gate and output gate from the first child node. It must have the
+        second dimension whose size is four times of that of the cell
+        state.
+    x2 (:class:`~chainerx.array`):
+        Variable that holds the input sources from the second child node.
+
+Returns:
+    tuple: Two :class:`~chainerx.array` objects ``c`` and ``h``. ``c`` is
+    the cell state. ``h`` indicates the outgoing signal.
+
+See detail in paper: `Long Short-Term Memory Over Tree Structures
+<https://arxiv.org/abs/1503.04881>`_.
+
+.. admonition:: Example
+
+    Assuming ``c1``, ``c2`` is the previous cell state of children,
+    and ``h1``, ``h2`` is the previous outgoing signal from children.
+    Each of ``c1``, ``c2``, ``h1`` and ``h2`` has ``n_units`` channels.
+    Most typical preparation of ``x1``, ``x2`` is:
+
+    >>> n_units = 100
+    >>> c1 = chainer.ones((1, n_units), np.float32)
+    >>> c2 = chainer.ones((1, n_units), np.float32)
+    >>> x1 = chainerx.ones((1, 4 * n_units), chainerx.float32)
+    >>> x2 = chainerx.ones((1, 4 * n_units), chainerx.float32)
+    >>> c, h = chainerx.slstm(c1, c2, x1, x2)
+    """)
 
     _docs.set_doc(
         chainerx.arcsin,
