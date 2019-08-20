@@ -192,6 +192,9 @@ class TestSolveDtypeFailing(NumpyLinalgOpTest):
 ))
 class TestInverse(NumpyLinalgOpTest):
 
+    # For zero sized input strides are different
+    check_numpy_strides_compliance = False
+
     def generate_inputs(self):
         a = numpy.random.random(self.shape).astype(self.dtype)
         return a,
