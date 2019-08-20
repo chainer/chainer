@@ -243,6 +243,10 @@ class UpdateRule(object):
 
         self.t += 1
 
+        with chainer.using_device(param.device):
+            self.__update(param)
+
+    def __update(self, param):
         try:
             param_dtype = param.dtype
         except RuntimeError:
@@ -762,7 +766,7 @@ class Optimizer(object):
                 warnings.warn(
                     'Non finite number found in param.grad of {}'
                     ' (iteration: {}, loss_scale: {})'
-                    ''.format(name, self.t, self._loss_scale))
+                    .format(name, self.t, self._loss_scale))
 
     def is_safe_to_update(self):
         return not self._loss_scaling_isnan
@@ -952,7 +956,7 @@ class HyperparameterProxy(object):
 def make_deprecation_message(module_name):
     return ('chainer.optimizer.{0} is deprecated from v4. '
             'Use chainer.optimizer_hooks.{0} instead.'
-            ''.format(module_name))
+            .format(module_name))
 
 
 class WeightDecay(optimizer_hooks.WeightDecay):

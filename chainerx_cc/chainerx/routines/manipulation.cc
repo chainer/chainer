@@ -656,6 +656,74 @@ Array Swapaxes(const Array& a, int8_t axis1, int8_t axis2) {
     return out;
 }
 
+Array Ravel(const Array& a) { return a.Reshape({a.GetTotalSize()}); }
+
+Array Repeat(const Array& a, int64_t repeats, absl::optional<int8_t> axis) {
+    if (repeats < 0) {
+        throw DimensionError("repeats must be larger than 0.");
+    }
+
+    int8_t target_axis = 0;
+    Array target_array;
+
+    if (axis.has_value()) {
+        target_axis = internal::NormalizeAxis(*axis, a.ndim());
+        target_array = a;
+    } else {
+        target_array = Reshape(a, Shape({a.shape().GetTotalSize()}));
+    }
+
+    Shape broadcast_shape = target_array.shape();
+    broadcast_shape.insert(broadcast_shape.begin() + target_axis + 1, repeats);
+
+    Shape reshape_shape = target_array.shape();
+    reshape_shape[target_axis] *= repeats;
+
+    Array expanded_array = ExpandDims(target_array, target_axis + 1);
+    Array broadcasted_array = BroadcastTo(expanded_array, broadcast_shape);
+    Array reshaped_array = Reshape(broadcasted_array, reshape_shape);
+    return AsContiguousArray(reshaped_array);
+}
+
+Array Repeat(const Array& a, const std::vector<int64_t>& repeats, absl::optional<int8_t> axis) {
+    if (repeats.size() == 1) {
+        return Repeat(a, repeats[0], axis);
+    }
+
+    if (axis.has_value()) {
+        int8_t target_axis = internal::NormalizeAxis(*axis, a.ndim());
+
+        if (repeats.size() != static_cast<size_t>(a.shape()[target_axis])) {
+            throw DimensionError("The number of repeats must be same with a shape in the axis direction.");
+        }
+
+        if (std::any_of(repeats.begin(), repeats.end(), [](int64_t x) -> bool { return x < 0; })) {
+            throw DimensionError("repeats must be larger than 0.");
+        }
+
+        // TODO(durswd) : should be optimized
+        std::vector<Array> output_elements;
+        std::vector<Array> splitted = Split(a, a.shape()[target_axis], target_axis);
+
+        for (size_t i = 0; i < splitted.size(); ++i) {
+            for (int32_t j = 0; j < repeats[i]; ++j) {
+                output_elements.push_back(splitted[i]);
+            }
+        }
+
+        Array out = Concatenate(output_elements, target_axis);
+
+        return AsContiguousArray(out);
+    }
+
+    if (repeats.size() != static_cast<size_t>(a.shape().GetTotalSize())) {
+        throw DimensionError("The number of repeats must be same with a shape.");
+    }
+
+    Array reshaped = Reshape(a, Shape({a.shape().GetTotalSize()}));
+    return Repeat(reshaped, repeats, 0);
+}
+
 Array ExpandDims(const Array& a, int8_t axis) {
     Shape shape = a.shape();
 

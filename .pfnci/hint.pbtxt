@@ -10,6 +10,7 @@ rules { name: "chainer_tests/functions_tests/activation_tests/test_elu.py" xdist
 
 # Slow tests take 60+ seconds.
 rules { name: "chainer_tests/functions_tests/activation_tests/test_crelu.py" xdist: 4 deadline: 240 }
+rules { name: "chainer_tests/functions_tests/evaluation_tests/test_accuracy.py" xdist: 4 deadline: 240 }
 rules { name: "chainer_tests/functions_tests/loss_tests/test_softmax_cross_entropy.py" xdist: 8 deadline: 240 }
 rules { name: "chainer_tests/functions_tests/math_tests/test_sparse_matmul.py" xdist: 4 deadline: 240 }
 rules { name: "chainer_tests/functions_tests/normalization_tests/test_batch_normalization.py" xdist: 4 deadline: 240 }

@@ -153,7 +153,9 @@ class TabularDataset(dataset_mixin.DatasetMixin):
         This method takes data fetched by :meth:`fetch` and
         pre-process them before passing them to models.
         The default behaviour is converting each column into an ndarray.
-        This behaviour can be overloaded by :meth:`with_converter`.
+        This behaviour can be overridden by :meth:`with_converter`.
+        If the dataset is constructed by :meth:`concat` or :meth:`join`,
+        the converter of the first dataset is used.
 
         Args:
             data (tuple or dict): Data from :meth:`fetch`.
@@ -244,9 +246,9 @@ class TabularDataset(dataset_mixin.DatasetMixin):
             self, keys, transform_batch)
 
     def with_converter(self, converter):
-        """Overload the behaviour of :meth:`convert`.
+        """Override the behaviour of :meth:`convert`.
 
-        This method overloads :meth:`convert`.
+        This method overrides :meth:`convert`.
 
         Args:
             converter (callable): A new converter.

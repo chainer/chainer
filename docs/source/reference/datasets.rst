@@ -49,6 +49,7 @@ Tabular Dataset Helpers
    :toctree: generated/
    :nosignatures:
 
+   chainer.dataset.tabular.DelegateDataset
    chainer.dataset.tabular.from_data
 
 
@@ -69,6 +70,7 @@ Batch Conversion Function
    :toctree: generated/
    :nosignatures:
 
+   chainer.dataset.Converter
    chainer.dataset.converter
 
    chainer.dataset.concat_examples

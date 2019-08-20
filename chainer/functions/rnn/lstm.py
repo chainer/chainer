@@ -2,6 +2,7 @@ import numpy
 import six
 
 import chainer
+import chainerx
 from chainer import backend
 from chainer.backends import cuda
 from chainer.backends import intel64
@@ -78,6 +79,11 @@ class LSTM(function_node.FunctionNode):
         )
         for i in six.moves.range(2, type_check.eval(c_type.ndim)):
             type_check.expect(x_type.shape[i] == c_type.shape[i])
+
+    def forward_chainerx(self, inputs):
+        c, x = inputs
+        c_next, h = chainerx.lstm(c, x)
+        return c_next, h
 
     def forward(self, inputs):
         self.retain_inputs((0, 1))
@@ -190,18 +196,20 @@ class LSTMGrad(function.Function):
         ggc_prev, ggx = grads
         batch = len(x)
 
-        if gc is None:
-            gc = xp.zeros_like(c)
-        if gh is None:
-            gh = xp.zeros_like(c[:batch])
+        gc_is_none = gc is None
+        gh_is_none = gh is None
+        if gc_is_none:
+            gc = 0
+        if gh_is_none:
+            gh = 0
         if ggc_prev is None:
-            ggc_prev = xp.zeros_like(c_prev)
+            ggc_prev = 0
 
         gc_prev = xp.empty_like(c_prev)
         gx = xp.empty_like(x)
         gc_next = xp.empty_like(c)
-        ggc = xp.empty_like(ggc_prev)
-        ggh = xp.empty_like(gh)
+        ggc = xp.empty_like(c_prev)
+        ggh = xp.empty_like(c[:batch])
 
         gc_prev[batch:] = 0
         gc_next[batch:] = 0
@@ -210,7 +218,8 @@ class LSTMGrad(function.Function):
 
         c_prev = c_prev[:batch]
         c = c[:batch]
-        gc = gc[:batch]
+        if not gc_is_none:
+            gc = gc[:batch]
         ggc_prev = ggc_prev[:batch]
         ggx = ggx[:batch]
 
@@ -222,6 +231,12 @@ class LSTMGrad(function.Function):
             c_prev, a, i, f, o, c, gc, gh, ggc_prev, gga, ggi, ggf, ggo,
             gc_prev[:batch], ga[:], gi[:], gf[:], go[:], gc_next[:batch],
             ggc[:batch], ggh[:batch])
+
+        if gc_is_none:
+            ggc = None
+        if gh_is_none:
+            ggh = None
+
         return gc_prev, gx, gc_next, ggc, ggh
 
 

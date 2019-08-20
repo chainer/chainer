@@ -4,6 +4,7 @@
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/explog.h"
 #include "chainerx/routines/indexing.h"
+#include "chainerx/routines/logic.h"
 #include "chainerx/routines/misc.h"
 #include "chainerx/scalar.h"
 
@@ -22,6 +23,12 @@ Array HuberLoss(const Array& x1, const Array& x2, Scalar delta) {
 
     // TODO(kshitij12345) : use Array < Scalar when implemented.
     return Where(abs_a < delta_array, 0.5 * Square(a), delta * (abs_a - Scalar{0.5} * delta));
+}
+
+Array SigmoidCrossEntropy(const Array& x1, const Array& x2) {
+    Array ignore_label = -OnesLike(x2, x2.device());
+    Array ignore_mask = NotEqual(x2, ignore_label);
+    return -(ignore_mask * (x1 * (x2 - (GreaterEqual(x1, ZerosLike(x1, x1.device()))).AsType(x1.dtype())) - Log1p(Exp(-Absolute(x1)))));
 }
 
 }  // namespace chainerx

@@ -311,6 +311,23 @@ class TestReshapeArg(op_utils.NumpyOpTest):
         return b,
 
 
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize_pytest('a_shape,b_shape', _reshape_shape)
+class TestFlatten(op_utils.NumpyOpTest):
+
+    forward_accept_errors = (TypeError, chainerx.ChainerxError)
+    check_numpy_strides_compliance = False
+
+    def generate_inputs(self):
+        a = array_utils.shaped_arange(self.a_shape, 'float64')
+        return a,
+
+    def forward_xp(self, inputs, xp):
+        a, = inputs
+        b = a.flatten()
+        return b,
+
+
 @pytest.mark.parametrize('shape1,shape2', [
     ((), (0,)),
     ((), (2,)),
@@ -847,6 +864,73 @@ def test_swap_invalid(xp, shape, axis1, axis2):
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize_pytest('shape,repeats,axis', [
+    ((4,), 1, None),
+    ((4,), 2, None),
+    ((4, 2), 2, None),
+    ((4,), 1, 0),
+    ((4,), 2, 0),
+    ((4,), (1,), None),
+    ((4,), (2,), None),
+    ((4, 2), (2,), None),
+    ((4,), (1,), 0),
+    ((4,), (2,), 0),
+    ((2,), (1, 2), 0),
+    ((2,), (0, 2), 0),
+    ((4, 2), 2, 0),
+    ((4, 2), 2, 1),
+    ((4, 2), 2, -1),
+    ((4, 2), 2, -2),
+    ((2, 4), (1, 2), 0),
+    ((4, 2), (1, 2), 1),
+    ((2, 4), [1, 2], 0),
+    ((4, 2), [1, 2], 1),
+    ((2, 4), numpy.array([1, 2]), numpy.array(0)),
+    ((4, 2), numpy.array([1, 2]), numpy.array(1)),
+])
+@chainer.testing.parameterize_pytest('is_module', [True, False])
+class TestRepeat(op_utils.NumpyOpTest):
+
+    def setup(self, dtype):
+        # Skip backward/double-backward tests for int dtypes
+        if numpy.dtype(dtype).kind != 'f':
+            self.skip_backward_test = True
+            self.skip_double_backward_test = True
+        self.dtype = dtype
+
+        if dtype == 'float16':
+            self.check_backward_options.update({'rtol': 1e-3, 'atol': 1e-3})
+
+    def generate_inputs(self):
+        a = array_utils.create_dummy_ndarray(numpy, self.shape, self.dtype)
+        return a,
+
+    def forward_xp(self, inputs, xp):
+        a, = inputs
+        if self.is_module:
+            b = xp.repeat(a, self.repeats, self.axis)
+        else:
+            b = a.repeat(self.repeats, self.axis)
+        return b,
+
+
+@chainerx.testing.numpy_chainerx_array_equal(
+    accept_error=(
+        chainerx.DimensionError, ValueError))
+@pytest.mark.parametrize('shape,repeats,axis', [
+    # Axis out of range.
+    ((1,), 1, 1),
+    ((1, 1), (1, 2), 0),
+    ((1, 1), (1, -2), 0),
+    ((1, 1), (1, 2), -3),
+    ((1, 1), (1, 2), 2),
+])
+def test_repeat_invalid(xp, shape, repeats, axis):
+    a = array_utils.create_dummy_ndarray(xp, shape, 'float32')
+    return xp.repeat(a, repeats, axis)
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
     chainer.testing.product({
         'shape': [(2, 2, 2)],
@@ -1333,3 +1417,24 @@ def test_moveaxis_invalid(xp, shape, source, dst):
     a = array_utils.uniform(shape, 'float')
     a = xp.array(a)
     return xp.moveaxis(a, source, dst)
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize_pytest('a_shape,b_shape', _reshape_shape)
+@chainer.testing.parameterize_pytest('is_module', [True, False])
+class TestRavel(op_utils.NumpyOpTest):
+
+    forward_accept_errors = (TypeError, chainerx.ChainerxError)
+    check_numpy_strides_compliance = False
+
+    def generate_inputs(self):
+        a = array_utils.shaped_arange(self.a_shape, 'float64')
+        return a,
+
+    def forward_xp(self, inputs, xp):
+        a, = inputs
+        if self.is_module:
+            b = xp.ravel(a)
+        else:
+            b = a.ravel()
+        return b,
