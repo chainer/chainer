@@ -114,12 +114,12 @@ class TestConvolution2D(testing.LinkTestCase):
     def test_from_params(self, backend_config):
         link1 = self.create_link(self.generate_params())
         link1.to_device(backend_config.device)
-        link2 = L.Convolution2D.from_params(
+        link2 = links.Convolution2D.from_params(
             link1.W, link1.b, stride=self.stride, pad=self.pad)
         assert link2.W.shape == link1.W.shape
         assert link2.b.shape == link2.b.shape
         assert link2.stride == link1.stride
-        assert link2.pad = link1.pad
+        assert link2.pad == link1.pad
 
 
 @testing.parameterize(*testing.product({
