@@ -508,7 +508,7 @@ def connectionist_temporal_classification(
         if isinstance(label_length, chainer.Variable):
             input_length = input_length.array
         if isinstance(label_length, chainer.Variable):
-            label_length = label_length.data
+            label_length = label_length.array
 
         max_length = input_length.max()
         if max_length != len(x):
