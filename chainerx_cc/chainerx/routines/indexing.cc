@@ -313,13 +313,13 @@ std::vector<Array> Nonzero(const Array& a) {
         out.push_back(out_flatten);
         return out;
     }
+
+    int64_t prod_before = 1;
     for (int64_t i = 0; i < a.ndim(); ++i) {
-        if (i == 0) {
-            out.push_back(FloorDivide(out_flatten, a.GetTotalSize() / a.shape()[i]));
-        } else {
-            Scalar dim{a.shape()[i]};
-            out.push_back(out_flatten - FloorDivide(out_flatten, dim) * dim);
-        }
+        Scalar dim{a.shape()[i]};
+        prod_before *= a.shape()[i];
+        Array divide = FloorDivide(out_flatten, a.GetTotalSize() / prod_before);
+        out.push_back(divide - FloorDivide(divide, a.shape()[i]) * a.shape()[i]);
     }
     return out;
 }
