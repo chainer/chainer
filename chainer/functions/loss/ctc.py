@@ -506,7 +506,7 @@ def connectionist_temporal_classification(
         # For cuDNN CTC, you can set `deterministic`.
         deterministic = configuration.config.cudnn_deterministic
         if isinstance(label_length, chainer.Variable):
-            input_length = input_length.data
+            input_length = input_length.array
         if isinstance(label_length, chainer.Variable):
             label_length = label_length.data
 
