@@ -194,8 +194,7 @@ void InitChainerxArrayConversion(pybind11::module& m, py::class_<ArrayBody, Arra
           });
     c.def(py::pickle(
             [m](const ArrayBodyPtr& self) -> py::tuple {
-                return py::make_tuple(MakeNumpyArrayFromArray(m, self, true),
-                       py::cast(self->device(), py::return_value_policy::reference));
+                return py::make_tuple(MakeNumpyArrayFromArray(m, self, true), py::cast(self->device(), py::return_value_policy::reference));
             },
             [](py::tuple state) -> ArrayBodyPtr {
                 py::array numpy_array = state[0];
