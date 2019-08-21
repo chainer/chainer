@@ -77,15 +77,10 @@ MIT License (see `LICENSE` file).
 
 - [Release notes](https://github.com/chainer/chainer/releases)
 
-
 ## Reference
 
-Tokui, S., Oono, K., Hido, S. and Clayton, J.,
-Chainer: a Next-Generation Open Source Framework for Deep Learning,
-*Proceedings of Workshop on Machine Learning Systems(LearningSys) in
-The Twenty-ninth Annual Conference on Neural Information Processing Systems (NIPS)*, (2015)
-[URL](http://learningsys.org/papers/LearningSys_2015_paper_33.pdf), [BibTex](chainer_bibtex.txt)
-
+Tokui, Seiya, et al. "Chainer: A Deep Learning Framework for Accelerating the Research Cycle." *Proceedings of the 25th ACM SIGKDD International Conference on Knowledge Discovery & Data Mining*. ACM, 2019.
+[URL](https://dl.acm.org/citation.cfm?id=3330756) [BibTex](chainer_bibtex.txt)
 
 Akiba, T., Fukuda, K. and Suzuki, S.,
 ChainerMN: Scalable Distributed Deep Learning Framework,

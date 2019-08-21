@@ -1,7 +1,8 @@
-@inproceedings{chainer_learningsys2015,
-  author       = "Tokui, Seiya and Oono, Kenta and Hido, Shohei and Clayton, Justin",
-  title        = "Chainer: a Next-Generation Open Source Framework for Deep Learning",
-  booktitle    = "Proceedings of Workshop on Machine Learning Systems (LearningSys) in The Twenty-ninth Annual Conference on Neural Information Processing Systems (NIPS)",
-  year         = "2015",
-  url          = "http://learningsys.org/papers/LearningSys_2015_paper_33.pdf"
+@inproceedings{tokui2019chainer,
+  title={Chainer: A Deep Learning Framework for Accelerating the Research Cycle},
+  author={Tokui, Seiya and Okuta, Ryosuke and Akiba, Takuya and Niitani, Yusuke and Ogawa, Toru and Saito, Shunta and Suzuki, Shuji and Uenishi, Kota and Vogel, Brian and Yamazaki Vincent, Hiroyuki},
+  booktitle={Proceedings of the 25th ACM SIGKDD International Conference on Knowledge Discovery \& Data Mining},
+  pages={2002--2011},
+  year={2019},
+  organization={ACM}
 }
