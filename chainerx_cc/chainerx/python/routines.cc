@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -37,6 +38,8 @@
 #include "chainerx/routines/rounding.h"
 #include "chainerx/routines/sorting.h"
 #include "chainerx/routines/statistics.h"
+
+#include "chainerx/routines/n_step_rnn.h"
 #include "chainerx/routines/trigonometric.h"
 #include "chainerx/scalar.h"
 
@@ -275,6 +278,17 @@ void InitChainerxCreation(pybind11::module& m) {
           "endpoint"_a = true,
           "dtype"_a = nullptr,
           "device"_a = nullptr);
+    m.def("tri",
+          [](int64_t n, absl::optional<int64_t> m, int64_t k, py::handle dtype, py::handle device) {
+              return MoveArrayBody(Tri(n, m, k, GetDtype(dtype), GetDevice(device)));
+          },
+          "N"_a,
+          "M"_a = nullptr,
+          "k"_a = 0,
+          "dtype"_a = "float32",
+          "device"_a = nullptr);
+    m.def("tril", [](const ArrayBodyPtr& m, int64_t k) { return MoveArrayBody(Tril(Array{m}, k)); }, "m"_a, "k"_a = 0);
+    m.def("triu", [](const ArrayBodyPtr& m, int64_t k) { return MoveArrayBody(Triu(Array{m}, k)); }, "m"_a, "k"_a = 0);
 }
 
 void InitChainerxIndexing(pybind11::module& m) {
@@ -331,6 +345,32 @@ void InitChainerxIndexing(pybind11::module& m) {
 void InitChainerxLinalg(pybind11::module& m) {
     // linalg routines
     m.def("dot", [](const ArrayBodyPtr& a, const ArrayBodyPtr& b) { return MoveArrayBody(Dot(Array{a}, Array{b})); }, "a"_a, "b"_a);
+
+    pybind11::module mlinalg = m.def_submodule("linalg");
+    mlinalg.def("_is_lapack_available", []() -> bool { return CHAINERX_ENABLE_LAPACK; });
+    mlinalg.def(
+            "solve", [](const ArrayBodyPtr& a, const ArrayBodyPtr& b) { return MoveArrayBody(Solve(Array{a}, Array{b})); }, "a"_a, "b"_a);
+    mlinalg.def("inv", [](const ArrayBodyPtr& a) { return MoveArrayBody(Inverse(Array{a})); }, "a"_a);
+    mlinalg.def(
+            "svd",
+            [](const ArrayBodyPtr& a, bool full_matrices, bool compute_uv) -> py::object {
+                std::tuple<Array, Array, Array> usvt = Svd(Array{a}, full_matrices, compute_uv);
+                Array& u = std::get<0>(usvt);
+                Array& s = std::get<1>(usvt);
+                Array& vt = std::get<2>(usvt);
+                if (!compute_uv) {
+                    return py::cast(MoveArrayBody(std::move(s)));
+                }
+                return py::make_tuple(MoveArrayBody(std::move(u)), MoveArrayBody(std::move(s)), MoveArrayBody(std::move(vt)));
+            },
+            "a"_a,
+            "full_matrices"_a = true,
+            "compute_uv"_a = true);
+    mlinalg.def(
+            "pinv",
+            [](const ArrayBodyPtr& a, float rcond) { return MoveArrayBody(PseudoInverse(Array{a}, rcond)); },
+            "a"_a,
+            "rcond"_a = 1e-15);
 }
 
 void InitChainerxLogic(pybind11::module& m) {
@@ -518,6 +558,7 @@ void InitChainerxManipulation(pybind11::module& m) {
     m.def("flip", [](const ArrayBodyPtr& m, int8_t axes) { return MoveArrayBody(Flip(Array{m}, {axes})); }, "m"_a, "axes"_a = nullptr);
     m.def("fliplr", [](const ArrayBodyPtr& m) { return MoveArrayBody(Fliplr(Array{m})); }, "m"_a);
     m.def("flipud", [](const ArrayBodyPtr& m) { return MoveArrayBody(Flipud(Array{m})); }, "m"_a);
+    m.def("ravel", [](const ArrayBodyPtr& a) { return MoveArrayBody(Ravel(Array{a})); }, "a"_a);
     m.def("rollaxis",
           [](const ArrayBodyPtr& a, int8_t axis, int8_t start) { return MoveArrayBody(RollAxis(Array{a}, axis, start)); },
           "a"_a,
@@ -554,6 +595,20 @@ void InitChainerxManipulation(pybind11::module& m) {
           "a"_a,
           "axis1"_a,
           "axis2"_a);
+    m.def("repeat",
+          [](const ArrayBodyPtr& a, int64_t repeats, absl::optional<int8_t> axis) {
+              return MoveArrayBody(Repeat(Array{a}, repeats, axis));
+          },
+          "a"_a,
+          "repeats"_a,
+          "axis"_a = nullptr);
+    m.def("repeat",
+          [](const ArrayBodyPtr& a, const std::vector<int64_t>& repeats, absl::optional<int8_t> axis) {
+              return MoveArrayBody(Repeat(Array{a}, repeats, axis));
+          },
+          "a"_a,
+          "repeats"_a,
+          "axis"_a = nullptr);
     m.def("broadcast_to",
           [](const ArrayBodyPtr& array, py::handle shape) { return MoveArrayBody(Array{array}.BroadcastTo(ToShape(shape))); },
           "array"_a,
@@ -793,6 +848,18 @@ void InitChainerxReduction(pybind11::module& m) {
           [](const ArrayBodyPtr& a, const absl::optional<int8_t>& axis) { return MoveArrayBody(Cumsum(Array{a}, axis)); },
           "a"_a,
           "axis"_a = nullptr);
+    m.def("nansum",
+          [](const ArrayBodyPtr& a, int8_t axis, bool keepdims) { return MoveArrayBody(Nansum(Array{a}, Axes{axis}, keepdims)); },
+          "a"_a,
+          "axis"_a,
+          "keepdims"_a = false);
+    m.def("nansum",
+          [](const ArrayBodyPtr& a, const absl::optional<std::vector<int8_t>>& axis, bool keepdims) {
+              return MoveArrayBody(Nansum(Array{a}, ToAxes(axis), keepdims));
+          },
+          "a"_a,
+          "axis"_a = nullptr,
+          "keepdims"_a = false);
 }
 
 void InitChainerxRounding(pybind11::module& m) {
@@ -833,6 +900,24 @@ void InitChainerxSorting(pybind11::module& m) {
           "axis"_a = nullptr);
     m.def("argmin",
           [](const ArrayBodyPtr& a, const absl::optional<int8_t>& axis) { return MoveArrayBody(ArgMin(Array{a}, ToAxes(axis))); },
+          "a"_a,
+          "axis"_a = nullptr);
+    m.def("count_nonzero",
+          [](const ArrayBodyPtr& a, int8_t axis) { return MoveArrayBody(CountNonzero(Array{a}, Axes{axis})); },
+          "a"_a,
+          "axis"_a);
+    m.def("count_nonzero",
+          [](const ArrayBodyPtr& a, const absl::optional<std::vector<int8_t>>& axis) {
+              return MoveArrayBody(CountNonzero(Array{a}, ToAxes(axis)));
+          },
+          "a"_a,
+          "axis"_a = nullptr);
+    m.def("nanargmax",
+          [](const ArrayBodyPtr& a, const absl::optional<int8_t>& axis) { return MoveArrayBody(NanArgMax(Array{a}, ToAxes(axis))); },
+          "a"_a,
+          "axis"_a = nullptr);
+    m.def("nanargmin",
+          [](const ArrayBodyPtr& a, const absl::optional<int8_t>& axis) { return MoveArrayBody(NanArgMin(Array{a}, ToAxes(axis))); },
           "a"_a,
           "axis"_a = nullptr);
 }
@@ -950,6 +1035,7 @@ void InitChainerxConnection(pybind11::module& m) {
           "w"_a,
           "b"_a = nullptr,
           "n_batch_axes"_a = 1);
+<<<<<<< HEAD
     m.def("embed_id",
           [](const ArrayBodyPtr& x, const ArrayBodyPtr& w, const absl::optional<int64_t> ignore_index) {
               return MoveArrayBody(EmbedId(Array{x}, Array{w}, ignore_index));
@@ -957,6 +1043,18 @@ void InitChainerxConnection(pybind11::module& m) {
           "x"_a,
           "w"_a,
           "ignore_index"_a = nullptr);
+=======
+    m.def("lstm",
+          [](const ArrayBodyPtr& c, const ArrayBodyPtr& x) {
+              std::vector<ArrayBodyPtr> out = ToArrayBodyPtr(Lstm(Array{c}, Array{x}));
+              py::tuple ret{2};
+              ret[0] = out[1];
+              ret[1] = out[0];
+              return ret;
+          },
+          py::arg("c"),
+          py::arg("x"));
+>>>>>>> 4381df84878e08f55f0cba31759fc7628120c449
 }
 
 void InitChainerxNormalization(pybind11::module& m) {
@@ -1069,6 +1167,198 @@ void InitChainerxLoss(pybind11::module& m) {
           "x1"_a,
           "x2"_a,
           "delta"_a);
+    m.def("sigmoid_cross_entropy",
+          [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return MoveArrayBody(SigmoidCrossEntropy(Array{x1}, Array{x2})); },
+          "x1"_a,
+          "x2"_a);
+}
+void InitChainerxRNN(pybind11::module& m) {
+    m.def("n_step_lstm",
+          [](int64_t n_layers,
+             ArrayBodyPtr& hx,
+             ArrayBodyPtr& cx,
+             std::vector<std::vector<ArrayBodyPtr>> weights,
+             std::vector<std::vector<ArrayBodyPtr>> biases,
+             std::vector<ArrayBodyPtr> inputs) {
+              std::vector<std::vector<Array>> ws;
+              std::vector<std::vector<Array>> bs;
+              std::vector<Array> xs;
+              for (size_t i = 0; i < weights.size(); i++) {
+                  std::vector<Array> temp_ws;
+                  std::vector<Array> temp_bs;
+                  for (size_t j = 0; j < weights[i].size(); j++) {
+                      temp_ws.emplace_back(Array{weights[i][j]});
+                      temp_bs.emplace_back(Array{biases[i][j]});
+                  }
+                  ws.emplace_back(temp_ws);
+                  bs.emplace_back(temp_bs);
+              }
+              for (size_t i = 0; i < inputs.size(); i++) {
+                  xs.emplace_back(Array{inputs[i]});
+              }
+              std::vector<std::vector<Array>> out = NStepLstm(n_layers, Array{hx}, Array{cx}, ws, bs, xs);
+              py::tuple ret{3};
+              std::vector<ArrayBodyPtr> states = ToArrayBodyPtr(out[0]);
+              std::vector<ArrayBodyPtr> ys = ToArrayBodyPtr(out[1]);
+              ret[0] = states[0];
+              ret[1] = states[1];
+              ret[2] = ys;
+              return ret;
+          });
+    m.def("n_step_bilstm",
+          [](int64_t n_layers,
+             ArrayBodyPtr& hx,
+             ArrayBodyPtr& cx,
+             std::vector<std::vector<ArrayBodyPtr>> weights,
+             std::vector<std::vector<ArrayBodyPtr>> biases,
+             std::vector<ArrayBodyPtr> inputs) {
+              std::vector<std::vector<Array>> ws;
+              std::vector<std::vector<Array>> bs;
+              std::vector<Array> xs;
+              for (size_t i = 0; i < weights.size(); i++) {
+                  std::vector<Array> temp_ws;
+                  std::vector<Array> temp_bs;
+                  for (size_t j = 0; j < weights[i].size(); j++) {
+                      temp_ws.emplace_back(Array{weights[i][j]});
+                      temp_bs.emplace_back(Array{biases[i][j]});
+                  }
+                  ws.emplace_back(temp_ws);
+                  bs.emplace_back(temp_bs);
+              }
+              for (size_t i = 0; i < inputs.size(); i++) {
+                  xs.emplace_back(Array{inputs[i]});
+              }
+              std::vector<std::vector<Array>> out = NStepBiLstm(n_layers, Array{hx}, Array{cx}, ws, bs, xs);
+              py::tuple ret{3};
+              std::vector<ArrayBodyPtr> states = ToArrayBodyPtr(out[0]);
+              std::vector<ArrayBodyPtr> ys = ToArrayBodyPtr(out[1]);
+              ret[0] = states[0];
+              ret[1] = states[1];
+              ret[2] = ys;
+              return ret;
+          });
+    m.def("n_step_gru",
+          [](int64_t n_layers,
+             ArrayBodyPtr& hx,
+             std::vector<std::vector<ArrayBodyPtr>> weights,
+             std::vector<std::vector<ArrayBodyPtr>> biases,
+             std::vector<ArrayBodyPtr> inputs) {
+              std::vector<std::vector<Array>> ws;
+              std::vector<std::vector<Array>> bs;
+              std::vector<Array> xs;
+              for (size_t i = 0; i < weights.size(); i++) {
+                  std::vector<Array> temp_ws;
+                  std::vector<Array> temp_bs;
+                  for (size_t j = 0; j < weights[i].size(); j++) {
+                      temp_ws.emplace_back(Array{weights[i][j]});
+                      temp_bs.emplace_back(Array{biases[i][j]});
+                  }
+                  ws.emplace_back(temp_ws);
+                  bs.emplace_back(temp_bs);
+              }
+              for (size_t i = 0; i < inputs.size(); i++) {
+                  xs.emplace_back(Array{inputs[i]});
+              }
+              std::vector<std::vector<Array>> out = NStepGru(n_layers, Array{hx}, ws, bs, xs);
+              py::tuple ret{2};
+              std::vector<ArrayBodyPtr> states = ToArrayBodyPtr(out[0]);
+              std::vector<ArrayBodyPtr> ys = ToArrayBodyPtr(out[1]);
+              ret[0] = states[0];
+              ret[1] = ys;
+              return ret;
+          });
+    m.def("n_step_bigru",
+          [](int64_t n_layers,
+             ArrayBodyPtr& hx,
+             std::vector<std::vector<ArrayBodyPtr>> weights,
+             std::vector<std::vector<ArrayBodyPtr>> biases,
+             std::vector<ArrayBodyPtr> inputs) {
+              std::vector<std::vector<Array>> ws;
+              std::vector<std::vector<Array>> bs;
+              std::vector<Array> xs;
+              for (size_t i = 0; i < weights.size(); i++) {
+                  std::vector<Array> temp_ws;
+                  std::vector<Array> temp_bs;
+                  for (size_t j = 0; j < weights[i].size(); j++) {
+                      temp_ws.emplace_back(Array{weights[i][j]});
+                      temp_bs.emplace_back(Array{biases[i][j]});
+                  }
+                  ws.emplace_back(temp_ws);
+                  bs.emplace_back(temp_bs);
+              }
+              for (size_t i = 0; i < inputs.size(); i++) {
+                  xs.emplace_back(Array{inputs[i]});
+              }
+              std::vector<std::vector<Array>> out = NStepBiGru(n_layers, Array{hx}, ws, bs, xs);
+              py::tuple ret{2};
+              std::vector<ArrayBodyPtr> states = ToArrayBodyPtr(out[0]);
+              std::vector<ArrayBodyPtr> ys = ToArrayBodyPtr(out[1]);
+              ret[0] = states[0];
+              ret[1] = ys;
+              return ret;
+          });
+    m.def("n_step_rnn",
+          [](int64_t n_layers,
+             ArrayBodyPtr& hx,
+             std::vector<std::vector<ArrayBodyPtr>> weights,
+             std::vector<std::vector<ArrayBodyPtr>> biases,
+             std::vector<ArrayBodyPtr> inputs,
+             std::string activation) {
+              std::vector<std::vector<Array>> ws;
+              std::vector<std::vector<Array>> bs;
+              std::vector<Array> xs;
+              for (size_t i = 0; i < weights.size(); i++) {
+                  std::vector<Array> temp_ws;
+                  std::vector<Array> temp_bs;
+                  for (size_t j = 0; j < weights[i].size(); j++) {
+                      temp_ws.emplace_back(Array{weights[i][j]});
+                      temp_bs.emplace_back(Array{biases[i][j]});
+                  }
+                  ws.emplace_back(temp_ws);
+                  bs.emplace_back(temp_bs);
+              }
+              for (size_t i = 0; i < inputs.size(); i++) {
+                  xs.emplace_back(Array{inputs[i]});
+              }
+              std::vector<std::vector<Array>> out = NStepRnn(n_layers, Array{hx}, ws, bs, xs, activation);
+              py::tuple ret{2};
+              std::vector<ArrayBodyPtr> states = ToArrayBodyPtr(out[0]);
+              std::vector<ArrayBodyPtr> ys = ToArrayBodyPtr(out[1]);
+              ret[0] = states[0];
+              ret[1] = ys;
+              return ret;
+          });
+    m.def("n_step_birnn",
+          [](int64_t n_layers,
+             ArrayBodyPtr& hx,
+             std::vector<std::vector<ArrayBodyPtr>> weights,
+             std::vector<std::vector<ArrayBodyPtr>> biases,
+             std::vector<ArrayBodyPtr> inputs,
+             std::string activation) {
+              std::vector<std::vector<Array>> ws;
+              std::vector<std::vector<Array>> bs;
+              std::vector<Array> xs;
+              for (size_t i = 0; i < weights.size(); i++) {
+                  std::vector<Array> temp_ws;
+                  std::vector<Array> temp_bs;
+                  for (size_t j = 0; j < weights[i].size(); j++) {
+                      temp_ws.emplace_back(Array{weights[i][j]});
+                      temp_bs.emplace_back(Array{biases[i][j]});
+                  }
+                  ws.emplace_back(temp_ws);
+                  bs.emplace_back(temp_bs);
+              }
+              for (size_t i = 0; i < inputs.size(); i++) {
+                  xs.emplace_back(Array{inputs[i]});
+              }
+              std::vector<std::vector<Array>> out = NStepBiRnn(n_layers, Array{hx}, ws, bs, xs, activation);
+              py::tuple ret{2};
+              std::vector<ArrayBodyPtr> states = ToArrayBodyPtr(out[0]);
+              std::vector<ArrayBodyPtr> ys = ToArrayBodyPtr(out[1]);
+              ret[0] = states[0];
+              ret[1] = ys;
+              return ret;
+          });
 }
 
 }  // namespace
@@ -1094,6 +1384,7 @@ void InitChainerxRoutines(pybind11::module& m) {
     InitChainerxConnection(m);
     InitChainerxNormalization(m);
     InitChainerxPooling(m);
+    InitChainerxRNN(m);
 }
 
 }  // namespace python_internal

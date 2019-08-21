@@ -44,6 +44,13 @@ else()
     set(DEFAULT_CHAINERX_ENABLE_BLAS ON)
 endif()
 
+# CHAINERX_ENABLE_LAPACK
+if(DEFINED ENV{CHAINERX_ENABLE_LAPACK})
+    set(DEFAULT_CHAINERX_ENABLE_LAPACK $ENV{CHAINERX_ENABLE_LAPACK})
+else()
+    set(DEFAULT_CHAINERX_ENABLE_LAPACK ON)
+endif()
+
 option(CHAINERX_BUILD_PYTHON "Build Python binding" OFF)
 option(CHAINERX_BUILD_TEST "Build test" OFF)
 option(CHAINERX_BUILD_EXAMPLES "Build examples" OFF)
@@ -53,6 +60,7 @@ option(CHAINERX_CUDNN_USE_CUPY "Use existing CuPy installation for cuDNN headers
 option(CHAINERX_ENABLE_COVERAGE "Enable test coverage with gcov" ${DEFAULT_CHAINERX_ENABLE_COVERAGE})
 option(CHAINERX_BUILD_CUDA "Build CUDA backend (if CUDA is available)" ${DEFAULT_CHAINERX_BUILD_CUDA})
 option(CHAINERX_ENABLE_BLAS "Use BLAS if available" ${DEFAULT_CHAINERX_ENABLE_BLAS})
+option(CHAINERX_ENABLE_LAPACK "Use LAPACK if available" ${DEFAULT_CHAINERX_ENABLE_LAPACK})
 
 if(MSVC)
     option(CUDA_USE_STATIC_CUDA_RUNTIME "Use the static version of the CUDA runtime library if available" OFF)
@@ -180,6 +188,13 @@ if(${CHAINERX_BUILD_CUDA})
         list(APPEND CUDA_NVCC_FLAGS --generate-code=arch=compute_70,code=sm_70)
     endif()
 
+    # cuSOLVER requires OpenMP
+    if(MSVC)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /openmp")
+    else()
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
+    endif()
+
     if(MSVC)
         if(CMAKE_CXX_COMPILER_ID MATCHES "GCC|Clang")
             list(APPEND CUDA_NVCC_FLAGS -Xcompiler /MD)
@@ -197,6 +212,19 @@ if(${CHAINERX_ENABLE_BLAS})
         message(STATUS "Found BLAS (library: ${BLAS_LIBRARIES})")
     else()
         message(STATUS "BLAS not found")
+    endif()
+endif()
+
+# LAPACK
+if(${CHAINERX_ENABLE_LAPACK})
+    find_package(LAPACK QUIET)
+    if (${LAPACK_FOUND})
+        message(STATUS "Found LAPACK (library: ${LAPACK_LIBRARIES})")
+        message(STATUS "Defining CHAINERX_ENABLE_LAPACK variable.")
+        add_definitions(-DCHAINERX_ENABLE_LAPACK=1)
+    else()
+        message(STATUS "LAPACK not found")
+        add_definitions(-DCHAINERX_ENABLE_LAPACK=0)
     endif()
 endif()
 

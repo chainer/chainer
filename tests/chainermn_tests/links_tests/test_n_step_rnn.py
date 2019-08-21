@@ -12,14 +12,14 @@ import pytest
 
 class Model(chainer.Chain):
     def __init__(self, n_vocab, n_hid, communicator, rank_next, rank_prev):
-        n_layer = 1
+        n_layers = 1
         n_rnn_hid = 10
         super(Model, self).__init__()
         with self.init_scope():
             self.l1 = L.EmbedID(n_vocab, n_rnn_hid, ignore_label=-1)
             self.rnn = chainermn.links.create_multi_node_n_step_rnn(
                 L.NStepLSTM(
-                    n_layers=n_layer, in_size=n_rnn_hid, out_size=n_rnn_hid,
+                    n_layers=n_layers, in_size=n_rnn_hid, out_size=n_rnn_hid,
                     dropout=0.1),
                 communicator, rank_in=rank_prev, rank_out=rank_next,
             )

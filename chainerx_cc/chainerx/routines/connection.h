@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <vector>
 
 #include <absl/types/optional.h>
 
@@ -47,6 +48,10 @@ Array ConvTranspose(
 
 Array Linear(const Array& x, const Array& w, const absl::optional<Array>& b = absl::nullopt, uint8_t n_batch_axes = 1);
 
+<<<<<<< HEAD
 Array EmbedId(const Array& x, const Array& w, absl::optional<int64_t> ignore_label);
+=======
+std::vector<Array> Lstm(const Array& c, const Array& x);
+>>>>>>> 4381df84878e08f55f0cba31759fc7628120c449
 
 }  // namespace chainerx

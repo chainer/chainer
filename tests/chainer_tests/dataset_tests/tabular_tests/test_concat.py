@@ -44,7 +44,8 @@ class TestConcat(unittest.TestCase):
         dataset_a = dummy_dataset.DummyDataset(
             keys=('a', 'b', 'c') if self.mode_b else ('a',),
             mode=self.mode_a,
-            return_array=self.return_array, callback=callback_a)
+            return_array=self.return_array, callback=callback_a,
+            convert=True)
 
         def callback_b(indices, key_indices):
             self.assertEqual(indices, self.expected_indices_b)
@@ -76,6 +77,8 @@ class TestConcat(unittest.TestCase):
                 self.assertIsInstance(out, np.ndarray)
             else:
                 self.assertIsInstance(out, list)
+
+        self.assertEqual(view.convert(output), 'converted')
 
 
 class TestConcatInvalid(unittest.TestCase):

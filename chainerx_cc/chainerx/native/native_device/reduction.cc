@@ -171,6 +171,93 @@ public:
 
 CHAINERX_NATIVE_REGISTER_KERNEL(CumsumKernel, NativeCumsumKernel);
 
+class NativeNansumKernel : public NansumKernel {
+public:
+    void Call(const Array& a, const Axes& axis, const Array& out) override {
+        CHAINERX_ASSERT(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
+        a.device().CheckDevicesCompatible(a, out);
+
+        auto do_nansum = [&a, &axis, &out](auto in_pt, auto out_pt) {
+            using In = typename decltype(in_pt)::type;
+            using Out = typename decltype(out_pt)::type;
+            using Accum = std::conditional_t<std::is_same<Out, Float16>{}, float, Out>;
+            struct Impl {
+                Accum Identity() { return Accum{0}; }
+                Accum MapIn(In in, int64_t /*index*/) { return static_cast<Accum>(in); }
+                void Reduce(Accum next, Accum& accum) { accum += next; }
+                Out MapOut(Accum accum) { return static_cast<Out>(accum); }
+            };
+            Reduce<In, Out>(a, axis, out, Impl{});
+        };
+
+        VisitDtype(out.dtype(), [a_dtype = a.dtype(), &do_nansum](auto out_pt) { VisitDtype(a_dtype, do_nansum, out_pt); });
+    }
+};
+
+CHAINERX_NATIVE_REGISTER_KERNEL(NansumKernel, NativeNansumKernel);
+
+class NativeNanArgMaxKernel : public NanArgMaxKernel {
+public:
+    void Call(const Array& a, const Axes& axis, const Array& out) override {
+        CHAINERX_ASSERT(std::all_of(axis.begin(), axis.end(), [&a](int8_t i) { return a.shape()[i] > 0; }));
+        CHAINERX_ASSERT(internal::IsValidReductionShape(a.shape(), axis, out.shape(), false));
+        a.device().CheckDevicesCompatible(a, out);
+
+        VisitDtype(a.dtype(), [&a, &axis, &out](auto pt) {
+            using T = typename decltype(pt)::type;
+            struct Impl {
+                struct MaxAndNanArgMax {
+                    T max;
+                    int64_t nanargmax;
+                };
+
+                MaxAndNanArgMax Identity() { return {T{}, -1}; }
+                MaxAndNanArgMax MapIn(T in, int64_t index) { return {in, index}; }
+                void Reduce(MaxAndNanArgMax next, MaxAndNanArgMax& accum) {
+                    if (accum.nanargmax < 0 || accum.max < next.max) {
+                        accum = next;
+                    }
+                }
+                int64_t MapOut(MaxAndNanArgMax accum) { return accum.nanargmax; }
+            };
+            Reduce<T, int64_t>(a, axis, out, Impl{});
+        });
+    }
+};
+
+CHAINERX_NATIVE_REGISTER_KERNEL(NanArgMaxKernel, NativeNanArgMaxKernel);
+
+class NativeNanArgMinKernel : public NanArgMinKernel {
+public:
+    void Call(const Array& a, const Axes& axis, const Array& out) override {
+        CHAINERX_ASSERT(std::all_of(axis.begin(), axis.end(), [&a](int8_t i) { return a.shape()[i] > 0; }));
+        CHAINERX_ASSERT(internal::IsValidReductionShape(a.shape(), axis, out.shape(), false));
+        a.device().CheckDevicesCompatible(a, out);
+
+        VisitDtype(a.dtype(), [&a, &axis, &out](auto pt) {
+            using T = typename decltype(pt)::type;
+            struct Impl {
+                struct MinAndNanArgMin {
+                    T min;
+                    int64_t nanargmin;
+                };
+
+                MinAndNanArgMin Identity() { return {T{}, -1}; }
+                MinAndNanArgMin MapIn(T in, int64_t index) { return {in, index}; }
+                void Reduce(MinAndNanArgMin next, MinAndNanArgMin& accum) {
+                    if (accum.nanargmin < 0 || accum.min > next.min) {
+                        accum = next;
+                    }
+                }
+                int64_t MapOut(MinAndNanArgMin accum) { return accum.nanargmin; }
+            };
+            Reduce<T, int64_t>(a, axis, out, Impl{});
+        });
+    }
+};
+
+CHAINERX_NATIVE_REGISTER_KERNEL(NanArgMinKernel, NativeNanArgMinKernel);
+
 }  // namespace
 }  // namespace native
 }  // namespace chainerx
