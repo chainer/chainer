@@ -297,16 +297,29 @@ Array Where(const Array& condition, Scalar x, Scalar y) {
     return out;
 }
 
-Array Nonzero(const Array& a) {
+std::vector<Array> Nonzero(const Array& a) {
+    std::vector<Array> out;
     int64_t total_size = a.GetTotalSize();
     Array a_flatten = a.Reshape({total_size});
     Array is_nonzero = a_flatten != ZerosLike(a_flatten);
     int64_t count_nonzero = static_cast<int64_t>(AsScalar(is_nonzero.Sum()));
     Array out_flatten = Zeros(Shape{count_nonzero}, a.dtype(), a.device());
-    Array addat_index = Maximum(Cumsum(a_flatten) - 1, Scalar{0});
-    out_flatten = AddAt(out_flatten, addat_index, 0, a_flatten);
-    // Reshape outputs to arrays for each dimension.
-    return out_flatten;
+    Array addat_index = Maximum(Cumsum(is_nonzero) - 1, Scalar{0});
+    Array indices = Arange(a_flatten.GetTotalSize()).AsType(out_flatten.dtype());
+    out_flatten = AddAt(out_flatten, addat_index, 0, indices);
+    if (a.ndim() <= 1) {
+        out.push_back(out_flatten);
+        return out;
+    }
+    for (int64_t i = 0; i < a.ndim(); ++i) {
+        if (i == 0) {
+            out.push_back(FloorDivide(out_flatten, a.GetTotalSize() / a.shape()[i]));
+        } else {
+            Scalar dim{a.shape()[i]};
+            out.push_back(out_flatten - FloorDivide(out_flatten, dim) * dim);
+        }
+    }
+    return out;
 }
 
 }  // namespace chainerx
