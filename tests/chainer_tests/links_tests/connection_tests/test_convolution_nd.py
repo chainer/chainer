@@ -125,6 +125,18 @@ class TestConvolutionND(testing.LinkTestCase):
 
         testing.assert_allclose(y_data1, y_data2, atol=0, rtol=0)
 
+    def test_from_params(self, backend_config):
+        link1 = self.create_link(self.generate_params())
+        link1.to_device(backend_config.device)
+
+        link2 = convolution_nd.ConvolutionND.from_params(
+            link1.W, link1.b,
+            stride=self.stride, pad=self.pad, groups=self.group)
+        assert link2.W.shape == link1.W.shape
+        assert link2.b.shape == link1.b.shape
+        assert link2.stride == link1.stride
+        assert link2.pad == link1.pad
+
 
 @testing.parameterize(*(testing.product({
     'dims': [(3, 4), (3, 4, 3)],
@@ -194,37 +206,6 @@ class TestConvolutionNDWrappers(unittest.TestCase):
         link_nd = convolution_nd.ConvolutionND(3, in_c, out_c, 2, initialW=1)
         link_3d = convolution_nd.Convolution3D(in_c, out_c, 2, initialW=1)
         testing.assert_allclose(link_nd(x).data, link_3d(x).data)
-
-
-@testing.parameterize(*testing.product({
-    'ndim': [1, 3],
-    'nobias': [True, False],
-    'groups': [1, 5],
-    'device': [
-        '@numpy',
-        '@intel64',
-        '@cupy:0',
-        'native:0',
-        'cuda:0',
-    ]
-}))
-class TestConvolutionNDFromParams(unittest.TestCase):
-
-    def setUp(self):
-        self.in_channels, self.out_channels = 5, 10
-        self.k = 3
-
-    def test_from_params(self):
-        link1 = convolution_nd.ConvolutionND(
-            self.ndim, self.in_channels, self.out_channels,
-            self.k, 1, 1, nobias=self.nobias, groups=self.groups)
-        link2 = convolution_nd.ConvolutionND.from_params(
-            link1.W, link1.b, 1, 1, self.nobias, groups=self.groups)
-
-        assert link2.W.shape == link1.W.shape
-        assert (link2.b is None) == self.nobias
-        if not self.nobias:
-            assert link2.b.shape == link1.b.shape
 
 
 testing.run_module(__name__, __file__)
