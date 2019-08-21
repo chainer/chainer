@@ -1035,7 +1035,6 @@ void InitChainerxConnection(pybind11::module& m) {
           "w"_a,
           "b"_a = nullptr,
           "n_batch_axes"_a = 1);
-<<<<<<< HEAD
     m.def("embed_id",
           [](const ArrayBodyPtr& x, const ArrayBodyPtr& w, const absl::optional<int64_t> ignore_index) {
               return MoveArrayBody(EmbedId(Array{x}, Array{w}, ignore_index));
@@ -1043,7 +1042,6 @@ void InitChainerxConnection(pybind11::module& m) {
           "x"_a,
           "w"_a,
           "ignore_index"_a = nullptr);
-=======
     m.def("lstm",
           [](const ArrayBodyPtr& c, const ArrayBodyPtr& x) {
               std::vector<ArrayBodyPtr> out = ToArrayBodyPtr(Lstm(Array{c}, Array{x}));
@@ -1054,7 +1052,6 @@ void InitChainerxConnection(pybind11::module& m) {
           },
           py::arg("c"),
           py::arg("x"));
->>>>>>> 4381df84878e08f55f0cba31759fc7628120c449
 }
 
 void InitChainerxNormalization(pybind11::module& m) {
