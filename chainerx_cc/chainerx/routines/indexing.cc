@@ -299,6 +299,16 @@ Array Where(const Array& condition, Scalar x, Scalar y) {
 
 std::vector<Array> Nonzero(const Array& a) {
     std::vector<Array> out;
+
+    if (a.ndim() < 1) {
+        if (AsScalar(a) == 0) {
+            out.push_back(Zeros({}, a.dtype()));
+        } else {
+            out.push_back(Ones({}, a.dtype()));
+        }
+        return out;
+    }
+
     int64_t total_size = a.GetTotalSize();
     Array a_flatten = a.Reshape({total_size});
     Array is_nonzero = a_flatten != ZerosLike(a_flatten);
@@ -309,7 +319,8 @@ std::vector<Array> Nonzero(const Array& a) {
     addat_index = Where(a_flatten == ZerosLike(a_flatten), 0, addat_index);
     indices = Where(a_flatten == ZerosLike(a_flatten), 0, indices);
     out_flatten = AddAt(out_flatten, addat_index, 0, indices);
-    if (a.ndim() <= 1) {
+
+    if (a.ndim() == 1) {
         out.push_back(out_flatten);
         return out;
     }
