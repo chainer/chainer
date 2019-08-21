@@ -2,6 +2,7 @@ import numpy
 import six
 
 import chainer
+import chainerx
 from chainer import backend
 from chainer.backends import cuda
 from chainer import function_node
@@ -25,6 +26,11 @@ class EmbedIDFunction(function_node.FunctionNode):
             w_type.dtype.kind == 'f',
             w_type.ndim == 2
         )
+
+    def forward_chainerx(self, inputs):
+        x, W = inputs
+        out = chainerx.embed_id(x, W, self.ignore_label)
+        return out,
 
     def forward(self, inputs):
         self.retain_inputs((0,))
