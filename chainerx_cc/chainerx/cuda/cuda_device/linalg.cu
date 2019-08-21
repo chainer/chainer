@@ -340,7 +340,7 @@ void QrImpl(const Array& a, const Array& q, const Array& r, const Array& tau, Qr
     // cuSOLVER does not return correct result in this case and older versions of cuSOLVER (<10.1)
     // might not work well with zero-sized arrays therefore it's better to return earlier
     if (a.shape().GetTotalSize() == 0) {
-        if  (mode == QrMode::kComplete) {
+        if (mode == QrMode::kComplete) {
             device.backend().CallKernel<IdentityKernel>(q);
         }
         return;
