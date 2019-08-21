@@ -260,9 +260,7 @@ class TestInverseFloat16(NumpyLinalgOpTestFloat16):
 
     def forward_xp(self, inputs, xp):
         a, = inputs
-        a = dtype_utils.cast_if_numpy_array(xp, a,
-                                            self.dtype if not 'float16'
-                                            else 'float32')
+        a = dtype_utils.cast_if_numpy_array(xp, a, 'float32')
         out = xp.linalg.inv(a)
         out = dtype_utils.cast_if_numpy_array(xp, out, self.dtype)
         return out,
@@ -329,9 +327,7 @@ class TestSVDFloat16(NumpyLinalgOpTestFloat16):
 
     def forward_xp(self, inputs, xp):
         a, = inputs
-        a = dtype_utils.cast_if_numpy_array(xp, a,
-                                            self.dtype if not 'float16'
-                                            else 'float32')
+        a = dtype_utils.cast_if_numpy_array(xp, a, 'float32')
         out = xp.linalg.svd(a,
                             full_matrices=self.full_matrices,
                             compute_uv=self.compute_uv)
@@ -407,9 +403,7 @@ class TestPseudoInverseFloat16(NumpyLinalgOpTestFloat16):
 
     def forward_xp(self, inputs, xp):
         a, = inputs
-        a = dtype_utils.cast_if_numpy_array(xp, a,
-                                            self.dtype if not 'float16'
-                                            else 'float32')
+        a = dtype_utils.cast_if_numpy_array(xp, a, 'float32')
         out = xp.linalg.pinv(a, rcond=self.rcond)
         out = dtype_utils.cast_if_numpy_array(xp, out, self.dtype)
         return out,
