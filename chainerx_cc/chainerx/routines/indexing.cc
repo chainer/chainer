@@ -306,6 +306,8 @@ std::vector<Array> Nonzero(const Array& a) {
     Array out_flatten = Zeros(Shape{count_nonzero}, a.dtype(), a.device());
     Array addat_index = Maximum(Cumsum(is_nonzero) - 1, Scalar{0});
     Array indices = Arange(a_flatten.GetTotalSize()).AsType(out_flatten.dtype());
+    addat_index = Where(a_flatten == ZerosLike(a_flatten), 0, addat_index);
+    indices = Where(a_flatten == ZerosLike(a_flatten), 0, indices);
     out_flatten = AddAt(out_flatten, addat_index, 0, indices);
     if (a.ndim() <= 1) {
         out.push_back(out_flatten);
