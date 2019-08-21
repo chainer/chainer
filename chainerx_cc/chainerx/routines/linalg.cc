@@ -128,7 +128,16 @@ Array Solve(const Array& a, const Array& b) {
 
     {
         NoBackpropModeScope scope{};
-        a.device().backend().CallKernel<SolveKernel>(a, b, out);
+        if (out.dtype() == Dtype::kFloat16) {
+            Array a32 = a.AsType(Dtype::kFloat32, false);
+            Array b32 = b.AsType(Dtype::kFloat32, false);
+            Array acc = out.AsType(Dtype::kFloat32);
+            a.device().backend().CallKernel<SolveKernel>(a32, b32, acc);
+            out.Fill(0);
+            out += acc.AsType(Dtype::kFloat16);
+        } else {
+            a.device().backend().CallKernel<SolveKernel>(a, b, out);
+        }
     }
 
     // Reference:
@@ -171,7 +180,15 @@ Array Inverse(const Array& a) {
 
     {
         NoBackpropModeScope scope{};
-        a.device().backend().CallKernel<InverseKernel>(a, out);
+        if (out.dtype() == Dtype::kFloat16) {
+            Array a32 = a.AsType(Dtype::kFloat32, false);
+            Array acc = out.AsType(Dtype::kFloat32);
+            a.device().backend().CallKernel<InverseKernel>(a32, acc);
+            out.Fill(0);
+            out += acc.AsType(Dtype::kFloat16);
+        } else {
+            a.device().backend().CallKernel<InverseKernel>(a, out);
+        }
     }
 
     // Reference:
@@ -224,7 +241,21 @@ std::tuple<Array, Array, Array> Svd(const Array& a, bool full_matrices, bool com
 
     {
         NoBackpropModeScope scope{};
-        a.device().backend().CallKernel<SvdKernel>(a, u, s, vt, full_matrices);
+        if (a.dtype() == Dtype::kFloat16) {
+            Array a32 = a.AsType(Dtype::kFloat32, false);
+            Array acc_u = u.AsType(Dtype::kFloat32);
+            Array acc_s = s.AsType(Dtype::kFloat32);
+            Array acc_vt = vt.AsType(Dtype::kFloat32);
+            a.device().backend().CallKernel<SvdKernel>(a32, acc_u, acc_s, acc_vt, full_matrices);
+            u.Fill(0);
+            u += acc_u.AsType(Dtype::kFloat16);
+            s.Fill(0);
+            s += acc_s.AsType(Dtype::kFloat16);
+            vt.Fill(0);
+            vt += acc_vt.AsType(Dtype::kFloat16);
+        } else {
+            a.device().backend().CallKernel<SvdKernel>(a, u, s, vt, full_matrices);
+        }
     }
 
     // Reference:
