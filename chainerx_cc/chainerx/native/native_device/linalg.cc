@@ -296,19 +296,21 @@ CHAINERX_NATIVE_REGISTER_KERNEL(InverseKernel, NativeInverseKernel);
 
 class NativeSvdKernel : public SvdKernel {
 public:
-    void Call(const Array& a, const Array& u, const Array& s, const Array& vt, bool full_matrices) override {
+    void Call(const Array& a, const Array& u, const Array& s, const Array& vt, bool full_matrices, bool compute_uv) override {
 #if CHAINERX_ENABLE_LAPACK
         Device& device = a.device();
         Dtype dtype = a.dtype();
 
         CHAINERX_ASSERT(a.ndim() == 2);
 
-        if (a.shape().GetTotalSize() == 0 && full_matrices) {
-            device.backend().CallKernel<IdentityKernel>(u);
-            device.backend().CallKernel<IdentityKernel>(vt);
+        if (a.shape().GetTotalSize() == 0) {
+            if (full_matrices && compute_uv) {
+                device.backend().CallKernel<IdentityKernel>(u);
+                device.backend().CallKernel<IdentityKernel>(vt);
+            }
+            // This kernel works correctly for zero-sized input also without early return
+            return;
         }
-
-        bool compute_uv = u.shape()[0] != 0 && vt.shape()[0] != 0;
 
         // LAPACK assumes arrays are in column-major order.
         // In order to avoid transposing the input matrix, matrix dimensions are swapped.

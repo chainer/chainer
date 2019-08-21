@@ -224,7 +224,7 @@ std::tuple<Array, Array, Array> Svd(const Array& a, bool full_matrices, bool com
 
     {
         NoBackpropModeScope scope{};
-        a.device().backend().CallKernel<SvdKernel>(a, u, s, vt, full_matrices);
+        a.device().backend().CallKernel<SvdKernel>(a, u, s, vt, full_matrices, compute_uv);
     }
 
     // Reference:
