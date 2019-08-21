@@ -1905,6 +1905,7 @@ Note:
         chainerx.slstm,
         """slstm(c_prev1, c_prev2, x1, x2)
 S-LSTM units as an activation function.
+
 This function implements S-LSTM unit. It is an extension of LSTM unit
 applied to tree structures.
 The function is applied to binary trees. Each node has two child nodes.
@@ -1915,11 +1916,13 @@ First both input arrays ``x1`` and ``x2`` are split into eight arrays
 same shape along the second axis.
 It means that ``x1`` and ``x2`` 's second axis must have 4 times
 the length of ``c_prev1`` and ``c_prev2``.
-The split input arrays are corresponding to:
+The split input arrays are corresponding to
+
     - :math:`a_i` : sources of cell input
     - :math:`i_i` : sources of input gate
     - :math:`f_i` : sources of forget gate
     - :math:`o_i` : sources of output gate
+
 It computes the updated cell state ``c`` and the outgoing signal
 ``h`` as.
 
