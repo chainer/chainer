@@ -34,29 +34,23 @@ class Dropout(function_node.FunctionNode):
                 and self.mask is None):
             return self._forward_ideep(x)
 
-        if self.mask is not None:
-            y = x[0] * self.mask
-        else:
+        if self.mask is None:
             scale = x[0].dtype.type(1. / (1 - self.dropout_ratio))
             flag = numpy.random.rand(*x[0].shape) >= self.dropout_ratio
             self.mask = scale * flag
-            y = x[0] * self.mask
+        y = x[0] * self.mask
         return y,
 
     def forward_gpu(self, x):
         if (chainer.should_use_cudnn('>=auto', 5000)
-                and x[0].flags.c_contiguous
-                and self.mask is None
-                and not self.return_mask):
+                and x[0].flags.c_contiguous):
             self._use_cudnn = True
 
-            if hasattr(self, 'states'):
-                # if we already have a dropout mask,
-                # the forward operation is equal to backward.
-                return cuda.get_cudnn_dropout_states().backward(
-                    None, x[0], self.dropout_ratio, self.states),
+            # Mask is actually a random seed to ensure
+            # reproducibility within different function calls
+            self.mask, states = cuda.get_cudnn_dropout_states(self.mask)
 
-            self.states, y = cuda.get_cudnn_dropout_states().forward(
+            self.states, y = states.forward(
                 None, x[0], self.dropout_ratio)
             return y,
         else:
@@ -84,7 +78,8 @@ class Dropout(function_node.FunctionNode):
 
     def backward(self, x, gy):
         if chainer.should_use_cudnn('>=auto', 5000) and self._use_cudnn:
-            return DropoutGradCuDNN(self.states, self.dropout_ratio).apply(gy)
+            return DropoutGradCuDNN(self.states, self.dropout_ratio,
+                                    self.mask).apply(gy)
         else:
             return DropoutGrad(self.mask).apply(gy)
 
@@ -115,16 +110,18 @@ class DropoutGrad(function_node.FunctionNode):
 class DropoutGradCuDNN(function_node.FunctionNode):
     """Computes the gradient of the Dropout function with cuDNN support."""
 
-    def __init__(self, states, dropout_ratio):
+    def __init__(self, states, dropout_ratio, mask=None):
         self.states = states
         self.dropout_ratio = dropout_ratio
+        self.mask = mask
 
     def forward(self, inputs):
-        return cuda.get_cudnn_dropout_states().backward(
+        return cuda.get_cudnn_dropout_states(self.mask)[1].backward(
             None, inputs[0], self.dropout_ratio, self.states),
 
     def backward(self, indexes, gy):
-        return DropoutGradCuDNN(self.states, self.dropout_ratio).apply(gy)
+        return DropoutGradCuDNN(self.states, self.dropout_ratio,
+                                self.mask).apply(gy)
 
 
 def dropout(x, ratio=.5, **kwargs):

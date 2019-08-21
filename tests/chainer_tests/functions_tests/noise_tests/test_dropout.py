@@ -87,12 +87,12 @@ class TestDropout(unittest.TestCase):
             inputs = cuda.to_gpu(inputs)
             grad_outputs = cuda.to_gpu(grad_outputs)
 
-        # Instantiate the function class directly in order to reuse the mask,
-        # because f will be called repeatedly.
-        dropout = functions.noise.dropout.Dropout(self.ratio)
+        with backend_config:
+            _, out_mask = functions.dropout(inputs[0], self.ratio,
+                                            return_mask=True)
 
         def f(*inputs):
-            return dropout.apply(inputs)
+            return functions.dropout(inputs[0], self.ratio, mask=out_mask)
 
         with backend_config:
             gradient_check.check_backward(
@@ -108,12 +108,12 @@ class TestDropout(unittest.TestCase):
             grad_outputs = cuda.to_gpu(grad_outputs)
             grad_grad_inputs = cuda.to_gpu(grad_grad_inputs)
 
-        # Instantiate the function class directly in order to reuse the mask,
-        # because f will be called repeatedly.
-        dropout = functions.noise.dropout.Dropout(self.ratio)
+        with backend_config:
+            _, out_mask = functions.dropout(inputs[0], self.ratio,
+                                            return_mask=True)
 
         def f(*inputs):
-            return dropout.apply(inputs)
+            return functions.dropout(inputs[0], self.ratio, mask=out_mask)
 
         with backend_config:
             gradient_check.check_double_backward(
@@ -128,11 +128,15 @@ class TestDropout(unittest.TestCase):
     def check_immutable(self, inputs, backend_config):
         if backend_config.use_cuda:
             inputs = cuda.to_gpu(inputs)
+            # Memoization of the cudnn states causes different
+            # values to be returned if an object is cached as
+            # the original seed and the current object
+            # might be in an inconsistent state
+            cuda.clear_memo()
 
         with backend_config:
-            dropout = functions.noise.dropout.Dropout(0.5)
-            y1, = dropout.apply(inputs)
-            y2, = dropout.apply(inputs)
+            y1, mask = functions.dropout(inputs[0], 0.5, return_mask=True)
+            y2 = functions.dropout(inputs[0], 0.5, mask=mask)
         testing.assert_allclose(y1.data, y2.data)
 
     def test_immutable(self, backend_config):
@@ -163,15 +167,31 @@ class TestDropoutMask(unittest.TestCase):
     def _check(self, backend_config):
         mask = self.mask if self.specify_mask else None
         x, mask = backend_config.get_array((self.x, mask))
+
+        if backend_config.use_cudnn == 'always':
+            # Memoization of the cudnn states causes different
+            # values to be returned if an object is cached as
+            # the original seed and the current object
+            # might be in an inconsistent state
+            cuda.clear_memo()
+            if self.specify_mask:
+                mask = numpy.random.randint(numpy.iinfo(numpy.int32).max)
+
         with chainer.using_config('train', self.train), backend_config:
             out, out_mask = functions.dropout(
                 x, 0.5, mask=mask, return_mask=True)
+            # TODO(ecastill) replace this hack to obtain a mask
+            # with an actual lazy mask calculation in the dropout code
+            if backend_config.use_cudnn == 'always' and self.train:
+                out_mask = functions.dropout(
+                    backend_config.xp.ones(x.shape), 0.5, mask=out_mask).array
 
         if self.train:
             assert isinstance(out_mask, type(out.array))
             if mask is None:
                 assert out_mask.shape == out.array.shape
-            else:
+            # Cudnn doesnt use real masks
+            elif backend_config.use_cudnn != 'always':
                 assert out_mask is mask
         else:
             assert out_mask is None

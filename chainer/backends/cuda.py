@@ -772,9 +772,16 @@ def should_use_cudnn_tensor_core(dtype):
 # cupy.cudnn utility
 # ------------------------------------------------------------------------------
 
-def get_cudnn_dropout_states():
+def get_cudnn_dropout_states(seed=None):
     if not cudnn_enabled:
         raise RuntimeError('cuDNN is not enabled.')
+
+    # Get a consistent state to always generate
+    # the same dropout masks, if a dropoutstates
+    # is memoized it will generate different values
+    # everytime and this can lead to inconsistencies
+    if seed is not None:
+        return seed, cudnn.DropoutStates(None, seed)
 
     thread_id = threading.current_thread().ident
     return get_cudnn_dropout_states_core(thread_id)
@@ -797,4 +804,4 @@ def get_cudnn_dropout_states_core(thread_id):
         seed = numpy.uint64(seed)
 
     seed += numpy.uint64(states_id)
-    return cudnn.DropoutStates(None, seed)
+    return seed, cudnn.DropoutStates(None, seed)
