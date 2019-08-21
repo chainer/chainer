@@ -2644,10 +2644,12 @@ First, the input array ``x`` is split into four arrays
 :math:`a, i, f, o` of the same shapes along the second axis. It means that
 ``x`` 's second axis must have 4 times the ``c_prev`` 's second axis.
 The split input arrays are corresponding to:
+
     - :math:`a` : sources of cell input
     - :math:`i` : sources of input gate
     - :math:`f` : sources of forget gate
     - :math:`o` : sources of output gate
+
 Second, it computes the updated cell state ``c`` and the outgoing signal
 ``h`` as
 
@@ -2655,6 +2657,7 @@ Second, it computes the updated cell state ``c`` and the outgoing signal
     c &= \\tanh(a) \\sigma(i)
        + c_{\\text{prev}} \\sigma(f), \\\\
     h &= \\tanh(c) \\sigma(o),
+
 where :math:`\\sigma` is the elementwise sigmoid function.
 These are returned as a tuple of two variables.
 This function supports variable length inputs. The mini-batch size of
