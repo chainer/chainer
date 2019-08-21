@@ -106,7 +106,20 @@ void Gemm(const Array& a, const Array& b, const Array& out) {
         const T* b_ptr = static_cast<const T*>(internal::GetRawOffsetData(b_config));
         T* out_ptr = static_cast<T*>(internal::GetRawOffsetData(out_contiguous));
         GemmImpl<T>{}(
-                CblasRowMajor, a_layout.trans, b_layout.trans, m, n, k, one, a_ptr, a_layout.ld, b_ptr, b_layout.ld, zero, out_ptr, std::max(int64_t{1}, n));
+                CblasRowMajor,
+                a_layout.trans,
+                b_layout.trans,
+                m,
+                n,
+                k,
+                one,
+                a_ptr,
+                a_layout.ld,
+                b_ptr,
+                b_layout.ld,
+                zero,
+                out_ptr,
+                std::max(int64_t{1}, n));
     };
 
     if (a.dtype() == Dtype::kFloat32) {
