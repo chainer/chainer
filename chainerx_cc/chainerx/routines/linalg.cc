@@ -222,11 +222,6 @@ std::tuple<Array, Array, Array> Svd(const Array& a, bool full_matrices, bool com
     vt = Empty(vt_shape, a.dtype(), a.device());
     s = Empty(Shape{k}, a.dtype(), a.device());
 
-    if (a.shape().GetTotalSize() == 0 && compute_uv && full_matrices) {
-        u = Identity(m, a.dtype(), a.device());
-        vt = Identity(n, a.dtype(), a.device());
-    }
-
     {
         NoBackpropModeScope scope{};
         a.device().backend().CallKernel<SvdKernel>(a, u, s, vt, full_matrices);

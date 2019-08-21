@@ -302,6 +302,11 @@ public:
 
         CHAINERX_ASSERT(a.ndim() == 2);
 
+        if (a.shape().GetTotalSize() == 0 && full_matrices) {
+            device.backend().CallKernel<IdentityKernel>(u);
+            device.backend().CallKernel<IdentityKernel>(vt);
+        }
+
         bool compute_uv = u.shape()[0] != 0 && vt.shape()[0] != 0;
 
         // cuSOLVER assumes arrays are in column-major order.
