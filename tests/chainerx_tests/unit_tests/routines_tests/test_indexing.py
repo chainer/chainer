@@ -32,7 +32,6 @@ _nonzero_params = [
     (numpy.ones((2, 0, 3))),
     (numpy.ones((2, 3))),
     (numpy.ones((2, 3))),
-    # invalid params
     (numpy.ones((0,))),
     (numpy.ones((2, 0, 3))),
     (numpy.ones((2, 0, 3))),
@@ -398,7 +397,8 @@ def test_where_scalar_scalar(xp, cond_shape, cond_dtype, in_types, out_dtype):
     return dtype_utils.cast_if_numpy_array(xp, out, out_dtype)
 
 
-@op_utils.op_test(['native:0', 'cuda:0'])
+# TODO(aksub99): Add cuda tests after Cumsum cuda kernel is implemented
+@op_utils.op_test(['native:0'])
 @chainer.testing.parameterize_pytest('input', _nonzero_params)
 class TestNonzero(op_utils.NumpyOpTest):
 

@@ -312,6 +312,10 @@ std::vector<Array> Nonzero(const Array& a) {
     Array a_flatten = a.Reshape({total_size});
     Array is_nonzero = a_flatten != ZerosLike(a_flatten);
     int64_t count_nonzero = static_cast<int64_t>(AsScalar(is_nonzero.Sum()));
+    if (count_nonzero == 0) {
+        out.push_back(Zeros({}, a.dtype()));
+        return out;
+    }
     Array out_flatten = Zeros(Shape{count_nonzero}, a.dtype(), a.device());
     Array addat_index = Maximum(Cumsum(is_nonzero) - 1, Scalar{0});
     Array indices = Arange(a_flatten.GetTotalSize()).AsType(out_flatten.dtype());
