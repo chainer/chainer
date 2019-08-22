@@ -1966,8 +1966,8 @@ See detail in paper: `Long Short-Term Memory Over Tree Structures
     Most typical preparation of ``x1``, ``x2`` is:
 
     >>> n_units = 100
-    >>> c1 = chainer.ones((1, n_units), np.float32)
-    >>> c2 = chainer.ones((1, n_units), np.float32)
+    >>> c1 = chainerx.ones((1, n_units), np.float32)
+    >>> c2 = chainerx.ones((1, n_units), np.float32)
     >>> x1 = chainerx.ones((1, 4 * n_units), chainerx.float32)
     >>> x2 = chainerx.ones((1, 4 * n_units), chainerx.float32)
     >>> c, h = chainerx.slstm(c1, c2, x1, x2)
