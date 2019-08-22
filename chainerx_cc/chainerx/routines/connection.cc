@@ -402,7 +402,7 @@ Array EmbedId(const Array& x, const Array& w, absl::optional<int64_t> ignore_lab
     shape_vec.emplace_back(w.shape()[1]);
     Shape shape{shape_vec};
     std::vector<Array> ignore_list;
-    std::vector<Array> x_split =  Split(x, x.shape()[0], 0);
+    std::vector<Array> x_split = Split(x, x.shape()[0], 0);
 
     // TODO(dido1998): Find a way to avoid this for loop.
     for (size_t i = 0; i < x_split.size(); i++) {
@@ -422,7 +422,6 @@ Array EmbedId(const Array& x, const Array& w, absl::optional<int64_t> ignore_lab
         Array ignore_array = Stack(ignore_list, 0);
         w_new = w_new * ignore_array;
     }
-    
     Array out = Take(w_new, x, 0);
     return out;
 }
