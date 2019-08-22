@@ -41,13 +41,11 @@ Array Accuracy(const Array& y, const Array& t, const absl::optional<int64_t>& ig
         Scalar total = size - AsScalar(ignore_cnt);
         if (total == 0) {
             return Zeros({}, y.dtype());
-        } else {
-            return Divide(count, total).AsType(y.dtype());
         }
-    } else {
-        Array pred = ArgMax(y, 1).Reshape(t.shape());
-        return Mean(Equal(pred, t).AsType(y.dtype()));
+        return Divide(count, total).AsType(y.dtype());
     }
+    Array pred = ArgMax(y, 1).Reshape(t.shape());
+    return Mean(Equal(pred, t).AsType(y.dtype()));
 }
 
 }  // namespace chainerx
