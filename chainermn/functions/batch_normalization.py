@@ -41,7 +41,7 @@ class _MpiBackend(_MultiNodeBatchNormalizationBackend):
         xp.square(x).mean(axis=axis, out=tmp[gamma.size:], dtype=gamma.dtype)
         if xp is cuda.cupy:
             chainer.cuda.Stream.null.synchronize()
-        self.comm.multi_node_mean(None, tmp)
+        self.comm._multi_node_mean(None, tmp)
         mean = tmp[:gamma.size]
         sqmean = tmp[gamma.size:]
         var = sqmean - xp.square(mean)
@@ -53,7 +53,7 @@ class _MpiBackend(_MultiNodeBatchNormalizationBackend):
         (gy * x_hat).sum(axis=axis, out=tmp[gamma.size:], dtype=gamma.dtype)
         if xp is cuda.cupy:
             chainer.cuda.Stream.null.synchronize()
-        self.comm.multi_node_mean(None, tmp)
+        self.comm._multi_node_mean(None, tmp)
         gbeta = tmp[:gamma.size]
         ggamma = tmp[gamma.size:]
         return gbeta, ggamma
@@ -81,11 +81,11 @@ class _NcclBackend(_MultiNodeBatchNormalizationBackend):
                dtype=gamma.dtype)
         xp.square(x).mean(axis=axis, out=gpu_buffer_a_array[gamma.size:],
                           dtype=gamma.dtype)
-        self.comm.multi_node_mean_nccl(gpu_buffer_a,
-                                       gpu_buffer_b,
-                                       gpu_buffer_n_elems,
-                                       gamma.dtype)
-        gpu_buffer_a_array = gpu_buffer_a.array(
+        self.comm._multi_node_mean_nccl(gpu_buffer_a,
+                                        gpu_buffer_b,
+                                        gpu_buffer_n_elems,
+                                        gamma.dtype)
+        gpu_buffer_a_array = gpu_buffer_b.array(
             gpu_buffer_n_elems,
             dtype=gamma.dtype)
 
@@ -107,11 +107,11 @@ class _NcclBackend(_MultiNodeBatchNormalizationBackend):
                dtype=gamma.dtype)
         (gy * x_hat).sum(axis=axis, out=gpu_buffer_a_array[gamma.size:],
                          dtype=gamma.dtype)
-        self.comm.multi_node_mean_nccl(gpu_buffer_a,
-                                       gpu_buffer_b,
-                                       gpu_buffer_n_elems,
-                                       gamma.dtype)
-        gpu_buffer_a_array = gpu_buffer_a.array(
+        self.comm._multi_node_mean_nccl(gpu_buffer_a,
+                                        gpu_buffer_b,
+                                        gpu_buffer_n_elems,
+                                        gamma.dtype)
+        gpu_buffer_a_array = gpu_buffer_b.array(
             gpu_buffer_n_elems,
             dtype=gamma.dtype)
 

@@ -1,8 +1,9 @@
 import multiprocessing
 import os
 import shutil
-from six.moves import queue
 import threading
+
+from six.moves import queue
 
 from chainer.serializers import npz
 from chainer import utils
@@ -20,6 +21,9 @@ class Writer(object):
 
         - :meth:`chainer.training.extensions.snapshot`
     """
+
+    def __init__(self):
+        self._post_save_hooks = []
 
     def __call__(self, filename, outdir, target):
         """Invokes the actual snapshot function.
@@ -57,6 +61,25 @@ class Writer(object):
             savefun(tmppath, target)
             shutil.move(tmppath, os.path.join(outdir, filename))
 
+        self._post_save()
+
+    def _add_cleanup_hook(self, hook_fun):
+        """Adds cleanup hook function.
+
+        Technically, arbitrary user-defined hook can be called, but
+        this is intended for cleaning up stale snapshots.
+
+        Args:
+            hook_fun (callable): callable funtion to be called
+                right after save is done. It takes no arguments.
+
+        """
+        self._post_save_hooks.append(hook_fun)
+
+    def _post_save(self):
+        for hook in self._post_save_hooks:
+            hook()
+
 
 class SimpleWriter(Writer):
     """The most simple snapshot writer.
@@ -75,6 +98,7 @@ class SimpleWriter(Writer):
     """
 
     def __init__(self, savefun=npz.save_npz, **kwds):
+        super(SimpleWriter, self).__init__()
         self._savefun = savefun
         self._kwds = kwds
 
@@ -104,6 +128,7 @@ class StandardWriter(Writer):
     _worker = None
 
     def __init__(self, savefun=npz.save_npz, **kwds):
+        super(StandardWriter, self).__init__()
         self._savefun = savefun
         self._kwds = kwds
         self._started = False
@@ -153,6 +178,9 @@ class ThreadWriter(StandardWriter):
         - :meth:`chainer.training.extensions.snapshot`
     """
 
+    def __init__(self, savefun=npz.save_npz, **kwds):
+        super(ThreadWriter, self).__init__(savefun=savefun, **kwds)
+
     def create_worker(self, filename, outdir, target, **kwds):
         return threading.Thread(
             target=self.save,
@@ -174,6 +202,9 @@ class ProcessWriter(StandardWriter):
 
         - :meth:`chainer.training.extensions.snapshot`
     """
+
+    def __init__(self, savefun=npz.save_npz, **kwds):
+        super(ProcessWriter, self).__init__(savefun=savefun, **kwds)
 
     def create_worker(self, filename, outdir, target, **kwds):
         return multiprocessing.Process(
@@ -208,6 +239,7 @@ class QueueWriter(Writer):
     _consumer = None
 
     def __init__(self, savefun=npz.save_npz, task=None):
+        super(QueueWriter, self).__init__()
         if task is None:
             self._task = self.create_task(savefun)
         else:
@@ -263,6 +295,9 @@ class ThreadQueueWriter(QueueWriter):
         - :meth:`chainer.training.extensions.snapshot`
     """
 
+    def __init__(self, savefun=npz.save_npz, task=None):
+        super(ThreadQueueWriter, self).__init__(savefun=savefun, task=task)
+
     def create_queue(self):
         return queue.Queue()
 
@@ -286,6 +321,9 @@ class ProcessQueueWriter(QueueWriter):
 
         - :meth:`chainer.training.extensions.snapshot`
     """
+
+    def __init__(self, savefun=npz.save_npz, task=None):
+        super(ProcessQueueWriter, self).__init__(savefun=savefun, task=task)
 
     def create_queue(self):
         return multiprocessing.JoinableQueue()

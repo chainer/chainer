@@ -161,7 +161,7 @@ class CaffeFunction(link.Chain):
                     meth(self, layer)
                 else:
                     warnings.warn(
-                        'Skip the layer "%s", since CaffeFunction does not'
+                        'Skip the layer "%s", since CaffeFunction does not '
                         'support %s layer' % (layer.name, layer.type))
         else:  # v1 format
             for layer in net.layers:
@@ -170,7 +170,7 @@ class CaffeFunction(link.Chain):
                     meth(self, layer)
                 else:
                     warnings.warn(
-                        'Skip the layer "%s", since CaffeFunction does not'
+                        'Skip the layer "%s", since CaffeFunction does not '
                         'support it' % layer.name)
 
     def forward(self, inputs, outputs, disable=(), **kwargs):

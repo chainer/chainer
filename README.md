@@ -27,7 +27,7 @@ For more details about Chainer, see the documents and resources listed above and
 
 ## Stable version
 
-The stable version of current Chainer is separated in here: [v5](https://github.com/chainer/chainer/tree/v5).
+The stable version of current Chainer is separated in here: [v6](https://github.com/chainer/chainer/tree/v6).
 
 ## Installation
 
@@ -76,7 +76,6 @@ MIT License (see `LICENSE` file).
 ## More information
 
 - [Release notes](https://github.com/chainer/chainer/releases)
-- [Research projects using Chainer](https://github.com/chainer/chainer/wiki/Research-projects-using-Chainer)
 
 
 ## Reference

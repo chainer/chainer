@@ -14,6 +14,7 @@ def set_docs():
     _docs_connection()
     _docs_normalization()
     _docs_pooling()
+    _docs_rnn()
 
 
 def _docs_creation():
@@ -75,6 +76,67 @@ Returns:
     zeros elsewhere.
 
 .. seealso:: :func:`numpy.eye`
+""")
+
+    _docs.set_doc(
+        chainerx.tri,
+        """tri(N, M=None, k=0, dtype=float32, device=None)
+Returns a 2-D array with ones at and below the given diagonal
+and zeros elsewhere.
+
+Args:
+    N (int): Number of rows.
+    M (int): Number of columns. M == N by default.
+    k (int): Index of the diagonal. Zero indicates the main diagonal,
+        a positive index an upper diagonal, and a negative index a lower
+        diagonal.
+    dtype: Data type.
+    device (~chainerx.Device): Device on which the array is allocated.
+        If omitted, :ref:`the default device <chainerx_device>` is chosen.
+
+Returns:
+    ~chainerx.ndarray: A 2-D array with given diagonals filled ones at and
+    below the given diagonal and zeros elsewhere.
+
+.. seealso:: :func:`numpy.tri`
+""")
+
+    _docs.set_doc(
+        chainerx.tril,
+        """tril(m, k=0)
+Lower triangle of an array.
+
+Returns a copy of an array with elements above the k-th diagonal zeroed.
+
+Args:
+    m (~chainerx.ndarray): Input array.
+    k (int): Index of the diagonal. Zero indicates the main diagonal,
+        a positive index an upper diagonal, and a negative index a lower
+        diagonal.
+
+Returns:
+    ~chainerx.ndarray: Lower triangle of ``m``.
+
+.. seealso:: :func:`numpy.tril`
+""")
+
+    _docs.set_doc(
+        chainerx.triu,
+        """triu(m, k=0)
+Upper triangle of an array.
+
+Returns a copy of an array with elements below the k-th diagonal zeroed.
+
+Args:
+    m (~chainerx.ndarray): Input array.
+    k (int): Index of the diagonal. Zero indicates the main diagonal,
+        a positive index an upper diagonal, and a negative index a lower
+        diagonal.
+
+Returns:
+    ~chainerx.ndarray: Upper triangle of ``m``.
+
+.. seealso:: :func:`numpy.triu`
 """)
 
     _docs.set_doc(
@@ -498,6 +560,111 @@ Note:
 .. seealso:: :func:`numpy.dot`
 """)
 
+    _docs.set_doc(
+        chainerx.linalg.solve,
+        """solve(a, b)
+Solves a linear matrix equation, or system of linear scalar equations.
+
+It computes the exact solution of ``x`` in ``ax = b``,
+where ``a`` is a square and full rank matrix,
+``b`` can be a vector, or a rectangular matrix.
+When ``b`` is matrix, its columns are treated as separate vectors
+representing multiple right-hand sides.
+
+Args:
+    a (~chainerx.ndarray): Coefficient matrix.
+    b (~chainerx.ndarray): "dependent variable" values.
+
+Returns:
+    :class:`~chainerx.ndarray`:
+        Solution to the system ``ax = b``.
+        Shape is identical to ``b``.
+
+Note:
+    The ``dtype`` must be ``float32`` or ``float64`` (``float16`` is not
+    supported yet.)
+
+.. seealso:: :func:`numpy.linalg.solve`
+""")
+
+    _docs.set_doc(
+        chainerx.linalg.inv,
+        """inv(a)
+Computes the inverse of a matrix.
+
+This function computes matrix ``a_inv`` from square matrix
+``a`` such that ``dot(a, a_inv) = dot(a_inv, a) = eye(a.shape[0])``.
+
+Args:
+    a (~chainerx.ndarray): The matrix to be inverted.
+
+Returns:
+    :class:`~chainerx.ndarray`: The inverse of a matrix.
+
+Note:
+    The ``dtype`` must be ``float32`` or ``float64`` (``float16`` is not
+    supported yet.)
+
+.. seealso:: :func:`numpy.linalg.inv`
+""")
+
+    _docs.set_doc(
+        chainerx.linalg.svd,
+        """svd(a, full_matrices=True, compute_uv=True)
+Singular Value Decomposition.
+
+Factorizes the matrix ``a`` into two unitary matrices ``U`` and ``Vt``, and
+a 1-D array ``s`` of singular values such that
+``a == U * S * Vt``, where ``S`` is a suitably shaped matrix of zeros with
+main diagonal ``s`` and ``*`` represents a dot product.
+
+Args:
+    a (~chainerx.ndarray): The input matrix with dimension ``(M, N)``.
+    full_matrices (bool): If True, it returns u and v with dimensions
+        ``(M, M)`` and ``(N, N)``. Otherwise, the dimensions of u and v
+        are respectively ``(M, K)`` and ``(K, N)``, where
+        ``K = min(M, N)``.
+    compute_uv (bool): If False, only singular values are computed.
+
+Returns:
+    tuple of :class:`chainerx.ndarray`:
+        A tuple of ``(U, s, Vt)`` such that ``a = U * diag(s) * Vt``.
+        When ``compute_uv`` is False only singular values ``s`` are returned.
+
+Note:
+    * The ``dtype`` must be ``float32`` or ``float64`` (``float16`` is not
+      supported yet.)
+    * The SVD is commonly written as `a = U * diag(s) * V^T`.
+      The ``Vt`` returned by this function is `V^T`.
+    * During backpropagation, this function requires ``U`` and ``Vt`` computed,
+      therefore differentiation does not work for ``compute_uv=False``.
+    * Backpropagation is not implemented for ``full_matrices=True``.
+
+.. seealso:: :func:`numpy.linalg.svd`
+""")
+
+    _docs.set_doc(
+        chainerx.linalg.pinv,
+        """pinv(a, rcond=1e-15)
+Compute the (Moore-Penrose) pseudo-inverse of a matrix.
+
+Calculate the generalized inverse of a matrix using its singular-value
+decomposition (SVD) and including all large singular values.
+
+Args:
+    a (~chainerx.ndarray): The input matrix to be pseudo-inverted.
+    rcond (float): Cutoff for small singular values.
+
+Returns:
+    :class:`~chainerx.ndarray`: The pseudo-inverse of ``a``.
+
+Note:
+    The ``dtype`` must be ``float32`` or ``float64`` (``float16`` is not
+    supported yet.)
+
+.. seealso:: :func:`numpy.linalg.pinv`
+""")
+
 
 def _docs_logic():
     _docs.set_doc(
@@ -726,6 +893,118 @@ Note:
 """)
 
 
+def _docs_loss():
+    _docs.set_doc(
+        chainerx.absolute_error,
+        """Element-wise absolute error function.
+
+Computes the element-wise absolute error :math:`L` between two inputs
+:math:`x_1` and :math:`x_2` defined as follows.
+
+.. math::
+    L = |x_1 - x_2|
+
+Args:
+    x1 (~chainerx.ndarray): Input variable.
+    x2 (~chainerx.ndarray): Input variable.
+
+Returns:
+    :class:`~chainerx.ndarray`: A variable holding an array representing
+    the absolute error of two inputs.
+
+.. seealso:: :func:`chainer.functions.absolute_error`
+""")
+
+    _docs.set_doc(
+        chainerx.squared_error,
+        """Element-wise squared error function.
+
+Computes the element-wise squared error :math:`L` between two inputs
+:math:`x_1` and :math:`x_2` defined as follows.
+
+.. math::
+    L = (x_1 - x_2)^2
+
+Can be used to compute mean squared error by just calling `mean()`
+on the output array.
+
+Args:
+    x0 (~chainerx.ndarray): Input variable.
+    x1 (~chainerx.ndarray): Input variable.
+
+Returns:
+    :class:`~chainerx.ndarray`: A variable holding an array representing
+    the squared error of two inputs.
+
+.. seealso:: :func:`chainer.functions.squared_error`
+""")
+
+    _docs.set_doc(
+        chainerx.huber_loss,
+        """Element-wise Huber loss.
+
+The Huber loss is similar to the squared error but is less sensitive to
+outliers in the data. It is defined as
+
+.. math::
+
+    L_{\\delta}(a) = \\left \\{ \\begin{array}{cc}
+    \\frac{1}{2} a^2 & {\\rm if~|a| \\leq \\delta} \\\\
+    \\delta (|a| - \\frac{1}{2} \\delta) & {\\rm otherwise,}
+    \\end{array} \\right.
+
+where :math:`a = x - t` is the difference between the input :math:`x`
+and the target :math:`t`.
+
+See: `Huber loss - Wikipedia <https://en.wikipedia.org/wiki/Huber_loss>`_.
+
+Args:
+    x (~chainerx.ndarray): Input variable.
+    t (~chainerx.ndarray): Target variable for regression.
+    delta (float): Constant variable for Huber loss function as used in
+        definition.
+
+Returns:
+    :class:`~chainerx.ndarray`:
+        A variable object holding an array representing the Huber loss
+        :math:`L_{\\delta}` of the two inputs.
+
+.. seealso:: :func:`chainer.functions.huber_loss`
+""")
+
+    _docs.set_doc(
+        chainerx.gaussian_kl_divergence,
+        """Element-wise KL-divergence of Gaussian variables from the standard one.
+
+Given two variable ``mean`` representing :math:`\\mu` and ``ln_var``
+representing :math:`\\log(\\sigma^2)`, this function calculates
+the element-wise KL-divergence between the given multi-dimensional
+Gaussian :math:`N(\\mu, S)` and the standard Gaussian :math:`N(0, I)`
+
+.. math::
+
+   D_{\\mathbf{KL}}(N(\\mu, S) \\| N(0, I)),
+
+where :math:`S` is a diagonal matrix such that :math:`S_{ii} = \\sigma_i^2`
+and :math:`I` is an identity matrix.
+
+Args:
+    mean (~chainerx.ndarray):
+        A variable representing mean of given
+        gaussian distribution, :math:`\\mu`.
+    ln_var (~chainerx.ndarray):
+        A variable representing logarithm of
+        variance of given gaussian distribution, :math:`\\log(\\sigma^2)`.
+
+Returns:
+    :class:`~chainerx.ndarray`:
+        A variable representing KL-divergence between
+        given gaussian distribution and the standard gaussian.
+
+.. seealso:: :func:`chainer.functions.gaussian_kl_divergence`
+""")
+
+
 def _docs_manipulation():
     _docs.set_doc(
         chainerx.reshape,
@@ -854,7 +1133,7 @@ Note:
 
     _docs.set_doc(
         chainerx.hstack,
-        """stack(arrays)
+        """hstack(arrays)
 Stack arrays in sequence horizontally (column wise).
 
 Args:
@@ -872,7 +1151,7 @@ Note:
 
     _docs.set_doc(
         chainerx.vstack,
-        """stack(arrays)
+        """vstack(arrays)
 Stack arrays in sequence vertically (row wise).
 
 Args:
@@ -886,6 +1165,24 @@ Note:
     output array to the input arrays in ``arrays``.
 
 .. seealso:: :func:`numpy.vstack`
+""")
+
+    _docs.set_doc(
+        chainerx.dstack,
+        """dstack(arrays)
+Stack arrays in sequence depth wise (along third axis).
+
+Args:
+    arrays (sequence of :class:`~chainerx.ndarray`\\ s): Arrays to be stacked.
+
+Returns:
+    ~chainerx.ndarray: Stacked array.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input arrays in ``arrays``.
+
+.. seealso:: :func:`numpy.dstack`
 """)
 
     _docs.set_doc(
@@ -906,7 +1203,28 @@ Note:
     * During backpropagation, this function propagates the gradient of the
       output array to the input arrays in ``a``.
 
-.. seealso:: :func:`numpy.vstack`
+.. seealso:: :func:`numpy.atleast_2d`
+""")
+
+    _docs.set_doc(
+        chainerx.atleast_3d,
+        """atleast_3d(a)
+View inputs as arrays with at least three dimensions.
+
+Args:
+    a (~chainerx.ndarray): Array.
+
+Returns:
+    ~chainerx.ndarray: An array with a.ndim >= 3.
+    Copies are avoided where possible, and views with
+    three or more dimensions are returned.
+
+Note:
+    * Arrays that already have three or more dimensions are preserved.
+    * During backpropagation, this function propagates the gradient of the
+      output array to the input arrays in ``a``.
+
+.. seealso:: :func:`numpy.atleast_3d`
 """)
 
     _docs.set_doc(
@@ -935,6 +1253,30 @@ Note:
 """)
 
     _docs.set_doc(
+        chainerx.dsplit,
+        """dsplit(ary, indices_or_sections)
+Split array into multiple sub-arrays along the 3rd axis (depth).
+
+Args:
+    ary (~chainerx.ndarray): Array to split.
+    indices_or_sections (int or sequence of ints): A value indicating how to
+        divide the axis. If it is an integer, then is treated as the number of
+        sections, and the axis is evenly divided. Otherwise, the integers
+        indicate indices to split at. Note that a sequence on the device
+        memory is not allowed.
+
+Returns:
+    list of :class:`~chainerx.ndarray`\\ s: A list of sub arrays. Each array \
+is a partial view of the input array.
+
+Note:
+    During backpropagation, this function propagates the gradients of the
+    output arrays to the input array ``ary``.
+
+.. seealso:: :func:`numpy.dsplit`
+""")
+
+    _docs.set_doc(
         chainerx.swapaxes,
         """swapaxes(a, axis1, axis2)
 Interchange two axes of an array.
@@ -954,6 +1296,27 @@ Note:
 
 
 .. seealso:: :func:`numpy.swapaxes`
+""")
+
+    _docs.set_doc(
+        chainerx.repeat,
+        """repeat(a, repeats, axis=None)
+Constructs an array by repeating a given array.
+
+Args:
+    a (~chainerx.ndarray): Array to repeat.
+    repeats (int or tuple of ints): The number of times which each
+        element of a is repeated.
+    axis (int): The axis along which to repeat values.
+
+Returns:
+    ~chainerx.ndarray: The repeated output array.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``a``.
+
+.. seealso:: :func:`numpy.repeat`
 """)
 
     _docs.set_doc(
@@ -1043,6 +1406,32 @@ Note:
 
 
 .. seealso:: :func:`numpy.flipud`
+""")
+
+    _docs.set_doc(
+        chainerx.moveaxis,
+        """moveaxis(a, source, destination)
+Move axes of an array to new positions.
+
+Other axes remain in their original order.
+
+Args:
+    a (~chainerx.ndarray): Input Array.
+    source (int or tuple of ints): Original positions of the axes to move.
+    These must be unique.
+    destintation (int or tuple of ints): Destination positions for each of
+    the original axes. These must also be unique.
+
+Returns:
+    ~chainerx.ndarray: Array with moved axes. This array is a view of the
+    input array.
+
+Note:
+    * During backpropagation, this function propagates the gradients of the
+      output arrays to the input array ``a``.
+
+
+.. seealso:: :func:`numpy.moveaxis`
 """)
 
 
@@ -1241,6 +1630,24 @@ Note:
     output array to the input array ``x``.
 
 .. seealso:: :data:`numpy.log10`
+""")
+
+    _docs.set_doc(
+        chainerx.log2,
+        """log2(x)
+Base 2 logarithm, element-wise.
+
+Args:
+    x (~chainerx.ndarray): Input array.
+
+Returns:
+    :class:`~chainerx.ndarray`: Returned array: :math:`y = \\log_{2} x`.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``x``.
+
+.. seealso:: :data:`numpy.log2`
 """)
 
     _docs.set_doc(
@@ -1750,6 +2157,42 @@ Note:
 .. seealso:: :data:`numpy.bitwise_xor`
 """)
 
+    _docs.set_doc(
+        chainerx.left_shift,
+        """left_shift(x1, x2)
+Shift the bits of an integer to the left.
+
+Args:
+    x1 (~chainerx.ndarray or scalar): Input array of integers.
+    x2 (~chainerx.ndarray or scalar): Input array of integers.
+
+Returns:
+    :class:`~chainerx.ndarray`: Return `x1` with bits shifted `x2` times to the left.
+
+Note:
+    During backpropagation, this function does not propagate gradients.
+
+.. seealso:: :data:`numpy.left_shift`
+""")  # NOQA
+
+    _docs.set_doc(
+        chainerx.right_shift,
+        """right_shift(x1, x2)
+Shift the bits of an integer to the right.
+
+Args:
+    x1 (~chainerx.ndarray or scalar): Input array of integers.
+    x2 (~chainerx.ndarray or scalar): Input array of integers.
+
+Returns:
+    :class:`~chainerx.ndarray`: Return `x1` with bits shifted `x2` times to the right.
+
+Note:
+    During backpropagation, this function does not propagate gradients.
+
+.. seealso:: :data:`numpy.right_shift`
+""")  # NOQA
+
 
 def _docs_sorting():
     _docs.set_doc(
@@ -2190,6 +2633,64 @@ Note:
     output array to input arrays ``x``, ``W`` and ``b``.
 """)
 
+    _docs.set_doc(
+        chainerx.lstm,
+        """lstm(c_prev, x)
+    Long Short-Term Memory units as an activation function.
+    This function implements LSTM units with forget gates. Let the previous
+    cell state ``c_prev`` and the input array ``x``.
+    First, the input array ``x`` is split into four arrays
+    :math:`a, i, f, o` of the same shapes along the second axis. It means that
+    ``x`` 's second axis must have 4 times the ``c_prev`` 's second axis.
+    The split input arrays are corresponding to:
+        - :math:`a` : sources of cell input
+        - :math:`i` : sources of input gate
+        - :math:`f` : sources of forget gate
+        - :math:`o` : sources of output gate
+    Second, it computes the updated cell state ``c`` and the outgoing signal
+    ``h`` as:
+    .. math::
+        c &= \\tanh(a) \\sigma(i)
+           + c_{\\text{prev}} \\sigma(f), \\\\
+        h &= \\tanh(c) \\sigma(o),
+    where :math:`\\sigma` is the elementwise sigmoid function.
+    These are returned as a tuple of two variables.
+    This function supports variable length inputs. The mini-batch size of
+    the current input must be equal to or smaller than that of the previous
+    one. When mini-batch size of ``x`` is smaller than that of ``c``, this
+    function only updates ``c[0:len(x)]`` and doesn't change the rest of ``c``,
+    ``c[len(x):]``.
+    So, please sort input sequences in descending order of lengths before
+    applying the function.
+    Args:
+        c_prev (:class:`~chainerx.array`):
+            Variable that holds the previous cell state. The cell state
+            should be a zero array or the output of the previous call of LSTM.
+        x (:class:`~chainer.array`):
+            Variable that holds the sources of cell input, input gate, forget
+            gate and output gate. It must have the second dimension whose size
+            is four times of that of the cell state.
+    Returns:
+        tuple: Two :class:`~chainerx.array` objects ``c`` and ``h``.
+        ``c`` is the updated cell state. ``h`` indicates the outgoing signal.
+    See the original paper proposing LSTM with forget gates:
+    `Long Short-Term Memory in Recurrent Neural Networks
+    <http://www.felixgers.de/papers/phd.pdf>`_.
+    .. admonition:: Example
+        Assuming ``y`` is the current incoming signal, ``c`` is the previous
+        cell state, and ``h`` is the previous outgoing signal from an ``lstm``
+        function. Each of ``y``, ``c`` and ``h`` has ``n_units`` channels.
+        Most typical preparation of ``x`` is:
+        >>> n_units = 100
+        >>> c_prev = chainerx.zeros((1, n_units), chainerx.float32)
+        >>> x = chainerx.zeros((1, 4 * n_units), chainerx.float32)
+        >>> c, h = chainerx.lstm(c_prev, x)
+        It corresponds to calculate the input array ``x``, or the input
+        sources :math:`a, i, f, o`, from the current incoming signal ``y`` and
+        the previous outgoing signal ``h``. Different parameters are used for
+        different kind of input sources.
+    """)
+
 
 def _docs_normalization():
     _docs.set_doc(
@@ -2326,3 +2827,552 @@ Note:
    In ``cuda`` backend, only 2 and 3 dim arrays are supported as ``x``
    because cuDNN pooling supports 2 and 3 spatial dimensions.
 """)
+
+
+def _docs_rnn():
+    _docs.set_doc(
+        chainerx.n_step_lstm,
+        """n_step_lstm(n_layers, hx, cx, ws, bs, xs)
+    Stacked Uni-directional Long Short-Term Memory function.
+    This function calculates stacked Uni-directional LSTM with sequences.
+    This function gets an initial hidden state :math:`h_0`, an initial cell
+    state :math:`c_0`, an input sequence :math:`x`, weight matrices :math:`W`,
+    and bias vectors :math:`b`.
+    This function calculates hidden states :math:`h_t` and :math:`c_t` for each
+    time :math:`t` from input :math:`x_t`.
+    .. math::
+       i_t &= \\sigma(W_0 x_t + W_4 h_{t-1} + b_0 + b_4) \\\\
+       f_t &= \\sigma(W_1 x_t + W_5 h_{t-1} + b_1 + b_5) \\\\
+       o_t &= \\sigma(W_2 x_t + W_6 h_{t-1} + b_2 + b_6) \\\\
+       a_t &= \\tanh(W_3 x_t + W_7 h_{t-1} + b_3 + b_7) \\\\
+       c_t &= f_t \\cdot c_{t-1} + i_t \\cdot a_t \\\\
+       h_t &= o_t \\cdot \\tanh(c_t)
+    As the function accepts a sequence, it calculates :math:`h_t` for all
+    :math:`t` with one call. Eight weight matrices and eight bias vectors are
+    required for each layer. So, when :math:`S` layers exist, you need to
+    prepare :math:`8S` weight matrices and :math:`8S` bias vectors.
+    If the number of layers ``n_layers`` is greater than :math:`1`, the input
+    of the ``k``-th layer is the hidden state ``h_t`` of the ``k-1``-th layer.
+    Note that all input variables except the first layer may have different
+    shape from the first layer.
+    Args:
+        n_layers(int): The number of layers.
+        hx (:class:`~chainerx.array`):
+            Variable holding stacked hidden states.
+            Its shape is ``(S, B, N)`` where ``S`` is the number of layers and
+            is equal to ``n_layers``, ``B`` is the mini-batch size, and ``N``
+            is the dimension of the hidden units.
+        cx (:class:`~chainerx.array`): Variable holding stacked cell states.
+            It has the same shape as ``hx``.
+        ws (list of list of :class:`~chainerx.array`): Weight matrices.
+            ``ws[i]`` represents the weights for the i-th layer.
+            Each ``ws[i]`` is a list containing eight matrices.
+            ``ws[i][j]`` corresponds to :math:`W_j` in the equation.
+            Only ``ws[0][j]`` where ``0 <= j < 4`` are ``(N, I)``-shaped as
+            they are multiplied with input variables, where ``I`` is the size
+            of the input and ``N`` is the dimension of the hidden units. All
+            other matrices are ``(N, N)``-shaped.
+        bs (list of list of :class:`~chainerx.array`): Bias vectors.
+            ``bs[i]`` represents the biases for the i-th layer.
+            Each ``bs[i]`` is a list containing eight vectors.
+            ``bs[i][j]`` corresponds to :math:`b_j` in the equation.
+            The shape of each matrix is ``(N,)`` where ``N`` is the dimension
+            of the hidden units.
+        xs (list of :class:`~chainerx.array`):
+            A list of :class:`~chainerx.array`
+            holding input values. Each element ``xs[t]`` holds input value
+            for time ``t``. Its shape is ``(B_t, I)``, where ``B_t`` is the
+            mini-batch size for time ``t``.
+            When sequences has different lengths, they must be
+            sorted in descending order of their lengths.
+            So ``xs`` needs to satisfy
+            ``xs[t].shape[0] >= xs[t + 1].shape[0]``.
+    Returns:
+        tuple: This function returns a tuple containing three elements,
+        ``hy``, ``cy`` and ``ys``.
+        - ``hy`` is an updated hidden states whose shape is the same as
+          ``hx``.
+        - ``cy`` is an updated cell states whose shape is the same as
+          ``cx``.
+        - ``ys`` is a list of :class:`~chainerx.array` . Each element
+          ``ys[t]`` holds hidden states of the last layer corresponding
+          to an input ``xs[t]``. Its shape is ``(B_t, N)`` where ``B_t`` is
+          the mini-batch size for time ``t``, and ``N`` is size of hidden
+          units. Note that ``B_t`` is the same value as ``xs[t]``.
+    .. note::
+       The dimension of hidden units is limited to only one size ``N``. If you
+       want to use variable dimension of hidden units, please use
+       :class:`chainerx.lstm`.
+    .. seealso::
+       :func:`chainerx.lstm`
+    .. admonition:: Example
+        >>> import chainerx as chx
+        >>> batchs = [3, 2, 1]  # support variable length sequences
+        >>> in_size, out_size, n_layers = 3, 2, 2
+        >>> xs = [chx.ones((b, in_size)).astype(chx.float32) for b in batchs]
+        >>> [x.shape for x in xs]
+        [(3, 3), (2, 3), (1, 3)]
+        >>> h_shape = (n_layers, batchs[0], out_size)
+        >>> hx = chx.ones(h_shape).astype(chx.float32)
+        >>> cx = chx.ones(h_shape).astype(chx.float32)
+        >>> w_in = lambda i, j: in_size if i == 0 and j < 4 else out_size
+        >>> ws = []
+        >>> bs = []
+        >>> for n in range(n_layers):
+        ...     ws.append([chx.ones((out_size, w_in(n, i))).\
+astype(np.float32) for i in range(8)])
+        ...     bs.append([chx.ones((out_size,)).astype(chx.float32) \
+for _ in range(8)])
+        ...
+        >>> ws[0][0].shape  # ws[0][:4].shape are (out_size, in_size)
+        (2, 3)
+        >>> ws[1][0].shape  # others are (out_size, out_size)
+        (2, 2)
+        >>> bs[0][0].shape
+        (2,)
+        >>> hy, cy, ys = chx.n_step_lstm(
+        ...     n_layers, hx, cx, ws, bs, xs)
+        >>> hy.shape
+        (2, 3, 2)
+        >>> cy.shape
+        (2, 3, 2)
+        >>> [y.shape for y in ys]
+        [(3, 2), (2, 2), (1, 2)]
+    """)
+
+    _docs.set_doc(
+        chainerx.n_step_bilstm,
+        """n_step_bilstm(n_layers, hx, cx, ws, bs, xs)
+    Stacked Bi-directional Long Short-Term Memory function.
+    This function calculates stacked Bi-directional LSTM with sequences.
+    This function gets an initial hidden state :math:`h_0`, an initial cell
+    state :math:`c_0`, an input sequence :math:`x`, weight matrices :math:`W`,
+    and bias vectors :math:`b`.
+    This function calculates hidden states :math:`h_t` and :math:`c_t` for each
+    time :math:`t` from input :math:`x_t`.
+    .. math::
+        i^{f}_t &=& \\sigma(W^{f}_0 x_t + W^{f}_4 h_{t-1} + b^{f}_0 + b^{f}_4),
+        \\\\
+        f^{f}_t &=& \\sigma(W^{f}_1 x_t + W^{f}_5 h_{t-1} + b^{f}_1 + b^{f}_5),
+        \\\\
+        o^{f}_t &=& \\sigma(W^{f}_2 x_t + W^{f}_6 h_{t-1} + b^{f}_2 + b^{f}_6),
+        \\\\
+        a^{f}_t &=& \\tanh(W^{f}_3 x_t + W^{f}_7 h_{t-1} + b^{f}_3 + b^{f}_7),
+        \\\\
+        c^{f}_t &=& f^{f}_t \\cdot c^{f}_{t-1} + i^{f}_t \\cdot a^{f}_t,
+        \\\\
+        h^{f}_t &=& o^{f}_t \\cdot \\tanh(c^{f}_t),
+        \\\\
+        i^{b}_t &=& \\sigma(W^{b}_0 x_t + W^{b}_4 h_{t-1} + b^{b}_0 + b^{b}_4),
+        \\\\
+        f^{b}_t &=& \\sigma(W^{b}_1 x_t + W^{b}_5 h_{t-1} + b^{b}_1 + b^{b}_5),
+        \\\\
+        o^{b}_t &=& \\sigma(W^{b}_2 x_t + W^{b}_6 h_{t-1} + b^{b}_2 + b^{b}_6),
+        \\\\
+        a^{b}_t &=& \\tanh(W^{b}_3 x_t + W^{b}_7 h_{t-1} + b^{b}_3 + b^{b}_7),
+        \\\\
+        c^{b}_t &=& f^{b}_t \\cdot c^{b}_{t-1} + i^{b}_t \\cdot a^{b}_t, \\\\
+        h^{b}_t &=& o^{b}_t \\cdot \\tanh(c^{b}_t), \\\\
+        h_t &=& [h^{f}_t; h^{b}_t]
+    where :math:`W^{f}` is the weight matrices for forward-LSTM, :math:`W^{b}`
+    is weight matrices for backward-LSTM.
+    As the function accepts a sequence, it calculates :math:`h_t` for all
+    :math:`t` with one call. Eight weight matrices and eight bias vectors are
+    required for each layer of each direction. So, when :math:`S` layers
+    exist, you need to prepare :math:`16S` weight matrices and :math:`16S`
+    bias vectors.
+    If the number of layers ``n_layers`` is greater than :math:`1`, the input
+    of the ``k``-th layer is the hidden state ``h_t`` of the ``k-1``-th layer.
+    Note that all input variables except the first layer may have different
+    shape from the first layer.
+    Args:
+        n_layers(int): The number of layers.
+        hx (:class:`~chainerx.array`):
+            Variable holding stacked hidden states.
+            Its shape is ``(2S, B, N)`` where ``S`` is the number of layers and
+            is equal to ``n_layers``, ``B`` is the mini-batch size, and ``N``
+            is the dimension of the hidden units. Because of bi-direction, the
+            first dimension length is ``2S``.
+        cx (:class:`~chainerx.array`): Variable holding stacked cell states.
+            It has the same shape as ``hx``.
+        ws (list of list of :class:`~chainerx.array`): Weight matrices.
+            ``ws[2 * l + m]`` represents the weights for the l-th layer of
+            the m-th direction. (``m == 0`` means the forward direction and
+            ``m == 1`` means the backward direction.) Each ``ws[i]`` is a
+            list containing eight matrices. ``ws[i][j]`` corresponds to
+            :math:`W_j` in the equation. ``ws[0][j]`` and ``ws[1][j]`` where
+            ``0 <= j < 4`` are ``(N, I)``-shaped because they are multiplied
+            with input variables, where ``I`` is the size of the input.
+            ``ws[i][j]`` where ``2 <= i`` and ``0 <= j < 4`` are
+            ``(N, 2N)``-shaped because they are multiplied with two hidden
+            layers :math:`h_t = [h^{f}_t; h^{b}_t]`. All other matrices are
+            ``(N, N)``-shaped.
+        bs (list of list of :class:`~chainerx.array`): Bias vectors.
+            ``bs[2 * l + m]`` represents the weights for the l-th layer of
+            m-th direction. (``m == 0`` means the forward direction and
+            ``m == 1`` means the backward direction.)
+            Each ``bs[i]`` is a list containing eight vectors.
+            ``bs[i][j]`` corresponds to :math:`b_j` in the equation.
+            The shape of each matrix is ``(N,)``.
+        xs (list of :class:`~chainerx.array`):
+            A list of :class:`~chainerx.array`
+            holding input values. Each element ``xs[t]`` holds input value
+            for time ``t``. Its shape is ``(B_t, I)``, where ``B_t`` is the
+            mini-batch size for time ``t``.
+            When sequences has different lengths, they must be
+            sorted in descending order of their lengths.
+            So ``xs`` needs to satisfy
+            ``xs[t].shape[0] >= xs[t + 1].shape[0]``.
+    Returns:
+        tuple: This function returns a tuple containing three elements,
+        ``hy``, ``cy`` and ``ys``.
+        - ``hy`` is an updated hidden states whose shape is the same as
+          ``hx``.
+        - ``cy`` is an updated cell states whose shape is the same as
+          ``cx``.
+        - ``ys`` is a list of :class:`~chainer.array` . Each element
+          ``ys[t]`` holds hidden states of the last layer corresponding
+          to an input ``xs[t]``. Its shape is ``(B_t, 2N)`` where ``B_t``
+          is the mini-batch size for time ``t``, and ``N`` is size of
+          hidden units. Note that ``B_t`` is the same value as ``xs[t]``.
+    .. admonition:: Example
+        >>> import chainerx as chx
+        >>> batchs = [3, 2, 1]  # support variable length sequences
+        >>> in_size, out_size, n_layers = 3, 2, 2
+        >>> dropout_ratio = 0.0
+        >>> xs = [chx.ones((b, in_size)).astype(chx.float32) for b in batchs]
+        >>> [x.shape for x in xs]
+        [(3, 3), (2, 3), (1, 3)]
+        >>> h_shape = (n_layers * 2, batchs[0], out_size)
+        >>> hx = chx.ones(h_shape).astype(chx.float32)
+        >>> cx = chx.ones(h_shape).astype(chx.float32)
+        >>> def w_in(i, j):
+        ...     if i == 0 and j < 4:
+        ...         return in_size
+        ...     elif i > 0 and j < 4:
+        ...         return out_size * 2
+        ...     else:
+        ...         return out_size
+        ...
+        >>> ws = []
+        >>> bs = []
+        >>> for n in range(n_layers):
+        ...     for direction in (0, 1):
+        ...         ws.append([chx.ones((out_size, w_in(n, i))).\
+astype(np.float32) for i in range(8)])
+        ...         bs.append([chx.ones((out_size,)).astype(chx.float32) \
+for _ in range(8)])
+        ...
+        >>> ws[0][0].shape  # ws[0:2][:4].shape are (out_size, in_size)
+        (2, 3)
+        >>> ws[2][0].shape  # ws[2:][:4].shape are (out_size, 2 * out_size)
+        (2, 4)
+        >>> ws[0][4].shape  # others are (out_size, out_size)
+        (2, 2)
+        >>> bs[0][0].shape
+        (2,)
+        >>> hy, cy, ys = chx.n_step_bilstm(
+        ...     n_layers, hx, cx, ws, bs, xs)
+        >>> hy.shape
+        (4, 3, 2)
+        >>> cy.shape
+        (4, 3, 2)
+        >>> [y.shape for y in ys]
+        [(3, 4), (2, 4), (1, 4)]
+        """)
+
+    _docs.set_doc(
+        chainerx.n_step_gru,
+        """n_step_gru(n_layers, hx, ws, bs, xs)
+    Stacked Uni-directional Gated Recurrent Unit function.
+    This function calculates stacked Uni-directional GRU with sequences.
+    This function gets an initial hidden state :math:`h_0`, an input
+    sequence :math:`x`, weight matrices :math:`W`, and bias vectors :math:`b`.
+    This function calculates hidden states :math:`h_t` for each time :math:`t`
+    from input :math:`x_t`.
+    .. math::
+       r_t &= \\sigma(W_0 x_t + W_3 h_{t-1} + b_0 + b_3) \\\\
+       z_t &= \\sigma(W_1 x_t + W_4 h_{t-1} + b_1 + b_4) \\\\
+       h'_t &= \\tanh(W_2 x_t + b_2 + r_t \\cdot (W_5 h_{t-1} + b_5)) \\\\
+       h_t &= (1 - z_t) \\cdot h'_t + z_t \\cdot h_{t-1}
+    As the function accepts a sequence, it calculates :math:`h_t` for all
+    :math:`t` with one call. Six weight matrices and six bias vectors are
+    required for each layers. So, when :math:`S` layers exists, you need to
+    prepare :math:`6S` weight matrices and :math:`6S` bias vectors.
+    If the number of layers ``n_layers`` is greather than :math:`1`, input
+    of ``k``-th layer is hidden state ``h_t`` of ``k-1``-th layer.
+    Note that all input variables except first layer may have different shape
+    from the first layer.
+    Args:
+        n_layers(int): Number of layers.
+        hx (~chainerx.array):
+            Variable holding stacked hidden states.
+            Its shape is ``(S, B, N)`` where ``S`` is number of layers and is
+            equal to ``n_layers``, ``B`` is mini-batch size, and ``N`` is
+            dimension of hidden units.
+        ws (list of list of :class:`~chainerx.array`): Weight matrices.
+            ``ws[i]`` represents weights for i-th layer.
+            Each ``ws[i]`` is a list containing six matrices.
+            ``ws[i][j]`` is corresponding with ``W_j`` in the equation.
+            Only ``ws[0][j]`` where ``0 <= j < 3`` is ``(N, I)`` shape as they
+            are multiplied with input variables. All other matrices has
+            ``(N, N)`` shape.
+        bs (list of list of :class:`~chainerx.array`): Bias vectors.
+            ``bs[i]`` represnents biases for i-th layer.
+            Each ``bs[i]`` is a list containing six vectors.
+            ``bs[i][j]`` is corresponding with ``b_j`` in the equation.
+            Shape of each matrix is ``(N,)`` where ``N`` is dimension of
+            hidden units.
+        xs (list of :class:`~chainerx.array`):
+            A list of :class:`~chainerx.array`
+            holding input values. Each element ``xs[t]`` holds input value
+            for time ``t``. Its shape is ``(B_t, I)``, where ``B_t`` is
+            mini-batch size for time ``t``, and ``I`` is size of input units.
+            Note that this function supports variable length sequences.
+            When sequneces has different lengths, sort sequences in descending
+            order by length.
+            So ``xs`` needs to satisfy
+            ``xs[t].shape[0] >= xs[t + 1].shape[0]``.
+    Returns:
+        tuple: This function returns a tuple containing three elements,
+        ``hy`` and ``ys``.
+        - ``hy`` is an updated hidden states whose shape is same as ``hx``.
+        - ``ys`` is a list of :class:`~chainerx.array` . Each element
+          ``ys[t]`` holds hidden states of the last layer corresponding
+          to an input ``xs[t]``. Its shape is ``(B_t, N)`` where ``B_t`` is
+          mini-batch size for time ``t``, and ``N`` is size of hidden
+          units. Note that ``B_t`` is the same value as ``xs[t]``
+        """)
+
+    _docs.set_doc(
+        chainerx.n_step_bigru,
+        """n_step_bigru(n_layers, hx, ws, bs, xs)
+    Stacked Bi-directional Gated Recurrent Unit function.
+    This function calculates stacked Bi-directional GRU with sequences.
+    This function gets an initial hidden state :math:`h_0`, an input
+    sequence :math:`x`, weight matrices :math:`W`, and bias vectors :math:`b`.
+    This function calculates hidden states :math:`h_t` for each time :math:`t`
+    from input :math:`x_t`.
+    .. math::
+       r^{f}_t &= \\sigma(W^{f}_0 x_t + W^{f}_3 h_{t-1} + b^{f}_0 + b^{f}_3)
+       \\\\
+       z^{f}_t &= \\sigma(W^{f}_1 x_t + W^{f}_4 h_{t-1} + b^{f}_1 + b^{f}_4)
+       \\\\
+       h^{f'}_t &= \\tanh(W^{f}_2 x_t + b^{f}_2 + r^{f}_t \\cdot (W^{f}_5
+       h_{t-1} + b^{f}_5)) \\\\
+       h^{f}_t &= (1 - z^{f}_t) \\cdot h^{f'}_t + z^{f}_t \\cdot h_{t-1}
+       \\\\
+       r^{b}_t &= \\sigma(W^{b}_0 x_t + W^{b}_3 h_{t-1} + b^{b}_0 + b^{b}_3)
+       \\\\
+       z^{b}_t &= \\sigma(W^{b}_1 x_t + W^{b}_4 h_{t-1} + b^{b}_1 + b^{b}_4)
+       \\\\
+       h^{b'}_t &= \\tanh(W^{b}_2 x_t + b^{b}_2 + r^{b}_t \\cdot (W^{b}_5
+       h_{t-1} + b^{b}_5)) \\\\
+       h^{b}_t &= (1 - z^{b}_t) \\cdot h^{b'}_t + z^{b}_t \\cdot h_{t-1}
+       \\\\
+       h_t  &= [h^{f}_t; h^{b}_t] \\\\
+    where :math:`W^{f}` is weight matrices for forward-GRU, :math:`W^{b}` is
+    weight matrices for backward-GRU.
+    As the function accepts a sequence, it calculates :math:`h_t` for all
+    :math:`t` with one call. Six weight matrices and six bias vectors are
+    required for each layers. So, when :math:`S` layers exists, you need to
+    prepare :math:`6S` weight matrices and :math:`6S` bias vectors.
+    If the number of layers ``n_layers`` is greather than :math:`1`, input
+    of ``k``-th layer is hidden state ``h_t`` of ``k-1``-th layer.
+    Note that all input variables except first layer may have different shape
+    from the first layer.
+    Args:
+        n_layers(int): Number of layers.
+        hx (:class:`~chainerx.array`):
+            Variable holding stacked hidden states.
+            Its shape is ``(2S, B, N)`` where ``S`` is number of layers and is
+            equal to ``n_layers``, ``B`` is mini-batch size, and ``N`` is
+            dimension of hidden units.
+        ws (list of list of :class:`~chainerx.array`): Weight matrices.
+            ``ws[i]`` represents weights for i-th layer.
+            Each ``ws[i]`` is a list containing six matrices.
+            ``ws[i][j]`` is corresponding with ``W_j`` in the equation.
+            Only ``ws[0][j]`` where ``0 <= j < 3`` is ``(N, I)`` shape as they
+            are multiplied with input variables. All other matrices has
+            ``(N, N)`` shape.
+        bs (list of list of :class:`~chainerx.array`): Bias vectors.
+            ``bs[i]`` represnents biases for i-th layer.
+            Each ``bs[i]`` is a list containing six vectors.
+            ``bs[i][j]`` is corresponding with ``b_j`` in the equation.
+            Shape of each matrix is ``(N,)`` where ``N`` is dimension of
+            hidden units.
+        xs (list of :class:`~chainerx.array`):
+            A list of :class:`~chainerx.array` holding input values.
+            Each element ``xs[t]`` holds input value
+            for time ``t``. Its shape is ``(B_t, I)``, where ``B_t`` is
+            mini-batch size for time ``t``, and ``I`` is size of input units.
+            Note that this function supports variable length sequences.
+            When sequneces has different lengths, sort sequences in descending
+            order by length.
+            So ``xs`` needs to satisfy
+            ``xs[t].shape[0] >= xs[t + 1].shape[0]``.
+    Returns:
+        tuple: This function returns a tuple containing three elements,
+        ``hy`` and ``ys``.
+        - ``hy`` is an updated hidden states whose shape is same as ``hx``.
+        - ``ys`` is a list of :class:`~chainerx.array` . Each element
+          ``ys[t]`` holds hidden states of the last layer corresponding
+          to an input ``xs[t]``. Its shape is ``(B_t, N)`` where ``B_t`` is
+          mini-batch size for time ``t``, and ``N`` is size of hidden
+          units. Note that ``B_t`` is the same value as ``xs[t]``.
+        """)
+
+    _docs.set_doc(
+        chainerx.n_step_rnn,
+        """n_step_rnn(n_layers, hx, ws, bs, xs, activation='tanh')
+    Stacked Uni-directional RNN function for sequence inputs.
+    This function calculates stacked Uni-directional RNN with sequences.
+    This function gets an initial hidden state :math:`h_0`,
+    an initial cell state :math:`c_0`, an input sequence :math:`x`,
+    weight matrices :math:`W`, and bias vectors :math:`b`.
+    This function calculates hidden states :math:`h_t` and :math:`c_t` for each
+    time :math:`t` from input :math:`x_t`.
+    .. math::
+       h_t = f(W_0 x_t + W_1 h_{t-1} + b_0 + b_1)
+    where :math:`f` is an activation function.
+    Weight matrices :math:`W` contains two matrices :math:`W_0` and
+    :math:`W_1`. :math:`W_0` is a parameter for an input sequence.
+    :math:`W_1` is a parameter for a hidden state.
+    Bias matrices :math:`b` contains two matrices :math:`b_0` and :math:`b_1`.
+    :math:`b_0` is a parameter for an input sequence.
+    :math:`b_1` is a parameter for a hidden state.
+    As the function accepts a sequence, it calculates :math:`h_t` for all
+    :math:`t` with one call. Two weight matrices and two bias vectors are
+    required for each layer. So, when :math:`S` layers exist, you need to
+    prepare :math:`2S` weight matrices and :math:`2S` bias vectors.
+    If the number of layers ``n_layers`` is greather than :math:`1`, input
+    of ``k``-th layer is hidden state ``h_t`` of ``k-1``-th layer.
+    Note that all input variables except first layer may have different shape
+    from the first layer.
+    Args:
+        n_layers(int): Number of layers.
+        hx (:class:`~chainerx.array`):
+            Variable holding stacked hidden states.
+            Its shape is ``(S, B, N)`` where ``S`` is number of layers and is
+            equal to ``n_layers``, ``B`` is mini-batch size, and ``N`` is
+            dimension of hidden units.
+        ws (list of list of :class:`~chainerx.array`): Weight matrices.
+            ``ws[i]`` represents weights for i-th layer.
+            Each ``ws[i]`` is a list containing two matrices.
+            ``ws[i][j]`` is corresponding with ``W_j`` in the equation.
+            Only ``ws[0][j]`` where ``0 <= j < 1`` is ``(N, I)`` shape as they
+            are multiplied with input variables. All other matrices has
+            ``(N, N)`` shape.
+        bs (list of list of :class:`~chainerx.array`): Bias vectors.
+            ``bs[i]`` represnents biases for i-th layer.
+            Each ``bs[i]`` is a list containing two vectors.
+            ``bs[i][j]`` is corresponding with ``b_j`` in the equation.
+            Shape of each matrix is ``(N,)`` where ``N`` is dimension of
+            hidden units.
+        xs (list of :class:`~chainerx.array`):
+            A list of :class:`~chainerx.array` holding input values.
+            Each element ``xs[t]`` holds input value for time ``t``.
+            Its shape is ``(B_t, I)``, where ``B_t`` is
+            mini-batch size for time ``t``, and ``I`` is size of input units.
+            Note that this function supports variable length sequences.
+            When sequneces has different lengths, sort sequences in descending
+            order by length.
+            So ``xs`` needs to satisfy
+            ``xs[t].shape[0] >= xs[t + 1].shape[0]``.
+        activation (str): Activation function name.
+            Please select ``tanh`` or ``relu``.
+    Returns:
+        tuple: This function returns a tuple containing three elements,
+        ``hy`` and ``ys``.
+        - ``hy`` is an updated hidden states whose shape is same as ``hx``.
+        - ``ys`` is a list of :class:`~chainerx.array` . Each element
+          ``ys[t]`` holds hidden states of the last layer corresponding
+          to an input ``xs[t]``. Its shape is ``(B_t, N)`` where ``B_t`` is
+          mini-batch size for time ``t``, and ``N`` is size of hidden
+          units. Note that ``B_t`` is the same value as ``xs[t]``.
+        """)
+
+    _docs.set_doc(
+        chainerx.n_step_birnn,
+        """n_step_birnn(n_layers, hx, ws, bs, xs, activation='tanh')
+    Stacked Bi-directional RNN function for sequence inputs.
+    This function calculates stacked Bi-directional RNN with sequences.
+    This function gets an initial hidden state :math:`h_0`, an initial
+    cell state :math:`c_0`, an input sequence :math:`x`,
+    weight matrices :math:`W`, and bias vectors :math:`b`.
+    This function calculates hidden states :math:`h_t` and :math:`c_t` for each
+    time :math:`t` from input :math:`x_t`.
+    .. math::
+        h^{f}_t &=& f(W^{f}_0 x_t + W^{f}_1 h_{t-1} + b^{f}_0 + b^{f}_1), \\\\
+        h^{b}_t &=& f(W^{b}_0 x_t + W^{b}_1 h_{t-1} + b^{b}_0 + b^{b}_1), \\\\
+        h_t  &=& [h^{f}_t; h^{f}_t], \\\\
+    where :math:`f` is an activation function.
+    Weight matrices :math:`W` contains two matrices :math:`W^{f}` and
+    :math:`W^{b}`. :math:`W^{f}` is weight matrices for forward directional
+    RNN. :math:`W^{b}` is weight matrices for backward directional RNN.
+    :math:`W^{f}` contains :math:`W^{f}_0` for an input sequence and
+    :math:`W^{f}_1` for a hidden state.
+    :math:`W^{b}` contains :math:`W^{b}_0` for an input sequence and
+    :math:`W^{b}_1` for a hidden state.
+    Bias matrices :math:`b` contains two matrices :math:`b^{f}` and
+    :math:`b^{f}`. :math:`b^{f}` contains :math:`b^{f}_0` for an input sequence
+    and :math:`b^{f}_1` for a hidden state.
+    :math:`b^{b}` contains :math:`b^{b}_0` for an input sequence and
+    :math:`b^{b}_1` for a hidden state.
+    As the function accepts a sequence, it calculates :math:`h_t` for all
+    :math:`t` with one call. Two weight matrices and two bias vectors are
+    required for each layer. So, when :math:`S` layers exist, you need to
+    prepare :math:`2S` weight matrices and :math:`2S` bias vectors.
+    If the number of layers ``n_layers`` is greather than :math:`1`, input
+    of ``k``-th layer is hidden state ``h_t`` of ``k-1``-th layer.
+    Note that all input variables except first layer may have different shape
+    from the first layer.
+    Args:
+        n_layers(int): Number of layers.
+        hx (:class:`~chainerx.array`):
+            Variable holding stacked hidden states.
+            Its shape is ``(2S, B, N)`` where ``S`` is number of layers and is
+            equal to ``n_layers``, ``B`` is mini-batch size, and ``N`` is
+            dimension of hidden units. Because of bi-direction, the
+            first dimension length is ``2S``.
+        ws (list of list of :class:`~chainerx.array`): Weight matrices.
+            ``ws[i + di]`` represents weights for i-th layer.
+            Note that ``di = 0`` for forward-RNN and ``di = 1`` for
+            backward-RNN.
+            Each ``ws[i + di]`` is a list containing two matrices.
+            ``ws[i + di][j]`` is corresponding with ``W^{f}_j`` if ``di = 0``
+            and corresponding with ``W^{b}_j`` if ``di = 1`` in the equation.
+            Only ``ws[0][j]`` and ``ws[1][j]`` where ``0 <= j < 1`` are
+            ``(I, N)`` shape as they are multiplied with input variables.
+            All other matrices has ``(N, N)`` shape.
+        bs (list of list of :class:`~chainerx.array`): Bias vectors.
+            ``bs[i + di]`` represnents biases for i-th layer.
+            Note that ``di = 0`` for forward-RNN and ``di = 1`` for
+            backward-RNN.
+            Each ``bs[i + di]`` is a list containing two vectors.
+            ``bs[i + di][j]`` is corresponding with ``b^{f}_j`` if ``di = 0``
+            and corresponding with ``b^{b}_j`` if ``di = 1`` in the equation.
+            Shape of each matrix is ``(N,)`` where ``N`` is dimension of
+            hidden units.
+        xs (list of :class:`~chainerx.array`):
+            A list of :class:`~chainerx.array` holding input values.
+            Each element ``xs[t]`` holds input value
+            for time ``t``. Its shape is ``(B_t, I)``, where ``B_t`` is
+            mini-batch size for time ``t``, and ``I`` is size of input units.
+            Note that this function supports variable length sequences.
+            When sequneces has different lengths, sort sequences in descending
+            order by length.
+            So ``xs`` needs to satisfy
+            ``xs[t].shape[0] >= xs[t + 1].shape[0]``.
+        activation (str): Activation function name.
+            Please select ``tanh`` or ``relu``.
+    Returns:
+        tuple: This function returns a tuple containing three elements,
+        ``hy`` and ``ys``.
+        - ``hy`` is an updated hidden states whose shape is same as ``hx``.
+        - ``ys`` is a list of :class:`~chainerx.array` . Each element
+          ``ys[t]`` holds hidden states of the last layer corresponding
+          to an input ``xs[t]``. Its shape is ``(B_t, N)`` where ``B_t``
+          is mini-batch size for time ``t``, and ``N`` is size of hidden
+          units. Note that ``B_t`` is the same value as ``xs[t]``.
+        """)

@@ -2,12 +2,12 @@
 
 #include <cstdint>
 
-#include <nonstd/optional.hpp>
+#include <absl/types/optional.h>
 
 #include "chainerx/array.h"
 #include "chainerx/constant.h"
+#include "chainerx/dims.h"
 #include "chainerx/kernel.h"
-#include "chainerx/stack_vector.h"
 
 namespace chainerx {
 
@@ -25,12 +25,12 @@ public:
     virtual Array Call(
             const Array& x,
             const Array& w,
-            const nonstd::optional<Array>& b,
-            const StackVector<int64_t, kMaxNdim>& stride,
-            const StackVector<int64_t, kMaxNdim>& pad,
+            const absl::optional<Array>& b,
+            const Dims& stride,
+            const Dims& pad,
             bool cover_all,
             Dtype out_dtype,
-            const nonstd::optional<Array>& out) = 0;
+            const absl::optional<Array>& out) = 0;
 };
 
 // Computes the n-dimensional transposed convolution.
@@ -47,12 +47,12 @@ public:
     virtual Array Call(
             const Array& x,
             const Array& w,
-            const nonstd::optional<Array>& b,
-            const StackVector<int64_t, kMaxNdim>& stride,
-            const StackVector<int64_t, kMaxNdim>& pad,
-            const StackVector<int64_t, kMaxNdim>& out_size,
+            const absl::optional<Array>& b,
+            const Dims& stride,
+            const Dims& pad,
+            const Dims& out_size,
             Dtype out_dtype,
-            const nonstd::optional<Array>& out) = 0;
+            const absl::optional<Array>& out) = 0;
 };
 
 class ConvGradWeightKernel : public Kernel {
@@ -64,10 +64,10 @@ public:
             const Shape& w_shape,
             const Array& x,
             const Array& gy,
-            const StackVector<int64_t, kMaxNdim>& stride,
-            const StackVector<int64_t, kMaxNdim>& pad,
+            const Dims& stride,
+            const Dims& pad,
             bool cover_all,
-            const nonstd::optional<Array>& out) = 0;
+            const absl::optional<Array>& out) = 0;
 };
 
 }  // namespace chainerx

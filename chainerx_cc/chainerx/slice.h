@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <utility>
 
-#include <nonstd/optional.hpp>
+#include <absl/types/optional.h>
 
 #include "chainerx/error.h"
 
@@ -12,8 +12,8 @@ namespace chainerx {
 
 class Slice {
 public:
-    Slice(nonstd::optional<int64_t> start, nonstd::optional<int64_t> stop, const nonstd::optional<int64_t>& step)
-        : start_{std::move(start)}, stop_{std::move(stop)}, step_{step.value_or(1)} {
+    Slice(absl::optional<int64_t> start, absl::optional<int64_t> stop, const absl::optional<int64_t>& step)
+        : start_{start}, stop_{stop}, step_{step.value_or(1)} {
         if (step_ == 0) {
             throw DimensionError{"Step must not be zero."};
         }
@@ -22,9 +22,9 @@ public:
     explicit Slice(int64_t stop) : Slice{0, stop, 1} {}
     Slice(int64_t start, int64_t stop) : Slice{start, stop, 1} {}
 
-    const nonstd::optional<int64_t>& start() const { return start_; }
+    const absl::optional<int64_t>& start() const { return start_; }
 
-    const nonstd::optional<int64_t>& stop() const { return stop_; }
+    const absl::optional<int64_t>& stop() const { return stop_; }
 
     int64_t step() const { return step_; }
 
@@ -64,8 +64,8 @@ public:
     }
 
 private:
-    nonstd::optional<int64_t> start_;
-    nonstd::optional<int64_t> stop_;
+    absl::optional<int64_t> start_;
+    absl::optional<int64_t> stop_;
     int64_t step_{1};
 };
 

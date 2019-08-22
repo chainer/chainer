@@ -5,8 +5,8 @@ from chainer import distribution
 from chainer.functions.array import repeat
 from chainer.functions.array import reshape
 from chainer.functions.array import transpose
-from chainer.functions.math import sum as sum_mod
 from chainer.functions.math import prod
+from chainer.functions.math import sum as sum_mod
 from chainer.utils import array
 from chainer.utils import cache
 
@@ -28,19 +28,21 @@ class Independent(distribution.Distribution):
         super(Independent, self).__init__()
         self.__distribution = distribution
         if reinterpreted_batch_ndims is None:
-            reinterpreted_batch_ndims = \
-                self._get_default_reinterpreted_batch_ndims(distribution)
+            reinterpreted_batch_ndims = (
+                self._get_default_reinterpreted_batch_ndims(distribution))
         elif reinterpreted_batch_ndims > len(distribution.batch_shape):
             raise ValueError(
                 'reinterpreted_batch_ndims must be less than or equal to the '
                 'number of dimensions of `distribution.batch_shape`.')
         self.__reinterpreted_batch_ndims = reinterpreted_batch_ndims
 
-        batch_ndim = \
-            len(self.distribution.batch_shape) - self.reinterpreted_batch_ndims
+        batch_ndim = (
+            len(self.distribution.batch_shape)
+            - self.reinterpreted_batch_ndims)
         self.__batch_shape = distribution.batch_shape[:batch_ndim]
-        self.__event_shape = \
-            distribution.batch_shape[batch_ndim:] + distribution.event_shape
+        self.__event_shape = (
+            distribution.batch_shape[batch_ndim:]
+            + distribution.event_shape)
 
     @property
     def distribution(self):

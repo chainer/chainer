@@ -3,7 +3,7 @@
 #include <initializer_list>
 #include <utility>
 
-#include <nonstd/optional.hpp>
+#include <absl/types/optional.h>
 
 #include "chainerx/macro.h"
 
@@ -15,7 +15,7 @@ public:
     using T = typename Container::value_type;
 
     // ctor for null value
-    OptionalContainerArg(nonstd::nullopt_t /*nullopt*/) : opt_{nonstd::nullopt} {}  // NOLINT
+    OptionalContainerArg(absl::nullopt_t /*nullopt*/) : opt_{absl::nullopt} {}  // NOLINT
 
     // ctor for single value
     OptionalContainerArg(const T& value) : opt_{Container{{value}}} {}  // NOLINT
@@ -54,7 +54,7 @@ public:
     explicit operator bool() const { return has_value(); }
 
 private:
-    nonstd::optional<Container> opt_;
+    absl::optional<Container> opt_;
 };
 
 }  // namespace chainerx

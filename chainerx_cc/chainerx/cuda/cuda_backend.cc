@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include <string>
 
+#include <absl/types/optional.h>
 #include <cuda_runtime.h>
 #include <gsl/gsl>
 
@@ -48,12 +49,11 @@ std::unique_ptr<Device> CudaBackend::CreateDevice(int index) {
 bool CudaBackend::SupportsTransfer(Device& src_device, Device& dst_device) {
     Backend& src_backend = src_device.backend();
     Backend& dst_backend = dst_device.backend();
-    // TODO(niboshi): Make clearner interface to check whether a backend is native, like dst_backend.is_native()
     if (&src_backend == this) {
-        return &dst_backend == this || nullptr != dynamic_cast<native::NativeBackend*>(&dst_backend);
+        return &dst_backend == this || dst_backend.IsNative();
     }
     if (&dst_backend == this) {
-        return &src_backend == this || nullptr != dynamic_cast<native::NativeBackend*>(&src_backend);
+        return &src_backend == this || src_backend.IsNative();
     }
     return false;
 }
@@ -68,7 +68,7 @@ size_t CudaBackend::GetCudnnMaxWorkspaceSize() {
     if (cudnn_max_workspace_size_) {
         return *cudnn_max_workspace_size_;
     }
-    if (nonstd::optional<std::string> env = GetEnv(kCudnnMaxWorkspaceSizeEnvVarName)) {
+    if (absl::optional<std::string> env = GetEnv(kCudnnMaxWorkspaceSizeEnvVarName)) {
         cudnn_max_workspace_size_ = std::stoul(*env);
     } else {
         cudnn_max_workspace_size_ = kCudnnDefaultMaxWorkspaceSize;
