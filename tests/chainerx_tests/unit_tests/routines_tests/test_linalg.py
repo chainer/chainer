@@ -14,6 +14,7 @@ from chainerx_tests import op_utils
 @chainer.testing.parameterize_pytest('a_shape,b_shape', [
     ((), ()),
     ((), (2, 3)),
+    ((0, 2), (2, 0)),
     ((2, 0), (0, 3)),
     ((0, 0), (0, 0)),
     ((2, 3), (3, 4)),

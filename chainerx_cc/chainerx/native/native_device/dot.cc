@@ -85,6 +85,7 @@ void Gemm(const Array& a, const Array& b, const Array& out) {
     int64_t m = a.shape()[0];
     int64_t k = a.shape()[1];
     int64_t n = b.shape()[1];
+    int64_t ld_out = std::max(int64_t{1}, n);
     CHAINERX_ASSERT(b.shape()[0] == k);
     CHAINERX_ASSERT(out.shape()[0] == m);
     CHAINERX_ASSERT(out.shape()[1] == n);
@@ -106,7 +107,7 @@ void Gemm(const Array& a, const Array& b, const Array& out) {
         const T* b_ptr = static_cast<const T*>(internal::GetRawOffsetData(b_config));
         T* out_ptr = static_cast<T*>(internal::GetRawOffsetData(out_contiguous));
         GemmImpl<T>{}(
-                CblasRowMajor, a_layout.trans, b_layout.trans, m, n, k, one, a_ptr, a_layout.ld, b_ptr, b_layout.ld, zero, out_ptr, n);
+                CblasRowMajor, a_layout.trans, b_layout.trans, m, n, k, one, a_ptr, a_layout.ld, b_ptr, b_layout.ld, zero, out_ptr, ld_out);
     };
 
     if (a.dtype() == Dtype::kFloat32) {

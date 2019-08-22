@@ -82,6 +82,7 @@ public:
         int64_t m = a.shape()[0];
         int64_t k = a.shape()[1];
         int64_t n = b.shape()[1];
+        int64_t ld_out = std::max(int64_t{1}, n);
         CHAINERX_ASSERT(b.shape()[0] == k);
         CHAINERX_ASSERT(out.shape()[0] == m);
         CHAINERX_ASSERT(out.shape()[1] == n);
@@ -140,7 +141,7 @@ public:
                     &zero,
                     internal::GetRawOffsetData(out_contiguous),
                     data_type,
-                    n,
+                    ld_out,
                     compute_type,
                     CUBLAS_GEMM_DEFAULT_TENSOR_OP);
         };
