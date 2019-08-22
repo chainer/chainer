@@ -1,11 +1,19 @@
 import random
 import chainer
 import numpy
+import chainerx
 
 from chainer import utils
 from chainerx_tests import array_utils
 from chainerx_tests import dtype_utils
 from chainerx_tests import op_utils
+
+n_step_lstm_dtypes_valid = dtype_utils._permutate_dtype_mapping([
+    # Floats.
+    (('float16', ), ()),
+    (('float32', ), ()),
+    (('float64', ), ()),
+])
 
 
 # A special parameter object used to represent an unspecified argument.
