@@ -497,9 +497,6 @@ Returns:
     :func:`~chainerx.ndarray`: Output array.
 
 Note:
-    This function currently only supports indices of int64 array.
-
-Note:
     This function currently does not support ``axis=None``
 
 Note:
