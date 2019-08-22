@@ -2696,6 +2696,7 @@ See the original paper proposing LSTM with forget gates:
     >>> c_prev = chainerx.zeros((1, n_units), chainerx.float32)
     >>> x = chainerx.zeros((1, 4 * n_units), chainerx.float32)
     >>> c, h = chainerx.lstm(c_prev, x)
+
     It corresponds to calculate the input array ``x``, or the input
     sources :math:`a, i, f, o`, from the current incoming signal ``y`` and
     the previous outgoing signal ``h``. Different parameters are used for
