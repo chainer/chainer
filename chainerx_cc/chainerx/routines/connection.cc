@@ -26,6 +26,7 @@
 #include "chainerx/routines/activation.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/hyperbolic.h"
+#include "chainerx/routines/indexing.h"
 #include "chainerx/routines/linalg.h"
 #include "chainerx/routines/manipulation.h"
 #include "chainerx/routines/reduction.h"
@@ -394,24 +395,36 @@ Array Linear(const Array& x, const Array& w, const absl::optional<Array>& b, uin
 }
 
 Array EmbedId(const Array& x, const Array& w, absl::optional<int64_t> ignore_label) {
-    std::vector<Array> x_split = Split(x, x.shape()[0], 0);
-    std::vector<Array> w_split = Split(w, w.shape()[0], 0);
-    std::vector<Array> out;
-
     if (ignore_label.has_value() && (*ignore_label < 0 || *ignore_label >= w.shape()[0])) {
         throw IndexError{"ignore_label should be greater than equal to 0 and less than" + w.shape()[0]};
     }
+    StackVector<int64_t, kMaxNdim> shape_vec;
+    shape_vec.emplace_back(w.shape()[1]);
+    Shape shape{shape_vec};
+    std::vector<Array> ignore_list;
+    std::vector<Array> x_split =  Split(x, x.shape()[0], 0);
+
+    // TODO(dido1998): Find a way to avoid this for loop.
     for (size_t i = 0; i < x_split.size(); i++) {
         if (int64_t(AsScalar(x_split[i])) < 0 || int64_t(AsScalar(x_split[i])) >= w.shape()[0]) {
             throw IndexError{"each value in x should be greater than equal to 0 and less than equal to" + w.shape()[0]};
         }
-        if (ignore_label.has_value() && AsScalar(x_split[i]) == *ignore_label) {
-            out.emplace_back(Zeros(w_split[0].shape(), w_split[0].dtype(), w_split[0].device()));
-        } else {
-            out.emplace_back(w_split[int64_t(AsScalar(x_split[i]))]);
-        }
     }
-    return Squeeze(Stack(out, 0));
+    Array w_new = w;
+    if (ignore_label.has_value()) {
+        for (int64_t i = 0; i < w.shape()[0]; i++) {
+            if (i == *ignore_label) {
+                ignore_list.emplace_back(Zeros(shape, w.dtype(), w.device()));
+            } else {
+                ignore_list.emplace_back(Ones(shape, w.dtype(), w.device()));
+            }
+        }
+        Array ignore_array = Stack(ignore_list, 0);
+        w_new = w_new * ignore_array;
+    }
+    
+    Array out = Take(w_new, x, 0);
+    return out;
 }
 
 std::vector<Array> Lstm(const Array& c, const Array& x) {

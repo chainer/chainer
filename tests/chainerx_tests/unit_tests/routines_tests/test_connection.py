@@ -36,7 +36,7 @@ class Unspecified(object):
             'x,w_shape,ignore_index', [
                 ((0, 1, 2), (5, 3), 0),
                 ((2, 3, 4, 1), (8, 3), Unspecified),
-                ((6, 7, 8), (10, 3), 8),
+                ((6, 7, 8), (10, 3), 7),
                 ((0, 1, 2), (15, 3), Unspecified),
             ]),
         chainer.testing.from_pytest_parameterize(
