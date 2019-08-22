@@ -140,7 +140,7 @@ public:
                     &zero,
                     internal::GetRawOffsetData(out_contiguous),
                     data_type,
-                    std::max(int64_t{1}, n),
+                    n,
                     compute_type,
                     CUBLAS_GEMM_DEFAULT_TENSOR_OP);
         };
