@@ -169,11 +169,19 @@ test_py27and35() {
 
 # test_chainermn is a test function for chainermn
 test_chainermn() {
-  apt-get update -y && apt-get install -y --no-install-recommends ssh
   export PYENV_VERSION=""
   . /root/.bash_profile
-  pyenv versions
-  pyenv shell 3.7.3
+
+  pyenv shell "2.7.16-cupy-${CUPY_VERSION}"
+  test_chainermn_sub
+  pyenv shell "3.5.7-cupy-${CUPY_VERSION}"
+  test_chainermn_sub
+  pyenv shell "3.7.3-cupy-${CUPY_VERSION}"
+  test_chainermn_sub
+}
+
+# test_chainermn_sub runs tests for chainermn with current Python runtime
+test_chainermn_sub() {
   marker='not slow'
   if (( !GPU )); then
     marker+=' and not gpu'
@@ -182,11 +190,6 @@ test_chainermn() {
     marker+=' and gpu'
     bucket="${GPU}"
   fi
-
-  #-----------------------------------------------------------------------------
-  # Install required libraries
-  #-----------------------------------------------------------------------------
-  pip install 'cupy-cuda92==7.0.0b1'
 
   #-----------------------------------------------------------------------------
   # Install Chainer
@@ -213,6 +216,6 @@ test_chainermn() {
 case "${TARGET}" in
   'py37' ) test_py37;;
   'py27and35' ) test_py27and35;;
-  'chainermn-cuda92' ) test_chainermn;;
+  'chainermn' ) test_chainermn;;
   * ) echo "Unsupported target: ${TARGET}" >&2; exit 1;;
 esac

@@ -264,7 +264,7 @@ configs {
 	  gpu: 2
     }
 	environment_variables { key: "GPU" value: "2" }
-    command: "bash .pfnci/script.sh chainermn-cuda92"
+    command: "bash .pfnci/script.sh chainermn"
   }
 }
 
@@ -277,8 +277,8 @@ configs {
 	  memory: 12
     }
 	time_limit: {
-	  seconds: 3600
+	  seconds: 7200
 	}
-	command: "bash .pfnci/script-prep.sh chainermn-ci-prep-cuda92"
+	command: "bash .pfnci/chainermn-ci-prep.sh chainermn-ci-prep-cuda92"
   }
 }

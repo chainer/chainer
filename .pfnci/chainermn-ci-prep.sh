@@ -19,7 +19,14 @@ main() {
   case "${TARGET}" in
     'chainermn-ci-prep-cuda92' )
       run docker build -t "asia.gcr.io/pfn-public-ci/${TARGET}" \
-          -f ".pfnci/${TARGET}.Dockerfile" .
+	      --build-arg BASE_IMAGE=9.2-cudnn7-devel \
+          -f ".pfnci/chainermn-ci-prep.Dockerfile" .
+      run docker push "asia.gcr.io/pfn-public-ci/${TARGET}"
+      ;;
+    'chainermn-ci-prep-cuda101' )
+      run docker build -t "asia.gcr.io/pfn-public-ci/${TARGET}" \
+	      --build-arg BASE_IMAGE=10.1-cudnn7-devel \
+          -f ".pfnci/chainermn-ci-prep.Dockerfile" .
       run docker push "asia.gcr.io/pfn-public-ci/${TARGET}"
       ;;
     * )
