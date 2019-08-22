@@ -51,7 +51,7 @@ main() {
   # Run target-specific commands.
   case "${TARGET}" in
     # Unit tests.
-    'py37' | 'py27and35' )
+    'py37' | 'py35' )
       run "${docker_args[@]}" \
           "asia.gcr.io/pfn-public-ci/chainer-ci-prep.${TARGET}" \
           bash /src/.pfnci/run.sh "${TARGET}"
