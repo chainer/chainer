@@ -68,6 +68,9 @@ class _Transform(tabular_dataset.TabularDataset):
 
         return out_examples
 
+    def convert(self, data):
+        return self._dataset.convert(data)
+
 
 class _TransformBatch(tabular_dataset.TabularDataset):
 
@@ -145,3 +148,6 @@ class _TransformBatch(tabular_dataset.TabularDataset):
                     'transform_batch must not change the length of data')
             return tuple(out_examples[key_index]
                          for key_index in key_indices)
+
+    def convert(self, data):
+        return self._dataset.convert(data)

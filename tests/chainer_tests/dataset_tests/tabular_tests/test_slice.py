@@ -115,7 +115,8 @@ class TestSlice(unittest.TestCase):
                 self.assertIsInstance(key_indices, tuple)
 
         dataset = dummy_dataset.DummyDataset(
-            mode=self.mode, return_array=self.return_array, callback=callback)
+            mode=self.mode, return_array=self.return_array, callback=callback,
+            convert=True)
 
         if self.exception is not None:
             with self.assertRaises(self.exception):
@@ -163,6 +164,8 @@ class TestSlice(unittest.TestCase):
                 self.assertIsInstance(out, np.ndarray)
             else:
                 self.assertIsInstance(out, list)
+
+        self.assertEqual(view.convert(output), 'converted')
 
 
 # Replace list of bool with ndarray of bool
