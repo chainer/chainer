@@ -2,10 +2,11 @@ import unittest
 
 import numpy as np
 
-import chainer
 from chainer import optimizer_hooks
 from chainer import optimizers
 from chainer import testing
+
+import utils
 
 
 _backend_params = [
@@ -22,34 +23,13 @@ _backend_params = [
 ]
 
 
-class SimpleLink(chainer.Link):
-
-    def __init__(self, params):
-        super(SimpleLink, self).__init__()
-        with self.init_scope():
-            for i, p in enumerate(params):
-                setattr(self, 'p{}'.format(i), p)
-
-
 @testing.backend.inject_backend_tests(None, _backend_params)
 @testing.backend.inject_backend_tests(None, _backend_params)
 @testing.backend.inject_backend_tests(None, _backend_params)
 class TestLasso(unittest.TestCase):
     def setUp(self):
-        num_params = 3
-        arrs = [
-            np.random.uniform(-3, 3, (2, 3)).astype(np.float32)
-            for _ in range(num_params)]
-        grads = [
-            np.random.uniform(-3, 3, (2, 3)).astype(np.float32)
-            for _ in range(num_params)]
-        params = []
-        for arr, grad in zip(arrs, grads):
-            param = chainer.Parameter(arr)
-            param.grad = grad
-            params.append(param)
-
-        self.target = SimpleLink(params)
+        self.target = utils.ParametersLink.from_param_props(
+            ((2, 3), (2, 0, 1), ()))
 
     def check_lasso(self, backend_configs):
         target = self.target
@@ -67,7 +47,7 @@ class TestLasso(unittest.TestCase):
 
         # Compute using optimizer_hook
         opt = optimizers.SGD(lr=1)
-        opt.setup(self.target)
+        opt.setup(target)
         opt.add_hook(optimizer_hooks.Lasso(decay))
         opt.update()
 

@@ -108,3 +108,6 @@ class _Concat(tabular_dataset.TabularDataset):
                     [examples[dataset_index][col_index][p]
                      for dataset_index, p in example_indices]
                     for col_index in six.moves.range(n_cols))
+
+    def convert(self, data):
+        return self._datasets[0].convert(data)

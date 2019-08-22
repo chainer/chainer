@@ -22,7 +22,7 @@ from chainer.functions.noise.dropout import dropout
 from chainer.functions.normalization.local_response_normalization import (
     local_response_normalization)
 from chainer.functions.pooling.average_pooling_2d import average_pooling_2d
-from chainer.functions.pooling.max_pooling_2d import max_pooling_2d
+from chainer.functions.pooling.max_pooling_nd import max_pooling_2d
 from chainer.initializers import constant
 from chainer.initializers import uniform
 from chainer import link

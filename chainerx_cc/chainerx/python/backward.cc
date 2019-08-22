@@ -62,21 +62,33 @@ void InitChainerxBackward(pybind11::module& m) {
           [](const std::vector<ArrayBodyPtr>& outputs,
              const std::vector<ArrayBodyPtr>& inputs,
              const absl::optional<BackpropId>& backprop_id,
-             bool enable_double_backprop) {
+             bool enable_double_backprop,
+             bool set_grad,
+             bool retain_grad,
+             const std::vector<ArrayBodyPtr>& grad_outputs) {
               std::vector<Array> output_arrays = ConvertToArrays(outputs);
               std::vector<Array> input_arrays = ConvertToArrays(inputs);
+
+              std::vector<Array> grad_output_arrays = ConvertToArrays(grad_outputs);
+
               auto double_backprop = enable_double_backprop ? DoubleBackpropOption::kEnable : DoubleBackpropOption::kDisable;
               std::vector<absl::optional<Array>> grads =
                       Grad({output_arrays.begin(), output_arrays.end()},
                            {input_arrays.begin(), input_arrays.end()},
                            backprop_id,
-                           double_backprop);
+                           double_backprop,
+                           set_grad,
+                           retain_grad,
+                           std::vector<ConstArrayRef>{grad_output_arrays.begin(), grad_output_arrays.end()});
               return internal::MoveArrayBodies(std::move(grads));
           },
           py::arg(),  // outputs
           py::arg(),  // inputs
           "backprop_id"_a = nullptr,
-          "enable_double_backprop"_a = false);
+          "enable_double_backprop"_a = false,
+          "set_grad"_a = false,
+          "retain_grad"_a = false,
+          "grad_outputs"_a = std::vector<ArrayBodyPtr>{});
 }
 
 }  // namespace python_internal

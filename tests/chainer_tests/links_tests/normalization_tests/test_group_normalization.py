@@ -9,11 +9,10 @@ from chainer import gradient_check
 from chainer import links
 from chainer import testing
 from chainer.testing import attr
-from chainer.testing import condition
 
 
 @testing.parameterize(*(testing.product({
-    'shape': [(1, 4, 5, 5), (5, 4, 15), (3, 8)],
+    'shape': [(1, 4, 5, 3), (5, 4, 7), (3, 20)],
     'groups': [1, 2, 4],
     'dtype': [numpy.float32],
 })))
@@ -23,11 +22,27 @@ class GroupNormalizationTest(unittest.TestCase):
         self.link = links.GroupNormalization(self.groups)
         self.link.cleargrads()
 
-        self.x = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
+        self.x, = self.generate_inputs()
         self.gy = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
 
         self.check_forward_options = {'atol': 1e-4, 'rtol': 1e-3}
         self.check_backward_options = {'atol': 1e-3, 'rtol': 1e-2}
+
+    def generate_inputs(self):
+        shape = self.shape
+
+        # sample x such that x.std >= min_std
+        min_std = 0.02
+        retry = 0
+        while True:
+            x = numpy.random.uniform(-1, 1, shape).astype(self.dtype)
+            x_groups = x.reshape(shape[0], self.groups, -1)
+            if x_groups.std(axis=2).min() >= min_std:
+                break
+            retry += 1
+            assert retry <= 20, 'Too many retries to generate inputs'
+
+        return x,
 
     def check_forward(self, x_data):
         y = self.link(x_data)
@@ -42,12 +57,10 @@ class GroupNormalizationTest(unittest.TestCase):
             testing.assert_allclose(
                 y.data, y_one_each.data, **self.check_forward_options)
 
-    @condition.retry(3)
     def test_forward_cpu(self):
         self.check_forward(self.x)
 
     @attr.gpu
-    @condition.retry(3)
     def test_forward_gpu(self):
         self.link.to_gpu()
         self.check_forward(cuda.to_gpu(self.x))
@@ -58,7 +71,6 @@ class GroupNormalizationTest(unittest.TestCase):
         self.test_forward_gpu()
 
     @attr.multi_gpu(2)
-    @condition.retry(3)
     def test_forward_multi_gpu(self):
         with cuda.get_device_from_id(1):
             self.link.to_gpu()
@@ -72,13 +84,11 @@ class GroupNormalizationTest(unittest.TestCase):
             (self.link.gamma, self.link.beta),
             eps=1e-2, **self.check_backward_options)
 
-    @condition.retry(3)
     def test_backward_cpu(self):
         self.link(numpy.zeros(self.shape, dtype='f'))
         self.check_backward(self.x, self.gy)
 
     @attr.gpu
-    @condition.retry(3)
     def test_backward_gpu(self):
         self.link.to_gpu()
         self.link(cuda.cupy.zeros(self.shape, dtype='f'))
@@ -107,14 +117,12 @@ class TestInitialize(unittest.TestCase):
                                              initial_beta=self.initial_beta)
         self.shape = (1, self.size, 1)
 
-    @condition.retry(3)
     def test_initialize_cpu(self):
         self.link(numpy.zeros(self.shape, dtype='f'))
         testing.assert_allclose(self.initial_gamma, self.link.gamma.data)
         testing.assert_allclose(self.initial_beta, self.link.beta.data)
 
     @attr.gpu
-    @condition.retry(3)
     def test_initialize_gpu(self):
         self.link.to_gpu()
         self.link(cuda.cupy.zeros(self.shape, dtype='f'))

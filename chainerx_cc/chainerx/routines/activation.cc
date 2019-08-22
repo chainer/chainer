@@ -43,7 +43,7 @@ Array Elu(const Array& x, double alpha) {
     Dtype dtype = internal::GetMathResultDtype(x.dtype());
     const Array& x_cast = x.dtype() == dtype ? x : x.AsType(dtype);
     // TODO(aksub99): Replace x > zero with x > 0 when operator > supports scalars.
-    Array zero = ZerosLike(x_cast, x_cast.device());
+    Array zero = Zeros({}, x_cast.dtype(), x_cast.device());
     return Where(x_cast > zero, x_cast, alpha * Expm1(x_cast));
 }
 
@@ -62,8 +62,18 @@ Array Relu(const Array& x) {
 Array LeakyRelu(const Array& x, Scalar slope) {
     Dtype dtype = internal::GetMathResultDtype(x.dtype());
     const Array& x_cast = x.dtype() == dtype ? x : x.AsType(dtype);
-    Array zero = ZerosLike(x_cast, x_cast.device());
+    // TODO(hamaji): Replace x >= zero with x >= 0 when operator >= supports scalars.
+    Array zero = Zeros({}, x_cast.dtype(), x_cast.device());
     return Where(x_cast >= zero, x_cast, slope * x_cast);
+}
+
+Array Softplus(const Array& x, double beta) {
+    Dtype dtype = internal::GetMathResultDtype(x.dtype());
+    const Array& x_cast = x.dtype() == dtype ? x : x.AsType(dtype);
+    double beta_inv = 1.0 / beta;
+    Array bx = beta * x_cast;
+    Array y = (Maximum(bx, 0) + Log1p(Exp(-Fabs(bx)))) * beta_inv;
+    return y;
 }
 
 }  // namespace chainerx

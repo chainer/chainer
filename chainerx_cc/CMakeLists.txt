@@ -44,6 +44,13 @@ else()
     set(DEFAULT_CHAINERX_ENABLE_BLAS ON)
 endif()
 
+# CHAINERX_ENABLE_LAPACK
+if(DEFINED ENV{CHAINERX_ENABLE_LAPACK})
+    set(DEFAULT_CHAINERX_ENABLE_LAPACK $ENV{CHAINERX_ENABLE_LAPACK})
+else()
+    set(DEFAULT_CHAINERX_ENABLE_LAPACK ON)
+endif()
+
 option(CHAINERX_BUILD_PYTHON "Build Python binding" OFF)
 option(CHAINERX_BUILD_TEST "Build test" OFF)
 option(CHAINERX_BUILD_EXAMPLES "Build examples" OFF)
@@ -53,6 +60,7 @@ option(CHAINERX_CUDNN_USE_CUPY "Use existing CuPy installation for cuDNN headers
 option(CHAINERX_ENABLE_COVERAGE "Enable test coverage with gcov" ${DEFAULT_CHAINERX_ENABLE_COVERAGE})
 option(CHAINERX_BUILD_CUDA "Build CUDA backend (if CUDA is available)" ${DEFAULT_CHAINERX_BUILD_CUDA})
 option(CHAINERX_ENABLE_BLAS "Use BLAS if available" ${DEFAULT_CHAINERX_ENABLE_BLAS})
+option(CHAINERX_ENABLE_LAPACK "Use LAPACK if available" ${DEFAULT_CHAINERX_ENABLE_LAPACK})
 
 if(MSVC)
     option(CUDA_USE_STATIC_CUDA_RUNTIME "Use the static version of the CUDA runtime library if available" OFF)
@@ -130,63 +138,69 @@ endif()
 
 # CUDA
 if(${CHAINERX_BUILD_CUDA})
-    find_package(CUDA QUIET)
-    if(${CUDA_FOUND})
-        list(APPEND CUDA_NVCC_FLAGS "-std=c++${CMAKE_CXX_STANDARD}")
+    find_package(CUDA REQUIRED QUIET)
 
-        # CUDA_cublas_device_LIBRARY is required for CUDA > 9.2 with cmake < to 3.12.2.
-        # This is because cublas_device was deprecated in CUDA 9.2, but FindCUDA supported it in 3.12.2.
-        set(CUDA_cublas_device_LIBRARY ${CUDA_LIBRARIES})
-        add_definitions(-DCHAINERX_ENABLE_CUDA=1)
+    list(APPEND CUDA_NVCC_FLAGS "-std=c++${CMAKE_CXX_STANDARD}")
 
-        # If CHAINERX_CUDNN_USE_CUPY is set, retrieve cuDNN files from CuPy installation.
-        if(CHAINERX_CUDNN_USE_CUPY)
-            execute_process(
-                # This counts on sys.stdout.write to raise an error if None is given, resulting ret != 0.
-                COMMAND python -c "import sys, cupyx; info = cupyx.runtime.get_install_info(); sys.stdout.write(info.get_data_path('include'))"
-                OUTPUT_VARIABLE CUDNN_INCLUDE_DIR
-                RESULT_VARIABLE ret)
-            if(NOT ret EQUAL 0)
-                message(FATAL_ERROR "Failed to retrieve cuDNN include directory from CuPy installation.")
-            endif()
-            execute_process(
-                # The same as above about sys.stdout.write.
-                COMMAND python -c "import sys, cupyx; info = cupyx.runtime.get_install_info(); sys.stdout.write(info.get_data_path('lib'))"
-                OUTPUT_VARIABLE CUDNN_LIB_DIR
-                RESULT_VARIABLE ret)
-            if(NOT ret EQUAL 0)
-                message(FATAL_ERROR "Failed to retrieve cuDNN library directory from CuPy installation.")
-            endif()
-            # find_library() cannot find the library file 'libcudnn.so.<ver>' without a symlink 'libcudnn.so', which CuPy does not provide due to pip restriction.
-            # Here using glob to actively find the target file.
-            file(GLOB CUDNN_LIBRARY ${CUDNN_LIB_DIR}/libcudnn.so*)
-            if(NOT CUDNN_LIBRARY)
-                message(FATAL_ERROR "Could not find libcudnn shared library in ${CUDNN_LIB_DIR}.")
-            endif()
+    # CUDA_cublas_device_LIBRARY is required for CUDA > 9.2 with cmake < to 3.12.2.
+    # This is because cublas_device was deprecated in CUDA 9.2, but FindCUDA supported it in 3.12.2.
+    set(CUDA_cublas_device_LIBRARY ${CUDA_LIBRARIES})
+    add_definitions(-DCHAINERX_ENABLE_CUDA=1)
+
+    # If CHAINERX_CUDNN_USE_CUPY is set, retrieve cuDNN files from CuPy installation.
+    if(CHAINERX_CUDNN_USE_CUPY)
+        execute_process(
+            # This counts on sys.stdout.write to raise an error if None is given, resulting ret != 0.
+            COMMAND python -c "import sys, cupyx; info = cupyx.runtime.get_install_info(); sys.stdout.write(info.get_data_path('include'))"
+            OUTPUT_VARIABLE CUDNN_INCLUDE_DIR
+            RESULT_VARIABLE ret)
+        if(NOT ret EQUAL 0)
+            message(FATAL_ERROR "Failed to retrieve cuDNN include directory from CuPy installation.")
         endif()
-
-        # Allow to specify *one* --generate-code option of the nvcc command.
-        # Supposed usage is to avoid slowness of PTX JIT compilation on development.
-        set(CHAINERX_NVCC_GENERATE_CODE "$ENV{CHAINERX_NVCC_GENERATE_CODE}" CACHE STRING "nvcc --generate-code option")
-
-        find_package(CuDNN 7 REQUIRED)
-        include_directories(${CUDNN_INCLUDE_DIRS})
-        if(NOT CHAINERX_NVCC_GENERATE_CODE STREQUAL "")
-            list(APPEND CUDA_NVCC_FLAGS --generate-code=${CHAINERX_NVCC_GENERATE_CODE})
-        elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
-            list(APPEND CUDA_NVCC_FLAGS --generate-code=arch=compute_30,code=sm_30)
-            list(APPEND CUDA_NVCC_FLAGS --generate-code=arch=compute_50,code=sm_50)
-            list(APPEND CUDA_NVCC_FLAGS --generate-code=arch=compute_60,code=sm_60)
-            list(APPEND CUDA_NVCC_FLAGS --generate-code=arch=compute_70,code=sm_70)
+        execute_process(
+            # The same as above about sys.stdout.write.
+            COMMAND python -c "import sys, cupyx; info = cupyx.runtime.get_install_info(); sys.stdout.write(info.get_data_path('lib'))"
+            OUTPUT_VARIABLE CUDNN_LIB_DIR
+            RESULT_VARIABLE ret)
+        if(NOT ret EQUAL 0)
+            message(FATAL_ERROR "Failed to retrieve cuDNN library directory from CuPy installation.")
         endif()
+        # find_library() cannot find the library file 'libcudnn.so.<ver>' without a symlink 'libcudnn.so', which CuPy does not provide due to pip restriction.
+        # Here using glob to actively find the target file.
+        file(GLOB CUDNN_LIBRARY ${CUDNN_LIB_DIR}/libcudnn.so*)
+        if(NOT CUDNN_LIBRARY)
+            message(FATAL_ERROR "Could not find libcudnn shared library in ${CUDNN_LIB_DIR}.")
+        endif()
+    endif()
 
-        if(MSVC)
-            if(CMAKE_CXX_COMPILER_ID MATCHES "GCC|Clang")
-                list(APPEND CUDA_NVCC_FLAGS -Xcompiler /MD)
-            else()
-                list(APPEND CUDA_NVCC_FLAGS_RELEASE -Xcompiler /MD)
-                list(APPEND CUDA_NVCC_FLAGS_DEBUG -Xcompiler /MDd)
-            endif()
+    # Allow to specify *one* --generate-code option of the nvcc command.
+    # Supposed usage is to avoid slowness of PTX JIT compilation on development.
+    set(CHAINERX_NVCC_GENERATE_CODE "$ENV{CHAINERX_NVCC_GENERATE_CODE}" CACHE STRING "nvcc --generate-code option")
+
+    find_package(CuDNN 7 REQUIRED)
+    include_directories(${CUDNN_INCLUDE_DIRS})
+    if(NOT CHAINERX_NVCC_GENERATE_CODE STREQUAL "")
+        list(APPEND CUDA_NVCC_FLAGS --generate-code=${CHAINERX_NVCC_GENERATE_CODE})
+    elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
+        list(APPEND CUDA_NVCC_FLAGS --generate-code=arch=compute_30,code=sm_30)
+        list(APPEND CUDA_NVCC_FLAGS --generate-code=arch=compute_50,code=sm_50)
+        list(APPEND CUDA_NVCC_FLAGS --generate-code=arch=compute_60,code=sm_60)
+        list(APPEND CUDA_NVCC_FLAGS --generate-code=arch=compute_70,code=sm_70)
+    endif()
+
+    # cuSOLVER requires OpenMP
+    if(MSVC)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /openmp")
+    else()
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
+    endif()
+
+    if(MSVC)
+        if(CMAKE_CXX_COMPILER_ID MATCHES "GCC|Clang")
+            list(APPEND CUDA_NVCC_FLAGS -Xcompiler /MD)
+        else()
+            list(APPEND CUDA_NVCC_FLAGS_RELEASE -Xcompiler /MD)
+            list(APPEND CUDA_NVCC_FLAGS_DEBUG -Xcompiler /MDd)
         endif()
     endif()
 endif()
@@ -198,6 +212,19 @@ if(${CHAINERX_ENABLE_BLAS})
         message(STATUS "Found BLAS (library: ${BLAS_LIBRARIES})")
     else()
         message(STATUS "BLAS not found")
+    endif()
+endif()
+
+# LAPACK
+if(${CHAINERX_ENABLE_LAPACK})
+    find_package(LAPACK QUIET)
+    if (${LAPACK_FOUND})
+        message(STATUS "Found LAPACK (library: ${LAPACK_LIBRARIES})")
+        message(STATUS "Defining CHAINERX_ENABLE_LAPACK variable.")
+        add_definitions(-DCHAINERX_ENABLE_LAPACK=1)
+    else()
+        message(STATUS "LAPACK not found")
+        add_definitions(-DCHAINERX_ENABLE_LAPACK=0)
     endif()
 endif()
 

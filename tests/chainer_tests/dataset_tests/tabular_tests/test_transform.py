@@ -31,7 +31,7 @@ class TestTransform(unittest.TestCase):
 
     def test_transform(self):
         dataset = dummy_dataset.DummyDataset(
-            mode=self.in_mode, return_array=True)
+            mode=self.in_mode, return_array=True, convert=True)
 
         def transform(*args, **kwargs):
             if self.in_mode is tuple:
@@ -106,6 +106,8 @@ class TestTransform(unittest.TestCase):
                 self.assertIsInstance(out, np.ndarray)
             else:
                 self.assertIsInstance(out, list)
+
+        self.assertEqual(view.convert(view.fetch()), 'converted')
 
 
 @testing.parameterize(

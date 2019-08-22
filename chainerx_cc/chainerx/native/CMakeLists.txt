@@ -24,6 +24,7 @@ add_library(chainerx_native STATIC
     native_device/fill.cc
     native_device/hyperbolic.cc
     native_device/indexing.cc
+    native_device/linalg.cc
     native_device/memory.cc
     native_device/misc.cc
     native_device/pool.cc
@@ -39,7 +40,7 @@ add_library(chainerx_native STATIC
 if(${BLAS_FOUND})
     if(DEFINED ENV{CHAINERX_BLAS_INCLUDE_DIRS})
         set(BLAS_INCLUDE_DIRS $ENV{CHAINERX_BLAS_INCLUDE_DIRS})
-    else()
+    elseif(UNIX)
         # Workaround for UNIX environments to guess the BLAS include directory from its library path (.so).
         # This workaround is required since CMake does not set the BLAS_INCLUDE_DIRS variable.
         list(GET BLAS_LIBRARIES 0 BLAS_LIBRARY)
@@ -57,6 +58,12 @@ if(${BLAS_FOUND})
     else()
         message(WARNING "Found the BLAS library but not the include directory. Skipping BLAS.")
     endif()
+endif()
+
+if(${LAPACK_FOUND})
+    MESSAGE(STATUS "Found LAPACK (library: ${LAPACK_LIBRARIES})")
+    include_directories(${LAPACK_INCLUDE_DIRS})
+    target_link_libraries(chainerx_native ${LAPACK_LIBRARIES})
 endif()
 
 if(${CHAINERX_BUILD_TEST})

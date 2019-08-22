@@ -37,6 +37,9 @@ Array creation routines
    chainerx.linspace
    chainerx.diag
    chainerx.diagflat
+   chainerx.tri
+   chainerx.tril
+   chainerx.triu
 
 Activation functions
 --------------------
@@ -74,6 +77,7 @@ Array manipulation routines
    chainerx.split
    chainerx.dsplit
    chainerx.swapaxes
+   chainerx.repeat
    chainerx.expand_dims
    chainerx.flip
    chainerx.fliplr
@@ -98,6 +102,11 @@ Linear algebra
    :nosignatures:
 
    chainerx.dot
+
+   chainerx.linalg.svd
+   chainerx.linalg.solve
+   chainerx.linalg.inv
+   chainerx.linalg.pinv
 
 Logic functions
 ---------------
@@ -125,7 +134,7 @@ Logic functions
    chainerx.not_equal
 
 Loss functions
----------------
+--------------
 
 .. autosummary::
    :toctree: generated/
@@ -179,6 +188,8 @@ Mathematical functions
    chainerx.bitwise_and
    chainerx.bitwise_or
    chainerx.bitwise_xor
+   chainerx.left_shift
+   chainerx.right_shift
 
 Random sampling
 ---------------

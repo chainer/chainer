@@ -14,18 +14,12 @@ import chainermn
 from chainermn.communicators import _communication_utility
 from chainermn.communicators.flat_communicator \
     import FlatCommunicator
-from chainermn.communicators.hierarchical_communicator \
-    import HierarchicalCommunicator
 from chainermn.communicators.naive_communicator \
     import NaiveCommunicator
 from chainermn.communicators.non_cuda_aware_communicator \
     import NonCudaAwareCommunicator
 from chainermn.communicators.pure_nccl_communicator \
     import PureNcclCommunicator
-from chainermn.communicators.single_node_communicator \
-    import SingleNodeCommunicator
-from chainermn.communicators.two_dimensional_communicator \
-    import TwoDimensionalCommunicator
 from chainermn import nccl
 
 
@@ -68,7 +62,7 @@ class Param(object):
         self.nccl1 = False
         self.model_dtype = None
         self.allreduce_grad_dtype = None
-        self.batched_copy = False
+        self.batched_copy = True
         self.global_dtype = None
         self.__dict__.update(param)
 
@@ -98,27 +92,6 @@ gpu_params = [Param(p) for p in [
         'communicator_class': FlatCommunicator,
         'model_dtype': np.float16,
         'multi_node': True,
-    }, {
-        'communicator_class': HierarchicalCommunicator,
-        'multi_node': True,
-    }, {
-        'communicator_class': HierarchicalCommunicator,
-        'model_dtype': np.float16,
-        'multi_node': True,
-    }, {
-        'communicator_class': TwoDimensionalCommunicator,
-        'multi_node': True,
-    }, {
-        'communicator_class': TwoDimensionalCommunicator,
-        'model_dtype': np.float16,
-        'multi_node': True,
-    }, {
-        'communicator_class': SingleNodeCommunicator,
-        'multi_node': False,
-    }, {
-        'communicator_class': SingleNodeCommunicator,
-        'model_dtype': np.float16,
-        'multi_node': False,
     }, {
         'communicator_class': NonCudaAwareCommunicator,
         'multi_node': True,
@@ -153,28 +126,24 @@ gpu_params = [Param(p) for p in [
         'nccl1': False,
         'model_dtype': np.float16,
         'allreduce_grad_dtype': np.float16,
-        'batched_copy': True,
     }, {
         'communicator_class': PureNcclCommunicator,
         'multi_node': True,
         'nccl1': False,
         'model_dtype': np.float16,
         'allreduce_grad_dtype': np.float32,
-        'batched_copy': True,
     }, {
         'communicator_class': PureNcclCommunicator,
         'multi_node': True,
         'nccl1': False,
         'model_dtype': np.float32,
         'allreduce_grad_dtype': np.float32,
-        'batched_copy': True,
     }, {
         'communicator_class': PureNcclCommunicator,
         'multi_node': True,
         'nccl1': False,
         'model_dtype': np.float32,
         'allreduce_grad_dtype': np.float16,
-        'batched_copy': True,
     }]]
 
 
@@ -186,17 +155,8 @@ gpu_mixed_dtype_params = [Param(p) for p in [
         'communicator_class': NaiveCommunicator,
         'multi_node': True,
     }, {
-        'communicator_class': TwoDimensionalCommunicator,
-        'multi_node': True,
-    }, {
-        'communicator_class': HierarchicalCommunicator,
-        'multi_node': True,
-    }, {
         'communicator_class': FlatCommunicator,
         'multi_node': True,
-    }, {
-        'communicator_class': SingleNodeCommunicator,
-        'multi_node': False,
     }
 ]]
 for global_dtype in [np.float32, np.float16, chainer.mixed16, None]:
@@ -237,21 +197,6 @@ def create_communicator(param, use_gpu):
         chainer.cuda.get_device_from_id(communicator.intra_rank).use()
 
     return communicator
-
-
-def destroy_communicator(comm):
-    """Destroy internal NCCL communicator.
-
-    When too many NCCL communicator are alive, NCCL produces
-    unhandled CUDA error. To avoid this, we need to make sure to
-    destory NCCL communicator after every use.
-    """
-    if hasattr(comm, 'nccl_comm') and comm.nccl_comm is not None:
-        comm.nccl_comm.destroy()
-        comm.nccl_comm = None
-    if hasattr(comm, 'intra_nccl_cojmm') and comm.intra_nccl_comm is not None:
-        comm.intra_nccl_comm.destroy()
-        comm.intra_nccl_comm = None
 
 
 def check_send_and_recv(communicator, *shape):
@@ -387,7 +332,7 @@ def check_send_recv(param, use_gpu):
         np.ones((50, 20, 5)).astype(np.float32)]
     check_send_and_recv_tuple(communicator, data)
 
-    destroy_communicator(communicator)
+    communicator.finalize()
 
 
 def check_multi_node_mean_grad_mixed_dtype(param, model, use_gpu):
@@ -463,7 +408,7 @@ def check_multi_node_mean_grad_mixed_dtype(param, model, use_gpu):
                                     (base + 1) * np.ones((4, 3)))
 
     mpi_comm.barrier()
-    destroy_communicator(communicator)
+    communicator.finalize()
 
 
 def check_collective_communication(param, use_gpu):
@@ -504,7 +449,7 @@ def check_collective_communication(param, use_gpu):
     # barrier() requires before destructor of PureNcclCommunicator
     # because communication may not be finished.
     mpi_comm.barrier()
-    destroy_communicator(communicator)
+    communicator.finalize()
 
 
 # chainer.testing.parameterize is not available at functions
@@ -541,6 +486,28 @@ class TestPureNcclCommunicator(unittest.TestCase):
         with self.assertRaises(ValueError):
             PureNcclCommunicator(self.mpi_comm, allreduce_grad_dtype=np.int32)
 
+    @chainer.testing.attr.gpu
+    def test_finalize(self):
+        communicator = PureNcclCommunicator(self.mpi_comm)
+        communicator._init_comms()
+        communicator.finalize()
+        self.assertIsNone(communicator.nccl_comm)
+
+
+class TestNonCudaAwareCommunicator(unittest.TestCase):
+
+    def setUp(self):
+        if nccl.get_build_version() < 2000:
+            pytest.skip('This test requires NCCL version >= 2.0')
+        self.mpi_comm = mpi4py.MPI.COMM_WORLD
+
+    @chainer.testing.attr.gpu
+    def test_finalize(self):
+        communicator = NonCudaAwareCommunicator(self.mpi_comm)
+        communicator._init_comms()
+        communicator.finalize()
+        self.assertIsNone(communicator.intra_nccl_comm)
+
 
 class TestDifferentDtype(unittest.TestCase):
 
@@ -558,12 +525,12 @@ class TestDifferentDtype(unittest.TestCase):
 
         # dtypes to be tested
         # DO NOT USE chainer.testing.parameterize
-        # (because running order of generated test cases is not unique)
+        # (because running order of generated test cases is not deterministic)
         self.dtypes = [np.int32, np.int64, np.float32, np.float64]
 
     def teardown(self):
         if self.communicator:
-            destroy_communicator(self.communicator)
+            self.communicator.finalize()
 
     def check_send_recv(self, x):
         if self.communicator.rank == 0:
@@ -838,7 +805,7 @@ class TestNonContiguousArray(unittest.TestCase):
 
     def teardown(self):
         if self.communicator:
-            destroy_communicator(self.communicator)
+            self.communicator.finalize()
 
     def check_send(self):
         if self.communicator.rank == 0:
@@ -891,7 +858,7 @@ class TestMpiCommunicatorBase(unittest.TestCase):
 
     def teardown(self):
         if self.communicator:
-            destroy_communicator(self.communicator)
+            self.communicator.finalize()
 
     def check_send_recv_obj(self, x, tag=0,
                             use_any_recv=True, use_status=False):
@@ -932,23 +899,3 @@ class TestMpiCommunicatorBase(unittest.TestCase):
         self.check_send_recv_obj(5, tag=5, use_any_recv=False, use_status=True)
 
         self.teardown()
-
-
-@chainer.testing.attr.gpu
-def test_deprecation():
-    with chainer.testing.assert_warns(DeprecationWarning):
-        chainermn.create_communicator('hierarchical')
-
-    with chainer.testing.assert_warns(DeprecationWarning):
-        chainermn.create_communicator('two_dimensional')
-
-
-@chainer.testing.attr.gpu
-def test_deprecation_single():
-    ranks = _communication_utility.init_ranks(mpi_comm)
-    inter_size = ranks[4]
-    if inter_size > 1:
-        pytest.skip('This test is for single node only')
-
-    with chainer.testing.assert_warns(DeprecationWarning):
-        chainermn.create_communicator('single_node')

@@ -31,7 +31,7 @@ configs {
   value {
     requirement {
       cpu: 30
-      memory: 70
+      memory: 80
       gpu: 2
     }
     time_limit: {
@@ -76,7 +76,7 @@ configs {
   value {
     requirement {
       cpu: 30
-      memory: 70
+      memory: 80
       gpu: 2
     }
     time_limit: {
@@ -91,5 +91,160 @@ configs {
       value: "1u5OYiPOL3XRppn73XBSgR-XyDuHKb_4Ilmx1kgJfa-k"
     }
     command: "bash .pfnci/script.sh py27and35"
+  }
+}
+
+configs {
+  key: "chainer.py2.cv"
+  value {
+    requirement {
+      cpu: 6
+      memory: 36
+      disk: 10
+    }
+    time_limit {
+      seconds: 3600
+    }
+    command: "git clone https://github.com/chainer/chainercv.git --depth 1 && sh chainercv/.pfnci/tests.sh"
+    environment_variables {
+      key: "REPOSITORY"
+      value: "chainer"
+    }
+    environment_variables {
+      key: "PYTHON"
+      value: "2"
+    }
+    environment_variables {
+      key: "OPTIONAL_MODULES"
+      value: "1"
+    }
+  }
+}
+configs {
+  key: "chainer.py2.cv.gpu"
+  value {
+    requirement {
+      cpu: 4
+      memory: 24
+      disk: 10
+      gpu: 1
+    }
+    command: "git clone https://github.com/chainer/chainercv.git --depth 1 && sh chainercv/.pfnci/tests_gpu.sh"
+    environment_variables {
+      key: "REPOSITORY"
+      value: "chainer"
+    }
+    environment_variables {
+      key: "PYTHON"
+      value: "2"
+    }
+    environment_variables {
+      key: "OPTIONAL_MODULES"
+      value: "1"
+    }
+  }
+}
+configs {
+  key: "chainer.py2.cv.examples"
+  value {
+    requirement {
+      cpu: 6
+      memory: 36
+      disk: 10
+      gpu: 2
+    }
+    time_limit {
+      seconds: 1800
+    }
+    command: "git clone https://github.com/chainer/chainercv.git --depth 1 && sh chainercv/.pfnci/examples_tests.sh"
+    environment_variables {
+      key: "REPOSITORY"
+      value: "chainer"
+    }
+    environment_variables {
+      key: "PYTHON"
+      value: "2"
+    }
+    environment_variables {
+      key: "OPTIONAL_MODULES"
+      value: "1"
+    }
+  }
+}
+configs {
+  key: "chainer.py3.cv"
+  value {
+    requirement {
+      cpu: 6
+      memory: 36
+      disk: 10
+    }
+    time_limit {
+      seconds: 3600
+    }
+    command: "git clone https://github.com/chainer/chainercv.git --depth 1 && sh chainercv/.pfnci/tests.sh"
+    environment_variables {
+      key: "REPOSITORY"
+      value: "chainer"
+    }
+    environment_variables {
+      key: "PYTHON"
+      value: "3"
+    }
+    environment_variables {
+      key: "OPTIONAL_MODULES"
+      value: "1"
+    }
+  }
+}
+configs {
+  key: "chainer.py3.cv.gpu"
+  value {
+    requirement {
+      cpu: 4
+      memory: 24
+      disk: 10
+      gpu: 1
+    }
+    command: "git clone https://github.com/chainer/chainercv.git --depth 1 && sh chainercv/.pfnci/tests_gpu.sh"
+    environment_variables {
+      key: "REPOSITORY"
+      value: "chainer"
+    }
+    environment_variables {
+      key: "PYTHON"
+      value: "3"
+    }
+    environment_variables {
+      key: "OPTIONAL_MODULES"
+      value: "1"
+    }
+  }
+}
+configs {
+  key: "chainer.py3.cv.examples"
+  value {
+    requirement {
+      cpu: 6
+      memory: 36
+      disk: 10
+      gpu: 2
+    }
+    time_limit {
+      seconds: 1800
+    }
+    command: "git clone https://github.com/chainer/chainercv.git --depth 1 && sh chainercv/.pfnci/examples_tests.sh"
+    environment_variables {
+      key: "REPOSITORY"
+      value: "chainer"
+    }
+    environment_variables {
+      key: "PYTHON"
+      value: "3"
+    }
+    environment_variables {
+      key: "OPTIONAL_MODULES"
+      value: "1"
+    }
   }
 }

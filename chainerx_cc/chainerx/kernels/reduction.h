@@ -22,4 +22,18 @@ public:
     virtual void Call(const Array& a, const Axes& axis, const Array& out) = 0;
 };
 
+class CumsumKernel : public Kernel {
+public:
+    static const char* name() { return "Cumsum"; }
+
+    virtual void Call(const Array& a, int8_t axis, const Array& out) = 0;
+};
+
+class NansumKernel : public Kernel {
+public:
+    static const char* name() { return "Nansum"; }
+
+    virtual void Call(const Array& a, const Axes& axis, const Array& out) = 0;
+};
+
 }  // namespace chainerx

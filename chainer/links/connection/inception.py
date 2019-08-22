@@ -1,6 +1,6 @@
 from chainer.functions.activation import relu
 from chainer.functions.array import concat
-from chainer.functions.pooling import max_pooling_2d
+from chainer.functions.pooling import max_pooling_nd
 from chainer import link
 from chainer.links.connection import convolution_2d
 
@@ -76,7 +76,7 @@ class Inception(link.Chain):
         out1 = self.conv1(x)
         out3 = self.conv3(relu.relu(self.proj3(x)))
         out5 = self.conv5(relu.relu(self.proj5(x)))
-        pool = self.projp(max_pooling_2d.max_pooling_2d(
+        pool = self.projp(max_pooling_nd.max_pooling_2d(
             x, 3, stride=1, pad=1))
         y = relu.relu(concat.concat((out1, out3, out5, pool), axis=1))
         return y

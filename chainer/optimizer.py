@@ -243,32 +243,71 @@ class UpdateRule(object):
 
         self.t += 1
 
-        if self._use_fp32_update and param.dtype == numpy.float16:
+        with chainer.using_device(param.device):
+            self.__update(param)
+
+    def __update(self, param):
+        try:
+            param_dtype = param.dtype
+        except RuntimeError:
+            param_dtype = None  # uninitialized and dtype is not determined
+
+        is_initialized = param.array is not None
+        loss_scale = param._loss_scale
+
+        # Apply use_fp32_update
+        if self._use_fp32_update and param_dtype == numpy.float16:
+            # Create fp32 parameter if not created yet.
             if self._fp32_param is None:
-                self._fp32_param = variable.Variable(
-                    param.array.astype(numpy.float32),
-                    name=param.name)
+                if is_initialized:
+                    self._fp32_param = variable.Parameter(
+                        param.array.astype(numpy.float32),
+                        name=param.name)
+                else:
+                    self._fp32_param = self._create_uninitialized_parameter(
+                        numpy.float32, name=param.name)
             fp32_param = self._fp32_param
-            fp32_param.grad = param.grad.astype(numpy.float32)
 
-            if fp32_param.data is not None:
-                self._prepare(fp32_param)
-            if param._loss_scale is not None:
-                fp32_param.grad /= param._loss_scale
-            self._hookable.call_hooks('pre', args=(self, fp32_param,))
-            self.update_core(fp32_param)
-            self._hookable.call_hooks('post', args=(self, fp32_param,))
+            # Convert the gradient
+            if is_initialized:
+                fp32_param.grad = param.grad.astype(numpy.float32)
 
-            param.data = fp32_param.data.astype(param.dtype)
-            fp32_param.grad = None
+            param_ = fp32_param
+            fp32_converted = True
         else:
-            if param.data is not None:
-                self._prepare(param)
-            if param._loss_scale is not None:
-                param.grad /= param._loss_scale
-            self._hookable.call_hooks('pre', args=(self, param,))
-            self.update_core(param)
-            self._hookable.call_hooks('post', args=(self, param,))
+            param_ = param
+            fp32_converted = False
+
+        if is_initialized:
+            # Init states
+            self._init_states(param_)
+
+            # Apply loss scaling
+            if loss_scale is not None:
+                param_.grad /= loss_scale
+
+        # Call update_core
+        self._hookable.call_hooks('pre', args=(self, param_,))
+        self.update_core(param_)
+        self._hookable.call_hooks('post', args=(self, param_,))
+
+        # Convert back to the original dtype
+        if fp32_converted:
+            if is_initialized:
+                param.array = fp32_param.array.astype(param.dtype)
+            fp32_param.grad = None
+
+    def _create_uninitialized_parameter(self, dtype, name):
+        # Creates an uninitialized parameter with given dtype.
+        # This is somewhat tricky but the parameter is created with a
+        # dummy initializer with the dtype.
+        def initializer(array):
+            assert False  # the parameter should never be initialized.
+        initializer.dtype = dtype
+        param = variable.Parameter(initializer, name=name)
+        assert param.dtype == dtype
+        assert param.array is None
+        return param
 
     def update_core(self, param):
         """Updates the parameter.
@@ -414,7 +453,7 @@ class UpdateRule(object):
                         value = None
                     # leave the update rule state as `None` if the keys are not
                     # contained in the snapshot, so that these states can be
-                    # automatically initialized with the `_prepare` method
+                    # automatically initialized with the `_init_states` method
                     if value is None:
                         self._state = None
                         break
@@ -424,7 +463,7 @@ class UpdateRule(object):
             for key in self._state:
                 self._state[key] = serializer(key, self._state[key])
 
-    def _prepare(self, param):
+    def _init_states(self, param):
         device = param.device
         with chainer.using_device(device):
             state = self.state
@@ -727,7 +766,7 @@ class Optimizer(object):
                 warnings.warn(
                     'Non finite number found in param.grad of {}'
                     ' (iteration: {}, loss_scale: {})'
-                    ''.format(name, self.t, self._loss_scale))
+                    .format(name, self.t, self._loss_scale))
 
     def is_safe_to_update(self):
         return not self._loss_scaling_isnan
@@ -917,7 +956,7 @@ class HyperparameterProxy(object):
 def make_deprecation_message(module_name):
     return ('chainer.optimizer.{0} is deprecated from v4. '
             'Use chainer.optimizer_hooks.{0} instead.'
-            ''.format(module_name))
+            .format(module_name))
 
 
 class WeightDecay(optimizer_hooks.WeightDecay):
