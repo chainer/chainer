@@ -41,6 +41,12 @@ _invalid_accuracy_dtypes = [
 ]
 
 
+_invalid_accuracy_shapes = [
+    ((10, 1), (5,)),
+    ((5, 3), (10, 3)),
+]
+
+
 class EvalBase(op_utils.ChainerOpTest):
 
     def generate_inputs(self):
@@ -77,6 +83,12 @@ class TestAccuracy(EvalBase):
     skip_backward_test = True
     skip_double_backward_test = True
 
+    def setup(self):
+        super().setup()
+        dtype1, dtype2 = self.in_dtypes
+        if dtype1 == 'float16' or dtype2 == 'float16':
+            self.check_forward_options.update({'rtol': 1e-2, 'atol': 1e-2})
+
     def generate_inputs(self):
         y, t = super().generate_inputs()
         # TODO(aksub99): Improve tests for the case
@@ -96,9 +108,23 @@ class TestAccuracy(EvalBase):
 @pytest.mark.parametrize('y_shape,t_shape', _accuracy_params)
 @pytest.mark.parametrize('in_dtypes', _invalid_accuracy_dtypes)
 @pytest.mark.parametrize('ignore_label', [None, 0])
-def test_accuracy_invalid(device, y_shape, t_shape, ignore_label, in_dtypes):
+def test_accuracy_invalid_dtype(device, y_shape,
+                                t_shape, ignore_label, in_dtypes):
     dtype1, dtype2 = in_dtypes
     y = array_utils.create_dummy_ndarray(chainerx, y_shape, dtype1)
     t = array_utils.create_dummy_ndarray(chainerx, t_shape, dtype2)
     with pytest.raises(chainerx.DtypeError):
+        chainerx.accuracy(y, t, ignore_label=ignore_label)
+
+
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('y_shape,t_shape', _invalid_accuracy_shapes)
+@pytest.mark.parametrize('in_dtypes', _in_out_eval_dtypes)
+@pytest.mark.parametrize('ignore_label', [None, 0])
+def test_accuracy_invalid_shape(device, y_shape,
+                                t_shape, ignore_label, in_dtypes):
+    dtype1, dtype2 = in_dtypes
+    y = array_utils.create_dummy_ndarray(chainerx, y_shape, dtype1)
+    t = array_utils.create_dummy_ndarray(chainerx, t_shape, dtype2)
+    with pytest.raises(chainerx.DimensionError):
         chainerx.accuracy(y, t, ignore_label=ignore_label)
