@@ -301,9 +301,17 @@ std::vector<Array> Nonzero(const Array& a) {
 
     if (a.ndim() < 1) {
         if (AsScalar(a) == 0) {
-            out.push_back(Zeros({}, a.dtype()));
+            out.push_back(Zeros(
+                    {
+                            0,
+                    },
+                    Dtype::kInt64));
         } else {
-            out.push_back(Ones({}, a.dtype()));
+            out.push_back(Zeros(
+                    {
+                            1,
+                    },
+                    Dtype::kInt64));
         }
         return out;
     }
@@ -313,7 +321,11 @@ std::vector<Array> Nonzero(const Array& a) {
     Array is_nonzero = a_flatten != ZerosLike(a_flatten);
     int64_t count_nonzero = static_cast<int64_t>(AsScalar(is_nonzero.Sum()));
     if (count_nonzero == 0) {
-        out.push_back(Zeros({}, a.dtype()));
+        out.push_back(Zeros(
+                {
+                        0,
+                },
+                Dtype::kInt64));
         return out;
     }
     Array out_flatten = Zeros(Shape{count_nonzero}, a.dtype(), a.device());
@@ -324,7 +336,7 @@ std::vector<Array> Nonzero(const Array& a) {
     out_flatten = AddAt(out_flatten, addat_index, 0, indices);
 
     if (a.ndim() == 1) {
-        out.push_back(out_flatten);
+        out.push_back(out_flatten.AsType(Dtype::kInt64));
         return out;
     }
 
@@ -333,7 +345,7 @@ std::vector<Array> Nonzero(const Array& a) {
         Scalar dim{a.shape()[i]};
         prod_before *= a.shape()[i];
         Array divide = FloorDivide(out_flatten, a.GetTotalSize() / prod_before);
-        out.push_back(divide - FloorDivide(divide, a.shape()[i]) * a.shape()[i]);
+        out.push_back((divide - FloorDivide(divide, a.shape()[i]) * a.shape()[i]).AsType(Dtype::kInt64));
     }
     return out;
 }

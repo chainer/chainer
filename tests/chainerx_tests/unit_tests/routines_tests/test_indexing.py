@@ -27,14 +27,9 @@ _nonzero_params = [
     (numpy.asarray([[4, 4, 1, 1], [4, 1, 4, 1]]).T),
     (numpy.asarray([-2, -3, 0])),
     (numpy.asarray([-0.0, +0.0, +0.0, -0.0])),
-    (numpy.asarray([[True, 0, False, False],
-                    [True, 0, True, False]])),
-    (numpy.ones((2, 0, 3))),
     (numpy.ones((2, 3))),
     (numpy.ones((2, 3))),
     (numpy.ones((0,))),
-    (numpy.ones((2, 0, 3))),
-    (numpy.ones((2, 0, 3))),
     (numpy.ones((2, 3))),
     (numpy.ones((2, 3))),
 ]
@@ -405,14 +400,9 @@ class TestNonzero(op_utils.NumpyOpTest):
     check_numpy_strides_compliance = False
     skip_backward_test = True
     skip_double_backward_test = True
-    forward_accept_errors = (ValueError, chainerx.DimensionError)
 
     def setup(self, dtype):
-        try:
-            a_np = self.input.astype(dtype)
-        except (ValueError, OverflowError):
-            raise unittest.SkipTest('invalid combination of data and dtype')
-
+        a_np = self.input
         self.a_np = a_np
 
     def generate_inputs(self):
@@ -421,4 +411,4 @@ class TestNonzero(op_utils.NumpyOpTest):
     def forward_xp(self, inputs, xp):
         a, = inputs
         b = xp.nonzero(a)
-        return b,
+        return tuple(b)
