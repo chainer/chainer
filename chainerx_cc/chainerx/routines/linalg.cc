@@ -317,4 +317,85 @@ Array PseudoInverse(const Array& a, float rcond) {
     return out;
 }
 
+std::tuple<Array, Array> Qr(const Array& a, QrMode mode) {
+    CheckRankTwoArray(a);
+    Device& device = a.device();
+    Dtype dtype = internal::GetMathResultDtype(a.dtype());
+
+    int64_t m = a.shape()[0];
+    int64_t n = a.shape()[1];
+    int64_t k = std::min(m, n);
+
+    Array tau = Empty(Shape{k}, dtype, device);
+    Shape q_shape{0};
+    Shape r_shape{};
+    switch (mode) {
+        case QrMode::kReduced:
+            q_shape = Shape{m, k};
+            r_shape = Shape{k, n};
+            break;
+        case QrMode::kComplete:
+            q_shape = Shape{m, m};
+            r_shape = Shape{m, n};
+            break;
+        case QrMode::kR:
+            r_shape = Shape{k, n};
+            break;
+        case QrMode::kRaw:
+            r_shape = Shape{n, m};  // for "raw" mode r in the code corrensponds to h in docs
+            break;
+        default:
+            throw ChainerxError{"Invalid QR mode"};
+            break;
+    }
+
+    Array q = Empty(q_shape, dtype, device);
+    Array r = Empty(r_shape, dtype, device);
+
+    {
+        NoBackpropModeScope scope{};
+        a.device().backend().CallKernel<QrKernel>(a, q, r, tau, mode);
+    }
+
+    // Backward of (Q, R) = QR(A):
+    // dA = (dQ + Q * symmetrize(M)) * R^(-T), M = R * dR^T - dQ^T * Q
+    {
+        BackwardBuilder bb{"qr", a, {q, r}};
+        if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+            bt.Define([q_tok = bb.RetainOutput(0), r_tok = bb.RetainOutput(1), mode](BackwardContext& bctx) {
+                if (mode == QrMode::kR || mode == QrMode::kRaw) {
+                    throw ChainerxError{"ChainerX QR differentiation is not implemented for 'r' or 'raw' modes."};
+                }
+
+                const Array& q = bctx.GetRetainedOutput(q_tok);
+                const Array& r = bctx.GetRetainedOutput(r_tok);
+
+                if (r.shape()[0] != r.shape()[1]) {
+                    throw DimensionError{"ChainerX QR differentiation is not implemented for non-square R."};
+                }
+
+                const Array& gq = bctx.output_grad(0).has_value() ? *bctx.output_grad(0) : Zeros(q.shape(), q.dtype(), q.device());
+                const Array& gr = bctx.output_grad(1).has_value() ? *bctx.output_grad(1) : Zeros(r.shape(), r.dtype(), r.device());
+
+                Array m = Dot(r, gr.Transpose()) - Dot(gq.Transpose(), q);
+
+                // Here a symmetric matrix is created from the square matrix M
+                // by setting the upper triangle to be equal to the lower triangle, leaving
+                // lower triangle and diagonal unchanged.
+                Array m_sym = Tril(m, 0) + Tril(m, -1).Transpose();
+                Array rhs = gq + Dot(q, m_sym);
+
+                // Note that rhs * R^(-T) = (R^(-1) * rhs^T)^T
+                bctx.input_grad() = Solve(r, rhs.Transpose()).Transpose();
+            });
+        }
+        bb.Finalize();
+    }
+
+    if (mode == QrMode::kRaw) {
+        return std::make_tuple(std::move(r), std::move(tau));
+    }
+    return std::make_tuple(std::move(q), std::move(r));
+}
+
 }  // namespace chainerx

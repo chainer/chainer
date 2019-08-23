@@ -363,3 +363,79 @@ class TestPseudoInverseDtypeFailing(NumpyLinalgOpTest):
         a, = inputs
         out = xp.linalg.pinv(a)
         return out,
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    # backward for 'r', 'raw' modes is not implemented
+    chainer.testing.product({
+        'shape': [(0, 3), (3, 0), (1, 1), (2, 3), (3, 2), (6, 6)],
+        'in_dtypes': ['float32', 'float64'],
+        'mode': ['r', 'raw'],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True]
+    }) +
+    # backward for non-square `R` is not implemented
+    chainer.testing.product({
+        'shape': [(0, 3), (3, 0), (2, 3), (3, 2)],
+        'in_dtypes': ['float32', 'float64'],
+        'mode': ['complete', 'reduced'],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True]
+    }) +
+    chainer.testing.product({
+        'shape': [(1, 1), (6, 6)],
+        'in_dtypes': ['float32', 'float64'],
+        'mode': ['reduced', 'complete']
+    }) + chainer.testing.product({
+        'shape': [(3, 2)],
+        'in_dtypes': ['float32', 'float64'],
+        'mode': ['reduced']
+    })
+))
+class TestQR(NumpyLinalgOpTest):
+
+    # For input with shape (N, 0) strides are different
+    check_numpy_strides_compliance = False
+
+    def generate_inputs(self):
+        a = numpy.random.random(self.shape).astype(self.in_dtypes)
+        return a,
+
+    def forward_xp(self, inputs, xp):
+        a, = inputs
+        if (numpy.lib.NumpyVersion(numpy.__version__) < '1.16.0'
+                and a.size == 0):
+            pytest.skip('Older NumPy versions do not work with empty arrays')
+        out = xp.linalg.qr(a, mode=self.mode)
+
+        if self.mode == 'r':
+            r = out
+            return r,
+        if self.mode == 'raw':
+            if a.dtype.char == 'f':
+                return out[0].astype(xp.float64), out[1].astype(xp.float64)
+        return out
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    chainer.testing.product({
+        'shape': [(1, 1), (2, 3), (3, 2), (6, 6)],
+        'in_dtypes': ['float16'],
+        'mode': ['r', 'raw', 'reduced', 'complete']
+    })
+))
+class TestQRFailing(NumpyLinalgOpTest):
+
+    forward_accept_errors = (TypeError,
+                             chainerx.DtypeError)
+
+    def generate_inputs(self):
+        a = numpy.random.random(self.shape).astype(self.in_dtypes)
+        return a,
+
+    def forward_xp(self, inputs, xp):
+        a, = inputs
+        out = xp.linalg.qr(a, mode=self.mode)
+        return out

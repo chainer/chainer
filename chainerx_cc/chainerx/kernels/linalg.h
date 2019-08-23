@@ -4,6 +4,7 @@
 
 #include "chainerx/array.h"
 #include "chainerx/kernel.h"
+#include "chainerx/routines/linalg.h"
 
 namespace chainerx {
 
@@ -37,6 +38,13 @@ public:
     static const char* name() { return "Svd"; }
 
     virtual void Call(const Array& a, const Array& u, const Array& s, const Array& vt, bool full_matrices) = 0;
+};
+
+class QrKernel : public Kernel {
+public:
+    static const char* name() { return "Qr"; }
+
+    virtual void Call(const Array& a, const Array& q, const Array& r, const Array& tau, QrMode mode) = 0;
 };
 
 }  // namespace chainerx
