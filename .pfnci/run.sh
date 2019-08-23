@@ -172,12 +172,16 @@ test_chainermn() {
   export PYENV_VERSION=""
   . /root/.bash_profile
 
-  pyenv shell "2.7.16-cupy-${CUPY_VERSION}"
-  test_chainermn_sub
-  pyenv shell "3.5.7-cupy-${CUPY_VERSION}"
-  test_chainermn_sub
-  pyenv shell "3.7.3-cupy-${CUPY_VERSION}"
-  test_chainermn_sub
+  TEST_PYTHON_VERSIONS="2.7.16 3.5.7 3.7.3"
+  ret=0
+  for VERSION in $TEST_PYTHON_VERSIONS
+  do
+    pyenv shell "${VERSION}-cupy-${CUPY_VERSION}"
+	test_chainermn_sub
+	tmp_ret=$?
+	ret=$(( ret || tmp_ret ))
+  done
+  exit $ret
 }
 
 # test_chainermn_sub runs tests for chainermn with current Python runtime
@@ -185,10 +189,8 @@ test_chainermn_sub() {
   marker='not slow'
   if (( !GPU )); then
     marker+=' and not gpu'
-    bucket=1
   else
     marker+=' and gpu'
-    bucket="${GPU}"
   fi
 
   #-----------------------------------------------------------------------------
