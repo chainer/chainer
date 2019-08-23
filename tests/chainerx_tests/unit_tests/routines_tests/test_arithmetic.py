@@ -1418,16 +1418,16 @@ class TestReciprocal(math_utils.UnaryMathTestBase, op_utils.NumpyOpTest):
         'in_dtypes,out_dtype': (
             dtype_utils.make_same_in_out_dtypes(
                 2, chainerx.testing.numeric_dtypes)),
-        'input_lhs': [5, -5, 'random'],
-        'input_rhs': [3, -3, 'random'],
+        'input_lhs': ['random'],
+        'input_rhs': ['random'],
         'is_module': [False],
     })
     # Dtype combinations
     + chainer.testing.product({
         'in_shapes': [((2, 3), (2, 3))],
         'in_dtypes,out_dtype': _in_out_dtypes_arithmetic,
-        'input_lhs': [5, -5, 'random'],
-        'input_rhs': [3, -3, 'random'],
+        'input_lhs': ['random'],
+        'input_rhs': ['random'],
         'is_module': [False],
     })
     # is_module
@@ -1436,8 +1436,8 @@ class TestReciprocal(math_utils.UnaryMathTestBase, op_utils.NumpyOpTest):
         'in_dtypes,out_dtype': (
             dtype_utils.make_same_in_out_dtypes(
                 2, chainerx.testing.numeric_dtypes)),
-        'input_lhs': [5, -5, 'random'],
-        'input_rhs': [3, -3, 'random'],
+        'input_lhs': ['random'],
+        'input_rhs': ['random'],
         'is_module': [True, False],
     })
     # Special values.
@@ -1464,10 +1464,15 @@ class TestRemainder(math_utils.BinaryMathTestBase, op_utils.NumpyOpTest):
                 {'rtol': 1e-2, 'atol': 1e-2})
 
     def generate_inputs(self):
-        a, b = super().generate_inputs()
-        if self.input_rhs == 'random':
-            # Avoid (-0.5, 0.5) interval
-            b[numpy.logical_and(-0.5 < b, b < 0.5)] = 1.1
+        dtype1, dtype2 = self.in_dtypes
+        shape1, shape2 = self.in_shapes
+        low1 = -5 if numpy.dtype(dtype1).kind != 'u' else 2
+        low2 = -5 if numpy.dtype(dtype2).kind != 'u' else 2
+        high = 5
+        a = array_utils.uniform(shape1, dtype1, low=low1, high=high)
+        b = array_utils.uniform(shape2, dtype2, low=low2, high=high)
+        a[numpy.logical_and(-0.5 < a, a < 0.5)] = 1
+        b[numpy.logical_and(-0.5 < b, b < 0.5)] = 1
         return a, b
 
     def func(self, xp, a, b):
@@ -1499,15 +1504,15 @@ def test_remainder_invalid_dtypes(device, dtypes, is_module):
         'in_dtypes,out_dtype': (
             dtype_utils.make_same_in_out_dtypes(
                 2, chainerx.testing.numeric_dtypes)),
-        'input_lhs': [5, -5, 'random'],
-        'input_rhs': [3, -3, 'random'],
+        'input_lhs': ['random'],
+        'input_rhs': ['random'],
     })
     # Dtype combinations
     + chainer.testing.product({
         'in_shapes': [((2, 3), (2, 3))],
         'in_dtypes,out_dtype': _in_out_dtypes_inplace_arithmetic,
-        'input_lhs': [5, -5, 'random'],
-        'input_rhs': [3, -3, 'random'],
+        'input_lhs': ['random'],
+        'input_rhs': ['random'],
     })
     # Special values.
     # TODO(nakasuka): Add tests for inf and NaN.
@@ -1533,10 +1538,15 @@ class TestIRemainder(
                 {'rtol': 1e-2, 'atol': 1e-2})
 
     def generate_inputs(self):
-        a, b = super().generate_inputs()
-        if self.input_rhs == 'random':
-            # Avoid (-0.5, 0.5) interval
-            b[numpy.logical_and(-0.5 < b, b < 0.5)] = 1
+        dtype1, dtype2 = self.in_dtypes
+        shape1, shape2 = self.in_shapes
+        low1 = -5 if numpy.dtype(dtype1).kind != 'u' else 2
+        low2 = -5 if numpy.dtype(dtype2).kind != 'u' else 2
+        high = 5
+        a = array_utils.uniform(shape1, dtype1, low=low1, high=high)
+        b = array_utils.uniform(shape2, dtype2, low=low2, high=high)
+        a[numpy.logical_and(-0.5 < a, a < 0.5)] = 1
+        b[numpy.logical_and(-0.5 < b, b < 0.5)] = 1
         return a, b
 
     def func(self, xp, a, b):
@@ -1561,7 +1571,7 @@ def test_iremainder_invalid_dtypes(device, dtypes):
         'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
         'in_dtypes,scalar_type,out_dtype': _in_out_dtypes_arithmetic_scalar,
         'input': ['random'],
-        'scalar_value': [2, 3],
+        'scalar_value': [2],
         'is_module': [False],
         'is_scalar_rhs': [False],
     })
@@ -1570,7 +1580,7 @@ def test_iremainder_invalid_dtypes(device, dtypes):
         'shape': [(2, 3)],
         'in_dtypes,scalar_type,out_dtype': _in_out_dtypes_arithmetic_scalar,
         'input': ['random'],
-        'scalar_value': [2, 3],
+        'scalar_value': [2],
         'is_module': [False],
         'is_scalar_rhs': [True, False],
     })
@@ -1579,7 +1589,7 @@ def test_iremainder_invalid_dtypes(device, dtypes):
         'shape': [(2, 3)],
         'in_dtypes,scalar_type,out_dtype': _in_out_dtypes_arithmetic_scalar,
         'input': ['random'],
-        'scalar_value': [2, 3],
+        'scalar_value': [2],
         'is_module': [True, False],
         'is_scalar_rhs': [True, False],
     })
