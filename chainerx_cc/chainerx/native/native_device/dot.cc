@@ -152,6 +152,10 @@ public:
             throw DimensionError{"ChainerX dot supports only 2-dimensional arrays."};
         }
 
+        if (out.GetTotalSize() == 0) {
+            return;
+        }
+
 #ifdef CHAINERX_ENABLE_BLAS
         if (out.dtype() == Dtype::kFloat32 || out.dtype() == Dtype::kFloat64) {
             Gemm(a.dtype() == out.dtype() ? a : a.AsType(out.dtype()), b.dtype() == out.dtype() ? b : b.AsType(out.dtype()), out);
