@@ -16,11 +16,6 @@ from chainerx_tests import op_utils
 _nonzero_params = [
     # input, axis
     # valid params
-    (numpy.asarray(0)),
-    (numpy.asarray(-1)),
-    (numpy.asarray(float('inf'))),
-    (numpy.asarray(float('nan'))),
-    (numpy.asarray(-float('inf'))),
     (numpy.asarray([4, 0, 0, 0])),
     (numpy.asarray([0, 0, 0, 0])),
     (numpy.asarray([[4, 0, 0, 1], [0, 0, 4, 1]])),

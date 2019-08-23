@@ -298,24 +298,9 @@ Array Where(const Array& condition, Scalar x, Scalar y) {
 
 std::vector<Array> Nonzero(const Array& a) {
     std::vector<Array> out;
-
-    if (a.ndim() < 1) {
-        if (AsScalar(a) == 0) {
-            out.push_back(Zeros(
-                    {
-                            0,
-                    },
-                    Dtype::kInt64));
-        } else {
-            out.push_back(Zeros(
-                    {
-                            1,
-                    },
-                    Dtype::kInt64));
-        }
-        return out;
+    if (a.ndim() == 0) {
+        throw DimensionError{"0-dim inputs not allowed."};
     }
-
     int64_t total_size = a.GetTotalSize();
     Array a_flatten = a.Reshape({total_size});
     Array is_nonzero = a_flatten != ZerosLike(a_flatten);
