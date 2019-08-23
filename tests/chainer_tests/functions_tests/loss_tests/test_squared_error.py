@@ -58,6 +58,7 @@ class TestSquaredError(unittest.TestCase):
         gradient_check.check_backward(
             functions.squared_error,
             (x0_data, x1_data), y_grad, eps=1e-2,
+            dtype=numpy.float64,
             **self.check_backward_options)
 
     def test_backward_cpu(self):
@@ -73,6 +74,7 @@ class TestSquaredError(unittest.TestCase):
         gradient_check.check_double_backward(
             functions.squared_error,
             (x0_data, x1_data), y_grad, (ggx0_data, ggx1_data), eps=1e-2,
+            dtype=numpy.float64,
             **self.check_double_backward_options)
 
     def test_double_backward_cpu(self):
