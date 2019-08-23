@@ -338,7 +338,7 @@ void InitChainerxIndexing(pybind11::module& m) {
           "condition"_a,
           "x"_a,
           "y"_a);
-    m.def("nonzero", [](const ArrayBodyPtr& a) { return MoveArrayBodies(Nonzero(Array{a})); }, "a"_a);
+    m.def("nonzero", [](const ArrayBodyPtr& a) { return py::make_tuple(MoveArrayBodies(Nonzero(Array{a}))); }, "a"_a);
 }
 
 void InitChainerxLinalg(pybind11::module& m) {
