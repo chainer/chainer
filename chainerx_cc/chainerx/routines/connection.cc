@@ -404,12 +404,6 @@ Array EmbedId(const Array& x, const Array& w, absl::optional<int64_t> ignore_lab
     std::vector<Array> ignore_list;
     std::vector<Array> x_split = Split(x, x.shape()[0], 0);
 
-    // TODO(dido1998): Find a way to avoid this for loop.
-    for (size_t i = 0; i < x_split.size(); i++) {
-        if (int64_t(AsScalar(x_split[i])) < 0 || int64_t(AsScalar(x_split[i])) >= w.shape()[0]) {
-            throw IndexError{"each value in x should be greater than equal to 0 and less than equal to" + w.shape()[0]};
-        }
-    }
     Array w_new = w;
     if (ignore_label.has_value()) {
         for (int64_t i = 0; i < w.shape()[0]; i++) {
