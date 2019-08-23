@@ -133,6 +133,12 @@ Shape GetInferredShape(const Shape& shape, int64_t total_size) {
         }
         int64_t rest_size = std::accumulate(inferred_shape.begin(), it, int64_t{1}, std::multiplies<>()) *
                             std::accumulate(std::next(it), inferred_shape.end(), int64_t{1}, std::multiplies<>());
+        if (rest_size == 0) {
+            // We raise an error similar to NumPy. See https://github.com/numpy/numpy/issues/8972.
+            throw DimensionError{"Cannot reshape array of size ",
+                                 total_size,
+                                 " into a 0-sized shape with more than 1 dimensions that contains an unknown dimension"};
+        }
         *it = total_size / rest_size;
     }
 
