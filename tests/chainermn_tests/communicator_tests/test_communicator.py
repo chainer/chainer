@@ -920,3 +920,12 @@ class TestMpiCommunicatorBase(unittest.TestCase):
         self.communicator.set_config('batched_copy')
         assert self.communicator.batched_copy
         assert self.communicator.get_config('batched_copy')
+
+    def test_config_context(self):
+        self.setup()
+
+        # Although this is not external interface, but to be tested
+        with self.communicator.config_scope():
+            self.communicator.foobar = '0xdeadbeef'
+
+        assert '0xdeadbeef' == self.communicator._configs['foobar']
