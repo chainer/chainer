@@ -42,18 +42,10 @@ Array Dot(const Array& a, const Array& b, absl::optional<Dtype> out_dtype) {
     std::copy(a.shape().begin(), a.shape().end() - 1, std::back_inserter(out_shape));
 
     if (b.ndim() > 2) {
-        std::vector<int> b_transpose_axes{};
-        b_transpose_axes.reserve(b.ndim());
-        std::vector<int> axes_index(b.ndim());
-        std::iota(axes_index.begin(), axes_index.end(), 0);
-        std::copy(axes_index.begin(), axes_index.end() - 2, std::back_inserter(b_transpose_axes));
-        std::reverse_copy(axes_index.end() - 2, axes_index.end(), std::back_inserter(b_transpose_axes));
-
-        Axes axes(b_transpose_axes.begin(), b_transpose_axes.end());
-        modified_b = b.Transpose(axes);
+        modified_b = Swapaxes(b, -1, -2);
         std::copy(modified_b.shape().begin(), modified_b.shape().end() - 1, std::back_inserter(out_shape));
 
-        modified_b = modified_b.Reshape({-1, modified_b.shape().back()});
+        modified_b = modified_b.Reshape({b.GetTotalSize() > 0 ? -1 : 0, modified_b.shape().back()});
         modified_b = modified_b.Transpose();
     } else {
         std::copy(b.shape().begin() + 1, b.shape().end(), std::back_inserter(out_shape));
@@ -62,7 +54,7 @@ Array Dot(const Array& a, const Array& b, absl::optional<Dtype> out_dtype) {
 
     int64_t k = a.shape()[a.ndim() - 1];
     if (modified_b.shape()[0] != k) {
-        throw DimensionError{"Axis dimension mismatch"};
+        throw DimensionError{"Axis dimension mismatch between ", a.shape(), " and ", b.shape()};
     }
     if (k == 0) {
         return Zeros(out_shape, real_out_dtype, a.device());
