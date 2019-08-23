@@ -32,55 +32,12 @@ def inject_backend_tests(method_names):
     return decorator
 
 
-@testing.parameterize(*testing.product_dict(
-    [
-        {'c_shape': (10, 3), 'x_shape': (10, 12)},
-        {'c_shape': (20, 32, 4), 'x_shape': (16, 128, 4)},
-        {'c_shape': (32, 100, 3, 5), 'x_shape': (32, 400, 3, 5)},
-        {'c_shape': (16, 20), 'x_shape': (2, 80)},
-        {'c_shape': (16, 20), 'x_shape': (0, 80)},
-        {'c_shape': (0, 0), 'x_shape': (0, 0)},
-        {'c_shape': (8, 0), 'x_shape': (2, 0)},
-    ], [
-        {'dtype': numpy.float16},
-        {'dtype': numpy.float32},
-        {'dtype': numpy.float64},
-    ], [
-        {'grad_outputs': (True, True)},
-        {'grad_outputs': (True, False)},
-        {'grad_outputs': (False, True)},
-    ]
-))
-@testing.fix_random()
-@backend.inject_backend_tests(
-    None,
-    # ChainerX tests
-    testing.product({
-        'use_chainerx': [True],
-        'chainerx_device': ['native:0', 'cuda:0'],
-    })
-    # CPU tests
-    + testing.product({
-        'use_cuda': [False],
-        'use_ideep': ['never', 'always'],
-    })
-    # GPU tests
-    + testing.product([
-        [{'use_cuda': True}],
-
-        # Without cuDNN
-        testing.product({
-            'use_cudnn': ['never'],
-        })
-        # With cuDNN
-        + testing.product({
-            'use_cudnn': ['always'],
-            'cudnn_deterministic': [True, False],
-            'autotune': [True, False],
-        })]))
-class TestLSTM(testing.FunctionTestCase):
+class LSTMTestBase(object):
 
     dodge_nondifferentiable = True
+
+    dtype = numpy.float32
+    grad_outputs = (True, True)
 
     def setUp(self):
         if self.dtype == numpy.float16:
@@ -133,6 +90,83 @@ class TestLSTM(testing.FunctionTestCase):
         else:
             grad_out.append(None)
         return tuple(grad_out)
+
+
+@testing.fix_random()
+@backend.inject_backend_tests(
+    None,
+    # ChainerX tests
+    testing.product({
+        'use_chainerx': [True],
+        'chainerx_device': ['native:0', 'cuda:0'],
+    })
+    # CPU tests
+    + testing.product({
+        'use_cuda': [False],
+        'use_ideep': ['never', 'always'],
+    })
+    # GPU tests
+    + testing.product([
+        [{'use_cuda': True}],
+
+        # Without cuDNN
+        testing.product({
+            'use_cudnn': ['never'],
+        })
+        # With cuDNN
+        + testing.product({
+            'use_cudnn': ['always'],
+            'cudnn_deterministic': [True, False],
+            'autotune': [True, False],
+        })]))
+@testing.parameterize(*testing.product_dict(
+    [
+        {'c_shape': (10, 3), 'x_shape': (10, 12)},
+        {'c_shape': (20, 32, 4), 'x_shape': (16, 128, 4)},
+        {'c_shape': (32, 100, 3, 5), 'x_shape': (32, 400, 3, 5)},
+        {'c_shape': (16, 20), 'x_shape': (2, 80)},
+        {'c_shape': (16, 20), 'x_shape': (0, 80)},
+        {'c_shape': (0, 0), 'x_shape': (0, 0)},
+        {'c_shape': (8, 0), 'x_shape': (2, 0)},
+    ], [
+        {'dtype': numpy.float16},
+        {'dtype': numpy.float32},
+        {'dtype': numpy.float64},
+    ]
+))
+class TestLSTM(LSTMTestBase, testing.FunctionTestCase):
+    pass
+
+
+@testing.fix_random()
+@backend.inject_backend_tests(
+    None,
+    # ChainerX tests
+    testing.product({
+        'use_chainerx': [True],
+        'chainerx_device': ['native:0'],
+    })
+    # CPU tests
+    + testing.product({
+        'use_cuda': [False],
+        'use_ideep': ['never', 'always'],
+    })
+    # GPU tests
+    + testing.product({
+        'use_cuda': [True],
+        'use_cudnn': ['never', 'always'],
+    }))
+@testing.parameterize(*testing.product_dict(
+    [
+        {'c_shape': (10, 3), 'x_shape': (10, 12)},
+    ], [
+        {'grad_outputs': (True, True)},
+        {'grad_outputs': (True, False)},
+        {'grad_outputs': (False, True)},
+    ]
+))
+class TestLSTMGradOutputs(LSTMTestBase, testing.FunctionTestCase):
+    pass
 
 
 @testing.parameterize(*(testing.product({
