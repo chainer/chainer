@@ -106,8 +106,8 @@ std::vector<Array> TreeLstm(std::vector<Array> arrays) {
     Array i_ = Sigmoid(i);
     Array o_ = Sigmoid(o);
     std::vector<Array> fs_s{};
-    for (size_t i = 0; i < fs.size(); i++) {
-        fs_s.emplace_back(Sigmoid(fs[i]));
+    for (const auto & f : fs) {
+        fs_s.emplace_back(Sigmoid(f));
     }
     std::vector<Array> sum;
     sum.emplace_back(arrays[0] * fs_s[0]);

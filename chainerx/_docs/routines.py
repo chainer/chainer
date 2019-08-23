@@ -2047,7 +2047,6 @@ See detail in paper: `Long Short-Term Memory Over Tree Structures
     >>> x1 = chainerx.ones((1, 4 * n_units), chainerx.float32)
     >>> x2 = chainerx.ones((1, 4 * n_units), chainerx.float32)
     >>> c, h = chainerx.slstm(c1, c2, x1, x2)
->>>>>>> 05e236928881d84acb0f619992d0589ac682f9b2
     """)
 
     _docs.set_doc(
