@@ -46,6 +46,8 @@ class _Constant(initializer.Initializer):
                 'fill_value must be either scalar, numpy.ndarray, '
                 'cupy.ndarray or chainerx.ndarray.')
         super(_Constant, self).__init__(dtype)
+        # Array might be residing on a specific device
+        self.device = backend.get_device_from_array(self.fill_value)
 
     def __call__(self, array):
         if self.dtype is not None:

@@ -1790,64 +1790,6 @@ class TestUninitializedParameter(unittest.TestCase):
         assert x.node.shape == (2, 3)
         assert x.node.dtype == np.float64
 
-    @attr.gpu
-    def test_initialize_to_gpu(self):
-        x = chainer.Parameter(initializer=initializers.Constant(self.a))
-        x.to_gpu()
-        self.check_constant_initialization(
-            x, self.a, cuda.cupy, backend.GpuDevice.from_device_id(0))
-
-    @attr.multi_gpu(2)
-    def test_initialize_to_noncurrent_gpu(self):
-        x = chainer.Parameter(initializer=initializers.Constant(self.a))
-        x.to_gpu(1)
-        self.check_constant_initialization(
-            x, self.a, cuda.cupy, backend.GpuDevice.from_device_id(1))
-
-    @attr.gpu
-    def test_initialize_to_cpu(self):
-        x = chainer.Parameter(initializer=initializers.Constant(self.a))
-        x.to_gpu()
-        x.to_cpu()
-        self.check_constant_initialization(
-            x, self.a, np, backend.CpuDevice())
-
-    @attr.ideep
-    def test_initialize_to_intel64(self):
-        x = chainer.Parameter(initializer=initializers.Constant(self.a))
-        assert x.data is None
-        x.to_intel64()
-        x.initialize(self.a.shape)
-        assert isinstance(x.data, intel64.mdarray)
-        np.testing.assert_array_equal(x.data, self.a)
-        np.testing.assert_array_equal(x.grad, np.float32('nan'))
-
-    @attr.chainerx
-    def test_initialize_to_chx_native(self):
-        x = chainer.Parameter(initializer=initializers.Constant(self.a))
-        x.to_device('@numpy')
-        x.to_chx()
-        self.check_constant_initialization(
-            x, self.a, chainerx, chainer.get_device('native:0'))
-
-    @attr.chainerx
-    @attr.gpu
-    def test_initialize_to_chx_cuda(self):
-        x = chainer.Parameter(initializer=initializers.Constant(self.a))
-        x.to_device('@cupy:0')
-        x.to_chx()
-        self.check_constant_initialization(
-            x, self.a, chainerx, chainer.get_device('cuda:0'))
-
-    @attr.chainerx
-    @attr.multi_gpu(2)
-    def test_initialize_to_chx_cuda_noncurrent_gpu(self):
-        x = chainer.Parameter(initializer=initializers.Constant(self.a))
-        x.to_device('@cupy:1')
-        x.to_chx()
-        self.check_constant_initialization(
-            x, self.a, chainerx, chainer.get_device('cuda:1'))
-
     def test_copy_to_initialize(self):
         # This test intends the use case of link.copy() method.
         x = chainer.Parameter()
@@ -1861,63 +1803,89 @@ class TestUninitializedParameter(unittest.TestCase):
         x.initialize((3, 2))
         assert x.grad is None
 
-    def check_zerograd(self, x, xp):
-        assert isinstance(x.grad, xp.ndarray)
-        assert x.grad.shape == x.data.shape
-        assert x.grad.dtype == x.data.dtype
-        xp.testing.assert_array_equal(x.grad, 0)
-
-    def test_zerograd(self):
-        x = chainer.Parameter()
-        with testing.assert_warns(DeprecationWarning):
-            x.zerograd()
-        x.initialize((3, 2))
-        self.check_zerograd(x, np)
-
-    @attr.gpu
-    def test_zerograd_to_gpu(self):
-        x = chainer.Parameter()
-        with testing.assert_warns(DeprecationWarning):
-            x.zerograd()
-        x.to_gpu()
-        x.initialize((3, 2))
-        self.check_zerograd(x, cuda.cupy)
-
-    @attr.gpu
-    def test_to_gpu_zerograd(self):
-        x = chainer.Parameter()
-        x.to_gpu()
-        with testing.assert_warns(DeprecationWarning):
-            x.zerograd()
-        x.initialize((3, 2))
-        self.check_zerograd(x, cuda.cupy)
-
-    @attr.chainerx
-    def test_zerograd_to_chx(self):
-        x = chainer.Parameter()
-        with testing.assert_warns(DeprecationWarning):
-            x.zerograd()
-        x.to_device('@numpy')
-        x.to_chx()
-        x.initialize((3, 2))
-        self.check_zerograd(x, chainerx)
-
-    @attr.chainerx
-    def test_to_chx_zerograd(self):
-        x = chainer.Parameter()
-        x.to_device('@numpy')
-        x.to_chx()
-        with testing.assert_warns(DeprecationWarning):
-            x.zerograd()
-        x.initialize((3, 2))
-        self.check_zerograd(x, chainerx)
-
     def test_zerograd_dtype(self):
         x = chainer.Parameter(initializers.Zero(dtype=np.float16))
         with testing.assert_warns(DeprecationWarning):
             x.zerograd()
         x.initialize((3, 2))
         assert x.grad.dtype == x.data.dtype
+
+    def test_dtype_given_by_initializer(self):
+        class MyInitializer(object):
+            dtype = 'float16'
+
+            def __call__(self, array):
+                assert False  # never called
+
+        param = chainer.Parameter(MyInitializer())
+        assert param.dtype == np.float16
+
+    def test_dtype_not_given(self):
+        class MyInitializer(object):
+            def __call__(self, array):
+                assert False  # never called
+
+        param = chainer.Parameter(MyInitializer())
+        with pytest.raises(RuntimeError):
+            param.dtype
+
+
+@testing.backend.inject_backend_tests(None, _backend_params)
+class TestUninitializedParameterWithDevices(unittest.TestCase):
+
+    def setUp(self):
+        self.a = np.random.rand(3, 2).astype(np.float32)
+        self.b = np.random.rand(*self.a.shape).astype(self.a.dtype)
+
+    def check_constant_initialization(self, x, a, xp, expected_device):
+        x.initialize(a.shape)
+        assert isinstance(x.data, xp.ndarray)
+        assert x._has_chainerx_array is (xp is chainerx)
+        xp.testing.assert_array_equal(x.data, xp.asarray(a))
+        xp.testing.assert_array_equal(x.grad, np.float32('nan'))
+        assert backend.get_device_from_array(x.data) == expected_device
+        assert backend.get_device_from_array(x.grad) == expected_device
+
+    def test_initialize_to_device(self, backend_config):
+        x = chainer.Parameter(initializer=initializers.Constant(self.a))
+        x.to_device(backend_config.device)
+        self.check_constant_initialization(
+            x, self.a, backend_config.xp, backend_config.device)
+
+    def test_initialize_with_device(self, backend_config):
+        a = backend_config.get_array(self.a)
+        x = chainer.Parameter(initializer=initializers.Constant(a))
+        self.check_constant_initialization(
+            x, self.a, backend_config.xp, backend_config.device)
+
+    def check_zerograd(self, x, xp):
+        assert isinstance(x.grad, xp.ndarray)
+        assert x.grad.shape == x.data.shape
+        assert x.grad.dtype == x.data.dtype
+        xp.testing.assert_array_equal(x.grad, 0)
+
+    def test_zerograd_to_device(self, backend_config):
+        x = chainer.Parameter()
+        with testing.assert_warns(DeprecationWarning):
+            x.zerograd()
+        x.to_device(backend_config.device)
+        x.initialize((3, 2))
+        self.check_zerograd(x, backend_config.xp)
+
+    def test_to_device_zerograd(self, backend_config):
+        x = chainer.Parameter()
+        x.to_device(backend_config.device)
+        with testing.assert_warns(DeprecationWarning):
+            x.zerograd()
+        x.initialize((3, 2))
+        self.check_zerograd(x, backend_config.xp)
+
+
+class TestAddgradToUninitializedParameter(unittest.TestCase):
+
+    def setUp(self):
+        self.a = np.random.rand(3, 2).astype(np.float32)
+        self.b = np.random.rand(*self.a.shape).astype(self.a.dtype)
 
     def test_addgrad_to_uninitialized_parameter(self):
         x = chainer.Parameter()
@@ -1988,25 +1956,6 @@ class TestUninitializedParameter(unittest.TestCase):
     def test_addgrad_to_uninitialized_parameter_cpu_to_chx(self):
         # TODO(sonots): Support addgrad with ChainerX
         raise unittest.SkipTest('ChainerX does not support addgrad')
-
-    def test_dtype_given_by_initializer(self):
-        class MyInitializer(object):
-            dtype = 'float16'
-
-            def __call__(self, array):
-                assert False  # never called
-
-        param = chainer.Parameter(MyInitializer())
-        assert param.dtype == np.float16
-
-    def test_dtype_not_given(self):
-        class MyInitializer(object):
-            def __call__(self, array):
-                assert False  # never called
-
-        param = chainer.Parameter(MyInitializer())
-        with pytest.raises(RuntimeError):
-            param.dtype
 
 
 class TestDebugPrint(unittest.TestCase):
