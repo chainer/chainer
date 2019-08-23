@@ -338,7 +338,7 @@ void InitChainerxIndexing(pybind11::module& m) {
           "condition"_a,
           "x"_a,
           "y"_a);
-    m.def("nonzero", [](const ArrayBodyPtr& a) { return py::make_tuple(MoveArrayBodies(Nonzero(Array{a}))); }, "a"_a);
+    m.def("nonzero", &Nonzero, "a"_a);
 }
 
 void InitChainerxLinalg(pybind11::module& m) {
@@ -534,6 +534,10 @@ std::vector<ArrayBodyPtr> DSplitByIndicesOrSections(const ArrayBodyPtr& ary, py:
         return MoveArrayBodies(DSplit(Array{ary}, indices));
     };
     return SwitchBySplitArgs(split_sections, split_indices, ary, indices_or_sections, 2);
+}
+
+std::vector<ArrayBodyPtr> Nonzero(const ArrayBodyPtr& a) {
+    return MoveArrayBodies(Nonzero(Array{a}));
 }
 
 void InitChainerxManipulation(pybind11::module& m) {
