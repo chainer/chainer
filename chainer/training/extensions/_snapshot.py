@@ -75,7 +75,8 @@ def _find_stale_snapshots(fmt, path, num_retain):
             by timestamps. The default is metime.
         path (str): a directory path to search for snapshot files.
         num_retain (int): Number of snapshot files to retain
-            through the cleanup. Must be positive integer.
+            through the cleanup. Must be a positive integer for any cleanup to
+            take place.
 
     Returns:
         Generator that yields stale files that matches format
@@ -93,7 +94,8 @@ def _find_stale_snapshots(fmt, path, num_retain):
 
 def snapshot_object(target, filename, savefun=None, **kwargs):
     """snapshot_object(target, filename, savefun=None, \
-*, condition=None, writer=None, snapshot_on_error=False)
+*, condition=None, writer=None, snapshot_on_error=False, \
+num_retain=-1, autoload=False)
 
     Returns a trainer extension to take snapshots of a given object.
 
@@ -133,8 +135,9 @@ def snapshot_object(target, filename, savefun=None, **kwargs):
         snapshot_on_error (bool): Whether to take a snapshot in case trainer
             loop has been failed.
         num_retain (int): Number of snapshot files to retain
-            through the cleanup. Must be positive integer. Automatic
-            deletion of old snapshots only works when the filename is string.
+            through the cleanup. Must be a positive integer for any cleanup to
+            take place. Automatic deletion of old snapshots only works when the
+            filename is string.
         autoload (bool): With this enabled, the extension automatically
             finds the latest snapshot and loads the data to the target.
             Automatic loading only works when the filename is a string.
@@ -154,7 +157,8 @@ def snapshot_object(target, filename, savefun=None, **kwargs):
 def snapshot(savefun=None,
              filename='snapshot_iter_{.updater.iteration}', **kwargs):
     """snapshot(savefun=None, filename='snapshot_iter_{.updater.iteration}', \
-*, target=None, condition=None, writer=None, snapshot_on_error=False)
+*, target=None, condition=None, writer=None, snapshot_on_error=False, \
+num_retain=-1, autoload=False)
 
     Returns a trainer extension to take snapshots of the trainer.
 
@@ -202,8 +206,9 @@ def snapshot(savefun=None,
         snapshot_on_error (bool): Whether to take a snapshot in case trainer
             loop has been failed.
         num_retain (int): Number of snapshot files to retain
-            through the cleanup. Must be positive integer. Automatic deletion
-            of old snapshots only works when the filename is string.
+            through the cleanup. Must be a positive integer for any cleanup to
+            take place. Automatic deletion of old snapshots only works when the
+            filename is string.
         autoload (bool): With this enabled, the extension
             automatically finds the latest snapshot and loads the data
             to the target.  Automatic loading only works when the

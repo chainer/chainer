@@ -27,9 +27,9 @@ public:
     virtual void Call(const Array& x, const Array& out) = 0;
 };
 
-class FabsKernel : public Kernel {
+class AbsKernel : public Kernel {
 public:
-    static const char* name() { return "Fabs"; }
+    static const char* name() { return "Abs"; }
 
     virtual void Call(const Array& x, const Array& out) = 0;
 };

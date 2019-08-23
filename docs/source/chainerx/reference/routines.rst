@@ -52,6 +52,7 @@ Activation functions
    chainerx.tanh
    chainerx.relu
    chainerx.sigmoid
+   chainerx.slstm
 
 Array manipulation routines
 ---------------------------
@@ -103,9 +104,10 @@ Linear algebra
 
    chainerx.dot
 
+   chainerx.linalg.qr
+   chainerx.linalg.svd
    chainerx.linalg.eigh
    chainerx.linalg.eigvalsh
-   chainerx.linalg.svd
    chainerx.linalg.solve
    chainerx.linalg.inv
    chainerx.linalg.pinv
@@ -234,6 +236,7 @@ Connection
    chainerx.conv
    chainerx.conv_transpose
    chainerx.linear
+   chainerx.lstm
 
 Normalization
 -------------
@@ -254,3 +257,17 @@ Pooling
 
    chainerx.max_pool
    chainerx.average_pool
+
+RNN
+---
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainerx.n_step_lstm
+   chainerx.n_step_bilstm
+   chainerx.n_step_gru
+   chainerx.n_step_bigru
+   chainerx.n_step_rnn
+   chainerx.n_step_birnn

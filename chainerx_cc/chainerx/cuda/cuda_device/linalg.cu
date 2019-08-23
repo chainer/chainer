@@ -91,6 +91,46 @@ cusolverStatus_t Gesvd(
 }
 
 template <typename T>
+cusolverStatus_t GeqrfBufferSize(cusolverDnHandle_t /*handle*/, int /*m*/, int /*n*/, T* /*a*/, int /*lda*/, int* /*lwork*/) {
+    throw DtypeError{"Only Arrays of float or double type are supported by geqrf (QR)"};
+}
+
+template <typename T>
+cusolverStatus_t Geqrf(
+        cusolverDnHandle_t /*handle*/,
+        int /*m*/,
+        int /*n*/,
+        T* /*a*/,
+        int /*lda*/,
+        T* /*tau*/,
+        T* /*workspace*/,
+        int /*lwork*/,
+        int* /*devinfo*/) {
+    throw DtypeError{"Only Arrays of float or double type are supported by geqrf (QR)"};
+}
+
+template <typename T>
+cusolverStatus_t OrgqrBufferSize(
+        cusolverDnHandle_t /*handle*/, int /*m*/, int /*n*/, int /*k*/, T* /*a*/, int /*lda*/, T* /*tau*/, int* /*lwork*/) {
+    throw DtypeError{"Only Arrays of float or double type are supported by orgqr (QR)"};
+}
+
+template <typename T>
+cusolverStatus_t Orgqr(
+        cusolverDnHandle_t /*handle*/,
+        int /*m*/,
+        int /*n*/,
+        int /*k*/,
+        T* /*a*/,
+        int /*lda*/,
+        T* /*tau*/,
+        T* /*work*/,
+        int /*lwork*/,
+        int* /*devinfo*/) {
+    throw DtypeError{"Only Arrays of float or double type are supported by orgqr (QR)"};
+}
+
+template <typename T>
 cusolverStatus_t SyevdBuffersize(
         cusolverDnHandle_t /*handle*/,
         cusolverEigMode_t /*jobz*/,
@@ -221,6 +261,50 @@ cusolverStatus_t Gesvd<float>(
 }
 
 template <>
+cusolverStatus_t GeqrfBufferSize<double>(cusolverDnHandle_t handle, int m, int n, double* a, int lda, int* lwork) {
+    return cusolverDnDgeqrf_bufferSize(handle, m, n, a, lda, lwork);
+}
+
+template <>
+cusolverStatus_t GeqrfBufferSize<float>(cusolverDnHandle_t handle, int m, int n, float* a, int lda, int* lwork) {
+    return cusolverDnSgeqrf_bufferSize(handle, m, n, a, lda, lwork);
+}
+
+template <>
+cusolverStatus_t Geqrf<double>(
+        cusolverDnHandle_t handle, int m, int n, double* a, int lda, double* tau, double* workspace, int lwork, int* devinfo) {
+    return cusolverDnDgeqrf(handle, m, n, a, lda, tau, workspace, lwork, devinfo);
+}
+
+template <>
+cusolverStatus_t Geqrf<float>(
+        cusolverDnHandle_t handle, int m, int n, float* a, int lda, float* tau, float* workspace, int lwork, int* devinfo) {
+    return cusolverDnSgeqrf(handle, m, n, a, lda, tau, workspace, lwork, devinfo);
+}
+
+template <>
+cusolverStatus_t OrgqrBufferSize<double>(cusolverDnHandle_t handle, int m, int n, int k, double* a, int lda, double* tau, int* lwork) {
+    return cusolverDnDorgqr_bufferSize(handle, m, n, k, a, lda, tau, lwork);
+}
+
+template <>
+cusolverStatus_t OrgqrBufferSize<float>(cusolverDnHandle_t handle, int m, int n, int k, float* a, int lda, float* tau, int* lwork) {
+    return cusolverDnSorgqr_bufferSize(handle, m, n, k, a, lda, tau, lwork);
+}
+
+template <>
+cusolverStatus_t Orgqr<double>(
+        cusolverDnHandle_t handle, int m, int n, int k, double* a, int lda, double* tau, double* work, int lwork, int* devinfo) {
+    return cusolverDnDorgqr(handle, m, n, k, a, lda, tau, work, lwork, devinfo);
+}
+
+template <>
+cusolverStatus_t Orgqr<float>(
+        cusolverDnHandle_t handle, int m, int n, int k, float* a, int lda, float* tau, float* work, int lwork, int* devinfo) {
+    return cusolverDnSorgqr(handle, m, n, k, a, lda, tau, work, lwork, devinfo);
+}
+
+template <>
 cusolverStatus_t SyevdBuffersize<double>(
         cusolverDnHandle_t handle, cusolverEigMode_t jobz, cublasFillMode_t uplo, int n, double* a, int lda, double* w, int* lwork) {
     return cusolverDnDsyevd_bufferSize(handle, jobz, uplo, n, a, lda, w, lwork);
@@ -311,6 +395,98 @@ void SolveImpl(const Array& a, const Array& b, const Array& out) {
     }
 
     device.backend().CallKernel<CopyKernel>(out_transposed.Transpose(), out);
+}
+
+template <typename T>
+void QrImpl(const Array& a, const Array& q, const Array& r, const Array& tau, QrMode mode) {
+    Device& device = a.device();
+    Dtype dtype = a.dtype();
+
+    int64_t m = a.shape()[0];
+    int64_t n = a.shape()[1];
+    int64_t k = std::min(m, n);
+    int64_t lda = std::max(int64_t{1}, m);
+
+    // cuSOLVER does not return correct result in this case and older versions of cuSOLVER (<10.1)
+    // might not work well with zero-sized arrays therefore it's better to return earlier
+    if (a.shape().GetTotalSize() == 0) {
+        if (mode == QrMode::kComplete) {
+            device.backend().CallKernel<IdentityKernel>(q);
+        }
+        return;
+    }
+
+    Array r_temp = a.Transpose().Copy();  // QR decomposition is done in-place
+
+    cuda_internal::DeviceInternals& device_internals = cuda_internal::GetDeviceInternals(static_cast<CudaDevice&>(device));
+
+    auto r_ptr = static_cast<T*>(internal::GetRawOffsetData(r_temp));
+    auto tau_ptr = static_cast<T*>(internal::GetRawOffsetData(tau));
+
+    std::shared_ptr<void> devinfo = device.Allocate(sizeof(int));
+
+    int buffersize_geqrf = 0;
+    device_internals.cusolverdn_handle().Call(GeqrfBufferSize<T>, m, n, r_ptr, lda, &buffersize_geqrf);
+
+    Array work = Empty(Shape{buffersize_geqrf}, dtype, device);
+    auto work_ptr = static_cast<T*>(internal::GetRawOffsetData(work));
+
+    device_internals.cusolverdn_handle().Call(
+            Geqrf<T>, m, n, r_ptr, lda, tau_ptr, work_ptr, buffersize_geqrf, static_cast<int*>(devinfo.get()));
+
+    int devinfo_h = 0;
+    Device& native_device = GetDefaultContext().GetDevice({"native", 0});
+    device.MemoryCopyTo(&devinfo_h, devinfo.get(), sizeof(int), native_device);
+    if (devinfo_h != 0) {
+        throw ChainerxError{"Unsuccessful geqrf (QR) execution. Info = ", devinfo_h};
+    }
+
+    if (mode == QrMode::kR) {
+        r_temp = r_temp.At(std::vector<ArrayIndex>{Slice{}, Slice{0, k}}).Transpose();  // R = R[:, 0:k].T
+        r_temp = Triu(r_temp, 0);
+        device.backend().CallKernel<CopyKernel>(r_temp, r);
+        return;
+    }
+
+    if (mode == QrMode::kRaw) {
+        device.backend().CallKernel<CopyKernel>(r_temp, r);
+        return;
+    }
+
+    int64_t mc;
+    Shape q_shape{0};
+    if (mode == QrMode::kComplete && m > n) {
+        mc = m;
+        q_shape = Shape{m, m};
+    } else {
+        mc = k;
+        q_shape = Shape{n, m};
+    }
+    Array q_temp = Empty(q_shape, dtype, device);
+
+    device.backend().CallKernel<CopyKernel>(r_temp, q_temp.At(std::vector<ArrayIndex>{Slice{0, n}, Slice{}}));  // Q[0:n, :] = R
+    auto q_ptr = static_cast<T*>(internal::GetRawOffsetData(q_temp));
+
+    int buffersize_orgqr = 0;
+    device_internals.cusolverdn_handle().Call(OrgqrBufferSize<T>, m, mc, k, q_ptr, lda, tau_ptr, &buffersize_orgqr);
+
+    Array work_orgqr = Empty(Shape{buffersize_orgqr}, dtype, device);
+    auto work_orgqr_ptr = static_cast<T*>(internal::GetRawOffsetData(work_orgqr));
+
+    device_internals.cusolverdn_handle().Call(
+            Orgqr<T>, m, mc, k, q_ptr, lda, tau_ptr, work_orgqr_ptr, buffersize_orgqr, static_cast<int*>(devinfo.get()));
+
+    device.MemoryCopyTo(&devinfo_h, devinfo.get(), sizeof(int), native_device);
+    if (devinfo_h != 0) {
+        throw ChainerxError{"Unsuccessful orgqr (QR) execution. Info = ", devinfo_h};
+    }
+
+    q_temp = q_temp.At(std::vector<ArrayIndex>{Slice{0, mc}, Slice{}}).Transpose();  // Q = Q[0:mc, :].T
+    r_temp = r_temp.At(std::vector<ArrayIndex>{Slice{}, Slice{0, mc}}).Transpose();  // R = R[:, 0:mc].T
+    r_temp = Triu(r_temp, 0);
+
+    device.backend().CallKernel<CopyKernel>(q_temp, q);
+    device.backend().CallKernel<CopyKernel>(r_temp, r);
 }
 
 }  // namespace
@@ -426,7 +602,7 @@ public:
                 vt_ptr = static_cast<T*>(internal::GetRawOffsetData(u_temp));
             }
 
-            std::shared_ptr<void> devInfo = device.Allocate(sizeof(int));
+            std::shared_ptr<void> devinfo = device.Allocate(sizeof(int));
 
             int buffersize = 0;
             device_internals.cusolverdn_handle().Call(GesvdBuffersize<T>, m, n, &buffersize);
@@ -458,13 +634,13 @@ public:
                     work_ptr,
                     buffersize,
                     nullptr,
-                    static_cast<int*>(devInfo.get()));
+                    static_cast<int*>(devinfo.get()));
 
-            int devInfo_h = 0;
+            int devinfo_h = 0;
             Device& native_device = GetDefaultContext().GetDevice({"native", 0});
-            device.MemoryCopyTo(&devInfo_h, devInfo.get(), sizeof(int), native_device);
-            if (devInfo_h != 0) {
-                throw ChainerxError{"Unsuccessful gesvd (SVD) execution. Info = ", devInfo_h};
+            device.MemoryCopyTo(&devinfo_h, devinfo.get(), sizeof(int), native_device);
+            if (devinfo_h != 0) {
+                throw ChainerxError{"Unsuccessful gesvd (SVD) execution. Info = ", devinfo_h};
             }
 
             if (trans_flag) {
@@ -478,6 +654,24 @@ public:
 };
 
 CHAINERX_CUDA_REGISTER_KERNEL(SvdKernel, CudaSvdKernel);
+
+class CudaQrKernel : public QrKernel {
+public:
+    void Call(const Array& a, const Array& q, const Array& r, const Array& tau, QrMode mode) override {
+        Device& device = a.device();
+        Dtype dtype = a.dtype();
+        CudaSetDeviceScope scope{device.index()};
+
+        CHAINERX_ASSERT(a.ndim() == 2);
+
+        VisitFloatingPointDtype(dtype, [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            QrImpl<T>(a, q, r, tau, mode);
+        });
+    }
+};
+
+CHAINERX_CUDA_REGISTER_KERNEL(QrKernel, CudaQrKernel);
 
 class CudaSyevdKernel : public SyevdKernel {
 public:

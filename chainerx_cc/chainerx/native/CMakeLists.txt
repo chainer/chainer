@@ -40,7 +40,7 @@ add_library(chainerx_native STATIC
 if(${BLAS_FOUND})
     if(DEFINED ENV{CHAINERX_BLAS_INCLUDE_DIRS})
         set(BLAS_INCLUDE_DIRS $ENV{CHAINERX_BLAS_INCLUDE_DIRS})
-    else()
+    elseif(UNIX)
         # Workaround for UNIX environments to guess the BLAS include directory from its library path (.so).
         # This workaround is required since CMake does not set the BLAS_INCLUDE_DIRS variable.
         list(GET BLAS_LIBRARIES 0 BLAS_LIBRARY)
