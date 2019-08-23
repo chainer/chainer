@@ -202,6 +202,10 @@ struct ArrayReprImpl {
 private:
     static constexpr int kMaxItemNumPerLine = 10;
 
+    // The behavior of this function is recursively defined as follows:
+    // array.ndim() == 0 => Returns a string represenation of the single scalar.
+    // array.ndim() == 1 => Returns a string: space separated scalars.
+    // array.ndim() >= 2 => Returns a string: newline separated arrays with one less dimension.
     template <typename T>
     void ArrayReprRecursive(const Array& array, Formatter<T>& formatter, size_t indent, std::ostream& os) const {
         const uint8_t ndim = array.ndim();
