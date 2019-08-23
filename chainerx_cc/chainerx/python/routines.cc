@@ -24,6 +24,7 @@
 #include "chainerx/routines/binary.h"
 #include "chainerx/routines/connection.h"
 #include "chainerx/routines/creation.h"
+#include "chainerx/routines/evaluation.h"
 #include "chainerx/routines/explog.h"
 #include "chainerx/routines/hyperbolic.h"
 #include "chainerx/routines/indexing.h"
@@ -289,6 +290,17 @@ void InitChainerxCreation(pybind11::module& m) {
           "device"_a = nullptr);
     m.def("tril", [](const ArrayBodyPtr& m, int64_t k) { return MoveArrayBody(Tril(Array{m}, k)); }, "m"_a, "k"_a = 0);
     m.def("triu", [](const ArrayBodyPtr& m, int64_t k) { return MoveArrayBody(Triu(Array{m}, k)); }, "m"_a, "k"_a = 0);
+}
+
+void InitChainerxEvaluation(pybind11::module& m) {
+    // evaluation routines
+    m.def("accuracy",
+          [](const ArrayBodyPtr& y, const ArrayBodyPtr& t, const absl::optional<int64_t>& ignore_label) {
+              return MoveArrayBody(Accuracy(Array{y}, Array{t}, ignore_label));
+          },
+          "y"_a,
+          "t"_a,
+          "ignore_label"_a = nullptr);
 }
 
 void InitChainerxIndexing(pybind11::module& m) {
@@ -1385,6 +1397,7 @@ void InitChainerxRNN(pybind11::module& m) {
 
 void InitChainerxRoutines(pybind11::module& m) {
     InitChainerxCreation(m);
+    InitChainerxEvaluation(m);
     InitChainerxIndexing(m);
     InitChainerxLinalg(m);
     InitChainerxLogic(m);

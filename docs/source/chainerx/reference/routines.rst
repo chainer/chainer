@@ -85,6 +85,15 @@ Array manipulation routines
    chainerx.flipud
    chainerx.moveaxis
 
+Evaluation routines
+-------------------
+
+.. autosummary::
+    :toctree: generated/
+    :nosignatures:
+
+    chainerx.accuracy
+
 Indexing routines
 -----------------
 
