@@ -210,6 +210,9 @@ _reshape_shape = [
     ((2, 3, 4), (3, -1, 2)),
     ((2, 3, 4), (3, -3, 2)),  # -3 is treated as a -1 and is valid.
     ((2, 0, 3), (-1,)),  # Empty to inferred.
+    ((2, 0, 3), (-1, 4)),  # Empty to inferred.
+    ((2, 0, 3), (4, -1)),  # Empty to inferred.
+    ((2, 0, 3), (4, -1, 5)),  # Empty to inferred.
 ]
 
 
@@ -352,7 +355,9 @@ def test_reshape_invalid(shape1, shape2):
     ((2, 3, 4), (5, -1, 3)),  # Not divisible.
     ((2, 3, 4), (-1, -1, 3)),  # More than one dimension cannot be inferred.
     ((2, 3, 4), (-2, 4, -1)),
-    ((2, 0, 4), (-1, 0)),  # Empty to high-dimensional.
+    ((2, 0, 4), (-1, 0)),  # Empty to ambiguous.
+    ((2, 0, 4), (0, -1)),  # Empty to ambiguous.
+    ((2, 0, 4), (0, -1, 2)),  # Empty to ambiguous.
 ])
 def test_reshape_invalid_cannot_infer(shape1, shape2):
     a = array_utils.create_dummy_ndarray(chainerx, shape1, 'float32')
