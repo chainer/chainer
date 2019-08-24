@@ -1656,6 +1656,27 @@ Note:
 """)
 
     _docs.set_doc(
+        chainerx.remainder,
+        """remainder(x1, x2)
+Return element-wise remainder of division.
+
+Args:
+    x1 (~chainerx.ndarray or scalar): Input array.
+    x2 (~chainerx.ndarray or scalar): Input array.
+
+Returns:
+    :class:`~chainerx.ndarray`:
+        Returned array: The element-wise remainder of
+        the quotient ``floor_divide(x1, x2)``.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input arrays ``x1`` and ``x2``.
+
+.. seealso:: :data:`numpy.remainder`
+""")
+
+    _docs.set_doc(
         chainerx.exp,
         """exp(x)
 Numerical exponential, element-wise.

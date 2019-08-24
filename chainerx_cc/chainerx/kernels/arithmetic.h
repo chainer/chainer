@@ -113,4 +113,25 @@ public:
     virtual void Call(Scalar x1, const Array& x2, const Array& out) = 0;
 };
 
+class ModAAKernel : public Kernel {
+public:
+    static const char* name() { return "ModAA"; }
+
+    virtual void Call(const Array& x1, const Array& x2, const Array& out) = 0;
+};
+
+class ModASKernel : public Kernel {
+public:
+    static const char* name() { return "ModAS"; }
+
+    virtual void Call(const Array& x1, Scalar x2, const Array& out) = 0;
+};
+
+class ModSAKernel : public Kernel {
+public:
+    static const char* name() { return "ModSA"; }
+
+    virtual void Call(Scalar x1, const Array& x2, const Array& out) = 0;
+};
+
 }  // namespace chainerx

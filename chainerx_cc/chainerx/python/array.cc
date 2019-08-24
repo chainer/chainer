@@ -394,6 +394,14 @@ void InitChainerxArrayInPlace(py::class_<ArrayBody, ArrayBodyPtr>& c) {
           [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(std::move(Array{self} /= Array{rhs})); },
           py::is_operator());
     c.def("__itruediv__", [](const ArrayBodyPtr& self, Scalar rhs) { return MoveArrayBody(std::move(Array{self} /= rhs)); });
+    c.def("__imod__",
+          [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(std::move(Array{self} %= Array{rhs})); },
+          py::is_operator());
+    c.def("__imod__", [](const ArrayBodyPtr& self, Scalar rhs) { return MoveArrayBody(std::move(Array{self} %= rhs)); });
+    c.def("__iremainder__",
+          [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(std::move(Array{self} %= Array{rhs})); },
+          py::is_operator());
+    c.def("__iremainder__", [](const ArrayBodyPtr& self, Scalar rhs) { return MoveArrayBody(std::move(Array{self} %= rhs)); });
     c.def("__iand__",
           [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(std::move(Array{self} &= Array{rhs})); },
           py::is_operator());
@@ -454,6 +462,16 @@ void InitChainerxArrayArithmetic(py::class_<ArrayBody, ArrayBodyPtr>& c) {
           py::is_operator());
     c.def("__pow__", [](const ArrayBodyPtr& self, Scalar rhs) { return MoveArrayBody(Power(Array{self}, rhs)); }, py::is_operator());
     c.def("__rpow__", [](const ArrayBodyPtr& self, Scalar lhs) { return MoveArrayBody(Power(lhs, Array{self})); }, py::is_operator());
+    c.def("__mod__",
+          [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(Mod(Array{self}, Array{rhs})); },
+          py::is_operator());
+    c.def("__mod__", [](const ArrayBodyPtr& self, Scalar rhs) { return MoveArrayBody(Mod(Array{self}, rhs)); }, py::is_operator());
+    c.def("__rmod__", [](const ArrayBodyPtr& self, Scalar lhs) { return MoveArrayBody(Mod(lhs, Array{self})); }, py::is_operator());
+    c.def("__remainder__",
+          [](const ArrayBodyPtr& self, const ArrayBodyPtr& rhs) { return MoveArrayBody(Mod(Array{self}, Array{rhs})); },
+          py::is_operator());
+    c.def("__remainder__", [](const ArrayBodyPtr& self, Scalar rhs) { return MoveArrayBody(Mod(Array{self}, rhs)); }, py::is_operator());
+    c.def("__rremainder__", [](const ArrayBodyPtr& self, Scalar lhs) { return MoveArrayBody(Mod(lhs, Array{self})); }, py::is_operator());
 
     c.def("__rtruediv__", [](const ArrayBodyPtr& self, Scalar lhs) { return MoveArrayBody(lhs / Array{self}); }, py::is_operator());
     c.def("__and__",
