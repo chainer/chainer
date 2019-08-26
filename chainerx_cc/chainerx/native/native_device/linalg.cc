@@ -188,6 +188,7 @@ void SolveImpl(const Array& a, const Array& b, const Array& out) {
     auto lu_ptr = static_cast<T*>(internal::GetRawOffsetData(lu_matrix));
 
     int64_t n = a.shape()[0];
+    int64_t lda = std::max(int64_t{1}, n);
     int64_t nrhs = 1;
     if (b.ndim() == 2) {
         nrhs = b.shape()[1];
@@ -200,7 +201,7 @@ void SolveImpl(const Array& a, const Array& b, const Array& out) {
     auto out_ptr = static_cast<T*>(internal::GetRawOffsetData(out_transposed));
 
     int info;
-    Gesv(n, nrhs, lu_ptr, std::max(int64_t{1}, n), ipiv_ptr, out_ptr, std::max(int64_t{1}, n), &info);
+    Gesv(n, nrhs, lu_ptr, lda, ipiv_ptr, out_ptr, lda, &info);
 
     if (info != 0) {
         throw ChainerxError{"Unsuccessful gesv (Solve) execution. Info = ", info};

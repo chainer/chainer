@@ -204,6 +204,7 @@ void SolveImpl(const Array& a, const Array& b, const Array& out) {
     auto lu_ptr = static_cast<T*>(internal::GetRawOffsetData(lu_matrix));
 
     int64_t m = a.shape()[0];
+    int64_t lda = std::max(int64_t{1}, m);
     int64_t nrhs = 1;
     if (b.ndim() == 2) {
         nrhs = b.shape()[1];
@@ -213,7 +214,7 @@ void SolveImpl(const Array& a, const Array& b, const Array& out) {
     auto ipiv_ptr = static_cast<int*>(internal::GetRawOffsetData(ipiv));
 
     int buffersize = 0;
-    device_internals.cusolverdn_handle().Call(GetrfBuffersize<T>, m, m, lu_ptr, std::max(int64_t{1}, m), &buffersize);
+    device_internals.cusolverdn_handle().Call(GetrfBuffersize<T>, m, m, lu_ptr, lda, &buffersize);
 
     Array work = Empty(Shape{buffersize}, dtype, device);
     auto work_ptr = static_cast<T*>(internal::GetRawOffsetData(work));
@@ -221,7 +222,7 @@ void SolveImpl(const Array& a, const Array& b, const Array& out) {
     std::shared_ptr<void> devinfo = device.Allocate(sizeof(int));
 
     device_internals.cusolverdn_handle().Call(
-            Getrf<T>, m, m, lu_ptr, std::max(int64_t{1}, m), work_ptr, ipiv_ptr, static_cast<int*>(devinfo.get()));
+            Getrf<T>, m, m, lu_ptr, lda, work_ptr, ipiv_ptr, static_cast<int*>(devinfo.get()));
 
     int devinfo_h = 0;
     Device& native_device = GetDefaultContext().GetDevice({"native", 0});
@@ -239,10 +240,10 @@ void SolveImpl(const Array& a, const Array& b, const Array& out) {
             m,
             nrhs,
             lu_ptr,
-            std::max(int64_t{1}, m),
+            lda,
             ipiv_ptr,
             out_ptr,
-            std::max(int64_t{1}, m),
+            lda,
             static_cast<int*>(devinfo.get()));
 
     device.MemoryCopyTo(&devinfo_h, devinfo.get(), sizeof(int), native_device);
