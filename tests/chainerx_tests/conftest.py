@@ -69,7 +69,7 @@ def _get_required_cuda_devices_from_device_name(device_name):
     return int(s[1]) + 1
 
 
-def skip_if_no_cuda_device_available(device_name):
+def _skip_if_no_cuda_device_available(device_name):
     # Skip if the device is CUDA device and there's no sufficient CUDA devices.
     cuda_device_count = _get_required_cuda_devices_from_device_name(
         device_name)
@@ -83,7 +83,7 @@ def device(request):
     # Device instance is passed to the test.
 
     device_name = request.param
-    skip_if_no_cuda_device_available(device_name)
+    _skip_if_no_cuda_device_available(device_name)
 
     device = chainerx.get_device(device_name)
     device_scope = chainerx.using_device(device)
@@ -101,7 +101,7 @@ def device_name(request):
     # A fixture to check if a device is available using its name
 
     device_name = request.param
-    skip_if_no_cuda_device_available(device_name)
+    _skip_if_no_cuda_device_available(device_name)
 
     return device_name
 
