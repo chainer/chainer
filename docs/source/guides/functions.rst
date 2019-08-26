@@ -790,7 +790,7 @@ Implementing Old-Style Functions
 
 .. note::
 
-    As noted in the :ref:`new-vs-old-style-functions`, we recommend you to use new-style for newly implemented functions.
+    As noted in the :ref:`new-vs-old-style-functions`, we recommend that you use new-style for newly implemented functions.
     This section uses the same example as in :ref:`implement-new-style-functions` but using old-style.
 
 First, suppose we want to define an elementwise function :math:`f(x, y, z) = x * y + z`.
