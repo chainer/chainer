@@ -53,6 +53,8 @@ Activation functions
    chainerx.relu
    chainerx.sigmoid
    chainerx.slstm
+   chainerx.tree_lstm
+
 
 Array manipulation routines
 ---------------------------
