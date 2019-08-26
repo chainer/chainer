@@ -168,30 +168,15 @@ class TestDropoutMask(unittest.TestCase):
         mask = self.mask if self.specify_mask else None
         x, mask = backend_config.get_array((self.x, mask))
 
-        if backend_config.use_cudnn == 'always':
-            # Memoization of the cudnn states causes different
-            # values to be returned if an object is cached as
-            # the original seed and the current object
-            # might be in an inconsistent state
-            cuda.clear_memo()
-            if self.specify_mask:
-                mask = numpy.random.randint(numpy.iinfo(numpy.int32).max)
-
         with chainer.using_config('train', self.train), backend_config:
             out, out_mask = functions.dropout(
                 x, 0.5, mask=mask, return_mask=True)
-            # TODO(ecastill) replace this hack to obtain a mask
-            # with an actual lazy mask calculation in the dropout code
-            if backend_config.use_cudnn == 'always' and self.train:
-                out_mask = functions.dropout(
-                    backend_config.xp.ones(x.shape), 0.5, mask=out_mask).array
 
         if self.train:
             assert isinstance(out_mask, type(out.array))
             if mask is None:
                 assert out_mask.shape == out.array.shape
-            # Cudnn doesnt use real masks
-            elif backend_config.use_cudnn != 'always':
+            else:
                 assert out_mask is mask
         else:
             assert out_mask is None

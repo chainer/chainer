@@ -25,6 +25,7 @@ class Dropout(function_node.FunctionNode):
         self._cudnn_states_seed = None
         if (mask is not None
                 and chainer.should_use_cudnn('>=auto', 5000)
+                and not return_mask
                 and numpy.isscalar(mask)):
             self._cudnn_states_seed = mask
             self._mask = None
@@ -56,8 +57,9 @@ class Dropout(function_node.FunctionNode):
 
     def forward_gpu(self, x):
         if (chainer.should_use_cudnn('>=auto', 5000)
+                and x[0].flags.c_contiguous
                 and self._mask is None
-                and x[0].flags.c_contiguous):
+                and not self.return_mask):
             self._use_cudnn = True
             # cuDNN doesnt support to provide a mask
             # so we save the random seed to ensure
