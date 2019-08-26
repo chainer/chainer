@@ -20,7 +20,7 @@ std::type_index GetKeyKernelTypeIndex();
 // Note this macro must be used in `chainerx::internal` namespace.
 // TODO(hamaji): Revert the following change and remove the above
 // restriction once we have dropped support for old compilers.
-// https://github.com/chainer/chainer/pull/7970/commits/9cb16950bb9c7aeb3ca2381708425b1d2ece90c9
+// https://github.com/chainer/chainer/pull/7970/commits/b78ccb1caaa06ef2bbe08a0ac633e43388703b0c#diff-79c686351761272ba383747f24315d7cL20
 #define CHAINERX_REGISTER_KEY_KERNEL(cls, name)    \
     template <>                                    \
     const char* GetKeyKernelName<cls>() {          \
