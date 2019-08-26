@@ -369,6 +369,7 @@ public:
         (void)s;  // unused
         (void)vt;  // unused
         (void)full_matrices;  // unused
+        (void)compute_uv;  // unused
         throw ChainerxError{"LAPACK is not linked to ChainerX."};
 #endif  // CHAINERX_LAPACK_AVAILABLE
     }
