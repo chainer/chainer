@@ -440,7 +440,8 @@ std::tuple<Array, Array> Eigh(const Array& a, char uplo) {
                 f = Where(mask, std::numeric_limits<float>::infinity(), f);
                 f = Reciprocal(f);
 
-                bctx.input_grad() = Dot(Dot(v, f * Dot(vt, gv) + Diag(gw)), vt);
+                Array gin = Dot(Dot(v, f * Dot(vt, gv) + Diag(gw)), vt);
+                bctx.input_grad() = 0.5 * (gin + gin.Transpose());
             });
         }
         bb.Finalize();
