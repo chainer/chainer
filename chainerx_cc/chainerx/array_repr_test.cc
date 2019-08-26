@@ -248,6 +248,13 @@ TEST(ArrayReprTest, AllDtypesOnNativeBackend) {
                 Shape({0, 1, 2}),
                 device,
                 {backprop_id});
+
+        CheckArrayRepr<float>(
+                "array([], shape=(2, 1, 0), dtype=float32, device='native:0', backprop_ids=['bp1'])",
+                {},
+                Shape({2, 1, 0}),
+                device,
+                {backprop_id});
     }
 
     // Single graph

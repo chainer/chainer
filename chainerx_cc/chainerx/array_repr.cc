@@ -179,7 +179,11 @@ struct ArrayReprImpl {
         }
 
         os << "array(";
-        ArrayReprRecursive<T>(array, formatter, 7, os);
+        if (array.GetTotalSize() == 0) {
+            os << "[]";
+        } else {
+            ArrayReprRecursive<T>(array, formatter, 7, os);
+        }
 
         // Print the footer
         os << ", shape=" << array.shape();
