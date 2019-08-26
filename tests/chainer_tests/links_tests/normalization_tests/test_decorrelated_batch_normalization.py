@@ -6,11 +6,8 @@ import unittest
 import numpy
 
 import chainer
-from chainer.backends import cuda
-from chainer import gradient_check
 from chainer import links
 from chainer import testing
-from chainer.testing import attr
 
 
 def _decorrelated_batch_normalization(x, mean, projection, groups):
@@ -88,69 +85,107 @@ def _parse_group_kwargs(n_channels, groups, group_size=None):
     # NOTE(crcrpar): np.linalg.eigh does not support float16
     'dtype': [numpy.float32, numpy.float64],
 })))
-class DecorrelatedBatchNormalizationTest(unittest.TestCase):
+@testing.inject_backend_tests(
+    None,
+    # CPU tests
+    [{}]
+    # GPU tests
+    + testing.product({
+        'use_cuda': [True],
+        'cuda_device': [0, 1],
+    })
+    # ChainerX tests
+    + [
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
+    ])
+class DecorrelatedBatchNormalizationTest(testing.LinkTestCase):
+
+    param_names = ()
 
     def setUp(self):
-        groups, C = _parse_group_kwargs(self.n_channels, **self.group_kwargs)
-
-        self.link = links.DecorrelatedBatchNormalization(
-            self.n_channels, dtype=self.dtype, **self.group_kwargs)
-        self.link.cleargrads()
-
-        shape = (5, self.n_channels) + (2,) * self.ndim
-        self.x = numpy.random.uniform(-1, 1, shape).astype(self.dtype)
-        self.gy = numpy.random.uniform(-1, 1, shape).astype(self.dtype)
-
-        if self.test:
-            self.mean = numpy.random.uniform(
-                -1, 1, (groups, C)).astype(self.dtype)
-            self.projection = numpy.random.uniform(
-                0.5, 1, (groups, C, C)).astype(
-                self.dtype)
-            self.link.avg_mean[...] = self.mean
-            self.link.avg_projection[...] = self.projection
-        else:
-            self.mean = _calc_mean(self.x, groups)
-            self.projection = _calc_projection(self.x, self.mean,
-                                               self.link.eps, groups)
         self.check_forward_options = {'atol': 1e-4, 'rtol': 1e-3}
         self.check_backward_options = {'atol': 5e-3, 'rtol': 1e-3}
         if self.dtype == numpy.float32:
             self.check_backward_options = {'atol': 5e-2, 'rtol': 5e-2}
 
-    def check_forward(self, x_data):
-        with chainer.using_config('train', not self.test):
-            x = chainer.Variable(x_data)
-            y = self.link(x)
-            self.assertEqual(y.dtype, self.dtype)
+    def generate_params(self):
+        groups, C = _parse_group_kwargs(self.n_channels, **self.group_kwargs)
+        # TODO(ecastill) mean and projection are not
+        # parameters inside the link, just plain arrays
+        mean = numpy.random.uniform(
+            -1, 1, (groups, C)).astype(self.dtype)
+        projection = numpy.random.uniform(
+            0.5, 1, (groups, C, C)).astype(
+            self.dtype)
+        return mean, projection
 
+    def create_link(self, initializers):
+        mean, projection = initializers
+        link = links.DecorrelatedBatchNormalization(
+            self.n_channels, dtype=self.dtype, **self.group_kwargs)
+        link.cleargrads()
+        if self.test:
+            link.avg_mean[...] = mean
+            link.avg_projection[...] = projection
+        return link
+
+    def generate_inputs(self):
+        dtype = self.dtype
+        ndim = self.ndim
+        shape = (5, self.n_channels) + (2,) * ndim
+        m = 5 * 2 ** ndim
+
+        # NOTE(kataoka): The current implementation uses linalg.eigh. Small
+        # eigenvalues of the correlation matrix, which can be as small as
+        # eps=2e-5, cannot be computed with good *relative* accuracy, but
+        # the eigenvalues are used later as `eigvals ** -0.5`. Require the
+        # following is sufficiently large:
+        # min(eigvals[:k]) == min(singular_vals ** 2 / m + eps)
+        min_singular_value = 0.1
+        # NOTE(kataoka): Decorrelated batch normalization should be free from
+        # "stochastic axis swapping". Requiring a gap between singular values
+        # just hides mistakes in implementations.
+        min_singular_value_gap = 0.001
+        groups, C = _parse_group_kwargs(self.n_channels, **self.group_kwargs)
+        zca_shape = groups, C, m
+        x = numpy.random.uniform(-1, 1, zca_shape)
+        mean = x.mean(axis=2, keepdims=True)
+        a = x - mean
+        u, s, vh = numpy.linalg.svd(a, full_matrices=False)
+        # Decrement the latter dim because of the constraint `sum(_) == 0`
+        k = min(zca_shape[1], zca_shape[2] - 1)
+        s[:, :k] += (
+            min_singular_value
+            + min_singular_value_gap * numpy.arange(k)
+        )[::-1]
+        a = numpy.einsum('bij,bj,bjk->bik', u, s, vh)
+        x = a + mean
+
+        x = x.reshape((self.n_channels, shape[0]) + shape[2:]).swapaxes(0, 1)
+        x = x.astype(dtype)
+        return x,
+
+    def forward_expected(self, link, inputs):
         groups, _ = _parse_group_kwargs(self.n_channels, **self.group_kwargs)
+        x, = inputs
+        if self.test:
+            mean = link.avg_mean
+            projection = link.avg_projection
+        else:
+            mean = _calc_mean(x, groups)
+            projection = _calc_projection(x, mean,
+                                          link.eps, groups)
         y_expect = _decorrelated_batch_normalization(
-            self.x, self.mean, self.projection, groups)
+            x, mean, projection, groups)
+        return y_expect,
 
-        testing.assert_allclose(
-            y_expect, y.array, **self.check_forward_options)
-
-    def test_forward_cpu(self):
-        self.check_forward(self.x)
-
-    @attr.gpu
-    def test_forward_gpu(self):
-        self.link.to_gpu()
-        self.check_forward(cuda.to_gpu(self.x))
-
-    def check_backward(self, x_data, y_grad):
-        gradient_check.check_backward(
-            self.link, x_data, y_grad, (),
-            dtype=numpy.float64, **self.check_backward_options)
-
-    def test_backward_cpu(self):
-        self.check_backward(self.x, self.gy)
-
-    @attr.gpu
-    def test_backward_gpu(self):
-        self.link.to_gpu()
-        self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
+    def forward(self, link, inputs, backend_config):
+        x, = inputs
+        with chainer.using_config('train', not self.test):
+            y = link(x)
+        return y,
 
 
 # TODO(kataoka) Use `contextlib.nullcontext` if Python 3.7 or higher is assumed

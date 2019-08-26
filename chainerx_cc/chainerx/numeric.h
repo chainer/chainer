@@ -137,6 +137,5 @@ inline double Power(double x1, double x2) {
     }
 
 CHAINERX_DEFINE_NATIVE_FLOAT16_FALLBACK_BINARY(Arctan2, std::atan2)
-CHAINERX_DEFINE_NATIVE_FLOAT16_FALLBACK_BINARY(Fmod, std::fmod)
 
 }  // namespace chainerx
