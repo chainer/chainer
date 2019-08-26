@@ -1663,7 +1663,6 @@ class Parameter(Variable):
     def __init__(self, initializer=None, shape=None, name=None):
         # type: (tp.Optional[types.InitializerSpec], tp.Optional[types.ShapeSpec], tp.Optional[str]) -> None # NOQA
 
-        device = backend.CpuDevice()
         if initializer is None:
             initializer = constant.NaN()
         elif numpy.isscalar(initializer):
@@ -1672,27 +1671,23 @@ class Parameter(Variable):
             if isinstance(initializer, chainer.get_array_types()):
                 # parameter initialized by the initial array
                 super(Parameter, self).__init__(initializer, name=name)
-                device = backend.get_device_from_array(initializer)
-                self._initial_device = device
-                # Data is already initialized
-                initializer = None
             else:
                 # uninitialized parameter
                 super(Parameter, self).__init__(name=name, _grad_valid=False)
                 dtype = getattr(initializer, 'dtype', None)
-                device = getattr(initializer, 'device', device)
                 self._grad_initializer = constant.NaN(dtype)
         else:
             # parameter initialized with a given shape
             if isinstance(initializer, chainer.get_array_types()):
+                xp = backend.get_array_module(initializer)
                 initializer = constant.Constant(initializer)
-            device = getattr(initializer, 'device', device)
-            xp = device.xp
+            else:
+                xp = numpy
             data = initializers.generate_array(initializer, shape, xp)  # type: ignore # NOQA
             grad = xp.full_like(data, numpy.nan)
             super(Parameter, self).__init__(data, name=name, grad=grad)
-        self._initial_device = device
-        self._has_chainerx_array = device.xp is chainerx
+
+        self._initial_device = backend.CpuDevice()
         self.update_rule = None
         self.initializer = initializer
 
@@ -1798,15 +1793,14 @@ class Parameter(Variable):
         device = self._initial_device
         assert device is not None
         xp = device.xp
-        if self.initializer is not None:
-            data = initializers.generate_array(
-                self.initializer, shape, xp, device=device)
-            self.array = data
 
+        data = initializers.generate_array(
+            self.initializer, shape, xp, device=device)
         ginit = self._grad_initializer
         grad = None if ginit is None else initializers.generate_array(
             ginit, shape, xp, device=device)
 
+        self.array = data
         self.grad = grad
 
         # Convert the array for iDeep.

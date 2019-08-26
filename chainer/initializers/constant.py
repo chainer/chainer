@@ -46,15 +46,18 @@ class _Constant(initializer.Initializer):
                 'fill_value must be either scalar, numpy.ndarray, '
                 'cupy.ndarray or chainerx.ndarray.')
         super(_Constant, self).__init__(dtype)
-        # Array might be residing on a specific device
-        self.device = backend.get_device_from_array(self.fill_value)
 
     def __call__(self, array):
         if self.dtype is not None:
             assert array.dtype == self.dtype
 
-        device = backend.get_device_from_array(array)
-        array[...] = device.xp.asarray(self.fill_value)
+        # Calling copy to ensures that the fill_value array
+        # is moved to the device where array resides
+        if isinstance(self.fill_value, chainer.get_array_types()):
+            backend.copyto(array, self.fill_value)
+        else:
+            device = backend.get_device_from_array(array)
+            array[...] = device.xp.asarray(self.fill_value)
 
 
 class Constant(_Constant):

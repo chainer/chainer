@@ -1855,8 +1855,9 @@ class TestUninitializedParameterWithDevices(unittest.TestCase):
     def test_initialize_with_device(self, backend_config):
         a = backend_config.get_array(self.a)
         x = chainer.Parameter(initializer=initializers.Constant(a))
+        # Parameters arrays are always initialized in numpy side
         self.check_constant_initialization(
-            x, self.a, backend_config.xp, backend_config.device)
+            x, self.a, np, _numpy_device)
 
     def check_zerograd(self, x, xp):
         assert isinstance(x.grad, xp.ndarray)
