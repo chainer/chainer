@@ -94,7 +94,7 @@ class DecorrelatedBatchNormalizationTest(unittest.TestCase):
         groups, C = _parse_group_kwargs(self.n_channels, **self.group_kwargs)
 
         self.link = links.DecorrelatedBatchNormalization(
-            self.n_channels, groups=groups, dtype=self.dtype)
+            self.n_channels, dtype=self.dtype, **self.group_kwargs)
         self.link.cleargrads()
 
         shape = (5, self.n_channels) + (2,) * self.ndim
