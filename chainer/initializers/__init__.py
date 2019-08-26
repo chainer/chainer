@@ -73,8 +73,8 @@ def _get_initializer(initializer):
 
     if initializer is None:
         return LeCunNormal()
-    if (isinstance(initializer, chainer.get_array_types()) or
-            numpy.isscalar(initializer)):
+    if (isinstance(initializer, chainer.get_array_types())
+            or numpy.isscalar(initializer)):
         return Constant(initializer)
 
     if not callable(initializer):

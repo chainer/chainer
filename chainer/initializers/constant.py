@@ -40,8 +40,8 @@ class _Constant(initializer.Initializer):
     fill_value = None  # type: types.ScalarValue
 
     def __init__(self, dtype=None):
-        if not (isinstance(self.fill_value, chainer.get_array_types()) or
-                numpy.isscalar(self.fill_value)):
+        if not (isinstance(self.fill_value, chainer.get_array_types())
+                or numpy.isscalar(self.fill_value)):
             raise ValueError(
                 'fill_value must be either scalar, numpy.ndarray, '
                 'cupy.ndarray or chainerx.ndarray.')
