@@ -124,7 +124,36 @@ class TestDecorrelatedBatchNormalization(testing.FunctionTestCase):
         dtype = self.dtype
         ndim = self.ndim
         shape = (5, self.n_channels) + (2,) * ndim
-        x = numpy.random.uniform(-1, 1, shape).astype(dtype)
+        m = 5 * 2 ** ndim
+
+        # NOTE(kataoka): The current implementation uses linalg.eigh. Small
+        # eigenvalues of the correlation matrix, which can be as small as
+        # eps=2e-5, cannot be computed with good *relative* accuracy, but
+        # the eigenvalues are used later as `eigvals ** -0.5`. Require the
+        # following is sufficiently large:
+        # min(eigvals[:k]) == min(singular_vals ** 2 / m + eps)
+        min_singular_value = 0.1
+        # NOTE(kataoka): Decorrelated batch normalization should be free from
+        # "stochastic axis swapping". Requiring a gap between singular values
+        # just hides mistakes in implementations.
+        min_singular_value_gap = 0.001
+        groups, C = _parse_group_kwargs(self.n_channels, **self.group_kwargs)
+        zca_shape = groups, C, m
+        x = numpy.random.uniform(-1, 1, zca_shape)
+        mean = x.mean(axis=2, keepdims=True)
+        a = x - mean
+        u, s, vh = numpy.linalg.svd(a, full_matrices=False)
+        # Decrement the latter dim because of the constraint `sum(_) == 0`
+        k = min(zca_shape[1], zca_shape[2] - 1)
+        s[:, :k] += (
+            min_singular_value
+            + min_singular_value_gap * numpy.arange(k)
+        )[::-1]
+        a = numpy.einsum('bij,bj,bjk->bik', u, s, vh)
+        x = a + mean
+
+        x = x.reshape((self.n_channels, shape[0]) + shape[2:]).swapaxes(0, 1)
+        x = x.astype(dtype)
         return x,
 
     def forward(self, inputs, device):
