@@ -1,3 +1,4 @@
+import contextlib
 import unittest
 
 import mock
@@ -372,9 +373,24 @@ class TestStandardUpdaterDeviceArgumentFallback(unittest.TestCase):
          expected_model_device,
          expected_input_device) = expect
 
+        # FutureWarning should be raised iff. GPU-to-GPU transfer
+        expect_future_warning = (
+            device_arg is not None
+            and initial_model_device.xp is cuda.cupy
+            and chainer.get_device(device_arg).xp is cuda.cupy
+            and chainer.get_device(device_arg) != initial_model_device)
+        if expect_future_warning:
+            context = testing.assert_warns(FutureWarning)
+        else:
+            @contextlib.contextmanager
+            def _context():
+                yield
+            context = _context()
+
         # Create the StandardUpdater
-        updater = training.updaters.StandardUpdater(
-            iterator, optimizer, convert, **kwargs)
+        with context:
+            updater = training.updaters.StandardUpdater(
+                iterator, optimizer, convert, **kwargs)
 
         assert updater.device == expected_device_attr
         assert updater.input_device == expected_input_device
