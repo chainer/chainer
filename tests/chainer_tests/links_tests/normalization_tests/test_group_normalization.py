@@ -88,7 +88,7 @@ class GroupNormalizationTest(unittest.TestCase):
         gradient_check.check_backward(
             self.link, x_data, y_grad,
             (self.link.gamma, self.link.beta),
-            eps=1e-2, **self.check_backward_options)
+            eps=2e-2, **self.check_backward_options)
 
     def test_backward_cpu(self):
         self.link(numpy.zeros(self.shape, dtype=self.dtype))
