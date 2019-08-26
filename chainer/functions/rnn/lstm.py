@@ -198,12 +198,17 @@ class LSTMGrad(function.Function):
 
         gc_is_none = gc is None
         gh_is_none = gh is None
+        ggc_prev_is_none = ggc_prev is None
+        ggx_is_none = ggx is None
+
         if gc_is_none:
             gc = 0
         if gh_is_none:
             gh = 0
-        if ggc_prev is None:
+        if ggc_prev_is_none:
             ggc_prev = 0
+        if ggx_is_none:
+            ggx = 0
 
         gc_prev = xp.empty_like(c_prev)
         gx = xp.empty_like(x)
@@ -213,18 +218,26 @@ class LSTMGrad(function.Function):
 
         gc_prev[batch:] = 0
         gc_next[batch:] = 0
-        ggc[batch:] = ggc_prev[batch:]
+        ggc[batch:] = 0 if ggc_prev_is_none else ggc_prev[batch:]
         ggh[batch:] = 0
 
         c_prev = c_prev[:batch]
         c = c[:batch]
         if not gc_is_none:
             gc = gc[:batch]
-        ggc_prev = ggc_prev[:batch]
-        ggx = ggx[:batch]
+        if not ggc_prev_is_none:
+            ggc_prev = ggc_prev[:batch]
+        if not ggx_is_none:
+            ggx = ggx[:batch]
 
         a, i, f, o = _extract_gates(x)
-        gga, ggi, ggf, ggo = _extract_gates(ggx)
+        if not ggx_is_none:
+            gga, ggi, ggf, ggo = _extract_gates(ggx)
+        else:
+            gga = 0
+            ggi = 0
+            ggf = 0
+            ggo = 0
         ga, gi, gf, go = _extract_gates(gx)
 
         lstm_grad_grad(
