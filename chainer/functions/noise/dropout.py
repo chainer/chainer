@@ -21,22 +21,16 @@ class Dropout(function_node.FunctionNode):
             raise ValueError('dropout_ratio must be in the range [0, 1)')
         self.dropout_ratio = dropout_ratio
 
-        self._mask = mask
+        self.mask = mask
         self._cudnn_states_seed = None
         if (mask is not None
                 and chainer.should_use_cudnn('>=auto', 5000)
                 and not return_mask
                 and numpy.isscalar(mask)):
             self._cudnn_states_seed = mask
-            self._mask = None
+            self.mask = None
         self.return_mask = return_mask
         self._use_cudnn = False
-
-    @property
-    def mask(self):
-        if self._cudnn_states_seed is not None:
-            return self._cudnn_states_seed
-        return self._mask
 
     def check_type_forward(self, in_types):
         type_check._argname(in_types, ('x',))
@@ -45,20 +39,20 @@ class Dropout(function_node.FunctionNode):
     def forward_cpu(self, x):
         if (intel64.should_use_ideep('>=auto')
                 and intel64.inputs_all_ready(x)
-                and self._mask is None):
+                and self.mask is None):
             return self._forward_ideep(x)
 
-        if self._mask is None:
+        if self.mask is None:
             scale = x[0].dtype.type(1. / (1 - self.dropout_ratio))
             flag = numpy.random.rand(*x[0].shape) >= self.dropout_ratio
-            self._mask = scale * flag
-        y = x[0] * self._mask
+            self.mask = scale * flag
+        y = x[0] * self.mask
         return y,
 
     def forward_gpu(self, x):
         if (chainer.should_use_cudnn('>=auto', 5000)
                 and x[0].flags.c_contiguous
-                and self._mask is None
+                and self.mask is None
                 and not self.return_mask):
             self._use_cudnn = True
             # cuDNN doesnt support to provide a mask
@@ -71,12 +65,12 @@ class Dropout(function_node.FunctionNode):
                 None, x[0], self.dropout_ratio)
             return y,
         else:
-            if self._mask is not None:
-                y = x[0] * self._mask
+            if self.mask is not None:
+                y = x[0] * self.mask
             else:
                 rand = cuda.cupy.random.rand(*x[0].shape, dtype=numpy.float32)
                 scale = x[0].dtype.type(1. / (1 - self.dropout_ratio))
-                self._mask, y = cuda.elementwise(
+                self.mask, y = cuda.elementwise(
                     'T x, R r, T scale, T ratio', 'T mask, T y',
                     '''
                     mask = (r >= ratio) * scale;
@@ -90,7 +84,7 @@ class Dropout(function_node.FunctionNode):
         mask, y = intel64.ideep.dropout.Forward(
             intel64.ideep.array(x[0]),
             self.dropout_ratio)
-        self._mask = mask
+        self.mask = mask
         return y,
 
     def backward(self, x, gy):
@@ -99,7 +93,7 @@ class Dropout(function_node.FunctionNode):
                                     self.dropout_ratio,
                                     self._cudnn_states_seed).apply(gy)
         else:
-            return DropoutGrad(self._mask).apply(gy)
+            return DropoutGrad(self.mask).apply(gy)
 
 
 class DropoutGrad(function_node.FunctionNode):
