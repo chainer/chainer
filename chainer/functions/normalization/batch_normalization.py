@@ -21,7 +21,7 @@ class _BatchNormalizationBackend(six.with_metaclass(ABCMeta)):
 
     @abstractmethod
     def forward(self, axis, gamma, x, xp, expander,
-                beta, eps, decay):
+                beta, eps, decay, running_mean, running_var):
         raise NotImplementedError()
 
     @abstractmethod
@@ -31,12 +31,12 @@ class _BatchNormalizationBackend(six.with_metaclass(ABCMeta)):
 
 class _GeneralBatchNormalizationBackend(_BatchNormalizationBackend):
 
-    def __init__(self, running_mean, running_var, mode):
+    def __init__(self, mode=None):
         self.mean = None
         self.inv_std = None
         self.var = None
-        self.running_mean = running_mean
-        self.running_var = running_var
+        self.running_mean = None
+        self.running_var = None
         self.mode = mode
 
     def forward(self, axis, gamma, x, xp, expander,
@@ -90,8 +90,8 @@ class _GeneralBatchNormalizationBackend(_BatchNormalizationBackend):
 
 
 class _IDeepBatchNormalizationBackend(_GeneralBatchNormalizationBackend):
-    def __init__(self, running_mean, running_var, mode):
-        super().__init__(running_mean, running_var, mode)
+    def __init__(self, mode):
+        super().__init__(mode)
 
     def forward(self, axis, gamma, x, xp, expander,
                 beta, eps, decay, running_mean, running_var):
@@ -145,10 +145,10 @@ class _IDeepBatchNormalizationBackend(_GeneralBatchNormalizationBackend):
 
 
 class _CudnnBatchNormalizationBackend(_GeneralBatchNormalizationBackend):
-    def __init__(self, running_mean, running_var, mode):
+    def __init__(self, mode):
         # super(_GeneralBatchNormalizationBackend, self).__init__(running_mean,
         #                                                         running_var)
-        super().__init__(running_mean, running_var, mode)
+        super().__init__(mode)
 
     def forward(self, axis, gamma, x, xp, expander,
                 beta, eps, decay, running_mean, running_var):
@@ -254,17 +254,11 @@ class BatchNormalization(function_node.FunctionNode):
         self.use_ideep = self.mode.can_use_ideep()
 
         if self.use_ideep:
-            return _IDeepBatchNormalizationBackend(self.running_mean,
-                                                   self.running_var,
-                                                   self.mode)
+            return _IDeepBatchNormalizationBackend(self.mode)
         elif self.use_cudnn:
-            return _CudnnBatchNormalizationBackend(self.running_mean,
-                                                   self.running_var,
-                                                   self.mode)
+            return _CudnnBatchNormalizationBackend(self.mode)
         else:
-            return _GeneralBatchNormalizationBackend(self.running_mean,
-                                                     self.running_var,
-                                                     self.mode)
+            return _GeneralBatchNormalizationBackend(self.mode)
 
     def forward_chainerx(self, inputs):
         # TODO(niboshi): Support conditions implemented as fallback
@@ -333,12 +327,19 @@ class BatchNormalization(function_node.FunctionNode):
 
         self.mode = _BNMode(x, gamma, self.key_axis)
         self.bn_backend = self._bn_backend_selector(xp)
-        return self.bn_backend.forward(axis=self.axis, gamma=gamma, x=x,
-                                       xp=xp, expander=expander,
-                                       beta=beta, eps=self.eps,
-                                       decay=self.decay,
-                                       running_mean=self.running_mean,
-                                       running_var=self.running_var)
+        y, = self.bn_backend.forward(axis=self.axis, gamma=gamma, x=x,
+                                     xp=xp, expander=expander,
+                                     beta=beta, eps=self.eps,
+                                     decay=self.decay,
+                                     running_mean=self.running_mean,
+                                     running_var=self.running_var)
+
+        self.running_mean = self.bn_backend.running_mean
+        self.running_var = self.bn_backend.running_var
+        self.mean = self.bn_backend.mean
+        self.inv_std = self.bn_backend.inv_std
+
+        return y,
 
     def backward(self, indexes, grad_outputs):
         x, gamma = self.get_retained_inputs()
@@ -349,8 +350,8 @@ class BatchNormalization(function_node.FunctionNode):
         f = BatchNormalizationGrad(
             self.eps, self.use_cudnn, self.mode,
             self.expander, self.axis,
-            self.bn_backend.mean, var,
-            self.bn_backend.inv_std, self.key_axis)
+            self.mean, var,
+            self.inv_std, self.key_axis)
 
         return f.apply((x, gamma, gy))
 
