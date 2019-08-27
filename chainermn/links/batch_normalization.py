@@ -8,6 +8,8 @@ from chainer import variable
 import numpy
 
 from chainermn.functions.batch_normalization import \
+    get_communication_backend
+from chainermn.functions.batch_normalization import \
     MultiNodeBatchNormalizationFunction
 
 
@@ -63,7 +65,8 @@ class MultiNodeBatchNormalization(link.Link):
         self.decay = decay
         self.eps = eps
 
-        self._communication_backend = communication_backend
+        self._communication_backend = \
+            get_communication_backend(comm, communication_backend)
 
         with self.init_scope():
             if use_gamma:

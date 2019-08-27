@@ -107,6 +107,28 @@ class _NcclBackend(_MultiNodeBatchNormalizationBackend):
         return gbeta, ggamma
 
 
+def get_communication_backend(comm, communication_backend='auto'):
+    if communication_backend not in ['mpi', 'nccl', 'auto']:
+        raise ValueError('MultiNodeBatchNormalization does not support '
+                         '{}.'.format(communication_backend))
+    from chainermn.communicators.pure_nccl_communicator \
+        import PureNcclCommunicator
+    if communication_backend != 'auto':
+        if 'nccl' == communication_backend:
+            if not isinstance(comm, PureNcclCommunicator):
+                raise ValueError('{} is not supported in '
+                                 'MultiNodeBatchNormalization when using '
+                                 '{}.'.format(communication_backend,
+                                              type(comm)))
+        selected_communication_backend = communication_backend
+    else:
+        if isinstance(comm, PureNcclCommunicator):
+            selected_communication_backend = 'nccl'
+        else:
+            selected_communication_backend = 'mpi'
+    return selected_communication_backend
+
+
 class MultiNodeBatchNormalizationFunction(BatchNormalization):
     def __init__(self, comm, eps=2e-5, mean=None, var=None, decay=0.9,
                  communication_backend='auto'):
@@ -127,26 +149,7 @@ class MultiNodeBatchNormalizationFunction(BatchNormalization):
         # cuDNN v5 batch normalization does not seem to support float16.
         self.use_cudnn = cudnn_dim_ok and x[0].dtype != numpy.float16
 
-        if self.communication_backend not in ['mpi', 'nccl', 'auto']:
-            raise ValueError('MultiNodeBatchNormalization does not support '
-                             '{}.'.format(self.communication_backend))
-        from chainermn.communicators.pure_nccl_communicator \
-            import PureNcclCommunicator
-        if self.communication_backend != 'auto':
-            if 'nccl' == self.communication_backend:
-                if not isinstance(self.comm, PureNcclCommunicator):
-                    raise ValueError('{} is not supported in '
-                                     'MultiNodeBatchNormalization when using '
-                                     '{}.'.format(self.communication_backend,
-                                                  type(self.comm)))
-            selected_communication_backend = self.communication_backend
-        else:
-            if isinstance(self.comm, PureNcclCommunicator):
-                selected_communication_backend = 'nccl'
-            else:
-                selected_communication_backend = 'mpi'
-
-        if selected_communication_backend == 'nccl':
+        if self.communication_backend == 'nccl':
             return _NcclBackend(self.comm)
         else:
             return _MpiBackend(self.comm)
