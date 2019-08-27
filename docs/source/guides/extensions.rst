@@ -94,7 +94,7 @@ See the details in the documentation of :class:`~chainer.training.Trainer` for m
 4. finalizer
 ^^^^^^^^^^^^
 
-You can specify a function which takes a :class:`~chainer.training.Trainer` object as an argument to finalize the extension. It is called once at the end of the training loop, i.e., when :meth:`~chainer.training.Trainer.run` has finished.
+You can specify a function to finalize the extension. It is called once at the end of the training loop, i.e., when :meth:`~chainer.training.Trainer.run` has finished.
 
 5. initializer
 ^^^^^^^^^^^^^^
@@ -164,7 +164,7 @@ The learning rate will be dropped according to the curve below with :math:`{\rm 
 .. code-block:: python
 
     stop_trigger = (10000, 'iteration')
-    trainer.extend(PolynomialShift('lr', 0.5, stop_trigger)
+    trainer.extend(PolynomialShift('lr', 0.5, stop_trigger))
 
 This extension ``PolynomialShift`` takes five arguments.
 

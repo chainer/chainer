@@ -23,11 +23,11 @@ Shape ToShape(py::handle shape) {
             throw py::type_error{"shape not understood: " + py::cast<std::string>(py::repr(shape))};
         }
         return Shape{seq};
-    } else if (py::isinstance<py::int_>(shape)) {
-        return Shape{shape.cast<int64_t>()};
-    } else {
-        throw py::type_error{"expected sequence object or a single integer"};
     }
+    if (py::isinstance<py::int_>(shape)) {
+        return Shape{shape.cast<int64_t>()};
+    }
+    throw py::type_error{"expected sequence object or a single integer"};
 }
 
 py::tuple ToTuple(const Shape& shape) {

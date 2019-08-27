@@ -11,7 +11,6 @@ class _Transform(tabular_dataset.TabularDataset):
 
         self._dataset = dataset
         self._keys = keys
-        self._mode = None
         self._transform = transform
 
     def __len__(self):
@@ -23,7 +22,7 @@ class _Transform(tabular_dataset.TabularDataset):
 
     @property
     def mode(self):
-        if self._mode is None:
+        if not hasattr(self, '_mode'):
             self.get_examples([0], None)
         return self._mode
 
@@ -40,26 +39,37 @@ class _Transform(tabular_dataset.TabularDataset):
             elif self._dataset.mode is dict:
                 out_example = self._transform(
                     **dict(six.moves.zip(self._dataset.keys, in_example)))
+            elif self._dataset.mode is None:
+                out_example = self._transform(*in_example)
 
-            if not isinstance(out_example, (tuple, dict)):
-                out_example = out_example,
             if isinstance(out_example, tuple):
-                if self._mode and self._mode is not tuple:
+                if hasattr(self, '_mode') and self._mode is not tuple:
                     raise ValueError(
                         'transform must not change its return type')
                 self._mode = tuple
                 for col_index, key_index in enumerate(key_indices):
                     out_examples[col_index].append(out_example[key_index])
             elif isinstance(out_example, dict):
-                if self._mode and self._mode is not dict:
+                if hasattr(self, '_mode') and self._mode is not dict:
                     raise ValueError(
                         'transform must not change its return type')
                 self._mode = dict
                 for col_index, key_index in enumerate(key_indices):
                     out_examples[col_index].append(
                         out_example[self._keys[key_index]])
+            else:
+                if hasattr(self, '_mode') and self._mode is not None:
+                    raise ValueError(
+                        'transform must not change its return type')
+                self._mode = None
+                out_example = out_example,
+                for col_index, key_index in enumerate(key_indices):
+                    out_examples[col_index].append(out_example[key_index])
 
         return out_examples
+
+    def convert(self, data):
+        return self._dataset.convert(data)
 
 
 class _TransformBatch(tabular_dataset.TabularDataset):
@@ -70,7 +80,6 @@ class _TransformBatch(tabular_dataset.TabularDataset):
 
         self._dataset = dataset
         self._keys = keys
-        self._mode = None
         self._transform_batch = transform_batch
 
     def __len__(self):
@@ -82,7 +91,7 @@ class _TransformBatch(tabular_dataset.TabularDataset):
 
     @property
     def mode(self):
-        if self._mode is None:
+        if not hasattr(self, '_mode'):
             self.get_examples([0], None)
         return self._mode
 
@@ -105,11 +114,11 @@ class _TransformBatch(tabular_dataset.TabularDataset):
         elif self._dataset.mode is dict:
             out_examples = self._transform_batch(
                 **dict(six.moves.zip(self._dataset.keys, in_examples)))
+        elif self._dataset.mode is None:
+            out_examples = self._transform_batch(*in_examples)
 
-        if not isinstance(out_examples, (tuple, dict)):
-            out_examples = out_examples,
         if isinstance(out_examples, tuple):
-            if self._mode and self._mode is not tuple:
+            if hasattr(self, '_mode') and self._mode is not tuple:
                 raise ValueError(
                     'transform_batch must not change its return type')
             self._mode = tuple
@@ -119,7 +128,7 @@ class _TransformBatch(tabular_dataset.TabularDataset):
             return tuple(out_examples[key_index]
                          for key_index in key_indices)
         elif isinstance(out_examples, dict):
-            if self._mode and self._mode is not dict:
+            if hasattr(self, '_mode') and self._mode is not dict:
                 raise ValueError(
                     'transform_batch must not change its return type')
             self._mode = dict
@@ -128,3 +137,17 @@ class _TransformBatch(tabular_dataset.TabularDataset):
                     'transform_batch must not change the length of data')
             return tuple(out_examples[self._keys[key_index]]
                          for key_index in key_indices)
+        else:
+            if hasattr(self, '_mode') and self._mode is not None:
+                raise ValueError(
+                    'transform_batch must not change its return type')
+            self._mode = None
+            out_examples = out_examples,
+            if not all(len(col) == len_ for col in out_examples):
+                raise ValueError(
+                    'transform_batch must not change the length of data')
+            return tuple(out_examples[key_index]
+                         for key_index in key_indices)
+
+    def convert(self, data):
+        return self._dataset.convert(data)

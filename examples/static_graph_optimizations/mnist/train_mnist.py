@@ -4,7 +4,13 @@ This is a version of the Chainer MNIST example that has been modified
 to support the static subgraph optimizations feature. Note that
 the code is mostly unchanged except for the addition of the
 `@static_graph` decorator to the model chain's `__call__()` method.
+
+Note for contributors:
+This example code is referred to from the documentation.
+If this file is to be modified, please also update the line numbers in
+`docs/source/reference/static_graph.rst` accordingly.
 """
+
 from __future__ import print_function
 
 import argparse

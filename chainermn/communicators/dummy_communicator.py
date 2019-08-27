@@ -1,5 +1,6 @@
 from chainermn.communicators import _memory_utility
 from chainermn.communicators import mpi_communicator_base
+import numpy as np
 
 
 class DummyCommunicator(mpi_communicator_base.MpiCommunicatorBase):
@@ -10,12 +11,14 @@ class DummyCommunicator(mpi_communicator_base.MpiCommunicatorBase):
     This class does not pass the tests.
     """
 
-    def __init__(self, mpi_comm):
+    def __init__(self, mpi_comm,
+                 batched_copy=False):
         super(DummyCommunicator, self).__init__(mpi_comm)
 
         self.gpu_buffer_a = _memory_utility.DeviceMemory()
+        self.batched_copy = batched_copy
 
-    def allreduce_grad(self, model, zero_fill=False):
+    def multi_node_mean_grad(self, model, zero_fill=False):
         params = _memory_utility.extract_params_set_grad(model, zero_fill)
         itemsize = 4
         n_elems_total = _memory_utility.count_grad_elements(params,
@@ -23,8 +26,12 @@ class DummyCommunicator(mpi_communicator_base.MpiCommunicatorBase):
         n_bytes_total = n_elems_total * itemsize
         self.gpu_buffer_a.assign(n_bytes_total)
 
-        _memory_utility.pack_params(
-            params, 'grad', self.gpu_buffer_a, zero_fill)
+        self._pack_params_to_buffer(params, 'grad',
+                                    buffer=self.gpu_buffer_a,
+                                    allreduce_grad_dtype=np.float32,
+                                    zero_fill=zero_fill)
 
-        _memory_utility.unpack_params(
-            params, 'grad', self.gpu_buffer_a, zero_fill)
+        self._unpack_params_from_buffer(params, 'grad',
+                                        buffer=self.gpu_buffer_a,
+                                        allreduce_grad_dtype=np.float32,
+                                        zero_fill=zero_fill)

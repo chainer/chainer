@@ -188,7 +188,7 @@ class FunctionAdapter(function_node.FunctionNode):
             in_data[i_in] = None if retained is None else retained.array
         in_data = tuple(in_data)
 
-        grad_out_data = tuple([None if grad is None else grad.data
+        grad_out_data = tuple([None if grad is None else grad.array
                                for grad in grad_outputs])
 
         is_chainerx_fallback_mode = self._is_chainerx_fallback_mode

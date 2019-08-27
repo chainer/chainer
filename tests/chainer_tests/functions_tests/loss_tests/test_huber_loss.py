@@ -19,11 +19,11 @@ from chainer import utils
      {'dtype': numpy.float32,
       'forward_options': {},
       'backward_options': {'eps': 1e-3, 'rtol': 1e-2, 'atol': 1e-2},
-      'double_backward_options': {'eps': 1e-3, 'rtol': 1e-2, 'atol': 1e-2}},
+      'double_backward_options': {'eps': 1e-3, 'rtol': 1e-3, 'atol': 1e-3}},
      {'dtype': numpy.float64,
       'forward_options': {},
       'backward_options': {'eps': 1e-3, 'rtol': 1e-2, 'atol': 1e-2},
-      'double_backward_options': {'eps': 1e-3, 'rtol': 1e-2, 'atol': 1e-2}},
+      'double_backward_options': {'eps': 1e-3, 'rtol': 1e-3, 'atol': 1e-3}},
      ],
     testing.product({
         'shape': [(), (3,)],
@@ -98,7 +98,7 @@ class TestHuberLoss(unittest.TestCase):
                               t_grad_grad):
 
         delta = 1
-        eps = self.double_backward_options['eps']
+        eps = self.double_backward_options['eps'] * 2
         xp = chainer.backend.get_array_module(x_data)
         mask = xp.abs(xp.abs(x_data - t_data) - delta) < eps
         x_data[mask] = 0

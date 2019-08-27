@@ -10,6 +10,31 @@
 
 namespace chainerx {
 
+namespace internal {
+
+template <typename KeyKernelType>
+const char* GetKeyKernelName();
+template <typename KeyKernelType>
+std::type_index GetKeyKernelTypeIndex();
+
+// Note this macro must be used in `chainerx::internal` namespace.
+// TODO(hamaji): Revert the following change and remove the above
+// restriction once we have dropped support for old compilers.
+// https://github.com/chainer/chainer/pull/7970/commits/b78ccb1caaa06ef2bbe08a0ac633e43388703b0c#diff-79c686351761272ba383747f24315d7cL20
+#define CHAINERX_REGISTER_KEY_KERNEL(cls, name)    \
+    template <>                                    \
+    const char* GetKeyKernelName<cls>() {          \
+        return name;                               \
+    }                                              \
+    template <>                                    \
+    std::type_index GetKeyKernelTypeIndex<cls>() { \
+        return typeid(cls);                        \
+    }
+
+#define CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(cls) CHAINERX_REGISTER_KEY_KERNEL(chainerx::cls##Kernel, #cls)
+
+}  // namespace internal
+
 // Manages dynamic registration and dispatch of kernels.
 // This class is hierarchical: it has an optional pointer to a parent KernelRegistry and falls back if a kernel is not found in this
 // instance.
@@ -26,16 +51,17 @@ public:
     void RegisterKernel() {
         static_assert(std::is_base_of<KeyKernelType, KernelType>::value, "KernelType must be a subclass of KeyKernelType.");
         std::lock_guard<std::mutex> lock{*mutex_};
-        auto pair = kernels_.emplace(std::type_index{typeid(KeyKernelType)}, std::make_unique<KernelType>());
+        std::type_index key{internal::GetKeyKernelTypeIndex<KeyKernelType>()};
+        auto pair = kernels_.emplace(key, std::make_unique<KernelType>());
         if (!pair.second) {
-            throw ChainerxError{"Duplicate kernel: ", KeyKernelType::name()};
+            throw ChainerxError{"Duplicate kernel: ", internal::GetKeyKernelName<KeyKernelType>()};
         }
     }
 
     // Looks up a kernel.
     template <typename KeyKernelType>
     Kernel& GetKernel() {
-        std::type_index key{typeid(KeyKernelType)};
+        std::type_index key{internal::GetKeyKernelTypeIndex<KeyKernelType>()};
         {
             std::lock_guard<std::mutex> lock{*mutex_};
             auto it = kernels_.find(key);
@@ -46,7 +72,7 @@ public:
         if (parent_ != nullptr) {
             return parent_->GetKernel<KeyKernelType>();
         }
-        throw ChainerxError{"Kernel not found: ", KeyKernelType::name()};
+        throw ChainerxError{"Kernel not found: ", internal::GetKeyKernelName<KeyKernelType>()};
     }
 
 private:
