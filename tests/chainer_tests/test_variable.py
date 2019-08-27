@@ -1837,11 +1837,13 @@ class TestUninitializedParameterWithDevices(unittest.TestCase):
         self.a = np.random.rand(3, 2).astype(np.float32)
         self.b = np.random.rand(*self.a.shape).astype(self.a.dtype)
 
-    def check_constant_initialization(self, x, a, xp, expected_device):
+    def check_constant_initialization(
+            self, x, a, xp, expected_dtype, expected_device):
         x.initialize(a.shape)
         assert isinstance(x.data, xp.ndarray)
         assert x._has_chainerx_array is (xp is chainerx)
-        xp.testing.assert_array_equal(x.data, xp.asarray(a))
+        xp.testing.assert_array_equal(
+            x.data.astype(expected_dtype, copy=False), xp.asarray(a))
         xp.testing.assert_array_equal(x.grad, np.float32('nan'))
         assert backend.get_device_from_array(x.data) == expected_device
         assert backend.get_device_from_array(x.grad) == expected_device
@@ -1850,14 +1852,23 @@ class TestUninitializedParameterWithDevices(unittest.TestCase):
         x = chainer.Parameter(initializer=initializers.Constant(self.a))
         x.to_device(backend_config.device)
         self.check_constant_initialization(
-            x, self.a, backend_config.xp, backend_config.device)
+            x, self.a, backend_config.xp, self.a.dtype, backend_config.device)
+
+    def test_initialize_to_device_with_dtype(self, backend_config):
+        x = chainer.Parameter(initializer=initializers.Constant(
+            self.a, dtype=np.float64))
+        x.to_device(backend_config.device)
+        with chainer.using_config('dtype', np.float16):
+            self.check_constant_initialization(
+                x, self.a, backend_config.xp, np.float64,
+                backend_config.device)
 
     def test_initialize_with_device(self, backend_config):
         a = backend_config.get_array(self.a)
         x = chainer.Parameter(initializer=initializers.Constant(a))
         # Parameters arrays are always initialized in numpy side
         self.check_constant_initialization(
-            x, self.a, np, _numpy_device)
+            x, self.a, np, self.a.dtype, _numpy_device)
 
     def check_zerograd(self, x, xp):
         assert isinstance(x.grad, xp.ndarray)
