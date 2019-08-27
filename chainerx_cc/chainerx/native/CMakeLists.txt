@@ -29,6 +29,7 @@ add_library(chainerx_native STATIC
     native_device/misc.cc
     native_device/pool.cc
     native_device/reduction.cc
+    native_device/rnn.cc
     native_device/rounding.cc
     native_device/statistics.cc
     native_device/trigonometric.cc

@@ -42,18 +42,10 @@ Array Dot(const Array& a, const Array& b, absl::optional<Dtype> out_dtype) {
     std::copy(a.shape().begin(), a.shape().end() - 1, std::back_inserter(out_shape));
 
     if (b.ndim() > 2) {
-        std::vector<int> b_transpose_axes{};
-        b_transpose_axes.reserve(b.ndim());
-        std::vector<int> axes_index(b.ndim());
-        std::iota(axes_index.begin(), axes_index.end(), 0);
-        std::copy(axes_index.begin(), axes_index.end() - 2, std::back_inserter(b_transpose_axes));
-        std::reverse_copy(axes_index.end() - 2, axes_index.end(), std::back_inserter(b_transpose_axes));
-
-        Axes axes(b_transpose_axes.begin(), b_transpose_axes.end());
-        modified_b = b.Transpose(axes);
+        modified_b = Swapaxes(b, -1, -2);
         std::copy(modified_b.shape().begin(), modified_b.shape().end() - 1, std::back_inserter(out_shape));
 
-        modified_b = modified_b.Reshape({-1, modified_b.shape().back()});
+        modified_b = modified_b.Reshape({b.GetTotalSize() > 0 ? -1 : 0, modified_b.shape().back()});
         modified_b = modified_b.Transpose();
     } else {
         std::copy(b.shape().begin() + 1, b.shape().end(), std::back_inserter(out_shape));
@@ -62,7 +54,7 @@ Array Dot(const Array& a, const Array& b, absl::optional<Dtype> out_dtype) {
 
     int64_t k = a.shape()[a.ndim() - 1];
     if (modified_b.shape()[0] != k) {
-        throw DimensionError{"Axis dimension mismatch"};
+        throw DimensionError{"Axis dimension mismatch between ", a.shape(), " and ", b.shape()};
     }
     if (k == 0) {
         return Zeros(out_shape, real_out_dtype, a.device());
@@ -330,6 +322,87 @@ Array PseudoInverse(const Array& a, float rcond) {
     // However, it does not hold if singular values are truncated based on rcond.
 
     return out;
+}
+
+std::tuple<Array, Array> Qr(const Array& a, QrMode mode) {
+    CheckRankTwoArray(a);
+    Device& device = a.device();
+    Dtype dtype = internal::GetMathResultDtype(a.dtype());
+
+    int64_t m = a.shape()[0];
+    int64_t n = a.shape()[1];
+    int64_t k = std::min(m, n);
+
+    Array tau = Empty(Shape{k}, dtype, device);
+    Shape q_shape{0};
+    Shape r_shape{};
+    switch (mode) {
+        case QrMode::kReduced:
+            q_shape = Shape{m, k};
+            r_shape = Shape{k, n};
+            break;
+        case QrMode::kComplete:
+            q_shape = Shape{m, m};
+            r_shape = Shape{m, n};
+            break;
+        case QrMode::kR:
+            r_shape = Shape{k, n};
+            break;
+        case QrMode::kRaw:
+            r_shape = Shape{n, m};  // for "raw" mode r in the code corrensponds to h in docs
+            break;
+        default:
+            throw ChainerxError{"Invalid QR mode"};
+            break;
+    }
+
+    Array q = Empty(q_shape, dtype, device);
+    Array r = Empty(r_shape, dtype, device);
+
+    {
+        NoBackpropModeScope scope{};
+        a.device().backend().CallKernel<QrKernel>(a, q, r, tau, mode);
+    }
+
+    // Backward of (Q, R) = QR(A):
+    // dA = (dQ + Q * symmetrize(M)) * R^(-T), M = R * dR^T - dQ^T * Q
+    {
+        BackwardBuilder bb{"qr", a, {q, r}};
+        if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+            bt.Define([q_tok = bb.RetainOutput(0), r_tok = bb.RetainOutput(1), mode](BackwardContext& bctx) {
+                if (mode == QrMode::kR || mode == QrMode::kRaw) {
+                    throw ChainerxError{"ChainerX QR differentiation is not implemented for 'r' or 'raw' modes."};
+                }
+
+                const Array& q = bctx.GetRetainedOutput(q_tok);
+                const Array& r = bctx.GetRetainedOutput(r_tok);
+
+                if (r.shape()[0] != r.shape()[1]) {
+                    throw DimensionError{"ChainerX QR differentiation is not implemented for non-square R."};
+                }
+
+                const Array& gq = bctx.output_grad(0).has_value() ? *bctx.output_grad(0) : Zeros(q.shape(), q.dtype(), q.device());
+                const Array& gr = bctx.output_grad(1).has_value() ? *bctx.output_grad(1) : Zeros(r.shape(), r.dtype(), r.device());
+
+                Array m = Dot(r, gr.Transpose()) - Dot(gq.Transpose(), q);
+
+                // Here a symmetric matrix is created from the square matrix M
+                // by setting the upper triangle to be equal to the lower triangle, leaving
+                // lower triangle and diagonal unchanged.
+                Array m_sym = Tril(m, 0) + Tril(m, -1).Transpose();
+                Array rhs = gq + Dot(q, m_sym);
+
+                // Note that rhs * R^(-T) = (R^(-1) * rhs^T)^T
+                bctx.input_grad() = Solve(r, rhs.Transpose()).Transpose();
+            });
+        }
+        bb.Finalize();
+    }
+
+    if (mode == QrMode::kRaw) {
+        return std::make_tuple(std::move(r), std::move(tau));
+    }
+    return std::make_tuple(std::move(q), std::move(r));
 }
 
 }  // namespace chainerx

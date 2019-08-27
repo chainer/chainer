@@ -62,7 +62,6 @@ def generate_array(initializer, shape, xp, dtype=None, device=None):
         backend_device = chainer.get_device(device)
         if xp != backend_device.xp:
             raise ValueError('xp and device arguments are inconsistent.')
-
     with chainer.using_device(backend_device):
         array = xp.empty(shape, dtype=dtype)
         initializer(array)
@@ -74,9 +73,8 @@ def _get_initializer(initializer):
 
     if initializer is None:
         return LeCunNormal()
-    if numpy.isscalar(initializer):
-        return Constant(initializer)
-    if isinstance(initializer, numpy.ndarray):
+    if (isinstance(initializer, chainer.get_array_types())
+            or numpy.isscalar(initializer)):
         return Constant(initializer)
 
     if not callable(initializer):

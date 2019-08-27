@@ -677,21 +677,21 @@ class TestCheckBackwardNoneConvention(unittest.TestCase):
 
     def test_multiple_output(self):
         size = self.size
-        x1 = numpy.arange(size).astype('f')
-        x2 = numpy.arange(size).astype('f')
-        g1 = numpy.ones(size, dtype='f')
-        g2 = numpy.ones(size, dtype='f')
+        x1 = numpy.arange(size).astype('float32')
+        x2 = numpy.arange(size).astype('float32')
+        g1 = numpy.ones(size, dtype='float32')
+        g2 = numpy.ones(size, dtype='float32')
 
         def f(x, y):
             s, t = IdentNoneIsZero()(x, y)
             return s, t
 
         gradient_check.check_backward(
-            f, (x1, x2), (g1, g2), dtype=self.dtype, atol=1e-4, rtol=1e-3)
+            f, (x1, x2), (g1, g2), dtype=self.dtype, atol=1e-2, rtol=1e-2)
         gradient_check.check_backward(
-            f, (x1, x2), (g1, None), dtype=self.dtype, atol=1e-4, rtol=1e-3)
+            f, (x1, x2), (g1, None), dtype=self.dtype, atol=1e-2, rtol=1e-2)
         gradient_check.check_backward(
-            f, (x1, x2), (None, g2), dtype=self.dtype, atol=1e-4, rtol=1e-3)
+            f, (x1, x2), (None, g2), dtype=self.dtype, atol=1e-2, rtol=1e-2)
 
 
 class TestCheckBackwardFailure(unittest.TestCase):

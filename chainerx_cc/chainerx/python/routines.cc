@@ -24,6 +24,7 @@
 #include "chainerx/routines/binary.h"
 #include "chainerx/routines/connection.h"
 #include "chainerx/routines/creation.h"
+#include "chainerx/routines/evaluation.h"
 #include "chainerx/routines/explog.h"
 #include "chainerx/routines/hyperbolic.h"
 #include "chainerx/routines/indexing.h"
@@ -291,6 +292,17 @@ void InitChainerxCreation(pybind11::module& m) {
     m.def("triu", [](const ArrayBodyPtr& m, int64_t k) { return MoveArrayBody(Triu(Array{m}, k)); }, "m"_a, "k"_a = 0);
 }
 
+void InitChainerxEvaluation(pybind11::module& m) {
+    // evaluation routines
+    m.def("accuracy",
+          [](const ArrayBodyPtr& y, const ArrayBodyPtr& t, const absl::optional<int64_t>& ignore_label) {
+              return MoveArrayBody(Accuracy(Array{y}, Array{t}, ignore_label));
+          },
+          "y"_a,
+          "t"_a,
+          "ignore_label"_a = nullptr);
+}
+
 void InitChainerxIndexing(pybind11::module& m) {
     // indexing routines
     m.def("take",
@@ -371,6 +383,33 @@ void InitChainerxLinalg(pybind11::module& m) {
             [](const ArrayBodyPtr& a, float rcond) { return MoveArrayBody(PseudoInverse(Array{a}, rcond)); },
             "a"_a,
             "rcond"_a = 1e-15);
+    mlinalg.def(
+            "qr",
+            [](const ArrayBodyPtr& a, const std::string& mode) -> py::object {
+                Array a_array{a};
+
+                QrMode qrmode{};
+                if (mode == "reduced") {
+                    qrmode = QrMode::kReduced;
+                } else if (mode == "complete") {
+                    qrmode = QrMode::kComplete;
+                } else if (mode == "r") {
+                    qrmode = QrMode::kR;
+                } else if (mode == "raw") {
+                    qrmode = QrMode::kRaw;
+                } else {
+                    throw py::value_error{"mode must be 'reduced', 'complete', 'r', or 'raw'"};
+                }
+                std::tuple<Array, Array> qr = Qr(a_array, qrmode);
+                Array& q = std::get<0>(qr);
+                Array& r = std::get<1>(qr);
+                if (mode == "r") {
+                    return py::cast(MoveArrayBody(std::move(r)));
+                }
+                return py::make_tuple(MoveArrayBody(std::move(q)), MoveArrayBody(std::move(r)));
+            },
+            "a"_a,
+            "mode"_a = "reduced");
 }
 
 void InitChainerxLogic(pybind11::module& m) {
@@ -702,6 +741,17 @@ void InitChainerxActivation(pybind11::module& m) {
           [](const ArrayBodyPtr& x, Scalar slope) { return MoveArrayBody(LeakyRelu(Array{x}, slope)); },
           "x"_a,
           "slope"_a = 0.2);
+    m.def("tree_lstm", [](py::args args) {
+        std::vector<ArrayBodyPtr> arrays = py::cast<std::vector<ArrayBodyPtr>>(args);
+        std::vector<Array> input;
+        for (size_t i = 0; i < arrays.size(); i++) {
+            input.emplace_back(Array{arrays[i]});
+        }
+        return ToTuple(TreeLstm(input));
+    });
+    m.def("slstm", [](const ArrayBodyPtr& c1, const ArrayBodyPtr& c2, const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) {
+        return ToTuple(SLstm(Array{c1}, Array{c2}, Array{x1}, Array{x2}));
+    });
     m.def("softplus", [](const ArrayBodyPtr& x, double beta) { return MoveArrayBody(Softplus(Array{x}, beta)); }, "x"_a, "beta"_a = 1.0);
 }
 
@@ -739,6 +789,13 @@ void InitChainerxArithmetic(pybind11::module& m) {
           "x2"_a);
     m.def("power", [](const ArrayBodyPtr& x1, Scalar x2) { return MoveArrayBody(Power(Array{x1}, x2)); }, "x1"_a, "x2"_a);
     m.def("power", [](Scalar x1, const ArrayBodyPtr& x2) { return MoveArrayBody(Power(x1, Array{x2})); }, "x1"_a, "x2"_a);
+    m.def("remainder",
+          [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return MoveArrayBody(Mod(Array{x1}, Array{x2})); },
+          "x1"_a,
+          "x2"_a);
+    m.def("remainder", [](const ArrayBodyPtr& x1, Scalar x2) { return MoveArrayBody(Mod(Array{x1}, x2)); }, "x1"_a, "x2"_a);
+    m.def("remainder", [](Scalar x1, const ArrayBodyPtr& x2) { return MoveArrayBody(Mod(x1, Array{x2})); }, "x1"_a, "x2"_a);
+    m.attr("mod") = m.attr("remainder");
 }
 
 void InitChainerxBinary(pybind11::module& m) {
@@ -1355,6 +1412,7 @@ void InitChainerxRNN(pybind11::module& m) {
 
 void InitChainerxRoutines(pybind11::module& m) {
     InitChainerxCreation(m);
+    InitChainerxEvaluation(m);
     InitChainerxIndexing(m);
     InitChainerxLinalg(m);
     InitChainerxLogic(m);
