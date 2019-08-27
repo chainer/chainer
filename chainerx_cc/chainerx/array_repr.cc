@@ -172,17 +172,18 @@ struct ArrayReprImpl {
         // array should be already synchronized
         // Let formatter scan all elements to print.
         Indexer<Ndim> indexer{array.shape()};
-        IndexableArray<const T, Ndim> iarray{array};
+        IndexableArray<const T, Ndim> iarray{native_array};
         for (auto it = indexer.It(0); it; ++it) {
             T value = native::StorageToDataType<const T>(iarray[it]);
             formatter.Scan(value);
         }
 
         os << "array(";
+
         if (array.GetTotalSize() == 0) {
             os << "[]";
         } else {
-            ArrayReprRecursive<T>(array, formatter, 7, os);
+            ArrayReprRecursive<T>(native_array, formatter, 7, os);
         }
 
         // Print the footer
