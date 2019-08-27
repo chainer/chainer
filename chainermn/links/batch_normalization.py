@@ -8,8 +8,6 @@ from chainer import variable
 import numpy
 
 from chainermn.functions.batch_normalization import \
-    get_communication_backend
-from chainermn.functions.batch_normalization import \
     MultiNodeBatchNormalizationFunction
 
 
@@ -65,8 +63,7 @@ class MultiNodeBatchNormalization(link.Link):
         self.decay = decay
         self.eps = eps
 
-        self._communication_backend = \
-            get_communication_backend(comm, communication_backend)
+        self._communication_backend = communication_backend
 
         with self.init_scope():
             if use_gamma:
@@ -104,10 +101,10 @@ class MultiNodeBatchNormalization(link.Link):
                 decay = self.decay
 
             func = MultiNodeBatchNormalizationFunction(
-                self.comm, self.eps, self.avg_mean, self.avg_var, decay,
+                self.comm, self.eps, self.avg_mean, self.avg_var, decay=decay,
                 communication_backend=self._communication_backend)
 
-            ret = func(x, gamma, beta)
+            ret = func.apply((x, gamma, beta))[0]
 
             self.avg_mean[:] = func.running_mean
             self.avg_var[:] = func.running_var
@@ -130,7 +127,7 @@ class MultiNodeBatchNormalization(link.Link):
         self.N = 0
 
     def copy(self, mode='share'):
-        to_be_preserved = ['_communication_backend', 'comm']
+        to_be_preserved = ['comm']
         preserved = {}
         for name in to_be_preserved:
             preserved[name] = getattr(self, name)
