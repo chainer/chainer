@@ -4,7 +4,6 @@
 import chainer
 from chainer import cuda
 import chainer.utils
-import numpy
 from chainer.functions.normalization.batch_normalization \
     import _GeneralBatchNormalizationBackend
 from chainer.functions.normalization.batch_normalization \
