@@ -83,6 +83,15 @@ void ssyevd_(char* jobz, char* uplo, int* n, float* a, int* lda, float* w, float
 #endif  // CHAINERX_ENABLE_LAPACK
 
 namespace chainerx {
+
+namespace internal {
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(Dot)
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(Solve)
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(Inverse)
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(Svd)
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(Qr)
+}  // namespace internal
+
 namespace native {
 namespace {
 

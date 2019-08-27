@@ -91,6 +91,35 @@ Array LeakyRelu(const Array& x, Scalar slope) {
     return Where(x_cast >= zero, x_cast, slope * x_cast);
 }
 
+std::vector<Array> TreeLstm(std::vector<Array> arrays) {
+    size_t n_ary = arrays.size() - 1;
+    std::vector<Array> gates = ExtractGates(arrays[arrays.size() - 1], 3 + n_ary, 1);
+
+    Array a = Squeeze(gates[0]);
+    Array i = Squeeze(gates[1]);
+    Array o = Squeeze(gates[2]);
+    std::vector<Array> fs;
+    for (size_t i = 3; i < gates.size(); i++) {
+        fs.emplace_back(Squeeze(gates[i]));
+    }
+    Array a_ = Tanh(a);
+    Array i_ = Sigmoid(i);
+    Array o_ = Sigmoid(o);
+    std::vector<Array> fs_s{};
+    fs_s.reserve(fs.size());
+    for (const auto& f : fs) {
+        fs_s.emplace_back(Sigmoid(f));
+    }
+    std::vector<Array> sum;
+    sum.emplace_back(arrays[0] * fs_s[0]);
+    for (size_t i = 1; i < arrays.size() - 1; i++) {
+        sum.emplace_back(sum[i - 1] + arrays[i] * fs_s[i]);
+    }
+    Array c = a_ * i_ + sum[sum.size() - 1];
+    Array h = o_ * Tanh(c);
+    return {c, h};
+}
+
 std::vector<Array> SLstm(const Array& c_prev1, const Array& c_prev2, const Array& x1, const Array& x2) {
     std::vector<Array> x1_gates = ExtractGates(x1, 4, 2);
     std::vector<Array> x2_gates = ExtractGates(x2, 4, 2);

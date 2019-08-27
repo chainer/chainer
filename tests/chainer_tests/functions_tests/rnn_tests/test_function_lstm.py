@@ -38,6 +38,7 @@ class LSTMTestBase(object):
 
     dtype = numpy.float32
     grad_outputs = (True, True)
+    grad_grad_inputs = (True, True)
 
     def setUp(self):
         if self.dtype == numpy.float16:
@@ -90,6 +91,24 @@ class LSTMTestBase(object):
         else:
             grad_out.append(None)
         return tuple(grad_out)
+
+    def generate_grad_grad_inputs(self, inputs_template):
+        grad_grad_in = []
+        c = inputs_template[0]
+        x = inputs_template[1]
+
+        c_shape = c.shape
+        x_shape = x.shape
+        if self.grad_grad_inputs[0] is True:
+            grad_grad_in.append(_shaped_random(c_shape, c.dtype))
+        else:
+            grad_grad_in.append(None)
+
+        if self.grad_grad_inputs[1] is True:
+            grad_grad_in.append(_shaped_random(x_shape, x.dtype))
+        else:
+            grad_grad_in.append(None)
+        return tuple(grad_grad_in)
 
 
 @testing.fix_random()
@@ -163,7 +182,11 @@ class TestLSTM(LSTMTestBase, testing.FunctionTestCase):
         {'grad_outputs': (True, True)},
         {'grad_outputs': (True, False)},
         {'grad_outputs': (False, True)},
-    ]
+    ], [
+        {'grad_grad_inputs': (True, True)},
+        {'grad_grad_inputs': (True, False)},
+        {'grad_grad_inputs': (False, True)},
+    ],
 ))
 class TestLSTMGradOutputs(LSTMTestBase, testing.FunctionTestCase):
     pass

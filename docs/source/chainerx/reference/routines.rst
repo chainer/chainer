@@ -53,6 +53,8 @@ Activation functions
    chainerx.relu
    chainerx.sigmoid
    chainerx.slstm
+   chainerx.tree_lstm
+
 
 Array manipulation routines
 ---------------------------
@@ -84,6 +86,15 @@ Array manipulation routines
    chainerx.fliplr
    chainerx.flipud
    chainerx.moveaxis
+
+Evaluation routines
+-------------------
+
+.. autosummary::
+    :toctree: generated/
+    :nosignatures:
+
+    chainerx.accuracy
 
 Indexing routines
 -----------------
@@ -161,6 +172,8 @@ Mathematical functions
    chainerx.subtract
    chainerx.multiply
    chainerx.divide
+   chainerx.mod
+   chainerx.remainder
    chainerx.sum
    chainerx.maximum
    chainerx.exp
