@@ -45,8 +45,6 @@ class _GeneralBatchNormalizationBackend(_BatchNormalizationBackend):
         self.running_mean = running_mean
         self.running_var = running_var
 
-        # Generic CPU and GPU implementation
-
         interm_dtype = numpy.promote_types(x.dtype, gamma.dtype)
 
         gamma = gamma[expander].astype(interm_dtype, copy=False)
@@ -91,17 +89,21 @@ class _GeneralBatchNormalizationBackend(_BatchNormalizationBackend):
         var = x.var(axis=axis, dtype=interm_dtype)
         return mean, var
 
+    def _get_ggamma_and_gbeta(self, axis, gamma, gy, x_hat, xp):
+        gbeta = gy.sum(axis=axis, dtype=gamma.dtype)
+        ggamma = (gy * x_hat).sum(axis=axis, dtype=gamma.dtype)
+
+        return gbeta, ggamma
+
     def backward(self, axis, gamma, gy, x, xp,
                  expander, mean, inv_std, eps, var, mode):
-        # CPU and GPU implementation
         if isinstance(gy, intel64.mdarray):
             # intel64.mdarray does not support dtype option in sum, so we
             # convert it to numpy here.
             gy = numpy.asarray(gy)
 
-        gbeta = gy.sum(axis=axis, dtype=gamma.dtype)
         x_hat = _x_hat(x, mean[expander], inv_std[expander])
-        ggamma = (gy * x_hat).sum(axis=axis, dtype=gamma.dtype)
+        gbeta, ggamma = self._get_ggamma_and_gbeta(axis, gamma, gy, x_hat, xp)
 
         inv_m = gamma.dtype.type(1. / (x.size // gamma.size))
         if xp is numpy:
@@ -202,8 +204,6 @@ class _IDeepBatchNormalizationBackend(_GeneralBatchNormalizationBackend):
 
 class _CudnnBatchNormalizationBackend(_GeneralBatchNormalizationBackend):
     def __init__(self, mode):
-        # super(_GeneralBatchNormalizationBackend, self).__init__(running_mean,
-        #                                                         running_var)
         super().__init__(mode)
 
     def forward(self, axis, gamma, x, xp, expander,
@@ -312,7 +312,7 @@ class BatchNormalization(function_node.FunctionNode):
                 x_type.shape[_key_axis[i]] == gamma_type.shape[i],
             )
 
-    def _bn_backend_selector(self, x, xp, gamma):
+    def _bn_backend_selector(self, xp):
         self.use_cudnn = self.mode.can_use_cudnn(xp)
         self.use_ideep = self.mode.can_use_ideep()
 
@@ -389,7 +389,7 @@ class BatchNormalization(function_node.FunctionNode):
         xp = backend.get_array_module(x)
 
         self.mode = _BNMode(x, gamma, self.key_axis)
-        self.bn_backend = self._bn_backend_selector(x, xp, gamma)
+        self.bn_backend = self._bn_backend_selector(xp)
         y, = self.bn_backend.forward(axis=self.axis, gamma=gamma, x=x,
                                      xp=xp, expander=expander,
                                      beta=beta, eps=self.eps,
@@ -415,7 +415,7 @@ class BatchNormalization(function_node.FunctionNode):
             var = None
 
         f = BatchNormalizationGrad(
-            self.eps, self.use_cudnn, self.mode,
+            self.eps, self.mode,
             self.expander, self.axis,
             self.mean, var,
             self.inv_std, self.key_axis,
@@ -426,11 +426,9 @@ class BatchNormalization(function_node.FunctionNode):
 
 class BatchNormalizationGrad(function_node.FunctionNode):
 
-    def __init__(self, eps, use_cudnn, mode, expander, axis, mean, var,
+    def __init__(self, eps, mode, expander, axis, mean, var,
                  inv_std, key_axis, bn_backend):
         self.eps = eps
-        # self.use_cudnn = use_cudnn
-        # self.use_ideep = mode.can_use_ideep()
         self.mode = mode
         self.expander = expander
         self.axis = axis
@@ -446,10 +444,11 @@ class BatchNormalizationGrad(function_node.FunctionNode):
         expander = self.expander
         xp = backend.get_array_module(x)
 
-        gx, ggamma, gbeta = self.bn_backend.backward(self.axis, gamma, gy, x, xp,
-                                                     expander, self.mean,
-                                                     self.inv_std, self.eps,
-                                                     self.var, self.mode)
+        gx, ggamma, gbeta = self.bn_backend.backward(self.axis, gamma, gy,
+                                                     x, xp, expander,
+                                                     self.mean, self.inv_std,
+                                                     self.eps, self.var,
+                                                     self.mode)
         self.retain_inputs((0, 1, 2))
         self.retain_outputs((0, 1))
         return gx, ggamma, gbeta
