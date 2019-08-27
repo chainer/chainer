@@ -136,19 +136,7 @@ class MultiNodeBatchNormalizationFunction(BatchNormalization):
         self.comm = comm
         self.communication_backend = communication_backend
 
-    def _bn_backend_selector(self, x, xp, gamma):
-        head_ndim = gamma.ndim + 1
-        # cuDNN only supports these tensor dimensions because they are
-        # the most commonly used. If there is a need to support other
-        # dimensions with cuDNN, we could consider reshaping the input
-        # into a 2-dim array with channels as second dim and m=<product
-        # of all dimensions except the 2nd dimension> as the first
-        # dimension.
-        cudnn_dim_ok = x.ndim == 2 or (x.ndim == 4 and head_ndim == 2)
-        # TODO(bkvogel): Check for float16 support again in next cuDNN version.
-        # cuDNN v5 batch normalization does not seem to support float16.
-        self.use_cudnn = cudnn_dim_ok and x[0].dtype != numpy.float16
-
+    def _bn_backend_selector(self, xp):
         if self.communication_backend == 'nccl':
             return _NcclBackend(self.comm)
         else:
