@@ -11,16 +11,9 @@ from chainer.functions.normalization.batch_normalization \
     import BatchNormalization
 
 
-class _MultiNodeBatchNormalizationBackend(_GeneralBatchNormalizationBackend):
+class _MpiBackend(_GeneralBatchNormalizationBackend):
     def __init__(self, comm):
-        super(_MultiNodeBatchNormalizationBackend, self).__init__()
         self.comm = comm
-        self.std = None
-
-
-class _MpiBackend(_MultiNodeBatchNormalizationBackend):
-    def __init__(self, comm):
-        super(_MpiBackend, self).__init__(comm)
 
     def _get_mean_and_var(self, axis, gamma, x, xp, interm_dtype):
         tmp = xp.empty(gamma.size * 2, dtype=gamma.dtype)
@@ -46,10 +39,10 @@ class _MpiBackend(_MultiNodeBatchNormalizationBackend):
         return gbeta, ggamma
 
 
-class _NcclBackend(_MultiNodeBatchNormalizationBackend):
+class _NcclBackend(_GeneralBatchNormalizationBackend):
 
     def __init__(self, comm):
-        super(_NcclBackend, self).__init__(comm)
+        self.comm = comm
 
         # We need to delay importing MPI4py (and momdules that import MPI4py)
         import chainermn.communicators._memory_utility as memory_utility_module
