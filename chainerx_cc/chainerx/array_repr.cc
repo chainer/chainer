@@ -172,14 +172,20 @@ struct ArrayReprImpl {
         // array should be already synchronized
         // Let formatter scan all elements to print.
         Indexer<Ndim> indexer{array.shape()};
-        IndexableArray<const T, Ndim> iarray{array};
+        IndexableArray<const T, Ndim> iarray{native_array};
         for (auto it = indexer.It(0); it; ++it) {
             T value = native::StorageToDataType<const T>(iarray[it]);
             formatter.Scan(value);
         }
 
         os << "array(";
-        ArrayReprRecursive<T>(array, formatter, 7, os, array.GetTotalSize() > kThreshold);
+        if (array.GetTotalSize() == 0) {
+            os << "[]";
+        } else {
+            NoBackpropModeScope scope{};
+            bool should_abbreviate = array.GetTotalSize() > kThreshold;
+            ArrayReprRecursive<T>(native_array, formatter, 7, os, should_abbreviate);
+        }
 
         // Print the footer
         os << ", shape=" << array.shape();
@@ -204,6 +210,10 @@ private:
     static constexpr int64_t kThreshold = 1000;
     static constexpr int64_t kEdgeItems = 3;
 
+    // The behavior of this function is recursively defined as follows:
+    // array.ndim() == 0 => Returns a string represenation of the single scalar.
+    // array.ndim() == 1 => Returns a string: space separated scalars.
+    // array.ndim() >= 2 => Returns a string: newline separated arrays with one less dimension.
     template <typename T>
     void ArrayReprRecursive(const Array& array, Formatter<T>& formatter, size_t indent, std::ostream& os, bool abbreviate = false) const {
         const uint8_t ndim = array.ndim();
@@ -252,7 +262,6 @@ std::ostream& operator<<(std::ostream& os, const Array& array) {
     // TODO(hvy): We need to determine the output specification of this function, whether or not to align with Python repr specification,
     // and also whether this functionality should be defined in C++ layer or Python layer.
     // TODO(hvy): Consider using a static dimensionality.
-    NoBackpropModeScope scope{};
     VisitDtype(array.dtype(), [&os, &array](auto pt) { ArrayReprImpl<kDynamicNdim>{}.operator()<typename decltype(pt)::type>(array, os); });
     return os;
 }

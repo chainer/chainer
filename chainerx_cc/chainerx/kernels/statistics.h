@@ -12,8 +12,6 @@ namespace chainerx {
 // See Sum() for the explanation of arguments.
 class AMaxKernel : public Kernel {
 public:
-    static const char* name() { return "AMax"; }
-
     virtual void Call(const Array& src, const Axes& axis, const Array& out) = 0;
 };
 
@@ -21,8 +19,6 @@ public:
 // See Sum() for the explanation of arguments.
 class AMinKernel : public Kernel {
 public:
-    static const char* name() { return "AMin"; }
-
     virtual void Call(const Array& src, const Axes& axis, const Array& out) = 0;
 };
 

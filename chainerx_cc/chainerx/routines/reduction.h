@@ -19,4 +19,8 @@ Array LogSoftmax(const Array& x, const OptionalAxes& axis = absl::nullopt);
 
 Array Softmax(const Array& x, const OptionalAxes& axis = absl::nullopt);
 
+Array Cumsum(const Array& a, absl::optional<int8_t> axis = absl::nullopt);
+
+Array Nansum(const Array& a, const OptionalAxes& axis = absl::nullopt, bool keepdims = false);
+
 }  // namespace chainerx

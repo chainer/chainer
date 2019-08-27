@@ -37,6 +37,9 @@ Array creation routines
    chainerx.linspace
    chainerx.diag
    chainerx.diagflat
+   chainerx.tri
+   chainerx.tril
+   chainerx.triu
 
 Activation functions
 --------------------
@@ -49,6 +52,9 @@ Activation functions
    chainerx.tanh
    chainerx.relu
    chainerx.sigmoid
+   chainerx.slstm
+   chainerx.tree_lstm
+
 
 Array manipulation routines
 ---------------------------
@@ -74,11 +80,21 @@ Array manipulation routines
    chainerx.split
    chainerx.dsplit
    chainerx.swapaxes
+   chainerx.repeat
    chainerx.expand_dims
    chainerx.flip
    chainerx.fliplr
    chainerx.flipud
    chainerx.moveaxis
+
+Evaluation routines
+-------------------
+
+.. autosummary::
+    :toctree: generated/
+    :nosignatures:
+
+    chainerx.accuracy
 
 Indexing routines
 -----------------
@@ -98,6 +114,12 @@ Linear algebra
    :nosignatures:
 
    chainerx.dot
+
+   chainerx.linalg.qr
+   chainerx.linalg.svd
+   chainerx.linalg.solve
+   chainerx.linalg.inv
+   chainerx.linalg.pinv
 
 Logic functions
 ---------------
@@ -125,7 +147,7 @@ Logic functions
    chainerx.not_equal
 
 Loss functions
----------------
+--------------
 
 .. autosummary::
    :toctree: generated/
@@ -148,6 +170,8 @@ Mathematical functions
    chainerx.subtract
    chainerx.multiply
    chainerx.divide
+   chainerx.mod
+   chainerx.remainder
    chainerx.sum
    chainerx.maximum
    chainerx.exp
@@ -179,6 +203,8 @@ Mathematical functions
    chainerx.bitwise_and
    chainerx.bitwise_or
    chainerx.bitwise_xor
+   chainerx.left_shift
+   chainerx.right_shift
 
 Random sampling
 ---------------
@@ -221,6 +247,7 @@ Connection
    chainerx.conv
    chainerx.conv_transpose
    chainerx.linear
+   chainerx.lstm
 
 Normalization
 -------------
@@ -241,3 +268,17 @@ Pooling
 
    chainerx.max_pool
    chainerx.average_pool
+
+RNN
+---
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainerx.n_step_lstm
+   chainerx.n_step_bilstm
+   chainerx.n_step_gru
+   chainerx.n_step_bigru
+   chainerx.n_step_rnn
+   chainerx.n_step_birnn

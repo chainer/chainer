@@ -74,7 +74,7 @@ def main():
     parser.add_argument('--unit', '-u', default=1000, type=int,
                         help='Number of units')
     parser.add_argument('--device0', '-d', type=str, default='0',
-                        help='Device specifier of the first device.'
+                        help='Device specifier of the first device. '
                         'Either ChainerX device '
                         'specifier or an integer. If non-negative integer, '
                         'CuPy arrays with specified device id are used. If '

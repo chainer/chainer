@@ -4,6 +4,7 @@ import warnings
 
 import mock
 import numpy as np
+import pytest
 
 import chainer
 from chainer import backend
@@ -634,10 +635,6 @@ class TestGradientMethodLossScale(unittest.TestCase):
         self.optimizer = chainer.optimizers.SGD(lr)
 
     def test_update(self, backend_config):
-        if backend_config.device.name == '@cupy:1':
-            # TODO(niboshi): Fix it
-            raise unittest.SkipTest(
-                'Loss scale does not work with cupy multi-device.')
         target = self.target
         optimizer = self.optimizer
         target.to_device(backend_config.device)
@@ -765,6 +762,69 @@ class TestDeprecatedOptimizerHooksEmitsWarning(unittest.TestCase):
         chainer.optimizer.WeightDecay(1.)
         self.assertEqual(len(self.warnings), 1)
         self.assertIs(self.warnings[-1].category, DeprecationWarning)
+
+
+@testing.parameterize(*testing.product({
+    # None: dtype is not given by initializer.
+    # Otherwise: it's given by initializer.
+    'dtype': [None, np.float16, np.float32, np.float64]
+}))
+class TestUpdateRuleUseFp32Update(unittest.TestCase):
+
+    def test_uninitialized_parameter(self):
+        dtype = self.dtype
+
+        def initializer(array):
+            assert False  # never called
+
+        # Set initializer.dtype to specify the parameter's dtype
+        if dtype is not None:
+            initializer.dtype = dtype
+
+        # Create an uninitialized parameter
+        param = chainer.Parameter(initializer)
+        assert param.array is None
+        if dtype is not None:
+            assert param.dtype == dtype
+
+        # Create an update rule with custom update_core
+        record = []
+        update_rule = chainer.UpdateRule()
+
+        def update_core(param):
+            # param.dtype may not be retrieved because it can be uninitialized
+            # and dtype is not given (i.e. self.dtype is None)
+            try:
+                param_dtype = param.dtype
+            except RuntimeError:
+                param_dtype = None
+            record.append({
+                'param': param,
+                'dtype': param_dtype,
+            })
+
+        update_rule.update_core = update_core
+
+        # Enable fp32 update
+        update_rule.use_fp32_update()
+        # Call update_rule.update
+        update_rule.update(param)
+
+        if dtype == np.float16:
+            assert record[0]['param'] is not param
+            assert record[0]['dtype'] == np.float32
+        else:
+            assert record[0]['param'] is param
+            assert record[0]['dtype'] == dtype
+
+        # The original parameter is kept uninitialized and its dtype is
+        # unchanged.
+        assert param.array is None
+        if dtype is not None:
+            assert param.dtype == dtype
+        else:
+            with pytest.raises(RuntimeError):
+                param.dtype
 
 
 testing.run_module(__name__, __file__)

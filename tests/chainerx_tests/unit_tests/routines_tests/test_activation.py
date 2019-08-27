@@ -1,11 +1,19 @@
 import random
 import chainer
 import numpy
+import chainerx
 
 from chainer import utils
 from chainerx_tests import array_utils
 from chainerx_tests import dtype_utils
 from chainerx_tests import op_utils
+
+n_step_lstm_dtypes_valid = dtype_utils._permutate_dtype_mapping([
+    # Floats.
+    (('float16', ), ()),
+    (('float32', ), ()),
+    (('float64', ), ()),
+])
 
 
 # A special parameter object used to represent an unspecified argument.
@@ -77,6 +85,51 @@ _in_out_dtypes_math_functions = _in_out_float_dtypes_math_functions + [
     # Bool.
     (('bool_',), 'float32'),
 ]
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    chainer.testing.product([
+        chainer.testing.from_pytest_parameterize(
+            'batch_size,n_units', [
+                ((2, 3)),
+                ((2, 2)),
+                ((3, 8)),
+                ((4, 12)),
+
+            ]),
+        chainer.testing.from_pytest_parameterize(
+            'in_dtypes, out_dtype', n_step_lstm_dtypes_valid)
+    ])
+))
+class TestSLstm(op_utils.ChainerOpTest):
+
+    def setup(self):
+        self.check_forward_options.update({
+            'rtol': 1e-2, 'atol': 1e-2})
+        self.check_backward_options.update({
+            'rtol': 1e-2, 'atol': 1e-2})
+        self.check_double_backward_options.update({
+            'rtol': 5e-3, 'atol': 5e-2})
+
+    def generate_inputs(self):
+        batch_size = self.batch_size
+        n_units = self.n_units
+        c1 = array_utils.uniform((batch_size, n_units), self.in_dtypes[0])
+        c2 = array_utils.uniform((batch_size, n_units), self.in_dtypes[0])
+        x1 = array_utils.uniform((batch_size, 4 * n_units), self.in_dtypes[0])
+        x2 = array_utils.uniform((batch_size, 4 * n_units), self.in_dtypes[0])
+        return tuple([c1, c2, x1, x2])
+
+    def forward_chainerx(self, inputs):
+        c1, c2, x1, x2 = inputs
+        out = chainerx.slstm(c1, c2, x1, x2)
+        return out
+
+    def forward_chainer(self, inputs):
+        c1, c2, x1, x2 = inputs
+        out = chainer.functions.slstm(c1, c2, x1, x2)
+        return out
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
@@ -287,3 +340,59 @@ class TestLeakyRelu(UnaryMathTestBase, op_utils.NumpyOpTest):
             expected = numpy.where(a >= 0, a, a * self.slope)
             return expected
         return xp.leaky_relu(a, self.slope)
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    # Special shapes
+    chainer.testing.product({
+        'shape': [(), (0,), (1,), (2, 0, 3), (1, 1, 1), (2, 3)],
+        'in_dtypes,out_dtype': _in_out_dtypes_math_functions,
+        'input': [-2, 2],
+        'contiguous': [None, 'C'],
+        'beta_range': [(-2.0, -1.0), (1.0, 2.0), Unspecified],
+    })
+    # Special values
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,out_dtype': _in_out_float_dtypes_math_functions,
+        'input': [0, float('inf'), -float('inf'), float('nan')],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True],
+        'beta_range': [(-2.0, -1.0), (1.0, 2.0), Unspecified],
+    })
+))
+class TestSoftplus(UnaryMathTestBase, op_utils.NumpyOpTest):
+
+    def setup(self):
+        in_dtype, = self.in_dtypes
+        if isinstance(self.beta_range, tuple):
+            l, u = self.beta_range
+            self.beta = random.uniform(l, u)
+        elif self.beta_range is Unspecified:
+            self.beta = 1.0
+        else:
+            self.beta = self.beta_range
+
+        if numpy.dtype(in_dtype).kind != 'f':
+            self.skip_backward_test = True
+            self.skip_double_backward_test = True
+
+        if in_dtype == 'float16':
+            self.check_forward_options.update({'rtol': 2e-3, 'atol': 2e-3})
+            self.check_backward_options.update({'rtol': 2e-3, 'atol': 2e-3})
+            self.check_double_backward_options.update(
+                {'rtol': 1e-2, 'atol': 1e-2})
+
+    def func(self, xp, a):
+        in_dtype, = self.in_dtypes
+        if xp is numpy:
+            ba = self.beta * a
+            beta_inv = 1.0 / self.beta
+            y = (numpy.fmax(ba, 0) +
+                 numpy.log1p(numpy.exp(-numpy.fabs(ba)))) * beta_inv
+            return y
+        elif self.beta_range is Unspecified:
+            return xp.softplus(a)
+        else:
+            return xp.softplus(a, self.beta)

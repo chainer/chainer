@@ -142,6 +142,42 @@ TEST(ArrayReprTest, AllDtypesOnNativeBackend) {
             device);
     CheckArrayRepr<uint8_t>("array([[[[3]]]], shape=(1, 1, 1, 1), dtype=uint8, device='native:0')", {3}, Shape({1, 1, 1, 1}), device);
 
+    // float16
+    CheckArrayRepr<Float16>("array([0.], shape=(1,), dtype=float16, device='native:0')", {Float16{0}}, Shape({1}), device);
+    CheckArrayRepr<Float16>("array([3.25], shape=(1,), dtype=float16, device='native:0')", {Float16{3.25}}, Shape({1}), device);
+    CheckArrayRepr<Float16>("array([-3.25], shape=(1,), dtype=float16, device='native:0')", {Float16{-3.25}}, Shape({1}), device);
+    CheckArrayRepr<Float16>(
+            "array([ inf], shape=(1,), dtype=float16, device='native:0')",
+            {Float16{std::numeric_limits<float>::infinity()}},
+            Shape({1}),
+            device);
+    CheckArrayRepr<Float16>(
+            "array([ -inf], shape=(1,), dtype=float16, device='native:0')",
+            {Float16{-std::numeric_limits<float>::infinity()}},
+            Shape({1}),
+            device);
+    CheckArrayRepr<Float16>("array([ nan], shape=(1,), dtype=float16, device='native:0')", {Float16{std::nanf("")}}, Shape({1}), device);
+    CheckArrayRepr<Float16>(
+            "array([[0., 1., 2.],\n"
+            "       [3., 4., 5.]], shape=(2, 3), dtype=float16, device='native:0')",
+            {Float16{0}, Float16{1}, Float16{2}, Float16{3}, Float16{4}, Float16{5}},
+            Shape({2, 3}),
+            device);
+    CheckArrayRepr<Float16>(
+            "array([[0.  , 1.  , 2.  ],\n"
+            "       [3.25, 4.  , 5.  ]], shape=(2, 3), dtype=float16, device='native:0')",
+            {Float16{0}, Float16{1}, Float16{2}, Float16{3.25}, Float16{4}, Float16{5}},
+            Shape({2, 3}),
+            device);
+    CheckArrayRepr<Float16>(
+            "array([[ 0.  ,  1.  ,  2.  ],\n"
+            "       [-3.25,  4.  ,  5.  ]], shape=(2, 3), dtype=float16, device='native:0')",
+            {Float16{0}, Float16{1}, Float16{2}, Float16{-3.25}, Float16{4}, Float16{5}},
+            Shape({2, 3}),
+            device);
+    CheckArrayRepr<Float16>(
+            "array([[[[3.25]]]], shape=(1, 1, 1, 1), dtype=float16, device='native:0')", {Float16{3.25}}, Shape({1, 1, 1, 1}), device);
+
     // float32
     CheckArrayRepr<float>("array([0.], shape=(1,), dtype=float32, device='native:0')", {0}, Shape({1}), device);
     CheckArrayRepr<float>("array([3.25], shape=(1,), dtype=float32, device='native:0')", {3.25}, Shape({1}), device);
@@ -210,6 +246,13 @@ TEST(ArrayReprTest, AllDtypesOnNativeBackend) {
                 "array([], shape=(0, 1, 2), dtype=float32, device='native:0', backprop_ids=['bp1'])",
                 {},
                 Shape({0, 1, 2}),
+                device,
+                {backprop_id});
+
+        CheckArrayRepr<float>(
+                "array([], shape=(2, 1, 0), dtype=float32, device='native:0', backprop_ids=['bp1'])",
+                {},
+                Shape({2, 1, 0}),
                 device,
                 {backprop_id});
     }
