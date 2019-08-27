@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <map>
 #include <memory>
 #include <mutex>
@@ -137,6 +138,10 @@ public:
 
     void FreeNoExcept(void* ptr) noexcept;
 
+    void SetMallocPreprocessHook(std::function<void(MemoryPool&, size_t)> hook);
+    void SetMallocPostprocessHook(std::function<void(MemoryPool&, size_t, void*)> hook);
+    void SetFreeHook(std::function<void(MemoryPool&, void*)> hook);
+
 private:
     friend class cuda_internal::MemoryPoolTest;  // for unit-tests
 
@@ -156,6 +161,10 @@ private:
     cuda_internal::FreeBinsMap free_bins_;  // allocation size => cuda_internal::FreeList
     std::mutex in_use_mutex_;
     std::mutex free_bins_mutex_;
+
+    std::function<void(MemoryPool&, size_t)> malloc_preprocess_hook_;
+    std::function<void(MemoryPool&, size_t, void*)> malloc_postprocess_hook_;
+    std::function<void(MemoryPool&, void*)> free_hook_;
 };
 
 }  // namespace cuda

@@ -133,6 +133,9 @@ Shape GetInferredShape(const Shape& shape, int64_t total_size) {
         }
         int64_t rest_size = std::accumulate(inferred_shape.begin(), it, int64_t{1}, std::multiplies<>()) *
                             std::accumulate(std::next(it), inferred_shape.end(), int64_t{1}, std::multiplies<>());
+        if (rest_size == 0) {
+            throw DimensionError{"Cannot reshape array of size ", total_size, " into an ambiguous shape ", shape};
+        }
         *it = total_size / rest_size;
     }
 
@@ -655,6 +658,8 @@ Array Swapaxes(const Array& a, int8_t axis1, int8_t axis2) {
 
     return out;
 }
+
+Array Ravel(const Array& a) { return a.Reshape({a.GetTotalSize()}); }
 
 Array Repeat(const Array& a, int64_t repeats, absl::optional<int8_t> axis) {
     if (repeats < 0) {

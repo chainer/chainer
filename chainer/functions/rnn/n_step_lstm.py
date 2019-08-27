@@ -2,6 +2,7 @@ import numpy
 
 import chainer
 from chainer import backend
+from chainer import variable
 from chainer.backends import cuda
 from chainer.functions.array import reshape
 from chainer.functions.array import stack
@@ -14,6 +15,70 @@ import chainerx
 
 if cuda.cudnn_enabled:
     cudnn = cuda.cudnn
+
+
+def _extract_apply_in_data(inputs):
+    if not inputs:
+        return False, ()
+
+    if chainerx.is_available():
+        has_chainerx_array = False
+
+        # Unwrap arrays
+        arrays = []
+        for x in inputs:
+            if isinstance(x, variable.Variable):
+                if x._has_chainerx_array:
+                    arrays.append(x._data[0])
+                    has_chainerx_array = True
+                else:
+                    arrays.append(x.array)
+            else:  # x is ndarray
+                arrays.append(x)
+                if not has_chainerx_array:
+                    if isinstance(x, chainerx.ndarray):
+                        has_chainerx_array = True
+        return has_chainerx_array, tuple(arrays)
+    else:
+        return False, tuple([
+            x.array if isinstance(x, variable.Variable) else x
+            for x in inputs])
+
+
+def _combine_inputs(hx, cx, ws, bs, xs, num_layers, directions):
+    combined = []
+    combined.append(hx)
+    combined.append(cx)
+    for x in xs:
+        combined.append(x)
+
+    for n in range(num_layers):
+        for direction in range(directions):
+            idx = directions * n + direction
+
+            for i in range(8):
+                combined.append(ws[idx][i])
+            for i in range(8):
+                combined.append(bs[idx][i])
+    return combined
+
+
+def _seperate_inputs(combined, num_layers, seq_length, directions):
+    hx = combined[0]
+    cx = combined[1]
+    xs = combined[2: 2 + seq_length]
+    ws = []
+    bs = []
+    index = 2 + seq_length
+    for n in range(num_layers):
+        ws.append(combined[index: index + 8])
+        bs.append(combined[index + 8: index + 16])
+        index += 16
+        if directions == 2:
+            ws.append(combined[index: index + 8])
+            bs.append(combined[index + 8: index + 16])
+            index += 16
+    return hx, cx, ws, bs, xs
 
 
 def _stack_weight(ws):
@@ -416,11 +481,37 @@ def n_step_lstm_base(
 
     xp = backend.get_array_module(hx, hx.data)
 
-    # TODO(imanishi): Support ChainerX n_step_rnn
     use_cuda = xp is cuda.cupy or (
         xp is chainerx and hx.device.device.backend.name == 'cuda')
 
-    if use_cuda and chainer.should_use_cudnn('>=auto', 5000):
+    directions = 1
+    if use_bi_direction:
+        directions = 2
+
+    combined = _combine_inputs(hx, cx, ws, bs, xs, n_layers, directions)
+    has_chainerx_array, combined = _extract_apply_in_data(combined)
+    hx_chx, cx_chx, ws_chx, bs_chx, xs_chx = _seperate_inputs(
+        combined, n_layers, len(xs), directions)
+
+    if has_chainerx_array and xp is chainerx and dropout_ratio == 0:
+        if use_bi_direction:
+            hy, cy, ys = chainerx.n_step_bilstm(
+                n_layers, hx_chx, cx_chx, ws_chx, bs_chx, xs_chx)
+        else:
+            hy, cy, ys = chainerx.n_step_lstm(
+                n_layers, hx_chx, cx_chx, ws_chx, bs_chx, xs_chx)
+        hy = variable.Variable._init_unchecked(
+            hy, requires_grad=hy.is_backprop_required(),
+            is_chainerx_array=True)
+        cy = variable.Variable._init_unchecked(
+            cy, requires_grad=cy.is_backprop_required(),
+            is_chainerx_array=True)
+        ys = [variable.Variable._init_unchecked(
+            y, requires_grad=y.is_backprop_required(),
+            is_chainerx_array=True)
+            for y in ys]
+        return hy, cy, ys
+    elif use_cuda and chainer.should_use_cudnn('>=auto', 5000):
         lengths = [len(x) for x in xs]
         xs = chainer.functions.concat(xs, axis=0)
         with chainer.using_device(xs.device):

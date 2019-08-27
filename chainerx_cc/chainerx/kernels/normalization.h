@@ -31,8 +31,6 @@ public:
 
 class BatchNormKernel : public Kernel {
 public:
-    static const char* name() { return "BatchNorm"; }
-
     // The returned state should be a `nullptr` if `return_state` is `false`.
     virtual std::tuple<Array, std::unique_ptr<BatchNormGradState>> Call(
             const Array& x,
@@ -49,8 +47,6 @@ public:
 
 class BatchNormGradKernel : public Kernel {
 public:
-    static const char* name() { return "BatchNormGrad"; }
-
     // Returns gx, ggamma, gbeta.
     virtual std::tuple<Array, Array, Array> Call(
             const Array& x,
@@ -110,8 +106,6 @@ public:
 
 class FixedBatchNormKernel : public Kernel {
 public:
-    static const char* name() { return "FixedBatchNorm"; }
-
     virtual Array Call(
             const Array& x,
             const Array& gamma,

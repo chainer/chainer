@@ -68,6 +68,14 @@ void sgesdd_(
         int* iwork,
         int* info);
 
+// geqrf
+void dgeqrf_(int* m, int* n, double* a, int* lda, double* tau, double* work, int* lwork, int* info);
+void sgeqrf_(int* m, int* n, float* a, int* lda, float* tau, float* work, int* lwork, int* info);
+
+// orgqr
+void dorgqr_(int* m, int* n, int* k, double* a, int* lda, double* tau, double* work, int* lwork, int* info);
+void sorgqr_(int* m, int* n, int* k, float* a, int* lda, float* tau, float* work, int* lwork, int* info);
+
 // potrf
 void dpotrf_(char* uplo, int* n, double* a, int* lda, int* info);
 void spotrf_(char* uplo, int* n, float* a, int* lda, int* info);
@@ -75,6 +83,16 @@ void spotrf_(char* uplo, int* n, float* a, int* lda, int* info);
 #endif  // CHAINERX_ENABLE_LAPACK
 
 namespace chainerx {
+
+namespace internal {
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(Dot)
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(Solve)
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(Inverse)
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(Svd)
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(Qr)
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(Cholesky)
+}  // namespace internal
+
 namespace native {
 namespace {
 
@@ -110,6 +128,16 @@ void Gesdd(
         int* /*iwork*/,
         int* /*info*/) {
     throw DtypeError{"Only Arrays of float or double type are supported by gesdd (SVD)"};
+}
+
+template <typename T>
+void Geqrf(int /*m*/, int /*n*/, T* /*a*/, int /*lda*/, T* /*tau*/, T* /*work*/, int /*lwork*/, int* /*info*/) {
+    throw DtypeError{"Only Arrays of float or double type are supported by geqrf (QR)"};
+}
+
+template <typename T>
+void Orgqr(int /*m*/, int /*n*/, int /*k*/, T* /*a*/, int /*lda*/, T* /*tau*/, T* /*work*/, int /*lwork*/, int* /*info*/) {
+    throw DtypeError{"Only Arrays of float or double type are supported by orgqr (QR)"};
 }
 
 template <typename T>
@@ -187,6 +215,26 @@ void Gesdd<float>(
 }
 
 template <>
+void Geqrf<double>(int m, int n, double* a, int lda, double* tau, double* work, int lwork, int* info) {
+    dgeqrf_(&m, &n, a, &lda, tau, work, &lwork, info);
+}
+
+template <>
+void Geqrf<float>(int m, int n, float* a, int lda, float* tau, float* work, int lwork, int* info) {
+    sgeqrf_(&m, &n, a, &lda, tau, work, &lwork, info);
+}
+
+template <>
+void Orgqr<double>(int m, int n, int k, double* a, int lda, double* tau, double* work, int lwork, int* info) {
+    dorgqr_(&m, &n, &k, a, &lda, tau, work, &lwork, info);
+}
+
+template <>
+void Orgqr<float>(int m, int n, int k, float* a, int lda, float* tau, float* work, int lwork, int* info) {
+    sorgqr_(&m, &n, &k, a, &lda, tau, work, &lwork, info);
+}
+
+template <>
 void Potrf<double>(char uplo, int n, double* a, int lda, int* info) {
     dpotrf_(&uplo, &n, a, &lda, info);
 }
@@ -258,6 +306,85 @@ void InverseImpl(const Array& a, const Array& out) {
     if (info != 0) {
         throw ChainerxError{"Unsuccessful getri (Inverse LU) execution. Info = ", info};
     }
+}
+
+template <typename T>
+void QrImpl(const Array& a, const Array& q, const Array& r, const Array& tau, QrMode mode) {
+    Device& device = a.device();
+    Dtype dtype = a.dtype();
+
+    int64_t m = a.shape()[0];
+    int64_t n = a.shape()[1];
+    int64_t k = std::min(m, n);
+    int64_t lda = std::max(int64_t{1}, m);
+
+    Array r_temp = a.Transpose().Copy();  // QR decomposition is done in-place
+
+    auto r_ptr = static_cast<T*>(internal::GetRawOffsetData(r_temp));
+    auto tau_ptr = static_cast<T*>(internal::GetRawOffsetData(tau));
+
+    int info;
+    int64_t buffersize_geqrf = -1;
+    T work_query_geqrf;
+    Geqrf(m, n, r_ptr, lda, tau_ptr, &work_query_geqrf, buffersize_geqrf, &info);
+    buffersize_geqrf = static_cast<int64_t>(work_query_geqrf);
+    buffersize_geqrf = std::max({int64_t{1}, n, buffersize_geqrf});  // buffersize >= n >= 1
+
+    Array work = Empty(Shape{buffersize_geqrf}, dtype, device);
+    auto work_ptr = static_cast<T*>(internal::GetRawOffsetData(work));
+
+    Geqrf(m, n, r_ptr, lda, tau_ptr, work_ptr, buffersize_geqrf, &info);
+
+    if (info != 0) {
+        throw ChainerxError{"Unsuccessful geqrf (QR) execution. Info = ", info};
+    }
+
+    if (mode == QrMode::kR) {
+        r_temp = r_temp.At(std::vector<ArrayIndex>{Slice{}, Slice{0, k}}).Transpose();  // R = R[:, 0:k].T
+        r_temp = Triu(r_temp, 0);
+        device.backend().CallKernel<CopyKernel>(r_temp, r);
+        return;
+    }
+
+    if (mode == QrMode::kRaw) {
+        device.backend().CallKernel<CopyKernel>(r_temp, r);
+        return;
+    }
+
+    int64_t mc;
+    Shape q_shape{0};
+    if (mode == QrMode::kComplete && m > n) {
+        mc = m;
+        q_shape = Shape{m, m};
+    } else {
+        mc = k;
+        q_shape = Shape{n, m};
+    }
+    Array q_temp = Empty(q_shape, dtype, device);
+
+    device.backend().CallKernel<CopyKernel>(r_temp, q_temp.At(std::vector<ArrayIndex>{Slice{0, n}, Slice{}}));  // Q[0:n, :] = R
+    auto q_ptr = static_cast<T*>(internal::GetRawOffsetData(q_temp));
+
+    int buffersize_orgqr = -1;
+    T work_query_orgqr;
+    Orgqr(m, mc, k, q_ptr, lda, tau_ptr, &work_query_orgqr, buffersize_orgqr, &info);
+    buffersize_orgqr = static_cast<int>(work_query_orgqr);
+
+    Array work_orgqr = Empty(Shape{buffersize_orgqr}, dtype, device);
+    auto work_orgqr_ptr = static_cast<T*>(internal::GetRawOffsetData(work_orgqr));
+
+    Orgqr(m, mc, k, q_ptr, lda, tau_ptr, work_orgqr_ptr, buffersize_orgqr, &info);
+
+    if (info != 0) {
+        throw ChainerxError{"Unsuccessful orgqr (QR) execution. Info = ", info};
+    }
+
+    q_temp = q_temp.At(std::vector<ArrayIndex>{Slice{0, mc}, Slice{}}).Transpose();  // Q = Q[0:mc, :].T
+    r_temp = r_temp.At(std::vector<ArrayIndex>{Slice{}, Slice{0, mc}}).Transpose();  // R = R[:, 0:mc].T
+    r_temp = Triu(r_temp, 0);
+
+    device.backend().CallKernel<CopyKernel>(q_temp, q);
+    device.backend().CallKernel<CopyKernel>(r_temp, r);
 }
 
 }  // namespace
@@ -378,6 +505,29 @@ public:
 };
 
 CHAINERX_NATIVE_REGISTER_KERNEL(SvdKernel, NativeSvdKernel);
+
+class NativeQrKernel : public QrKernel {
+public:
+    void Call(const Array& a, const Array& q, const Array& r, const Array& tau, QrMode mode) override {
+#if CHAINERX_ENABLE_LAPACK
+        CHAINERX_ASSERT(a.ndim() == 2);
+
+        VisitFloatingPointDtype(a.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            QrImpl<T>(a, q, r, tau, mode);
+        });
+#else  // CHAINERX_ENABLE_LAPACK
+        (void)a;  // unused
+        (void)q;  // unused
+        (void)r;  // unused
+        (void)tau;  // unused
+        (void)mode;  // unused
+        throw ChainerxError{"LAPACK is not linked to ChainerX."};
+#endif  // CHAINERX_ENABLE_LAPACK
+    }
+};
+
+CHAINERX_NATIVE_REGISTER_KERNEL(QrKernel, NativeQrKernel);
 
 class NativeCholeskyKernel : public CholeskyKernel {
 public:

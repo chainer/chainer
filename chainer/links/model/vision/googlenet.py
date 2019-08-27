@@ -22,7 +22,7 @@ from chainer.functions.noise.dropout import dropout
 from chainer.functions.normalization.local_response_normalization import (
     local_response_normalization)
 from chainer.functions.pooling.average_pooling_2d import average_pooling_2d
-from chainer.functions.pooling.max_pooling_2d import max_pooling_2d
+from chainer.functions.pooling.max_pooling_nd import max_pooling_2d
 from chainer.initializers import constant
 from chainer.initializers import uniform
 from chainer import link
@@ -55,8 +55,8 @@ class GoogLeNet(link.Chain):
     with modern architectures such as ResNet. Therefore, if you fine-tune your
     network based on a model pre-trained by Imagenet and need to train it with
     large batch size, GoogLeNet may be useful. On the other hand, if you just
-    want an off-the-shelf classifier, we recommend you to use ResNet50 or other
-    models since they are more accurate than GoogLeNet.
+    want an off-the-shelf classifier, we recommend that you use ResNet50 or
+    other models since they are more accurate than GoogLeNet.
 
     The original model is provided here:
     `<https://github.com/BVLC/caffe/tree/master/models/bvlc_googlenet>`_
