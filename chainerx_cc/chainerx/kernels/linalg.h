@@ -14,29 +14,21 @@ namespace chainerx {
 // Otherwise, the behavior is undefined.
 class DotKernel : public Kernel {
 public:
-    static const char* name() { return "Dot"; }
-
     virtual void Call(const Array& a, const Array& b, const Array& out) = 0;
 };
 
 class SolveKernel : public Kernel {
 public:
-    static const char* name() { return "Solve"; }
-
     virtual void Call(const Array& a, const Array& b, const Array& out) = 0;
 };
 
 class InverseKernel : public Kernel {
 public:
-    static const char* name() { return "Inverse"; }
-
     virtual void Call(const Array& a, const Array& out) = 0;
 };
 
 class SvdKernel : public Kernel {
 public:
-    static const char* name() { return "Svd"; }
-
     virtual void Call(const Array& a, const Array& u, const Array& s, const Array& vt, bool full_matrices) = 0;
 };
 
