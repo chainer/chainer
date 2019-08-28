@@ -28,14 +28,12 @@ class _BatchNormalizationBackend:
 
 class _GeneralBatchNormalizationBackend(_BatchNormalizationBackend):
 
-    def __init__(self, is_for_conv2d=False, cudnn_mode=None):
+    def __init__(self):
         self.mean = None
         self.inv_std = None
         self.var = None
         self.running_mean = None
         self.running_var = None
-        self.is_for_conv2d = is_for_conv2d
-        self.cudnn_mode = cudnn_mode
 
     def forward(self, axis, gamma, x, xp, expander,
                 beta, eps, decay, running_mean, running_var):
@@ -136,9 +134,6 @@ class _GeneralBatchNormalizationBackend(_BatchNormalizationBackend):
 
 
 class _IDeepBatchNormalizationBackend(_GeneralBatchNormalizationBackend):
-    def __init__(self, mode):
-        super().__init__(mode)
-
     def forward(self, axis, gamma, x, xp, expander,
                 beta, eps, decay, running_mean, running_var):
         self.running_mean = running_mean
@@ -211,8 +206,9 @@ class _IDeepBatchNormalizationBackend(_GeneralBatchNormalizationBackend):
 
 
 class _CudnnBatchNormalizationBackend(_GeneralBatchNormalizationBackend):
-    def __init__(self, mode):
-        super().__init__(mode)
+    def __init__(self, is_for_conv2d, cudnn_mode):
+        self.is_for_conv2d = is_for_conv2d
+        self.cudnn_mode = cudnn_mode
 
     def forward(self, axis, gamma, x, xp, expander,
                 beta, eps, decay, running_mean, running_var):
@@ -242,7 +238,7 @@ class _CudnnBatchNormalizationBackend(_GeneralBatchNormalizationBackend):
                  expander, mean, inv_std, eps, var, mode):
         return cudnn.batch_normalization_backward(
             x, gamma, gy, mean, inv_std, eps,
-            mode.is_for_conv2d, mode.get_cudnn_mode(),
+            self.is_for_conv2d, self.cudnn_mode,
             chainer.is_debug())
 
 
@@ -325,15 +321,12 @@ class BatchNormalization(function_node.FunctionNode):
         use_ideep = self.mode.can_use_ideep()
 
         if use_ideep:
-            return _IDeepBatchNormalizationBackend(self.mode.is_for_conv2d,
-                                                   self.mode.get_cudnn_mode())
+            return _IDeepBatchNormalizationBackend()
         elif use_cudnn:
             return _CudnnBatchNormalizationBackend(self.mode.is_for_conv2d,
                                                    self.mode.get_cudnn_mode())
         else:
-            return _GeneralBatchNormalizationBackend(
-                self.mode.is_for_conv2d,
-                self.mode.get_cudnn_mode())
+            return _GeneralBatchNormalizationBackend()
 
     def forward_chainerx(self, inputs):
         # TODO(niboshi): Support conditions implemented as fallback
