@@ -205,7 +205,7 @@ class TestMaximum(math_utils.BinaryMathTestBase, op_utils.NumpyOpTest):
             if ((a.dtype.kind in 'biu' and b.dtype.kind in 'biu') or
                     (numpy.abs(a - b) > 0.01).all()):
                 return a, b
-        assert False
+        assert False, 'Couldn\'t construct a test case.'
 
     def func(self, xp, a, b):
         return xp.maximum(a, b)
@@ -315,7 +315,7 @@ class TestMinimum(math_utils.BinaryMathTestBase, op_utils.NumpyOpTest):
             if ((a.dtype.kind in 'biu' and b.dtype.kind in 'biu') or
                     (numpy.abs(a - b) > 0.01).all()):
                 return a, b
-        assert False
+        assert False, 'Couldn\'t construct a test case.'
 
     def func(self, xp, a, b):
         return xp.minimum(a, b)
