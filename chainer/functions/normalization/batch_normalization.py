@@ -28,13 +28,14 @@ class _BatchNormalizationBackend:
 
 class _GeneralBatchNormalizationBackend(_BatchNormalizationBackend):
 
-    def __init__(self, mode=None):
+    def __init__(self, is_for_conv2d=False, cudnn_mode=None):
         self.mean = None
         self.inv_std = None
         self.var = None
         self.running_mean = None
         self.running_var = None
-        self.mode = mode
+        self.is_for_conv2d = is_for_conv2d
+        self.cudnn_mode = cudnn_mode
 
     def forward(self, axis, gamma, x, xp, expander,
                 beta, eps, decay, running_mean, running_var):
@@ -76,13 +77,13 @@ class _GeneralBatchNormalizationBackend(_BatchNormalizationBackend):
                 self.running_var += (1 - decay) * adjust * var
             else:
                 cuda.elementwise(
-                    'U mean, U var, U decay, U adjust',    
-                    'U r_mean, U r_var',    
-                    '''    
-                    r_mean = r_mean * decay + mean * (1 - decay);    
-                    r_var = r_var * decay + var * (1 - decay) * adjust;    
-                    ''',    
-                    'update_mean_var')(self.mean, var, decay, adjust,    
+                    'U mean, U var, U decay, U adjust',
+                    'U r_mean, U r_var',
+                    '''
+                    r_mean = r_mean * decay + mean * (1 - decay);
+                    r_var = r_var * decay + var * (1 - decay) * adjust;
+                    ''',
+                    'update_mean_var')(self.mean, var, decay, adjust,
                                        self.running_mean, self.running_var)
 
             if xp is chainerx:
@@ -232,8 +233,8 @@ class _CudnnBatchNormalizationBackend(_GeneralBatchNormalizationBackend):
         y, self.mean, self.inv_std = (
             cudnn.batch_normalization_forward_training(
                 x, gamma, beta, mean, var, None, None,
-                eps, decay, self.mode.is_for_conv2d,
-                self.mode.get_cudnn_mode(), chainer.is_debug()))
+                eps, decay, self.is_for_conv2d,
+                self.cudnn_mode, chainer.is_debug()))
 
         return y,
 
@@ -320,15 +321,19 @@ class BatchNormalization(function_node.FunctionNode):
             )
 
     def _bn_backend_selector(self, xp):
-        self.use_cudnn = self.mode.can_use_cudnn(xp)
-        self.use_ideep = self.mode.can_use_ideep()
+        use_cudnn = self.mode.can_use_cudnn(xp)
+        use_ideep = self.mode.can_use_ideep()
 
-        if self.use_ideep:
-            return _IDeepBatchNormalizationBackend(self.mode)
-        elif self.use_cudnn:
-            return _CudnnBatchNormalizationBackend(self.mode)
+        if use_ideep:
+            return _IDeepBatchNormalizationBackend(self.mode.is_for_conv2d,
+                                                   self.mode.get_cudnn_mode())
+        elif use_cudnn:
+            return _CudnnBatchNormalizationBackend(self.mode.is_for_conv2d,
+                                                   self.mode.get_cudnn_mode())
         else:
-            return _GeneralBatchNormalizationBackend(self.mode)
+            return _GeneralBatchNormalizationBackend(
+                self.mode.is_for_conv2d,
+                self.mode.get_cudnn_mode())
 
     def forward_chainerx(self, inputs):
         # TODO(niboshi): Support conditions implemented as fallback
