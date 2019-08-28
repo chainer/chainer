@@ -3,8 +3,6 @@ import warnings
 import numpy
 import six
 
-from abc import abstractmethod
-from abc import ABCMeta
 import chainer
 from chainer import backend
 from chainer.backends import cuda
@@ -17,14 +15,12 @@ from chainer.utils import type_check
 import chainerx
 
 
-class _BatchNormalizationBackend(six.with_metaclass(ABCMeta)):
+class _BatchNormalizationBackend:
 
-    @abstractmethod
     def forward(self, axis, gamma, x, xp, expander,
                 beta, eps, decay, running_mean, running_var):
         raise NotImplementedError()
 
-    @abstractmethod
     def backward(self, axis, gamma, gy, x, xp,
                  expander, mean, inv_std, eps, var, mode):
         raise NotImplementedError()
