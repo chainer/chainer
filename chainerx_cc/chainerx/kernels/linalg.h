@@ -29,7 +29,7 @@ public:
 
 class SvdKernel : public Kernel {
 public:
-    virtual void Call(const Array& a, const Array& u, const Array& s, const Array& vt, bool full_matrices) = 0;
+    virtual void Call(const Array& a, const Array& u, const Array& s, const Array& vt, bool full_matrices, bool compute_uv) = 0;
 };
 
 class QrKernel : public Kernel {

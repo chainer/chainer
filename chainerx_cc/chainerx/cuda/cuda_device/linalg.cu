@@ -358,6 +358,7 @@ void SolveImpl(const Array& a, const Array& b, const Array& out) {
     auto lu_ptr = static_cast<T*>(internal::GetRawOffsetData(lu_matrix));
 
     int64_t m = a.shape()[0];
+    int64_t lda = std::max(int64_t{1}, m);
     int64_t nrhs = 1;
     if (b.ndim() == 2) {
         nrhs = b.shape()[1];
@@ -367,14 +368,14 @@ void SolveImpl(const Array& a, const Array& b, const Array& out) {
     auto ipiv_ptr = static_cast<int*>(internal::GetRawOffsetData(ipiv));
 
     int buffersize = 0;
-    device_internals.cusolverdn_handle().Call(GetrfBuffersize<T>, m, m, lu_ptr, m, &buffersize);
+    device_internals.cusolverdn_handle().Call(GetrfBuffersize<T>, m, m, lu_ptr, lda, &buffersize);
 
     Array work = Empty(Shape{buffersize}, dtype, device);
     auto work_ptr = static_cast<T*>(internal::GetRawOffsetData(work));
 
     std::shared_ptr<void> devinfo = device.Allocate(sizeof(int));
 
-    device_internals.cusolverdn_handle().Call(Getrf<T>, m, m, lu_ptr, m, work_ptr, ipiv_ptr, static_cast<int*>(devinfo.get()));
+    device_internals.cusolverdn_handle().Call(Getrf<T>, m, m, lu_ptr, lda, work_ptr, ipiv_ptr, static_cast<int*>(devinfo.get()));
 
     int devinfo_h = 0;
     Device& native_device = GetDefaultContext().GetDevice({"native", 0});
@@ -387,7 +388,7 @@ void SolveImpl(const Array& a, const Array& b, const Array& out) {
     auto out_ptr = static_cast<T*>(internal::GetRawOffsetData(out_transposed));
 
     device_internals.cusolverdn_handle().Call(
-            Getrs<T>, CUBLAS_OP_N, m, nrhs, lu_ptr, m, ipiv_ptr, out_ptr, m, static_cast<int*>(devinfo.get()));
+            Getrs<T>, CUBLAS_OP_N, m, nrhs, lu_ptr, lda, ipiv_ptr, out_ptr, lda, static_cast<int*>(devinfo.get()));
 
     device.MemoryCopyTo(&devinfo_h, devinfo.get(), sizeof(int), native_device);
     if (devinfo_h != 0) {
@@ -531,14 +532,21 @@ CHAINERX_CUDA_REGISTER_KERNEL(InverseKernel, CudaInverseKernel);
 
 class CudaSvdKernel : public SvdKernel {
 public:
-    void Call(const Array& a, const Array& u, const Array& s, const Array& vt, bool full_matrices) override {
+    void Call(const Array& a, const Array& u, const Array& s, const Array& vt, bool full_matrices, bool compute_uv) override {
         Device& device = a.device();
         Dtype dtype = a.dtype();
         CudaSetDeviceScope scope{device.index()};
 
         CHAINERX_ASSERT(a.ndim() == 2);
 
-        bool compute_uv = u.shape()[0] != 0 && vt.shape()[0] != 0;
+        if (a.shape().GetTotalSize() == 0) {
+            if (full_matrices && compute_uv) {
+                device.backend().CallKernel<IdentityKernel>(u);
+                device.backend().CallKernel<IdentityKernel>(vt);
+            }
+            // This kernel works correctly for zero-sized input also without early return
+            return;
+        }
 
         // cuSOLVER assumes arrays are in column-major order.
         // In order to avoid transposing the input matrix, matrix dimensions are swapped.
@@ -586,8 +594,9 @@ public:
             vt_temp = Empty(vt_shape, dtype, device);
         }
 
-        int64_t ldu = m;
-        int64_t ldvt = full_matrices ? n : k;
+        int64_t lda = std::max(int64_t{1}, m);
+        int64_t ldu = std::max(int64_t{1}, m);
+        int64_t ldvt = full_matrices ? std::max(int64_t{1}, n) : std::max(int64_t{1}, k);
 
         auto svd_impl = [&](auto pt) {
             using T = typename decltype(pt)::type;
@@ -625,7 +634,7 @@ public:
                     m,
                     n,
                     x_ptr,
-                    m,
+                    lda,
                     s_ptr,
                     vt_ptr,
                     ldu,
