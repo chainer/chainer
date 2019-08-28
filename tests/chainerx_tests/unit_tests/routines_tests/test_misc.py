@@ -199,7 +199,13 @@ def test_sign(xp, device, input, dtypes):
 ))
 class TestMaximum(math_utils.BinaryMathTestBase, op_utils.NumpyOpTest):
 
-    dodge_nondifferentiable = True
+    def generate_inputs(self):
+        for _ in range(10):
+            a, b = super().generate_inputs()
+            if ((a.dtype.kind in 'biu' and b.dtype.kind in 'biu') or
+                    (numpy.abs(a - b) > 0.01).all()):
+                return a, b
+        assert False, 'Couldn\'t construct a test case.'
 
     def func(self, xp, a, b):
         return xp.maximum(a, b)
@@ -303,7 +309,13 @@ class TestMaximumScalar(math_utils.MathScalarTestBase, op_utils.NumpyOpTest):
 ))
 class TestMinimum(math_utils.BinaryMathTestBase, op_utils.NumpyOpTest):
 
-    dodge_nondifferentiable = True
+    def generate_inputs(self):
+        for _ in range(10):
+            a, b = super().generate_inputs()
+            if ((a.dtype.kind in 'biu' and b.dtype.kind in 'biu') or
+                    (numpy.abs(a - b) > 0.01).all()):
+                return a, b
+        assert False, 'Couldn\'t construct a test case.'
 
     def func(self, xp, a, b):
         return xp.minimum(a, b)

@@ -255,6 +255,7 @@ void SolveImpl(const Array& a, const Array& b, const Array& out) {
     auto lu_ptr = static_cast<T*>(internal::GetRawOffsetData(lu_matrix));
 
     int64_t n = a.shape()[0];
+    int64_t lda = std::max(int64_t{1}, n);
     int64_t nrhs = 1;
     if (b.ndim() == 2) {
         nrhs = b.shape()[1];
@@ -267,7 +268,7 @@ void SolveImpl(const Array& a, const Array& b, const Array& out) {
     auto out_ptr = static_cast<T*>(internal::GetRawOffsetData(out_transposed));
 
     int info;
-    Gesv(n, nrhs, lu_ptr, n, ipiv_ptr, out_ptr, n, &info);
+    Gesv(n, nrhs, lu_ptr, lda, ipiv_ptr, out_ptr, lda, &info);
 
     if (info != 0) {
         throw ChainerxError{"Unsuccessful gesv (Solve) execution. Info = ", info};
@@ -280,6 +281,13 @@ template <typename T>
 void InverseImpl(const Array& a, const Array& out) {
     Device& device = a.device();
     Dtype dtype = a.dtype();
+
+    // 'getri' segfaults for 0-sized array, documentation says that minimum size is 1
+    // NumPy works for 0-sized array because 'gesv' routine is used
+    // to obtain the inverse via solving the linear system.
+    if (a.shape().GetTotalSize() == 0) {
+        return;
+    }
 
     device.backend().CallKernel<CopyKernel>(a, out);
     auto out_ptr = static_cast<T*>(internal::GetRawOffsetData(out));
@@ -435,14 +443,21 @@ CHAINERX_NATIVE_REGISTER_KERNEL(InverseKernel, NativeInverseKernel);
 
 class NativeSvdKernel : public SvdKernel {
 public:
-    void Call(const Array& a, const Array& u, const Array& s, const Array& vt, bool full_matrices) override {
+    void Call(const Array& a, const Array& u, const Array& s, const Array& vt, bool full_matrices, bool compute_uv) override {
 #if CHAINERX_ENABLE_LAPACK
         Device& device = a.device();
         Dtype dtype = a.dtype();
 
         CHAINERX_ASSERT(a.ndim() == 2);
 
-        bool compute_uv = u.shape()[0] != 0 && vt.shape()[0] != 0;
+        if (a.shape().GetTotalSize() == 0) {
+            if (full_matrices && compute_uv) {
+                device.backend().CallKernel<IdentityKernel>(u);
+                device.backend().CallKernel<IdentityKernel>(vt);
+            }
+            // This kernel works correctly for zero-sized input also without early return
+            return;
+        }
 
         // LAPACK assumes arrays are in column-major order.
         // In order to avoid transposing the input matrix, matrix dimensions are swapped.
@@ -451,8 +466,9 @@ public:
         int64_t n = a.shape()[0];
         int64_t m = a.shape()[1];
         int64_t k = std::min(m, n);
-        int64_t ldu = m;
-        int64_t ldvt = full_matrices ? n : k;
+        int64_t lda = std::max(int64_t{1}, m);
+        int64_t ldu = std::max(int64_t{1}, m);
+        int64_t ldvt = full_matrices ? std::max(int64_t{1}, n) : std::max(int64_t{1}, k);
 
         Array x = EmptyLike(a, device);
         device.backend().CallKernel<CopyKernel>(a, x);
@@ -479,13 +495,13 @@ public:
             int buffersize = -1;
             T work_size;
             // When calling Gesdd pointers to u and vt are swapped instead of transposing the input matrix.
-            Gesdd(job, m, n, x_ptr, m, s_ptr, vt_ptr, ldu, u_ptr, ldvt, &work_size, buffersize, iwork_ptr, &info);
+            Gesdd(job, m, n, x_ptr, lda, s_ptr, vt_ptr, ldu, u_ptr, ldvt, &work_size, buffersize, iwork_ptr, &info);
             buffersize = static_cast<int>(work_size);
 
             Array work = Empty(Shape{buffersize}, dtype, device);
             auto work_ptr = static_cast<T*>(internal::GetRawOffsetData(work));
 
-            Gesdd(job, m, n, x_ptr, m, s_ptr, vt_ptr, ldu, u_ptr, ldvt, work_ptr, buffersize, iwork_ptr, &info);
+            Gesdd(job, m, n, x_ptr, lda, s_ptr, vt_ptr, ldu, u_ptr, ldvt, work_ptr, buffersize, iwork_ptr, &info);
 
             if (info != 0) {
                 throw ChainerxError{"Unsuccessful gesdd (SVD) execution. Info = ", info};
@@ -499,6 +515,7 @@ public:
         (void)s;  // unused
         (void)vt;  // unused
         (void)full_matrices;  // unused
+        (void)compute_uv;  // unused
         throw ChainerxError{"LAPACK is not linked to ChainerX."};
 #endif  // CHAINERX_LAPACK_AVAILABLE
     }
