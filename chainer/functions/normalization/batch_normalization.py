@@ -69,10 +69,21 @@ class _GeneralBatchNormalizationBackend(_BatchNormalizationBackend):
                 self.running_mean, self.running_var = backend.from_chx(
                     (self.running_mean, self.running_var))
 
-            self.running_mean *= decay
-            self.running_mean += (1 - decay) * self.mean
-            self.running_var *= decay
-            self.running_var += (1 - decay) * adjust * var
+            if xp is numpy:
+                self.running_mean *= decay
+                self.running_mean += (1 - decay) * self.mean
+                self.running_var *= decay
+                self.running_var += (1 - decay) * adjust * var
+            else:
+                cuda.elementwise(
+                    'U mean, U var, U decay, U adjust',    
+                    'U r_mean, U r_var',    
+                    '''    
+                    r_mean = r_mean * decay + mean * (1 - decay);    
+                    r_var = r_var * decay + var * (1 - decay) * adjust;    
+                    ''',    
+                    'update_mean_var')(self.mean, var, decay, adjust,    
+                                       self.running_mean, self.running_var)
 
             if xp is chainerx:
                 self.running_mean = backend.to_chx(self.running_mean)
