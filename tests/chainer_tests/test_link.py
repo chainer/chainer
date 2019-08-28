@@ -1463,18 +1463,18 @@ Chain(
         l1.x.grad.fill(1)
         l2.x.grad.fill(2)
         l3.x.grad.fill(3)
-        c2.x.grad.fill(2)
+        c2.x.grad.fill(4)
 
         self.l1.x.grad.fill(-1)
         self.l2.x.grad.fill(-2)
-        self.c2.x.grad.fill(-2)
+        self.c2.x.grad.fill(-3)
         self.l3.cleargrads()
 
         self.c2.addgrads(c2)
         numpy.testing.assert_array_equal(self.l1.x.grad, numpy.zeros((2, 3)))
         numpy.testing.assert_array_equal(self.l2.x.grad, numpy.zeros(2))
         numpy.testing.assert_array_equal(self.l3.x.grad, numpy.full(3, 3.))
-        numpy.testing.assert_array_equal(self.c2.x.grad, numpy.zeros(2))
+        numpy.testing.assert_array_equal(self.c2.x.grad, numpy.ones(2))
 
     def test_serialize(self):
         mocks = {'l1': mock.MagicMock(), 'l2': mock.MagicMock()}
