@@ -1482,6 +1482,8 @@ class TestVariableSetArray(unittest.TestCase):
             # return numpy.ndarray when its shape doesn't match
             if isinstance(x, intel64.mdarray):
                 should_fail = not isinstance(y, (np.ndarray, intel64.mdarray))
+            elif isinstance(y, intel64.mdarray):
+                should_fail = not isinstance(x, intel64.mdarray)
             else:
                 should_fail = type(x) != type(y)
         else:
