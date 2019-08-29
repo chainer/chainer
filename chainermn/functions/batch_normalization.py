@@ -6,8 +6,6 @@ from chainer import cuda
 import chainer.utils
 from chainer.functions.normalization.batch_normalization \
     import _GeneralBatchNormalizationBackend
-from chainer.functions.normalization.batch_normalization \
-    import BatchNormalization
 
 
 class _MpiBackend(_GeneralBatchNormalizationBackend):
