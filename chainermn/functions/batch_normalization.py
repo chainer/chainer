@@ -12,7 +12,7 @@ class _MpiBackend(GeneralBatchNormalizationBackend):
     def __init__(self, comm):
         self.comm = comm
 
-    def _get_mean_and_var(self, axis, gamma, x, xp, interm_dtype):
+    def get_mean_and_var(self, axis, gamma, x, xp, interm_dtype):
         tmp = xp.empty(gamma.size * 2, dtype=gamma.dtype)
         x.mean(axis=axis, out=tmp[:gamma.size], dtype=gamma.dtype)
         xp.square(x).mean(axis=axis, out=tmp[gamma.size:], dtype=gamma.dtype)
@@ -24,7 +24,7 @@ class _MpiBackend(GeneralBatchNormalizationBackend):
         var = sqmean - xp.square(mean)
         return mean, var
 
-    def _get_ggamma_and_gbeta(self, axis, gamma, gy, x_hat, xp):
+    def get_ggamma_and_gbeta(self, axis, gamma, gy, x_hat, xp):
         tmp = xp.empty(gamma.size * 2, dtype=gamma.dtype)
         gy.sum(axis=axis, out=tmp[:gamma.size], dtype=gamma.dtype)
         (gy * x_hat).sum(axis=axis, out=tmp[gamma.size:], dtype=gamma.dtype)
@@ -45,7 +45,7 @@ class _NcclBackend(GeneralBatchNormalizationBackend):
         import chainermn.communicators._memory_utility as memory_utility_module
         self.memory_utility_module = memory_utility_module
 
-    def _get_mean_and_var(self, axis, gamma, x, xp, interm_dtype):
+    def get_mean_and_var(self, axis, gamma, x, xp, interm_dtype):
         gpu_buffer_n_elems = gamma.size * 2
         gpu_buffer_size = gamma.dtype.itemsize * gpu_buffer_n_elems
         gpu_buffer_a = self.memory_utility_module.DeviceMemory()
@@ -71,7 +71,7 @@ class _NcclBackend(GeneralBatchNormalizationBackend):
         var = sqmean - xp.square(mean)
         return mean, var
 
-    def _get_ggamma_and_gbeta(self, axis, gamma, gy, x_hat, xp):
+    def get_ggamma_and_gbeta(self, axis, gamma, gy, x_hat, xp):
         gpu_buffer_n_elems = gamma.size * 2
         gpu_buffer_size = gamma.dtype.itemsize * gpu_buffer_n_elems
         gpu_buffer_a = self.memory_utility_module.DeviceMemory()

@@ -44,8 +44,8 @@ class GeneralBatchNormalizationBackend(_BatchNormalizationBackend):
 
         gamma = gamma[expander].astype(interm_dtype, copy=False)
         beta = beta[expander].astype(interm_dtype, copy=False)
-        self.mean, var = self._get_mean_and_var(axis, gamma,
-                                                x, xp, interm_dtype)
+        self.mean, var = self.get_mean_and_var(axis, gamma,
+                                               x, xp, interm_dtype)
         if xp is numpy:
             self.inv_std = numpy.reciprocal(numpy.sqrt(
                 var + eps, dtype=interm_dtype))
@@ -90,12 +90,12 @@ class GeneralBatchNormalizationBackend(_BatchNormalizationBackend):
 
         return y,
 
-    def _get_mean_and_var(self, axis, gamma, x, xp, interm_dtype):
+    def get_mean_and_var(self, axis, gamma, x, xp, interm_dtype):
         mean = x.mean(axis=axis, dtype=interm_dtype)
         var = x.var(axis=axis, dtype=interm_dtype)
         return mean, var
 
-    def _get_ggamma_and_gbeta(self, axis, gamma, gy, x_hat, xp):
+    def get_ggamma_and_gbeta(self, axis, gamma, gy, x_hat, xp):
         gbeta = gy.sum(axis=axis, dtype=gamma.dtype)
         ggamma = (gy * x_hat).sum(axis=axis, dtype=gamma.dtype)
 
@@ -109,7 +109,7 @@ class GeneralBatchNormalizationBackend(_BatchNormalizationBackend):
             gy = numpy.asarray(gy)
 
         x_hat = _x_hat(x, mean[expander], inv_std[expander])
-        gbeta, ggamma = self._get_ggamma_and_gbeta(axis, gamma, gy, x_hat, xp)
+        gbeta, ggamma = self.get_ggamma_and_gbeta(axis, gamma, gy, x_hat, xp)
 
         inv_m = gamma.dtype.type(1. / (x.size // gamma.size))
         if xp is numpy:
