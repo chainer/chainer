@@ -22,7 +22,7 @@ class _BatchNormalizationBackend:
         raise NotImplementedError()
 
     def backward(self, axis, gamma, gy, x, xp,
-                 expander, mean, inv_std, eps, var, mode):
+                 expander, mean, inv_std, eps, var):
         raise NotImplementedError()
 
 
@@ -102,7 +102,7 @@ class GeneralBatchNormalizationBackend(_BatchNormalizationBackend):
         return gbeta, ggamma
 
     def backward(self, axis, gamma, gy, x, xp,
-                 expander, mean, inv_std, eps, var, mode):
+                 expander, mean, inv_std, eps, var):
         if isinstance(gy, intel64.mdarray):
             # intel64.mdarray does not support dtype option in sum, so we
             # convert it to numpy here.
@@ -181,7 +181,7 @@ class _IDeepBatchNormalizationBackend(GeneralBatchNormalizationBackend):
         return y,
 
     def backward(self, axis, gamma, gy, x, xp,
-                 expander, mean, inv_std, eps, var, mode):
+                 expander, mean, inv_std, eps, var):
         expand_dim = False
         if x.ndim == 2:
             expand_dim = True
@@ -235,7 +235,7 @@ class _CudnnBatchNormalizationBackend(GeneralBatchNormalizationBackend):
         return y,
 
     def backward(self, axis, gamma, gy, x, xp,
-                 expander, mean, inv_std, eps, var, mode):
+                 expander, mean, inv_std, eps, var):
         return cudnn.batch_normalization_backward(
             x, gamma, gy, mean, inv_std, eps,
             self.is_for_conv2d, self.cudnn_mode,
@@ -397,8 +397,8 @@ class BatchNormalization(function_node.FunctionNode):
 
         xp = backend.get_array_module(x)
 
-        self.mode = _BNMode(x, gamma, self.key_axis)
-        self.bn_backend = self.bn_backend_selector(xp, self.mode)
+        mode = _BNMode(x, gamma, self.key_axis)
+        self.bn_backend = self.bn_backend_selector(xp, mode)
         y, = self.bn_backend.forward(axis=self.axis, gamma=gamma, x=x,
                                      xp=xp, expander=expander,
                                      beta=beta, eps=self.eps,
@@ -424,8 +424,8 @@ class BatchNormalization(function_node.FunctionNode):
             var = None
 
         f = BatchNormalizationGrad(
-            self.eps, self.mode,
-            self.expander, self.axis,
+            self.eps, self.expander,
+            self.axis,
             self.mean, var,
             self.inv_std, self.key_axis,
             self.bn_backend)
@@ -435,10 +435,9 @@ class BatchNormalization(function_node.FunctionNode):
 
 class BatchNormalizationGrad(function_node.FunctionNode):
 
-    def __init__(self, eps, mode, expander, axis, mean, var,
+    def __init__(self, eps, expander, axis, mean, var,
                  inv_std, key_axis, bn_backend):
         self.eps = eps
-        self.mode = mode
         self.expander = expander
         self.axis = axis
         self.mean = mean
@@ -456,8 +455,7 @@ class BatchNormalizationGrad(function_node.FunctionNode):
         gx, ggamma, gbeta = self.bn_backend.backward(self.axis, gamma, gy,
                                                      x, xp, expander,
                                                      self.mean, self.inv_std,
-                                                     self.eps, self.var,
-                                                     self.mode)
+                                                     self.eps, self.var)
         self.retain_inputs((0, 1, 2))
         self.retain_outputs((0, 1))
         return gx, ggamma, gbeta
