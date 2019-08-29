@@ -26,7 +26,7 @@ class _BatchNormalizationBackend:
         raise NotImplementedError()
 
 
-class _GeneralBatchNormalizationBackend(_BatchNormalizationBackend):
+class GeneralBatchNormalizationBackend(_BatchNormalizationBackend):
 
     def __init__(self):
         self.mean = None
@@ -133,7 +133,7 @@ class _GeneralBatchNormalizationBackend(_BatchNormalizationBackend):
         return gx, ggamma, gbeta
 
 
-class _IDeepBatchNormalizationBackend(_GeneralBatchNormalizationBackend):
+class _IDeepBatchNormalizationBackend(GeneralBatchNormalizationBackend):
     def forward(self, axis, gamma, x, xp, expander,
                 beta, eps, decay, running_mean, running_var):
         self.running_mean = running_mean
@@ -205,7 +205,7 @@ class _IDeepBatchNormalizationBackend(_GeneralBatchNormalizationBackend):
         return gx, ggamma, gbeta
 
 
-class _CudnnBatchNormalizationBackend(_GeneralBatchNormalizationBackend):
+class _CudnnBatchNormalizationBackend(GeneralBatchNormalizationBackend):
     def __init__(self, is_for_conv2d, cudnn_mode):
         self.is_for_conv2d = is_for_conv2d
         self.cudnn_mode = cudnn_mode
@@ -271,7 +271,7 @@ def _bn_backend_selector(xp, mode):
         return _CudnnBatchNormalizationBackend(mode.is_for_conv2d,
                                                mode.get_cudnn_mode())
     else:
-        return _GeneralBatchNormalizationBackend()
+        return GeneralBatchNormalizationBackend()
 
 
 class BatchNormalization(function_node.FunctionNode):

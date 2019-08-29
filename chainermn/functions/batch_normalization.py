@@ -5,10 +5,10 @@ import chainer
 from chainer import cuda
 import chainer.utils
 from chainer.functions.normalization.batch_normalization \
-    import _GeneralBatchNormalizationBackend
+    import GeneralBatchNormalizationBackend
 
 
-class _MpiBackend(_GeneralBatchNormalizationBackend):
+class _MpiBackend(GeneralBatchNormalizationBackend):
     def __init__(self, comm):
         self.comm = comm
 
@@ -36,7 +36,7 @@ class _MpiBackend(_GeneralBatchNormalizationBackend):
         return gbeta, ggamma
 
 
-class _NcclBackend(_GeneralBatchNormalizationBackend):
+class _NcclBackend(GeneralBatchNormalizationBackend):
 
     def __init__(self, comm):
         self.comm = comm
