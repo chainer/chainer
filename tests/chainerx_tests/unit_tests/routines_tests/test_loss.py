@@ -174,3 +174,24 @@ class TestSigmoidCrossEntropy(LossBase):
             t = self.t.astype(numpy.int64)
             out = xp.sigmoid_cross_entropy(x, t, normalize=False, reduce='no')
         return out,
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    chainer.testing.product([
+        chainer.testing.from_pytest_parameterize(
+            'shape', [
+                (2, 2),
+                (3, 3, 3),
+                (5, 5, 5),
+                (4, 1, 2, 4)
+            ]),
+        chainer.testing.from_pytest_parameterize(
+            'in_dtypes,out_dtype', _in_out_loss_dtypes)
+    ])
+))
+class TestMeanSquaredError(LossBase):
+
+    def forward_xp(self, inputs, xp):
+        x1, x2 = inputs
+        return xp.mean_squared_error(x1, x2),

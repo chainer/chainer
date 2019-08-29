@@ -8,6 +8,7 @@ def set_docs():
     _docs_indexing()
     _docs_linalg()
     _docs_logic()
+    _docs_loss()
     _docs_manipulation()
     _docs_math()
     _docs_sorting()
@@ -1014,6 +1015,26 @@ Returns:
     the squared error of two inputs.
 
 .. seealso:: :func:`chainer.functions.squared_error`
+""")
+
+    _docs.set_doc(
+        chainerx.mean_squared_error,
+        """mean_squared_error(x1, x2)
+Mean squared error function.
+
+The function computes the mean squared error between two variables. The
+mean is taken over the minibatch. Args ``x1`` and ``x2`` must have the
+same dimensions. Note that the error is not scaled by 1/2.
+
+Args:
+    x0 (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
+    x1 (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
+
+Returns:
+    :class:`~chainerx.ndarray`: A variable holding an array representing the mean squared
+    error of two inputs.
+
+.. seealso:: :func:`chainer.functions.mean_squared_error`
 """)
 
     _docs.set_doc(
