@@ -2093,8 +2093,10 @@ class TestUninitializedParameter(unittest.TestCase):
 class TestUninitializedParameterSetArray(unittest.TestCase):
     def _gen_array(self, device):
         a = device.send_array(
-            np.random.uniform(-1, 1, (1,)).astype(np.float32))
+            np.random.uniform(-1, 1, (10,)).astype(np.float32))
         assert device.is_array_supported(a)
+
+        return a
 
     def test_set_array(self, backend_config1):
         # This test intends the use case of unpickling Parameter
