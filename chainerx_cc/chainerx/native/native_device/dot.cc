@@ -5,7 +5,7 @@
 #include <type_traits>
 
 #ifdef CHAINERX_ENABLE_BLAS
-#include <cblas.h>
+#include <chainerx/native/native_device/cblas.h>
 #endif  // CHAINERX_ENABLE_BLAS
 
 #include "chainerx/array.h"
