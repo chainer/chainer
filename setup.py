@@ -24,8 +24,8 @@ set CHAINER_PYTHON_350_FORCE environment variable to 1."""
 requirements = {
     'install': [
         'setuptools',
-        'typing',
-        'typing_extensions',
+        'typing<=3.6.6',
+        'typing_extensions<=3.6.6',
         'filelock',
         'numpy>=1.9.0',
         # protobuf 3.8.0rc1 causes CI errors.
@@ -141,6 +141,7 @@ setup_kwargs = dict(
               'chainer.functions.noise',
               'chainer.functions.normalization',
               'chainer.functions.pooling',
+              'chainer.functions.rnn',
               'chainer.functions.theano',
               'chainer.functions.util',
               'chainer.function_hooks',
@@ -155,6 +156,7 @@ setup_kwargs = dict(
               'chainer.links.model',
               'chainer.links.model.vision',
               'chainer.links.normalization',
+              'chainer.links.rnn',
               'chainer.links.theano',
               'chainer.link_hooks',
               'chainer.graph_optimizations',

@@ -231,6 +231,31 @@ class TestReshape(op_utils.NumpyOpTest):
             b = xp.reshape(a, shape_type(b_shape))
         else:
             b = a.reshape(shape_type(b_shape))
+        return b,
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize_pytest('a_shape,b_shape', _reshape_shape)
+@chainer.testing.parameterize_pytest('shape_type', [tuple, list])
+@chainer.testing.parameterize_pytest('contiguous', ['C', None])
+@chainer.testing.parameterize_pytest('is_module', [True, False])
+class TestReshapeCopied(op_utils.NumpyOpTest):
+
+    skip_backward_test = True
+    skip_double_backward_test = True
+
+    def generate_inputs(self):
+        a = array_utils.shaped_arange(self.a_shape, 'float64')
+        return a,
+
+    def forward_xp(self, inputs, xp):
+        a, = inputs
+        b_shape = self.b_shape
+        shape_type = self.shape_type
+        if self.is_module:
+            b = xp.reshape(a, shape_type(b_shape))
+        else:
+            b = a.reshape(shape_type(b_shape))
         if xp is chainerx:
             copied = (
                 a._debug_data_memory_address
@@ -243,7 +268,7 @@ class TestReshape(op_utils.NumpyOpTest):
             else:
                 assert b.flags.c_contiguous
 
-        return xp.asarray(copied), b
+        return xp.asarray(copied),
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
@@ -730,6 +755,49 @@ def test_split_invalid(xp, shape, indices_or_sections, axis):
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize_pytest('shape,indices_or_sections', [
+    ((2, 4, 6), []),
+    ((2, 4, 6), [2, 4]),
+    ((2, 4, 6), [2, -3]),
+    ((2, 4, 6), [2, 8]),
+    ((2, 4, 6), [4, 2]),
+    ((2, 4, 6), [1, 3]),
+    ((2, 4, 5), [1, -3]),
+    ((2, 4, 8), [2, 5]),
+    ((2, 4, 10), [1, 4]),
+    ((2, 4, 6), numpy.array([1, 2])),  # indices with 1-d numpy array
+    ((2, 4, 6), numpy.array([2])),  # indices with (1,)-shape numpy array
+    ((2, 4, 8), numpy.array(2)),  # sections numpy scalar
+    ((2, 4, 6, 8), numpy.array(2.0)),  # sections with numpy scalar, float
+    ((2, 4, 6, 8), 2.0),  # float type sections, without fraction
+    # indices with empty numpy indices
+    ((2, 4, 8, 10), numpy.array([], numpy.int32)),
+    ((2, 4, 5, 10), numpy.array([], numpy.float64)),
+])
+class TestDSplit(op_utils.NumpyOpTest):
+
+    def setup(self):
+        # TODO(niboshi): There's a bug in backward of split() in which the
+        # gradient shape differs from the input if indices are not in the
+        # sorted order. Fix this.
+        indices_or_sections = self.indices_or_sections
+        if (isinstance(indices_or_sections, list) and
+                sorted(indices_or_sections) != indices_or_sections):
+            self.skip_backward_test = True
+            self.skip_double_backward_test = True
+
+    def generate_inputs(self):
+        a = array_utils.create_dummy_ndarray(numpy, self.shape, 'float32')
+        return a,
+
+    def forward_xp(self, inputs, xp):
+        a, = inputs
+        b = xp.dsplit(a, self.indices_or_sections)
+        assert isinstance(b, list)
+        return tuple(b)
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize_pytest('shape,axis1,axis2', [
     ((1, 1), 0, 1),
     ((2, 4), -1, 1),
@@ -776,6 +844,73 @@ class TestSwapaxes(op_utils.NumpyOpTest):
 def test_swap_invalid(xp, shape, axis1, axis2):
     a = array_utils.create_dummy_ndarray(xp, shape, 'float32')
     return xp.swapaxes(a, axis1, axis2)
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize_pytest('shape,repeats,axis', [
+    ((4,), 1, None),
+    ((4,), 2, None),
+    ((4, 2), 2, None),
+    ((4,), 1, 0),
+    ((4,), 2, 0),
+    ((4,), (1,), None),
+    ((4,), (2,), None),
+    ((4, 2), (2,), None),
+    ((4,), (1,), 0),
+    ((4,), (2,), 0),
+    ((2,), (1, 2), 0),
+    ((2,), (0, 2), 0),
+    ((4, 2), 2, 0),
+    ((4, 2), 2, 1),
+    ((4, 2), 2, -1),
+    ((4, 2), 2, -2),
+    ((2, 4), (1, 2), 0),
+    ((4, 2), (1, 2), 1),
+    ((2, 4), [1, 2], 0),
+    ((4, 2), [1, 2], 1),
+    ((2, 4), numpy.array([1, 2]), numpy.array(0)),
+    ((4, 2), numpy.array([1, 2]), numpy.array(1)),
+])
+@chainer.testing.parameterize_pytest('is_module', [True, False])
+class TestRepeat(op_utils.NumpyOpTest):
+
+    def setup(self, dtype):
+        # Skip backward/double-backward tests for int dtypes
+        if numpy.dtype(dtype).kind != 'f':
+            self.skip_backward_test = True
+            self.skip_double_backward_test = True
+        self.dtype = dtype
+
+        if dtype == 'float16':
+            self.check_backward_options.update({'rtol': 1e-3, 'atol': 1e-3})
+
+    def generate_inputs(self):
+        a = array_utils.create_dummy_ndarray(numpy, self.shape, self.dtype)
+        return a,
+
+    def forward_xp(self, inputs, xp):
+        a, = inputs
+        if self.is_module:
+            b = xp.repeat(a, self.repeats, self.axis)
+        else:
+            b = a.repeat(self.repeats, self.axis)
+        return b,
+
+
+@chainerx.testing.numpy_chainerx_array_equal(
+    accept_error=(
+        chainerx.DimensionError, ValueError))
+@pytest.mark.parametrize('shape,repeats,axis', [
+    # Axis out of range.
+    ((1,), 1, 1),
+    ((1, 1), (1, 2), 0),
+    ((1, 1), (1, -2), 0),
+    ((1, 1), (1, 2), -3),
+    ((1, 1), (1, 2), 2),
+])
+def test_repeat_invalid(xp, shape, repeats, axis):
+    a = array_utils.create_dummy_ndarray(xp, shape, 'float32')
+    return xp.repeat(a, repeats, axis)
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])

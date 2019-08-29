@@ -78,7 +78,7 @@ def main():
 
     # Prepare ChainerMN communicator.
     if args.gpu:
-        comm = chainermn.create_communicator('hierarchical')
+        comm = chainermn.create_communicator('pure_nccl')
         device = comm.intra_rank
     else:
         comm = chainermn.create_communicator('naive')

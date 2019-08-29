@@ -2,7 +2,7 @@
 
 #include <cmath>
 
-#include <nonstd/optional.hpp>
+#include <absl/types/optional.h>
 
 #include "chainerx/array.h"
 #include "chainerx/backprop_mode.h"
@@ -15,7 +15,6 @@
 #include "chainerx/graph.h"
 #include "chainerx/kernels/explog.h"
 #include "chainerx/routines/creation.h"
-#include "chainerx/routines/math.h"
 #include "chainerx/routines/misc.h"
 #include "chainerx/routines/type_util.h"
 

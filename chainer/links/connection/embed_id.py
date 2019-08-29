@@ -19,7 +19,7 @@ class EmbedID(link.Link):
             initialize the weight. When it is :class:`numpy.ndarray`,
             its ``ndim`` should be 2.
         ignore_label (int or None): If ``ignore_label`` is an int value,
-            ``i``-th column of return value is filled with ``0``.
+            ``i``-th row of return value is filled with ``0``.
 
     .. seealso:: :func:`~chainer.functions.embed_id`
 

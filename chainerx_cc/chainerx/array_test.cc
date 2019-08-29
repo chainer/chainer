@@ -13,8 +13,8 @@
 #include <tuple>
 #include <vector>
 
+#include <absl/types/optional.h>
 #include <gtest/gtest.h>
-#include <nonstd/optional.hpp>
 
 #include "chainerx/array_node.h"
 #include "chainerx/axes.h"
@@ -86,7 +86,7 @@ public:
     }
 
 private:
-    nonstd::optional<testing::DeviceSession> device_session_;
+    absl::optional<testing::DeviceSession> device_session_;
 };
 
 TEST_P(ArrayTest, DefaultCtor) {
@@ -239,8 +239,8 @@ TEST_P(ArrayTest, Grad) {
 
     // Get grad multiple times
     {
-        const nonstd::optional<Array>& grad1 = x.GetGrad(backprop_id);
-        const nonstd::optional<Array>& grad2 = x.GetGrad(backprop_id);
+        const absl::optional<Array>& grad1 = x.GetGrad(backprop_id);
+        const absl::optional<Array>& grad2 = x.GetGrad(backprop_id);
         EXPECT_EQ(&*grad1, &*grad2) << "Multiple retrieval of grad must return the same arrays";
     }
 
@@ -1054,37 +1054,6 @@ TEST_P(ArrayTest, AsTypeDoubleBackward) {
             {a_eps, go_eps});
 }
 
-TEST_P(ArrayTest, ToNative) {
-    using T = float;
-    Array a = (*testing::BuildArray({2, 3}).WithLinearData<T>().WithPadding(1)).RequireGrad();
-
-    Array b = a.ToNative();
-    EXPECT_EQ("native:0", b.device().name());
-    EXPECT_EQ(&a.device().backend().context(), &b.device().backend().context());
-    EXPECT_NE(internal::GetArrayBody(a), internal::GetArrayBody(b));
-
-    EXPECT_EQ(a.dtype(), b.dtype());
-    EXPECT_EQ(a.shape(), b.shape());
-    EXPECT_ARRAY_EQ(a.ToNative(), b.ToNative());
-
-    if (a.device().name() == "native:0") {
-        // Between the same device
-        EXPECT_EQ(&a.device(), &b.device());
-        EXPECT_EQ(a.data().get(), b.data().get());
-        EXPECT_EQ(a.strides(), b.strides());
-    } else {
-        // Between different devices
-        EXPECT_NE(&a.data(), &b.data());
-        EXPECT_TRUE(b.IsContiguous());
-    }
-
-    // Graph
-    ASSERT_TRUE(!a.GetGrad().has_value());
-    Backward(b);
-    ASSERT_TRUE(a.GetGrad().has_value());
-    EXPECT_EQ(&a.device(), &a.GetGrad()->device());
-}
-
 TEST_P(ArrayTest, MultipleGraphsRequireGradDefault) {
     Array a = testing::BuildArray({1}).WithData<float>({2.0f});
 
@@ -1214,6 +1183,67 @@ INSTANTIATE_TEST_CASE_P(
                 std::string{"cuda"},
 #endif  // CHAINERX_ENABLE_CUDA
                 std::string{"native"}));
+
+class ArrayToNativeTest : public ::testing::TestWithParam<::testing::tuple<std::string, int>> {
+protected:
+    void SetUp() override {
+        backend_name_ = std::get<0>(GetParam());
+        device_index_ = std::get<1>(GetParam());
+        device_session_.emplace(DeviceId{backend_name_, device_index_});
+    }
+
+    void TearDown() override { device_session_.reset(); }
+
+protected:
+    std::string backend_name_{};
+    int device_index_{};
+
+private:
+    absl::optional<testing::DeviceSession> device_session_;
+};
+
+TEST_P(ArrayToNativeTest, ToNative) {
+    using T = float;
+    Array a = (*testing::BuildArray({2, 3}).WithLinearData<T>().WithPadding(1)).RequireGrad();
+
+    Array b = a.ToNative();
+    EXPECT_EQ("native", b.device().backend().GetName());
+    EXPECT_EQ(&a.device().backend().context(), &b.device().backend().context());
+    EXPECT_NE(internal::GetArrayBody(a), internal::GetArrayBody(b));
+
+    EXPECT_EQ(a.dtype(), b.dtype());
+    EXPECT_EQ(a.shape(), b.shape());
+    EXPECT_ARRAY_EQ(a.ToNative(), b.ToNative());
+
+    if (backend_name_ == "native") {
+        // Native-to-native
+        EXPECT_EQ(device_index_, b.device().index());
+        EXPECT_EQ(&a.device(), &b.device());
+        EXPECT_EQ(a.data().get(), b.data().get());
+        EXPECT_EQ(a.strides(), b.strides());
+    } else {
+        // Otherwise
+        EXPECT_EQ(0, b.device().index());
+        EXPECT_NE(&a.data(), &b.data());
+        EXPECT_TRUE(b.IsContiguous());
+    }
+
+    // Graph
+    ASSERT_TRUE(!a.GetGrad().has_value());
+    Backward(b);
+    ASSERT_TRUE(a.GetGrad().has_value());
+    EXPECT_EQ(&a.device(), &a.GetGrad()->device());
+}
+
+INSTANTIATE_TEST_CASE_P(
+        ForEachDevice,
+        ArrayToNativeTest,
+        ::testing::Values(
+#ifdef CHAINERX_ENABLE_CUDA
+                std::make_tuple<std::string, int>("cuda", 0),
+#endif  // CHAINERX_ENABLE_CUDA
+                std::make_tuple<std::string, int>("native", 0),
+                std::make_tuple<std::string, int>("native", 1)));
 
 TEST(ArrayGradTest, SetGradFlagsIsGradRequired) {
     testing::ContextSession context_session{};

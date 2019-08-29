@@ -7,7 +7,7 @@
 #include <utility>
 #include <vector>
 
-#include <nonstd/optional.hpp>
+#include <absl/types/optional.h>
 
 #include "chainerx/array.h"
 #include "chainerx/backprop_mode.h"
@@ -20,7 +20,6 @@
 #include "chainerx/graph.h"
 #include "chainerx/kernels/pooling.h"
 #include "chainerx/routines/arithmetic.h"
-#include "chainerx/routines/math.h"
 #include "chainerx/routines/routines_util.h"
 
 namespace chainerx {
@@ -57,8 +56,8 @@ Array MaxPool(const Array& x, const Dims& kernel_size, const Dims& stride, const
     std::shared_ptr<MaxPoolGradState> state{};
     {
         NoBackpropModeScope scope{};
-        std::tie(out, state) = x.device().backend().CallKernel<MaxPoolKernel>(
-                x.AsGradStopped(), kernel_size, stride, pad, cover_all, true, nonstd::nullopt);
+        std::tie(out, state) =
+                x.device().backend().CallKernel<MaxPoolKernel>(x.AsGradStopped(), kernel_size, stride, pad, cover_all, true, absl::nullopt);
     }
     internal::MakeViewForForwardBackwardOutput(out);
 
@@ -73,7 +72,7 @@ Array MaxPool(const Array& x, const Dims& kernel_size, const Dims& stride, const
             {
                 NoBackpropModeScope scope{};
                 std::tie(gx, grad_grad_state) = gout.device().backend().CallKernel<MaxPoolGradKernel>(
-                        gout.AsGradStopped(), kernel_size, stride, pad, state, true, nonstd::nullopt);
+                        gout.AsGradStopped(), kernel_size, stride, pad, state, true, absl::nullopt);
             }
             internal::MakeViewForForwardBackwardOutput(gx);
 
@@ -87,7 +86,7 @@ Array MaxPool(const Array& x, const Dims& kernel_size, const Dims& stride, const
                         {
                             NoBackpropModeScope scope{};
                             ggout = ggx.device().backend().CallKernel<MaxPoolGradGradKernel>(
-                                    ggx.AsGradStopped(), st.kernel_size, st.stride, st.pad, st.cover_all, grad_grad_state, nonstd::nullopt);
+                                    ggx.AsGradStopped(), st.kernel_size, st.stride, st.pad, st.cover_all, grad_grad_state, absl::nullopt);
                         }
 
                         // Make ggout further backpropable.
@@ -134,7 +133,7 @@ Array AveragePool(const Array& x, const Dims& kernel_size, const Dims& stride, c
     {
         NoBackpropModeScope scope{};
         std::tie(out, state) = x.device().backend().CallKernel<AveragePoolKernel>(
-                x.AsGradStopped(), kernel_size, stride, pad, pad_mode, true, nonstd::nullopt);
+                x.AsGradStopped(), kernel_size, stride, pad, pad_mode, true, absl::nullopt);
     }
     internal::MakeViewForForwardBackwardOutput(out);
 
@@ -148,7 +147,7 @@ Array AveragePool(const Array& x, const Dims& kernel_size, const Dims& stride, c
                 {
                     NoBackpropModeScope scope{};
                     gx = gout.device().backend().CallKernel<AveragePoolGradKernel>(
-                            gout.AsGradStopped(), kernel_size, stride, pad, pad_mode, state, nonstd::nullopt);
+                            gout.AsGradStopped(), kernel_size, stride, pad, pad_mode, state, absl::nullopt);
                 }
 
                 {
