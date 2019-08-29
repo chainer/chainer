@@ -491,11 +491,6 @@ class Variable(object):
 
     """
 
-    # Used in non-ChainerX variables. The gradient array is stored in
-    # this attribute on Variable.grad setter to delay creation of grad_var
-    # instance.
-    _grad = None
-
     # Cached value of `self.xp is chainerx`. It prevents from initializing
     # self._device as much as possible because it is really costly.
     _has_chainerx_array = False
@@ -510,12 +505,17 @@ class Variable(object):
     # the second element.
     _chainerx_grad_cache = None
 
-    _chainerx_name = None
+    _chainerx_name = None  # type: tp.Optional[str]
 
     # A NumPy, CuPy array cache to avoid redundant conversions between
     # NumPy/CuPy and ChainerX.
     # TODO(hvy): Avoid modifying this variable from outside this class.
     _chainerx_fallback_array = None
+
+    # Used in non-ChainerX variables. The gradient array is stored in
+    # this attribute on Variable.grad setter to delay creation of grad_var
+    # instance.
+    _grad = None
 
     def __init__(self, data=None, **kwargs):
         # type: (tp.Optional[types.NdArray], **tp.Any) -> None
@@ -580,7 +580,7 @@ class Variable(object):
                 raise ValueError(
                     'Cannot initialize a variable with gradients if the '
                     'require_grad argument is False.')
-            self._set_chainerx_array(data, grad)
+            self._set_chainerx_array(data, grad)  # type: ignore
 
             # ChainerX itself has own node objects, but not exposed to python.
             self._node = None  # type: tp.Optional[VariableNode]
@@ -656,29 +656,27 @@ class Variable(object):
 
         # Sets chainerx array and grad.
         assert array is None or isinstance(array, chainerx.ndarray)
+        requires_grad = self._requires_grad
 
         self._grad = None
+
+        if (not requires_grad
+                and array is not None
+                and array.is_backprop_required()):
+            raise ValueError(
+                'Cannot initialize a variable to not require '
+                'gradients if the ChainerX array already requires '
+                'backprop.')
 
         # Create a view of the given data to hold internally and modify.
         if array is None:
             self._data = [None]
         else:
-            # Sets chainerx array and grad.
-            requires_grad = self._requires_grad
-
-            if array.is_backprop_required():
-                if not requires_grad:
-                    raise ValueError(
-                        'Cannot initialize a variable to not require '
-                        'gradients if the ChainerX array already requires '
-                        'backprop.')
-            else:
-                # If the array `array` is not connected to a graph, a view of
-                # it is created and kept, in order not to change the no-graph
-                # status of it. If the array is connected, the graph status is
-                # kept track of.
+            # If the array `array` is not connected to a graph, a view of it is
+            # created and kept, in order not to change the no-graph status of
+            # it. If the array is connected, the graph status is kept track of.
+            if not array.is_backprop_required():
                 array = array.view()
-
             if requires_grad:
                 array.require_grad()
                 if grad is not None:
@@ -864,7 +862,7 @@ class Variable(object):
             if (self._chainerx_nobp_array_cache is None
                     and self._data[0] is not None):
                 self._chainerx_nobp_array_cache = (
-                    self._data[0].as_grad_stopped())
+                    self._data[0].as_grad_stopped())  # type: ignore
             return self._chainerx_nobp_array_cache
 
         return self._data[0]
@@ -881,7 +879,7 @@ class Variable(object):
             # Use the cached value instead of retrieving via self.device
             # property to avoid getting CpuDevice() incorrectly
             device_old = self._device
-            if device_old is None:  # d_old is not None
+            if device_old is None:
                 device_old = backend.get_device_from_array(d_old)
             if device_old is not None and not device_old.is_array_supported(d):
                 device_new = backend.get_device_from_array(d)
@@ -892,15 +890,15 @@ class Variable(object):
 
         if self._has_chainerx_array:
             if (d_old is not None
-                    and (d_old.is_backprop_required()
-                         or d.is_backprop_required())):
+                    and (d_old.is_backprop_required()  # type: ignore
+                         or d.is_backprop_required())):  # type: ignore
                 raise ValueError(
                     'Cannot update the array of a Variable if either the '
                     'existing or the new array requires backprop.')
 
-            self._set_chainerx_array(d, None)
+            self._set_chainerx_array(d, None)  # type: ignore
         else:
-            self._node._update_data_info(d)
+            self._node._update_data_info(d)  # type: ignore # _node doesn't have value when xp is chainerx # NOQA
             self._data[0] = d
             self._has_chainerx_array = False
 
