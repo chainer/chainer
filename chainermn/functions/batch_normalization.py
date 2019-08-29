@@ -124,7 +124,7 @@ class multinode_bn_backend_selector:
         self.comm = comm
         self.communication_backend_name = communication_backend_name
 
-    def __call__(self, xp, mode):
+    def __call__(self, batch_norm_obj, inputs):
         if self.communication_backend_name == 'nccl':
             return _NcclBackend(self.comm)
         else:

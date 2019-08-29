@@ -261,7 +261,10 @@ def _compute_key_axis(x_ndim, gamma_ndim=1, axis=None):
     return key_axis
 
 
-def _bn_backend_selector(xp, mode):
+def _bn_backend_selector(batch_norm_obj, inputs):
+    x, gamma, _ = inputs
+    xp = backend.get_array_module(x)
+    mode = _BNMode(x, gamma, batch_norm_obj.key_axis)
     use_cudnn = mode.can_use_cudnn(xp)
     use_ideep = mode.can_use_ideep()
 
@@ -397,8 +400,7 @@ class BatchNormalization(function_node.FunctionNode):
 
         xp = backend.get_array_module(x)
 
-        mode = _BNMode(x, gamma, self.key_axis)
-        self.bn_backend = self.bn_backend_selector(xp, mode)
+        self.bn_backend = self.bn_backend_selector(self, inputs)
         y, = self.bn_backend.forward(axis=self.axis, gamma=gamma, x=x,
                                      xp=xp, expander=expander,
                                      beta=beta, eps=self.eps,
