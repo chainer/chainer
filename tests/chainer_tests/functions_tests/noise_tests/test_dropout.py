@@ -87,12 +87,17 @@ class TestDropout(unittest.TestCase):
             inputs = cuda.to_gpu(inputs)
             grad_outputs = cuda.to_gpu(grad_outputs)
 
-        with backend_config:
-            _, out_mask = functions.dropout(inputs[0], self.ratio,
+        # if return_mask is set the cudnn version wont be used
+        mask = None
+        if backend_config.use_cudnn == "always":
+            mask = numpy.random.randint(numpy.iinfo(numpy.int32).max)
+        else:
+            with backend_config:
+                _, mask = functions.dropout(inputs[0], self.ratio,
                                             return_mask=True)
 
         def f(*inputs):
-            return functions.dropout(inputs[0], self.ratio, mask=out_mask)
+            return functions.dropout(inputs[0], self.ratio, mask=mask)
 
         with backend_config:
             gradient_check.check_backward(
@@ -108,12 +113,17 @@ class TestDropout(unittest.TestCase):
             grad_outputs = cuda.to_gpu(grad_outputs)
             grad_grad_inputs = cuda.to_gpu(grad_grad_inputs)
 
-        with backend_config:
-            _, out_mask = functions.dropout(inputs[0], self.ratio,
+        # if return_mask is set the cudnn version wont be used
+        mask = None
+        if backend_config.use_cudnn == "always":
+            mask = numpy.random.randint(numpy.iinfo(numpy.int32).max)
+        else:
+            with backend_config:
+                _, mask = functions.dropout(inputs[0], self.ratio,
                                             return_mask=True)
 
         def f(*inputs):
-            return functions.dropout(inputs[0], self.ratio, mask=out_mask)
+            return functions.dropout(inputs[0], self.ratio, mask=mask)
 
         with backend_config:
             gradient_check.check_double_backward(
