@@ -1933,43 +1933,6 @@ class TestUninitializedParameter(unittest.TestCase):
         x.initialize((3, 2))
         assert x.data is y.data
 
-    def test_set_array_numpy(self):
-        # This test intends the use case of unpickling Parameter
-        x = chainer.Parameter()
-        x.array = np.array([1], np.float32)
-        assert x.device == backend.CpuDevice()
-
-    @attr.gpu
-    def test_set_array_gpu(self):
-        # This test intends the use case of unpickling Parameter
-        x = chainer.Parameter()
-        x.array = cuda.cupy.array([1], np.float32)
-        assert x.device == backend.GpuDevice(cuda.Device(0))
-
-    @attr.ideep
-    def test_set_array_intel64(self):
-        # This test intends the use case of unpickling Parameter
-        x = chainer.Parameter()
-        x.array = intel64.ideep.array(np.array([1], np.float32))
-        assert x.device == backend.Intel64Device()
-
-    @attr.chainerx
-    def test_set_array_chainerx_native(self):
-        # This test intends the use case of unpickling Parameter
-        x = chainer.Parameter()
-        chx_device = chainerx.get_device("native", 0)
-        x.array = chainerx.array([1], np.float32, device=chx_device)
-        assert x.device == backend.ChainerxDevice(chx_device)
-
-    @attr.chainerx
-    @attr.gpu
-    def test_set_array_chainerx_cuda(self):
-        # This test intends the use case of unpickling Parameter
-        x = chainer.Parameter()
-        chx_device = chainerx.get_device("cuda", 0)
-        x.array = chainerx.array([1], np.float32, device=chx_device)
-        assert x.device == backend.ChainerxDevice(chx_device)
-
     def test_cleargrad(self):
         x = chainer.Parameter()
         x.cleargrad()
@@ -2122,6 +2085,23 @@ class TestUninitializedParameter(unittest.TestCase):
         param = chainer.Parameter(MyInitializer())
         with pytest.raises(RuntimeError):
             param.dtype
+
+
+@testing.backend.inject_backend_tests(None, _set_data_backend_params)
+class TestUninitializedParameterSetArray(unittest.TestCase):
+    def _gen_array(self, device):
+        a = device.send_array(
+            np.random.uniform(-1, 1, (1,)).astype(np.float32))
+        assert device.is_array_supported(a)
+
+    def test_set_array(self, backend_config1):
+        # This test intends the use case of unpickling Parameter
+        device_y = backend_config1.device
+
+        x = chainer.Parameter()
+        x.array = self._gen_array(device_y)
+
+        assert x.device == device_y
 
 
 class TestDebugPrint(unittest.TestCase):
