@@ -119,12 +119,12 @@ def get_communication_backend(comm, communication_backend='auto'):
     return selected_communication_backend
 
 
-class multinode_bn_backend_selector:
+class MultiNodeBNBackendSelector:
     def __init__(self, comm, communication_backend_name):
         self.comm = comm
         self.communication_backend_name = communication_backend_name
 
-    def __call__(self, batch_norm_obj, inputs):
+    def __call__(self, batch_norm_func, inputs):
         if self.communication_backend_name == 'nccl':
             return _NcclBackend(self.comm)
         else:

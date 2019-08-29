@@ -261,10 +261,10 @@ def _compute_key_axis(x_ndim, gamma_ndim=1, axis=None):
     return key_axis
 
 
-def _bn_backend_selector(batch_norm_obj, inputs):
+def _bn_backend_selector(batch_norm_func, inputs):
     x, gamma, _ = inputs
     xp = backend.get_array_module(x)
-    mode = _BNMode(x, gamma, batch_norm_obj.key_axis)
+    mode = _BNMode(x, gamma, batch_norm_func.key_axis)
     use_cudnn = mode.can_use_cudnn(xp)
     use_ideep = mode.can_use_ideep()
 
