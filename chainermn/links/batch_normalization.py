@@ -10,7 +10,9 @@ import numpy
 from chainermn.functions.batch_normalization import \
     get_communication_backend
 from chainermn.functions.batch_normalization import \
-    MultiNodeBatchNormalizationFunction
+    multinode_bn_backend_selector
+from chainer.functions.normalization.batch_normalization \
+    import BatchNormalization
 
 
 class MultiNodeBatchNormalization(link.Link):
@@ -103,9 +105,10 @@ class MultiNodeBatchNormalization(link.Link):
             else:
                 decay = self.decay
 
-            func = MultiNodeBatchNormalizationFunction(
-                self.comm, self.eps, self.avg_mean, self.avg_var, decay=decay,
-                communication_backend=self._communication_backend)
+            func = BatchNormalization(
+                self.eps, self.avg_mean, self.avg_var, decay,
+                backend_selector=multinode_bn_backend_selector(
+                    self.comm, self._communication_backend))
 
             ret = func.apply((x, gamma, beta))[0]
 

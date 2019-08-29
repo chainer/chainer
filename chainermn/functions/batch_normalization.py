@@ -121,30 +121,13 @@ def get_communication_backend(comm, communication_backend='auto'):
     return selected_communication_backend
 
 
-class MultiNodeBatchNormalizationFunction(BatchNormalization):
-    def __init__(self, comm, eps=2e-5, mean=None, var=None, decay=0.9,
-                 communication_backend='auto'):
-        super().__init__(eps, mean, var, decay)
+class multinode_bn_backend_selector:
+    def __init__(self, comm, communication_backend_name):
         self.comm = comm
-        self.communication_backend = communication_backend
+        self.communication_backend_name = communication_backend_name
 
-    def _bn_backend_selector(self, xp):
-        if self.communication_backend == 'nccl':
+    def __call__(self, xp, mode):
+        if self.communication_backend_name == 'nccl':
             return _NcclBackend(self.comm)
         else:
             return _MpiBackend(self.comm)
-
-    def copy(self, mode='share'):
-        to_be_preserved = ['bn_backend', 'comm']
-        preserved = {}
-        for name in to_be_preserved:
-            preserved[name] = getattr(self, name)
-            setattr(self, name, None)
-
-        ret = super(BatchNormalization, self).copy(mode)
-
-        for name in to_be_preserved:
-            setattr(self, name, preserved[name])
-            setattr(ret, name, preserved[name])
-
-        return ret

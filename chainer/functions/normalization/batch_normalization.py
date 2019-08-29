@@ -261,12 +261,26 @@ def _compute_key_axis(x_ndim, gamma_ndim=1, axis=None):
     return key_axis
 
 
+def _bn_backend_selector(xp, mode):
+    use_cudnn = mode.can_use_cudnn(xp)
+    use_ideep = mode.can_use_ideep()
+
+    if use_ideep:
+        return _IDeepBatchNormalizationBackend()
+    elif use_cudnn:
+        return _CudnnBatchNormalizationBackend(mode.is_for_conv2d,
+                                               mode.get_cudnn_mode())
+    else:
+        return _GeneralBatchNormalizationBackend()
+
+
 class BatchNormalization(function_node.FunctionNode):
 
     mean = None
     inv_std = None
 
-    def __init__(self, eps=2e-5, mean=None, var=None, decay=0.9, axis=None):
+    def __init__(self, eps=2e-5, mean=None, var=None, decay=0.9, axis=None,
+                 backend_selector=_bn_backend_selector):
         self.running_mean = mean
         self.running_var = var
 
@@ -292,6 +306,8 @@ class BatchNormalization(function_node.FunctionNode):
             raise RuntimeError('axis must be int, tuple of int or None')
         self.axis = axis
 
+        self.bn_backend_selector = backend_selector
+
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 3)
         x_type, gamma_type, beta_type = in_types
@@ -315,18 +331,6 @@ class BatchNormalization(function_node.FunctionNode):
             type_check.expect(
                 x_type.shape[_key_axis[i]] == gamma_type.shape[i],
             )
-
-    def _bn_backend_selector(self, xp):
-        use_cudnn = self.mode.can_use_cudnn(xp)
-        use_ideep = self.mode.can_use_ideep()
-
-        if use_ideep:
-            return _IDeepBatchNormalizationBackend()
-        elif use_cudnn:
-            return _CudnnBatchNormalizationBackend(self.mode.is_for_conv2d,
-                                                   self.mode.get_cudnn_mode())
-        else:
-            return _GeneralBatchNormalizationBackend()
 
     def forward_chainerx(self, inputs):
         # TODO(niboshi): Support conditions implemented as fallback
@@ -394,7 +398,7 @@ class BatchNormalization(function_node.FunctionNode):
         xp = backend.get_array_module(x)
 
         self.mode = _BNMode(x, gamma, self.key_axis)
-        self.bn_backend = self._bn_backend_selector(xp)
+        self.bn_backend = self.bn_backend_selector(xp, self.mode)
         y, = self.bn_backend.forward(axis=self.axis, gamma=gamma, x=x,
                                      xp=xp, expander=expander,
                                      beta=beta, eps=self.eps,
