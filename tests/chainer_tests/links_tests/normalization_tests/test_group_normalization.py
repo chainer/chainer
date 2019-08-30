@@ -62,7 +62,8 @@ class GroupNormalizationTest(unittest.TestCase):
 
     @attr.gpu
     def test_forward_gpu(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.check_forward(cuda.to_gpu(self.x))
 
     @attr.cudnn
@@ -73,7 +74,8 @@ class GroupNormalizationTest(unittest.TestCase):
     @attr.multi_gpu(2)
     def test_forward_multi_gpu(self):
         with cuda.get_device_from_id(1):
-            self.link.to_gpu()
+            with testing.assert_warns(DeprecationWarning):
+                self.link.to_gpu()
             x = cuda.to_gpu(self.x)
         with cuda.get_device_from_id(0):
             self.check_forward(x)
@@ -90,7 +92,8 @@ class GroupNormalizationTest(unittest.TestCase):
 
     @attr.gpu
     def test_backward_gpu(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.link(cuda.cupy.zeros(self.shape, dtype='f'))
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
 
@@ -124,7 +127,8 @@ class TestInitialize(unittest.TestCase):
 
     @attr.gpu
     def test_initialize_gpu(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.link(cuda.cupy.zeros(self.shape, dtype='f'))
         testing.assert_allclose(self.initial_gamma, self.link.gamma.data)
         testing.assert_allclose(self.initial_beta, self.link.beta.data)
@@ -149,7 +153,8 @@ class TestDefaultInitializer(unittest.TestCase):
 
     @attr.gpu
     def test_initialize_gpu(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.link(cuda.cupy.zeros(self.shape, dtype='f'))
         testing.assert_allclose(numpy.ones(self.size), self.link.gamma.data)
         testing.assert_allclose(
@@ -170,7 +175,8 @@ class TestInvalidInput(unittest.TestCase):
 
     @attr.gpu
     def test_invalid_shape_gpu(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         with self.assertRaises(ValueError):
             self.link(chainer.Variable(cuda.cupy.zeros(self.shape, dtype='f')))
 

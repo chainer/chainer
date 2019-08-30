@@ -68,9 +68,13 @@ class DeviceResident(utils.enable_final(meta_base=abc.ABCMeta)):
             return None
         return device.xp
 
+    @utils.final(action=DeprecationWarning)
     def to_cpu(self):
         # type: () -> 'DeviceResident'
         """Copies parameter variables and persistent values to CPU.
+
+         .. deprecated:: v7.0.0
+            Use :meth:`to_device` instead.
 
         This method does not handle non-registered attributes. If some of such
         attributes must be copied to CPU, the link implementation should
@@ -86,12 +90,16 @@ class DeviceResident(utils.enable_final(meta_base=abc.ABCMeta)):
         self.__to_device(visitor)
         return self
 
+    @utils.final(action=DeprecationWarning)
     def to_gpu(
             self,
             device=None,  # type: tp.Optional[types.CudaDeviceSpec]
     ):
         # type: (...) -> 'DeviceResident'
         """Copies parameter variables and persistent values to GPU.
+
+         .. deprecated:: v7.0.0
+            Use :meth:`to_device` instead.
 
         This method does not handle non-registered attributes. If some of such
         attributes must be copied to GPU, the link implementation must
@@ -120,9 +128,15 @@ class DeviceResident(utils.enable_final(meta_base=abc.ABCMeta)):
         self.__to_device(visitor)
         return self
 
+    @utils.final(action=DeprecationWarning)
     def to_intel64(self):
         # type: () -> 'DeviceResident'
-        """Copies parameter variables and persistent values to CPU."""
+        """Copies parameter variables and persistent values to CPU.
+
+         .. deprecated:: v7.0.0
+            Use :meth:`to_device` instead.
+
+        """
         intel64.check_ideep_available()
         visitor = _ToDeviceVisitor(
             chainer.get_device(intel64.Intel64Device()),
@@ -248,7 +262,22 @@ class _ToDeviceVisitor(DeviceResidentsVisitor):
         # (instead of `device_resident_accept`).
         if entry_method_info is not None:
             assert len(entry_method_info) == 2
-            assert entry_method_info[0] in ('to_cpu', 'to_gpu', 'to_intel64')
+            method = entry_method_info[0]
+            if method == 'to_cpu':
+                message = (
+                    'to_cpu is deprecated. '
+                    'Please use to_device(\'@numpy\') instead.')
+            elif method == 'to_gpu':
+                message = (
+                    'to_gpu is deprecated. '
+                    'Please use to_device(\'@cupy:N\') instead.')
+            elif method == 'to_intel64':
+                message = (
+                    'to_intel64 is deprecated. '
+                    'Please use to_device(\'@intel64\') instead.')
+            else:
+                assert False
+            warnings.warn(message, DeprecationWarning)
 
         # starting_device_resident is also for backward compatibility
         # workaround for overridden methods.

@@ -65,7 +65,8 @@ class TestNStepLSTM(unittest.TestCase):
             assert len(x) == len(y)
             assert y.shape[1] == self.out_size
 
-        self.rnn.to_cpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.rnn.to_cpu()
 
         for batch, seq in enumerate(self.xs):
             for layer in range(self.n_layers):
@@ -106,7 +107,8 @@ class TestNStepLSTM(unittest.TestCase):
 
     @attr.gpu
     def test_forward_gpu_train(self):
-        self.rnn.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.rnn.to_gpu()
         with chainer.using_config('use_cudnn', 'always'), \
                 chainer.using_config('train', True):
             self.check_forward(
@@ -120,7 +122,8 @@ class TestNStepLSTM(unittest.TestCase):
 
     @attr.gpu
     def test_forward_gpu_test(self):
-        self.rnn.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.rnn.to_gpu()
         with chainer.using_config('use_cudnn', 'always'), \
                 chainer.using_config('train', False):
             self.check_forward(
@@ -132,7 +135,8 @@ class TestNStepLSTM(unittest.TestCase):
     def test_forward_nonzero_gpu_test(self):
         # Issue #5347
         # to_gpu should work without setting the current device
-        self.rnn.to_gpu(1)
+        with testing.assert_warns(DeprecationWarning):
+            self.rnn.to_gpu(1)
         with chainer.using_config('use_cudnn', 'always'), \
                 chainer.using_config('train', False):
             self.check_forward(
@@ -153,7 +157,8 @@ class TestNStepLSTM(unittest.TestCase):
                 h = cuda.to_gpu(self.h)
             c = cuda.to_gpu(self.c)
             xs = [cuda.to_gpu(x) for x in self.xs]
-            rnn = rnn.to_gpu()
+            with testing.assert_warns(DeprecationWarning):
+                rnn = rnn.to_gpu()
         with cuda.get_device_from_id(0),\
                 chainer.using_config('train', train),\
                 chainer.using_config('use_cudnn', 'always'):
@@ -206,7 +211,8 @@ class TestNStepLSTM(unittest.TestCase):
 
     @attr.gpu
     def test_backward_gpu(self):
-        self.rnn.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.rnn.to_gpu()
         with chainer.using_config('use_cudnn', 'always'):
             self.check_backward(
                 cuda.to_gpu(self.h),
@@ -272,7 +278,8 @@ class TestNStepBiLSTM(unittest.TestCase):
             assert len(x) == len(y)
             assert y.shape[1] == self.out_size * 2
 
-        self.rnn.to_cpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.rnn.to_cpu()
 
         for batch, seq in enumerate(self.xs):
             for layer in range(self.n_layers):
@@ -349,7 +356,8 @@ class TestNStepBiLSTM(unittest.TestCase):
 
     @attr.gpu
     def test_forward_gpu_train(self):
-        self.rnn.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.rnn.to_gpu()
         with chainer.using_config('use_cudnn', 'always'), \
                 chainer.using_config('train', True):
             self.check_forward(
@@ -363,7 +371,8 @@ class TestNStepBiLSTM(unittest.TestCase):
 
     @attr.gpu
     def test_forward_gpu_test(self):
-        self.rnn.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.rnn.to_gpu()
         with chainer.using_config('use_cudnn', 'always'), \
                 chainer.using_config('train', False):
             self.check_forward(
@@ -384,7 +393,8 @@ class TestNStepBiLSTM(unittest.TestCase):
                 h = cuda.to_gpu(self.h)
             c = cuda.to_gpu(self.c)
             xs = [cuda.to_gpu(x) for x in self.xs]
-            rnn = rnn.to_gpu()
+            with testing.assert_warns(DeprecationWarning):
+                rnn = rnn.to_gpu()
         with cuda.get_device_from_id(0),\
                 chainer.using_config('train', train),\
                 chainer.using_config('use_cudnn', 'always'):
@@ -437,7 +447,8 @@ class TestNStepBiLSTM(unittest.TestCase):
 
     @attr.gpu
     def test_backward_gpu(self):
-        self.rnn.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.rnn.to_gpu()
         with chainer.using_config('use_cudnn', 'auto'):
             self.check_backward(
                 cuda.to_gpu(self.h),

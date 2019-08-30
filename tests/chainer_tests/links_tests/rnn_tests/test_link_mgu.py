@@ -53,7 +53,8 @@ class TestStatelessMGU(unittest.TestCase):
 
     @attr.gpu
     def test_forward_gpu(self):
-        self.mgu.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.mgu.to_gpu()
         self.check_forward(cuda.to_gpu(self.h), cuda.to_gpu(self.x))
 
 
@@ -99,7 +100,8 @@ class TestStatefulMGU(unittest.TestCase):
 
     @attr.gpu
     def test_forward_gpu(self):
-        self.mgu.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.mgu.to_gpu()
         self.check_forward(cuda.to_gpu(self.x))
 
 
