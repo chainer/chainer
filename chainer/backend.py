@@ -44,12 +44,8 @@ def copyto(dst, src):
     another device.
 
     Args:
-        dst (:class:`numpy.ndarray`, :class:`cupy.ndarray`, \
-        :class:`ideep4py.mdarray` or :class:`chainerx.ndarray`):
-            Destination array.
-        src (:class:`numpy.ndarray`, :class:`cupy.ndarray`, \
-        :class:`ideep4py.mdarray` or :class:`chainerx.ndarray`):
-            Source array.
+        dst (:ref:`ndarray`): Destination array.
+        src (:ref:`ndarray`): Source array.
 
     """
     if isinstance(dst, chainerx.ndarray):
