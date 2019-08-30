@@ -1031,8 +1031,8 @@ Args:
     x1 (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
 
 Returns:
-    :class:`~chainerx.ndarray`: A variable holding an array representing the mean squared
-    error of two inputs.
+    :class:`~chainerx.ndarray`: A variable holding an array representing the
+    mean squared error of two inputs.
 
 .. seealso:: :func:`chainer.functions.mean_squared_error`
 """)
