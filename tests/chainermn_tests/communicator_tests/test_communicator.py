@@ -249,7 +249,7 @@ def destroy_communicator(comm):
     if hasattr(comm, 'nccl_comm') and comm.nccl_comm is not None:
         comm.nccl_comm.destroy()
         comm.nccl_comm = None
-    if hasattr(comm, 'intra_nccl_cojmm') and comm.intra_nccl_comm is not None:
+    if hasattr(comm, 'intra_nccl_comm') and comm.intra_nccl_comm is not None:
         comm.intra_nccl_comm.destroy()
         comm.intra_nccl_comm = None
 
