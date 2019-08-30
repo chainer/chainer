@@ -157,7 +157,9 @@ public:
                     for (it_right.Restart(); it_right; ++it_right) {
                         it_out.CopyIndex(it_right, it_left.ndim() + it_axis.ndim());
                         it_b.CopyIndex(it_right, it_left.ndim() + it.ndim());
-                        out_iarray[it_out] += b_iarray[it_b];
+                        T b_value = native_internal::StorageToDataType<const T>(b_iarray[it_b]);
+                        T& out_ref = native_internal::StorageToDataType<T>(out_iarray[it_out]);
+                        out_ref += b_value;
                     }
                 }
             }
