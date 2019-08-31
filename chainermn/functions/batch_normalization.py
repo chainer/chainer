@@ -1,6 +1,3 @@
-# This file is heavily based on Chainer's batch normalization implementation.
-# See: chainer/functions/normalization/batch_normalization.py (dbb650)
-
 import chainer
 from chainer import cuda
 import chainer.utils
