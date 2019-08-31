@@ -5,10 +5,10 @@ import chainer
 from chainer import cuda
 import chainer.utils
 from chainer.functions.normalization.batch_normalization \
-    import GeneralBatchNormalizationBackend
+    import GeneralBatchNormalizationImpl
 
 
-class _MpiBackend(GeneralBatchNormalizationBackend):
+class _MpiImpl(GeneralBatchNormalizationImpl):
     def __init__(self, comm):
         self.comm = comm
 
@@ -36,7 +36,7 @@ class _MpiBackend(GeneralBatchNormalizationBackend):
         return gbeta, ggamma
 
 
-class _NcclBackend(GeneralBatchNormalizationBackend):
+class _NcclImpl(GeneralBatchNormalizationImpl):
 
     def __init__(self, comm):
         self.comm = comm
@@ -119,13 +119,13 @@ def get_communication_backend(comm, communication_backend='auto'):
     return selected_communication_backend
 
 
-class MultiNodeBNBackendSelector:
+class MultiNodeBNImplSelector:
     def __init__(self, comm, communication_backend_name):
         self.comm = comm
         self.communication_backend_name = communication_backend_name
 
     def __call__(self, batch_norm_func, inputs):
         if self.communication_backend_name == 'nccl':
-            return _NcclBackend(self.comm)
+            return _NcclImpl(self.comm)
         else:
-            return _MpiBackend(self.comm)
+            return _MpiImpl(self.comm)
