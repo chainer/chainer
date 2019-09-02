@@ -455,9 +455,9 @@ class TestNStepRNN(op_utils.ChainerOpTest):
         self.check_forward_options.update({
             'rtol': 1e-2, 'atol': 1e-2})
         self.check_backward_options.update({
-            'rtol': 1e-2, 'atol': 1e-2})
+            'rtol': 1e-2, 'atol': 1e-2, 'eps': 1e-7})
         self.check_double_backward_options.update({
-            'rtol': 5e-2, 'atol': 5e-2})
+            'rtol': 5e-2, 'atol': 5e-2, 'eps': 1e-7})
         if self.in_dtypes[0] == 'float16':
             self.check_forward_options.update({
                 'rtol': 1e-1, 'atol': 1e-1})
