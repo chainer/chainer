@@ -45,7 +45,8 @@ class MultiNodeEarlyStoppingTrigger(object):
        historical reason.
     """
 
-    def __init__(self, comm, check_trigger=(1, 'epoch'), monitor='main/loss',
+    def __init__(self, comm,
+                 *, check_trigger=(1, 'epoch'), monitor='main/loss',
                  patience=None, mode='auto', verbose=False,
                  max_trigger=(100, 'epoch'), suffix='_aggregated', **kwargs):
 
