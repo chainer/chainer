@@ -1,3 +1,6 @@
+// This header provides chainerx a consistent interface to CBLAS code.
+// It is needed because not all providers of cblas provide cblas.h, e.g. MKL.
+
 #pragma once
 
 extern "C" {
