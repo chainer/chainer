@@ -4,6 +4,7 @@ from chainerx import _docs
 
 def set_docs():
     _docs_creation()
+    _docs_evaluation()
     _docs_indexing()
     _docs_linalg()
     _docs_logic()
@@ -480,6 +481,55 @@ Note:
 """)
 
 
+def _docs_evaluation():
+    _docs.set_doc(
+        chainerx.accuracy,
+        """accuracy(y, t, ignore_label=None)
+Computes multiclass classification accuracy of the minibatch.
+
+Args:
+    y (~chainerx.ndarray):
+        Array whose (i, j, k, ...)-th element indicates the score of
+        the class j at the (i, k, ...)-th sample.
+        The prediction label :math:`\\hat t` is calculated by the formula
+        :math:`\\hat t(i, k, ...) = \\operatorname{\\mathrm{argmax}}_j \
+y(i, j, k, ...)`.
+    t (~chainerx.ndarray):
+        Array of ground truth labels.
+    ignore_label (int or None): Skip calculating accuracy
+        if the true label is ``ignore_label``.
+
+Returns:
+    :func:`~chainerx.ndarray`: A variable holding a scalar \
+array of the accuracy.
+
+Note:
+    This function is non-differentiable.
+
+.. seealso:: :func:`chainer.functions.accuracy`
+
+.. admonition:: Example
+
+    We show the most common case, when ``y`` is the two dimensional array.
+
+    >>> y = chainerx.array([[0.1, 0.7, 0.2], # prediction label is 1
+    ...                     [8.0, 1.0, 2.0], # prediction label is 0
+    ...                     [-8.0, 1.0, 2.0], # prediction label is 2
+    ...                     [-8.0, -1.0, -2.0]]) # prediction label is 1
+    >>> t = chainerx.array([1, 0, 2, 1], chainerx.int32)
+    >>> chainerx.accuracy(y, t) \
+# 100% accuracy because all samples are correct
+    array(1., shape=(), dtype=float64, device='native:0')
+    >>> t = chainerx.array([1, 0, 0, 0], chainerx.int32)
+    >>> chainerx.accuracy(y, t) \
+# 50% accuracy because 1st and 2nd samples are correct
+    array(0.5, shape=(), dtype=float64, device='native:0')
+    >>> chainerx.accuracy(y, t, ignore_label=0) \
+# 100% accuracy because of ignoring the 2nd, 3rd and 4th samples.
+    array(1., shape=(), dtype=float64, device='native:0')
+""")
+
+
 def _docs_indexing():
     _docs.set_doc(
         chainerx.take,
@@ -495,9 +545,6 @@ Args:
 
 Returns:
     :func:`~chainerx.ndarray`: Output array.
-
-Note:
-    This function currently only supports indices of int64 array.
 
 Note:
     This function currently does not support ``axis=None``
@@ -663,6 +710,36 @@ Note:
     supported yet.)
 
 .. seealso:: :func:`numpy.linalg.pinv`
+""")
+
+    _docs.set_doc(
+        chainerx.linalg.qr,
+        """qr(a, mode='reduced')
+Compute the qr factorization of a matrix.
+
+Factor the matrix ``a`` as *qr*, where ``q`` is orthonormal and ``r`` is
+upper-triangular.
+
+Args:
+    a (~chainerx.ndarray): Matrix to be factored.
+    mode (str): The mode of decomposition.
+        'reduced' : returns q, r with dimensions (M, K), (K, N) (default)
+        'complete' : returns q, r with dimensions (M, M), (M, N)
+        'r' : returns r only with dimensions (K, N)
+        'raw' : returns h, tau with dimensions (N, M), (K,),
+        where ``(M, N)`` is the shape of the input matrix and ``K = min(M, N)``
+
+Returns:
+    q (~chainerx.ndarray): A matrix with orthonormal columns.
+    r (~chainerx.ndarray): The upper-triangular matrix.
+
+Note:
+    * The ``dtype`` must be ``float32`` or ``float64`` (``float16`` is not
+      supported yet.)
+    * Backpropagation is not implemented for non-square output matrix ``r``.
+    * Backpropagation is not implemented for 'r' or 'raw' modes.
+
+.. seealso:: :func:`numpy.linalg.qr`
 """)
 
 
@@ -1579,6 +1656,27 @@ Note:
 """)
 
     _docs.set_doc(
+        chainerx.remainder,
+        """remainder(x1, x2)
+Return element-wise remainder of division.
+
+Args:
+    x1 (~chainerx.ndarray or scalar): Input array.
+    x2 (~chainerx.ndarray or scalar): Input array.
+
+Returns:
+    :class:`~chainerx.ndarray`:
+        Returned array: The element-wise remainder of
+        the quotient ``floor_divide(x1, x2)``.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input arrays ``x1`` and ``x2``.
+
+.. seealso:: :data:`numpy.remainder`
+""")
+
+    _docs.set_doc(
         chainerx.exp,
         """exp(x)
 Numerical exponential, element-wise.
@@ -1900,6 +1998,82 @@ Note:
     During backpropagation, this function propagates the gradient of the
     output array to the input array ``x``.
 """)
+
+    _docs.set_doc(
+        chainerx.tree_lstm,
+        """tree_lstm(*inputs)
+TreeLSTM unit as an activation function.
+
+This function implements TreeLSTM units both for
+N-ary TreeLSTM and Child-Sum TreeLSTM.
+Let the children cell states
+:math:`c_{\\text{1}}, c_{\\text{2}}, \\dots, c_{\\text{N}}`,
+and the incoming signal :math:`x`.
+First, the incoming signal :math:`x` is split into (3 + N) arrays
+:math:`a, i, o, f_{\\text{1}}, f_{\\text{2}}, ..., f_{\\text{N}}`
+of the same shapes along the second axis.
+It means that :math:`x` 's second axis must have (3 + N) times
+of the length of each :math:`c_{n}`.
+The splitted input signals are corresponding to
+
+    - :math:`a` : sources of cell input
+    - :math:`i` : sources of input gate
+    - :math:`o` : sources of output gate
+    - :math:`f_{n}` : sources of forget gate for n-th ary
+
+Second, it computes outputs as
+
+.. math::
+    c &= \\tanh(a) \\text{sigmoid}(i) \\\\
+      & + c_{\\text{1}} \\text{sigmoid}(f_{\\text{1}}), \\\\
+      & + c_{\\text{2}} \\text{sigmoid}(f_{\\text{2}}), \\\\
+      & + ..., \\\\
+      & + c_{\\text{N}} \\text{sigmoid}(f_{\\text{N}}), \\\\
+    h &= \\tanh(c) \\text{sigmoid}(o).
+
+These are returned as a tuple of (N + 1) variables.
+
+Args:
+    inputs (list of :class:`~chainerx.array`): Variable arguments which
+        include all cell vectors from child-nodes, and an input vector.
+        Each of the cell vectors and the input vector is
+        :class:`~chainerx.array`.
+        The input vector must have the second dimension whose size
+        is (N + 3) times of that of each cell,
+        where N denotes the total number of cells.
+
+Returns:
+    tuple: Two :class:`~chainerx.array` objects ``c`` and ``h``. ``c`` is
+    the updated cell state. ``h`` indicates the outgoing signal.
+
+See the papers for details: `Improved Semantic Representations From
+Tree-Structured Long Short-Term Memory Networks
+<https://www.aclweb.org/anthology/P15-1150>`_ and
+`A Fast Unified Model for Parsing and Sentence Understanding
+<https://arxiv.org/pdf/1603.06021.pdf>`_.
+Tai et al.'s N-Ary TreeLSTM is little extended in
+Bowman et al., and this link is based on
+the variant by Bowman et al.
+Specifically, eq. 10 in Tai et al. only has one :math:`W` matrix
+to be applied to :math:`x`, consistently for all children.
+On the other hand, Bowman et al.'s model has multiple matrices,
+each of which affects the forget gate for each child's cell individually.
+
+.. admonition:: Example
+
+    Assuming ``y`` is the current input signal, ``c`` is the previous cell
+    state, and ``h`` is the previous output signal from an
+    :meth:`~chainerx.tree_lstm` function.
+    Each of ``y``, ``c`` and ``h`` has ``n_units`` channels.
+    Using 2-ary (binary) TreeLSTM,
+
+    most typical preparation of ``x`` is
+
+    >>> c1 = chainerx.ones((4, 10), dtype = chainerx.float32)
+    >>> c2 = chainerx.ones((4, 10), dtype = chainerx.float32)
+    >>> x = chainerx.ones((4, 50), dtype = chainerx.float32)
+    >>> c, h = chainerx.tree_lstm(c1, c2, x)
+    """)
 
     _docs.set_doc(
         chainerx.slstm,
