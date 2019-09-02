@@ -398,25 +398,21 @@ Array EmbedId(const Array& x, const Array& w, absl::optional<int64_t> ignore_lab
     if (ignore_label.has_value() && (*ignore_label < 0 || *ignore_label >= w.shape()[0])) {
         throw IndexError{"ignore_label should be greater than equal to 0 and less than" + w.shape()[0]};
     }
-    StackVector<int64_t, kMaxNdim> shape_vec;
-    shape_vec.emplace_back(w.shape()[1]);
-    Shape shape{shape_vec};
-    std::vector<Array> ignore_list;
-    std::vector<Array> x_split = Split(x, x.shape()[0], 0);
-
-    Array w_new = w;
     if (ignore_label.has_value()) {
-        for (int64_t i = 0; i < w.shape()[0]; i++) {
-            if (i == *ignore_label) {
-                ignore_list.emplace_back(Zeros(shape, w.dtype(), w.device()));
-            } else {
-                ignore_list.emplace_back(Ones(shape, w.dtype(), w.device()));
-            }
+        Array ignore_label_array = Full(x.shape(), *ignore_label, x.dtype(), x.device());
+        Array mask = Where(x == ignore_label_array, 0, x);
+        std::vector<int64_t> m_shape_vec;
+        for (int64_t i = 0; i < mask.ndim(); i++) {
+            m_shape_vec.emplace_back(mask.shape()[i]);
         }
-        Array ignore_array = Stack(ignore_list, 0);
-        w_new = w_new * ignore_array;
+        m_shape_vec.emplace_back(1);
+        Shape m_shape{m_shape_vec};
+        Array _mask = mask.Reshape(m_shape);
+        Array zero_array = Zeros(_mask.shape(), _mask.dtype(), _mask.device());
+        Array out = Where(_mask == zero_array, 0, Take(w, mask, 0));
+        return out;
     }
-    Array out = Take(w_new, x, 0);
+    Array out = Take(w, x, 0);
     return out;
 }
 
