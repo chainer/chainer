@@ -195,6 +195,8 @@ def test_getitem_zero_sized_offsets(device):
     ((2, 3), [1, 2], 1),
     ((2, 3), [2, 1], 1),
     ((2, 3), [[0], [1]], 0),
+    # Take from a duplicate index
+    ((3, 2), [1, 1], 0),
     # Invalid: Axis out of bounds
     ((2, 3), [0], 2),
     ((2, 3), [0], -3),
@@ -206,6 +208,8 @@ def test_getitem_zero_sized_offsets(device):
 # wasteful.
 @chainer.testing.parameterize_pytest(
     'indices_dtype', chainerx.testing.integral_dtypes)
+@chainer.testing.parameterize_pytest(
+    'a_dtype', chainerx.testing.all_dtypes)
 class TestTake(op_utils.NumpyOpTest):
 
     check_numpy_strides_compliance = False
@@ -217,8 +221,14 @@ class TestTake(op_utils.NumpyOpTest):
             raise unittest.SkipTest(
                 'Indices underflows and index out of bounds cannot be tested.')
 
+        if self.a_dtype == 'float16':
+            self.check_backward_options.update(
+                {'rtol': 1e-3, 'atol': 1e-3})
+            self.check_double_backward_options.update(
+                {'rtol': 1e-3, 'atol': 1e-3})
+
     def generate_inputs(self):
-        a = numpy.random.uniform(-1, 1, self.shape).astype('float32')
+        a = numpy.random.uniform(-1, 1, self.shape).astype(self.a_dtype)
         return a,
 
     def forward_xp(self, inputs, xp):

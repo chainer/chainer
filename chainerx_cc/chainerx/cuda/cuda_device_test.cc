@@ -174,6 +174,19 @@ TEST(CudaDeviceTest, Synchronize) {
     device.Synchronize();  // no throw
 }
 
+TEST(CudaDeviceTest, MemoryPoolHook) {
+    Context ctx{};
+    CudaDevice& device = GetCudaDevice(ctx, 0);
+    const std::shared_ptr<MemoryPool> memory_pool = device.device_memory_pool();
+    bool called = false;
+    auto hook = [&called](MemoryPool&, size_t) { called = true; };
+    memory_pool->SetMallocPreprocessHook(hook);
+
+    EXPECT_FALSE(called);
+    device.Allocate(1);
+    EXPECT_TRUE(called);
+}
+
 }  // namespace
 }  // namespace cuda
 }  // namespace chainerx

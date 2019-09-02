@@ -1,4 +1,5 @@
-from chainer.functions.normalization import _standardize
+import chainer
+from chainer.functions.normalization import group_normalization
 from chainer import link_hook
 
 
@@ -65,12 +66,18 @@ class WeightStandardization(link_hook.LinkHook):
                     raise ValueError('Input variable does not exist!')
                 link._initialize_params(input_variable.shape[1])
         weight = getattr(link, self.weight_name)
+        with chainer.using_device(link.device):
+            gamma = link.xp.ones(
+                (weight.shape[1],), dtype=weight.dtype)
+            beta = link.xp.zeros(
+                (weight.shape[1],), dtype=weight.dtype)
         # For link.W or equivalents to be chainer.Parameter
         # consistently to users, this hook maintains a reference to
         # the unnormalized weight.
         self.original_weight = weight
         # note: `normalized_weight` is ~chainer.Variable
-        normalized_weight = _standardize._standardize(weight, self.eps)
+        normalized_weight = group_normalization.group_normalization(
+            weight, groups=1, gamma=gamma, beta=beta, eps=self.eps)
         setattr(link, self.weight_name, normalized_weight)
 
     def forward_postprocess(self, cb_args):

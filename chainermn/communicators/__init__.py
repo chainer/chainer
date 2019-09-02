@@ -79,27 +79,26 @@ def create_communicator(
 
     if communicator_name != 'pure_nccl' and allreduce_grad_dtype is not None:
         raise ValueError(
-            'allreduce_grad_dtype is only available'
-            'at \'pure_nccl\' communicator.')
-    if communicator_name != 'pure_nccl' and batched_copy:
-        raise ValueError(
-            'batched_copy is only available'
+            'allreduce_grad_dtype is only available '
             'at \'pure_nccl\' communicator.')
 
     if communicator_name == 'naive':
         from chainermn.communicators.naive_communicator \
             import NaiveCommunicator
-        return NaiveCommunicator(mpi_comm=mpi_comm)
+        return NaiveCommunicator(mpi_comm=mpi_comm,
+                                 batched_copy=batched_copy)
 
     elif communicator_name == 'flat':
         from chainermn.communicators.flat_communicator \
             import FlatCommunicator
-        return FlatCommunicator(mpi_comm=mpi_comm)
+        return FlatCommunicator(mpi_comm=mpi_comm,
+                                batched_copy=batched_copy)
 
     elif communicator_name == 'non_cuda_aware':
         from chainermn.communicators.non_cuda_aware_communicator \
             import NonCudaAwareCommunicator
-        return NonCudaAwareCommunicator(mpi_comm=mpi_comm)
+        return NonCudaAwareCommunicator(mpi_comm=mpi_comm,
+                                        batched_copy=batched_copy)
 
     elif communicator_name == 'pure_nccl':
         from chainermn.communicators.pure_nccl_communicator \
@@ -111,7 +110,8 @@ def create_communicator(
     elif communicator_name == 'dummy':
         from chainermn.communicators.dummy_communicator \
             import DummyCommunicator
-        return DummyCommunicator(mpi_comm=mpi_comm)
+        return DummyCommunicator(mpi_comm=mpi_comm,
+                                 batched_copy=batched_copy)
 
     else:
         raise ValueError(
