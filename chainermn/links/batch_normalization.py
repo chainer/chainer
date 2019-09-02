@@ -1,16 +1,14 @@
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
 from chainer.functions.normalization import batch_normalization
 from chainer import initializers
 from chainer import link
 import chainer.utils
 from chainer import variable
-import numpy
+from chainermn.functions import batch_normalization as \
+    chainermn_batch_normalization
 
-from chainermn.functions.batch_normalization import \
-    get_communication_backend
-from chainermn.functions.batch_normalization import \
-    MultiNodeBNImplSelector
+import numpy
 
 
 class MultiNodeBatchNormalization(link.Link):
@@ -66,7 +64,8 @@ class MultiNodeBatchNormalization(link.Link):
         self.eps = eps
 
         self._communication_backend = \
-            get_communication_backend(comm, communication_backend)
+            chainermn_batch_normalization.get_communication_backend(
+                comm, communication_backend)
 
         with self.init_scope():
             if use_gamma:
@@ -105,8 +104,9 @@ class MultiNodeBatchNormalization(link.Link):
 
             func = batch_normalization.BatchNormalization(
                 self.eps, self.avg_mean, self.avg_var, decay,
-                impl_selector=MultiNodeBNImplSelector(
-                    self.comm, self._communication_backend))
+                impl_selector=(
+                    chainermn_batch_normalization.MultiNodeBNImplSelector(
+                        self.comm, self._communication_backend)))
 
             ret = func.apply((x, gamma, beta))[0]
 

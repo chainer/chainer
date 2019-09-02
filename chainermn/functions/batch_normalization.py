@@ -1,11 +1,10 @@
 import chainer
-from chainer import cuda
+from chainer.backends import cuda
+from chainer.functions.normalization import batch_normalization
 import chainer.utils
-from chainer.functions.normalization.batch_normalization \
-    import GeneralBatchNormalizationImpl
 
 
-class _MpiImpl(GeneralBatchNormalizationImpl):
+class _MpiImpl(batch_normalization.GeneralBatchNormalizationImpl):
     def __init__(self, comm):
         self.comm = comm
 
@@ -33,7 +32,7 @@ class _MpiImpl(GeneralBatchNormalizationImpl):
         return gbeta, ggamma
 
 
-class _NcclImpl(GeneralBatchNormalizationImpl):
+class _NcclImpl(batch_normalization.GeneralBatchNormalizationImpl):
 
     def __init__(self, comm):
         self.comm = comm
