@@ -203,9 +203,9 @@ def local_response_normalization(x, n=5, k=2, alpha=1e-4, beta=.75):
         beta (float): Normalizer power parameter.
 
     Returns:
-        Variable: Output variable.
+        ~chainer.Variable: Output variable.
 
-    See: Section 3.3 of `ImageNet Classification with Deep Convolutional \\
+    See: Section 3.3 of `ImageNet Classification with Deep Convolutional
     Neural Networks <https://www.cs.toronto.edu/~fritz/absps/imagenet.pdf>`_
 
     """

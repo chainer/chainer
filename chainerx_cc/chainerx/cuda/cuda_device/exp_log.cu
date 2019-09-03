@@ -13,77 +13,27 @@
 #include "chainerx/cuda/numeric.cuh"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
-#include "chainerx/kernels/math.h"
+#include "chainerx/kernels/explog.h"
 
 namespace chainerx {
 namespace cuda {
 namespace {
 
-template <typename T>
-struct ExpImpl {
-    using CudaType = cuda_internal::DataType<T>;
-    __device__ void operator()(int64_t /*i*/, CudaType x, CudaType& out) { out = cuda::Exp(x); }
-};
+CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(ErfKernel, { out = cuda::Erf(x); });
 
-class CudaExpKernel : public ExpKernel {
-public:
-    void Call(const Array& x, const Array& out) override {
-        Device& device = x.device();
-        device.CheckDevicesCompatible(x, out);
-        CudaSetDeviceScope scope{device.index()};
-        const Array& x_cast = x.dtype() == out.dtype() ? x : x.AsType(out.dtype());
-        VisitFloatingPointDtype(out.dtype(), [&x_cast, &out](auto pt) {
-            using T = typename decltype(pt)::type;
-            Elementwise<const T, T>(ExpImpl<T>{}, x_cast, out);
-        });
-    }
-};
+CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(ExpKernel, { out = cuda::Exp(x); });
 
-CHAINERX_CUDA_REGISTER_KERNEL(ExpKernel, CudaExpKernel);
+CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(Expm1Kernel, { out = cuda::Expm1(x); });
 
-template <typename T>
-struct LogImpl {
-    using CudaType = cuda_internal::DataType<T>;
-    __device__ void operator()(int64_t /*i*/, CudaType x, CudaType& out) { out = cuda::Log(x); }
-};
+CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(Exp2Kernel, { out = cuda::Exp2(x); });
 
-class CudaLogKernel : public LogKernel {
-public:
-    void Call(const Array& x, const Array& out) override {
-        Device& device = x.device();
-        device.CheckDevicesCompatible(x, out);
-        CudaSetDeviceScope scope{device.index()};
-        const Array& x_cast = x.dtype() == out.dtype() ? x : x.AsType(out.dtype());
-        VisitFloatingPointDtype(out.dtype(), [&x_cast, &out](auto pt) {
-            using T = typename decltype(pt)::type;
-            Elementwise<const T, T>(LogImpl<T>{}, x_cast, out);
-        });
-    }
-};
+CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(LogKernel, { out = cuda::Log(x); });
 
-CHAINERX_CUDA_REGISTER_KERNEL(LogKernel, CudaLogKernel);
+CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(Log10Kernel, { out = cuda::Log10(x); });
 
-template <typename T>
-struct Log10Impl {
-    using CudaType = cuda_internal::DataType<T>;
-    __device__ void operator()(int64_t /*i*/, CudaType x, CudaType& out) { out = cuda::Log10(x); }
-};
+CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(Log2Kernel, { out = cuda::Log2(x); });
 
-class CudaLog10Kernel : public Log10Kernel {
-public:
-    void Call(const Array& x, const Array& out) override {
-        Device& device = x.device();
-        device.CheckDevicesCompatible(x, out);
-        CudaSetDeviceScope scope{device.index()};
-        const Array& x_cast = x.dtype() == out.dtype() ? x : x.AsType(out.dtype());
-        VisitFloatingPointDtype(out.dtype(), [&x_cast, &out](auto pt) {
-            using T = typename decltype(pt)::type;
-            Elementwise<const T, T>(Log10Impl<T>{}, x_cast, out);
-        });
-    }
-};
-
-CHAINERX_CUDA_REGISTER_KERNEL(Log10Kernel, CudaLog10Kernel);
+CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(Log1pKernel, { out = cuda::Log1p(x); });
 
 }  // namespace
 }  // namespace cuda

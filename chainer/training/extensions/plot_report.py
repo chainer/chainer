@@ -38,8 +38,8 @@ def _check_available():
 class PlotReport(extension.Extension):
 
     """__init__(\
-        y_keys, x_key='iteration', trigger=(1, 'epoch'), postprocess=None,\
-        filename='plot.png', marker='x', grid=True)
+y_keys, x_key='iteration', trigger=(1, 'epoch'), postprocess=None, \
+filename='plot.png', marker='x', grid=True)
 
     Trainer extension to output plots.
 
@@ -150,7 +150,7 @@ class PlotReport(extension.Extension):
         else:
             summary.add({k: observation[k] for k in keys if k in observation})
 
-        if self._trigger(trainer):
+        if trainer.is_before_training or self._trigger(trainer):
             stats = self._summary.compute_mean()
             stats_cpu = {}
             for name, value in six.iteritems(stats):

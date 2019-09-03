@@ -1,4 +1,4 @@
-from chainer import backend
+import chainer
 from chainer import cuda
 
 
@@ -39,12 +39,12 @@ class Lasso(object):
         p, g = param.data, param.grad
         if p is None or g is None:
             return
-        xp = backend.get_array_module(p)
-        with cuda.get_device_from_array(p) as dev:
+        with chainer.using_device(param.device):
+            xp = param.device.xp
             sign = xp.sign(p)
-            if int(dev) == -1:
-                g += self.rate * sign
-            else:
+            if xp is cuda.cupy:
                 kernel = cuda.elementwise(
                     'T s, T decay', 'T g', 'g += decay * s', 'lasso')
                 kernel(sign, self.rate, g)
+            else:
+                g += self.rate * sign

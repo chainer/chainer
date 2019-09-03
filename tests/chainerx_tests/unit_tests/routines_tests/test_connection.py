@@ -17,6 +17,59 @@ class Unspecified(object):
     pass
 
 
+lstm_dtypes_valid = dtype_utils._permutate_dtype_mapping([
+    # Floats.
+    (('float16', 'float16'), ('float16', 'float16')),
+    (('float32', 'float32'), ('float32', 'float32')),
+    (('float64', 'float64'), ('float64', 'float64')),
+])
+
+
+lstm_dtypes_invalid = dtype_utils._permutate_dtype_mapping([
+    # Bools.
+    (('bool_', 'bool_'), ('bool_', 'bool_')),
+    # Floats.
+    (('float32', 'float16'), ('float32', 'float16')),
+    (('float64', 'float16'), ('float64', 'float16')),
+    (('float64', 'float32'), ('float64', 'float32')),
+    # Signed ints.
+    (('int8', 'int8'), ('int8', 'int8')),
+    (('int8', 'int16'), ('int8', 'int16')),
+    (('int8', 'int32'), ('int8', 'int32')),
+    (('int8', 'int64'), ('int8', 'int64')),
+    (('int16', 'int16'), ('int16', 'int16')),
+    (('int32', 'int32'), ('int32', 'int32')),
+    (('int64', 'int64'), ('int64', 'int64')),
+    (('int16', 'int32'), ('int16', 'int32')),
+    (('int16', 'int64'), ('int16', 'int64')),
+    (('int32', 'int64'), ('int32', 'int64')),
+    # Unsigned ints.
+    (('uint8', 'uint8'), ('uint8', 'uint8')),
+    # Signed int and unsigned int.
+    (('uint8', 'int8'), ('uint8', 'int8')),
+    (('uint8', 'int16'), ('uint8', 'int16')),
+    (('uint8', 'int32'), ('uint8', 'int32')),
+    # Int and float.
+    (('int8', 'float16'), ('int8', 'float16')),
+    (('uint8', 'float16'), ('uint8', 'float16')),
+    (('int16', 'float32'), ('int16', 'float32')),
+    (('int32', 'float32'), ('int32', 'float32')),
+    (('int64', 'float32'), ('int64', 'float32')),
+    # Bool and other.
+    (('bool_', 'uint8'), ('bool_', 'uint8')),
+    (('bool_', 'int8'), ('bool_', 'int8')),
+    (('bool_', 'int16'), ('bool_', 'int16')),
+    (('bool_', 'float16'), ('bool_', 'float16')),
+    (('bool_', 'float64'), ('bool_', 'float64')),
+])
+
+
+def _create_lstm_args(xp, device, c_shape, x_shape, float_dtype):
+    c = array_utils.create_dummy_ndarray(xp, c_shape, float_dtype[0])
+    x = array_utils.create_dummy_ndarray(xp, x_shape, float_dtype[1])
+    return c, x
+
+
 def _create_conv_args(
         xp, device, x_shape, w_shape, b_shape, stride, pad, cover_all,
         float_dtype):
@@ -31,39 +84,19 @@ def _create_conv_args(
     return x, w, b, stride, pad, cover_all
 
 
-@op_utils.op_test(['native:0', 'cuda:0'])
-@chainer.testing.parameterize(*(
-    # without bias
-    chainer.testing.product([
-        chainer.testing.from_pytest_parameterize(
-            'x_shape,w_shape,b_shape,stride,pad', [
-                ((1, 3), (5, 3), None, 1, 0),
-                ((1, 3, 4), (5, 3, 2), None, 3, 2),
-                ((2, 3, 4, 4), (2, 3, 3, 3), None, 2, (2, 0)),
-                ((2, 3, 2, 6, 3), (2, 3, 1, 3, 2), None, (1, 2, 3), (2, 0, 1)),
-            ]),
-        chainer.testing.from_pytest_parameterize(
-            'in_dtypes,out_dtype', dtype_utils.result_dtypes_two_arrays)
-    ]) +
-    # with bias
-    chainer.testing.product([
-        chainer.testing.from_pytest_parameterize(
-            'x_shape,w_shape,b_shape,stride,pad', [
-                ((1, 3), (5, 3), (5,), 1, 0),
-                ((2, 3, 4), (5, 3, 1), (5,), 1, 0),
-                ((1, 3, 4), (5, 3, 2), (5,), 3, 2),
-                ((2, 3, 4, 4), (2, 3, 3, 3), (2,), 1, 0),
-                ((1, 3, 4, 4), (2, 3, 3, 3), (2,), (1, 2), 1),
-                ((1, 3, 4, 4), (2, 3, 3, 3), (2,), 2, (2, 0)),
-                ((1, 3, 2, 6, 3), (2, 3, 1, 3, 2), (2,), 2, (2, 0, 1)),
-                ((1, 3, 2, 6, 3), (2, 3, 1, 3, 2), (2,), (1, 2, 3), (2, 0, 1)),
-            ]),
-        chainer.testing.from_pytest_parameterize(
-            'in_dtypes,out_dtype', dtype_utils.result_dtypes_three_arrays)
-    ])
-))
-@chainer.testing.parameterize_pytest('cover_all', [True, False])
-class TestConv(op_utils.ChainerOpTest):
+def _convert_to_nhwc_layout(array):
+    # Converts a contiguous array to NHWC data layout.
+    assert isinstance(array, numpy.ndarray)
+    assert array.flags.c_contiguous
+    shape = array.shape
+    transposed_array = numpy.transpose(array, (0, 3, 1, 2))
+    transposed_array = numpy.ascontiguousarray(transposed_array)
+    array = numpy.transpose(transposed_array, (0, 2, 3, 1))
+    assert array.shape == shape
+    return array
+
+
+class _ConvTestBase(object):
 
     def setup(self):
         if len(self.in_dtypes) == 3:
@@ -100,6 +133,7 @@ class TestConv(op_utils.ChainerOpTest):
             (x_dtype, w_dtype), b_dtype = self.in_dtypes, None
         x = array_utils.uniform(x_shape, x_dtype)
         w = array_utils.uniform(w_shape, w_dtype)
+
         if b_shape is None:
             return x, w
         else:
@@ -131,6 +165,69 @@ class TestConv(op_utils.ChainerOpTest):
         return y,
 
 
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    # without bias
+    chainer.testing.product([
+        chainer.testing.from_pytest_parameterize(
+            'x_shape,w_shape,b_shape,stride,pad', [
+                ((1, 3), (5, 3), None, 1, 0),
+                ((1, 3, 4), (5, 3, 2), None, 3, 2),
+                ((2, 3, 4, 4), (2, 3, 3, 3), None, 2, (2, 0)),
+                ((2, 3, 2, 6, 3), (2, 3, 1, 3, 2), None, (1, 2, 3), (2, 0, 1)),
+            ]),
+        chainer.testing.from_pytest_parameterize(
+            'in_dtypes,out_dtype', dtype_utils.result_dtypes_two_arrays)
+    ]) +
+    # with bias
+    chainer.testing.product([
+        chainer.testing.from_pytest_parameterize(
+            'x_shape,w_shape,b_shape,stride,pad', [
+                ((1, 3), (5, 3), (5,), 1, 0),
+                ((2, 3, 4), (5, 3, 1), (5,), 1, 0),
+                ((1, 3, 4), (5, 3, 2), (5,), 3, 2),
+                ((2, 3, 4, 4), (2, 3, 3, 3), (2,), 1, 0),
+                ((1, 3, 4, 4), (2, 3, 3, 3), (2,), (1, 2), 1),
+                ((1, 3, 4, 4), (2, 3, 3, 3), (2,), 2, (2, 0)),
+                ((1, 3, 2, 6, 3), (2, 3, 1, 3, 2), (2,), 2, (2, 0, 1)),
+                ((1, 3, 2, 6, 3), (2, 3, 1, 3, 2), (2,), (1, 2, 3), (2, 0, 1)),
+            ]),
+        chainer.testing.from_pytest_parameterize(
+            'in_dtypes,out_dtype', dtype_utils.result_dtypes_three_arrays)
+    ])
+))
+@chainer.testing.parameterize_pytest('cover_all', [True, False])
+class TestConv(_ConvTestBase, op_utils.ChainerOpTest):
+    pass
+
+
+# cudnnFindConvolutionForwardAlgorithmEx tends to choose an algorithm which
+# uses TensorCore when:
+# - The sizes of the input arrays are large
+# - The input `x` is aligned with NHWC data layout
+@op_utils.op_test(['cuda:0'])
+class TestConvTensorCore(_ConvTestBase, op_utils.ChainerOpTest):
+
+    x_shape = (8, 3, 227, 227)
+    w_shape = (96, 3, 11, 11)
+    b_shape = (96,)
+    stride = 4
+    pad = 0
+    in_dtypes = ('float16', 'float16', 'float16')
+    out_dtype = 'float16'
+    cover_all = False
+
+    def __init__(self):
+        # TODO(imanishi): Skip only if compute_capability < 70.
+        # Huge floating-point error often arises, because our CI environment
+        # have no Tensor Cores.
+        raise unittest.SkipTest()
+
+    def generate_inputs(self):
+        x, w, b = super().generate_inputs()
+        return _convert_to_nhwc_layout(x), w, b
+
+
 @pytest.mark.parametrize('x_shape,w_shape,b_shape,stride,pad', [
     # Mismatched x and w input channels.
     ((1, 3, 4, 3), (5, 4, 2, 2), (5,), 3, 2),
@@ -152,40 +249,7 @@ def test_conv_invalid(
                 cover_all, float_dtype))
 
 
-@op_utils.op_test(['native:0', 'cuda:0'])
-@chainer.testing.parameterize(*(
-    # without bias
-    chainer.testing.product([
-        chainer.testing.from_pytest_parameterize(
-            'x_shape,w_shape,b_shape,stride,pad', [
-                ((1, 3), (3, 5), None, 1, 0),
-                ((1, 3, 4), (3, 5, 2), None, 3, 2),
-                ((2, 3, 4, 4), (3, 2, 3, 3), None, 2, (2, 0)),
-                ((2, 3, 5, 6, 3), (3, 2, 1, 3, 2), None, (1, 2, 3), (2, 0, 1)),
-            ]),
-        chainer.testing.from_pytest_parameterize(
-            'in_dtypes,out_dtype', dtype_utils.result_dtypes_two_arrays)
-    ]) +
-    # with bias
-    chainer.testing.product([
-        chainer.testing.from_pytest_parameterize(
-            'x_shape,w_shape,b_shape,stride,pad', [
-                ((1, 3), (3, 5), (5,), 1, 0),
-                ((2, 3, 4), (3, 5, 1), (5,), 1, 0),
-                ((1, 3, 4), (3, 5, 2), (5,), 3, 2),
-                ((2, 3, 4, 4), (3, 2, 3, 3), (2,), 1, 0),
-                ((1, 3, 4, 4), (3, 2, 3, 3), (2,), (1, 2), 1),
-                ((1, 3, 4, 4), (3, 2, 3, 3), (2,), 2, (2, 0)),
-                ((1, 3, 5, 6, 3), (3, 2, 1, 3, 2), (2,), 2, (2, 0, 1)),
-                ((1, 3, 5, 6, 3), (3, 2, 1, 3, 2), (2,), (1, 2, 3), (2, 0, 1)),
-            ]),
-        chainer.testing.from_pytest_parameterize(
-            'in_dtypes,out_dtype', dtype_utils.result_dtypes_three_arrays)
-    ])
-))
-# If None, outsize argument will be None.
-@chainer.testing.parameterize_pytest('cover_all', [None, True, False])
-class TestConvTranspose(op_utils.ChainerOpTest):
+class _ConvTransposeTestBase(object):
 
     def setup(self):
         if len(self.in_dtypes) == 3:
@@ -246,6 +310,7 @@ class TestConvTranspose(op_utils.ChainerOpTest):
             (x_dtype, w_dtype), b_dtype = self.in_dtypes, None
         x = array_utils.uniform(x_shape, x_dtype)
         w = array_utils.uniform(w_shape, w_dtype)
+
         if b_shape is None:
             return x, w
         else:
@@ -276,6 +341,71 @@ class TestConvTranspose(op_utils.ChainerOpTest):
             x, w, b, self.stride, self.pad, self.outsize)
         y = F.cast(y, self.out_dtype)
         return y,
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    # without bias
+    chainer.testing.product([
+        chainer.testing.from_pytest_parameterize(
+            'x_shape,w_shape,b_shape,stride,pad', [
+                ((1, 3), (3, 5), None, 1, 0),
+                ((1, 3, 4), (3, 5, 2), None, 3, 2),
+                ((2, 3, 4, 4), (3, 2, 3, 3), None, 2, (2, 0)),
+                ((2, 3, 5, 6, 3), (3, 2, 1, 3, 2), None, (1, 2, 3), (2, 0, 1)),
+            ]),
+        chainer.testing.from_pytest_parameterize(
+            'in_dtypes,out_dtype', dtype_utils.result_dtypes_two_arrays)
+    ]) +
+    # with bias
+    chainer.testing.product([
+        chainer.testing.from_pytest_parameterize(
+            'x_shape,w_shape,b_shape,stride,pad', [
+                ((1, 3), (3, 5), (5,), 1, 0),
+                ((2, 3, 4), (3, 5, 1), (5,), 1, 0),
+                ((1, 3, 4), (3, 5, 2), (5,), 3, 2),
+                ((2, 3, 4, 4), (3, 2, 3, 3), (2,), 1, 0),
+                ((1, 3, 4, 4), (3, 2, 3, 3), (2,), (1, 2), 1),
+                ((1, 3, 4, 4), (3, 2, 3, 3), (2,), 2, (2, 0)),
+                ((1, 3, 5, 6, 3), (3, 2, 1, 3, 2), (2,), 2, (2, 0, 1)),
+                ((1, 3, 5, 6, 3), (3, 2, 1, 3, 2), (2,), (1, 2, 3), (2, 0, 1)),
+            ]),
+        chainer.testing.from_pytest_parameterize(
+            'in_dtypes,out_dtype', dtype_utils.result_dtypes_three_arrays)
+    ])
+))
+# If None, outsize argument will be None.
+@chainer.testing.parameterize_pytest('cover_all', [None, True, False])
+class TestConvTranspose(_ConvTransposeTestBase, op_utils.ChainerOpTest):
+    pass
+
+
+# cudnnFindConvolutionForwardAlgorithmEx tends to choose an algorithm which
+# uses TensorCore when:
+# - The sizes of the input arrays are large
+# - The input `x` is aligned with NHWC data layout
+@op_utils.op_test(['cuda:0'])
+@chainer.testing.parameterize_pytest('cover_all', [None, False])
+class TestConvTransposeTensorCore(
+        _ConvTransposeTestBase, op_utils.ChainerOpTest):
+
+    x_shape = (8, 3, 227, 227)
+    w_shape = (3, 8, 11, 11)
+    b_shape = (8,)
+    stride = 4
+    pad = 0
+    in_dtypes = ('float16', 'float16', 'float16')
+    out_dtype = 'float16'
+
+    def __init__(self):
+        # TODO(imanishi): Skip only if compute_capability < 70.
+        # Huge floating-point error often arises, because our CI environment
+        # have no Tensor Cores.
+        raise unittest.SkipTest()
+
+    def generate_inputs(self):
+        x, w, b = super().generate_inputs()
+        return _convert_to_nhwc_layout(x), w, b
 
 
 @pytest.mark.parametrize('x_shape,w_shape,b_shape,stride,pad,outsize', [
@@ -420,3 +550,93 @@ class TestLinear(op_utils.OpTest):
 
         assert y.dtype == out_dtype
         return y,
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    chainer.testing.product([
+        chainer.testing.from_pytest_parameterize(
+            'c_shape,x_shape', [
+                ((10, 3), (10, 12)),
+                ((20, 32), (16, 128)),
+                ((32, 100), (32, 400)),
+                ((16, 20), (2, 80)),
+            ]),
+        chainer.testing.from_pytest_parameterize(
+            'in_dtypes,out_dtype', lstm_dtypes_valid)
+    ])
+))
+@chainer.testing.parameterize_pytest('cover_all', [True, False])
+class TestLstm(op_utils.ChainerOpTest):
+
+    def setup(self):
+        c_dtype, x_dtype = self.in_dtypes
+
+        if 0 in self.c_shape or 0 in self.x_shape:
+            self.skip_backward_test = True
+            self.skip_double_backward_test = True
+
+        if (c_dtype == 'float16' or x_dtype == 'float16'):
+            self.check_forward_options.update({
+                'rtol': 1e-2, 'atol': 1e-2})
+            self.check_backward_options.update({
+                'rtol': 1e-2, 'atol': 1e-2})
+            self.check_double_backward_options.update({
+                'rtol': 1e-2, 'atol': 1e-2})
+
+    def generate_inputs(self):
+        c_shape = self.c_shape
+        x_shape = self.x_shape
+        c_dtype, x_dtype = self.in_dtypes
+
+        c = array_utils.uniform(c_shape, c_dtype)
+        x = array_utils.uniform(x_shape, x_dtype)
+        return c, x
+
+    def forward_chainerx(self, inputs):
+        c, x = inputs
+        c, h = chainerx.lstm(c, x)
+        return c, h,
+
+    def forward_chainer(self, inputs):
+        c, x = inputs
+        c, h = chainer.functions.lstm(c, x)
+        return c, h,
+
+
+@pytest.mark.parametrize('c_shape,x_shape', [
+    # x.shape()[0] > c.shape()[0]
+    ((16, 20), (20, 80)),
+    ((10, 3), (12, 12)),
+    # x.shape()[1] != 4 * c.shape()[1]
+    ((32, 100), (32, 150)),
+    ((16, 50), (16, 48)),
+    ((64, 200), (16, 200)),
+])
+@pytest.mark.parametrize('cover_all', [True, False])
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_lstm_invalid_dimension(
+        device, c_shape, x_shape, cover_all,
+        float_dtype):
+    with pytest.raises(chainerx.DimensionError):
+        chainerx.lstm(
+            *_create_lstm_args(
+                chainerx, device, c_shape, x_shape,
+                (float_dtype, float_dtype)))
+
+
+@pytest.mark.parametrize('c_shape,x_shape', [
+    ((10, 3), (10, 12)),
+    ((20, 32), (16, 128)),
+    ((32, 100), (32, 400)),
+    ((16, 20), (2, 80)),
+])
+@pytest.mark.parametrize('in_dtypes, out_dtype', lstm_dtypes_invalid)
+@pytest.mark.parametrize('cover_all', [True, False])
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_lstm_invalid_dtype(device, c_shape, x_shape, in_dtypes,
+                            out_dtype, cover_all):
+    with pytest.raises(chainerx.DtypeError):
+        chainerx.lstm(
+            *_create_lstm_args(
+                chainerx, device, c_shape, x_shape, in_dtypes))

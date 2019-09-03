@@ -1,6 +1,7 @@
 import warnings
 
 import numpy
+import six
 
 import chainer
 from chainer import backend
@@ -12,6 +13,216 @@ from chainer.utils import argument
 from chainer.utils import collections_abc
 from chainer.utils import type_check
 import chainerx
+
+
+class _BatchNormalizationImpl:
+
+    def forward(self, axis, gamma, x, xp, expander,
+                beta, eps, decay, running_mean, running_var):
+        raise NotImplementedError()
+
+    def backward(self, axis, gamma, gy, x, xp,
+                 expander, mean, inv_std, eps, var):
+        raise NotImplementedError()
+
+
+class GeneralBatchNormalizationImpl(_BatchNormalizationImpl):
+    def forward(self, axis, gamma, x, xp, expander,
+                beta, eps, decay, running_mean, running_var):
+        interm_dtype = numpy.promote_types(x.dtype, gamma.dtype)
+
+        gamma = gamma[expander].astype(interm_dtype, copy=False)
+        beta = beta[expander].astype(interm_dtype, copy=False)
+        mean, var = self.get_mean_and_var(axis, gamma,
+                                          x, xp, interm_dtype)
+        if xp is numpy:
+            inv_std = numpy.reciprocal(numpy.sqrt(
+                var + eps, dtype=interm_dtype))
+        else:
+            inv_std = cuda.cupyx.rsqrt(
+                var + eps, dtype=interm_dtype)
+
+        y = _apply_bn_fwd(xp, x, mean[expander],
+                          inv_std[expander], gamma, beta)
+
+        # Update running statistics if given
+        if running_mean is not None:
+            m = x.size // gamma.size
+            adjust = m / max(m - 1., 1.)  # unbiased estimation
+
+            xp = backend.get_array_module(
+                running_mean, running_var)
+
+            if xp is chainerx:
+                running_mean, running_var = backend.from_chx(
+                    (running_mean, running_var))
+
+            if xp is numpy:
+                running_mean *= decay
+                running_mean += (1 - decay) * mean
+                running_var *= decay
+                running_var += (1 - decay) * adjust * var
+            else:
+                cuda.elementwise(
+                    'U mean, U var, U decay, U adjust',
+                    'U r_mean, U r_var',
+                    '''
+                    r_mean = r_mean * decay + mean * (1 - decay);
+                    r_var = r_var * decay + var * (1 - decay) * adjust;
+                    ''',
+                    'update_mean_var')(mean, var, decay, adjust,
+                                       running_mean, running_var)
+
+            if xp is chainerx:
+                running_mean = backend.to_chx(running_mean)
+                running_var = backend.to_chx(running_var)
+
+        return y, running_mean, running_var, mean, var, inv_std
+
+    def get_mean_and_var(self, axis, gamma, x, xp, interm_dtype):
+        mean = x.mean(axis=axis, dtype=interm_dtype)
+        var = x.var(axis=axis, dtype=interm_dtype)
+        return mean, var
+
+    def get_ggamma_and_gbeta(self, axis, gamma, gy, x_hat, xp):
+        gbeta = gy.sum(axis=axis, dtype=gamma.dtype)
+        ggamma = (gy * x_hat).sum(axis=axis, dtype=gamma.dtype)
+
+        return gbeta, ggamma
+
+    def backward(self, axis, gamma, gy, x, xp,
+                 expander, mean, inv_std, eps, var):
+        if isinstance(gy, intel64.mdarray):
+            # intel64.mdarray does not support dtype option in sum, so we
+            # convert it to numpy here.
+            gy = numpy.asarray(gy)
+
+        x_hat = _x_hat(x, mean[expander], inv_std[expander])
+        gbeta, ggamma = self.get_ggamma_and_gbeta(axis, gamma, gy, x_hat, xp)
+
+        inv_m = gamma.dtype.type(1. / (x.size // gamma.size))
+        if xp is numpy:
+            gx = (gamma * inv_std)[expander] * (
+                gy - (x_hat * ggamma[expander] + gbeta[expander]) * inv_m)
+            gx = gx.astype(dtype=x.dtype, copy=False)
+        else:
+            gx = cuda.elementwise(
+                '''
+                T gy, U x_hat, U gamma, U inv_std, U ggamma, U gbeta,
+                U inv_m
+                ''',
+                'T gx',
+                '''
+                gx = (gamma * inv_std) * (
+                    gy - (x_hat * ggamma + gbeta) * inv_m)
+                ''', 'bn_bwd')(gy, x_hat, gamma[expander],
+                               inv_std[expander], ggamma[expander],
+                               gbeta[expander], inv_m)
+
+        return gx, ggamma, gbeta
+
+
+class _IDeepBatchNormalizationImpl(_BatchNormalizationImpl):
+    def forward(self, axis, gamma, x, xp, expander,
+                beta, eps, decay, running_mean, running_var):
+        expand_dim = False
+        if x.ndim == 2:
+            expand_dim = True
+            x = x[:, :, None, None]
+
+        y, mean, var, inv_std = (
+            intel64.ideep.batchNormalization.Forward(
+                intel64.ideep.array(x.astype(gamma.dtype, copy=False)),
+                intel64.ideep.array(gamma),
+                intel64.ideep.array(beta),
+                None,
+                None,
+                eps
+            ))
+        y = y.astype(x.dtype, copy=False)
+
+        if expand_dim:
+            y = numpy.squeeze(y, axis=(2, 3))
+
+        # Update running statistics if given
+        if running_mean is not None:
+            m = x.size // gamma.size
+            adjust = m / max(m - 1., 1.)
+
+            # Update running_mean
+            if isinstance(running_mean, intel64.ideep.mdarray):
+                running_mean.inplace_axpby(
+                    decay, (1 - decay), mean)
+            else:
+                running_mean *= decay
+                running_mean += mean * (1 - decay)
+
+            # Update running_var
+            if isinstance(running_var, intel64.ideep.mdarray):
+                running_var.inplace_axpby(
+                    decay, (1 - decay), var * adjust)
+            else:
+                running_var *= decay
+                running_var += var * adjust * (1 - decay)
+        return y, running_mean, running_var, mean, var, inv_std
+
+    def backward(self, axis, gamma, gy, x, xp,
+                 expander, mean, inv_std, eps, var):
+        expand_dim = False
+        if x.ndim == 2:
+            expand_dim = True
+            x = x[:, :, None, None]
+            gy = gy[:, :, None, None]
+
+        gx, gW = intel64.ideep.batchNormalization.Backward(
+            intel64.ideep.array(x.astype(gamma.dtype, copy=False)),
+            intel64.ideep.array(gy.astype(gamma.dtype, copy=False)),
+            mean,
+            var,
+            intel64.ideep.array(gamma),
+            eps)
+
+        gx = gx.astype(x.dtype, copy=False)
+        ggamma, gbeta = gW[:2]
+
+        if expand_dim:
+            gx = numpy.squeeze(gx, axis=(2, 3))
+
+        return gx, ggamma, gbeta
+
+
+class _CudnnBatchNormalizationImpl(_BatchNormalizationImpl):
+    def __init__(self, is_for_conv2d, cudnn_mode):
+        self.is_for_conv2d = is_for_conv2d
+        self.cudnn_mode = cudnn_mode
+
+    def forward(self, axis, gamma, x, xp, expander,
+                beta, eps, decay, running_mean, running_var):
+        if running_mean is not None:
+            mean = running_mean
+            var = running_var
+        else:
+            # Create dummies.
+            mean = xp.zeros_like(gamma, dtype=x.dtype)
+            var = xp.zeros_like(gamma, dtype=x.dtype)
+
+        # mean and inv_std are used as buffers to save
+        # intermediate results computed during forward pass. These buffers
+        # are used to speed-up backward pass.
+        y, mean, inv_std = (
+            cudnn.batch_normalization_forward_training(
+                x, gamma, beta, mean, var, None, None,
+                eps, decay, self.is_for_conv2d,
+                self.cudnn_mode, chainer.is_debug()))
+
+        return y, running_mean, running_var, mean, var, inv_std
+
+    def backward(self, axis, gamma, gy, x, xp,
+                 expander, mean, inv_std, eps, var):
+        return cudnn.batch_normalization_backward(
+            x, gamma, gy, mean, inv_std, eps,
+            self.is_for_conv2d, self.cudnn_mode,
+            chainer.is_debug())
 
 
 if cuda.cudnn_enabled:
@@ -33,12 +244,29 @@ def _compute_key_axis(x_ndim, gamma_ndim=1, axis=None):
     return key_axis
 
 
+def _impl_selector(batch_norm_func, inputs):
+    x, gamma, _ = inputs
+    xp = backend.get_array_module(x)
+    mode = _BNMode(x, gamma, batch_norm_func.key_axis)
+    use_cudnn = mode.can_use_cudnn(xp)
+    use_ideep = mode.can_use_ideep()
+
+    if use_ideep:
+        return _IDeepBatchNormalizationImpl()
+    elif use_cudnn:
+        return _CudnnBatchNormalizationImpl(mode.is_for_conv2d,
+                                            mode.get_cudnn_mode())
+    else:
+        return GeneralBatchNormalizationImpl()
+
+
 class BatchNormalization(function_node.FunctionNode):
 
     mean = None
     inv_std = None
 
-    def __init__(self, eps=2e-5, mean=None, var=None, decay=0.9, axis=None):
+    def __init__(self, eps=2e-5, mean=None, var=None, decay=0.9, axis=None,
+                 impl_selector=_impl_selector):
         self.running_mean = mean
         self.running_var = var
 
@@ -58,11 +286,13 @@ class BatchNormalization(function_node.FunctionNode):
                 if axis[i - 1] >= axis[i]:
                     msg = 'numbers in axis must be sorted in ascending order'
                     raise RuntimeError(msg)
-        elif isinstance(axis, int):
+        elif isinstance(axis, six.integer_types):
             axis = axis,
         elif axis is not None:
             raise RuntimeError('axis must be int, tuple of int or None')
         self.axis = axis
+
+        self._impl_selector = impl_selector
 
     def check_type_forward(self, in_types):
         type_check.expect(in_types.size() == 3)
@@ -151,109 +381,18 @@ class BatchNormalization(function_node.FunctionNode):
         expander = tuple(expander)
         self.expander = expander
 
-        self.mode = _BNMode(x, gamma, self.key_axis)
         xp = backend.get_array_module(x)
-        self.use_cudnn = self.mode.can_use_cudnn(xp)
-        self.use_ideep = self.mode.can_use_ideep()
 
-        if self.use_ideep:
-            # TODO(niboshi): Refactor iDeep part into a separate method
-            expand_dim = False
-            if x.ndim == 2:
-                expand_dim = True
-                x = x[:, :, None, None]
+        self._impl = self._impl_selector(self, inputs)
 
-            y, self.mean, self.var, self.inv_std = (
-                intel64.ideep.batchNormalization.Forward(
-                    intel64.ideep.array(x.astype(gamma.dtype, copy=False)),
-                    intel64.ideep.array(gamma),
-                    intel64.ideep.array(beta),
-                    None,
-                    None,
-                    self.eps
-                ))
-            y = y.astype(x.dtype, copy=False)
-
-            if expand_dim:
-                y = numpy.squeeze(y, axis=(2, 3))
-
-            # Update running statistics if given
-            if self.running_mean is not None:
-                m = x.size // gamma.size
-                adjust = m / max(m - 1., 1.)
-
-                # Update running_mean
-                if isinstance(self.running_mean, intel64.ideep.mdarray):
-                    self.running_mean.inplace_axpby(
-                        self.decay, (1 - self.decay), self.mean)
-                else:
-                    self.running_mean *= self.decay
-                    self.running_mean += self.mean * (1 - self.decay)
-
-                # Update running_var
-                if isinstance(self.running_var, intel64.ideep.mdarray):
-                    self.running_var.inplace_axpby(
-                        self.decay, (1 - self.decay), self.var * adjust)
-                else:
-                    self.running_var *= self.decay
-                    self.running_var += self.var * adjust * (1 - self.decay)
-
-        elif self.use_cudnn:
-            if self.running_mean is not None:
-                mean = self.running_mean
-                var = self.running_var
-            else:
-                # Create dummies.
-                mean = xp.zeros_like(gamma, dtype=x.dtype)
-                var = xp.zeros_like(gamma, dtype=x.dtype)
-
-            # self.mean and self.inv_std are used as buffers to save
-            # intermediate results computed during forward pass. These buffers
-            # are used to speed-up backward pass.
-            y, self.mean, self.inv_std = (
-                cudnn.batch_normalization_forward_training(
-                    x, gamma, beta, mean, var, None, None,
-                    self.eps, self.decay, self.mode.is_for_conv2d,
-                    self.mode.get_cudnn_mode(), chainer.is_debug()))
-        else:
-            # Generic CPU and GPU implementation
-
-            interm_dtype = numpy.promote_types(x.dtype, gamma.dtype)
-
-            gamma = gamma[expander].astype(interm_dtype, copy=False)
-            beta = beta[expander].astype(interm_dtype, copy=False)
-            self.mean = x.mean(axis=self.axis, dtype=interm_dtype)
-            var = x.var(axis=self.axis, dtype=interm_dtype)
-            if xp is numpy:
-                self.inv_std = numpy.reciprocal(numpy.sqrt(
-                    var + self.eps, dtype=interm_dtype))
-            else:
-                self.inv_std = cuda.cupyx.rsqrt(
-                    var + self.eps, dtype=interm_dtype)
-
-            y = _apply_bn_fwd(xp, x, self.mean[expander],
-                              self.inv_std[expander], gamma, beta)
-
-            # Update running statistics if given
-            if self.running_mean is not None:
-                m = x.size // gamma.size
-                adjust = m / max(m - 1., 1.)  # unbiased estimation
-
-                xp = backend.get_array_module(
-                    self.running_mean, self.running_var)
-
-                if xp is chainerx:
-                    self.running_mean, self.running_var = backend.from_chx(
-                        (self.running_mean, self.running_var))
-
-                self.running_mean *= self.decay
-                self.running_mean += (1 - self.decay) * self.mean
-                self.running_var *= self.decay
-                self.running_var += (1 - self.decay) * adjust * var
-
-                if xp is chainerx:
-                    self.running_mean = backend.to_chx(self.running_mean)
-                    self.running_var = backend.to_chx(self.running_var)
+        y, self.running_mean, self.running_var,\
+            self.mean, self.var, self.inv_std = \
+            self._impl.forward(axis=self.axis, gamma=gamma, x=x,
+                               xp=xp, expander=expander,
+                               beta=beta, eps=self.eps,
+                               decay=self.decay,
+                               running_mean=self.running_mean,
+                               running_var=self.running_var)
 
         return y,
 
@@ -261,32 +400,34 @@ class BatchNormalization(function_node.FunctionNode):
         x, gamma = self.get_retained_inputs()
         gy, = grad_outputs
 
-        if self.use_ideep:
+        if isinstance(self._impl, _IDeepBatchNormalizationImpl):
             assert self.var is not None
             var = self.var
         else:
             var = None
 
         f = BatchNormalizationGrad(
-            self.eps, self.use_cudnn, self.mode, self.expander, self.axis,
-            self.mean, var, self.inv_std, self.key_axis)
+            self.eps, self.expander,
+            self.axis,
+            self.mean, var,
+            self.inv_std, self.key_axis,
+            self._impl)
+
         return f.apply((x, gamma, gy))
 
 
 class BatchNormalizationGrad(function_node.FunctionNode):
 
-    def __init__(self, eps, use_cudnn, mode, expander, axis, mean, var,
-                 inv_std, key_axis):
+    def __init__(self, eps, expander, axis, mean, var,
+                 inv_std, key_axis, impl):
         self.eps = eps
-        self.use_cudnn = use_cudnn
-        self.use_ideep = mode.can_use_ideep()
-        self.mode = mode
         self.expander = expander
         self.axis = axis
         self.mean = mean
         self.var = var  # Only used in iDeep implementation
         self.inv_std = inv_std
         self.key_axis = key_axis
+        self._impl = impl
 
     def forward(self, inputs):
         self.retain_inputs((0, 1, 2))
@@ -294,62 +435,10 @@ class BatchNormalizationGrad(function_node.FunctionNode):
         expander = self.expander
         xp = backend.get_array_module(x)
 
-        if self.use_ideep:
-            # TODO(niboshi): Refactor iDeep part into a separate method
-            expand_dim = False
-            if x.ndim == 2:
-                expand_dim = True
-                x = x[:, :, None, None]
-                gy = gy[:, :, None, None]
-
-            gx, gW = intel64.ideep.batchNormalization.Backward(
-                intel64.ideep.array(x.astype(gamma.dtype, copy=False)),
-                intel64.ideep.array(gy.astype(gamma.dtype, copy=False)),
-                self.mean,
-                self.var,
-                intel64.ideep.array(gamma),
-                self.eps)
-
-            gx = gx.astype(x.dtype, copy=False)
-            ggamma, gbeta = gW[:2]
-
-            if expand_dim:
-                gx = numpy.squeeze(gx, axis=(2, 3))
-
-        elif self.use_cudnn:
-            gx, ggamma, gbeta = cudnn.batch_normalization_backward(
-                x, gamma, gy, self.mean, self.inv_std, self.eps,
-                self.mode.is_for_conv2d, self.mode.get_cudnn_mode(),
-                chainer.is_debug())
-        else:
-            # CPU and GPU implementation
-            if isinstance(gy, intel64.mdarray):
-                # intel64.mdarray does not support dtype option in sum, so we
-                # convert it to numpy here.
-                gy = numpy.asarray(gy)
-
-            gbeta = gy.sum(axis=self.axis, dtype=gamma.dtype)
-            x_hat = _x_hat(x, self.mean[expander], self.inv_std[expander])
-            ggamma = (gy * x_hat).sum(axis=self.axis, dtype=gamma.dtype)
-
-            inv_m = gamma.dtype.type(1. / (x.size // gamma.size))
-            if xp is numpy:
-                gx = (gamma * self.inv_std)[expander] * (
-                    gy - (x_hat * ggamma[expander] + gbeta[expander]) * inv_m)
-                gx = gx.astype(dtype=x.dtype, copy=False)
-            else:
-                gx = cuda.elementwise(
-                    '''
-                    T gy, U x_hat, U gamma, U inv_std, U ggamma, U gbeta,
-                    U inv_m
-                    ''',
-                    'T gx',
-                    '''
-                    gx = (gamma * inv_std) * (
-                        gy - (x_hat * ggamma + gbeta) * inv_m)
-                    ''', 'bn_bwd')(gy, x_hat, gamma[expander],
-                                   self.inv_std[expander], ggamma[expander],
-                                   gbeta[expander], inv_m)
+        gx, ggamma, gbeta = self._impl.backward(self.axis, gamma, gy,
+                                                x, xp, expander,
+                                                self.mean, self.inv_std,
+                                                self.eps, self.var)
         self.retain_inputs((0, 1, 2))
         self.retain_outputs((0, 1))
         return gx, ggamma, gbeta
@@ -422,7 +511,7 @@ class FixedBatchNormalization(function_node.FunctionNode):
                 if axis[i - 1] >= axis[i]:
                     msg = 'numbers in axis must be sorted in ascending order'
                     raise RuntimeError(msg)
-        elif isinstance(axis, int):
+        elif isinstance(axis, six.integer_types):
             axis = axis,
         elif axis is not None:
             raise RuntimeError('axis must be int, tuple of int or None')
@@ -779,10 +868,14 @@ running_var=None, decay=0.9, axis=None)
             option, numbers in the tuple must be being sorted in ascending
             order. For example, (0, 2) is OK, but (2, 0) is not.
 
-    See: `Batch Normalization: Accelerating Deep Network Training by Reducing\
-          Internal Covariate Shift <https://arxiv.org/abs/1502.03167>`_
+    See: `Batch Normalization: Accelerating Deep Network Training by Reducing
+    Internal Covariate Shift <https://arxiv.org/abs/1502.03167>`_
 
-    .. seealso:: :class:`~chainer.links.BatchNormalization`
+    .. seealso::
+
+        :class:`~chainer.links.BatchNormalization` to manage the model
+        parameters (``gamma``, ``beta``) and the statistics (``running_mean``,
+        ``running_var``).
 
     """
 

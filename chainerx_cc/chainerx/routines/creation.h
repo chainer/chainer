@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <memory>
 
-#include <nonstd/optional.hpp>
+#include <absl/types/optional.h>
 
 #include "chainerx/array.h"
 #include "chainerx/array_index.h"
@@ -50,7 +50,7 @@ Array FromData(
         const Shape& shape,
         Dtype dtype,
         const std::shared_ptr<void>& data,
-        const nonstd::optional<Strides>& strides = nonstd::nullopt,
+        const absl::optional<Strides>& strides = absl::nullopt,
         int64_t offset = 0,
         Device& device = GetDefaultDevice());
 
@@ -85,13 +85,7 @@ Array Identity(int64_t n, Dtype dtype, Device& device = GetDefaultDevice());
 
 // Creates a 2-dimensional array with ones along the k-th diagonal and zeros elsewhere.
 Array Eye(
-        int64_t n,
-        nonstd::optional<int64_t> m,
-        nonstd::optional<int64_t> k,
-        nonstd::optional<Dtype> dtype,
-        Device& device = GetDefaultDevice());
-
-namespace internal {
+        int64_t n, absl::optional<int64_t> m, absl::optional<int64_t> k, absl::optional<Dtype> dtype, Device& device = GetDefaultDevice());
 
 // Returns a C-contiguous array without changing input shape.
 Array AsContiguous(const Array& a, Dtype dtype);
@@ -99,11 +93,9 @@ Array AsContiguous(const Array& a, Dtype dtype);
 // Returns a C-contiguous array with the same shape and dtype as the input array.
 inline Array AsContiguous(const Array& a) { return AsContiguous(a, a.dtype()); }
 
-}  // namespace internal
-
 // Returns a C-contiguous array.
 // An input array with shape {} results in a new array with shape {1}.
-Array AsContiguousArray(const Array& a, const nonstd::optional<Dtype>& dtype = nonstd::nullopt);
+Array AsContiguousArray(const Array& a, const absl::optional<Dtype>& dtype = absl::nullopt);
 
 // TODO(niboshi): Remove device argument and use v.device(). Also fix tests
 Array Diag(const Array& v, int64_t k = 0, Device& device = GetDefaultDevice());
@@ -115,9 +107,19 @@ Array Diagflat(const Array& v, int64_t k = 0, Device& device = GetDefaultDevice(
 Array Linspace(
         Scalar start,
         Scalar stop,
-        const nonstd::optional<int64_t>& num = nonstd::nullopt,
+        const absl::optional<int64_t>& num = absl::nullopt,
         bool endpoint = true,
-        const nonstd::optional<Dtype>& dtype = nonstd::nullopt,
+        const absl::optional<Dtype>& dtype = absl::nullopt,
         Device& device = GetDefaultDevice());
+
+// Creates a 2-dimensional array with ones at and below the given diagonal and zeros elsewhere.
+Array Tri(
+        int64_t n, absl::optional<int64_t> m, absl::optional<int64_t> k, absl::optional<Dtype> dtype, Device& device = GetDefaultDevice());
+
+// Creates a lower triangle of an array.
+Array Tril(const Array& m, int64_t k);
+
+// Creates an upper triangle of an array.
+Array Triu(const Array& m, int64_t k);
 
 }  // namespace chainerx

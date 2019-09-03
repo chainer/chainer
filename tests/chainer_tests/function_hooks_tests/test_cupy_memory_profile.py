@@ -153,20 +153,8 @@ class TestCupyMemoryProfileHookToFunction(unittest.TestCase):
         self.assertEqual(self.h.total_acquired_bytes(), 1024)
 
 
-@testing.parameterize(
-    {'unit': 'B'},
-    {'unit': 'KB'},
-    {'unit': 'MB'},
-    {'unit': 'GB'},
-    {'unit': 'TB'},
-    {'unit': 'PB'},
-    {'unit': 'EB'},
-    {'unit': 'ZB'},
-    {'unit': 'auto'},
-    {'unit': 'auto_foreach'},
-)
 @attr.gpu
-class TestCupyMemoryProfileReport(unittest.TestCase):
+class TestCupyMemoryProfileReportBase(unittest.TestCase):
 
     def setUp(self):
         cuda.memory_pool.free_all_blocks()
@@ -181,6 +169,9 @@ class TestCupyMemoryProfileReport(unittest.TestCase):
             self.f2.apply((chainer.Variable(x),))
             self.f2.apply((chainer.Variable(x),))
 
+
+class TestCupyMemoryProfilerStatistics(TestCupyMemoryProfileReportBase):
+
     def test_call_history(self):
         self.assertEqual(4, len(self.h.call_history))
 
@@ -193,6 +184,22 @@ class TestCupyMemoryProfileReport(unittest.TestCase):
     def test_summary(self):
         self.assertEqual(2, len(self.h.summary()))
 
+
+@testing.parameterize(
+    {'unit': 'B'},
+    {'unit': 'KB'},
+    {'unit': 'MB'},
+    {'unit': 'GB'},
+    {'unit': 'TB'},
+    {'unit': 'PB'},
+    {'unit': 'EB'},
+    {'unit': 'ZB'},
+    {'unit': 'auto'},
+    {'unit': 'auto_foreach'},
+)
+@attr.gpu
+class TestCupyMemoryProfileReportPrintUnit(TestCupyMemoryProfileReportBase):
+
     def test_print_report(self):
         io = six.StringIO()
         self.h.print_report(unit=self.unit, file=io)
@@ -202,6 +209,33 @@ class TestCupyMemoryProfileReport(unittest.TestCase):
 '''
         actual = io.getvalue()
         six.assertRegex(self, actual, expect)
+
+
+@testing.parameterize(
+    {'unit': 'B',  'denomi': 1024 ** 0, 'bytes': -1},
+    {'unit': 'B',  'denomi': 1024 ** 0, 'bytes': 0},
+    {'unit': 'B',  'denomi': 1024 ** 0, 'bytes': 1},
+    {'unit': 'B',  'denomi': 1024 ** 0, 'bytes': 512},
+    {'unit': 'B',  'denomi': 1024 ** 0, 'bytes': 1023},
+
+    {'unit': 'KB', 'denomi': 1024 ** 1, 'bytes': 1024},
+    {'unit': 'KB', 'denomi': 1024 ** 1, 'bytes': 1024 ** 2 - 1},
+
+    {'unit': 'MB', 'denomi': 1024 ** 2, 'bytes': 1024 ** 2},
+    {'unit': 'GB', 'denomi': 1024 ** 3, 'bytes': 1024 ** 3},
+    {'unit': 'TB', 'denomi': 1024 ** 4, 'bytes': 1024 ** 4},
+    {'unit': 'PB', 'denomi': 1024 ** 5, 'bytes': 1024 ** 5},
+    {'unit': 'EB', 'denomi': 1024 ** 6, 'bytes': 1024 ** 6},
+    {'unit': 'ZB', 'denomi': 1024 ** 7, 'bytes': 1024 ** 7},
+
+    {'unit': 'ZB', 'denomi': 1024 ** 7, 'bytes': 1024 ** 8},
+)
+@attr.gpu
+class TestCupyMemoryProfileReportChooseUnit(unittest.TestCase):
+
+    def test_choose_unit(self):
+        h = function_hooks.CupyMemoryProfileHook()
+        self.assertEqual((self.denomi, self.unit), h._choose_unit(self.bytes))
 
 
 testing.run_module(__name__, __file__)

@@ -5,7 +5,7 @@
 #include <utility>
 #include <vector>
 
-#include <nonstd/optional.hpp>
+#include <absl/types/optional.h>
 
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
@@ -49,15 +49,15 @@ public:
         bool has_array_node() const { return array_node_ != nullptr; }
         void SetArrayNode(std::shared_ptr<ArrayNode> array_node);
 
-        std::unique_ptr<nonstd::optional<Array>>& grad() { return grad_; }
-        const std::unique_ptr<nonstd::optional<Array>>& grad() const { return grad_; }
-        void SetGrad(std::unique_ptr<nonstd::optional<Array>> grad);
+        std::unique_ptr<absl::optional<Array>>& grad() { return grad_; }
+        const std::unique_ptr<absl::optional<Array>>& grad() const { return grad_; }
+        void SetGrad(std::unique_ptr<absl::optional<Array>> grad);
 
     private:
         BackpropId backprop_id_;
         bool is_grad_required_{};
         std::shared_ptr<ArrayNode> array_node_{};
-        std::unique_ptr<nonstd::optional<Array>> grad_;
+        std::unique_ptr<absl::optional<Array>> grad_;
     };
 
     ~ArrayBody() = default;
@@ -159,11 +159,11 @@ public:
 
     // Returns a gradient array.
     // Returns nullptr if the array does not belong to the specified graph.
-    const nonstd::optional<Array>* GetGrad(const BackpropId& backprop_id) const;
+    const absl::optional<Array>* GetGrad(const BackpropId& backprop_id) const;
 
     // Returns a gradient array.
     // Returns nullptr if the array does not belong to the specified graph.
-    nonstd::optional<Array>* GetGrad(const BackpropId& backprop_id);
+    absl::optional<Array>* GetGrad(const BackpropId& backprop_id);
 
     // Sets a gradient array.
     // The behavior is undefined if there is no array node for the specified graph.
@@ -208,23 +208,23 @@ private:
 
     // Common implementation of FindBackpropEntry.
     template <typename ThisPtr, typename BackpropEntryType>
-    static nonstd::optional<std::reference_wrapper<BackpropEntryType>> FindBackpropEntryImpl(
+    static absl::optional<std::reference_wrapper<BackpropEntryType>> FindBackpropEntryImpl(
             ThisPtr this_ptr, const BackpropId& backprop_id) {
         for (BackpropEntryType& bp : this_ptr->bps_) {
             if (bp.backprop_id() == backprop_id) {
                 return std::reference_wrapper<BackpropEntryType>{bp};
             }
         }
-        return nonstd::nullopt;
+        return absl::nullopt;
     }
 
     // Finds the backprop entry corresponding to a given backprop ID and returns the reference to it.
-    nonstd::optional<std::reference_wrapper<const BackpropEntry>> FindBackpropEntry(const BackpropId& backprop_id) const {
+    absl::optional<std::reference_wrapper<const BackpropEntry>> FindBackpropEntry(const BackpropId& backprop_id) const {
         return FindBackpropEntryImpl<const ArrayBody*, const BackpropEntry>(this, backprop_id);
     }
 
     // Finds the backprop entry corresponding to a given backprop ID and returns the reference to it.
-    nonstd::optional<std::reference_wrapper<BackpropEntry>> FindBackpropEntry(const BackpropId& backprop_id) {
+    absl::optional<std::reference_wrapper<BackpropEntry>> FindBackpropEntry(const BackpropId& backprop_id) {
         return FindBackpropEntryImpl<ArrayBody*, BackpropEntry>(this, backprop_id);
     }
 

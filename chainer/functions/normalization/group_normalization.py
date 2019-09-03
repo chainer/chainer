@@ -89,7 +89,7 @@ class GroupNormalization(function_node.FunctionNode):
         cudnn_shape = (1, batch_size * groups, -1, 1)
         x = x.reshape(cudnn_shape)
 
-        with cuda.get_device_from_array(x):
+        with x.device:
             dummy_beta = xp.zeros(batch_size * groups, dtype=x.dtype)
             self.dummy_gamma = xp.ones_like(dummy_beta)
         x_hat, self.mean, self.inv_std = \
@@ -382,5 +382,11 @@ def group_normalization(x, groups, gamma, beta, eps=1e-5):
         as :math:`x`.
 
     See: `Group Normalization <https://arxiv.org/abs/1803.08494>`_
+
+    .. seealso::
+
+        :class:`~chainer.links.GroupNormalization` to manage the model
+        parameters ``gamma`` and ``beta``.
+
     """
     return GroupNormalization(groups, eps).apply((x, gamma, beta))[0]

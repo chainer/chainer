@@ -4,8 +4,8 @@
 #include <memory>
 #include <vector>
 
-#include <gsl/gsl>
-#include <nonstd/optional.hpp>
+#include <absl/types/optional.h>
+#include <absl/types/span.h>
 
 #include "chainerx/array_fwd.h"
 #include "chainerx/backward_builder.h"
@@ -33,9 +33,9 @@ public:
     explicit GradRef(ArrayNode& array_node);
 
     // Initialize with a temporary grad without value.
-    explicit GradRef(nonstd::nullopt_t nullopt);
+    explicit GradRef(absl::nullopt_t nullopt);
 
-    explicit GradRef(nonstd::optional<Array>* grad);
+    explicit GradRef(absl::optional<Array>* grad);
 
     ~GradRef() = default;
 
@@ -45,19 +45,19 @@ public:
     GradRef& operator=(GradRef&&) = delete;
 
     // Returns the reference to the gradient.
-    nonstd::optional<Array>& get();
+    absl::optional<Array>& get();
 
 private:
     // Pointer to the original gradient held by the original input array body.
     // If the array body is gone, this pointer will be nullptr.
-    nonstd::optional<Array>* original_grad_ptr_{nullptr};
+    absl::optional<Array>* original_grad_ptr_{nullptr};
 
     // The array body which owns the original gradient, if alive.
     // This is a keeper to prevent the gradient from being released after retrieval of the pointer.
     std::shared_ptr<ArrayBody> original_grad_owner_body_{nullptr};
 
     // Temporary gradient instantiated only when the original array body is gone.
-    std::unique_ptr<nonstd::optional<Array>> temporary_grad_;
+    std::unique_ptr<absl::optional<Array>> temporary_grad_;
 };
 
 }  // namespace internal
@@ -71,14 +71,14 @@ class BackwardContext {
 public:
     // Ctor
     //
-    // `input_grads_storage` is where input gradients returned by backward functions will be stored.
+    // `input_grads` is where input gradients returned by backward functions will be stored.
     // Its size must be equal to the number of input arrays whose gradients are to be returned in this single backward function (1 in most
     // ordinary functions).
     BackwardContext(
             const std::shared_ptr<internal::OpNode>& op_node,
             const internal::OpNodeBackwardEntry& backward_entry,
-            gsl::span<std::shared_ptr<internal::ArrayNode>> output_array_nodes,
-            gsl::span<internal::GradRef*> output_grads,
+            absl::Span<std::shared_ptr<internal::ArrayNode>> output_array_nodes,
+            absl::Span<internal::GradRef*> output_grads,
             std::vector<Array>& input_grads,
             DoubleBackpropOption double_backprop_option);
 
@@ -99,11 +99,11 @@ public:
 
     // Returns the reference to an output gradient array if it has a propagated value.
     // Otherwise, an zero-filled array is allocated and a reference to it is returned.
-    const nonstd::optional<Array>& output_grad(size_t output_index) const;
+    const absl::optional<Array>& output_grad(size_t output_index) const;
 
     // Returns the reference to an output gradient array if it has a propagated value.
     // Otherwise, an zero-filled array is allocated and a reference to it is returned.
-    const nonstd::optional<Array>& output_grad() const {
+    const absl::optional<Array>& output_grad() const {
         CHAINERX_ASSERT(output_array_nodes_.size() == 1);
         return output_grad(0);
     }
@@ -132,9 +132,9 @@ private:
 
     // Output array nodes of the op node.
     // Null if the array node is gone (the weak pointer is dead).
-    gsl::span<std::shared_ptr<internal::ArrayNode>> output_array_nodes_;
+    absl::Span<std::shared_ptr<internal::ArrayNode>> output_array_nodes_;
 
-    gsl::span<internal::GradRef*> output_grads_;
+    absl::Span<internal::GradRef*> output_grads_;
 
     // A reference to the storage of input gradient arrays.
     // Gradient passed in input_grad() will be put into this storage.
@@ -150,7 +150,7 @@ private:
     DoubleBackpropOption double_backprop_option_;
 
     // Be introduced to avoid the return value of output_grad() being destroyed at the end of the function.
-    const nonstd::optional<Array> zero_grad_ = nonstd::nullopt;
+    const absl::optional<Array> zero_grad_ = absl::nullopt;
 };
 
 }  // namespace chainerx

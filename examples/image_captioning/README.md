@@ -9,6 +9,7 @@ Given an image, this model generates a sentence that describes it.
 This example requires the following packages.
 
 - PIL
+- matplotlib
 - progressbar
 - [pycocotools](https://github.com/cocodataset/cocoapi/tree/master/PythonAPI)
 

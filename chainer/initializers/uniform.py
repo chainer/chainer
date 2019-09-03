@@ -28,8 +28,8 @@ class Uniform(initializer.Initializer):
     def __call__(self, array):
         if self.dtype is not None:
             assert array.dtype == self.dtype
-        xp = backend.get_array_module(array)
-        array[...] = xp.random.uniform(
+        device = backend.get_device_from_array(array)
+        array[...] = device.xp.random.uniform(
             low=-self.scale, high=self.scale, size=array.shape)
 
 

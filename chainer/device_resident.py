@@ -1,6 +1,9 @@
+from __future__ import absolute_import
 import abc
 import sys
+import threading
 import typing as tp  # NOQA
+import warnings
 
 import numpy
 
@@ -12,6 +15,15 @@ from chainer.backends import intel64
 from chainer import types  # NOQA
 from chainer import utils
 import chainerx
+
+
+_thread_local = threading.local()
+
+# Used in _ToDeviceVisitor to detect GPU-to-GPU (cupy-to-cupy) device transfer.
+# It is usually `None`.
+# Assign `False` to enable GPU-to-GPU detection. If detected, `True` will be
+# assigned. `None` should be assigned again after retrieving the result.
+_thread_local.flag_gpu_to_gpu = None
 
 
 class DeviceResident(utils.enable_final(meta_base=abc.ABCMeta)):
@@ -27,21 +39,28 @@ class DeviceResident(utils.enable_final(meta_base=abc.ABCMeta)):
             if _is_to_device_method_overridden(self, m)])
 
     def device_resident_accept(self, visitor):
-        """Applies the visitor to all the device objects in this instance."""
+        """Applies the visitor to all the device objects in this instance.
+
+        Args:
+            visitor(~chainer.device_resident.DeviceResidentsVisitor): Visitor.
+
+        This method should be overridden if the concrete class has custom
+        sub-hierarchy of device resident objects.
+        """
         visitor.visit_device_resident(self)
 
     @property
     def device(self):
-        """Returns the device"""
+        """:class:`~chainer.backend.Device` instance."""
         return self._device
 
     @property
     def xp(self):
         # type: () -> types.Xp
-        """Array module for this link.
+        """Array module corresponding to the device.
 
-        Depending on which of CPU/GPU this link is on, this property returns
-        :mod:`numpy` or :mod:`cupy`.
+        Depending on the device in which this object resides, this property
+        returns :mod:`numpy`, :mod:`cupy` or :mod:`chainerx`.
 
         """
         device = self.device
@@ -54,8 +73,8 @@ class DeviceResident(utils.enable_final(meta_base=abc.ABCMeta)):
         """Copies parameter variables and persistent values to CPU.
 
         This method does not handle non-registered attributes. If some of such
-        attributes must be copied to CPU, the link implementation must
-        override :meth:`Link.to_device` to do so.
+        attributes must be copied to CPU, the link implementation should
+        override :meth:`~DeviceResident.device_resident_accept` to do so.
 
         Returns: self
 
@@ -63,7 +82,6 @@ class DeviceResident(utils.enable_final(meta_base=abc.ABCMeta)):
         visitor = _ToDeviceVisitor(
             backend.CpuDevice(),
             entry_method_info=('to_cpu', {}),
-            skip_between_cupy_devices=True,
             starting_device_resident=self)
         self.__to_device(visitor)
         return self
@@ -77,7 +95,12 @@ class DeviceResident(utils.enable_final(meta_base=abc.ABCMeta)):
 
         This method does not handle non-registered attributes. If some of such
         attributes must be copied to GPU, the link implementation must
-        override :meth:`Link.to_device` to do so.
+        override :meth:`~DeviceResident.device_resident_accept` to do so.
+
+        .. warning::
+
+            This method does not transfer the parameters if they are already on
+            GPU. Use ``to_device`` to perform inter-GPU transfer.
 
         Args:
             device: Target device specifier. If omitted, the current device is
@@ -132,7 +155,7 @@ without any copy.
     def from_chx(self):
         """Converts parameter variables and persistent values from ChainerX \
 to NumPy/CuPy devices without any copy."""
-        if isinstance(self._device, backend.ChainerxDevice):
+        if self._device.xp is chainerx:
             self._device = self._device.fallback_device
 
         self.device_resident_accept(_FromChxVisitor())
@@ -180,10 +203,13 @@ def _is_to_device_method_overridden(device_resident, method_name):
 class DeviceResidentsVisitor(object):
 
     """Base class of visitors that visits device resident objects recursively.
+
+    ..  seealso::
+        :class:`chainer.DeviceResident`
     """
 
     def visit_device_resident(self, device_resident):
-        """Processes a :class:`DeviceResident` instance."""
+        """Processes a :class:`~chainer.DeviceResident` instance."""
         raise NotImplementedError()
 
     def visit_array(self, arr):
@@ -195,7 +221,8 @@ class DeviceResidentsVisitor(object):
         raise NotImplementedError()
 
     def visit_variable(self, param):
-        """Processes a variable or a parameter."""
+        """Processes a :class:`~chainer.Variable` or a \
+:class:`~chainer.Parameter`."""
         raise NotImplementedError()
 
 
@@ -278,18 +305,42 @@ class _ToDeviceVisitor(DeviceResidentsVisitor):
 
     def visit_array(self, arr):
         assert isinstance(arr, chainer.get_array_types())
-        if not (self._skip_between_cupy_devices
-                and self._device.xp is cuda.cupy
-                and isinstance(arr, cuda.ndarray)):
-            return self._device.send(arr)
-        return arr
+        device = backend.get_device_from_array(arr)
+        if self._skip_visiting(device):
+            self._warn_to_gpu(device, self._device)
+            return arr
+        return self._device.send(arr)
 
     def visit_variable(self, param):
         assert isinstance(param, chainer.Variable)
-        if not (self._skip_between_cupy_devices
-                and self._device.xp is cuda.cupy
-                and param.device.xp is cuda.cupy):
-            param.to_device(self._device)
+        device = param.device
+        if self._skip_visiting(device):
+            self._warn_to_gpu(device, self._device)
+            return
+        param.to_device(self._device)
+
+    def _skip_visiting(self, obj_device):
+        return (
+            self._skip_between_cupy_devices
+            and isinstance(self._device, backend.GpuDevice)
+            and isinstance(obj_device, backend.GpuDevice))
+
+    @staticmethod
+    def _warn_to_gpu(src_device, dst_device):
+        src_id = src_device.device.id
+        dst_id = dst_device.device.id
+        if src_id != dst_id:
+            if _thread_local.flag_gpu_to_gpu is None:
+                warnings.warn('''\
+You are trying to transfer a DeviceResident to GPU-{dst} which is already on \
+GPU-{src}.
+`DeviceResident.to_gpu` does nothing if the DeviceResident is already on GPU.
+
+You can use `DeviceResident.to_device()` method to perform inter-GPU transfer.
+'''.format(dst=dst_id, src=src_id), RuntimeWarning)
+            else:
+                assert isinstance(_thread_local.flag_gpu_to_gpu, bool)
+                _thread_local.flag_gpu_to_gpu = True
 
 
 class _ToChxVisitor(DeviceResidentsVisitor):

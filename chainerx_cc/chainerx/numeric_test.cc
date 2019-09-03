@@ -5,8 +5,8 @@
 #include <string>
 #include <vector>
 
+#include <absl/types/optional.h>
 #include <gtest/gtest.h>
-#include <nonstd/optional.hpp>
 
 #include "chainerx/array.h"
 #include "chainerx/context.h"
@@ -65,7 +65,7 @@ public:
     }
 
 private:
-    nonstd::optional<testing::DeviceSession> device_session_;
+    absl::optional<testing::DeviceSession> device_session_;
 };
 
 TEST_P(NumericTest, AllClose) {

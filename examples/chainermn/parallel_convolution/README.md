@@ -7,6 +7,10 @@ which is aggregated by allgather operation.
 
 ![Parallel Convolution](./parallel-conv.png)
 
+## Requirements
+
+- matplotlib
+
 ## Run
 
 ```

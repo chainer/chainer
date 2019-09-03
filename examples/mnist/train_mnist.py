@@ -8,6 +8,9 @@ from chainer import training
 from chainer.training import extensions
 import chainerx
 
+import matplotlib
+matplotlib.use('Agg')
+
 
 # Network definition
 class MLP(chainer.Chain):
@@ -43,10 +46,11 @@ def main():
                         help='Directory to output the result')
     parser.add_argument('--resume', '-r', type=str,
                         help='Resume the training from snapshot')
+    parser.add_argument('--autoload', action='store_true',
+                        help='Automatically load trainer snapshots in case'
+                        ' of preemption or other temporary system failure')
     parser.add_argument('--unit', '-u', type=int, default=1000,
                         help='Number of units')
-    parser.add_argument('--noplot', dest='plot', action='store_false',
-                        help='Disable PlotReport extension')
     group = parser.add_argument_group('deprecated arguments')
     group.add_argument('--gpu', '-g', dest='device',
                        type=int, nargs='?', const=0,
@@ -85,7 +89,8 @@ def main():
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.out)
 
     # Evaluate the model with the test dataset for each epoch
-    trainer.extend(extensions.Evaluator(test_iter, model, device=device))
+    trainer.extend(extensions.Evaluator(test_iter, model, device=device),
+                   call_before_training=True)
 
     # Dump a computational graph from 'loss' variable at the first iteration
     # The "main" refers to the target link of the "main" optimizer.
@@ -95,20 +100,25 @@ def main():
 
     # Take a snapshot for each specified epoch
     frequency = args.epoch if args.frequency == -1 else max(1, args.frequency)
-    trainer.extend(extensions.snapshot(), trigger=(frequency, 'epoch'))
+    # Take a snapshot each ``frequency`` epoch, delete old stale
+    # snapshots and automatically load from snapshot files if any
+    # files are already resident at result directory.
+    trainer.extend(extensions.snapshot(num_retain=1, autoload=args.autoload),
+                   trigger=(frequency, 'epoch'))
 
     # Write a log of evaluation statistics for each epoch
-    trainer.extend(extensions.LogReport())
+    trainer.extend(extensions.LogReport(), call_before_training=True)
 
     # Save two plot images to the result dir
-    if args.plot and extensions.PlotReport.available():
-        trainer.extend(
-            extensions.PlotReport(['main/loss', 'validation/main/loss'],
-                                  'epoch', file_name='loss.png'))
-        trainer.extend(
-            extensions.PlotReport(
-                ['main/accuracy', 'validation/main/accuracy'],
-                'epoch', file_name='accuracy.png'))
+    trainer.extend(
+        extensions.PlotReport(['main/loss', 'validation/main/loss'],
+                              'epoch', file_name='loss.png'),
+        call_before_training=True)
+    trainer.extend(
+        extensions.PlotReport(
+            ['main/accuracy', 'validation/main/accuracy'],
+            'epoch', file_name='accuracy.png'),
+        call_before_training=True)
 
     # Print selected entries of the log to stdout
     # Here "main" refers to the target link of the "main" optimizer again, and
@@ -117,13 +127,16 @@ def main():
     # either the updater or the evaluator.
     trainer.extend(extensions.PrintReport(
         ['epoch', 'main/loss', 'validation/main/loss',
-         'main/accuracy', 'validation/main/accuracy', 'elapsed_time']))
+         'main/accuracy', 'validation/main/accuracy', 'elapsed_time']),
+        call_before_training=True)
 
     # Print a progress bar to stdout
     trainer.extend(extensions.ProgressBar())
 
     if args.resume is not None:
-        # Resume from a snapshot
+        # Resume from a snapshot (Note: this loaded model is to be
+        # overwritten by --autoload option, autoloading snapshots, if
+        # any snapshots exist in output directory)
         chainer.serializers.load_npz(args.resume, trainer)
 
     # Run the training

@@ -201,10 +201,30 @@ RetainedInputToken BackwardBuilder::RetainInput(size_t input_index) {
     return {internal::GetArrayBody(gsl::at(inputs_, input_index))->GetParams(), input_index};
 }
 
+std::vector<RetainedInputToken> BackwardBuilder::RetainInput(std::vector<size_t> indices) {
+    std::vector<RetainedInputToken> token;
+    for (size_t i : indices) {
+        CHAINERX_ASSERT(i < inputs_.size());
+        input_retention_record_.Record(i);
+        token.emplace_back((RetainedInputToken){internal::GetArrayBody(gsl::at(inputs_, i))->GetParams(), i});
+    }
+    return token;
+}
+
 RetainedOutputToken BackwardBuilder::RetainOutput(size_t output_index) {
     CHAINERX_ASSERT(output_index < outputs_.size());
     output_retention_record_.Record(output_index);
     return {internal::GetArrayBody(gsl::at(outputs_, output_index))->GetParams(), output_index};
+}
+
+std::vector<RetainedOutputToken> BackwardBuilder::RetainOutput(std::vector<size_t> indices) {
+    std::vector<RetainedOutputToken> token;
+    for (size_t i : indices) {
+        CHAINERX_ASSERT(i < outputs_.size());
+        output_retention_record_.Record(i);
+        token.emplace_back((RetainedOutputToken){internal::GetArrayBody(gsl::at(outputs_, i))->GetParams(), i});
+    }
+    return token;
 }
 
 void BackwardBuilder::Finalize() {
@@ -297,7 +317,7 @@ void AddEdgesFromOpNodeToOutputArrayNodesOfOuterGraph(
     // Therefore, first convert the weak_ptr to shared_ptr, assuming that they have not expired.
     for (size_t i = 0; i < output_retention_record.size(); ++i) {
         if (output_retention_record.IsRecorded(i)) {
-            const nonstd::optional<std::weak_ptr<ArrayNode>>& array_node = outer_op_node.output_array_nodes()[i];
+            const absl::optional<std::weak_ptr<ArrayNode>>& array_node = outer_op_node.output_array_nodes()[i];
             CHAINERX_ASSERT(array_node.has_value());
             CHAINERX_ASSERT(!array_node->expired());
             output_array_nodes.emplace_back(array_node->lock());

@@ -68,13 +68,17 @@ class TestNegativeSamplingFunction(unittest.TestCase):
         self.ggw = numpy.random.uniform(-1, 1, w_shape).astype(self.dtype)
 
         self.check_forward_options = {}
-        self.check_backward_options = {'eps': 1e-2, 'atol': 5e-4, 'rtol': 5e-3}
+        self.check_backward_options = {
+            'eps': 1e-2, 'atol': 5e-4, 'rtol': 5e-3}
         self.check_double_backward_options = {
             'eps': 1e-2, 'atol': 1e-3, 'rtol': 1e-2}
         if self.dtype == numpy.float16:
-            self.check_forward_options = {'atol': 1e-3, 'rtol': 1e-3}
-            self.check_backward_options['dtype'] = numpy.float64
-            self.check_double_backward_options['dtype'] = numpy.float64
+            self.check_forward_options.update(
+                {'atol': 1e-3, 'rtol': 1e-3})
+            self.check_backward_options.update(
+                {'rtol': 5e-2, 'dtype': numpy.float64})
+            self.check_double_backward_options.update(
+                {'dtype': numpy.float64})
 
     def test_forward(self, backend_config):
         sampler = make_sampler(backend_config, self.label_size)

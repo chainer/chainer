@@ -1,3 +1,5 @@
+import six
+
 import chainer
 from chainer import backend
 from chainer import function_node
@@ -9,7 +11,7 @@ class CReLU(function_node.FunctionNode):
     """Concatenated Rectified Linear Unit."""
 
     def __init__(self, axis=1):
-        if not isinstance(axis, int):
+        if not isinstance(axis, six.integer_types):
             raise TypeError('axis must be an integer value')
         self.axis = axis
 

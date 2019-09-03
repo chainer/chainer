@@ -16,12 +16,11 @@
 #include "chainerx/cuda/reduce.cuh"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
-#include "chainerx/kernels/math.h"
+#include "chainerx/kernels/reduction.h"
 #include "chainerx/kernels/sorting.h"
 #include "chainerx/macro.h"
 #include "chainerx/numeric_limits.h"
 #include "chainerx/reduction_kernel_arg.h"
-#include "chainerx/routines/math.h"
 #include "chainerx/shape.h"
 
 namespace chainerx {
@@ -61,6 +60,47 @@ public:
 
 CHAINERX_CUDA_REGISTER_KERNEL(ArgMaxKernel, CudaArgMaxKernel);
 
+}  // namespace
+
+namespace {
+
+template <typename T>
+struct ArgMinImpl {
+    using CudaType = cuda_internal::DataType<T>;
+    struct MinAndArgMin {
+        CudaType min;
+        int64_t argmin;
+    };
+    __device__ MinAndArgMin Identity() { return {CudaType{}, -1}; }
+    __device__ MinAndArgMin MapIn(CudaType in, int64_t index) { return {in, index}; }
+    __device__ void Reduce(MinAndArgMin next, MinAndArgMin& accum) {
+        // Note that `next` can be the return value of `Identity()` in which case `accum` should not be updated.
+        if (next.argmin != -1 && (accum.argmin == -1 || accum.min > next.min)) {
+            accum = next;
+        }
+    }
+    __device__ int64_t MapOut(MinAndArgMin accum) { return accum.argmin; }
+};
+
+class CudaArgMinKernel : public ArgMinKernel {
+public:
+    void Call(const Array& a, const Axes& axis, const Array& out) override {
+        Device& device = a.device();
+        device.CheckDevicesCompatible(a, out);
+        CudaSetDeviceScope scope{device.index()};
+        VisitDtype(a.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            Reduce<T, int64_t>(a, axis, out, ArgMinImpl<T>{});
+        });
+    }
+};
+
+CHAINERX_CUDA_REGISTER_KERNEL(ArgMinKernel, CudaArgMinKernel);
+
+}  // namespace
+
+namespace {
+
 template <typename In, typename Out>
 struct SumImpl {
     using InCudaType = cuda_internal::DataType<In>;
@@ -91,63 +131,123 @@ public:
 
 CHAINERX_CUDA_REGISTER_KERNEL(SumKernel, CudaSumKernel);
 
+class CudaCumsumKernel : public CumsumKernel {
+public:
+    void Call(const Array& /* a */, int8_t /* axis */, const Array& /* out */) override {
+        // TODO(aksub99): CUDA Implementation is to be suppported.
+        throw NotImplementedError{"CUDA Implementation is not yet supported."};
+    }
+};
+
+CHAINERX_CUDA_REGISTER_KERNEL(CumsumKernel, CudaCumsumKernel);
+
+namespace {
+
 template <typename T>
-struct AMaxImpl {
+struct NanArgMaxImpl {
     using CudaType = cuda_internal::DataType<T>;
-    __device__ CudaType Identity() { return cuda::NumericLimits<CudaType>::LowestOrInf(); }
-    __device__ CudaType MapIn(CudaType in, int64_t /*index*/) { return in; }
-    __device__ void Reduce(CudaType next, CudaType& accum) {
-        if (cuda::IsNan(next) || accum < next) {
+    struct MaxAndNanArgMax {
+        CudaType max;
+        int64_t nanargmax;
+    };
+    __device__ MaxAndNanArgMax Identity() { return {CudaType{}, -1}; }
+    __device__ MaxAndNanArgMax MapIn(CudaType in, int64_t index) { return {in, index}; }
+    __device__ void Reduce(MaxAndNanArgMax next, MaxAndNanArgMax& accum) {
+        // Note that `next` can be the return value of `Identity()` in which case `accum` should not be updated.
+        if (next.nanargmax != -1 && (accum.nanargmax == -1 || accum.max < next.max)) {
             accum = next;
         }
     }
-    __device__ CudaType MapOut(CudaType accum) { return accum; }
+    __device__ int64_t MapOut(MaxAndNanArgMax accum) { return accum.nanargmax; }
 };
 
-class CudaAMaxKernel : public AMaxKernel {
+class CudaNanArgMaxKernel : public NanArgMaxKernel {
+public:
+    void Call(const Array& a, const Axes& axis, const Array& out) override {
+        Device& device = a.device();
+        device.CheckDevicesCompatible(a, out);
+        CudaSetDeviceScope scope{device.index()};
+        VisitDtype(a.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            Reduce<T, int64_t>(a, axis, out, NanArgMaxImpl<T>{});
+        });
+    }
+};
+
+CHAINERX_CUDA_REGISTER_KERNEL(NanArgMaxKernel, CudaNanArgMaxKernel);
+
+}  // namespace
+
+namespace {
+
+template <typename T>
+struct NanArgMinImpl {
+    using CudaType = cuda_internal::DataType<T>;
+    struct MinAndNanArgMin {
+        CudaType min;
+        int64_t nanargmin;
+    };
+    __device__ MinAndNanArgMin Identity() { return {CudaType{}, -1}; }
+    __device__ MinAndNanArgMin MapIn(CudaType in, int64_t index) { return {in, index}; }
+    __device__ void Reduce(MinAndNanArgMin next, MinAndNanArgMin& accum) {
+        // Note that `next` can be the return value of `Identity()` in which case `accum` should not be updated.
+        if (next.nanargmin != -1 && (accum.nanargmin == -1 || accum.min > next.min)) {
+            accum = next;
+        }
+    }
+    __device__ int64_t MapOut(MinAndNanArgMin accum) { return accum.nanargmin; }
+};
+
+class CudaNanArgMinKernel : public NanArgMinKernel {
+public:
+    void Call(const Array& a, const Axes& axis, const Array& out) override {
+        Device& device = a.device();
+        device.CheckDevicesCompatible(a, out);
+        CudaSetDeviceScope scope{device.index()};
+        VisitDtype(a.dtype(), [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            Reduce<T, int64_t>(a, axis, out, NanArgMinImpl<T>{});
+        });
+    }
+};
+
+CHAINERX_CUDA_REGISTER_KERNEL(NanArgMinKernel, CudaNanArgMinKernel);
+
+}  // namespace
+
+}  // namespace
+
+namespace {
+
+template <typename In, typename Out>
+struct NansumImpl {
+    using InCudaType = cuda_internal::DataType<In>;
+    using OutCudaType = cuda_internal::DataType<Out>;
+    __device__ OutCudaType Identity() { return OutCudaType{0}; }
+    __device__ OutCudaType MapIn(InCudaType in, int64_t /*index*/) { return static_cast<OutCudaType>(in); }
+    __device__ void Reduce(OutCudaType next, OutCudaType& accum) { accum += next; }
+    __device__ OutCudaType MapOut(OutCudaType accum) { return accum; }
+};
+
+class CudaNansumKernel : public NansumKernel {
 public:
     void Call(const Array& a, const Axes& axis, const Array& out) override {
         Device& device = a.device();
         CHAINERX_ASSERT(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
         device.CheckDevicesCompatible(a, out);
         CudaSetDeviceScope scope{device.index()};
-        VisitDtype(out.dtype(), [&](auto pt) {
-            using T = typename decltype(pt)::type;
-            Reduce<T, T>(a, axis, out, AMaxImpl<T>{});
-        });
+
+        auto do_nansum = [&a, &axis, &out](auto in_pt, auto out_pt) {
+            using In = typename decltype(in_pt)::type;
+            using Out = typename decltype(out_pt)::type;
+            Reduce<In, Out>(a, axis, out, NansumImpl<In, Out>{});
+        };
+
+        VisitDtype(out.dtype(), [a_dtype = a.dtype(), &do_nansum](auto out_pt) { VisitDtype(a_dtype, do_nansum, out_pt); });
     }
 };
 
-CHAINERX_CUDA_REGISTER_KERNEL(AMaxKernel, CudaAMaxKernel);
-
-template <typename T>
-struct AMinImpl {
-    using CudaType = cuda_internal::DataType<T>;
-    __device__ CudaType Identity() { return cuda::NumericLimits<CudaType>::MaxOrInf(); }
-    __device__ CudaType MapIn(CudaType in, int64_t /*index*/) { return in; }
-    __device__ void Reduce(CudaType next, CudaType& accum) {
-        if (cuda::IsNan(next) || accum > next) {
-            accum = next;
-        }
-    }
-    __device__ CudaType MapOut(CudaType accum) { return accum; }
-};
-
-class CudaAMinKernel : public AMinKernel {
-public:
-    void Call(const Array& a, const Axes& axis, const Array& out) override {
-        Device& device = a.device();
-        CHAINERX_ASSERT(internal::IsValidReductionShape(a.shape(), axis, out.shape(), true));
-        device.CheckDevicesCompatible(a, out);
-        CudaSetDeviceScope scope{device.index()};
-        VisitDtype(out.dtype(), [&](auto pt) {
-            using T = typename decltype(pt)::type;
-            Reduce<T, T>(a, axis, out, AMinImpl<T>{});
-        });
-    }
-};
-
-CHAINERX_CUDA_REGISTER_KERNEL(AMinKernel, CudaAMinKernel);
+CHAINERX_CUDA_REGISTER_KERNEL(NansumKernel, CudaNansumKernel);
 
 }  // namespace
 }  // namespace cuda

@@ -44,14 +44,14 @@ std::shared_ptr<ArrayBody> CreateArrayBody(ArrayBody::Params params) {
 const std::shared_ptr<ArrayNode> ArrayBody::kNullArrayNode{nullptr};
 
 ArrayBody::BackpropEntry::BackpropEntry(const BackpropId& backprop_id)
-    : backprop_id_{backprop_id}, grad_{std::make_unique<nonstd::optional<Array>>(nonstd::nullopt)} {}
+    : backprop_id_{backprop_id}, grad_{std::make_unique<absl::optional<Array>>(absl::nullopt)} {}
 
 void ArrayBody::BackpropEntry::SetArrayNode(std::shared_ptr<ArrayNode> array_node) {
     CHAINERX_ASSERT(array_node->backprop_id() == backprop_id_);
     array_node_ = std::move(array_node);
 }
 
-void ArrayBody::BackpropEntry::SetGrad(std::unique_ptr<nonstd::optional<Array>> grad) { grad_ = std::move(grad); }
+void ArrayBody::BackpropEntry::SetGrad(std::unique_ptr<absl::optional<Array>> grad) { grad_ = std::move(grad); }
 
 ArrayBody::ArrayBody(
         const Shape& shape,  // NOLINT(modernize-pass-by-value)
@@ -159,7 +159,7 @@ void ArrayBody::AssertConsistency() const {
                 // Array with integral dtypes cannot have array nodes.
                 CHAINERX_ASSERT(GetKind(dtype()) == DtypeKind::kFloat);
 
-                const nonstd::optional<Array>& grad = *bp.grad();
+                const absl::optional<Array>& grad = *bp.grad();
 
                 if (grad.has_value()) {
                     CHAINERX_ASSERT(internal::GetArrayBody(*grad) != nullptr);
@@ -174,18 +174,18 @@ void ArrayBody::AssertConsistency() const {
 }
 
 void ArrayBody::SetGrad(Array grad, const BackpropId& backprop_id) {
-    nonstd::optional<Array>* target_grad = GetGrad(backprop_id);
+    absl::optional<Array>* target_grad = GetGrad(backprop_id);
     CHAINERX_ASSERT(target_grad != nullptr);
     internal::SetGrad(*target_grad, std::move(grad), shape_, dtype_, device_);
 }
 
 void ArrayBody::ClearGrad(const BackpropId& backprop_id) {
-    nonstd::optional<Array>* grad = GetGrad(backprop_id);
+    absl::optional<Array>* grad = GetGrad(backprop_id);
     CHAINERX_ASSERT(grad != nullptr);
     grad->reset();
 }
 
-const nonstd::optional<Array>* ArrayBody::GetGrad(const BackpropId& backprop_id) const {
+const absl::optional<Array>* ArrayBody::GetGrad(const BackpropId& backprop_id) const {
     auto bp = FindBackpropEntry(backprop_id);
     if (!bp.has_value()) {
         return nullptr;
@@ -194,7 +194,7 @@ const nonstd::optional<Array>* ArrayBody::GetGrad(const BackpropId& backprop_id)
     return bp->get().grad().get();
 }
 
-nonstd::optional<Array>* ArrayBody::GetGrad(const BackpropId& backprop_id) {
+absl::optional<Array>* ArrayBody::GetGrad(const BackpropId& backprop_id) {
     auto bp = FindBackpropEntry(backprop_id);
     if (!bp.has_value()) {
         return nullptr;

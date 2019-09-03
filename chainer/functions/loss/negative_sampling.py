@@ -394,10 +394,13 @@ return_samples=False)
             whose shape is same as one of (hence both of) input variables.
             If it is ``'sum'``, the output variable holds a scalar value.
 
-    See: `Distributed Representations of Words and Phrases and their\
-         Compositionality <https://arxiv.org/abs/1310.4546>`_
+    See: `Distributed Representations of Words and Phrases and their
+    Compositionality <https://arxiv.org/abs/1310.4546>`_
 
-    .. seealso:: :class:`~chainer.links.NegativeSampling`.
+    .. seealso::
+
+        :class:`~chainer.links.NegativeSampling` to manage the model parameter
+        ``W``.
 
     """
     return_samples = False

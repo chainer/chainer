@@ -10,7 +10,7 @@ import numpy
 from chainermn.functions.batch_normalization import \
     get_communication_backend
 from chainermn.functions.batch_normalization import \
-    MultiNodeBatchNormalizationFunction
+    MultiNodeBNImplSelector
 
 
 class MultiNodeBatchNormalization(link.Link):
@@ -103,11 +103,12 @@ class MultiNodeBatchNormalization(link.Link):
             else:
                 decay = self.decay
 
-            func = MultiNodeBatchNormalizationFunction(
-                self.comm, self.eps, self.avg_mean, self.avg_var, decay,
-                communication_backend=self._communication_backend)
+            func = batch_normalization.BatchNormalization(
+                self.eps, self.avg_mean, self.avg_var, decay,
+                impl_selector=MultiNodeBNImplSelector(
+                    self.comm, self._communication_backend))
 
-            ret = func(x, gamma, beta)
+            ret = func.apply((x, gamma, beta))[0]
 
             self.avg_mean[:] = func.running_mean
             self.avg_var[:] = func.running_var
@@ -128,3 +129,18 @@ class MultiNodeBatchNormalization(link.Link):
 
         """
         self.N = 0
+
+    def copy(self, mode='share'):
+        to_be_preserved = ['comm']
+        preserved = {}
+        for name in to_be_preserved:
+            preserved[name] = getattr(self, name)
+            setattr(self, name, None)
+
+        ret = super(MultiNodeBatchNormalization, self).copy(mode)
+
+        for name in to_be_preserved:
+            setattr(self, name, preserved[name])
+            setattr(ret, name, preserved[name])
+
+        return ret
