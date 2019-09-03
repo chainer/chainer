@@ -261,23 +261,19 @@ class _ToDeviceVisitor(DeviceResidentsVisitor):
         # respective method will be called if it's overridden
         # (instead of `device_resident_accept`).
         if entry_method_info is not None:
+            device_names = {
+                'to_cpu': '@numpy',
+                'to_gpu': '@cupy:N',
+                'to_intel64': '@intel64',
+            }
             assert len(entry_method_info) == 2
             method = entry_method_info[0]
-            if method == 'to_cpu':
-                message = (
-                    'to_cpu is deprecated. '
-                    'Please use to_device(\'@numpy\') instead.')
-            elif method == 'to_gpu':
-                message = (
-                    'to_gpu is deprecated. '
-                    'Please use to_device(\'@cupy:N\') instead.')
-            elif method == 'to_intel64':
-                message = (
-                    'to_intel64 is deprecated. '
-                    'Please use to_device(\'@intel64\') instead.')
-            else:
-                assert False
-            warnings.warn(message, DeprecationWarning)
+            assert method in device_names
+            warnings.warn(
+                '{} is deprecated. '
+                'Please use to_device(\'{}\') instead.'.format(
+                    method, device_names[method]),
+                DeprecationWarning)
 
         # starting_device_resident is also for backward compatibility
         # workaround for overridden methods.
