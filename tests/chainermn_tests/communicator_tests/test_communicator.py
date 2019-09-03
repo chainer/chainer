@@ -496,7 +496,8 @@ class TestPureNcclCommunicator(unittest.TestCase):
     @chainer.testing.attr.gpu
     def test_invalid_allreduce_grad_dtype(self):
         with self.assertRaises(ValueError):
-            PureNcclCommunicator(self.mpi_comm, allreduce_grad_dtype=np.int32)
+            comm = PureNcclCommunicator(self.mpi_comm)
+            comm.set_config('allreduce_grad_dtype', np.int32)
 
     @chainer.testing.attr.gpu
     def test_finalize(self):
