@@ -401,12 +401,8 @@ Array EmbedId(const Array& x, const Array& w, absl::optional<int64_t> ignore_lab
     if (ignore_label.has_value()) {
         Array ignore_label_array = Full(x.shape(), *ignore_label, x.dtype(), x.device());
         Array mask = Where(x == ignore_label_array, -1, x);
-        std::vector<int64_t> m_shape_vec;
-        for (int64_t i = 0; i < mask.ndim(); i++) {
-            m_shape_vec.emplace_back(mask.shape()[i]);
-        }
-        m_shape_vec.emplace_back(1);
-        Shape m_shape{m_shape_vec};
+        Shape m_shape = mask.shape();
+        m_shape.emplace_back(1);
         Array _mask = mask.Reshape(m_shape);
         Array condition_array = Full(_mask.shape(), -1, _mask.dtype(), _mask.device());
         Array out = Where(_mask == condition_array, 0, Take(w, x, 0));
