@@ -361,6 +361,8 @@ def check_multi_node_mean_grad_mixed_dtype(param, model, use_gpu):
                                 param.allreduce_grad_dtype)
         value = communicator.get_config('allreduce_grad_dtype')
         assert param.allreduce_grad_dtype == value
+        value = communicator.allreduce_grad_dtype
+        assert param.allreduce_grad_dtype == value
 
     mpi_comm.barrier()
 

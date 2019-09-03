@@ -58,12 +58,16 @@ class PureNcclCommunicator(mpi_communicator_base.MpiCommunicatorBase):
 
     def set_config(self, name, value=True, **kwargs):
         if name == 'allreduce_grad_dtype':
-            allreduce_grad_dtype = np.dtype(value)
-            if allreduce_grad_dtype.kind != 'f':
-                raise ValueError(
-                    'allreduce_grad_dtype must be'
-                    'numpy.float16, numpy.float32,'
-                    'numpy.float64, or None.')
+            if value is not None:
+                allreduce_grad_dtype = np.dtype(value)
+                if allreduce_grad_dtype.kind != 'f':
+                    raise ValueError(
+                        'allreduce_grad_dtype must be'
+                        'numpy.float16, numpy.float32,'
+                        'numpy.float64, or None.')
+            else:
+                allreduce_grad_dtype = None
+
             with self.config_scope():
                 self.allreduce_grad_dtype = allreduce_grad_dtype
         else:
