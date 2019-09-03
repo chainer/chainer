@@ -273,7 +273,7 @@ If you feel the code too verbose, you can also use ``from import`` or ``import a
    One of the typical pitfalls is a way to import ``chainer.functions``.
    An import like ``import chainer.functions as F`` within modules under ``chainer.functions`` does not work.
    An import like ``from chainer import functions`` works well with Python 3, but does not with Python 2.
-   We recommend you to use ``import chainer.functions`` and spell out like ``chainer.functions.foo`` in your methods.
+   We recommend that you use ``import chainer.functions`` and spell out like ``chainer.functions.foo`` in your methods.
 
 Once you send a pull request, your coding style is automatically checked by `Travis-CI <https://travis-ci.org/chainer/chainer/>`_.
 The reviewing process starts after the check passes.
