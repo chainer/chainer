@@ -201,7 +201,7 @@ void Scan(const Array& in, int8_t axis, const Array& out, ReductionImpl&& impl) 
         return;
     }
 
-    ReductionArg arg{in, Axes{{axis}}, out};
+    ReductionArg arg{in, Axes{axis}, out};
     int64_t reduce_len = in.shape()[axis];
 
     if (arg.in_shape().ndim() == 1 && arg.out_shape().ndim() == 1) {
