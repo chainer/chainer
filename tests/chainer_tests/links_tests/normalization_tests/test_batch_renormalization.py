@@ -8,17 +8,14 @@ from chainer.backends import cuda
 from chainer import links
 from chainer import testing
 from chainer.testing import attr
-from chainer.testing import condition
 
 
-def _batch_renormalization(expander, gamma, beta, x, mean, var, eps, test,
+def _batch_renormalization(expander, gamma, beta, x, mean, std, test,
                            r, d):
     mean = mean[expander]
+    std = std[expander]
     if test:
-        std = numpy.sqrt(var[expander])
         r, d = 1, 0
-    else:
-        std = numpy.sqrt(var[expander] + eps)
     y_expect = gamma * ((x - mean) / std * r + d) + beta
     return y_expect
 
@@ -27,6 +24,7 @@ def _batch_renormalization(expander, gamma, beta, x, mean, var, eps, test,
     'test': [True, False],
     'ndim': [0, 1, 2, 3],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'eps': [2e-5, 0.5],
 })))
 class BatchRenormalizationTest(unittest.TestCase):
 
@@ -37,9 +35,9 @@ class BatchRenormalizationTest(unittest.TestCase):
         self.rmax = self.dtype(3)
         self.dmax = self.dtype(5)
 
-        self.link = links.BatchRenormalization(3, rmax=self.rmax,
-                                               dmax=self.dmax,
-                                               dtype=self.dtype)
+        self.link = links.BatchRenormalization(
+            3, rmax=self.rmax, dmax=self.dmax,
+            dtype=self.dtype, eps=self.eps)
         gamma = self.link.gamma.data
         gamma[...] = numpy.random.uniform(.5, 1, gamma.shape)
         beta = self.link.beta.data
@@ -83,31 +81,28 @@ class BatchRenormalizationTest(unittest.TestCase):
             y = self.link(x)
             self.assertEqual(y.data.dtype, self.dtype)
 
-        sigma_batch = numpy.sqrt(self.var)
-        running_sigma = numpy.sqrt(self.running_var)
+        sigma_batch = numpy.sqrt(self.var + self.eps)
+        running_sigma = numpy.sqrt(self.running_var + self.eps)
         r = numpy.clip(sigma_batch / running_sigma, 1.0 / self.rmax, self.rmax)
         d = numpy.clip((self.mean - self.running_mean) / running_sigma,
                        -self.dmax, self.dmax)
         y_expect = _batch_renormalization(
             self.expander, self.gamma, self.beta, self.x, self.mean,
-            self.var, self.link.eps, self.test,
+            sigma_batch, self.test,
             r[self.expander], d[self.expander])
 
         testing.assert_allclose(
             y_expect, y.data, **self.check_forward_optionss)
 
-    @condition.retry(3)
     def test_forward_cpu(self):
         self.check_forward(self.x)
 
     @attr.gpu
-    @condition.retry(3)
     def test_forward_gpu(self):
         self.link.to_gpu()
         self.check_forward(cuda.to_gpu(self.x))
 
     @attr.multi_gpu(2)
-    @condition.retry(3)
     def test_forward_multi_gpu(self):
         with cuda.get_device_from_id(1):
             self.link.to_gpu()
