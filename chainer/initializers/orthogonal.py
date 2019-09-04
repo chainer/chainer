@@ -48,9 +48,10 @@ class Orthogonal(initializer.Initializer):
 
     """
 
-    def __init__(self, scale=1.1, dtype=None, mode='auto'):
+    def __init__(self, scale=1.1, dtype=None, mode='auto', seed=None):
         self.scale = scale
         self.mode = mode
+        self.rng = numpy.random.RandomState(seed)
         try:
             self._checks = _orthogonal_constraints[mode]
         except KeyError:
@@ -67,7 +68,7 @@ class Orthogonal(initializer.Initializer):
             assert array.dtype == self.dtype
         device = backend.get_device_from_array(array)
         if not array.shape:  # 0-dim case
-            array[...] = self.scale * (2 * numpy.random.randint(2) - 1)
+            array[...] = self.scale * (2 * self.rng.randint(2) - 1)
         elif not array.size:
             raise ValueError('Array to be initialized must be non-empty.')
         else:
@@ -82,7 +83,7 @@ class Orthogonal(initializer.Initializer):
                     '{}-dim input and {}-dim output.'.format(
                         self.mode, array.shape, in_dim, out_dim))
             transpose = in_dim > out_dim
-            a = numpy.random.normal(size=(out_dim, in_dim))
+            a = self.rng.normal(size=(out_dim, in_dim))
             if transpose:
                 a = a.T
             # cupy.linalg.qr requires cusolver in CUDA 8+

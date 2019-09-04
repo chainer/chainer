@@ -22,8 +22,10 @@ class Normal(initializer.Initializer):
 
     """
 
-    def __init__(self, scale=0.05, dtype=None):
+    def __init__(self, scale=0.05, dtype=None, seed=None):
         self.scale = scale
+        self.rng_np = numpy.random.RandomState(seed)
+        self.rng_cp = cuda.cupy.random.RandomState(seed)
         super(Normal, self).__init__(dtype)
 
     def __call__(self, array):
@@ -34,8 +36,12 @@ class Normal(initializer.Initializer):
             if self.dtype == numpy.float32 or self.dtype == numpy.float16:
                 # float16 is not supported in cuRAND
                 args['dtype'] = numpy.float32
-
-        array[...] = device.xp.random.normal(**args)
+        if device.xp is numpy:
+            array[...] = self.rng_np.normal(**args)
+        elif device.xp is cuda.cupy:
+            array[...] = self.rng_cp.normal(**args)
+        else:
+            array[...] = device.xp.random.normal(**args)
 
 
 class LeCunNormal(initializer.Initializer):
@@ -58,8 +64,9 @@ class LeCunNormal(initializer.Initializer):
 
     """
 
-    def __init__(self, scale=1.0, dtype=None):
+    def __init__(self, scale=1.0, dtype=None, seed=None):
         self.scale = scale
+        self.rng = numpy.random.RandomState(seed)
         super(LeCunNormal, self).__init__(dtype)
 
     def __call__(self, array):
@@ -67,7 +74,7 @@ class LeCunNormal(initializer.Initializer):
             assert array.dtype == self.dtype
         fan_in, fan_out = initializer.get_fans(array.shape)
         s = self.scale * numpy.sqrt(1. / fan_in)
-        Normal(s)(array)
+        Normal(s, seed=self.rng.randint(numpy.iinfo('uint32').max + 1))(array)
 
 
 class GlorotNormal(initializer.Initializer):
@@ -90,8 +97,9 @@ class GlorotNormal(initializer.Initializer):
 
     """
 
-    def __init__(self, scale=1.0, dtype=None):
+    def __init__(self, scale=1.0, dtype=None, seed=None):
         self.scale = scale
+        self.rng = numpy.random.RandomState(seed)
         super(GlorotNormal, self).__init__(dtype)
 
     def __call__(self, array):
@@ -99,7 +107,7 @@ class GlorotNormal(initializer.Initializer):
             assert array.dtype == self.dtype
         fan_in, fan_out = initializer.get_fans(array.shape)
         s = self.scale * numpy.sqrt(2. / (fan_in + fan_out))
-        Normal(s)(array)
+        Normal(s, seed=self.rng.randint(numpy.iinfo('uint32').max + 1))(array)
 
 
 class HeNormal(initializer.Initializer):
@@ -126,9 +134,10 @@ class HeNormal(initializer.Initializer):
 
     """
 
-    def __init__(self, scale=1.0, dtype=None, fan_option='fan_in'):
+    def __init__(self, scale=1.0, dtype=None, fan_option='fan_in', seed=None):
         self.scale = scale
         self.fan_option = fan_option
+        self.rng = numpy.random.RandomState(seed)
         super(HeNormal, self).__init__(dtype)
 
     def __call__(self, array):
@@ -142,4 +151,4 @@ class HeNormal(initializer.Initializer):
         else:
             raise ValueError(
                 'fan_option should be either \'fan_in\' or \'fan_out\'.')
-        Normal(s)(array)
+        Normal(s, seed=self.rng.randint(numpy.iinfo('uint32').max + 1))(array)
