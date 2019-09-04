@@ -40,7 +40,8 @@ main() {
   case "${TARGET}" in
     # Unit tests.
     'py37' | 'py27and35' )
-      docker_args+=(--volume="$(dirname "${BASH_SOURCE}")/..:/src:ro")
+      docker_args+=(
+          --volume="$(cd "$(dirname "${BASH_SOURCE}")/.."; pwd):/src:ro")
       if [ "${GPU:-0}" != '0' ]; then
         docker_args+=(
             --ipc=host --privileged --env="GPU=${GPU}" --runtime=nvidia)
