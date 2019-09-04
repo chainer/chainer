@@ -38,9 +38,9 @@ class BatchRenormalizationTest(unittest.TestCase):
         self.link = links.BatchRenormalization(
             3, rmax=self.rmax, dmax=self.dmax,
             dtype=self.dtype, eps=self.eps)
-        gamma = self.link.gamma.data
+        gamma = self.link.gamma.array
         gamma[...] = numpy.random.uniform(.5, 1, gamma.shape)
-        beta = self.link.beta.data
+        beta = self.link.beta.array
         beta[...] = numpy.random.uniform(-1, 1, beta.shape)
         self.link.cleargrads()
 
@@ -80,7 +80,7 @@ class BatchRenormalizationTest(unittest.TestCase):
         with chainer.using_config('train', not self.test):
             x = chainer.Variable(x_data)
             y = self.link(x)
-            self.assertEqual(y.data.dtype, self.dtype)
+            self.assertEqual(y.dtype, self.dtype)
 
         sigma_batch = numpy.sqrt(self.var + self.eps)
         running_sigma = numpy.sqrt(self.running_var + self.eps)
@@ -93,7 +93,7 @@ class BatchRenormalizationTest(unittest.TestCase):
             r[self.expander], d[self.expander])
 
         testing.assert_allclose(
-            y_expect, y.data, **self.check_forward_optionss)
+            y.array, y_expect, **self.check_forward_optionss)
 
     def test_forward_cpu(self):
         self.check_forward(self.x)
@@ -135,15 +135,15 @@ class TestPopulationStatistics(unittest.TestCase):
         x = chainer.Variable(x)
         self.link(x, finetune=True)
         mean = self.x.mean(axis=0)
-        testing.assert_allclose(mean, self.link.avg_mean)
+        testing.assert_allclose(self.link.avg_mean, mean)
         unbiased_var = self.x.var(axis=0) * self.nx / (self.nx - 1)
-        testing.assert_allclose(unbiased_var, self.link.avg_var)
+        testing.assert_allclose(self.link.avg_var, unbiased_var)
 
         y = chainer.Variable(y)
         with chainer.using_config('train', False):
             self.link(y, finetune=True)
-        testing.assert_allclose(mean, self.link.avg_mean)
-        testing.assert_allclose(unbiased_var, self.link.avg_var)
+        testing.assert_allclose(self.link.avg_mean, mean)
+        testing.assert_allclose(self.link.avg_var, unbiased_var)
 
     def test_statistics_cpu(self):
         self.check_statistics(self.x, self.y)
@@ -169,8 +169,8 @@ class TestPopulationStatistics(unittest.TestCase):
         # But the multiplier is ny / (ny - 1) in current implementation
         # these two values are different when nx is not equal to ny.
         unbiased_var = var * self.ny / (self.ny - 1)
-        testing.assert_allclose(mean, self.link.avg_mean)
-        testing.assert_allclose(unbiased_var, self.link.avg_var)
+        testing.assert_allclose(self.link.avg_mean, mean)
+        testing.assert_allclose(self.link.avg_var, unbiased_var)
 
     def test_statistics2_cpu(self):
         self.check_statistics2(self.x, self.y)
