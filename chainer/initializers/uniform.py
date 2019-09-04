@@ -25,7 +25,8 @@ class Uniform(initializer.Initializer):
     def __init__(self, scale=0.05, dtype=None, seed=None):
         self.scale = scale
         self.rng_np = numpy.random.RandomState(seed)
-        self.rng_cp = cuda.cupy.random.RandomState(seed)
+        if cuda.available:
+            self.rng_cp = cuda.cupy.random.RandomState(seed)
         super(Uniform, self).__init__(dtype)
 
     def __call__(self, array):
