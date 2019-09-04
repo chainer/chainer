@@ -23,8 +23,6 @@
 
 set -eu
 
-cd "$(dirname "${BASH_SOURCE}")"/..
-
 ################################################################################
 # Main function
 ################################################################################
@@ -36,25 +34,59 @@ main() {
   wait
 
   # Prepare docker args.
-  docker_args=(docker run  --rm --volume="$(pwd):/src:ro")
-  if [ "${GPU:-0}" != '0' ]; then
-    docker_args+=(--ipc=host --privileged --env="GPU=${GPU}" --runtime=nvidia)
-  fi
-  if [ "${XPYTEST:-}" != '' ]; then
-    docker_args+=(--volume="${XPYTEST}:/usr/local/bin/xpytest:ro")
-  fi
-  docker_args+=(--env="XPYTEST_NUM_THREADS=${XPYTEST_NUM_THREADS:-$(nproc)}")
-  if [ "${SPREADSHEET_ID:-}" != '' ]; then
-    docker_args+=(--env="SPREADSHEET_ID=${SPREADSHEET_ID}")
-  fi
+  docker_args=(docker run  --rm)
 
   # Run target-specific commands.
   case "${TARGET}" in
     # Unit tests.
     'py37' | 'py27and35' )
+      docker_args+=(--volume="$(dirname "${BASH_SOURCE}")/..:/src:ro")
+      if [ "${GPU:-0}" != '0' ]; then
+        docker_args+=(
+            --ipc=host --privileged --env="GPU=${GPU}" --runtime=nvidia)
+      fi
+      if [ "${XPYTEST:-}" != '' ]; then
+        docker_args+=(--volume="${XPYTEST}:/usr/local/bin/xpytest:ro")
+      fi
+      docker_args+=(
+          --env="XPYTEST_NUM_THREADS=${XPYTEST_NUM_THREADS:-$(nproc)}")
+      if [ "${SPREADSHEET_ID:-}" != '' ]; then
+        docker_args+=(--env="SPREADSHEET_ID=${SPREADSHEET_ID}")
+      fi
       run "${docker_args[@]}" \
           "asia.gcr.io/pfn-public-ci/chainer-ci-prep.${TARGET}" \
           bash /src/.pfnci/run.sh "${TARGET}"
+      ;;
+    # Docker builds.
+    docker.* )
+      # Parse the target as "docker.{target}.{action}".
+      local fragments
+      IFS=. fragments=(${TARGET})
+      local target="${fragments[1]}"
+      local action="${fragments[2]}"
+      if [ "${action}" != 'push' -a "${action}" != 'test' ]; then
+        echo "Unsupported docker target action: ${action}" >&2
+        exit 1
+      fi
+      # This script can be run in CuPy repository to enable CI to build Chainer
+      # base images with a specified CuPy version.  This block enables the
+      # script can also be run even in Chainer repository.
+      # NOTE: This explicitly pulls CuPy repository instead of pulling from
+      # docker because of ensuring its CuPy version.
+      local cupy_directory="$(pwd)"
+      if [ ! -d "${cupy_directory}/cupy" ]; then
+        if [ ! -d .pfnci/cupy ]; then
+          run git clone https://github.com/cupy/cupy.git .pfnci/cupy
+        fi
+        cupy_directory=.pfnci/cupy
+      fi
+      run docker build -t \
+          "asia.gcr.io/pfn-public-ci/chainer-ci-prep.${target}" \
+          -f "$(dirname "${BASH_SOURCE}")/${target}.Dockerfile" \
+          "${cupy_directory}"
+      if [ "${action}" == 'push' ]; then
+        run docker push "asia.gcr.io/pfn-public-ci/chainer-ci-prep.${target}"
+      fi
       ;;
     # Unsupported targets.
     * )
