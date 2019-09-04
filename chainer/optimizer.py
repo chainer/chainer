@@ -802,12 +802,8 @@ class GradientMethod(Optimizer):
                 self.target.cleargrads()
             else:
                 self.target.zerograds()
-            backward = loss.backward(
-                return_cont=True,
-                loss_scale=self._loss_scale)
+            loss.backward(loss_scale=self._loss_scale)
             del loss
-            backward(_assert_moved=False)
-            del backward
 
         self.reallocate_cleared_grads()
         self.check_nan_in_grads()

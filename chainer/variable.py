@@ -1391,6 +1391,13 @@ class Variable(object):
                 parameters are divided by the factor just before the parameters
                 are to be updated.
         """
+        return_cont = False
+        if kwargs:
+            return_cont, = argument.parse_kwargs(
+                kwargs,
+                ('return_cont', return_cont),
+            )
+
         if self._has_chainerx_array:
             if retain_grad:
                 raise RuntimeError(
@@ -1398,18 +1405,14 @@ class Variable(object):
             if loss_scale is not None:
                 raise RuntimeError(
                     'loss_scale is not supported for ChainerX array.')
+            if return_cont:
+                raise RuntimeError(
+                    'return_cont is not supported for ChainerX array.')
             arr = self._data[0]
             assert isinstance(arr, chainerx.ndarray)
             chainerx.backward(
                 arr, enable_double_backprop=enable_double_backprop)
             return
-
-        return_cont = False
-        if kwargs:
-            return_cont, = argument.parse_kwargs(
-                kwargs,
-                ('return_cont', return_cont),
-            )
 
         # Initialize error by 1, if this is a loss variable
         if self.array.size == 1 and self.grad_var is None:
