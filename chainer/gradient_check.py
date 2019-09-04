@@ -1018,6 +1018,7 @@ def check_double_backward(func, x_data, y_grad, x_grad_grad, params=(),
     first_order_no_gxs = [False for x in xs]
 
     def first_order_grad(*inputs):
+        # Ensure reqires_grad=True for all float inputs
         inputs = [
             x if x is None or x.requires_grad
             else chainer.Variable(x.array, requires_grad=x.dtype.kind == 'f')
