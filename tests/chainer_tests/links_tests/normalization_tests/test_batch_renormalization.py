@@ -54,8 +54,6 @@ class BatchRenormalizationTest(unittest.TestCase):
         if self.test:
             self.mean = numpy.random.uniform(-1, 1, (3,)).astype(self.dtype)
             self.var = numpy.random.uniform(0.5, 1, (3,)).astype(self.dtype)
-            self.link.avg_mean[...] = self.mean
-            self.link.avg_var[...] = self.var
             self.running_mean = self.mean
             self.running_var = self.var
         else:
@@ -63,16 +61,19 @@ class BatchRenormalizationTest(unittest.TestCase):
             self.var = self.x.var(axis=self.aggr_axes)
             # Need to add some noise to running_mean and running_var,
             # otherwise we will always get r=1, d=0
-            self.running_mean = self.mean + numpy.random.uniform(
-                -1, 1, self.mean.shape).astype(self.dtype)
-            self.running_var = numpy.abs(self.var + numpy.random.uniform(
-                -1, 1, self.var.shape).astype(self.dtype))
-            self.link.avg_mean[...] = self.running_mean
-            self.link.avg_var[...] = self.running_var
+            # Note that numpy.exp(3) > rmax ** 2 and 7 > dmax
+            self.running_var = self.var * numpy.exp(
+                numpy.random.uniform(-3, 3, self.var.shape)).astype(self.dtype)
+            self.running_mean = self.mean + (
+                (numpy.sqrt(self.running_var) + 0.1)
+                * numpy.random.uniform(-7, 7, self.mean.shape)
+            ).astype(self.dtype)
+        self.link.avg_mean[...] = self.running_mean
+        self.link.avg_var[...] = self.running_var
         self.check_forward_optionss = {'atol': 1e-4, 'rtol': 1e-3}
         self.check_backward_optionss = {'atol': 1e-4, 'rtol': 1e-3}
         if self.dtype == numpy.float16:
-            self.check_forward_optionss = {'atol': 1e-3, 'rtol': 1e-2}
+            self.check_forward_optionss = {'atol': 1e-2, 'rtol': 5e-3}
             self.check_backward_optionss = {'atol': 5e-1, 'rtol': 1e-1}
 
     def check_forward(self, x_data):
