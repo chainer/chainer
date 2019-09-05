@@ -125,7 +125,7 @@ def _parse_replica_sets(replica_sets, size):
 
 
 class _MultiNodeSnapshot(Extension):
-    def __init__(self, comm, snapshot, replica_sets=[]):
+    def __init__(self, comm, snapshot, replica_sets):
         assert comm is not None
         assert snapshot is not None
         self.comm = comm
