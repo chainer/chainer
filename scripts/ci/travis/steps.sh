@@ -35,7 +35,7 @@ step_install_chainer_style_check_deps() {
 
 
 step_install_chainer_test_deps() {
-    _install_chainer_deps test
+    _install_chainer_deps travis
 
     # Optional packages
     local reqs=(
@@ -141,7 +141,8 @@ step_chainer_install_from_sdist() {
     if [[ $SKIP_CHAINERX != 1 ]]; then
         envs+=(CHAINER_BUILD_CHAINERX=1)
     fi
-    env "${envs[@]}" pip install "$REPO_DIR"/dist/*.tar.gz
+
+    env "${envs[@]}" pip install -v "$REPO_DIR"/dist/*.tar.gz
 }
 
 
@@ -158,7 +159,9 @@ step_chainer_tests() {
 
 
 step_chainerx_python_tests() {
-    pytest -rfEX "$REPO_DIR"/tests/chainerx_tests
+    pushd "$(mktemp -d)"
+    pytest -n "$DEFAULT_JOBS" -rfEX "$REPO_DIR"/tests/chainerx_tests
+    popd
 }
 
 

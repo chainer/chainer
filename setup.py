@@ -56,6 +56,11 @@ requirements = {
         'sphinx==1.8.2',
         'sphinx_rtd_theme',
     ],
+    'travis': [
+        '-r test',
+        # pytest-xdist 1.28.0 requires pytest>=4.4.0
+        'pytest-xdist<1.28.0',
+    ],
     'appveyor': [
         '-r test',
         # pytest-timeout>=1.3.0 requires pytest>=3.6.
