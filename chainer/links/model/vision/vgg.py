@@ -93,7 +93,7 @@ class VGGLayers(link.Chain):
 
         if n_layers not in [16, 19]:
             raise ValueError(
-                'The n_layers argument should be either 16 or 19,'
+                'The n_layers argument should be either 16 or 19, '
                 'but {} was given.'.format(n_layers)
             )
 

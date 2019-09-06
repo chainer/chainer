@@ -293,7 +293,7 @@ class LSTM(LSTMBase):
             if batch == 0:
                 h_rest = self.h
             elif h_size < batch:
-                msg = ('The batch size of x must be equal to or less than'
+                msg = ('The batch size of x must be equal to or less than '
                        'the size of the previous state h.')
                 raise TypeError(msg)
             elif h_size > batch:

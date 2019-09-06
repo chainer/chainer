@@ -387,7 +387,7 @@ def assert_allclose(x, y, atol=1e-5, rtol=1e-4, verbose=True):
 
     """
     warnings.warn(
-        'chainer.gradient_check.assert_allclose is deprecated.'
+        'chainer.gradient_check.assert_allclose is deprecated. '
         'Use chainer.testing.assert_allclose instead.',
         DeprecationWarning)
     testing.assert_allclose(x, y, atol, rtol, verbose)
