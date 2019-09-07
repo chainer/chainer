@@ -19,29 +19,25 @@ class Uniform(initializer.Initializer):
         scale (float): A constant that determines the
             scale of the uniform distribution.
         dtype: Data type specifier.
+        rng: (xp.random.RandomState): Pseudo-random number generator.
 
     """
 
-    def __init__(self, scale=0.05, dtype=None, seed=None):
+    def __init__(self, scale=0.05, dtype=None, rng=None):
         self.scale = scale
-        self.rng_np = numpy.random.RandomState(seed)
-        if cuda.available:
-            self.rng_cp = cuda.cupy.random.RandomState(seed)
+        if rng is None:
+            self.rng = numpy.random.RandomState()
+        else:
+            self.rng = rng
         super(Uniform, self).__init__(dtype)
 
     def __call__(self, array):
         if self.dtype is not None:
-            assert array.dtype == self.dtype
-        device = backend.get_device_from_array(array)
-        if device.xp is numpy:
-            array[...] = self.rng_np.uniform(
-                low=-self.scale, high=self.scale, size=array.shape)
-        elif device.xp is cuda.cupy:
-            array[...] = self.rng_cp.uniform(
-                low=-self.scale, high=self.scale, size=array.shape)
-        else:
-            array[...] = device.xp.random.uniform(
-            low=-self.scale, high=self.scale, size=array.shape)
+            assert array.dtype == self.dtype,\
+                '{} != {}'.format(array.dtype, self.dtype)
+        backend.copyto(array, self.rng.uniform(
+            low=-self.scale, high=self.scale,
+            size=array.shape).astype(array.dtype))
 
 
 class LeCunUniform(initializer.Initializer):
@@ -60,18 +56,22 @@ class LeCunUniform(initializer.Initializer):
         scale (float): A constant that determines the
             scale of the uniform distribution.
         dtype: Data type specifier.
+        rng: (xp.random.RandomState): Pseudo-random number generator.
 
     """
 
-    def __init__(self, scale=1.0, dtype=None, seed=None):
+    def __init__(self, scale=1.0, dtype=None, rng=None):
         self.scale = scale
-        self.rng = numpy.random.RandomState(seed)
+        self.rng = rng
         super(LeCunUniform, self).__init__(dtype)
 
     def __call__(self, array):
+        if self.dtype is not None:
+            assert array.dtype == self.dtype,\
+                '{} != {}'.format(array.dtype, self.dtype)
         fan_in, fan_out = initializer.get_fans(array.shape)
         s = self.scale * numpy.sqrt(3. / fan_in)
-        Uniform(s, seed=self.rng.randint(numpy.iinfo('uint32').max + 1))(array)
+        Uniform(s, rng=self.rng)(array)
 
 
 class GlorotUniform(initializer.Initializer):
@@ -88,20 +88,22 @@ class GlorotUniform(initializer.Initializer):
         scale (float): A constant that determines the
             scale of the uniform distribution.
         dtype: Data type specifier.
+        rng: (xp.random.RandomState): Pseudo-random number generator.
 
     """
 
-    def __init__(self, scale=1.0, dtype=None, seed=None):
+    def __init__(self, scale=1.0, dtype=None, rng=None):
         self.scale = scale
-        self.rng = numpy.random.RandomState(seed)
+        self.rng = rng
         super(GlorotUniform, self).__init__(dtype)
 
     def __call__(self, array):
         if self.dtype is not None:
-            assert array.dtype == self.dtype
+            assert array.dtype == self.dtype,\
+                '{} != {}'.format(array.dtype, self.dtype)
         fan_in, fan_out = initializer.get_fans(array.shape)
         s = self.scale * numpy.sqrt(6. / (fan_in + fan_out))
-        Uniform(s, seed=self.rng.randint(numpy.iinfo('uint32').max + 1))(array)
+        Uniform(s, rng=self.rng)(array)
 
 
 class HeUniform(initializer.Initializer):
@@ -117,17 +119,19 @@ class HeUniform(initializer.Initializer):
         scale (float): A constant that determines the
             scale of the uniform distribution.
         dtype: Data type specifier.
+        rng: (xp.random.RandomState): Pseudo-random number generator.
 
     """
 
-    def __init__(self, scale=1.0, dtype=None, seed=None):
+    def __init__(self, scale=1.0, dtype=None, rng=None):
         self.scale = scale
-        self.rng = numpy.random.RandomState(seed)
+        self.rng = rng
         super(HeUniform, self).__init__(dtype)
 
     def __call__(self, array):
         if self.dtype is not None:
-            assert array.dtype == self.dtype
+            assert array.dtype == self.dtype,\
+                '{} != {}'.format(array.dtype, self.dtype)
         fan_in, fan_out = initializer.get_fans(array.shape)
         s = self.scale * numpy.sqrt(6. / fan_in)
-        Uniform(s, seed=self.rng.randint(numpy.iinfo('uint32').max + 1))(array)
+        Uniform(s, rng=self.rng)(array)

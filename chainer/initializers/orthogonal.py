@@ -43,15 +43,19 @@ class Orthogonal(initializer.Initializer):
         mode (str): Assertion on the initialized shape.
             ``'auto'`` (default), ``'projection'`` (before v7),
             ``'embedding'``, or ``'basis'``.
+        rng: (xp.random.RandomState): Pseudo-random number generator.
 
     Reference: Saxe et al., https://arxiv.org/abs/1312.6120
 
     """
 
-    def __init__(self, scale=1.1, dtype=None, mode='auto', seed=None):
+    def __init__(self, scale=1.1, dtype=None, mode='auto', rng=None):
         self.scale = scale
         self.mode = mode
-        self.rng = numpy.random.RandomState(seed)
+        if rng is None:
+            self.rng = numpy.random.RandomState()
+        else:
+            self.rng = rng
         try:
             self._checks = _orthogonal_constraints[mode]
         except KeyError:
@@ -65,10 +69,13 @@ class Orthogonal(initializer.Initializer):
     # How do we treat overcomplete base-system case?
     def __call__(self, array):
         if self.dtype is not None:
-            assert array.dtype == self.dtype
+            assert array.dtype == self.dtype,\
+                '{} != {}'.format(array.dtype, self.dtype)
         device = backend.get_device_from_array(array)
         if not array.shape:  # 0-dim case
-            array[...] = self.scale * (2 * self.rng.randint(2) - 1)
+            backend.copyto(array, numpy.asarray(
+                self.scale * (2 * int(self.rng.randint(2)) - 1),
+                dtype=array.dtype))
         elif not array.size:
             raise ValueError('Array to be initialized must be non-empty.')
         else:
@@ -83,7 +90,9 @@ class Orthogonal(initializer.Initializer):
                     '{}-dim input and {}-dim output.'.format(
                         self.mode, array.shape, in_dim, out_dim))
             transpose = in_dim > out_dim
-            a = self.rng.normal(size=(out_dim, in_dim))
+            a_tmp = self.rng.normal(size=(out_dim, in_dim))
+            a = numpy.empty(a_tmp.shape, dtype=a_tmp.dtype)
+            backend.copyto(a, a_tmp)
             if transpose:
                 a = a.T
             # cupy.linalg.qr requires cusolver in CUDA 8+
@@ -91,4 +100,4 @@ class Orthogonal(initializer.Initializer):
             q *= numpy.copysign(self.scale, numpy.diag(r))
             if transpose:
                 q = q.T
-            array[...] = device.xp.asarray(q.reshape(array.shape))
+            backend.copyto(array, q.reshape(array.shape).astype(array.dtype))

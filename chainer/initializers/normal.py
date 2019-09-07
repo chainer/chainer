@@ -17,32 +17,27 @@ class Normal(initializer.Initializer):
     and standard deviation is ``scale``.
 
     Args:
-        scale(float): Standard deviation of Gaussian distribution.
+        scale (float): Standard deviation of Gaussian distribution.
         dtype: Data type specifier.
+        rng: (xp.random.RandomState): Pseudo-random number generator.
 
     """
 
-    def __init__(self, scale=0.05, dtype=None, seed=None):
+    def __init__(self, scale=0.05, dtype=None, rng=None):
         self.scale = scale
-        self.rng_np = numpy.random.RandomState(seed)
-        if cuda.available:
-            self.rng_cp = cuda.cupy.random.RandomState(seed)
+        if rng is None:
+            self.rng = numpy.random.RandomState()
+        else:
+            self.rng = rng
         super(Normal, self).__init__(dtype)
 
     def __call__(self, array):
-        device = backend.get_device_from_array(array)
-        args = {'loc': 0.0, 'scale': self.scale, 'size': array.shape}
-        if device.xp is cuda.cupy:
-            # Only CuPy supports dtype option
-            if self.dtype == numpy.float32 or self.dtype == numpy.float16:
-                # float16 is not supported in cuRAND
-                args['dtype'] = numpy.float32
-        if device.xp is numpy:
-            array[...] = self.rng_np.normal(**args)
-        elif device.xp is cuda.cupy:
-            array[...] = self.rng_cp.normal(**args)
-        else:
-            array[...] = device.xp.random.normal(**args)
+        if self.dtype is not None:
+            assert array.dtype == self.dtype,\
+                '{} != {}'.format(array.dtype, self.dtype)
+        backend.copyto(array, self.rng.normal(
+            loc=0.0, scale=self.scale,
+            size=array.shape).astype(array.dtype))
 
 
 class LeCunNormal(initializer.Initializer):
@@ -62,20 +57,22 @@ class LeCunNormal(initializer.Initializer):
         scale (float): A constant that determines the scale
             of the standard deviation.
         dtype: Data type specifier.
+        rng: (xp.random.RandomState): Pseudo-random number generator.
 
     """
 
-    def __init__(self, scale=1.0, dtype=None, seed=None):
+    def __init__(self, scale=1.0, dtype=None, rng=None):
         self.scale = scale
-        self.rng = numpy.random.RandomState(seed)
+        self.rng = rng
         super(LeCunNormal, self).__init__(dtype)
 
     def __call__(self, array):
         if self.dtype is not None:
-            assert array.dtype == self.dtype
+            assert array.dtype == self.dtype,\
+                '{} != {}'.format(array.dtype, self.dtype)
         fan_in, fan_out = initializer.get_fans(array.shape)
         s = self.scale * numpy.sqrt(1. / fan_in)
-        Normal(s, seed=self.rng.randint(numpy.iinfo('uint32').max + 1))(array)
+        Normal(s, rng=self.rng)(array)
 
 
 class GlorotNormal(initializer.Initializer):
@@ -95,20 +92,22 @@ class GlorotNormal(initializer.Initializer):
         scale (float): A constant that determines the scale
             of the standard deviation.
         dtype: Data type specifier.
+        rng: (xp.random.RandomState): Pseudo-random number generator.
 
     """
 
-    def __init__(self, scale=1.0, dtype=None, seed=None):
+    def __init__(self, scale=1.0, dtype=None, rng=None):
         self.scale = scale
-        self.rng = numpy.random.RandomState(seed)
+        self.rng = rng
         super(GlorotNormal, self).__init__(dtype)
 
     def __call__(self, array):
         if self.dtype is not None:
-            assert array.dtype == self.dtype
+            assert array.dtype == self.dtype,\
+                '{} != {}'.format(array.dtype, self.dtype)
         fan_in, fan_out = initializer.get_fans(array.shape)
         s = self.scale * numpy.sqrt(2. / (fan_in + fan_out))
-        Normal(s, seed=self.rng.randint(numpy.iinfo('uint32').max + 1))(array)
+        Normal(s, rng=self.rng)(array)
 
 
 class HeNormal(initializer.Initializer):
@@ -132,18 +131,20 @@ class HeNormal(initializer.Initializer):
         dtype: Data type specifier.
         fan_option ({'fan_in', 'fan_out'}): Decides how to compute the
             standard deviation. The default value is ``'fan_in'``.
+        rng: (xp.random.RandomState): Pseudo-random number generator.
 
     """
 
-    def __init__(self, scale=1.0, dtype=None, fan_option='fan_in', seed=None):
+    def __init__(self, scale=1.0, dtype=None, fan_option='fan_in', rng=None):
         self.scale = scale
         self.fan_option = fan_option
-        self.rng = numpy.random.RandomState(seed)
+        self.rng = rng
         super(HeNormal, self).__init__(dtype)
 
     def __call__(self, array):
         if self.dtype is not None:
-            assert array.dtype == self.dtype
+            assert array.dtype == self.dtype,\
+                '{} != {}'.format(array.dtype, self.dtype)
         fan_in, fan_out = initializer.get_fans(array.shape)
         if self.fan_option == 'fan_in':
             s = self.scale * numpy.sqrt(2. / fan_in)
@@ -152,4 +153,4 @@ class HeNormal(initializer.Initializer):
         else:
             raise ValueError(
                 'fan_option should be either \'fan_in\' or \'fan_out\'.')
-        Normal(s, seed=self.rng.randint(numpy.iinfo('uint32').max + 1))(array)
+        Normal(s, rng=self.rng)(array)
