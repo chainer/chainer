@@ -71,7 +71,6 @@ class Orthogonal(initializer.Initializer):
         if self.dtype is not None:
             assert array.dtype == self.dtype,\
                 '{} != {}'.format(array.dtype, self.dtype)
-        device = backend.get_device_from_array(array)
         if not array.shape:  # 0-dim case
             backend.copyto(array, numpy.asarray(
                 self.scale * (2 * int(self.rng.randint(2)) - 1),

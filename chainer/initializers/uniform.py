@@ -1,7 +1,6 @@
 import numpy
 
 from chainer import backend
-from chainer.backends import cuda
 from chainer import initializer
 
 
