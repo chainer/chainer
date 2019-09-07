@@ -3,6 +3,7 @@ import numpy
 from chainer import backend
 from chainer import initializer
 from chainer import utils
+from chainer.utils import argument
 
 
 _orthogonal_constraints = {  # (assert emb., assert proj.)
@@ -49,9 +50,12 @@ class Orthogonal(initializer.Initializer):
 
     """
 
-    def __init__(self, scale=1.1, dtype=None, mode='auto', rng=None):
+    def __init__(self, scale=1.1, dtype=None, mode='auto', **kwargs):
         self.scale = scale
         self.mode = mode
+        rng = None
+        if kwargs:
+            rng, = argument.parse_kwargs(kwargs, ('rng', rng))
         if rng is None:
             self.rng = numpy.random.RandomState()
         else:

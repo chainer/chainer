@@ -2,6 +2,7 @@ import numpy
 
 from chainer import backend
 from chainer import initializer
+from chainer.utils import argument
 
 
 # Original code forked from MIT licensed keras project
@@ -22,8 +23,11 @@ class Normal(initializer.Initializer):
 
     """
 
-    def __init__(self, scale=0.05, dtype=None, rng=None):
+    def __init__(self, scale=0.05, dtype=None, **kwargs):
         self.scale = scale
+        rng = None
+        if kwargs:
+            rng, = argument.parse_kwargs(kwargs, ('rng', rng))
         if rng is None:
             self.rng = numpy.random.RandomState()
         else:
@@ -60,8 +64,11 @@ class LeCunNormal(initializer.Initializer):
 
     """
 
-    def __init__(self, scale=1.0, dtype=None, rng=None):
+    def __init__(self, scale=1.0, dtype=None, **kwargs):
         self.scale = scale
+        rng = None
+        if kwargs:
+            rng, = argument.parse_kwargs(kwargs, ('rng', rng))
         self.rng = rng
         super(LeCunNormal, self).__init__(dtype)
 
@@ -95,8 +102,11 @@ class GlorotNormal(initializer.Initializer):
 
     """
 
-    def __init__(self, scale=1.0, dtype=None, rng=None):
+    def __init__(self, scale=1.0, dtype=None, **kwargs):
         self.scale = scale
+        rng = None
+        if kwargs:
+            rng, = argument.parse_kwargs(kwargs, ('rng', rng))
         self.rng = rng
         super(GlorotNormal, self).__init__(dtype)
 
@@ -134,9 +144,12 @@ class HeNormal(initializer.Initializer):
 
     """
 
-    def __init__(self, scale=1.0, dtype=None, fan_option='fan_in', rng=None):
+    def __init__(self, scale=1.0, dtype=None, fan_option='fan_in', **kwargs):
         self.scale = scale
         self.fan_option = fan_option
+        rng = None
+        if kwargs:
+            rng, = argument.parse_kwargs(kwargs, ('rng', rng))
         self.rng = rng
         super(HeNormal, self).__init__(dtype)
 
