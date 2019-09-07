@@ -69,7 +69,10 @@ class LeCunNormal(initializer.Initializer):
         rng = None
         if kwargs:
             rng, = argument.parse_kwargs(kwargs, ('rng', rng))
-        self.rng = rng
+        if rng is None:
+            self.rng = numpy.random.RandomState()
+        else:
+            self.rng = rng
         super(LeCunNormal, self).__init__(dtype)
 
     def __call__(self, array):
@@ -107,7 +110,10 @@ class GlorotNormal(initializer.Initializer):
         rng = None
         if kwargs:
             rng, = argument.parse_kwargs(kwargs, ('rng', rng))
-        self.rng = rng
+        if rng is None:
+            self.rng = numpy.random.RandomState()
+        else:
+            self.rng = rng
         super(GlorotNormal, self).__init__(dtype)
 
     def __call__(self, array):
@@ -150,7 +156,10 @@ class HeNormal(initializer.Initializer):
         rng = None
         if kwargs:
             rng, = argument.parse_kwargs(kwargs, ('rng', rng))
-        self.rng = rng
+        if rng is None:
+            self.rng = numpy.random.RandomState()
+        else:
+            self.rng = rng
         super(HeNormal, self).__init__(dtype)
 
     def __call__(self, array):
