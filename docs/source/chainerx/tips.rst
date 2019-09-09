@@ -17,6 +17,18 @@ The interface is still subject to change, but there is an example code:
 
 - Train an MLP with MNIST dataset in C++ (:tree:`chainerx_cc/examples/mnist`)
 
+I'm experiencing a trouble building / running ChainerX
+------------------------------------------------------
+
+If you are building ChainerX from source, it may be helpful to clean the checked-out code before rebuilding:
+
+For example, if you are using git, try this at the root of the working directory:
+
+::
+
+    $ git clean -ffdx
+
+
 GPU memory consumption is too high when used with CuPy
 ------------------------------------------------------
 
