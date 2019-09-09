@@ -2616,7 +2616,7 @@ class IdentityFunction(chainer.Function):
 class TestVariableDoubleBackward(unittest.TestCase):
 
     def test_default_backward(self):
-        x = chainer.Variable(np.empty((), np.float32))
+        x = chainer.Variable(np.array(42, np.float32))
         y = x * 2  # x.grad_var will be different from y.grad_var
         y.backward(retain_grad=True)
         assert x.grad_var is not y.grad_var
@@ -2625,14 +2625,14 @@ class TestVariableDoubleBackward(unittest.TestCase):
         assert y.grad_var.grad_var is None
 
     def test_raise_double_backprop(self):
-        x = chainer.Variable(np.empty((), np.float32))
+        x = chainer.Variable(np.array(42, np.float32))
         y = IdentityFunction()(x)
         y.backward(enable_double_backprop=True)
         with pytest.raises(RuntimeError):
             x.grad_var.backward()
 
     def test_raise_double_backprop_2(self):
-        x = chainer.Variable(np.empty((), np.float32))
+        x = chainer.Variable(np.array(42, np.float32))
         z = F.identity(x)  # new style
         y = IdentityFunction()(z)  # old style
         y.backward(enable_double_backprop=True)
@@ -2640,14 +2640,14 @@ class TestVariableDoubleBackward(unittest.TestCase):
             x.grad_var.backward()
 
     def test_grad_raise_double_backprop(self):
-        x = chainer.Variable(np.empty((), np.float32))
+        x = chainer.Variable(np.array(42, np.float32))
         y = IdentityFunction()(x)
         y.backward(enable_double_backprop=True)
         with pytest.raises(RuntimeError):
             chainer.grad([x.grad_var], [y.grad_var])
 
     def test_grad_raise_double_backprop_2(self):
-        x = chainer.Variable(np.empty((), np.float32))
+        x = chainer.Variable(np.array(42, np.float32))
         z = F.identity(x)  # new style
         y = IdentityFunction()(z)  # old style
         y.backward(enable_double_backprop=True)
@@ -2660,7 +2660,7 @@ class TestVariableDoubleBackwardOneElementScalar(unittest.TestCase):
     # See: https://github.com/chainer/chainer/pull/4199
 
     def test_default_backward(self):
-        x = chainer.Variable(np.empty(1, np.float32))
+        x = chainer.Variable(np.array([42], np.float32))
         y = x * 2  # x.grad_var will be different from y.grad_var
         with testing.assert_warns(DeprecationWarning):
             y.backward(retain_grad=True)
@@ -2672,7 +2672,7 @@ class TestVariableDoubleBackwardOneElementScalar(unittest.TestCase):
         assert y.grad_var.grad_var is None
 
     def test_raise_double_backprop(self):
-        x = chainer.Variable(np.empty(1, np.float32))
+        x = chainer.Variable(np.array([42], np.float32))
         y = IdentityFunction()(x)
         with testing.assert_warns(DeprecationWarning):
             y.backward(enable_double_backprop=True)
@@ -2683,7 +2683,7 @@ class TestVariableDoubleBackwardOneElementScalar(unittest.TestCase):
                 x.grad_var.backward()
 
     def test_raise_double_backprop_2(self):
-        x = chainer.Variable(np.empty(1, np.float32))
+        x = chainer.Variable(np.array([42], np.float32))
         z = F.identity(x)  # new style
         y = IdentityFunction()(z)  # old style
         with testing.assert_warns(DeprecationWarning):
@@ -2695,7 +2695,7 @@ class TestVariableDoubleBackwardOneElementScalar(unittest.TestCase):
                 x.grad_var.backward()
 
     def test_grad_raise_double_backprop(self):
-        x = chainer.Variable(np.empty(1, np.float32))
+        x = chainer.Variable(np.array([42], np.float32))
         y = IdentityFunction()(x)
         with testing.assert_warns(DeprecationWarning):
             y.backward(enable_double_backprop=True)
@@ -2703,7 +2703,7 @@ class TestVariableDoubleBackwardOneElementScalar(unittest.TestCase):
             chainer.grad([x.grad_var], [y.grad_var])
 
     def test_grad_raise_double_backprop_2(self):
-        x = chainer.Variable(np.empty(1, np.float32))
+        x = chainer.Variable(np.array([42], np.float32))
         z = F.identity(x)  # new style
         y = IdentityFunction()(z)  # old style
         with testing.assert_warns(DeprecationWarning):
