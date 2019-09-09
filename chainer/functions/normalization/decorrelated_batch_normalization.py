@@ -45,7 +45,7 @@ def _diag(a, xp):
     return ret
 
 
-def _calc_axis_and_m(x_shape, batch_size, groups):
+def _calc_axis_and_m(x_shape, batch_size):
     m = batch_size
     spatial_ndim = len(x_shape) - 2
     spatial_axis = tuple(range(2, 2 + spatial_ndim))
@@ -86,7 +86,7 @@ class DecorrelatedBatchNormalization(function_node.FunctionNode):
         b, c = x_shape[:2]
         g = self.groups
         C = c // g
-        spatial_axis, m = _calc_axis_and_m(x_shape, b, g)
+        spatial_axis, m = _calc_axis_and_m(x_shape, b)
 
         # (g, C, m)
         x_hat = x.transpose((1, 0) + spatial_axis).reshape(g, C, m)
@@ -148,7 +148,7 @@ class DecorrelatedBatchNormalizationGrad(function_node.FunctionNode):
         b, c = gy_shape[:2]
         g = self.groups
         C = c // g
-        spatial_axis, m = _calc_axis_and_m(gy_shape, b, g)
+        spatial_axis, m = _calc_axis_and_m(gy_shape, b)
         arange_C = numpy.arange(C)
         diag_indices = slice(None), arange_C, arange_C
 
@@ -223,7 +223,7 @@ class FixedDecorrelatedBatchNormalization(function_node.FunctionNode):
         b, c = x_shape[:2]
         g = self.groups
         C = c // g
-        spatial_axis, m = _calc_axis_and_m(x_shape, b, g)
+        spatial_axis, m = _calc_axis_and_m(x_shape, b)
 
         x_hat = x.transpose((1, 0) + spatial_axis).reshape(g, C, m)
         x_hat = x_hat - xp.expand_dims(mean, axis=2)
@@ -255,7 +255,7 @@ class FixedDecorrelatedBatchNormalizationGrad(function_node.FunctionNode):
         b, c = gy_shape[:2]
         g = self.groups
         C = c // g
-        spatial_axis, m = _calc_axis_and_m(gy_shape, b, g)
+        spatial_axis, m = _calc_axis_and_m(gy_shape, b)
 
         gy_hat = gy.transpose((1, 0) + spatial_axis).reshape(g, C, m)
         x_hat = x.transpose((1, 0) + spatial_axis).reshape(g, C, m)
