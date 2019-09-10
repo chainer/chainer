@@ -4,7 +4,9 @@ from chainer.utils import argument
 
 
 def generate_matrix(shape, dtype=float, **kwargs):
-    r"""Generates a random matrix with given singular values.
+    r"""generate_matrix(shape, dtype=float, *, singular_values)
+
+    Generates a random matrix with given singular values.
 
     This function generates a random NumPy matrix (or a set of matrices) that
     has specified singular values. It can be used to generate the inputs for a
@@ -27,7 +29,7 @@ def generate_matrix(shape, dtype=float, **kwargs):
 
     if len(shape) <= 1:
         raise ValueError(
-            'shpae {} is invalid for matrices: too few axes'.format(shape)
+            'shape {} is invalid for matrices: too few axes'.format(shape)
         )
     k_shape = shape[:-2] + (min(shape[-2:]),)
     # TODO(beam2d): consider supporting integer/boolean matrices
@@ -38,7 +40,7 @@ def generate_matrix(shape, dtype=float, **kwargs):
     if singular_values is None:
         raise TypeError('singular_values is not given')
     singular_values = numpy.asarray(singular_values)
-    if (singular_values < 0).any():
+    if not numpy.isrealobj(singular_values) or (singular_values < 0).any():
         raise ValueError('negative singular value is given')
 
     # Generate random matrices with given singular values. We simply generate
