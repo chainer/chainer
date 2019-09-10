@@ -18,6 +18,9 @@ from chainer.testing import condition
         ((2, 3, 4), (2, 3)),
         ((2, 4, 3), (2, 3)),
         ((0, 2, 3), (0, 2)),
+        # broadcast
+        ((2, 2), ()),
+        ((2, 3, 4), (2, 1)),
     ],
 }))
 class TestGenerateMatrix(unittest.TestCase):
@@ -32,6 +35,7 @@ class TestGenerateMatrix(unittest.TestCase):
         s = numpy.linalg.svd(
             x.astype(numpy.complex128), full_matrices=False, compute_uv=False,
         )
+        sv = numpy.broadcast_to(sv, s.shape)
         sv_sorted = numpy.sort(sv, axis=-1)[..., ::-1]
 
         rtol = 1e-3 if dtype == numpy.float16 else 1e-7

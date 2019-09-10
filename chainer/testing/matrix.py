@@ -48,6 +48,7 @@ def generate_matrix(shape, dtype=float, **kwargs):
     a = numpy.random.randn(*shape)
     if dtype.kind == 'c':
         a = a + 1j * numpy.random.randn(*shape)
-    u, _, vh = numpy.linalg.svd(a, full_matrices=False)
-    a = numpy.einsum('...ik,...k,...kj->...ij', u, singular_values, vh)
+    u, s, vh = numpy.linalg.svd(a, full_matrices=False)
+    sv = numpy.broadcast_to(singular_values, s.shape)
+    a = numpy.einsum('...ik,...k,...kj->...ij', u, sv, vh)
     return a.astype(dtype)
