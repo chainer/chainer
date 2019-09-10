@@ -20,12 +20,12 @@ from chainer import variable
 InputType = tp.Union[variable.Variable, types.NdArray]
 
 
-def generate_zeros(device, shape, dtype):
+def _generate_zeros(device, shape, dtype):
     with chainer.using_device(device):
         return device.xp.zeros(shape=shape, dtype=dtype)
 
 
-def generate_ones(device, shape, dtype):
+def _generate_ones(device, shape, dtype):
     with chainer.using_device(device):
         return device.xp.ones(shape=shape, dtype=dtype)
 
@@ -183,7 +183,7 @@ def multihead_attention(
             attn_mask = concat.concat(
                 (
                     attn_mask,
-                    generate_zeros(
+                    _generate_zeros(
                         device, (len(attn_mask), 1), dtype)
                 )
             )
@@ -191,7 +191,7 @@ def multihead_attention(
             key_padding_mask = concat.concat(
                 (
                     key_padding_mask,
-                    generate_zeros(
+                    _generate_zeros(
                         device, (len(key_padding_mask), 1),
                         key_padding_mask.dtype
                     )
@@ -221,22 +221,22 @@ def multihead_attention(
         source_length += 1
         k = concat.concat((
             k,
-            generate_zeros(device, (len(k), 1) + k.shape[2:], dtype)
+            _generate_zeros(device, (len(k), 1) + k.shape[2:], dtype)
         ))
         v = concat.concat((
             v,
-            generate_zeros(device, (len(v), 1) + v.shape[2:], dtype)
+            _generate_zeros(device, (len(v), 1) + v.shape[2:], dtype)
         ))
         if attn_mask is not None:
             attn_mask = concat.cocnat((
                 attn_mask,
-                generate_zeros(device, (len(attn_mask), 1), dtype)
+                _generate_zeros(device, (len(attn_mask), 1), dtype)
             ))
         if key_padding_mask is not None:
             key_padding_mask = concat.concat(
                 (
                     key_padding_mask,
-                    generate_zeros(
+                    _generate_zeros(
                         device, (len(key_padding_mask), 1),
                         key_padding_mask.dtype)
                 )
@@ -260,7 +260,7 @@ def multihead_attention(
             expand_dims.expand_dims(key_padding_mask, 1), 2)
         attn_output_weights = where.where(
             expanded_mask,
-            -xp.inf * generate_ones(
+            -xp.inf * _generate_ones(
                 device, attn_output_weights.shape, dtype),
             attn_output_weights
         )
