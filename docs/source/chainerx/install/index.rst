@@ -23,10 +23,10 @@ Environment variable        Description
                             See also :ref:`CUDA support <chainerx-install-cuda-support>` section below.
 ``CHAINERX_ENABLE_BLAS``    ``1`` to enable BLAS, ``0`` to disable it. Default is ``1``.
                             If BLAS is enabled, it is searched for and used if found. If not found, ChainerX will behave as if BLAS
-                            was disabled and use different implementations or raise exceptions.
+                            was disabled and use different native implementations.
 ``CHAINERX_ENABLE_LAPACK``  ``1`` to enable LAPACK, ``0`` to disable it. Default is ``1``.
                             If LAPACK is enabled, it is searched for and used if found. If not found, ChainerX will behave as if
-                            LAPACK was disabled and use different implementations or raise exceptions.
+                            LAPACK was disabled and cause runtime errors.
 =========================== ========================================================================================================
 
 
