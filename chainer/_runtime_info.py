@@ -51,13 +51,13 @@ class _RuntimeInfo(object):
         return s.getvalue()
 
 
-def get_runtime_info():
+def _get_runtime_info():
     return _RuntimeInfo()
 
 
 def print_runtime_info(out=None):
     if out is None:
         out = sys.stdout
-    out.write(str(get_runtime_info()))
+    out.write(str(_get_runtime_info()))
     if hasattr(out, 'flush'):
         out.flush()
