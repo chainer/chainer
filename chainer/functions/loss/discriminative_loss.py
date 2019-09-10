@@ -1,12 +1,12 @@
 from chainer import backend
 from chainer.functions.activation.relu import relu
-from chainer.functions.math.average import average
-
-from chainer.functions.array.stack import stack
 from chainer.functions.array.broadcast import broadcast_to
+from chainer.functions.array.stack import stack
+from chainer.functions.math.average import average
 from chainer.functions.math.basic_math import absolute
 from chainer.functions.math.sqrt import sqrt
 from chainer.functions.math.sum import sum as c_sum
+from chainer.utils import argument
 
 
 class DiscriminativeMarginBasedClusteringLoss(object):
@@ -38,7 +38,12 @@ class DiscriminativeMarginBasedClusteringLoss(object):
     """
 
     def __init__(self, delta_v=0.5, delta_d=1.5,
-                 norm=1, alpha=1.0, beta=1.0, gamma=0.001):
+                 norm=1, alpha=1.0, beta=1.0, gamma=0.001, **kwargs):
+        argument.parse_kwargs(kwargs,
+                              max_embedding_dim='max_embedding_dim argument'
+                                                ' is not supported anymore. '
+                                                'This information is obtained'
+                                                ' from channel of input array')
         self.delta_v = delta_v
         self.delta_d = delta_d
         self.alpha = alpha
