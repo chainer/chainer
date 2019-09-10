@@ -1,6 +1,7 @@
 import numpy
 
 from chainer import backend
+from chainer.backends import cuda
 from chainer import initializer
 from chainer.utils import argument
 
@@ -28,19 +29,26 @@ class Normal(initializer.Initializer):
         rng = None
         if kwargs:
             rng, = argument.parse_kwargs(kwargs, ('rng', rng))
-        if rng is None:
-            self.rng = numpy.random.RandomState()
-        else:
-            self.rng = rng
+        self.rng = rng
         super(Normal, self).__init__(dtype)
 
     def __call__(self, array):
         if self.dtype is not None:
             assert array.dtype == self.dtype,\
                 '{} != {}'.format(array.dtype, self.dtype)
-        backend.copyto(array, self.rng.normal(
-            loc=0.0, scale=self.scale,
-            size=array.shape).astype(array.dtype))
+        if self.rng is None:
+            device = backend.get_device_from_array(array)
+            args = {'loc': 0.0, 'scale': self.scale, 'size': array.shape}
+            if device.xp is cuda.cupy:
+                # Only CuPy supports dtype option
+                if self.dtype == numpy.float32 or self.dtype == numpy.float16:
+                    # float16 is not supported in cuRAND
+                    args['dtype'] = numpy.float32
+            array[...] = device.xp.random.normal(**args)
+        else:
+            backend.copyto(array, self.rng.normal(
+                loc=0.0, scale=self.scale,
+                size=array.shape).astype(array.dtype))
 
 
 class LeCunNormal(initializer.Initializer):
@@ -69,10 +77,7 @@ class LeCunNormal(initializer.Initializer):
         rng = None
         if kwargs:
             rng, = argument.parse_kwargs(kwargs, ('rng', rng))
-        if rng is None:
-            self.rng = numpy.random.RandomState()
-        else:
-            self.rng = rng
+        self.rng = rng
         super(LeCunNormal, self).__init__(dtype)
 
     def __call__(self, array):
@@ -110,10 +115,7 @@ class GlorotNormal(initializer.Initializer):
         rng = None
         if kwargs:
             rng, = argument.parse_kwargs(kwargs, ('rng', rng))
-        if rng is None:
-            self.rng = numpy.random.RandomState()
-        else:
-            self.rng = rng
+        self.rng = rng
         super(GlorotNormal, self).__init__(dtype)
 
     def __call__(self, array):
@@ -156,10 +158,7 @@ class HeNormal(initializer.Initializer):
         rng = None
         if kwargs:
             rng, = argument.parse_kwargs(kwargs, ('rng', rng))
-        if rng is None:
-            self.rng = numpy.random.RandomState()
-        else:
-            self.rng = rng
+        self.rng = rng
         super(HeNormal, self).__init__(dtype)
 
     def __call__(self, array):

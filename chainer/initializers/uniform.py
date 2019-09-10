@@ -28,19 +28,21 @@ class Uniform(initializer.Initializer):
         rng = None
         if kwargs:
             rng, = argument.parse_kwargs(kwargs, ('rng', rng))
-        if rng is None:
-            self.rng = numpy.random.RandomState()
-        else:
-            self.rng = rng
+        self.rng = rng
         super(Uniform, self).__init__(dtype)
 
     def __call__(self, array):
         if self.dtype is not None:
             assert array.dtype == self.dtype,\
                 '{} != {}'.format(array.dtype, self.dtype)
-        backend.copyto(array, self.rng.uniform(
-            low=-self.scale, high=self.scale,
-            size=array.shape).astype(array.dtype))
+        if self.rng is None:
+            device = backend.get_device_from_array(array)
+            array[...] = device.xp.random.uniform(
+                low=-self.scale, high=self.scale, size=array.shape)
+        else:
+            backend.copyto(array, self.rng.uniform(
+                low=-self.scale, high=self.scale,
+                size=array.shape).astype(array.dtype))
 
 
 class LeCunUniform(initializer.Initializer):
@@ -68,10 +70,7 @@ class LeCunUniform(initializer.Initializer):
         rng = None
         if kwargs:
             rng, = argument.parse_kwargs(kwargs, ('rng', rng))
-        if rng is None:
-            self.rng = numpy.random.RandomState()
-        else:
-            self.rng = rng
+        self.rng = rng
         super(LeCunUniform, self).__init__(dtype)
 
     def __call__(self, array):
@@ -106,10 +105,7 @@ class GlorotUniform(initializer.Initializer):
         rng = None
         if kwargs:
             rng, = argument.parse_kwargs(kwargs, ('rng', rng))
-        if rng is None:
-            self.rng = numpy.random.RandomState()
-        else:
-            self.rng = rng
+        self.rng = rng
         super(GlorotUniform, self).__init__(dtype)
 
     def __call__(self, array):
@@ -143,10 +139,7 @@ class HeUniform(initializer.Initializer):
         rng = None
         if kwargs:
             rng, = argument.parse_kwargs(kwargs, ('rng', rng))
-        if rng is None:
-            self.rng = numpy.random.RandomState()
-        else:
-            self.rng = rng
+        self.rng = rng
         super(HeUniform, self).__init__(dtype)
 
     def __call__(self, array):

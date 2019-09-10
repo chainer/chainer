@@ -56,10 +56,7 @@ class Orthogonal(initializer.Initializer):
         rng = None
         if kwargs:
             rng, = argument.parse_kwargs(kwargs, ('rng', rng))
-        if rng is None:
-            self.rng = numpy.random.RandomState()
-        else:
-            self.rng = rng
+        self.rng = rng
         try:
             self._checks = _orthogonal_constraints[mode]
         except KeyError:
@@ -76,9 +73,12 @@ class Orthogonal(initializer.Initializer):
             assert array.dtype == self.dtype,\
                 '{} != {}'.format(array.dtype, self.dtype)
         if not array.shape:  # 0-dim case
-            backend.copyto(array, numpy.asarray(
-                self.scale * (2 * int(self.rng.randint(2)) - 1),
-                dtype=array.dtype))
+            if self.rng is None:
+                a = numpy.random.randint(2)
+            else:
+                a = self.rng.randint(2)
+            a = int(a)
+            array[...] = self.scale * (2 * a - 1)
         elif not array.size:
             raise ValueError('Array to be initialized must be non-empty.')
         else:
@@ -93,9 +93,12 @@ class Orthogonal(initializer.Initializer):
                     '{}-dim input and {}-dim output.'.format(
                         self.mode, array.shape, in_dim, out_dim))
             transpose = in_dim > out_dim
-            a_tmp = self.rng.normal(size=(out_dim, in_dim))
-            a = numpy.empty(a_tmp.shape, dtype=a_tmp.dtype)
-            backend.copyto(a, a_tmp)
+            if self.rng is None:
+                a = numpy.random.normal(size=(out_dim, in_dim))
+            else:
+                a_tmp = self.rng.normal(size=(out_dim, in_dim))
+                a = numpy.empty(a_tmp.shape, dtype=a_tmp.dtype)
+                backend.copyto(a, a_tmp)
             if transpose:
                 a = a.T
             # cupy.linalg.qr requires cusolver in CUDA 8+
