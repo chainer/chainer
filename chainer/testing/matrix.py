@@ -8,7 +8,7 @@ def generate_matrix(shape, dtype=float, **kwargs):
 
     Generates a random matrix with given singular values.
 
-    This function generates a random NumPy matrix (or a set of matrices) that
+    This function generates a random NumPy matrix (or a stack of matrices) that
     has specified singular values. It can be used to generate the inputs for a
     test that can be instable when the input value behaves bad.
 
@@ -31,7 +31,6 @@ def generate_matrix(shape, dtype=float, **kwargs):
         raise ValueError(
             'shape {} is invalid for matrices: too few axes'.format(shape)
         )
-    k_shape = shape[:-2] + (min(shape[-2:]),)
     # TODO(beam2d): consider supporting integer/boolean matrices
     dtype = numpy.dtype(dtype)
     if dtype.kind not in 'fc':
