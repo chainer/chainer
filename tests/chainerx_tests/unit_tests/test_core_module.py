@@ -1,6 +1,10 @@
 import chainerx
 
 
+def test_dummy_nothing():
+    pass
+
+
 def test_core():
     assert chainerx.__name__ == 'chainerx'
 
