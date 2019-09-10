@@ -92,6 +92,9 @@ class TestConvolution2DFunction(testing.FunctionTestCase):
                            and self.backend_config.use_cudnn == 'always'
                            and cuda.cuda.cudnn.getVersion() < 6000)
         if using_old_cudnn:
+            self.check_forward_options.update({
+                'atol': 5e-3, 'rtol': 5e-2
+            })
             self.check_backward_options.update({
                 'atol': 1e-3, 'rtol': 1e-3})
             self.check_double_backward_options.update({
