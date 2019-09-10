@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Runs a single step
 set -eu
+set -o pipefail
 
 this_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
@@ -21,4 +22,6 @@ set -x
 step_"'$step'" '"$@"'
 set +x
 '
-bash -e -c "$cmd"
+# Using ts to add timestamp.
+# TODO(niboshi): Keep colorization
+bash -e -c "$cmd" | ts '[%Y-%m-%d %H:%M:%S]'
