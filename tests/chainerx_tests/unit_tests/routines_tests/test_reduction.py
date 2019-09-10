@@ -47,6 +47,9 @@ _cumsum_params = [
     ((2, 3, 4), -2),
     ((2, 3, 4), -1),
     ((2, 3, 4), None),
+    ((100000, 2), None),
+    ((100000, 2), 0),
+    ((100000, 2), 1),
 ]
 
 
@@ -285,6 +288,10 @@ class TestCumsum(math_utils.UnaryMathTestBase, op_utils.NumpyOpTest):
             self.check_backward_options.update({'rtol': 1e-2, 'atol': 1e-2})
             self.check_double_backward_options.update(
                 {'rtol': 1e-2, 'atol': 1e-2})
+
+        if (numpy.dtype(in_dtype).kind in ('float16, float32')
+                and numpy.prod(self.shape) > 1000):
+            pytest.skip('Skip large tests for float16/float32 dtypes')
 
     def func(self, xp, a):
         return xp.cumsum(a, axis=self.axis)
