@@ -106,4 +106,5 @@ class Orthogonal(initializer.Initializer):
             q *= numpy.copysign(self.scale, numpy.diag(r))
             if transpose:
                 q = q.T
-            backend.copyto(array, q.reshape(array.shape).astype(array.dtype))
+            backend.copyto(array, q.reshape(array.shape).astype(
+                array.dtype, copy=False))

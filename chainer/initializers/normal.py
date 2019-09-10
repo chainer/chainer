@@ -48,7 +48,7 @@ class Normal(initializer.Initializer):
         else:
             backend.copyto(array, self.rng.normal(
                 loc=0.0, scale=self.scale,
-                size=array.shape).astype(array.dtype))
+                size=array.shape).astype(array.dtype, copy=False))
 
 
 class LeCunNormal(initializer.Initializer):

@@ -42,7 +42,7 @@ class Uniform(initializer.Initializer):
         else:
             backend.copyto(array, self.rng.uniform(
                 low=-self.scale, high=self.scale,
-                size=array.shape).astype(array.dtype))
+                size=array.shape).astype(array.dtype, copy=False))
 
 
 class LeCunUniform(initializer.Initializer):
