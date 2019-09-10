@@ -139,7 +139,7 @@ def multihead_attention(
 
     def _in_proj_k(key):
         return _in_proj(
-            value, embedding_size, 2 * embedding_size, weight_idx=1)
+            key, embedding_size, 2 * embedding_size, weight_idx=1)
 
     def _in_proj_v(value):
         return _in_proj(value, start=2 * embedding_size, weight_idx=2)
