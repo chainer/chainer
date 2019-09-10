@@ -269,11 +269,10 @@ def test_log_softmax_invalid(device, a_shape, axis, dtype):
         return chainerx.log_softmax(a, axis=axis)
 
 
-@op_utils.op_test(['native:0'])
+@op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize_pytest(
     'in_dtypes,out_dtype', _in_out_dtypes_sum)
 @chainer.testing.parameterize_pytest('shape,axis', _cumsum_params)
-# TODO(aksub99): Add cuda device tests when cuda implementation is supported.
 class TestCumsum(math_utils.UnaryMathTestBase, op_utils.NumpyOpTest):
 
     input = 'random'
