@@ -574,10 +574,10 @@ Array Mod(const Array& x1, Scalar x2) { return internal::Binary(&ModASImpl, x1, 
 
 Array Mod(Scalar x1, const Array& x2) { return internal::Binary(&ModSAImpl, x1, x2, GetArithmeticResultDtype(x1, x2)); }
 
-Array Fmod(const Array& x1, const Array& x2) {
+namespace {
+
+void FmodImpl(const Array& x1, const Array& x2, const Array& out) {
     CheckEqual(x1.shape(), x2.shape());
-    Dtype dtype = GetArithmeticResultDtype(x1, x2);
-    Array out = Empty(x1.shape(), dtype, x1.device());
 
     {
         NoBackpropModeScope scope{};
@@ -603,7 +603,10 @@ Array Fmod(const Array& x1, const Array& x2) {
         }
         bb.Finalize();
     }
-    return out;
 }
+
+}  // namespace
+
+Array Fmod(const Array& x1, const Array& x2) { return internal::BroadcastBinary(&FmodImpl, x1, x2, GetArithmeticResultDtype(x1, x2)); }
 
 }  // namespace chainerx
