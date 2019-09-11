@@ -140,6 +140,17 @@ inline double Power(double x1, double x2) {
     return std::pow(x1, x2);
 }
 
+template <typename T>
+inline T Fmod(T x1, T x2) {
+    return x1 % x2;
+}
+
+inline chainerx::Float16 Fmod(chainerx::Float16 x1, chainerx::Float16 x2) {
+    return chainerx::Float16{std::fmod(static_cast<float>(x1), static_cast<float>(x2))};
+}
+inline float Fmod(float x1, float x2) { return std::fmod(x1, x2); }
+inline double Fmod(double x1, double x2) { return std::fmod(x1, x2); }
+
 #define CHAINERX_DEFINE_NATIVE_FLOAT16_FALLBACK_BINARY(name, func)                                 \
     template <typename T>                                                                          \
     inline T name(T x1, T x2) {                                                                    \
@@ -151,6 +162,5 @@ inline double Power(double x1, double x2) {
     }
 
 CHAINERX_DEFINE_NATIVE_FLOAT16_FALLBACK_BINARY(Arctan2, std::atan2)
-CHAINERX_DEFINE_NATIVE_FLOAT16_FALLBACK_BINARY(Fmod, std::fmod)
 
 }  // namespace chainerx
