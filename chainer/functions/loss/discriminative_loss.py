@@ -141,9 +141,9 @@ class DiscriminativeMarginBasedClusteringLoss(object):
                     m_diff = means[b_idx][c1_idx] - means[b_idx][c2_idx]
                     m_diff = self.norm(m_diff)
                     m_diff = relu(2 * self.delta_d - m_diff) ** 2
-                    dist_loss += m_diff
+                    dist_loss = dist_loss + m_diff
                     counter += 1
-        dist_loss /= xp.maximum(counter, 1)
+        dist_loss = dist_loss / xp.maximum(counter, 1)
 
         # Calculate regularization term
 		mx_active = xp.maximum(active_id_count, 1)
