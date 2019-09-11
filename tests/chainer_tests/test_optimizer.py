@@ -635,6 +635,12 @@ class TestGradientMethodLossScale(unittest.TestCase):
         self.optimizer = chainer.optimizers.SGD(lr)
 
     def test_update(self, backend_config):
+        if backend_config.xp is chainerx:
+            # ChainerX performs the loss scaling on its own backward
+            # method, the optimizer should not divide back the parameters
+            # This test is not actually creating a ChainerX
+            # computation graph so no actual loss scale is being done
+            self.optimizer.lr = 1.0
         target = self.target
         optimizer = self.optimizer
         target.to_device(backend_config.device)
