@@ -44,7 +44,7 @@ class Orthogonal(initializer.Initializer):
         mode (str): Assertion on the initialized shape.
             ``'auto'`` (default), ``'projection'`` (before v7),
             ``'embedding'``, or ``'basis'``.
-        rng: (xp.random.RandomState): Pseudo-random number generator.
+        rng (xp.random.RandomState): Pseudo-random number generator.
 
     Reference: Saxe et al., https://arxiv.org/abs/1312.6120
 

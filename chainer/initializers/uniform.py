@@ -19,7 +19,7 @@ class Uniform(initializer.Initializer):
         scale (float): A constant that determines the
             scale of the uniform distribution.
         dtype: Data type specifier.
-        rng: (xp.random.RandomState): Pseudo-random number generator.
+        rng (xp.random.RandomState): Pseudo-random number generator.
 
     """
 
@@ -61,7 +61,7 @@ class LeCunUniform(initializer.Initializer):
         scale (float): A constant that determines the
             scale of the uniform distribution.
         dtype: Data type specifier.
-        rng: (xp.random.RandomState): Pseudo-random number generator.
+        rng (xp.random.RandomState): Pseudo-random number generator.
 
     """
 
@@ -96,7 +96,7 @@ class GlorotUniform(initializer.Initializer):
         scale (float): A constant that determines the
             scale of the uniform distribution.
         dtype: Data type specifier.
-        rng: (xp.random.RandomState): Pseudo-random number generator.
+        rng (xp.random.RandomState): Pseudo-random number generator.
 
     """
 
@@ -130,7 +130,7 @@ class HeUniform(initializer.Initializer):
         scale (float): A constant that determines the
             scale of the uniform distribution.
         dtype: Data type specifier.
-        rng: (xp.random.RandomState): Pseudo-random number generator.
+        rng (xp.random.RandomState): Pseudo-random number generator.
 
     """
 

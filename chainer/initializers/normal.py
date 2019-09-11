@@ -20,7 +20,7 @@ class Normal(initializer.Initializer):
     Args:
         scale (float): Standard deviation of Gaussian distribution.
         dtype: Data type specifier.
-        rng: (xp.random.RandomState): Pseudo-random number generator.
+        rng (xp.random.RandomState): Pseudo-random number generator.
 
     """
 
@@ -68,7 +68,7 @@ class LeCunNormal(initializer.Initializer):
         scale (float): A constant that determines the scale
             of the standard deviation.
         dtype: Data type specifier.
-        rng: (xp.random.RandomState): Pseudo-random number generator.
+        rng (xp.random.RandomState): Pseudo-random number generator.
 
     """
 
@@ -106,7 +106,7 @@ class GlorotNormal(initializer.Initializer):
         scale (float): A constant that determines the scale
             of the standard deviation.
         dtype: Data type specifier.
-        rng: (xp.random.RandomState): Pseudo-random number generator.
+        rng (xp.random.RandomState): Pseudo-random number generator.
 
     """
 
@@ -148,7 +148,7 @@ class HeNormal(initializer.Initializer):
         dtype: Data type specifier.
         fan_option ({'fan_in', 'fan_out'}): Decides how to compute the
             standard deviation. The default value is ``'fan_in'``.
-        rng: (xp.random.RandomState): Pseudo-random number generator.
+        rng (xp.random.RandomState): Pseudo-random number generator.
 
     """
 
