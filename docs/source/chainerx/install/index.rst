@@ -26,7 +26,7 @@ Environment variable        Description
                             was disabled and use different native implementations.
 ``CHAINERX_ENABLE_LAPACK``  ``1`` to enable LAPACK, ``0`` to disable it. Default is ``1``.
                             If LAPACK is enabled, it is searched for and used if found. If not found, ChainerX will behave as if
-                            LAPACK was disabled and cause runtime errors.
+                            LAPACK was disabled and may cause runtime errors.
 =========================== ========================================================================================================
 
 
