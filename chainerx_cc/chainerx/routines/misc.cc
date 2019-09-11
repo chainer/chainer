@@ -13,7 +13,6 @@
 #include "chainerx/graph.h"
 #include "chainerx/kernels/misc.h"
 #include "chainerx/macro.h"
-#include "chainerx/routines/arithmetic.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/logic.h"
 #include "chainerx/routines/routines_util.h"
