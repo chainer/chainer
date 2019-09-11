@@ -1,5 +1,4 @@
 import chainer
-import math
 import numpy
 import pytest
 
@@ -1679,7 +1678,7 @@ class TestIRemainderScalar(
 @chainer.testing.parameterize(*(
     # Special shapes
     chainer.testing.product({
-        'in_shapes': [((2, 3), (2, 3))],
+        'in_shapes': math_utils.shapes_combination_binary,
         'in_dtypes,out_dtype': (
             dtype_utils.make_same_in_out_dtypes(
                 2, chainerx.testing.numeric_dtypes)),
@@ -1705,14 +1704,28 @@ class TestIRemainderScalar(
         'input_rhs': ['random'],
         'is_module': [True, False],
     })
+    # Special values (differentiable)
+    + chainer.testing.product({
+        'in_shapes': [((2, 3), (2, 3))],
+        'in_dtypes,out_dtype': (
+            dtype_utils.make_same_in_out_dtypes(
+                2, chainerx.testing.numeric_dtypes)),
+        'input_lhs': ['random', 2, -2, 5, -5, 11, -11],
+        'input_rhs': ['random', 7, -7, 13, -13],
+        'is_module': [False],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True],
+    })
     # Special values
     + chainer.testing.product({
         'in_shapes': [((2, 3), (2, 3))],
         'in_dtypes,out_dtype': (
             dtype_utils.make_same_in_out_dtypes(
                 2, chainerx.testing.float_dtypes)),
-        'input_lhs': ['random', float('inf'), -float('inf'), float('nan')],
-        'input_rhs': ['random', float('inf'), -float('inf'), float('nan')],
+        'input_lhs': [
+            'random', 12, -12, float('inf'), -float('inf'), float('nan')],
+        'input_rhs': [
+            'random', 3, -3, float('inf'), -float('inf'), float('nan')],
         'is_module': [False],
         'skip_backward_test': [True],
         'skip_double_backward_test': [True],
@@ -1732,9 +1745,7 @@ class TestFmod(math_utils.BinaryMathTestBase, op_utils.NumpyOpTest):
         dtype1, dtype2 = self.in_dtypes
         a, b = super().generate_inputs()
         # division with too small divisor is unstable.
-        for i in numpy.ndindex(shape1):
-            if math.fabs(b[i]) < 0.1:
-                b[i] += 1.0
+        b[numpy.abs(b) < 0.1] += 1
         return a, b
 
     def func(self, xp, a, b):
