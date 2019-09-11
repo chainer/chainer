@@ -132,7 +132,7 @@ class DiscriminativeMarginBasedClusteringLoss(object):
         # Calculate mean distance loss
         means = stack(means, 1)
 
-        dist_loss = xp.asarray([0.0], dtype=embeddings.dtype)
+        dist_loss = xp.asarray(0.0, dtype=embeddings.dtype)
         counter = 0
         for b_idx in range(b):
             active_ids = active_idxs[b_idx]
@@ -146,7 +146,8 @@ class DiscriminativeMarginBasedClusteringLoss(object):
         dist_loss /= xp.maximum(counter, 1)
 
         # Calculate regularization term
-        reg_loss = average(self.norm(means, (1, 2)) / active_id_count)
+		mx_active = xp.maximum(active_id_count, 1)
+        reg_loss = average(self.norm(means, (1, 2)) / mx_active)
 
         rtn = (self.alpha * var_loss,
                self.beta * dist_loss,
