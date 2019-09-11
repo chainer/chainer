@@ -1022,7 +1022,7 @@ def grad(outputs, inputs, grad_outputs=None, grad_inputs=None, set_grad=False,
         outputs_chx = [x._data[0] for x in outputs]
         inputs_chx = [x._data[0] for x in inputs]
         # pybind has issues when converting opt<int> -> opt<float>
-        if loss_scale:
+        if loss_scale is not None:
             loss_scale = float(loss_scale)
         grads = chainerx.grad(outputs_chx, inputs_chx,
                               backprop_id=None,

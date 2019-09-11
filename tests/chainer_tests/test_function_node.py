@@ -1027,7 +1027,7 @@ class TestGradSimple(GradTestBase, unittest.TestCase):
 
 
 @testing.parameterize(*testing.product({
-    'loss_scale': [None, 1, 10],
+    'loss_scale': [None, 1, 1.5, 2.5, 10],
 }))
 @testing.backend.inject_backend_tests(
     None,
