@@ -83,10 +83,10 @@ __global__ void ScanKernel(
         int out_block_size,
         int reduce_block_size,
         ReductionImpl impl,
-        int64_t reduce_dim) {
+        int64_t reduction_dim) {
     int tid = threadIdx.x;
 
-    int64_t len = arg.out_indexer.total_size() / reduce_dim;
+    int64_t len = arg.out_indexer.total_size() / reduction_dim;
     int64_t reduce_block_offset = tid / out_block_size;
     int64_t reduce_offset = reduce_block_offset * len;
     int64_t reduce_stride = reduce_block_size * len;
@@ -107,7 +107,7 @@ __global__ void ScanKernel(
         // Copy input array to output array
         auto it_in = arg.in_indexer.It(i + reduce_offset, reduce_stride);
         auto it_out = arg.out_indexer.It(i + reduce_offset, reduce_stride);
-        for (int64_t j = reduce_block_offset; j < reduce_dim; j += reduce_block_size, ++it_in, ++it_out) {
+        for (int64_t j = reduce_block_offset; j < reduction_dim; j += reduce_block_size, ++it_in, ++it_out) {
             auto value = cuda_internal::StorageToDataType<const In>(arg.in[it_in]);
             arg.out[it_out] = cuda_internal::DataToStorageType<Out>(impl.MapIn(value, j));
         }
@@ -116,12 +116,12 @@ __global__ void ScanKernel(
         int64_t stride = 1;
 
         // Up-Sweep Phase
-        for (stride = 1; stride * 2 <= reduce_dim; stride <<= 1) {
+        for (stride = 1; stride * 2 <= reduction_dim; stride <<= 1) {
             int64_t index_from = reduce_block_offset * stride * 2 + stride - 1;
             int64_t index_to = index_from + stride;
             auto it_from = arg.out_indexer.It(i + index_from * len, reduce_stride * stride * 2);
             auto it_to = arg.out_indexer.It(i + index_to * len, reduce_stride * stride * 2);
-            for (int64_t j = index_to; j < reduce_dim; j += reduce_block_size * stride * 2) {
+            for (int64_t j = index_to; j < reduction_dim; j += reduce_block_size * stride * 2) {
                 reduce(it_from, it_to);
             }
             __syncthreads();
@@ -133,7 +133,7 @@ __global__ void ScanKernel(
             int64_t index_to = index_from + stride;
             auto it_from = arg.out_indexer.It(i + index_from * len, reduce_stride * stride * 2);
             auto it_to = arg.out_indexer.It(i + index_to * len, reduce_stride * stride * 2);
-            for (int64_t j = index_to; j < reduce_dim; j += reduce_block_size * stride * 2) {
+            for (int64_t j = index_to; j < reduction_dim; j += reduce_block_size * stride * 2) {
                 reduce(it_from, it_to);
             }
             __syncthreads();
@@ -259,7 +259,7 @@ void Scan(const Array& in, int8_t axis, const Array& out, ReductionImpl&& impl) 
     }
 
     ReductionArg arg{in, Axes{axis}, out};
-    int64_t reduce_len = in.shape()[axis];
+    int64_t reduction_dim = in.shape()[axis];
 
     // TODO(niboshi): Calculate kMaxBlockSize per device
     std::lock_guard<std::mutex> lock{*cuda_internal::g_mutex};
@@ -267,11 +267,11 @@ void Scan(const Array& in, int8_t axis, const Array& out, ReductionImpl&& impl) 
             reduce_detail::kMaxReductionBlockSize,
             CudaOccupancyMaxPotentialBlockSize(&reduce_detail::ReductionKernel<In, Out, ReductionImpl>).block_size);
 
-    int64_t reduce_total_size_pow2 = reduce_detail::RoundUpToPowerOf2(std::max(int64_t{1}, reduce_len));
+    int64_t reduce_total_size_pow2 = reduce_detail::RoundUpToPowerOf2(std::max(int64_t{1}, reduction_dim));
 
     int64_t reduce_block_size = std::min(kMaxBlockSize, reduce_total_size_pow2);
     int64_t out_block_size = kMaxBlockSize / reduce_block_size;
-    int64_t out_block_num = (arg.in_shape().GetTotalSize() / reduce_len + out_block_size - 1) / out_block_size;
+    int64_t out_block_num = (arg.in_shape().GetTotalSize() / reduction_dim + out_block_size - 1) / out_block_size;
 
     int64_t block_size = kMaxBlockSize;
     int64_t grid_size = std::min(reduce_detail::kMaxGridSize, out_block_num);
@@ -282,13 +282,13 @@ void Scan(const Array& in, int8_t axis, const Array& out, ReductionImpl&& impl) 
     // Currently, only contiguous output arrays are optimized.
     if (arg.in_strides().ndim() == 1 && arg.out_strides().ndim() == 1) {
         reduce_detail::ScanKernel<<<grid_size, block_size, shared_mem_size>>>(
-                MakeReductionKernelArg<In, Out, 1, 1>(arg), out_block_size, reduce_block_size, impl, reduce_len);
+                MakeReductionKernelArg<In, Out, 1, 1>(arg), out_block_size, reduce_block_size, impl, reduction_dim);
         return;
     }
 #endif  // NDEBUG
 
     reduce_detail::ScanKernel<<<grid_size, block_size, shared_mem_size>>>(
-            MakeReductionKernelArg<In, Out>(arg), out_block_size, reduce_block_size, impl, reduce_len);
+            MakeReductionKernelArg<In, Out>(arg), out_block_size, reduce_block_size, impl, reduction_dim);
 }
 
 }  // namespace cuda
