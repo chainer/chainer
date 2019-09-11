@@ -1682,8 +1682,9 @@ class TestIRemainderScalar(
         'in_dtypes,out_dtype': (
             dtype_utils.make_same_in_out_dtypes(
                 2, chainerx.testing.numeric_dtypes)),
-        'input_lhs': ['random'],
-        'input_rhs': ['random'],
+        # Checks only for deterministic values to avoid non-differential point
+        'input_lhs': [4, -4],
+        'input_rhs': [7, -7],
         'is_module': [False],
     })
     # Dtype combinations
@@ -1733,19 +1734,26 @@ class TestIRemainderScalar(
 ))
 class TestFmod(math_utils.BinaryMathTestBase, op_utils.NumpyOpTest):
 
-    def setup(self):
-        super().setup()
-        self.check_forward_options.update({'atol': 1e-7, 'rtol': 1e-7})
-        self.check_backward_options.update({'atol': 5e-3, 'rtol': 5e-3})
-        self.check_double_backward_options.update(
-            {'atol': 1e-3, 'rtol': 1e-2})
-
     def generate_inputs(self):
         shape1, shape2 = self.in_shapes
         dtype1, dtype2 = self.in_dtypes
+
         a, b = super().generate_inputs()
-        # division with too small divisor is unstable.
-        b[numpy.abs(b) < 0.1] += 1
+
+        # Division with too small divisor is unstable.
+        if not numpy.isnan(b).any():
+            b[numpy.abs(b) < 0.3] += 1
+
+        # Avoid non-differentiable points
+        if not (self.skip_backward_test and
+                self.skip_double_backward_test):
+            fmod = numpy.abs(numpy.fmod(a, b))
+            mask = (fmod < 0.1) | (numpy.abs(b) - fmod < 0.1)
+            if mask.any():
+                # Never reach this line in broadcast test
+                assert a.shape == b.shape
+                a += b * mask * 0.5
+
         return a, b
 
     def func(self, xp, a, b):
