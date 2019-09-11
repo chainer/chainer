@@ -225,7 +225,8 @@ def create_multi_node_evaluator(actual_evaluator, communicator):
         #       a simple allreduce operation cannot be applied in evaluation.
         #   (2) allreduce_obj calls mpi4py.allreduce, which pickles the object
         #   (3) chainerx.ndarray preserves CUDA device internally when pickled
-        #   (4) Error is caused when an ndarray is unpickled in another process
+        #   (4) An error will occur when an ndarray is unpickled in another
+        #       process
         array0 = list(local_mean_dict.values())[0]
         xp = backend.get_array_module(array0)
         if xp == chx and array0.device.backend.name == 'cuda':
