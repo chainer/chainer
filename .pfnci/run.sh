@@ -172,11 +172,12 @@ test_chainermn() {
   export PYENV_VERSION=""
   . /root/.bash_profile
 
-  TEST_PYTHON_VERSIONS="2.7.16 3.5.7 3.7.3"
+  TEST_PYTHON_VERSIONS="3.6.8 2.7.16"
   ret=0
   for VERSION in $TEST_PYTHON_VERSIONS
   do
-    pyenv shell "${VERSION}-cupy-${CUPY_VERSION}"
+    pyenv shell ${VERSION}
+	MAJOR_VERSION=${VERSION:0:1}
 	test_chainermn_sub
 	tmp_ret=$?
 	ret=$(( ret || tmp_ret ))
@@ -192,6 +193,12 @@ test_chainermn_sub() {
   else
     marker+=' and gpu'
   fi
+
+  #-----------------------------------------------------------------------------
+  # Install CuPy from wheel
+  #-----------------------------------------------------------------------------
+  pip uninstall -y cupy
+  pip install /cupy-wheel/cupy-*-cp${MAJOR_VERSION}*-cp${MAJOR_VERSION}*-linux_x86_64.whl
 
   #-----------------------------------------------------------------------------
   # Install Chainer

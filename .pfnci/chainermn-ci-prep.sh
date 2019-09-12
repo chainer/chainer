@@ -11,29 +11,13 @@ set -eu
 cd "$(dirname "${BASH_SOURCE}")"/..
 
 main() {
-  TARGET="$1"
-
   prepare_docker &
   wait
 
-  case "${TARGET}" in
-    'chainermn-ci-prep-cuda92' )
-      run docker build -t "asia.gcr.io/pfn-public-ci/${TARGET}" \
-	      --build-arg BASE_IMAGE=9.2-cudnn7-devel \
-          -f ".pfnci/chainermn-ci-prep.Dockerfile" .
-      run docker push "asia.gcr.io/pfn-public-ci/${TARGET}"
-      ;;
-    'chainermn-ci-prep-cuda101' )
-      run docker build -t "asia.gcr.io/pfn-public-ci/${TARGET}" \
-	      --build-arg BASE_IMAGE=10.1-cudnn7-devel \
-          -f ".pfnci/chainermn-ci-prep.Dockerfile" .
-      run docker push "asia.gcr.io/pfn-public-ci/${TARGET}"
-      ;;
-    * )
-      echo "Unsupported target: ${TARGET}" >&2
-      exit 1
-      ;;
-  esac
+  run docker build -t "asia.gcr.io/pfn-public-ci/${TARGET}" \
+      --build-arg BASE_IMAGE=9.2-cudnn7-devel \
+      -f ".pfnci/chainermn-ci-prep.Dockerfile" .
+  run docker push "asia.gcr.io/pfn-public-ci/chainermn-ci-prep-cuda92"
 }
 
 # run executes a command.  If DRYRUN is enabled, run just prints the command.

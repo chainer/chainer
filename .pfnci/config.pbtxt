@@ -254,22 +254,30 @@ configs {
   }
 }
 configs {
-  # Project name.
+  key: "chainermn.cpu"
+  value {
+    requirement {
+      cpu: 8
+      memory: 30
+      disk: 50
+    }
+    command: "bash .pfnci/script.sh chainermn"
+  }
+}
+configs {
   key: "chainermn.gpu"
   value {
     requirement {
       cpu: 8
-	  memory: 30
-	  disk: 50
-	  gpu: 2
+      memory: 30
+      disk: 50
+      gpu: 2
     }
 	environment_variables { key: "GPU" value: "2" }
     command: "bash .pfnci/script.sh chainermn"
   }
 }
-
 configs {
-  # Project name.
   key: "chainermn-ci-prep.cuda92"
   value {
     requirement {
