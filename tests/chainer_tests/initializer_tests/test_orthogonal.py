@@ -11,20 +11,31 @@ from chainer.testing import attr
 from chainer.testing import condition
 
 
+<<<<<<< HEAD
 @testing.parameterize(*testing.product_dict(
     [
         {'shape': (), 'dim_in': 1, 'dim_out': 1},
         {'shape': (1,), 'dim_in': 1, 'dim_out': 1},
         {'shape': (3, 4), 'dim_in': 4, 'dim_out': 3},
         {'shape': (3, 4, 5), 'dim_in': 20, 'dim_out': 3}
+=======
+@testing.parameterize(*testing.product({
+    'shape,dim_in,dim_out': [
+        ((), 1, 1),
+        ((1,), 1, 1),
+        ((4, 3), 3, 4),
+        ((6, 2, 3), 6, 6),
+        ((3, 4, 5), 20, 3),
+>>>>>>> b075160d2... Merge pull request #8111 from toslunar/test-normal-dup
     ],
-    [
-        {'scale': 2., 'dtype': numpy.float16}
-    ] + testing.product({
-        'scale': [None, 7.3],
-        'dtype': [numpy.float32, numpy.float64],
-    })
-))
+    'scale,dtype': [
+        (2., numpy.float16),
+        (None, numpy.float32),
+        (None, numpy.float64),
+        (7.3, numpy.float32),
+        (7.3, numpy.float64),
+    ],
+}))
 @testing.backend.inject_backend_tests(
     None,
     [
