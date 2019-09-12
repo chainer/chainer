@@ -44,9 +44,6 @@ default_fan = {
         'dtype': [numpy.float16, numpy.float32, numpy.float64],
     })
 ))
-@testing.parameterize(*testing.product({
-    'dtype': [numpy.float16, numpy.float32, numpy.float64],
-}))
 @testing.backend.inject_backend_tests(
     None,
     [
