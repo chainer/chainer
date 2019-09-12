@@ -90,10 +90,12 @@ class GradTable(object):
             g = _grad_var_from_alive_node(node)
             if self._reproduce_bug == 'warn' and g is not None:
                 warnings.warn(
-                    '''\
+                    '''Accumulating gradients from an output variable that \
+does not belong to the computational graph but whose creator '{}' does.
+
 In future, backpropagation will strictly select variables to compute gradients
-from.  Accumulating gradients from an output variable that does not belong to
-the computational graph but whose creator '{}' does.'''.format(
+from. Use chainer.backward to run backpropagation from multiple variables.'''
+                    .format(
                         getattr(node.creator, 'name', None)),
                     FutureWarning)
             return g
