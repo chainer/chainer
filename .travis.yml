@@ -61,3 +61,12 @@ script:
 addons:
   apt:
     update: true
+<<<<<<< HEAD
+=======
+    packages:
+      - moreutils  # for ts
+  homebrew:
+    update: true
+    packages:
+      - moreutils  # for ts
+>>>>>>> 44e896985... Merge pull request #8115 from hvy/fix-travis-brew-2
