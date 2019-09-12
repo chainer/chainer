@@ -421,7 +421,10 @@ class TestQR(NumpyLinalgOpTest):
     check_numpy_strides_compliance = False
 
     def generate_inputs(self):
-        a = numpy.random.random(self.shape).astype(self.in_dtypes)
+        singular_values = numpy.random.uniform(
+            low=0.1, high=1.5, size=min(self.shape))
+        a = chainer.testing.generate_matrix(
+            self.shape, self.in_dtypes, singular_values=singular_values)
         return a,
 
     def forward_xp(self, inputs, xp):
