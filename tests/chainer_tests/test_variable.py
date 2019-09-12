@@ -2277,13 +2277,13 @@ class TestVariableBackwardOption(unittest.TestCase):
         testing.assert_allclose(self.x2.grad, [6, 7])
 
     def test_backward_output_bug_force(self):
-        with chainer.using_config('reproduce_backward_output_bug', True):
+        with chainer.using_config('_reproduce_backward_output_bug', True):
             self.y1.backward()
         testing.assert_allclose(self.x1.grad, [4, 5])
         testing.assert_allclose(self.x2.grad, [6, 7])
 
     def test_backward_output_bug_fixed(self):
-        with chainer.using_config('reproduce_backward_output_bug', False):
+        with chainer.using_config('_reproduce_backward_output_bug', False):
             self.y1.backward()
         testing.assert_allclose(self.x1.grad, [4, 5])
         assert self.x2.grad is None

@@ -27,11 +27,11 @@ class GlobalConfig(object):
     use_ideep = None  # type: str
     lazy_grad_sum = None  # type: bool
     cudnn_fast_batch_normalization = None  # type: bool
-    reproduce_backward_output_bug = None  # type: tp.Union[bool, str]
     dtype = None  # type: numpy.dtype
     in_recomputing = None  # type: bool
     use_static_graph = None  # type: bool
     _will_recompute = None  # type: bool
+    _reproduce_backward_output_bug = None  # type: tp.Union[bool, str]
 
     """The plain object that represents the global configuration of Chainer."""
 

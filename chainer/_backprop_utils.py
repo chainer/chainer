@@ -56,7 +56,7 @@ class GradTable(object):
     def __init__(self, accumulate_grad_inputs=False):
         self.grads = {}
         self._load_if_new = accumulate_grad_inputs
-        self._reproduce_bug = chainer.config.reproduce_backward_output_bug
+        self._reproduce_bug = chainer.config._reproduce_backward_output_bug
 
     def __setitem__(self, node, grad):
         assert node is not None
