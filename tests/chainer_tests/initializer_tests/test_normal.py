@@ -54,7 +54,7 @@ default_fan = {
         {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
     ]
 )
-class NormalBase(unittest.TestCase):
+class TestNormal(unittest.TestCase):
 
     def setUp(self):
         kwargs = {}
