@@ -1024,8 +1024,11 @@ class TestTrueDivide(math_utils.BinaryMathTestBase, op_utils.NumpyOpTest):
         if dtype1 == 'float16' or dtype2 == 'float16':
             self.check_forward_options.update({'rtol': 5e-3, 'atol': 5e-3})
             self.check_backward_options.update({'rtol': 1e-2, 'atol': 5e-3})
+            # Double backward is heavily influenced by some fp16
+            # precision issues due to the way intermediate results
+            # are treated in ChainerX
             self.check_double_backward_options.update(
-                {'rtol': 1e-2, 'atol': 5e-3})
+                {'rtol': 1e-2, 'atol': 3e-1})
 
     def generate_inputs(self):
         a, b = super().generate_inputs()
@@ -1669,3 +1672,89 @@ class TestIRemainderScalar(
 
     def func_scalar(self, xp, a, scalar):
         a %= scalar
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    # Special shapes
+    chainer.testing.product({
+        'in_shapes': math_utils.shapes_combination_binary,
+        'in_dtypes,out_dtype': (
+            dtype_utils.make_same_in_out_dtypes(
+                2, chainerx.testing.numeric_dtypes)),
+        # Checks only for deterministic values to avoid non-differential point
+        'input_lhs': [4, -4],
+        'input_rhs': [7, -7],
+        'is_module': [False],
+    })
+    # Dtype combinations
+    + chainer.testing.product({
+        'in_shapes': [((2, 3), (2, 3))],
+        'in_dtypes,out_dtype': _in_out_dtypes_arithmetic,
+        'input_lhs': ['random'],
+        'input_rhs': ['random'],
+        'is_module': [False],
+    })
+    # is_module
+    + chainer.testing.product({
+        'in_shapes': [((2, 3), (2, 3))],
+        'in_dtypes,out_dtype': (
+            dtype_utils.make_same_in_out_dtypes(
+                2, chainerx.testing.numeric_dtypes)),
+        'input_lhs': ['random'],
+        'input_rhs': ['random'],
+        'is_module': [True, False],
+    })
+    # Special values (differentiable)
+    + chainer.testing.product({
+        'in_shapes': [((2, 3), (2, 3))],
+        'in_dtypes,out_dtype': (
+            dtype_utils.make_same_in_out_dtypes(
+                2, chainerx.testing.numeric_dtypes)),
+        'input_lhs': ['random', 2, -2, 5, -5, 11, -11],
+        'input_rhs': ['random', 7, -7, 13, -13],
+        'is_module': [False],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True],
+    })
+    # Special values
+    + chainer.testing.product({
+        'in_shapes': [((2, 3), (2, 3))],
+        'in_dtypes,out_dtype': (
+            dtype_utils.make_same_in_out_dtypes(
+                2, chainerx.testing.float_dtypes)),
+        'input_lhs': [
+            'random', 12, -12, float('inf'), -float('inf'), float('nan')],
+        'input_rhs': [
+            'random', 3, -3, float('inf'), -float('inf'), float('nan')],
+        'is_module': [False],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True],
+    })
+))
+class TestFmod(math_utils.BinaryMathTestBase, op_utils.NumpyOpTest):
+
+    def generate_inputs(self):
+        shape1, shape2 = self.in_shapes
+        dtype1, dtype2 = self.in_dtypes
+
+        a, b = super().generate_inputs()
+
+        # Division with too small divisor is unstable.
+        if not numpy.isnan(b).any():
+            b[numpy.abs(b) < 0.3] += 1
+
+        # Avoid non-differentiable points
+        if not (self.skip_backward_test and
+                self.skip_double_backward_test):
+            fmod = numpy.abs(numpy.fmod(a, b))
+            mask = (fmod < 0.1) | (numpy.abs(b) - fmod < 0.1)
+            if mask.any():
+                # Never reach this line in broadcast test
+                assert a.shape == b.shape
+                a += b * mask * 0.5
+
+        return a, b
+
+    def func(self, xp, a, b):
+        return xp.fmod(a, b)

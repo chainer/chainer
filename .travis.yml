@@ -51,3 +51,9 @@ script:
 addons:
   apt:
     update: true
+    packages:
+      - moreutils  # for ts
+  homebrew:
+    update: true
+    packages:
+      - moreutils  # for ts

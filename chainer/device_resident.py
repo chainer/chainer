@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 import abc
 import sys
+import threading
 import typing as tp  # NOQA
 import warnings
 
@@ -14,6 +15,15 @@ from chainer.backends import intel64
 from chainer import types  # NOQA
 from chainer import utils
 import chainerx
+
+
+_thread_local = threading.local()
+
+# Used in _ToDeviceVisitor to detect GPU-to-GPU (cupy-to-cupy) device transfer.
+# It is usually `None`.
+# Assign `False` to enable GPU-to-GPU detection. If detected, `True` will be
+# assigned. `None` should be assigned again after retrieving the result.
+_thread_local.flag_gpu_to_gpu = None
 
 
 class DeviceResident(utils.enable_final(meta_base=abc.ABCMeta)):
@@ -320,13 +330,17 @@ class _ToDeviceVisitor(DeviceResidentsVisitor):
         src_id = src_device.device.id
         dst_id = dst_device.device.id
         if src_id != dst_id:
-            warnings.warn('''\
+            if _thread_local.flag_gpu_to_gpu is None:
+                warnings.warn('''\
 You are trying to transfer a DeviceResident to GPU-{dst} which is already on \
 GPU-{src}.
 `DeviceResident.to_gpu` does nothing if the DeviceResident is already on GPU.
 
 You can use `DeviceResident.to_device()` method to perform inter-GPU transfer.
 '''.format(dst=dst_id, src=src_id), RuntimeWarning)
+            else:
+                assert isinstance(_thread_local.flag_gpu_to_gpu, bool)
+                _thread_local.flag_gpu_to_gpu = True
 
 
 class _ToChxVisitor(DeviceResidentsVisitor):

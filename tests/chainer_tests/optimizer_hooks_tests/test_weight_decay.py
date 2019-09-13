@@ -71,6 +71,11 @@ class TestWeightDecay(unittest.TestCase):
     + testing.product({
         'use_cuda': [True],
     })
+    + [
+        # ChainerX
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:0'}
+    ]
 )
 class TestWeightDecayLossScale(unittest.TestCase):
 

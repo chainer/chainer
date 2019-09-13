@@ -2,6 +2,7 @@ import numpy
 import six
 
 import chainer
+import chainerx
 from chainer import backend
 from chainer.backends import cuda
 from chainer import function
@@ -84,6 +85,9 @@ class TreeLSTM(function.Function):
             )
             for j in six.moves.range(2, type_check.eval(c_types[i].ndim)):
                 type_check.expect(x_type.shape[i] == c_types[i].shape[j])
+
+    def forward_chainerx(self, inputs):
+        return chainerx.tree_lstm(*inputs)
 
     def forward(self, inputs):
         cs, x = inputs[:-1], inputs[-1]

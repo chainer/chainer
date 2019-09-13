@@ -3,6 +3,12 @@
 #include "chainerx/numeric.h"
 
 namespace chainerx {
+
+namespace internal {
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(Ceil)
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(Floor)
+}  // namespace internal
+
 namespace native {
 namespace {
 

@@ -1,5 +1,6 @@
 #pragma once
 #include <cmath>
+#include <cstdint>
 #include <type_traits>
 
 #include "chainerx/array.h"
@@ -37,6 +38,20 @@ inline chainerx::Float16 Sign<chainerx::Float16>(chainerx::Float16 x) {
     return IsNan(x) ? x : Float16{static_cast<int>(Float16{0} < x) - static_cast<int>(x < Float16{0})};
 }
 
+template <typename T>
+inline T Abs(T x) {
+    return std::abs(x);
+}
+
+template <>
+inline uint8_t Abs<uint8_t>(uint8_t x) {
+    return x;
+}
+template <>
+inline chainerx::Float16 Abs<chainerx::Float16>(chainerx::Float16 x) {
+    return chainerx::Float16{std::abs(static_cast<float>(x))};
+}
+
 #define CHAINERX_DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(name, func)           \
     template <typename T>                                                   \
     inline T name(T x) {                                                    \
@@ -69,7 +84,6 @@ CHAINERX_DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(Log10, std::log10)
 CHAINERX_DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(Log2, std::log2)
 CHAINERX_DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(Log1p, std::log1p)
 CHAINERX_DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(Sqrt, std::sqrt)
-CHAINERX_DEFINE_NATIVE_FLOAT16_FALLBACK_UNARY(Abs, std::abs)
 
 namespace numeric_detail {
 
@@ -125,6 +139,17 @@ template <>
 inline double Power(double x1, double x2) {
     return std::pow(x1, x2);
 }
+
+template <typename T>
+inline T Fmod(T x1, T x2) {
+    return x1 % x2;
+}
+
+inline chainerx::Float16 Fmod(chainerx::Float16 x1, chainerx::Float16 x2) {
+    return chainerx::Float16{std::fmod(static_cast<float>(x1), static_cast<float>(x2))};
+}
+inline float Fmod(float x1, float x2) { return std::fmod(x1, x2); }
+inline double Fmod(double x1, double x2) { return std::fmod(x1, x2); }
 
 #define CHAINERX_DEFINE_NATIVE_FLOAT16_FALLBACK_BINARY(name, func)                                 \
     template <typename T>                                                                          \

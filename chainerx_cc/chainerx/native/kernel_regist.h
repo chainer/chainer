@@ -16,7 +16,7 @@
 
 #define CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_UNARY_KERNEL(key_kernel_cls, kernel_body, visit_dtype) \
                                                                                                       \
-    /* NOLINTNEXTLINE(misc-macro-parentheses) */                                                      \
+    /* NOLINTNEXTLINE(misc-macro-parentheses,bugprone-macro-parentheses) */                           \
     class Native##key_kernel_cls : public key_kernel_cls {                                            \
     public:                                                                                           \
         void Call(const ::chainerx::Array& x, const ::chainerx::Array& out) override {                \
@@ -46,7 +46,7 @@
 
 #define CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_BINARY_KERNEL(key_kernel_cls, kernel_body, visit_dtype)               \
                                                                                                                      \
-    /* NOLINTNEXTLINE(misc-macro-parentheses) */                                                                     \
+    /* NOLINTNEXTLINE(misc-macro-parentheses,bugprone-macro-parentheses) */                                          \
     class Native##key_kernel_cls : public key_kernel_cls {                                                           \
     public:                                                                                                          \
         void Call(const ::chainerx::Array& x1, const ::chainerx::Array& x2, const ::chainerx::Array& out) override { \

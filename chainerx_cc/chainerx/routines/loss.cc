@@ -6,6 +6,7 @@
 #include "chainerx/routines/indexing.h"
 #include "chainerx/routines/logic.h"
 #include "chainerx/routines/misc.h"
+#include "chainerx/routines/statistics.h"
 #include "chainerx/scalar.h"
 
 namespace chainerx {
@@ -30,5 +31,7 @@ Array SigmoidCrossEntropy(const Array& x1, const Array& x2) {
     Array ignore_mask = NotEqual(x2, ignore_label);
     return -(ignore_mask * (x1 * (x2 - (GreaterEqual(x1, ZerosLike(x1, x1.device()))).AsType(x1.dtype())) - Log1p(Exp(-Absolute(x1)))));
 }
+
+Array MeanSquaredError(const Array& x1, const Array& x2) { return Mean(Square(x1 - x2)); }
 
 }  // namespace chainerx
