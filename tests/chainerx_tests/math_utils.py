@@ -244,36 +244,42 @@ in_out_dtypes_math_functions = in_out_float_dtypes_math_functions + [
 ]
 
 
-in_out_dtypes_math_binary_functions = dtype_utils._permutate_dtype_mapping([
+in_out_dtypes_math_binary_functions = [
     # integer mixed
     (('int8', 'int16'), 'float32'),
-    (('int8', 'int32'), 'float32'),
     (('int8', 'int64'), 'float32'),
     (('int8', 'uint8'), 'float32'),
     (('int16', 'int32'), 'float32'),
     (('int16', 'int64'), 'float32'),
-    (('int16', 'uint8'), 'float32'),
-    (('int32', 'int64'), 'float32'),
     (('int32', 'uint8'), 'float32'),
+    (('int32', 'int8'), 'float32'),
+    (('int64', 'int32'), 'float32'),
     (('int64', 'uint8'), 'float32'),
+    (('uint8', 'int16'), 'float32'),
     # integer float mixed
     (('int8', 'float16'), 'float16'),
-    (('int8', 'float32'), 'float32'),
     (('int8', 'float64'), 'float64'),
     (('int16', 'float16'), 'float16'),
     (('int16', 'float32'), 'float32'),
-    (('int16', 'float64'), 'float64'),
-    (('int32', 'float16'), 'float16'),
     (('int32', 'float32'), 'float32'),
     (('int32', 'float64'), 'float64'),
     (('int64', 'float16'), 'float16'),
-    (('int64', 'float32'), 'float32'),
     (('int64', 'float64'), 'float64'),
     (('uint8', 'float16'), 'float16'),
     (('uint8', 'float32'), 'float32'),
-    (('uint8', 'float64'), 'float64'),
+    (('float32', 'int8'), 'float32'),
+    (('float64', 'int16'), 'float64'),
+    (('float16', 'int32'), 'float16'),
+    (('float32', 'int64'), 'float32'),
+    (('float64', 'uint8'), 'float64'),
     # float mixed
+    (('float16', 'float16'), 'float16'),
     (('float16', 'float32'), 'float32'),
     (('float16', 'float64'), 'float64'),
+    (('float32', 'float16'), 'float32'),
+    (('float32', 'float32'), 'float32'),
     (('float32', 'float64'), 'float64'),
-])
+    (('float64', 'float16'), 'float64'),
+    (('float64', 'float32'), 'float64'),
+    (('float64', 'float64'), 'float64'),
+]

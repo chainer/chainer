@@ -7,6 +7,7 @@
 
 #include "chainerx/error.h"
 #include "chainerx/kernel.h"
+#include "chainerx/macro.h"
 
 namespace chainerx {
 
@@ -90,8 +91,13 @@ template <typename BackendType, typename KeyKernelType, typename KernelType>
 class KernelRegistrar {
 public:
     KernelRegistrar() noexcept {
-        KernelRegistry& kernel_registry = BackendType::GetGlobalKernelRegistry();
-        kernel_registry.RegisterKernel<KeyKernelType, KernelType>();
+        try {
+            KernelRegistry& kernel_registry = BackendType::GetGlobalKernelRegistry();
+            kernel_registry.RegisterKernel<KeyKernelType, KernelType>();
+        } catch (...) {
+            // Initialization of static storage duration should not throw an exception (cert-err58-cpp)
+            CHAINERX_NEVER_REACH();
+        }
     }
 };
 

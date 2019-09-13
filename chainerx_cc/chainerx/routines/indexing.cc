@@ -105,7 +105,7 @@ Array At(const Array& a, const std::vector<ArrayIndex>& indices) {
                 out_strides.emplace_back(0);
                 break;
             default:
-                ChainerxError{"Invalid ArrayIndexTag."};
+                throw ChainerxError{"Invalid ArrayIndexTag."};
         }
     }
     for (int64_t i = i_in; i < a.ndim(); ++i) {
