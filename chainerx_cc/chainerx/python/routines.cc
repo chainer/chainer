@@ -806,6 +806,7 @@ void InitChainerxArithmetic(pybind11::module& m) {
     m.def("remainder", [](const ArrayBodyPtr& x1, Scalar x2) { return MoveArrayBody(Mod(Array{x1}, x2)); }, "x1"_a, "x2"_a);
     m.def("remainder", [](Scalar x1, const ArrayBodyPtr& x2) { return MoveArrayBody(Mod(x1, Array{x2})); }, "x1"_a, "x2"_a);
     m.attr("mod") = m.attr("remainder");
+    m.def("fmod", [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return MoveArrayBody(Fmod(Array{x1}, Array{x2})); }, "x1"_a, "x2"_a);
 }
 
 void InitChainerxBinary(pybind11::module& m) {
