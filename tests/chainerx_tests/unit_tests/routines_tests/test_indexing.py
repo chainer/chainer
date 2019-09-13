@@ -13,6 +13,23 @@ from chainerx_tests import math_utils
 from chainerx_tests import op_utils
 
 
+_nonzero_params = [
+    # input, axis
+    # valid params
+    (numpy.asarray([4, 0, 0, 0])),
+    (numpy.asarray([0, 0, 0, 0])),
+    (numpy.asarray([[4, 0, 0, 1], [0, 0, 4, 1]])),
+    (numpy.asarray([[4, 4, 1, 1], [4, 1, 4, 1]]).T),
+    (numpy.asarray([-2, -3, 0])),
+    (numpy.asarray([-0.0, +0.0, +0.0, -0.0])),
+    (numpy.ones((2, 3))),
+    (numpy.ones((2, 3))),
+    (numpy.ones((0,))),
+    (numpy.ones((2, 3))),
+    (numpy.ones((2, 3))),
+]
+
+
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize_pytest('shape,indices', [
     # empty indexing
@@ -378,3 +395,25 @@ def test_where_scalar_scalar(xp, cond_shape, cond_dtype, in_types, out_dtype):
     y = y_type(2)
     out = xp.where(cond, x, y)
     return dtype_utils.cast_if_numpy_array(xp, out, out_dtype)
+
+
+# TODO(aksub99): Add cuda tests after Cumsum cuda kernel is implemented
+@op_utils.op_test(['native:0'])
+@chainer.testing.parameterize_pytest('input', _nonzero_params)
+class TestNonzero(op_utils.NumpyOpTest):
+
+    check_numpy_strides_compliance = False
+    skip_backward_test = True
+    skip_double_backward_test = True
+
+    def setup(self, dtype):
+        a_np = self.input
+        self.a_np = a_np
+
+    def generate_inputs(self):
+        return self.a_np,
+
+    def forward_xp(self, inputs, xp):
+        a, = inputs
+        b = xp.nonzero(a)
+        return tuple(b)
