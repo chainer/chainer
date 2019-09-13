@@ -11,20 +11,21 @@ from chainer.testing import attr
 from chainer.testing import condition
 
 
-@testing.parameterize(*testing.product_dict(
-    [
-        {'shape': (), 'dim_in': 1, 'dim_out': 1},
-        {'shape': (1,), 'dim_in': 1, 'dim_out': 1},
-        {'shape': (3, 4), 'dim_in': 4, 'dim_out': 3},
-        {'shape': (3, 4, 5), 'dim_in': 20, 'dim_out': 3}
+@testing.parameterize(*testing.product({
+    'shape,dim_in,dim_out': [
+        ((), 1, 1),
+        ((1,), 1, 1),
+        ((3, 4), 4, 3),
+        ((3, 4, 5), 20, 3),
     ],
-    [
-        {'scale': 2., 'dtype': numpy.float16}
-    ] + testing.product({
-        'scale': [None, 7.3],
-        'dtype': [numpy.float32, numpy.float64],
-    })
-))
+    'scale,dtype': [
+        (2., numpy.float16),
+        (None, numpy.float32),
+        (None, numpy.float64),
+        (7.3, numpy.float32),
+        (7.3, numpy.float64),
+    ],
+}))
 @testing.backend.inject_backend_tests(
     None,
     [
