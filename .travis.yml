@@ -61,3 +61,5 @@ script:
 addons:
   apt:
     update: true
+  homebrew:
+    update: true
