@@ -579,11 +579,17 @@ class TestNStepBiRNN(op_utils.ChainerOpTest):
     def generate_inputs(self):
         h_shape = (self.n_layers * 2, self.batches[0], self.hidden_size)
         dtype = self.in_dtypes[0]
+        low = -1.0
+        high = 1.0
+        if dtype == 'float16':
+            low = -0.5
+            high = 0.5
 
         h = array_utils.uniform(h_shape, dtype)
         in_size = self.input_size
         out_size = self.hidden_size
-        xs = [array_utils.uniform((self.batches[b], in_size), dtype)
+        xs = [array_utils.uniform((self.batches[b], in_size),
+                                  dtype, low=low, high=high)
               for b in range(len(self.batches))]
 
         def w_in(i, j):
@@ -603,9 +609,10 @@ class TestNStepBiRNN(op_utils.ChainerOpTest):
             for direction in (0, 1):
                 for i in range(2):
                     inputs.append(array_utils.uniform(
-                        (out_size, w_in(n, i)), dtype))
+                        (out_size, w_in(n, i)), dtype, low=low, high=high))
                 for i in range(2):
-                    inputs.append(array_utils.uniform((out_size,), dtype))
+                    inputs.append(array_utils.uniform(
+                        (out_size,), dtype, low=low, high=high))
         return tuple(inputs)
 
     def process_input(self, inputs):
