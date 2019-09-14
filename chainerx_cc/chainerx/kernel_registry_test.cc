@@ -17,14 +17,44 @@
 namespace chainerx {
 namespace {
 
+class MyKernel : public Kernel {
+public:
+    virtual std::string Call(int a, const std::string& b) { return std::to_string(a) + b; }
+};
+
+class MyChildKernel : public Kernel {
+public:
+    virtual std::string Call(int a, const std::string& b) { return std::to_string(a) + b; }
+};
+class MyParentKernel : public Kernel {
+public:
+    virtual std::string Call(const std::string& a, float b) { return a + std::to_string(b); }
+};
+
+class MyChildKernel2 : public Kernel {
+public:
+    virtual std::string Call(int a, const std::string& b) { return std::to_string(a) + b; }
+};
+
+class MyParentKernel2 : public Kernel {
+public:
+    virtual std::string Call(const std::string& a, float b) { return a + std::to_string(b); }
+};
+
+}  // namespace
+
+namespace internal {
+CHAINERX_REGISTER_KEY_KERNEL(MyKernel, "mykernel");
+CHAINERX_REGISTER_KEY_KERNEL(MyChildKernel, "mychildkernel");
+CHAINERX_REGISTER_KEY_KERNEL(MyParentKernel, "myparentkernel");
+CHAINERX_REGISTER_KEY_KERNEL(MyChildKernel2, "mychildkernel2");
+CHAINERX_REGISTER_KEY_KERNEL(MyParentKernel2, "myparentkernel2");
+}  // namespace internal
+
+namespace {
+
 TEST(KernelRegistryTest, KernelRegistry) {
     KernelRegistry kernel_registry{};
-
-    class MyKernel : public Kernel {
-    public:
-        static const char* name() { return "mykernel"; }
-        virtual std::string Call(int a, const std::string& b) { return std::to_string(a) + b; }
-    };
 
     kernel_registry.RegisterKernel<MyKernel, MyKernel>();
 
@@ -41,34 +71,22 @@ TEST(KernelRegistryTest, KernelRegistryHierarchy) {
     KernelRegistry kernel_registry1{&parent_kernel_registry};
     KernelRegistry kernel_registry2{&parent_kernel_registry};
 
-    class MyKernel1 : public Kernel {
-    public:
-        static const char* name() { return "mykernel1"; }
-        virtual std::string Call(int a, const std::string& b) { return std::to_string(a) + b; }
-    };
-
-    class MyParentKernel : public Kernel {
-    public:
-        static const char* name() { return "myparentkernel"; }
-        virtual std::string Call(const std::string& a, float b) { return a + std::to_string(b); }
-    };
-
-    kernel_registry1.RegisterKernel<MyKernel1, MyKernel1>();
+    kernel_registry1.RegisterKernel<MyChildKernel, MyChildKernel>();
     parent_kernel_registry.RegisterKernel<MyParentKernel, MyParentKernel>();
 
-    EXPECT_THROW({ kernel_registry2.GetKernel<MyKernel1>(); }, ChainerxError);
-    EXPECT_THROW({ parent_kernel_registry.GetKernel<MyKernel1>(); }, ChainerxError);
+    EXPECT_THROW({ kernel_registry2.GetKernel<MyChildKernel>(); }, ChainerxError);
+    EXPECT_THROW({ parent_kernel_registry.GetKernel<MyChildKernel>(); }, ChainerxError);
     // no throw
     Kernel& kernel1p = kernel_registry1.GetKernel<MyParentKernel>();
     Kernel& kernel2p = kernel_registry2.GetKernel<MyParentKernel>();
     Kernel& kernelpp = parent_kernel_registry.GetKernel<MyParentKernel>();
 
-    Kernel& kernel = kernel_registry1.GetKernel<MyKernel1>();
+    Kernel& kernel = kernel_registry1.GetKernel<MyChildKernel>();
     EXPECT_EQ(&kernel1p, &kernel2p);
     EXPECT_EQ(&kernel1p, &kernelpp);
     EXPECT_NE(&kernel1p, &kernel);
 
-    MyKernel1& mykernel = dynamic_cast<MyKernel1&>(kernel);
+    MyChildKernel& mykernel = dynamic_cast<MyChildKernel&>(kernel);
     EXPECT_EQ(mykernel.Call(3, " is 3"), "3 is 3");
 }
 
@@ -79,12 +97,6 @@ TEST(KernelRegistryTest, KernelRegistryWithBackend) {
     Backend& backend0 = ctx.GetBackend("backend0");
 
     KernelRegistry& kernel_registry = backend0.kernel_registry();
-
-    class MyKernel : public Kernel {
-    public:
-        static const char* name() { return "mykernel"; }
-        virtual std::string Call(int a, const std::string& b) { return std::to_string(a) + b; }
-    };
 
     kernel_registry.RegisterKernel<MyKernel, MyKernel>();
 
@@ -110,43 +122,19 @@ TEST(KernelRegistryTest, KernelRegistryThreadSafe) {
     KernelRegistry parent_kernel_registry{};
     KernelRegistry kernel_registry1{&parent_kernel_registry};
 
-    class MyKernel1 : public Kernel {
-    public:
-        static const char* name() { return "mykernel1"; }
-        virtual std::string Call(int a, const std::string& b) { return std::to_string(a) + b; }
-    };
-
-    class MyParentKernel : public Kernel {
-    public:
-        static const char* name() { return "myparentkernel"; }
-        virtual std::string Call(const std::string& a, float b) { return a + std::to_string(b); }
-    };
-
-    class MyKernel2 : public Kernel {
-    public:
-        static const char* name() { return "mykernel2"; }
-        virtual std::string Call(int a, const std::string& b) { return std::to_string(a) + b; }
-    };
-
-    class MyParentKernel2 : public Kernel {
-    public:
-        static const char* name() { return "myparentkernel2"; }
-        virtual std::string Call(const std::string& a, float b) { return a + std::to_string(b); }
-    };
-
-    kernel_registry1.RegisterKernel<MyKernel1, MyKernel1>();
+    kernel_registry1.RegisterKernel<MyChildKernel, MyChildKernel>();
     parent_kernel_registry.RegisterKernel<MyParentKernel, MyParentKernel>();
 
     testing::RunThreads(4U, [&parent_kernel_registry, &kernel_registry1](size_t thread_index) {
         switch (thread_index) {
             case 0:
-                kernel_registry1.GetKernel<MyKernel1>();
+                kernel_registry1.GetKernel<MyChildKernel>();
                 break;
             case 1:
                 kernel_registry1.GetKernel<MyParentKernel>();
                 break;
             case 2:
-                kernel_registry1.RegisterKernel<MyKernel2, MyKernel2>();
+                kernel_registry1.RegisterKernel<MyChildKernel2, MyChildKernel2>();
                 break;
             case 3:
                 parent_kernel_registry.RegisterKernel<MyParentKernel2, MyParentKernel2>();

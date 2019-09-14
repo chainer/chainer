@@ -243,6 +243,10 @@ class UpdateRule(object):
 
         self.t += 1
 
+        with chainer.using_device(param.device):
+            self.__update(param)
+
+    def __update(self, param):
         try:
             param_dtype = param.dtype
         except RuntimeError:
@@ -279,7 +283,8 @@ class UpdateRule(object):
             self._init_states(param_)
 
             # Apply loss scaling
-            if loss_scale is not None:
+            if (loss_scale is not None
+                    and not isinstance(param_.array, chainerx.ndarray)):
                 param_.grad /= loss_scale
 
         # Call update_core

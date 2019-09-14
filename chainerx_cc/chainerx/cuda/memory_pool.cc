@@ -203,6 +203,10 @@ void MemoryPool::FreeUnusedBlocks() {
 }
 
 void* MemoryPool::Malloc(size_t bytesize) {
+    if (malloc_preprocess_hook_) {
+        malloc_preprocess_hook_(*this, bytesize);
+    }
+
     if (bytesize == 0) {
         return nullptr;
     }
@@ -247,10 +251,19 @@ void* MemoryPool::Malloc(size_t bytesize) {
         std::lock_guard<std::mutex> lock{in_use_mutex_};
         in_use_.emplace(chunk_ptr, std::move(chunk));
     }
+
+    if (malloc_postprocess_hook_) {
+        malloc_postprocess_hook_(*this, bytesize, chunk_ptr);
+    }
+
     return chunk_ptr;
 }
 
 void MemoryPool::Free(void* ptr) {
+    if (free_hook_) {
+        free_hook_(*this, ptr);
+    }
+
     if (ptr == nullptr) {
         return;
     }
@@ -298,6 +311,14 @@ void MemoryPool::FreeNoExcept(void* ptr) noexcept {
         CHAINERX_NEVER_REACH();
     }
 }
+
+void MemoryPool::SetMallocPreprocessHook(std::function<void(MemoryPool&, size_t)> hook) { malloc_preprocess_hook_ = std::move(hook); }
+
+void MemoryPool::SetMallocPostprocessHook(std::function<void(MemoryPool&, size_t, void*)> hook) {
+    malloc_postprocess_hook_ = std::move(hook);
+}
+
+void MemoryPool::SetFreeHook(std::function<void(MemoryPool&, void*)> hook) { free_hook_ = std::move(hook); }
 
 }  // namespace cuda
 }  // namespace chainerx

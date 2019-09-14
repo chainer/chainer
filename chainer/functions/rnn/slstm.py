@@ -1,6 +1,7 @@
 import numpy
 import six
 
+import chainerx
 from chainer import backend
 from chainer.backends import cuda
 from chainer.backends import intel64
@@ -92,6 +93,11 @@ class SLSTM(function_node.FunctionNode):
             type_check.expect(x1_type.shape[i] == c1_type.shape[i])
             type_check.expect(x2_type.shape[i] == c2_type.shape[i])
             type_check.expect(x1_type.shape[i] == x2_type.shape[i])
+
+    def forward_chainerx(self, inputs):
+        c_prev1, c_prev2, x1, x2 = inputs
+        c, h = chainerx.slstm(c_prev1, c_prev2, x1, x2)
+        return c, h
 
     def forward(self, inputs):
         self.retain_inputs((0, 1, 2, 3))

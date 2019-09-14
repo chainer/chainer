@@ -1433,13 +1433,14 @@ class Variable(object):
             if retain_grad:
                 raise RuntimeError(
                     'retain_grad is not supported for ChainerX array.')
-            if loss_scale is not None:
-                raise RuntimeError(
-                    'loss_scale is not supported for ChainerX array.')
             arr = self._data[0]
             assert isinstance(arr, chainerx.ndarray)
+            # pybind has issues when converting int -> opt<float>
+            if loss_scale:
+                loss_scale = float(loss_scale)
             chainerx.backward(
-                arr, enable_double_backprop=enable_double_backprop)
+                arr, enable_double_backprop=enable_double_backprop,
+                loss_scale=loss_scale)
             return
 
         # Initialize error by 1, if this is a loss variable

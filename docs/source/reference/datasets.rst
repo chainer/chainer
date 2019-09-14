@@ -49,6 +49,7 @@ Tabular Dataset Helpers
    :toctree: generated/
    :nosignatures:
 
+   chainer.dataset.tabular.DelegateDataset
    chainer.dataset.tabular.from_data
 
 

@@ -113,6 +113,8 @@ test_py37() {
 }
 
 # test_py27and35 is a test function for chainer.py27and35.
+# Despite the name, Python 2.7 is no longer tested in the master branch.
+# TODO(niboshi): Completely remove Python 2.7 after discontinuing v6 series.
 test_py27and35() {
   #-----------------------------------------------------------------------------
   # Configure parameters
@@ -130,34 +132,11 @@ test_py27and35() {
   #-----------------------------------------------------------------------------
   # Install Chainer
   #-----------------------------------------------------------------------------
-  # Install Chainer for python2.7.
-  if ! python2.7 -m pip install /chainer[test] 2>&1 >/tmp/install-py27.log; then
-    cat /tmp/install-py27.log
-    exit 1
-  fi
-  # Install Chainer for python3.5 asynchronously.
-  # NOTE: Installation of python3.5 takes much longer time because it requires
-  # ChainerX builds.  It is difficult to speed up with parallelization, so this
-  # script runs it in the background of python2.7 unit testing.
+  # Install Chainer for python3.5.
   CHAINER_BUILD_CHAINERX=1 CHAINERX_BUILD_CUDA=1 MAKEFLAGS="-j$(nproc)" \
   CHAINERX_NVCC_GENERATE_CODE=arch=compute_70,code=sm_70 \
       python3.5 -m pip install /chainer[test] 2>&1 >/tmp/install-py35.log &
   install_pid=$!
-
-  #-----------------------------------------------------------------------------
-  # Test python2.7
-  #-----------------------------------------------------------------------------
-  xpytest_args=(
-      --python=python2.7 -m "${marker}"
-      --bucket="${bucket}" --thread="$(( XPYTEST_NUM_THREADS / bucket ))"
-      --hint="/chainer/.pfnci/hint.pbtxt"
-  )
-  if [ "${SPREADSHEET_ID:-}" != '' ]; then
-    xpytest_args+=(--spreadsheet_id="${SPREADSHEET_ID}")
-  fi
-  OMP_NUM_THREADS=1 xpytest "${xpytest_args[@]}" \
-      '/chainer/tests/chainer_tests/**/test_*.py' && :
-  py27_test_status=$?
 
   #-----------------------------------------------------------------------------
   # Test python3.5
@@ -182,9 +161,8 @@ test_py27and35() {
   #-----------------------------------------------------------------------------
   # Finalize
   #-----------------------------------------------------------------------------
-  echo "py27_test_status=${py27_test_status}"
   echo "py35_test_status=${py35_test_status}"
-  exit $((py27_test_status || py35_test_status))
+  exit ${py35_test_status}
 }
 
 ################################################################################

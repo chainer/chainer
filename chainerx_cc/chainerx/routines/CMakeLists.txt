@@ -4,6 +4,7 @@ add_library(chainerx_routines STATIC
     binary.cc
     connection.cc
     creation.cc
+    evaluation.cc
     explog.cc
     hyperbolic.cc
     indexing.cc
@@ -18,6 +19,7 @@ add_library(chainerx_routines STATIC
     rounding.cc
     sorting.cc
     statistics.cc
+    n_step_rnn.cc
     trigonometric.cc
     type_util.cc
 )
@@ -28,6 +30,7 @@ install(FILES
     binary.h
     connection.h
     creation.h
+    evaluation.h
     explog.h
     hyperbolic.h
     indexing.h
@@ -43,6 +46,7 @@ install(FILES
     routines_util.h
     sorting.h
     statistics.h
+    n_step_rnn.h
     trigonometric.h
     type_util.h
     DESTINATION include/chainerx/routines
