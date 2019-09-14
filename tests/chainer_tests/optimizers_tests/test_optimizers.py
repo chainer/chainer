@@ -46,6 +46,20 @@ class SimpleChain(chainer.Chain):
         return F.sum((x - self.w) ** 2)
 
 
+class TestAllOptimizersCoverage(unittest.TestCase):
+    # Checks _all_optimizers covers all the built-in optimizers.
+
+    def test_all_optimizers_coverage(self):
+        module = chainer.optimizers
+        module_optimizers = []
+        for name in dir(module):
+            obj = getattr(module, name)
+            if (isinstance(obj, type) and issubclass(obj, chainer.Optimizer)):
+                module_optimizers.append(name)
+
+        assert sorted(_all_optimizers) == sorted(module_optimizers)
+
+
 @testing.backend.inject_backend_tests(
     None,
     [

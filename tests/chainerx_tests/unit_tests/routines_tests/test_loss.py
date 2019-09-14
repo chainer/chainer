@@ -137,3 +137,61 @@ class TestHuberLoss(LossBase):
         else:
             out = xp.huber_loss(x, t, self.delta, reduce='no')
         return out,
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    chainer.testing.product([
+        chainer.testing.from_pytest_parameterize(
+            'shape', [
+                (2, 2),
+                (3, 3, 3),
+                (5, 5, 5),
+                (4, 1, 2, 4)
+            ]),
+        chainer.testing.from_pytest_parameterize(
+            'in_dtypes,out_dtype', _in_out_loss_dtypes),
+    ])
+))
+class TestSigmoidCrossEntropy(LossBase):
+
+    def generate_inputs(self):
+        y = numpy.random.normal(loc=0, scale=1.0, size=self.shape)
+        targ = numpy.random.normal(loc=0, scale=1.0, size=self.shape) + \
+            numpy.random.normal(loc=0, scale=0.5, size=self.shape)
+        self.t = targ
+        return y,
+
+    def forward_xp(self, inputs, xp):
+        x, = inputs
+        # TODO(aksub99): Improve implementation to avoid non-differentiability
+        # wrt targets
+        if xp is chainerx:
+            t = self.backend_config.get_array(self.t)
+            t = t.astype(numpy.int64)
+            out = xp.sigmoid_cross_entropy(x, t)
+        else:
+            t = self.t.astype(numpy.int64)
+            out = xp.sigmoid_cross_entropy(x, t, normalize=False, reduce='no')
+        return out,
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    chainer.testing.product([
+        chainer.testing.from_pytest_parameterize(
+            'shape', [
+                (2, 2),
+                (3, 3, 3),
+                (5, 5, 5),
+                (4, 1, 2, 4)
+            ]),
+        chainer.testing.from_pytest_parameterize(
+            'in_dtypes,out_dtype', _in_out_loss_dtypes)
+    ])
+))
+class TestMeanSquaredError(LossBase):
+
+    def forward_xp(self, inputs, xp):
+        x1, x2 = inputs
+        return xp.mean_squared_error(x1, x2),

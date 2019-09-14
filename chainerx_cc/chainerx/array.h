@@ -84,6 +84,8 @@ public:
     Array& operator*=(Scalar rhs);
     Array& operator/=(const Array& rhs);
     Array& operator/=(Scalar rhs);
+    Array& operator%=(const Array& rhs);
+    Array& operator%=(Scalar rhs);
     Array& operator&=(const Array& rhs);
     Array& operator&=(Scalar rhs);
     Array& operator|=(const Array& rhs);
@@ -103,6 +105,8 @@ public:
     const Array& operator*=(Scalar rhs) const;
     const Array& operator/=(const Array& rhs) const;
     const Array& operator/=(Scalar rhs) const;
+    const Array& operator%=(const Array& rhs) const;
+    const Array& operator%=(Scalar rhs) const;
     const Array& operator&=(const Array& rhs) const;
     const Array& operator&=(Scalar rhs) const;
     const Array& operator|=(const Array& rhs) const;
@@ -122,6 +126,8 @@ public:
     Array operator*(Scalar rhs) const;
     Array operator/(const Array& rhs) const;
     Array operator/(Scalar rhs) const;
+    Array operator%(const Array& rhs) const;
+    Array operator%(Scalar rhs) const;
     Array operator&(const Array& rhs) const;
     Array operator&(Scalar rhs) const;
     Array operator|(const Array& rhs) const;
@@ -138,6 +144,8 @@ public:
 
     // Returns a transposed view of the array.
     Array Transpose(const OptionalAxes& axes = absl::nullopt) const;
+
+    Array Ravel() const;
 
     // Returns a reshaped array.
     // TODO(niboshi): Support shape with dimension -1.
@@ -327,6 +335,7 @@ Array operator+(Scalar lhs, const Array& rhs);
 Array operator-(Scalar lhs, const Array& rhs);
 Array operator*(Scalar lhs, const Array& rhs);
 Array operator/(Scalar lhs, const Array& rhs);
+Array operator%(Scalar lhs, const Array& rhs);
 
 Array operator<<(Scalar lhs, const Array& rhs);
 Array operator>>(Scalar lhs, const Array& rhs);
