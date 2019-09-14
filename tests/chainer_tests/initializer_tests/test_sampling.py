@@ -13,7 +13,7 @@ import numpy
         initializers.DownsamplingConvFilter,
     ],
     'interpolation': ['linear'],
-    'shape': [(5, 5, 3, 3), (5, 1, 3, 3)],
+    'shape': [(5, 5, 3, 3), (5, 5, 6, 6), (5, 1, 3, 3), (5, 1, 4, 4)],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
 }))
 class TestUpsamplingDeconvFilter(unittest.TestCase):
