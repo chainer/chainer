@@ -23,9 +23,11 @@ class TestUpsamplingDeconvFilter(unittest.TestCase):
             interpolation=self.interpolation, dtype=self.dtype)
         initializer(w)
         if self.target == initializers.UpsamplingDeconvFilter:
-            self.assertEqual(w.sum(), 4.0 * self.shape[0])
+            w_sum = ((numpy.array(self.shape[2:]) + 1) // 2).prod()
+            w_sum = w_sum * self.shape[0]
+            self.assertAlmostEqual(w.sum(), w_sum)
         else:
-            self.assertEqual(w.sum(), 1.0 * self.shape[0])
+            self.assertAlmostEqual(w.sum(), 1.0 * self.shape[0])
         self.assertTupleEqual(w.shape, self.shape)
         self.assertEqual(w.dtype, self.dtype)
 
