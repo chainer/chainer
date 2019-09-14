@@ -14,9 +14,9 @@ def _get_linear_filter(size, ndim, upsampling=True):
         center = factor - 1.
     else:
         center = factor - 0.5
-    slices = (slice(None, size),) * ndim
+    slices = (slice(size),) * ndim
     og = numpy.ogrid[slices]
-    filt = 1
+    filt = 1.
     for og_i in og:
         filt = filt * (1. - abs(og_i - center) / factor)
     if not upsampling:
