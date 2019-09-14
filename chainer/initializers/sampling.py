@@ -48,7 +48,9 @@ class _SamplingFilter(initializer.Initializer):
             if ksize is None:
                 ksize = k
             else:
-                assert ksize == k
+                if ksize != k:
+                    raise ValueError(
+                        'ksize must be all same: {} != {}'.format(ksize, k))
 
         filt = self._get_filter_func(
             ksize, ndim=array.ndim - 2, upsampling=self._upsampling)
