@@ -53,11 +53,11 @@ class VGG(chainer.Chain):
     no data augmentation.
 
     Args:
-        num_class_labels (int): The number of class labels.
+        n_class_labels (int): The number of class labels.
 
     """
 
-    def __init__(self, num_class_labels=10):
+    def __init__(self, n_class_labels=10):
         super(VGG, self).__init__()
         with self.init_scope():
             self.block1_1 = Block(64, 3)
@@ -75,7 +75,7 @@ class VGG(chainer.Chain):
             self.block5_3 = Block(512, 3)
             self.fc1 = L.Linear(None, 512, nobias=True)
             self.bn_fc1 = L.BatchNormalization(512)
-            self.fc2 = L.Linear(None, num_class_labels, nobias=True)
+            self.fc2 = L.Linear(None, n_class_labels, nobias=True)
 
     def forward(self, x):
         # 64 channel blocks:
