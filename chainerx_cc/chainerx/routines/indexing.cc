@@ -297,40 +297,25 @@ Array Where(const Array& condition, Scalar x, Scalar y) {
 }
 
 std::vector<Array> Nonzero(const Array& a) {
-    std::vector<Array> out;
     if (a.ndim() == 0) {
         throw DimensionError{"0-dim inputs not allowed."};
     }
-    int64_t total_size = a.GetTotalSize();
-    Array a_flatten = a.Reshape({total_size});
-    Array is_nonzero = a_flatten != ZerosLike(a_flatten);
+
+    NoBackpropModeScope scope{};
+    Array is_nonzero = (a != ZerosLike(a)).Ravel();
     int64_t count_nonzero = static_cast<int64_t>(AsScalar(is_nonzero.Sum()));
-    if (count_nonzero == 0) {
-        out.push_back(Zeros(
-                {
-                        0,
-                },
-                Dtype::kInt64));
-        return out;
-    }
-    Array out_flatten = Zeros(Shape{count_nonzero}, a.dtype(), a.device());
-    Array addat_index = Maximum(Cumsum(is_nonzero) - 1, Scalar{0});
-    Array indices = Arange(a_flatten.GetTotalSize()).AsType(out_flatten.dtype());
-    addat_index = Where(a_flatten == ZerosLike(a_flatten), 0, addat_index);
-    indices = Where(a_flatten == ZerosLike(a_flatten), 0, indices);
-    out_flatten = AddAt(out_flatten, addat_index, 0, indices);
-
-    if (a.ndim() == 1) {
-        out.push_back(out_flatten.AsType(Dtype::kInt64));
-        return out;
+    Array raw_index = Zeros(Shape{count_nonzero}, Dtype::kInt64, a.device());
+    if (count_nonzero > 0) {
+        Array addat_indices = Where(is_nonzero, Maximum(Cumsum(is_nonzero) - 1, 0), 0);
+        Array indices = Where(is_nonzero, Arange(a.GetTotalSize(), Dtype::kInt64), 0);
+        a.device().backend().CallKernel<AddAtKernel>(raw_index, std::move(addat_indices), 0, std::move(indices), raw_index);
     }
 
-    int64_t prod_before = 1;
-    for (int64_t i = 0; i < a.ndim(); ++i) {
-        Scalar dim{a.shape()[i]};
-        prod_before *= a.shape()[i];
-        Array divide = FloorDivide(out_flatten, a.GetTotalSize() / prod_before);
-        out.push_back((divide - FloorDivide(divide, a.shape()[i]) * a.shape()[i]).AsType(Dtype::kInt64));
+    std::vector<Array> out;
+    out.reserve(a.ndim());
+    for (int8_t i = 0; i < a.ndim(); ++i) {
+        int64_t step = Shape{a.shape().begin() + i + 1, a.shape().end()}.GetTotalSize();
+        out.emplace_back(FloorDivide(raw_index, step) % a.shape()[i]);
     }
     return out;
 }
