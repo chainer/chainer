@@ -47,8 +47,7 @@ class TestZeta(testing.FunctionTestCase):
         x, q = inputs
         import scipy
         y_expect = scipy.special.zeta(x, q)
-        return numpy.array(y_expect)
-        ,
+        return numpy.array(y_expect),
 
     def forward(self, inputs, device):
         x, q = inputs
