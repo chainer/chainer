@@ -39,7 +39,7 @@ class TestZeta(testing.FunctionTestCase):
         self.check_double_backward_options = {'atol': 1e-4, 'rtol': 1e-4}
 
     def generate_inputs(self):
-        x = numpy.array(numpy.random.rand(1).astype(numpy.float64))
+        x = numpy.array(numpy.random.uniform(5, 10))
         q = numpy.array(numpy.random.uniform(1, 10))
         return x, q
 
@@ -47,7 +47,8 @@ class TestZeta(testing.FunctionTestCase):
         x, q = inputs
         import scipy
         y_expect = scipy.special.zeta(x, q)
-        return y_expect.astype(numpy.float64),
+        return numpy.array(y_expect)
+        ,
 
     def forward(self, inputs, device):
         x, q = inputs
@@ -63,7 +64,7 @@ class TestZetaExceptions(unittest.TestCase):
     def setUp(self):
         self.x = \
             numpy.array(numpy.random.uniform(1, 10))
-        self.q = numpy.array(numpy.random.rand(1).astype(numpy.float64))
+        self.q = numpy.array(numpy.random.uniform(5, 10))
         self.func = F.zeta
 
     def check_forward(self, q_data, x_data):
