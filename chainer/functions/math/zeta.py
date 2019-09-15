@@ -42,7 +42,7 @@ class Zeta(function_node.FunctionNode):
 
     def backward(self, indexes, gy):
         x, q = self.get_retained_inputs()
-        return None, zeta(x + 1, q) * gy[0],
+        return None, zeta(x - 1, q) * -gy[0],
 
 
 def zeta(x, q):

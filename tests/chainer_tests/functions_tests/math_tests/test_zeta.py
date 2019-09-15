@@ -31,10 +31,7 @@ from chainer import testing
 class TestZeta(testing.FunctionTestCase):
 
     def setUp(self):
-        if self.dtype == numpy.float16:
-            self.check_forward_options = {'atol': 1e-2, 'rtol': 1e-2}
-        else:
-            self.check_forward_options = {'atol': 1e-4, 'rtol': 1e-4}
+        self.check_forward_options = {'atol': 1e-4, 'rtol': 1e-4}
         self.check_backward_options = {'atol': 1e-4, 'rtol': 1e-4}
         self.check_double_backward_options = {'atol': 1e-4, 'rtol': 1e-4}
 
