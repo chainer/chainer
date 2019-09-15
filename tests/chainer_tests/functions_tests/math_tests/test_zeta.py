@@ -31,9 +31,9 @@ from chainer import testing
 class TestZeta(testing.FunctionTestCase):
 
     def setUp(self):
-        self.check_forward_options = {'atol': 1e-4, 'rtol': 1e-4}
-        self.check_backward_options = {'atol': 1e-4, 'rtol': 1e-4}
-        self.check_double_backward_options = {'atol': 1e-4, 'rtol': 1e-4}
+        self.check_forward_options = {'atol': 5e-4, 'rtol': 1e-1}
+        self.check_backward_options = {'atol': 5e-4, 'rtol': 1e-1}
+        self.check_double_backward_options = {'atol': 5e-4, 'rtol': 1}
 
     def generate_inputs(self):
         x = numpy.array(numpy.random.uniform(5, 10))
