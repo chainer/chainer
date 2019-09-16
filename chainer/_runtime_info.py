@@ -56,6 +56,25 @@ def _get_runtime_info():
 
 
 def print_runtime_info(out=None):
+    """Show Chainer runtime information.
+
+    Runtime information includes:
+    - OS platform
+    - Chainer version
+    - ChainerX version
+    - NumPy version
+    - CuPy version
+      - CUDA information
+      - cuDNN information
+      - NCCL information
+    - iDeep version
+
+    Args:
+        out: Output destination.
+            If it is None, runtime information will be shown in `sys.stdout`.
+
+    """
+    print()
     if out is None:
         out = sys.stdout
     out.write(str(_get_runtime_info()))
