@@ -2,12 +2,13 @@ import random
 
 import chainer
 from chainer import dataset
+from chainer import datasets
 
 
-class PreprocessedDataset(chainer.dataset.DatasetMixin):
+class PreprocessedDataset(dataset.DatasetMixin):
 
     def __init__(self, path, root, mean, crop_size, random=True):
-        self.base = chainer.datasets.LabeledImageDataset(path, root)
+        self.base = datasets.LabeledImageDataset(path, root)
         self.mean = mean.astype(chainer.get_dtype())
         self.crop_size = crop_size
         self.random = random
