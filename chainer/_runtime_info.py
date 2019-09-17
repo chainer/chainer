@@ -75,7 +75,6 @@ def print_runtime_info(out=None):
             will be shown in ``sys.stdout``.
 
     """
-    print()
     if out is None:
         out = sys.stdout
     out.write(str(_get_runtime_info()))
