@@ -105,6 +105,7 @@ Indexing routines
 
    chainerx.take
    chainerx.where
+   chainerx.nonzero
 
 Linear algebra
 --------------
