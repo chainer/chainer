@@ -31,24 +31,25 @@ from chainer import testing
 class TestZeta(testing.FunctionTestCase):
 
     def setUp(self):
-        self.check_forward_options = {'atol': 1, 'rtol': 1}
-        self.check_backward_options = {'atol': 1, 'rtol': 1}
-        self.check_double_backward_options = {'atol': 1, 'rtol': 1}
+        self.check_forward_options = {'atol': 1e-3, 'rtol': 1e-3}
+        self.check_backward_options = {'atol': 1e-3, 'rtol': 1e-3}
+        self.check_double_backward_options = {'atol': 1e-3, 'rtol': 1e-3}
+
+        self._x = numpy.array(numpy.random.uniform(5, 10))
 
     def generate_inputs(self):
-        x = numpy.array(numpy.random.uniform(5, 10))
         q = numpy.array(numpy.random.uniform(1, 10))
-        return x, q
+        return q,
 
     def forward_expected(self, inputs):
-        x, q = inputs
+        q, = inputs
         import scipy
-        y_expect = scipy.special.zeta(x, q)
+        y_expect = scipy.special.zeta(self._x, q)
         return numpy.array(y_expect),
 
     def forward(self, inputs, device):
-        x, q = inputs
-        y = F.zeta(x, q)
+        q, = inputs
+        y = F.zeta(device.send(self._x), q)
         return y,
 
 
@@ -58,19 +59,16 @@ class TestZeta(testing.FunctionTestCase):
 @testing.without_requires('scipy')
 class TestZetaExceptions(unittest.TestCase):
     def setUp(self):
-        self.x = \
-            numpy.array(numpy.random.uniform(1, 10))
         self.q = numpy.array(numpy.random.uniform(5, 10))
         self.func = F.zeta
 
-    def check_forward(self, q_data, x_data):
-        x = chainer.Variable(x_data)
+    def check_forward(self, q_data):
         q = chainer.Variable(q_data)
         with self.assertRaises(ImportError):
-            self.func(q, x)
+            self.func(q, self._x)
 
     def test_zeta_forward_cpu(self):
-        self.check_forward(self.q, self.x)
+        self.check_forward(self.q)
 
 
 testing.run_module(__name__, __file__)

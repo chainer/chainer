@@ -9,20 +9,22 @@ _zeta_cpu = None
 
 class Zeta(function_node.FunctionNode):
 
+    def __init__(self, x):
+        self._x = x
+
     @property
     def label(self):
         return 'zeta'
 
     def check_type_forward(self, in_types):
-        type_check._argname(in_types, ('x', 'q'))
-        x_type, q_type = in_types
+        type_check._argname(in_types, ('q'))
+        q_type, = in_types
         type_check.expect(
-            x_type.dtype.kind == 'f',
-            q_type.dtype.kind == 'f',
+            q_type.dtype.kind == 'f'
         )
 
     def forward_cpu(self, inputs):
-        x, q = inputs
+        q, = inputs
         global _zeta_cpu
         if _zeta_cpu is None:
             try:
@@ -31,18 +33,18 @@ class Zeta(function_node.FunctionNode):
             except ImportError:
                 raise ImportError('Scipy is not available. Forward computation'
                                   ' of zeta cannot be done.')
-        self.retain_inputs((0, 1))
-        return utils.force_array(_zeta_cpu(x, q), dtype=x.dtype),
+        self.retain_inputs((0,))
+        return utils.force_array(_zeta_cpu(self._x, q), dtype=q.dtype),
 
     def forward_gpu(self, inputs):
-        x, q = inputs
-        self.retain_inputs((0, 1))
+        q, = inputs
+        self.retain_inputs((0,))
         return utils.force_array(
-            cuda.cupyx.scipy.special.zeta(x, q), dtype=x.dtype),
+            cuda.cupyx.scipy.special.zeta(self._x, q), dtype=self._x.dtype),
 
     def backward(self, indexes, gy):
-        x, q = self.get_retained_inputs()
-        return gy[0] * -x * zeta(x + 1, q), gy[0] * -x * zeta(x + 1, q),
+        q, = self.get_retained_inputs()
+        return gy[0] * -self._x * zeta(self._x + 1, q),
 
 
 def zeta(x, q):
@@ -59,4 +61,4 @@ def zeta(x, q):
     Returns:
         ~chainer.Variable: Output variable.
     """
-    return Zeta().apply((x, q))[0]
+    return Zeta(x).apply((q,))[0]
