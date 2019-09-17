@@ -155,7 +155,6 @@ Loss functions
 
    chainerx.absolute_error
    chainerx.squared_error
-   chainerx.mean_squared_error
    chainerx.huber_loss
    chainerx.gaussian_kl_divergence
 

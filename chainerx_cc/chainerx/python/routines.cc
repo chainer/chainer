@@ -1229,10 +1229,6 @@ void InitChainerxLoss(pybind11::module& m) {
           [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return MoveArrayBody(SigmoidCrossEntropy(Array{x1}, Array{x2})); },
           "x1"_a,
           "x2"_a);
-    m.def("mean_squared_error",
-          [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return MoveArrayBody(MeanSquaredError(Array{x1}, Array{x2})); },
-          "x1"_a,
-          "x2"_a);
 }
 void InitChainerxRNN(pybind11::module& m) {
     m.def("n_step_lstm",

@@ -15,6 +15,4 @@ Array HuberLoss(const Array& x1, const Array& x2, Scalar delta);
 
 Array SigmoidCrossEntropy(const Array& x1, const Array& x2);
 
-Array MeanSquaredError(const Array& x1, const Array& x2);
-
 }  // namespace chainerx

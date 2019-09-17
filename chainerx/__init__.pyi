@@ -863,9 +863,6 @@ def max_pool(
 def maximum(x1: tp.Any, x2: tp.Any) -> ndarray: ...
 
 
-def mean_squared_error(x1: tp.Any, x2: tp.Any) -> ndarray: ...
-
-
 def minimum(x1: tp.Any, x2: tp.Any) -> ndarray: ...
 
 
