@@ -266,6 +266,8 @@ class MultiprocessParallelUpdater(standard_updater.StandardUpdater):
         for worker in self._workers:
             worker.join()
 
+        super(MultiprocessParallelUpdater, self).finalize()
+
 
 def _calc_loss(model, in_arrays):
     if isinstance(in_arrays, tuple):
