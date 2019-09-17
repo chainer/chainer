@@ -71,7 +71,8 @@ def print_runtime_info(out=None):
 
     Args:
         out: Output destination.
-            If it is None, runtime information will be shown in `sys.stdout`.
+            If it is ``None``, runtime information
+            will be shown in ``sys.stdout``.
 
     """
     print()
