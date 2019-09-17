@@ -1,9 +1,5 @@
 #pragma once
 
-#include <cstdint>
-
-#include <absl/types/optional.h>
-
 #include "chainerx/array.h"
 #include "chainerx/scalar.h"
 
