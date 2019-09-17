@@ -56,7 +56,7 @@ def _get_runtime_info():
 
 
 def print_runtime_info(out=None):
-    """Show Chainer runtime information.
+    """Shows Chainer runtime information.
 
     Runtime information includes:
     - OS platform
