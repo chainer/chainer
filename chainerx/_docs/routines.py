@@ -3114,17 +3114,17 @@ Returns:
 
     >>> x = chainerx.array([2, 1]).astype(chainerx.int32)
     >>> x
-    array([2, 1], dtype=int32)
+    array([2, 1], shape=(2,), dtype=int32, device='native:0')
     >>> W = chainerx.array([[0, 0, 0],
     ...               [1, 1, 1],
     ...               [2, 2, 2]]).astype(chainerx.float32)
     >>> W
     array([[0., 0., 0.],
-           [1., 1., 1.],
-           [2., 2., 2.]], dtype=float32)
+       [1., 1., 1.],
+       [2., 2., 2.]], shape=(3, 3), dtype=float32, device='native:0')
     >>> y = chainerx.embed_id(x, W)
     array([[2., 2., 2.],
-           [1., 1., 1.]], dtype=float32)
+       [1., 1., 1.]], shape=(2, 3), dtype=float32, device='native:0')
     """)
 
 
