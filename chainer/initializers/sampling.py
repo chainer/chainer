@@ -58,9 +58,9 @@ class _SamplingFilter(initializer.Initializer):
 
         array[...] = 0.
         if out_c == 1:
-            array[range(in_c), 0, ...] = filt
+            array[xp.arange(in_c), 0, ...] = filt
         else:
-            array[range(in_c), range(out_c), ...] = filt
+            array[xp.arange(in_c), xp.arange(out_c), ...] = filt
 
 
 class UpsamplingDeconvFilter(_SamplingFilter):
