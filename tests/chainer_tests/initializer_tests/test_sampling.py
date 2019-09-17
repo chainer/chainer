@@ -25,9 +25,9 @@ class TestUpsamplingDeconvFilter(unittest.TestCase):
         if self.target == initializers.UpsamplingDeconvFilter:
             w_sum = ((numpy.array(self.shape[2:]) + 1) // 2).prod()
             w_sum = w_sum * self.shape[0]
-            self.assertAlmostEqual(w.sum(), w_sum)
+            self.assertAlmostEqual(cuda.to_cpu(w).sum(), w_sum)
         else:
-            self.assertAlmostEqual(w.sum(), 1.0 * self.shape[0])
+            self.assertAlmostEqual(cuda.to_cpu(w).sum(), 1.0 * self.shape[0])
         self.assertTupleEqual(w.shape, self.shape)
         self.assertEqual(w.dtype, self.dtype)
 
