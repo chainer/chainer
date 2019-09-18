@@ -3,7 +3,6 @@ import unittest
 import numpy
 
 from chainer import testing
-from chainer.testing import condition
 
 
 @testing.parameterize(*testing.product({
