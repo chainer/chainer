@@ -40,7 +40,7 @@ class Zeta(function_node.FunctionNode):
         q, = inputs
         self.retain_inputs((0,))
         return utils.force_array(
-            cuda.cupyx.scipy.special.zeta(self._x, q), dtype=self._x.dtype),
+            cuda.cupyx.scipy.special.zeta(self._x, q), dtype=q.dtype),
 
     def backward(self, indexes, gy):
         q, = self.get_retained_inputs()
