@@ -4,7 +4,6 @@ import functools
 import os
 import random
 import types
-import unittest
 
 import numpy
 
@@ -118,38 +117,43 @@ def fix_random():
 
         if isinstance(impl, _bundle._ParameterizedTestCaseBundle):
             cases = impl
-        elif isinstance(impl, type) and issubclass(impl, unittest.TestCase):
+        else:
             tup = _bundle._TestCaseTuple(impl, None, None)
             cases = _bundle._ParameterizedTestCaseBundle([tup])
-        else:
-            raise ValueError('Can\'t apply fix_random to {}'.format(impl))
 
-        for case, _, _ in cases.cases:
+        for klass, _, _ in cases.cases:
             # Applied to test case class
-            klass = case
+            if hasattr(klass, 'setUp'):
+                setup_method_name = 'setUp'
+                teardown_method_name = 'tearDown'
+            else:
+                setup_method_name = 'setup'
+                teardown_method_name = 'teardown'
 
             def make_methods():
-                # make_methods is required to bind the variables setUp_ and
-                # tearDown_.
+                # make_methods is required to bind the variables prev_setup and
+                # prev_teardown.
+                prev_setup = getattr(klass, setup_method_name)
+                prev_teardown = getattr(klass, teardown_method_name)
 
-                setUp_ = klass.setUp
-                tearDown_ = klass.tearDown
-
-                @functools.wraps(setUp_)
+                @functools.wraps(prev_setup)
                 def setUp(self):
                     _setup_random()
-                    setUp_(self)
+                    prev_setup(self)
 
-                @functools.wraps(tearDown_)
+                @functools.wraps(prev_teardown)
                 def tearDown(self):
                     try:
-                        tearDown_(self)
+                        prev_teardown(self)
                     finally:
                         _teardown_random()
 
                 return setUp, tearDown
 
-            klass.setUp, klass.tearDown = make_methods()
+            setup, teardown = make_methods()
+
+            setattr(klass, setup_method_name, setup)
+            setattr(klass, teardown_method_name, teardown)
 
         return cases
 
