@@ -8,7 +8,8 @@ from chainer import testing
 
 
 @testing.parameterize(*testing.product({
-    'dtype': [numpy.float16, numpy.float32, numpy.float64]
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'shape': [(5, 10)]
 }))
 @testing.inject_backend_tests(
     None,
@@ -35,10 +36,10 @@ class TestZeta(testing.FunctionTestCase):
         self.check_backward_options = {'atol': 1e-3, 'rtol': 1e-3}
         self.check_double_backward_options = {'atol': 1e-3, 'rtol': 1e-3}
 
-        self._x = numpy.array(numpy.random.uniform(5, 10))
+        self._x = numpy.random.uniform(self.shape)
 
     def generate_inputs(self):
-        q = numpy.array(numpy.random.uniform(1, 10))
+        q = numpy.random.uniform(self.shape)
         return q,
 
     def forward_expected(self, inputs):
@@ -54,12 +55,13 @@ class TestZeta(testing.FunctionTestCase):
 
 
 @testing.parameterize(*testing.product({
-    'dtype': [numpy.float16, numpy.float32, numpy.float64]
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'shape': [(5, 10)]
 }))
 @testing.without_requires('scipy')
 class TestZetaExceptions(unittest.TestCase):
     def setUp(self):
-        self.q = numpy.array(numpy.random.uniform(5, 10))
+        self.q = numpy.random.uniform(self.shape)
         self.func = F.zeta
 
     def check_forward(self, q_data):
