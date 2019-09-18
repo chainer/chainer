@@ -39,7 +39,7 @@ class TestZeta(testing.FunctionTestCase):
         self._x = numpy.random.uniform(self.shape)
 
     def generate_inputs(self):
-        q = numpy.random.uniform(self.shape)
+        q = numpy.random.uniform(self.shape).astype(self._x.dtype)
         return q,
 
     def forward_expected(self, inputs):
@@ -61,7 +61,7 @@ class TestZeta(testing.FunctionTestCase):
 @testing.without_requires('scipy')
 class TestZetaExceptions(unittest.TestCase):
     def setUp(self):
-        self.q = numpy.random.uniform(self.shape)
+        self.q = numpy.random.uniform(self.shape).astype(self._x.dtype)
         self.func = F.zeta
 
     def check_forward(self, q_data):
