@@ -22,6 +22,9 @@
 #include "chainerx/macro.h"
 #include "chainerx/routines/arithmetic.h"
 #include "chainerx/routines/creation.h"
+#include "chainerx/routines/manipulation.h"
+#include "chainerx/routines/misc.h"
+#include "chainerx/routines/reduction.h"
 #include "chainerx/routines/type_util.h"
 #include "chainerx/shape.h"
 #include "chainerx/slice.h"
@@ -289,6 +292,30 @@ Array Where(const Array& condition, Scalar x, Scalar y) {
     {
         NoBackpropModeScope scope;
         condition.device().backend().CallKernel<WhereASSKernel>(condition, x, y, out);
+    }
+    return out;
+}
+
+std::vector<Array> Nonzero(const Array& a) {
+    if (a.ndim() == 0) {
+        throw DimensionError{"0-dim inputs not allowed."};
+    }
+
+    NoBackpropModeScope scope{};
+    Array is_nonzero = (a != ZerosLike(a)).Ravel();
+    int64_t count_nonzero = static_cast<int64_t>(AsScalar(is_nonzero.Sum()));
+    Array raw_index = Zeros(Shape{count_nonzero}, Dtype::kInt64, a.device());
+    if (count_nonzero > 0) {
+        Array addat_indices = Where(is_nonzero, Maximum(Cumsum(is_nonzero) - 1, 0), 0);
+        Array indices = Where(is_nonzero, Arange(a.GetTotalSize(), Dtype::kInt64), 0);
+        a.device().backend().CallKernel<AddAtKernel>(raw_index, std::move(addat_indices), 0, std::move(indices), raw_index);
+    }
+
+    std::vector<Array> out;
+    out.reserve(a.ndim());
+    for (int8_t i = 0; i < a.ndim(); ++i) {
+        int64_t step = Shape{a.shape().begin() + i + 1, a.shape().end()}.GetTotalSize();
+        out.emplace_back(FloorDivide(raw_index, step) % a.shape()[i]);
     }
     return out;
 }
