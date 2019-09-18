@@ -1,9 +1,9 @@
+import numpy
+import pytest
+
 import chainer
 from chainer import functions as F
-import numpy
-
 import chainerx
-
 from chainerx_tests import dtype_utils
 from chainerx_tests import op_utils
 
@@ -16,6 +16,21 @@ _in_out_loss_dtypes = dtype_utils._permutate_dtype_mapping([
     (('float64', 'float16'), 'float64'),
     (('float64', 'float32'), 'float64'),
 ])
+
+
+_loss_dtype_error = [
+    ('float16', 'float32'),
+    ('float16', 'float64'),
+    ('float32', 'float16'),
+    ('float32', 'float64'),
+    ('float64', 'float16'),
+    ('float64', 'float32'),
+    ('bool_', 'bool_'),
+    ('int64', 'int64'),
+    ('uint8', 'uint8'),
+    ('float32', 'int32'),
+    ('int16', 'float32'),
+]
 
 
 class LossBase(op_utils.ChainerOpTest):
@@ -58,6 +73,16 @@ class TestSquaredError(LossBase):
         return xp.squared_error(x1, x2),
 
 
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('dtype1,dtype2', _loss_dtype_error)
+def test_squared_error_invalid_dtypes(device, dtype1, dtype2):
+    shape = (3, 2)
+    x1 = chainerx.ones(shape, dtype=dtype1)
+    x2 = chainerx.ones(shape, dtype=dtype2)
+    with pytest.raises(chainerx.DtypeError):
+        chainerx.squared_error(x1, x2)
+
+
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
     chainer.testing.product([
@@ -80,6 +105,16 @@ class TestAbsoluteError(LossBase):
     def forward_xp(self, inputs, xp):
         x1, x2 = inputs
         return xp.absolute_error(x1, x2),
+
+
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('dtype1,dtype2', _loss_dtype_error)
+def test_absolute_error_invalid_dtypes(device, dtype1, dtype2):
+    shape = (3, 2)
+    x1 = chainerx.ones(shape, dtype=dtype1)
+    x2 = chainerx.ones(shape, dtype=dtype2)
+    with pytest.raises(chainerx.DtypeError):
+        chainerx.absolute_error(x1, x2)
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
@@ -105,6 +140,16 @@ class TestGaussianKLDivergence(LossBase):
         else:
             out = xp.gaussian_kl_divergence(mean, ln_var, reduce='no')
         return out,
+
+
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('dtype1,dtype2', _loss_dtype_error)
+def test_gaussian_kl_divergence_invalid_dtypes(device, dtype1, dtype2):
+    shape = (3, 2)
+    x1 = chainerx.ones(shape, dtype=dtype1)
+    x2 = chainerx.ones(shape, dtype=dtype2)
+    with pytest.raises(chainerx.DtypeError):
+        chainerx.gaussian_kl_divergence(x1, x2)
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
@@ -137,6 +182,16 @@ class TestHuberLoss(LossBase):
         else:
             out = xp.huber_loss(x, t, self.delta, reduce='no')
         return out,
+
+
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('dtype1,dtype2', _loss_dtype_error)
+def test_huber_loss_invalid_dtypes(device, dtype1, dtype2):
+    shape = (3, 2)
+    x1 = chainerx.ones(shape, dtype=dtype1)
+    x2 = chainerx.ones(shape, dtype=dtype2)
+    with pytest.raises(chainerx.DtypeError):
+        chainerx.huber_loss(x1, x2, 0.1)
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
@@ -174,3 +229,30 @@ class TestSigmoidCrossEntropy(LossBase):
             t = self.t.astype(numpy.int64)
             out = xp.sigmoid_cross_entropy(x, t, normalize=False, reduce='no')
         return out,
+
+
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('dtype1,dtype2', [
+    ('float16', 'float16'),
+    ('float32', 'float32'),
+    ('float64', 'float64'),
+    ('float16', 'float32'),
+    ('float32', 'float64'),
+    ('float64', 'float16'),
+    ('float16', 'uint8'),
+    ('float32', 'uint8'),
+    ('float64', 'uint8'),
+    ('float16', 'bool_'),
+    ('float32', 'bool_'),
+    ('float64', 'bool_'),
+    ('bool_', 'bool_'),
+    ('int32', 'int32'),
+    ('uint8', 'uint8'),
+    ('int32', 'float64'),
+])
+def test_sigmoid_cross_entropy_invalid_dtypes(device, dtype1, dtype2):
+    shape = (3, 2)
+    x1 = chainerx.ones(shape, dtype=dtype1)
+    x2 = chainerx.ones(shape, dtype=dtype2)
+    with pytest.raises(chainerx.DtypeError):
+        chainerx.sigmoid_cross_entropy(x1, x2)
