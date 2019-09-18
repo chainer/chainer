@@ -283,7 +283,8 @@ class UpdateRule(object):
             self._init_states(param_)
 
             # Apply loss scaling
-            if loss_scale is not None:
+            if (loss_scale is not None
+                    and not isinstance(param_.array, chainerx.ndarray)):
                 param_.grad /= loss_scale
 
         # Call update_core

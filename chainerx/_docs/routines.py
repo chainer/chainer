@@ -578,6 +578,23 @@ Note:
 .. seealso:: :func:`numpy.where`
 """)
 
+    _docs.set_doc(
+        chainerx.nonzero,
+        """nonzero(a)
+Return the indices of the elements that are non-zero.
+
+Args:
+    a (~chainerx.ndarray): Input array.
+
+Returns:
+    tuple of :func:`~chainerx.ndarray`: Indices of elements that are non-zero.
+
+Note:
+    During backpropagation, this function does not propagate gradients.
+
+.. seealso:: :func:`numpy.nonzero`
+""")
+
 
 def _docs_linalg():
     _docs.set_doc(

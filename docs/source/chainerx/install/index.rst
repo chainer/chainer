@@ -1,7 +1,7 @@
+.. _chainerx_install:
+
 Installation
 ============
-
-.. _chainerx_install:
 
 ChainerX, or ``chainerx``, can be installed as a top level Python package along with Chainer by configuring the environment variables below.
 

@@ -149,7 +149,7 @@ private:
 
 #define CHAINERX_TEST_THREAD_SAFE_COMMON_CLASS_(test_case_name, parent_class)        \
                                                                                      \
-    /* NOLINTNEXTLINE(misc-macro-parentheses) */                                     \
+    /* NOLINTNEXTLINE(misc-macro-parentheses,bugprone-macro-parentheses) */          \
     class test_case_name : public parent_class, public testing::ThreadSafeTestBase { \
     protected:                                                                       \
         using ThreadSafeTestBase::Run;                                               \
@@ -171,7 +171,7 @@ private:
 // Replaces the TEST_P macro.
 #define CHAINERX_TEST_THREAD_SAFE_TEST_P_(test_case_name, test_name, parent_class)                                                    \
                                                                                                                                       \
-    /* NOLINTNEXTLINE(misc-macro-parentheses) */                                                                                      \
+    /* NOLINTNEXTLINE(misc-macro-parentheses,bugprone-macro-parentheses) */                                                           \
     class CHAINERX_TEST_DUMMY_CLASS_NAME_(test_case_name, test_name) : public parent_class {                                          \
     public:                                                                                                                           \
         CHAINERX_TEST_DUMMY_CLASS_NAME_(test_case_name, test_name)() {}                                                               \

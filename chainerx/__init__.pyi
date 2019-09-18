@@ -735,6 +735,9 @@ def flipud(a: ndarray) -> ndarray: ...
 def floor(x: ndarray) -> ndarray: ...
 
 
+def fmod(x: ndarray) -> ndarray: ...
+
+
 def frombuffer(
         buffer: tp.Any,
         dtype: tp.Optional[tp.Any]=...,
@@ -882,6 +885,9 @@ def negative(x: ndarray) -> ndarray: ...
 
 
 def not_equal(x1: ndarray, x2: ndarray) -> ndarray: ...
+
+
+def nonzero(a: ndarray) -> ndarray: ...
 
 
 def ones(shape: tp.Union[int, tp.Sequence[int]],

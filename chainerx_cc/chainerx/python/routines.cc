@@ -96,6 +96,15 @@ ArrayBodyPtr MakeArrayFromBuffer(py::buffer buffer, py::handle dtype, int64_t co
     return MoveArrayBody(chainerx::FromData(shape, GetDtype(dtype), data, absl::nullopt, offset, GetDevice(device)));
 }
 
+std::vector<Array> ArrayBodiesToArrays(std::vector<ArrayBodyPtr> array_bodies) {
+    std::vector<Array> arrays{};
+    arrays.reserve(array_bodies.size());
+    for (ArrayBodyPtr& array_body : array_bodies) {
+        arrays.emplace_back(std::move(array_body));
+    }
+    return arrays;
+}
+
 void InitChainerxCreation(pybind11::module& m) {
     // creation routines
     // TODO(niboshi): Accept CuPy ndarray in `array` and `asarray`. In principle it's CuPy's responsibility to provide some standard
@@ -352,6 +361,7 @@ void InitChainerxIndexing(pybind11::module& m) {
           "condition"_a,
           "x"_a,
           "y"_a);
+    m.def("nonzero", [](const ArrayBodyPtr& a) { return ToTuple(Nonzero(Array{a})); }, "a"_a);
 }
 
 void InitChainerxLinalg(pybind11::module& m) {
@@ -359,7 +369,11 @@ void InitChainerxLinalg(pybind11::module& m) {
     m.def("dot", [](const ArrayBodyPtr& a, const ArrayBodyPtr& b) { return MoveArrayBody(Dot(Array{a}, Array{b})); }, "a"_a, "b"_a);
 
     pybind11::module mlinalg = m.def_submodule("linalg");
-    mlinalg.def("_is_lapack_available", []() -> bool { return CHAINERX_ENABLE_LAPACK; });
+#if CHAINERX_ENABLE_LAPACK
+    mlinalg.def("_is_lapack_available", []() -> bool { return true; });
+#else
+    mlinalg.def("_is_lapack_available", []() -> bool { return false; });
+#endif
     mlinalg.def(
             "solve", [](const ArrayBodyPtr& a, const ArrayBodyPtr& b) { return MoveArrayBody(Solve(Array{a}, Array{b})); }, "a"_a, "b"_a);
     mlinalg.def("inv", [](const ArrayBodyPtr& a) { return MoveArrayBody(Inverse(Array{a})); }, "a"_a);
@@ -743,10 +757,7 @@ void InitChainerxActivation(pybind11::module& m) {
           "slope"_a = 0.2);
     m.def("tree_lstm", [](py::args args) {
         std::vector<ArrayBodyPtr> arrays = py::cast<std::vector<ArrayBodyPtr>>(args);
-        std::vector<Array> input;
-        for (size_t i = 0; i < arrays.size(); i++) {
-            input.emplace_back(Array{arrays[i]});
-        }
+        std::vector<Array> input = ArrayBodiesToArrays(std::move(arrays));
         return ToTuple(TreeLstm(input));
     });
     m.def("slstm", [](const ArrayBodyPtr& c1, const ArrayBodyPtr& c2, const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) {
@@ -796,6 +807,7 @@ void InitChainerxArithmetic(pybind11::module& m) {
     m.def("remainder", [](const ArrayBodyPtr& x1, Scalar x2) { return MoveArrayBody(Mod(Array{x1}, x2)); }, "x1"_a, "x2"_a);
     m.def("remainder", [](Scalar x1, const ArrayBodyPtr& x2) { return MoveArrayBody(Mod(x1, Array{x2})); }, "x1"_a, "x2"_a);
     m.attr("mod") = m.attr("remainder");
+    m.def("fmod", [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return MoveArrayBody(Fmod(Array{x1}, Array{x2})); }, "x1"_a, "x2"_a);
 }
 
 void InitChainerxBinary(pybind11::module& m) {
@@ -1229,7 +1241,7 @@ void InitChainerxRNN(pybind11::module& m) {
              std::vector<ArrayBodyPtr> inputs) {
               std::vector<std::vector<Array>> ws;
               std::vector<std::vector<Array>> bs;
-              std::vector<Array> xs;
+              std::vector<Array> xs = ArrayBodiesToArrays(std::move(inputs));
               for (size_t i = 0; i < weights.size(); i++) {
                   std::vector<Array> temp_ws;
                   std::vector<Array> temp_bs;
@@ -1239,9 +1251,6 @@ void InitChainerxRNN(pybind11::module& m) {
                   }
                   ws.emplace_back(temp_ws);
                   bs.emplace_back(temp_bs);
-              }
-              for (size_t i = 0; i < inputs.size(); i++) {
-                  xs.emplace_back(Array{inputs[i]});
               }
               std::vector<std::vector<Array>> out = NStepLstm(n_layers, Array{hx}, Array{cx}, ws, bs, xs);
               py::tuple ret{3};
@@ -1261,7 +1270,7 @@ void InitChainerxRNN(pybind11::module& m) {
              std::vector<ArrayBodyPtr> inputs) {
               std::vector<std::vector<Array>> ws;
               std::vector<std::vector<Array>> bs;
-              std::vector<Array> xs;
+              std::vector<Array> xs = ArrayBodiesToArrays(std::move(inputs));
               for (size_t i = 0; i < weights.size(); i++) {
                   std::vector<Array> temp_ws;
                   std::vector<Array> temp_bs;
@@ -1271,9 +1280,6 @@ void InitChainerxRNN(pybind11::module& m) {
                   }
                   ws.emplace_back(temp_ws);
                   bs.emplace_back(temp_bs);
-              }
-              for (size_t i = 0; i < inputs.size(); i++) {
-                  xs.emplace_back(Array{inputs[i]});
               }
               std::vector<std::vector<Array>> out = NStepBiLstm(n_layers, Array{hx}, Array{cx}, ws, bs, xs);
               py::tuple ret{3};
@@ -1292,7 +1298,7 @@ void InitChainerxRNN(pybind11::module& m) {
              std::vector<ArrayBodyPtr> inputs) {
               std::vector<std::vector<Array>> ws;
               std::vector<std::vector<Array>> bs;
-              std::vector<Array> xs;
+              std::vector<Array> xs = ArrayBodiesToArrays(std::move(inputs));
               for (size_t i = 0; i < weights.size(); i++) {
                   std::vector<Array> temp_ws;
                   std::vector<Array> temp_bs;
@@ -1302,9 +1308,6 @@ void InitChainerxRNN(pybind11::module& m) {
                   }
                   ws.emplace_back(temp_ws);
                   bs.emplace_back(temp_bs);
-              }
-              for (size_t i = 0; i < inputs.size(); i++) {
-                  xs.emplace_back(Array{inputs[i]});
               }
               std::vector<std::vector<Array>> out = NStepGru(n_layers, Array{hx}, ws, bs, xs);
               py::tuple ret{2};
@@ -1322,7 +1325,7 @@ void InitChainerxRNN(pybind11::module& m) {
              std::vector<ArrayBodyPtr> inputs) {
               std::vector<std::vector<Array>> ws;
               std::vector<std::vector<Array>> bs;
-              std::vector<Array> xs;
+              std::vector<Array> xs = ArrayBodiesToArrays(std::move(inputs));
               for (size_t i = 0; i < weights.size(); i++) {
                   std::vector<Array> temp_ws;
                   std::vector<Array> temp_bs;
@@ -1332,9 +1335,6 @@ void InitChainerxRNN(pybind11::module& m) {
                   }
                   ws.emplace_back(temp_ws);
                   bs.emplace_back(temp_bs);
-              }
-              for (size_t i = 0; i < inputs.size(); i++) {
-                  xs.emplace_back(Array{inputs[i]});
               }
               std::vector<std::vector<Array>> out = NStepBiGru(n_layers, Array{hx}, ws, bs, xs);
               py::tuple ret{2};
@@ -1353,7 +1353,7 @@ void InitChainerxRNN(pybind11::module& m) {
              std::string activation) {
               std::vector<std::vector<Array>> ws;
               std::vector<std::vector<Array>> bs;
-              std::vector<Array> xs;
+              std::vector<Array> xs = ArrayBodiesToArrays(std::move(inputs));
               for (size_t i = 0; i < weights.size(); i++) {
                   std::vector<Array> temp_ws;
                   std::vector<Array> temp_bs;
@@ -1363,9 +1363,6 @@ void InitChainerxRNN(pybind11::module& m) {
                   }
                   ws.emplace_back(temp_ws);
                   bs.emplace_back(temp_bs);
-              }
-              for (size_t i = 0; i < inputs.size(); i++) {
-                  xs.emplace_back(Array{inputs[i]});
               }
               std::vector<std::vector<Array>> out = NStepRnn(n_layers, Array{hx}, ws, bs, xs, activation);
               py::tuple ret{2};
@@ -1384,7 +1381,7 @@ void InitChainerxRNN(pybind11::module& m) {
              std::string activation) {
               std::vector<std::vector<Array>> ws;
               std::vector<std::vector<Array>> bs;
-              std::vector<Array> xs;
+              std::vector<Array> xs = ArrayBodiesToArrays(std::move(inputs));
               for (size_t i = 0; i < weights.size(); i++) {
                   std::vector<Array> temp_ws;
                   std::vector<Array> temp_bs;
@@ -1394,9 +1391,6 @@ void InitChainerxRNN(pybind11::module& m) {
                   }
                   ws.emplace_back(temp_ws);
                   bs.emplace_back(temp_bs);
-              }
-              for (size_t i = 0; i < inputs.size(); i++) {
-                  xs.emplace_back(Array{inputs[i]});
               }
               std::vector<std::vector<Array>> out = NStepBiRnn(n_layers, Array{hx}, ws, bs, xs, activation);
               py::tuple ret{2};

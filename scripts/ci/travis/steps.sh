@@ -50,7 +50,6 @@ step_install_chainer_test_deps() {
 step_before_install_chainer_test() {
     # Remove oclint as it conflicts with GCC (indirect dependency of hdf5)
     if [[ $TRAVIS_OS_NAME = "osx" ]]; then
-        brew update >/dev/null
         brew outdated pyenv || brew upgrade pyenv
 
         PYTHON_CONFIGURE_OPTS="--enable-unicode=ucs2" pyenv install -ks $PYTHON_VERSION
