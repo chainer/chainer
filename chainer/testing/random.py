@@ -89,14 +89,7 @@ def generate_seed():
     return numpy.random.randint(0xffffffff)
 
 
-def fix_random():
-    """Decorator that fixes random numbers in a test.
-
-    This decorator can be applied to either a test case class or a test method.
-    It should not be applied within ``condition.retry`` or
-    ``condition.repeat``.
-    """
-
+def _fix_random(setup_method_name, teardown_method_name):
     # TODO(niboshi): Prevent this decorator from being applied within
     #    condition.repeat or condition.retry decorators. That would repeat
     #    tests with the same random seeds. It's okay to apply this outside
@@ -123,12 +116,6 @@ def fix_random():
 
         for klass, _, _ in cases.cases:
             # Applied to test case class
-            if hasattr(klass, 'setUp'):
-                setup_method_name = 'setUp'
-                teardown_method_name = 'tearDown'
-            else:
-                setup_method_name = 'setup'
-                teardown_method_name = 'teardown'
 
             def make_methods():
                 # make_methods is required to bind the variables prev_setup and
@@ -137,18 +124,18 @@ def fix_random():
                 prev_teardown = getattr(klass, teardown_method_name)
 
                 @functools.wraps(prev_setup)
-                def setUp(self):
+                def new_setup(self):
                     _setup_random()
                     prev_setup(self)
 
                 @functools.wraps(prev_teardown)
-                def tearDown(self):
+                def new_teardown(self):
                     try:
                         prev_teardown(self)
                     finally:
                         _teardown_random()
 
-                return setUp, tearDown
+                return new_setup, new_teardown
 
             setup, teardown = make_methods()
 
@@ -158,3 +145,13 @@ def fix_random():
         return cases
 
     return decorator
+
+
+def fix_random():
+    """Decorator that fixes random numbers in a test.
+
+    This decorator can be applied to either a test case class or a test method.
+    It should not be applied within ``condition.retry`` or
+    ``condition.repeat``.
+    """
+    return _fix_random('setUp', 'tearDown')
