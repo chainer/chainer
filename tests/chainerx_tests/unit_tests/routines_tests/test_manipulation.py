@@ -1,5 +1,6 @@
 import itertools
 import unittest
+import warnings
 
 import chainer
 import numpy
@@ -1011,8 +1012,10 @@ class TestExpandDims(op_utils.NumpyOpTest):
     ((1, 1, 2), -4)
 ])
 def test_expand_dims_invalid(xp, shape, axis):
-    a = array_utils.create_dummy_ndarray(xp, shape, 'float32')
-    return xp.expand_dims(a, axis)
+    with warnings.catch_warnings():
+        warnings.simplefilter('error', DeprecationWarning)
+        a = array_utils.create_dummy_ndarray(xp, shape, 'float32')
+        return xp.expand_dims(a, axis)
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
