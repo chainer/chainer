@@ -9,7 +9,7 @@ from chainer import testing
 
 @testing.parameterize(*testing.product({
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
-    'shape': [(5, 10)]
+    'shape': [(), (5, 10)]
 }))
 @testing.inject_backend_tests(
     None,
@@ -36,27 +36,27 @@ class TestZeta(testing.FunctionTestCase):
         self.check_backward_options = {'atol': 1e-3, 'rtol': 1e-3}
         self.check_double_backward_options = {'atol': 1e-3, 'rtol': 1e-3}
 
-        self._x = numpy.random.uniform(self.shape)
+        self._x = numpy.random.uniform(self.shape).astype(self.dtype)
 
     def generate_inputs(self):
-        q = numpy.random.uniform(self.shape).astype(self._x.dtype)
+        q = numpy.random.uniform(self.shape).astype(self.dtype)
         return q,
 
     def forward_expected(self, inputs):
         q, = inputs
         import scipy
         y_expect = scipy.special.zeta(self._x, q)
-        return numpy.array(y_expect),
+        return y_expect.astype(self.dtype),
 
     def forward(self, inputs, device):
         q, = inputs
-        y = F.zeta(device.send(self._x), q)
+        y = F.zeta(device.send(self._x.astype(q.dtype)), q)
         return y,
 
 
 @testing.parameterize(*testing.product({
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
-    'shape': [(5, 10)]
+    'shape': [(), (5, 10)]
 }))
 @testing.without_requires('scipy')
 class TestZetaExceptions(unittest.TestCase):
