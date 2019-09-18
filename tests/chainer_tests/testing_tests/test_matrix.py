@@ -52,9 +52,17 @@ class TestGenerateMatrixInvalid(unittest.TestCase):
             testing.generate_matrix((2,), singular_values=1)
 
     def test_invalid_dtype(self):
-        with self.assertRaises(ValueError):
+        with self.assertRaises(TypeError):
             testing.generate_matrix(
                 (2, 2), dtype=numpy.int32, singular_values=1)
+
+    def test_invalid_dtype_singular_values(self):
+        with self.assertRaises(TypeError):
+            testing.generate_matrix((2, 2), singular_values=1 + 0j)
+
+    def test_negative_singular_values(self):
+        with self.assertRaises(ValueError):
+            testing.generate_matrix((2, 2), singular_values=[1, -1])
 
     def test_shape_mismatch(self):
         with self.assertRaises(ValueError):

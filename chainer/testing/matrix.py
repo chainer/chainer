@@ -34,12 +34,14 @@ def generate_matrix(shape, dtype=float, **kwargs):
     # TODO(beam2d): consider supporting integer/boolean matrices
     dtype = numpy.dtype(dtype)
     if dtype.kind not in 'fc':
-        raise ValueError('dtype {} is not supported'.format(dtype))
+        raise TypeError('dtype {} is not supported'.format(dtype))
 
     if singular_values is None:
         raise TypeError('singular_values is not given')
     singular_values = numpy.asarray(singular_values)
-    if not numpy.isrealobj(singular_values) or (singular_values < 0).any():
+    if not numpy.isrealobj(singular_values):
+        raise TypeError('singular_values is not real')
+    if (singular_values < 0).any():
         raise ValueError('negative singular value is given')
 
     # Generate random matrices with given singular values. We simply generate
