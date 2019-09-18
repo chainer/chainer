@@ -27,7 +27,7 @@ class TestGenerateMatrix(unittest.TestCase):
     def test_generate_matrix(self):
         dtype = self.dtype
         x_shape, s_shape = self.x_s_shapes
-        sv = 0.5 + numpy.random.random(s_shape).astype(dtype().real.dtype)
+        sv = numpy.random.uniform(0.5, 1.5, s_shape).astype(dtype().real.dtype)
         x = testing.generate_matrix(x_shape, dtype=dtype, singular_values=sv)
         assert x.shape == x_shape
 
