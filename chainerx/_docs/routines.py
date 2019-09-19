@@ -3430,7 +3430,7 @@ Args:
         ``xs[t].shape[0] >= xs[t + 1].shape[0]``.
 
 Returns:
-    tuple: This function returns a tuple containing three elements,
+    tuple: This function returns a tuple containing two elements,
     ``hy`` and ``ys``.
 
     - ``hy`` is an updated hidden states whose shape is same as ``hx``.
@@ -3513,7 +3513,7 @@ Args:
         ``xs[t].shape[0] >= xs[t + 1].shape[0]``.
 
 Returns:
-    tuple: This function returns a tuple containing three elements,
+    tuple: This function returns a tuple containing two elements,
     ``hy`` and ``ys``.
 
     - ``hy`` is an updated hidden states whose shape is same as ``hx``.
@@ -3588,7 +3588,7 @@ Args:
         Please select ``tanh`` or ``relu``.
 
 Returns:
-    tuple: This function returns a tuple containing three elements,
+    tuple: This function returns a tuple containing two elements,
     ``hy`` and ``ys``.
 
     - ``hy`` is an updated hidden states whose shape is same as ``hx``.
@@ -3678,7 +3678,7 @@ Args:
         Please select ``tanh`` or ``relu``.
 
 Returns:
-    tuple: This function returns a tuple containing three elements,
+    tuple: This function returns a tuple containing two elements,
     ``hy`` and ``ys``.
 
     - ``hy`` is an updated hidden states whose shape is same as ``hx``.
