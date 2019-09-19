@@ -64,7 +64,7 @@ class GeneralBatchNormalizationImpl(_BatchNormalizationImpl):
                 running_var += (1 - decay) * adjust * var
             else:
                 cuda.elementwise(
-                    'U mean, U var, U decay, U adjust',
+                    'T mean, T var, U decay, U adjust',
                     'U r_mean, U r_var',
                     '''
                     r_mean = r_mean * decay + mean * (1 - decay);
