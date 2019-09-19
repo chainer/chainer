@@ -49,7 +49,9 @@ class Zeta(function_node.FunctionNode):
 
 def zeta(x, q):
     """Zeta function.
-       Differentiable only with respect to q
+
+    Differentiable only with respect to q
+
     .. note::
        Forward computation in CPU can not be done if
        `SciPy <https://www.scipy.org/>`_ is not available.
