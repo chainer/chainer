@@ -3,6 +3,7 @@ import unittest
 import numpy
 
 from chainer import testing
+from chainer.testing import matrix
 
 
 @testing.parameterize(*testing.product({
@@ -34,7 +35,7 @@ class TestGenerateMatrix(unittest.TestCase):
         s = numpy.linalg.svd(
             x.astype(numpy.complex128), full_matrices=False, compute_uv=False,
         )
-        sv = numpy.broadcast_to(sv, s.shape)
+        sv = matrix._broadcast_to(sv, s.shape)
         sv_sorted = numpy.sort(sv, axis=-1)[..., ::-1]
 
         rtol = 1e-3 if dtype == numpy.float16 else 1e-7

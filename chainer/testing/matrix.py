@@ -1,6 +1,5 @@
 import numpy
 
-from chainer import functions
 from chainer.utils import argument
 
 
