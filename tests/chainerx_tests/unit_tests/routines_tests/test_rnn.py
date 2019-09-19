@@ -429,7 +429,9 @@ class TestNStepBiGRU(op_utils.ChainerOpTest):
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
-@op_utils.fix_random()  # ReLU activation is unstable around 0 but can seemingly not be dodged automatically.  # NOQA
+# ReLU activation is unstable around 0 but can seemingly not be dodged
+# automatically.
+@op_utils.fix_random()
 @chainer.testing.parameterize(*(
     chainer.testing.product([
         chainer.testing.from_pytest_parameterize(
@@ -535,7 +537,9 @@ class TestNStepRNN(op_utils.ChainerOpTest):
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
-@op_utils.fix_random()  # ReLU activation is unstable around 0 but can seemingly not be dodged automatically.  # NOQA
+# ReLU activation is unstable around 0 but can seemingly not be dodged
+# automatically.
+@op_utils.fix_random()
 @chainer.testing.parameterize(*(
     chainer.testing.product([
         chainer.testing.from_pytest_parameterize(
