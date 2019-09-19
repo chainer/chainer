@@ -1,5 +1,6 @@
 import numpy
 
+from chainer import functions
 from chainer.utils import argument
 
 
@@ -51,6 +52,15 @@ def generate_matrix(shape, dtype=float, **kwargs):
     if dtype.kind == 'c':
         a = a + 1j * numpy.random.randn(*shape)
     u, s, vh = numpy.linalg.svd(a, full_matrices=False)
-    sv = numpy.broadcast_to(singular_values, s.shape)
+    sv = _broadcast_to(singular_values, s.shape)
     a = numpy.einsum('...ik,...k,...kj->...ij', u, sv, vh)
     return a.astype(dtype)
+
+
+def _broadcast_to(array, shape):
+    if hasattr(numpy, 'broadcast_to'):
+        return numpy.broadcast_to(array, shape)
+    # NumPy 1.9 does not support broadcast_to.
+    dummy = numpy.empty(shape, dtype=numpy.int8)
+    ret, _ = numpy.broadcast_arrays(array, dummy)
+    return ret
