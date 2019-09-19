@@ -172,6 +172,7 @@ Mathematical functions
    chainerx.remainder
    chainerx.sum
    chainerx.maximum
+   chainerx.minimum
    chainerx.exp
    chainerx.log
    chainerx.log10
