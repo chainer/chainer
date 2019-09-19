@@ -9,7 +9,7 @@ from chainer import testing
 
 @testing.parameterize(*testing.product({
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
-    'shape': [(), (5, 10)]
+    'shape': [(), (2, 50)]
 }))
 @testing.inject_backend_tests(
     None,
@@ -56,11 +56,12 @@ class TestZeta(testing.FunctionTestCase):
 
 @testing.parameterize(*testing.product({
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
-    'shape': [(), (5, 10)]
+    'shape': [(), (-5, 1)]
 }))
 @testing.without_requires('scipy')
 class TestZetaExceptions(unittest.TestCase):
     def setUp(self):
+        self._x = numpy.random.uniform(self.shape).astype(self.dtype)
         self.q = numpy.random.uniform(self.shape).astype(self.dtype)
         self.func = F.zeta
 
