@@ -1,33 +1,38 @@
-import chainer
-from chainer import functions as F
 import numpy
 
+import chainer
+from chainer import functions as F
 import chainerx
-
-from chainerx_tests import dtype_utils
 from chainerx_tests import op_utils
 
 
-_in_out_loss_dtypes = dtype_utils._permutate_dtype_mapping([
-    (('float16', 'float16'), 'float16'),
-    (('float32', 'float32'), 'float32'),
-    (('float64', 'float64'), 'float64'),
-    (('float32', 'float16'), 'float32'),
-    (('float64', 'float16'), 'float64'),
-    (('float64', 'float32'), 'float64'),
-])
+_loss_shapes = [
+    (2, 2),
+    (3, 3, 3),
+    (5, 5, 5),
+    (4, 1, 2, 4),
+]
 
 
 class LossBase(op_utils.ChainerOpTest):
+
+    def setup(self):
+        super().setup()
+        if self.in_dtype == 'float16':
+            self.check_forward_options.update({'rtol': 5e-3, 'atol': 5e-3})
+            self.check_backward_options.update({'rtol': 1e-2, 'atol': 5e-3})
+            self.check_double_backward_options.update(
+                {'rtol': 1e-2, 'atol': 3e-1})
 
     def generate_inputs(self):
         y = numpy.random.normal(loc=0, scale=1.0, size=self.shape)
         targ = numpy.random.normal(loc=0, scale=1.0, size=self.shape) + \
             numpy.random.normal(loc=0, scale=0.5, size=self.shape)
-        return y, targ
+        return y.astype(self.in_dtype), targ.astype(self.in_dtype)
 
     def forward_chainerx(self, inputs):
-        return self.forward_xp(inputs, chainerx)
+        out, = self.forward_xp(inputs, chainerx)
+        return out,
 
     def forward_chainer(self, inputs):
         return self.forward_xp(inputs, F)
@@ -39,17 +44,10 @@ class LossBase(op_utils.ChainerOpTest):
 
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
-    chainer.testing.product([
-        chainer.testing.from_pytest_parameterize(
-            'shape', [
-                (2, 2),
-                (3, 3, 3),
-                (5, 5, 5),
-                (4, 1, 2, 4)
-            ]),
-        chainer.testing.from_pytest_parameterize(
-            'in_dtypes,out_dtype', _in_out_loss_dtypes)
-    ])
+    chainer.testing.product({
+        'shape': _loss_shapes,
+        'in_dtype': chainerx.testing.float_dtypes,
+    })
 ))
 class TestSquaredError(LossBase):
 
@@ -60,17 +58,10 @@ class TestSquaredError(LossBase):
 
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
-    chainer.testing.product([
-        chainer.testing.from_pytest_parameterize(
-            'shape', [
-                (2, 2),
-                (3, 3, 3),
-                (5, 5, 5),
-                (4, 1, 2, 4)
-            ]),
-        chainer.testing.from_pytest_parameterize(
-            'in_dtypes,out_dtype', _in_out_loss_dtypes)
-    ])
+    chainer.testing.product({
+        'shape': _loss_shapes,
+        'in_dtype': chainerx.testing.float_dtypes,
+    })
 ))
 class TestAbsoluteError(LossBase):
 
@@ -84,17 +75,10 @@ class TestAbsoluteError(LossBase):
 
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
-    chainer.testing.product([
-        chainer.testing.from_pytest_parameterize(
-            'shape', [
-                (2, 2),
-                (3, 3, 3),
-                (5, 5, 5),
-                (4, 1, 2, 4)
-            ]),
-        chainer.testing.from_pytest_parameterize(
-            'in_dtypes,out_dtype', _in_out_loss_dtypes)
-    ])
+    chainer.testing.product({
+        'shape': _loss_shapes,
+        'in_dtype': chainerx.testing.float_dtypes,
+    })
 ))
 class TestGaussianKLDivergence(LossBase):
 
@@ -109,19 +93,11 @@ class TestGaussianKLDivergence(LossBase):
 
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
-    chainer.testing.product([
-        chainer.testing.from_pytest_parameterize(
-            'shape', [
-                (2, 2),
-                (3, 3, 3),
-                (5, 5, 5),
-                (4, 1, 2, 4)
-            ]),
-        chainer.testing.from_pytest_parameterize(
-            'in_dtypes,out_dtype', _in_out_loss_dtypes),
-        chainer.testing.from_pytest_parameterize(
-            'delta', [0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5])
-    ])
+    chainer.testing.product({
+        'shape': _loss_shapes,
+        'in_dtype': chainerx.testing.float_dtypes,
+        'delta': [0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5],
+    })
 ))
 class TestHuberLoss(LossBase):
 
@@ -141,26 +117,20 @@ class TestHuberLoss(LossBase):
 
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
-    chainer.testing.product([
-        chainer.testing.from_pytest_parameterize(
-            'shape', [
-                (2, 2),
-                (3, 3, 3),
-                (5, 5, 5),
-                (4, 1, 2, 4)
-            ]),
-        chainer.testing.from_pytest_parameterize(
-            'in_dtypes,out_dtype', _in_out_loss_dtypes),
-    ])
+    chainer.testing.product({
+        'shape': _loss_shapes,
+        'in_dtype': chainerx.testing.float_dtypes,
+        't_dtype': ['int8', 'int16', 'int32', 'int64'],
+    })
 ))
 class TestSigmoidCrossEntropy(LossBase):
 
     def generate_inputs(self):
-        y = numpy.random.normal(loc=0, scale=1.0, size=self.shape)
+        x = numpy.random.normal(loc=0, scale=1.0, size=self.shape)
         targ = numpy.random.normal(loc=0, scale=1.0, size=self.shape) + \
             numpy.random.normal(loc=0, scale=0.5, size=self.shape)
-        self.t = targ
-        return y,
+        self.t = targ.astype(self.t_dtype)
+        return x.astype(self.in_dtype),
 
     def forward_xp(self, inputs, xp):
         x, = inputs
@@ -168,9 +138,8 @@ class TestSigmoidCrossEntropy(LossBase):
         # wrt targets
         if xp is chainerx:
             t = self.backend_config.get_array(self.t)
-            t = t.astype(numpy.int64)
             out = xp.sigmoid_cross_entropy(x, t)
         else:
-            t = self.t.astype(numpy.int64)
+            t = self.t
             out = xp.sigmoid_cross_entropy(x, t, normalize=False, reduce='no')
         return out,
