@@ -1019,6 +1019,7 @@ class ChainTestBase(object):
         #   - l1 (x: uninitialized with shape=(2, 3))
         #   - l2 (x: uninitialized with shape=2)
         # - l3   (x: uninitialized without shape)
+        # - (x: unitialized with shape=2)
 
         self.l1 = chainer.Link()
         with self.l1.init_scope():
@@ -1041,6 +1042,8 @@ class ChainTestBase(object):
         with self.c2.init_scope():
             self.c2.c1 = self.c1
             self.c2.l3 = self.l3
+            self.x = chainer.Parameter(shape=2)
+            self.c2.x = self.x
 
     def set_count_parameters(self):
         self.l1.x = CountParameter(self.l1.x)
@@ -1103,10 +1106,17 @@ Chain(
         self.l2.x.initializer = initializers.Normal(
             dtype=self.l2.x.initializer.dtype)
         self.l2.x.initialize(self.l2.x.shape)
+        self.x.initializer = initializers.Normal(
+            dtype=self.x.initializer.dtype)
+        self.x.initialize(self.x.shape)
 
         c2 = self.c2.copy(mode='share')
         self.assertIs(c2.name, None)
         self.assertIsInstance(c2._children, set)
+        self.assertTrue(hasattr(c2, 'x'))
+        self.assertIsNot(c2.x, self.x)
+        self.assertIs(c2.x.data, self.x.data)
+
         self.assertTrue(hasattr(c2, 'c1'))
         self.assertEqual(c2.c1.name, 'c1')
         self.assertIsInstance(c2.c1._children, set)
@@ -1138,10 +1148,18 @@ Chain(
         self.l2.x.initializer = initializers.Normal(
             dtype=self.l2.x.initializer.dtype)
         self.l2.x.initialize(self.l2.x.shape)
+        self.x.initializer = initializers.Normal(
+            dtype=self.x.initializer.dtype)
+        self.x.initialize(self.x.shape)
 
         c2 = self.c2.copy(mode='copy')
         self.assertIs(c2.name, None)
         self.assertIsInstance(c2._children, set)
+        self.assertTrue(hasattr(c2, 'x'))
+        self.assertIsNot(c2.x, self.x)
+        self.assertIsNot(c2.x.data, self.x.data)
+        self.assertTrue(numpy.array_equal(c2.x.data, self.x.data))
+
         self.assertTrue(hasattr(c2, 'c1'))
         self.assertEqual(c2.c1.name, 'c1')
         self.assertIsInstance(c2.c1._children, set)
@@ -1175,10 +1193,21 @@ Chain(
         self.l2.x.initializer = initializers.Normal(
             dtype=self.l2.x.initializer.dtype)
         self.l2.x.initialize(self.l2.x.shape)
+        self.x.initializer = initializers.Normal(
+            dtype=self.x.initializer.dtype)
+        self.c2.x.initialize(self.x.shape)
 
         c2 = self.c2.copy(mode='init')
         self.assertIs(c2.name, None)
         self.assertIsInstance(c2._children, set)
+        self.assertTrue(hasattr(c2, 'x'))
+        self.assertIsNot(c2.x, self.x)
+        self.assertIsNot(c2.x.data, self.x.data)
+        self.assertFalse(numpy.array_equal(c2.x.data, self.x.data))
+        # _grad_initializer attribute in a copied Parameter has constant.NaN
+        # after calling initilize() method
+        self.assertTrue(numpy.isnan(c2.x.grad).all())
+
         self.assertTrue(hasattr(c2, 'c1'))
         self.assertEqual(c2.c1.name, 'c1')
         self.assertIsInstance(c2.c1._children, set)
@@ -1291,24 +1320,27 @@ Chain(
     def test_params(self):
         params = list(self.c2.params())
         self.assertEqual([id(p) for p in params],
-                         [id(self.l1.x), id(self.l2.x), id(self.l3.x)])
+                         [id(self.x), id(self.l1.x),
+                          id(self.l2.x), id(self.l3.x)])
 
     def test_params_skip_uninit(self):
         params = list(self.c2.params(include_uninit=False))
         self.assertEqual([id(p) for p in params],
-                         [id(self.l1.x), id(self.l2.x)])
+                         [id(self.x), id(self.l1.x), id(self.l2.x)])
 
     def test_namedparams(self):
         namedparams = list(self.c2.namedparams())
         self.assertEqual([(name, id(p)) for name, p in namedparams],
-                         [('/c1/l1/x', id(self.l1.x)),
+                         [('/x', id(self.x)),
+                          ('/c1/l1/x', id(self.l1.x)),
                           ('/c1/l2/x', id(self.l2.x)),
                           ('/l3/x', id(self.l3.x))])
 
     def test_namedparams_skip_uninit(self):
         namedparams = list(self.c2.namedparams(include_uninit=False))
         self.assertEqual([(name, id(p)) for name, p in namedparams],
-                         [('/c1/l1/x', id(self.l1.x)),
+                         [('/x', id(self.x)),
+                          ('/c1/l1/x', id(self.l1.x)),
                           ('/c1/l2/x', id(self.l2.x))])
 
     def test_links(self):
@@ -1363,15 +1395,18 @@ Chain(
         with c2.init_scope():
             c2.c1 = c1
             c2.l3 = l3
+            c2.x = chainer.Parameter(shape=2)
         l1.x.data.fill(0)
         l2.x.data.fill(1)
         l3.x.data.fill(2)
+        c2.x.data.fill(3)
 
         self.c2.copyparams(c2)
 
         numpy.testing.assert_array_equal(self.l1.x.data, l1.x.data)
         numpy.testing.assert_array_equal(self.l2.x.data, l2.x.data)
         numpy.testing.assert_array_equal(self.l3.x.data, l3.x.data)
+        numpy.testing.assert_array_equal(self.c2.x.data, c2.x.data)
 
     def test_zerograds(self):
         self.set_count_parameters()
@@ -1404,18 +1439,22 @@ Chain(
         with c2.init_scope():
             c2.c1 = c1
             c2.l3 = l3
+            c2.x = chainer.Parameter(shape=2)
         l1.x.grad.fill(1)
         l2.x.grad.fill(2)
         l3.x.grad.fill(3)
+        c2.x.grad.fill(4)
 
         self.l1.x.grad.fill(-1)
         self.l2.x.grad.fill(-2)
+        self.c2.x.grad.fill(-3)
         self.l3.cleargrads()
 
         self.c2.addgrads(c2)
         numpy.testing.assert_array_equal(self.l1.x.grad, numpy.zeros((2, 3)))
         numpy.testing.assert_array_equal(self.l2.x.grad, numpy.zeros(2))
         numpy.testing.assert_array_equal(self.l3.x.grad, numpy.full(3, 3.))
+        numpy.testing.assert_array_equal(self.c2.x.grad, numpy.ones(2))
 
     def test_serialize(self):
         mocks = {'l1': mock.MagicMock(), 'l2': mock.MagicMock()}
