@@ -128,7 +128,7 @@ def parameterize_pytest(names, values):
 def product(parameter):
     # TODO(niboshi): Add documentation
     if isinstance(parameter, dict):
-        return product([
+        return product_dict(*[
             _values_to_dicts(names, values)
             for names, values in sorted(parameter.items())])
 
@@ -138,14 +138,7 @@ def product(parameter):
             raise TypeError('parameter must be list of lists of dicts')
         if not all(isinstance(_, dict) for l in parameter for _ in l):
             raise TypeError('parameter must be list of lists of dicts')
-
-        lst = []
-        for dict_lst in itertools.product(*parameter):
-            a = {}
-            for d in dict_lst:
-                a.update(d)
-            lst.append(a)
-        return lst
+        return product_dict(*parameter)
 
     else:
         raise TypeError(
