@@ -1648,10 +1648,6 @@ Note:
     During backpropagation, this function propagates the gradient of the
     output array to the input arrays ``x1`` and ``x2``.
 
-Note:
-    maximum of :class:`~chainerx.ndarray` and :class:`~chainerx.ndarray` is
-    not supported yet.
-
 .. seealso:: :data:`numpy.maximum`
 """)
 
