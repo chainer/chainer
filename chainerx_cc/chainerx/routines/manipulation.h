@@ -59,6 +59,10 @@ std::vector<Array> VSplit(const Array& ary, int64_t sections);
 
 std::vector<Array> VSplit(const Array& ary, std::vector<int64_t> indices);
 
+std::vector<Array> HSplit(const Array& ary, int64_t sections);
+
+std::vector<Array> HSplit(const Array& ary, std::vector<int64_t> indices);
+
 Array Swapaxes(const Array& a, int8_t axis1, int8_t axis2);
 
 Array Repeat(const Array& a, int64_t repeats, absl::optional<int8_t> axis);
