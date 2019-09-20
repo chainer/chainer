@@ -944,6 +944,11 @@ def vsplit(
         indices_or_sections: tp.Union[int, tp.List[int]],
         ) -> tp.List[ndarray]: ...
 
+def hsplit(
+        ary: ndarray,
+        indices_or_sections: tp.Union[int, tp.List[int]],
+        ) -> tp.List[ndarray]: ...
+
 
 def square(x: ndarray) -> ndarray: ...
 
