@@ -1693,6 +1693,26 @@ Note:
 """)
 
     _docs.set_doc(
+        chainerx.minimum,
+        """minimum(x1, x2)
+Minimum arguments, element-wise.
+
+Args:
+    x1 (~chainerx.ndarray or scalar): Input array.
+    x2 (~chainerx.ndarray or scalar): Input array.
+
+Returns:
+    :class:`~chainerx.ndarray`:
+        Returned array: :math:`y = min(\\{x_1, x_2\\})`.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input arrays ``x1`` and ``x2``.
+
+.. seealso:: :data:`numpy.minimum`
+""")
+
+    _docs.set_doc(
         chainerx.remainder,
         """remainder(x1, x2)
 Return element-wise remainder of division.
