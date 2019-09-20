@@ -441,7 +441,7 @@ def n_step_rnn(
             Please select ``tanh`` or ``relu``.
 
     Returns:
-        tuple: This function returns a tuple containing three elements,
+        tuple: This function returns a tuple containing two elements,
         ``hy`` and ``ys``.
 
         - ``hy`` is an updated hidden states whose shape is same as ``hx``.

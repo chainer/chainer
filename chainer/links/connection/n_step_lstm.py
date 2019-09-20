@@ -28,7 +28,7 @@ class NStepLSTMBase(n_step_rnn.NStepRNNBase):
     def forward(self, hx, cx, xs, **kwargs):
         """forward(self, hx, cx, xs)
 
-        Calculate all hidden states and cell states.
+        Calculates all of the hidden states and the cell states.
 
         Args:
             hx (:class:`~chainer.Variable` or None):
