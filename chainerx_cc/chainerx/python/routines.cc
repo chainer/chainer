@@ -590,6 +590,16 @@ std::vector<ArrayBodyPtr> DSplitByIndicesOrSections(const ArrayBodyPtr& ary, py:
     return SwitchBySplitArgs(split_sections, split_indices, ary, indices_or_sections, 2);
 }
 
+std::vector<ArrayBodyPtr> VSplitByIndicesOrSections(const ArrayBodyPtr& ary, py::handle indices_or_sections) {
+    auto split_sections = [](const ArrayBodyPtr& ary, int64_t sections, int8_t /*axis*/) {
+        return MoveArrayBodies(VSplit(Array{ary}, sections));
+    };
+    auto split_indices = [](const ArrayBodyPtr& ary, const std::vector<int64_t>& indices, int8_t /*axis*/) {
+        return MoveArrayBodies(VSplit(Array{ary}, indices));
+    };
+    return SwitchBySplitArgs(split_sections, split_indices, ary, indices_or_sections, 0);
+}
+
 void InitChainerxManipulation(pybind11::module& m) {
     // manipulation routines
     m.def("transpose",
@@ -722,6 +732,7 @@ void InitChainerxManipulation(pybind11::module& m) {
           "arrays"_a);
     m.def("split", &SplitByIndicesOrSections, "ary"_a, "indices_or_sections"_a, "axis"_a = 0);
     m.def("dsplit", &DSplitByIndicesOrSections, "ary"_a, "indices_or_sections"_a);
+    m.def("vsplit", &VSplitByIndicesOrSections, "ary"_a, "indices_or_sections"_a);
     m.def("moveaxis",
           [](const ArrayBodyPtr& a, const std::vector<int8_t>& source, const std::vector<int8_t>& destination) {
               return MoveArrayBody(Moveaxis(Array{a}, Axes{source.begin(), source.end()}, Axes{destination.begin(), destination.end()}));

@@ -823,6 +823,47 @@ class TestDSplit(op_utils.NumpyOpTest):
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize_pytest('shape,indices_or_sections', [
+    ((6, 4, 2), [1, 2, 4]),
+    ((6, 4, 2), [2, 4, 6]),
+    ((6, 4, 2), [1, 5, 7]),
+    ((6, 4, 2), [2, -3, -5]),
+    ((6, 4, 2), [2, 8, 10]),
+    ((8, 6, 4, 2), [2, 4, 4, 6]),
+    ((8, 6, 4, 2), [2, 6, 6, 8]),
+    ((8, 6, 4, 2), [1, 4, 4, 6]),
+    ((8, 6, 4, 2), [1, 4, 5, 6]),
+    ((8, 6, 6, 4, 4, 2), [1, 3, 5, 7]),
+    # indices with 1-d numpy array
+    ((8, 6, 4, 2), numpy.array([1, 2, 3])),
+    # indices with (4,)-shape numpy array
+    ((8, 6, 4, 2), numpy.array([1, 2, 3, 4])),
+    ((8, 8, 6, 6, 4, 2), numpy.array([1, 2, 3], numpy.int32)),
+])
+class TestVSplit(op_utils.NumpyOpTest):
+
+    def setup(self):
+        # TODO(ishanrai05): There's a bug in backward of split() in which the
+        # gradient shape differs from the input if indices are not in the
+        # sorted order. Fix this.
+        indices_or_sections = self.indices_or_sections
+        if (isinstance(indices_or_sections, list) and
+                sorted(indices_or_sections) != indices_or_sections):
+            self.skip_backward_test = True
+            self.skip_double_backward_test = True
+
+    def generate_inputs(self):
+        a = array_utils.create_dummy_ndarray(numpy, self.shape, 'float32')
+        return a,
+
+    def forward_xp(self, inputs, xp):
+        a, = inputs
+        b = xp.vsplit(a, self.indices_or_sections)
+        assert isinstance(b, list)
+        return tuple(b)
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize_pytest('shape,axis1,axis2', [
     ((1, 1), 0, 1),
     ((2, 4), -1, 1),
