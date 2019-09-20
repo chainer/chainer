@@ -864,6 +864,67 @@ class TestVSplit(op_utils.NumpyOpTest):
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize_pytest('shape,indices_or_sections', [
+    ((2,), []),
+    ((2, 4), 2),
+    ((2, 4), [2, -3]),
+    ((2, 6, 4), [2, 8]),
+    ((2, 8, 4), [2, 5]),
+    ((2, 5, 4), [1, -3]),
+    ((2, 10, 4), [1, 4]),
+    ((2, 6, 4), [4, 2, 1]),
+    ((2, 6, 4), [1, 3, -2]),
+    ((2, 6, 4), numpy.array([1, 2])),  # indices with 1-d numpy array
+    ((2, 6, 4), numpy.array([2])),  # indices with (1,)-shape numpy array
+    ((2, 8, 4), numpy.array(2)),  # sections numpy scalar
+    ((2, 6, 4, 8), numpy.array(2.0)),  # sections with numpy scalar, float
+    ((2, 6, 4, 8), 2.0),  # float type sections, without fraction
+    # indices with empty numpy indices
+    ((2, 8, 4, 10), numpy.array([], numpy.int32)),
+    ((2, 5, 4, 10), numpy.array([], numpy.float64)),
+])
+class TestHSplit(op_utils.NumpyOpTest):
+
+    def setup(self):
+        # TODO(ishanrai05): There's a bug in backward of split() in which the
+        # gradient shape differs from the input if indices are not in the
+        # sorted order. Fix this.
+        indices_or_sections = self.indices_or_sections
+        if (isinstance(indices_or_sections, list) and
+                sorted(indices_or_sections) != indices_or_sections):
+            self.skip_backward_test = True
+            self.skip_double_backward_test = True
+
+    def generate_inputs(self):
+        a = array_utils.create_dummy_ndarray(numpy, self.shape, 'float32')
+        return a,
+
+    def forward_xp(self, inputs, xp):
+        a, = inputs
+        b = xp.hsplit(a, self.indices_or_sections)
+        assert isinstance(b, list)
+        return tuple(b)
+
+
+@chainerx.testing.numpy_chainerx_array_equal(
+    accept_error=(
+        chainerx.DimensionError, IndexError, ValueError, TypeError,
+        ZeroDivisionError))
+@pytest.mark.parametrize('shape,indices_or_sections', [
+    ((), 1),  # Empty Shape
+    ((2,), 0),  # Zero Section
+    ((2, 6, 4), -1),  # Negative section
+    ((2, 6, 4), 3),  # Uneven split
+    ((2, 6, 4), [2.0]),  # float type indices
+    ((2, 6, 4), 3.1),  # float type section with fraction
+    ((2, 6, 4), '4'),  # Invalid type
+])
+def test_hsplit_invalid(xp, shape, indices_or_sections):
+    a = array_utils.create_dummy_ndarray(xp, shape, 'float32')
+    return xp.hsplit(a, indices_or_sections)
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize_pytest('shape,axis1,axis2', [
     ((1, 1), 0, 1),
     ((2, 4), -1, 1),
