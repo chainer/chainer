@@ -21,7 +21,12 @@ Environment variable        Description
 ``CHAINER_BUILD_CHAINERX``  ``1`` to build the ``chainerx`` package along with ``chainer``. ``0`` to skip. Default is ``0``.
 ``CHAINERX_BUILD_CUDA``     ``1`` to build ``chainerx`` with CUDA support. ``0`` to skip. Default is ``0``.
                             See also :ref:`CUDA support <chainerx-install-cuda-support>` section below.
-``CHAINERX_ENABLE_BLAS``    ``1`` to make BLAS enabled. ``0`` to disabled. Default is ``1``.
+``CHAINERX_ENABLE_BLAS``    ``1`` to enable BLAS, ``0`` to disable it. Default is ``1``.
+                            If BLAS is enabled, it is searched for and used if found. If not found, ChainerX will behave as if BLAS
+                            was disabled and use a basic implementation instead.
+``CHAINERX_ENABLE_LAPACK``  ``1`` to enable LAPACK, ``0`` to disable it. Default is ``1``.
+                            If LAPACK is enabled, it is searched for and used if found. If not found, ChainerX will behave as if
+                            LAPACK was disabled and may cause runtime errors.
 =========================== ========================================================================================================
 
 
