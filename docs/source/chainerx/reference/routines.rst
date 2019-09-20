@@ -80,6 +80,7 @@ Array manipulation routines
    chainerx.split
    chainerx.dsplit
    chainerx.vsplit
+   chainerx.hsplit
    chainerx.swapaxes
    chainerx.repeat
    chainerx.expand_dims
