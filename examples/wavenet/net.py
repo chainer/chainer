@@ -46,7 +46,7 @@ class WaveNet(chainer.Chain):
     def forward(self, x, condition, generating=False):
         length = x.shape[2]
         x = self.embed(x)
-        x = x[:, :, :length, :]  # crop
+        x = x[:, :, :length]  # crop
         if self.use_embed_tanh:
             x = F.tanh(x)
         z = F.relu(self.resnet(x, condition))

@@ -84,9 +84,6 @@ class Preprocess(object):
 
         # expand dimensions
         one_hot = numpy.identity(
-            self.quantize, dtype=self.dtype)[quantized]
-        one_hot = numpy.expand_dims(one_hot.T, 2)
-        spectrogram = numpy.expand_dims(spectrogram, 2)
-        quantized = numpy.expand_dims(quantized, 1)
+            self.quantize, dtype=self.dtype)[quantized].T
 
         return one_hot[:, :-1], spectrogram, quantized[1:]
