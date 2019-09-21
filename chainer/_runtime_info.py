@@ -59,14 +59,21 @@ def print_runtime_info(out=None):
     """Shows Chainer runtime information.
 
     Runtime information includes:
+
     - OS platform
+
     - Chainer version
+
     - ChainerX version
+
     - NumPy version
+
     - CuPy version
-      - CUDA information
-      - cuDNN information
-      - NCCL information
+
+      a) CUDA information
+      b) cuDNN information
+      c) NCCL information
+
     - iDeep version
 
     Args:
