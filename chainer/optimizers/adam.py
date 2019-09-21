@@ -27,6 +27,7 @@ if types.TYPE_CHECKING:
         weight_decay_rate = None  # type: float
         amsgrad = None  # type: bool
         adabound = None  # type: bool
+        radam = None  # type: bool
         final_lr = None  # type: float
         gamma = None  # type: float
 
@@ -40,6 +41,7 @@ _default_hyperparam.eta = 1.0
 _default_hyperparam.weight_decay_rate = 0
 _default_hyperparam.amsgrad = False
 _default_hyperparam.adabound = False
+_default_hyperparam.radam = False
 _default_hyperparam.final_lr = 0.1
 _default_hyperparam.gamma = 1e-3
 
@@ -94,7 +96,12 @@ class AdamRule(optimizer.UpdateRule):
     With option to use AdaBound variant of Adam.
 
     See: `Adaptive Gradient Methods with Dynamic Bound of Learning Rate
-    <https://openreview.net/forum?id=Bkg3g2R9FX>`
+    <https://openreview.net/forum?id=Bkg3g2R9FX>`_
+
+    With option to use RAdam variant of Adam.
+
+    See: `On the Variance of the Adaptive Learning Rate and Beyond
+    <https://arxiv.org/abs/1908.03265>`_
 
     See :class:`~chainer.optimizers.Adam` for the default values
     of the hyperparameters.
@@ -110,6 +117,7 @@ class AdamRule(optimizer.UpdateRule):
         weight_decay_rate (float): Weight decay rate.
         amsgrad (bool): Whether to use the AMSGrad variant of Adam.
         adabound (bool): Whether to use the AdaBound variant of Adam.
+        radam (bool): Whether to use the RAdam variant of Adam.
         final_lr (float): Final (SGD) learning rate in AdaBound.
         gamma (float): Convergence speed of the bound functions in AdaBound.
 
@@ -118,6 +126,7 @@ class AdamRule(optimizer.UpdateRule):
     _amsgrad_kernel = None
     _adabound_kernel = None
     _amsbound_kernel = None
+    _radam_kernel = None
 
     # Only used in `update_core_gpu`.
     # A dummy ndarray to help ElementwiseKernel deduce generic type T as
@@ -128,7 +137,7 @@ class AdamRule(optimizer.UpdateRule):
     def __init__(self, parent_hyperparam=None,
                  alpha=None, beta1=None, beta2=None, eps=None,
                  eta=None, weight_decay_rate=None, amsgrad=None,
-                 adabound=None, final_lr=None, gamma=None):
+                 adabound=None, radam=None, final_lr=None, gamma=None):
         super(AdamRule, self).__init__(
             parent_hyperparam or _default_hyperparam)
         if alpha is not None:
@@ -149,6 +158,8 @@ class AdamRule(optimizer.UpdateRule):
             self.hyperparam.adabound = adabound
         if final_lr is not None:
             self.hyperparam.final_lr = final_lr
+        if radam is not None:
+            self.hyperparam.radam = radam
         if gamma is not None:
             self.hyperparam.gamma = gamma
         if self.hyperparam.adabound:
@@ -161,6 +172,9 @@ class AdamRule(optimizer.UpdateRule):
             self.state['v'] = xp.zeros_like(param.data)
             if self.hyperparam.amsgrad:
                 self.state['vhat'] = xp.zeros_like(param.data)
+            if self.hyperparam.radam:
+                self.state['step'] = 0
+                self.state['beta2^t'] = 1.0
 
         # For iDeep
         if isinstance(param.data, intel64.mdarray):
@@ -209,8 +223,25 @@ class AdamRule(optimizer.UpdateRule):
                 numpy.maximum(vhat, v, out=vhat)
         else:
             vhat = v
+
         vhat = vhat.astype(dtype, copy=False)
-        step = self.alpha_t / (numpy.sqrt(vhat) + hp.eps)
+        sqrt_vhat_step = numpy.sqrt(vhat) + hp.eps
+        alpha = self.alpha_t
+        if hp.radam:
+            self.state['step'] += 1
+            self.state['beta2^t'] *= hp.beta2
+            t = self.state['step']
+            b2t = self.state['beta2^t']
+            max_sma = 2/(1-hp.beta2)-1
+            n_sma = max_sma - 2*t*b2t/(1-b2t)
+            if n_sma > 4:
+                r = numpy.sqrt(((n_sma - 4) * (n_sma - 2) * max_sma)
+                               / ((max_sma - 4) * (max_sma - 2) * n_sma))
+                alpha *= r
+            else:
+                sqrt_vhat_step = 1.0
+
+        step = alpha / sqrt_vhat_step
         if hp.adabound:
             lower, upper = self.bounds
             step = numpy.clip(step, lower, upper)
@@ -307,6 +338,44 @@ class AdamRule(optimizer.UpdateRule):
                 hp.eta, hp.weight_decay_rate, self._dummy,
                 param.data, self.state['m'], self.state['v'],
                 self.state['vhat'])
+        elif hp.radam:
+            if AdamRule._radam_kernel is None:
+                AdamRule._radam_kernel = cuda.elementwise(
+                    'P grad, T alpha_t, T one_minus_beta1, T one_minus_beta2, '
+                    'T max_sma, T n_sma, T eps, T eta, T weight_decay_rate, '
+                    'raw T dummy',
+                    'P param, P m, P v',
+                    '''T grad_ = static_cast<T>(grad);
+                       T m_ = static_cast<T>(m);
+                       T v_ = static_cast<T>(v);
+                       m_ += one_minus_beta1 * (grad_ - m_);
+                       v_ += one_minus_beta2 * (grad_ * grad_ - v_);
+                       m = static_cast<P>(m_);
+                       v = static_cast<P>(v_);
+                       if (n_sma > 4) {
+                           T r = sqrt(((n_sma - 4) * (n_sma - 2) * max_sma) /
+                                      ((max_sma - 4) * (max_sma - 2) * n_sma));
+                           T alpha = alpha_t * r;
+                           param -= eta * (alpha * m_ / (sqrt(v_) + eps) +
+                                           weight_decay_rate * param);
+                       } else {
+                           param -= eta * (alpha_t * m_ +
+                                           weight_decay_rate * param);
+                       }''',
+                    'radam')
+
+            self.state['step'] += 1
+            self.state['beta2^t'] *= hp.beta2
+            t = self.state['step']
+            b2t = self.state['beta2^t']
+            max_sma = 2/(1-hp.beta2)-1
+            n_sma = max_sma - 2*t*b2t/(1-b2t)
+
+            AdamRule._radam_kernel(
+                grad, self.alpha_t, 1 - hp.beta1,
+                1 - hp.beta2, max_sma, n_sma, hp.eps,
+                hp.eta, hp.weight_decay_rate, self._dummy,
+                param.data, self.state['m'], self.state['v'])
         else:
             if AdamRule._kernel is None:
                 AdamRule._kernel = cuda.elementwise(
@@ -414,6 +483,7 @@ class Adam(optimizer.GradientMethod):
                  weight_decay_rate=_default_hyperparam.weight_decay_rate,
                  amsgrad=_default_hyperparam.amsgrad,
                  adabound=_default_hyperparam.adabound,
+                 radam=_default_hyperparam.radam,
                  final_lr=_default_hyperparam.final_lr,
                  gamma=_default_hyperparam.gamma):
         super(Adam, self).__init__()
@@ -425,6 +495,7 @@ class Adam(optimizer.GradientMethod):
         self.hyperparam.weight_decay_rate = weight_decay_rate
         self.hyperparam.amsgrad = amsgrad
         self.hyperparam.adabound = adabound
+        self.hyperparam.radam = radam
         self.hyperparam.final_lr = final_lr
         self.hyperparam.gamma = gamma
 
@@ -577,3 +648,31 @@ class AMSBound(Adam):
         super(AMSBound, self).__init__(
             alpha=alpha, beta1=beta1, beta2=beta2, eps=eps, eta=eta,
             amsgrad=True, adabound=True, final_lr=final_lr, gamma=gamma)
+
+
+class RAdam(Adam):
+
+    """RAdam optimizer.
+
+    This class is a special case of :class:`~chainer.optimizers.Adam`.
+
+    See: `On the Variance of the Adaptive Learning Rate and Beyond
+    <https://arxiv.org/abs/1908.03265>`_
+
+    Args:
+        alpha (float): Coefficient of learning rate.
+        beta1 (float): Exponential decay rate of the first order moment.
+        beta2 (float): Exponential decay rate of the second order moment.
+        eps (float): Small value for the numerical stability.
+        eta (float): Schedule multiplier, can be used for warm restarts.
+    """
+
+    def __init__(self,
+                 alpha=_default_hyperparam.alpha,
+                 beta1=_default_hyperparam.beta1,
+                 beta2=_default_hyperparam.beta2,
+                 eps=_default_hyperparam.eps,
+                 eta=_default_hyperparam.eta):
+        super(RAdam, self).__init__(
+            alpha=alpha, beta1=beta1, beta2=beta2, eps=eps, eta=eta,
+            radam=True)

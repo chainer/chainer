@@ -248,6 +248,18 @@ class TestAdam(OptimizerTestBase, unittest.TestCase):
     'loss_scaling': [False, 'static', 'dynamic'],
 }))
 @_inject_backend_tests
+class TestRAdam(OptimizerTestBase, unittest.TestCase):
+
+    def create(self):
+        return optimizers.RAdam(0.05)
+
+
+@testing.parameterize(*testing.product({
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'use_placeholder': [False, True],
+    'loss_scaling': [False, 'static', 'dynamic'],
+}))
+@_inject_backend_tests
 class TestCorrectedMomentumSGD(OptimizerTestBase, unittest.TestCase):
 
     def create(self):

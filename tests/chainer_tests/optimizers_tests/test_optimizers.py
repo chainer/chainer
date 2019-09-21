@@ -18,6 +18,7 @@ _all_optimizers = [
     'AMSGrad',
     'AdaBound',
     'AMSBound',
+    'RAdam',
     'CorrectedMomentumSGD',
     'MomentumSGD',
     'MSVAG',
@@ -135,6 +136,7 @@ class TestOptimizerHyperparameter(unittest.TestCase):
                 chainer.optimizers.AMSGrad,
                 chainer.optimizers.AdaBound,
                 chainer.optimizers.AMSBound,
+                chainer.optimizers.RAdam,
         ):
             raise unittest.SkipTest(
                 'The optimizer is incompatible with this test')
