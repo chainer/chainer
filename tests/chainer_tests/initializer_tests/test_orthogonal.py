@@ -26,8 +26,7 @@ from chainer.testing import condition
         (7.3, numpy.float32),
         (7.3, numpy.float64),
     ],
-    'rng': [None, numpy.random.RandomState(),
-            cuda.cupy.random.RandomState()],
+    'rng': [None, numpy.random.RandomState()],
 }))
 @testing.backend.inject_backend_tests(
     None,

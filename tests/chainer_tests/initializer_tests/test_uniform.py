@@ -42,8 +42,7 @@ default_fan = {
     ],
     'scale': [None, 7.3],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
-    'rng': [None, numpy.random.RandomState(),
-            cuda.cupy.random.RandomState()],
+    'rng': [None, numpy.random.RandomState()],
 }))
 @testing.backend.inject_backend_tests(
     None,
