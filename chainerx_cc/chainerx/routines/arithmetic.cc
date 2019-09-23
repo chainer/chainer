@@ -1,12 +1,9 @@
 #include "chainerx/routines/arithmetic.h"
 
 #include <cmath>
-#include <cstdint>
 #include <numeric>
 #include <utility>
 #include <vector>
-
-#include <absl/types/optional.h>
 
 #include "chainerx/array.h"
 #include "chainerx/backprop_mode.h"

@@ -863,9 +863,6 @@ def max_pool(
 def maximum(x1: tp.Any, x2: tp.Any) -> ndarray: ...
 
 
-def mean_squared_error(x1: tp.Any, x2: tp.Any) -> ndarray: ...
-
-
 def minimum(x1: tp.Any, x2: tp.Any) -> ndarray: ...
 
 
@@ -888,6 +885,9 @@ def negative(x: ndarray) -> ndarray: ...
 
 
 def not_equal(x1: ndarray, x2: ndarray) -> ndarray: ...
+
+
+def nonzero(a: ndarray) -> ndarray: ...
 
 
 def ones(shape: tp.Union[int, tp.Sequence[int]],
@@ -935,6 +935,11 @@ def split(
         axis: int=...) -> tp.List[ndarray]: ...
 
 def dsplit(
+        ary: ndarray,
+        indices_or_sections: tp.Union[int, tp.List[int]],
+        ) -> tp.List[ndarray]: ...
+
+def vsplit(
         ary: ndarray,
         indices_or_sections: tp.Union[int, tp.List[int]],
         ) -> tp.List[ndarray]: ...
