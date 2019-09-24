@@ -27,7 +27,6 @@ if types.TYPE_CHECKING:
         weight_decay_rate = None  # type: float
         amsgrad = None  # type: bool
         adabound = None  # type: bool
-        radam = None  # type: bool
         final_lr = None  # type: float
         gamma = None  # type: float
 
@@ -41,7 +40,6 @@ _default_hyperparam.eta = 1.0
 _default_hyperparam.weight_decay_rate = 0
 _default_hyperparam.amsgrad = False
 _default_hyperparam.adabound = False
-_default_hyperparam.radam = False
 _default_hyperparam.final_lr = 0.1
 _default_hyperparam.gamma = 1e-3
 
@@ -159,7 +157,9 @@ class AdamRule(optimizer.UpdateRule):
         if final_lr is not None:
             self.hyperparam.final_lr = final_lr
         if radam is not None:
-            self.hyperparam.radam = radam
+            self.radam = radam
+        else:
+            self.radam = False
         if gamma is not None:
             self.hyperparam.gamma = gamma
         if self.hyperparam.adabound:
@@ -172,7 +172,7 @@ class AdamRule(optimizer.UpdateRule):
             self.state['v'] = xp.zeros_like(param.data)
             if self.hyperparam.amsgrad:
                 self.state['vhat'] = xp.zeros_like(param.data)
-            if self.hyperparam.radam:
+            if self.radam:
                 self.state['step'] = 0
                 self.state['beta2^t'] = 1.0
 
@@ -227,13 +227,13 @@ class AdamRule(optimizer.UpdateRule):
         vhat = vhat.astype(dtype, copy=False)
         sqrt_vhat_step = numpy.sqrt(vhat) + hp.eps
         alpha = self.alpha_t
-        if hp.radam:
+        if self.radam:
             self.state['step'] += 1
             self.state['beta2^t'] *= hp.beta2
             t = self.state['step']
             b2t = self.state['beta2^t']
-            max_sma = 2/(1-hp.beta2)-1
-            n_sma = max_sma - 2*t*b2t/(1-b2t)
+            max_sma = 2 / (1 - hp.beta2) - 1
+            n_sma = max_sma - 2 * t * b2t / (1 - b2t)
             if n_sma > 4:
                 r = numpy.sqrt(((n_sma - 4) * (n_sma - 2) * max_sma)
                                / ((max_sma - 4) * (max_sma - 2) * n_sma))
@@ -338,7 +338,7 @@ class AdamRule(optimizer.UpdateRule):
                 hp.eta, hp.weight_decay_rate, self._dummy,
                 param.data, self.state['m'], self.state['v'],
                 self.state['vhat'])
-        elif hp.radam:
+        elif self.radam:
             if AdamRule._radam_kernel is None:
                 AdamRule._radam_kernel = cuda.elementwise(
                     'P grad, T alpha_t, T one_minus_beta1, T one_minus_beta2, '
@@ -368,8 +368,8 @@ class AdamRule(optimizer.UpdateRule):
             self.state['beta2^t'] *= hp.beta2
             t = self.state['step']
             b2t = self.state['beta2^t']
-            max_sma = 2/(1-hp.beta2)-1
-            n_sma = max_sma - 2*t*b2t/(1-b2t)
+            max_sma = 2 / (1 - hp.beta2) - 1
+            n_sma = max_sma - 2 * t * b2t / (1 - b2t)
 
             AdamRule._radam_kernel(
                 grad, self.alpha_t, 1 - hp.beta1,
@@ -483,7 +483,7 @@ class Adam(optimizer.GradientMethod):
                  weight_decay_rate=_default_hyperparam.weight_decay_rate,
                  amsgrad=_default_hyperparam.amsgrad,
                  adabound=_default_hyperparam.adabound,
-                 radam=_default_hyperparam.radam,
+                 radam=False,
                  final_lr=_default_hyperparam.final_lr,
                  gamma=_default_hyperparam.gamma):
         super(Adam, self).__init__()
@@ -495,9 +495,9 @@ class Adam(optimizer.GradientMethod):
         self.hyperparam.weight_decay_rate = weight_decay_rate
         self.hyperparam.amsgrad = amsgrad
         self.hyperparam.adabound = adabound
-        self.hyperparam.radam = radam
         self.hyperparam.final_lr = final_lr
         self.hyperparam.gamma = gamma
+        self.radam = radam
 
     alpha = optimizer.HyperparameterProxy('alpha')
     beta1 = optimizer.HyperparameterProxy('beta1')
@@ -511,7 +511,7 @@ class Adam(optimizer.GradientMethod):
     gamma = optimizer.HyperparameterProxy('gamma')
 
     def create_update_rule(self):
-        return AdamRule(self.hyperparam)
+        return AdamRule(self.hyperparam, radam=self.radam)
 
     @property
     def alpha_t(self):
