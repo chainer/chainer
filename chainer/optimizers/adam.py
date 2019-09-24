@@ -49,6 +49,13 @@ def _learning_rate(hp, t):
         raise RuntimeError(
             'Can\'t determine the learning rate of Adam optimizer '
             'because the update steps have not been started.')
+
+    '''
+    In the paper of Adam, the 2nd-moment estimate v_t is
+    corrected before "+eps".
+    Chainer's Adam corrects 2nd-moment after "+eps".
+    It shouldn't cause any significant difference.
+    '''
     fix1 = 1. - math.pow(hp.beta1, t)
     fix2 = 1. - math.pow(hp.beta2, t)
     return hp.alpha * math.sqrt(fix2) / fix1
@@ -225,10 +232,9 @@ class AdamRule(optimizer.UpdateRule):
         sqrt_vhat_step = numpy.sqrt(vhat) + hp.eps
         alpha = self.alpha_t
         if self.radam:
-            t = self.t
-            b2t = math.pow(hp.beta2, t)
+            b2t = math.pow(hp.beta2, self.t)
             max_sma = 2 / (1 - hp.beta2) - 1
-            n_sma = max_sma - 2 * t * b2t / (1 - b2t)
+            n_sma = max_sma - 2 * self.t * b2t / (1 - b2t)
             if n_sma > 4:
                 r = numpy.sqrt(((n_sma - 4) * (n_sma - 2) * max_sma)
                                / ((max_sma - 4) * (max_sma - 2) * n_sma))
@@ -359,10 +365,9 @@ class AdamRule(optimizer.UpdateRule):
                        }''',
                     'radam')
 
-            t = self.t
-            b2t = math.pow(hp.beta2, t)
+            b2t = math.pow(hp.beta2, self.t)
             max_sma = 2 / (1 - hp.beta2) - 1
-            n_sma = max_sma - 2 * t * b2t / (1 - b2t)
+            n_sma = max_sma - 2 * self.t * b2t / (1 - b2t)
 
             AdamRule._radam_kernel(
                 grad, self.alpha_t, 1 - hp.beta1,
