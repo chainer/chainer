@@ -172,9 +172,6 @@ class AdamRule(optimizer.UpdateRule):
             self.state['v'] = xp.zeros_like(param.data)
             if self.hyperparam.amsgrad:
                 self.state['vhat'] = xp.zeros_like(param.data)
-            if self.radam:
-                self.state['step'] = 0
-                self.state['beta2^t'] = 1.0
 
         # For iDeep
         if isinstance(param.data, intel64.mdarray):
@@ -228,10 +225,8 @@ class AdamRule(optimizer.UpdateRule):
         sqrt_vhat_step = numpy.sqrt(vhat) + hp.eps
         alpha = self.alpha_t
         if self.radam:
-            self.state['step'] += 1
-            self.state['beta2^t'] *= hp.beta2
-            t = self.state['step']
-            b2t = self.state['beta2^t']
+            t = self.t
+            b2t = math.pow(hp.beta2, t)
             max_sma = 2 / (1 - hp.beta2) - 1
             n_sma = max_sma - 2 * t * b2t / (1 - b2t)
             if n_sma > 4:
@@ -364,10 +359,8 @@ class AdamRule(optimizer.UpdateRule):
                        }''',
                     'radam')
 
-            self.state['step'] += 1
-            self.state['beta2^t'] *= hp.beta2
-            t = self.state['step']
-            b2t = self.state['beta2^t']
+            t = self.t
+            b2t = math.pow(hp.beta2, t)
             max_sma = 2 / (1 - hp.beta2) - 1
             n_sma = max_sma - 2 * t * b2t / (1 - b2t)
 
