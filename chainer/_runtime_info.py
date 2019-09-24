@@ -70,9 +70,9 @@ def print_runtime_info(out=None):
 
     - CuPy version
 
-      a) CUDA information
-      b) cuDNN information
-      c) NCCL information
+      - CUDA information
+      - cuDNN information
+      - NCCL information
 
     - iDeep version
 
