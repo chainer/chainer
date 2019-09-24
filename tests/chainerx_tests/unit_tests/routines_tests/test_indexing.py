@@ -378,3 +378,37 @@ def test_where_scalar_scalar(xp, cond_shape, cond_dtype, in_types, out_dtype):
     y = y_type(2)
     out = xp.where(cond, x, y)
     return dtype_utils.cast_if_numpy_array(xp, out, out_dtype)
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    chainer.testing.product({
+        'dtype': chainerx.testing.all_dtypes,
+        'input': [
+            [],
+            [[]],
+            [0],
+            [1],
+            [2, 0, 5],
+            [4, 0, 0, 0],
+            [0, 0, 0, 4],
+            [0, 0, 0, 0],
+            [[4, 0, 0, 1], [0, 0, 4, 1]],
+            [[4, 4, 1, 1], [4, 1, 4, 1]],
+            [[0, 0, 0, 0], [0, 0, 0, 0]],
+        ]
+    })
+))
+class TestNonzero(op_utils.NumpyOpTest):
+
+    check_numpy_strides_compliance = False
+    skip_backward_test = True
+    skip_double_backward_test = True
+
+    def generate_inputs(self):
+        x = numpy.asarray(self.input).astype(self.dtype)
+        return x,
+
+    def forward_xp(self, inputs, xp):
+        x, = inputs
+        return xp.nonzero(x)

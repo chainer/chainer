@@ -578,6 +578,23 @@ Note:
 .. seealso:: :func:`numpy.where`
 """)
 
+    _docs.set_doc(
+        chainerx.nonzero,
+        """nonzero(a)
+Return the indices of the elements that are non-zero.
+
+Args:
+    a (~chainerx.ndarray): Input array.
+
+Returns:
+    tuple of :func:`~chainerx.ndarray`: Indices of elements that are non-zero.
+
+Note:
+    During backpropagation, this function does not propagate gradients.
+
+.. seealso:: :func:`numpy.nonzero`
+""")
+
 
 def _docs_linalg():
     _docs.set_doc(
@@ -1354,6 +1371,30 @@ Note:
 """)
 
     _docs.set_doc(
+        chainerx.vsplit,
+        """vsplit(ary, indices_or_sections)
+Splits an array into multiple sub-arrays vertically (row-wise).
+
+Args:
+    ary (~chainerx.ndarray): Array to split.
+    indices_or_sections (int or sequence of ints): A value indicating how to
+        divide the axis. If it is an integer, then is treated as the number of
+        sections, and the axis is evenly divided. Otherwise, the integers
+        indicate indices to split at. Note that a sequence on the device
+        memory is not allowed.
+
+Returns:
+    list of :class:`~chainerx.ndarray`\\ s: A list of sub arrays. Each array \
+is a partial view of the input array.
+
+Note:
+    During backpropagation, this function propagates the gradients of the
+    output arrays to the input array ``ary``.
+
+.. seealso:: :func:`numpy.vsplit`
+""")
+
+    _docs.set_doc(
         chainerx.swapaxes,
         """swapaxes(a, axis1, axis2)
 Interchange two axes of an array.
@@ -1648,11 +1689,27 @@ Note:
     During backpropagation, this function propagates the gradient of the
     output array to the input arrays ``x1`` and ``x2``.
 
-Note:
-    maximum of :class:`~chainerx.ndarray` and :class:`~chainerx.ndarray` is
-    not supported yet.
-
 .. seealso:: :data:`numpy.maximum`
+""")
+
+    _docs.set_doc(
+        chainerx.minimum,
+        """minimum(x1, x2)
+Minimum arguments, element-wise.
+
+Args:
+    x1 (~chainerx.ndarray or scalar): Input array.
+    x2 (~chainerx.ndarray or scalar): Input array.
+
+Returns:
+    :class:`~chainerx.ndarray`:
+        Returned array: :math:`y = min(\\{x_1, x_2\\})`.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input arrays ``x1`` and ``x2``.
+
+.. seealso:: :data:`numpy.minimum`
 """)
 
     _docs.set_doc(
@@ -3413,7 +3470,7 @@ Args:
         ``xs[t].shape[0] >= xs[t + 1].shape[0]``.
 
 Returns:
-    tuple: This function returns a tuple containing three elements,
+    tuple: This function returns a tuple containing two elements,
     ``hy`` and ``ys``.
 
     - ``hy`` is an updated hidden states whose shape is same as ``hx``.
@@ -3496,7 +3553,7 @@ Args:
         ``xs[t].shape[0] >= xs[t + 1].shape[0]``.
 
 Returns:
-    tuple: This function returns a tuple containing three elements,
+    tuple: This function returns a tuple containing two elements,
     ``hy`` and ``ys``.
 
     - ``hy`` is an updated hidden states whose shape is same as ``hx``.
@@ -3571,7 +3628,7 @@ Args:
         Please select ``tanh`` or ``relu``.
 
 Returns:
-    tuple: This function returns a tuple containing three elements,
+    tuple: This function returns a tuple containing two elements,
     ``hy`` and ``ys``.
 
     - ``hy`` is an updated hidden states whose shape is same as ``hx``.
@@ -3661,7 +3718,7 @@ Args:
         Please select ``tanh`` or ``relu``.
 
 Returns:
-    tuple: This function returns a tuple containing three elements,
+    tuple: This function returns a tuple containing two elements,
     ``hy`` and ``ys``.
 
     - ``hy`` is an updated hidden states whose shape is same as ``hx``.

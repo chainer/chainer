@@ -79,6 +79,7 @@ Array manipulation routines
    chainerx.atleast_3d
    chainerx.split
    chainerx.dsplit
+   chainerx.vsplit
    chainerx.swapaxes
    chainerx.repeat
    chainerx.expand_dims
@@ -105,6 +106,7 @@ Indexing routines
 
    chainerx.take
    chainerx.where
+   chainerx.nonzero
 
 Linear algebra
 --------------
@@ -174,6 +176,7 @@ Mathematical functions
    chainerx.remainder
    chainerx.sum
    chainerx.maximum
+   chainerx.minimum
    chainerx.exp
    chainerx.log
    chainerx.log10

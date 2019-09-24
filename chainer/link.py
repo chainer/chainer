@@ -942,7 +942,7 @@ class Chain(Link):
     def copy(self, mode='share'):
         # type: (str) -> 'Chain'
 
-        ret = super(Chain, self).copy()  # type: ignore # should be Chain
+        ret = super(Chain, self).copy(mode)  # type: ignore # should be Chain
         ret._children = set(ret._children)  # type: ignore
         d = ret.__dict__  # type: tp.Dict[str, Link]
         for name in ret._children:  # type: ignore
