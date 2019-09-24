@@ -6,7 +6,6 @@
 #include "chainerx/array.h"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
-#include "chainerx/kernels/math.h"
 #include "chainerx/kernels/misc.h"
 #include "chainerx/native/elementwise.h"
 #include "chainerx/native/kernel_regist.h"
@@ -14,6 +13,18 @@
 #include "chainerx/routines/type_util.h"
 
 namespace chainerx {
+
+namespace internal {
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(Fill)
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(Sqrt)
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(Square)
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(Abs)
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(Sign)
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(IfLessElseASSA)
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(IfGreaterElseASSA)
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(IfGreaterElseAAAA)
+}  // namespace internal
+
 namespace native {
 namespace {
 
@@ -21,61 +32,9 @@ CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(SqrtKernel, { out = chainerx
 
 CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_UNARY_KERNEL(SquareKernel, { out = x * x; }, VisitNumericDtype);
 
-CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(FabsKernel, { out = chainerx::Fabs(x); });
+CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_UNARY_KERNEL(AbsKernel, { out = chainerx::Abs(x); }, VisitNumericDtype);
 
 CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_UNARY_KERNEL(SignKernel, { out = chainerx::Sign(x); }, VisitNumericDtype);
-
-CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(CeilKernel, { out = chainerx::Ceil(x); });
-
-CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(FloorKernel, { out = chainerx::Floor(x); });
-
-class NativeIsNanKernel : public IsNanKernel {
-public:
-    void Call(const Array& x, const Array& out) override {
-        x.device().CheckDevicesCompatible(x, out);
-        VisitDtype(x.dtype(), [&](auto pt) {
-            using T = typename decltype(pt)::type;
-            struct Impl {
-                void operator()(int64_t /*i*/, T x, bool& out) { out = chainerx::IsNan(x); }
-            };
-            Elementwise<const T, bool>(Impl{}, x, out);
-        });
-    }
-};
-
-CHAINERX_NATIVE_REGISTER_KERNEL(IsNanKernel, NativeIsNanKernel);
-
-class NativeIsInfKernel : public IsInfKernel {
-public:
-    void Call(const Array& x, const Array& out) override {
-        x.device().CheckDevicesCompatible(x, out);
-        VisitDtype(x.dtype(), [&](auto pt) {
-            using T = typename decltype(pt)::type;
-            struct Impl {
-                void operator()(int64_t /*i*/, T x, bool& out) { out = chainerx::IsInf(x); }
-            };
-            Elementwise<const T, bool>(Impl{}, x, out);
-        });
-    }
-};
-
-CHAINERX_NATIVE_REGISTER_KERNEL(IsInfKernel, NativeIsInfKernel);
-
-class NativeIsFiniteKernel : public IsFiniteKernel {
-public:
-    void Call(const Array& x, const Array& out) override {
-        x.device().CheckDevicesCompatible(x, out);
-        VisitDtype(x.dtype(), [&](auto pt) {
-            using T = typename decltype(pt)::type;
-            struct Impl {
-                void operator()(int64_t /*i*/, T x, bool& out) { out = !(chainerx::IsInf(x) || chainerx::IsNan(x)); }
-            };
-            Elementwise<const T, bool>(Impl{}, x, out);
-        });
-    }
-};
-
-CHAINERX_NATIVE_REGISTER_KERNEL(IsFiniteKernel, NativeIsFiniteKernel);
 
 class NativeIfLessElseASSAKernel : public IfLessElseASSAKernel {
 public:

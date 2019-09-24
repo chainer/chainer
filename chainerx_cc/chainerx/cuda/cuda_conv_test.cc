@@ -9,10 +9,10 @@
 #include "chainerx/constant.h"
 #include "chainerx/cuda/cuda_device.h"
 #include "chainerx/device_id.h"
+#include "chainerx/dims.h"
 #include "chainerx/kernels/connection.h"
 #include "chainerx/routines/connection.h"
 #include "chainerx/shape.h"
-#include "chainerx/stack_vector.h"
 #include "chainerx/testing/array.h"
 #include "chainerx/testing/array_check.h"
 #include "chainerx/testing/device_session.h"
@@ -43,7 +43,7 @@ TEST(CudaConvTest, FwdAlgoCache) {
     int64_t in_channels = 3;
     int64_t out_channels = 2;
     Shape in_dims{10, 7};
-    StackVector<int64_t, kMaxNdim> kernel_size{2, 3};
+    Dims kernel_size{2, 3};
 
     Shape x_shape{batch_size, in_channels};
     std::copy(in_dims.begin(), in_dims.end(), std::back_inserter(x_shape));
@@ -57,8 +57,8 @@ TEST(CudaConvTest, FwdAlgoCache) {
 
     // New parameters should create new auto tuning caches, and same parameters should not.
     {
-        StackVector<int64_t, kMaxNdim> stride{3, 2};
-        StackVector<int64_t, kMaxNdim> pad{2, 0};
+        Dims stride{3, 2};
+        Dims pad{2, 0};
         bool cover_all = false;
 
         EXPECT_EQ(size_t{0}, cuda_internal::CudaConvTest::GetFwdAlgoCacheMapSize(cuda_conv));
@@ -68,8 +68,8 @@ TEST(CudaConvTest, FwdAlgoCache) {
         EXPECT_EQ(size_t{1}, cuda_internal::CudaConvTest::GetFwdAlgoCacheMapSize(cuda_conv));
     }
     {
-        StackVector<int64_t, kMaxNdim> stride{1, 1};
-        StackVector<int64_t, kMaxNdim> pad{0, 0};
+        Dims stride{1, 1};
+        Dims pad{0, 0};
         bool cover_all = false;
 
         EXPECT_EQ(size_t{1}, cuda_internal::CudaConvTest::GetFwdAlgoCacheMapSize(cuda_conv));
@@ -89,7 +89,7 @@ TEST(CudaConvTest, BwdDatadAlgoCache) {
     int64_t in_channels = 3;
     int64_t out_channels = 2;
     Shape in_dims{5, 3};
-    StackVector<int64_t, kMaxNdim> kernel_size{2, 3};
+    Dims kernel_size{2, 3};
 
     Shape x_shape{batch_size, in_channels};
     std::copy(in_dims.begin(), in_dims.end(), std::back_inserter(x_shape));
@@ -103,8 +103,8 @@ TEST(CudaConvTest, BwdDatadAlgoCache) {
 
     // New parameters should create new auto tuning caches, and same parameters should not.
     {
-        StackVector<int64_t, kMaxNdim> stride{3, 2};
-        StackVector<int64_t, kMaxNdim> pad{2, 0};
+        Dims stride{3, 2};
+        Dims pad{2, 0};
 
         EXPECT_EQ(size_t{0}, cuda_internal::CudaConvTest::GetBwdDataAlgoCacheMapSize(cuda_conv));
         ConvTranspose(x, w, b, stride, pad);
@@ -113,8 +113,8 @@ TEST(CudaConvTest, BwdDatadAlgoCache) {
         EXPECT_EQ(size_t{1}, cuda_internal::CudaConvTest::GetBwdDataAlgoCacheMapSize(cuda_conv));
     }
     {
-        StackVector<int64_t, kMaxNdim> stride{1, 1};
-        StackVector<int64_t, kMaxNdim> pad{0, 0};
+        Dims stride{1, 1};
+        Dims pad{0, 0};
 
         EXPECT_EQ(size_t{1}, cuda_internal::CudaConvTest::GetBwdDataAlgoCacheMapSize(cuda_conv));
         ConvTranspose(x, w, b, stride, pad);
@@ -133,7 +133,7 @@ TEST(CudaConvTest, BwdFilterAlgoCache) {
     int64_t in_channels = 3;
     int64_t out_channels = 2;
     Shape in_dims{10, 7};
-    StackVector<int64_t, kMaxNdim> kernel_size{2, 3};
+    Dims kernel_size{2, 3};
 
     Dtype w_dtype = Dtype::kFloat32;
     Shape x_shape{batch_size, in_channels};
@@ -146,8 +146,8 @@ TEST(CudaConvTest, BwdFilterAlgoCache) {
     // New parameters should create new auto tuning caches, and same parameters should not.
     // ConvGradW is not exposed as routines function, so call CudaDevice::ConvGradWeight directly.
     {
-        StackVector<int64_t, kMaxNdim> stride{3, 2};
-        StackVector<int64_t, kMaxNdim> pad{2, 0};
+        Dims stride{3, 2};
+        Dims pad{2, 0};
         bool cover_all = false;
 
         Shape out_dims{5, 3};
@@ -156,14 +156,14 @@ TEST(CudaConvTest, BwdFilterAlgoCache) {
         Array gy = testing::BuildArray(out_shape).WithLinearData(-0.3f, 0.1f).WithPadding(1);
 
         EXPECT_EQ(size_t{0}, cuda_internal::CudaConvTest::GetBwdFilterAlgoCacheMapSize(cuda_conv));
-        device.backend().CallKernel<ConvGradWeightKernel>(w_dtype, w_shape, x, gy, stride, pad, cover_all, nonstd::nullopt);
+        device.backend().CallKernel<ConvGradWeightKernel>(w_dtype, w_shape, x, gy, stride, pad, cover_all, absl::nullopt);
         EXPECT_EQ(size_t{1}, cuda_internal::CudaConvTest::GetBwdFilterAlgoCacheMapSize(cuda_conv));
-        device.backend().CallKernel<ConvGradWeightKernel>(w_dtype, w_shape, x, gy, stride, pad, cover_all, nonstd::nullopt);
+        device.backend().CallKernel<ConvGradWeightKernel>(w_dtype, w_shape, x, gy, stride, pad, cover_all, absl::nullopt);
         EXPECT_EQ(size_t{1}, cuda_internal::CudaConvTest::GetBwdFilterAlgoCacheMapSize(cuda_conv));
     }
     {
-        StackVector<int64_t, kMaxNdim> stride{1, 1};
-        StackVector<int64_t, kMaxNdim> pad{0, 0};
+        Dims stride{1, 1};
+        Dims pad{0, 0};
         bool cover_all = false;
 
         Shape out_dims{9, 5};
@@ -172,9 +172,9 @@ TEST(CudaConvTest, BwdFilterAlgoCache) {
         Array gy = testing::BuildArray(out_shape).WithLinearData(-0.3f, 0.1f).WithPadding(1);
 
         EXPECT_EQ(size_t{1}, cuda_internal::CudaConvTest::GetBwdFilterAlgoCacheMapSize(cuda_conv));
-        device.backend().CallKernel<ConvGradWeightKernel>(w_dtype, w_shape, x, gy, stride, pad, cover_all, nonstd::nullopt);
+        device.backend().CallKernel<ConvGradWeightKernel>(w_dtype, w_shape, x, gy, stride, pad, cover_all, absl::nullopt);
         EXPECT_EQ(size_t{2}, cuda_internal::CudaConvTest::GetBwdFilterAlgoCacheMapSize(cuda_conv));
-        device.backend().CallKernel<ConvGradWeightKernel>(w_dtype, w_shape, x, gy, stride, pad, cover_all, nonstd::nullopt);
+        device.backend().CallKernel<ConvGradWeightKernel>(w_dtype, w_shape, x, gy, stride, pad, cover_all, absl::nullopt);
         EXPECT_EQ(size_t{2}, cuda_internal::CudaConvTest::GetBwdFilterAlgoCacheMapSize(cuda_conv));
     }
 }

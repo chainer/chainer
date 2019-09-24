@@ -3,8 +3,8 @@
 #include <algorithm>
 #include <vector>
 
+#include <absl/types/optional.h>
 #include <gtest/gtest.h>
-#include <nonstd/optional.hpp>
 
 namespace chainerx {
 namespace {
@@ -16,7 +16,7 @@ const T& AsConst(const T& value) {
 
 // Initialize with null
 TEST(OptionalContainerArgTest, Null) {
-    OptionalContainerArg<std::vector<int>> a{nonstd::nullopt};
+    OptionalContainerArg<std::vector<int>> a{absl::nullopt};
     EXPECT_FALSE(a.has_value());
     EXPECT_FALSE(static_cast<bool>(a));
 }
@@ -95,7 +95,7 @@ TEST(OptionalContainerArgTest, Single) {
 // Assign null
 TEST(OptionalContainerArgTest, AssignNull) {
     OptionalContainerArg<std::vector<int>> a{5, -2, 3};
-    a = nonstd::nullopt;
+    a = absl::nullopt;
     EXPECT_FALSE(a.has_value());
     EXPECT_FALSE(static_cast<bool>(a));
 }
@@ -146,9 +146,9 @@ TEST(OptionalContainerArgTest, Value) {
     EXPECT_EQ(std::vector<int>({4}), *a);
 
     // value() for unset value
-    a = nonstd::nullopt;
-    EXPECT_THROW(a.value(), nonstd::bad_optional_access);
-    EXPECT_THROW(AsConst(a).value(), nonstd::bad_optional_access);
+    a = absl::nullopt;
+    EXPECT_THROW(a.value(), absl::bad_optional_access);
+    EXPECT_THROW(AsConst(a).value(), absl::bad_optional_access);
 }
 
 // Modify using iterators

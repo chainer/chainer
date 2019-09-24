@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 import argparse
-import sys
 
 import chainer
 import chainer.functions as F
@@ -75,7 +74,7 @@ def main():
     parser.add_argument('--unit', '-u', default=1000, type=int,
                         help='Number of units')
     parser.add_argument('--device0', '-d', type=str, default='0',
-                        help='Device specifier of the first device.'
+                        help='Device specifier of the first device. '
                         'Either ChainerX device '
                         'specifier or an integer. If non-negative integer, '
                         'CuPy arrays with specified device id are used. If '
@@ -96,9 +95,6 @@ def main():
     args = parser.parse_args()
     device0 = chainer.get_device(args.device0)
     device1 = chainer.get_device(args.device1)
-    if device0.xp is chainerx or device1.xp is chainerx:
-        sys.stderr.write('This example does not support ChainerX devices.\n')
-        sys.exit(1)
 
     print('Devices: {}, {}'.format(device0, device1))
     print('# unit: {}'.format(args.unit))
@@ -121,11 +117,13 @@ def main():
                                                  repeat=False, shuffle=False)
 
     updater = training.updaters.StandardUpdater(
-        train_iter, optimizer, device=device0)
+        train_iter, optimizer, input_device=device0)
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.out)
 
     trainer.extend(extensions.Evaluator(test_iter, model, device=device0))
-    trainer.extend(extensions.DumpGraph('main/loss'))
+    # TODO(niboshi): Temporarily disabled for chainerx. Fix it.
+    if device0.xp is not chainerx:
+        trainer.extend(extensions.DumpGraph('main/loss'))
     trainer.extend(extensions.snapshot(), trigger=(args.epoch, 'epoch'))
     trainer.extend(extensions.LogReport())
     trainer.extend(extensions.PrintReport(

@@ -57,6 +57,12 @@ from chainerx_tests import op_utils
     ((6,), slice(0, 6, 2)),
     ((6,), slice(1, 6, 2)),
     ((6,), slice(5, None, -2)),
+    ((6,), slice(4, 10)),
+    ((6,), slice(10, 5, -1)),
+    ((6,), slice(5, -1)),
+    ((6,), slice(5, -1, -1)),
+    ((6,), slice(-1, 5)),
+    ((6,), slice(-1, 5, -1)),
     # slice indexing - tuple indexing
     ((3,), (slice(None),)),
     ((3,), (slice(2),)),
@@ -101,6 +107,12 @@ from chainerx_tests import op_utils
     ((), (chainerx.newaxis,)),
     ((3,), (chainerx.newaxis,)),
     ((2, 3), (chainerx.newaxis, chainerx.newaxis)),
+    # ellipsis indexing - non-tuple indexing
+    ((), Ellipsis),
+    ((3,), Ellipsis),
+    # ellipsis indexing - tuple indexing
+    ((), (Ellipsis,)),
+    ((2, 3), (Ellipsis,)),
     # mixed indexing - tuple indexing
     ((2, 3), (0, slice(1, 3))),
     ((4, 3), (slice(1, 3), 1)),
@@ -112,6 +124,14 @@ from chainerx_tests import op_utils
     ((2, 3, 4), (chainerx.newaxis, slice(0, 1), slice(1, 2), slice(1, 3))),
     ((2, 3, 4),
      (1, slice(2,), chainerx.newaxis, slice(1, 3), chainerx.newaxis)),
+    ((2, 3, 4), (0, Ellipsis)),
+    ((2, 3, 4), (Ellipsis, 2)),
+    ((2, 3, 4), (1, Ellipsis, 2)),
+    ((2, 3, 4), (1, Ellipsis, 2, 3)),
+    ((2, 3, 4), (chainerx.newaxis, Ellipsis, chainerx.newaxis)),
+    ((2, 3, 4), (1, Ellipsis, chainerx.newaxis, 3)),
+    ((2, 3, 4), (1, Ellipsis, 2, chainerx.newaxis, 3)),
+    ((2, 3, 4), (slice(0, 1), Ellipsis, slice(1, 3))),
 ])
 class TestGetitem(op_utils.NumpyOpTest):
     # TODO(niboshi): Remove this
@@ -125,6 +145,24 @@ class TestGetitem(op_utils.NumpyOpTest):
         x, = inputs
         y = x[self.indices]
         return y,
+
+
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('shape,indices', [
+    ((), 0),
+    ((), (1,)),
+    ((), (1, 0)),
+    ((3,), 3),
+    ((3,), (0, 1)),
+    ((2, 3,), (2, 0)),
+    ((2,), (2, chainerx.newaxis, 3)),
+    ((2,), (2, Ellipsis, chainerx.newaxis, 3)),
+    ((2,), (Ellipsis, Ellipsis)),
+])
+def test_getitem_index_error(device, shape, indices):
+    a = array_utils.create_dummy_ndarray(chainerx, shape, 'float32')
+    with pytest.raises(IndexError):
+        a[indices]
 
 
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
@@ -157,6 +195,8 @@ def test_getitem_zero_sized_offsets(device):
     ((2, 3), [1, 2], 1),
     ((2, 3), [2, 1], 1),
     ((2, 3), [[0], [1]], 0),
+    # Take from a duplicate index
+    ((3, 2), [1, 1], 0),
     # Invalid: Axis out of bounds
     ((2, 3), [0], 2),
     ((2, 3), [0], -3),
@@ -168,6 +208,8 @@ def test_getitem_zero_sized_offsets(device):
 # wasteful.
 @chainer.testing.parameterize_pytest(
     'indices_dtype', chainerx.testing.integral_dtypes)
+@chainer.testing.parameterize_pytest(
+    'a_dtype', chainerx.testing.all_dtypes)
 class TestTake(op_utils.NumpyOpTest):
 
     check_numpy_strides_compliance = False
@@ -179,8 +221,14 @@ class TestTake(op_utils.NumpyOpTest):
             raise unittest.SkipTest(
                 'Indices underflows and index out of bounds cannot be tested.')
 
+        if self.a_dtype == 'float16':
+            self.check_backward_options.update(
+                {'rtol': 1e-3, 'atol': 1e-3})
+            self.check_double_backward_options.update(
+                {'rtol': 1e-3, 'atol': 1e-3})
+
     def generate_inputs(self):
-        a = numpy.random.uniform(-1, 1, self.shape).astype('float32')
+        a = numpy.random.uniform(-1, 1, self.shape).astype(self.a_dtype)
         return a,
 
     def forward_xp(self, inputs, xp):
@@ -330,3 +378,37 @@ def test_where_scalar_scalar(xp, cond_shape, cond_dtype, in_types, out_dtype):
     y = y_type(2)
     out = xp.where(cond, x, y)
     return dtype_utils.cast_if_numpy_array(xp, out, out_dtype)
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    chainer.testing.product({
+        'dtype': chainerx.testing.all_dtypes,
+        'input': [
+            [],
+            [[]],
+            [0],
+            [1],
+            [2, 0, 5],
+            [4, 0, 0, 0],
+            [0, 0, 0, 4],
+            [0, 0, 0, 0],
+            [[4, 0, 0, 1], [0, 0, 4, 1]],
+            [[4, 4, 1, 1], [4, 1, 4, 1]],
+            [[0, 0, 0, 0], [0, 0, 0, 0]],
+        ]
+    })
+))
+class TestNonzero(op_utils.NumpyOpTest):
+
+    check_numpy_strides_compliance = False
+    skip_backward_test = True
+    skip_double_backward_test = True
+
+    def generate_inputs(self):
+        x = numpy.asarray(self.input).astype(self.dtype)
+        return x,
+
+    def forward_xp(self, inputs, xp):
+        x, = inputs
+        return xp.nonzero(x)

@@ -45,7 +45,7 @@ class TestClippedReLU(testing.FunctionTestCase):
 
     def forward_expected(self, inputs):
         x, = inputs
-        y = utils.force_array(x.clip(0, self.z))
+        y = utils.force_array(x.clip(0, self.z), x.dtype)
         return y,
 
 
@@ -118,7 +118,7 @@ class TestReLU6(testing.FunctionTestCase):
 
     def forward_expected(self, inputs):
         x, = inputs
-        y = utils.force_array(x.clip(0, 6.0))
+        y = utils.force_array(x.clip(0, 6.0), x.dtype)
         return y,
 
 

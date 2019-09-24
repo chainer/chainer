@@ -4,17 +4,17 @@
 #include <tuple>
 #include <vector>
 
+#include <absl/types/optional.h>
+#include <absl/types/span.h>
 #include <gtest/gtest.h>
-#include <gsl/gsl>
-#include <nonstd/optional.hpp>
 
 #include "chainerx/error.h"
 
 namespace chainerx {
 namespace {
 
-void CheckSpanEqual(std::initializer_list<int8_t> expect, gsl::span<const int8_t> actual) {
-    EXPECT_EQ(gsl::make_span(expect.begin(), expect.end()), actual);
+void CheckSpanEqual(std::initializer_list<int8_t> expect, absl::Span<const int8_t> actual) {
+    EXPECT_EQ(absl::MakeConstSpan(expect.begin(), expect.end()), actual);
 }
 
 TEST(AxesTest, Ctor) {
@@ -29,9 +29,9 @@ TEST(AxesTest, Ctor) {
         EXPECT_EQ(size_t{3}, axes.size());
         CheckSpanEqual({2, 0, 3}, axes.span());
     }
-    {  // From gsl::span
+    {  // From span
         const std::array<int8_t, 3> dims{2, 0, 3};
-        const Axes axes{gsl::make_span(dims)};
+        const Axes axes{absl::MakeConstSpan(dims)};
         EXPECT_EQ(3, axes.ndim());
         CheckSpanEqual({2, 0, 3}, axes.span());
     }
@@ -46,9 +46,9 @@ TEST(AxesTest, Ctor) {
         EXPECT_EQ(0, axes.ndim());
         CheckSpanEqual({}, axes.span());
     }
-    {  // From empty gsl::span
+    {  // From empty span
         const std::array<int8_t, 0> dims{};
-        const Axes axes{gsl::make_span(dims)};
+        const Axes axes{absl::MakeConstSpan(dims)};
         EXPECT_EQ(0, axes.ndim());
         CheckSpanEqual({}, axes.span());
     }
@@ -61,9 +61,9 @@ TEST(AxesTest, Ctor) {
     {  // Too long std::initializer_list
         EXPECT_THROW(Axes({0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1}), DimensionError);
     }
-    {  // Too long gsl::span
+    {  // Too long span
         const std::array<int8_t, kMaxNdim + 1> too_long{1};
-        EXPECT_THROW(Axes{gsl::make_span(too_long)}, DimensionError);
+        EXPECT_THROW(Axes{absl::MakeConstSpan(too_long)}, DimensionError);
     }
     {  // Too long iterators
         std::vector<int8_t> dims{};
@@ -104,8 +104,8 @@ TEST(AxesTest, Compare) {
 
 TEST(AxesTest, Iterator) {
     const Axes axes = {2, 0, 3};
-    CheckSpanEqual({2, 0, 3}, gsl::make_span(std::vector<int8_t>{axes.begin(), axes.end()}));
-    CheckSpanEqual({3, 0, 2}, gsl::make_span(std::vector<int8_t>{axes.rbegin(), axes.rend()}));
+    CheckSpanEqual({2, 0, 3}, absl::MakeConstSpan(std::vector<int8_t>{axes.begin(), axes.end()}));
+    CheckSpanEqual({3, 0, 2}, absl::MakeConstSpan(std::vector<int8_t>{axes.rbegin(), axes.rend()}));
 }
 
 TEST(AxesTest, ToString) {
@@ -178,7 +178,7 @@ class GetSortedAxesOrAllTest : public ::testing::TestWithParam<GetSortedAxesOrAl
 TEST_P(GetSortedAxesOrAllTest, All) {
     int8_t axis = std::get<0>(GetParam());
     const Axes& expect = std::get<1>(GetParam());
-    EXPECT_EQ(expect, internal::GetSortedAxesOrAll(nonstd::nullopt, axis));
+    EXPECT_EQ(expect, internal::GetSortedAxesOrAll(absl::nullopt, axis));
 }
 
 INSTANTIATE_TEST_CASE_P(

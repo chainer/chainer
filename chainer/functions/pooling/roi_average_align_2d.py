@@ -15,6 +15,7 @@
 # \roi align operator described in Mask RCNN
 # -----------------------------------------------------------------------------
 
+import numbers
 import numpy
 import six
 
@@ -103,23 +104,24 @@ class ROIAverageAlign2D(function.Function):
 
     def __init__(self, outsize, spatial_scale, sampling_ratio=None):
         outh, outw = _pair(outsize)
-        if not (isinstance(outh, int) and outh > 0):
+        if not (isinstance(outh, numbers.Integral) and outh > 0):
             raise TypeError(
                 'outsize[0] must be positive integer: {}, {}'
                 .format(type(outh), outh))
-        if not (isinstance(outw, int) and outw > 0):
+        if not (isinstance(outw, numbers.Integral) and outw > 0):
             raise TypeError(
                 'outsize[1] must be positive integer: {}, {}'
                 .format(type(outw), outw))
-        if isinstance(spatial_scale, int):
+        if isinstance(spatial_scale, numbers.Integral):
             spatial_scale = float(spatial_scale)
-        if not (isinstance(spatial_scale, float) and spatial_scale > 0):
+        if not (isinstance(spatial_scale, numbers.Real) and
+                spatial_scale > 0):
             raise TypeError(
                 'spatial_scale must be a positive float number: {}, {}'
                 .format(type(spatial_scale), spatial_scale))
         sampling_ratio = _pair(sampling_ratio)
-        if not all((isinstance(s, int) and s >= 1) or s is None
-                   for s in sampling_ratio):
+        if not all((isinstance(s, numbers.Integral) and s >= 1) or
+                   s is None for s in sampling_ratio):
             raise TypeError(
                 'sampling_ratio must be integer >= 1 or a pair of it: {}'
                 .format(sampling_ratio))

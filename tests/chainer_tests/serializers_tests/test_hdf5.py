@@ -149,6 +149,12 @@ class TestHDF5Deserializer(unittest.TestCase):
         y = numpy.empty((2, 3), dtype=numpy.float32)
         self.check_deserialize(chainerx.asarray(y))
 
+    @attr.chainerx
+    @attr.gpu
+    def test_deserialize_chainerx_non_native(self):
+        y = numpy.empty((2, 3), dtype=numpy.float32)
+        self.check_deserialize(chainerx.asarray(y, device='cuda:0'))
+
     def test_deserialize_cpu(self):
         y = numpy.empty((2, 3), dtype=numpy.float32)
         self.check_deserialize(y)
@@ -387,39 +393,39 @@ class TestGroupHierachy(unittest.TestCase):
                             {'W', 'b'})
 
     def test_save_chain(self):
-        with h5py.File(self.temp_file_path) as h5:
+        with h5py.File(self.temp_file_path, 'w') as h5:
             self._save(h5, self.parent, 'test')
             self.assertSetEqual(set(h5.keys()), {'test'})
             self._check_group(h5['test'], ('Wp',))
 
     def test_save_optimizer(self):
-        with h5py.File(self.temp_file_path) as h5:
+        with h5py.File(self.temp_file_path, 'w') as h5:
             self._save(h5, self.optimizer, 'test')
             self.assertSetEqual(set(h5.keys()), {'test'})
             self._check_group(h5['test'], ('Wp', 'epoch', 't'))
 
     def test_save_chain2(self):
         hdf5.save_hdf5(self.temp_file_path, self.parent)
-        with h5py.File(self.temp_file_path) as h5:
+        with h5py.File(self.temp_file_path, 'r') as h5:
             self._check_group(h5, ('Wp',))
 
     def test_save_optimizer2(self):
         hdf5.save_hdf5(self.temp_file_path, self.optimizer)
-        with h5py.File(self.temp_file_path) as h5:
+        with h5py.File(self.temp_file_path, 'r') as h5:
             self._check_group(h5, ('Wp', 'epoch', 't'))
 
     def test_load_chain(self):
-        with h5py.File(self.temp_file_path) as h5:
+        with h5py.File(self.temp_file_path, 'w') as h5:
             self._save(h5, self.parent, 'test')
 
-        with h5py.File(self.temp_file_path) as h5:
+        with h5py.File(self.temp_file_path, 'r') as h5:
             self._load(h5, self.parent, 'test')
 
     def test_load_optimizer(self):
-        with h5py.File(self.temp_file_path) as h5:
+        with h5py.File(self.temp_file_path, 'w') as h5:
             self._save(h5, self.optimizer, 'test')
 
-        with h5py.File(self.temp_file_path) as h5:
+        with h5py.File(self.temp_file_path, 'r') as h5:
             self._load(h5, self.optimizer, 'test')
 
 

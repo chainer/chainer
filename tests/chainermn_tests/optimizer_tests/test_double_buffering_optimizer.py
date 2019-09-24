@@ -21,10 +21,11 @@ class ExampleModel(chainer.Chain):
 
 class TestDoubleBufferingOptimizer(unittest.TestCase):
 
-    def setup_gpu(self, device=None):
+    def setup(self, batched_copy):
         if nccl.get_build_version() < 2000:
             pytest.skip('This test requires NCCL version >= 2.0')
-        self.comm = chainermn.create_communicator('pure_nccl')
+        self.comm = chainermn.create_communicator('pure_nccl',
+                                                  batched_copy=batched_copy)
         device = self.comm.intra_rank
         chainer.cuda.get_device_from_id(device).use()
         self.target = ExampleModel()
@@ -38,9 +39,8 @@ class TestDoubleBufferingOptimizer(unittest.TestCase):
         self.actual_optimizer = chainer.GradientMethod()
         self.actual_optimizer.create_update_rule = mock.MagicMock
 
-    @chainer.testing.attr.gpu
-    def test_update(self):
-        self.setup_gpu()
+    def check_update(self, batched_copy):
+        self.setup(batched_copy)
         self.optimizer = chainermn.create_multi_node_optimizer(
             self.actual_optimizer, self.comm, double_buffering=True)
         opt = self.optimizer.setup(self.target)
@@ -86,9 +86,15 @@ class TestDoubleBufferingOptimizer(unittest.TestCase):
         chainer.testing.assert_allclose(
             self.optimizer.communicated_target.c.W.grad,
             (base + 5) * np.ones((5, 4)))
-        # barrier() requires before destructor of PureNcclCommunicator
-        # because communication may not be finished.
-        self.comm.mpi_comm.barrier()
+        self.comm.finalize()
+
+    @chainer.testing.attr.gpu
+    def test_update_without_batched_copy(self):
+        self.check_update(False)
+
+    @chainer.testing.attr.gpu
+    def test_update_with_batched_copy(self):
+        self.check_update(True)
 
 
 class DynamicExampleModel(chainer.Chain):
@@ -102,10 +108,11 @@ class DynamicExampleModel(chainer.Chain):
 
 class TestDoubleBufferingOptimizerWithDynamicModel(unittest.TestCase):
 
-    def setup_gpu(self, device=None):
+    def setup(self, batched_copy):
         if nccl.get_build_version() < 2000:
             pytest.skip('This test requires NCCL version >= 2.0')
-        self.comm = chainermn.create_communicator('pure_nccl')
+        self.comm = chainermn.create_communicator('pure_nccl',
+                                                  batched_copy=batched_copy)
         device = self.comm.intra_rank
         chainer.cuda.get_device_from_id(device).use()
         self.target = DynamicExampleModel()
@@ -117,9 +124,8 @@ class TestDoubleBufferingOptimizerWithDynamicModel(unittest.TestCase):
         self.actual_optimizer = chainer.GradientMethod()
         self.actual_optimizer.create_update_rule = mock.MagicMock
 
-    @chainer.testing.attr.gpu
-    def test_update(self):
-        self.setup_gpu()
+    def check_update(self, batched_copy):
+        self.setup(batched_copy)
         self.optimizer = chainermn.create_multi_node_optimizer(
             self.actual_optimizer, self.comm, double_buffering=True)
         opt = self.optimizer.setup(self.target)
@@ -211,6 +217,12 @@ class TestDoubleBufferingOptimizerWithDynamicModel(unittest.TestCase):
         chainer.testing.assert_allclose(
             self.optimizer.communicated_target.c.W.grad,
             (base + 11) * np.ones((4, 4)))
-        # barrier() requires before destructor of PureNcclCommunicator
-        # because communication may not be finished.
-        self.comm.mpi_comm.barrier()
+        self.comm.finalize()
+
+    @chainer.testing.attr.gpu
+    def test_update_without_batched_copy(self):
+        self.check_update(False)
+
+    @chainer.testing.attr.gpu
+    def test_update_with_batched_copy(self):
+        self.check_update(True)
