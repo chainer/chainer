@@ -56,20 +56,22 @@ keys=None, trigger=(1, 'epoch'), postprocess=None, filename='log')
             formatting. For example, users can use '{iteration}' to separate
             the log files for different iterations. If the log name is None, it
             does not output the log to any file.
-            It is recommended to suffix the filename with ``'.jsonl'`` when
-            ``file_format='jsonl'``.
+            It is recommended that you explicitly configure the filename like
+            ``'log.jsonl'`` when ``file_format='jsonl'`` to avoid confusing
+            third-party software which assume ``log`` file has a default single
+            JSON list format.
             For historical reasons ``log_name`` is also accepted as an alias
             of this argument.
         file_format (str): Format of the log file. If ``'jsonl'`` is specified,
             a log file is in JSON Lines format, which is JSON objects delimited
-            by newlines (``LF``). It is suitable for stream processing and
-            works well with line-oriented tools in UNIX. If ``None``, it is a
-            single JSON list of the summaries.
+            by newlines (LF). It is suitable for stream processing and works
+            well with line-oriented tools in UNIX. If ``None``, it is a single
+            JSON list of the summaries.
 
     """
 
     def __init__(self, keys=None, trigger=(1, 'epoch'), postprocess=None,
-                 filename=None, file_format=None, **kwargs):
+                 filename=None, **kwargs):
         self._keys = keys
         self._trigger = trigger_module.get_trigger(trigger)
         self._postprocess = postprocess
@@ -84,7 +86,9 @@ keys=None, trigger=(1, 'epoch'), postprocess=None, filename='log')
             filename = log_name
         del log_name  # avoid accidental use
         self._log_name = filename
-        self._file_format = file_format
+        self._file_format = None
+        if 'file_format' in kwargs:
+            self._file_format = kwargs['file_format']
 
         self._init_summary()
 
