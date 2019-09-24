@@ -236,11 +236,11 @@ def _kl_independent_independent(dist1, dist2):
     # KL(p || q) and do a `reduce_sum` on the reinterpreted batch dimensions.
     if dist1.event_shape == dist2.event_shape:
         if p.event_shape == q.event_shape:
-            n_reduce_dims = len(dist1.event_shape) - len(p.event_shape)
-            reduce_dims = tuple([-i - 1 for i in range(0, n_reduce_dims)])
+            n_axes = len(dist1.event_shape) - len(p.event_shape)
+            n_reduce_dims = tuple([-i - 1 for i in range(0, n_axes)])
 
             return sum_mod.sum(
-                distribution.kl_divergence(p, q), axis=reduce_dims)
+                distribution.kl_divergence(p, q), axis=n_reduce_dims)
         else:
             raise NotImplementedError(
                 'KL between Independents with different '
