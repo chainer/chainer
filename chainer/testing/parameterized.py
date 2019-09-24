@@ -156,7 +156,7 @@ def product_dict(*parameters):
 
 
 # TODO(kataoka): product_dict is patched by tests/chainer_tests/conftest.py
-# while tests are collected. Also used in
+# and tests/chainerx_tests/conftest.py while tests are collected. Also used in
 # tests/chainer_tests/testing_tests/test_parameterized.py
 _product_dict_orig = product_dict
 
