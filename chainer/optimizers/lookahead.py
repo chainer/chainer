@@ -1,3 +1,5 @@
+import types
+
 import chainer
 from chainer import optimizer
 
@@ -8,57 +10,37 @@ _default_hyperparam.n_updates = 5
 _default_hyperparam.state = 'maintain'
 
 
-class LookaheadRule(optimizer.UpdateRule):
+def _to_lookahead_init_state(init_state):
+    def lookahead_init_state(self, param):
+        init_state(param)
+        with chainer.using_device(param.device):
+            self.state['lookahead_slow_param'] = param.array.copy()
 
-    def __init__(self, rule, parent_hyperparam=None, lr=None,
-                 n_updates=None, state=None):
-        super(LookaheadRule, self).__init__(
-            parent_hyperparam or _default_hyperparam)
-        if lr is not None:
-            self.hyperparam.lr = lr
-        if n_updates is not None:
-            self.hyperparam.n_updates = n_updates
-        if state is not None:
-            self.hyperparam.state = state
-        self._base_rule = rule
+    return lookahead_init_state
 
-    def init_state(self, param):
-        device = param.device
-        with chainer.using_device(device):
-            self.state['slow_param'] = param.array.copy()
 
-    def update_core(self, param):
-        self._base_rule.update_core(param)
-
+def _to_lookahead_update_core(update_core):
+    def lookahead_update_core(self, param):
+        update_core(param)
         hp = self.hyperparam
-        if self.t % hp.n_updates == 0:
+        if self.t % hp.lookahead_n_updates == 0:
             # Update both the slow and the fast parameters.
-            slow_param = self.state['slow_param']
-            slow_param += (param.array - slow_param) * hp.lr
+            slow_param = self.state['lookahead_slow_param']
+            slow_param += (param.array - slow_param) * hp.lookahead_lr
             param.array[...] = slow_param
 
             # Reset state.
-            state = hp.state
+            state = hp.lookahead_state
             if state == 'maintain':
                 pass
             elif state == 'interpolate':
                 raise NotImplementedError()
             elif state == 'reset':
-                self._base_rule.init_state(param)
+                self.init_state(param)
             else:
                 raise ValueError('Unsupported state policy: {}'.format(state))
 
-    def serialize(self, serializer):
-        super(LookaheadRule, self).serialize(serializer)
-        self._base_rule.serialize(serializer['base_rule'])
-
-    def _init_states(self, param):
-        super(LookaheadRule, self)._init_states(param)
-
-        # Transfer the states of the base rule to the correct device (the
-        # device of `param`) on deserialization. Note that `init_state` is not
-        # meant to perform any device transfers.
-        self._base_rule._init_states(param)
+    return lookahead_update_core
 
 
 class Lookahead(optimizer.GradientMethod):
@@ -76,10 +58,16 @@ class Lookahead(optimizer.GradientMethod):
     n_updates = optimizer.HyperparameterProxy('n_updates')
     state = optimizer.HyperparameterProxy('state')
 
-    def setup(self, link):
-        super(Lookahead, self).setup(link)
-        self._base_optimizer.setup(link)
-
     def create_update_rule(self):
-        return LookaheadRule(
-            self._base_optimizer.create_update_rule(), self.hyperparam)
+        rule = self._base_optimizer.create_update_rule()
+
+        # Patch base update rule.
+        rule.hyperparam.lookahead_lr = self.hyperparam.lr
+        rule.hyperparam.lookahead_n_updates = self.hyperparam.n_updates
+        rule.hyperparam.lookahead_state = self.hyperparam.state
+        rule.init_state = types.MethodType(
+            _to_lookahead_init_state(rule.init_state), rule)
+        rule.update_core = types.MethodType(
+            _to_lookahead_update_core(rule.update_core), rule)
+
+        return rule
