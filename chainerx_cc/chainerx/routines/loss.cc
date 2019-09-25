@@ -35,25 +35,25 @@ Array SigmoidCrossEntropy(const Array& x1, const Array& x2) {
     return -(ignore_mask * (x1 * (x2 - (GreaterEqual(x1, ZerosLike(x1, x1.device()))).AsType(x1.dtype())) - Log1p(Exp(-Absolute(x1)))));
 }
 
-Array Hinge(const Array& x1, const Array& x2, float norm) {
-    if (GetKind(x1.dtype()) != DtypeKind::kFloat) {
+Array Hinge(const Array& x, const Array& t, float norm) {
+    if (GetKind(x.dtype()) != DtypeKind::kFloat) {
         throw DtypeError{"Outputs must be of float type."};
     }
-    if (GetKind(x2.dtype()) != DtypeKind::kInt) {
+    if (GetKind(t.dtype()) != DtypeKind::kInt) {
         throw DtypeError{"Targets must be of int type."};
     }
-    if (x1.ndim() != 2) {
+    if (x.ndim() != 2) {
         throw DimensionError{"Outputs must be 2 dimensional."};
     }
-    if (x2.ndim() != 1) {
+    if (t.ndim() != 1) {
         throw DimensionError{"Targets must be 1 dimensional."};
     }
-    if (x1.shape()[0] != x2.shape()[0]) {
-        throw DimensionError{"x1.shape[0] must be equal to x2.shape[0]"};
+    if (x.shape()[0] != t.shape()[0]) {
+        throw DimensionError{"x.shape[0] must be equal to t.shape[0]"};
     }
 
-    int64_t num = x1.shape()[1];
-    Array one_minus_diff = Where(ExpandDims(x2, 1) == Arange(num), 1 - x1, 1 + x1);
+    int64_t num = x.shape()[1];
+    Array one_minus_diff = Where(ExpandDims(t, 1) == Arange(num), 1 - x, 1 + x);
     Array bottom_diff = Maximum(0, one_minus_diff);
 
     return Power(bottom_diff, Scalar{norm});
