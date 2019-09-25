@@ -12,6 +12,7 @@ from chainer.testing import matrix
         numpy.complex64, numpy.complex128,
     ],
     'x_s_shapes': [
+        ((0, 0), (0,)),
         ((2, 2), (2,)),
         ((2, 3), (2,)),
         ((3, 2), (2,)),
@@ -31,6 +32,9 @@ class TestGenerateMatrix(unittest.TestCase):
         sv = numpy.random.uniform(0.5, 1.5, s_shape).astype(dtype().real.dtype)
         x = testing.generate_matrix(x_shape, dtype=dtype, singular_values=sv)
         assert x.shape == x_shape
+
+        if 0 in x_shape:
+            return
 
         s = numpy.linalg.svd(
             x.astype(numpy.complex128), full_matrices=False, compute_uv=False,
