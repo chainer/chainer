@@ -74,5 +74,10 @@ class TestGenerateMatrixInvalid(unittest.TestCase):
             testing.generate_matrix(
                 (2, 2), singular_values=numpy.ones(3))
 
+    def test_shape_mismatch_2(self):
+        with self.assertRaises(ValueError):
+            testing.generate_matrix(
+                (0, 2, 2), singular_values=numpy.ones(3))
+
 
 testing.run_module(__name__, __file__)
