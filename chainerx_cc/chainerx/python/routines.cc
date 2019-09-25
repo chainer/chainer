@@ -1245,7 +1245,7 @@ void InitChainerxLoss(pybind11::module& m) {
           [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2, float norm) { return MoveArrayBody(Hinge(Array{x1}, Array{x2}, norm)); },
           "x1"_a,
           "x2"_a,
-          "norm"_a = "L1");
+          "norm"_a = 1.0);
 }
 void InitChainerxRNN(pybind11::module& m) {
     m.def("n_step_lstm",
