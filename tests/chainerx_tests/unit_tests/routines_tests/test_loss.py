@@ -170,3 +170,41 @@ class TestSigmoidCrossEntropy(op_utils.ChainerOpTest):
         t = self.t
         out = F.sigmoid_cross_entropy(x, t, normalize=False, reduce='no')
         return out,
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    chainer.testing.product({
+        'shape': [(2, 2), (3, 5), (7, 1)],
+        'x_dtype': chainerx.testing.float_dtypes,
+        't_dtype': ['int8', 'int16', 'int32', 'int64'],
+    })
+))
+class TestHinge(op_utils.ChainerOpTest):
+
+    dodge_nondifferentiable = True
+
+    def setup(self):
+        if self.x_dtype == 'float16':
+            self.check_forward_options.update({'rtol': 5e-3, 'atol': 5e-3})
+            self.check_backward_options.update({'rtol': 1e-2, 'atol': 5e-3})
+            self.check_double_backward_options.update(
+                {'rtol': 1e-2, 'atol': 3e-1})
+
+    def generate_inputs(self):
+        n, k = self.shape
+        x = numpy.random.normal(loc=0, scale=1.0, size=self.shape)
+        self.t = numpy.random.randint(k, size=n).astype(self.t_dtype)
+        return x.astype(self.x_dtype),
+
+    def forward_chainerx(self, inputs):
+        x, = inputs
+        t = self.backend_config.get_array(self.t)
+        out = chainerx.hinge(x, t)
+        return out,
+
+    def forward_chainer(self, inputs):
+        x, = inputs
+        t = self.t
+        out = F.hinge(x, t, norm='L1', reduce='no')
+        return out,
