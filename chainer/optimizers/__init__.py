@@ -7,6 +7,7 @@ from chainer.optimizers.adam import AMSGrad  # NOQA
 from chainer.optimizers.adam import AdaBound  # NOQA
 from chainer.optimizers.adam import AMSBound  # NOQA
 from chainer.optimizers.corrected_momentum_sgd import CorrectedMomentumSGD  # NOQA
+from chainer.optimizers.lookahead import Lookahead  # NOQA
 from chainer.optimizers.momentum_sgd import MomentumSGD  # NOQA
 from chainer.optimizers.msvag import MSVAG  # NOQA
 from chainer.optimizers.nesterov_ag import NesterovAG  # NOQA
