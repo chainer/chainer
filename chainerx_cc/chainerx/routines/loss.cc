@@ -1,7 +1,5 @@
 #include "chainerx/routines/loss.h"
 
-#include <string>
-#include <vector>
 #include "chainerx/array.h"
 #include "chainerx/routines/arithmetic.h"
 #include "chainerx/routines/creation.h"
