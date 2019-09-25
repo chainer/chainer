@@ -36,12 +36,6 @@ Array SigmoidCrossEntropy(const Array& x1, const Array& x2) {
 }
 
 Array Hinge(const Array& x, const Array& t, float norm) {
-    if (GetKind(x.dtype()) != DtypeKind::kFloat) {
-        throw DtypeError{"Outputs must be of float type."};
-    }
-    if (GetKind(t.dtype()) != DtypeKind::kInt) {
-        throw DtypeError{"Targets must be of int type."};
-    }
     if (x.ndim() != 2) {
         throw DimensionError{"Outputs must be 2 dimensional."};
     }
