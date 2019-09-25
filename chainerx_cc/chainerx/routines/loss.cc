@@ -52,8 +52,8 @@ Array Hinge(const Array& x1, const Array& x2, float norm) {
         throw DimensionError{"x1.shape[0] must be equal to x2.shape[0]"};
     }
 
-    int64_t num = x1.shape()[0];
-    Array one_minus_diff = Where(ExpandDims(x2, 1) == Arange(num), 0, 2);
+    int64_t num = x1.shape()[1];
+    Array one_minus_diff = Where(ExpandDims(x2, 1) == Arange(num), 1 - x1, 1 + x1);
     Array bottom_diff = Maximum(0, one_minus_diff);
 
     return Power(bottom_diff, Scalar{norm});
