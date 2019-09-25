@@ -26,7 +26,7 @@ from chainer.testing import condition
         (7.3, numpy.float32),
         (7.3, numpy.float64),
     ],
-    'rng': [None, numpy.random.RandomState()],
+    'rng_class': [None, numpy.random.RandomState],
 }))
 @testing.backend.inject_backend_tests(
     None,
@@ -48,8 +48,8 @@ class OrthogonalBase(unittest.TestCase):
         kwargs = {}
         if self.scale is not None:
             kwargs['scale'] = self.scale
-        if self.rng is not None:
-            kwargs['rng'] = self.rng
+        if self.rng_class is not None:
+            kwargs['rng'] = self.rng_class()
         self.target_kwargs = kwargs
 
         self.check_options = {}
