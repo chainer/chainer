@@ -178,6 +178,7 @@ class TestSigmoidCrossEntropy(op_utils.ChainerOpTest):
         'shape': [(2, 2), (3, 5), (7, 1)],
         'x_dtype': chainerx.testing.float_dtypes,
         't_dtype': ['int8', 'int16', 'int32', 'int64'],
+        'norm_float,norm_str': [(1.0, 'L1'), (2.0, 'L2')],
     })
 ))
 class TestHinge(op_utils.ChainerOpTest):
@@ -200,11 +201,13 @@ class TestHinge(op_utils.ChainerOpTest):
     def forward_chainerx(self, inputs):
         x, = inputs
         t = self.backend_config.get_array(self.t)
-        out = chainerx.hinge(x, t)
+        norm = self.norm_float
+        out = chainerx.hinge(x, t, norm=norm)
         return out,
 
     def forward_chainer(self, inputs):
         x, = inputs
         t = self.t
-        out = F.hinge(x, t, norm='L1', reduce='no')
+        norm = self.norm_str
+        out = F.hinge(x, t, norm=norm, reduce='no')
         return out,
