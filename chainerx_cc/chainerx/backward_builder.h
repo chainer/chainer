@@ -136,7 +136,7 @@ public:
     ~BackwardBuilder() { CHAINERX_ASSERT(is_finalized_); }
 
     BackwardBuilder(const BackwardBuilder&) = delete;
-    BackwardBuilder(BackwardBuilder&&) = default;
+    BackwardBuilder(BackwardBuilder&&) noexcept = default;
     BackwardBuilder& operator=(const BackwardBuilder&) = delete;
     BackwardBuilder& operator=(BackwardBuilder&&) = delete;
 
@@ -168,6 +168,8 @@ public:
     // TODO(hvy): Write comment.
     RetainedInputToken RetainInput(size_t input_index);
 
+    std::vector<RetainedInputToken> RetainInput(std::vector<size_t> indices);
+
     // Flags an output array to be retained for use in the backward pass.
     // Op implementations can use this function in combination with BackwardContext::GetRetainedOutput() to retrieve output arrays in the
     // backward pass.
@@ -184,6 +186,7 @@ public:
     // `output` must be one of the arrays specified in the constructor of BackwardBuilder as output arrays.
     // If invalid array is specified, ChainerxError will be thrown.
     RetainedOutputToken RetainOutput(size_t output_index);
+    std::vector<RetainedOutputToken> RetainOutput(std::vector<size_t> indices);
 
     // Finalizes the builder.
     //

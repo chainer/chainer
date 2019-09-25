@@ -4,6 +4,7 @@
 #include <utility>
 #include <vector>
 
+#include <absl/types/optional.h>
 #include <cuda_runtime.h>
 #include <gtest/gtest.h>
 
@@ -401,7 +402,7 @@ public:
 
 private:
     const std::string name_{};
-    nonstd::optional<std::string> old_value_{};
+    absl::optional<std::string> old_value_{};
 };
 
 TEST(CudaBackendTest, GetCudnnMaxWorkspaceSize) {

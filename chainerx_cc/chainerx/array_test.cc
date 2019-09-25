@@ -13,8 +13,8 @@
 #include <tuple>
 #include <vector>
 
+#include <absl/types/optional.h>
 #include <gtest/gtest.h>
-#include <nonstd/optional.hpp>
 
 #include "chainerx/array_node.h"
 #include "chainerx/axes.h"
@@ -86,7 +86,7 @@ public:
     }
 
 private:
-    nonstd::optional<testing::DeviceSession> device_session_;
+    absl::optional<testing::DeviceSession> device_session_;
 };
 
 TEST_P(ArrayTest, DefaultCtor) {
@@ -239,8 +239,8 @@ TEST_P(ArrayTest, Grad) {
 
     // Get grad multiple times
     {
-        const nonstd::optional<Array>& grad1 = x.GetGrad(backprop_id);
-        const nonstd::optional<Array>& grad2 = x.GetGrad(backprop_id);
+        const absl::optional<Array>& grad1 = x.GetGrad(backprop_id);
+        const absl::optional<Array>& grad2 = x.GetGrad(backprop_id);
         EXPECT_EQ(&*grad1, &*grad2) << "Multiple retrieval of grad must return the same arrays";
     }
 
@@ -1199,7 +1199,7 @@ protected:
     int device_index_{};
 
 private:
-    nonstd::optional<testing::DeviceSession> device_session_;
+    absl::optional<testing::DeviceSession> device_session_;
 };
 
 TEST_P(ArrayToNativeTest, ToNative) {

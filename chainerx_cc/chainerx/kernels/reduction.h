@@ -17,8 +17,16 @@ namespace chainerx {
 // Otherwise, the behavior is undefined.
 class SumKernel : public Kernel {
 public:
-    static const char* name() { return "Sum"; }
+    virtual void Call(const Array& a, const Axes& axis, const Array& out) = 0;
+};
 
+class CumsumKernel : public Kernel {
+public:
+    virtual void Call(const Array& a, int8_t axis, const Array& out) = 0;
+};
+
+class NansumKernel : public Kernel {
+public:
     virtual void Call(const Array& a, const Axes& axis, const Array& out) = 0;
 };
 

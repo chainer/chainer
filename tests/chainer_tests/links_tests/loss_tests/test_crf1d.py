@@ -55,7 +55,7 @@ class TestCRF1d(unittest.TestCase):
         self.cost_shape = (self.n_label, self.n_label)
 
         if self.dtype == numpy.float16:
-            self.check_forward_options = {'atol': 5e-3}
+            self.check_forward_options = {'rtol': 5e-3, 'atol': 1e-2}
         else:
             self.check_forward_options = {'atol': 1e-4}
 

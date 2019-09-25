@@ -2,7 +2,7 @@
 
 #include <utility>
 
-#include <nonstd/optional.hpp>
+#include <absl/types/optional.h>
 
 #include "chainerx/array.h"
 #include "chainerx/backprop_mode.h"
@@ -161,25 +161,15 @@ Array Square(const Array& x) {
     return out;
 }
 
-Array SquaredDifference(const Array& x1, const Array& x2) { return Square(x1 - x2); }
+namespace {
 
-Array Absolute(const Array& x) {
-    Array x_flip_1 = IfGreaterElse(x, 0.0, 0.0, -x);
-    Array x_flip_2 = IfLessElse(x, 0.0, 0.0, x);
-
-    Array out = x_flip_1 + x_flip_2;
-    return out;
-}
-
-Array Fabs(const Array& x) {
-    Dtype dtype = internal::GetMathResultDtype(x.dtype());
-    Array out = Empty(x.shape(), dtype, x.device());
+void AbsoluteImpl(const Array& x, const Array& out) {
     {
         NoBackpropModeScope scope{};
-        x.device().backend().CallKernel<FabsKernel>(x, out);
+        x.device().backend().CallKernel<AbsKernel>(x, out);
     }
 
-    BackwardBuilder bb{"fabs", x, out};
+    BackwardBuilder bb{"abs", x, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
         bt.Define([inp_tok = bb.RetainInput(0)](BackwardContext& bctx) {
             const Array& gout = *bctx.output_grad();
@@ -188,7 +178,23 @@ Array Fabs(const Array& x) {
         });
     }
     bb.Finalize();
+}
 
+}  // namespace
+
+Array Absolute(const Array& x) {
+    if (x.dtype() == Dtype::kBool) {
+        throw DtypeError{"Absolute does not support boolean array"};
+    }
+    Array out = EmptyLike(x);
+    AbsoluteImpl(x, out);
+    return out;
+}
+
+Array Fabs(const Array& x) {
+    Dtype dtype = internal::GetMathResultDtype(x.dtype());
+    Array out = Empty(x.shape(), dtype, x.device());
+    AbsoluteImpl(x, out);
     return out;
 }
 

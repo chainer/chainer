@@ -78,7 +78,7 @@ def main():
 
     # Prepare ChainerMN communicator.
     if args.gpu:
-        comm = chainermn.create_communicator('hierarchical')
+        comm = chainermn.create_communicator('pure_nccl')
         data_axis, model_axis = comm.rank % 2, comm.rank // 2
         data_comm = comm.split(data_axis, comm.rank)
         model_comm = comm.split(model_axis, comm.rank)
@@ -92,7 +92,7 @@ def main():
 
     if model_comm.size != 2:
         raise ValueError(
-            'This example can only be executed on the even number'
+            'This example can only be executed on the even number '
             'of processes.')
 
     if comm.rank == 0:

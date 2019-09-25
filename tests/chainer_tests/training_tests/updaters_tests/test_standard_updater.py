@@ -1,3 +1,4 @@
+import contextlib
 import unittest
 
 import mock
@@ -372,9 +373,24 @@ class TestStandardUpdaterDeviceArgumentFallback(unittest.TestCase):
          expected_model_device,
          expected_input_device) = expect
 
+        # FutureWarning should be raised iff. GPU-to-GPU transfer
+        expect_future_warning = (
+            device_arg is not None
+            and initial_model_device.xp is cuda.cupy
+            and chainer.get_device(device_arg).xp is cuda.cupy
+            and chainer.get_device(device_arg) != initial_model_device)
+        if expect_future_warning:
+            context = testing.assert_warns(FutureWarning)
+        else:
+            @contextlib.contextmanager
+            def _context():
+                yield
+            context = _context()
+
         # Create the StandardUpdater
-        updater = training.updaters.StandardUpdater(
-            iterator, optimizer, convert, **kwargs)
+        with context:
+            updater = training.updaters.StandardUpdater(
+                iterator, optimizer, convert, **kwargs)
 
         assert updater.device == expected_device_attr
         assert updater.input_device == expected_input_device
@@ -466,7 +482,8 @@ class TestStandardUpdaterDataTypes(unittest.TestCase):
 
 @testing.parameterize(
     {'converter_style': 'old'},
-    {'converter_style': 'new'})
+    {'converter_style': 'decorator'},
+    {'converter_style': 'class'})
 @chainer.testing.backend.inject_backend_tests(
     ['test_converter_given_device'],
     [
@@ -514,18 +531,38 @@ class TestStandardUpdaterCustomConverter(unittest.TestCase):
     def get_converter(self, converter_func):
         if self.converter_style == 'old':
             return converter_func
-        if self.converter_style == 'new':
+
+        if self.converter_style == 'decorator':
             @chainer.dataset.converter()
             def wrapped_converter(*args, **kwargs):
                 return converter_func(*args, **kwargs)
 
             return wrapped_converter
+
+        if self.converter_style == 'class':
+            class MyConverter(dataset.Converter):
+                def __call__(self, *args, **kwargs):
+                    return converter_func(*args, **kwargs)
+
+            return MyConverter()
+
         assert False
+
+    def test_converter_type(self):
+        # Ensures that new-style converters inherit from dataset.Converter.
+
+        def converter_impl(batch, device):
+            pass
+
+        converter = self.get_converter(converter_impl)
+
+        if self.converter_style in ('decorator', 'class'):
+            assert isinstance(converter, dataset.Converter)
 
     def check_converter_received_device_arg(
             self, received_device_arg, device_arg):
 
-        new_style = self.converter_style == 'new'
+        new_style = self.converter_style in ('decorator', 'class')
 
         # None
         if device_arg is None:

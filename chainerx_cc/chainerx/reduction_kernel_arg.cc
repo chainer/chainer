@@ -38,6 +38,13 @@ void ReductionArg::Permute(const Axes& axis) {
     // - out_axis_map:     (0, 2, 4)
     // - out_shape_:       (12, 14, 16)
 
+    if (has_kept_dims) {
+        for (int8_t i : axis) {
+            if (out_.shape()[i] != 1) {
+                out_axis_map.emplace_back(i);
+            }
+        }
+    }
     {
         size_t i_axis = 0;
         size_t i_out_axis = 0;
@@ -53,7 +60,6 @@ void ReductionArg::Permute(const Axes& axis) {
                 int64_t out_dim = out_.shape()[i_out_axis];
                 if (out_dim != 1) {
                     out_axis_map.emplace_back(static_cast<int8_t>(i_out_axis));
-                    out_shape_.emplace_back(out_dim);
                 }
                 ++i_out_axis;
             }
@@ -62,8 +68,7 @@ void ReductionArg::Permute(const Axes& axis) {
         CHAINERX_ASSERT(i_axis == axis.size());
     }
     // Inequality because 1-dim axes are eliminated.
-    CHAINERX_ASSERT(out_axis_map.size() <= in_.shape().size() - axis.size());
-    CHAINERX_ASSERT(out_axis_map.size() == out_shape_.size());
+    CHAINERX_ASSERT(out_axis_map.size() <= in_.shape().size());
 
     // Calculate source axis permutation
     // - in_.shape():     (12, 13, 14, 15, 16)
@@ -90,16 +95,13 @@ void ReductionArg::Permute(const Axes& axis) {
     }
     CHAINERX_ASSERT(axis_permutes.size() <= in_.shape().size());  // Inequality because 1-dim axes are eliminated.
 
-    // Calculate new source shape
-    for (int8_t i : axis_permutes) {
-        in_shape_.emplace_back(in_.shape()[i]);
-    }
-
     // 1-dim axes must be eliminated
     CHAINERX_ASSERT(std::find(in_shape_.begin(), in_shape_.end(), 1) == in_shape_.end());
     CHAINERX_ASSERT(std::find(out_shape_.begin(), out_shape_.end(), 1) == out_shape_.end());
 
+    in_shape_ = in_.shape().Permute(axis_permutes);
     in_strides_ = in_.strides().Permute(axis_permutes);
+    out_shape_ = out_.shape().Permute(out_axis_map);
     out_strides_ = out_.strides().Permute(out_axis_map);
 }
 

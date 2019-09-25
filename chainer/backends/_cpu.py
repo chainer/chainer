@@ -16,6 +16,8 @@ class CpuDevice(_backend.Device):
     xp = numpy
     supported_array_types = (numpy.ndarray,)
 
+    __hash__ = _backend.Device.__hash__
+
     @staticmethod
     def from_array(array):
         if isinstance(array, numpy.ndarray):

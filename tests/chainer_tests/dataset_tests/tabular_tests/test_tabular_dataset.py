@@ -39,6 +39,26 @@ class TestTabularDataset(unittest.TestCase):
             else:
                 self.assertIsInstance(out, list)
 
+    def test_convert(self):
+        dataset = dummy_dataset.DummyDataset(
+            mode=self.mode, return_array=self.return_array)
+        output = dataset.convert(dataset.fetch())
+
+        if self.mode is tuple:
+            expected = tuple(dataset.data)
+        elif self.mode is dict:
+            expected = dict(zip(('a', 'b', 'c'), dataset.data))
+        elif self.mode is None:
+            expected = dataset.data[0]
+        np.testing.assert_equal(output, expected)
+
+        if self.mode is dict:
+            output = output.values()
+        elif self.mode is None:
+            output = output,
+        for out in output:
+            self.assertIsInstance(out, np.ndarray)
+
     def test_get_example(self):
         def callback(indices, key_indices):
             self.assertEqual(indices, [3])
@@ -55,6 +75,23 @@ class TestTabularDataset(unittest.TestCase):
             expected = dataset.data[0, 3]
 
         self.assertEqual(dataset.get_example(3), expected)
+
+    def test_iter(self):
+        dataset = dummy_dataset.DummyDataset(
+            mode=self.mode, return_array=self.return_array)
+        it = iter(dataset)
+        for i in range(10):
+            if self.mode is tuple:
+                expected = tuple(dataset.data[:, i])
+            elif self.mode is dict:
+                expected = dict(zip(('a', 'b', 'c'), dataset.data[:, i]))
+            elif self.mode is None:
+                expected = dataset.data[0, i]
+
+            self.assertEqual(next(it), expected)
+
+        with self.assertRaises(StopIteration):
+            next(it)
 
 
 testing.run_module(__name__, __file__)

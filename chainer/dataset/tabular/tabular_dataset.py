@@ -147,6 +147,30 @@ class TabularDataset(dataset_mixin.DatasetMixin):
         elif self.mode is None:
             return examples[0]
 
+    def convert(self, data):
+        """Convert fetched data.
+
+        This method takes data fetched by :meth:`fetch` and
+        pre-process them before passing them to models.
+        The default behaviour is converting each column into an ndarray.
+        This behaviour can be overridden by :meth:`with_converter`.
+        If the dataset is constructed by :meth:`concat` or :meth:`join`,
+        the converter of the first dataset is used.
+
+        Args:
+            data (tuple or dict): Data from :meth:`fetch`.
+
+        Returns:
+            A tuple or dict.
+            Each value is an ndarray.
+        """
+        if isinstance(data, tuple):
+            return tuple(_as_array(d) for d in data)
+        elif isinstance(data, dict):
+            return {k: _as_array(v) for k, v in data.items()}
+        else:
+            return _as_array(data)
+
     def as_tuple(self):
         """Return a view with tuple mode.
 
@@ -221,6 +245,21 @@ class TabularDataset(dataset_mixin.DatasetMixin):
         return chainer.dataset.tabular._transform._TransformBatch(
             self, keys, transform_batch)
 
+    def with_converter(self, converter):
+        """Override the behaviour of :meth:`convert`.
+
+        This method overrides :meth:`convert`.
+
+        Args:
+            converter (callable): A new converter.
+
+        Returns:
+            A dataset with the new converter.
+        """
+
+        return chainer.dataset.tabular._with_converter._WithConverter(
+            self, converter)
+
     def get_example(self, i):
         example = self.get_examples([i], None)
         example = tuple(col[0] for col in example)
@@ -230,3 +269,15 @@ class TabularDataset(dataset_mixin.DatasetMixin):
             return dict(six.moves.zip(self.keys, example))
         elif self.mode is None:
             return example[0]
+
+    def __iter__(self):
+        return (self.get_example(i) for i in six.moves.range(len(self)))
+
+
+def _as_array(data):
+    if isinstance(data, chainer.get_array_types()):
+        return data
+    else:
+        device = chainer.backend.get_device_from_array(data[0])
+        with chainer.using_device(device):
+            return device.xp.asarray(data)

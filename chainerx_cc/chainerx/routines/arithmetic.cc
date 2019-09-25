@@ -1,12 +1,9 @@
 #include "chainerx/routines/arithmetic.h"
 
 #include <cmath>
-#include <cstdint>
 #include <numeric>
 #include <utility>
 #include <vector>
-
-#include <nonstd/optional.hpp>
 
 #include "chainerx/array.h"
 #include "chainerx/backprop_mode.h"
@@ -20,9 +17,11 @@
 #include "chainerx/macro.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/explog.h"
+#include "chainerx/routines/indexing.h"
 #include "chainerx/routines/logic.h"
 #include "chainerx/routines/manipulation.h"
 #include "chainerx/routines/misc.h"
+#include "chainerx/routines/rounding.h"
 #include "chainerx/routines/routines_util.h"
 #include "chainerx/routines/statistics.h"
 #include "chainerx/routines/type_util.h"
@@ -490,5 +489,121 @@ Array Power(const Array& x1, const Array& x2) { return internal::BroadcastBinary
 Array Power(const Array& x1, Scalar x2) { return internal::Binary(&PowerASImpl, x1, x2, GetArithmeticResultDtype(x1, x2)); }
 
 Array Power(Scalar x1, const Array& x2) { return internal::Binary(&PowerSAImpl, x1, x2, GetArithmeticResultDtype(x1, x2)); }
+
+void ModImpl(const Array& x1, const Array& x2, const Array& out) {
+    CheckEqual(x1.shape(), x2.shape());
+
+    {
+        NoBackpropModeScope scope{};
+        x1.device().backend().CallKernel<ModAAKernel>(x1, x2, out);
+    }
+
+    {
+        BackwardBuilder bb{"mod", {x1, x2}, out};
+        if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+            bt.Define([dtype = x1.dtype()](BackwardContext& bctx) {
+                const Array& gx = *bctx.output_grad();
+                bctx.input_grad() = dtype == gx.dtype() ? gx : gx.AsType(dtype);
+            });
+        }
+        if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
+            bt.Define([x1_tok = bb.RetainInput(0), x2_tok = bb.RetainInput(1), dtype = x2.dtype()](BackwardContext& bctx) {
+                const Array& x1 = bctx.GetRetainedInput(x1_tok);
+                const Array& x2 = bctx.GetRetainedInput(x2_tok);
+                Array gx = -*bctx.output_grad() * FloorDivide(x1, x2);
+                bctx.input_grad() = dtype == gx.dtype() ? std::move(gx) : gx.AsType(dtype);
+            });
+        }
+        bb.Finalize();
+    }
+}
+
+void ModASImpl(const Array& x1, Scalar x2, const Array& out) {
+    {
+        NoBackpropModeScope scope{};
+        x1.device().backend().CallKernel<ModASKernel>(x1, x2, out);
+    }
+
+    BackwardBuilder bb{"mod_array_scalar", x1, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([x1_tok = bb.RetainInput(0)](BackwardContext& bctx) {
+            const Array& x1 = bctx.GetRetainedInput(x1_tok);
+            const Array& gx = *bctx.output_grad();
+            bctx.input_grad() = x1.dtype() == gx.dtype() ? gx : gx.AsType(x1.dtype());
+        });
+    }
+    bb.Finalize();
+}
+
+void ModSAImpl(Scalar x1, const Array& x2, const Array& out) {
+    {
+        NoBackpropModeScope scope{};
+        x2.device().backend().CallKernel<ModSAKernel>(x1, x2, out);
+    }
+
+    BackwardBuilder bb{"mod_scalar_array", x2, out};
+    if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+        bt.Define([other = x1, x2_tok = bb.RetainInput(0)](BackwardContext& bctx) {
+            const Array& x2 = bctx.GetRetainedInput(x2_tok);
+            bctx.input_grad() = -*bctx.output_grad() * FloorDivide(other, x2);
+        });
+    }
+    bb.Finalize();
+}
+
+namespace internal {
+
+void IMod(const Array& x1, const Array& x2) {
+    CheckInplaceArithmeticDtypes(x1, x2);
+    internal::BroadcastBinaryInplace(ModImpl, x1, x2);
+}
+
+void IMod(const Array& x1, Scalar x2) {
+    CheckInplaceArithmeticDtypes(x1, x2);
+    internal::BinaryInplace(&ModASImpl, x1, x2);
+}
+
+}  // namespace internal
+
+Array Mod(const Array& x1, const Array& x2) { return internal::BroadcastBinary(&ModImpl, x1, x2, GetArithmeticResultDtype(x1, x2)); }
+
+Array Mod(const Array& x1, Scalar x2) { return internal::Binary(&ModASImpl, x1, x2, GetArithmeticResultDtype(x1, x2)); }
+
+Array Mod(Scalar x1, const Array& x2) { return internal::Binary(&ModSAImpl, x1, x2, GetArithmeticResultDtype(x1, x2)); }
+
+namespace {
+
+void FmodImpl(const Array& x1, const Array& x2, const Array& out) {
+    CheckEqual(x1.shape(), x2.shape());
+
+    {
+        NoBackpropModeScope scope{};
+        x1.device().backend().CallKernel<FmodKernel>(x1, x2, out);
+    }
+
+    {
+        BackwardBuilder bb{"fmod", {x1, x2}, out};
+        if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+            bt.Define([dtype = x1.dtype()](BackwardContext& bctx) {
+                Array gx = *bctx.output_grad();
+                bctx.input_grad() = dtype == gx.dtype() ? std::move(gx) : gx.AsType(dtype);
+            });
+        }
+        if (BackwardBuilder::Target bt = bb.CreateTarget(1)) {
+            bt.Define([x1_tok = bb.RetainInput(0), x2_tok = bb.RetainInput(1), dtype = x2.dtype()](BackwardContext& bctx) {
+                const Array& x1 = bctx.GetRetainedInput(x1_tok);
+                const Array& x2 = bctx.GetRetainedInput(x2_tok);
+                const Array& divide = Divide(x1, x2);
+                Array gx = -*bctx.output_grad() * Where(divide > ZerosLike(divide), Floor(divide), Ceil(divide));
+                bctx.input_grad() = dtype == gx.dtype() ? std::move(gx) : gx.AsType(dtype);
+            });
+        }
+        bb.Finalize();
+    }
+}
+
+}  // namespace
+
+Array Fmod(const Array& x1, const Array& x2) { return internal::BroadcastBinary(&FmodImpl, x1, x2, GetArithmeticResultDtype(x1, x2)); }
 
 }  // namespace chainerx

@@ -14,6 +14,8 @@ Array GaussianKLDivergence(const Array& mean, const Array& ln_var);
 
 Array HuberLoss(const Array& x1, const Array& x2, Scalar delta);
 
+Array SigmoidCrossEntropy(const Array& x1, const Array& x2);
+
 Array Hinge(const Array& x1, const Array& x2, float norm);
 
 }  // namespace chainerx

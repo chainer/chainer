@@ -1,6 +1,6 @@
 import copy
 
-from chainer.backends import cuda
+from chainer import backend
 
 
 class Distribution(object):
@@ -334,7 +334,7 @@ class Distribution(object):
         Depending on which of CPU/GPU this distribution is on, this property
         returns :mod:`numpy` or :mod:`cupy`.
         """
-        return cuda.get_array_module(*self.params.values())
+        return backend.get_array_module(*self.params.values())
 
 
 _KLDIVERGENCE = {}

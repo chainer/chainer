@@ -62,7 +62,9 @@ def black_out(x, t, W, samples, reduce='mean'):
     See: `BlackOut: Speeding up Recurrent Neural Network Language Models With
     Very Large Vocabularies <https://arxiv.org/abs/1511.06909>`_
 
-    .. seealso:: :class:`~chainer.links.BlackOut`.
+    .. seealso::
+
+        :class:`~chainer.links.BlackOut` to manage the model parameter ``W``.
 
     """
 
