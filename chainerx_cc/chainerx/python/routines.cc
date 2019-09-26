@@ -1242,7 +1242,7 @@ void InitChainerxLoss(pybind11::module& m) {
           "x1"_a,
           "x2"_a);
     m.def("hinge",
-          [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2, float norm) { return MoveArrayBody(Hinge(Array{x1}, Array{x2}, norm)); },
+          [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2, double norm) { return MoveArrayBody(Hinge(Array{x1}, Array{x2}, norm)); },
           "x1"_a,
           "x2"_a,
           "norm"_a = 1.0);

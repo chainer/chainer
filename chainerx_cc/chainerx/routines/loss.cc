@@ -33,7 +33,7 @@ Array SigmoidCrossEntropy(const Array& x1, const Array& x2) {
     return -(ignore_mask * (x1 * (x2 - (GreaterEqual(x1, ZerosLike(x1, x1.device()))).AsType(x1.dtype())) - Log1p(Exp(-Absolute(x1)))));
 }
 
-Array Hinge(const Array& x, const Array& t, float norm) {
+Array Hinge(const Array& x, const Array& t, double norm) {
     if (x.ndim() != 2) {
         throw DimensionError{"Outputs must be 2 dimensional."};
     }
