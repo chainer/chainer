@@ -215,15 +215,6 @@ class TestBatchNormalization(unittest.TestCase):
                 **self.check_forward_options)
 
     def test_forward(self, backend_config):
-        if isinstance(backend_config.device, chainer.backend.Intel64Device):
-            # ideep only supports float32
-            self.dtype = numpy.float32
-            self.xdtype = numpy.float32
-            self.inputs[0] = self.inputs[0].astype(numpy.float32)
-            self.inputs[1] = self.inputs[1].astype(numpy.float32)
-            self.inputs[2] = self.inputs[2].astype(numpy.float32)
-            self.grad_outputs[0] = self.grad_outputs[0].astype(numpy.float32)
-
         self.check_forward(self.inputs, backend_config)
 
     def check_backward(self, inputs, grad_outputs, backend_config):
@@ -245,15 +236,6 @@ class TestBatchNormalization(unittest.TestCase):
                 **self.check_backward_options)
 
     def test_backward(self, backend_config):
-        if isinstance(backend_config.device, chainer.backend.Intel64Device):
-            # ideep only supports float32
-            self.dtype = numpy.float32
-            self.xdtype = numpy.float32
-            self.inputs[0] = self.inputs[0].astype(numpy.float32)
-            self.inputs[1] = self.inputs[1].astype(numpy.float32)
-            self.inputs[2] = self.inputs[2].astype(numpy.float32)
-            self.grad_outputs[0] = self.grad_outputs[0].astype(numpy.float32)
-
         self.check_backward(self.inputs, self.grad_outputs, backend_config)
 
     def check_double_backward(
@@ -277,21 +259,6 @@ class TestBatchNormalization(unittest.TestCase):
                 **self.check_double_backward_options)
 
     def test_double_backward(self, backend_config):
-        if isinstance(backend_config.device, chainer.backend.Intel64Device):
-            # ideep only supports float32
-            self.dtype = numpy.float32
-            self.xdtype = numpy.float32
-            self.inputs[0] = self.inputs[0].astype(numpy.float32)
-            self.inputs[1] = self.inputs[1].astype(numpy.float32)
-            self.inputs[2] = self.inputs[2].astype(numpy.float32)
-            self.grad_outputs[0] = self.grad_outputs[0].astype(numpy.float32)
-            self.grad_grad_inputs[0] = \
-                self.grad_grad_inputs[0].astype(numpy.float32)
-            self.grad_grad_inputs[1] = \
-                self.grad_grad_inputs[1].astype(numpy.float32)
-            self.grad_grad_inputs[2] = \
-                self.grad_grad_inputs[2].astype(numpy.float32)
-
         self.check_double_backward(
             self.inputs, self.grad_outputs, self.grad_grad_inputs,
             backend_config)
