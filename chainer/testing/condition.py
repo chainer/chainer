@@ -52,7 +52,7 @@ def repeat_with_success_at_least(times, min_success):
                 instance.fail(msg)
 
             # Wrapper to convert pytest.skip() to unittest.SkipTest
-            def f_wrap(ins, *args, **kwargs):
+            def f_wrap(ins, args, kwargs):
                 try:
                     f(ins, *args[1:], **kwargs)
                 except _pytest.outcomes.Skipped as e:
@@ -65,7 +65,7 @@ def repeat_with_success_at_least(times, min_success):
                 ins = type(instance)(instance._testMethodName)
                 suite.addTest(
                     unittest.FunctionTestCase(
-                        lambda: f_wrap(ins, *args[1:], **kwargs),
+                        lambda: f_wrap(ins, args, kwargs),
                         setUp=ins.setUp,
                         tearDown=ins.tearDown))
 
