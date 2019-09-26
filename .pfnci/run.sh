@@ -172,7 +172,7 @@ test_chainermn() {
   export PYENV_VERSION=""
   . /root/.bash_profile
 
-  TEST_PYTHON_VERSIONS="3.6.8 2.7.16"
+  TEST_PYTHON_VERSIONS="3.6.8"
   ret=0
   for VERSION in $TEST_PYTHON_VERSIONS
   do
