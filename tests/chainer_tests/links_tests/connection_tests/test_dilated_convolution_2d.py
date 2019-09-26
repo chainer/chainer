@@ -47,7 +47,8 @@ class TestDilatedConvolution2D(unittest.TestCase):
         y_cpu = self.link(x_cpu)
         self.assertEqual(y_cpu.data.dtype, numpy.float32)
 
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         x_gpu = chainer.Variable(cuda.to_gpu(self.x))
         y_gpu = self.link(x_gpu)
         self.assertEqual(y_gpu.data.dtype, numpy.float32)
@@ -73,12 +74,14 @@ class TestDilatedConvolution2D(unittest.TestCase):
 
     @attr.gpu
     def test_backward_gpu(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
 
     @attr.gpu
     def test_backward_gpu_im2col(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         with chainer.using_config('use_cudnn', 'never'):
             self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
 
@@ -104,7 +107,8 @@ class TestDilatedConvolution2D(unittest.TestCase):
 
     @attr.gpu
     def test_pickling_gpu(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.check_pickling(cuda.to_gpu(self.x))
 
 
@@ -145,7 +149,8 @@ class TestDilatedConvolution2DParameterShapePlaceholder(unittest.TestCase):
         y_cpu = self.link(x_cpu)
         self.assertEqual(y_cpu.data.dtype, numpy.float32)
 
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         x_gpu = chainer.Variable(cuda.to_gpu(self.x))
         y_gpu = self.link(x_gpu)
         self.assertEqual(y_gpu.data.dtype, numpy.float32)
@@ -171,12 +176,14 @@ class TestDilatedConvolution2DParameterShapePlaceholder(unittest.TestCase):
 
     @attr.gpu
     def test_backward_gpu(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
 
     @attr.gpu
     def test_backward_gpu_im2col(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         with chainer.using_config('use_cudnn', 'never'):
             self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
 
@@ -202,7 +209,8 @@ class TestDilatedConvolution2DParameterShapePlaceholder(unittest.TestCase):
 
     @attr.gpu
     def test_pickling_gpu(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.check_pickling(cuda.to_gpu(self.x))
 
 
