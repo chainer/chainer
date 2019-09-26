@@ -1,7 +1,7 @@
 import functools
 import unittest
 
-import _pytest
+import _pytest.outcomes
 import six
 
 
