@@ -35,10 +35,10 @@ Array SigmoidCrossEntropy(const Array& x1, const Array& x2) {
 
 Array Hinge(const Array& x, const Array& t, double norm) {
     if (x.ndim() != 2) {
-        throw DimensionError{"Outputs must be 2 dimensional."};
+        throw DimensionError{"Input array must be 2 dimensional."};
     }
     if (t.ndim() != 1) {
-        throw DimensionError{"Targets must be 1 dimensional."};
+        throw DimensionError{"Target array must be 1 dimensional."};
     }
     if (x.shape()[0] != t.shape()[0]) {
         throw DimensionError{"x.shape[0] must be equal to t.shape[0]"};
