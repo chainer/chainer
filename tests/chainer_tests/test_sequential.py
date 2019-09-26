@@ -593,6 +593,14 @@ class TestSequential(unittest.TestCase):
         self.assertIs(flattened_s2[2], self.l3)
 
 
+class TestEmptySequential(unittest.TestCase):
+    def test_empty_sequential(self):
+        seq = chainer.Sequential()
+        x = numpy.ones((2, 3), numpy.float32)
+        with pytest.raises(RuntimeError):
+            seq(x)
+
+
 class SequentialInsert(unittest.TestCase):
     def test_empty(self):
         seq = chainer.Sequential()
