@@ -63,6 +63,8 @@ class GeneralBatchNormalizationImpl(_BatchNormalizationImpl):
                 running_var *= decay
                 running_var += (1 - decay) * adjust * var
             else:
+                # running_mean and running_var has the same type as x
+                # while mean and var is interm_dtype which is promoted from x
                 cuda.elementwise(
                     'T mean, T var, U decay, U adjust',
                     'U r_mean, U r_var',
@@ -97,7 +99,8 @@ class GeneralBatchNormalizationImpl(_BatchNormalizationImpl):
             # convert it to numpy here.
             gy = numpy.asarray(gy)
 
-        x_hat = _x_hat(x, mean[expander], inv_std[expander])
+        x_hat = _x_hat(x, mean[expander],
+                       inv_std[expander]).astype(x.dtype, copy=False)
         gbeta, ggamma = self.get_ggamma_and_gbeta(axis, gamma, gy, x_hat, xp)
 
         inv_m = gamma.dtype.type(1. / (x.size // gamma.size))
@@ -106,9 +109,10 @@ class GeneralBatchNormalizationImpl(_BatchNormalizationImpl):
                 gy - (x_hat * ggamma[expander] + gbeta[expander]) * inv_m)
             gx = gx.astype(dtype=x.dtype, copy=False)
         else:
+            # inv_std has a promoted type of x and gamma
             gx = cuda.elementwise(
                 '''
-                T gy, U x_hat, U gamma, U inv_std, U ggamma, U gbeta,
+                T gy, T x_hat, U gamma, X inv_std, U ggamma, U gbeta,
                 U inv_m
                 ''',
                 'T gx',
@@ -439,6 +443,10 @@ class BatchNormalizationGrad(function_node.FunctionNode):
                                                 x, xp, expander,
                                                 self.mean, self.inv_std,
                                                 self.eps, self.var)
+        gx = gx.astype(x.dtype, copy=False)
+        ggamma = ggamma.astype(gamma.dtype, copy=False)
+        gbeta = gbeta.astype(gamma.dtype, copy=False)
+
         self.retain_inputs((0, 1, 2))
         self.retain_outputs((0, 1))
         return gx, ggamma, gbeta
@@ -451,6 +459,7 @@ class BatchNormalizationGrad(function_node.FunctionNode):
         gx1, ggamma1 = self.get_retained_outputs()
         ggx1, gggamma1, ggbeta1 = grad_outputs
         xp = backend.get_array_module(x)
+        original_gamma_dtype = gamma.dtype
 
         if gamma.dtype != x.dtype:
             gamma = F.cast(gamma, x.dtype)
@@ -486,6 +495,7 @@ class BatchNormalizationGrad(function_node.FunctionNode):
 
         gx2 = chainer.functions.cast(gx2, x.dtype)
         ggy2 = chainer.functions.cast(ggy2, gy.dtype)
+        ggamma2 = chainer.functions.cast(ggamma2, original_gamma_dtype)
 
         return gx2, ggamma2, ggy2
 
