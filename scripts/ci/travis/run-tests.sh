@@ -86,6 +86,19 @@ case "${CHAINER_TRAVIS_TEST}" in
         esac
         ;;
 
+    "python-static-check-hacking")
+        case "$phase" in
+            before_install)
+            ;;
+            install)
+                run_prestep install_chainer_style_check_hacking_deps
+            ;;
+            script)
+                run_step python_style_check_hacking
+            ;;
+        esac
+        ;;
+
     "c-static-check")
         case "$phase" in
             before_install)

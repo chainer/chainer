@@ -13,6 +13,13 @@ matrix:
       - CHAINER_TRAVIS_TEST="python-static-check"
       if: type in (pull_request)
 
+    - name: "Python Static Check (OpenStack)"
+      dist: xenial
+      python: "3.5"
+      env:
+      - CHAINER_TRAVIS_TEST="python-static-check-hacking"
+      if: type in (pull_request)
+
     - name: "C++ Static Check"
       language: python
       dist: xenial

@@ -34,6 +34,11 @@ step_install_chainer_style_check_deps() {
 }
 
 
+step_install_chainer_style_check_hacking_deps() {
+    pip install "hacking==1.1.0"
+}
+
+
 step_install_chainer_test_deps() {
     _install_chainer_deps test
 
@@ -120,6 +125,25 @@ step_python_style_check() {
     # To workaround Travis issue (https://github.com/travis-ci/travis-ci/issues/7261),
     # ignore DeprecationWarning raised in `site.py`.
     python -Werror::DeprecationWarning -Wignore::DeprecationWarning:site -m compileall -f -q "${check_targets[@]}"
+}
+
+
+step_python_style_check_hacking() {
+    check_targets=(
+        "$REPO_DIR"/*.py
+        "$REPO_DIR"/chainer
+        "$REPO_DIR"/chainermn
+        "$REPO_DIR"/chainerx
+        "$REPO_DIR"/tests
+        "$REPO_DIR"/examples
+        "$REPO_DIR"/chainerx_cc/examples
+    )
+
+    # Check all targets exist
+    for f in "${check_targets[@]}"; do test -e "$f"; done
+
+    flake8 --version
+    flake8 --select=H3 "${check_targets[@]}"
 }
 
 
