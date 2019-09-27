@@ -601,7 +601,7 @@ class TestEmptySequential(unittest.TestCase):
             seq(x)
 
 
-class SequentialInsert(unittest.TestCase):
+class TestSequentialInsert(unittest.TestCase):
     def test_empty(self):
         seq = chainer.Sequential()
         seq.insert(0, functions.sin)
