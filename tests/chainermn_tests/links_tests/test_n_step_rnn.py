@@ -1,12 +1,11 @@
 import unittest
 
 import chainer
-import chainer.cuda
+from chainer.backends.cuda import cupy
 import chainer.functions as F
 import chainer.links as L
 import chainer.testing
 import chainermn
-import cupy
 import numpy as np
 import pytest
 

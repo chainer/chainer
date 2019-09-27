@@ -1,10 +1,10 @@
 import chainer
+from chainer.backends.cuda import cupy
 import chainer.testing
 import chainer.testing.attr
 import unittest
 
 import chainermn
-import cupy
 
 
 class ExampleModel(chainer.Chain):

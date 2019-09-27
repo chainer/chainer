@@ -1,11 +1,11 @@
 # coding: utf-8
 
-import cupy
 import os
 import sys
 import tempfile
 
 import chainer
+from chainer.backends.cuda import cupy
 import chainer.functions as F
 import chainer.links as L
 import chainer.testing

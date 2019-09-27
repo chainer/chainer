@@ -1,7 +1,7 @@
 import chainer
+from chainer.backends.cuda import cupy
 import chainer.testing
 import chainer.utils
-import cupy
 import mpi4py.MPI
 import numpy
 import pytest

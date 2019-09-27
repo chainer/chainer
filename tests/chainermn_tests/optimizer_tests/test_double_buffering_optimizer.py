@@ -1,9 +1,9 @@
 import chainer
+from chainer.backends.cuda import cupy
 import chainer.testing
 import chainer.testing.attr
 import chainermn
 from chainermn import nccl
-import cupy
 import mock
 import numpy as np
 import pytest

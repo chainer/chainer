@@ -5,12 +5,12 @@ import pytest
 import numpy as np
 
 import chainer
+from chainer.backends.cuda import cupy
 import chainer.testing
 from chainer.training import extension
 from chainer.backend import cuda
 import chainermn
 from chainermn.extensions import ObservationAggregator
-import cupy
 
 
 class DummyChain(chainer.Chain):

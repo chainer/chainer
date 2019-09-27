@@ -5,7 +5,7 @@ import pytest
 import unittest
 
 import chainer
-import chainer.cuda
+from chainer.backends.cuda import cupy
 import chainer.initializers
 import chainer.links
 import chainer.testing
@@ -21,7 +21,6 @@ from chainermn.communicators.non_cuda_aware_communicator \
 from chainermn.communicators.pure_nccl_communicator \
     import PureNcclCommunicator
 from chainermn import nccl
-import cupy
 
 
 class ExampleModel(chainer.Chain):
