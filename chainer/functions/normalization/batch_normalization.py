@@ -741,13 +741,12 @@ class _BNMode(object):
         # into a 2-dim array with channels as second dim and m=<product
         # of all dimensions except the 2nd dimension> as the first
         # dimension.
-        # ideep only support float32
+        # ideep only support when x.dtype == gamma.dtype
         self.is_for_conv2d = is_gamma_1d and x.ndim == 4 and key_axis[0] == 1
         self.is_for_linear = is_gamma_1d and key_axis[0] == x.ndim - 1
         self.cudnn_dim_ok = self.is_for_conv2d or self.is_for_linear
         self.cudnn_dtype_ok = self.is_for_conv2d or (x.dtype != numpy.float16)
-        self.ideep_ok = x.dtype == numpy.float32 and \
-            gamma.dtype == numpy.float32 and \
+        self.ideep_ok = x.dtype == gamma.dtype and \
             is_gamma_1d and intel64.inputs_all_ready((x,))
         self.inference = inference
 
