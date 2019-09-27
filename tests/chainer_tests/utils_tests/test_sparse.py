@@ -55,6 +55,42 @@ class TestCooMatrix(unittest.TestCase):
 
 
 @testing.parameterize(*testing.product({
+    'nbatch': [0, 1],
+}))
+@testing.inject_backend_tests(
+    None,
+    # CPU tests
+    [
+        {},
+        {'use_ideep': 'always'},
+    ]
+    # GPU tests
+    + testing.product({
+        'use_cuda': [True],
+        'cuda_device': [0, 1],
+    }))
+class TestCooMatrixDuplicateIndices(unittest.TestCase):
+
+    def test_to_dense(self, backend_config):
+        xp = backend_config.xp
+
+        data = xp.array([3., 0., 4., -5.], dtype=xp.float32)
+        row = xp.array([0, 0, 1, 0])
+        col = xp.array([0, 1, 2, 0])
+
+        if self.nbatch == 1:
+            data = data[xp.newaxis]
+            row = row[xp.newaxis]
+            col = col[xp.newaxis]
+
+        x0 = xp.array([[-2., 0., 0.], [0., 0., 4.]], dtype=xp.float32)
+        if self.nbatch == 1:
+            x0 = x0[xp.newaxis]
+        x1 = utils.CooMatrix(data, row, col, (2, 3)).to_dense()
+        xp.testing.assert_array_equal(x0, x1)
+
+
+@testing.parameterize(*testing.product({
     'shape': [(2, 3), (3, 4)],
     'nbatch': [0, 1, 4],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
