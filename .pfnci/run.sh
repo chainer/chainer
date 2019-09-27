@@ -93,6 +93,7 @@ test_py37() {
       --python=python3.7 -m "${marker}"
       --bucket="${bucket}" --thread="$(( XPYTEST_NUM_THREADS / bucket ))"
       --hint="/chainer/.pfnci/hint.pbtxt"
+      --retry=1
   )
   if [ "${SPREADSHEET_ID:-}" != '' ]; then
     xpytest_args+=(--spreadsheet_id="${SPREADSHEET_ID}")
@@ -170,6 +171,7 @@ test_py27and35() {
       --python=python3.5 -m "${marker}"
       --bucket="${bucket}" --thread="$(( XPYTEST_NUM_THREADS / bucket ))"
       --hint="/chainer/.pfnci/hint.pbtxt"
+      --retry=1
   )
   if [ "${SPREADSHEET_ID:-}" != '' ]; then
     xpytest_args+=(--spreadsheet_id="${SPREADSHEET_ID}")
