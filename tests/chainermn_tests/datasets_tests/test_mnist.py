@@ -1,5 +1,6 @@
 # coding: utf-8
 
+import cupy
 import os
 import sys
 import tempfile
@@ -43,7 +44,7 @@ def check_mnist(gpu, display_log=True):
 
     model = L.Classifier(MLP(n_units, 10))
     if gpu:
-        model.to_gpu()
+        model.to_device(cupy.cuda.Device())
 
     optimizer = chainermn.create_multi_node_optimizer(
         chainer.optimizers.Adam(), comm)

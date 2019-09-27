@@ -4,6 +4,7 @@ import chainer
 import chainer.testing
 import chainer.testing.attr
 import chainermn
+import cupy
 
 
 class BnChain(chainer.Chain):
@@ -47,10 +48,8 @@ class TestCreateMnBnModel(unittest.TestCase):
             isinstance(mnbn_model.bn,
                        chainermn.links.MultiNodeBatchNormalization))
         if gpu:
-            device_id = self.communicator.intra_rank
-            mnbn_model.to_gpu(device=device_id)
-        else:
-            device_id = -1
+            mnbn_model.to_device(cupy.cuda.Device())
+
         with chainer.using_device(mnbn_model.device):
             x = mnbn_model.xp.zeros((1, 1, 1, 1))
             mnbn_model(x)
@@ -65,10 +64,7 @@ class TestCreateMnBnModel(unittest.TestCase):
             isinstance(mnbn_model[1],
                        chainermn.links.MultiNodeBatchNormalization))
         if gpu:
-            device_id = self.communicator.intra_rank
-            mnbn_model.to_gpu(device=device_id)
-        else:
-            device_id = -1
+            mnbn_model.to_device(cupy.cuda.Device())
         with chainer.using_device(mnbn_model.device):
             x = mnbn_model.xp.zeros((1, 1, 1, 1))
             mnbn_model(x)
@@ -85,10 +81,7 @@ class TestCreateMnBnModel(unittest.TestCase):
                                                        self.communicator)
 
         if gpu:
-            device_id = self.communicator.intra_rank
-            mnbn_model.to_gpu(device=device_id)
-        else:
-            device_id = -1
+            mnbn_model.to_device(cupy.cuda.Device())
         with chainer.using_device(mnbn_model.device):
             x = mnbn_model.xp.zeros((1, 1, 1, 1))
             mnbn_model(x)

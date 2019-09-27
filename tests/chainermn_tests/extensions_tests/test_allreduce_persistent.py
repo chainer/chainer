@@ -4,6 +4,7 @@ import chainer.testing.attr
 import unittest
 
 import chainermn
+import cupy
 
 
 class ExampleModel(chainer.Chain):
@@ -47,5 +48,5 @@ class TestAllreducePersistent(unittest.TestCase):
         chainer.cuda.get_device_from_id(device).use()
 
         model = ExampleModel()
-        model.to_gpu()
+        model.to_device(cupy.cuda.Device(device))
         self._test(comm, model)

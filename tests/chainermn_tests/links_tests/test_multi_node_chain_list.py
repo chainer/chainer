@@ -3,6 +3,7 @@ import chainer.cuda
 import chainer.links as L
 import chainer.testing
 import chainermn
+import cupy
 import numpy as np
 import pytest
 
@@ -247,7 +248,7 @@ def check_cycle_model(gpu, param):
                 Cycle0(d, communicator, rank_next, rank_prev))
 
             if gpu:
-                model.to_gpu()
+                model.to_device(cupy.cuda.Device())
                 X = chainer.cuda.to_gpu(X)
                 Y = chainer.cuda.to_gpu(Y)
 
@@ -258,7 +259,7 @@ def check_cycle_model(gpu, param):
             model = Cycle1(
                 d, communicator, rank_next, rank_prev)
             if gpu:
-                model.to_gpu()
+                model.to_device(cupy.cuda.Device())
 
             for i in range(n):
                 err = model()
@@ -294,7 +295,7 @@ def check_crossing_model(gpu, param):
                 d, communicator, rank_next, rank_prev))
 
         if gpu:
-            model.to_gpu()
+            model.to_device(cupy.cuda.Device())
             X = chainer.cuda.to_gpu(X)
             Y = chainer.cuda.to_gpu(Y)
 
@@ -328,7 +329,7 @@ def check_branching_model(gpu, communicator, rank_next, rank_prev,
             model = L.Classifier(parent_model(
                 d, communicator, rank_children))
             if gpu:
-                model.to_gpu()
+                model.to_device(cupy.cuda.Device())
                 X = chainer.cuda.to_gpu(X)
                 Y = chainer.cuda.to_gpu(Y)
 
@@ -338,7 +339,7 @@ def check_branching_model(gpu, communicator, rank_next, rank_prev,
         else:
             model = BranchChild(d, communicator, 0)
             if gpu:
-                model.to_gpu()
+                model.to_device(cupy.cuda.Device())
 
             for i in range(n):
                 err = model()
@@ -392,7 +393,7 @@ def check_twisting_model(gpu, param):
                 d, communicator, rank_prev, rank_next))
 
         if gpu:
-            model.to_gpu()
+            model.to_device(cupy.cuda.Device())
             X = chainer.cuda.to_gpu(X)
             Y = chainer.cuda.to_gpu(Y)
 
@@ -434,7 +435,7 @@ def check_tuple_data_model(gpu, param):
 
         assert model is not None
         if gpu:
-            model.to_gpu()
+            model.to_device(cupy.cuda.Device())
             X = chainer.cuda.to_gpu(X)
             Y = chainer.cuda.to_gpu(Y)
 

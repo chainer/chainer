@@ -21,6 +21,7 @@ from chainermn.communicators.non_cuda_aware_communicator \
 from chainermn.communicators.pure_nccl_communicator \
     import PureNcclCommunicator
 from chainermn import nccl
+import cupy
 
 
 class ExampleModel(chainer.Chain):
@@ -374,7 +375,7 @@ def check_multi_node_mean_grad_mixed_dtype(param, model, use_gpu):
             answer_dtype = np.float16
 
     if use_gpu:
-        model.to_gpu()
+        model.to_device(cupy.cuda.Device())
 
     model.a.W.grad[:] = communicator.rank
     model.b.W.grad[:] = communicator.rank + 1
@@ -416,28 +417,29 @@ def check_collective_communication(param, use_gpu):
     mpi_comm.barrier()
 
     model = ExampleModel(param.model_dtype)
+    device = cupy.cuda.Device()
     if use_gpu:
-        model.to_gpu()
+        model.to_device(device)
     check_bcast_data(communicator, model)
 
     model = ExampleModel(param.model_dtype)
     if use_gpu:
-        model.to_gpu()
+        model.to_device(device)
     check_multi_node_mean_grad(communicator, model)
 
     model = ExampleModel(param.model_dtype)
     if use_gpu:
-        model.to_gpu()
+        model.to_device(device)
     check_multi_node_mean_grad_empty(communicator, model)
     model = ExampleModel(param.model_dtype)
     if use_gpu:
-        model.to_gpu()
+        model.to_device(device)
     check_multi_node_mean_grad_empty_half(communicator, model)
 
     # Check allreduce debug mode
     model = ExampleModel()
     if use_gpu:
-        model.to_gpu()
+        model.to_device(device)
 
     # The example model includes some nan parameters so the debug mode
     # must detect it.
