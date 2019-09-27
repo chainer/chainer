@@ -416,8 +416,8 @@ def check_collective_communication(param, use_gpu):
     mpi_comm.barrier()
 
     model = ExampleModel(param.model_dtype)
-    device = cupy.cuda.Device()
     if use_gpu:
+        device = cupy.cuda.Device()
         model.to_device(device)
     check_bcast_data(communicator, model)
 
