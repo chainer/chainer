@@ -1144,6 +1144,8 @@ class TestVariableConstantArrayOp(unittest.TestCase):
         self.gy = numpy.random.uniform(-1, 1, (3, 2)).astype(self.dtype)
         self.ggx = numpy.random.uniform(.5, 1, (3, 2)).astype(self.dtype)
         self.value = numpy.random.uniform(-1, 1, (3, 2)).astype(self.dtype)
+        # Avoid overflow in div test (especially backward)
+        self.value[abs(self.value) < 1e-2] = 1.
 
     def check_forward(self, op, array_conv, positive):
         value = self.value
