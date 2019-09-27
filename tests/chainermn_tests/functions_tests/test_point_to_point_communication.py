@@ -1,6 +1,7 @@
 import functools
 
 import chainer
+import copy
 from chainer.backends.cuda import cupy
 import chainer.testing
 import chainer.testing.attr
