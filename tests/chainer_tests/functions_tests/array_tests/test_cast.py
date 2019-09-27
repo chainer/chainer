@@ -108,7 +108,7 @@ class TestNoCast(unittest.TestCase):
 
     def setUp(self):
         self.dtype = numpy.float32
-        self.x = numpy.empty(1, self.dtype)
+        self.x = numpy.random.uniform(-100, 100, (1,)).astype(self.dtype)
 
     def check_forward_no_cast(self, x_data):
         y = functions.cast(x_data, self.dtype)

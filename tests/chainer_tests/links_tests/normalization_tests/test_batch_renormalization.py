@@ -100,13 +100,15 @@ class BatchRenormalizationTest(unittest.TestCase):
 
     @attr.gpu
     def test_forward_gpu(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.check_forward(cuda.to_gpu(self.x))
 
     @attr.multi_gpu(2)
     def test_forward_multi_gpu(self):
         with cuda.get_device_from_id(1):
-            self.link.to_gpu()
+            with testing.assert_warns(DeprecationWarning):
+                self.link.to_gpu()
             x = cuda.to_gpu(self.x)
         with cuda.get_device_from_id(0):
             self.check_forward(x)
@@ -150,7 +152,8 @@ class TestPopulationStatistics(unittest.TestCase):
 
     @attr.gpu
     def test_statistics_gpu(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.check_statistics(cuda.to_gpu(self.x), cuda.to_gpu(self.y))
 
     def check_statistics2(self, x, y):
@@ -177,7 +180,8 @@ class TestPopulationStatistics(unittest.TestCase):
 
     @attr.gpu
     def test_statistics2_gpu(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.check_statistics2(
             cuda.to_gpu(self.x),
             cuda.to_gpu(self.y))
