@@ -79,6 +79,8 @@ case "${CHAINER_TRAVIS_TEST}" in
             ;;
             install)
                 run_prestep install_chainer_style_check_deps
+                # install "chainer" style by installing the package
+                run_prestep chainer_install_from_sdist
             ;;
             script)
                 run_step python_style_check
