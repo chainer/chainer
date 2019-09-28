@@ -87,7 +87,8 @@ class TestGRU(unittest.TestCase):
 
     @attr.gpu
     def test_forward_gpu(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.check_forward(cuda.to_gpu(self.h),
                            cuda.to_gpu(self.x))
 
@@ -112,7 +113,8 @@ class TestGRU(unittest.TestCase):
 
     @attr.gpu
     def test_backward_gpu(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.check_backward(cuda.to_gpu(self.h),
                             cuda.to_gpu(self.x),
                             cuda.to_gpu(self.gy))
@@ -141,7 +143,8 @@ class TestGRUState(unittest.TestCase):
 
     @attr.gpu
     def test_set_state_gpu(self):
-        getattr(self.link, self.link_array_module)()
+        with testing.assert_warns(DeprecationWarning):
+            getattr(self.link, self.link_array_module)()
         getattr(self.h, self.state_array_module)()
         self.check_set_state(self.h)
 
@@ -154,7 +157,8 @@ class TestGRUState(unittest.TestCase):
 
     @attr.gpu
     def test_reset_state_gpu(self):
-        getattr(self.link, self.link_array_module)()
+        with testing.assert_warns(DeprecationWarning):
+            getattr(self.link, self.link_array_module)()
         self.check_reset_state()
 
 
@@ -172,9 +176,11 @@ class TestGRUToCPUToGPU(unittest.TestCase):
 
     def check_to_cpu(self, h):
         self.link.set_state(h)
-        self.link.to_cpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_cpu()
         self.assertIsInstance(self.link.h.data, self.link.xp.ndarray)
-        self.link.to_cpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_cpu()
         self.assertIsInstance(self.link.h.data, self.link.xp.ndarray)
 
     def test_to_cpu_cpu(self):
@@ -187,13 +193,17 @@ class TestGRUToCPUToGPU(unittest.TestCase):
 
     def check_to_cpu_to_gpu(self, h):
         self.link.set_state(h)
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.assertIsInstance(self.link.h.data, self.link.xp.ndarray)
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.assertIsInstance(self.link.h.data, self.link.xp.ndarray)
-        self.link.to_cpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_cpu()
         self.assertIsInstance(self.link.h.data, self.link.xp.ndarray)
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.assertIsInstance(self.link.h.data, self.link.xp.ndarray)
 
     @attr.gpu

@@ -42,7 +42,8 @@ class TestClassifier(unittest.TestCase):
 
         if gpu:
             xp = cuda.cupy
-            link.to_gpu()
+            with testing.assert_warns(DeprecationWarning):
+                link.to_gpu()
         else:
             xp = numpy
 
@@ -140,7 +141,8 @@ class TestInvalidArgument(unittest.TestCase):
 
     @attr.gpu
     def test_invalid_argument_gpu(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.check_invalid_argument()
 
 
@@ -157,7 +159,8 @@ class TestInvalidLabelKey(unittest.TestCase):
     def check_invalid_key(self, gpu, label_key):
         link = links.Classifier(links.Linear(10, 3), label_key=label_key)
         if gpu:
-            link.to_gpu()
+            with testing.assert_warns(DeprecationWarning):
+                link.to_gpu()
         x = chainer.Variable(link.xp.asarray(self.x))
         with six.assertRaisesRegex(self, ValueError, 'Label key'):
             link(x)

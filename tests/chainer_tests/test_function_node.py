@@ -964,8 +964,6 @@ class GradTestBase(object):
             raise
 
     def test_grad(self, backend_config):
-        if self.loss_scale and backend_config.xp is chainerx:
-            pytest.skip('chainerx.grad does not support loss_scale')
         self.use_device(backend_config.device)
         self.check_grad()
 
@@ -991,8 +989,6 @@ class GradTestBase(object):
             raise
 
     def test_double_grad(self, backend_config):
-        if self.loss_scale and backend_config.xp is chainerx:
-            pytest.skip('chainerx.grad does not support loss_scale')
         self.use_device(backend_config.device)
         self.check_double_grad()
 
@@ -1007,9 +1003,6 @@ class GradTestBase(object):
         {'use_ideep': 'always'},
         {'use_cuda': True, 'cuda_device': 0},
         {'use_cuda': True, 'cuda_device': 1},
-        {'use_chainerx': True, 'chainerx_device': 'native:0'},
-        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
-        {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
     ]
 )
 class TestGradSimple(GradTestBase, unittest.TestCase):
@@ -1030,6 +1023,34 @@ class TestGradSimple(GradTestBase, unittest.TestCase):
         ggrad = 2 * self.gy
         if self.loss_scale is not None:
             ggrad *= self.loss_scale
+        return [ggrad]
+
+
+@testing.parameterize(*testing.product({
+    'loss_scale': [None, 1, 1.5, 2.5, 10],
+}))
+@testing.backend.inject_backend_tests(
+    None,
+    [
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
+    ]
+)
+class TestGradSimpleChainerX(GradTestBase, unittest.TestCase):
+
+    x_names = 'x',
+    y_names = 'y',
+
+    def forward(self):
+        self.y = self.x * self.x
+
+    def expected_grad(self):
+        grad = 2 * self.x * self.gy
+        return [grad]
+
+    def expected_double_grad(self):
+        ggrad = 2 * self.gy
         return [ggrad]
 
 

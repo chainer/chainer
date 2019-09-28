@@ -31,6 +31,10 @@ class ProductTest(unittest.TestCase):
 class ProductDictTest(unittest.TestCase):
 
     def test_product_dict(self):
+        # TODO(kataoka): This check is tentative. See
+        # tests/chainer_tests/conftest.py
+        assert testing.product_dict is testing.parameterized._product_dict_orig
+
         self.assertListEqual(testing.product_dict(*self.actual), self.expect)
 
 

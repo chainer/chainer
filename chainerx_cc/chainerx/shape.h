@@ -77,6 +77,15 @@ public:
 
     // span
     absl::Span<const int64_t> span() const { return {*this}; }
+
+    Shape Permute(const Axes& axes) const {
+        CHAINERX_ASSERT(axes.size() <= size());
+        Shape new_shape{};
+        for (int8_t axe : axes) {
+            new_shape.emplace_back(operator[](axe));
+        }
+        return new_shape;
+    }
 };
 
 namespace internal {

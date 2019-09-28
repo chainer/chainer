@@ -71,7 +71,8 @@ py::tuple ToTuple(const std::vector<Array>& ary) {
 std::vector<ArrayBodyPtr> ToArrayBodyPtr(const std::vector<Array>& ary) {
     std::vector<ArrayBodyPtr> ret{ary.size()};
     for (size_t i = 0; i < ary.size(); i++) {
-        ret[i] = GetArrayBody(ary[i]);
+        ArrayBodyPtr array_body = GetArrayBody(ary[i]);
+        ret[i] = std::move(array_body);
     }
     return ret;
 }
@@ -632,12 +633,16 @@ void InitChainerxArraySpecial(pybind11::module& m, py::class_<ArrayBody, ArrayBo
           "grad"_a,
           "backprop_id"_a = nullptr);
     c.def("backward",
-          [](const ArrayBodyPtr& self, const absl::optional<BackpropId>& backprop_id, bool enable_double_backprop) {
+          [](const ArrayBodyPtr& self,
+             const absl::optional<BackpropId>& backprop_id,
+             bool enable_double_backprop,
+             const absl::optional<float>& loss_scale) {
               auto double_backprop = enable_double_backprop ? DoubleBackpropOption::kEnable : DoubleBackpropOption::kDisable;
-              Backward(Array{self}, backprop_id, double_backprop);
+              Backward(Array{self}, backprop_id, double_backprop, loss_scale);
           },
           "backprop_id"_a = nullptr,
-          "enable_double_backprop"_a = false);
+          "enable_double_backprop"_a = false,
+          "loss_scale"_a = nullptr);
     c.def("_debug_dump_computational_graph",
           [](const ArrayBodyPtr& self, const absl::optional<BackpropId>& backprop_id) {
               DebugDumpComputationalGraph(std::cout, Array{self}, backprop_id);
