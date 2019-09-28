@@ -1231,7 +1231,7 @@ class ChainList(Link, collections_abc.MutableSequence):
         for ret in super(ChainList, self).namedpersistent():
             yield ret
         for idx, link in enumerate(self._children):
-            prefix = '/{}'.format(idx)
+            prefix = '/%d' % idx
             for path, persistent in link.namedpersistent():
                 yield prefix + path, persistent
 
