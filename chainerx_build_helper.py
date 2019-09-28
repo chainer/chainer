@@ -44,6 +44,8 @@ class CMakeBuild(build_ext.build_ext):
         try:
             out = subprocess.check_output(['ninja', '--version'])
             self.use_ninja = True
+        except OSError:
+            pass
 
         for ext in self.extensions:
             self.build_extension(ext)
