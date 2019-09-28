@@ -27,6 +27,11 @@ def array(shape, dtype):
             'batches': (3, 2, 1), 'activation': 'relu'},
         {'n_layers': 2, 'hidden_size': 2, 'input_size': 3,
             'batches': (3, 2, 1), 'activation': 'tanh'},
+    ],
+    [
+        {'dtype': numpy.float16},
+        {'dtype': numpy.float32},
+        {'dtype': numpy.float64},
     ]))
 @testing.fix_random()
 @backend.inject_backend_tests(
@@ -58,17 +63,18 @@ def array(shape, dtype):
 class TestNStepRNN(testing.FunctionTestCase):
 
     dodge_nondifferentiable = True
-    numerical_grad_dtype = None
 
     def setUp(self):
         self.check_forward_options = {'atol': 1e-3, 'rtol': 1e-2}
+        if self.dtype == numpy.float16:
+            self.check_forward_options.update({'rtol': 5e-2})
         self.check_backward_options = {'atol': 5e-3, 'rtol': 5e-2}
         self.check_double_backward_options = {'atol': 5e-3, 'rtol': 5e-2}
         self.skip_double_backward_test = True
 
     def generate_inputs(self):
         h_shape = (self.n_layers, self.batches[0], self.hidden_size)
-        dtype = numpy.float32
+        dtype = self.dtype
 
         h = array(h_shape, dtype)
         in_size = self.input_size
@@ -154,6 +160,11 @@ class TestNStepRNN(testing.FunctionTestCase):
             'batches': (3, 2, 1), 'activation': 'relu'},
         {'n_layers': 2, 'hidden_size': 2, 'input_size': 3,
             'batches': (3, 2, 1), 'activation': 'tanh'},
+    ],
+    [
+        {'dtype': numpy.float16},
+        {'dtype': numpy.float32},
+        {'dtype': numpy.float64},
     ]))
 @testing.fix_random()
 @backend.inject_backend_tests(
@@ -179,7 +190,6 @@ class TestNStepRNN(testing.FunctionTestCase):
         })]))
 class TestNStepBiRNN(testing.FunctionTestCase):
     dodge_nondifferentiable = True
-    numerical_grad_dtype = None
 
     def setUp(self):
         self.check_forward_options = {'atol': 1e-3, 'rtol': 1e-2}
@@ -189,7 +199,7 @@ class TestNStepBiRNN(testing.FunctionTestCase):
 
     def generate_inputs(self):
         h_shape = (self.n_layers * 2, self.batches[0], self.hidden_size)
-        dtype = numpy.float32
+        dtype = self.dtype
 
         h = array(h_shape, dtype)
         in_size = self.input_size

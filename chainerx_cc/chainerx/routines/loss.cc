@@ -1,10 +1,12 @@
 #include "chainerx/routines/loss.h"
 
 #include "chainerx/array.h"
+#include "chainerx/routines/arithmetic.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/explog.h"
 #include "chainerx/routines/indexing.h"
 #include "chainerx/routines/logic.h"
+#include "chainerx/routines/manipulation.h"
 #include "chainerx/routines/misc.h"
 #include "chainerx/scalar.h"
 
@@ -29,6 +31,24 @@ Array SigmoidCrossEntropy(const Array& x1, const Array& x2) {
     Array ignore_label = -OnesLike(x2, x2.device());
     Array ignore_mask = NotEqual(x2, ignore_label);
     return -(ignore_mask * (x1 * (x2 - (GreaterEqual(x1, ZerosLike(x1, x1.device()))).AsType(x1.dtype())) - Log1p(Exp(-Absolute(x1)))));
+}
+
+Array Hinge(const Array& x, const Array& t, double norm) {
+    if (x.ndim() != 2) {
+        throw DimensionError{"Input array must be 2 dimensional."};
+    }
+    if (t.ndim() != 1) {
+        throw DimensionError{"Target array must be 1 dimensional."};
+    }
+    if (x.shape()[0] != t.shape()[0]) {
+        throw DimensionError{"x.shape[0] must be equal to t.shape[0]"};
+    }
+
+    int64_t num = x.shape()[1];
+    Array one_minus_diff = Where(ExpandDims(t, 1) == Arange(num), 1 - x, 1 + x);
+    Array bottom_diff = Maximum(0, one_minus_diff);
+
+    return Power(bottom_diff, Scalar{norm});
 }
 
 }  // namespace chainerx

@@ -95,6 +95,23 @@ void ReductionKernel(ReductionKernelArg<In, Out, InNdim, OutNdim> arg, Reduction
     }
 }
 
+template <typename In, typename Out, typename ReductionImpl, int8_t InNdim = kDynamicNdim, int8_t OutNdim = kDynamicNdim>
+void ScanKernel(ReductionKernelArg<In, Out, InNdim, OutNdim> arg, ReductionImpl&& impl, int64_t reduce_len) {
+    int64_t len = arg.in_indexer.total_size() / reduce_len;
+    auto it_in = arg.in_indexer.It(0, len);
+    auto it_out = arg.out_indexer.It(0, len);
+    for (int64_t i = 0; i < len; ++i) {
+        it_in.Restart(i);
+        it_out.Restart(i);
+        auto accum = impl.Identity();
+        for (int64_t j = 0; j < reduce_len; ++j, ++it_in, ++it_out) {
+            auto in = native_internal::StorageToDataType<const In>(arg.in[it_in]);
+            impl.Reduce(impl.MapIn(in, i), accum);
+            arg.out[it_out] = native_internal::DataToStorageType<Out>(impl.MapOut(accum));
+        }
+    }
+}
+
 }  // namespace reduce_detail
 
 // Computes the reduction of the input and stores into the output array.
@@ -176,6 +193,22 @@ void Reduce(const Array& in, const Axes& axis, const Array& out, ReductionImpl&&
     }
 
     reduce_detail::ReductionKernel(MakeReductionKernelArg<In, Out>(arg), impl);
+}
+
+template <typename In, typename Out, typename ReductionImpl>
+void Scan(const Array& in, int8_t axis, const Array& out, ReductionImpl&& impl) {
+    if (out.GetTotalSize() == 0) {
+        return;
+    }
+
+    ReductionArg arg{in, Axes{axis}, out};
+    int64_t reduce_len = in.shape()[axis];
+
+    if (arg.in_shape().ndim() == 1 && arg.out_shape().ndim() == 1) {
+        reduce_detail::ScanKernel(MakeReductionKernelArg<In, Out, 1, 1>(arg), impl, reduce_len);
+        return;
+    }
+    reduce_detail::ScanKernel(MakeReductionKernelArg<In, Out>(arg), impl, reduce_len);
 }
 
 }  // namespace native

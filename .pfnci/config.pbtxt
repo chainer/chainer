@@ -94,6 +94,67 @@ configs {
   }
 }
 
+# Chainer CI related targets: chainer.docker.{version}.{action}.
+# - version should be either "py37" or "py27and35".
+# - action should be either "test" or "push".  "test" only builds a Docker
+#   image, and "push" additionally pushes the Docker image to Google Container
+#   Registry.
+# CAVEAT: chainer.docker.*.push targets should be triggered by CuPy repository
+# to enable to fix its CuPy commit.  The process should be implemented as
+# a default command in the CI targets.
+configs {
+  key: "chainer.docker.py37.test"
+  value {
+    requirement {
+      cpu: 2
+      memory: 12
+    }
+    time_limit: {
+      seconds: 3600
+    }
+    command: "bash .pfnci/script.sh docker.py37.test"
+  }
+}
+configs {
+  key: "chainer.docker.py27and35.test"
+  value {
+    requirement {
+      cpu: 2
+      memory: 12
+    }
+    time_limit: {
+      seconds: 3600
+    }
+    command: "bash .pfnci/script.sh docker.py27and35.test"
+  }
+}
+configs {
+  key: "chainer.docker.py37.push"
+  value {
+    requirement {
+      cpu: 2
+      memory: 12
+    }
+    time_limit: {
+      seconds: 3600
+    }
+    command: "bash .pfnci/script.sh docker.py37.push"
+  }
+}
+configs {
+  key: "chainer.docker.py27and35.push"
+  value {
+    requirement {
+      cpu: 2
+      memory: 12
+    }
+    time_limit: {
+      seconds: 3600
+    }
+    command: "bash .pfnci/script.sh docker.py27and35.push"
+  }
+}
+
 # Python 2 tests are disabled in the master branch, but configs can be removed
 # only after removing web hooks.
 # TODO(niboshi): Completely remove them after discontinuing v6 series.

@@ -368,6 +368,8 @@ public:
 
 CHAINERX_CUDA_REGISTER_KERNEL(ModSAKernel, CudaModSAKernel);
 
+CHAINERX_CUDA_REGISTER_ELTWISE_BINARY_KERNEL(FmodKernel, { out = cuda::Fmod(x1, x2); });
+
 }  // namespace
 }  // namespace cuda
 }  // namespace chainerx
