@@ -1,5 +1,5 @@
 import chainer
-from chainer.backends import cuda
+import chainer.backends
 from chainer.backends.cuda import cupy
 import chainer.links as L
 import chainer.testing
@@ -223,7 +223,7 @@ class TupleDataChild(chainermn.MultiNodeChainList):
 def create_communicator(gpu):
     if gpu:
         communicator = chainermn.create_communicator('flat')
-        chainer.cuda.get_device_from_id(communicator.intra_rank).use()
+        chainer.backends.cuda.get_device_from_id(communicator.intra_rank).use()
     else:
         communicator = chainermn.create_communicator('naive')
 
@@ -249,8 +249,8 @@ def check_cycle_model(gpu, param):
 
             if gpu:
                 model.to_device(cupy.cuda.Device())
-                X = chainer.cuda.to_gpu(X)
-                Y = chainer.cuda.to_gpu(Y)
+                X = chainer.backends.cuda.to_gpu(X)
+                Y = chainer.backends.cuda.to_gpu(Y)
 
             for i in range(n):
                 err = model(X[i:i + 1], Y[i:i + 1])
@@ -296,8 +296,8 @@ def check_crossing_model(gpu, param):
 
         if gpu:
             model.to_device(cupy.cuda.Device())
-            X = chainer.cuda.to_gpu(X)
-            Y = chainer.cuda.to_gpu(Y)
+            X = chainer.backends.cuda.to_gpu(X)
+            Y = chainer.backends.cuda.to_gpu(Y)
 
         for i in range(n):
             err = model(X[i:i + 1], Y[i:i + 1])
@@ -330,8 +330,8 @@ def check_branching_model(gpu, communicator, rank_next, rank_prev,
                 d, communicator, rank_children))
             if gpu:
                 model.to_device(cupy.cuda.Device())
-                X = chainer.cuda.to_gpu(X)
-                Y = chainer.cuda.to_gpu(Y)
+                X = chainer.backends.cuda.to_gpu(X)
+                Y = chainer.backends.cuda.to_gpu(Y)
 
             for i in range(n):
                 err = model(X[i:i + 1], Y[i:i + 1])
@@ -394,8 +394,8 @@ def check_twisting_model(gpu, param):
 
         if gpu:
             model.to_device(cupy.cuda.Device())
-            X = chainer.cuda.to_gpu(X)
-            Y = chainer.cuda.to_gpu(Y)
+            X = chainer.backends.cuda.to_gpu(X)
+            Y = chainer.backends.cuda.to_gpu(Y)
 
         for i in range(n):
             err = model(X[i:i + 1], Y[i:i + 1])
@@ -436,8 +436,8 @@ def check_tuple_data_model(gpu, param):
         assert model is not None
         if gpu:
             model.to_device(cupy.cuda.Device())
-            X = chainer.cuda.to_gpu(X)
-            Y = chainer.cuda.to_gpu(Y)
+            X = chainer.backends.cuda.to_gpu(X)
+            Y = chainer.backends.cuda.to_gpu(Y)
 
         for i in range(n):
             if communicator.rank % 2 == 0:
