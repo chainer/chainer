@@ -116,6 +116,8 @@ def main():
     if comm.rank == 0:
         if device.xp is not chainerx:
             # Disabled for ChainerX.
+            # This is because ChainerX doesn't have a public API set
+            # to traverse computational graphs.
             # See examples/mnist/train_mnist.py
             trainer.extend(extensions.DumpGraph('main/loss'))
         trainer.extend(extensions.LogReport())
