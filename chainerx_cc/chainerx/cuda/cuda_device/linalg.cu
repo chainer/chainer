@@ -667,6 +667,12 @@ public:
         CHAINERX_ASSERT(out.IsContiguous());
         CHAINERX_ASSERT(a.dtype() == out.dtype());
 
+        // cuSOLVER might not work well with zero-sized arrays for older versions of cuSOLVER (<10.1)
+        // therefore it's better to return earlier
+        if (a.shape().GetTotalSize() == 0) {
+            return;
+        }
+
         // potrf (cholesky) stores result in-place, therefore copy ``a`` to ``out`` and then pass ``out`` to the routine
         device.backend().CallKernel<CopyKernel>(Tril(a, 0), out);
 
