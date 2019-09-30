@@ -1,7 +1,7 @@
 import unittest
 
 import chainer
-import chainer.cuda
+from chainer.backends.cuda import cupy
 import chainer.functions as F
 import chainer.links as L
 import chainer.testing
@@ -75,7 +75,7 @@ class TestNStepRNN(unittest.TestCase):
             n_vocab, n_hid, self.communicator, self.rank_next, self.rank_prev)
 
         if gpu:
-            model.to_gpu()
+            model.to_device(cupy.cuda.Device())
             X = [chainer.cuda.to_gpu(x) for x in X]
             Y = chainer.cuda.to_gpu(Y)
 
@@ -110,7 +110,7 @@ class TestNStepRNN(unittest.TestCase):
             n_vocab, n_hid, self.communicator, self.rank_next, self.rank_prev)
 
         if gpu:
-            model.to_gpu()
+            model.to_device(cupy.cuda.Device())
             X = [chainer.cuda.to_gpu(x) for x in X]
             Y = chainer.cuda.to_gpu(Y)
 
