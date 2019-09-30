@@ -5,7 +5,6 @@ import unittest
 
 import mock
 import numpy
-import six
 
 import chainer
 from chainer import backend
@@ -194,10 +193,10 @@ class TestHDF5Deserializer(unittest.TestCase):
         # It should be bit-identical to the result directly retrieved from
         # h5py.
         arr_hdf5 = numpy.empty((2, 3), dtype=numpy.float16)
-        buf = six.BytesIO()
-        with h5py.File(buf, 'w') as f:
-            f.create_dataset('a', data=self.data)
-            f['a'].read_direct(arr_hdf5)
+        with tempfile.TemporaryFile() as buf:
+            with h5py.File(buf, 'w') as f:
+                f.create_dataset('a', data=self.data)
+                f['a'].read_direct(arr_hdf5)
         numpy.testing.assert_array_equal(y, arr_hdf5)
 
     @attr.gpu
