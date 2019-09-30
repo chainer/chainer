@@ -47,7 +47,7 @@ RUN touch $BASH_PROFILE && \
 	echo 'eval "$(pyenv init -)"' >> $BASH_PROFILE
 
 #
-# Install different versions of python and necessary packages
+# Install Python and necessary packages
 #
 
 
