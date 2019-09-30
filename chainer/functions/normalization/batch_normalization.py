@@ -746,8 +746,11 @@ class _BNMode(object):
         self.is_for_linear = is_gamma_1d and key_axis[0] == x.ndim - 1
         self.cudnn_dim_ok = self.is_for_conv2d or self.is_for_linear
         self.cudnn_dtype_ok = self.is_for_conv2d or (x.dtype != numpy.float16)
-        self.ideep_ok = x.dtype == gamma.dtype and \
-            is_gamma_1d and intel64.inputs_all_ready((x,))
+        self.ideep_ok = (
+            x.dtype == gamma.dtype
+            and is_gamma_1d
+            and intel64.inputs_all_ready((x,)))
+
         self.inference = inference
 
     def get_cudnn_mode(self):
