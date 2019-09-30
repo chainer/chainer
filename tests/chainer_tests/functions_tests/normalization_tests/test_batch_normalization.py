@@ -156,7 +156,8 @@ class TestBatchNormalization(unittest.TestCase):
         if hasattr(self, 'axis'):
             self.bn_options['axis'] = self.axis
         self.check_forward_options = {'atol': 1e-4, 'rtol': 1e-3}
-        self.check_backward_options = {'dtype': numpy.float64}
+        self.check_backward_options = {
+            'dtype': numpy.float64, 'atol': 1e-4, 'rtol': 1e-3}
         self.check_double_backward_options = {
             'dtype': numpy.float64, 'atol': 1e-3, 'rtol': 1e-2}
         if self.dtype == numpy.float16:
