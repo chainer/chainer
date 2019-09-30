@@ -11,13 +11,16 @@ set -eu
 cd "$(dirname "${BASH_SOURCE}")"/..
 
 main() {
+  TARGET="$1"
+  BASE_IMAGE="$2"
+
   prepare_docker &
   wait
 
   run docker build -t "asia.gcr.io/pfn-public-ci/${TARGET}" \
-      --build-arg BASE_IMAGE=9.2-cudnn7-devel \
+      --build-arg "BASE_IMAGE=${BASE_IMAGE}" \
       -f ".pfnci/chainermn-ci-prep.Dockerfile" .
-  run docker push "asia.gcr.io/pfn-public-ci/chainermn-ci-prep-cuda92"
+  run docker push "asia.gcr.io/pfn-public-ci/${TARGET}"
 }
 
 # run executes a command.  If DRYRUN is enabled, run just prints the command.
