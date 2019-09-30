@@ -125,7 +125,8 @@ class GeneralBatchNormalizationImpl(_BatchNormalizationImpl):
                     gy - (x_hat * ggamma + gbeta) * inv_m)
                 ''', 'bn_bwd')(gy, x_hat, gamma[expander],
                                inv_std[expander], ggamma[expander],
-                               gbeta[expander], inv_m)
+                               gbeta[expander],
+                               inv_m).astype(x.dtype, copy=False)
 
         return gx, ggamma, gbeta
 
@@ -190,11 +191,14 @@ class _IDeepBatchNormalizationImpl(_BatchNormalizationImpl):
             intel64.ideep.array(gamma),
             eps)
 
-        gx = gx.astype(x.dtype, copy=False)
         ggamma, gbeta = gW[:2]
 
         if expand_dim:
             gx = numpy.squeeze(gx, axis=(2, 3))
+
+        gx = gx.astype(x.dtype, copy=False)
+        ggamma = ggamma.astype(gamma.dtype, copy=False)
+        gbeta = gbeta.astype(gamma.dtype, copy=False)
 
         return gx, ggamma, gbeta
 
@@ -227,10 +231,16 @@ class _CudnnBatchNormalizationImpl(_BatchNormalizationImpl):
 
     def backward(self, axis, gamma, gy, x, xp,
                  expander, mean, inv_std, eps, var):
-        return cudnn.batch_normalization_backward(
+        gx, ggamma, gbeta = cudnn.batch_normalization_backward(
             x, gamma, gy, mean, inv_std, eps,
             self.is_for_conv2d, self.cudnn_mode,
             chainer.is_debug())
+
+        gx = gx.astype(x.dtype, copy=False)
+        ggamma = ggamma.astype(gamma.dtype, copy=False)
+        gbeta = gbeta.astype(gamma.dtype, copy=False)
+
+        return gx, ggamma, gbeta
 
 
 if cuda.cudnn_enabled:
@@ -447,9 +457,6 @@ class BatchNormalizationGrad(function_node.FunctionNode):
                                                 x, xp, expander,
                                                 self.mean, self.inv_std,
                                                 self.eps, self.var)
-        gx = gx.astype(x.dtype, copy=False)
-        ggamma = ggamma.astype(gamma.dtype, copy=False)
-        gbeta = gbeta.astype(gamma.dtype, copy=False)
 
         self.retain_inputs((0, 1, 2))
         self.retain_outputs((0, 1))
