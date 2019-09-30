@@ -50,17 +50,6 @@ RUN touch $BASH_PROFILE && \
 # Install different versions of python and necessary packages
 #
 
-# Python 2.7.16
-
-ENV PYTHON_VERSION 2.7.16
-
-RUN . $BASH_PROFILE && pyenv install $PYTHON_VERSION && \
-	pyenv shell ${PYTHON_VERSION} && \
-	pip install -U pip && \
-	pip install cython && \
-	pip install chainer pytest mock mpi4py && \
-	pip uninstall -y chainer
-
 
 # Python 3.6.8
 
