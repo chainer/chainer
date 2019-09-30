@@ -65,6 +65,9 @@ public:
 
             for (auto it = indices_indexer.It(0); it; ++it) {
                 int64_t index = indices_iarray[it];
+                if (index < -axis_dim || axis_dim <= index) {
+                    throw IndexError{"Index ", index, " is out of bounds for axis ", axis, " with size ", axis_dim};
+                }
                 if (index < 0) {
                     index = axis_dim - ((-index + axis_dim - 1) % axis_dim + 1);
                 } else {
