@@ -50,7 +50,8 @@ class TestEmbedID(unittest.TestCase):
     @attr.gpu
     @condition.retry(3)
     def test_forward_gpu(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.check_forward(cuda.to_gpu(self.x))
 
     @attr.gpu
@@ -61,7 +62,8 @@ class TestEmbedID(unittest.TestCase):
 
     @attr.gpu
     def test_forward_mixed_cpu_gpu_2(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         with self.assertRaises(TypeError):
             # self.x is not sent to gpu
             self.check_forward(self.x)
@@ -77,7 +79,8 @@ class TestEmbedID(unittest.TestCase):
     @attr.gpu
     @condition.retry(3)
     def test_backward_gpu(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
 
 

@@ -7,6 +7,7 @@
 #include <vector>
 
 #include <absl/types/optional.h>
+#include <gsl/gsl>
 
 #include "chainerx/array.h"
 #include "chainerx/backprop_mode.h"
@@ -22,8 +23,11 @@
 #include "chainerx/kernels/connection.h"
 #include "chainerx/kernels/linalg.h"
 #include "chainerx/macro.h"
+#include "chainerx/routines/activation.h"
 #include "chainerx/routines/creation.h"
+#include "chainerx/routines/hyperbolic.h"
 #include "chainerx/routines/linalg.h"
+#include "chainerx/routines/manipulation.h"
 #include "chainerx/routines/reduction.h"
 #include "chainerx/routines/type_util.h"
 
@@ -54,6 +58,23 @@ int64_t GetConvTransposeOutDim(int64_t in_dim, int64_t kernel_size, int64_t stri
         return stride * (in_dim - 1) + dilated_kernel - stride + 1 - 2 * pad;
     }
     return stride * (in_dim - 1) + dilated_kernel - 2 * pad;
+}
+
+std::vector<Array> ExtractGates(const Array& x) {
+    StackVector<int64_t, kMaxNdim> shape_vec;
+    shape_vec.emplace_back(x.shape()[0]);
+    shape_vec.emplace_back(static_cast<int64_t>(x.shape()[1] / 4));
+    shape_vec.emplace_back(4);
+    for (int64_t i = 2; i < x.ndim(); i++) {
+        shape_vec.emplace_back(x.shape()[i]);
+    }
+    Shape shape{shape_vec};
+    Array x_r = Reshape(x, shape);
+    std::vector<Array> gates = Split(x_r, 4, 2);
+    for (auto& gate : gates) {
+        gate = Squeeze(gate);
+    }
+    return gates;
 }
 
 }  // namespace internal
@@ -389,6 +410,58 @@ Array Linear(const Array& x, const Array& w, const absl::optional<Array>& b, uin
     }
     CHAINERX_ASSERT(out_matrix.dtype() == out_dtype);
     return out_matrix.Reshape(out_shape);
+}
+
+std::vector<Array> Lstm(const Array& c, const Array& x) {
+    if (x.shape()[0] > c.shape()[0]) {
+        throw DimensionError{"The batch size of x must be equal to or less than the size of c"};
+    }
+    if (x.shape()[1] != 4 * c.shape()[1]) {
+        throw DimensionError{"Expected dimension at axis 1 of x to be equal 4 times dimension at axis 1 of c."};
+    }
+    if (GetKind(c.dtype()) != DtypeKind::kFloat) {
+        throw DtypeError{"Expected data type float"};
+    }
+    if (c.dtype() != x.dtype()) {
+        throw DtypeError{"Datatypes of c and x should be equal got", c.dtype(), "and ", x.dtype()};
+    }
+    std::vector<Array> x_split = internal::ExtractGates(x);
+    x_split[0] = Tanh(x_split[0]);
+    x_split[1] = Sigmoid(x_split[1]);
+    x_split[2] = Sigmoid(x_split[2]);
+    x_split[3] = Sigmoid(x_split[3]);
+    if (x.shape()[0] < c.shape()[0]) {
+        Dtype dtype = x.dtype();
+        StackVector<int64_t, kMaxNdim> shape_vec;
+        shape_vec.emplace_back(c.shape()[0] - x.shape()[0]);
+        shape_vec.emplace_back(x_split[0].shape()[1]);
+        for (int64_t i = 2; i < x_split[0].ndim(); i++) {
+            shape_vec.emplace_back(x_split[0].shape()[i]);
+        }
+        Shape out_shape{shape_vec};
+        Array z[4];
+        for (int64_t i = 0; i < 4; i++) {
+            if (i == 2) {
+                gsl::at(z, i) = Ones(out_shape, dtype, x.device());
+            } else {
+                gsl::at(z, i) = Zeros(out_shape, dtype, x.device());
+            }
+            std::vector<Array> v;
+            v.emplace_back(x_split[i]);
+            v.emplace_back(gsl::at(z, i));
+            x_split[i] = Concatenate(v, 0);
+        }
+    }
+    Array new_c = x_split[0] * x_split[1] + x_split[2] * c;
+    Array h = x_split[3] * Tanh(new_c);
+    std::vector<Array> out;
+    std::vector<int64_t> indices;
+    indices.emplace_back(x.shape()[0]);
+    indices.emplace_back(h.shape()[0]);
+    std::vector<Array> h_new = Split(h, indices, 0);
+    out.emplace_back(h_new[0]);
+    out.emplace_back(new_c);
+    return out;
 }
 
 }  // namespace chainerx

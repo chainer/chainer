@@ -658,7 +658,8 @@ class Link(device_resident.DeviceResident):
             if param.data is None and data is not None:
                 # Initialize the parameter here
                 param.initialize(data.shape)
-                param.data[:] = param.device.send(data)
+                with chainer.using_device(param.device):
+                    param.data[...] = param.device.send(data)
         for name in self._persistent:
             d[name] = serializer(name, d[name])
 
@@ -941,7 +942,7 @@ class Chain(Link):
     def copy(self, mode='share'):
         # type: (str) -> 'Chain'
 
-        ret = super(Chain, self).copy()  # type: ignore # should be Chain
+        ret = super(Chain, self).copy(mode)  # type: ignore # should be Chain
         ret._children = set(ret._children)  # type: ignore
         d = ret.__dict__  # type: tp.Dict[str, Link]
         for name in ret._children:  # type: ignore

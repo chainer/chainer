@@ -37,7 +37,7 @@ class EmbedIDFunction(function_node.FunctionNode):
             if self.ignore_label is not None:
                 valid_x = xp.logical_or(valid_x, x == self.ignore_label)
             if not valid_x.all():
-                raise ValueError('Each not ignored `x` value need to satisfy'
+                raise ValueError('Each not ignored `x` value need to satisfy '
                                  '`0 <= x < len(W)`')
 
         if self.ignore_label is not None:

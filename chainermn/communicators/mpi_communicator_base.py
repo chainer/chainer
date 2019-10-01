@@ -703,3 +703,40 @@ class MpiCommunicatorBase(communicator_base.CommunicatorBase):
 
         if chainer.is_debug():
             self._ensure_all_finite(recvbuf)
+
+    def _pack_params_to_buffer(self, params, attr_name, buffer,
+                               allreduce_grad_dtype, zero_fill, stream=None):
+
+        if self.batched_copy:
+            params_data = _memory_utility.ParamsData(params,
+                                                     attr_name, zero_fill)
+            _memory_utility._batched_pack_params(
+                params_data, buffer,
+                allreduce_grad_dtype, stream=stream)
+            self.params_data = params_data
+        else:
+            _memory_utility.pack_params(
+                params, attr_name,
+                buffer,
+                transfer_dtype=allreduce_grad_dtype,
+                zero_fill=zero_fill,
+                stream=stream)
+
+    def _unpack_params_from_buffer(self, params, attr_name, buffer,
+                                   allreduce_grad_dtype,
+                                   zero_fill, stream=None):
+        if self.batched_copy:
+            if self.params_data is not None:
+                params_data = self.params_data
+                self.params_data = None
+            else:
+                params_data = _memory_utility.ParamsData(
+                    params, attr_name, zero_fill)
+            _memory_utility._batched_unpack_params(
+                params_data, buffer,
+                allreduce_grad_dtype, stream=stream)
+            return
+        else:
+            _memory_utility.unpack_params(
+                params, attr_name, buffer,
+                allreduce_grad_dtype, zero_fill, stream)

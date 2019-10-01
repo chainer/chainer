@@ -1,5 +1,6 @@
 import itertools
 import unittest
+import warnings
 
 import chainer
 import numpy
@@ -209,6 +210,10 @@ _reshape_shape = [
     ((2, 3, 4), (3, 4, 2)),
     ((2, 3, 4), (3, -1, 2)),
     ((2, 3, 4), (3, -3, 2)),  # -3 is treated as a -1 and is valid.
+    ((2, 0, 3), (-1,)),  # Empty to inferred.
+    ((2, 0, 3), (-1, 4)),  # Empty to inferred.
+    ((2, 0, 3), (4, -1)),  # Empty to inferred.
+    ((2, 0, 3), (4, -1, 5)),  # Empty to inferred.
 ]
 
 
@@ -218,6 +223,31 @@ _reshape_shape = [
 @chainer.testing.parameterize_pytest('contiguous', ['C', None])
 @chainer.testing.parameterize_pytest('is_module', [True, False])
 class TestReshape(op_utils.NumpyOpTest):
+
+    def generate_inputs(self):
+        a = array_utils.shaped_arange(self.a_shape, 'float64')
+        return a,
+
+    def forward_xp(self, inputs, xp):
+        a, = inputs
+        b_shape = self.b_shape
+        shape_type = self.shape_type
+        if self.is_module:
+            b = xp.reshape(a, shape_type(b_shape))
+        else:
+            b = a.reshape(shape_type(b_shape))
+        return b,
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize_pytest('a_shape,b_shape', _reshape_shape)
+@chainer.testing.parameterize_pytest('shape_type', [tuple, list])
+@chainer.testing.parameterize_pytest('contiguous', ['C', None])
+@chainer.testing.parameterize_pytest('is_module', [True, False])
+class TestReshapeCopied(op_utils.NumpyOpTest):
+
+    skip_backward_test = True
+    skip_double_backward_test = True
 
     def generate_inputs(self):
         a = array_utils.shaped_arange(self.a_shape, 'float64')
@@ -243,7 +273,7 @@ class TestReshape(op_utils.NumpyOpTest):
             else:
                 assert b.flags.c_contiguous
 
-        return xp.asarray(copied), b
+        return xp.asarray(copied),
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
@@ -286,6 +316,23 @@ class TestReshapeArg(op_utils.NumpyOpTest):
         return b,
 
 
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize_pytest('a_shape,b_shape', _reshape_shape)
+class TestFlatten(op_utils.NumpyOpTest):
+
+    forward_accept_errors = (TypeError, chainerx.ChainerxError)
+    check_numpy_strides_compliance = False
+
+    def generate_inputs(self):
+        a = array_utils.shaped_arange(self.a_shape, 'float64')
+        return a,
+
+    def forward_xp(self, inputs, xp):
+        a, = inputs
+        b = a.flatten()
+        return b,
+
+
 @pytest.mark.parametrize('shape1,shape2', [
     ((), (0,)),
     ((), (2,)),
@@ -309,6 +356,9 @@ def test_reshape_invalid(shape1, shape2):
     ((2, 3, 4), (5, -1, 3)),  # Not divisible.
     ((2, 3, 4), (-1, -1, 3)),  # More than one dimension cannot be inferred.
     ((2, 3, 4), (-2, 4, -1)),
+    ((2, 0, 4), (-1, 0)),  # Empty to ambiguous.
+    ((2, 0, 4), (0, -1)),  # Empty to ambiguous.
+    ((2, 0, 4), (0, -1, 2)),  # Empty to ambiguous.
 ])
 def test_reshape_invalid_cannot_infer(shape1, shape2):
     a = array_utils.create_dummy_ndarray(chainerx, shape1, 'float32')
@@ -773,6 +823,47 @@ class TestDSplit(op_utils.NumpyOpTest):
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize_pytest('shape,indices_or_sections', [
+    ((6, 4, 2), [1, 2, 4]),
+    ((6, 4, 2), [2, 4, 6]),
+    ((6, 4, 2), [1, 5, 7]),
+    ((6, 4, 2), [2, -3, -5]),
+    ((6, 4, 2), [2, 8, 10]),
+    ((8, 6, 4, 2), [2, 4, 4, 6]),
+    ((8, 6, 4, 2), [2, 6, 6, 8]),
+    ((8, 6, 4, 2), [1, 4, 4, 6]),
+    ((8, 6, 4, 2), [1, 4, 5, 6]),
+    ((8, 6, 6, 4, 4, 2), [1, 3, 5, 7]),
+    # indices with 1-d numpy array
+    ((8, 6, 4, 2), numpy.array([1, 2, 3])),
+    # indices with (4,)-shape numpy array
+    ((8, 6, 4, 2), numpy.array([1, 2, 3, 4])),
+    ((8, 8, 6, 6, 4, 2), numpy.array([1, 2, 3], numpy.int32)),
+])
+class TestVSplit(op_utils.NumpyOpTest):
+
+    def setup(self):
+        # TODO(ishanrai05): There's a bug in backward of split() in which the
+        # gradient shape differs from the input if indices are not in the
+        # sorted order. Fix this.
+        indices_or_sections = self.indices_or_sections
+        if (isinstance(indices_or_sections, list) and
+                sorted(indices_or_sections) != indices_or_sections):
+            self.skip_backward_test = True
+            self.skip_double_backward_test = True
+
+    def generate_inputs(self):
+        a = array_utils.create_dummy_ndarray(numpy, self.shape, 'float32')
+        return a,
+
+    def forward_xp(self, inputs, xp):
+        a, = inputs
+        b = xp.vsplit(a, self.indices_or_sections)
+        assert isinstance(b, list)
+        return tuple(b)
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize_pytest('shape,axis1,axis2', [
     ((1, 1), 0, 1),
     ((2, 4), -1, 1),
@@ -819,6 +910,73 @@ class TestSwapaxes(op_utils.NumpyOpTest):
 def test_swap_invalid(xp, shape, axis1, axis2):
     a = array_utils.create_dummy_ndarray(xp, shape, 'float32')
     return xp.swapaxes(a, axis1, axis2)
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize_pytest('shape,repeats,axis', [
+    ((4,), 1, None),
+    ((4,), 2, None),
+    ((4, 2), 2, None),
+    ((4,), 1, 0),
+    ((4,), 2, 0),
+    ((4,), (1,), None),
+    ((4,), (2,), None),
+    ((4, 2), (2,), None),
+    ((4,), (1,), 0),
+    ((4,), (2,), 0),
+    ((2,), (1, 2), 0),
+    ((2,), (0, 2), 0),
+    ((4, 2), 2, 0),
+    ((4, 2), 2, 1),
+    ((4, 2), 2, -1),
+    ((4, 2), 2, -2),
+    ((2, 4), (1, 2), 0),
+    ((4, 2), (1, 2), 1),
+    ((2, 4), [1, 2], 0),
+    ((4, 2), [1, 2], 1),
+    ((2, 4), numpy.array([1, 2]), numpy.array(0)),
+    ((4, 2), numpy.array([1, 2]), numpy.array(1)),
+])
+@chainer.testing.parameterize_pytest('is_module', [True, False])
+class TestRepeat(op_utils.NumpyOpTest):
+
+    def setup(self, dtype):
+        # Skip backward/double-backward tests for int dtypes
+        if numpy.dtype(dtype).kind != 'f':
+            self.skip_backward_test = True
+            self.skip_double_backward_test = True
+        self.dtype = dtype
+
+        if dtype == 'float16':
+            self.check_backward_options.update({'rtol': 1e-3, 'atol': 1e-3})
+
+    def generate_inputs(self):
+        a = array_utils.create_dummy_ndarray(numpy, self.shape, self.dtype)
+        return a,
+
+    def forward_xp(self, inputs, xp):
+        a, = inputs
+        if self.is_module:
+            b = xp.repeat(a, self.repeats, self.axis)
+        else:
+            b = a.repeat(self.repeats, self.axis)
+        return b,
+
+
+@chainerx.testing.numpy_chainerx_array_equal(
+    accept_error=(
+        chainerx.DimensionError, ValueError))
+@pytest.mark.parametrize('shape,repeats,axis', [
+    # Axis out of range.
+    ((1,), 1, 1),
+    ((1, 1), (1, 2), 0),
+    ((1, 1), (1, -2), 0),
+    ((1, 1), (1, 2), -3),
+    ((1, 1), (1, 2), 2),
+])
+def test_repeat_invalid(xp, shape, repeats, axis):
+    a = array_utils.create_dummy_ndarray(xp, shape, 'float32')
+    return xp.repeat(a, repeats, axis)
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
@@ -895,8 +1053,10 @@ class TestExpandDims(op_utils.NumpyOpTest):
     ((1, 1, 2), -4)
 ])
 def test_expand_dims_invalid(xp, shape, axis):
-    a = array_utils.create_dummy_ndarray(xp, shape, 'float32')
-    return xp.expand_dims(a, axis)
+    with warnings.catch_warnings():
+        warnings.simplefilter('error', DeprecationWarning)
+        a = array_utils.create_dummy_ndarray(xp, shape, 'float32')
+        return xp.expand_dims(a, axis)
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
@@ -1308,3 +1468,24 @@ def test_moveaxis_invalid(xp, shape, source, dst):
     a = array_utils.uniform(shape, 'float')
     a = xp.array(a)
     return xp.moveaxis(a, source, dst)
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize_pytest('a_shape,b_shape', _reshape_shape)
+@chainer.testing.parameterize_pytest('is_module', [True, False])
+class TestRavel(op_utils.NumpyOpTest):
+
+    forward_accept_errors = (TypeError, chainerx.ChainerxError)
+    check_numpy_strides_compliance = False
+
+    def generate_inputs(self):
+        a = array_utils.shaped_arange(self.a_shape, 'float64')
+        return a,
+
+    def forward_xp(self, inputs, xp):
+        a, = inputs
+        if self.is_module:
+            b = xp.ravel(a)
+        else:
+            b = a.ravel()
+        return b,

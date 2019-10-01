@@ -83,7 +83,8 @@ class TestBinaryHierarchicalSoftmax(unittest.TestCase):
     @condition.retry(3)
     def test_sum_gpu(self):
         x = numpy.array([[1.0, 2.0, 3.0]], self.dtype)
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.check_sum(cuda.to_gpu(x), gpu=True)
 
     @attr.gpu
@@ -91,7 +92,8 @@ class TestBinaryHierarchicalSoftmax(unittest.TestCase):
         # TODO(unno): We need to test return values of forward function.
         cpu_loss = self.link(chainer.Variable(self.x),
                              chainer.Variable(self.t)).data
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         gpu_loss = self.link(chainer.Variable(cuda.to_gpu(self.x)),
                              chainer.Variable(cuda.to_gpu(self.t))).data
         testing.assert_allclose(
@@ -117,7 +119,8 @@ class TestBinaryHierarchicalSoftmax(unittest.TestCase):
     @attr.gpu
     @condition.retry(3)
     def test_backward_gpu(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.check_backward(cuda.to_gpu(self.x),
                             cuda.to_gpu(self.t),
                             cuda.to_gpu(self.gy))
@@ -125,8 +128,10 @@ class TestBinaryHierarchicalSoftmax(unittest.TestCase):
     @attr.gpu
     def test_to_cpu(self):
         f = copy.deepcopy(self.link)._func
-        self.link.to_gpu()
-        self.link.to_cpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_cpu()
         g = self.link._func
 
         self.assertTrue((f.begins == g.begins).all())

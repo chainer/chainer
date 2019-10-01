@@ -78,6 +78,7 @@ def _filter_params(params):
         {'indices': [i in {1, 3} for i in range(10)], 'expected_len': 2},
         {'indices': [True] * 11, 'index_exception': ValueError},
         {'indices': slice(3, None, -2), 'expected_len': 2},
+        {'indices': [False, 3, 9, 5, True], 'expected_len': 5},
         {'indices': [], 'expected_len': 0},
     ],
     testing.product({
@@ -114,7 +115,8 @@ class TestSlice(unittest.TestCase):
                 self.assertIsInstance(key_indices, tuple)
 
         dataset = dummy_dataset.DummyDataset(
-            mode=self.mode, return_array=self.return_array, callback=callback)
+            mode=self.mode, return_array=self.return_array, callback=callback,
+            convert=True)
 
         if self.exception is not None:
             with self.assertRaises(self.exception):
@@ -162,6 +164,8 @@ class TestSlice(unittest.TestCase):
                 self.assertIsInstance(out, np.ndarray)
             else:
                 self.assertIsInstance(out, list)
+
+        self.assertEqual(view.convert(output), 'converted')
 
 
 # Replace list of bool with ndarray of bool

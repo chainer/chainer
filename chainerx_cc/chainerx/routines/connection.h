@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <vector>
 
 #include <absl/types/optional.h>
 
@@ -48,5 +49,7 @@ Array ConvTranspose(
         absl::optional<Dtype> out_dtype = absl::nullopt);
 
 Array Linear(const Array& x, const Array& w, const absl::optional<Array>& b = absl::nullopt, uint8_t n_batch_axes = 1);
+
+std::vector<Array> Lstm(const Array& c, const Array& x);
 
 }  // namespace chainerx

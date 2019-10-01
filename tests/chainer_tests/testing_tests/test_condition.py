@@ -1,5 +1,7 @@
 import unittest
 
+import pytest
+
 from chainer import testing
 from chainer.testing import condition
 
@@ -38,6 +40,10 @@ class MockUnitTest(unittest.TestCase):
     def skip_case(self):
         MockUnitTest.skip_case_counter += 1
         self.skipTest(SKIP_REASON)
+
+    def skip_case_pytest(self):
+        MockUnitTest.skip_case_counter += 1
+        pytest.skip(SKIP_REASON)
 
     def error_case(self):
         raise Exception()
@@ -155,6 +161,11 @@ class TestRepeat(unittest.TestCase):
         _should_skip(self, f)
         self.assertEqual(self.unit_test.skip_case_counter, 1)
 
+    def test_skip_case_pytest(self):
+        f = self._decorate(MockUnitTest.skip_case_pytest, 10)
+        _should_skip(self, f)
+        self.assertEqual(self.unit_test.skip_case_counter, 1)
+
     def test_probabilistic_case(self):
         f = self._decorate(MockUnitTest.probabilistic_case, 10)
         _should_fail(self, f)
@@ -185,6 +196,11 @@ class TestRetry(unittest.TestCase):
 
     def test_skip_case(self):
         f = self._decorate(MockUnitTest.skip_case, 10)
+        _should_skip(self, f)
+        self.assertEqual(self.unit_test.skip_case_counter, 1)
+
+    def test_skip_case_pytest(self):
+        f = self._decorate(MockUnitTest.skip_case_pytest, 10)
         _should_skip(self, f)
         self.assertEqual(self.unit_test.skip_case_counter, 1)
 
