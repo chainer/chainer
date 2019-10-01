@@ -117,6 +117,7 @@ Linear algebra
 
    chainerx.dot
 
+   chainerx.linalg.cholesky
    chainerx.linalg.qr
    chainerx.linalg.svd
    chainerx.linalg.solve

@@ -424,6 +424,7 @@ void InitChainerxLinalg(pybind11::module& m) {
             },
             "a"_a,
             "mode"_a = "reduced");
+    mlinalg.def("cholesky", [](const ArrayBodyPtr& a) { return MoveArrayBody(Cholesky(Array{a})); }, "a"_a);
 }
 
 void InitChainerxLogic(pybind11::module& m) {

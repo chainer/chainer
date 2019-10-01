@@ -123,6 +123,7 @@ class NumpyLinalgOpTest(op_utils.NumpyOpTest):
 _numpy_does_not_support_0d_input113 = \
     numpy.lib.NumpyVersion(numpy.__version__) < '1.13.0'
 
+
 _numpy_does_not_support_0d_input116 = \
     numpy.lib.NumpyVersion(numpy.__version__) < '1.16.0'
 
@@ -464,3 +465,111 @@ class TestQRFailing(NumpyLinalgOpTest):
         a, = inputs
         out = xp.linalg.qr(a, mode=self.mode)
         return out
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    chainer.testing.product({
+        'shape': [(0, 0), (1, 1), (3, 3), (6, 6)],
+        'in_dtypes': ['float32', 'float64']
+    })
+))
+class TestCholesky(op_utils.NumpyOpTest):
+
+    # For input with shape (0, 0) strides are different
+    check_numpy_strides_compliance = False
+    dodge_nondifferentiable = True
+
+    def setup(self):
+        device = chainerx.get_default_device()
+        if (device.backend.name == 'native'
+                and not chainerx.linalg._is_lapack_available()):
+            pytest.skip('LAPACK is not linked to ChainerX')
+        self.check_backward_options.update({
+            'eps': 1e-5, 'rtol': 1e-4, 'atol': 1e-4})
+        self.check_double_backward_options.update({
+            'eps': 1e-5, 'rtol': 1e-4, 'atol': 1e-4})
+
+    def generate_inputs(self):
+        a = numpy.random.random(self.shape).astype(self.in_dtypes)
+        # Make random square matrix a symmetric positive definite one
+        a = numpy.array(a.T.dot(a)) + 1e-3 * numpy.eye(*self.shape)
+        return a,
+
+    def forward_xp(self, inputs, xp):
+        a, = inputs
+
+        if (_numpy_does_not_support_0d_input113 and a.size == 0):
+            pytest.skip('Older NumPy versions do not work with empty arrays')
+
+        # Input has to be symmetrized for backward test to work
+        a = (a + a.T)/2. + 1e-3 * xp.eye(*self.shape)
+
+        L = xp.linalg.cholesky(a)
+        return L,
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    chainer.testing.product({
+        'shape': [(), (2, 3), (3, 2), (6, 6)],
+        'in_dtypes': ['float32', 'float64'],
+    })
+))
+class TestCholeskyFailing(NumpyLinalgOpTest):
+
+    forward_accept_errors = (numpy.linalg.LinAlgError,
+                             chainerx.ChainerxError,
+                             chainerx.DimensionError)
+
+    def generate_inputs(self):
+        a = numpy.random.random(self.shape).astype(self.in_dtypes)
+        return a,
+
+    def forward_xp(self, inputs, xp):
+        a, = inputs
+        L = xp.linalg.cholesky(a)
+        return L,
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    chainer.testing.product({
+        'in_dtypes': ['float32', 'float64'],
+    })
+))
+class TestCholeskySemiDefiniteFailing(NumpyLinalgOpTest):
+
+    forward_accept_errors = (numpy.linalg.LinAlgError,
+                             chainerx.ChainerxError)
+
+    def generate_inputs(self):
+        a = numpy.array([[1, -2], [-2, 1]]).astype(self.in_dtypes)
+        return a,
+
+    def forward_xp(self, inputs, xp):
+        a, = inputs
+        L = xp.linalg.cholesky(a)
+        return L,
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    chainer.testing.product({
+        'shape': [(6, 6)],
+        'in_dtypes': ['float16'],
+    })
+))
+class TestCholeskyDtypeFailing(NumpyLinalgOpTest):
+
+    forward_accept_errors = (TypeError,
+                             chainerx.DtypeError)
+
+    def generate_inputs(self):
+        a = numpy.random.random(self.shape).astype(self.in_dtypes)
+        return a,
+
+    def forward_xp(self, inputs, xp):
+        a, = inputs
+        L = xp.linalg.cholesky(a)
+        return L,
