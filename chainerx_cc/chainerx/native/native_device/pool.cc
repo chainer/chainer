@@ -66,8 +66,9 @@ Axes GetSwapSpatialDimensionsAxes(size_t n) {
     return axes;
 }
 
-StackVector<int64_t, kMaxNdim> GetDilate(size_t ndim) {
-    StackVector<int64_t, kMaxNdim> ret;
+Dims GetDilate(size_t ndim) {
+    CHAINERX_ASSERT(ndim <= kMaxNdim);
+    Dims ret;
     for (size_t i = 0; i < ndim; ++i) {
         ret.push_back(1);
     }

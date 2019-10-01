@@ -234,7 +234,7 @@ std::tuple<cudnnConvolutionBwdFilterAlgo_t, size_t, cudnnMathType_t> CudaConv::F
         const CudnnFilterDescriptor& gw_desc,
         const Array& gw,
         size_t max_workspace_size,
-        const StackVector<int64_t, kMaxNdim>& pad,
+        const Dims& pad,
         const Dims& stride,
         const Dims& dilate) {
     auto key = AlgoCacheKey{x.shape(), gw.shape(), gy.shape(), pad, stride, dilate, x.dtype(), max_workspace_size};
