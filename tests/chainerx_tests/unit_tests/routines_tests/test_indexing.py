@@ -264,7 +264,7 @@ def test_take_index_error(device, shape, indices, axis):
     a = array_utils.create_dummy_ndarray(chainerx, shape, 'float32')
     indices = numpy.array(indices).astype(numpy.int32)
     if device.backend.name == 'cuda':
-        pytest.skip()
+        pytest.skip('take with cuda backend does not raise for index error')
     with pytest.raises(IndexError):
         chainerx.take(a, indices, axis)
 
