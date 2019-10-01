@@ -211,7 +211,8 @@ class GpuDevice(_backend.Device):
         if not 0 <= device.id < num_gpus:
             raise ValueError(
                 'CUDA device ID must be lower '
-                'than max gpus:{} id: {}'.format(num_gpus, device.id))
+                'than max gpus: '
+                '(actual: {} > max: {})'.format(device.id, num_gpus))
 
         super(GpuDevice, self).__init__()
         self.device = device
@@ -280,7 +281,8 @@ def get_device_from_id(device_id):
         if not 0 <= device_id < num_gpus:
             raise ValueError(
                 'CUDA device ID must be lower '
-                'than max gpus:{} id: {} '.format(num_gpus, device_id))
+                'than max gpus: '
+                '(actual: {} > max: {})'.format(device_id, num_gpus))
         check_cuda_available()
         return Device(int(device_id))
     return DummyDevice
@@ -361,8 +363,9 @@ def _get_cuda_device(*args):
             num_gpus = cupy.cuda.runtime.getDeviceCount()
             if not 0 <= arg < num_gpus:
                 raise ValueError(
-                    'CUDA device ID must be in the range '
-                    'of max gpus:{} id: {}'.format(num_gpus, arg))
+                    'CUDA device ID must be lower '
+                    'than max gpus: '
+                    '(actual: {} > max: {})'.format(arg, num_gpus))
             return Device(arg)
         if isinstance(arg, ndarray):
             if arg.device is None:
