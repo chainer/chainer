@@ -66,6 +66,7 @@ Trainer extensions
 ~~~~~~~~~~~~~~~~~~
 
 .. autoclass:: chainermn.extensions.AllreducePersistent
+.. autofunction:: chainermn.extensions.multi_node_snapshot
 .. autofunction:: chainermn.create_multi_node_checkpointer
 
 Configurations
