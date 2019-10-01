@@ -136,7 +136,7 @@ public:
     ~BackwardBuilder() { CHAINERX_ASSERT(is_finalized_); }
 
     BackwardBuilder(const BackwardBuilder&) = delete;
-    BackwardBuilder(BackwardBuilder&&) noexcept = default;
+    BackwardBuilder(BackwardBuilder&&) = default;
     BackwardBuilder& operator=(const BackwardBuilder&) = delete;
     BackwardBuilder& operator=(BackwardBuilder&&) = delete;
 
