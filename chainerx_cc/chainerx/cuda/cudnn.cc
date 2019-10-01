@@ -67,9 +67,7 @@ StackVector<int, kMaxNdim> GetIntStride(const Dims& stride) { return GetIntStack
 
 StackVector<int, kMaxNdim> GetIntPad(const Dims& pad) { return GetIntStackVector(pad, "pad"); }
 
-StackVector<int, kMaxNdim> GetIntDilation(const Dims& dilation) {
-    return GetIntStackVector(dilation, "dilation");
-}
+StackVector<int, kMaxNdim> GetIntDilation(const Dims& dilation) { return GetIntStackVector(dilation, "dilation"); }
 
 // Returns strides divided by item size
 StackVector<int, kMaxNdim> GetIntArrayStrides(const Strides& strides, int64_t item_size) {
