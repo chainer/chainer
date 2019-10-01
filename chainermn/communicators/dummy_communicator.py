@@ -11,12 +11,10 @@ class DummyCommunicator(mpi_communicator_base.MpiCommunicatorBase):
     This class does not pass the tests.
     """
 
-    def __init__(self, mpi_comm,
-                 batched_copy=False):
+    def __init__(self, mpi_comm):
         super(DummyCommunicator, self).__init__(mpi_comm)
 
         self.gpu_buffer_a = _memory_utility.DeviceMemory()
-        self.batched_copy = batched_copy
 
     def multi_node_mean_grad(self, model, zero_fill=False):
         params = _memory_utility.extract_params_set_grad(model, zero_fill)
