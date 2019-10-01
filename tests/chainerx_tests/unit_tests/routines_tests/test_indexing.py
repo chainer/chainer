@@ -254,6 +254,21 @@ class TestTake(op_utils.NumpyOpTest):
         return b,
 
 
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('shape,indices,axis', [
+    # Invalid: Index out of bounds
+    ((2, 3), [2], 0),
+    ((2, 3), [-3], 0),
+])
+def test_take_index_error(device, shape, indices, axis):
+    a = array_utils.create_dummy_ndarray(chainerx, shape, 'float32')
+    indices = numpy.array(indices).astype(numpy.int32)
+    if device.backend.name == 'cuda':
+        pytest.skip()
+    with pytest.raises(IndexError):
+        chainerx.take(a, indices, axis)
+
+
 def _random_condition(shape, dtype):
     size = int(numpy.prod(shape))
     mask = numpy.random.randint(0, 1, size).astype('bool_').reshape(shape)
