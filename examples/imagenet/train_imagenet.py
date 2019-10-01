@@ -76,6 +76,8 @@ def main():
                         help='Root directory path of image files')
     parser.add_argument('--val_batchsize', '-b', type=int, default=250,
                         help='Validation minibatch size')
+    parser.add_argument('--test', action='store_true')
+    parser.set_defaults(test=False)
     parser.add_argument('--dali', action='store_true')
     parser.set_defaults(dali=False)
     group = parser.add_argument_group('deprecated arguments')
@@ -152,6 +154,9 @@ def main():
 
     val_interval = (100000, 'iteration')
     log_interval = (1000, 'iteration')
+    if args.test:
+        val_interval = (1, 'iteration')
+        log_interval = (1, 'iteration')
 
     trainer.extend(extensions.Evaluator(val_iter, model, converter=converter,
                                         device=device), trigger=val_interval)
