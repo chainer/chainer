@@ -116,10 +116,8 @@ class NumpyLinalgOpTest(op_utils.NumpyOpTest):
         if (device.backend.name == 'native'
                 and not chainerx.linalg._is_lapack_available()):
             pytest.skip('LAPACK is not linked to ChainerX')
-        self.check_backward_options.update({
-            'eps': 1e-5, 'rtol': 1e-4, 'atol': 1e-4})
-        self.check_double_backward_options.update({
-            'eps': 1e-5, 'rtol': 1e-4, 'atol': 1e-4})
+        self.check_backward_options.update({'rtol': 5e-3})
+        self.check_double_backward_options.update({'rtol': 5e-3})
 
 
 _numpy_does_not_support_0d_input113 = \
@@ -473,10 +471,21 @@ class TestQRFailing(NumpyLinalgOpTest):
         'in_dtypes': ['float32', 'float64']
     })
 ))
-class TestCholesky(NumpyLinalgOpTest):
+class TestCholesky(op_utils.NumpyOpTest):
 
     # For input with shape (0, 0) strides are different
     check_numpy_strides_compliance = False
+    dodge_nondifferentiable = True
+
+    def setup(self):
+        device = chainerx.get_default_device()
+        if (device.backend.name == 'native'
+                and not chainerx.linalg._is_lapack_available()):
+            pytest.skip('LAPACK is not linked to ChainerX')
+        self.check_backward_options.update({
+            'eps': 1e-5, 'rtol': 1e-4, 'atol': 1e-4})
+        self.check_double_backward_options.update({
+            'eps': 1e-5, 'rtol': 1e-4, 'atol': 1e-4})
 
     def generate_inputs(self):
         a = numpy.random.random(self.shape).astype(self.in_dtypes)
