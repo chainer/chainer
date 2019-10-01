@@ -59,23 +59,25 @@ TEST(CudaConvTest, FwdAlgoCache) {
     {
         Dims stride{3, 2};
         Dims pad{2, 0};
+        Dims dilate{1, 1};
         bool cover_all = false;
 
         EXPECT_EQ(size_t{0}, cuda_internal::CudaConvTest::GetFwdAlgoCacheMapSize(cuda_conv));
-        cuda_conv.Conv(device, x, w, b, stride, pad, {1, 1}, cover_all, x.dtype());
+        cuda_conv.Conv(device, x, w, b, stride, pad, dilate, cover_all, x.dtype());
         EXPECT_EQ(size_t{1}, cuda_internal::CudaConvTest::GetFwdAlgoCacheMapSize(cuda_conv));
-        cuda_conv.Conv(device, x, w, b, stride, pad, {1, 1}, cover_all, x.dtype());
+        cuda_conv.Conv(device, x, w, b, stride, pad, dilate, cover_all, x.dtype());
         EXPECT_EQ(size_t{1}, cuda_internal::CudaConvTest::GetFwdAlgoCacheMapSize(cuda_conv));
     }
     {
         Dims stride{1, 1};
         Dims pad{0, 0};
+        Dims dilate{1, 1};
         bool cover_all = false;
 
         EXPECT_EQ(size_t{1}, cuda_internal::CudaConvTest::GetFwdAlgoCacheMapSize(cuda_conv));
-        Conv(x, w, b, stride, pad, {1, 1}, cover_all);
+        Conv(x, w, b, stride, pad, dilate, cover_all);
         EXPECT_EQ(size_t{2}, cuda_internal::CudaConvTest::GetFwdAlgoCacheMapSize(cuda_conv));
-        Conv(x, w, b, stride, pad, {1, 1}, cover_all);
+        Conv(x, w, b, stride, pad, dilate, cover_all);
         EXPECT_EQ(size_t{2}, cuda_internal::CudaConvTest::GetFwdAlgoCacheMapSize(cuda_conv));
     }
 }
@@ -105,21 +107,23 @@ TEST(CudaConvTest, BwdDatadAlgoCache) {
     {
         Dims stride{3, 2};
         Dims pad{2, 0};
+        Dims dilate{1, 1};
 
         EXPECT_EQ(size_t{0}, cuda_internal::CudaConvTest::GetBwdDataAlgoCacheMapSize(cuda_conv));
-        ConvTranspose(x, w, b, stride, pad, {1, 1});
+        ConvTranspose(x, w, b, stride, pad, dilate);
         EXPECT_EQ(size_t{1}, cuda_internal::CudaConvTest::GetBwdDataAlgoCacheMapSize(cuda_conv));
-        ConvTranspose(x, w, b, stride, pad, {1, 1});
+        ConvTranspose(x, w, b, stride, pad, dilate);
         EXPECT_EQ(size_t{1}, cuda_internal::CudaConvTest::GetBwdDataAlgoCacheMapSize(cuda_conv));
     }
     {
         Dims stride{1, 1};
         Dims pad{0, 0};
+        Dims dilate{1, 1};
 
         EXPECT_EQ(size_t{1}, cuda_internal::CudaConvTest::GetBwdDataAlgoCacheMapSize(cuda_conv));
-        ConvTranspose(x, w, b, stride, pad, {1, 1});
+        ConvTranspose(x, w, b, stride, pad, dilate);
         EXPECT_EQ(size_t{2}, cuda_internal::CudaConvTest::GetBwdDataAlgoCacheMapSize(cuda_conv));
-        ConvTranspose(x, w, b, stride, pad, {1, 1});
+        ConvTranspose(x, w, b, stride, pad, dilate);
         EXPECT_EQ(size_t{2}, cuda_internal::CudaConvTest::GetBwdDataAlgoCacheMapSize(cuda_conv));
     }
 }
@@ -148,6 +152,7 @@ TEST(CudaConvTest, BwdFilterAlgoCache) {
     {
         Dims stride{3, 2};
         Dims pad{2, 0};
+        Dims dilate{1, 1};
         bool cover_all = false;
 
         Shape out_dims{5, 3};
@@ -156,14 +161,15 @@ TEST(CudaConvTest, BwdFilterAlgoCache) {
         Array gy = testing::BuildArray(out_shape).WithLinearData(-0.3f, 0.1f).WithPadding(1);
 
         EXPECT_EQ(size_t{0}, cuda_internal::CudaConvTest::GetBwdFilterAlgoCacheMapSize(cuda_conv));
-        device.backend().CallKernel<ConvGradWeightKernel>(w_dtype, w_shape, x, gy, stride, pad, {1, 1}, cover_all, absl::nullopt);
+        device.backend().CallKernel<ConvGradWeightKernel>(w_dtype, w_shape, x, gy, stride, pad, dilate, cover_all, absl::nullopt);
         EXPECT_EQ(size_t{1}, cuda_internal::CudaConvTest::GetBwdFilterAlgoCacheMapSize(cuda_conv));
-        device.backend().CallKernel<ConvGradWeightKernel>(w_dtype, w_shape, x, gy, stride, pad, {1, 1}, cover_all, absl::nullopt);
+        device.backend().CallKernel<ConvGradWeightKernel>(w_dtype, w_shape, x, gy, stride, pad, dilate, cover_all, absl::nullopt);
         EXPECT_EQ(size_t{1}, cuda_internal::CudaConvTest::GetBwdFilterAlgoCacheMapSize(cuda_conv));
     }
     {
         Dims stride{1, 1};
         Dims pad{0, 0};
+        Dims dilate{1, 1};
         bool cover_all = false;
 
         Shape out_dims{9, 5};
@@ -172,9 +178,9 @@ TEST(CudaConvTest, BwdFilterAlgoCache) {
         Array gy = testing::BuildArray(out_shape).WithLinearData(-0.3f, 0.1f).WithPadding(1);
 
         EXPECT_EQ(size_t{1}, cuda_internal::CudaConvTest::GetBwdFilterAlgoCacheMapSize(cuda_conv));
-        device.backend().CallKernel<ConvGradWeightKernel>(w_dtype, w_shape, x, gy, stride, pad, {1, 1}, cover_all, absl::nullopt);
+        device.backend().CallKernel<ConvGradWeightKernel>(w_dtype, w_shape, x, gy, stride, pad, dilate, cover_all, absl::nullopt);
         EXPECT_EQ(size_t{2}, cuda_internal::CudaConvTest::GetBwdFilterAlgoCacheMapSize(cuda_conv));
-        device.backend().CallKernel<ConvGradWeightKernel>(w_dtype, w_shape, x, gy, stride, pad, {1, 1}, cover_all, absl::nullopt);
+        device.backend().CallKernel<ConvGradWeightKernel>(w_dtype, w_shape, x, gy, stride, pad, dilate, cover_all, absl::nullopt);
         EXPECT_EQ(size_t{2}, cuda_internal::CudaConvTest::GetBwdFilterAlgoCacheMapSize(cuda_conv));
     }
 }
