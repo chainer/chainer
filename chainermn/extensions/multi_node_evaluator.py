@@ -11,9 +11,10 @@ from chainer.utils import argument
 class GenericMultiNodeEvaluator(extension.Extension):
     '''Generic multi-node evaluator for non-allreducable evaluation.
 
-    This is to evaluate a Dataset that cannot evenly divided accross
-    nodes, and for evaluation calculation that is not applicable to a
-    simple add-and-devide style averaging among processes.
+    This is to evaluate a Dataset that cannot evenly divided across
+    all processes in the communicator, for evaluation calculation that
+    is not applicable to a simple add-and-devide style averaging among
+    processes.
 
     Users are recommeneded to implement its own local calculation
     ``calc_local()`` (e.g.  at each distributed GPU) and aggregation
@@ -149,13 +150,14 @@ class GenericMultiNodeEvaluator(extension.Extension):
             yield results
 
     def _evaluate_local(self, iterator):
-        rounds = 8  # Checks whether local eval is all done every 8 rounds
-        all_done = None
+        # Check whether local eval is all done every 8 rounds
+        gather_interval = 8
 
+        all_done = None
         while not all_done:
             all_done = None
             results = None
-            for i in range(rounds):
+            for _ in range(gather_interval):
                 try:
                     batch = iterator.next()
                     in_arrays = convert._call_converter(
