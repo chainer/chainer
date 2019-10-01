@@ -158,7 +158,10 @@ step_chainer_tests() {
 
 
 step_chainerx_python_tests() {
-    pytest -rfEX "$REPO_DIR"/tests/chainerx_tests
+    # TODO(niboshi): Apply pairwise parameterization only selectively. See
+    # #8210.
+    env CHAINER_TEST_PAIRWISE_PARAMETERIZATION=always \
+        pytest -rfEX "$REPO_DIR"/tests/chainerx_tests
 }
 
 
