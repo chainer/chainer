@@ -3,10 +3,10 @@ import os
 import shutil
 import tempfile
 import time
+import warnings
 
 import chainer
 from chainer.training import extension
-from chainer.utils import experimental
 
 
 def create_multi_node_checkpointer(name, comm, cp_interval=5,
@@ -47,6 +47,9 @@ def create_multi_node_checkpointer(name, comm, cp_interval=5,
               *after* all extensions with states, such as ``ExponentialShift``,
               set to the trainer.
 
+    .. note:: The checkpointer is deprecated. Please use
+              :func:`chainermn.extension.multi_node_snapshot` instead.
+
     After training finished without errors all those temporary
     checkpoints will be cleaned up at all nodes.
 
@@ -68,7 +71,9 @@ def create_multi_node_checkpointer(name, comm, cp_interval=5,
         gc_interval (int): interval to collect non-preserved checkpoints
 
     '''
-    experimental('chainermn.extensions.create_multi_node_checkpointer')
+    warnings.warn('Checkpointer is deprecated. '
+                  'Use chainer.extensions.multi_node_snapshot instead.',
+                  DeprecationWarning)
     return _MultiNodeCheckpointer(name, comm, cp_interval, gc_interval, path)
 
 
