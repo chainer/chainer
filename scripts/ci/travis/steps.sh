@@ -160,7 +160,9 @@ step_chainer_tests() {
 
 step_chainerx_python_tests() {
     pushd "$(mktemp -d)"
+    while true; do top -b -n 1 -c | head -20 ; sleep 10; done &
     pytest -n "$DEFAULT_JOBS" -rfEX "$REPO_DIR"/tests/chainerx_tests
+    kill %1
     popd
 }
 
