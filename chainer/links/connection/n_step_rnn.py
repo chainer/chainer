@@ -131,7 +131,7 @@ class NStepRNNBase(link.ChainList):
     def forward(self, hx, xs, **kwargs):
         """forward(self, hx, xs)
 
-        Calculate all hidden states and cell states.
+        Calculates all of the hidden states and the cell states.
 
         Args:
             hx (:class:`~chainer.Variable` or None): Initial hidden states.
@@ -148,7 +148,7 @@ class NStepRNNBase(link.ChainList):
                 the input and is equal to ``in_size``.
 
         Returns:
-            tuple: This function returns a tuple containing three elements,
+            tuple: This function returns a tuple containing two elements,
             ``hy`` and ``ys``.
 
             - ``hy`` is an updated hidden states whose shape is same as ``hx``.
