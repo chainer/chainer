@@ -21,7 +21,8 @@ Optimizers and Evaluators
 
 .. autofunction:: create_multi_node_optimizer
 .. autofunction:: create_multi_node_evaluator
-
+.. autoclass:: chainermn.extensions.GenericMultiNodeEvaluator
+   :members: calc_local, aggregate
 
 Dataset Utilities
 ~~~~~~~~~~~~~~~~~
