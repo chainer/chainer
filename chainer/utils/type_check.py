@@ -208,8 +208,9 @@ method to evaluate expression.
         # `z == w`. It is confusing.
         # See also:
         # https://docs.python.org/3/library/stdtypes.html
-        msg = ('Don\'t convert Expr to bool. '
-               'Please call Expr.eval method to evaluate expression.')
+        msg = ('An Expr instance cannot be evaluated as bool. '
+               'Please use chainer.utils.type_check.eval() to evaluate an '
+               'expression.')
         raise RuntimeError(msg)
 
     def __bool__(self):
@@ -574,6 +575,18 @@ def make_variable(value, name):
         return value
     else:
         return Variable(value, name)
+
+
+def _make_variable_from_array(array, name):
+    if not isinstance(array, chainer.get_array_types()):
+        raise InvalidType(
+            'isinstance({}, ndarray)'.format(name),
+            'type({}) == {}'.format(name, type(array)),
+        )
+    if in_light_mode():
+        return array
+    else:
+        return Variable(TypeInfo(array.shape, array.dtype), name)
 
 
 class LightMode(object):

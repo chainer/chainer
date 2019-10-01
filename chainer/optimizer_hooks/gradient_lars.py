@@ -1,5 +1,5 @@
 import chainer
-from chainer import cuda
+from chainer import backend
 
 
 class GradientLARS(object):
@@ -87,15 +87,20 @@ class GradientLARS(object):
 
         with chainer.using_device(param.device):
             xp = param.device.xp
-            # weight norm
-            p_norm = xp.linalg.norm(p)
-            # grad norm
-            g_norm = xp.linalg.norm(g)
+            if xp is backend.chainerx:
+                # TODO(ecastill): norm in chainerx
+                p_norm = xp.sqrt(xp.sum(p*p))
+                g_norm = xp.sqrt(xp.sum(g*g))
+            else:
+                # weight norm
+                p_norm = xp.linalg.norm(p)
+                # grad norm
+                g_norm = xp.linalg.norm(g)
             local_rate = (p_norm
                           / (self.eps + g_norm + self.weight_decay * p_norm))
             rate = xp.where(p_norm > self.threshold, local_rate, 1.0)
-            if xp is cuda.cupy:
-                kernel = cuda.elementwise(
+            if xp is backend.cuda:
+                kernel = backend.cuda.elementwise(
                     'T p, T rate, T weight_decay',
                     'T g',
                     'g += weight_decay * p; g *= rate;',

@@ -10,6 +10,9 @@ import chainermn
 
 import VGG
 
+import matplotlib
+matplotlib.use('Agg')
+
 
 def main():
     parser = argparse.ArgumentParser(description='ChainerMN example: VGG16')
@@ -27,13 +30,11 @@ def main():
                         help='use GPU')
     parser.add_argument('--out', '-o', default='result',
                         help='Directory to output the result')
-    parser.add_argument('--noplot', dest='plot', action='store_false',
-                        help='Disable PlotReport extension')
     args = parser.parse_args()
 
     # Create ChainerMN communicator.
     if args.gpu:
-        comm = chainermn.create_communicator('hierarchical')
+        comm = chainermn.create_communicator('pure_nccl')
         device = comm.rank
     else:
         comm = chainermn.create_communicator('naive')
@@ -95,14 +96,13 @@ def main():
         trainer.extend(extensions.LogReport())
 
         # Save two plot images to the result dir
-        if args.plot and extensions.PlotReport.available():
-            trainer.extend(
-                extensions.PlotReport(['main/loss', 'validation/main/loss'],
-                                      'epoch', file_name='loss.png'))
-            trainer.extend(
-                extensions.PlotReport(
-                    ['main/accuracy', 'validation/main/accuracy'],
-                    'epoch', file_name='accuracy.png'))
+        trainer.extend(
+            extensions.PlotReport(['main/loss', 'validation/main/loss'],
+                                  'epoch', file_name='loss.png'))
+        trainer.extend(
+            extensions.PlotReport(
+                ['main/accuracy', 'validation/main/accuracy'],
+                'epoch', file_name='accuracy.png'))
 
         trainer.extend(extensions.PrintReport(
             ['epoch', 'main/loss', 'validation/main/loss',

@@ -39,10 +39,10 @@ std::vector<Array> DisconnectInputArrays(const std::vector<Array>& inputs) {
     return inputs_view;
 }
 
-std::vector<nonstd::optional<Array>> BackwardGradients(
+std::vector<absl::optional<Array>> BackwardGradients(
         const std::function<std::vector<Array>(const std::vector<Array>&)>& func,
         std::vector<Array>& inputs,
-        const nonstd::optional<std::vector<Array>>& grad_outputs,
+        const absl::optional<std::vector<Array>>& grad_outputs,
         const BackpropId& backprop_id,
         DoubleBackpropOption double_backprop = DoubleBackpropOption::kEnable) {
     for (const auto& input : inputs) {
@@ -94,14 +94,11 @@ std::vector<nonstd::optional<Array>> BackwardGradients(
     });
     Backward(output_refs, backprop_id, double_backprop);
 
-    std::vector<nonstd::optional<Array>> backward_grads;
+    std::vector<absl::optional<Array>> backward_grads;
     std::transform(
-            inputs.begin(),
-            inputs.end(),
-            std::back_inserter(backward_grads),
-            [&backprop_id](const Array& input) -> nonstd::optional<Array> {
+            inputs.begin(), inputs.end(), std::back_inserter(backward_grads), [&backprop_id](const Array& input) -> absl::optional<Array> {
                 if (!input.IsBackpropRequired(backprop_id)) {
-                    return nonstd::nullopt;
+                    return absl::nullopt;
                 }
                 return input.GetGrad(backprop_id);
             });
@@ -127,8 +124,8 @@ void CheckDoubleBackpropOption(
     // Disable double backprop
     {
         std::vector<Array> inputs_disconnected = DisconnectInputArrays(inputs);
-        std::vector<nonstd::optional<Array>> grads =
-                BackwardGradients(nonlinear_func, inputs_disconnected, nonstd::nullopt, backprop_id, DoubleBackpropOption::kDisable);
+        std::vector<absl::optional<Array>> grads =
+                BackwardGradients(nonlinear_func, inputs_disconnected, absl::nullopt, backprop_id, DoubleBackpropOption::kDisable);
 
         for (size_t i = 0; i < grads.size(); ++i) {
             if (grads[i]) {
@@ -143,8 +140,8 @@ void CheckDoubleBackpropOption(
     // Enable double backprop
     {
         std::vector<Array> inputs_disconnected = DisconnectInputArrays(inputs);
-        std::vector<nonstd::optional<Array>> grads =
-                BackwardGradients(nonlinear_func, inputs_disconnected, nonstd::nullopt, backprop_id, DoubleBackpropOption::kEnable);
+        std::vector<absl::optional<Array>> grads =
+                BackwardGradients(nonlinear_func, inputs_disconnected, absl::nullopt, backprop_id, DoubleBackpropOption::kEnable);
 
         for (size_t i = 0; i < grads.size(); ++i) {
             if (grads[i]) {
@@ -170,12 +167,12 @@ void CheckBackwardComputation(
         const std::vector<Array>& eps,
         double atol,
         double rtol,
-        const nonstd::optional<BackpropId>& backprop_id) {
+        const absl::optional<BackpropId>& backprop_id) {
     BackpropId actual_backprop_id = internal::GetArrayBackpropId(inputs.front(), backprop_id);
 
     // Compute backward gradients
     std::vector<Array> inputs_disconnected = DisconnectInputArrays(inputs);
-    const std::vector<nonstd::optional<Array>> backward_grads =
+    const std::vector<absl::optional<Array>> backward_grads =
             BackwardGradients(func, inputs_disconnected, grad_outputs, actual_backprop_id, DoubleBackpropOption::kDisable);
     if (backward_grads.size() != inputs.size()) {
         throw GradientCheckError{"Number of input gradients does not match the input arrays."};
@@ -267,7 +264,7 @@ void CheckBackward(
         size_t concurrent_check_thread_count,
         double atol,
         double rtol,
-        const nonstd::optional<BackpropId>& backprop_id) {
+        const absl::optional<BackpropId>& backprop_id) {
     if (CHAINERX_DEBUG) {
         CHAINERX_ASSERT(!inputs.empty());
         CHAINERX_ASSERT(
@@ -342,7 +339,7 @@ void CheckDoubleBackwardComputationImpl(
         const std::vector<Array>& eps,
         double atol,
         double rtol,
-        const nonstd::optional<BackpropId>& backprop_id) {
+        const absl::optional<BackpropId>& backprop_id) {
     BackpropId actual_backprop_id = internal::GetArrayBackpropId(inputs.front(), backprop_id);
     const std::size_t nin = inputs.size();
     const std::size_t nout = grad_outputs.size();
@@ -382,7 +379,7 @@ void CheckDoubleBackwardComputationImpl(
         }
 
         // Compute first order gradients
-        std::vector<nonstd::optional<Array>> optional_backward_grads = BackwardGradients(func, inputs, grad_outputs, actual_backprop_id);
+        std::vector<absl::optional<Array>> optional_backward_grads = BackwardGradients(func, inputs, grad_outputs, actual_backprop_id);
 
         // Check all the first order gradients are computed
         if (optional_backward_grads.size() != nin) {
@@ -417,7 +414,7 @@ void CheckDoubleBackwardComputationImpl(
                 optional_backward_grads.begin(),
                 optional_backward_grads.end(),
                 std::back_inserter(backward_grads),
-                [](const nonstd::optional<Array>& optional_backward_grad) { return *optional_backward_grad; });
+                [](const absl::optional<Array>& optional_backward_grad) { return *optional_backward_grad; });
 
         CHAINERX_ASSERT(backward_grads.size() == nin);
         return backward_grads;
@@ -444,7 +441,7 @@ void CheckDoubleBackwardComputation(
         size_t concurrent_check_thread_count,
         double atol,
         double rtol,
-        const nonstd::optional<BackpropId>& backprop_id) {
+        const absl::optional<BackpropId>& backprop_id) {
     if (CHAINERX_DEBUG) {
         CHAINERX_ASSERT(!inputs.empty());
         CHAINERX_ASSERT(

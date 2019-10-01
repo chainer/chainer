@@ -1,9 +1,9 @@
 import contextlib
-import six
 import typing as tp  # NOQA
 import unittest
 
 import numpy
+import six
 
 import chainer
 from chainer import backend
@@ -79,6 +79,7 @@ class FunctionTestBase(object):
     skip_backward_test = False
     skip_double_backward_test = False
     dodge_nondifferentiable = False
+    numerical_grad_dtype = numpy.float64
     contiguous = None
 
     def __init__(self, *args, **kwargs):
@@ -238,7 +239,7 @@ class FunctionTestBase(object):
             with FunctionTestError.raise_if_fail(
                     'backward is not implemented correctly'):
                 gradient_check.check_backward(
-                    f, inputs, grad_outputs, dtype=numpy.float64,
+                    f, inputs, grad_outputs, dtype=self.numerical_grad_dtype,
                     detect_nondifferentiable=self.dodge_nondifferentiable,
                     **self.check_backward_options)
 
@@ -276,8 +277,12 @@ class FunctionTestBase(object):
             grad_grad_inputs = self._generate_grad_grad_inputs(inputs)
 
             # Drop ggx corresponding to non-differentiable inputs.
+            # Generated `grad_grad_inputs`, the upstream gradients for the
+            # double backward test, may contain `None` for omitted gradients.
+            # These must be propagated to the gradient check.
             grad_grad_inputs = [
-                ggx for ggx in grad_grad_inputs if ggx.dtype.kind == 'f']
+                ggx for ggx in grad_grad_inputs
+                if (ggx is None or ggx.dtype.kind == 'f')]
 
             inputs = backend_config.get_array(inputs)
             grad_outputs = backend_config.get_array(grad_outputs)
@@ -292,7 +297,7 @@ class FunctionTestBase(object):
                         'double backward is not implemented correctly'):
                     gradient_check.check_double_backward(
                         f, inputs, grad_outputs, grad_grad_inputs,
-                        dtype=numpy.float64,
+                        dtype=self.numerical_grad_dtype,
                         detect_nondifferentiable=self.dodge_nondifferentiable,
                         **self.check_double_backward_options)
 
@@ -347,13 +352,13 @@ class FunctionTestCase(FunctionTestBase, unittest.TestCase):
 
     ``generate_grad_outputs(self, outputs_template)``
         Returns a tuple of output gradient arrays of type
-        :class:`numpy.ndarray`.
+        :class:`numpy.ndarray` or ``None`` for omitted the gradients.
         ``outputs_template`` is a tuple of template arrays. The returned arrays
         are expected to have the same shapes and dtypes as the template arrays.
 
     ``generate_grad_grad_inputs(self, inputs_template)``
         Returns a tuple of the second order input gradient arrays of type
-        :class:`numpy.ndarray`.
+        :class:`numpy.ndarray` or ``None`` for omitted gradients.
         ``input_template`` is a tuple of template arrays. The returned arrays
         are expected to have the same shapes and dtypes as the template arrays.
 
@@ -383,6 +388,11 @@ class FunctionTestCase(FunctionTestBase, unittest.TestCase):
         out to be a non-differentiable point, the test will repeatedly resample
         inputs until a differentiable point will be finally sampled.
         ``False`` by default.
+
+    ``numerical_grad_dtype`` (dtype):
+        Input arrays are casted to this dtype when calculating the numerical
+        gradients. It is ``float64`` by default, no matter what the original
+        input dtypes were, to maximize precision.
 
     ``contiguous`` (None or 'C'):
         Specifies the contiguousness of incoming arrays (i.e. inputs, output
@@ -650,6 +660,11 @@ class LinkTestCase(_LinkTestBase, unittest.TestCase):
         those until a differentiable point will be finally sampled. ``False``
         by default.
 
+    ``numerical_grad_dtype`` (dtype):
+        Input arrays are casted to this dtype when calculating the numerical
+        gradients. It is ``float64`` by default, no matter what the original
+        input dtypes were, to maximize precision.
+
     ``contiguous`` (None or 'C'):
         Specifies the contiguousness of incoming arrays (i.e. inputs,
         parameters and gradients. If ``None``, the
@@ -722,6 +737,7 @@ class LinkTestCase(_LinkTestBase, unittest.TestCase):
     skip_forward_test = False
     skip_backward_test = False
     dodge_nondifferentiable = False
+    numerical_grad_dtype = numpy.float64
 
     def __init__(self, *args, **kwargs):
         self.check_forward_options = {}
@@ -821,7 +837,7 @@ class LinkTestCase(_LinkTestBase, unittest.TestCase):
                     'backward is not implemented correctly'):
                 gradient_check._check_backward_with_params(
                     forward, inputs, grad_outputs, params=params,
-                    dtype=numpy.float64,
+                    dtype=self.numerical_grad_dtype,
                     detect_nondifferentiable=self.dodge_nondifferentiable,
                     **self.check_backward_options)
 
@@ -1120,10 +1136,12 @@ def _check_array_types(arrays, device, func_name):
         raise TypeError(
             '`{}()` must return a tuple, '
             'not {}.'.format(func_name, type(arrays)))
-    if not all(isinstance(a, device.supported_array_types) for a in arrays):
+    if not all(
+            a is None or isinstance(a, device.supported_array_types)
+            for a in arrays):
         raise TypeError(
-            '{}() must return a tuple of arrays supported by device {}.\n'
-            'Actual: {}'.format(
+            '{}() must return a tuple of arrays supported by device {} or'
+            ' None.\nActual: {}'.format(
                 func_name, device, tuple([type(a) for a in arrays])))
 
 

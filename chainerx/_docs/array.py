@@ -363,6 +363,14 @@ See :func:`chainerx.swapaxes` for the full documentation.
 """)
 
     _docs.set_doc(
+        ndarray.repeat,
+        """repeat(repeats, axis=None)
+Constructs an array by repeating a given array.
+
+See :func:`chainerx.repeats` for the full documentation.
+""")
+
+    _docs.set_doc(
         ndarray.sum,
         """sum(axis=None, keepdims=False)
 Returns the sum of an array along given axes.

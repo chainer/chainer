@@ -175,7 +175,8 @@ class OptimizerTestBase(object):
         with cuda.Device(0):
             model = self.model.model
             optimizer = self.model.optimizer
-            model.to_gpu(1)
+            with testing.assert_warns(DeprecationWarning):
+                model.to_gpu(1)
             optimizer.setup(model)
             _optimizer_loss_scaling(optimizer, self.loss_scaling)
         # Initialize the optimizer state by running an update

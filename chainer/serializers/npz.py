@@ -1,6 +1,7 @@
 import numpy
 import six
 
+from chainer.backends import _chainerx
 from chainer.backends import _cpu
 from chainer.backends import cuda
 from chainer.backends import intel64
@@ -178,8 +179,8 @@ class NpzDeserializer(serializer.Deserializer):
         if value is None:
             return dataset
         if isinstance(value, chainerx.ndarray):
-            value_view = chainerx.to_numpy(value, copy=False)
-            numpy.copyto(value_view, dataset)
+            value[...] = _chainerx._array_to_chainerx(
+                numpy.asarray(dataset), value.device)
         elif isinstance(value, numpy.ndarray):
             numpy.copyto(value, dataset)
         elif isinstance(value, cuda.ndarray):

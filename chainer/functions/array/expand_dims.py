@@ -6,7 +6,7 @@ from chainer.utils import type_check
 
 class ExpandDims(function_node.FunctionNode):
 
-    """Expands dimenstions of an input array without copy."""
+    """Expands dimensions of an input array without copy."""
 
     def __init__(self, axis):
         self.axis = int(axis)
@@ -42,8 +42,8 @@ def expand_dims(x, axis):
             :math:`ndim + 1 - |axis|`.
 
     Returns:
-        ~chainer.Variable: Variable that holds a expanded input. The ``ndim``
-        of output is one grater than that of ``x``.
+        ~chainer.Variable: Variable that holds an expanded input. The ``ndim``
+        of output is one greater than that of ``x``.
 
     .. admonition:: Example
 

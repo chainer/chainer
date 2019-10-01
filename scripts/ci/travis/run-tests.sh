@@ -93,10 +93,14 @@ case "${CHAINER_TRAVIS_TEST}" in
             ;;
             install)
                 run_prestep install_chainerx_style_check_deps
+                run_prestep chainerx_cmake  # cmake is required for clang-tidy
             ;;
             script)
                 run_step chainerx_cpplint
                 run_step chainerx_clang_format
+
+                run_step chainerx_clang_tidy normal
+                run_step chainerx_clang_tidy test
             ;;
         esac
         ;;
@@ -109,6 +113,10 @@ case "${CHAINER_TRAVIS_TEST}" in
 
                 if [[ $SKIP_CHAINERMN != 1 ]]; then
                     run_prestep before_install_chainermn_test_deps
+                fi
+
+                if [[ $SKIP_CHAINERX != 1 ]]; then
+                    run_prestep before_install_chainerx_test_deps
                 fi
 
                 if [[ $TRAVIS_OS_NAME == "windows" ]]; then

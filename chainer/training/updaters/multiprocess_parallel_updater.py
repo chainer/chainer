@@ -1,6 +1,7 @@
 import multiprocessing
 import warnings
 
+import numpy
 import six
 
 import chainer
@@ -15,8 +16,6 @@ try:
     _available = True
 except Exception:
     _available = False
-
-import numpy
 
 
 class _Worker(multiprocessing.Process):
@@ -265,6 +264,8 @@ class MultiprocessParallelUpdater(standard_updater.StandardUpdater):
 
         for worker in self._workers:
             worker.join()
+
+        super(MultiprocessParallelUpdater, self).finalize()
 
 
 def _calc_loss(model, in_arrays):

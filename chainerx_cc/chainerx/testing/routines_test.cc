@@ -6,8 +6,8 @@
 #include <string>
 #include <vector>
 
+#include <absl/types/optional.h>
 #include <gtest/gtest.h>
-#include <nonstd/optional.hpp>
 
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"

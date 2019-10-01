@@ -1,4 +1,5 @@
 import numpy
+import six
 
 import chainer
 from chainer import configuration
@@ -207,7 +208,7 @@ class BatchNormalization(link.Link):
         self.register_persistent('N')
         self.decay = decay
         self.eps = eps
-        if isinstance(axis, int):
+        if isinstance(axis, six.integer_types):
             axis = (axis,)
         self.axis = axis
         self._highprec_dtype = chainer.get_dtype(
