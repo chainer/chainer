@@ -552,6 +552,11 @@ Note:
 Note:
     During backpropagation, this function propagates the gradient of the
     output array to the input array ``a``.
+    
+Note:
+   This function throws `IndexError` as a result of an out of bounds access
+   when using the ``native`` backend. However, in the ``cuda`` backend
+   there are no checks to prevent device synchronization.
 
 .. seealso:: :func:`numpy.take`
 """)
