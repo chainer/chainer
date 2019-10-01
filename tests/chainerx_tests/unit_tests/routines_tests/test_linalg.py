@@ -143,7 +143,9 @@ _numpy_does_not_support_0d_input116 = \
 class TestSolve(NumpyLinalgOpTest):
 
     def generate_inputs(self):
-        a = numpy.random.random(self.shape).astype(self.dtypes[0])
+        sv = numpy.random.uniform(1, 2, size=self.shape[0])
+        a = chainer.testing.generate_matrix(
+            self.shape, dtype=self.dtypes[0], singular_values=sv)
         b = numpy.random.random(
             (self.shape[0], *self.b_columns)).astype(self.dtypes[1])
         return a, b
