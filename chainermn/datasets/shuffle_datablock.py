@@ -33,13 +33,11 @@ def _count_table(length_all):
 
 
 def _send_recv_pairs(size):
-    pairs = [(x, y) for x in range(size) for y in range(size)]
-    # Sort the list, so send-recv communications from lower rank to higher rank
-    # happen earlier to avoid deadlock
-    # ex.)  [(0, 0), (1, 1), (0, 1), (1, 0)]
-    #     --> [(0, 0), (0, 1), (1, 0), (1, 1)]
-    pairs.sort()
-    return pairs
+    # Return a list of (sender, receiver) pairs.
+    # The list is ordered so that send-recv communications from lower ranks to
+    # higher ranks happen earlier to avoid deadlock
+    # ex.)  [(0, 0), (0, 1), (1, 0), (1, 1)]
+    return [(x, y) for x in range(size) for y in range(size)]
 
 
 def _exclusive_scan(array, dtype=None):
