@@ -79,16 +79,14 @@ keys=None, trigger=(1, 'epoch'), postprocess=None, filename='log')
         self._log_str = bytearray()
         self._log_paths = {}
 
-        log_name, = argument.parse_kwargs(
-            kwargs, ('log_name', 'log'),
+        log_name, file_format = argument.parse_kwargs(
+            kwargs, ('log_name', 'log'), ('file_format', None),
         )
         if filename is None:
             filename = log_name
         del log_name  # avoid accidental use
         self._log_name = filename
-        self._file_format = None
-        if 'file_format' in kwargs:
-            self._file_format = kwargs['file_format']
+        self._file_format = file_format
 
         self._init_summary()
 
