@@ -18,7 +18,6 @@
 namespace chainerx {
 
 class Array;
-enum class AveragePoolPadMode;
 
 class MaxPoolForwardBackward {
 public:
