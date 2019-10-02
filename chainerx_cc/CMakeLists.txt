@@ -6,7 +6,15 @@ if(POLICY CMP0054)
     cmake_policy(SET CMP0054 NEW)
 endif()
 
-SET(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake;${CMAKE_MODULE_PATH}")
+set(CMAKE_SKIP_BUILD_RPATH FALSE)
+set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
+if(NOT APPLE)
+    set(CMAKE_INSTALL_RPATH $ORIGIN)
+else()
+    set(CMAKE_INSTALL_RPATH "@loader_path")
+endif()
+
 
 # includes
 include(cmake/clang-tidy.cmake)
