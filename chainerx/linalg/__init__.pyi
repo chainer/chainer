@@ -16,3 +16,6 @@ def svd(a: ndarray,
 
 
 def qr(a: ndarray) -> tp.Union[tp.Tuple[ndarray, ndarray], ndarray]: ...
+
+
+def cholesky(a: ndarray) -> ndarray: ...

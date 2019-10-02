@@ -53,7 +53,8 @@ class TestCupyMemoryProfileHookToLink(unittest.TestCase):
                       basic_math.Mul, int, int)
 
     def test_forward_gpu(self):
-        self.l.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.l.to_gpu()
         self.check_forward(cuda.to_gpu(self.x))
 
     def check_backward(self, x, gy):
@@ -71,7 +72,8 @@ class TestCupyMemoryProfileHookToLink(unittest.TestCase):
                           basic_math.Mul, int, int)
 
     def test_backward_gpu(self):
-        self.l.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.l.to_gpu()
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
 
 

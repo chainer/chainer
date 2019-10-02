@@ -181,8 +181,23 @@ class TestHDF5Deserializer(unittest.TestCase):
     def test_deserialize_different_dtype_cpu(self):
         y = numpy.empty((2, 3), dtype=numpy.float16)
         ret = self.deserializer('y', y)
-        numpy.testing.assert_array_equal(y, self.data.astype(numpy.float16))
+
         self.assertIs(ret, y)
+
+        # Compare the value with the original array. Note that it's not always
+        # bit-identical to the result of numpy.ndarray.astype.
+        numpy.testing.assert_allclose(
+            y, self.data.astype(numpy.float16),
+            rtol=1e-3, atol=1e-3)
+
+        # It should be bit-identical to the result directly retrieved from
+        # h5py.
+        arr_hdf5 = numpy.empty((2, 3), dtype=numpy.float16)
+        with tempfile.TemporaryFile() as buf:
+            with h5py.File(buf, 'w') as f:
+                f.create_dataset('a', data=self.data)
+                f['a'].read_direct(arr_hdf5)
+        numpy.testing.assert_array_equal(y, arr_hdf5)
 
     @attr.gpu
     def test_deserialize_different_dtype_gpu(self):

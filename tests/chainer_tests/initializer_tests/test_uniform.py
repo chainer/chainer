@@ -42,6 +42,7 @@ default_fan = {
     ],
     'scale': [None, 7.3],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'rng_class': [None, numpy.random.RandomState],
 }))
 @testing.backend.inject_backend_tests(
     None,
@@ -63,6 +64,8 @@ class TestUniform(unittest.TestCase):
             kwargs['scale'] = self.scale
         if self.fan_option is not None:
             kwargs['fan_option'] = self.fan_option
+        if self.rng_class is not None:
+            kwargs['rng'] = self.rng_class()
         self.target_kwargs = kwargs
 
     def check_initializer(self, w):

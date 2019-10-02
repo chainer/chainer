@@ -424,6 +424,7 @@ void InitChainerxLinalg(pybind11::module& m) {
             },
             "a"_a,
             "mode"_a = "reduced");
+    mlinalg.def("cholesky", [](const ArrayBodyPtr& a) { return MoveArrayBody(Cholesky(Array{a})); }, "a"_a);
 }
 
 void InitChainerxLogic(pybind11::module& m) {
@@ -1241,6 +1242,11 @@ void InitChainerxLoss(pybind11::module& m) {
           [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return MoveArrayBody(SigmoidCrossEntropy(Array{x1}, Array{x2})); },
           "x1"_a,
           "x2"_a);
+    m.def("hinge",
+          [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2, double norm) { return MoveArrayBody(Hinge(Array{x1}, Array{x2}, norm)); },
+          "x1"_a,
+          "x2"_a,
+          "norm"_a = 1.0);
 }
 void InitChainerxRNN(pybind11::module& m) {
     m.def("n_step_lstm",

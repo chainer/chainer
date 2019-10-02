@@ -44,6 +44,12 @@ def generate_matrix(shape, dtype=float, **kwargs):
     if (singular_values < 0).any():
         raise ValueError('negative singular value is given')
 
+    if 0 in shape:
+        # NumPy<1.16 does not support zero-sized matrices in svd, so skip it.
+        # Try broadcast first to raise an error on shape mismatch.
+        _broadcast_to(singular_values, shape[:-2] + (min(shape[-2:]),))
+        return numpy.empty(shape, dtype=dtype)
+
     # Generate random matrices with given singular values. We simply generate
     # orthogonal vectors using SVD on random matrices and then combine them
     # with the given singular values.

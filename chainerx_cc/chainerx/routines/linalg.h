@@ -29,4 +29,6 @@ enum class QrMode {
 
 std::tuple<Array, Array> Qr(const Array& a, QrMode mode);
 
+Array Cholesky(const Array& a);
+
 }  // namespace chainerx

@@ -253,3 +253,40 @@ configs {
     }
   }
 }
+configs {
+  key: "chainermn.cpu"
+  value {
+    requirement {
+      cpu: 8
+      memory: 30
+      disk: 50
+    }
+    command: "bash .pfnci/script.sh chainermn"
+  }
+}
+configs {
+  key: "chainermn.gpu"
+  value {
+    requirement {
+      cpu: 8
+      memory: 30
+      disk: 50
+      gpu: 2
+    }
+	environment_variables { key: "GPU" value: "2" }
+    command: "bash .pfnci/script.sh chainermn"
+  }
+}
+configs {
+  key: "chainermn-ci-prep.cuda92"
+  value {
+    requirement {
+	  cpu: 2
+	  memory: 12
+    }
+	time_limit: {
+	  seconds: 7200
+	}
+	command: "bash .pfnci/chainermn-ci-prep.sh chainermn-ci-prep-cuda92 9.2-cudnn7-devel"
+  }
+}
