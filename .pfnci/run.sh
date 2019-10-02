@@ -90,6 +90,7 @@ test_py37() {
     exit 1
   fi
   xpytest_args=(
+      -rfEX
       --python=python3.7 -m "${marker}"
       --bucket="${bucket}" --thread="$(( XPYTEST_NUM_THREADS / bucket ))"
       --hint="/chainer/.pfnci/hint.pbtxt"
@@ -147,6 +148,7 @@ test_py27and35() {
     exit 1
   fi
   xpytest_args=(
+      -rfEX
       --python=python3.5 -m "${marker}"
       --bucket="${bucket}" --thread="$(( XPYTEST_NUM_THREADS / bucket ))"
       --hint="/chainer/.pfnci/hint.pbtxt"
