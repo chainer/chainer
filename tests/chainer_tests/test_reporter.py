@@ -481,4 +481,373 @@ class TestDictSummary(unittest.TestCase):
         })
 
 
+@backend.inject_backend_tests(
+    ['test_basic', 'test_serialize_array_float', 'test_serialize_array_int'],
+    [{}, {'use_cuda': True}])
+class TestMeanStats(unittest.TestCase):
+
+    def setUp(self):
+        self.stats = chainer.reporter.MeanStats()
+
+    def test_basic(self, backend_config):
+        self.stats.add(backend_config.get_array(numpy.array(1, 'f')))
+        self.stats.add(backend_config.get_array(numpy.array(-2, 'f')))
+
+        mean = self.stats.compute()['']
+        testing.assert_allclose(mean, numpy.array(-0.5, 'f'))
+
+    def test_int(self):
+        self.stats.add(1)
+        self.stats.add(2)
+        self.stats.add(3)
+
+        mean = self.stats.compute()['']
+        testing.assert_allclose(mean, 2)
+
+    def test_float(self):
+        self.stats.add(1.)
+        self.stats.add(2.)
+        self.stats.add(3.)
+
+        mean = self.stats.compute()['']
+        testing.assert_allclose(mean, 2.)
+
+    def test_weight(self):
+        self.stats.add(1., 0.5)
+        self.stats.add(2., numpy.array(0.4))
+        self.stats.add(3., chainer.Variable(numpy.array(0.3)))
+
+        mean = self.stats.compute()[''].array
+        val = (1 * 0.5 + 2 * 0.4 + 3 * 0.3) / (0.5 + 0.4 + 0.3)
+        testing.assert_allclose(mean, val)
+
+    def check_serialize(self, value1, value2, value3):
+        self.stats.add(value1)
+        self.stats.add(value2)
+
+        stats = chainer.reporter.MeanStats()
+        testing.save_and_load_npz(self.stats, stats)
+        stats.add(value3)
+
+        expected_mean = (value1 + value2 + value3) / 3.
+
+        mean = stats.compute()['']
+        testing.assert_allclose(mean, expected_mean)
+
+    def test_serialize_array_float(self, backend_config):
+        self.check_serialize(
+            backend_config.get_array(numpy.array(1.5, numpy.float32)),
+            backend_config.get_array(numpy.array(2.0, numpy.float32)),
+            # sum of the above two is non-integer
+            backend_config.get_array(numpy.array(3.5, numpy.float32)))
+
+    def test_serialize_array_int(self, backend_config):
+        self.check_serialize(
+            backend_config.get_array(numpy.array(1, numpy.int32)),
+            backend_config.get_array(numpy.array(-2, numpy.int32)),
+            backend_config.get_array(numpy.array(2, numpy.int32)))
+
+    def test_serialize_scalar_float(self):
+        self.check_serialize(
+            1.5, 2.0,
+            # sum of the above two is non-integer
+            3.5)
+
+    def test_serialize_scalar_int(self):
+        self.check_serialize(1, -2, 2)
+
+    def test_serialize_backward_compat(self):
+        with tempfile.NamedTemporaryFile(delete=False) as f:
+            # old version does not save anything
+            numpy.savez(f, dummy=0)
+            with testing.assert_warns(UserWarning):
+                chainer.serializers.load_npz(f.name, self.stats)
+
+        self.stats.add(2.)
+        self.stats.add(3.)
+
+        mean = self.stats.compute()['']
+        testing.assert_allclose(mean, 2.5)
+
+
+@backend.inject_backend_tests(
+    ['test_basic', 'test_serialize_array_float', 'test_serialize_array_int'],
+    [{}, {'use_cuda': True}])
+class TestStdDevStats(unittest.TestCase):
+
+    def setUp(self):
+        self.stats = chainer.reporter.StdDevStats()
+
+    def test_basic(self, backend_config):
+        self.stats.add(backend_config.get_array(numpy.array(1, 'f')))
+        self.stats.add(backend_config.get_array(numpy.array(-2, 'f')))
+
+        d = self.stats.compute()
+        mean = d['']
+        std = d['std']
+        testing.assert_allclose(mean, numpy.array(-0.5, 'f'))
+        testing.assert_allclose(std, numpy.array(1.5, 'f'))
+
+    def test_int(self):
+        self.stats.add(1)
+        self.stats.add(2)
+        self.stats.add(3)
+
+        d = self.stats.compute()
+        mean = d['']
+        std = d['std']
+        testing.assert_allclose(mean, 2)
+        testing.assert_allclose(std, numpy.sqrt(2. / 3.))
+
+    def test_float(self):
+        self.stats.add(1.)
+        self.stats.add(2.)
+        self.stats.add(3.)
+
+        d = self.stats.compute()
+        mean = d['']
+        std = d['std']
+        testing.assert_allclose(mean, 2.)
+        testing.assert_allclose(std, numpy.sqrt(2. / 3.))
+
+    def test_weight(self):
+        self.stats.add(1., 0.5)
+        self.stats.add(2., numpy.array(0.4))
+        self.stats.add(3., chainer.Variable(numpy.array(0.3)))
+
+        d = self.stats.compute()
+        mean = d[''].array
+        val = (1 * 0.5 + 2 * 0.4 + 3 * 0.3) / (0.5 + 0.4 + 0.3)
+        testing.assert_allclose(mean, val)
+
+    def check_serialize(self, value1, value2, value3):
+        xp = chainer.backend.get_array_module(value1, value2, value3)
+        self.stats.add(value1)
+        self.stats.add(value2)
+
+        stats = chainer.reporter.StdDevStats()
+        testing.save_and_load_npz(self.stats, stats)
+        stats.add(value3)
+
+        expected_mean = (value1 + value2 + value3) / 3.
+        expected_std = xp.sqrt(
+            (value1**2 + value2**2 + value3**2) / 3. - expected_mean**2)
+
+        d = stats.compute()
+        mean = d['']
+        std = d['std']
+        testing.assert_allclose(mean, expected_mean)
+        testing.assert_allclose(std, expected_std)
+
+    def test_serialize_array_float(self, backend_config):
+        self.check_serialize(
+            backend_config.get_array(numpy.array(1.5, numpy.float32)),
+            backend_config.get_array(numpy.array(2.0, numpy.float32)),
+            # sum of the above two is non-integer
+            backend_config.get_array(numpy.array(3.5, numpy.float32)))
+
+    def test_serialize_array_int(self, backend_config):
+        self.check_serialize(
+            backend_config.get_array(numpy.array(1, numpy.int32)),
+            backend_config.get_array(numpy.array(-2, numpy.int32)),
+            backend_config.get_array(numpy.array(2, numpy.int32)))
+
+    def test_serialize_scalar_float(self):
+        self.check_serialize(
+            1.5, 2.0,
+            # sum of the above two is non-integer
+            3.5)
+
+    def test_serialize_scalar_int(self):
+        self.check_serialize(1, -2, 2)
+
+    def test_serialize_backward_compat(self):
+        with tempfile.NamedTemporaryFile(delete=False) as f:
+            # old version does not save anything
+            numpy.savez(f, dummy=0)
+            with testing.assert_warns(UserWarning):
+                chainer.serializers.load_npz(f.name, self.stats)
+
+        self.stats.add(2.)
+        self.stats.add(3.)
+
+        d = self.summary.compute()
+        mean = d['']
+        std = d['std']
+        testing.assert_allclose(mean, 2.5)
+        testing.assert_allclose(std, 0.5)
+
+
+class TestStatsDict(unittest.TestCase):
+
+    def setUp(self):
+        self.stats = chainer.reporter.StatsDict(
+            init_stats=chainer.reporter.StdDevStats)
+
+    def check(self, stats, data):
+        stats = stats.compute()
+        self.assertEqual(
+            set(stats.keys()),
+            set(data.keys()).union(name + '.std' for name in data.keys()))
+        for name in data.keys():
+            m = sum(data[name]) / float(len(data[name]))
+            s = numpy.sqrt(
+                sum(x * x for x in data[name]) / float(len(data[name]))
+                - m * m)
+            testing.assert_allclose(stats[name], m)
+            testing.assert_allclose(stats[name + '.std'], s)
+
+    def test(self):
+        self.stats.add({'numpy': numpy.array(3, 'f'), 'int': 1, 'float': 4.})
+        self.stats.add({'numpy': numpy.array(1, 'f'), 'int': 5, 'float': 9.})
+        self.stats.add({'numpy': numpy.array(2, 'f'), 'int': 6, 'float': 5.})
+        self.stats.add({'numpy': numpy.array(3, 'f'), 'int': 5, 'float': 8.})
+
+        self.check(self.stats, {
+            'numpy': (3., 1., 2., 3.),
+            'int': (1, 5, 6, 5),
+            'float': (4., 9., 5., 8.),
+        })
+
+    @attr.gpu
+    def test_cupy(self):
+        xp = cuda.cupy
+        self.stats.add({'cupy': xp.array(3, 'f')})
+        self.stats.add({'cupy': xp.array(1, 'f')})
+        self.stats.add({'cupy': xp.array(2, 'f')})
+        self.stats.add({'cupy': xp.array(3, 'f')})
+
+        self.check(self.stats, {'cupy': (3., 1., 2., 3.)})
+
+    def test_sparse(self):
+        self.stats.add({'a': 3., 'b': 1.})
+        self.stats.add({'a': 1., 'b': 5., 'c': 9.})
+        self.stats.add({'b': 6.})
+        self.stats.add({'a': 3., 'b': 5., 'c': 8.})
+
+        self.check(self.stats, {
+            'a': (3., 1., 3.),
+            'b': (1., 5., 6., 5.),
+            'c': (9., 8.),
+        })
+
+    def test_weight(self):
+        self.stats.add({'a': (1., 0.5)})
+        self.stats.add({'a': (2., numpy.array(0.4))})
+        self.stats.add({'a': (3., chainer.Variable(numpy.array(0.3)))})
+
+        mean = self.stats.compute()
+        val = (1 * 0.5 + 2 * 0.4 + 3 * 0.3) / (0.5 + 0.4 + 0.3)
+        testing.assert_allclose(mean['a'], val)
+
+        with self.assertRaises(ValueError):
+            self.stats.add({'a': (4., numpy.array([0.5]))})
+
+        with self.assertRaises(ValueError):
+            self.stats.add({'a': (4., chainer.Variable(numpy.array([0.5])))})
+
+    def test_serialize(self):
+        self.stats.add({'numpy': numpy.array(3, 'f'), 'int': 1, 'float': 4.})
+        self.stats.add({'numpy': numpy.array(1, 'f'), 'int': 5, 'float': 9.})
+        self.stats.add({'numpy': numpy.array(2, 'f'), 'int': 6, 'float': 5.})
+
+        stats = chainer.reporter.StatsDict(
+            init_stats=chainer.reporter.StdDevStats)
+        testing.save_and_load_npz(self.stats, stats)
+        stats.add({'numpy': numpy.array(3, 'f'), 'int': 5, 'float': 8.})
+
+        self.check(stats, {
+            'numpy': (3., 1., 2., 3.),
+            'int': (1, 5, 6, 5),
+            'float': (4., 9., 5., 8.),
+        })
+
+    @attr.gpu
+    def test_serialize_cupy(self):
+        xp = cuda.cupy
+        self.stats.add({'cupy': xp.array(3, 'f')})
+        self.stats.add({'cupy': xp.array(1, 'f')})
+        self.stats.add({'cupy': xp.array(2, 'f')})
+
+        stats = chainer.reporter.StatsDict(
+            init_stats=chainer.reporter.StdDevStats)
+        testing.save_and_load_npz(self.stats, stats)
+        stats.add({'cupy': xp.array(3, 'f')})
+
+        self.check(stats, {'cupy': (3., 1., 2., 3.)})
+
+    def test_serialize_names_with_slash(self):
+        self.stats.add({'a/b': 3., '/a/b': 1., 'a/b/': 4.})
+        self.stats.add({'a/b': 1., '/a/b': 5., 'a/b/': 9.})
+        self.stats.add({'a/b': 2., '/a/b': 6., 'a/b/': 5.})
+
+        stats = chainer.reporter.StatsDict(
+            init_stats=chainer.reporter.StdDevStats)
+        testing.save_and_load_npz(self.stats, stats)
+        stats.add({'a/b': 3., '/a/b': 5., 'a/b/': 8.})
+
+        self.check(stats, {
+            'a/b': (3., 1., 2., 3.),
+            '/a/b': (1., 5., 6., 5.),
+            'a/b/': (4., 9., 5., 8.),
+        })
+
+    def test_serialize_overwrite_different_names(self):
+        self.stats.add({'a': 3., 'b': 1.})
+        self.stats.add({'a': 1., 'b': 5.})
+
+        stats = chainer.reporter.StatsDict(
+            init_stats=chainer.reporter.StdDevStats)
+        stats.add({'c': 5.})
+        testing.save_and_load_npz(self.stats, stats)
+
+        self.check(stats, {
+            'a': (3., 1.),
+            'b': (1., 5.),
+        })
+
+    def test_serialize_overwrite_rollback(self):
+        self.stats.add({'a': 3., 'b': 1.})
+        self.stats.add({'a': 1., 'b': 5.})
+
+        with tempfile.NamedTemporaryFile(delete=False) as f:
+            chainer.serializers.save_npz(f.name, self.stats)
+            self.stats.add({'a': 2., 'b': 6., 'c': 5.})
+            self.stats.add({'a': 3., 'b': 4., 'c': 6.})
+            chainer.serializers.load_npz(f.name, self.stats)
+
+        self.stats.add({'a': 3., 'b': 5., 'c': 8.})
+
+        self.check(self.stats, {
+            'a': (3., 1., 3.),
+            'b': (1., 5., 5.),
+            'c': (8.,),
+        })
+
+    def test_serialize_backward_compat(self):
+        with tempfile.NamedTemporaryFile(delete=False) as f:
+            # old version does not save anything
+            numpy.savez(f, dummy=0)
+            with testing.assert_warns(UserWarning):
+                chainer.serializers.load_npz(f.name, self.stats)
+
+    def test_serialize_backward_compat_overwrite(self):
+        self.stats.add({'a': 3., 'b': 1., 'c': 4.})
+        self.stats.add({'a': 1., 'b': 5., 'c': 9.})
+
+        with tempfile.NamedTemporaryFile(delete=False) as f:
+            # old version does not save anything
+            numpy.savez(f, dummy=0)
+            with testing.assert_warns(UserWarning):
+                chainer.serializers.load_npz(f.name, self.stats)
+
+        self.stats.add({'a': 9., 'b': 2.})
+        self.stats.add({'a': 6., 'b': 5.})
+
+        self.check(self.stats, {
+            'a': (9., 6.),
+            'b': (2., 5.),
+        })
+
+
 testing.run_module(__name__, __file__)

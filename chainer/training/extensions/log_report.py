@@ -58,6 +58,8 @@ keys=None, trigger=(1, 'epoch'), postprocess=None, filename='log')
             does not output the log to any file.
             For historical reasons ``log_name`` is also accepted as an alias
             of this argument.
+        init_stats: Callable object to initialize a ``Stats`` object to
+            summarize the observations.
 
     """
 
@@ -68,21 +70,23 @@ keys=None, trigger=(1, 'epoch'), postprocess=None, filename='log')
         self._postprocess = postprocess
         self._log = []
 
-        log_name, = argument.parse_kwargs(
-            kwargs, ('log_name', 'log'),
+        log_name, init_stats = argument.parse_kwargs(
+            kwargs, ('log_name', 'log'), ('init_stats', reporter.MeanStats),
         )
         if filename is None:
             filename = log_name
         del log_name  # avoid accidental use
         self._log_name = filename
+        self._init_stats_dict = lambda: reporter.StatsDict(
+            init_stats=init_stats)
 
-        self._init_summary()
+        self._stats = self._init_stats_dict()
 
     def __call__(self, trainer):
         # accumulate the observations
         keys = self._keys
         observation = trainer.observation
-        summary = self._summary
+        summary = self._stats
 
         if keys is None:
             summary.add(observation)
@@ -91,7 +95,7 @@ keys=None, trigger=(1, 'epoch'), postprocess=None, filename='log')
 
         if trainer.is_before_training or self._trigger(trainer):
             # output the result
-            stats = self._summary.make_statistics()
+            stats = self._stats.compute()
             stats_cpu = {}
             for name, value in six.iteritems(stats):
                 stats_cpu[name] = float(value)  # copy to CPU
@@ -118,7 +122,7 @@ keys=None, trigger=(1, 'epoch'), postprocess=None, filename='log')
                     shutil.move(path, new_path)
 
             # reset the summary for the next output
-            self._init_summary()
+            self._stats = self._init_stats_dict()
 
     @property
     def log(self):
@@ -130,7 +134,7 @@ keys=None, trigger=(1, 'epoch'), postprocess=None, filename='log')
             self._trigger.serialize(serializer['_trigger'])
 
         try:
-            self._summary.serialize(serializer['_summary'])
+            self._stats.serialize(serializer['_stats'])
         except KeyError:
             warnings.warn('The statistics are not saved.')
 
@@ -142,6 +146,3 @@ keys=None, trigger=(1, 'epoch'), postprocess=None, filename='log')
         else:
             log = serializer('_log', '')
             self._log = json.loads(log)
-
-    def _init_summary(self):
-        self._summary = reporter.DictSummary()

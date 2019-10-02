@@ -414,3 +414,186 @@ class DictSummary(object):
             for index, name in enumerate(names):
                 self._summaries[name].serialize(
                     serializer['_summaries'][str(index)])
+
+
+class Stats(object):
+
+    """Online summarization of a sequence of scalars.
+
+    Summary computes statistics of given scalars online.
+
+    """
+
+    def __init__(self):
+        self._x = 0.0
+        self._x2 = 0.0
+        self._n = 0
+
+    def add(self, value, weight=1):
+        """Adds a scalar value.
+
+        Args:
+            value: Scalar value to accumulate. It is either a NumPy scalar or
+                a zero-dimensional array (on CPU or GPU).
+            weight: An optional weight for the value. It is a NumPy scalar or
+                a zero-dimensional array (on CPU or GPU).
+                Default is 1 (integer).
+
+        """
+        if isinstance(value, chainerx.ndarray):
+            # ChainerX arrays does not support inplace assignment if it's
+            # connected to the backprop graph.
+            value = value.as_grad_stopped()
+
+        with chainer.using_device(backend.get_device_from_array(value)):
+            self._x += weight * value
+            self._x2 += weight * value * value
+            self._n += weight
+
+    def compute(self):
+        """Computes and returns statistics.
+
+        Returns:
+            dict: Dictionary of statistics.
+
+        """
+        raise NotImplementedError
+
+    def serialize(self, serializer):
+        try:
+            self._x = serializer('_x', self._x)
+            self._x2 = serializer('_x2', self._x2)
+            self._n = serializer('_n', self._n)
+        except KeyError:
+            warnings.warn('The previous statistics are not saved.')
+
+
+class MeanStats(Stats):
+
+    """Online summarization of a sequence of scalars.
+
+    Summary computes the mean value of given scalars online.
+
+    """
+
+    def __init__(self):
+        super(MeanStats, self).__init__()
+
+    def compute(self):
+        """Computes and returns the mean value.
+
+        Returns:
+            dict: Dictionary of statistics.
+
+        """
+        x, n = self._x, self._n
+        with chainer.using_device(backend.get_device_from_array(x)):
+            return {'': x / n}
+
+
+class StdDevStats(Stats):
+
+    """Online summarization of a sequence of scalars.
+
+    Summary computes the mean and standard deviation values of given scalars
+    online.
+
+    """
+
+    def __init__(self):
+        super(StdDevStats, self).__init__()
+
+    def compute(self):
+        """Computes and returns the mean and standard deviation values.
+
+        Returns:
+            dict: Dictionary of statistics.
+
+        """
+        x, n = self._x, self._n
+        xp = backend.get_array_module(x)
+        with chainer.using_device(backend.get_device_from_array(x)):
+            mean = x / n
+            var = self._x2 / n - mean * mean
+            std = xp.sqrt(var)
+            return {'': mean, 'std': std}
+
+
+class StatsDict(object):
+
+    """Online summarization of a sequence of dictionaries.
+
+    ``StatsDict`` computes the statistics of a given set of scalars online.
+    It only computes the statistics for scalar values and variables of scalar
+    values in the dictionaries.
+
+    """
+
+    def __init__(self, init_stats=MeanStats):
+        self._stats = collections.defaultdict(init_stats)
+
+    def add(self, d):
+        """Adds a dictionary of scalars.
+
+        Args:
+            d (dict): Dictionary of scalars to accumulate. Only elements of
+               scalars, zero-dimensional arrays, and variables of
+               zero-dimensional arrays are accumulated. When the value
+               is a tuple, the second element is interpreted as a weight.
+
+        """
+        summaries = self._stats
+        for k, v in six.iteritems(d):
+            w = 1
+            if isinstance(v, tuple):
+                w = v[1]
+                v = v[0]
+                if isinstance(w, variable.Variable):
+                    w = w.array
+                if not numpy.isscalar(w) and not getattr(w, 'ndim', -1) == 0:
+                    raise ValueError(
+                        'Given weight to {} was not scalar.'.format(k))
+            if isinstance(v, variable.Variable):
+                v = v.array
+            if numpy.isscalar(v) or getattr(v, 'ndim', -1) == 0:
+                summaries[k].add(v, weight=w)
+
+    def compute(self):
+        """Creates a dictionary of statistics.
+
+        It returns a single dictionary that holds the statistics for every
+        entry added to the summary. For example, a name of the mean and
+        standard deviation values for an entry named ``'key'`` will be
+        ``'key'`` and ``'key.std'``, respectively.
+
+        Returns:
+            dict: Dictionary of statistics of all entries.
+
+        """
+        stats = {}
+        for name, summary in six.iteritems(self._stats):
+            for k, v in six.iteritems(summary.compute()):
+                if k:
+                    stats[name + '.' + k] = v
+                else:
+                    stats[name] = v
+
+        return stats
+
+    def serialize(self, serializer):
+        if isinstance(serializer, serializer_module.Serializer):
+            names = list(self._stats.keys())
+            serializer('_names', json.dumps(names))
+            for index, name in enumerate(names):
+                self._stats[name].serialize(
+                    serializer['_stats'][str(index)])
+        else:
+            self._stats.clear()
+            try:
+                names = json.loads(serializer('_names', ''))
+            except KeyError:
+                warnings.warn('The names of statistics are not saved.')
+                return
+            for index, name in enumerate(names):
+                self._stats[name].serialize(
+                    serializer['_stats'][str(index)])
