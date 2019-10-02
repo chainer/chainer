@@ -315,26 +315,39 @@ void InitChainerxEvaluation(pybind11::module& m) {
 void InitChainerxIndexing(pybind11::module& m) {
     // indexing routines
     m.def("take",
-          [](const ArrayBodyPtr& a, py::handle indices, const absl::optional<int8_t>& axis) {
-              if (!axis.has_value()) {
-                  throw NotImplementedError{"axis=None is not yet supported for chainerx.take."};
+          [](const ArrayBodyPtr& a, py::handle indices, const absl::optional<int8_t>& axis, const absl::optional<std::string>& mode) {
+              IndexBoundsMode tmode{};
+              if (!mode.has_value()) {
+                  tmode = IndexBoundsMode::kDefault;
+              } else {
+                  const std::string& smode = mode.value();
+                  if (smode == "raise") {
+                      tmode = IndexBoundsMode::kRaise;
+                  } else if (smode == "wrap") {
+                      tmode = IndexBoundsMode::kWrap;
+                  } else if (smode == "clip") {
+                      tmode = IndexBoundsMode::kClip;
+                  } else {
+                      throw py::value_error{"mode must be 'raise', 'wrap', or 'clip'"};
+                  }
               }
               if (py::isinstance<ArrayBody>(indices)) {
-                  return MoveArrayBody(Take(Array{a}, Array{py::cast<ArrayBodyPtr>(indices)}, axis.value()));
+                  return MoveArrayBody(Take(Array{a}, Array{py::cast<ArrayBodyPtr>(indices)}, axis.value(), tmode));
               }
               if (py::isinstance<py::sequence>(indices)) {
                   absl::optional<Dtype> dtype = Dtype::kInt64;
-                  return MoveArrayBody(Take(Array{a}, Array{MakeArray(indices, dtype, false, a->device())}, axis.value()));
+                  return MoveArrayBody(Take(Array{a}, Array{MakeArray(indices, dtype, false, a->device())}, axis.value(), tmode));
               }
               if (py::isinstance<py::array>(indices)) {
                   return MoveArrayBody(
-                          Take(Array{a}, Array{MakeArrayFromNumpyArray(py::cast<py::array>(indices), a->device())}, axis.value()));
+                          Take(Array{a}, Array{MakeArrayFromNumpyArray(py::cast<py::array>(indices), a->device())}, axis.value(), tmode));
               }
               throw py::type_error{"only integers, slices (`:`), sequence, numpy.ndarray and chainerx.newaxis (`None`) are valid indices"};
           },
           "a"_a,
           "indices"_a,
-          "axis"_a);
+          "axis"_a,
+          "mode"_a = nullptr);
     m.def("where",
           [](const ArrayBodyPtr& condition, const ArrayBodyPtr& x, const ArrayBodyPtr& y) {
               return MoveArrayBody(Where(Array{condition}, Array{x}, Array{y}));

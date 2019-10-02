@@ -542,6 +542,10 @@ Args:
         The indices of the values to extract. When indices are out of bounds,
         they are wrapped around.
     axis (int): The axis over which to select values.
+    mode (str): Specifies how out-of-bounds indices will behave.
+        'raise' - raise an error
+        'wrap' - wrap around
+        'clip' - clip to the range
 
 Returns:
     :func:`~chainerx.ndarray`: Output array.
@@ -552,11 +556,11 @@ Note:
 Note:
     During backpropagation, this function propagates the gradient of the
     output array to the input array ``a``.
-    
+
 Note:
-   This function throws `IndexError` as a result of an out of bounds access
-   when using the ``native`` backend. However, in the ``cuda`` backend
-   there are no checks to prevent device synchronization.
+   The default mode for the native backend is 'raise', while for the cuda
+   backend is 'wrap' in order to prevent device synchronization.
+   'raise' mode is currently not supported in the CUDA backend.
 
 .. seealso:: :func:`numpy.take`
 """)

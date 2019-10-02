@@ -240,25 +240,41 @@ void InitChainerxArrayConversion(pybind11::module& m, py::class_<ArrayBody, Arra
 
 void InitChainerxArrayManipulation(py::class_<ArrayBody, ArrayBodyPtr>& c) {
     c.def("take",
-          [](const ArrayBodyPtr& self, py::handle indices, const absl::optional<int8_t>& axis) {
+          [](const ArrayBodyPtr& self, py::handle indices, const absl::optional<int8_t>& axis, absl::optional<std::string>& mode) {
               if (!axis.has_value()) {
                   throw NotImplementedError{"axis=None is not yet supported for chainerx.ndarray.take."};
               }
+              IndexBoundsMode tmode{};
+              if (!mode.has_value()) {
+                  tmode = IndexBoundsMode::kDefault;
+              } else {
+                  std::string& smode = mode.value();
+                  if (smode == "raise") {
+                      tmode = IndexBoundsMode::kRaise;
+                  } else if (smode == "wrap") {
+                      tmode = IndexBoundsMode::kWrap;
+                  } else if (smode == "clip") {
+                      tmode = IndexBoundsMode::kClip;
+                  } else {
+                      throw py::value_error{"mode must be 'raise', 'wrap', or 'clip'"};
+                  }
+              }
               if (py::isinstance<ArrayBody>(indices)) {
-                  return MoveArrayBody(Array{self}.Take(Array{py::cast<ArrayBodyPtr>(indices)}, axis.value()));
+                  return MoveArrayBody(Array{self}.Take(Array{py::cast<ArrayBodyPtr>(indices)}, axis.value(), tmode));
               }
               if (py::isinstance<py::sequence>(indices)) {
                   absl::optional<Dtype> dtype = Dtype::kInt64;
-                  return MoveArrayBody(Array{self}.Take(Array{MakeArray(indices, dtype, false, self->device())}, axis.value()));
+                  return MoveArrayBody(Array{self}.Take(Array{MakeArray(indices, dtype, false, self->device())}, axis.value(), tmode));
               }
               if (py::isinstance<py::array>(indices)) {
-                  return MoveArrayBody(
-                          Array{self}.Take(Array{MakeArrayFromNumpyArray(py::cast<py::array>(indices), self->device())}, axis.value()));
+                  return MoveArrayBody(Array{self}.Take(
+                          Array{MakeArrayFromNumpyArray(py::cast<py::array>(indices), self->device())}, axis.value(), tmode));
               }
               throw py::type_error{"only integers, slices (`:`), sequence, numpy.ndarray and chainerx.newaxis (`None`) are valid indices"};
           },
           "indices"_a,
-          "axis"_a = nullptr);
+          "axis"_a = nullptr,
+          "mode"_a = nullptr);
     c.def("transpose",
           [](const ArrayBodyPtr& self, const absl::optional<std::vector<int8_t>>& axes) {
               return MoveArrayBody(Array{self}.Transpose(ToAxes(axes)));
