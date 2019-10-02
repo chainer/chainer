@@ -3,7 +3,6 @@ import six
 
 from chainer.training import extension
 from chainer import backend
-from chainer import backends
 from chainer.dataset import convert
 from chainer import function
 from chainer.utils import argument
