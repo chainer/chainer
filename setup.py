@@ -189,8 +189,12 @@ setup_kwargs = dict(
 build_chainerx = 0 != int(os.getenv('CHAINER_BUILD_CHAINERX', '0'))
 if (os.getenv('READTHEDOCS', None) == 'True'
         and os.getenv('READTHEDOCS_PROJECT', None) == 'chainer'):
-    os.environ['MAKEFLAGS'] = '-j2'
+    # ChainerX must be built in order to build the docs (on Read the Docs).
     build_chainerx = True
+
+    # Try to prevent Read the Docs build timeouts.
+    os.environ['MAKEFLAGS'] = '-j2'
+
 
 chainerx_build_helper.config_setup_kwargs(setup_kwargs, build_chainerx)
 
