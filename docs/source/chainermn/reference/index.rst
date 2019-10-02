@@ -10,9 +10,11 @@ Communicators
 .. autofunction:: create_communicator
 .. autoclass:: CommunicatorBase
     :members: rank, intra_rank, inter_rank, inter_size, size,
-              alltoall, split, send, recv, bcast, gather, allreduce,
+              alltoall, split, send, recv, bcast, gather, allreduce, scatter,
               send_obj, recv_obj, bcast_obj, gather_obj,
-              allreduce_obj, bcast_data, allreduce_grad, allgather
+              allreduce_obj, bcast_data, multi_node_mean_grad, allreduce_grad,
+              allgather, finalize,
+              set_config, get_config
 
 
 Optimizers and Evaluators
@@ -20,12 +22,14 @@ Optimizers and Evaluators
 
 .. autofunction:: create_multi_node_optimizer
 .. autofunction:: create_multi_node_evaluator
-
+.. autoclass:: chainermn.extensions.GenericMultiNodeEvaluator
+   :members: calc_local, aggregate
 
 Dataset Utilities
 ~~~~~~~~~~~~~~~~~
 
 .. autofunction:: scatter_dataset
+.. autofunction:: scatter_index
 .. autofunction:: chainermn.datasets.create_empty_dataset
 
 
@@ -62,6 +66,7 @@ Trainer extensions
 ~~~~~~~~~~~~~~~~~~
 
 .. autoclass:: chainermn.extensions.AllreducePersistent
+.. autofunction:: chainermn.extensions.multi_node_snapshot
 .. autofunction:: chainermn.create_multi_node_checkpointer
 
 Configurations

@@ -4,13 +4,14 @@
 #include <memory>
 #include <string>
 
-#include <nonstd/optional.hpp>
+#include <absl/types/optional.h>
 
 #include "chainerx/axes.h"
 #include "chainerx/backend.h"
 #include "chainerx/constant.h"
 #include "chainerx/dtype.h"
 #include "chainerx/error.h"
+#include "chainerx/macro.h"
 #include "chainerx/scalar.h"
 #include "chainerx/shape.h"
 
@@ -161,7 +162,11 @@ public:
     // Explicitly recovers the original device. It will invalidate the scope object so that dtor will do nothing.
     void Exit() {
         if (!exited_) {
-            SetDefaultDevice(orig_);
+            try {
+                SetDefaultDevice(orig_);
+            } catch (...) {
+                CHAINERX_NEVER_REACH();
+            }
             exited_ = true;
         }
     }

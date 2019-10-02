@@ -4,7 +4,7 @@
 #include <memory>
 #include <tuple>
 
-#include <nonstd/optional.hpp>
+#include <absl/types/optional.h>
 
 #include "chainerx/array.h"
 #include "chainerx/constant.h"
@@ -27,16 +27,8 @@ public:
 
 class MaxPoolKernel : public Kernel {
 public:
-    static const char* name() { return "MaxPool"; }
-
-    virtual std::tuple<Array, std::unique_ptr<MaxPoolGradState>> Call(
-            const Array& x,
-            Dims kernel_size,
-            Dims stride,
-            Dims pad,
-            bool cover_all,
-            bool return_state,
-            const nonstd::optional<Array>& out) = 0;
+    virtual std::tuple<Array, std::unique_ptr<MaxPoolGradState>>
+    Call(const Array& x, Dims kernel_size, Dims stride, Dims pad, bool cover_all, bool return_state, const absl::optional<Array>& out) = 0;
 };
 
 class MaxPoolGradGradState {
@@ -53,30 +45,26 @@ public:
 
 class MaxPoolGradKernel : public Kernel {
 public:
-    static const char* name() { return "MaxPoolGrad"; }
-
     virtual std::tuple<Array, std::unique_ptr<MaxPoolGradGradState>> Call(
             const Array& gout,
-            Dims kernel_size,
-            Dims stride,
-            Dims pad,
+            const Dims& kernel_size,
+            const Dims& stride,
+            const Dims& pad,
             const std::shared_ptr<MaxPoolGradState>& state,
             bool return_state,
-            const nonstd::optional<Array>& gx) = 0;
+            const absl::optional<Array>& gx) = 0;
 };
 
 class MaxPoolGradGradKernel : public Kernel {
 public:
-    static const char* name() { return "MaxPoolGradGrad"; }
-
     virtual Array Call(
             const Array& ggx,
-            Dims kernel_size,
-            Dims stride,
-            Dims pad,
+            const Dims& kernel_size,
+            const Dims& stride,
+            const Dims& pad,
             bool cover_all,
             const std::shared_ptr<MaxPoolGradGradState>& state,
-            const nonstd::optional<Array>& ggout) = 0;
+            const absl::optional<Array>& ggout) = 0;
 };
 
 class AveragePoolGradState {
@@ -93,30 +81,26 @@ public:
 
 class AveragePoolKernel : public Kernel {
 public:
-    static const char* name() { return "AveragePool"; }
-
     virtual std::tuple<Array, std::unique_ptr<AveragePoolGradState>> Call(
             const Array& x,
-            Dims kernel_size,
-            Dims stride,
-            Dims pad,
+            const Dims& kernel_size,
+            const Dims& stride,
+            const Dims& pad,
             AveragePoolPadMode pad_mode,
             bool return_state,
-            const nonstd::optional<Array>& out) = 0;
+            const absl::optional<Array>& out) = 0;
 };
 
 class AveragePoolGradKernel : public Kernel {
 public:
-    static const char* name() { return "AveragePoolGrad"; }
-
     virtual Array Call(
             const Array& gout,
-            Dims kernel_size,
-            Dims stride,
-            Dims pad,
+            const Dims& kernel_size,
+            const Dims& stride,
+            const Dims& pad,
             AveragePoolPadMode pad_mode,
             const std::shared_ptr<AveragePoolGradState>& state,
-            const nonstd::optional<Array>& gx) = 0;
+            const absl::optional<Array>& gx) = 0;
 };
 
 }  // namespace chainerx

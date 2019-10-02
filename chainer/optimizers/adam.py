@@ -71,7 +71,7 @@ def _inplace_axpby(x, a, b, y):
         if a == 1:
             x += b * y
         else:
-            x[:] = a * x + b * y
+            x[...] = a * x + b * y
 
 
 class AdamRule(optimizer.UpdateRule):
@@ -204,7 +204,7 @@ class AdamRule(optimizer.UpdateRule):
             vhat = self.state['vhat']
             # For iDeep
             if isinstance(vhat, intel64.mdarray):
-                vhat = numpy.maximum(vhat, v)
+                vhat[...] = numpy.maximum(vhat, v)
             else:
                 numpy.maximum(vhat, v, out=vhat)
         else:
@@ -217,7 +217,7 @@ class AdamRule(optimizer.UpdateRule):
         # param -=
         #  eta * (step * m - weight_decay_rate * param)
         _inplace_axpby(
-            param.data, 1.0 - hp.weight_decay_rate, -hp.eta, step * m)
+            param.data, 1.0 - hp.eta * hp.weight_decay_rate, -hp.eta, step * m)
 
     def update_core_gpu(self, param):
         grad = param.grad
@@ -240,12 +240,18 @@ class AdamRule(optimizer.UpdateRule):
                     'T eps, T eta, T weight_decay_rate, raw T dummy',
                     'P param, P m, P v, P vhat',
                     '''T grad_ = static_cast<T>(grad);
-                       m += one_minus_beta1 * (grad_ - m);
-                       v += one_minus_beta2 * (grad_ * grad - v);
-                       vhat = max(vhat, v);
+                       T m_ = static_cast<T>(m);
+                       T v_ = static_cast<T>(v);
+                       T vhat_ = static_cast<T>(vhat);
+                       m_ += one_minus_beta1 * (grad_ - m_);
+                       v_ += one_minus_beta2 * (grad_ * grad_ - v_);
+                       vhat_ = max(vhat_, v_);
+                       vhat = static_cast<T>(vhat_);
+                       m = static_cast<P>(m_);
+                       v = static_cast<P>(v_);
                        param -= eta *
-                           (max(min(alpha_t / (sqrt(vhat) + eps), upper),
-                                lower) * m + weight_decay_rate * param);''',
+                           (max(min(alpha_t / (sqrt(vhat_) + eps), upper),
+                                lower) * m_ + weight_decay_rate * param);''',
                     'amsbound')
             AdamRule._amsbound_kernel(
                 grad, self.alpha_t, 1 - hp.beta1,
@@ -261,11 +267,15 @@ class AdamRule(optimizer.UpdateRule):
                     'T eps, T eta, T weight_decay_rate, raw T dummy',
                     'P param, P m, P v',
                     '''T grad_ = static_cast<T>(grad);
-                       m += one_minus_beta1 * (grad_ - m);
-                       v += one_minus_beta2 * (grad_ * grad_ - v);
+                       T m_ = static_cast<T>(m);
+                       T v_ = static_cast<T>(v);
+                       m_ += one_minus_beta1 * (grad_ - m_);
+                       v_ += one_minus_beta2 * (grad_ * grad_ - v_);
+                       m = static_cast<P>(m_);
+                       v = static_cast<P>(v_);
                        param -= eta *
-                           (max(min(alpha_t / (sqrt(v) + eps), upper),
-                                lower) * m + weight_decay_rate * param);''',
+                           (max(min(alpha_t / (sqrt(v_) + eps), upper),
+                                lower) * m_ + weight_decay_rate * param);''',
                     'adabound')
             AdamRule._adabound_kernel(
                 grad, self.alpha_t, 1 - hp.beta1,
@@ -279,10 +289,16 @@ class AdamRule(optimizer.UpdateRule):
                     'T eps, T eta, T weight_decay_rate, raw T dummy',
                     'P param, P m, P v, P vhat',
                     '''T grad_ = static_cast<T>(grad);
-                       m += one_minus_beta1 * (grad_ - m);
-                       v += one_minus_beta2 * (grad_ * grad_ - v);
-                       vhat = max(vhat, v);
-                       param -= eta * (alpha_t * m / (sqrt(vhat) + eps) +
+                       T m_ = static_cast<T>(m);
+                       T v_ = static_cast<T>(v);
+                       T vhat_ = static_cast<T>(vhat);
+                       m_ += one_minus_beta1 * (grad_ - m_);
+                       v_ += one_minus_beta2 * (grad_ * grad_ - v_);
+                       vhat_ = max(vhat_, v_);
+                       vhat = static_cast<T>(vhat_);
+                       m = static_cast<P>(m_);
+                       v = static_cast<P>(v_);
+                       param -= eta * (alpha_t * m_ / (sqrt(vhat_) + eps) +
                                        weight_decay_rate * param);''',
                     'adam')
             AdamRule._amsgrad_kernel(
@@ -298,9 +314,13 @@ class AdamRule(optimizer.UpdateRule):
                     'T eps, T eta, T weight_decay_rate, raw T dummy',
                     'P param, P m, P v',
                     '''T grad_ = static_cast<T>(grad);
-                       m += one_minus_beta1 * (grad_ - m);
-                       v += one_minus_beta2 * (grad_ * grad_ - v);
-                       param -= eta * (alpha_t * m / (sqrt(v) + eps) +
+                       T m_ = static_cast<T>(m);
+                       T v_ = static_cast<T>(v);
+                       m_ += one_minus_beta1 * (grad_ - m_);
+                       v_ += one_minus_beta2 * (grad_ * grad_ - v_);
+                       m = static_cast<P>(m_);
+                       v = static_cast<P>(v_);
+                       param -= eta * (alpha_t * m_ / (sqrt(v_) + eps) +
                                        weight_decay_rate * param);''',
                     'adam')
             AdamRule._kernel(

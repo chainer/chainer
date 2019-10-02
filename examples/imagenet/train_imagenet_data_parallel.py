@@ -23,13 +23,14 @@ from chainer.training import extensions
 from chainer.training import updaters
 import chainerx
 
+from dataset_util import PreprocessedDataset
+
 import alex
 import googlenet
 import googlenetbn
 import nin
 import resnet50
 import resnext50
-import train_imagenet
 
 
 def main():
@@ -93,9 +94,9 @@ def main():
 
     # Load the datasets and mean file
     mean = np.load(args.mean)
-    train = train_imagenet.PreprocessedDataset(
+    train = PreprocessedDataset(
         args.train, args.root, mean, model.insize)
-    val = train_imagenet.PreprocessedDataset(
+    val = PreprocessedDataset(
         args.val, args.root, mean, model.insize, False)
     # These iterators load the images with subprocesses running in parallel to
     # the training/validation.

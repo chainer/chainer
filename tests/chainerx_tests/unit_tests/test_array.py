@@ -706,6 +706,22 @@ def test_array_pickle(device):
         chainerx.array([1, 2], chainerx.float32))
 
 
+# TODO(niboshi): Add pickle test involving context destruction and re-creation
+@pytest.mark.parametrize_device_name(['native:0', 'native:1', 'cuda:0'])
+def test_array_pickle_device_name(device_name):
+    arr = chainerx.array([1, 2], chainerx.float32, device=device_name)
+    s = pickle.dumps(arr)
+    del arr
+
+    arr2 = pickle.loads(s)
+    assert isinstance(arr2, chainerx.ndarray)
+    assert arr2.device.name == device_name
+    assert arr2.dtype == chainerx.float32
+    chainerx.testing.assert_array_equal(
+        arr2,
+        chainerx.array([1, 2], chainerx.float32))
+
+
 # TODO(niboshi): Add deepcopy test with arbitrary context
 @pytest.mark.parametrize_device(['native:0', 'native:1', 'cuda:0'])
 def test_array_deepcopy(device):
@@ -718,3 +734,15 @@ def test_array_deepcopy(device):
     chainerx.testing.assert_array_equal(
         arr2,
         chainerx.array([1, 2], chainerx.float32))
+
+
+def test_is_chained():
+    arr = chainerx.array([1, 2], chainerx.float32)
+    with pytest.raises(chainerx.ChainerxError):
+        arr._is_chained()
+
+    arr.require_grad()
+    assert not arr._is_chained()
+
+    arr2 = 2 * arr
+    assert arr2._is_chained()

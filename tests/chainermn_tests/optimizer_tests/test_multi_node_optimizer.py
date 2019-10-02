@@ -1,4 +1,5 @@
 import chainer
+from chainer.backends.cuda import cupy
 import chainer.testing
 import chainer.testing.attr
 import chainermn
@@ -35,7 +36,7 @@ class TestMultiNodeOptimizer(unittest.TestCase):
         device = self.comm.intra_rank
         chainer.cuda.get_device_from_id(device).use()
         self.target = ExampleModel()
-        self.target.to_gpu()
+        self.target.to_device(cupy.cuda.Device())
         self.target.a.W.data[:] = self.comm.rank
         self.target.b.W.data[:] = self.comm.rank + 1
         self.target.c.W.data[:] = self.comm.rank + 2
@@ -131,7 +132,7 @@ class TestMultiNodeOptimizerWithDynamicModel(unittest.TestCase):
         device = self.comm.intra_rank
         chainer.cuda.get_device_from_id(device).use()
         self.target = DynamicExampleModel()
-        self.target.to_gpu()
+        self.target.to_device(cupy.cuda.Device())
         self.target.a.W.data[:] = self.comm.rank
         self.target.b.W.data[:] = self.comm.rank + 1
         self.target.a.W.grad[:] = 0
@@ -193,7 +194,7 @@ class TestMultiNodeOptimizerWithDynamicModel(unittest.TestCase):
 
         with self.target.init_scope():
             c = chainer.links.Linear(4, 4)
-            c.to_gpu()
+            c.to_device(cupy.cuda.Device())
             self.target.c = c
         if self.comm.rank == 0:
             self.target.c.W.data[:] = self.comm.rank + 2

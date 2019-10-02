@@ -6,8 +6,8 @@
 #include <numeric>
 #include <vector>
 
+#include <absl/types/optional.h>
 #include <gsl/gsl>
-#include <nonstd/optional.hpp>
 
 #include "chainerx/array.h"
 #include "chainerx/axes.h"
@@ -28,6 +28,13 @@
 #include "chainerx/shape.h"
 
 namespace chainerx {
+
+namespace internal {
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(Conv)
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(ConvTranspose)
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(ConvGradWeight)
+}  // namespace internal
+
 namespace native {
 namespace {
 
@@ -36,12 +43,12 @@ public:
     Array Call(
             const Array& x,
             const Array& w,
-            const nonstd::optional<Array>& b,
+            const absl::optional<Array>& b,
             const Dims& stride,
             const Dims& pad,
             bool cover_all,
             Dtype out_dtype,
-            const nonstd::optional<Array>& out) override {
+            const absl::optional<Array>& out) override {
         // TODO(niboshi): Implement and test the `out` argument.
         if (out.has_value()) {
             throw NotImplementedError{"Passing out as an argument is not yet supported."};
@@ -93,7 +100,7 @@ public:
             const Dims& stride,
             const Dims& pad,
             bool cover_all,
-            const nonstd::optional<Array>& out) override {
+            const absl::optional<Array>& out) override {
         CHAINERX_ASSERT(x.ndim() == w_shape.ndim());
 
         // TODO(niboshi): Implement and test the `out` argument.
@@ -127,12 +134,12 @@ public:
     Array Call(
             const Array& x,
             const Array& w,
-            const nonstd::optional<Array>& b,
+            const absl::optional<Array>& b,
             const Dims& stride,
             const Dims& pad,
             const Dims& out_size,
             Dtype out_dtype,
-            const nonstd::optional<Array>& out) override {
+            const absl::optional<Array>& out) override {
         // TODO(niboshi): Implement and test the `out` argument.
         if (out.has_value()) {
             throw NotImplementedError{"Passing out as an argument is not yet supported."};
