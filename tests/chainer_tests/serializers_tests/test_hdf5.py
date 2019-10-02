@@ -193,10 +193,14 @@ class TestHDF5Deserializer(unittest.TestCase):
         # It should be bit-identical to the result directly retrieved from
         # h5py.
         arr_hdf5 = numpy.empty((2, 3), dtype=numpy.float16)
-        with tempfile.TemporaryFile() as buf:
-            with h5py.File(buf, 'w') as f:
+        fd, path = tempfile.mkstemp()
+        os.close(fd)
+        try:
+            with h5py.File(path, 'w') as f:
                 f.create_dataset('a', data=self.data)
                 f['a'].read_direct(arr_hdf5)
+        finally:
+            os.remove(path)
         numpy.testing.assert_array_equal(y, arr_hdf5)
 
     @attr.gpu
