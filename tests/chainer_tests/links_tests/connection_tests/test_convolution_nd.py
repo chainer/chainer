@@ -129,9 +129,12 @@ class TestConvolutionND(testing.LinkTestCase):
         link1 = self.create_link(self.generate_params())
         link1.to_device(backend_config.device)
 
+        if self.in_channels in (None, 'omit'):
+            link1._initialize_params(self.x_shape[1])
+
         link2 = convolution_nd.ConvolutionND.from_params(
             link1.W, link1.b,
-            stride=self.stride, pad=self.pad, groups=self.group)
+            stride=self.stride, pad=self.pad, groups=self.groups)
         assert link2.W.shape == link1.W.shape
         assert link2.b.shape == link1.b.shape
         assert link2.stride == link1.stride
