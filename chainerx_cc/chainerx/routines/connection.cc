@@ -362,8 +362,8 @@ Array Linear(const Array& x, const Array& w, const absl::optional<Array>& b, uin
         }
     }
 
-    BackwardBuilder bb{has_bias ? std::move(BackwardBuilder{"linear", {x_matrix, w, b_matrix}, out_matrix})
-                                : std::move(BackwardBuilder{"linear_nobias", {x_matrix, w}, out_matrix})};
+    BackwardBuilder bb{std::move(has_bias ? BackwardBuilder{"linear", {x_matrix, w, b_matrix}, out_matrix}
+                                          : BackwardBuilder{"linear_nobias", {x_matrix, w}, out_matrix})};
     {
         if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
             bt.Define([x_dtype = x.dtype(), w_matrix_tok = bb.RetainInput(1)](BackwardContext& bctx) {
