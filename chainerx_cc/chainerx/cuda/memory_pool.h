@@ -43,6 +43,8 @@ public:
 // This will be necessary when extending the MemoryPool with a function to explicitly free blocks.
 class Allocator {
 public:
+    virtual ~Allocator() = default;
+
     // Allocates memory.
     // This function may throw.
     virtual MallocStatus Malloc(void** ptr, size_t bytesize) = 0;
