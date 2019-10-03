@@ -23,6 +23,15 @@ if hdf5._available:
     import h5py
 
 
+# The tests call `fd, path = tempfile.mkstemp(); os.close(fd)` rather than
+# `with tempfile.TemporaryFile() as f:` because the file-like objects support
+# for `h5py.File` is from h5py>=2.9 (h5py/h5py#1061). h5py>=2.5 is supported.
+#
+# `os.remove(path)` is necessary. The tests could utilize
+# `tempfile.NamedTemporaryFile` but cannot utilize its with-blocks because it
+# is platform-dependent behavior to open `f.name` before `f.file` is closed.
+
+
 @unittest.skipUnless(hdf5._available, 'h5py is not available')
 class TestHDF5Serializer(unittest.TestCase):
 
