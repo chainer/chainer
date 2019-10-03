@@ -31,11 +31,7 @@ requirements = {
         'typing_extensions' + ('<=3.6.6' if sys.version_info[0] <= 2 else ''),
         'filelock',
         'numpy>=1.9.0',
-        # protobuf 3.8.0rc1 causes CI errors.
-        # TODO(niboshi): Probably we should always use pip in CIs for
-        # installing chainer. It avoids pre-release dependencies by default.
-        # See also: https://github.com/pypa/setuptools/issues/855
-        'protobuf>=3.0.0,<3.8.0rc1',
+        'protobuf>=3.0.0',
         'six>=1.9.0',
     ],
     'stylecheck': [
