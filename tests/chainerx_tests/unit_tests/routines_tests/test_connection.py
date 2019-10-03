@@ -248,7 +248,10 @@ class TestConvTensorCore(_ConvTestBase, op_utils.ChainerOpTest):
     ((2, 3, 4, 3), (5, 3, 2, 2, 1), (5,), 3, 2, 1),
     ((1, 3, 4, 3), (5, 3, 2, 2), (6,), 1, 0, 1),  # Mismatched w and b.
     ((2, 3, 4, 3), (5, 3, 2, 2), None, (1,), 0, 1),  # Wrong number of strides.
-    ((1, 3, 4, 3), (5, 3, 2, 2), None, 3, (2,), 1),  # Wrong number of paddings.
+    # Wrong number of paddings.
+    ((1, 3, 4, 3), (5, 3, 2, 2), None, 3, (2,), 1),
+    # Mismatch w with dilation.
+    ((1, 3, 4, 3), (5, 3, 2, 2), None, 3, (2,), 2),
 ])
 @pytest.mark.parametrize('cover_all', [True, False])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
@@ -318,7 +321,8 @@ class _ConvTransposeTestBase(object):
             stride_tup = (
                 (stride,) * ndim if isinstance(stride, int) else stride)
             pad_tup = (pad,) * ndim if isinstance(pad, int) else pad
-            dilate_tup = (dilate,) * ndim if isinstance(dilate, int) else dilate
+            dilate_tup = (dilate,) * ndim \
+                if isinstance(dilate, int) else dilate
             outsize = tuple(
                 chainer.utils.conv.get_deconv_outsize(d, k, s, p, cover_all, d)
                 for (d, k, s, p, d)
@@ -364,7 +368,8 @@ class _ConvTransposeTestBase(object):
         if b is not None and b.dtype.kind != 'f':
             b = F.cast(b, 'float64')
         y = chainer.functions.deconvolution_nd(
-            x, w, b, self.stride, self.pad, self.outsize)
+            x, w, b, stride=self.stride, pad=self.pad,
+            outsize=self.outsize, dilate=self.dilate)
         y = F.cast(y, self.out_dtype)
         return y,
 
@@ -377,8 +382,9 @@ class _ConvTransposeTestBase(object):
             'x_shape,w_shape,b_shape,stride,pad,dilate', [
                 ((1, 3), (3, 5), None, 1, 0, 1),
                 ((1, 3, 4), (3, 5, 2), None, 3, 2, 1),
-                ((2, 3, 4, 4), (3, 2, 3, 3), None, 2, (2, 0), 1),
-                ((2, 3, 5, 6, 3), (3, 2, 1, 3, 2), None, (1, 2, 3), (2, 0, 1), 1),
+                ((2, 3, 4, 4), (3, 2, 3, 3), None, 2, (2, 0), (1, 1)),
+                ((2, 3, 5, 6, 3), (3, 2, 1, 3, 2), None, (1, 2, 3), (2, 0, 1),
+                 (1, 1, 1)),
             ]),
         chainer.testing.from_pytest_parameterize(
             'in_dtypes,out_dtype', dtype_utils.result_dtypes_two_arrays)
@@ -392,9 +398,11 @@ class _ConvTransposeTestBase(object):
                 ((1, 3, 4), (3, 5, 2), (5,), 3, 2, 1),
                 ((2, 3, 4, 4), (3, 2, 3, 3), (2,), 1, 0, 1),
                 ((1, 3, 4, 4), (3, 2, 3, 3), (2,), (1, 2), 1, 1),
-                ((1, 3, 4, 4), (3, 2, 3, 3), (2,), 2, (2, 0), 1),
-                ((1, 3, 5, 6, 3), (3, 2, 1, 3, 2), (2,), 2, (2, 0, 1), 1),
-                ((1, 3, 5, 6, 3), (3, 2, 1, 3, 2), (2,), (1, 2, 3), (2, 0, 1), 1),
+                ((1, 3, 4, 4), (3, 2, 3, 3), (2,), 2, (2, 0), (1, 1)),
+                ((1, 3, 5, 6, 3), (3, 2, 1, 3, 2), (2,), 2, (2, 0, 1),
+                 (1, 1, 1)),
+                ((1, 3, 5, 6, 3), (3, 2, 1, 3, 2), (2,), (1, 2, 3), (2, 0, 1),
+                 (1, 1, 1)),
             ]),
         chainer.testing.from_pytest_parameterize(
             'in_dtypes,out_dtype', dtype_utils.result_dtypes_three_arrays)
@@ -449,7 +457,8 @@ class TestConvTransposeTensorCore(
      (-1, 13, 4), 1),  # All output sizes must be non-negative
     # All output sizes must be non-negative
     ((1, 3, 2, 6, 3), (3, 2, 1, 3, 2), (2,), 2, (2, 0, 1), 1, None),
-    ((2, 3, 4), (3, 5, 1), (5,), 1, 0, (5,), 1),  # Output dims are inconsistent
+    # Output dims are inconsistent
+    ((2, 3, 4), (3, 5, 1), (5,), 1, 0, (5,), 1),
 ])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_conv_transpose_invalid(
