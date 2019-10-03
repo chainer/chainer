@@ -33,6 +33,10 @@ class UnaryMathTestBase(object):
             self.check_backward_options.update({'rtol': 3e-3, 'atol': 3e-3})
             self.check_double_backward_options.update(
                 {'rtol': 1e-2, 'atol': 1e-2})
+        else:
+            self.check_backward_options.update({'rtol': 1e-3, 'atol': 1e-4})
+            self.check_double_backward_options.update(
+                {'rtol': 1e-3, 'atol': 1e-4})
 
     def generate_inputs(self):
         in_dtype, = self.in_dtypes
