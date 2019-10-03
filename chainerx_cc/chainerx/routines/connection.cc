@@ -129,7 +129,7 @@ Array ConvGradWeight(
     return out;
 }
 
-void ConvCheckNdim(const Array& x, const Array& w, const Dims& stride, const Dims& pad) {
+void ConvCheckNdim(const Array& x, const Array& w, const Dims& stride, const Dims& pad, const Dims& dilate) {
     if (w.ndim() != x.ndim()) {
         throw DimensionError{"Mismatched number of dimensions between input ", x.ndim(), " and weights ", w.ndim(), "."};
     }
@@ -142,6 +142,9 @@ void ConvCheckNdim(const Array& x, const Array& w, const Dims& stride, const Dim
     }
     if (static_cast<int8_t>(pad.size()) != ndim) {
         throw DimensionError{"Wrong numbers of paddings ", pad.size(), " for input with ", x.ndim(), " dimensions."};
+    }
+    if (static_cast<int8_t>(dilate.size()) != ndim) {
+        throw DimensionError{"Wrong numbers of dilations ", dilate.size(), " for input with ", x.ndim(), " dimensions."};
     }
     if (std::any_of(stride.begin(), stride.end(), [](int64_t s) { return s <= 0; })) {
         throw DimensionError{"Stride elements must be greater than 0: ", DimsFormatter{stride}, "."};
@@ -159,7 +162,7 @@ Array Conv(
         const Dims& dilate,
         bool cover_all,
         absl::optional<Dtype> out_dtype) {
-    ConvCheckNdim(x, w, stride, pad);
+    ConvCheckNdim(x, w, stride, pad, dilate);
     if (w.shape()[1] != x.shape()[1]) {
         throw DimensionError{"Mismatched number of input channels in input ", x.shape(), " and weights ", w.shape(), "."};
     }
@@ -231,7 +234,7 @@ Array ConvTranspose(
         const Dims& dilate,
         const absl::optional<Dims>& out_size,
         absl::optional<Dtype> out_dtype) {
-    ConvCheckNdim(x, w, stride, pad);
+    ConvCheckNdim(x, w, stride, pad, dilate);
     if (x.shape()[1] != w.shape()[0]) {
         throw DimensionError{"Mismatched number of input channels in input ", x.shape(), " and weights ", w.shape(), "."};
     }
