@@ -221,11 +221,11 @@ public:
 
         // TODO(hvy): Implement recomputation of x_cont, x_mean and x_inv_std in case they are not given by the state.
         CHAINERX_ASSERT(state != nullptr);
-        auto cuda_state = dynamic_cast<CudaBatchNormGradState*>(state.get());
-        const Array& x_cont = cuda_state->x_cont();
-        const Array& x_mean = cuda_state->x_mean();
-        const Array& x_inv_std = cuda_state->x_inv_std();
-        Dtype beta_dtype = cuda_state->beta_dtype();
+        auto& cuda_state = dynamic_cast<CudaBatchNormGradState&>(*state);
+        const Array& x_cont = cuda_state.x_cont();
+        const Array& x_mean = cuda_state.x_mean();
+        const Array& x_inv_std = cuda_state.x_inv_std();
+        Dtype beta_dtype = cuda_state.beta_dtype();
         CHAINERX_ASSERT(x_cont.IsContiguous());
         CHAINERX_ASSERT(x_cont.shape() == x.shape());
         CHAINERX_ASSERT(x_mean.shape() == gamma.shape());
