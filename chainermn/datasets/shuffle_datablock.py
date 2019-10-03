@@ -119,16 +119,21 @@ def _exchange_block(comm, data, block, cur_length_all, block_length_all):
     for dest_rank in range(comm.size):
         if dest_rank == comm.rank:
             continue
+
         num_elem = send_counts.get((comm.rank, dest_rank), 0)
+        if num_elem == 0:
+            continue
 
         send_buf[dest_rank] = block[offset:offset + num_elem]
-        while len(send_buf) < num_elem:
+        while len(send_buf[dest_rank]) < num_elem:
             # In case of force_equal_length, the process may have to send
             # more data than `block` has. We need to duplicate some elements
             # from `block`.
-            send_buf.append(random.choice(block))
+            send_buf[dest_rank].append(random.choice(block))
         offset = (offset + num_elem) % len(block)
-    data += comm.alltoall(send_buf)
+    print("send_buf = {}".format(send_buf))
+    assert len(send_buf) == comm.size
+    data += comm.mpi_comm.alltoall(send_buf)
     return new_length_all
 
 
@@ -151,6 +156,9 @@ def shuffle_data_blocks(comm, data_blocks, force_equal_length=True,
     :param block_size: Number of elements read from `data_blocks` at a time
     :return: Shuffled data (in a list)
     """
+    if not hasattr(comm, 'mpi_comm'):
+        raise NotImplementedError('shuffle_data_blocks() function depends on'
+                                  'MPI-based ChainerMN communicator.')
 
     if force_equal_length not in [None, True, False]:
         raise ValueError('Wrong value for `force_equal_length`:'
