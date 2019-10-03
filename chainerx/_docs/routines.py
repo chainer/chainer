@@ -8,6 +8,7 @@ def set_docs():
     _docs_indexing()
     _docs_linalg()
     _docs_logic()
+    _docs_loss()
     _docs_manipulation()
     _docs_math()
     _docs_sorting()
