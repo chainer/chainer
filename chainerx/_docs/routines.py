@@ -759,6 +759,30 @@ Note:
 .. seealso:: :func:`numpy.linalg.qr`
 """)
 
+    _docs.set_doc(
+        chainerx.linalg.cholesky,
+        """cholesky(a)
+Computes the Cholesky decomposition of a matrix.
+
+Returns the Cholesky decomposition, :math:`A = L L^T`,
+for the square matrix ``a``.
+
+Args:
+    a (~chainerx.ndarray): Symmetric positive-definite input matrix.
+
+Returns:
+    :class:`~chainerx.ndarray`: Output array. Cholesky factor of ``a``.
+
+Note:
+    * GPU implementation of the Cholesky decomposition routine is based on
+      cuSOLVER library. Older versions (<10.1) of it might not raise an error
+      for some non positive-definite matrices.
+    * The ``dtype`` must be ``float32`` or ``float64`` (``float16`` is not
+      supported yet.)
+
+.. seealso:: :func:`numpy.linalg.cholesky`
+""")
+
 
 def _docs_logic():
     _docs.set_doc(

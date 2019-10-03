@@ -303,7 +303,6 @@ def resize_images(x, output_shape, mode='bilinear', align_corners=True):
     """Resize images to the given shape.
 
     This function resizes 2D data to :obj:`output_shape`.
-    Currently, only bilinear interpolation is supported as the sampling method.
 
     Notation: here is a notation for dimensionalities.
 

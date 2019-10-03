@@ -37,4 +37,9 @@ public:
     virtual void Call(const Array& a, const Array& q, const Array& r, const Array& tau, QrMode mode) = 0;
 };
 
+class CholeskyKernel : public Kernel {
+public:
+    virtual void Call(const Array& a, const Array& out) = 0;
+};
+
 }  // namespace chainerx
