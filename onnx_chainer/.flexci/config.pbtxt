@@ -1,0 +1,44 @@
+configs {
+  key: "onnxchainer.py37.gpu"
+  value {
+    requirement {
+      cpu: 4
+      disk: 10
+      memory: 16
+      gpu: 1
+    }
+    time_limit {
+      seconds: 600
+    }
+    command: "sh onnx_chainer/.flexci/run_test.sh"
+    environment_variables {
+      key: "PYTHON_VER"
+      value: "37"
+    }
+    environment_variables {
+      key: "ONNX_VER"
+      value: ""
+    }
+    environment_variables {
+      key: "EXAMPLE_ARGS"
+      value: "-G 0"
+    }
+  }
+}
+
+configs {
+  key: "onnxchainer.win.py37.gpu"
+  value {
+    requirement {
+      cpu: 4
+      disk: 10
+      memory: 16
+      gpu: 1
+      image: "windows"
+    }
+    time_limit {
+      seconds: 600
+    }
+    command: "onnx_chainer\\.flexci\\run_test.bat 10_0 37"
+  }
+}
