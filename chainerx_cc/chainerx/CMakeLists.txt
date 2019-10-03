@@ -1,5 +1,7 @@
 include_directories("${PROJECT_SOURCE_DIR}")
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CHAINERX_CXX_FLAGS}")
+
 add_subdirectory(kernels)
 add_subdirectory(routines)
 add_subdirectory(native)
