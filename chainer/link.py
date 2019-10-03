@@ -396,8 +396,10 @@ class Link(device_resident.DeviceResident):
 
         This method initializes the link with given :ref:`ndarray`\\s.
         Arguments includes
-            * some parameters for a specific link.
-            * arguments for non-parameter.
+
+        * some parameters for a specific link.
+        * constants such as stride width of a convolutional layer.
+
         """
         raise NotImplementedError(
             'This link does not implement `from_params`.')
