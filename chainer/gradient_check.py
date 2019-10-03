@@ -555,18 +555,45 @@ class _CheckBackward(object):
             None if shape is None
             else xp.random.normal(size=shape) for shape in direction_shapes]
 
+        if all([d is None or d.size == 0 for d in directions]):
+            return directions
+
+        # For simplicity omit None from the vector. They're recovered later.
+        none_indices = [i for i, d in enumerate(directions) if d is None]
+        directions = [d for d in directions if d is not None]
+
         # The direction vector is normalized in order to keep the scale of
         # differentiation error invariant with respect to the number of input
         # dimensions. Ideally, the scale of the curvature with respect to each
         # input dimension should be taken into account, but we ignore the
         # differences and assume that the curvature is uniform with respect to
         # all the input dimensions.
-        norm = math.sqrt(
-            sum([0 if d is None else xp.square(d).sum() for d in directions]))
-        if norm != 0:
-            # norm could be zero if input arrays are 0-sized.
-            scale = 1. / norm
-            directions = [None if d is None else d * scale for d in directions]
+        norm = math.sqrt(sum([xp.square(d).sum() for d in directions]))
+        scale = 1. / norm
+        directions = [xp.asarray(d * scale) for d in directions]
+
+        # Small elements in the direction vector leads to instability on
+        # gradients comparison.
+        # In order to avoid that, absolute values are capped at 0.1 / sqrt(N)
+        # at minimum, where N is the number of elements. Other elements are
+        # scaled uniformly so that the total L2 norm will remain 1.
+        min_d = 0.1 / math.sqrt(sum([d.size for d in directions]))
+        is_small = [min_d > xp.abs(d) for d in directions]
+        is_large = [xp.logical_not(iss) for iss in is_small]
+        n_small = sum([iss.sum() for iss in is_small])
+        sq_large = sum(
+            [xp.square(d[isl]).sum() for d, isl in zip(directions, is_large)])
+        scale = xp.sqrt((1 - n_small * min_d ** 2) / sq_large)
+
+        for d, iss, isl in zip(directions, is_small, is_large):
+            # Cap small elements.
+            d[iss] = xp.sign(d[iss]) * min_d
+            # Scale large elements.
+            d[isl] *= scale
+
+        # Recover Nones in the vector.
+        for i in none_indices:
+            directions.insert(i, None)
 
         return directions
 
