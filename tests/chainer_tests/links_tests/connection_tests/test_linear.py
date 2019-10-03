@@ -202,7 +202,7 @@ class TestLinearFromParams(unittest.TestCase):
 
     def test_from_params(self):
         link1 = links.Linear(
-            self.in_size, self.out_size, nobias=self.nobias).to_device
+            self.in_size, self.out_size, nobias=self.nobias)
         link2 = links.Linear.from_params(link1.W, link1.b, nobias=self.nobias)
 
         assert link1.W.shape == link2.W.shape
