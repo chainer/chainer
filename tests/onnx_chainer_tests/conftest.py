@@ -57,7 +57,7 @@ def target_opsets(request):
     else:
         try:
             versions = [int(i) for i in opsets.split(',')]
-        except ValueError as e:
+        except ValueError:
             raise ValueError('cannot convert {} to versions list'.format(
                 opsets))
         return versions

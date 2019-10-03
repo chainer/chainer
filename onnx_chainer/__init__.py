@@ -1,5 +1,3 @@
-import pkg_resources
-
 from onnx_chainer.export import convert_parameter  # NOQA
 from onnx_chainer.export import export  # NOQA
 
