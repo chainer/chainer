@@ -368,13 +368,13 @@ public:
         CudaSetDeviceScope scope{device.index()};
 
         cuda_internal::DeviceInternals& device_internals = cuda_internal::GetDeviceInternals(device);
-        auto cuda_state = dynamic_cast<GenericRnnGradState&>(*state);
+        auto cuda_state = dynamic_cast<GenericRnnGradState*>(state.get());
         Dtype type = hx.dtype();
         const auto input_dim = xs[0].shape()[1];
         const auto hidden_dim = hx.shape()[2];
         const auto num_directions = bidirectional == 1 ? 2 : 1;
 
-        cudnnRNNDescriptor_t rnn_desc = cuda_state.rnn_desc();
+        cudnnRNNDescriptor_t rnn_desc = cuda_state->rnn_desc();
         std::vector<Array> dxs;
         std::vector<cuda_internal::CudnnTensorDescriptor> _xs_desc, _dxs_desc, _ys_desc, _dys_desc;
         cudnnTensorDescriptor_t* xs_desc = reinterpret_cast<cudnnTensorDescriptor_t*>(malloc(xs.size() * sizeof(cudnnTensorDescriptor_t)));
@@ -403,10 +403,10 @@ public:
         Array x = AsContiguous(Concatenate(xs_cont, 0));
         Array y = AsContiguous(Concatenate(ys, 0));
         Array dy = AsContiguous(Concatenate(dys, 0));
-        cudnnFilterDescriptor_t w_desc = cuda_state.wDesc();
-        Array w = AsContiguous(cuda_state.w());
-        Array reserve = AsContiguous(cuda_state.reserve());
-        Array workspace = AsContiguous(cuda_state.workspace());
+        cudnnFilterDescriptor_t w_desc = cuda_state->wDesc();
+        Array w = AsContiguous(cuda_state->w());
+        Array reserve = AsContiguous(cuda_state->reserve());
+        Array workspace = AsContiguous(cuda_state->workspace());
         size_t reserve_size = reserve.shape()[0];
         size_t work_size = workspace.shape()[0];
         hx = AsContiguous(hx.AsType(Dtype::kFloat32));
