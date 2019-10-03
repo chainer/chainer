@@ -641,6 +641,7 @@ def conv(
         b: tp.Optional[ndarray]=None,
         stride: tp.Union[int, tp.Tuple[int, ...]]=...,
         pad: tp.Union[int, tp.Tuple[int, ...]]=...,
+        dilate: tp.Union[int, tp.Tuple[int, ...]]=...,
         cover_all: bool=False) -> ndarray: ...
 
 
@@ -650,6 +651,7 @@ def conv_transpose(
         b: tp.Optional[ndarray]=None,
         stride: tp.Union[int, tp.Tuple[int, ...]]=...,
         pad: tp.Union[int, tp.Tuple[int, ...]]=...,
+        dilate: tp.Union[int, tp.Tuple[int, ...]]=...,
         outsize: tp.Optional[tp.Tuple[int, ...]]=None) -> ndarray: ...
 
 

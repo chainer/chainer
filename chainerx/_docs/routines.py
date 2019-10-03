@@ -2638,7 +2638,7 @@ Returns:
 def _docs_connection():
     _docs.set_doc(
         chainerx.conv,
-        """conv(x, w, b=None, stride=1, pad=0, cover_all=False)
+        """conv(x, w, b=None, stride=1, pad=0, dilate=1, cover_all=False)
 N-dimensional convolution.
 
 This is an implementation of N-dimensional convolution which is generalized
@@ -2699,6 +2699,9 @@ Args:
         Spatial padding width for input arrays
         :math:`(p_1, p_2, ..., p_N)`. ``pad=p`` is equivalent to
         ``(p, p, ..., p)``.
+    dilate (:class:`int` or :class:`tuple` of :class:`int` s):
+        Dilation factor of filter applications.
+        ``dilate=d`` and :math:`dilate=(d, d, ..., d)` are equivalent.
     cover_all (bool): If ``True``, all spatial locations are convoluted
         into some output pixels. It may make the output size larger.
         `cover_all` needs to be ``False`` if you want to use ``cuda`` backend.
@@ -2763,7 +2766,7 @@ astype(np.float32)
 
     _docs.set_doc(
         chainerx.conv_transpose,
-        """conv_transpose(x, w, b=None, stride=1, pad=0, outsize=None)
+        """conv_transpose(x, w, b=None, stride=1, pad=0, dilate=1, outsize=None)
 N-dimensional transposed convolution.
 
 This is an implementation of N-dimensional transposed convolution, which is
@@ -2821,6 +2824,9 @@ Args:
         Spatial padding width for input arrays
         :math:`(p_1, p_2, ..., p_N)`. ``pad=p`` is equivalent to
         ``(p, p, ..., p)``.
+    dilate (:class:`int` or :class:`tuple` of :class:`int` s):
+        Dilation factor of filter applications.
+        ``dilate=d`` and :math:`dilate=(d, d, ..., d)` are equivalent.
     outsize (None or :class:`tuple` of :class:`int` s):
         Expected output size of deconvolutional operation. It should be a
         tuple of ints :math:`(l_1, l_2, ..., l_N)`. Default value is
