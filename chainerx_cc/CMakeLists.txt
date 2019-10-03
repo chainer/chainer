@@ -65,6 +65,7 @@ option(CHAINERX_ENABLE_LAPACK "Use LAPACK if available" ${DEFAULT_CHAINERX_ENABL
 if(MSVC)
     option(CUDA_USE_STATIC_CUDA_RUNTIME "Use the static version of the CUDA runtime library if available" OFF)
     set(CUDA_USE_STATIC_CUDA_RUNTIME OFF CACHE INTERNAL "")
+    add_definitions(-DWIN32_LEAN_AND_MEAN)
 endif()
 
 #-------------
@@ -188,6 +189,13 @@ if(${CHAINERX_BUILD_CUDA})
         list(APPEND CUDA_NVCC_FLAGS --generate-code=arch=compute_70,code=sm_70)
     endif()
 
+    # cuSOLVER requires OpenMP
+    if(MSVC)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /openmp")
+    else()
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
+    endif()
+
     if(MSVC)
         if(CMAKE_CXX_COMPILER_ID MATCHES "GCC|Clang")
             list(APPEND CUDA_NVCC_FLAGS -Xcompiler /MD)
@@ -217,7 +225,6 @@ if(${CHAINERX_ENABLE_LAPACK})
         add_definitions(-DCHAINERX_ENABLE_LAPACK=1)
     else()
         message(STATUS "LAPACK not found")
-        add_definitions(-DCHAINERX_ENABLE_LAPACK=0)
     endif()
 endif()
 

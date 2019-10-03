@@ -18,7 +18,10 @@ params = [Param(p) for p in [
     {
         'dtype': numpy.float16,
     }, {
-        'dtype': numpy.float32, }]]
+        'dtype': numpy.float32,
+    }, {
+        'dtype': chainer.mixed16,
+    }]]
 
 
 def get_communicator(gpu):
@@ -53,6 +56,7 @@ def check_all_gather(xs, communicator):
 @pytest.mark.parametrize('param', params)
 def test_all_gather_cpu(param):
     communicator = get_communicator(False)
+
     with chainer.using_config('dtype', param.dtype):
         xs = [chainer.Variable(
             numpy.random.normal(size=(10, i + 1)).astype(param.dtype))
@@ -90,6 +94,7 @@ def check_all_to_all(xs, communicator):
 @pytest.mark.parametrize('param', params)
 def test_all_to_all_cpu(param):
     communicator = get_communicator(False)
+
     with chainer.using_config('dtype', param.dtype):
         data = [
             chainer.Variable(numpy.zeros(
@@ -104,7 +109,6 @@ def test_all_to_all_gpu(param):
     communicator = get_communicator(True)
 
     with chainer.using_config('dtype', param.dtype):
-        # chainer.cuda.get_device_from_id(device).use()
         data = [chainer.Variable(
                 numpy.zeros((communicator.rank + 1, i + 1), dtype=param.dtype))
                 for i in range(communicator.size)]
@@ -180,6 +184,7 @@ def check_gather(xs, communicator):
 @pytest.mark.parametrize('param', params)
 def test_gather_cpu(param):
     communicator = get_communicator(False)
+
     with chainer.using_config('dtype', param.dtype):
         xs = [chainer.Variable(
             numpy.random.normal(size=(100, 100)).astype(param.dtype))
@@ -191,6 +196,7 @@ def test_gather_cpu(param):
 @chainer.testing.attr.gpu
 def test_gather_gpu(param):
     communicator = get_communicator(True)
+
     with chainer.using_config('dtype', param.dtype):
         xs = [chainer.Variable(
             numpy.random.normal(size=(100, 100)).astype(param.dtype))
@@ -203,6 +209,7 @@ def test_gather_gpu(param):
 @pytest.mark.parametrize('param', params)
 def test_gatherv_cpu(param):
     communicator = get_communicator(False)
+
     with chainer.using_config('dtype', param.dtype):
         xs = [chainer.Variable(
             numpy.random.normal(size=(i + 1, i + 1)).astype(param.dtype))
@@ -214,6 +221,7 @@ def test_gatherv_cpu(param):
 @chainer.testing.attr.gpu
 def test_gatherv_gpu(param):
     communicator = get_communicator(True)
+
     with chainer.using_config('dtype', param.dtype):
         xs = [chainer.Variable(
             numpy.random.normal(size=(i + 1, i + 1)).astype(param.dtype))
@@ -243,6 +251,7 @@ def check_scatter(xs, communicator):
 @pytest.mark.parametrize('param', params)
 def test_scatter_cpu(param):
     communicator = get_communicator(False)
+
     with chainer.using_config('dtype', param.dtype):
         xs = [chainer.Variable(
             numpy.random.normal(size=(100, 100)).astype(param.dtype))
@@ -254,6 +263,7 @@ def test_scatter_cpu(param):
 @chainer.testing.attr.gpu
 def test_scatter_gpu(param):
     communicator = get_communicator(True)
+
     with chainer.using_config('dtype', param.dtype):
         xs = [chainer.Variable(
             numpy.random.normal(size=(100, 100)).astype(param.dtype))
@@ -266,6 +276,7 @@ def test_scatter_gpu(param):
 @pytest.mark.parametrize('param', params)
 def test_scatterv_cpu(param):
     communicator = get_communicator(False)
+
     with chainer.using_config('dtype', param.dtype):
         xs = [chainer.Variable(
             numpy.random.normal(size=(i + 1, i + 1)).astype(param.dtype))
@@ -277,6 +288,7 @@ def test_scatterv_cpu(param):
 @chainer.testing.attr.gpu
 def test_scatterv_gpu(param):
     communicator = get_communicator(True)
+
     with chainer.using_config('dtype', param.dtype):
         xs = [chainer.Variable(
             numpy.random.normal(size=(i + 1, i + 1)).astype(param.dtype))

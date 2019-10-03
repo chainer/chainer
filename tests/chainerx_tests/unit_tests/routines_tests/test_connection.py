@@ -17,6 +17,59 @@ class Unspecified(object):
     pass
 
 
+lstm_dtypes_valid = dtype_utils._permutate_dtype_mapping([
+    # Floats.
+    (('float16', 'float16'), ('float16', 'float16')),
+    (('float32', 'float32'), ('float32', 'float32')),
+    (('float64', 'float64'), ('float64', 'float64')),
+])
+
+
+lstm_dtypes_invalid = dtype_utils._permutate_dtype_mapping([
+    # Bools.
+    (('bool_', 'bool_'), ('bool_', 'bool_')),
+    # Floats.
+    (('float32', 'float16'), ('float32', 'float16')),
+    (('float64', 'float16'), ('float64', 'float16')),
+    (('float64', 'float32'), ('float64', 'float32')),
+    # Signed ints.
+    (('int8', 'int8'), ('int8', 'int8')),
+    (('int8', 'int16'), ('int8', 'int16')),
+    (('int8', 'int32'), ('int8', 'int32')),
+    (('int8', 'int64'), ('int8', 'int64')),
+    (('int16', 'int16'), ('int16', 'int16')),
+    (('int32', 'int32'), ('int32', 'int32')),
+    (('int64', 'int64'), ('int64', 'int64')),
+    (('int16', 'int32'), ('int16', 'int32')),
+    (('int16', 'int64'), ('int16', 'int64')),
+    (('int32', 'int64'), ('int32', 'int64')),
+    # Unsigned ints.
+    (('uint8', 'uint8'), ('uint8', 'uint8')),
+    # Signed int and unsigned int.
+    (('uint8', 'int8'), ('uint8', 'int8')),
+    (('uint8', 'int16'), ('uint8', 'int16')),
+    (('uint8', 'int32'), ('uint8', 'int32')),
+    # Int and float.
+    (('int8', 'float16'), ('int8', 'float16')),
+    (('uint8', 'float16'), ('uint8', 'float16')),
+    (('int16', 'float32'), ('int16', 'float32')),
+    (('int32', 'float32'), ('int32', 'float32')),
+    (('int64', 'float32'), ('int64', 'float32')),
+    # Bool and other.
+    (('bool_', 'uint8'), ('bool_', 'uint8')),
+    (('bool_', 'int8'), ('bool_', 'int8')),
+    (('bool_', 'int16'), ('bool_', 'int16')),
+    (('bool_', 'float16'), ('bool_', 'float16')),
+    (('bool_', 'float64'), ('bool_', 'float64')),
+])
+
+
+def _create_lstm_args(xp, device, c_shape, x_shape, float_dtype):
+    c = array_utils.create_dummy_ndarray(xp, c_shape, float_dtype[0])
+    x = array_utils.create_dummy_ndarray(xp, x_shape, float_dtype[1])
+    return c, x
+
+
 def _create_conv_args(
         xp, device, x_shape, w_shape, b_shape, stride, pad, cover_all,
         float_dtype):
@@ -173,6 +226,12 @@ class TestConvTensorCore(_ConvTestBase, op_utils.ChainerOpTest):
     in_dtypes = ('float16', 'float16', 'float16')
     out_dtype = 'float16'
     cover_all = False
+
+    def __init__(self):
+        # TODO(imanishi): Skip only if compute_capability < 70.
+        # Huge floating-point error often arises, because our CI environment
+        # have no Tensor Cores.
+        raise unittest.SkipTest()
 
     def generate_inputs(self):
         x, w, b = super().generate_inputs()
@@ -358,6 +417,12 @@ class TestConvTransposeTensorCore(
     in_dtypes = ('float16', 'float16', 'float16')
     out_dtype = 'float16'
 
+    def __init__(self):
+        # TODO(imanishi): Skip only if compute_capability < 70.
+        # Huge floating-point error often arises, because our CI environment
+        # have no Tensor Cores.
+        raise unittest.SkipTest()
+
     def generate_inputs(self):
         x, w, b = super().generate_inputs()
         return _convert_to_nhwc_layout(x), w, b
@@ -519,3 +584,93 @@ class TestLinear(op_utils.OpTest):
 
         assert y.dtype == out_dtype
         return y,
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    chainer.testing.product([
+        chainer.testing.from_pytest_parameterize(
+            'c_shape,x_shape', [
+                ((10, 3), (10, 12)),
+                ((20, 32), (16, 128)),
+                ((32, 100), (32, 400)),
+                ((16, 20), (2, 80)),
+            ]),
+        chainer.testing.from_pytest_parameterize(
+            'in_dtypes,out_dtype', lstm_dtypes_valid)
+    ])
+))
+@chainer.testing.parameterize_pytest('cover_all', [True, False])
+class TestLstm(op_utils.ChainerOpTest):
+
+    def setup(self):
+        c_dtype, x_dtype = self.in_dtypes
+
+        if 0 in self.c_shape or 0 in self.x_shape:
+            self.skip_backward_test = True
+            self.skip_double_backward_test = True
+
+        if (c_dtype == 'float16' or x_dtype == 'float16'):
+            self.check_forward_options.update({
+                'rtol': 1e-2, 'atol': 1e-2})
+            self.check_backward_options.update({
+                'rtol': 1e-2, 'atol': 1e-2})
+            self.check_double_backward_options.update({
+                'rtol': 1e-2, 'atol': 1e-2})
+
+    def generate_inputs(self):
+        c_shape = self.c_shape
+        x_shape = self.x_shape
+        c_dtype, x_dtype = self.in_dtypes
+
+        c = array_utils.uniform(c_shape, c_dtype)
+        x = array_utils.uniform(x_shape, x_dtype)
+        return c, x
+
+    def forward_chainerx(self, inputs):
+        c, x = inputs
+        c, h = chainerx.lstm(c, x)
+        return c, h,
+
+    def forward_chainer(self, inputs):
+        c, x = inputs
+        c, h = chainer.functions.lstm(c, x)
+        return c, h,
+
+
+@pytest.mark.parametrize('c_shape,x_shape', [
+    # x.shape()[0] > c.shape()[0]
+    ((16, 20), (20, 80)),
+    ((10, 3), (12, 12)),
+    # x.shape()[1] != 4 * c.shape()[1]
+    ((32, 100), (32, 150)),
+    ((16, 50), (16, 48)),
+    ((64, 200), (16, 200)),
+])
+@pytest.mark.parametrize('cover_all', [True, False])
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_lstm_invalid_dimension(
+        device, c_shape, x_shape, cover_all,
+        float_dtype):
+    with pytest.raises(chainerx.DimensionError):
+        chainerx.lstm(
+            *_create_lstm_args(
+                chainerx, device, c_shape, x_shape,
+                (float_dtype, float_dtype)))
+
+
+@pytest.mark.parametrize('c_shape,x_shape', [
+    ((10, 3), (10, 12)),
+    ((20, 32), (16, 128)),
+    ((32, 100), (32, 400)),
+    ((16, 20), (2, 80)),
+])
+@pytest.mark.parametrize('in_dtypes, out_dtype', lstm_dtypes_invalid)
+@pytest.mark.parametrize('cover_all', [True, False])
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_lstm_invalid_dtype(device, c_shape, x_shape, in_dtypes,
+                            out_dtype, cover_all):
+    with pytest.raises(chainerx.DtypeError):
+        chainerx.lstm(
+            *_create_lstm_args(
+                chainerx, device, c_shape, x_shape, in_dtypes))

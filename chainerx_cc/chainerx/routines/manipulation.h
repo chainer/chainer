@@ -16,6 +16,8 @@ namespace chainerx {
 // If the array is not single-element, DimensionError is thrown.
 Scalar AsScalar(const Array& a);
 
+Array Ravel(const Array& a);
+
 // Returns a view where the specified axis is moved to start.
 Array RollAxis(const Array& a, int8_t axis, int8_t start = 0);
 
@@ -53,7 +55,15 @@ std::vector<Array> DSplit(const Array& ary, int64_t sections);
 
 std::vector<Array> DSplit(const Array& ary, std::vector<int64_t> indices);
 
+std::vector<Array> VSplit(const Array& ary, int64_t sections);
+
+std::vector<Array> VSplit(const Array& ary, std::vector<int64_t> indices);
+
 Array Swapaxes(const Array& a, int8_t axis1, int8_t axis2);
+
+Array Repeat(const Array& a, int64_t repeats, absl::optional<int8_t> axis);
+
+Array Repeat(const Array& a, const std::vector<int64_t>& repeats, absl::optional<int8_t> axis);
 
 Array ExpandDims(const Array& a, int8_t axis);
 

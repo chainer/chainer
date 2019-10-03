@@ -274,6 +274,7 @@ Mathematical functions
    chainer.functions.tanh
    chainer.functions.tan
    chainer.functions.tensordot
+   chainer.functions.zeta
 
 Noise injections
 ----------------

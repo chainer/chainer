@@ -23,11 +23,12 @@ class FlatCommunicator(mpi_communicator_base.MpiCommunicatorBase):
 
         allreduce_grad_dtype = np.float32
 
-        _memory_utility.pack_params(
-            params, 'grad', self.gpu_buffer_a, allreduce_grad_dtype, zero_fill)
+        self._pack_params_to_buffer(params, 'grad', buffer=self.gpu_buffer_a,
+                                    allreduce_grad_dtype=allreduce_grad_dtype,
+                                    zero_fill=zero_fill)
 
         self._multi_node_mean(self.gpu_buffer_a.array(n_elems_total),
                               self.gpu_buffer_b.array(n_elems_total))
 
-        _memory_utility.unpack_params(
-            params, 'grad', self.gpu_buffer_b, allreduce_grad_dtype, zero_fill)
+        self._unpack_params_from_buffer(params, 'grad', self.gpu_buffer_b,
+                                        allreduce_grad_dtype, zero_fill)

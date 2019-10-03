@@ -5,7 +5,7 @@ import pytest
 import unittest
 
 import chainer
-import chainer.cuda
+from chainer.backends.cuda import cupy
 import chainer.initializers
 import chainer.links
 import chainer.testing
@@ -62,7 +62,7 @@ class Param(object):
         self.nccl1 = False
         self.model_dtype = None
         self.allreduce_grad_dtype = None
-        self.batched_copy = False
+        self.batched_copy = True
         self.global_dtype = None
         self.__dict__.update(param)
 
@@ -126,28 +126,24 @@ gpu_params = [Param(p) for p in [
         'nccl1': False,
         'model_dtype': np.float16,
         'allreduce_grad_dtype': np.float16,
-        'batched_copy': True,
     }, {
         'communicator_class': PureNcclCommunicator,
         'multi_node': True,
         'nccl1': False,
         'model_dtype': np.float16,
         'allreduce_grad_dtype': np.float32,
-        'batched_copy': True,
     }, {
         'communicator_class': PureNcclCommunicator,
         'multi_node': True,
         'nccl1': False,
         'model_dtype': np.float32,
         'allreduce_grad_dtype': np.float32,
-        'batched_copy': True,
     }, {
         'communicator_class': PureNcclCommunicator,
         'multi_node': True,
         'nccl1': False,
         'model_dtype': np.float32,
         'allreduce_grad_dtype': np.float16,
-        'batched_copy': True,
     }]]
 
 
@@ -190,32 +186,24 @@ def create_communicator(param, use_gpu):
     if use_gpu and not param.nccl1 and nccl.get_build_version() < 2000:
         pytest.skip('This test requires NCCL version >= 2.0')
 
+    communicator = param.communicator_class(mpi_comm)
+    communicator.set_config('batched_copy', param.batched_copy)
+    value = communicator.get_config('batched_copy')
+    assert param.batched_copy == value
+
+    with pytest.raises(ValueError):
+        communicator.set_config('blah blah blah')
+
     if param.communicator_class is PureNcclCommunicator:
-        communicator = param.communicator_class(
-            mpi_comm, allreduce_grad_dtype=param.allreduce_grad_dtype,
-            batched_copy=param.batched_copy)
-    else:
-        communicator = param.communicator_class(mpi_comm)
+        communicator.set_config('allreduce_grad_dtype',
+                                param.allreduce_grad_dtype)
+        value = communicator.get_config('allreduce_grad_dtype')
+        assert param.allreduce_grad_dtype == value
 
     if use_gpu:
         chainer.cuda.get_device_from_id(communicator.intra_rank).use()
 
     return communicator
-
-
-def destroy_communicator(comm):
-    """Destroy internal NCCL communicator.
-
-    When too many NCCL communicator are alive, NCCL produces
-    unhandled CUDA error. To avoid this, we need to make sure to
-    destory NCCL communicator after every use.
-    """
-    if hasattr(comm, 'nccl_comm') and comm.nccl_comm is not None:
-        comm.nccl_comm.destroy()
-        comm.nccl_comm = None
-    if hasattr(comm, 'intra_nccl_cojmm') and comm.intra_nccl_comm is not None:
-        comm.intra_nccl_comm.destroy()
-        comm.intra_nccl_comm = None
 
 
 def check_send_and_recv(communicator, *shape):
@@ -351,7 +339,7 @@ def check_send_recv(param, use_gpu):
         np.ones((50, 20, 5)).astype(np.float32)]
     check_send_and_recv_tuple(communicator, data)
 
-    destroy_communicator(communicator)
+    communicator.finalize()
 
 
 def check_multi_node_mean_grad_mixed_dtype(param, model, use_gpu):
@@ -365,12 +353,16 @@ def check_multi_node_mean_grad_mixed_dtype(param, model, use_gpu):
         if inter_size > 1:
             pytest.skip('This test is for single node only')
 
+    communicator = comm_class(mpi_comm)
+    communicator.set_config('batched_copy', param.batched_copy)
+
     if comm_class is PureNcclCommunicator:
-        communicator = comm_class(
-            mpi_comm, allreduce_grad_dtype=param.allreduce_grad_dtype,
-            batched_copy=param.batched_copy)
-    else:
-        communicator = comm_class(mpi_comm)
+        communicator.set_config('allreduce_grad_dtype',
+                                param.allreduce_grad_dtype)
+        value = communicator.get_config('allreduce_grad_dtype')
+        assert param.allreduce_grad_dtype == value
+        value = communicator.allreduce_grad_dtype
+        assert param.allreduce_grad_dtype == value
 
     mpi_comm.barrier()
 
@@ -393,7 +385,7 @@ def check_multi_node_mean_grad_mixed_dtype(param, model, use_gpu):
             answer_dtype = np.float16
 
     if use_gpu:
-        model.to_gpu()
+        model.to_device(cupy.cuda.Device())
 
     model.a.W.grad[:] = communicator.rank
     model.b.W.grad[:] = communicator.rank + 1
@@ -427,7 +419,7 @@ def check_multi_node_mean_grad_mixed_dtype(param, model, use_gpu):
                                     (base + 1) * np.ones((4, 3)))
 
     mpi_comm.barrier()
-    destroy_communicator(communicator)
+    communicator.finalize()
 
 
 def check_collective_communication(param, use_gpu):
@@ -436,27 +428,28 @@ def check_collective_communication(param, use_gpu):
 
     model = ExampleModel(param.model_dtype)
     if use_gpu:
-        model.to_gpu()
+        device = cupy.cuda.Device()
+        model.to_device(device)
     check_bcast_data(communicator, model)
 
     model = ExampleModel(param.model_dtype)
     if use_gpu:
-        model.to_gpu()
+        model.to_device(device)
     check_multi_node_mean_grad(communicator, model)
 
     model = ExampleModel(param.model_dtype)
     if use_gpu:
-        model.to_gpu()
+        model.to_device(device)
     check_multi_node_mean_grad_empty(communicator, model)
     model = ExampleModel(param.model_dtype)
     if use_gpu:
-        model.to_gpu()
+        model.to_device(device)
     check_multi_node_mean_grad_empty_half(communicator, model)
 
     # Check allreduce debug mode
     model = ExampleModel()
     if use_gpu:
-        model.to_gpu()
+        model.to_device(device)
 
     # The example model includes some nan parameters so the debug mode
     # must detect it.
@@ -468,7 +461,7 @@ def check_collective_communication(param, use_gpu):
     # barrier() requires before destructor of PureNcclCommunicator
     # because communication may not be finished.
     mpi_comm.barrier()
-    destroy_communicator(communicator)
+    communicator.finalize()
 
 
 # chainer.testing.parameterize is not available at functions
@@ -503,7 +496,30 @@ class TestPureNcclCommunicator(unittest.TestCase):
     @chainer.testing.attr.gpu
     def test_invalid_allreduce_grad_dtype(self):
         with self.assertRaises(ValueError):
-            PureNcclCommunicator(self.mpi_comm, allreduce_grad_dtype=np.int32)
+            comm = PureNcclCommunicator(self.mpi_comm)
+            comm.set_config('allreduce_grad_dtype', np.int32)
+
+    @chainer.testing.attr.gpu
+    def test_finalize(self):
+        communicator = PureNcclCommunicator(self.mpi_comm)
+        communicator._init_comms()
+        communicator.finalize()
+        self.assertIsNone(communicator.nccl_comm)
+
+
+class TestNonCudaAwareCommunicator(unittest.TestCase):
+
+    def setUp(self):
+        if nccl.get_build_version() < 2000:
+            pytest.skip('This test requires NCCL version >= 2.0')
+        self.mpi_comm = mpi4py.MPI.COMM_WORLD
+
+    @chainer.testing.attr.gpu
+    def test_finalize(self):
+        communicator = NonCudaAwareCommunicator(self.mpi_comm)
+        communicator._init_comms()
+        communicator.finalize()
+        self.assertIsNone(communicator.intra_nccl_comm)
 
 
 class TestDifferentDtype(unittest.TestCase):
@@ -522,12 +538,12 @@ class TestDifferentDtype(unittest.TestCase):
 
         # dtypes to be tested
         # DO NOT USE chainer.testing.parameterize
-        # (because running order of generated test cases is not unique)
+        # (because running order of generated test cases is not deterministic)
         self.dtypes = [np.int32, np.int64, np.float32, np.float64]
 
     def teardown(self):
         if self.communicator:
-            destroy_communicator(self.communicator)
+            self.communicator.finalize()
 
     def check_send_recv(self, x):
         if self.communicator.rank == 0:
@@ -802,7 +818,7 @@ class TestNonContiguousArray(unittest.TestCase):
 
     def teardown(self):
         if self.communicator:
-            destroy_communicator(self.communicator)
+            self.communicator.finalize()
 
     def check_send(self):
         if self.communicator.rank == 0:
@@ -855,7 +871,7 @@ class TestMpiCommunicatorBase(unittest.TestCase):
 
     def teardown(self):
         if self.communicator:
-            destroy_communicator(self.communicator)
+            self.communicator.finalize()
 
     def check_send_recv_obj(self, x, tag=0,
                             use_any_recv=True, use_status=False):
@@ -896,3 +912,23 @@ class TestMpiCommunicatorBase(unittest.TestCase):
         self.check_send_recv_obj(5, tag=5, use_any_recv=False, use_status=True)
 
         self.teardown()
+
+    def test_config(self):
+        self.setup()
+        assert self.communicator.batched_copy
+        assert self.communicator.get_config('batched_copy')
+        self.communicator.set_config('batched_copy', False)
+        assert not self.communicator.batched_copy
+        assert not self.communicator.get_config('batched_copy')
+        self.communicator.set_config('batched_copy')
+        assert self.communicator.batched_copy
+        assert self.communicator.get_config('batched_copy')
+
+    def test_config_context(self):
+        self.setup()
+
+        # Although this is not external interface, but to be tested
+        with self.communicator.config_scope():
+            self.communicator.foobar = '0xdeadbeef'
+
+        assert '0xdeadbeef' == self.communicator._configs['foobar']

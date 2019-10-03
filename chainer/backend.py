@@ -44,15 +44,22 @@ def copyto(dst, src):
     another device.
 
     Args:
-        dst (`numpy.ndarray`, `cupy.ndarray` or `ideep4py.mdarray`):
+        dst (:class:`numpy.ndarray`, :class:`cupy.ndarray`, \
+        :class:`ideep4py.mdarray` or :class:`chainerx.ndarray`):
             Destination array.
-        src (`numpy.ndarray`, `cupy.ndarray` or `ideep4py.mdarray`):
+        src (:class:`numpy.ndarray`, :class:`cupy.ndarray`, \
+        :class:`ideep4py.mdarray` or :class:`chainerx.ndarray`):
             Source array.
 
     """
     if isinstance(dst, chainerx.ndarray):
         dst[...] = _chainerx._array_to_chainerx(src, dst.device)
-    elif isinstance(dst, numpy.ndarray):
+        return
+
+    if isinstance(src, chainerx.ndarray):
+        src = from_chx(src)
+
+    if isinstance(dst, numpy.ndarray):
         numpy.copyto(dst, _cpu._to_cpu(src))
     elif isinstance(dst, intel64.mdarray):
         intel64.ideep.basic_copyto(

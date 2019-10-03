@@ -10,6 +10,11 @@
 #include "chainerx/native/kernel_regist.h"
 
 namespace chainerx {
+
+namespace internal {
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(Copy)
+}  // namespace internal
+
 namespace native {
 namespace {
 

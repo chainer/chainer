@@ -110,6 +110,8 @@ class MpiCommunicatorBase(communicator_base.CommunicatorBase):
     def __init__(self, mpi_comm):
         self.mpi_comm = mpi_comm
         self._init_ranks()
+        with self.config_scope():
+            self.batched_copy = False
 
     @property
     def rank(self):
@@ -134,6 +136,21 @@ class MpiCommunicatorBase(communicator_base.CommunicatorBase):
     @property
     def inter_size(self):
         return self._inter_size
+
+    def set_config(self, name, value=True, **kwargs):
+        if name == 'batched_copy':
+            with self.config_scope():
+                self.batched_copy = value
+        else:
+            # Although MpiCommunicatorBase has no ancestor, practice
+            return super(MpiCommunicatorBase, self).set_config(name, **kwargs)
+
+    def get_config(self, name=None):
+        if name == 'batched_copy':
+            return self.batched_copy
+        else:
+            # Although MpiCommunicatorBase has no ancestor, practice.
+            return super(MpiCommunicatorBase, self).get_config(name)
 
     def split(self, color, key):
         return self.__class__(mpi_comm=self.mpi_comm.Split(color, key))
@@ -703,3 +720,40 @@ class MpiCommunicatorBase(communicator_base.CommunicatorBase):
 
         if chainer.is_debug():
             self._ensure_all_finite(recvbuf)
+
+    def _pack_params_to_buffer(self, params, attr_name, buffer,
+                               allreduce_grad_dtype, zero_fill, stream=None):
+
+        if self.batched_copy:
+            params_data = _memory_utility.ParamsData(params,
+                                                     attr_name, zero_fill)
+            _memory_utility._batched_pack_params(
+                params_data, buffer,
+                allreduce_grad_dtype, stream=stream)
+            self.params_data = params_data
+        else:
+            _memory_utility.pack_params(
+                params, attr_name,
+                buffer,
+                transfer_dtype=allreduce_grad_dtype,
+                zero_fill=zero_fill,
+                stream=stream)
+
+    def _unpack_params_from_buffer(self, params, attr_name, buffer,
+                                   allreduce_grad_dtype,
+                                   zero_fill, stream=None):
+        if self.batched_copy:
+            if self.params_data is not None:
+                params_data = self.params_data
+                self.params_data = None
+            else:
+                params_data = _memory_utility.ParamsData(
+                    params, attr_name, zero_fill)
+            _memory_utility._batched_unpack_params(
+                params_data, buffer,
+                allreduce_grad_dtype, stream=stream)
+            return
+        else:
+            _memory_utility.unpack_params(
+                params, attr_name, buffer,
+                allreduce_grad_dtype, zero_fill, stream)
