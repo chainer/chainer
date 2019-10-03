@@ -431,25 +431,29 @@ class TestConvTransposeTensorCore(
         return _convert_to_nhwc_layout(x), w, b
 
 
-@pytest.mark.parametrize('x_shape,w_shape,b_shape,stride,pad,outsize', [
+@pytest.mark.parametrize('x_shape,w_shape,b_shape,stride,pad,dilate,outsize', [
     # Mismatched x and w input channels.
-    ((1, 3, 4, 3), (5, 4, 2, 2), (5,), 3, 2, None),
+    ((1, 3, 4, 3), (5, 4, 2, 2), (5,), 3, 2, 1, None),
     # Mismatched x and w dimensions.
-    ((2, 3, 4, 3), (3, 5, 2, 2, 1), (5,), 3, 2, None),
-    ((1, 3, 4, 3), (3, 5, 2, 2), (6,), 1, 0, None),  # Mismatched w and b.
+    ((2, 3, 4, 3), (3, 5, 2, 2, 1), (5,), 3, 2, 1, None),
+    ((1, 3, 4, 3), (3, 5, 2, 2), (6,), 1, 0, 1, None),  # Mismatched w and b.
     # Wrong number of strides.
-    ((2, 3, 4, 3), (3, 5, 2, 2), None, (1,), 0, None),
+    ((2, 3, 4, 3), (3, 5, 2, 2), None, (1,), 0, 1, None),
     # Wrong number of paddings.
-    ((1, 3, 4, 3), (3, 5, 2, 2), None, 3, (2,), None),
-    ((1, 3, 2, 6, 3), (3, 2, 1, 3, 2), (2,), 2, (2, 0, 1),
+    ((1, 3, 4, 3), (3, 5, 2, 2), None, 3, (2,), 1, None),
+    ((1, 3, 2, 6, 3), (3, 2, 1, 3, 2), (2,), 2, (2, 0, 1), 1,
      (-1, 13, 4)),  # All output sizes must be non-negative
+    # Wrong number of dilate.
+    ((2, 3, 4, 3), (3, 5, 2, 2), None, 1, 0, (1,), None),
     # All output sizes must be non-negative
-    ((1, 3, 2, 6, 3), (3, 2, 1, 3, 2), (2,), 2, (2, 0, 1), None),
-    ((2, 3, 4), (3, 5, 1), (5,), 1, 0, (5,)),  # Output dims are inconsistent
+    ((1, 3, 2, 6, 3), (3, 2, 1, 3, 2), (2,), 2, (2, 0, 1), 1, None),
+    # Output dims are inconsistent
+    ((2, 3, 4), (3, 5, 1), (5,), 1, 0, 1, (5,)),
 ])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 def test_conv_transpose_invalid(
-        device, x_shape, w_shape, b_shape, stride, pad, outsize, float_dtype):
+        device, x_shape, w_shape, b_shape,
+        stride, pad, dilate, outsize, float_dtype):
     dtype = float_dtype
     x = array_utils.create_dummy_ndarray(chainerx, x_shape, dtype)
     w = array_utils.create_dummy_ndarray(chainerx, w_shape, dtype)
@@ -459,7 +463,7 @@ def test_conv_transpose_invalid(
         b = array_utils.create_dummy_ndarray(chainerx, b_shape, float_dtype)
 
     with pytest.raises(chainerx.DimensionError):
-        chainerx.conv_transpose(x, w, b, stride, pad, 1, outsize)
+        chainerx.conv_transpose(x, w, b, stride, pad, dilate, outsize)
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
