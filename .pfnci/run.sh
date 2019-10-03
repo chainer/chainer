@@ -93,6 +93,7 @@ test_py37() {
       --python=python3.7 -m "${marker}"
       --bucket="${bucket}" --thread="$(( XPYTEST_NUM_THREADS / bucket ))"
       --hint="/chainer/.pfnci/hint.pbtxt"
+      --retry=1
   )
   if [ "${SPREADSHEET_ID:-}" != '' ]; then
     xpytest_args+=(--spreadsheet_id="${SPREADSHEET_ID}")
@@ -149,6 +150,7 @@ test_py27and35() {
       --python=python3.5 -m "${marker}"
       --bucket="${bucket}" --thread="$(( XPYTEST_NUM_THREADS / bucket ))"
       --hint="/chainer/.pfnci/hint.pbtxt"
+      --retry=1
   )
   if [ "${SPREADSHEET_ID:-}" != '' ]; then
     xpytest_args+=(--spreadsheet_id="${SPREADSHEET_ID}")
@@ -165,11 +167,63 @@ test_py27and35() {
   exit ${py35_test_status}
 }
 
+# test_chainermn is a test function for chainermn
+test_chainermn() {
+  export PYENV_VERSION=""
+  . /root/.bash_profile
+
+  TEST_PYTHON_VERSIONS="3.6.8"
+  ret=0
+  for VERSION in $TEST_PYTHON_VERSIONS
+  do
+    pyenv shell ${VERSION}
+	MAJOR_VERSION=${VERSION:0:1}
+	test_chainermn_sub
+	tmp_ret=$?
+	ret=$(( ret || tmp_ret ))
+  done
+  exit $ret
+}
+
+# test_chainermn_sub runs tests for chainermn with current Python runtime
+test_chainermn_sub() {
+  marker='not slow'
+  if (( !GPU )); then
+    marker+=' and not gpu'
+  else
+    marker+=' and gpu'
+  fi
+
+  #-----------------------------------------------------------------------------
+  # Install CuPy from wheel
+  #-----------------------------------------------------------------------------
+  pip install /cupy-wheel/cupy-*-cp${MAJOR_VERSION}*-cp${MAJOR_VERSION}*-linux_x86_64.whl
+
+  #-----------------------------------------------------------------------------
+  # Install Chainer
+  #-----------------------------------------------------------------------------
+  if ! python -m pip install /chainer[test] 2>&1 >/tmp/install-py3.log; then
+    cat /tmp/install-py3.log
+    exit 1
+  fi
+
+  #-----------------------------------------------------------------------------
+  # Test python
+  #-----------------------------------------------------------------------------
+  mpirun --allow-run-as-root -n 2 python -m pytest --color=yes \
+                   --full-trace \
+                   --durations=10 \
+                   -x --capture=no \
+                   -s -v -m "${marker}" \
+				   /chainer/tests/chainermn_tests
+}
+
 ################################################################################
 # Bootstrap
 ################################################################################
 case "${TARGET}" in
   'py37' ) test_py37;;
   'py27and35' ) test_py27and35;;
+  'chainermn' ) test_chainermn;;
   * ) echo "Unsupported target: ${TARGET}" >&2; exit 1;;
 esac

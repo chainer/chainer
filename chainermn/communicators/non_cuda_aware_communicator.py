@@ -13,8 +13,7 @@ from chainermn import nccl
 
 class NonCudaAwareCommunicator(mpi_communicator_base.MpiCommunicatorBase):
 
-    def __init__(self, mpi_comm,
-                 batched_copy=False):
+    def __init__(self, mpi_comm):
 
         super(NonCudaAwareCommunicator, self).__init__(mpi_comm)
         if not nccl._available:
@@ -37,8 +36,6 @@ class NonCudaAwareCommunicator(mpi_communicator_base.MpiCommunicatorBase):
         self.gpu_buffer_b = _memory_utility.DeviceMemory()
         self.cpu_buffer_a = _memory_utility.HostPinnedMemory()
         self.cpu_buffer_b = _memory_utility.HostPinnedMemory()
-
-        self.batched_copy = batched_copy
 
     def finalize(self):
         super(NonCudaAwareCommunicator, self).finalize()

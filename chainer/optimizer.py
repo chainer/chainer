@@ -283,7 +283,8 @@ class UpdateRule(object):
             self._init_states(param_)
 
             # Apply loss scaling
-            if loss_scale is not None:
+            if (loss_scale is not None
+                    and not isinstance(param_.array, chainerx.ndarray)):
                 param_.grad /= loss_scale
 
         # Call update_core
@@ -485,10 +486,10 @@ class UpdateRule(object):
         retained at self.fp32_param. And the parameter is update in fp32 in
         the following way.
 
-          1. copys the grad of original parameter variable to the grad of fp32
+          1. copies the grad of original parameter variable to the grad of fp32
              parameter variable, converting its data type from fp16 to fp32.
           2. updates the parameter in fp32.
-          3. copys the data of fp32 parameter variable to the data of original
+          3. copies the data of fp32 parameter variable to the data of original
              parameter variable, converting its data type from fp32 to fp16.
 
         See :meth:`update` for details.

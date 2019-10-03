@@ -6,14 +6,11 @@ from chainermn.communicators import mpi_communicator_base
 
 class FlatCommunicator(mpi_communicator_base.MpiCommunicatorBase):
 
-    def __init__(self, mpi_comm,
-                 batched_copy=False):
+    def __init__(self, mpi_comm):
         super(FlatCommunicator, self).__init__(mpi_comm)
 
         self.gpu_buffer_a = _memory_utility.DeviceMemory()
         self.gpu_buffer_b = _memory_utility.DeviceMemory()
-
-        self.batched_copy = batched_copy
 
     def multi_node_mean_grad(self, model, zero_fill=False):
         params = _memory_utility.extract_params_set_grad(model, zero_fill)

@@ -65,6 +65,7 @@ option(CHAINERX_ENABLE_LAPACK "Use LAPACK if available" ${DEFAULT_CHAINERX_ENABL
 if(MSVC)
     option(CUDA_USE_STATIC_CUDA_RUNTIME "Use the static version of the CUDA runtime library if available" OFF)
     set(CUDA_USE_STATIC_CUDA_RUNTIME OFF CACHE INTERNAL "")
+    add_definitions(-DWIN32_LEAN_AND_MEAN)
 endif()
 
 #-------------

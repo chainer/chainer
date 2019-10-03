@@ -8,7 +8,6 @@ def set_docs():
     _docs_indexing()
     _docs_linalg()
     _docs_logic()
-    _docs_loss()
     _docs_manipulation()
     _docs_math()
     _docs_sorting()
@@ -579,6 +578,23 @@ Note:
 .. seealso:: :func:`numpy.where`
 """)
 
+    _docs.set_doc(
+        chainerx.nonzero,
+        """nonzero(a)
+Return the indices of the elements that are non-zero.
+
+Args:
+    a (~chainerx.ndarray): Input array.
+
+Returns:
+    tuple of :func:`~chainerx.ndarray`: Indices of elements that are non-zero.
+
+Note:
+    During backpropagation, this function does not propagate gradients.
+
+.. seealso:: :func:`numpy.nonzero`
+""")
+
 
 def _docs_linalg():
     _docs.set_doc(
@@ -741,6 +757,30 @@ Note:
     * Backpropagation is not implemented for 'r' or 'raw' modes.
 
 .. seealso:: :func:`numpy.linalg.qr`
+""")
+
+    _docs.set_doc(
+        chainerx.linalg.cholesky,
+        """cholesky(a)
+Computes the Cholesky decomposition of a matrix.
+
+Returns the Cholesky decomposition, :math:`A = L L^T`,
+for the square matrix ``a``.
+
+Args:
+    a (~chainerx.ndarray): Symmetric positive-definite input matrix.
+
+Returns:
+    :class:`~chainerx.ndarray`: Output array. Cholesky factor of ``a``.
+
+Note:
+    * GPU implementation of the Cholesky decomposition routine is based on
+      cuSOLVER library. Older versions (<10.1) of it might not raise an error
+      for some non positive-definite matrices.
+    * The ``dtype`` must be ``float32`` or ``float64`` (``float16`` is not
+      supported yet.)
+
+.. seealso:: :func:`numpy.linalg.cholesky`
 """)
 
 
@@ -1015,26 +1055,6 @@ Returns:
     the squared error of two inputs.
 
 .. seealso:: :func:`chainer.functions.squared_error`
-""")
-
-    _docs.set_doc(
-        chainerx.mean_squared_error,
-        """mean_squared_error(x1, x2)
-Mean squared error function.
-
-The function computes the mean squared error between two variables. The
-mean is taken over the minibatch. Args ``x1`` and ``x2`` must have the
-same dimensions. Note that the error is not scaled by 1/2.
-
-Args:
-    x0 (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
-    x1 (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
-
-Returns:
-    :class:`~chainerx.ndarray`: A variable holding an array representing the
-    mean squared error of two inputs.
-
-.. seealso:: :func:`chainer.functions.mean_squared_error`
 """)
 
     _docs.set_doc(
@@ -1375,6 +1395,30 @@ Note:
 """)
 
     _docs.set_doc(
+        chainerx.vsplit,
+        """vsplit(ary, indices_or_sections)
+Splits an array into multiple sub-arrays vertically (row-wise).
+
+Args:
+    ary (~chainerx.ndarray): Array to split.
+    indices_or_sections (int or sequence of ints): A value indicating how to
+        divide the axis. If it is an integer, then is treated as the number of
+        sections, and the axis is evenly divided. Otherwise, the integers
+        indicate indices to split at. Note that a sequence on the device
+        memory is not allowed.
+
+Returns:
+    list of :class:`~chainerx.ndarray`\\ s: A list of sub arrays. Each array \
+is a partial view of the input array.
+
+Note:
+    During backpropagation, this function propagates the gradients of the
+    output arrays to the input array ``ary``.
+
+.. seealso:: :func:`numpy.vsplit`
+""")
+
+    _docs.set_doc(
         chainerx.swapaxes,
         """swapaxes(a, axis1, axis2)
 Interchange two axes of an array.
@@ -1669,11 +1713,27 @@ Note:
     During backpropagation, this function propagates the gradient of the
     output array to the input arrays ``x1`` and ``x2``.
 
-Note:
-    maximum of :class:`~chainerx.ndarray` and :class:`~chainerx.ndarray` is
-    not supported yet.
-
 .. seealso:: :data:`numpy.maximum`
+""")
+
+    _docs.set_doc(
+        chainerx.minimum,
+        """minimum(x1, x2)
+Minimum arguments, element-wise.
+
+Args:
+    x1 (~chainerx.ndarray or scalar): Input array.
+    x2 (~chainerx.ndarray or scalar): Input array.
+
+Returns:
+    :class:`~chainerx.ndarray`:
+        Returned array: :math:`y = min(\\{x_1, x_2\\})`.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input arrays ``x1`` and ``x2``.
+
+.. seealso:: :data:`numpy.minimum`
 """)
 
     _docs.set_doc(
@@ -3434,7 +3494,7 @@ Args:
         ``xs[t].shape[0] >= xs[t + 1].shape[0]``.
 
 Returns:
-    tuple: This function returns a tuple containing three elements,
+    tuple: This function returns a tuple containing two elements,
     ``hy`` and ``ys``.
 
     - ``hy`` is an updated hidden states whose shape is same as ``hx``.
@@ -3517,7 +3577,7 @@ Args:
         ``xs[t].shape[0] >= xs[t + 1].shape[0]``.
 
 Returns:
-    tuple: This function returns a tuple containing three elements,
+    tuple: This function returns a tuple containing two elements,
     ``hy`` and ``ys``.
 
     - ``hy`` is an updated hidden states whose shape is same as ``hx``.
@@ -3592,7 +3652,7 @@ Args:
         Please select ``tanh`` or ``relu``.
 
 Returns:
-    tuple: This function returns a tuple containing three elements,
+    tuple: This function returns a tuple containing two elements,
     ``hy`` and ``ys``.
 
     - ``hy`` is an updated hidden states whose shape is same as ``hx``.
@@ -3682,7 +3742,7 @@ Args:
         Please select ``tanh`` or ``relu``.
 
 Returns:
-    tuple: This function returns a tuple containing three elements,
+    tuple: This function returns a tuple containing two elements,
     ``hy`` and ``ys``.
 
     - ``hy`` is an updated hidden states whose shape is same as ``hx``.
