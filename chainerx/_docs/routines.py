@@ -1108,6 +1108,25 @@ Note:
 """)
 
     _docs.set_doc(
+        chainerx.ravel,
+        """ravel(a)
+Returns a flattened array.
+
+Args:
+    a (~chainerx.ndarray): Array to be flattened.
+
+Returns:
+    :class:`~chainerx.ndarray`: A flattened view of ``a`` if possible,
+    otherwise a copy.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``a``.
+
+.. seealso:: :func:`numpy.ravel`
+""")
+
+    _docs.set_doc(
         chainerx.transpose,
         """transpose(a, axes=None)
 Permutes the dimensions of an array.
