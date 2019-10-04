@@ -121,7 +121,7 @@ class GenericMultiNodeEvaluator(extension.Extension):
 
         Override this method for original aggregation calculation. By
         default, it just does nothing but returns the input. This
-        method is called once and only once accross the cluster, at
+        method is called once and only once across the cluster, at
         root process. Reporting can be run here.
 
         Args:

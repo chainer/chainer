@@ -339,7 +339,7 @@ class TestMultiprocessIteratorSlow(
     pass
 
 
-# Pickle doesnt allow to use lambdas or pure functions
+# Pickle does not allow to use lambdas or pure functions
 # when serializing the iterator
 # work is needed to wrap samplers in classes instead of
 # anonymous functions
