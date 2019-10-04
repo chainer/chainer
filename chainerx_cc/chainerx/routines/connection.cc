@@ -362,6 +362,9 @@ Array Linear(const Array& x, const Array& w, const absl::optional<Array>& b, uin
         }
     }
 
+    // NOTE: 1. BackwardBuilder's move assignment is deleted.
+    //       2. GCC does not work well with move ctor with ternary move or move ternary as argument.
+    //       3. please refers to issue 8192 and it related PR for more information.
     BackwardBuilder bb{has_bias ? "linear" : "linear_nobias",
                        has_bias ? std::vector<ConstArrayRef>{x_matrix, w, b_matrix} : std::vector<ConstArrayRef>{x_matrix, w},
                        out_matrix};
