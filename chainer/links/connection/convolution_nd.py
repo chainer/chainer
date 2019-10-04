@@ -148,13 +148,13 @@ class ConvolutionND(link.Link):
 
     @classmethod
     def from_params(cls, W, b=None, stride=1, pad=0, nobias=False, **kwargs):
-        """from_params(cls, W, b=None, stride=1, pad=0, nobias=False, \
-*, cover_all=False, dilate=1, groups=1)
+        """from_params(cls, W, b=None, stride=1, pad=0, \
+nobias=False, *, cover_all=False, dilate=1, groups=1)
 
         Initialize a :class:`~chainer.links.ConvolutionND` with given
         parameters.
 
-        This method uses ``W`` and optional ``b`` to initialize an :math:`N`D
+        This method uses ``W`` and optional ``b`` to initialize an :math:`N` D
         convolution layer.
 
         Args:

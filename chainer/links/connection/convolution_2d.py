@@ -169,8 +169,8 @@ nobias=False, initialW=None, initial_bias=None, *, dilate=1, groups=1)
 
     @classmethod
     def from_params(cls, W, b=None, stride=1, pad=0, nobias=False, **kwargs):
-        """from_params(cls, W, b=None, stride=1, pad=0, nobias=False, \
-*, dilate=1, groups=1)
+        """from_params(cls, W, b=None, stride=1, pad=0, \
+nobias=False, *, dilate=1, groups=1)
 
         Initialize a :class:`~chainer.links.Convolution2D` with given
         parameters.
