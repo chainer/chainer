@@ -73,7 +73,7 @@ class CMakeBuild(build_ext.build_ext):
 
         extdir = os.path.abspath(
             os.path.dirname(self.get_ext_fullpath(ext.name)))
-        cmake_args = ["-GNinja"] if self.use_ninja else []
+        cmake_args = ['-GNinja'] if self.use_ninja else []
         cmake_args += [
             '-DCHAINERX_BUILD_PYTHON=1',
             '-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=' + extdir,
