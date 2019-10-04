@@ -114,7 +114,8 @@ if(MSVC)
         )
     add_library(chainerx STATIC ${chainerx_srcs})
 else()
-    add_library(chainerx SHARED ${chainerx_srcs})
+    add_library(chainerx_base STATIC ${chainerx_srcs})
+    add_library(chainerx SHARED)
 endif()
 
 # abseil
@@ -146,6 +147,7 @@ elseif(${APPLE})
         PUBLIC
         ${CMAKE_DL_LIBS})
 
+    target_link_libraries(chainerx PRIVATE -Wl,-force_load chainerx_base)
     target_link_libraries(chainerx PRIVATE -Wl,-force_load chainerx_routines)
     target_link_libraries(chainerx PRIVATE -Wl,-force_load chainerx_native)
     target_link_libraries(chainerx PRIVATE -Wl,-force_load chainerx_testing)
@@ -162,6 +164,7 @@ else()
         PRIVATE
         -Wl,--whole-archive)
 
+    target_link_libraries(chainerx PRIVATE chainerx_base)
     target_link_libraries(chainerx PRIVATE chainerx_routines)
     target_link_libraries(chainerx PRIVATE chainerx_native)
     target_link_libraries(chainerx PRIVATE chainerx_testing)
