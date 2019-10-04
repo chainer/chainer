@@ -35,7 +35,7 @@ if os.name == 'nt':
         """Erase screen.
 
         Mode=0: From (x,y) position down to the bottom of the screen.
-        Mode=1: From (x,y) position down to the begining of line.
+        Mode=1: From (x,y) position down to the beginning of line.
         Mode=2: Hole screen
         """
 

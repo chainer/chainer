@@ -132,7 +132,7 @@ def _get_pad_mode_kwargs(pad_mode, is_chainerx):
     ((1, 3, 2, 6, 3, 2), (1, 3, 1, 1), 1, 1),
 ])
 @chainer.testing.parameterize_pytest('pad_mode', ['zero', 'ignore', None])
-# ignore warning occuring when pad_value is None in chainer
+# ignore warning occurring when pad_value is None in chainer
 @pytest.mark.filterwarnings('ignore:invalid value encountered in true_divide')
 class TestAveragePool(op_utils.ChainerOpTest):
 
