@@ -153,13 +153,14 @@ step_chainer_tests() {
         mark="$mark and not theano"
     fi
 
-    pytest -rfEX -m "$mark" "$REPO_DIR"/tests/chainer_tests
+    # In Travis CI only pairwise testing is performed.
+    env CHAINER_TEST_PAIRWISE_PARAMETERIZATION=always \
+        pytest -rfEX -m "$mark" "$REPO_DIR"/tests/chainer_tests
 }
 
 
 step_chainerx_python_tests() {
-    # TODO(niboshi): Apply pairwise parameterization only selectively. See
-    # #8210.
+    # In Travis CI only pairwise testing is performed.
     env CHAINER_TEST_PAIRWISE_PARAMETERIZATION=always \
         pytest -rfEX "$REPO_DIR"/tests/chainerx_tests
 }
