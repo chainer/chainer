@@ -115,7 +115,7 @@ if(MSVC)
     add_library(chainerx STATIC ${chainerx_srcs})
 else()
     add_library(chainerx_base STATIC ${chainerx_srcs})
-    add_library(chainerx SHARED)
+    add_library(chainerx SHARED empty.cc)
 endif()
 
 # abseil
