@@ -6,8 +6,8 @@ def support(opset_versions):
     from 6 and updated on 8, add this function as decorator like the below.
 
     >>> @support((6, 8))
-    >>> def own_converter(func, opset_version, *args):
-    >>>     print(opset_version)
+    ... def own_converter(func, opset_version, *args):
+    ...     print(opset_version)
     >>>
     >>> own_converter(None, 6)
     6

@@ -8,9 +8,9 @@ class FunctionConverterParams(object):
         Exporter set this parameters to the target converter's argument.
 
         >>> def own_converter(params):
-        >>>     # params is FunctionConverterParams
-        >>>     # so enable to get each attributes:
-        >>>     func_name = params.func.__class__.__name__
+        ...     # params is FunctionConverterParams
+        ...     # so enable to get each attributes:
+        ...     func_name = params.func.__class__.__name__
 
         Arguments:
             func (~chainer.FunctionNode): Target function.

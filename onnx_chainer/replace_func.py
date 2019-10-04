@@ -162,7 +162,7 @@ def as_funcnode(name, rename_attributes=None):
 
        >>> @as_funcnode(
        ...     'CustomNode', rename_attributes=[(1, 'value'), ('c': 'y')])
-       >>> def func(x, a, b, c=1, d=2): pass
+       ... def func(x, a, b, c=1, d=2): pass
 
     Args:
         name (str): function name. This name is used for what ONNX operator
