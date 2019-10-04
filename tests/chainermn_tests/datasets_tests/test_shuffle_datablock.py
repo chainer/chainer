@@ -10,8 +10,8 @@ from chainermn.datasets.shuffle_datablock import shuffle_data_blocks
 
 
 @pytest.mark.parametrize('block_size,force_equal_length',
-                         list(itertools.product([1, 1000],
-                                                [True])))
+                         list(itertools.product([1, 1000, 1000000],
+                                                [True, False])))
 def test_shuffle_datablocks(block_size, force_equal_length):
     print("========================================")
     print("block size = {}".format(block_size))
