@@ -132,13 +132,11 @@ def check_heterogeneous_rnn(gpu, dtype):
         assert True
 
 
-@pytest.mark.filterwarnings('ignore::DeprecationWarning')
 @pytest.mark.parametrize('dtype', [np.float16, np.float32])
 def test_heterogeneous_rnn_cpu(dtype):
     check_heterogeneous_rnn(False, dtype)
 
 
-@pytest.mark.filterwarnings('ignore::DeprecationWarning')
 @chainer.testing.attr.gpu
 @pytest.mark.parametrize('dtype', [np.float16, np.float32])
 def test_heterogeneous_rnn_gpu(dtype):
