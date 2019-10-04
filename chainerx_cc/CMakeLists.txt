@@ -72,6 +72,8 @@ endif()
 # Build setup
 #-------------
 
+message(STATUS "CMake generator: " ${CMAKE_GENERATOR})
+
 # Set CMAKE_BUILD_TYPE (defaults to Release).
 # CMake's specification is case-insensitive, but we only accept capitalized ones.
 if(NOT CMAKE_BUILD_TYPE)
