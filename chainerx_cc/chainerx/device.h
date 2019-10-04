@@ -18,7 +18,6 @@
 namespace chainerx {
 
 class Array;
-enum class AveragePoolPadMode;
 
 // Device base class.
 // Note that these member functions may be called from the framework or user code.
