@@ -168,10 +168,6 @@ def shuffle_data_blocks(comm, data_blocks, force_equal_length=True,
         raise NotImplementedError('shuffle_data_blocks() function depends on'
                                   'MPI-based ChainerMN communicator.')
 
-    if force_equal_length not in [None, True, False]:
-        raise ValueError('Wrong value for `force_equal_length`:'
-                         ' {}'.format(force_equal_length))
-
     data_blocks = iter(data_blocks)
     data = []
     data_length_all = [0] * comm.size  # all processes start from data=[]
