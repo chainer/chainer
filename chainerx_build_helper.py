@@ -42,13 +42,15 @@ class CMakeBuild(build_ext.build_ext):
             raise RuntimeError('CMake >= 3.1.0 is required to build ChainerX')
 
         self.use_ninja = False
-        prefer_ninja = os.getenv('CHAINERX_CMAKE_GENERATOR', '').lower() == 'ninja'
+        prefer_ninja = os.getenv(
+            'CHAINERX_CMAKE_GENERATOR', '').lower() == 'ninja'
         if prefer_ninja:
             try:
                 out = subprocess.check_output(['ninja', '--version'])
                 self.use_ninja = True
             except OSError:
-                warnings.warn('Build with ninja is preferred, but ninja cannot be found.')
+                warnings.warn(
+                    'Build with ninja is preferred, but ninja cannot be found.')
 
         for ext in self.extensions:
             self.build_extension(ext)
