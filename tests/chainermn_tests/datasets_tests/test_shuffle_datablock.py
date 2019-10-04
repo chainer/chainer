@@ -27,9 +27,6 @@ def _gather_check(comm, orig_data, local_data, root=0):
                          list(itertools.product([1, 1000],
                                                 [False, True])))
 def test_shuffle_datablocks(block_size, force_equal_length):
-    print("========================================")
-    print("block size = {}".format(block_size))
-    print("force_equal_length = {}".format(force_equal_length))
     comm = chainermn.create_communicator('naive')
 
     # Rank r generates data of length 10**min(r,3), to achieve
@@ -43,14 +40,11 @@ def test_shuffle_datablocks(block_size, force_equal_length):
         num_elem = 10 ** min(i, 3)
         data_all += list(range(num_elem, num_elem * 2))
 
-    print("\t\tlen(data) = {}".format(len(data)))
-
     total_data_size = sum(10 ** min(r, 3) for r in range(comm.size))
 
     data = shuffle_data_blocks(comm, data,
                                force_equal_length=force_equal_length,
                                block_size=block_size)
-    print("\t\tdata = {}".format(data))
 
     # (array([6]), array([6])) -> [6, 6]
     length_all = [x[0] for x in comm.allgather(np.array([len(data)]))]
@@ -87,4 +81,5 @@ def test_shuffle_datablocks_scatter(length, force_equal_length):
         else:
             assert len(data) == length // comm.size
 
-    _gather_check(comm, range(length), data)
+    if not force_equal_length:
+        _gather_check(comm, range(length), data)

@@ -58,12 +58,8 @@ def _calc_alltoall_send_counts(cur_length_all, block_length_all):
     :param force_equal_length: If force equal length
     :return: A dict of send counts
     """
-    print("==============")
     assert len(cur_length_all) == len(block_length_all)
     size = len(cur_length_all)
-
-    # This condition is kept if we repeatedly use calc_all_to_all_send_counts()
-    assert max(cur_length_all) - min(cur_length_all) <= 1
 
     new_length_all = _calc_new_length(cur_length_all, block_length_all)
 
@@ -73,8 +69,6 @@ def _calc_alltoall_send_counts(cur_length_all, block_length_all):
                    for i in range(size)]
 
     send_counts = {}  # send_count table
-    print("_calc_alltoall_send_counts(): new_length_all = {}".format(new_length_all))
-    print("_calc_alltoall_send_counts(): diff_length = {}".format(diff_length))
 
     # Need to calculate the number of elements sent <self->self>
     # for MPI_Alltoallv().
@@ -92,32 +86,32 @@ def _calc_alltoall_send_counts(cur_length_all, block_length_all):
     # calculate the all-to-all send_counts as a dict.
     # NOTE: mpi4py's alltoall() is similar to MPI_Alltoallv().
     #       mpi4py does not have alltoallv().
-    for send_rank in range(size):
-        if diff_length[send_rank] > 0:
-            # from_rank has `send_cnt` elements to send to other ranks
+    for src_rank in range(size):
+        if diff_length[src_rank] > 0:
+            # src_rank has elements to send to other ranks
             # find receiver(s)
-            for _recv_rank in range(size):
-                recv_rank = (_recv_rank + size) % size
-                send_cnt = diff_length[send_rank]
-                recv_cnt = diff_length[recv_rank]
+            for _dst_rank in range(size):
+                dst_rank = (_dst_rank + size) % size
+                send_cnt = diff_length[src_rank]
+                recv_cnt = diff_length[dst_rank]
                 if recv_cnt < 0:  # recv_rank is ready to receive some elems.
                     if send_cnt <= -recv_cnt:
-                        send_counts[(send_rank, recv_rank)] = send_cnt
-                        print("{} -> {} ({})".format(send_rank, recv_rank,
-                                                     send_cnt))
-                        diff_length[recv_rank] += send_cnt
-                        diff_length[send_rank] = 0
+                        # dst_rank can recieve more elements than
+                        # src_rank can send. Thus src_rank's send_cnt becomes 0
+                        send_counts[(src_rank, dst_rank)] = send_cnt
+                        diff_length[src_rank] = 0
+                        diff_length[dst_rank] += send_cnt
                     else:
-                        send_counts[(send_rank, recv_rank)] = -recv_cnt
-                        print("{} -> {} ({})".format(send_rank, recv_rank,
-                                                     -recv_cnt))
-                        diff_length[send_rank] += recv_cnt
-                        diff_length[recv_rank] = 0
-                    if diff_length[send_rank] == 0:
+                        # dst_rank can receive less elements than
+                        # src_rank can send. Thus dst_rank's recv_cnt becomes 0
+                        # NOTE: recv_cnt is a <0 value
+                        send_counts[(src_rank, dst_rank)] = -recv_cnt
+                        diff_length[src_rank] += recv_cnt
+                        diff_length[dst_rank] = 0
+                    if diff_length[src_rank] == 0:
                         break
 
     assert all(d == 0 for d in diff_length)
-    print("_calc_alltoall_send_counts(): send_counts = {}".format(send_counts))
     return send_counts, new_length_all
 
 
@@ -135,10 +129,8 @@ def _exchange_block(comm, data, block, cur_length_all, block_length_all):
 
     offset = 0
     send_buf = [[]] * comm.size
-    print("_exchange_block(): send_counts = {}".format(send_counts))
     for dest_rank in range(comm.size):
         num_elem = send_counts.get((comm.rank, dest_rank), 0)
-        print("_exchange_block(): ->{} num_elem = {}".format(dest_rank, num_elem))
         if num_elem == 0:
             continue
 
@@ -149,11 +141,7 @@ def _exchange_block(comm, data, block, cur_length_all, block_length_all):
             # from `block`.
             send_buf[dest_rank].append(random.choice(block))
         offset = (offset + num_elem) % len(local_data)
-    print("_exchange_block(): send_buf = {}".format(send_buf))
-    assert len(send_buf) == comm.size
-    print("_exchange_block(): data = {}".format(data))
     data += _flatten1(comm.mpi_comm.alltoall(send_buf))
-    print("_exchange_block(): data = {}".format(data))
     return new_length_all
 
 
@@ -218,40 +206,6 @@ def shuffle_data_blocks(comm, data_blocks, force_equal_length=True,
         if max_data_len != min_data_len:
             while len(data) < max_data_len:
                 diff = max_data_len - len(data)
-                data += data[:diff]
+                data += data[:diff]  # NOTE: `data` may be shorter than `diff`
 
     return data
-
-
-def main():
-    # test
-    send_counts, new_length_all = _calc_alltoall_send_counts(
-        [100, 100, 100, 100, 99, 99, 99, 99, 99],
-        [20, 19, 20, 2, 13, 20, 20, 12, 3])
-    print("send_counts = {}".format(send_counts))
-    print("new_length_all = {}".format(new_length_all))
-
-    send_counts, new_length_all = _calc_alltoall_send_counts(
-        [100, 100, 100, 100, 99, 99, 99, 99, 99],
-        [20, 19, 20, 2, 13, 20, 20, 12, 3],
-        force_equal_length=True)
-    print("send_counts = {}".format(send_counts))
-    print("new_length_all = {}".format(new_length_all))
-
-    send_counts, new_length_all = _calc_alltoall_send_counts(
-        [100, 100, 100, 100, 99, 99, 99, 99, 99],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0],
-        force_equal_length=True)
-    print("send_counts = {}".format(send_counts))
-    print("new_length_all = {}".format(new_length_all))
-
-    send_counts, new_length_all = _calc_alltoall_send_counts(
-        [0, 0],
-        [1, 10],
-        force_equal_length=False)
-    print("send_counts = {}".format(send_counts))
-    print("new_length_all = {}".format(new_length_all))
-
-
-if __name__ == '__main__':
-    main()
