@@ -13,17 +13,27 @@ import setuptools
 from setuptools.command import build_ext
 
 
-def get_env_boolean(var: str, default: str, env=None):
+def get_env_string_lower(var, default, choices, env=None, fallback=True):
+    value = os.getenv(var, default) if env is None else env.get(var, default)
+    value = str(env_value).lower()
+    if value not in choices:
+        if fallback:
+            return str(default).lower()
+        else:
+            raise RuntimeError('Invalid environment varibale {name}="{val}", choices in {choices}, case-insensetive.'.format(
+                name=var, val=value, choices=choices))
+    else:
+        return value
+
+
+def get_env_boolean(var, default, env=None):
     trues = ["true", "on", "yes", "1"]
     falses = ["false", "off", "no", "0"]
-    env_value = os.getenv(var, default).lower() if env is None else str(env.get(var, default)).lower()
+    get_env_string_lower(var, default, trues + falses, env=env)
     if env_value in trues:
         return True
-    elif env_value in falses:
-        return False
     else:
-        raise RuntimeError("Invalid environment varibale {name}='{val}', choices in {choices}, case-insensetive.".format(
-            name=var, val=env_value, choices=str(trues + falses)))
+        return False
 
 
 def emit_build_info(build_chainerx):
@@ -55,13 +65,13 @@ class CMakeBuild(build_ext.build_ext):
             raise RuntimeError('CMake >= 3.1.0 is required to build ChainerX')
 
         self.use_ninja = False
-        prefer_ninja = get_env_boolean("CHAINERX_PREFER_NINJA", default="False")
+        prefer_ninja = get_env_string_lower('CHAINERX_CMAKE_GENERATOR', default=None)
         if prefer_ninja:
             try:
                 out = subprocess.check_output(['ninja', '--version'])
                 self.use_ninja = True
             except OSError:
-                warnings.warn("Build with ninja is preferred, but ninja cannot be found.")
+                warnings.warn('Build with ninja is preferred, but ninja cannot be found.')
 
         for ext in self.extensions:
             self.build_extension(ext)
