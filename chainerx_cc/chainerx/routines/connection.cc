@@ -38,7 +38,7 @@ int64_t GetConvOutDim(int64_t in_dim, int64_t kernel_size, int64_t stride, int64
     CHAINERX_ASSERT(stride > 0);
     CHAINERX_ASSERT(dilate > 0);
     int64_t numerator{0};
-    int64_t dilated_kernel = kernel_size + (kernel_size - 1) * (dilate - 1);
+    int64_t dilated_kernel = dilate * (kernel_size - 1) + 1;
     if (cover_all) {
         numerator = in_dim + pad * 2 - dilated_kernel + stride - 1;
     } else {

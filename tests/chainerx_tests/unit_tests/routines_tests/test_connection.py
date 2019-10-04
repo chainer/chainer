@@ -209,6 +209,8 @@ class _ConvTestBase(object):
                  (1, 2, 3), (2, 0, 1), 1),
                 ((1, 3, 4), (5, 3, 2), (5, ), 3, 2, 2),
                 ((2, 3, 4, 10), (2, 3, 3, 3), (2), 2, (2, 0), (1, 2)),
+                ((1, 3, 2, 8, 3), (2, 3, 1, 3, 2), (2,),
+                 2, (2, 0, 1), (2, 3, 1)),
             ]),
         chainer.testing.from_pytest_parameterize(
             'in_dtypes,out_dtype', dtype_utils.result_dtypes_three_arrays)
