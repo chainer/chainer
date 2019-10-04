@@ -153,24 +153,15 @@ CudnnConvolutionDescriptor::~CudnnConvolutionDescriptor() {
     }
 }
 
-CudnnConvolutionDescriptor::CudnnConvolutionDescriptor(
-        Dtype dtype, const Dims& pad, const Dims& stride, const absl::optional<Dims>& dilation, int groups)
+CudnnConvolutionDescriptor::CudnnConvolutionDescriptor(Dtype dtype, const Dims& pad, const Dims& stride, const Dims& dilation, int groups)
     : CudnnConvolutionDescriptor{} {
     size_t ndim = pad.size();
     CHAINERX_ASSERT(ndim == stride.size());
-    CHAINERX_ASSERT(!dilation || ndim == dilation->size());
+    CHAINERX_ASSERT(ndim == dilation.size());
 
     StackVector<int, kMaxNdim> int_stride = GetIntStride(stride);
     StackVector<int, kMaxNdim> int_pad = GetIntPad(pad);
-    StackVector<int, kMaxNdim> int_dilation{};
-    if (!dilation) {
-        // TODO(sonots): Use assign(ndim, 1) if it becomes available
-        for (size_t i = 0; i < ndim; ++i) {
-            int_dilation.emplace_back(1);
-        }
-    } else {
-        int_dilation = GetIntDilation(*dilation);
-    }
+    StackVector<int, kMaxNdim> int_dilation = GetIntDilation(dilation);
 
     cudnnDataType_t compute_type = GetCudnnDataType(dtype);
 

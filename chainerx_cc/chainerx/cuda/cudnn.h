@@ -90,7 +90,7 @@ private:
 
 class CudnnConvolutionDescriptor {
 public:
-    explicit CudnnConvolutionDescriptor(Dtype dtype, const Dims& pad, const Dims& stride, const absl::optional<Dims>& dilation, int groups);
+    explicit CudnnConvolutionDescriptor(Dtype dtype, const Dims& pad, const Dims& stride, const Dims& dilation, int groups);
 
     ~CudnnConvolutionDescriptor();
 

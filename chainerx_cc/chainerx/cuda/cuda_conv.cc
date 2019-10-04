@@ -330,7 +330,7 @@ Array CudaConv::Conv(
     CudnnTensorDescriptor x_desc{x_cont};
     CudnnTensorDescriptor y_desc{y};
     CudnnFilterDescriptor filter_desc{w_cont};
-    CudnnConvolutionDescriptor conv_desc{dtypes.conv_dtype, pad, stride, absl::nullopt /*dilation*/, 1 /*groups*/};
+    CudnnConvolutionDescriptor conv_desc{dtypes.conv_dtype, pad, stride, dilate, 1 /*groups*/};
 
     size_t max_workspace_size = backend.GetCudnnMaxWorkspaceSize();
 
