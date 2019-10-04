@@ -2,6 +2,7 @@ import itertools
 import random
 
 import numpy
+import functools
 
 
 def _increment_send_counts(table, send_rank, recv_rank, n=1):
@@ -10,8 +11,13 @@ def _increment_send_counts(table, send_rank, recv_rank, n=1):
     table[key] += n
 
 
+def _flatten1(ary):
+    """1-level flatten"""
+    return functools.reduce(lambda a, b: a + b, ary)
+
+
 def _calc_alltoall_send_counts(cur_length_all, block_length_all,
-                               force_equal_length=False):
+                               force_equal_length):
     """
     Calculate send counts table for all_to_all() communication from current
     data length and loaded block length.
@@ -82,58 +88,82 @@ def _calc_alltoall_send_counts(cur_length_all, block_length_all,
                         break
     assert all(e == 0 for e in diff_length)
 
+    # Need to calculate the number of elements sent <self->self>
+    # for MPI_Alltoallv().
+    num_sent_elems = [sum(send_counts.get((src_rank, dest_rank), 0)
+                         for dest_rank in range(size))
+                      for src_rank in range(size)]
+    print("num_sent_elems = {}".format(num_sent_elems))
+
+    for rank in range(size):
+        send_counts[(rank, rank)]\
+            = block_length_all[rank] - num_sent_elems[rank]
+
     if force_equal_length:
+        print("_calc_alltoall_send_counts(): force_equal_length")
         # Communicate a few extra elements to force equal length.
         len_max = max(new_length_all)  # Adjust all ranks to the maximum length.
 
-        # diff_length should be either 0 or -1.
+        # diff_length should be a list of 0 or -1.
         # "-1" rank should receive one element from another rank.
         diff_length = [ln - len_max for ln in new_length_all]
+        assert set(diff_length) == {0, -1}
 
-        # for communication efficiency, it is prefarrable to receive
-        # elements from nearby ranks and communication should be load-balanced.
         send_rank = 0
         for recv_rank in range(size):
             if diff_length[recv_rank] == -1:
                 # Find sender
+                # for communication efficiency, it is prefarrable to receive
+                # elements from nearby ranks and communication should be load-balanced.
                 send_rank += 1
                 while diff_length[send_rank] != 0:
                     send_rank = (send_rank + 1) % size
-                print("{} -> {} ({})".format(send_rank, recv_rank, 1))
+                print("_calc_alltoall_send_counts(): {} -> {} ({})".format(send_rank, recv_rank, 1))
                 _increment_send_counts(send_counts, send_rank, recv_rank)
                 diff_length[recv_rank] = 0
                 new_length_all[recv_rank] += 1
         assert all(e == 0 for e in diff_length)
-        print("new_length = {}".format(new_length_all))
+        print("_calc_alltoall_send_counts(): new_length = {}".format(new_length_all))
+        print("_calc_alltoall_send_counts(): send_counts = {}".format(send_counts))
+        assert len(set(new_length_all)) == 1
 
     return send_counts, new_length_all
 
 
-def _exchange_block(comm, data, block, cur_length_all, block_length_all):
+def _exchange_block(comm, data, block, cur_length_all, block_length_all,
+                    force_equal_counts):
     send_counts, new_length_all = _calc_alltoall_send_counts(
-        cur_length_all, block_length_all)
+        cur_length_all, block_length_all, force_equal_counts)
 
-    # Prepare block to send
+    # Basically, send data is selected from the newly-loaded `block`,
+    # but in some cases `block` is an empty array
+    # i.e. when adjusting for force_equal_length
+    if len(block) == 0:
+        local_data = data
+    else:
+        local_data = block
+
     offset = 0
     send_buf = [[]] * comm.size
+    print("_exchange_block(): send_counts = {}".format(send_counts))
     for dest_rank in range(comm.size):
-        if dest_rank == comm.rank:
-            continue
-
         num_elem = send_counts.get((comm.rank, dest_rank), 0)
+        print("_exchange_block(): ->{} num_elem = {}".format(dest_rank, num_elem))
         if num_elem == 0:
             continue
 
-        send_buf[dest_rank] = block[offset:offset + num_elem]
+        send_buf[dest_rank] = local_data[offset:offset + num_elem]
         while len(send_buf[dest_rank]) < num_elem:
             # In case of force_equal_length, the process may have to send
             # more data than `block` has. We need to duplicate some elements
             # from `block`.
             send_buf[dest_rank].append(random.choice(block))
-        offset = (offset + num_elem) % len(block)
-    print("send_buf = {}".format(send_buf))
+        offset = (offset + num_elem) % len(local_data)
+    print("_exchange_block(): send_buf = {}".format(send_buf))
     assert len(send_buf) == comm.size
-    data += comm.mpi_comm.alltoall(send_buf)
+    print("_exchange_block(): data = {}".format(data))
+    data += _flatten1(comm.mpi_comm.alltoall(send_buf))
+    print("_exchange_block(): data = {}".format(data))
     return new_length_all
 
 
@@ -166,7 +196,7 @@ def shuffle_data_blocks(comm, data_blocks, force_equal_length=True,
 
     data_blocks = iter(data_blocks)
     data = []
-    data_length_all = [0] * comm.size
+    data_length_all = [0] * comm.size  # all processes start from data=[]
 
     # repeat until all processes consume all data
     while True:
@@ -180,9 +210,6 @@ def shuffle_data_blocks(comm, data_blocks, force_equal_length=True,
         else:
             block_length = numpy.array([len(block)])
 
-        # total length of the already-loaded data.
-        data_length = numpy.array([len(data)])
-
         # How many elements does each process have?
         block_length_all = [x[0] for x in comm.allgather(block_length)]
         assert len(block_length_all) == comm.size
@@ -194,11 +221,13 @@ def shuffle_data_blocks(comm, data_blocks, force_equal_length=True,
             if force_equal_length:
                 # Run _exchange_block one more time for force_equal_length
                 data_length_all = _exchange_block(
-                    comm, data, block, data_length_all, block_length_all)
+                    comm, data, block, data_length_all, block_length_all,
+                    True)
             break
         else:
             data_length_all = _exchange_block(
-                comm, data, block, data_length_all, block_length_all)
+                comm, data, block, data_length_all, block_length_all,
+                False)
 
     return data
 
