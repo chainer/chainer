@@ -13,7 +13,7 @@ root_dir="$(realpath "$script_dir"/..)"
 
 expected_clang_format_version=6.0
 
-if which clang-format-${expected_clang_format_version} > /dev/null ; then
+if command -v clang-format-${expected_clang_format_version} >/dev/null 2>&1 ; then
     clang_format=clang-format-${expected_clang_format_version}
 else
     clang_format=clang-format
