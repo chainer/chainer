@@ -13,29 +13,6 @@ import setuptools
 from setuptools.command import build_ext
 
 
-def get_env_string_lower(var, default, choices, env=None, fallback=True):
-    value = os.getenv(var, default) if env is None else env.get(var, default)
-    value = str(env_value).lower()
-    if value not in choices:
-        if fallback:
-            return str(default).lower()
-        else:
-            raise RuntimeError('Invalid environment varibale {name}="{val}", choices in {choices}, case-insensetive.'.format(
-                name=var, val=value, choices=choices))
-    else:
-        return value
-
-
-def get_env_boolean(var, default, env=None):
-    trues = ["true", "on", "yes", "1"]
-    falses = ["false", "off", "no", "0"]
-    get_env_string_lower(var, default, trues + falses, env=env)
-    if env_value in trues:
-        return True
-    else:
-        return False
-
-
 def emit_build_info(build_chainerx):
     dirname = os.path.dirname(__file__)
     filename = os.path.join(dirname, 'chainerx/_build_info.py')
@@ -65,7 +42,7 @@ class CMakeBuild(build_ext.build_ext):
             raise RuntimeError('CMake >= 3.1.0 is required to build ChainerX')
 
         self.use_ninja = False
-        prefer_ninja = get_env_string_lower('CHAINERX_CMAKE_GENERATOR', default=None)
+        prefer_ninja = os.getenv('CHAINERX_CMAKE_GENERATOR', '').lower() == 'ninja'
         if prefer_ninja:
             try:
                 out = subprocess.check_output(['ninja', '--version'])
