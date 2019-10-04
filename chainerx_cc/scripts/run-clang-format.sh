@@ -17,6 +17,11 @@ if command -v clang-format-${expected_clang_format_version} >/dev/null 2>&1 ; th
     clang_format=clang-format-${expected_clang_format_version}
 else
     clang_format=clang-format
+    # e.g. clang-format version 6.0.0-1ubuntu2~16.04.1 (tags/RELEASE_600/final)
+    if [ "$("${clang_format}" -version | cut -d' ' -f3 | awk -F. '{printf "%s.%s", $1,$2}')" != "${expected_clang_format_version}" ];
+        echo "clang-format version should be ${expected_clang_format_version}" >&2
+        exit 1
+    fi
 fi
 
 parallel_jobs=1
