@@ -22,6 +22,20 @@ def _calc_alltoall_send_counts(cur_length_all, block_length_all,
     Calculate send counts table for all_to_all() communication from current
     data length and loaded block length.
 
+    For example, if length of loaded blocks of all processes are
+       [1, 10, 18]
+    then we will perform MPI_alltoallv() communication so that lengths are
+       [10, 10, 9]   (force_equal_length is False)
+    or
+       [10, 10, 10]  (force_equal_length is True)
+    because total number of elements are 29.
+
+    In this case, if `force_equal_length` is False,
+    the communication matrix, namely send_counts, is like:
+       2 --> 0  (9 elements)
+    so
+       send_counts = {(2, 0): 9}
+
     :param cur_length_all: Already-loaded data length
     :param block_length_all: Length of the newly loaded block
     :param force_equal_length: If force equal length
