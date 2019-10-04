@@ -186,8 +186,6 @@ def shuffle_data_blocks(comm, data_blocks, force_equal_length=True,
 
         # How many elements does each process have?
         block_length_all = [x[0] for x in comm.allgather(block_length)]
-        assert len(block_length_all) == comm.size
-        assert len(data_length_all) == comm.size
 
         # If nobody has any more data to send. done.
         if all(n == 0 for n in block_length_all):
