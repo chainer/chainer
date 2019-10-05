@@ -49,8 +49,7 @@ class CMakeBuild(build_ext.build_ext):
                 out = subprocess.check_output(['ninja', '--version'])
                 self.use_ninja = True
             except OSError:
-                warnings.warn(
-                    'Build with ninja is preferred, but ninja cannot be found.')
+                raise RuntimeError('Ninja not found.')
 
         for ext in self.extensions:
             self.build_extension(ext)
