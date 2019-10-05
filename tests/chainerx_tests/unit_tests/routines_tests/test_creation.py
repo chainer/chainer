@@ -1304,6 +1304,15 @@ def test_meshgrid_no_array(xp):
 
 @chainerx.testing.numpy_chainerx_array_equal()
 @pytest.mark.parametrize('indexing', ['xy', 'ij'])
+@chainerx.testing.parametrize_dtype_specifier('dtype_spec')
+def test_meshgrid_one_array_multi_dim(xp, indexing, dtype_spec):
+    if xp is numpy and isinstance(dtype_spec, chainerx.dtype):
+        dtype_spec = dtype_spec.name
+    return xp.meshgrid(xp.ones((3, 3), dtype=dtype_spec), indexing=indexing)
+
+
+@chainerx.testing.numpy_chainerx_array_equal()
+@pytest.mark.parametrize('indexing', ['xy', 'ij'])
 def test_meshgrid_no_array_indexing(xp, indexing):
     return xp.meshgrid(indexing=indexing)
 
