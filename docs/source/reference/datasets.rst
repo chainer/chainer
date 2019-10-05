@@ -42,6 +42,16 @@ Tabular Dataset Representation
 
    chainer.dataset.TabularDataset
 
+Tabular Dataset Helpers
+~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.dataset.tabular.DelegateDataset
+   chainer.dataset.tabular.from_data
+
 
 Iterator Interface
 ~~~~~~~~~~~~~~~~~~
@@ -60,6 +70,7 @@ Batch Conversion Function
    :toctree: generated/
    :nosignatures:
 
+   chainer.dataset.Converter
    chainer.dataset.converter
 
    chainer.dataset.concat_examples

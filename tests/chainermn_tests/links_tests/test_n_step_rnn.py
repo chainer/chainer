@@ -1,7 +1,7 @@
 import unittest
 
 import chainer
-import chainer.cuda
+from chainer.backends.cuda import cupy
 import chainer.functions as F
 import chainer.links as L
 import chainer.testing
@@ -12,14 +12,14 @@ import pytest
 
 class Model(chainer.Chain):
     def __init__(self, n_vocab, n_hid, communicator, rank_next, rank_prev):
-        n_layer = 1
+        n_layers = 1
         n_rnn_hid = 10
         super(Model, self).__init__()
         with self.init_scope():
             self.l1 = L.EmbedID(n_vocab, n_rnn_hid, ignore_label=-1)
             self.rnn = chainermn.links.create_multi_node_n_step_rnn(
                 L.NStepLSTM(
-                    n_layers=n_layer, in_size=n_rnn_hid, out_size=n_rnn_hid,
+                    n_layers=n_layers, in_size=n_rnn_hid, out_size=n_rnn_hid,
                     dropout=0.1),
                 communicator, rank_in=rank_prev, rank_out=rank_next,
             )
@@ -75,7 +75,7 @@ class TestNStepRNN(unittest.TestCase):
             n_vocab, n_hid, self.communicator, self.rank_next, self.rank_prev)
 
         if gpu:
-            model.to_gpu()
+            model.to_device(cupy.cuda.Device())
             X = [chainer.cuda.to_gpu(x) for x in X]
             Y = chainer.cuda.to_gpu(Y)
 
@@ -110,7 +110,7 @@ class TestNStepRNN(unittest.TestCase):
             n_vocab, n_hid, self.communicator, self.rank_next, self.rank_prev)
 
         if gpu:
-            model.to_gpu()
+            model.to_device(cupy.cuda.Device())
             X = [chainer.cuda.to_gpu(x) for x in X]
             Y = chainer.cuda.to_gpu(Y)
 

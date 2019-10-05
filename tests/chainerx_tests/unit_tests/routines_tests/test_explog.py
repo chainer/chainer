@@ -28,6 +28,7 @@ class TestErf(op_utils.ChainerOpTest):
         dtype = float_dtype
 
         if dtype == 'float16':
+            self.check_forward_options.update({'rtol': 1e-3, 'atol': 1e-3})
             self.check_backward_options.update({'rtol': 5e-2, 'atol': 5e-2})
             self.check_double_backward_options.update({
                 'rtol': 5e-2, 'atol': 5e-2})

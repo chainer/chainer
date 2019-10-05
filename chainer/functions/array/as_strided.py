@@ -1,6 +1,7 @@
 import numpy as np
 import six
 
+from chainer import backend
 from chainer.backends import cuda
 from chainer import function_node
 from chainer.utils import type_check
@@ -251,7 +252,7 @@ class AsStridedGrad(function_node.FunctionNode):
         if gy.dtype not in np.sctypes['float']:
             raise TypeError('Only float is supported for back propagation')
 
-        xp = cuda.get_array_module(gy)
+        xp = backend.get_array_module(gy)
         input_geometry = self.input_geometry
         itemsize = input_geometry.itemsize
 
@@ -262,7 +263,7 @@ class AsStridedGrad(function_node.FunctionNode):
         #  [redundant axis]
         #  axis with shape==0, shape==1 or strides==0
         if 0 in gy.shape:
-            return cuda.get_array_module(gy).zeros(input_geometry.shape)
+            return backend.get_array_module(gy).zeros(input_geometry.shape)
         else:
             out_shape = tuple([
                 self.shape[i] for i in six.moves.range(gy.ndim)

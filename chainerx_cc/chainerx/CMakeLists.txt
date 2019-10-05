@@ -1,3 +1,7 @@
+include_directories("${PROJECT_SOURCE_DIR}")
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CHAINERX_CXX_FLAGS}")
+
 add_subdirectory(kernels)
 add_subdirectory(routines)
 add_subdirectory(native)
@@ -69,6 +73,7 @@ set(chainerx_srcs
     array.cc
     array_body.cc
     array_body_leak_detection.cc
+    array_index.cc
     array_repr.cc
     axes.cc
     backend.cc
@@ -111,6 +116,13 @@ if(MSVC)
 else()
     add_library(chainerx SHARED ${chainerx_srcs})
 endif()
+
+# abseil
+target_link_libraries(
+    chainerx
+    PUBLIC
+    absl::failure_signal_handler
+    absl::bad_optional_access)
 
 if(MSVC)
     target_link_libraries(chainerx

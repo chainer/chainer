@@ -108,7 +108,18 @@ def _populate_module_functions():
             ret = xp.asarray(ret)
         return _to_chx(ret)
 
+    def _broadcast_arrays(*args):
+        xps, devs, arrs = zip(*(_from_chx(arr) for arr in args))
+        backend = xps[0]
+        if not all([xp is backend for xp in xps]):
+            raise TypeError(
+                'ChainerX function fallback using mixed NumPy/CuPy '
+                'arrays is not supported.')
+        bcasted = backend.broadcast_arrays(*arrs)
+        return [_to_chx(ret) for ret in bcasted]
+
     chainerx.fix = _fix
+    chainerx.broadcast_arrays = _broadcast_arrays
 
 
 def _populate_ndarray():
@@ -118,10 +129,8 @@ def _populate_ndarray():
     old_getitem = ndarray.__getitem__
 
     def __getitem__(arr, key):
-        try:
+        if not isinstance(key, chainerx.ndarray):
             return old_getitem(arr, key)
-        except (IndexError, chainerx.DimensionError):
-            pass
 
         is_backprop_required = arr.is_backprop_required()
 

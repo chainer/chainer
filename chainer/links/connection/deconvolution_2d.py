@@ -167,10 +167,10 @@ groups=1)
     def _initialize_params(self, in_channels):
         kh, kw = _pair(self.ksize)
         if self.out_channels % self.groups != 0:
-            raise ValueError('the number of output channels must be'
+            raise ValueError('the number of output channels must be '
                              'divisible by the number of groups')
         if in_channels % self.groups != 0:
-            raise ValueError('the number of input channels must be'
+            raise ValueError('the number of input channels must be '
                              'divisible by the number of groups')
         W_shape = (in_channels, int(self.out_channels / self.groups), kh, kw)
         self.W.initialize(W_shape)

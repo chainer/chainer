@@ -12,20 +12,17 @@ class ChainerxDevice(_backend.Device):
 
     """Device for ChainerX backend"""
 
+    xp = chainerx
+    supported_array_types = (chainerx.ndarray,)
+
+    __hash__ = _backend.Device.__hash__
+
     def __init__(self, device):
         # type: (chainerx.Device) -> None
 
         assert isinstance(device, chainerx.Device)
         super(ChainerxDevice, self).__init__()
         self.device = device  # type: chainerx.Device
-
-    @property
-    def xp(self):
-        return chainerx
-
-    @property
-    def supported_array_types(self):
-        return (chainerx.ndarray,)
 
     @staticmethod
     def from_array(array):
@@ -41,7 +38,6 @@ to the fallback device.
         .. seealso::
             :data:`~chainer.backend.ChainerxDevice.fallback_device`
         """
-        # TODO(niboshi): Write unit test
         assert isinstance(device, _backend.Device)
         if isinstance(device, _cpu.CpuDevice):
             return ChainerxDevice(chainerx.get_device('native', 0))
@@ -51,6 +47,10 @@ to the fallback device.
         raise RuntimeError(
             'Only CPU or GPU devices are allowed. '
             'Actual: {}'.format(device))
+
+    @property
+    def name(self):
+        return self.device.name
 
     @property
     def fallback_device(self):
@@ -65,7 +65,6 @@ to the fallback device.
         ChainerX device is :class:`~chainer.backend.GpuDevice` with device ID
         1.
         """
-        # TODO(niboshi): Write unit test
         backend_name = self.device.backend.name
         if backend_name == 'native':
             return _cpu.CpuDevice()
@@ -83,9 +82,6 @@ to the fallback device.
     def __repr__(self):
         return '<{} {}>'.format(
             self.__class__.__name__, self.device.name)
-
-    def __str__(self):
-        return self.device.name
 
     def create_context(self):
         # Returns a context that sets the default device.

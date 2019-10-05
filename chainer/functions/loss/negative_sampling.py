@@ -397,7 +397,10 @@ return_samples=False)
     See: `Distributed Representations of Words and Phrases and their
     Compositionality <https://arxiv.org/abs/1310.4546>`_
 
-    .. seealso:: :class:`~chainer.links.NegativeSampling`.
+    .. seealso::
+
+        :class:`~chainer.links.NegativeSampling` to manage the model parameter
+        ``W``.
 
     """
     return_samples = False

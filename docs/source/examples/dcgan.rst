@@ -184,7 +184,7 @@ is same as the above image.
 2.2 Define the discriminator model
 -----------------------------------
 
-In addtion, let's define the network for the discriminator.
+In addition, let's define the network for the discriminator.
 
 .. literalinclude:: ../../../examples/dcgan/net.py
    :language: python
@@ -300,7 +300,7 @@ the optimizers.
     Note that the type of arrays on CPU  is ``numpy.ndarray``, while the type
     of arrays on GPU is ``cupy.ndarray``. However, users do not need to write
     ``if`` condition explicitly, because the appropriate array module can be
-    obtained by ``xp = chainer.backends.cuda.get_array_module(variable.array)``.
+    obtained by ``xp = chainer.backend.get_array_module(variable.array)``.
     If ``variable`` is on GPU, ``cupy`` is assigned to ``xp``, otherwise
     ``numpy`` is assigned to ``xp``.
 
