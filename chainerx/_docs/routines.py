@@ -1145,6 +1145,7 @@ Note:
     array to the input array ``x`` only.
 """)
 
+
 def _docs_manipulation():
     _docs.set_doc(
         chainerx.reshape,
