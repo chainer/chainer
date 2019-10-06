@@ -31,27 +31,26 @@ def _generate_ones(device, shape, dtype):
 
 
 def multihead_attention(
-    n_head,                   # type: int
-    embedding_size,           # type: int
-    query,                    # type: InputType
-    key,                      # type: InputType
-    value,                    # type: InputType
-    proj_in_W,                # type: tp.Union[variable.Variable, tp.Tuple[variable.Variable, variable.Variable, variable.Variable]]  # NOQA
-    proj_in_b,                # type: tp.Optional[variable.Variable]
-    bias_k,                   # type: variable.Variable
-    bias_v,                   # type: variable.Variable
-    proj_out_W,               # type: variable.Variable
-    proj_out_b,               # type: variable.Variable
-    add_zero_attn=False,      # type: bool
-    attention_dropout=0,      # type: float
-    post_dropout=0,           # type: float
-    key_padding_mask=None,    # type: tp.Optional[InputType]
-    attn_mask=None,           # type: tp.Optional[InputType]
-    dot_product_scaler=None,  # type: tp.Optional[float]
-    softmax_scaler=1.0,       # type: float
-    return_weights=True       # type: bool
-):
-    # type: (...) -> tp.Tuple[variable.Variable, variable.Variable]  # NOQA
+        n_head: int,
+        embedding_size: int,
+        query: InputType,
+        key: InputType,
+        value: InputType,
+        proj_in_W: tp.Union[variable.Variable, tp.Tuple[variable.Variable, variable.Variable, variable.Variable]],  # NOQA
+        proj_in_b: tp.Optional[variable.Variable],
+        bias_k: variable.Variable,
+        bias_v: variable.Variable,
+        proj_out_W: variable.Variable,
+        proj_out_b: variable.Variable,
+        add_zero_attn: bool = False,
+        attention_dropout: float = 0,
+        post_dropout: float = 0,
+        key_padding_mask: tp.Optional[InputType] = None,
+        attn_mask: tp.Optional[InputType] = None,
+        dot_product_scaler: tp.Optional[float] = None,
+        softmax_scaler: float = 1.0,
+        return_weights: bool = True
+) -> tp.Tuple[variable.Variable, variable.Variable]:
     """Multi-head Attention forward function.
 
     Args:
