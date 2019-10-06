@@ -90,8 +90,8 @@ class DeviceResident(utils.enable_final(meta_base=abc.ABCMeta)):
 
     @utils.final(action=DeprecationWarning)
     def to_gpu(
-        self,
-        device: tp.Optional[types.CudaDeviceSpec] = None,
+            self,
+            device: tp.Optional[types.CudaDeviceSpec] = None,
     ) -> 'DeviceResident':
         """Copies parameter variables and persistent values to GPU.
 
@@ -176,8 +176,8 @@ to NumPy/CuPy devices without any copy."""
 
     @utils.final
     def to_device(
-        self,
-        device: types.DeviceSpec
+            self,
+            device: types.DeviceSpec
     ) -> 'DeviceResident':
         """Copies parameter variables and persistent values to the specified \
 device.
