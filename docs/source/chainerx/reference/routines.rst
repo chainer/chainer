@@ -160,6 +160,7 @@ Loss functions
    chainerx.squared_error
    chainerx.huber_loss
    chainerx.gaussian_kl_divergence
+   chainerx.sigmoid_cross_entropy
 
 Mathematical functions
 ----------------------
