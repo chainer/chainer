@@ -83,7 +83,8 @@ class TestPickleDataset(unittest.TestCase):
         dataset = datasets.PickleDataset(reader)
 
         assert reader.n_hook_called == 0
-        p = multiprocessing.Process()
+        ctx = multiprocessing.get_context('fork')
+        p = ctx.Process()
         p.start()
         p.join()
         assert reader.n_hook_called == 1
