@@ -177,7 +177,6 @@ class TestSigmoidCrossEntropy(op_utils.ChainerOpTest):
     chainer.testing.product({
         'x_dtype': chainerx.testing.float_dtypes,
         't_dtype': chainerx.testing.signed_integral_dtypes,
-        'reduce': ['mean', 'no'],
     })
 ))
 class TestSoftmaxCrossEntropy(op_utils.ChainerOpTest):
@@ -200,12 +199,12 @@ class TestSoftmaxCrossEntropy(op_utils.ChainerOpTest):
     def forward_chainerx(self, inputs):
         x, = inputs
         t = self.backend_config.get_array(self.t)
-        out = chainerx.softmax_cross_entropy(x, t, reduce=self.reduce)
+        out = chainerx.softmax_cross_entropy(x, t)
         return out,
 
     def forward_chainer(self, inputs):
         x, = inputs
-        out = F.softmax_cross_entropy(x, self.t, normalize=False, reduce=self.reduce)
+        out = F.softmax_cross_entropy(x, self.t, reduce='no')
         return out,
 
 

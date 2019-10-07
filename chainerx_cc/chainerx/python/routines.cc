@@ -1315,24 +1315,9 @@ void InitChainerxLoss(pybind11::module& m) {
           "x1"_a,
           "x2"_a);
     m.def("softmax_cross_entropy",
-          [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2, const std::string& reduce) {
-              Array x1_array{x1};
-              Array x2_array{x2};
-
-              SoftmaxCrossEntropyReduceMode reduce_mode{};
-              if (reduce == "mean") {
-                  reduce_mode = SoftmaxCrossEntropyReduceMode::kMean;
-              } else if (reduce == "no") {
-		  reduce_mode = SoftmaxCrossEntropyReduceMode::kNo;
-              } else {
-                  throw py::value_error{"reduce_mode must be either of 'mean' or 'no'"};
-              }
-
-              return MoveArrayBody(SoftmaxCrossEntropy(x1_array, x2_array, reduce_mode));
-          },
+          [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return MoveArrayBody(SoftmaxCrossEntropy(Array{x1}, Array{x2})); },
           "x1"_a,
-          "x2"_a,
-          "reduce"_a = "mean");
+          "x2"_a);
     m.def("hinge",
           [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2, double norm) { return MoveArrayBody(Hinge(Array{x1}, Array{x2}, norm)); },
           "x1"_a,

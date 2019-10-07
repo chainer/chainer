@@ -34,14 +34,10 @@ Array SigmoidCrossEntropy(const Array& x1, const Array& x2) {
     return -(ignore_mask * (x1 * (x2 - (GreaterEqual(x1, ZerosLike(x1, x1.device()))).AsType(x1.dtype())) - Log1p(Exp(-Absolute(x1)))));
 }
 
-Array SoftmaxCrossEntropy(const Array& x1, const Array& x2, SoftmaxCrossEntropyReduceMode reduce_mode) {
+Array SoftmaxCrossEntropy(const Array& x1, const Array& x2) {
     Array score = LogSoftmax(x1, 1);
     Array mask = (x2.At({Slice{}, NewAxis{}}) == Arange(score.shape()[1], x2.dtype(), x1.device())).AsType(score.dtype());
-    Array out = -(score * mask).Sum({1});
-    if (reduce_mode == SoftmaxCrossEntropyReduceMode::kMean) {
-      return out.Mean();
-    }
-    return out;
+    return -(score * mask).Sum({1});
 }
 
 Array Hinge(const Array& x, const Array& t, double norm) {
