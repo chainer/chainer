@@ -86,30 +86,31 @@ def _calc_alltoall_send_counts(cur_length_all, block_length_all):
     # calculate the all-to-all send_counts as a dict.
     # NOTE: mpi4py's alltoall() is similar to MPI_Alltoallv().
     #       mpi4py does not have alltoallv().
+    # dst_rank and src_rank go through diff_length array once so O(N)
+    dst_rank = 0
     for src_rank in range(size):
-        if diff_length[src_rank] > 0:
+        while diff_length[src_rank] > 0:
             # src_rank has elements to send to other ranks
             # find receiver(s)
-            for _dst_rank in range(size):
-                dst_rank = (_dst_rank + size) % size
-                send_cnt = diff_length[src_rank]
-                recv_cnt = diff_length[dst_rank]
-                if recv_cnt < 0:  # recv_rank is ready to receive some elems.
-                    if send_cnt <= -recv_cnt:
-                        # dst_rank can recieve more elements than
-                        # src_rank can send. Thus src_rank's send_cnt becomes 0
-                        send_counts[(src_rank, dst_rank)] = send_cnt
-                        diff_length[src_rank] = 0
-                        diff_length[dst_rank] += send_cnt
-                    else:
-                        # dst_rank can receive less elements than
-                        # src_rank can send. Thus dst_rank's recv_cnt becomes 0
-                        # NOTE: recv_cnt is a <0 value
-                        send_counts[(src_rank, dst_rank)] = -recv_cnt
-                        diff_length[src_rank] += recv_cnt
-                        diff_length[dst_rank] = 0
-                    if diff_length[src_rank] == 0:
-                        break
+            while diff_length[dst_rank] >= 0:
+                dst_rank = (dst_rank + 1) % size
+            send_cnt = diff_length[src_rank]
+            recv_cnt = diff_length[dst_rank]
+            if send_cnt <= -recv_cnt:
+                # dst_rank can recieve more elements than
+                # src_rank can send. Thus src_rank's send_cnt becomes 0
+                send_counts[(src_rank, dst_rank)] = send_cnt
+                diff_length[src_rank] = 0
+                diff_length[dst_rank] += send_cnt
+            else:
+                # dst_rank can receive less elements than
+                # src_rank can send. Thus dst_rank's recv_cnt becomes 0
+                # NOTE: recv_cnt is a <0 value
+                send_counts[(src_rank, dst_rank)] = -recv_cnt
+                diff_length[src_rank] += recv_cnt
+                diff_length[dst_rank] = 0
+            if diff_length[src_rank] == 0:
+                break
 
     assert all(d == 0 for d in diff_length)
     return send_counts, new_length_all
