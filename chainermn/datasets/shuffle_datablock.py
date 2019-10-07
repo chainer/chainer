@@ -2,8 +2,8 @@ import itertools
 import random
 
 import chainer
-import numpy
 import functools
+import numpy
 
 
 def _increment_send_counts(table, send_rank, recv_rank, n=1):
@@ -37,9 +37,7 @@ def _calc_new_length(data_lengths, block_lengths):
 
 
 def _calc_alltoall_send_counts(data_lengths, block_lengths):
-    """
-    Calculate send counts table for all_to_all() communication from current
-    data length and loaded block length.
+    """Calculate send counts table from current data and loaded block length.
 
     For example, if length of loaded blocks of all processes are
        [1, 10, 18]
