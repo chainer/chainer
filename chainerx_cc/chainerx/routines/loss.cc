@@ -8,6 +8,7 @@
 #include "chainerx/routines/logic.h"
 #include "chainerx/routines/manipulation.h"
 #include "chainerx/routines/misc.h"
+#include "chainerx/routines/reduction.h"
 #include "chainerx/scalar.h"
 
 namespace chainerx {
@@ -31,6 +32,16 @@ Array SigmoidCrossEntropy(const Array& x1, const Array& x2) {
     Array ignore_label = -OnesLike(x2, x2.device());
     Array ignore_mask = NotEqual(x2, ignore_label);
     return -(ignore_mask * (x1 * (x2 - (GreaterEqual(x1, ZerosLike(x1, x1.device()))).AsType(x1.dtype())) - Log1p(Exp(-Absolute(x1)))));
+}
+
+Array SoftmaxCrossEntropy(const Array& x1, const Array& x2, SoftmaxCrossEntropyReduceMode reduce_mode) {
+    Array score = LogSoftmax(x1, 1);
+    Array mask = (x2.At({Slice{}, NewAxis{}}) == Arange(score.shape()[1], x2.dtype(), x1.device())).AsType(score.dtype());
+    Array out = -(score * mask).Sum({1});
+    if (reduce_mode == SoftmaxCrossEntropyReduceMode::kMean) {
+      return out.Mean();
+    }
+    return out;
 }
 
 Array Hinge(const Array& x, const Array& t, double norm) {
