@@ -59,6 +59,16 @@ requirements = {
         # TODO(niboshi): Consider upgrading pytest to >=3.6
         'pytest-timeout<1.3.0',
     ],
+    'jenkins': [
+        '-r test',
+        # pytest-timeout>=1.3.0 requires pytest>=3.6.
+        # TODO(niboshi): Consider upgrading pytest to >=3.6
+        'pytest-timeout<1.3.0',
+        'pytest-cov',
+        'nose',
+        'coveralls',
+        'codecov',
+    ],
 }
 
 
