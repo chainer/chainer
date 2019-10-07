@@ -53,7 +53,7 @@ int64_t GetConvOutDim(int64_t in_dim, int64_t kernel_size, int64_t stride, int64
 int64_t GetConvTransposeOutDim(int64_t in_dim, int64_t kernel_size, int64_t stride, int64_t pad, int64_t dilate, bool cover_all) {
     CHAINERX_ASSERT(stride > 0);
     CHAINERX_ASSERT(dilate > 0);
-    int64_t dilated_kernel = kernel_size + (kernel_size - 1) * (dilate - 1);
+    int64_t dilated_kernel = (kernel_size - 1) * dilate + 1;
     if (cover_all) {
         return stride * (in_dim - 1) + dilated_kernel - stride + 1 - 2 * pad;
     }

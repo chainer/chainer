@@ -321,6 +321,7 @@ class _ConvTransposeTestBase(object):
             x_shape = self.x_shape
             w_shape = self.w_shape
             stride = self.stride
+            dilate = self.dilate
             pad = self.pad
             in_dims = x_shape[2:]
             kernel_size = w_shape[2:]
@@ -328,10 +329,13 @@ class _ConvTransposeTestBase(object):
             stride_tup = (
                 (stride,) * ndim if isinstance(stride, int) else stride)
             pad_tup = (pad,) * ndim if isinstance(pad, int) else pad
+            dilate_tup = (dilate,) * ndim if \
+                isinstance(dilate, int) else dilate
             outsize = tuple(
-                chainer.utils.conv.get_deconv_outsize(d, k, s, p, cover_all)
-                for (d, k, s, p)
-                in zip(in_dims, kernel_size, stride_tup, pad_tup))
+                chainer.utils.conv.get_deconv_outsize(
+                    d, k, s, p, cover_all, dil)
+                for (d, k, s, p, dil)
+                in zip(in_dims, kernel_size, stride_tup, pad_tup, dilate_tup))
         self.outsize = outsize
 
     def generate_inputs(self):
@@ -357,7 +361,7 @@ class _ConvTransposeTestBase(object):
         else:
             (x, w), b = inputs, None
         y = chainerx.conv_transpose(
-            x, w, b, self.stride, self.pad, 1, self.outsize)
+            x, w, b, self.stride, self.pad, self.dilate, self.outsize)
         return y,
 
     def forward_chainer(self, inputs):
@@ -372,7 +376,7 @@ class _ConvTransposeTestBase(object):
         if b is not None and b.dtype.kind != 'f':
             b = F.cast(b, 'float64')
         y = chainer.functions.deconvolution_nd(
-            x, w, b, self.stride, self.pad, self.outsize)
+            x, w, b, self.stride, self.pad, self.outsize, self.dilate)
         y = F.cast(y, self.out_dtype)
         return y,
 
@@ -382,11 +386,15 @@ class _ConvTransposeTestBase(object):
     # without bias
     chainer.testing.product([
         chainer.testing.from_pytest_parameterize(
-            'x_shape,w_shape,b_shape,stride,pad', [
-                ((1, 3), (3, 5), None, 1, 0),
-                ((1, 3, 4), (3, 5, 2), None, 3, 2),
-                ((2, 3, 4, 4), (3, 2, 3, 3), None, 2, (2, 0)),
-                ((2, 3, 5, 6, 3), (3, 2, 1, 3, 2), None, (1, 2, 3), (2, 0, 1)),
+            'x_shape,w_shape,b_shape,stride,pad,dilate', [
+                ((1, 3), (3, 5), None, 1, 0, 1),
+                ((1, 3, 4), (3, 5, 2), None, 3, 2, 1),
+                ((2, 3, 4, 4), (3, 2, 3, 3), None, 2, (2, 0), 1),
+                ((2, 3, 5, 6, 3), (3, 2, 1, 3, 2), None,
+                 (1, 2, 3), (2, 0, 1), 1),
+                ((2, 3, 10, 10), (3, 2, 3, 3), None, 2, (2, 0), 2),
+                ((2, 3, 5, 6, 3), (3, 2, 1, 3, 2), None,
+                 (1, 2, 3), (2, 0, 1), (3, 2, 1)),
             ]),
         chainer.testing.from_pytest_parameterize(
             'in_dtypes,out_dtype', dtype_utils.result_dtypes_two_arrays)
@@ -394,15 +402,17 @@ class _ConvTransposeTestBase(object):
     # with bias
     chainer.testing.product([
         chainer.testing.from_pytest_parameterize(
-            'x_shape,w_shape,b_shape,stride,pad', [
-                ((1, 3), (3, 5), (5,), 1, 0),
-                ((2, 3, 4), (3, 5, 1), (5,), 1, 0),
-                ((1, 3, 4), (3, 5, 2), (5,), 3, 2),
-                ((2, 3, 4, 4), (3, 2, 3, 3), (2,), 1, 0),
-                ((1, 3, 4, 4), (3, 2, 3, 3), (2,), (1, 2), 1),
-                ((1, 3, 4, 4), (3, 2, 3, 3), (2,), 2, (2, 0)),
-                ((1, 3, 5, 6, 3), (3, 2, 1, 3, 2), (2,), 2, (2, 0, 1)),
-                ((1, 3, 5, 6, 3), (3, 2, 1, 3, 2), (2,), (1, 2, 3), (2, 0, 1)),
+            'x_shape,w_shape,b_shape,stride,pad,dilate', [
+                ((1, 3), (3, 5), (5,), 1, 0, 1),
+                ((2, 3, 4), (3, 5, 1), (5,), 1, 0, 1),
+                ((1, 3, 4), (3, 5, 2), (5,), 3, 2, 1),
+                ((2, 3, 4, 4), (3, 2, 3, 3), (2,), 1, 0, 1),
+                ((1, 3, 4, 4), (3, 2, 3, 3), (2,), (1, 2), 1, 1),
+                ((1, 3, 4, 4), (3, 2, 3, 3), (2,), 2, (2, 0), 1),
+                ((1, 3, 5, 6, 3), (3, 2, 1, 3, 2), (2,), 2, (2, 0, 1), 1),
+                ((1, 3, 5, 6, 3), (3, 2, 1, 3, 2), (2,),
+                 (1, 2, 3), (2, 0, 1), 1),
+                ((2, 4, 4, 3, 2), (4, 2, 3, 3, 3), (2,), (1, 2, 3), (2, 0, 1), 2),
             ]),
         chainer.testing.from_pytest_parameterize(
             'in_dtypes,out_dtype', dtype_utils.result_dtypes_three_arrays)
@@ -428,6 +438,7 @@ class TestConvTransposeTensorCore(
     b_shape = (8,)
     stride = 4
     pad = 0
+    dilate = 1
     in_dtypes = ('float16', 'float16', 'float16')
     out_dtype = 'float16'
 
