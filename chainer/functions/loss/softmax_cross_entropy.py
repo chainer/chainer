@@ -144,8 +144,6 @@ class SoftmaxCrossEntropy(function_node.FunctionNode):
 
         log_p *= t_valid.ravel()
         if self.reduce == 'mean':
-            # deal with the case where the SoftmaxCrossEntropy is
-            # unpickled from the old version
             if self.normalize:
                 count = t_valid.sum()
             else:
