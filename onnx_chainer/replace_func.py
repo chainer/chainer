@@ -68,9 +68,9 @@ def fake_as_funcnode(alt_func, name, rename_attributes=None):
 
        >>> def func(x, a, b, c=1, d=2): pass
        >>> # x is variable
-       >>> func = fake_as_funcnode(
+       >>> func = onnx_chainer.replace_func.fake_as_funcnode(
        ...     func, 'CustomNode',
-       ...     rename_attributes=[(1, 'value'), ('c': 'y')])
+       ...     rename_attributes=[(1, 'value'), ('c', 'y')])
 
     Then ``func`` will be operated as a function node named "CustomNode", and
     ``'value'``, ``'b'``, ``'y'``, ``'d'`` are set as function's attributes.
@@ -160,8 +160,8 @@ def as_funcnode(name, rename_attributes=None):
 
     Example:
 
-       >>> @as_funcnode(
-       ...     'CustomNode', rename_attributes=[(1, 'value'), ('c': 'y')])
+       >>> @onnx_chainer.replace_func.as_funcnode(
+       ...     'CustomNode', rename_attributes=[(1, 'value'), ('c', 'y')])
        ... def func(x, a, b, c=1, d=2): pass
 
     Args:
