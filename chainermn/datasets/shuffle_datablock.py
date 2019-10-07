@@ -17,24 +17,26 @@ def _flatten1(ary):
     return functools.reduce(lambda a, b: a + b, ary)
 
 
-def _calc_new_length(cur_length_all, block_length_all):
+def _calc_new_length(data_lengths, block_lengths):
     # the total number of elements over all processes, including
     # already-scattered data.
-    size = len(cur_length_all)
-    total = sum(cur_length_all) + sum(block_length_all)
+    # data_lengths: lengths of already-loaded data of all processes
+    # block_lengths: lengths of newly-loaded data blocks
+    size = len(data_lengths)
+    total = sum(data_lengths) + sum(block_lengths)
 
     # new_length: new number of elements of all processes after shuffling
     if total % size == 0:
-        new_length_all = [total // size] * size
+        new_lengths = [total // size] * size
     else:
         rem = total % size
-        rem_all = [1 if i < rem else 0 for i in range(size)]
-        new_length_all = [total // size + rem_all[i] for i in range(size)]
+        rems = [1 if i < rem else 0 for i in range(size)]
+        new_lengths = [total // size + rems[i] for i in range(size)]
 
-    return new_length_all
+    return new_lengths
 
 
-def _calc_alltoall_send_counts(cur_length_all, block_length_all):
+def _calc_alltoall_send_counts(data_lengths, block_lengths):
     """
     Calculate send counts table for all_to_all() communication from current
     data length and loaded block length.
@@ -53,18 +55,18 @@ def _calc_alltoall_send_counts(cur_length_all, block_length_all):
     so
        send_counts = {(2, 0): 9}
 
-    :param cur_length_all: Already-loaded data length
-    :param block_length_all: Length of the newly loaded block
+    :param data_lengths: Already-loaded data length
+    :param block_lengths: Length of the newly loaded block
     :param force_equal_length: If force equal length
     :return: A dict of send counts
     """
-    size = len(cur_length_all)
+    size = len(data_lengths)
 
-    new_length_all = _calc_new_length(cur_length_all, block_length_all)
+    new_lengths = _calc_new_length(data_lengths, block_lengths)
 
     # If diff_length[rank] is >0, then the rank has more elements than
     # expected, so it distribute the extra data to other ranks.
-    diff_length = [block_length_all[i] + cur_length_all[i] - new_length_all[i]
+    diff_length = [block_lengths[i] + data_lengths[i] - new_lengths[i]
                    for i in range(size)]
 
     send_counts = {}  # send_count table
@@ -76,11 +78,11 @@ def _calc_alltoall_send_counts(cur_length_all, block_length_all):
             # If diff_length[rank] > 0, the rank sends data to other process
             # as well as to itself.
             send_counts[(rank, rank)] = \
-                block_length_all[rank] - diff_length[rank]
+                block_lengths[rank] - diff_length[rank]
         else:
             # Otherwise, the rank sents not data and
             # just keeps the block for itself
-            send_counts[(rank, rank)] = block_length_all[rank]
+            send_counts[(rank, rank)] = block_lengths[rank]
 
     # calculate the all-to-all send_counts as a dict.
     # NOTE: mpi4py's alltoall() is similar to MPI_Alltoallv().
@@ -113,12 +115,12 @@ def _calc_alltoall_send_counts(cur_length_all, block_length_all):
 
     # All the diffs are resolved by communication.
     assert all(d == 0 for d in diff_length)
-    return send_counts, new_length_all
+    return send_counts, new_lengths
 
 
-def _exchange_block(comm, data, block, cur_length_all, block_length_all):
-    send_counts, new_length_all = _calc_alltoall_send_counts(
-        cur_length_all, block_length_all)
+def _exchange_block(comm, data, block, data_lengths, block_lengths):
+    send_counts, new_lengths = _calc_alltoall_send_counts(
+        data_lengths, block_lengths)
 
     # Basically, send data is selected from the newly-loaded `block`,
     # but in some cases `block` is an empty array
@@ -143,7 +145,7 @@ def _exchange_block(comm, data, block, cur_length_all, block_length_all):
             send_buf[dest_rank].append(random.choice(block))
         offset = (offset + num_elem) % len(local_data)
     data += _flatten1(comm.mpi_comm.alltoall(send_buf))
-    return new_length_all
+    return new_lengths
 
 
 def shuffle_data_blocks(comm, blocks, block_size, force_equal_length=True):
@@ -184,7 +186,7 @@ def shuffle_data_blocks(comm, blocks, block_size, force_equal_length=True):
 
     blocks = iter(blocks)
     data = []
-    data_length_all = [0] * comm.size  # all processes start from data=[]
+    data_lengths = [0] * comm.size  # all processes start from data=[]
 
     # repeat until all processes consume all data
     while True:
@@ -199,18 +201,18 @@ def shuffle_data_blocks(comm, blocks, block_size, force_equal_length=True):
             block_length = numpy.array([len(block)])
 
         # How many elements does each process have?
-        block_length_all = [x[0] for x in comm.allgather(block_length)]
+        block_lengths = [x[0] for x in comm.allgather(block_length)]
 
         # If nobody has any more data to send. done.
-        if all(n == 0 for n in block_length_all):
+        if all(n == 0 for n in block_lengths):
             break
         else:
-            data_length_all = _exchange_block(
-                comm, data, block, data_length_all, block_length_all)
+            data_lengths = _exchange_block(
+                comm, data, block, data_lengths, block_lengths)
 
     if force_equal_length:
-        max_data_len = max(data_length_all)
-        min_data_len = min(data_length_all)
+        max_data_len = max(data_lengths)
+        min_data_len = min(data_lengths)
         if max_data_len != min_data_len:
             while len(data) < max_data_len:
                 diff = max_data_len - len(data)
