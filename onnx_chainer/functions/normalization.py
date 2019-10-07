@@ -46,14 +46,16 @@ def convert_BatchNormalization(
             return context.add_param(
                 v, '{}_{}'.format(prefix, suffix), use_original_name=True)
 
-    maen_name = add_param(mean, 'avg_mean')
-    var_name = add_param(var, 'avg_var')
     if is_fixed_bn:
-        context.implicit_inputs.pop(input_names[3], None)
-        context.implicit_inputs.pop(input_names[4], None)
-        input_names[3] = maen_name
-        input_names[4] = var_name
+        if context.implicit_inputs.pop(input_names[3], None) is not None:
+            mean_name = add_param(mean, 'avg_mean')
+            input_names[3] = mean_name
+        if context.implicit_inputs.pop(input_names[4], None) is not None:
+            var_name = add_param(var, 'avg_var')
+            input_names[4] = var_name
     else:
+        maen_name = add_param(mean, 'avg_mean')
+        var_name = add_param(var, 'avg_var')
         input_names.extend([maen_name, var_name])
 
     momentum = getattr(func, 'decay', 0.)

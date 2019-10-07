@@ -141,7 +141,7 @@ class TestBatchNormalizationFunction(ONNXModelTest):
             self.model, self.x, custom_model_test_func=test_input_names)
 
 
-class TestFixedBatchNormalizationFunction(ONNXModelTest):
+class TestFixedBatchNormalizationFunctionImplicitInputs(ONNXModelTest):
 
     def setUp(self):
 
@@ -169,3 +169,24 @@ class TestFixedBatchNormalizationFunction(ONNXModelTest):
 
         self.expect(
             self.model, self.x, custom_model_test_func=test_input_names)
+
+
+class TestFixedBatchNormalizationFunctionExplicitInputs(ONNXModelTest):
+
+    def setUp(self):
+
+        class Model(chainer.Chain):
+
+            def __call__(self, x, gamma, beta, mean, var):
+                return F.fixed_batch_normalization(x, gamma, beta, mean, var)
+
+        self.model = Model()
+        self.x = input_generator.increasing(2, 5)
+        self.mean = self.x.mean(axis=0)
+        self.var = self.x.var(axis=0)
+        self.gamma = np.ones_like(self.mean, dtype=self.x.dtype)
+        self.beta = np.zeros_like(self.mean, dtype=self.x.dtype)
+
+    def test_output(self):
+        self.expect(
+            self.model, [self.x, self.gamma, self.beta, self.mean, self.var])

@@ -413,11 +413,12 @@ def _export(model, args, filename, export_params, graph_name, save_text,
             rename_variable_name(
                 context, outputs, network_outputs, output_names)
 
-        o = Graph(context, converters, opset_version, network_outputs)
+        o = Graph(context, converters, opset_version,
+                  param_names | set(network_inputs.keys()),
+                  network_outputs)
         o.to_onnx_graph()
 
-    implicit_input_names = set(context.implicit_inputs.keys()) - param_names -\
-        set(network_inputs.keys())
+    implicit_input_names = set(context.implicit_inputs.keys())
     for name in implicit_input_names:
         tensor = convert_parameter(context.implicit_inputs[name], context)
         initializers.append(tensor)

@@ -10,7 +10,8 @@ from onnx_chainer import onnx_helper
 
 class Graph(object):
 
-    def __init__(self, context, converters, opset_version, network_outputs):
+    def __init__(self, context, converters, opset_version,
+                 explicit_input_names, network_outputs):
         self.context = context
         self.converters = converters
 
@@ -18,6 +19,7 @@ class Graph(object):
         self.func_name_counts = collections.defaultdict(int)
         self.outputs = set()  # Output variable names
         self.specified_opset_version = opset_version
+        self.explicit_input_names = explicit_input_names
         self.network_outputs = network_outputs
 
         self.function_nodes = self._build_computational_graph(
@@ -87,7 +89,8 @@ class Graph(object):
                 input_name = self.context.get_name(input_var)
             else:  # It is a parameter inside a Link or network input
                 input_name = self.context.get_name(var)
-                if input_name not in self.outputs:
+                if (input_name not in self.explicit_input_names and
+                        input_name not in self.outputs):
                     # register input variables to check implicit inputs
                     self.context.implicit_inputs[input_name] = var
             input_names.append(input_name)
