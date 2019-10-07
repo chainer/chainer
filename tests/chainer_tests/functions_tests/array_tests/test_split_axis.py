@@ -137,7 +137,15 @@ def inject_backend_tests():
              (slice(None), slice(None, 2)),
              (slice(None), slice(2, 5)),
              (slice(None), slice(5, None))],
-         'grad_outputs_is_none': [False, True, False]},
+         'grad_outputs_is_none': [False, True, False]
+         },
+        {'shape': (2, 7, 3, 1), 'axis': 1, 'ys_section': [2, 5],
+         'slices': [
+             (slice(None), slice(None, 2)),
+             (slice(None), slice(2, 5)),
+             (slice(None), slice(5, None))],
+         'grad_outputs_is_none': [False, True, False]
+         },
     ],
     [
         {'dtype': numpy.float16},

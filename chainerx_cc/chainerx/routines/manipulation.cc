@@ -133,6 +133,9 @@ Shape GetInferredShape(const Shape& shape, int64_t total_size) {
         }
         int64_t rest_size = std::accumulate(inferred_shape.begin(), it, int64_t{1}, std::multiplies<>()) *
                             std::accumulate(std::next(it), inferred_shape.end(), int64_t{1}, std::multiplies<>());
+        if (rest_size == 0) {
+            throw DimensionError{"Cannot reshape array of size ", total_size, " into an ambiguous shape ", shape};
+        }
         *it = total_size / rest_size;
     }
 
@@ -633,6 +636,26 @@ std::vector<Array> DSplit(const Array& ary, std::vector<int64_t> indices) {
     return Split(ary, std::move(indices), 2);
 }
 
+std::vector<Array> VSplit(const Array& ary, int64_t sections) {
+    if (sections < 1) {
+        throw DimensionError("Number of sections must be larger than 0.");
+    }
+
+    if (ary.ndim() < 2) {
+        throw DimensionError("vsplit only works on arrays of 2 or more dimensions.");
+    }
+
+    return Split(ary, sections, 0);
+}
+
+std::vector<Array> VSplit(const Array& ary, std::vector<int64_t> indices) {
+    if (ary.ndim() < 2) {
+        throw DimensionError("vsplit only works on arrays of 2 or more dimensions.");
+    }
+
+    return Split(ary, std::move(indices), 0);
+}
+
 Array Swapaxes(const Array& a, int8_t axis1, int8_t axis2) {
     Shape shape = a.shape();
     Strides strides = a.strides();
@@ -655,6 +678,8 @@ Array Swapaxes(const Array& a, int8_t axis1, int8_t axis2) {
 
     return out;
 }
+
+Array Ravel(const Array& a) { return a.Reshape({a.GetTotalSize()}); }
 
 Array Repeat(const Array& a, int64_t repeats, absl::optional<int8_t> axis) {
     if (repeats < 0) {

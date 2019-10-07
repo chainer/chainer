@@ -4,6 +4,7 @@
 #include <cudnn.h>
 #include <cusolverDn.h>
 
+#include <atomic>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -25,6 +26,7 @@
 #include "chainerx/dtype.h"
 #include "chainerx/kernels/normalization.h"
 #include "chainerx/kernels/pooling.h"
+#include "chainerx/kernels/rnn.h"
 #include "chainerx/routines/normalization.h"
 #include "chainerx/routines/pooling.h"
 #include "chainerx/scalar.h"
@@ -63,6 +65,7 @@ public:
 private:
     std::mutex mutex_{};
     std::queue<std::pair<cudaEvent_t, std::shared_ptr<void>>> queue_{};
+    std::atomic<bool> is_empty_{true};
 };
 
 // Keeps handles and other device internals.
@@ -116,6 +119,23 @@ private:
     Array x_mean_;
     Array x_inv_std_;
     Dtype beta_dtype_;
+};
+
+struct GenericRnnGradState : public RnnGradState {
+    GenericRnnGradState(cudnnRNNDescriptor_t rnn_desc, cudnnFilterDescriptor_t w_desc, Array w, Array reserve, Array workspace)
+        : rnn_desc_{rnn_desc}, w_desc_{w_desc}, w_{std::move(w)}, reserve_{std::move(reserve)}, workspace_{std::move(workspace)} {}
+    cudnnRNNDescriptor_t rnn_desc() { return rnn_desc_; }
+    cudnnFilterDescriptor_t wDesc() { return w_desc_; }
+    Array w() { return w_; }
+    Array reserve() { return reserve_; }
+    Array workspace() { return workspace_; }
+
+private:
+    cudnnRNNDescriptor_t rnn_desc_;
+    cudnnFilterDescriptor_t w_desc_;
+    Array w_;
+    Array reserve_;
+    Array workspace_;
 };
 
 // Pooling states are identical for most CUDA pooling ops so we define a common base class.

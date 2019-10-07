@@ -2,6 +2,7 @@ import numpy
 import six
 
 import chainer
+import chainerx
 from chainer import backend
 from chainer.backends import cuda
 from chainer.backends import intel64
@@ -78,6 +79,11 @@ class LSTM(function_node.FunctionNode):
         )
         for i in six.moves.range(2, type_check.eval(c_type.ndim)):
             type_check.expect(x_type.shape[i] == c_type.shape[i])
+
+    def forward_chainerx(self, inputs):
+        c, x = inputs
+        c_next, h = chainerx.lstm(c, x)
+        return c_next, h
 
     def forward(self, inputs):
         self.retain_inputs((0, 1))
@@ -190,38 +196,60 @@ class LSTMGrad(function.Function):
         ggc_prev, ggx = grads
         batch = len(x)
 
-        if gc is None:
-            gc = xp.zeros_like(c)
-        if gh is None:
-            gh = xp.zeros_like(c[:batch])
-        if ggc_prev is None:
-            ggc_prev = xp.zeros_like(c_prev)
+        gc_is_none = gc is None
+        gh_is_none = gh is None
+        ggc_prev_is_none = ggc_prev is None
+        ggx_is_none = ggx is None
+
+        if gc_is_none:
+            gc = 0
+        if gh_is_none:
+            gh = 0
+        if ggc_prev_is_none:
+            ggc_prev = 0
+        if ggx_is_none:
+            ggx = 0
 
         gc_prev = xp.empty_like(c_prev)
         gx = xp.empty_like(x)
         gc_next = xp.empty_like(c)
-        ggc = xp.empty_like(ggc_prev)
-        ggh = xp.empty_like(gh)
+        ggc = xp.empty_like(c_prev)
+        ggh = xp.empty_like(c[:batch])
 
         gc_prev[batch:] = 0
         gc_next[batch:] = 0
-        ggc[batch:] = ggc_prev[batch:]
+        ggc[batch:] = 0 if ggc_prev_is_none else ggc_prev[batch:]
         ggh[batch:] = 0
 
         c_prev = c_prev[:batch]
         c = c[:batch]
-        gc = gc[:batch]
-        ggc_prev = ggc_prev[:batch]
-        ggx = ggx[:batch]
+        if not gc_is_none:
+            gc = gc[:batch]
+        if not ggc_prev_is_none:
+            ggc_prev = ggc_prev[:batch]
+        if not ggx_is_none:
+            ggx = ggx[:batch]
 
         a, i, f, o = _extract_gates(x)
-        gga, ggi, ggf, ggo = _extract_gates(ggx)
+        if not ggx_is_none:
+            gga, ggi, ggf, ggo = _extract_gates(ggx)
+        else:
+            gga = 0
+            ggi = 0
+            ggf = 0
+            ggo = 0
         ga, gi, gf, go = _extract_gates(gx)
 
         lstm_grad_grad(
             c_prev, a, i, f, o, c, gc, gh, ggc_prev, gga, ggi, ggf, ggo,
             gc_prev[:batch], ga[:], gi[:], gf[:], go[:], gc_next[:batch],
             ggc[:batch], ggh[:batch])
+
+        if gc_is_none:
+            ggc = None
+        if gh_is_none:
+            ggh = None
+
         return gc_prev, gx, gc_next, ggc, ggh
 
 

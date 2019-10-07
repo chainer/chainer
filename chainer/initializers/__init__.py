@@ -17,6 +17,8 @@ from chainer.initializers.normal import HeNormal  # NOQA
 from chainer.initializers.normal import LeCunNormal
 from chainer.initializers.normal import Normal  # NOQA
 from chainer.initializers.orthogonal import Orthogonal  # NOQA
+from chainer.initializers.sampling import DownsamplingConvFilter  # NOQA
+from chainer.initializers.sampling import UpsamplingDeconvFilter  # NOQA
 from chainer.initializers.uniform import GlorotUniform  # NOQA
 from chainer.initializers.uniform import HeUniform  # NOQA
 from chainer.initializers.uniform import LeCunUniform  # NOQA
@@ -62,7 +64,6 @@ def generate_array(initializer, shape, xp, dtype=None, device=None):
         backend_device = chainer.get_device(device)
         if xp != backend_device.xp:
             raise ValueError('xp and device arguments are inconsistent.')
-
     with chainer.using_device(backend_device):
         array = xp.empty(shape, dtype=dtype)
         initializer(array)
@@ -74,9 +75,8 @@ def _get_initializer(initializer):
 
     if initializer is None:
         return LeCunNormal()
-    if numpy.isscalar(initializer):
-        return Constant(initializer)
-    if isinstance(initializer, numpy.ndarray):
+    if (isinstance(initializer, chainer.get_array_types())
+            or numpy.isscalar(initializer)):
         return Constant(initializer)
 
     if not callable(initializer):

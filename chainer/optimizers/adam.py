@@ -71,7 +71,7 @@ def _inplace_axpby(x, a, b, y):
         if a == 1:
             x += b * y
         else:
-            x[:] = a * x + b * y
+            x[...] = a * x + b * y
 
 
 class AdamRule(optimizer.UpdateRule):

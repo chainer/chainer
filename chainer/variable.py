@@ -1419,7 +1419,7 @@ class Variable(object):
                 enabling it results in larger memory consumption needed to
                 store the gradients w.r.t intermediate variables that are
                 required for the second gradient computation.
-            loss_scale (float): Loss scaling factor. Loss scaling is a usefull
+            loss_scale (float): Loss scaling factor. Loss scaling is a useful
                 technique to mitigate vanishing gradient issue that tends to
                 happen when low precision data type like float16 is used during
                 training. If you set loss scaling factor, gradients of loss
@@ -1433,13 +1433,14 @@ class Variable(object):
             if retain_grad:
                 raise RuntimeError(
                     'retain_grad is not supported for ChainerX array.')
-            if loss_scale is not None:
-                raise RuntimeError(
-                    'loss_scale is not supported for ChainerX array.')
             arr = self._data[0]
             assert isinstance(arr, chainerx.ndarray)
+            # pybind has issues when converting int -> opt<float>
+            if loss_scale:
+                loss_scale = float(loss_scale)
             chainerx.backward(
-                arr, enable_double_backprop=enable_double_backprop)
+                arr, enable_double_backprop=enable_double_backprop,
+                loss_scale=loss_scale)
             return
 
         # Initialize error by 1, if this is a loss variable

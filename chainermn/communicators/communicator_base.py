@@ -1,5 +1,6 @@
 from abc import ABCMeta
 from abc import abstractmethod
+import contextlib
 import six
 import warnings
 
@@ -34,9 +35,10 @@ class CommunicatorBase(six.with_metaclass(ABCMeta)):
     ``allreduce`` method.
 
     '''
+    _configs = {}
 
     def __init__(self):
-        pass
+        self._within_config_scope = False
 
     @property
     def rank(self):
@@ -67,6 +69,42 @@ class CommunicatorBase(six.with_metaclass(ABCMeta)):
     def inter_size(self):
         '''Number of nodes that participates the cluster.'''
         raise NotImplementedError()
+
+    def set_config(self, name, **kwargs):
+        '''Set configurations(s) on/off
+
+        The usage of configurations depends on each communicator. See
+        :meth:`~chainermn.create_communicator` for available
+        configurations.
+
+        Args:
+            name (str):
+                Name of configuration to set.
+            value:
+                Give arbitrary object to set.
+            kwargs:
+                Arbitrary arguments depending on each configuration.
+
+        '''
+        raise ValueError('Unknown config: {}'.format(name))
+
+    def get_config(self, name=None):
+        '''Get configuration value(s)
+
+        Args:
+            name (str):
+                Name of the configuration to get. If it is ``None``,
+                all config names and values are returned.
+
+        Returns:
+            Actual value of the configuration if it is on. ``None`` if it
+            is off. If ``None`` is given as ``name``, ``None`` or
+            dictionary of names and configuration values is returned.
+
+        '''
+        if name is not None:
+            return self._configs[name]
+        return self._configs
 
     @abstractmethod
     def split(self, color, key):
@@ -207,6 +245,22 @@ class CommunicatorBase(six.with_metaclass(ABCMeta)):
             Sum of all data from all processes.
 
         '''
+        raise NotImplementedError()
+
+    @abstractmethod
+    def scatter(self, xs, root=0):
+        """A primitive of inter-process scatter communication.
+
+        This method tries to invoke scatter communication within the
+        communicator. All processes in the communicator are expected to
+        invoke ``scatter()``.
+
+        Args:
+            xs (tuple of numpy/cupy array): Arrays to be scattered.
+            root (int): Rank of root process.
+        Returns:
+            ys (numpy/cupy array): Received arrays.
+        """
         raise NotImplementedError()
 
     def finalize(self):
@@ -358,3 +412,31 @@ class CommunicatorBase(six.with_metaclass(ABCMeta)):
         warnings.warn('allreduce_grad() is deprecated.',
                       DeprecationWarning)
         self.multi_node_mean_grad(model, zero_fill)
+
+    @property
+    def within_config_scope(self):
+        # type: () -> bool
+        """True if the current code is inside of an initialization scope.
+
+        See :meth:`init_scope` for the details of the initialization scope.
+
+        """
+        return getattr(self, '_within_config_scope', False)
+
+    @contextlib.contextmanager
+    def config_scope(self):
+        """Creates an configuration scope.
+
+        """
+
+        old_flag = self.within_config_scope
+        self._within_config_scope = True
+        try:
+            yield
+        finally:
+            self._within_config_scope = old_flag
+
+    def __setattr__(self, name, value):
+        if self.within_config_scope:
+            self._configs[name] = value
+        super(CommunicatorBase, self).__setattr__(name, value)

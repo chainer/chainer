@@ -20,8 +20,6 @@ namespace chainerx {
 // Returns an array of shape (batch_size, out_channels, out_1, out_2, ..., out_n).
 class ConvKernel : public Kernel {
 public:
-    static const char* name() { return "Conv"; }
-
     virtual Array Call(
             const Array& x,
             const Array& w,
@@ -43,8 +41,6 @@ public:
 // Returns an array of shape (batch_size, out_channels, out_1, out_2, ..., out_n).
 class ConvTransposeKernel : public Kernel {
 public:
-    static const char* name() { return "ConvTranspose"; }
-
     virtual Array Call(
             const Array& x,
             const Array& w,
@@ -59,8 +55,6 @@ public:
 
 class ConvGradWeightKernel : public Kernel {
 public:
-    static const char* name() { return "ConvGradWeight"; }
-
     virtual Array Call(
             Dtype w_dtype,
             const Shape& w_shape,

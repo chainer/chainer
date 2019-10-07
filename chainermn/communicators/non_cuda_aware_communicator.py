@@ -13,8 +13,7 @@ from chainermn import nccl
 
 class NonCudaAwareCommunicator(mpi_communicator_base.MpiCommunicatorBase):
 
-    def __init__(self, mpi_comm,
-                 batched_copy=False):
+    def __init__(self, mpi_comm):
 
         super(NonCudaAwareCommunicator, self).__init__(mpi_comm)
         if not nccl._available:
@@ -38,11 +37,11 @@ class NonCudaAwareCommunicator(mpi_communicator_base.MpiCommunicatorBase):
         self.cpu_buffer_a = _memory_utility.HostPinnedMemory()
         self.cpu_buffer_b = _memory_utility.HostPinnedMemory()
 
-        self.batched_copy = batched_copy
-
     def finalize(self):
         super(NonCudaAwareCommunicator, self).finalize()
         if self.intra_nccl_comm is not None:
+            chainer.cuda.Stream.null.synchronize()
+            self.mpi_comm.barrier()
             self.intra_nccl_comm.destroy()
             self.intra_nccl_comm = None
 

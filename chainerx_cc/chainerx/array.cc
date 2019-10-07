@@ -141,6 +141,16 @@ Array& Array::operator/=(Scalar rhs) {
     return *this;
 }
 
+Array& Array::operator%=(const Array& rhs) {
+    internal::IMod(*this, rhs);
+    return *this;
+}
+
+Array& Array::operator%=(Scalar rhs) {
+    internal::IMod(*this, rhs);
+    return *this;
+}
+
 Array& Array::operator&=(const Array& rhs) {
     internal::IBitwiseAnd(*this, rhs);
     return *this;
@@ -231,6 +241,16 @@ const Array& Array::operator/=(Scalar rhs) const {
     return *this;
 }
 
+const Array& Array::operator%=(const Array& rhs) const {
+    internal::IMod(*this, rhs);
+    return *this;
+}
+
+const Array& Array::operator%=(Scalar rhs) const {
+    internal::IMod(*this, rhs);
+    return *this;
+}
+
 const Array& Array::operator&=(const Array& rhs) const {
     internal::IBitwiseAnd(*this, rhs);
     return *this;
@@ -297,6 +317,10 @@ Array Array::operator/(const Array& rhs) const { return chainerx::Divide(*this, 
 
 Array Array::operator/(Scalar rhs) const { return chainerx::Divide(*this, rhs); }
 
+Array Array::operator%(const Array& rhs) const { return chainerx::Mod(*this, rhs); }
+
+Array Array::operator%(Scalar rhs) const { return chainerx::Mod(*this, rhs); }
+
 Array Array::operator&(const Array& rhs) const { return chainerx::BitwiseAnd(*this, rhs); }
 
 Array Array::operator&(Scalar rhs) const { return chainerx::BitwiseAnd(*this, rhs); }
@@ -320,6 +344,8 @@ Array Array::operator>>(Scalar rhs) const { return chainerx::RightShift(*this, r
 Array Array::At(const std::vector<ArrayIndex>& indices) const { return internal::At(*this, indices); }
 
 Array Array::Transpose(const OptionalAxes& axes) const { return chainerx::Transpose(*this, axes); }
+
+Array Array::Ravel() const { return chainerx::Ravel(*this); }
 
 Array Array::Reshape(const Shape& newshape) const { return chainerx::Reshape(*this, newshape); }
 
@@ -352,6 +378,11 @@ Array Array::Dot(const Array& b) const { return chainerx::Dot(*this, b); }
 Array Array::Take(const Array& indices, int8_t axis) const { return chainerx::Take(*this, indices, axis); }
 
 Array Array::Copy() const { return chainerx::Copy(*this); }
+
+Array Array::Flatten() const {
+    Array out = (*this).Copy().Reshape({(*this).GetTotalSize()});
+    return out;
+}
 
 Array Array::MakeView() const {
     Array out{shape(), strides(), dtype(), device(), data(), offset()};
@@ -531,6 +562,7 @@ Array operator+(Scalar lhs, const Array& rhs) { return Add(lhs, rhs); }
 Array operator-(Scalar lhs, const Array& rhs) { return Subtract(lhs, rhs); }
 Array operator*(Scalar lhs, const Array& rhs) { return Multiply(lhs, rhs); }
 Array operator/(Scalar lhs, const Array& rhs) { return Divide(lhs, rhs); }
+Array operator%(Scalar lhs, const Array& rhs) { return Mod(lhs, rhs); }
 
 Array operator<<(Scalar lhs, const Array& rhs) { return LeftShift(lhs, rhs); }
 Array operator>>(Scalar lhs, const Array& rhs) { return RightShift(lhs, rhs); }

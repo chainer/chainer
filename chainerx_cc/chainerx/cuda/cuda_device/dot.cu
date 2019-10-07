@@ -79,6 +79,10 @@ public:
         CHAINERX_ASSERT(b.ndim() == 2);
         CHAINERX_ASSERT(out.ndim() == 2);
 
+        if (out.GetTotalSize() == 0) {
+            return;
+        }
+
         int64_t m = a.shape()[0];
         int64_t k = a.shape()[1];
         int64_t n = b.shape()[1];

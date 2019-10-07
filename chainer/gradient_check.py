@@ -385,7 +385,7 @@ def assert_allclose(x, y, atol=1e-5, rtol=1e-4, verbose=True):
 
     """
     warnings.warn(
-        'chainer.gradient_check.assert_allclose is deprecated.'
+        'chainer.gradient_check.assert_allclose is deprecated. '
         'Use chainer.testing.assert_allclose instead.',
         DeprecationWarning)
     testing.assert_allclose(x, y, atol, rtol, verbose)
@@ -941,7 +941,7 @@ def check_double_backward(func, x_data, y_grad, x_grad_grad, params=(),
     first-order gradient given by the usual :meth:`chainer.Variable.backward`
     is correct. The implementation of each differentiable function should be
     tested by :func:`~chainer.gradient_check.check_backward` first, and then
-    should be tested by this function if neccessary.
+    should be tested by this function if necessary.
 
     For the details of the arguments, see
     :func:`~chainer.gradient_check.check_backward`. The additional arguments
