@@ -89,7 +89,7 @@ void RunThreads(size_t thread_count, const Func& func) {
 }
 
 // TODO(sonots): Reconsider the function name.
-// TODO(sonots): Do single-shot and multi-threads tests in seperated test-cases.
+// TODO(sonots): Do single-shot and multi-threads tests in separated test-cases.
 // TODO(sonots): Make it possible to use different contexts and/or devices in different threads.
 template <typename Func>
 inline void RunTestWithThreads(const Func& func, size_t thread_count = 2) {
@@ -149,7 +149,7 @@ private:
 
 #define CHAINERX_TEST_THREAD_SAFE_COMMON_CLASS_(test_case_name, parent_class)        \
                                                                                      \
-    /* NOLINTNEXTLINE(misc-macro-parentheses) */                                     \
+    /* NOLINTNEXTLINE(misc-macro-parentheses,bugprone-macro-parentheses) */          \
     class test_case_name : public parent_class, public testing::ThreadSafeTestBase { \
     protected:                                                                       \
         using ThreadSafeTestBase::Run;                                               \
@@ -171,7 +171,7 @@ private:
 // Replaces the TEST_P macro.
 #define CHAINERX_TEST_THREAD_SAFE_TEST_P_(test_case_name, test_name, parent_class)                                                    \
                                                                                                                                       \
-    /* NOLINTNEXTLINE(misc-macro-parentheses) */                                                                                      \
+    /* NOLINTNEXTLINE(misc-macro-parentheses,bugprone-macro-parentheses) */                                                           \
     class CHAINERX_TEST_DUMMY_CLASS_NAME_(test_case_name, test_name) : public parent_class {                                          \
     public:                                                                                                                           \
         CHAINERX_TEST_DUMMY_CLASS_NAME_(test_case_name, test_name)() {}                                                               \

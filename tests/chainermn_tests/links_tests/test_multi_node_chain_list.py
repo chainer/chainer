@@ -1,5 +1,6 @@
 import chainer
-import chainer.cuda
+import chainer.backends
+from chainer.backends.cuda import cupy
 import chainer.links as L
 import chainer.testing
 import chainermn
@@ -222,7 +223,7 @@ class TupleDataChild(chainermn.MultiNodeChainList):
 def create_communicator(gpu):
     if gpu:
         communicator = chainermn.create_communicator('flat')
-        chainer.cuda.get_device_from_id(communicator.intra_rank).use()
+        chainer.backends.cuda.get_device_from_id(communicator.intra_rank).use()
     else:
         communicator = chainermn.create_communicator('naive')
 
@@ -247,9 +248,9 @@ def check_cycle_model(gpu, param):
                 Cycle0(d, communicator, rank_next, rank_prev))
 
             if gpu:
-                model.to_gpu()
-                X = chainer.cuda.to_gpu(X)
-                Y = chainer.cuda.to_gpu(Y)
+                model.to_device(cupy.cuda.Device())
+                X = chainer.backends.cuda.to_gpu(X)
+                Y = chainer.backends.cuda.to_gpu(Y)
 
             for i in range(n):
                 err = model(X[i:i + 1], Y[i:i + 1])
@@ -258,7 +259,7 @@ def check_cycle_model(gpu, param):
             model = Cycle1(
                 d, communicator, rank_next, rank_prev)
             if gpu:
-                model.to_gpu()
+                model.to_device(cupy.cuda.Device())
 
             for i in range(n):
                 err = model()
@@ -266,13 +267,11 @@ def check_cycle_model(gpu, param):
 
 
 @pytest.mark.parametrize('param', params)
-@pytest.mark.filterwarnings('ignore::DeprecationWarning')
 def test_cycle_model_cpu(param):
     check_cycle_model(False, param)
 
 
 @pytest.mark.parametrize('param', params)
-@pytest.mark.filterwarnings('ignore::DeprecationWarning')
 @chainer.testing.attr.gpu
 def test_cycle_model_gpu(param):
     check_cycle_model(True, param)
@@ -294,9 +293,9 @@ def check_crossing_model(gpu, param):
                 d, communicator, rank_next, rank_prev))
 
         if gpu:
-            model.to_gpu()
-            X = chainer.cuda.to_gpu(X)
-            Y = chainer.cuda.to_gpu(Y)
+            model.to_device(cupy.cuda.Device())
+            X = chainer.backends.cuda.to_gpu(X)
+            Y = chainer.backends.cuda.to_gpu(Y)
 
         for i in range(n):
             err = model(X[i:i + 1], Y[i:i + 1])
@@ -304,13 +303,11 @@ def check_crossing_model(gpu, param):
 
 
 @pytest.mark.parametrize('param', params)
-@pytest.mark.filterwarnings('ignore::DeprecationWarning')
 def test_crossing_model_cpu(param):
     check_crossing_model(False, param)
 
 
 @pytest.mark.parametrize('param', params)
-@pytest.mark.filterwarnings('ignore::DeprecationWarning')
 @chainer.testing.attr.gpu
 def test_crossing_model_gpu(param):
     check_crossing_model(True, param)
@@ -328,9 +325,9 @@ def check_branching_model(gpu, communicator, rank_next, rank_prev,
             model = L.Classifier(parent_model(
                 d, communicator, rank_children))
             if gpu:
-                model.to_gpu()
-                X = chainer.cuda.to_gpu(X)
-                Y = chainer.cuda.to_gpu(Y)
+                model.to_device(cupy.cuda.Device())
+                X = chainer.backends.cuda.to_gpu(X)
+                Y = chainer.backends.cuda.to_gpu(Y)
 
             for i in range(n):
                 err = model(X[i:i + 1], Y[i:i + 1])
@@ -338,7 +335,7 @@ def check_branching_model(gpu, communicator, rank_next, rank_prev,
         else:
             model = BranchChild(d, communicator, 0)
             if gpu:
-                model.to_gpu()
+                model.to_device(cupy.cuda.Device())
 
             for i in range(n):
                 err = model()
@@ -361,13 +358,11 @@ def check_branching_models(gpu, param):
 
 
 @pytest.mark.parametrize('param', params)
-@pytest.mark.filterwarnings('ignore::DeprecationWarning')
 def test_branching_models_cpu(param):
     check_branching_models(False, param)
 
 
 @pytest.mark.parametrize('param', params)
-@pytest.mark.filterwarnings('ignore::DeprecationWarning')
 @chainer.testing.attr.gpu
 def test_branching_models_gpu(param):
     check_branching_models(True, param)
@@ -392,9 +387,9 @@ def check_twisting_model(gpu, param):
                 d, communicator, rank_prev, rank_next))
 
         if gpu:
-            model.to_gpu()
-            X = chainer.cuda.to_gpu(X)
-            Y = chainer.cuda.to_gpu(Y)
+            model.to_device(cupy.cuda.Device())
+            X = chainer.backends.cuda.to_gpu(X)
+            Y = chainer.backends.cuda.to_gpu(Y)
 
         for i in range(n):
             err = model(X[i:i + 1], Y[i:i + 1])
@@ -402,13 +397,11 @@ def check_twisting_model(gpu, param):
 
 
 @pytest.mark.parametrize('param', params)
-@pytest.mark.filterwarnings('ignore::DeprecationWarning')
 def test_twisting_model_cpu(param):
     check_twisting_model(False, param)
 
 
 @pytest.mark.parametrize('param', params)
-@pytest.mark.filterwarnings('ignore::DeprecationWarning')
 @chainer.testing.attr.gpu
 def test_twisting_model_gpu(param):
     check_twisting_model(True, param)
@@ -434,9 +427,9 @@ def check_tuple_data_model(gpu, param):
 
         assert model is not None
         if gpu:
-            model.to_gpu()
-            X = chainer.cuda.to_gpu(X)
-            Y = chainer.cuda.to_gpu(Y)
+            model.to_device(cupy.cuda.Device())
+            X = chainer.backends.cuda.to_gpu(X)
+            Y = chainer.backends.cuda.to_gpu(Y)
 
         for i in range(n):
             if communicator.rank % 2 == 0:
@@ -448,13 +441,11 @@ def check_tuple_data_model(gpu, param):
 
 
 @pytest.mark.parametrize('param', params)
-@pytest.mark.filterwarnings('ignore::DeprecationWarning')
 def test_tuple_data_model_cpu(param):
     check_tuple_data_model(False, param)
 
 
 @pytest.mark.parametrize('param', params)
-@pytest.mark.filterwarnings('ignore::DeprecationWarning')
 @chainer.testing.attr.gpu
 def test_tuple_data_model_gpu(param):
     check_tuple_data_model(True, param)

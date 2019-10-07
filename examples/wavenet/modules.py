@@ -8,20 +8,20 @@ class ResidualBlock(chainer.Chain):
                  residual_channels, dilated_channels, skip_channels):
         super(ResidualBlock, self).__init__()
         with self.init_scope():
-            self.conv = L.DilatedConvolution2D(
+            self.conv = L.Convolution1D(
                 residual_channels, dilated_channels,
-                ksize=(filter_size, 1),
-                pad=(dilation * (filter_size - 1), 0), dilate=(dilation, 1))
-            self.res = L.Convolution2D(
+                ksize=filter_size,
+                pad=dilation * (filter_size - 1), dilate=dilation)
+            self.res = L.Convolution1D(
                 dilated_channels // 2, residual_channels, 1)
-            self.skip = L.Convolution2D(
+            self.skip = L.Convolution1D(
                 dilated_channels // 2, skip_channels, 1)
 
         self.filter_size = filter_size
         self.dilation = dilation
         self.residual_channels = residual_channels
 
-    def __call__(self, x, condition):
+    def forward(self, x, condition):
         length = x.shape[2]
         h = self.conv(x)
         h = h[:, :, :length]  # crop
@@ -38,9 +38,9 @@ class ResidualBlock(chainer.Chain):
     def initialize(self, n):
         self.queue = chainer.Variable(self.xp.zeros((
             n, self.residual_channels,
-            self.dilation * (self.filter_size - 1) + 1, 1),
+            self.dilation * (self.filter_size - 1) + 1),
             dtype=self.conv.W.dtype))
-        self.conv.pad = (0, 0)
+        self.conv.pad = 0
 
     def pop(self, condition):
         return self(self.queue, condition)
@@ -59,7 +59,7 @@ class ResidualNet(chainer.ChainList):
                 filter_size, dilation,
                 residual_channels, dilated_channels, skip_channels))
 
-    def __call__(self, x, conditions):
+    def forward(self, x, conditions):
         for i, (func, cond) in enumerate(zip(self.children(), conditions)):
             x, skip = func(x, cond)
             if i == 0:

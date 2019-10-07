@@ -23,6 +23,15 @@ if hdf5._available:
     import h5py
 
 
+# The tests call `fd, path = tempfile.mkstemp(); os.close(fd)` rather than
+# `with tempfile.TemporaryFile() as f:` because the file-like objects support
+# for `h5py.File` is from h5py>=2.9 (h5py/h5py#1061). h5py>=2.5 is supported.
+#
+# `os.remove(path)` is necessary. The tests could utilize
+# `tempfile.NamedTemporaryFile` but cannot utilize its with-blocks because it
+# is platform-dependent behavior to open `f.name` before `f.file` is closed.
+
+
 @unittest.skipUnless(hdf5._available, 'h5py is not available')
 class TestHDF5Serializer(unittest.TestCase):
 
@@ -181,8 +190,27 @@ class TestHDF5Deserializer(unittest.TestCase):
     def test_deserialize_different_dtype_cpu(self):
         y = numpy.empty((2, 3), dtype=numpy.float16)
         ret = self.deserializer('y', y)
-        numpy.testing.assert_array_equal(y, self.data.astype(numpy.float16))
+
         self.assertIs(ret, y)
+
+        # Compare the value with the original array. Note that it's not always
+        # bit-identical to the result of numpy.ndarray.astype.
+        numpy.testing.assert_allclose(
+            y, self.data.astype(numpy.float16),
+            rtol=1e-3, atol=1e-3)
+
+        # It should be bit-identical to the result directly retrieved from
+        # h5py.
+        arr_hdf5 = numpy.empty((2, 3), dtype=numpy.float16)
+        fd, path = tempfile.mkstemp()
+        os.close(fd)
+        try:
+            with h5py.File(path, 'w') as f:
+                f.create_dataset('a', data=self.data)
+                f['a'].read_direct(arr_hdf5)
+        finally:
+            os.remove(path)
+        numpy.testing.assert_array_equal(y, arr_hdf5)
 
     @attr.gpu
     def test_deserialize_different_dtype_gpu(self):
@@ -393,39 +421,39 @@ class TestGroupHierachy(unittest.TestCase):
                             {'W', 'b'})
 
     def test_save_chain(self):
-        with h5py.File(self.temp_file_path) as h5:
+        with h5py.File(self.temp_file_path, 'w') as h5:
             self._save(h5, self.parent, 'test')
             self.assertSetEqual(set(h5.keys()), {'test'})
             self._check_group(h5['test'], ('Wp',))
 
     def test_save_optimizer(self):
-        with h5py.File(self.temp_file_path) as h5:
+        with h5py.File(self.temp_file_path, 'w') as h5:
             self._save(h5, self.optimizer, 'test')
             self.assertSetEqual(set(h5.keys()), {'test'})
             self._check_group(h5['test'], ('Wp', 'epoch', 't'))
 
     def test_save_chain2(self):
         hdf5.save_hdf5(self.temp_file_path, self.parent)
-        with h5py.File(self.temp_file_path) as h5:
+        with h5py.File(self.temp_file_path, 'r') as h5:
             self._check_group(h5, ('Wp',))
 
     def test_save_optimizer2(self):
         hdf5.save_hdf5(self.temp_file_path, self.optimizer)
-        with h5py.File(self.temp_file_path) as h5:
+        with h5py.File(self.temp_file_path, 'r') as h5:
             self._check_group(h5, ('Wp', 'epoch', 't'))
 
     def test_load_chain(self):
-        with h5py.File(self.temp_file_path) as h5:
+        with h5py.File(self.temp_file_path, 'w') as h5:
             self._save(h5, self.parent, 'test')
 
-        with h5py.File(self.temp_file_path) as h5:
+        with h5py.File(self.temp_file_path, 'r') as h5:
             self._load(h5, self.parent, 'test')
 
     def test_load_optimizer(self):
-        with h5py.File(self.temp_file_path) as h5:
+        with h5py.File(self.temp_file_path, 'w') as h5:
             self._save(h5, self.optimizer, 'test')
 
-        with h5py.File(self.temp_file_path) as h5:
+        with h5py.File(self.temp_file_path, 'r') as h5:
             self._load(h5, self.optimizer, 'test')
 
 

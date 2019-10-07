@@ -24,6 +24,7 @@
 #include "chainerx/routines/binary.h"
 #include "chainerx/routines/connection.h"
 #include "chainerx/routines/creation.h"
+#include "chainerx/routines/evaluation.h"
 #include "chainerx/routines/explog.h"
 #include "chainerx/routines/hyperbolic.h"
 #include "chainerx/routines/indexing.h"
@@ -93,6 +94,15 @@ ArrayBodyPtr MakeArrayFromBuffer(py::buffer buffer, py::handle dtype, int64_t co
     std::shared_ptr<void> data{info.ptr, [](void*) {}};
 
     return MoveArrayBody(chainerx::FromData(shape, GetDtype(dtype), data, absl::nullopt, offset, GetDevice(device)));
+}
+
+std::vector<Array> ArrayBodiesToArrays(std::vector<ArrayBodyPtr> array_bodies) {
+    std::vector<Array> arrays{};
+    arrays.reserve(array_bodies.size());
+    for (ArrayBodyPtr& array_body : array_bodies) {
+        arrays.emplace_back(std::move(array_body));
+    }
+    return arrays;
 }
 
 void InitChainerxCreation(pybind11::module& m) {
@@ -291,6 +301,17 @@ void InitChainerxCreation(pybind11::module& m) {
     m.def("triu", [](const ArrayBodyPtr& m, int64_t k) { return MoveArrayBody(Triu(Array{m}, k)); }, "m"_a, "k"_a = 0);
 }
 
+void InitChainerxEvaluation(pybind11::module& m) {
+    // evaluation routines
+    m.def("accuracy",
+          [](const ArrayBodyPtr& y, const ArrayBodyPtr& t, const absl::optional<int64_t>& ignore_label) {
+              return MoveArrayBody(Accuracy(Array{y}, Array{t}, ignore_label));
+          },
+          "y"_a,
+          "t"_a,
+          "ignore_label"_a = nullptr);
+}
+
 void InitChainerxIndexing(pybind11::module& m) {
     // indexing routines
     m.def("take",
@@ -340,6 +361,7 @@ void InitChainerxIndexing(pybind11::module& m) {
           "condition"_a,
           "x"_a,
           "y"_a);
+    m.def("nonzero", [](const ArrayBodyPtr& a) { return ToTuple(Nonzero(Array{a})); }, "a"_a);
 }
 
 void InitChainerxLinalg(pybind11::module& m) {
@@ -347,7 +369,11 @@ void InitChainerxLinalg(pybind11::module& m) {
     m.def("dot", [](const ArrayBodyPtr& a, const ArrayBodyPtr& b) { return MoveArrayBody(Dot(Array{a}, Array{b})); }, "a"_a, "b"_a);
 
     pybind11::module mlinalg = m.def_submodule("linalg");
-    mlinalg.def("_is_lapack_available", []() -> bool { return CHAINERX_ENABLE_LAPACK; });
+#if CHAINERX_ENABLE_LAPACK
+    mlinalg.def("_is_lapack_available", []() -> bool { return true; });
+#else
+    mlinalg.def("_is_lapack_available", []() -> bool { return false; });
+#endif
     mlinalg.def(
             "solve", [](const ArrayBodyPtr& a, const ArrayBodyPtr& b) { return MoveArrayBody(Solve(Array{a}, Array{b})); }, "a"_a, "b"_a);
     mlinalg.def("inv", [](const ArrayBodyPtr& a) { return MoveArrayBody(Inverse(Array{a})); }, "a"_a);
@@ -371,6 +397,34 @@ void InitChainerxLinalg(pybind11::module& m) {
             [](const ArrayBodyPtr& a, float rcond) { return MoveArrayBody(PseudoInverse(Array{a}, rcond)); },
             "a"_a,
             "rcond"_a = 1e-15);
+    mlinalg.def(
+            "qr",
+            [](const ArrayBodyPtr& a, const std::string& mode) -> py::object {
+                Array a_array{a};
+
+                QrMode qrmode{};
+                if (mode == "reduced") {
+                    qrmode = QrMode::kReduced;
+                } else if (mode == "complete") {
+                    qrmode = QrMode::kComplete;
+                } else if (mode == "r") {
+                    qrmode = QrMode::kR;
+                } else if (mode == "raw") {
+                    qrmode = QrMode::kRaw;
+                } else {
+                    throw py::value_error{"mode must be 'reduced', 'complete', 'r', or 'raw'"};
+                }
+                std::tuple<Array, Array> qr = Qr(a_array, qrmode);
+                Array& q = std::get<0>(qr);
+                Array& r = std::get<1>(qr);
+                if (mode == "r") {
+                    return py::cast(MoveArrayBody(std::move(r)));
+                }
+                return py::make_tuple(MoveArrayBody(std::move(q)), MoveArrayBody(std::move(r)));
+            },
+            "a"_a,
+            "mode"_a = "reduced");
+    mlinalg.def("cholesky", [](const ArrayBodyPtr& a) { return MoveArrayBody(Cholesky(Array{a})); }, "a"_a);
 }
 
 void InitChainerxLogic(pybind11::module& m) {
@@ -537,6 +591,16 @@ std::vector<ArrayBodyPtr> DSplitByIndicesOrSections(const ArrayBodyPtr& ary, py:
     return SwitchBySplitArgs(split_sections, split_indices, ary, indices_or_sections, 2);
 }
 
+std::vector<ArrayBodyPtr> VSplitByIndicesOrSections(const ArrayBodyPtr& ary, py::handle indices_or_sections) {
+    auto split_sections = [](const ArrayBodyPtr& ary, int64_t sections, int8_t /*axis*/) {
+        return MoveArrayBodies(VSplit(Array{ary}, sections));
+    };
+    auto split_indices = [](const ArrayBodyPtr& ary, const std::vector<int64_t>& indices, int8_t /*axis*/) {
+        return MoveArrayBodies(VSplit(Array{ary}, indices));
+    };
+    return SwitchBySplitArgs(split_sections, split_indices, ary, indices_or_sections, 0);
+}
+
 void InitChainerxManipulation(pybind11::module& m) {
     // manipulation routines
     m.def("transpose",
@@ -669,6 +733,7 @@ void InitChainerxManipulation(pybind11::module& m) {
           "arrays"_a);
     m.def("split", &SplitByIndicesOrSections, "ary"_a, "indices_or_sections"_a, "axis"_a = 0);
     m.def("dsplit", &DSplitByIndicesOrSections, "ary"_a, "indices_or_sections"_a);
+    m.def("vsplit", &VSplitByIndicesOrSections, "ary"_a, "indices_or_sections"_a);
     m.def("moveaxis",
           [](const ArrayBodyPtr& a, const std::vector<int8_t>& source, const std::vector<int8_t>& destination) {
               return MoveArrayBody(Moveaxis(Array{a}, Axes{source.begin(), source.end()}, Axes{destination.begin(), destination.end()}));
@@ -702,6 +767,14 @@ void InitChainerxActivation(pybind11::module& m) {
           [](const ArrayBodyPtr& x, Scalar slope) { return MoveArrayBody(LeakyRelu(Array{x}, slope)); },
           "x"_a,
           "slope"_a = 0.2);
+    m.def("tree_lstm", [](py::args args) {
+        std::vector<ArrayBodyPtr> arrays = py::cast<std::vector<ArrayBodyPtr>>(args);
+        std::vector<Array> input = ArrayBodiesToArrays(std::move(arrays));
+        return ToTuple(TreeLstm(input));
+    });
+    m.def("slstm", [](const ArrayBodyPtr& c1, const ArrayBodyPtr& c2, const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) {
+        return ToTuple(SLstm(Array{c1}, Array{c2}, Array{x1}, Array{x2}));
+    });
     m.def("softplus", [](const ArrayBodyPtr& x, double beta) { return MoveArrayBody(Softplus(Array{x}, beta)); }, "x"_a, "beta"_a = 1.0);
 }
 
@@ -739,6 +812,14 @@ void InitChainerxArithmetic(pybind11::module& m) {
           "x2"_a);
     m.def("power", [](const ArrayBodyPtr& x1, Scalar x2) { return MoveArrayBody(Power(Array{x1}, x2)); }, "x1"_a, "x2"_a);
     m.def("power", [](Scalar x1, const ArrayBodyPtr& x2) { return MoveArrayBody(Power(x1, Array{x2})); }, "x1"_a, "x2"_a);
+    m.def("remainder",
+          [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return MoveArrayBody(Mod(Array{x1}, Array{x2})); },
+          "x1"_a,
+          "x2"_a);
+    m.def("remainder", [](const ArrayBodyPtr& x1, Scalar x2) { return MoveArrayBody(Mod(Array{x1}, x2)); }, "x1"_a, "x2"_a);
+    m.def("remainder", [](Scalar x1, const ArrayBodyPtr& x2) { return MoveArrayBody(Mod(x1, Array{x2})); }, "x1"_a, "x2"_a);
+    m.attr("mod") = m.attr("remainder");
+    m.def("fmod", [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return MoveArrayBody(Fmod(Array{x1}, Array{x2})); }, "x1"_a, "x2"_a);
 }
 
 void InitChainerxBinary(pybind11::module& m) {
@@ -1161,6 +1242,11 @@ void InitChainerxLoss(pybind11::module& m) {
           [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return MoveArrayBody(SigmoidCrossEntropy(Array{x1}, Array{x2})); },
           "x1"_a,
           "x2"_a);
+    m.def("hinge",
+          [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2, double norm) { return MoveArrayBody(Hinge(Array{x1}, Array{x2}, norm)); },
+          "x1"_a,
+          "x2"_a,
+          "norm"_a = 1.0);
 }
 void InitChainerxRNN(pybind11::module& m) {
     m.def("n_step_lstm",
@@ -1172,7 +1258,7 @@ void InitChainerxRNN(pybind11::module& m) {
              std::vector<ArrayBodyPtr> inputs) {
               std::vector<std::vector<Array>> ws;
               std::vector<std::vector<Array>> bs;
-              std::vector<Array> xs;
+              std::vector<Array> xs = ArrayBodiesToArrays(std::move(inputs));
               for (size_t i = 0; i < weights.size(); i++) {
                   std::vector<Array> temp_ws;
                   std::vector<Array> temp_bs;
@@ -1182,9 +1268,6 @@ void InitChainerxRNN(pybind11::module& m) {
                   }
                   ws.emplace_back(temp_ws);
                   bs.emplace_back(temp_bs);
-              }
-              for (size_t i = 0; i < inputs.size(); i++) {
-                  xs.emplace_back(Array{inputs[i]});
               }
               std::vector<std::vector<Array>> out = NStepLstm(n_layers, Array{hx}, Array{cx}, ws, bs, xs);
               py::tuple ret{3};
@@ -1204,7 +1287,7 @@ void InitChainerxRNN(pybind11::module& m) {
              std::vector<ArrayBodyPtr> inputs) {
               std::vector<std::vector<Array>> ws;
               std::vector<std::vector<Array>> bs;
-              std::vector<Array> xs;
+              std::vector<Array> xs = ArrayBodiesToArrays(std::move(inputs));
               for (size_t i = 0; i < weights.size(); i++) {
                   std::vector<Array> temp_ws;
                   std::vector<Array> temp_bs;
@@ -1214,9 +1297,6 @@ void InitChainerxRNN(pybind11::module& m) {
                   }
                   ws.emplace_back(temp_ws);
                   bs.emplace_back(temp_bs);
-              }
-              for (size_t i = 0; i < inputs.size(); i++) {
-                  xs.emplace_back(Array{inputs[i]});
               }
               std::vector<std::vector<Array>> out = NStepBiLstm(n_layers, Array{hx}, Array{cx}, ws, bs, xs);
               py::tuple ret{3};
@@ -1235,7 +1315,7 @@ void InitChainerxRNN(pybind11::module& m) {
              std::vector<ArrayBodyPtr> inputs) {
               std::vector<std::vector<Array>> ws;
               std::vector<std::vector<Array>> bs;
-              std::vector<Array> xs;
+              std::vector<Array> xs = ArrayBodiesToArrays(std::move(inputs));
               for (size_t i = 0; i < weights.size(); i++) {
                   std::vector<Array> temp_ws;
                   std::vector<Array> temp_bs;
@@ -1245,9 +1325,6 @@ void InitChainerxRNN(pybind11::module& m) {
                   }
                   ws.emplace_back(temp_ws);
                   bs.emplace_back(temp_bs);
-              }
-              for (size_t i = 0; i < inputs.size(); i++) {
-                  xs.emplace_back(Array{inputs[i]});
               }
               std::vector<std::vector<Array>> out = NStepGru(n_layers, Array{hx}, ws, bs, xs);
               py::tuple ret{2};
@@ -1265,7 +1342,7 @@ void InitChainerxRNN(pybind11::module& m) {
              std::vector<ArrayBodyPtr> inputs) {
               std::vector<std::vector<Array>> ws;
               std::vector<std::vector<Array>> bs;
-              std::vector<Array> xs;
+              std::vector<Array> xs = ArrayBodiesToArrays(std::move(inputs));
               for (size_t i = 0; i < weights.size(); i++) {
                   std::vector<Array> temp_ws;
                   std::vector<Array> temp_bs;
@@ -1275,9 +1352,6 @@ void InitChainerxRNN(pybind11::module& m) {
                   }
                   ws.emplace_back(temp_ws);
                   bs.emplace_back(temp_bs);
-              }
-              for (size_t i = 0; i < inputs.size(); i++) {
-                  xs.emplace_back(Array{inputs[i]});
               }
               std::vector<std::vector<Array>> out = NStepBiGru(n_layers, Array{hx}, ws, bs, xs);
               py::tuple ret{2};
@@ -1296,7 +1370,7 @@ void InitChainerxRNN(pybind11::module& m) {
              std::string activation) {
               std::vector<std::vector<Array>> ws;
               std::vector<std::vector<Array>> bs;
-              std::vector<Array> xs;
+              std::vector<Array> xs = ArrayBodiesToArrays(std::move(inputs));
               for (size_t i = 0; i < weights.size(); i++) {
                   std::vector<Array> temp_ws;
                   std::vector<Array> temp_bs;
@@ -1306,9 +1380,6 @@ void InitChainerxRNN(pybind11::module& m) {
                   }
                   ws.emplace_back(temp_ws);
                   bs.emplace_back(temp_bs);
-              }
-              for (size_t i = 0; i < inputs.size(); i++) {
-                  xs.emplace_back(Array{inputs[i]});
               }
               std::vector<std::vector<Array>> out = NStepRnn(n_layers, Array{hx}, ws, bs, xs, activation);
               py::tuple ret{2};
@@ -1327,7 +1398,7 @@ void InitChainerxRNN(pybind11::module& m) {
              std::string activation) {
               std::vector<std::vector<Array>> ws;
               std::vector<std::vector<Array>> bs;
-              std::vector<Array> xs;
+              std::vector<Array> xs = ArrayBodiesToArrays(std::move(inputs));
               for (size_t i = 0; i < weights.size(); i++) {
                   std::vector<Array> temp_ws;
                   std::vector<Array> temp_bs;
@@ -1337,9 +1408,6 @@ void InitChainerxRNN(pybind11::module& m) {
                   }
                   ws.emplace_back(temp_ws);
                   bs.emplace_back(temp_bs);
-              }
-              for (size_t i = 0; i < inputs.size(); i++) {
-                  xs.emplace_back(Array{inputs[i]});
               }
               std::vector<std::vector<Array>> out = NStepBiRnn(n_layers, Array{hx}, ws, bs, xs, activation);
               py::tuple ret{2};
@@ -1355,6 +1423,7 @@ void InitChainerxRNN(pybind11::module& m) {
 
 void InitChainerxRoutines(pybind11::module& m) {
     InitChainerxCreation(m);
+    InitChainerxEvaluation(m);
     InitChainerxIndexing(m);
     InitChainerxLinalg(m);
     InitChainerxLogic(m);

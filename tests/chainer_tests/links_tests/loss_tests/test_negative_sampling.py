@@ -130,7 +130,8 @@ class TestNegativeSampling(unittest.TestCase):
         link = self.create_link()
         link.to_device(backend_config.device)
         self.assertEqual(link.sampler.device, backend_config.device)
-        link.to_cpu()
+        with testing.assert_warns(DeprecationWarning):
+            link.to_cpu()
         self.assertEqual(link.sampler.device, backend.CpuDevice())
 
     def test_return_samples(self, backend_config):

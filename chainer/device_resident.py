@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 import abc
 import sys
+import threading
 import typing as tp  # NOQA
 import warnings
 
@@ -14,6 +15,15 @@ from chainer.backends import intel64
 from chainer import types  # NOQA
 from chainer import utils
 import chainerx
+
+
+_thread_local = threading.local()
+
+# Used in _ToDeviceVisitor to detect GPU-to-GPU (cupy-to-cupy) device transfer.
+# It is usually `None`.
+# Assign `False` to enable GPU-to-GPU detection. If detected, `True` will be
+# assigned. `None` should be assigned again after retrieving the result.
+_thread_local.flag_gpu_to_gpu = None
 
 
 class DeviceResident(utils.enable_final(meta_base=abc.ABCMeta)):
@@ -58,9 +68,13 @@ class DeviceResident(utils.enable_final(meta_base=abc.ABCMeta)):
             return None
         return device.xp
 
+    @utils.final(action=DeprecationWarning)
     def to_cpu(self):
         # type: () -> 'DeviceResident'
         """Copies parameter variables and persistent values to CPU.
+
+         .. deprecated:: v7.0.0
+            Use :meth:`to_device` instead.
 
         This method does not handle non-registered attributes. If some of such
         attributes must be copied to CPU, the link implementation should
@@ -76,12 +90,16 @@ class DeviceResident(utils.enable_final(meta_base=abc.ABCMeta)):
         self.__to_device(visitor)
         return self
 
+    @utils.final(action=DeprecationWarning)
     def to_gpu(
             self,
             device=None,  # type: tp.Optional[types.CudaDeviceSpec]
     ):
         # type: (...) -> 'DeviceResident'
         """Copies parameter variables and persistent values to GPU.
+
+         .. deprecated:: v7.0.0
+            Use :meth:`to_device` instead.
 
         This method does not handle non-registered attributes. If some of such
         attributes must be copied to GPU, the link implementation must
@@ -110,9 +128,15 @@ class DeviceResident(utils.enable_final(meta_base=abc.ABCMeta)):
         self.__to_device(visitor)
         return self
 
+    @utils.final(action=DeprecationWarning)
     def to_intel64(self):
         # type: () -> 'DeviceResident'
-        """Copies parameter variables and persistent values to CPU."""
+        """Copies parameter variables and persistent values to CPU.
+
+         .. deprecated:: v7.0.0
+            Use :meth:`to_device` instead.
+
+        """
         intel64.check_ideep_available()
         visitor = _ToDeviceVisitor(
             chainer.get_device(intel64.Intel64Device()),
@@ -237,8 +261,19 @@ class _ToDeviceVisitor(DeviceResidentsVisitor):
         # respective method will be called if it's overridden
         # (instead of `device_resident_accept`).
         if entry_method_info is not None:
+            device_names = {
+                'to_cpu': '@numpy',
+                'to_gpu': '@cupy:N',
+                'to_intel64': '@intel64',
+            }
             assert len(entry_method_info) == 2
-            assert entry_method_info[0] in ('to_cpu', 'to_gpu', 'to_intel64')
+            method = entry_method_info[0]
+            assert method in device_names
+            warnings.warn(
+                '{} is deprecated. '
+                'Please use to_device(\'{}\') instead.'.format(
+                    method, device_names[method]),
+                DeprecationWarning)
 
         # starting_device_resident is also for backward compatibility
         # workaround for overridden methods.
@@ -320,13 +355,17 @@ class _ToDeviceVisitor(DeviceResidentsVisitor):
         src_id = src_device.device.id
         dst_id = dst_device.device.id
         if src_id != dst_id:
-            warnings.warn('''\
+            if _thread_local.flag_gpu_to_gpu is None:
+                warnings.warn('''\
 You are trying to transfer a DeviceResident to GPU-{dst} which is already on \
 GPU-{src}.
 `DeviceResident.to_gpu` does nothing if the DeviceResident is already on GPU.
 
 You can use `DeviceResident.to_device()` method to perform inter-GPU transfer.
 '''.format(dst=dst_id, src=src_id), RuntimeWarning)
+            else:
+                assert isinstance(_thread_local.flag_gpu_to_gpu, bool)
+                _thread_local.flag_gpu_to_gpu = True
 
 
 class _ToChxVisitor(DeviceResidentsVisitor):

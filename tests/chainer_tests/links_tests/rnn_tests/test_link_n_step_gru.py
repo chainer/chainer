@@ -61,7 +61,8 @@ class TestNStepGRU(unittest.TestCase):
             assert len(x) == len(y)
             assert y.shape[1] == self.out_size
 
-        self.rnn.to_cpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.rnn.to_cpu()
 
         for batch, seq in enumerate(self.xs):
             for layer in range(self.n_layers):
@@ -97,7 +98,8 @@ class TestNStepGRU(unittest.TestCase):
 
     @attr.gpu
     def test_forward_gpu_train(self):
-        self.rnn.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.rnn.to_gpu()
         with chainer.using_config('use_cudnn', 'always'), \
                 chainer.using_config('train', True):
             self.check_forward(
@@ -110,7 +112,8 @@ class TestNStepGRU(unittest.TestCase):
 
     @attr.gpu
     def test_forward_gpu_test(self):
-        self.rnn.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.rnn.to_gpu()
         with chainer.using_config('use_cudnn', 'always'), \
                 chainer.using_config('train', False):
             self.check_forward(
@@ -129,7 +132,8 @@ class TestNStepGRU(unittest.TestCase):
             else:
                 h = cuda.to_gpu(self.h)
             xs = [cuda.to_gpu(x) for x in self.xs]
-            rnn = rnn.to_gpu()
+            with testing.assert_warns(DeprecationWarning):
+                rnn = rnn.to_gpu()
         with cuda.get_device_from_id(0),\
                 chainer.using_config('train', train),\
                 chainer.using_config('use_cudnn', 'always'):
@@ -181,7 +185,8 @@ class TestNStepGRU(unittest.TestCase):
 
     @attr.gpu
     def test_backward_gpu(self):
-        self.rnn.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.rnn.to_gpu()
         with chainer.using_config('use_cudnn', 'auto'):
             self.check_backward(
                 cuda.to_gpu(self.h),
@@ -240,7 +245,8 @@ class TestNStepBiGRU(unittest.TestCase):
             assert len(x) == len(y)
             assert y.shape[1] == self.out_size * 2
 
-        self.rnn.to_cpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.rnn.to_cpu()
 
         for batch, seq in enumerate(self.xs):
             for layer in range(self.n_layers):
@@ -303,7 +309,8 @@ class TestNStepBiGRU(unittest.TestCase):
 
     @attr.gpu
     def test_forward_gpu_train(self):
-        self.rnn.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.rnn.to_gpu()
         with chainer.using_config('use_cudnn', 'always'), \
                 chainer.using_config('train', True):
             self.check_forward(
@@ -316,7 +323,8 @@ class TestNStepBiGRU(unittest.TestCase):
 
     @attr.gpu
     def test_forward_gpu_test(self):
-        self.rnn.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.rnn.to_gpu()
         with chainer.using_config('use_cudnn', 'always'), \
                 chainer.using_config('train', False):
             self.check_forward(
@@ -335,7 +343,8 @@ class TestNStepBiGRU(unittest.TestCase):
             else:
                 h = cuda.to_gpu(self.h)
             xs = [cuda.to_gpu(x) for x in self.xs]
-            rnn = rnn.to_gpu()
+            with testing.assert_warns(DeprecationWarning):
+                rnn = rnn.to_gpu()
         with cuda.get_device_from_id(0),\
                 chainer.using_config('train', train),\
                 chainer.using_config('use_cudnn', 'always'):
@@ -388,7 +397,8 @@ class TestNStepBiGRU(unittest.TestCase):
 
     @attr.gpu
     def test_backward_gpu(self):
-        self.rnn.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.rnn.to_gpu()
         with chainer.using_config('use_cudnn', 'auto'):
             self.check_backward(
                 cuda.to_gpu(self.h),

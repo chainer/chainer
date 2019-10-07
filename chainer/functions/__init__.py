@@ -178,6 +178,7 @@ from chainer.functions.math.trigonometric import arctan2  # NOQA
 from chainer.functions.math.trigonometric import cos  # NOQA
 from chainer.functions.math.trigonometric import sin  # NOQA
 from chainer.functions.math.trigonometric import tan  # NOQA
+from chainer.functions.math.zeta import zeta  # NOQA
 
 from chainer.functions.noise.dropout import dropout  # NOQA
 from chainer.functions.noise.gaussian import gaussian  # NOQA

@@ -13,6 +13,18 @@
 #include "chainerx/routines/type_util.h"
 
 namespace chainerx {
+
+namespace internal {
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(Fill)
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(Sqrt)
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(Square)
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(Abs)
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(Sign)
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(IfLessElseASSA)
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(IfGreaterElseASSA)
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(IfGreaterElseAAAA)
+}  // namespace internal
+
 namespace native {
 namespace {
 
@@ -20,7 +32,7 @@ CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(SqrtKernel, { out = chainerx
 
 CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_UNARY_KERNEL(SquareKernel, { out = x * x; }, VisitNumericDtype);
 
-CHAINERX_NATIVE_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(FabsKernel, { out = chainerx::Fabs(x); });
+CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_UNARY_KERNEL(AbsKernel, { out = chainerx::Abs(x); }, VisitNumericDtype);
 
 CHAINERX_NATIVE_REGISTER_ELTWISE_DTYPE_UNARY_KERNEL(SignKernel, { out = chainerx::Sign(x); }, VisitNumericDtype);
 

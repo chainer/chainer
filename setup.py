@@ -31,11 +31,7 @@ requirements = {
         'typing_extensions' + ('<=3.6.6' if sys.version_info[0] <= 2 else ''),
         'filelock',
         'numpy>=1.9.0',
-        # protobuf 3.8.0rc1 causes CI errors.
-        # TODO(niboshi): Probably we should always use pip in CIs for
-        # installing chainer. It avoids pre-release dependencies by default.
-        # See also: https://github.com/pypa/setuptools/issues/855
-        'protobuf>=3.0.0,<3.8.0rc1',
+        'protobuf>=3.0.0',
         'six>=1.9.0',
     ],
     'stylecheck': [
@@ -45,6 +41,7 @@ requirements = {
     ],
     'test': [
         'pytest<4.2.0',  # 4.2.0 is slow collecting tests and times out on CI.
+        'attrs<19.2.0',  # pytest 4.1.1 does not run with attrs==19.2.0
         'mock',
     ],
     'doctest': [
@@ -61,6 +58,16 @@ requirements = {
         # pytest-timeout>=1.3.0 requires pytest>=3.6.
         # TODO(niboshi): Consider upgrading pytest to >=3.6
         'pytest-timeout<1.3.0',
+    ],
+    'jenkins': [
+        '-r test',
+        # pytest-timeout>=1.3.0 requires pytest>=3.6.
+        # TODO(niboshi): Consider upgrading pytest to >=3.6
+        'pytest-timeout<1.3.0',
+        'pytest-cov',
+        'nose',
+        'coveralls',
+        'codecov',
     ],
 }
 
@@ -189,8 +196,12 @@ setup_kwargs = dict(
 build_chainerx = 0 != int(os.getenv('CHAINER_BUILD_CHAINERX', '0'))
 if (os.getenv('READTHEDOCS', None) == 'True'
         and os.getenv('READTHEDOCS_PROJECT', None) == 'chainer'):
-    os.environ['MAKEFLAGS'] = '-j2'
+    # ChainerX must be built in order to build the docs (on Read the Docs).
     build_chainerx = True
+
+    # Try to prevent Read the Docs build timeouts.
+    os.environ['MAKEFLAGS'] = '-j2'
+
 
 chainerx_build_helper.config_setup_kwargs(setup_kwargs, build_chainerx)
 

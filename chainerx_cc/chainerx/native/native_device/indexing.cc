@@ -15,6 +15,16 @@
 #include "chainerx/shape.h"
 
 namespace chainerx {
+
+namespace internal {
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(AddAt)
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(Take)
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(Where)
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(WhereAAS)
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(WhereASA)
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(WhereASS)
+}  // namespace internal
+
 namespace native {
 namespace {
 
@@ -147,7 +157,9 @@ public:
                     for (it_right.Restart(); it_right; ++it_right) {
                         it_out.CopyIndex(it_right, it_left.ndim() + it_axis.ndim());
                         it_b.CopyIndex(it_right, it_left.ndim() + it.ndim());
-                        out_iarray[it_out] += b_iarray[it_b];
+                        T b_value = native_internal::StorageToDataType<const T>(b_iarray[it_b]);
+                        T& out_ref = native_internal::StorageToDataType<T>(out_iarray[it_out]);
+                        out_ref += b_value;
                     }
                 }
             }

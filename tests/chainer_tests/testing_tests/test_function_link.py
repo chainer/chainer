@@ -127,7 +127,7 @@ def _double_backward_correct(x1, x2, gy1, gy2, ggx1, ggx2):
 
 # TestFunctionTestSuccessful
 #
-# This test checks for successfull case.
+# This test checks for successful case.
 # Incoming array types are also checked.
 
 class FuncCorrectlyImplemented(chainer.FunctionNode):

@@ -6,6 +6,7 @@ import chainer
 from chainer.backends import cuda
 from chainer.dataset import convert
 from chainer.dataset import iterator as iterator_module
+from chainer import device_resident
 from chainer.training import _updater
 from chainer.utils import argument
 
@@ -104,16 +105,41 @@ loss_func=None, loss_scale=None, auto_new_epoch=True, *, input_device=None)
             for optimizer in six.itervalues(self._optimizers):
                 if device.xp is cuda.cupy:
                     # Do not transfer between different cupy devices.
-                    # TODO(niboshi): Detect GPU-to-GPU transfer and raise
-                    # FutureWarning. Eventually replace it with to_device.
-                    with warnings.catch_warnings():
-                        warnings.filterwarnings(
-                            'ignore',
-                            message='.*GPU',
-                            category=RuntimeWarning,
-                            module='chainer.device_resident',
-                        )
-                        optimizer.target.to_gpu(device.device.id)
+                    # Detect GPU-to-GPU transfer and raise FutureWarning.
+                    # TODO(niboshi): Eventually replace it with to_device.
+
+                    thread_local = device_resident._thread_local
+                    has_gpu_to_gpu = False
+                    try:
+                        # Turn on GPU-to-GPU detection
+                        thread_local.flag_gpu_to_gpu = False
+                        with warnings.catch_warnings():
+                            warnings.filterwarnings(
+                                'ignore',
+                                message='to_gpu is deprecated.',
+                                category=DeprecationWarning)
+                            optimizer.target.to_gpu(device.device.id)
+                        has_gpu_to_gpu = thread_local.flag_gpu_to_gpu
+                    finally:
+                        # Turn off GPU-to-GPU detection
+                        thread_local.flag_gpu_to_gpu = None
+
+                    if has_gpu_to_gpu:
+                        warnings.warn(
+                            '''\
+Transfer between @cupy devices was detected and skipped. \
+StandardUpdater normally transfers the model to the specified device, but \
+except for between @cupy devices. \
+That is, if a part of the model is on @cupy:n device and the specified \
+device is @cupy:m device, that part of the model will be left in @cupy:n \
+device. This behavior is planned to be changed in near future. \
+After that, the model will be transferred to the specified device regardless \
+of device combination. \
+If you want to keep the model device but only want to transfer the input data \
+to a given device, specify the 'input_device' argument instead and leave the \
+'device' argument unspecified.
+''',
+                            FutureWarning)
                 else:
                     optimizer.target.to_device(device)
 

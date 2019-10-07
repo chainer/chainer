@@ -8,7 +8,7 @@ class WarmupShift(extension.Extension):
     """Trainer extension to gradually initialize an optimizer attribute.
 
     This extension changes an optimizer attribute evenly at the
-    begining of one training.
+    beginning of one training.
 
     For example, suppose that this extension is called at every iteration,
     and warmup_start = x , init = y, warmup_iter = t.
@@ -19,7 +19,7 @@ class WarmupShift(extension.Extension):
 
     Args:
         attr (str): Name of the optimizer attribute to adjust.
-        warmup_start (float): the value of the attr at the begining
+        warmup_start (float): the value of the attr at the beginning
             of one training.
         init (float): the value of the attr after warm up iterations.
         warmup_iter (int): the number of the iterations in which the

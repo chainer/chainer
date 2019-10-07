@@ -90,6 +90,65 @@ cusolverStatus_t Gesvd(
     throw DtypeError{"Only Arrays of float or double type are supported by gesvd (SVD)"};
 }
 
+template <typename T>
+cusolverStatus_t GeqrfBufferSize(cusolverDnHandle_t /*handle*/, int /*m*/, int /*n*/, T* /*a*/, int /*lda*/, int* /*lwork*/) {
+    throw DtypeError{"Only Arrays of float or double type are supported by geqrf (QR)"};
+}
+
+template <typename T>
+cusolverStatus_t Geqrf(
+        cusolverDnHandle_t /*handle*/,
+        int /*m*/,
+        int /*n*/,
+        T* /*a*/,
+        int /*lda*/,
+        T* /*tau*/,
+        T* /*workspace*/,
+        int /*lwork*/,
+        int* /*devinfo*/) {
+    throw DtypeError{"Only Arrays of float or double type are supported by geqrf (QR)"};
+}
+
+template <typename T>
+cusolverStatus_t OrgqrBufferSize(
+        cusolverDnHandle_t /*handle*/, int /*m*/, int /*n*/, int /*k*/, T* /*a*/, int /*lda*/, T* /*tau*/, int* /*lwork*/) {
+    throw DtypeError{"Only Arrays of float or double type are supported by orgqr (QR)"};
+}
+
+template <typename T>
+cusolverStatus_t Orgqr(
+        cusolverDnHandle_t /*handle*/,
+        int /*m*/,
+        int /*n*/,
+        int /*k*/,
+        T* /*a*/,
+        int /*lda*/,
+        T* /*tau*/,
+        T* /*work*/,
+        int /*lwork*/,
+        int* /*devinfo*/) {
+    throw DtypeError{"Only Arrays of float or double type are supported by orgqr (QR)"};
+}
+
+template <typename T>
+cusolverStatus_t PotrfBuffersize(
+        cusolverDnHandle_t /*handle*/, cublasFillMode_t /*uplo*/, int /*n*/, T* /*a*/, int /*lda*/, int* /*lwork*/) {
+    throw DtypeError{"Only Arrays of float or double type are supported by potrf (Cholesky)"};
+}
+
+template <typename T>
+cusolverStatus_t Potrf(
+        cusolverDnHandle_t /*handle*/,
+        cublasFillMode_t /*uplo*/,
+        int /*n*/,
+        T* /*a*/,
+        int /*lda*/,
+        T* /*workspace*/,
+        int /*lwork*/,
+        int* /*devinfo*/) {
+    throw DtypeError{"Only Arrays of float or double type are supported by potrf (Cholesky)"};
+}
+
 template <>
 cusolverStatus_t GetrfBuffersize<double>(cusolverDnHandle_t handle, int m, int n, double* a, int lda, int* lwork) {
     return cusolverDnDgetrf_bufferSize(handle, m, n, a, lda, lwork);
@@ -192,6 +251,72 @@ cusolverStatus_t Gesvd<float>(
     return cusolverDnSgesvd(handle, jobu, jobvt, m, n, a, lda, s, u, ldu, vt, ldvt, work, lwork, rwork, devinfo);
 }
 
+template <>
+cusolverStatus_t GeqrfBufferSize<double>(cusolverDnHandle_t handle, int m, int n, double* a, int lda, int* lwork) {
+    return cusolverDnDgeqrf_bufferSize(handle, m, n, a, lda, lwork);
+}
+
+template <>
+cusolverStatus_t GeqrfBufferSize<float>(cusolverDnHandle_t handle, int m, int n, float* a, int lda, int* lwork) {
+    return cusolverDnSgeqrf_bufferSize(handle, m, n, a, lda, lwork);
+}
+
+template <>
+cusolverStatus_t Geqrf<double>(
+        cusolverDnHandle_t handle, int m, int n, double* a, int lda, double* tau, double* workspace, int lwork, int* devinfo) {
+    return cusolverDnDgeqrf(handle, m, n, a, lda, tau, workspace, lwork, devinfo);
+}
+
+template <>
+cusolverStatus_t Geqrf<float>(
+        cusolverDnHandle_t handle, int m, int n, float* a, int lda, float* tau, float* workspace, int lwork, int* devinfo) {
+    return cusolverDnSgeqrf(handle, m, n, a, lda, tau, workspace, lwork, devinfo);
+}
+
+template <>
+cusolverStatus_t OrgqrBufferSize<double>(cusolverDnHandle_t handle, int m, int n, int k, double* a, int lda, double* tau, int* lwork) {
+    return cusolverDnDorgqr_bufferSize(handle, m, n, k, a, lda, tau, lwork);
+}
+
+template <>
+cusolverStatus_t OrgqrBufferSize<float>(cusolverDnHandle_t handle, int m, int n, int k, float* a, int lda, float* tau, int* lwork) {
+    return cusolverDnSorgqr_bufferSize(handle, m, n, k, a, lda, tau, lwork);
+}
+
+template <>
+cusolverStatus_t Orgqr<double>(
+        cusolverDnHandle_t handle, int m, int n, int k, double* a, int lda, double* tau, double* work, int lwork, int* devinfo) {
+    return cusolverDnDorgqr(handle, m, n, k, a, lda, tau, work, lwork, devinfo);
+}
+
+template <>
+cusolverStatus_t Orgqr<float>(
+        cusolverDnHandle_t handle, int m, int n, int k, float* a, int lda, float* tau, float* work, int lwork, int* devinfo) {
+    return cusolverDnSorgqr(handle, m, n, k, a, lda, tau, work, lwork, devinfo);
+}
+
+template <>
+cusolverStatus_t PotrfBuffersize<double>(cusolverDnHandle_t handle, cublasFillMode_t uplo, int n, double* a, int lda, int* lwork) {
+    return cusolverDnDpotrf_bufferSize(handle, uplo, n, a, lda, lwork);
+}
+
+template <>
+cusolverStatus_t PotrfBuffersize<float>(cusolverDnHandle_t handle, cublasFillMode_t uplo, int n, float* a, int lda, int* lwork) {
+    return cusolverDnSpotrf_bufferSize(handle, uplo, n, a, lda, lwork);
+}
+
+template <>
+cusolverStatus_t Potrf<double>(
+        cusolverDnHandle_t handle, cublasFillMode_t uplo, int n, double* a, int lda, double* workspace, int lwork, int* devinfo) {
+    return cusolverDnDpotrf(handle, uplo, n, a, lda, workspace, lwork, devinfo);
+}
+
+template <>
+cusolverStatus_t Potrf<float>(
+        cusolverDnHandle_t handle, cublasFillMode_t uplo, int n, float* a, int lda, float* workspace, int lwork, int* devinfo) {
+    return cusolverDnSpotrf(handle, uplo, n, a, lda, workspace, lwork, devinfo);
+}
+
 template <typename T>
 void SolveImpl(const Array& a, const Array& b, const Array& out) {
     Device& device = a.device();
@@ -204,6 +329,7 @@ void SolveImpl(const Array& a, const Array& b, const Array& out) {
     auto lu_ptr = static_cast<T*>(internal::GetRawOffsetData(lu_matrix));
 
     int64_t m = a.shape()[0];
+    int64_t lda = std::max(int64_t{1}, m);
     int64_t nrhs = 1;
     if (b.ndim() == 2) {
         nrhs = b.shape()[1];
@@ -213,14 +339,14 @@ void SolveImpl(const Array& a, const Array& b, const Array& out) {
     auto ipiv_ptr = static_cast<int*>(internal::GetRawOffsetData(ipiv));
 
     int buffersize = 0;
-    device_internals.cusolverdn_handle().Call(GetrfBuffersize<T>, m, m, lu_ptr, m, &buffersize);
+    device_internals.cusolverdn_handle().Call(GetrfBuffersize<T>, m, m, lu_ptr, lda, &buffersize);
 
     Array work = Empty(Shape{buffersize}, dtype, device);
     auto work_ptr = static_cast<T*>(internal::GetRawOffsetData(work));
 
     std::shared_ptr<void> devinfo = device.Allocate(sizeof(int));
 
-    device_internals.cusolverdn_handle().Call(Getrf<T>, m, m, lu_ptr, m, work_ptr, ipiv_ptr, static_cast<int*>(devinfo.get()));
+    device_internals.cusolverdn_handle().Call(Getrf<T>, m, m, lu_ptr, lda, work_ptr, ipiv_ptr, static_cast<int*>(devinfo.get()));
 
     int devinfo_h = 0;
     Device& native_device = GetDefaultContext().GetDevice({"native", 0});
@@ -233,7 +359,7 @@ void SolveImpl(const Array& a, const Array& b, const Array& out) {
     auto out_ptr = static_cast<T*>(internal::GetRawOffsetData(out_transposed));
 
     device_internals.cusolverdn_handle().Call(
-            Getrs<T>, CUBLAS_OP_N, m, nrhs, lu_ptr, m, ipiv_ptr, out_ptr, m, static_cast<int*>(devinfo.get()));
+            Getrs<T>, CUBLAS_OP_N, m, nrhs, lu_ptr, lda, ipiv_ptr, out_ptr, lda, static_cast<int*>(devinfo.get()));
 
     device.MemoryCopyTo(&devinfo_h, devinfo.get(), sizeof(int), native_device);
     if (devinfo_h != 0) {
@@ -241,6 +367,98 @@ void SolveImpl(const Array& a, const Array& b, const Array& out) {
     }
 
     device.backend().CallKernel<CopyKernel>(out_transposed.Transpose(), out);
+}
+
+template <typename T>
+void QrImpl(const Array& a, const Array& q, const Array& r, const Array& tau, QrMode mode) {
+    Device& device = a.device();
+    Dtype dtype = a.dtype();
+
+    int64_t m = a.shape()[0];
+    int64_t n = a.shape()[1];
+    int64_t k = std::min(m, n);
+    int64_t lda = std::max(int64_t{1}, m);
+
+    // cuSOLVER does not return correct result in this case and older versions of cuSOLVER (<10.1)
+    // might not work well with zero-sized arrays therefore it's better to return earlier
+    if (a.shape().GetTotalSize() == 0) {
+        if (mode == QrMode::kComplete) {
+            device.backend().CallKernel<IdentityKernel>(q);
+        }
+        return;
+    }
+
+    Array r_temp = a.Transpose().Copy();  // QR decomposition is done in-place
+
+    cuda_internal::DeviceInternals& device_internals = cuda_internal::GetDeviceInternals(static_cast<CudaDevice&>(device));
+
+    auto r_ptr = static_cast<T*>(internal::GetRawOffsetData(r_temp));
+    auto tau_ptr = static_cast<T*>(internal::GetRawOffsetData(tau));
+
+    std::shared_ptr<void> devinfo = device.Allocate(sizeof(int));
+
+    int buffersize_geqrf = 0;
+    device_internals.cusolverdn_handle().Call(GeqrfBufferSize<T>, m, n, r_ptr, lda, &buffersize_geqrf);
+
+    Array work = Empty(Shape{buffersize_geqrf}, dtype, device);
+    auto work_ptr = static_cast<T*>(internal::GetRawOffsetData(work));
+
+    device_internals.cusolverdn_handle().Call(
+            Geqrf<T>, m, n, r_ptr, lda, tau_ptr, work_ptr, buffersize_geqrf, static_cast<int*>(devinfo.get()));
+
+    int devinfo_h = 0;
+    Device& native_device = GetDefaultContext().GetDevice({"native", 0});
+    device.MemoryCopyTo(&devinfo_h, devinfo.get(), sizeof(int), native_device);
+    if (devinfo_h != 0) {
+        throw ChainerxError{"Unsuccessful geqrf (QR) execution. Info = ", devinfo_h};
+    }
+
+    if (mode == QrMode::kR) {
+        r_temp = r_temp.At(std::vector<ArrayIndex>{Slice{}, Slice{0, k}}).Transpose();  // R = R[:, 0:k].T
+        r_temp = Triu(r_temp, 0);
+        device.backend().CallKernel<CopyKernel>(r_temp, r);
+        return;
+    }
+
+    if (mode == QrMode::kRaw) {
+        device.backend().CallKernel<CopyKernel>(r_temp, r);
+        return;
+    }
+
+    int64_t mc;
+    Shape q_shape{0};
+    if (mode == QrMode::kComplete && m > n) {
+        mc = m;
+        q_shape = Shape{m, m};
+    } else {
+        mc = k;
+        q_shape = Shape{n, m};
+    }
+    Array q_temp = Empty(q_shape, dtype, device);
+
+    device.backend().CallKernel<CopyKernel>(r_temp, q_temp.At(std::vector<ArrayIndex>{Slice{0, n}, Slice{}}));  // Q[0:n, :] = R
+    auto q_ptr = static_cast<T*>(internal::GetRawOffsetData(q_temp));
+
+    int buffersize_orgqr = 0;
+    device_internals.cusolverdn_handle().Call(OrgqrBufferSize<T>, m, mc, k, q_ptr, lda, tau_ptr, &buffersize_orgqr);
+
+    Array work_orgqr = Empty(Shape{buffersize_orgqr}, dtype, device);
+    auto work_orgqr_ptr = static_cast<T*>(internal::GetRawOffsetData(work_orgqr));
+
+    device_internals.cusolverdn_handle().Call(
+            Orgqr<T>, m, mc, k, q_ptr, lda, tau_ptr, work_orgqr_ptr, buffersize_orgqr, static_cast<int*>(devinfo.get()));
+
+    device.MemoryCopyTo(&devinfo_h, devinfo.get(), sizeof(int), native_device);
+    if (devinfo_h != 0) {
+        throw ChainerxError{"Unsuccessful orgqr (QR) execution. Info = ", devinfo_h};
+    }
+
+    q_temp = q_temp.At(std::vector<ArrayIndex>{Slice{0, mc}, Slice{}}).Transpose();  // Q = Q[0:mc, :].T
+    r_temp = r_temp.At(std::vector<ArrayIndex>{Slice{}, Slice{0, mc}}).Transpose();  // R = R[:, 0:mc].T
+    r_temp = Triu(r_temp, 0);
+
+    device.backend().CallKernel<CopyKernel>(q_temp, q);
+    device.backend().CallKernel<CopyKernel>(r_temp, r);
 }
 
 }  // namespace
@@ -285,14 +503,21 @@ CHAINERX_CUDA_REGISTER_KERNEL(InverseKernel, CudaInverseKernel);
 
 class CudaSvdKernel : public SvdKernel {
 public:
-    void Call(const Array& a, const Array& u, const Array& s, const Array& vt, bool full_matrices) override {
+    void Call(const Array& a, const Array& u, const Array& s, const Array& vt, bool full_matrices, bool compute_uv) override {
         Device& device = a.device();
         Dtype dtype = a.dtype();
         CudaSetDeviceScope scope{device.index()};
 
         CHAINERX_ASSERT(a.ndim() == 2);
 
-        bool compute_uv = u.shape()[0] != 0 && vt.shape()[0] != 0;
+        if (a.shape().GetTotalSize() == 0) {
+            if (full_matrices && compute_uv) {
+                device.backend().CallKernel<IdentityKernel>(u);
+                device.backend().CallKernel<IdentityKernel>(vt);
+            }
+            // This kernel works correctly for zero-sized input also without early return
+            return;
+        }
 
         // cuSOLVER assumes arrays are in column-major order.
         // In order to avoid transposing the input matrix, matrix dimensions are swapped.
@@ -340,8 +565,9 @@ public:
             vt_temp = Empty(vt_shape, dtype, device);
         }
 
-        int64_t ldu = m;
-        int64_t ldvt = full_matrices ? n : k;
+        int64_t lda = std::max(int64_t{1}, m);
+        int64_t ldu = std::max(int64_t{1}, m);
+        int64_t ldvt = full_matrices ? std::max(int64_t{1}, n) : std::max(int64_t{1}, k);
 
         auto svd_impl = [&](auto pt) {
             using T = typename decltype(pt)::type;
@@ -379,7 +605,7 @@ public:
                     m,
                     n,
                     x_ptr,
-                    m,
+                    lda,
                     s_ptr,
                     vt_ptr,
                     ldu,
@@ -408,6 +634,84 @@ public:
 };
 
 CHAINERX_CUDA_REGISTER_KERNEL(SvdKernel, CudaSvdKernel);
+
+class CudaQrKernel : public QrKernel {
+public:
+    void Call(const Array& a, const Array& q, const Array& r, const Array& tau, QrMode mode) override {
+        Device& device = a.device();
+        Dtype dtype = a.dtype();
+        CudaSetDeviceScope scope{device.index()};
+
+        CHAINERX_ASSERT(a.ndim() == 2);
+
+        VisitFloatingPointDtype(dtype, [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            QrImpl<T>(a, q, r, tau, mode);
+        });
+    }
+};
+
+CHAINERX_CUDA_REGISTER_KERNEL(QrKernel, CudaQrKernel);
+
+class CudaCholeskyKernel : public CholeskyKernel {
+public:
+    void Call(const Array& a, const Array& out) override {
+        Device& device = a.device();
+        device.CheckDevicesCompatible(a, out);
+        Dtype dtype = a.dtype();
+        CudaSetDeviceScope scope{device.index()};
+
+        CHAINERX_ASSERT(a.ndim() == 2);
+        CHAINERX_ASSERT(out.ndim() == 2);
+        CHAINERX_ASSERT(a.shape()[0] == a.shape()[1]);
+        CHAINERX_ASSERT(out.IsContiguous());
+        CHAINERX_ASSERT(a.dtype() == out.dtype());
+
+        // cuSOLVER might not work well with zero-sized arrays for older versions of cuSOLVER (<10.1)
+        // therefore it's better to return earlier
+        if (a.shape().GetTotalSize() == 0) {
+            return;
+        }
+
+        // potrf (cholesky) stores result in-place, therefore copy ``a`` to ``out`` and then pass ``out`` to the routine
+        device.backend().CallKernel<CopyKernel>(Tril(a, 0), out);
+
+        auto cholesky_impl = [&](auto pt) {
+            using T = typename decltype(pt)::type;
+
+            // Note that cuSOLVER uses Fortran order.
+            // To compute a lower triangular matrix L = cholesky(A), we use cuSOLVER to compute an upper triangular matrix U = cholesky(A).
+            cublasFillMode_t uplo = CUBLAS_FILL_MODE_UPPER;
+
+            cuda_internal::DeviceInternals& device_internals = cuda_internal::GetDeviceInternals(static_cast<CudaDevice&>(device));
+
+            // compute workspace size and prepare workspace
+            auto out_ptr = static_cast<T*>(internal::GetRawOffsetData(out));
+            int work_size = 0;
+            int64_t n = a.shape()[0];
+            device_internals.cusolverdn_handle().Call(PotrfBuffersize<T>, uplo, n, out_ptr, std::max(int64_t{1}, n), &work_size);
+
+            // POTRF execution
+            Array work = Empty(Shape{work_size}, dtype, device);
+            auto work_ptr = static_cast<T*>(internal::GetRawOffsetData(work));
+
+            std::shared_ptr<void> devinfo = device.Allocate(sizeof(int));
+            device_internals.cusolverdn_handle().Call(
+                    Potrf<T>, uplo, n, out_ptr, std::max(int64_t{1}, n), work_ptr, work_size, static_cast<int*>(devinfo.get()));
+
+            int devinfo_h = 0;
+            Device& native_device = GetDefaultContext().GetDevice({"native", 0});
+            device.MemoryCopyTo(&devinfo_h, devinfo.get(), sizeof(int), native_device);
+            if (devinfo_h != 0) {
+                throw ChainerxError{"Unsuccessful potrf (Cholesky) execution. Info = ", devinfo_h};
+            }
+        };
+
+        VisitFloatingPointDtype(dtype, cholesky_impl);
+    }
+};
+
+CHAINERX_CUDA_REGISTER_KERNEL(CholeskyKernel, CudaCholeskyKernel);
 
 }  // namespace cuda
 }  // namespace chainerx
