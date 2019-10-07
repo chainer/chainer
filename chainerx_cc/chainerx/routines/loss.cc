@@ -35,6 +35,15 @@ Array SigmoidCrossEntropy(const Array& x1, const Array& x2) {
 }
 
 Array SoftmaxCrossEntropy(const Array& x1, const Array& x2) {
+    if (x1.ndim() != 2) {
+        throw DimensionError{"Input array must be 2 dimensional."};
+    }
+    if (x2.ndim() != 1) {
+        throw DimensionError{"Target array must be 1 dimensional."};
+    }
+    if (x1.shape()[0] != x2.shape()[0]) {
+        throw DimensionError{"x1.shape[0] must be equal to x2.shape[0]"};
+    }
     Array score = LogSoftmax(x1, 1);
     Array mask = (x2.At({Slice{}, NewAxis{}}) == Arange(score.shape()[1], x2.dtype(), x1.device())).AsType(score.dtype());
     return -(score * mask).Sum({1});
