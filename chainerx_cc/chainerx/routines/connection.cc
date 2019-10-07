@@ -160,6 +160,9 @@ Array Conv(
     if (b.has_value() && (b->ndim() != 1 || b->shape()[0] != w.shape()[0])) {
         throw DimensionError{"Mismatched bias shape ", b->shape(), " for weights ", w.shape(), "."};
     }
+    if (groups < 1) {
+        throw DimensionError{"Groups must be greater than 0: ", groups, "."};
+    }
 
     Dtype real_out_dtype = out_dtype.has_value() ? *out_dtype : b.has_value() ? ResultType(x, w, *b) : ResultType(x, w);
 
@@ -231,6 +234,9 @@ Array ConvTranspose(
     }
     if (b.has_value() && (b->ndim() != 1 || b->shape()[0] != w.shape()[1] * groups)) {
         throw DimensionError{"Mismatched bias shape ", b->shape(), " for weights ", w.shape(), "."};
+    }
+    if (groups < 1) {
+        throw DimensionError{"Groups must be greater than 0: ", groups, "."};
     }
     int8_t ndim = x.ndim() - 2;  // Number of spatial dimensions
     Shape in_dims{x.shape().begin() + 2, x.shape().end()};
