@@ -7,7 +7,6 @@ import platform
 import re
 import subprocess
 import sys
-import warnings
 
 import setuptools
 from setuptools.command import build_ext
