@@ -159,9 +159,9 @@ def shuffle_data_blocks(comm, blocks, block_size, force_equal_length=True):
     data source and exchanged between distributed processes so the number of
     elements in each process is roughly equal.
 
-    If `force_equal_length` is True, some elements are duplicated when necessary
-    so all processes have exactly the same number of elements after all
-    iterations.
+    If `force_equal_length` is True, some elements are duplicated when
+    necessary so all processes have exactly the same number of elements
+    after all iterations.
 
     :param comm: :class: `~chainermn.communicators.MpiCommunicatorBase`
     :param blocks: An iterative object to read data blocks.

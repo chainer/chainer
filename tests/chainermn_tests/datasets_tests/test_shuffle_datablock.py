@@ -10,7 +10,7 @@ from chainermn.datasets.shuffle_datablock import shuffle_data_blocks
 
 def _numpy_flatten1(ary):
     """1-level flatten"""
-    return functools.reduce(lambda a, b: np.concatenate([a,b], axis=0), ary)
+    return functools.reduce(lambda a, b: np.concatenate([a, b], axis=0), ary)
 
 
 def _gather_check(comm, orig_data, local_data, root=0):
