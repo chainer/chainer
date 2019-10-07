@@ -24,7 +24,13 @@ pip install pytest-cov
 pytest -x -s -vvvs ${PYTEST_ARGS} tests/onnx_chainer_tests --cov onnx_chainer
 
 pip install chainercv
-. onnx_chainer/.flexci/run_example.sh "${EXAMPLE_ARGS}"
+export CHAINERCV_DOWNLOAD_REPORT="OFF"
+for dir in \`ls onnx_chainer/examples\`
+do
+  if [[ -f onnx_chainer/examples/\${dir}/export.py ]]; then
+    python onnx_chainer/examples/\${dir}/export.py -T ${EXAMPLE_ARGS}
+  fi
+done
 EOM
 
 docker run ${DOCKER_RUNTIME_ARG} -i --rm \
