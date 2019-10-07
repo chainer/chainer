@@ -40,9 +40,8 @@ def test_shuffle_datablocks(block_size, force_equal_length):
 
     total_data_size = sum(10 ** min(r, 3) for r in range(comm.size))
 
-    data = shuffle_data_blocks(comm, data,
-                               force_equal_length=force_equal_length,
-                               block_size=block_size)
+    data = shuffle_data_blocks(comm, data, block_size,
+                               force_equal_length=force_equal_length)
 
     # (array([6]), array([6])) -> [6, 6]
     length_all = [x[0] for x in comm.allgather(np.array([len(data)]))]
@@ -69,7 +68,7 @@ def test_shuffle_datablocks_scatter(length, force_equal_length):
     else:
         data = []
 
-    data = shuffle_data_blocks(comm, data, force_equal_length, block_size=10)
+    data = shuffle_data_blocks(comm, data, 10, force_equal_length)
 
     if force_equal_length:
         assert len(data) == (length - 1) // comm.size + 1

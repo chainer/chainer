@@ -1,6 +1,7 @@
 import itertools
 import random
 
+import chainer
 import numpy
 import functools
 
@@ -20,7 +21,6 @@ def _calc_new_length(cur_length_all, block_length_all):
     # the total number of elements over all processes, including
     # already-scattered data.
     size = len(cur_length_all)
-    assert len(cur_length_all) == len(block_length_all)
     total = sum(cur_length_all) + sum(block_length_all)
 
     # new_length: new number of elements of all processes after shuffling
@@ -58,7 +58,6 @@ def _calc_alltoall_send_counts(cur_length_all, block_length_all):
     :param force_equal_length: If force equal length
     :return: A dict of send counts
     """
-    assert len(cur_length_all) == len(block_length_all)
     size = len(cur_length_all)
 
     new_length_all = _calc_new_length(cur_length_all, block_length_all)
@@ -112,6 +111,7 @@ def _calc_alltoall_send_counts(cur_length_all, block_length_all):
             if diff_length[src_rank] == 0:
                 break
 
+    # All the diffs are resolved by communication.
     assert all(d == 0 for d in diff_length)
     return send_counts, new_length_all
 
@@ -146,15 +146,23 @@ def _exchange_block(comm, data, block, cur_length_all, block_length_all):
     return new_length_all
 
 
-def shuffle_data_blocks(comm, data_blocks, force_equal_length=True,
-                        block_size=10000):
+def shuffle_data_blocks(comm, blocks, block_size, force_equal_length=True):
     """Exchange unbalanced blocks of data between all processes
 
     This function is useful when `scatter_dataset` is not suitable.
     For instance, the data is huge or the total length is unknown.
 
-    :param comm: ChainerMN communicator
-    :param data_blocks: Sequence or generator to read blocks.
+    shuffle_datablocks() function works in a iterative way.
+    In a single iteartion, `block_size` items are loaded from `data_blocks`
+    data source and exchanged between distributed processes so the number of
+    elements in each process is roughly equal.
+
+    If `force_equal_length` is True, some elements are duplicated when necessary
+    so all processes have exactly the same number of elements after all
+    iterations.
+
+    :param comm: :class: `~chainermn.communicators.MpiCommunicatorBase`
+    :param blocks: An iterative object to read data blocks.
     :param force_equal_length: Whether data length of each process is adjusted
                                by copying some elements, so that all processes
                                have exactly the same length of data.
@@ -162,14 +170,19 @@ def shuffle_data_blocks(comm, data_blocks, force_equal_length=True,
                                iteration/epoch counting.
                                In evaluation, however, the option can be False
                                if you don't want duplicated elements.
-    :param block_size: Number of elements read from `data_blocks` at a time
+    :param block_size: Number of elements read from `data_blocks`
+                       in an iteration
     :return: Shuffled data (in a list)
     """
     if not hasattr(comm, 'mpi_comm'):
         raise NotImplementedError('shuffle_data_blocks() function depends on'
                                   'MPI-based ChainerMN communicator.')
 
-    data_blocks = iter(data_blocks)
+    chainer.utils.experimental(
+        'chainermn.datasets.shuffle_datablock.shuffle_datablocks'
+    )
+
+    blocks = iter(blocks)
     data = []
     data_length_all = [0] * comm.size  # all processes start from data=[]
 
@@ -177,7 +190,7 @@ def shuffle_data_blocks(comm, data_blocks, force_equal_length=True,
     while True:
         # Read a block of data; we need to use `itertools.islice`
         # to support both of list-like objects and generators
-        block = list(itertools.islice(data_blocks, block_size))
+        block = list(itertools.islice(blocks, block_size))
 
         # wrap the length by numpy array to communicate via MPI
         if block is None:
