@@ -68,7 +68,7 @@ class UpsamplingDeconvFilter(_SamplingFilter):
     """Initializes array with upsampling filter.
 
     The array is initialized with a standard image upsampling weight.
-    This initializer is often used as inital weight for
+    This initializer is often used as initial weight for
     :func:`~chainer.links.DeconvolutionND`.
     :func:`~chainer.links.DeconvolutionND` is expected that its `stride` is
     equal to `(ksize + 1) // 2`.
@@ -94,7 +94,7 @@ class DownsamplingConvFilter(_SamplingFilter):
     """Initializes array with downsampling filter.
 
     The array is initialized with a standard image downsampling weight.
-    This initializer is often used as inital weight for
+    This initializer is often used as initial weight for
     :func:`~chainer.links.ConvolutionND`.
     :func:`~chainer.links.ConvolutionND` is expected that its `stride` is
     equal to `(ksize + 1) // 2`.

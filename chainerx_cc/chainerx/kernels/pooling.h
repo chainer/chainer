@@ -10,6 +10,7 @@
 #include "chainerx/constant.h"
 #include "chainerx/dims.h"
 #include "chainerx/kernel.h"
+#include "chainerx/routines/pooling.h"
 
 namespace chainerx {
 

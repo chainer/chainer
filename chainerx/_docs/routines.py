@@ -8,6 +8,7 @@ def set_docs():
     _docs_indexing()
     _docs_linalg()
     _docs_logic()
+    _docs_loss()
     _docs_manipulation()
     _docs_math()
     _docs_sorting()
@@ -1146,6 +1147,25 @@ Note:
     output array to the input array ``a``.
 
 .. seealso:: :func:`numpy.reshape`
+""")
+
+    _docs.set_doc(
+        chainerx.ravel,
+        """ravel(a)
+Returns a flattened array.
+
+Args:
+    a (~chainerx.ndarray): Array to be flattened.
+
+Returns:
+    :class:`~chainerx.ndarray`: A flattened view of ``a`` if possible,
+    otherwise a copy.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``a``.
+
+.. seealso:: :func:`numpy.ravel`
 """)
 
     _docs.set_doc(

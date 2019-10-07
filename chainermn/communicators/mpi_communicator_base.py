@@ -103,7 +103,7 @@ class MpiCommunicatorBase(communicator_base.CommunicatorBase):
     all ChainerMN processes are invoked by ``mpirun`` (``mpiexec``)
     command. Although this lacks several important methods such as
     ``multi_node_mean_grad`` to be impelmented with speficic algorithm. See
-    hierarcical communicator or pure_nccl communicator for example.
+    hierarchical communicator or pure_nccl communicator for example.
 
     '''
 
