@@ -3,10 +3,8 @@ import itertools
 import pytest
 
 import numpy as np
-from numpy.testing import assert_array_equal
 
 import chainermn
-from chainermn.datasets.shuffle_datablock import _calc_alltoall_send_counts
 from chainermn.datasets.shuffle_datablock import shuffle_data_blocks
 
 
