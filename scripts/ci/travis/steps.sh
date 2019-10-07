@@ -157,6 +157,11 @@ step_chainer_tests() {
 }
 
 
+step_chainer_example_tests() {
+    pytest -v -rfEX "$REPO_DIR"/examples/tests
+}
+
+
 step_chainerx_python_tests() {
     pytest -rfEX "$REPO_DIR"/tests/chainerx_tests
 }
