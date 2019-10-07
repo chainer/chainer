@@ -1125,16 +1125,16 @@ Returns:
 
     _docs.set_doc(
         chainerx.sigmoid_cross_entropy,
-        """sigmoid_cross_entropy(x, t)
+        """sigmoid_cross_entropy(x1, x2)
 
 Element-wise cross entropy loss for pre-sigmoid activations.
 
 Args:
-    x (~chainerx.ndarray): An array whose (i, j)-th element indicates the
+    x1 (~chainerx.ndarray): An array whose (i, j)-th element indicates the
         unnormalized log probability of the j-th unit at the i-th example.
-    t (~chainerx.ndarray): An array whose (i, j)-th element indicates a signed
-        integer vector of ground truth labels 0 or 1. If ``t[i, j] == -1``,
-        corresponding ``x[i, j]`` is ignored. Loss is zero if all ground truth
+    x2 (~chainerx.ndarray): An array whose (i, j)-th element indicates a signed
+        integer vector of ground truth labels 0 or 1. If ``x2[i, j] == -1``,
+        corresponding ``x1[i, j]`` is ignored. Loss is zero if all ground truth
         labels are -1.
 
 Returns:
@@ -1142,7 +1142,7 @@ Returns:
 
 Note:
     During backpropagation, this function propagates the gradient of the output
-    array to the input array ``x`` only.
+    array to the input array ``x1`` only.
 """)
 
 
