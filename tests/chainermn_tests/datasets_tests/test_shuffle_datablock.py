@@ -63,8 +63,8 @@ def test_shuffle_datablocks(block_size, force_equal_length):
                              [10, 100, 1000],
                              [False, True])))
 def test_shuffle_datablocks_scatter(length, force_equal_length):
-    # shuffle_datablocks() should be a superset of scatter_dataset.
-    # Rank 0 generates all data and scatter them.
+    # shuffle_datablocks()'s functionality is a superset of scatter_dataset
+    # if a single rank generates all data and scatter them.
     comm = chainermn.create_communicator('naive')
     if comm.rank == 0:
         data = range(length)
@@ -76,7 +76,8 @@ def test_shuffle_datablocks_scatter(length, force_equal_length):
     if force_equal_length:
         assert len(data) == (length - 1) // comm.size + 1
     else:
-        if comm.rank < length % comm.size:
+        rem = length % comm.size
+        if comm.rank < rem:
             assert len(data) == length // comm.size + 1
         else:
             assert len(data) == length // comm.size
