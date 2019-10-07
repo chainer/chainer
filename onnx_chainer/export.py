@@ -240,19 +240,21 @@ def export(model, args, filename=None, export_params=True,
     own customized operator, set converter function with ~chainer.FunctionNode
     name.
 
-    .. code-block:: python
-
-        import onnx
-        def custom_converter(param):
-            return onnx.helper.make_node(
-                'CustomizedRelu', param.input_names, param.output_names,
-                domain='chainer'),
-        external_converters = {'ReLU': custom_converter}
-        external_imports = {'chainer': 0}
-        onnx_chainer.export(
-            model, args,
-            external_converters=external_converters,
-            external_opset_imports=external_imports)
+    >>> import onnx
+    >>> def custom_converter(param):
+    ...     return onnx.helper.make_node(
+    ...         'CustomizedRelu', param.input_names, param.output_names,
+    ...         domain='chainer'),
+    >>>
+    >>> external_converters = {'ReLU': custom_converter}
+    >>> external_imports = {'chainer': 0}
+    >>>
+    >>> model = chainer.Sequential(F.relu)  # set the target model
+    >>> args = chainer.Variable(np.random.rand(1,10))  # set dummy input
+    >>> onnx_graph = onnx_chainer.export(
+    ...     model, args,
+    ...     external_converters=external_converters,
+    ...     external_opset_imports=external_imports)
 
     Returned model has ``CustomizedRelu`` node.
 
