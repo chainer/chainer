@@ -41,6 +41,12 @@ endif()
 
 target_link_libraries(${module_name} PRIVATE chainerx)
 
+# Only python binding needs to be relocatable, it will load chainerx related shared library at runtime.
+set_target_properties(${module_name}
+    PROPERTIES
+    SKIP_BUILD_RPATH FALSE
+    BUILD_WITH_INSTALL_RPATH TRUE)
+
 # Visibility (CXX_VISIBILITY_PRESET) must be set to "default" to register custom exceptions, overriding the visibility configured by pybind11_add_module.
 # Note however that this only seems to be an issue when building with libc++.
 set_target_properties(${module_name}
