@@ -1,8 +1,7 @@
 import unittest
 
-import six
-
 import numpy as np
+import six
 
 import chainer
 from chainer import functions as F
