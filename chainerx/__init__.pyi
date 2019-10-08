@@ -865,6 +865,10 @@ def max_pool(
 def maximum(x1: tp.Any, x2: tp.Any) -> ndarray: ...
 
 
+def meshgrid(arrays: tp.List[ndarray],
+             indexing: tp.Optional[str]=...) -> tp.List[ndarray]: ...
+
+
 def minimum(x1: tp.Any, x2: tp.Any) -> ndarray: ...
 
 

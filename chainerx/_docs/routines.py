@@ -481,6 +481,30 @@ Note:
 .. seealso:: :func:`numpy.diagflat`
 """)
 
+    _docs.set_doc(
+        chainerx.meshgrid,
+        """meshgrid(xi, indexing='xy')
+Returns coordinate matrices from coordinate vectors.
+
+Make N-D coordinate arrays for vectorized evaluations of N-D scalar/vector
+fields over N-D grids, given one-dimensional coordinate arrays x1, x2,…, xn.
+
+Args:
+    xi (sequence of :class:`~chainerx.ndarray`\\ s): 1-D arrays
+        representing the coordinates of a grid.
+    indexing (str): {‘xy’, ‘ij’}, optional
+        Cartesian (‘xy’, default) or matrix (‘ij’) indexing of output.
+
+Returns:
+    list of :class:`~chainerx.ndarray`\\ s: For vectors x1, x2,…, ‘xn’ with
+    lengths Ni=len(xi), return (N1, N2, N3,...Nn) shaped arrays if
+    indexing=’ij’ or (N2, N1, N3,...Nn) shaped arrays if indexing=’xy’
+    with the elements of xi repeated to fill the matrix along the first
+    dimension for x1, the second for x2 and so on.
+
+.. seealso:: :func:`numpy.meshgrid`
+""")
+
 
 def _docs_evaluation():
     _docs.set_doc(

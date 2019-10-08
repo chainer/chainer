@@ -338,6 +338,75 @@ Array Linspace(
     return out;
 }
 
+std::vector<Array> Meshgrid(const std::vector<Array>& arrays, MeshgridIndexingMode mode) {
+    Shape shape;
+    Shape broadcast_shape;
+    std::vector<Shape> broadcasted_array_shapes;
+    std::vector<Array> grid_arrays;
+
+    // special cases
+    // similar behavior to numpy.
+    if (arrays.empty()) {
+        return grid_arrays;
+    }
+
+    if (arrays.size() == 1) {
+        grid_arrays.emplace_back(arrays[0].Flatten());
+        return grid_arrays;
+    }
+
+    grid_arrays.reserve(arrays.size());
+    broadcasted_array_shapes.reserve(arrays.size());
+
+    // Algo
+    //
+    // Step 1: Reshape/View each array as broadcastable based
+    // on number of input vectors.
+    // Eg. For tuple of vectors (n1, n2, n3)
+    // where ni is length of that vector.
+    // After this step for Vector 1 , we will reshape it as
+    // (n1, 1, 1) , Vector 2 as (1, n2, 1)
+    //
+    // Step 2: Broadcast each vector to the shape
+    // if (indexing == "ij") -> (n1, n2, n3)
+    // else if (indexing == "xy") -> (n2, n1, n3)
+    // Note : For "xy" only n1 and n2 swap their places
+    //        all others are same as "ij"
+
+    // Step 1
+    for (const Array& array : arrays) {
+        shape.emplace_back(1);
+        broadcast_shape.emplace_back(array.GetTotalSize());
+    }
+
+    // Shape for each array based on number of arrays.
+    for (size_t i = 0; i < arrays.size(); ++i) {
+        Shape temp_shape{shape.begin(), shape.end()};
+        temp_shape[i] = arrays[i].GetTotalSize();
+        broadcasted_array_shapes.emplace_back(temp_shape);
+    }
+
+    // Referred from numpy documentation and source.
+    if (mode == MeshgridIndexingMode::kCartesian) {
+        std::swap(broadcasted_array_shapes[0][0], broadcasted_array_shapes[0][1]);
+        std::swap(broadcasted_array_shapes[1][0], broadcasted_array_shapes[1][1]);
+        std::swap(broadcast_shape[0], broadcast_shape[1]);
+    }
+
+    std::vector<Array> reshaped_arrays;
+    reshaped_arrays.reserve(arrays.size());
+    for (size_t i = 0; i < arrays.size(); ++i) {
+        reshaped_arrays.emplace_back(arrays[i].Reshape(broadcasted_array_shapes[i]));
+    }
+
+    // Step 2
+    for (const Array& reshaped_array : reshaped_arrays) {
+        grid_arrays.emplace_back(reshaped_array.BroadcastTo(broadcast_shape));
+    }
+
+    return grid_arrays;
+}
+
 Array Tri(int64_t n, absl::optional<int64_t> m, absl::optional<int64_t> k, absl::optional<Dtype> dtype, Device& device) {
     if (!m.has_value()) {
         m = n;

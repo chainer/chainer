@@ -299,6 +299,28 @@ void InitChainerxCreation(pybind11::module& m) {
           "device"_a = nullptr);
     m.def("tril", [](const ArrayBodyPtr& m, int64_t k) { return MoveArrayBody(Tril(Array{m}, k)); }, "m"_a, "k"_a = 0);
     m.def("triu", [](const ArrayBodyPtr& m, int64_t k) { return MoveArrayBody(Triu(Array{m}, k)); }, "m"_a, "k"_a = 0);
+    m.def("meshgrid", [](py::args xi, py::kwargs kwargs) {
+        std::vector<Array> xs;
+        MeshgridIndexingMode mode{MeshgridIndexingMode::kCartesian};
+        xs.reserve(xi.size());
+        std::transform(xi.begin(), xi.end(), std::back_inserter(xs), [](const auto& item) { return Array{py::cast<ArrayBodyPtr>(item)}; });
+        if (kwargs.size()) {
+            if (kwargs.size() != 1 || !kwargs.contains("indexing")) {
+                throw ChainerxError{"Only 'indexing' is a valid keyword argument"};
+            }
+            py::str index = kwargs["indexing"];
+            std::string indexing = index;
+
+            if (indexing == "xy") {
+                mode = MeshgridIndexingMode::kCartesian;
+            } else if (indexing == "ij") {
+                mode = MeshgridIndexingMode::kMatrix;
+            } else {
+                throw ChainerxError{"Indexing can only be 'xy' or 'ij'."};
+            }
+        }
+        return MoveArrayBodies(Meshgrid(xs, mode));
+    });
 }
 
 void InitChainerxEvaluation(pybind11::module& m) {
