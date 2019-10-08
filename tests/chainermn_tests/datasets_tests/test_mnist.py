@@ -3,6 +3,7 @@
 import os
 import sys
 import tempfile
+import warnings
 
 import chainer
 from chainer.backends.cuda import cupy
