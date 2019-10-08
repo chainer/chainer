@@ -474,6 +474,16 @@ class TestQRFailing(NumpyLinalgOpTest):
 ))
 class TestEigh(NumpyLinalgOpTest):
 
+    def setup(self):
+        device = chainerx.get_default_device()
+        if (device.backend.name == 'native'
+                and not chainerx.linalg._is_lapack_available()):
+            pytest.skip('LAPACK is not linked to ChainerX')
+        self.check_backward_options.update({
+            'eps': 1e-5, 'rtol': 1e-3, 'atol': 1e-3})
+        self.check_double_backward_options.update({
+            'eps': 1e-5, 'rtol': 1e-3, 'atol': 1e-3})
+
     def generate_inputs(self):
         a = numpy.random.random(self.shape).astype(self.in_dtypes)
         return a,
