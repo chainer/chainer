@@ -368,7 +368,7 @@ public:
         CudaSetDeviceScope scope{device.index()};
 
         cuda_internal::DeviceInternals& device_internals = cuda_internal::GetDeviceInternals(device);
-        auto cuda_state = dynamic_cast<GenericRnnGradState&>(*state);
+        auto& cuda_state = dynamic_cast<GenericRnnGradState&>(*state);
         Dtype type = hx.dtype();
         const auto input_dim = xs[0].shape()[1];
         const auto hidden_dim = hx.shape()[2];

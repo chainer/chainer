@@ -412,6 +412,43 @@ std::tuple<Array, Array> Qr(const Array& a, QrMode mode) {
     return std::make_tuple(std::move(q), std::move(r));
 }
 
+Array Cholesky(const Array& a) {
+    CheckRankTwoArray(a);
+    CheckSquareMatrix(a);
+    Dtype dtype = internal::GetMathResultDtype(a.dtype());
+    Array out = Empty(a.shape(), dtype, a.device());
+
+    {
+        NoBackpropModeScope scope{};
+        a.device().backend().CallKernel<CholeskyKernel>(a, out);
+    }
+
+    // Reference:
+    // Differentiation of the Cholesky decomposition, Iain Murray https://arxiv.org/abs/1602.07527
+    {
+        BackwardBuilder bb{"cholesky", a, out};
+        if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+            bt.Define([out_tok = bb.RetainOutput(0), a_dtype = a.dtype(), &a_device = a.device()](BackwardContext& bctx) {
+                const Array& L = bctx.GetRetainedOutput(out_tok);
+                const Array& gL = *bctx.output_grad();
+
+                Array L_inv = Inverse(L);
+                Array phi = Dot(L.Transpose(), gL);
+                phi = Tril(phi, 0);
+                Array mask = Eye(phi.shape()[0], phi.shape()[1], 0, Dtype::kBool, a_device);
+                phi = Where(mask, 0.5 * Diag(phi), phi);
+
+                Array gin = Dot(Dot(L_inv.Transpose(), phi), L_inv);
+
+                bctx.input_grad() = (gin + gin.Transpose()) * 0.5;
+            });
+        }
+        bb.Finalize();
+    }
+
+    return out;
+}
+
 std::tuple<Array, Array> Eigh(const Array& a, char uplo) {
     CheckRankTwoArray(a);
     CheckSquareMatrix(a);

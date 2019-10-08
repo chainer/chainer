@@ -10,6 +10,7 @@
 #include "chainerx/constant.h"
 #include "chainerx/dims.h"
 #include "chainerx/kernel.h"
+#include "chainerx/routines/pooling.h"
 
 namespace chainerx {
 
@@ -19,10 +20,10 @@ public:
 
     virtual ~MaxPoolGradState() = default;
 
-    MaxPoolGradState(const MaxPoolGradState&) = default;
-    MaxPoolGradState(MaxPoolGradState&&) = default;
-    MaxPoolGradState& operator=(const MaxPoolGradState&) = default;
-    MaxPoolGradState& operator=(MaxPoolGradState&&) = default;
+    MaxPoolGradState(const MaxPoolGradState&) = delete;
+    MaxPoolGradState(MaxPoolGradState&&) = delete;
+    MaxPoolGradState& operator=(const MaxPoolGradState&) = delete;
+    MaxPoolGradState& operator=(MaxPoolGradState&&) = delete;
 };
 
 class MaxPoolKernel : public Kernel {
@@ -37,10 +38,10 @@ public:
 
     virtual ~MaxPoolGradGradState() = default;
 
-    MaxPoolGradGradState(const MaxPoolGradGradState&) = default;
-    MaxPoolGradGradState(MaxPoolGradGradState&&) = default;
-    MaxPoolGradGradState& operator=(const MaxPoolGradGradState&) = default;
-    MaxPoolGradGradState& operator=(MaxPoolGradGradState&&) = default;
+    MaxPoolGradGradState(const MaxPoolGradGradState&) = delete;
+    MaxPoolGradGradState(MaxPoolGradGradState&&) = delete;
+    MaxPoolGradGradState& operator=(const MaxPoolGradGradState&) = delete;
+    MaxPoolGradGradState& operator=(MaxPoolGradGradState&&) = delete;
 };
 
 class MaxPoolGradKernel : public Kernel {
@@ -73,10 +74,10 @@ public:
 
     virtual ~AveragePoolGradState() = default;
 
-    AveragePoolGradState(const AveragePoolGradState&) = default;
-    AveragePoolGradState(AveragePoolGradState&&) = default;
-    AveragePoolGradState& operator=(const AveragePoolGradState&) = default;
-    AveragePoolGradState& operator=(AveragePoolGradState&&) = default;
+    AveragePoolGradState(const AveragePoolGradState&) = delete;
+    AveragePoolGradState(AveragePoolGradState&&) = delete;
+    AveragePoolGradState& operator=(const AveragePoolGradState&) = delete;
+    AveragePoolGradState& operator=(AveragePoolGradState&&) = delete;
 };
 
 class AveragePoolKernel : public Kernel {

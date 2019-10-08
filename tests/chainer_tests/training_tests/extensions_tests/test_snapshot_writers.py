@@ -1,8 +1,8 @@
+import multiprocessing
+import threading
 import unittest
 
 import mock
-import multiprocessing
-import threading
 
 from chainer import testing
 from chainer.training.extensions import snapshot_writers

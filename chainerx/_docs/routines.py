@@ -8,6 +8,7 @@ def set_docs():
     _docs_indexing()
     _docs_linalg()
     _docs_logic()
+    _docs_loss()
     _docs_manipulation()
     _docs_math()
     _docs_sorting()
@@ -480,6 +481,30 @@ Note:
 .. seealso:: :func:`numpy.diagflat`
 """)
 
+    _docs.set_doc(
+        chainerx.meshgrid,
+        """meshgrid(xi, indexing='xy')
+Returns coordinate matrices from coordinate vectors.
+
+Make N-D coordinate arrays for vectorized evaluations of N-D scalar/vector
+fields over N-D grids, given one-dimensional coordinate arrays x1, x2,…, xn.
+
+Args:
+    xi (sequence of :class:`~chainerx.ndarray`\\ s): 1-D arrays
+        representing the coordinates of a grid.
+    indexing (str): {‘xy’, ‘ij’}, optional
+        Cartesian (‘xy’, default) or matrix (‘ij’) indexing of output.
+
+Returns:
+    list of :class:`~chainerx.ndarray`\\ s: For vectors x1, x2,…, ‘xn’ with
+    lengths Ni=len(xi), return (N1, N2, N3,...Nn) shaped arrays if
+    indexing=’ij’ or (N2, N1, N3,...Nn) shaped arrays if indexing=’xy’
+    with the elements of xi repeated to fill the matrix along the first
+    dimension for x1, the second for x2 and so on.
+
+.. seealso:: :func:`numpy.meshgrid`
+""")
+
 
 def _docs_evaluation():
     _docs.set_doc(
@@ -757,6 +782,30 @@ Note:
     * Backpropagation is not implemented for 'r' or 'raw' modes.
 
 .. seealso:: :func:`numpy.linalg.qr`
+""")
+
+    _docs.set_doc(
+        chainerx.linalg.cholesky,
+        """cholesky(a)
+Computes the Cholesky decomposition of a matrix.
+
+Returns the Cholesky decomposition, :math:`A = L L^T`,
+for the square matrix ``a``.
+
+Args:
+    a (~chainerx.ndarray): Symmetric positive-definite input matrix.
+
+Returns:
+    :class:`~chainerx.ndarray`: Output array. Cholesky factor of ``a``.
+
+Note:
+    * GPU implementation of the Cholesky decomposition routine is based on
+      cuSOLVER library. Older versions (<10.1) of it might not raise an error
+      for some non positive-definite matrices.
+    * The ``dtype`` must be ``float32`` or ``float64`` (``float16`` is not
+      supported yet.)
+
+.. seealso:: :func:`numpy.linalg.cholesky`
 """)
 
     _docs.set_doc(
@@ -1148,6 +1197,28 @@ Returns:
 .. seealso:: :func:`chainer.functions.gaussian_kl_divergence`
 """)
 
+    _docs.set_doc(
+        chainerx.sigmoid_cross_entropy,
+        """sigmoid_cross_entropy(x1, x2)
+
+Element-wise cross entropy loss for pre-sigmoid activations.
+
+Args:
+    x1 (~chainerx.ndarray): An array whose (i, j)-th element indicates the
+        unnormalized log probability of the j-th unit at the i-th example.
+    x2 (~chainerx.ndarray): An array whose (i, j)-th element indicates a signed
+        integer vector of ground truth labels 0 or 1. If ``x2[i, j] == -1``,
+        corresponding ``x1[i, j]`` is ignored. Loss is zero if all ground truth
+        labels are -1.
+
+Returns:
+    :class:`~chainerx.ndarray`: An array of the cross entropy.
+
+Note:
+    During backpropagation, this function propagates the gradient of the output
+    array to the input array ``x1`` only.
+""")
+
 
 def _docs_manipulation():
     _docs.set_doc(
@@ -1172,6 +1243,25 @@ Note:
     output array to the input array ``a``.
 
 .. seealso:: :func:`numpy.reshape`
+""")
+
+    _docs.set_doc(
+        chainerx.ravel,
+        """ravel(a)
+Returns a flattened array.
+
+Args:
+    a (~chainerx.ndarray): Array to be flattened.
+
+Returns:
+    :class:`~chainerx.ndarray`: A flattened view of ``a`` if possible,
+    otherwise a copy.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``a``.
+
+.. seealso:: :func:`numpy.ravel`
 """)
 
     _docs.set_doc(
@@ -1442,6 +1532,30 @@ Note:
     output arrays to the input array ``ary``.
 
 .. seealso:: :func:`numpy.vsplit`
+""")
+
+    _docs.set_doc(
+        chainerx.hsplit,
+        """hsplit(ary, indices_or_sections)
+Split an array into multiple sub-arrays horizontally (column-wise).
+
+Args:
+    ary (~chainerx.ndarray): Array to split.
+    indices_or_sections (int or sequence of ints): A value indicating how to
+        divide the axis. If it is an integer, then is treated as the number of
+        sections, and the axis is evenly divided. Otherwise, the integers
+        indicate indices to split at. Note that a sequence on the device
+        memory is not allowed.
+
+Returns:
+    list of :class:`~chainerx.ndarray`\\ s: A list of sub arrays. Each array \
+is a partial view of the input array.
+
+Note:
+    During backpropagation, this function propagates the gradients of the
+    output arrays to the input array ``ary``.
+
+.. seealso:: :func:`numpy.hsplit`
 """)
 
     _docs.set_doc(

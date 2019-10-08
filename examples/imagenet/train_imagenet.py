@@ -152,8 +152,11 @@ def main():
         train_iter, optimizer, converter=converter, device=device)
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), args.out)
 
-    val_interval = (1 if args.test else 100000), 'iteration'
-    log_interval = (1 if args.test else 1000), 'iteration'
+    val_interval = (100000, 'iteration')
+    log_interval = (1000, 'iteration')
+    if args.test:
+        val_interval = (1, 'iteration')
+        log_interval = (1, 'iteration')
 
     trainer.extend(extensions.Evaluator(val_iter, model, converter=converter,
                                         device=device), trigger=val_interval)

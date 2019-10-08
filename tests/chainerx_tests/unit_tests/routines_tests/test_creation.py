@@ -1,11 +1,12 @@
 import io
 import sys
 import tempfile
+import random
 
+import chainer
 import numpy
 import pytest
 
-import chainer
 import chainerx
 import chainerx.testing
 
@@ -1265,3 +1266,68 @@ class TestTrilTriu(op_utils.NumpyOpTest):
         tril = xp.tril(a, self.k)
         triu = xp.triu(a, self.k)
         return tril, triu,
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize_pytest('indexing', ['xy', 'ij'])
+@chainer.testing.parameterize_pytest('input_arrs', [1, 2, 3, 4, 5, 6])
+class TestMeshgrid(op_utils.NumpyOpTest):
+
+    check_numpy_strides_compliance = False
+
+    def setup(self, dtype):
+        if numpy.dtype(dtype).kind != 'f':
+            self.skip_backward_test = True
+            self.skip_double_backward_test = True
+        self.dtype = dtype
+
+        if dtype == 'float16':
+            self.check_backward_options.update({'rtol': 1e-2, 'atol': 1e-2})
+
+    def generate_inputs(self):
+        arrs = ()
+        for _ in range(self.input_arrs):
+            arrs += (numpy.linspace(random.randint(-10, 0),
+                                    random.randint(1, 10),
+                                    random.randint(3, 7)).astype(self.dtype),)
+
+        return arrs
+
+    def forward_xp(self, inputs, xp):
+        return tuple(xp.meshgrid(*inputs, indexing=self.indexing))
+
+
+@chainerx.testing.numpy_chainerx_array_equal()
+def test_meshgrid_no_array(xp):
+    return xp.meshgrid()
+
+
+@chainerx.testing.numpy_chainerx_array_equal()
+@pytest.mark.parametrize('indexing', ['xy', 'ij'])
+@chainerx.testing.parametrize_dtype_specifier('dtype_spec')
+def test_meshgrid_one_array_multi_dim(xp, indexing, dtype_spec):
+    if xp is numpy and isinstance(dtype_spec, chainerx.dtype):
+        dtype_spec = dtype_spec.name
+    return xp.meshgrid(xp.ones((3, 3), dtype=dtype_spec), indexing=indexing)
+
+
+@chainerx.testing.numpy_chainerx_array_equal()
+@pytest.mark.parametrize('indexing', ['xy', 'ij'])
+def test_meshgrid_no_array_indexing(xp, indexing):
+    return xp.meshgrid(indexing=indexing)
+
+
+@chainerx.testing.numpy_chainerx_array_equal(
+    accept_error=(
+        chainerx.ChainerxError, ValueError))
+def test_meshgrid_invalid_kwarg_value(xp):
+    a = array_utils.create_dummy_ndarray(xp, (10,), 'float32')
+    return xp.meshgrid(a, a, indexing='xz')
+
+
+@chainerx.testing.numpy_chainerx_array_equal(
+    accept_error=(
+        chainerx.ChainerxError, TypeError))
+def test_meshgrid_invalid_kwarg(xp):
+    a = array_utils.create_dummy_ndarray(xp, (10,), 'float32')
+    return xp.meshgrid(a, a, indexing='xy', invalid_arg=0)

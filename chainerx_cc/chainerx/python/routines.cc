@@ -299,6 +299,28 @@ void InitChainerxCreation(pybind11::module& m) {
           "device"_a = nullptr);
     m.def("tril", [](const ArrayBodyPtr& m, int64_t k) { return MoveArrayBody(Tril(Array{m}, k)); }, "m"_a, "k"_a = 0);
     m.def("triu", [](const ArrayBodyPtr& m, int64_t k) { return MoveArrayBody(Triu(Array{m}, k)); }, "m"_a, "k"_a = 0);
+    m.def("meshgrid", [](py::args xi, py::kwargs kwargs) {
+        std::vector<Array> xs;
+        MeshgridIndexingMode mode{MeshgridIndexingMode::kCartesian};
+        xs.reserve(xi.size());
+        std::transform(xi.begin(), xi.end(), std::back_inserter(xs), [](const auto& item) { return Array{py::cast<ArrayBodyPtr>(item)}; });
+        if (kwargs.size()) {
+            if (kwargs.size() != 1 || !kwargs.contains("indexing")) {
+                throw ChainerxError{"Only 'indexing' is a valid keyword argument"};
+            }
+            py::str index = kwargs["indexing"];
+            std::string indexing = index;
+
+            if (indexing == "xy") {
+                mode = MeshgridIndexingMode::kCartesian;
+            } else if (indexing == "ij") {
+                mode = MeshgridIndexingMode::kMatrix;
+            } else {
+                throw ChainerxError{"Indexing can only be 'xy' or 'ij'."};
+            }
+        }
+        return MoveArrayBodies(Meshgrid(xs, mode));
+    });
 }
 
 void InitChainerxEvaluation(pybind11::module& m) {
@@ -424,6 +446,7 @@ void InitChainerxLinalg(pybind11::module& m) {
             },
             "a"_a,
             "mode"_a = "reduced");
+    mlinalg.def("cholesky", [](const ArrayBodyPtr& a) { return MoveArrayBody(Cholesky(Array{a})); }, "a"_a);
     mlinalg.def(
             "eigh",
             [](const ArrayBodyPtr& a, const std::string& UPLO) {
@@ -623,6 +646,16 @@ std::vector<ArrayBodyPtr> VSplitByIndicesOrSections(const ArrayBodyPtr& ary, py:
     return SwitchBySplitArgs(split_sections, split_indices, ary, indices_or_sections, 0);
 }
 
+std::vector<ArrayBodyPtr> HSplitByIndicesOrSections(const ArrayBodyPtr& ary, py::handle indices_or_sections) {
+    auto split_sections = [](const ArrayBodyPtr& ary, int64_t sections, int8_t /*axis*/) {
+        return MoveArrayBodies(HSplit(Array{ary}, sections));
+    };
+    auto split_indices = [](const ArrayBodyPtr& ary, const std::vector<int64_t>& indices, int8_t /*axis*/) {
+        return MoveArrayBodies(HSplit(Array{ary}, indices));
+    };
+    return SwitchBySplitArgs(split_sections, split_indices, ary, indices_or_sections, 1);
+}
+
 void InitChainerxManipulation(pybind11::module& m) {
     // manipulation routines
     m.def("transpose",
@@ -756,6 +789,7 @@ void InitChainerxManipulation(pybind11::module& m) {
     m.def("split", &SplitByIndicesOrSections, "ary"_a, "indices_or_sections"_a, "axis"_a = 0);
     m.def("dsplit", &DSplitByIndicesOrSections, "ary"_a, "indices_or_sections"_a);
     m.def("vsplit", &VSplitByIndicesOrSections, "ary"_a, "indices_or_sections"_a);
+    m.def("hsplit", &HSplitByIndicesOrSections, "ary"_a, "indices_or_sections"_a);
     m.def("moveaxis",
           [](const ArrayBodyPtr& a, const std::vector<int8_t>& source, const std::vector<int8_t>& destination) {
               return MoveArrayBody(Moveaxis(Array{a}, Axes{source.begin(), source.end()}, Axes{destination.begin(), destination.end()}));

@@ -1,8 +1,9 @@
+import math
+
 import numpy
 
 from chainer import functions
 from chainer import testing
-import math
 
 
 @testing.parameterize(*testing.product({

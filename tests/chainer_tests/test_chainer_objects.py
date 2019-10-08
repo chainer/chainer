@@ -2,9 +2,9 @@ import importlib
 import inspect
 import pkgutil
 import types
+import unittest
 
 import six
-import unittest
 
 import chainer
 from chainer import testing

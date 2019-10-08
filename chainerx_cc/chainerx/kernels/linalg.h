@@ -37,6 +37,11 @@ public:
     virtual void Call(const Array& a, const Array& q, const Array& r, const Array& tau, QrMode mode) = 0;
 };
 
+class CholeskyKernel : public Kernel {
+public:
+    virtual void Call(const Array& a, const Array& out) = 0;
+};
+
 class SyevdKernel : public Kernel {
 public:
     virtual void Call(const Array& a, const Array& w, const Array& v, char uplo, bool compute_v) = 0;

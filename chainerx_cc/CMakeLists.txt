@@ -65,11 +65,14 @@ option(CHAINERX_ENABLE_LAPACK "Use LAPACK if available" ${DEFAULT_CHAINERX_ENABL
 if(MSVC)
     option(CUDA_USE_STATIC_CUDA_RUNTIME "Use the static version of the CUDA runtime library if available" OFF)
     set(CUDA_USE_STATIC_CUDA_RUNTIME OFF CACHE INTERNAL "")
+    add_definitions(-DWIN32_LEAN_AND_MEAN)
 endif()
 
 #-------------
 # Build setup
 #-------------
+
+message(STATUS "CMake generator: " ${CMAKE_GENERATOR})
 
 # Set CMAKE_BUILD_TYPE (defaults to Release).
 # CMake's specification is case-insensitive, but we only accept capitalized ones.
@@ -106,9 +109,9 @@ if("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU|Clang|Intel")
     # cmake -DCHAINERX_WARNINGS_AS_ERRORS=ON|OFF
     if (CHAINERX_WARNINGS_AS_ERRORS)
         if (MSVC)
-            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4")
+            set(CHAINERX_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4")
         else()
-            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
+            set(CHAINERX_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
         endif()
     endif()
 
@@ -127,7 +130,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "^(Clang|AppleClang)$" AND NOT MSVC)
     if(CLANG_VERSION_STRING VERSION_LESS 6.0)
         # clang<6.0 suggests superfluous braces for std::array initialization.
         # https://bugs.llvm.org/show_bug.cgi?id=21629
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-missing-braces")
+        set(CHAINERX_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-missing-braces")
     endif()
 endif()
 

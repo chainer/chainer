@@ -23,14 +23,14 @@ with warnings.catch_warnings():
 def _iter_init(param, data):
     if isinstance(data, list):
         for d in data:
-            if hasattr(param, 'append'):
-                param.append(d)
-            else:
+            if hasattr(param, 'add'):
                 param.add()
                 if isinstance(d, (list, dict)):
                     _iter_init(param[-1], d)
                 else:
                     param[-1] = d
+            else:
+                param.append(d)
 
     elif isinstance(data, dict):
         for k, d in data.items():

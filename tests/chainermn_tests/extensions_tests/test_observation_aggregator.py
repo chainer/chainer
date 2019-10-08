@@ -5,6 +5,7 @@ import pytest
 import numpy as np
 
 import chainer
+from chainer.backends.cuda import cupy
 import chainer.testing
 from chainer.training import extension
 from chainer.backend import cuda
@@ -55,7 +56,7 @@ def run_test_observation_aggregator(comm, xp,
                                     use_cupy):
     model = DummyChain()
     if use_cupy:
-        model.to_gpu()
+        model.to_device(cupy.cuda.Device())
     optimizer = chainermn.create_multi_node_optimizer(
         chainer.optimizers.Adam(), comm)
     optimizer.setup(model)

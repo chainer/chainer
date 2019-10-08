@@ -5,8 +5,8 @@ import chainer
 from chainer.backends import cuda
 import chainer.functions as F
 from chainer import testing
-from chainer.testing import backend
 from chainer.testing import attr
+from chainer.testing import backend
 from chainer.testing import condition
 
 

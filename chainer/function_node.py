@@ -969,7 +969,7 @@ def grad(outputs, inputs, grad_outputs=None, grad_inputs=None, set_grad=False,
             the memory consumption (and possibly the computational time) to
             remember the intermediate gradient values for the second
             backpropagation.
-        loss_scale (float): Loss scaling factor. Loss scaling is a usefull
+        loss_scale (float): Loss scaling factor. Loss scaling is a useful
             technique to mitigate vanishing gradient issue that tends to happen
             when low precision data type like float16 is used during training.
             If you set loss scaling factor, gradients of loss values are to be

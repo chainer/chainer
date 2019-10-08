@@ -221,7 +221,7 @@ public:
 
         // TODO(hvy): Implement recomputation of x_cont, x_mean and x_inv_std in case they are not given by the state.
         CHAINERX_ASSERT(state != nullptr);
-        auto cuda_state = dynamic_cast<CudaBatchNormGradState&>(*state);
+        auto& cuda_state = dynamic_cast<CudaBatchNormGradState&>(*state);
         const Array& x_cont = cuda_state.x_cont();
         const Array& x_mean = cuda_state.x_mean();
         const Array& x_inv_std = cuda_state.x_inv_std();

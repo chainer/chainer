@@ -140,7 +140,7 @@ def main():
     evaluator = chainermn.create_multi_node_evaluator(evaluator, data_comm)
     trainer.extend(evaluator)
 
-    # Some display and output extentions are necessary only for worker 0.
+    # Some display and output extensions are necessary only for worker 0.
     if comm.rank == 0:
         trainer.extend(extensions.DumpGraph('main/loss'))
         trainer.extend(extensions.LogReport())

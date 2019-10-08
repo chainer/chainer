@@ -131,6 +131,25 @@ cusolverStatus_t Orgqr(
 }
 
 template <typename T>
+cusolverStatus_t PotrfBuffersize(
+        cusolverDnHandle_t /*handle*/, cublasFillMode_t /*uplo*/, int /*n*/, T* /*a*/, int /*lda*/, int* /*lwork*/) {
+    throw DtypeError{"Only Arrays of float or double type are supported by potrf (Cholesky)"};
+}
+
+template <typename T>
+cusolverStatus_t Potrf(
+        cusolverDnHandle_t /*handle*/,
+        cublasFillMode_t /*uplo*/,
+        int /*n*/,
+        T* /*a*/,
+        int /*lda*/,
+        T* /*workspace*/,
+        int /*lwork*/,
+        int* /*devinfo*/) {
+    throw DtypeError{"Only Arrays of float or double type are supported by potrf (Cholesky)"};
+}
+
+template <typename T>
 cusolverStatus_t SyevdBuffersize(
         cusolverDnHandle_t /*handle*/,
         cusolverEigMode_t /*jobz*/,
@@ -302,6 +321,28 @@ template <>
 cusolverStatus_t Orgqr<float>(
         cusolverDnHandle_t handle, int m, int n, int k, float* a, int lda, float* tau, float* work, int lwork, int* devinfo) {
     return cusolverDnSorgqr(handle, m, n, k, a, lda, tau, work, lwork, devinfo);
+}
+
+template <>
+cusolverStatus_t PotrfBuffersize<double>(cusolverDnHandle_t handle, cublasFillMode_t uplo, int n, double* a, int lda, int* lwork) {
+    return cusolverDnDpotrf_bufferSize(handle, uplo, n, a, lda, lwork);
+}
+
+template <>
+cusolverStatus_t PotrfBuffersize<float>(cusolverDnHandle_t handle, cublasFillMode_t uplo, int n, float* a, int lda, int* lwork) {
+    return cusolverDnSpotrf_bufferSize(handle, uplo, n, a, lda, lwork);
+}
+
+template <>
+cusolverStatus_t Potrf<double>(
+        cusolverDnHandle_t handle, cublasFillMode_t uplo, int n, double* a, int lda, double* workspace, int lwork, int* devinfo) {
+    return cusolverDnDpotrf(handle, uplo, n, a, lda, workspace, lwork, devinfo);
+}
+
+template <>
+cusolverStatus_t Potrf<float>(
+        cusolverDnHandle_t handle, cublasFillMode_t uplo, int n, float* a, int lda, float* workspace, int lwork, int* devinfo) {
+    return cusolverDnSpotrf(handle, uplo, n, a, lda, workspace, lwork, devinfo);
 }
 
 template <>
@@ -681,6 +722,66 @@ public:
 };
 
 CHAINERX_CUDA_REGISTER_KERNEL(QrKernel, CudaQrKernel);
+
+class CudaCholeskyKernel : public CholeskyKernel {
+public:
+    void Call(const Array& a, const Array& out) override {
+        Device& device = a.device();
+        device.CheckDevicesCompatible(a, out);
+        Dtype dtype = a.dtype();
+        CudaSetDeviceScope scope{device.index()};
+
+        CHAINERX_ASSERT(a.ndim() == 2);
+        CHAINERX_ASSERT(out.ndim() == 2);
+        CHAINERX_ASSERT(a.shape()[0] == a.shape()[1]);
+        CHAINERX_ASSERT(out.IsContiguous());
+        CHAINERX_ASSERT(a.dtype() == out.dtype());
+
+        // cuSOLVER might not work well with zero-sized arrays for older versions of cuSOLVER (<10.1)
+        // therefore it's better to return earlier
+        if (a.shape().GetTotalSize() == 0) {
+            return;
+        }
+
+        // potrf (cholesky) stores result in-place, therefore copy ``a`` to ``out`` and then pass ``out`` to the routine
+        device.backend().CallKernel<CopyKernel>(Tril(a, 0), out);
+
+        auto cholesky_impl = [&](auto pt) {
+            using T = typename decltype(pt)::type;
+
+            // Note that cuSOLVER uses Fortran order.
+            // To compute a lower triangular matrix L = cholesky(A), we use cuSOLVER to compute an upper triangular matrix U = cholesky(A).
+            cublasFillMode_t uplo = CUBLAS_FILL_MODE_UPPER;
+
+            cuda_internal::DeviceInternals& device_internals = cuda_internal::GetDeviceInternals(static_cast<CudaDevice&>(device));
+
+            // compute workspace size and prepare workspace
+            auto out_ptr = static_cast<T*>(internal::GetRawOffsetData(out));
+            int work_size = 0;
+            int64_t n = a.shape()[0];
+            device_internals.cusolverdn_handle().Call(PotrfBuffersize<T>, uplo, n, out_ptr, std::max(int64_t{1}, n), &work_size);
+
+            // POTRF execution
+            Array work = Empty(Shape{work_size}, dtype, device);
+            auto work_ptr = static_cast<T*>(internal::GetRawOffsetData(work));
+
+            std::shared_ptr<void> devinfo = device.Allocate(sizeof(int));
+            device_internals.cusolverdn_handle().Call(
+                    Potrf<T>, uplo, n, out_ptr, std::max(int64_t{1}, n), work_ptr, work_size, static_cast<int*>(devinfo.get()));
+
+            int devinfo_h = 0;
+            Device& native_device = GetDefaultContext().GetDevice({"native", 0});
+            device.MemoryCopyTo(&devinfo_h, devinfo.get(), sizeof(int), native_device);
+            if (devinfo_h != 0) {
+                throw ChainerxError{"Unsuccessful potrf (Cholesky) execution. Info = ", devinfo_h};
+            }
+        };
+
+        VisitFloatingPointDtype(dtype, cholesky_impl);
+    }
+};
+
+CHAINERX_CUDA_REGISTER_KERNEL(CholeskyKernel, CudaCholeskyKernel);
 
 class CudaSyevdKernel : public SyevdKernel {
 public:

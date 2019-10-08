@@ -76,6 +76,10 @@ void sgeqrf_(int* m, int* n, float* a, int* lda, float* tau, float* work, int* l
 void dorgqr_(int* m, int* n, int* k, double* a, int* lda, double* tau, double* work, int* lwork, int* info);
 void sorgqr_(int* m, int* n, int* k, float* a, int* lda, float* tau, float* work, int* lwork, int* info);
 
+// potrf
+void dpotrf_(char* uplo, int* n, double* a, int* lda, int* info);
+void spotrf_(char* uplo, int* n, float* a, int* lda, int* info);
+
 // syevd
 void dsyevd_(char* jobz, char* uplo, int* n, double* a, int* lda, double* w, double* work, int* lwork, int* iwork, int* liwork, int* info);
 void ssyevd_(char* jobz, char* uplo, int* n, float* a, int* lda, float* w, float* work, int* lwork, int* iwork, int* liwork, int* info);
@@ -90,6 +94,7 @@ CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(Solve)
 CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(Inverse)
 CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(Svd)
 CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(Qr)
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(Cholesky)
 CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(Syevd)
 }  // namespace internal
 
@@ -138,6 +143,11 @@ void Geqrf(int /*m*/, int /*n*/, T* /*a*/, int /*lda*/, T* /*tau*/, T* /*work*/,
 template <typename T>
 void Orgqr(int /*m*/, int /*n*/, int /*k*/, T* /*a*/, int /*lda*/, T* /*tau*/, T* /*work*/, int /*lwork*/, int* /*info*/) {
     throw DtypeError{"Only Arrays of float or double type are supported by orgqr (QR)"};
+}
+
+template <typename T>
+void Potrf(char /*uplo*/, int /*n*/, T* /*a*/, int /*lda*/, int* /*info*/) {
+    throw DtypeError{"Only Arrays of float or double type are supported by potrf (Cholesky)"};
 }
 
 template <typename T>
@@ -243,6 +253,16 @@ void Orgqr<double>(int m, int n, int k, double* a, int lda, double* tau, double*
 template <>
 void Orgqr<float>(int m, int n, int k, float* a, int lda, float* tau, float* work, int lwork, int* info) {
     sorgqr_(&m, &n, &k, a, &lda, tau, work, &lwork, info);
+}
+
+template <>
+void Potrf<double>(char uplo, int n, double* a, int lda, int* info) {
+    dpotrf_(&uplo, &n, a, &lda, info);
+}
+
+template <>
+void Potrf<float>(char uplo, int n, float* a, int lda, int* info) {
+    spotrf_(&uplo, &n, a, &lda, info);
 }
 
 template <>
@@ -556,6 +576,51 @@ public:
 };
 
 CHAINERX_NATIVE_REGISTER_KERNEL(QrKernel, NativeQrKernel);
+
+class NativeCholeskyKernel : public CholeskyKernel {
+public:
+    void Call(const Array& a, const Array& out) override {
+#if CHAINERX_ENABLE_LAPACK
+        Device& device = a.device();
+        device.CheckDevicesCompatible(a, out);
+
+        CHAINERX_ASSERT(a.ndim() == 2);
+        CHAINERX_ASSERT(out.ndim() == 2);
+        CHAINERX_ASSERT(a.shape()[0] == a.shape()[1]);
+        CHAINERX_ASSERT(out.IsContiguous());
+        CHAINERX_ASSERT(a.dtype() == out.dtype());
+
+        // potrf (cholesky) stores result in-place, therefore copy ``a`` to ``out`` and then pass ``out`` to the routine
+        device.backend().CallKernel<CopyKernel>(Tril(a, 0), out);
+
+        auto cholesky_impl = [&](auto pt) {
+            using T = typename decltype(pt)::type;
+
+            // Note that LAPACK uses Fortran order.
+            // To compute a lower triangular matrix L = cholesky(A), we use LAPACK to compute an upper triangular matrix U = cholesky(A).
+            char uplo = 'U';
+
+            auto out_ptr = static_cast<T*>(internal::GetRawOffsetData(out));
+            int64_t n = a.shape()[0];
+
+            int info;
+            Potrf<T>(uplo, n, out_ptr, std::max(int64_t{1}, n), &info);
+
+            if (info != 0) {
+                throw ChainerxError{"Unsuccessful potrf (Cholesky) execution. Info = ", info};
+            }
+        };
+
+        VisitFloatingPointDtype(a.dtype(), cholesky_impl);
+#else  // CHAINERX_LAPACK_AVAILABLE
+        (void)a;  // unused
+        (void)out;  // unused
+        throw ChainerxError{"LAPACK is not linked to ChainerX."};
+#endif  // CHAINERX_LAPACK_AVAILABLE
+    }
+};
+
+CHAINERX_NATIVE_REGISTER_KERNEL(CholeskyKernel, NativeCholeskyKernel);
 
 class NativeSyevdKernel : public SyevdKernel {
 public:

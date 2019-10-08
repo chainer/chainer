@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <vector>
 
 #include <absl/types/optional.h>
 
@@ -111,6 +112,10 @@ Array Linspace(
         bool endpoint = true,
         const absl::optional<Dtype>& dtype = absl::nullopt,
         Device& device = GetDefaultDevice());
+
+enum class MeshgridIndexingMode { kCartesian, kMatrix };
+
+std::vector<Array> Meshgrid(const std::vector<Array>& arrays, MeshgridIndexingMode mode);
 
 // Creates a 2-dimensional array with ones at and below the given diagonal and zeros elsewhere.
 Array Tri(

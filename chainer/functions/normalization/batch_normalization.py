@@ -63,6 +63,8 @@ class GeneralBatchNormalizationImpl(_BatchNormalizationImpl):
                 running_var *= decay
                 running_var += (1 - decay) * adjust * var
             else:
+                # running_mean and running_var has the same type as x
+                # while mean and var is interm_dtype which is promoted from x
                 cuda.elementwise(
                     'T mean, T var, U decay, U adjust',
                     'U r_mean, U r_var',
@@ -92,12 +94,8 @@ class GeneralBatchNormalizationImpl(_BatchNormalizationImpl):
 
     def backward(self, axis, gamma, gy, x, xp,
                  expander, mean, inv_std, eps, var):
-        if isinstance(gy, intel64.mdarray):
-            # intel64.mdarray does not support dtype option in sum, so we
-            # convert it to numpy here.
-            gy = numpy.asarray(gy)
-
-        x_hat = _x_hat(x, mean[expander], inv_std[expander])
+        x_hat = _x_hat(x, mean[expander],
+                       inv_std[expander]).astype(x.dtype, copy=False)
         gbeta, ggamma = self.get_ggamma_and_gbeta(axis, gamma, gy, x_hat, xp)
 
         inv_m = gamma.dtype.type(1. / (x.size // gamma.size))
@@ -106,9 +104,10 @@ class GeneralBatchNormalizationImpl(_BatchNormalizationImpl):
                 gy - (x_hat * ggamma[expander] + gbeta[expander]) * inv_m)
             gx = gx.astype(dtype=x.dtype, copy=False)
         else:
+            # inv_std has a promoted type of x and gamma
             gx = cuda.elementwise(
                 '''
-                T gy, U x_hat, U gamma, U inv_std, U ggamma, U gbeta,
+                T gy, T x_hat, U gamma, X inv_std, U ggamma, U gbeta,
                 U inv_m
                 ''',
                 'T gx',
@@ -117,14 +116,26 @@ class GeneralBatchNormalizationImpl(_BatchNormalizationImpl):
                     gy - (x_hat * ggamma + gbeta) * inv_m)
                 ''', 'bn_bwd')(gy, x_hat, gamma[expander],
                                inv_std[expander], ggamma[expander],
-                               gbeta[expander], inv_m)
+                               gbeta[expander],
+                               inv_m).astype(x.dtype, copy=False)
 
         return gx, ggamma, gbeta
 
 
-class _IDeepBatchNormalizationImpl(_BatchNormalizationImpl):
+class _IDeepBatchNormalizationImpl(GeneralBatchNormalizationImpl):
+    _forward_fallback = False   # True if forward falls back to numpy impl.
+
     def forward(self, axis, gamma, x, xp, expander,
                 beta, eps, decay, running_mean, running_var):
+        if not (
+                x.dtype == gamma.dtype
+                and gamma.ndim == 1
+                and intel64.inputs_all_ready((x,))):
+            self._forward_fallback = True
+            return super().forward(
+                axis, gamma, x, xp, expander, beta, eps, decay,
+                running_mean, running_var)
+
         expand_dim = False
         if x.ndim == 2:
             expand_dim = True
@@ -168,6 +179,20 @@ class _IDeepBatchNormalizationImpl(_BatchNormalizationImpl):
 
     def backward(self, axis, gamma, gy, x, xp,
                  expander, mean, inv_std, eps, var):
+        if self._forward_fallback:
+            # intel64.mdarray does not support dtype option in sum, so we
+            # convert it to numpy here.
+            if isinstance(gy, intel64.mdarray):
+                gy = numpy.asarray(gy)
+
+            # Convert to numpy to avoid an error of "mkldnn::error"
+            if (isinstance(gamma, intel64.mdarray)
+                    and gy.dtype == numpy.float64
+                    and gamma.dtype == numpy.float32):
+                gamma = numpy.asarray(gamma)
+            return super().backward(
+                axis, gamma, gy, x, xp, expander, mean, inv_std, eps, var)
+
         expand_dim = False
         if x.ndim == 2:
             expand_dim = True
@@ -182,11 +207,14 @@ class _IDeepBatchNormalizationImpl(_BatchNormalizationImpl):
             intel64.ideep.array(gamma),
             eps)
 
-        gx = gx.astype(x.dtype, copy=False)
         ggamma, gbeta = gW[:2]
 
         if expand_dim:
             gx = numpy.squeeze(gx, axis=(2, 3))
+
+        gx = gx.astype(x.dtype, copy=False)
+        ggamma = ggamma.astype(gamma.dtype, copy=False)
+        gbeta = gbeta.astype(gamma.dtype, copy=False)
 
         return gx, ggamma, gbeta
 
@@ -219,10 +247,16 @@ class _CudnnBatchNormalizationImpl(_BatchNormalizationImpl):
 
     def backward(self, axis, gamma, gy, x, xp,
                  expander, mean, inv_std, eps, var):
-        return cudnn.batch_normalization_backward(
+        gx, ggamma, gbeta = cudnn.batch_normalization_backward(
             x, gamma, gy, mean, inv_std, eps,
             self.is_for_conv2d, self.cudnn_mode,
             chainer.is_debug())
+
+        gx = gx.astype(x.dtype, copy=False)
+        ggamma = ggamma.astype(gamma.dtype, copy=False)
+        gbeta = gbeta.astype(gamma.dtype, copy=False)
+
+        return gx, ggamma, gbeta
 
 
 if cuda.cudnn_enabled:
@@ -245,15 +279,16 @@ def _compute_key_axis(x_ndim, gamma_ndim=1, axis=None):
 
 
 def _impl_selector(batch_norm_func, inputs):
+    use_ideep = any([isinstance(a, intel64.mdarray) for a in inputs])
+    if use_ideep:
+        return _IDeepBatchNormalizationImpl()
+
     x, gamma, _ = inputs
     xp = backend.get_array_module(x)
     mode = _BNMode(x, gamma, batch_norm_func.key_axis)
     use_cudnn = mode.can_use_cudnn(xp)
-    use_ideep = mode.can_use_ideep()
 
-    if use_ideep:
-        return _IDeepBatchNormalizationImpl()
-    elif use_cudnn:
+    if use_cudnn:
         return _CudnnBatchNormalizationImpl(mode.is_for_conv2d,
                                             mode.get_cudnn_mode())
     else:
@@ -439,6 +474,7 @@ class BatchNormalizationGrad(function_node.FunctionNode):
                                                 x, xp, expander,
                                                 self.mean, self.inv_std,
                                                 self.eps, self.var)
+
         self.retain_inputs((0, 1, 2))
         self.retain_outputs((0, 1))
         return gx, ggamma, gbeta
@@ -451,6 +487,7 @@ class BatchNormalizationGrad(function_node.FunctionNode):
         gx1, ggamma1 = self.get_retained_outputs()
         ggx1, gggamma1, ggbeta1 = grad_outputs
         xp = backend.get_array_module(x)
+        original_gamma_dtype = gamma.dtype
 
         if gamma.dtype != x.dtype:
             gamma = F.cast(gamma, x.dtype)
@@ -486,6 +523,7 @@ class BatchNormalizationGrad(function_node.FunctionNode):
 
         gx2 = chainer.functions.cast(gx2, x.dtype)
         ggy2 = chainer.functions.cast(ggy2, gy.dtype)
+        ggamma2 = chainer.functions.cast(ggamma2, original_gamma_dtype)
 
         return gx2, ggamma2, ggy2
 
@@ -727,11 +765,16 @@ class _BNMode(object):
         # into a 2-dim array with channels as second dim and m=<product
         # of all dimensions except the 2nd dimension> as the first
         # dimension.
+        # ideep only support when x.dtype == gamma.dtype
         self.is_for_conv2d = is_gamma_1d and x.ndim == 4 and key_axis[0] == 1
         self.is_for_linear = is_gamma_1d and key_axis[0] == x.ndim - 1
         self.cudnn_dim_ok = self.is_for_conv2d or self.is_for_linear
         self.cudnn_dtype_ok = self.is_for_conv2d or (x.dtype != numpy.float16)
-        self.ideep_ok = is_gamma_1d and intel64.inputs_all_ready((x,))
+        self.ideep_ok = (
+            x.dtype == gamma.dtype
+            and is_gamma_1d
+            and intel64.inputs_all_ready((x,)))
+
         self.inference = inference
 
     def get_cudnn_mode(self):

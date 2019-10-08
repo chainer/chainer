@@ -865,6 +865,10 @@ def max_pool(
 def maximum(x1: tp.Any, x2: tp.Any) -> ndarray: ...
 
 
+def meshgrid(arrays: tp.List[ndarray],
+             indexing: tp.Optional[str]=...) -> tp.List[ndarray]: ...
+
+
 def minimum(x1: tp.Any, x2: tp.Any) -> ndarray: ...
 
 
@@ -942,6 +946,11 @@ def dsplit(
         ) -> tp.List[ndarray]: ...
 
 def vsplit(
+        ary: ndarray,
+        indices_or_sections: tp.Union[int, tp.List[int]],
+        ) -> tp.List[ndarray]: ...
+
+def hsplit(
         ary: ndarray,
         indices_or_sections: tp.Union[int, tp.List[int]],
         ) -> tp.List[ndarray]: ...
