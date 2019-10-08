@@ -1123,6 +1123,28 @@ Returns:
 .. seealso:: :func:`chainer.functions.gaussian_kl_divergence`
 """)
 
+    _docs.set_doc(
+        chainerx.sigmoid_cross_entropy,
+        """sigmoid_cross_entropy(x1, x2)
+
+Element-wise cross entropy loss for pre-sigmoid activations.
+
+Args:
+    x1 (~chainerx.ndarray): An array whose (i, j)-th element indicates the
+        unnormalized log probability of the j-th unit at the i-th example.
+    x2 (~chainerx.ndarray): An array whose (i, j)-th element indicates a signed
+        integer vector of ground truth labels 0 or 1. If ``x2[i, j] == -1``,
+        corresponding ``x1[i, j]`` is ignored. Loss is zero if all ground truth
+        labels are -1.
+
+Returns:
+    :class:`~chainerx.ndarray`: An array of the cross entropy.
+
+Note:
+    During backpropagation, this function propagates the gradient of the output
+    array to the input array ``x1`` only.
+""")
+
 
 def _docs_manipulation():
     _docs.set_doc(
