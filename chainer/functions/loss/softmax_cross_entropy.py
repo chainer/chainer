@@ -100,7 +100,7 @@ class SoftmaxCrossEntropy(function_node.FunctionNode):
             return False
         if self.ignore_label != -1:
             return False
-        if self.reduce != 'mean':
+        if self.reduce == 'mean' and self.normalize:
             return False
 
         x, t = input_arrays
@@ -111,16 +111,12 @@ class SoftmaxCrossEntropy(function_node.FunctionNode):
         return True
 
     def forward_chainerx(self, inputs):
-        # TODO(niboshi): Current implementation is only intended to support
-        # MNIST example.
         x, t = inputs
-        num_classes = x.shape[1]
-        score = chainerx.log_softmax(x, axis=1)
-        mask = (t[:, chainerx.newaxis] == chainerx.arange(
-            num_classes, dtype=t.dtype, device=x.device)).astype(score.dtype)
-        # TODO(beam2d): implement mean
-        y = -(score * mask).sum() * (1 / x.shape[0])
-        return y,
+        y = chainerx.softmax_cross_entropy(x, t)
+        if self.reduce == 'mean':
+            return y.mean(),
+        else:
+            return y,
 
     def forward_cpu(self, inputs):
         class_weight = backend.from_chx(self.class_weight)
