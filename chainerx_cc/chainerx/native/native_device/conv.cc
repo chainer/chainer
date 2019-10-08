@@ -63,7 +63,7 @@ public:
 
         if (groups > 1) {
             std::vector<chainerx::Array> inputs = chainerx::Split(x, groups, 1);
-            std::vector<chainerx::Array> weights = chainerx::Split(w, groups, 1);
+            std::vector<chainerx::Array> weights = chainerx::Split(w, groups, 0);
             std::vector<chainerx::Array> biases;
             if (b.has_value()) {
                 biases = chainerx::Split(*b, groups, 0);
