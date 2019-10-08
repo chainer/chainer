@@ -1,7 +1,7 @@
 from chainer.dataset.tabular import tabular_dataset
 
 
-class _AsTuple(tabular_dataset.TabularDataset):
+class _Astuple(tabular_dataset.TabularDataset):
 
     def __init__(self, dataset):
         self._dataset = dataset
@@ -24,7 +24,7 @@ class _AsTuple(tabular_dataset.TabularDataset):
         return self._dataset.convert(data)
 
 
-class _AsDict(tabular_dataset.TabularDataset):
+class _Asdict(tabular_dataset.TabularDataset):
 
     def __init__(self, dataset):
         self._dataset = dataset

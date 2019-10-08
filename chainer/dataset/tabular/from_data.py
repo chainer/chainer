@@ -67,7 +67,7 @@ def from_data(data, size=None):
                 key = None
             datasets.append(_make_dataset(key, d, size))
 
-        return datasets[0].join(*datasets[1:]).as_tuple()
+        return datasets[0].join(*datasets[1:]).astuple()
 
     elif isinstance(data, dict):
         for d in data.values():
@@ -81,7 +81,7 @@ def from_data(data, size=None):
         for key, d in data.items():
             datasets.append(_make_dataset(key, d, size))
 
-        return datasets[0].join(*datasets[1:]).as_dict()
+        return datasets[0].join(*datasets[1:]).asdict()
 
     else:
         return _make_dataset(None, data, size)
