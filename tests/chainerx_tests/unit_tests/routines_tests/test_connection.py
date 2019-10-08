@@ -156,6 +156,7 @@ class _ConvTestBase(object):
         else:
             x, w, b = inputs
         y = chainerx.conv(x, w, b, stride=self.stride, pad=self.pad,
+                          groups=self.groups,
                           cover_all=self.cover_all)
         return y,
 
@@ -171,7 +172,7 @@ class _ConvTestBase(object):
         if b is not None and b.dtype.kind != 'f':
             b = F.cast(b, 'float64')
         y = F.convolution_nd(
-            x, w, b, self.stride, self.pad, self.cover_all)
+            x, w, b, self.stride, self.pad, self.cover_all, groups=self.groups)
         y = F.cast(y, self.out_dtype)
         return y,
 
@@ -181,11 +182,14 @@ class _ConvTestBase(object):
     # without bias
     chainer.testing.product([
         chainer.testing.from_pytest_parameterize(
-            'x_shape,w_shape,b_shape,stride,pad', [
-                ((1, 3), (5, 3), None, 1, 0),
-                ((1, 3, 4), (5, 3, 2), None, 3, 2),
-                ((2, 3, 4, 4), (2, 3, 3, 3), None, 2, (2, 0)),
-                ((2, 3, 2, 6, 3), (2, 3, 1, 3, 2), None, (1, 2, 3), (2, 0, 1)),
+            'x_shape,w_shape,b_shape,stride,pad,groups', [
+                ((1, 3), (5, 3), None, 1, 0, 1),
+                ((1, 3, 4), (5, 3, 2), None, 3, 2, 1),
+                ((2, 3, 4, 4), (2, 3, 3, 3), None, 2, (2, 0), 1),
+                ((2, 3, 2, 6, 3), (2, 3, 1, 3, 2), None,
+                 (1, 2, 3), (2, 0, 1), 1),
+                ((2, 4, 2, 6, 3), (2, 2, 1, 3, 2), None,
+                 (1, 2, 3), (2, 0, 1), 2),
             ]),
         chainer.testing.from_pytest_parameterize(
             'in_dtypes,out_dtype', dtype_utils.result_dtypes_two_arrays)
@@ -193,15 +197,18 @@ class _ConvTestBase(object):
     # with bias
     chainer.testing.product([
         chainer.testing.from_pytest_parameterize(
-            'x_shape,w_shape,b_shape,stride,pad', [
-                ((1, 3), (5, 3), (5,), 1, 0),
-                ((2, 3, 4), (5, 3, 1), (5,), 1, 0),
-                ((1, 3, 4), (5, 3, 2), (5,), 3, 2),
-                ((2, 3, 4, 4), (2, 3, 3, 3), (2,), 1, 0),
-                ((1, 3, 4, 4), (2, 3, 3, 3), (2,), (1, 2), 1),
-                ((1, 3, 4, 4), (2, 3, 3, 3), (2,), 2, (2, 0)),
-                ((1, 3, 2, 6, 3), (2, 3, 1, 3, 2), (2,), 2, (2, 0, 1)),
-                ((1, 3, 2, 6, 3), (2, 3, 1, 3, 2), (2,), (1, 2, 3), (2, 0, 1)),
+            'x_shape,w_shape,b_shape,stride,pad,groups', [
+                ((1, 3), (5, 3), (5,), 1, 0, 1),
+                ((2, 3, 4), (5, 3, 1), (5,), 1, 0, 1),
+                ((1, 3, 4), (5, 3, 2), (5,), 3, 2, 1),
+                ((2, 3, 4, 4), (2, 3, 3, 3), (2,), 1, 0, 1),
+                ((1, 3, 4, 4), (2, 3, 3, 3), (2,), (1, 2), 1, 1),
+                ((1, 3, 4, 4), (2, 3, 3, 3), (2,), 2, (2, 0), 1),
+                ((1, 3, 2, 6, 3), (2, 3, 1, 3, 2), (2,), 2, (2, 0, 1), 1),
+                ((1, 3, 2, 6, 3), (2, 3, 1, 3, 2),
+                 (2,), (1, 2, 3), (2, 0, 1), 1),
+                ((1, 4, 2, 6, 3), (2, 2, 1, 3, 2), (2,), (1, 2, 3),
+                 (2, 0, 1), 2),
             ]),
         chainer.testing.from_pytest_parameterize(
             'in_dtypes,out_dtype', dtype_utils.result_dtypes_three_arrays)
@@ -224,6 +231,7 @@ class TestConvTensorCore(_ConvTestBase, op_utils.ChainerOpTest):
     b_shape = (96,)
     stride = 4
     pad = 0
+    groups = 1
     in_dtypes = ('float16', 'float16', 'float16')
     out_dtype = 'float16'
     cover_all = False
