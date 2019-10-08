@@ -3,6 +3,7 @@
 import os
 import sys
 import tempfile
+import warnings
 
 import chainer
 from chainer.backends.cuda import cupy
@@ -34,6 +35,7 @@ def check_mnist(gpu, display_log=True):
     epoch = 5
     batchsize = 100
     n_units = 100
+    warnings.filterwarnings(action='always', category=DeprecationWarning)
 
     comm = chainermn.create_communicator('naive')
     if gpu:
