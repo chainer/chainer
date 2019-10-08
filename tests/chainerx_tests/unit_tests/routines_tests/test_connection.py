@@ -412,7 +412,8 @@ class _ConvTransposeTestBase(object):
                 ((1, 3, 5, 6, 3), (3, 2, 1, 3, 2), (2,), 2, (2, 0, 1), 1),
                 ((1, 3, 5, 6, 3), (3, 2, 1, 3, 2), (2,),
                  (1, 2, 3), (2, 0, 1), 1),
-                ((2, 4, 4, 3, 2), (4, 2, 3, 3, 3), (2,), (1, 2, 3), (2, 0, 1), 2),
+                ((2, 4, 4, 3, 2), (4, 2, 3, 3, 3),
+                 (2,), (1, 2, 3), (2, 0, 1), 2),
             ]),
         chainer.testing.from_pytest_parameterize(
             'in_dtypes,out_dtype', dtype_utils.result_dtypes_three_arrays)
