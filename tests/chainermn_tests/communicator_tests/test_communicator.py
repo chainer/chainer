@@ -441,34 +441,31 @@ def check_multi_node_mean_grad_mixed_dtype(param, model, use_gpu, use_chx):
     communicator.finalize()
 
 
-def check_collective_communication(param, use_gpu):
+def check_collective_communication(param, use_gpu, use_chx):
     communicator = create_communicator(param, use_gpu)
     mpi_comm.barrier()
 
     model = ExampleModel(param.model_dtype)
-    if use_gpu:
-        device = cupy.cuda.Device()
-        model.to_device(device)
-    check_bcast_data(communicator, model)
+    to_device(model, communicator, use_gpu, use_chx)
+    if not use_chx:  # TODO(kfukuda)
+        check_bcast_data(communicator, model)
 
     model = ExampleModel(param.model_dtype)
-    if use_gpu:
-        model.to_device(device)
+    to_device(model, communicator, use_gpu, use_chx)
     check_multi_node_mean_grad(communicator, model)
 
     model = ExampleModel(param.model_dtype)
-    if use_gpu:
-        model.to_device(device)
-    check_multi_node_mean_grad_empty(communicator, model)
+    to_device(model, communicator, use_gpu, use_chx)
+    if not use_chx:
+        check_multi_node_mean_grad_empty(communicator, model)
     model = ExampleModel(param.model_dtype)
-    if use_gpu:
-        model.to_device(device)
-    check_multi_node_mean_grad_empty_half(communicator, model)
+    to_device(model, communicator, use_gpu, use_chx)
+    if not use_chx:
+        check_multi_node_mean_grad_empty_half(communicator, model)
 
     # Check allreduce debug mode
     model = ExampleModel()
-    if use_gpu:
-        model.to_device(device)
+    to_device(model, communicator, use_gpu, use_chx)
 
     # The example model includes some nan parameters so the debug mode
     # must detect it.
@@ -485,16 +482,18 @@ def check_collective_communication(param, use_gpu):
 
 # chainer.testing.parameterize is not available at functions
 @pytest.mark.parametrize('param', cpu_params)
-def test_communicator_cpu(param):
+@pytest.mark.parametrize('use_chx', [True, False])
+def test_communicator_cpu(param, use_chx):
     check_send_recv(param, False)
-    check_collective_communication(param, False)
+    check_collective_communication(param, False, use_chx)
 
 
 @pytest.mark.parametrize('param', gpu_params)
+@pytest.mark.parametrize('use_chx', [True, False])
 @chainer.testing.attr.gpu
-def test_communicator_gpu(param):
+def test_communicator_gpu(param, use_chx):
     check_send_recv(param, True)
-    check_collective_communication(param, True)
+    check_collective_communication(param, True, use_chx)
 
 
 @pytest.mark.parametrize('param', gpu_mixed_dtype_params)
