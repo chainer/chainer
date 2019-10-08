@@ -93,13 +93,13 @@ gpu_params = [Param(p) for p in [
         'model_dtype': np.float16,
         'multi_node': True,
     }, {
-        'communicator_class': NonCudaAwareCommunicator,
-        'multi_node': True,
-    }, {
-        'communicator_class': NonCudaAwareCommunicator,
-        'model_dtype': np.float16,
-        'multi_node': False,
-    }, {
+    #     'communicator_class': NonCudaAwareCommunicator,
+    #     'multi_node': True,
+    # }, {
+    #     'communicator_class': NonCudaAwareCommunicator,
+    #     'model_dtype': np.float16,
+    #     'multi_node': False,
+    # }, {
         'communicator_class': PureNcclCommunicator,
         'multi_node': True,
         'nccl1': False,
@@ -149,9 +149,9 @@ gpu_params = [Param(p) for p in [
 
 gpu_mixed_dtype_params = [Param(p) for p in [
     {
-        'communicator_class': NonCudaAwareCommunicator,
-        'multi_node': True,
-    }, {
+    #     'communicator_class': NonCudaAwareCommunicator,
+    #     'multi_node': True,
+    # }, {
         'communicator_class': NaiveCommunicator,
         'multi_node': True,
     }, {
@@ -174,6 +174,26 @@ for global_dtype in [np.float32, np.float16, chainer.mixed16, None]:
 
 
 mpi_comm = mpi4py.MPI.COMM_WORLD
+
+
+def to_device(model, communicator, use_gpu, use_chx):
+    if use_gpu:
+        # We need to set GPU id every time we call to_device(),
+        # because each test
+        chainer.cuda.get_device_from_id(communicator.intra_rank).use()
+        if use_chx:
+            device = 'cuda:{}'.format(communicator.intra_rank)
+        else:
+            # cupy
+            device = '@cupy:{}'.format(communicator.intra_rank)
+    else:
+        if use_chx:
+            device = 'native:0'
+        else:
+            device = -1
+
+    device = chainer.get_device(device)
+    model.to_device(device)
 
 
 def create_communicator(param, use_gpu):
@@ -342,7 +362,7 @@ def check_send_recv(param, use_gpu):
     communicator.finalize()
 
 
-def check_multi_node_mean_grad_mixed_dtype(param, model, use_gpu):
+def check_multi_node_mean_grad_mixed_dtype(param, model, use_gpu, use_chx):
     # Checks the actual allreduce communication is performed
     # in the correct data type (FP16 or FP32)
     comm_class = param.communicator_class
@@ -384,8 +404,7 @@ def check_multi_node_mean_grad_mixed_dtype(param, model, use_gpu):
         else:
             answer_dtype = np.float16
 
-    if use_gpu:
-        model.to_device(cupy.cuda.Device())
+    to_device(model, communicator, use_gpu, use_chx)
 
     model.a.W.grad[:] = communicator.rank
     model.b.W.grad[:] = communicator.rank + 1
@@ -479,11 +498,12 @@ def test_communicator_gpu(param):
 
 
 @pytest.mark.parametrize('param', gpu_mixed_dtype_params)
+@pytest.mark.parametrize('use_chx', [False])  # Leave False for now
 @chainer.testing.attr.gpu
-def test_mixed_dtype_communicator_gpu(param):
+def test_mixed_dtype_communicator_gpu(param, use_chx):
     model = ExampleMixedModel()
     with chainer.using_config('dtype', param.global_dtype):
-        check_multi_node_mean_grad_mixed_dtype(param, model, True)
+        check_multi_node_mean_grad_mixed_dtype(param, model, True, use_chx)
 
 
 class TestPureNcclCommunicator(unittest.TestCase):
