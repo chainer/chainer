@@ -358,6 +358,7 @@ import chainer.links as L
 from chainer.testing import doctest_helper
 from chainer.training import extensions
 import chainerx
+import onnx_chainer
 np.random.seed(0)
 '''
 

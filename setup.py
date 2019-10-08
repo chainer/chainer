@@ -52,6 +52,8 @@ requirements = {
     'docs': [
         'sphinx==1.8.2',
         'sphinx_rtd_theme',
+        'onnx<1.6.0',
+        'packaging',
     ],
     'appveyor': [
         '-r test',
@@ -105,15 +107,17 @@ def find_any_distribution(pkgs):
     return None
 
 
-mn_pkg = find_any_distribution(['chainermn'])
-if mn_pkg is not None:
-    msg = """
-We detected that ChainerMN is installed in your environment.
-ChainerMN has been integrated to Chainer and no separate installation
-is necessary. Please uninstall the old ChainerMN in advance.
+for pkg_name in ('ChainerMN', 'ONNX-Chainer'):
+    distribution_name = pkg_name.lower().replace('-', '_')
+    found_error = find_any_distribution([distribution_name])
+    if found_error is not None:
+        msg = """
+We detected that {name} is installed in your environment.
+{name} has been integrated to Chainer and no separate installation
+is necessary. Please uninstall the old {name} in advance.
 """
-    print(msg)
-    exit(1)
+        print(msg.format(name=pkg_name))
+        exit(1)
 
 here = os.path.abspath(os.path.dirname(__file__))
 # Get __version__ variable
@@ -181,7 +185,10 @@ setup_kwargs = dict(
               'chainermn.extensions',
               'chainermn.functions',
               'chainermn.iterators',
-              'chainermn.links'],
+              'chainermn.links',
+              'onnx_chainer',
+              'onnx_chainer.functions',
+              'onnx_chainer.testing'],
     package_data={
         'chainer': ['py.typed'],
     },

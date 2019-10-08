@@ -1,6 +1,7 @@
 name: chainer
 type: sphinx
 base: docs/source
+requirements_file: docs/requirements.txt
 conda:
   file: docs/rtd_conda.yml
 python:
