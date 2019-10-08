@@ -14,7 +14,7 @@ class Sum(function_node.FunctionNode):
 
     keepdims = False
 
-    def __init__(self, axis=None, keepdims=False):
+    def __init__(self, axis=None, keepdims=False, dtype=None):
         if axis is None:
             self.axis = None
         elif isinstance(axis, six.integer_types):
@@ -29,6 +29,7 @@ class Sum(function_node.FunctionNode):
             raise TypeError('None, int or tuple of int are required')
 
         self.keepdims = keepdims
+        self.dtype = dtype
 
     def check_type_forward(self, in_types):
         type_check._argname(in_types, ('x',))
@@ -47,11 +48,14 @@ class Sum(function_node.FunctionNode):
 
     def forward_chainerx(self, inputs):
         x, = inputs
+        # TODO(niboshi): Support dtype argument in chainerx.sum.
+        if not (self.dtype is None or self.dtype == x.dtype):
+            return chainer.Fallback
         return chainerx.sum(x, axis=self.axis, keepdims=self.keepdims),
 
     def forward(self, inputs):
         x, = inputs
-        ret = x.sum(axis=self.axis, keepdims=self.keepdims)
+        ret = x.sum(axis=self.axis, dtype=self.dtype, keepdims=self.keepdims)
         if backend.get_array_module(x) is numpy:
             ret = numpy.asarray(ret)
         return ret,
@@ -67,10 +71,12 @@ class Sum(function_node.FunctionNode):
             for axis in sorted(actual_axis):
                 shape.insert(axis, 1)
             gy = chainer.functions.reshape(gy, shape)
+        if gy.dtype != self.inputs[0].dtype:
+            gy = chainer.functions.cast(gy, self.inputs[0].dtype)
         return chainer.functions.broadcast_to(gy, self.inputs[0].shape),
 
 
-def sum(x, axis=None, keepdims=False):
+def sum(x, axis=None, keepdims=False, dtype=None):
     """Sum of array elements over a given axis.
 
     Args:
@@ -108,7 +114,10 @@ def sum(x, axis=None, keepdims=False):
         array([[15.]], dtype=float32)
 
     """
-    y, = Sum(axis, keepdims).apply((x,))
+    if dtype is not None and numpy.dtype(dtype).kind != 'f':
+        raise ValueError('Target dtype of F.sum must be of float kind.')
+
+    y, = Sum(axis, keepdims, dtype).apply((x,))
     return y
 
 
@@ -116,20 +125,23 @@ class SumTo(function_node.FunctionNode):
 
     """Sum axes to output an array of a given shape."""
 
-    def __init__(self, shape):
+    def __init__(self, shape, dtype):
         self._shape = shape
+        self._dtype = dtype
 
     def forward(self, inputs):
         x, = inputs
-        return utils.sum_to(x, self._shape),
+        return utils.sum_to(x, self._shape, self._dtype),
 
     def backward(self, indexes, grad_outputs):
         gy, = grad_outputs
         x_node, = self.inputs
+        if gy.dtype != self.inputs[0].dtype:
+            gy = chainer.functions.cast(gy, self.inputs[0].dtype)
         return chainer.functions.broadcast_to(gy, x_node.shape),
 
 
-def sum_to(x, shape):
+def sum_to(x, shape, dtype=None):
     """Sum elements along axes to output an array of a given shape.
 
     Args:
@@ -154,7 +166,12 @@ def sum_to(x, shape):
                   [15.]])
 
     """
+    if dtype is not None and numpy.dtype(dtype).kind != 'f':
+        raise ValueError('Target dtype of F.sum_to must be of float kind.')
+
     if x.shape == shape:
-        return chainer.as_variable(x)
-    y, = SumTo(shape).apply((x,))
+        if dtype is None or dtype == x.dtype:
+            return chainer.as_variable(x)
+        return chainer.functions.cast(x, dtype)
+    y, = SumTo(shape, dtype).apply((x,))
     return y

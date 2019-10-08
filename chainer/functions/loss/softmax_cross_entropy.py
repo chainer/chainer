@@ -392,12 +392,9 @@ def _double_backward_softmax_cross_entropy(x, t, normalize, class_weight,
             count = len(x)
         count = max(count, 1.)
 
-        if reduc_dtype == loss.dtype:
-            loss = F.sum(loss / count)
-        else:
-            # Sum in a promoted dtype
-            loss = F.cast(loss, reduc_dtype)
-            loss = F.sum(loss / count)
+        # Sum in a promoted dtype
+        loss = F.sum(loss / count, dtype=reduc_dtype)
+        if x.dtype != reduc_dtype:
             loss = F.cast(loss, x.dtype)
 
     return loss
