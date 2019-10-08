@@ -1169,7 +1169,7 @@ TEST_P(ArrayTest, Take) {
     Shape output_shape{2, 2, 3};
     Array a = testing::BuildArray(input_shape).WithLinearData<T>().WithPadding(1);
     Array indices = testing::BuildArray(indices_shape).WithData<int64_t>({0, 14, 3, 1, -10, 1});
-    Array b = a.Take(indices, 1, IndexBoundsMode::kDefault);
+    Array b = a.Take(indices, 1, IndexBoundsMode::kWrap);
 
     EXPECT_EQ(output_shape, b.shape());
     Array e = testing::BuildArray(output_shape).WithData<T>({0, 2, 3, 1, 2, 1, 4, 6, 7, 5, 6, 5});
