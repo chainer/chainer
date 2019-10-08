@@ -1,11 +1,11 @@
 import numpy
 
-from chainer import link
 from chainer.functions.activation import sigmoid
 from chainer.functions.activation import tanh
 from chainer.functions.array import concat
 from chainer.functions.array import split_axis
 from chainer.functions.rnn import tree_lstm
+from chainer import link
 from chainer.links.connection import linear
 
 

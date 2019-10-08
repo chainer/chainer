@@ -1,9 +1,7 @@
 import numpy
 
 import chainer
-import chainerx
 from chainer import backend
-from chainer import variable
 from chainer.backends import cuda
 from chainer.functions.activation import sigmoid
 from chainer.functions.activation import tanh
@@ -12,6 +10,8 @@ from chainer.functions.array import split_axis
 from chainer.functions.connection import linear
 from chainer.functions.rnn import n_step_rnn
 from chainer.utils import argument
+from chainer import variable
+import chainerx
 
 
 if cuda.cudnn_enabled:

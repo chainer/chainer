@@ -8,9 +8,9 @@ import unittest
 import mock
 
 from chainer import datasets
+from chainer.datasets import pickle_dataset
 from chainer import testing
 from chainer import utils
-from chainer.datasets import pickle_dataset
 
 
 class ReaderMock(object):

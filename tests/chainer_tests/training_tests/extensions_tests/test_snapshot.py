@@ -12,8 +12,8 @@ import pytest
 from chainer import testing
 from chainer import training
 from chainer.training import extensions
-from chainer.training.extensions._snapshot import _find_snapshot_files
 from chainer.training.extensions._snapshot import _find_latest_snapshot
+from chainer.training.extensions._snapshot import _find_snapshot_files
 from chainer.training.extensions._snapshot import _find_stale_snapshots
 
 
