@@ -447,8 +447,7 @@ def _double_backward_softmax_cross_entropy(x, t, normalize, class_weight,
 def softmax_cross_entropy(
         x, t, normalize=True, cache_score=True, class_weight=None,
         ignore_label=-1, reduce='mean', enable_double_backprop=False,
-        soft_target_loss='kl-divergence'):
-        # soft_target_loss='cross-entropy'):
+        soft_target_loss='cross-entropy'):
     """Computes cross entropy loss for pre-softmax activations.
 
     Args:

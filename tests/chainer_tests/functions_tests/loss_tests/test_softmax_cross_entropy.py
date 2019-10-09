@@ -616,9 +616,9 @@ class TestSoftTargetCompareToHard(BaseSoftTarget, unittest.TestCase):
     'shape': [(3,), (3, 2), (3, 2, 2)],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'reduce': ['mean', 'no'],
-    'soft_target_loss': ['cross-entropy', 'kl-divergence'],
+    'soft_target_loss': ['kl-divergence'],
 })))
-class TestSoftTargetExpectNearZero(BaseSoftTarget, unittest.TestCase):
+class TestSoftTargetKLDivergence(BaseSoftTarget, unittest.TestCase):
 
     def setUp(self):
         BaseSoftTarget.setUp(self)
@@ -634,6 +634,32 @@ class TestSoftTargetExpectNearZero(BaseSoftTarget, unittest.TestCase):
         else:
             expect = numpy.zeros(self.gy.shape, dtype=self.dtype)
         testing.assert_allclose(loss.data, expect,
+                                **self.check_forward_options)
+
+
+@testing.parameterize(*(testing.product({
+    'nb': [1, 2, 4],
+    'shape': [(3,), (3, 2), (3, 2, 2)],
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'reduce': ['mean', 'no'],
+    'soft_target_loss': ['cross-entropy'],
+})))
+class TestSoftTargetCrossEntropy(BaseSoftTarget, unittest.TestCase):
+
+    def setUp(self):
+        BaseSoftTarget.setUp(self)
+        self.t = functions.softmax(self.x).array
+        self.expect = numpy.sum(-self.t * functions.log_softmax(self.x).array,
+                                axis=1)
+        if self.reduce == 'mean':
+            self.expect = numpy.average(self.expect)
+
+    def check_forward(self, xp):
+        x = xp.asarray(self.x)
+        t = xp.asarray(self.t)
+        loss = functions.softmax_cross_entropy(
+            x, t, reduce=self.reduce, soft_target_loss=self.soft_target_loss)
+        testing.assert_allclose(loss.data, self.expect,
                                 **self.check_forward_options)
 
 
