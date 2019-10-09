@@ -30,8 +30,8 @@ def generate_array(
         initializer: types.AbstractInitializer,
         shape: types.ShapeSpec,
         xp: types.Xp,
-        dtype: types.DTypeSpec = None,
-        device: types.DeviceSpec = None
+        dtype: tp.Optional[types.DTypeSpec] = None,
+        device: tp.Optional[types.DeviceSpec] = None
 ) -> types.NdArray:
     """Return initialized array.
 
