@@ -105,10 +105,9 @@ class GeneralBatchNormalizationImpl(_BatchNormalizationImpl):
 
         inv_m = gamma.dtype.type(1. / (x.size // gamma.size))
         if xp is numpy:
-            # cast to avoid a error of "mkldnn::error"
-            if gy.dtype == numpy.float64 and gamma.dtype == numpy.float32:
-                gamma = gamma.astype(numpy.float64, copy=False)
-
+            if isinstance(gamma, intel64.mdarray) and inv_std.dtype != numpy.float32:
+                # Convert to numpy to avoid an error of "mkldnn::error"
+                gamma = numpy.asarray(gamma)
             gx = (gamma * inv_std)[expander] * (
                 gy - (x_hat * ggamma[expander] + gbeta[expander]) * inv_m)
             gx = gx.astype(dtype=x.dtype, copy=False)
