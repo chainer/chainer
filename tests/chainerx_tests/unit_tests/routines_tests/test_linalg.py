@@ -608,10 +608,7 @@ class TestEigh(NumpyLinalgOpTest):
             pytest.skip('Older NumPy versions do not work with empty arrays')
 
         # Input has to be symmetrized for backward test to work
-        def symmetrize(A):
-            L = xp.tril(A)
-            return (L + L.T)/2.
-        a = symmetrize(a)
+        a = (a + a.T)/2. + 1e-3 * xp.eye(*self.shape)
 
         w, v = xp.linalg.eigh(a, UPLO=self.UPLO)
 
