@@ -49,22 +49,21 @@ class MultiHeadAttention(link.Chain):
     """
 
     def __init__(
-        self,
-        n_head,                 # type: int
-        embedding_size,         # type: int
-        self_attention=False,   # type: bool
-        ksize=None,             # type: tp.Optional[int]
-        vsize=None,             # type: tp.Optional[int]
-        attention_dropout=0.0,  # type: float
-        post_dropout=0.0,       # type: float
-        scaler=None,            # type: tp.Optional[float]
-        softmax_scaler=None,    # type: tp.Optional[float]
-        initialW=None,          # type: tp.Optional[types.InitializerSpec]
-        initial_bias=None,      # type: tp.Optional[types.InitializerSpec]
-        nobias=False,           # type: bool
-        nobias_kv=True          # type: bool
-    ):
-        # type (...) -> None
+            self,
+            n_head: int,
+            embedding_size: int,
+            self_attention: bool = False,
+            ksize: tp.Optional[int] = None,
+            vsize: tp.Optional[int] = None,
+            attention_dropout: float = 0.0,
+            post_dropout: float = 0.0,
+            scaler: tp.Optional[float] = None,
+            softmax_scaler: tp.Optional[float] = None,
+            initialW: tp.Optional[types.InitializerSpec] = None,
+            initial_bias: tp.Optional[types.InitializerSpec] = None,
+            nobias: bool = False,
+            nobias_kv: bool = True
+    ) -> None:
         super().__init__()
 
         if embedding_size % n_head != 0:
@@ -134,16 +133,15 @@ class MultiHeadAttention(link.Chain):
                 self.bias_k, self.bias_v = None, None
 
     def forward(
-        self,
-        query,                     # type: InputType
-        key=None,                  # type: tp.Optional[InputType]
-        value=None,                # type: tp.Optional[InputType]
-        key_padding_mask=None,     # type: tp.Optional[InputType]
-        attention_mask=None,       # type: tp.Optional[InputType]
-        add_zero_attention=False,  # type: bool
-        return_weights=False       # type: bool
-    ):
-        # type: (...) -> tp.Union[tp.Tuple[variable.Variable, variable.Variable], variable.Variable]  # NOQA
+            self,
+            query: InputType,
+            key: tp.Optional[InputType] = None,
+            value: tp.Optional[InputType] = None,
+            key_padding_mask: tp.Optional[InputType] = None,
+            attention_mask: tp.Optional[InputType] = None,
+            add_zero_attention: tp.Optional[InputType] = False,
+            return_weights: tp.Optional[InputType] = False
+    ) -> tp.Union[tp.Tuple[variable.Variable, variable.Variable], variable.Variable]:  # NOQA
         """Compute attention weight and context vector.
 
         This computes and returns ``attention``. If ``return_weights`` is
