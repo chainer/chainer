@@ -1,6 +1,9 @@
+from chainer.utils import argument
+
 import chainer
 import chainer.functions as F
 import chainer.links as L
+import warnings
 
 
 class Block(chainer.Chain):
@@ -54,10 +57,20 @@ class VGG(chainer.Chain):
 
     Args:
         n_class_labels (int): The number of class labels.
+        num_class_labels (int): The number of class labels. (deprecated)
 
     """
 
-    def __init__(self, n_class_labels=10):
+    def __init__(self, n_class_labels=10, **kwargs):
+        old_n_class_labels = argument.parse_kwargs(
+            kwargs, ('num_class_labels', None))
+        if old_n_class_labels is not None:
+            n_class_labels = old_n_class_labels
+            warnings.warn(
+                'num_class_labels is deprecated.'
+                'Please consider using num_class_labels',
+                DeprecationWarning)
+
         super(VGG, self).__init__()
         with self.init_scope():
             self.block1_1 = Block(64, 3)
