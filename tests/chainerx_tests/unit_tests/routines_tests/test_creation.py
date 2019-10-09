@@ -389,6 +389,15 @@ def test_ascontiguousarray_from_chainerx_array(device, shape, dtype, padding):
     assert e.dtype.name == a.dtype.name
 
 
+def test_ascontiguousarray_from_chainerx_array_device():
+    dev = chainerx.get_device('native:1') # Non default one
+    a = chainerx.arange(10, device=dev)
+    b = chainerx.ascontiguousarray(a)
+    assert b.is_contiguous
+    assert b.device == a.device
+    assert b.device != chainerx.get_default_device
+
+
 @chainerx.testing.numpy_chainerx_array_equal()
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @pytest.mark.parametrize('padding', [False, True])
