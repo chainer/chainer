@@ -395,7 +395,7 @@ def test_ascontiguousarray_from_chainerx_array_device():
         a = chainerx.arange(10, device=dev)
         b = chainerx.ascontiguousarray(a)
         assert b.is_contiguous
-        assert b.device == a.device
+        assert b.device is dev
         assert b.device != chainerx.get_default_device()
 
 
