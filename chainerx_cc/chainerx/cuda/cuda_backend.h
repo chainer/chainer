@@ -50,10 +50,7 @@ public:
     // Gets maximum cuDNN workspace size.
     size_t GetCudnnMaxWorkspaceSize();
 
-    static KernelRegistry& GetGlobalKernelRegistry() {
-        static gsl::owner<KernelRegistry*> global_kernel_registry = new KernelRegistry{};
-        return *global_kernel_registry;
-    }
+    static KernelRegistry& GetGlobalKernelRegistry();
 
 protected:
     KernelRegistry& GetParentKernelRegistry() override { return GetGlobalKernelRegistry(); }
