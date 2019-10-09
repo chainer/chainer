@@ -94,28 +94,31 @@ class GeneralBatchNormalizationImpl(_BatchNormalizationImpl):
 
     def backward(self, axis, gamma, gy, x, xp,
                  expander, mean, inv_std, eps, var):
+        interm_dtype = numpy.promote_types(x.dtype, gamma.dtype)
         if isinstance(gy, intel64.mdarray):
             # intel64.mdarray does not support dtype option in sum, so we
             # convert it to numpy here.
             gy = numpy.asarray(gy)
 
         x_hat = _x_hat(x, mean[expander],
-                       inv_std[expander]).astype(x.dtype, copy=False)
+                       inv_std[expander])
+        assert x_hat.dtype == interm_dtype
         gbeta, ggamma = self.get_ggamma_and_gbeta(axis, gamma, gy, x_hat, xp)
 
         inv_m = gamma.dtype.type(1. / (x.size // gamma.size))
         if xp is numpy:
-            if isinstance(gamma, intel64.mdarray) and inv_std.dtype != numpy.float32:
+            if (isinstance(gamma, intel64.mdarray)
+                    and interm_dtype != numpy.float32):
                 # Convert to numpy to avoid an error of "mkldnn::error"
                 gamma = numpy.asarray(gamma)
             gx = (gamma * inv_std)[expander] * (
                 gy - (x_hat * ggamma[expander] + gbeta[expander]) * inv_m)
             gx = gx.astype(dtype=x.dtype, copy=False)
         else:
-            # inv_std has a promoted type of x and gamma
+            # x_hat and inv_std have a promoted type of x and gamma
             gx = cuda.elementwise(
                 '''
-                T gy, T x_hat, U gamma, X inv_std, U ggamma, U gbeta,
+                T gy, X x_hat, U gamma, X inv_std, U ggamma, U gbeta,
                 U inv_m
                 ''',
                 'T gx',
