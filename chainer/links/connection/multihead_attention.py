@@ -31,7 +31,7 @@ class MultiHeadAttention(link.Chain):
         post_dropout (float):
             The dropout ratio applied to attention after softmax.
         scaler (float): The scaler value that defaults to
-            :math:`1/\\sqrt{n_{head}}`.
+            :math:`1/\\sqrt{n_{\\text{head}}}`.
         softmax_scaler (float): Softmax smoothing, or sharpening, coefficient.
             The default value is 1.0.
         initialW (:ref:`initializer <initializer>`): Initializer to initialize
@@ -103,18 +103,18 @@ class MultiHeadAttention(link.Chain):
             if initial_bias is None:
                 _initial_bias = initializers.Zero()
             if self.qkv_same_size:
-                self.proj_in_W = variable.Parameter(
-                    _initialW, (3 * self.embedding_size, self.embedding_size))  # type: variable.Variable  # NOQA
+                self.proj_in_W: variable.Variable = variable.Parameter(
+                    _initialW, (3 * self.embedding_size, self.embedding_size))
             else:
-                self.proj_q_weight = variable.Parameter(
-                    _initialW, (self.embedding_size, self.embedding_size))  # type: variable.Variable  # NOQA
-                self.proj_k_weight = variable.Parameter(
-                    _initialW, (self.embedding_size, self.ksize))  # type: variable.Variable  # NOQA
-                self.proj_v_weight = variable.Parameter(
-                    _initialW, (self.embedding_size, self.vsize))  # type: variable.Variable  # NOQA
+                self.proj_q_weight: variable.Variable = variable.Parameter(
+                    _initialW, (self.embedding_size, self.embedding_size))
+                self.proj_k_weight: variable.Variable = variable.Parameter(
+                    _initialW, (self.embedding_size, self.ksize))
+                self.proj_v_weight: variable.Variable = variable.Parameter(
+                    _initialW, (self.embedding_size, self.vsize))
             if not nobias:
-                self.proj_in_b = variable.Parameter(
-                    _initial_bias, (3 * self.embedding_size,))  # type: variable.Variable  # NOQA
+                self.proj_in_b: variable.Variable = variable.Parameter(
+                    _initial_bias, (3 * self.embedding_size,))
             else:
                 self.proj_in_b = None
 
@@ -125,10 +125,10 @@ class MultiHeadAttention(link.Chain):
             self.proj_out_b = self.out_proj.b
 
             if not nobias_kv:
-                self.bias_k = variable.Parameter(
-                    _initial_bias, (self.embedding_size,))  # type: variable.Variable  # NOQA
-                self.bias_v = variable.Parameter(
-                    _initial_bias, (self.embedding_size,))  # type: variable.Variable  # NOQA
+                self.bias_k: variable.Variable = variable.Parameter(
+                    _initial_bias, (self.embedding_size,))
+                self.bias_v: variable.Variable = variable.Parameter(
+                    _initial_bias, (self.embedding_size,))
             else:
                 self.bias_k, self.bias_v = None, None
 
@@ -146,33 +146,37 @@ class MultiHeadAttention(link.Chain):
 
         This computes and returns ``attention``. If ``return_weights`` is
         ``True``, the return value is a :obj:`tuple` of ``attention`` and
-        ``attention_weights``
+        ``attention_weights``.
 
         Self-attention can be implemented by passing the same arguments for
         query, key, and value. Timesteps can be masked by
-        giving a time x time mask in the `attention_mask`. Padding elements
-        can be excluded from the key by passing a batch_size x source_length
-        mask where padding elements are indicated by 1.
+        giving a time x time mask in the ``attention_mask``. Padding elements
+        can be excluded from the key by passing a binary mask with the shape of
+        :math:`({\\text batch_size}, {\\text source_length})`
+        where padding elements are indicated by 1.
 
         Args:
             query (:class:`~chainer.Variable` or :ref:`ndarray`):
                 The query vectors with the shape of
-                (time, batch_size, query_in_size).
+                :math:`({\\text time}, {\\text batch_size}, {\\text query_in_size})`.  # NOQA
             key (:class:`~chainer.Variable` or :ref:`ndarray`):
                 The key of the memory vectors with the shape of
-                (time, batch_size, key_in_size).
+                :math:`({\\text time}, {\\text batch_size}, {\\text key_in_size})`.  # NOQA
             value (:class:`~chainer.Variable` or :ref:`ndarray`):
                 The value of the memory with the shape of
-                (time, batch_size, value_in_size).
+                :math:`({\\text time}, {\\text batch_size}, {\\text value_in_size})`.  # NOQA
             key_padding_mask (:class:`~chainer.Variable` or :ref:`ndarray`):
                 If not ``None``, mask the memory slots.
-                The shape is (batch_size, source_length).
+                The shape is :math:`({\\text batch_size}, {\\text source_length})`.  # NOQA
                 Each value is 0 (``False``) or 1 (``True``) where 1 means that
                 the memory slot will not be used.
             attention_mask (:class:`~chainer.Variable` or :ref:`ndarray`):
                 Mask help attention ignores certain positions.
-                The shape is :math:`(L, L)` where :math:`L` is
-                the target sequence length.
+                The shape is :math:`(L, S)` where :math:`L` is
+                the target sequence length and :math:`S` is the source sequence
+                length.
+            add_zero_attention (bool): If ``True``, add a new batch of zeros to
+                the key and value sequences at axis=1.
             return_weights (bool): If ``True``, return both ``attention``
                 and ``attention_weights``. The default value is ``False``.
 
