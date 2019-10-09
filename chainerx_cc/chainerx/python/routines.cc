@@ -317,7 +317,7 @@ void InitChainerxIndexing(pybind11::module& m) {
     m.def("take",
           [](const ArrayBodyPtr& a, py::handle indices, const absl::optional<int8_t>& axis, const absl::optional<std::string>& mode) {
               if (!axis.has_value()) {
-                  throw NotImplementedError{"axis=None is not yet supported for chainerx.take."}; 
+                  throw NotImplementedError{"axis=None is not yet supported for chainerx.take."};
               }
               IndexBoundsMode tmode{};
               if (!mode.has_value()) {
