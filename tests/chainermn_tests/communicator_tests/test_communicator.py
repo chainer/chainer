@@ -21,7 +21,7 @@ from chainermn.communicators.non_cuda_aware_communicator \
 from chainermn.communicators.pure_nccl_communicator \
     import PureNcclCommunicator
 from chainermn import nccl
-from chainermn.testing import to_device
+from chainermn.util import get_device
 
 
 class ExampleModel(chainer.Chain):
@@ -393,7 +393,7 @@ def check_multi_node_mean_grad_mixed_dtype(param, model, use_gpu, use_chx):
         else:
             answer_dtype = np.float16
 
-    to_device(model, communicator, use_gpu, use_chx)
+    model.to_device(get_device(communicator.intra_rank, use_chx))
 
     model.a.W.grad[:] = communicator.rank
     model.b.W.grad[:] = communicator.rank + 1
@@ -435,25 +435,25 @@ def check_collective_communication(param, use_gpu, use_chx):
     mpi_comm.barrier()
 
     model = ExampleModel(param.model_dtype)
-    to_device(model, communicator, use_gpu, use_chx)
+    model.to_device(get_device(communicator.intra_rank, use_chx))
     check_bcast_data(communicator, model)
 
     model = ExampleModel(param.model_dtype)
-    to_device(model, communicator, use_gpu, use_chx)
+    model.to_device(get_device(communicator.intra_rank, use_chx))
     check_multi_node_mean_grad(communicator, model)
 
     model = ExampleModel(param.model_dtype)
-    to_device(model, communicator, use_gpu, use_chx)
+    model.to_device(get_device(communicator.intra_rank, use_chx))
     if not use_chx:  # TODO(kfukuda)
         check_multi_node_mean_grad_empty(communicator, model)
     model = ExampleModel(param.model_dtype)
-    to_device(model, communicator, use_gpu, use_chx)
+    model.to_device(get_device(communicator.intra_rank, use_chx))
     if not use_chx: # TODO(kfukuda)
         check_multi_node_mean_grad_empty_half(communicator, model)
 
     # Check allreduce debug mode
     model = ExampleModel()
-    to_device(model, communicator, use_gpu, use_chx)
+    model.to_device(get_device(communicator.intra_rank, use_chx))
     # The example model includes some nan parameters so the debug mode
     # must detect it.
     chainer.set_debug(True)
