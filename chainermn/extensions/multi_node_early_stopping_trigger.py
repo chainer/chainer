@@ -59,9 +59,10 @@ class MultiNodeEarlyStoppingTrigger(object):
                                                    mode=mode, verbose=verbose,
                                                    max_trigger=max_trigger,
                                                    **kwargs)
-        self.aggregator = ObservationAggregator(comm, monitor,
-                                                monitor_aggregated,
-                                                check_trigger)
+        self.aggregator = ObservationAggregator(
+            comm, monitor,
+            aggregated_key=monitor_aggregated,
+            comm_trigger=check_trigger)
 
     def __call__(self, trainer):
         self.aggregator(trainer)
