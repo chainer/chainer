@@ -8,6 +8,7 @@ namespace chainerx {
 namespace python {
 namespace python_internal {
 
+// TODO(take-cheeze): Add API that can inherit the source array's device for chainerx/python/routines.cc
 Device& GetDevice(pybind11::handle handle);
 
 void InitChainerxDevice(pybind11::module& m);
