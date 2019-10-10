@@ -147,7 +147,7 @@ class LinkHook(object):
         link_hooks[self.name].deleted(None)
         del link_hooks[self.name]
 
-    def added(self, link: tp.Optional['chainer.link.Link']) -> None:
+    def added(self, link: 'tp.Optional[chainer.link.Link]') -> None:
         """Callback function invoked when the link hook is registered
 
         Args:
@@ -157,7 +157,7 @@ class LinkHook(object):
         """
         pass
 
-    def deleted(self, link: tp.Optional['chainer.link.Link']) -> None:
+    def deleted(self, link: 'tp.Optional[chainer.link.Link]') -> None:
         """Callback function invoked when the link hook is unregistered
 
         Args:
