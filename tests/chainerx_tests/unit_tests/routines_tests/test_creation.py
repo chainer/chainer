@@ -392,11 +392,12 @@ def test_ascontiguousarray_from_chainerx_array(device, shape, dtype, padding):
 def test_ascontiguousarray_from_chainerx_array_device():
     with chainerx.using_device(chainerx.get_device('native:0')):
         dev = chainerx.get_device('native:1')  # Non default one
+        assert chainerx.get_default_device() is not dev
+
         a = chainerx.arange(10, device=dev)
         b = chainerx.ascontiguousarray(a)
         assert b.is_contiguous is True
         assert b.device is dev
-        assert b.device != chainerx.get_default_device()
 
 
 @chainerx.testing.numpy_chainerx_array_equal()
