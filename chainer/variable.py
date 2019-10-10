@@ -1481,7 +1481,7 @@ class Variable(object):
         """
         return self.array.item()
 
-    def mean(self, axis=None, weights=None, keepdims=False):
+    def mean(self, axis=None, *, weights=None, keepdims=False):
         """Calculate weighted average of array elements over a given axis.
 
         .. seealso::
