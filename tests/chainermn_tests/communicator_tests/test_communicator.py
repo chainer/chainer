@@ -21,6 +21,7 @@ from chainermn.communicators.non_cuda_aware_communicator \
 from chainermn.communicators.pure_nccl_communicator \
     import PureNcclCommunicator
 from chainermn import nccl
+from chainermn.testing import to_device
 
 
 class ExampleModel(chainer.Chain):
@@ -174,28 +175,6 @@ for global_dtype in [np.float32, np.float16, chainer.mixed16, None]:
 
 
 mpi_comm = mpi4py.MPI.COMM_WORLD
-
-
-def to_device(model, communicator, use_gpu, use_chx):
-    print("to_device(): use_gpu={}, use_chx={}".format(use_gpu, use_chx))
-    if use_gpu:
-        # We need to set GPU id every time we call to_device(),
-        # because each test
-        chainer.cuda.get_device_from_id(communicator.intra_rank).use()
-        if use_chx:
-            device = 'cuda:{}'.format(communicator.intra_rank)
-            print("to_devie(): device={}".format(device))
-        else:
-            # cupy
-            device = '@cupy:{}'.format(communicator.intra_rank)
-    else:
-        if use_chx:
-            device = 'native:0'
-        else:
-            device = -1
-
-    device = chainer.get_device(device)
-    model.to_device(device)
 
 
 def create_communicator(param, use_gpu):
