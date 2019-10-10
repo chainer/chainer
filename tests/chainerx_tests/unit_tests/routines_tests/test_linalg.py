@@ -212,6 +212,7 @@ class TestInverse(NumpyLinalgOpTest):
 
     def generate_inputs(self):
         a = numpy.random.random(self.shape).astype(self.dtype)
+        a = a * 10 + numpy.ones(self.shape)
         return a,
 
     def forward_xp(self, inputs, xp):
