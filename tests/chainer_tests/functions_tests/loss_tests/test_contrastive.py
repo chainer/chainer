@@ -43,7 +43,7 @@ class TestContrastive(unittest.TestCase):
             self.x0 = numpy.random.uniform(-1, 1, x_shape).astype(self.dtype)
             self.x1 = numpy.random.uniform(-1, 1, x_shape).astype(self.dtype)
             d = numpy.sqrt(numpy.sum((self.x0 - self.x1) ** 2, axis=1))
-            if (numpy.abs(d - self.margin) > 1e-2).all():
+            if (d > 3e-2).all() and (numpy.abs(d - self.margin) > 1e-2).all():
                 break
             retry += 1
             assert retry <= 10, 'Too many retries to generate inputs'

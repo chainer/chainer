@@ -8,6 +8,7 @@
 build
 \#*\#
 .\#*
+_build_info.py
 .coverage
 .eggs/
 _readthedocs_build

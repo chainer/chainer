@@ -28,6 +28,7 @@ class TestErf(op_utils.ChainerOpTest):
         dtype = float_dtype
 
         if dtype == 'float16':
+            self.check_forward_options.update({'rtol': 1e-3, 'atol': 1e-3})
             self.check_backward_options.update({'rtol': 5e-2, 'atol': 5e-2})
             self.check_double_backward_options.update({
                 'rtol': 5e-2, 'atol': 5e-2})
@@ -199,6 +200,36 @@ class TestLog10(math_utils.UnaryMathTestBase, op_utils.NumpyOpTest):
 
     def func(self, xp, a):
         return xp.log10(a)
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    # Special shapes
+    chainer.testing.product({
+        'shape': [(), (1,), (1, 1, 1), (2, 3)],
+        'in_dtypes,out_dtype': math_utils.in_out_float_dtypes_math_functions,
+        'input': [1, 3],
+    })
+    # Special shapes (array.size = 0)
+    + chainer.testing.product({
+        'shape': [(0,), (2, 0, 3)],
+        'in_dtypes,out_dtype': math_utils.in_out_float_dtypes_math_functions,
+        'input': [1, 3],
+        'check_numpy_strides_compliance': [False],
+    })
+    # Special values
+    + chainer.testing.product({
+        'shape': [(2, 3)],
+        'in_dtypes,out_dtype': math_utils.in_out_float_dtypes_math_functions,
+        'input': [float('inf'), -float('inf'), float('nan'), -1, 0],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True],
+    })
+))
+class TestLog2(math_utils.UnaryMathTestBase, op_utils.NumpyOpTest):
+
+    def func(self, xp, a):
+        return xp.log2(a)
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])

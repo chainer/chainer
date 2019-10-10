@@ -6,7 +6,7 @@
 #include <utility>
 #include <vector>
 
-#include "nonstd/optional.hpp"
+#include "absl/types/optional.h"
 
 #include "chainerx/array.h"
 #include "chainerx/array_index.h"
@@ -19,11 +19,9 @@
 #include "chainerx/graph.h"
 #include "chainerx/kernels/arithmetic.h"
 #include "chainerx/kernels/indexing.h"
-#include "chainerx/kernels/math.h"
 #include "chainerx/macro.h"
 #include "chainerx/routines/arithmetic.h"
 #include "chainerx/routines/creation.h"
-#include "chainerx/routines/math.h"
 #include "chainerx/routines/type_util.h"
 #include "chainerx/shape.h"
 #include "chainerx/slice.h"
@@ -69,17 +67,18 @@ Array AddAt(const Array& a, const std::vector<ArrayIndex>& indices, const Array&
 }  // namespace
 
 Array At(const Array& a, const std::vector<ArrayIndex>& indices) {
+    std::vector<ArrayIndex> normalized_indices = internal::GetNormalizedArrayIndices(indices, a.ndim());
     Shape out_shape{};
     Strides out_strides{};
     int64_t out_offset = a.offset();
     bool is_a_empty = a.GetTotalSize() == 0;
     int64_t i_in = 0;
-    for (const ArrayIndex& index : indices) {
+    for (const ArrayIndex& index : normalized_indices) {
         switch (index.tag()) {
             case ArrayIndexTag::kSingleElement: {
                 int64_t dim = a.shape()[i_in];
                 if (index.index() < -dim || dim <= index.index()) {
-                    throw DimensionError{"Index ", index.index(), " is out of bounds for axis ", i_in, " with size ", dim};
+                    throw IndexError{"Index ", index.index(), " is out of bounds for axis ", i_in, " with size ", dim};
                 }
                 if (!is_a_empty) {
                     out_offset += a.strides()[i_in] * ((index.index() + dim) % dim);
@@ -106,7 +105,7 @@ Array At(const Array& a, const std::vector<ArrayIndex>& indices) {
                 out_strides.emplace_back(0);
                 break;
             default:
-                CHAINERX_NEVER_REACH();
+                ChainerxError{"Invalid ArrayIndexTag."};
         }
     }
     for (int64_t i = i_in; i < a.ndim(); ++i) {
@@ -118,7 +117,7 @@ Array At(const Array& a, const std::vector<ArrayIndex>& indices) {
 
     BackwardBuilder bb{"get_item", a, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-        bt.Define([indices, a_shape = a.shape(), a_dtype = a.dtype()](BackwardContext& bctx) {
+        bt.Define([indices = std::move(normalized_indices), a_shape = a.shape(), a_dtype = a.dtype()](BackwardContext& bctx) {
             const Array& gout = *bctx.output_grad();
             Array gin = Zeros(a_shape, a_dtype, gout.device());
             bctx.input_grad() = AddAt(gin, indices, gout);

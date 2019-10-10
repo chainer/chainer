@@ -65,7 +65,7 @@ class Orthogonal(initializer.Initializer):
     def __call__(self, array):
         if self.dtype is not None:
             assert array.dtype == self.dtype
-        xp = backend.get_array_module(array)
+        device = backend.get_device_from_array(array)
         if not array.shape:  # 0-dim case
             array[...] = self.scale * (2 * numpy.random.randint(2) - 1)
         elif not array.size:
@@ -90,4 +90,4 @@ class Orthogonal(initializer.Initializer):
             q *= numpy.copysign(self.scale, numpy.diag(r))
             if transpose:
                 q = q.T
-            array[...] = xp.asarray(q.reshape(array.shape))
+            array[...] = device.xp.asarray(q.reshape(array.shape))

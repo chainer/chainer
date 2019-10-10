@@ -45,7 +45,7 @@ def _naive_batch_renormalization(
         m = x.size // gamma.size
         adjust = m / max(m - 1., 1.)
         running_var *= decay
-        running_var += (var.array + dt(eps)) * dt((1. - decay) * adjust)
+        running_var += var.array * dt((1. - decay) * adjust)
 
     return y
 

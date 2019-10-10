@@ -62,6 +62,13 @@ def _from_chx(array, check_backprop=True):
     # Objects with other types are kept intact.
     # Returns a pair: (xp, cupy device or dummy context, numpy/cupy.ndarray).
     if not isinstance(array, chainerx.ndarray):
+        if (isinstance(array, numpy.ndarray)
+                or (cupy and isinstance(array, cupy.ndarray))):
+            raise TypeError(
+                'ChainerX function fallback using NumPy/CuPy arrays '
+                'is not supported.')
+        # _from_chx is also called for slice and tuple objects
+        # Used to index a chx array
         return None, _dummy_context, array
     if check_backprop and array.is_backprop_required():
         raise RuntimeError(
@@ -111,14 +118,15 @@ def _populate_ndarray():
     old_getitem = ndarray.__getitem__
 
     def __getitem__(arr, key):
-        try:
+        if not isinstance(key, chainerx.ndarray):
             return old_getitem(arr, key)
-        except (IndexError, chainerx.DimensionError):
-            pass
 
         is_backprop_required = arr.is_backprop_required()
 
         xp, dev, arr = _from_chx(arr, check_backprop=False)
+        # The elements used for indexing the array might be
+        # also ChainerX arrays. _from_chx ignores
+        # other types and return them as-is
         if isinstance(key, tuple):
             key = tuple([_from_chx(k, check_backprop=False)[2] for k in key])
         else:
