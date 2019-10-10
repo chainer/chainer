@@ -54,5 +54,5 @@ Indices and tables
    :maxdepth: 1
    :caption: Community
 
-   Slack Chat <https://bit.ly/join-chainer-slack>
+   Slack Chat <https://bit.ly/go-chainer-slack>
    Forums <https://groups.google.com/forum/#!forum/chainer>
