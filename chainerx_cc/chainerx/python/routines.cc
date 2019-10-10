@@ -447,6 +447,29 @@ void InitChainerxLinalg(pybind11::module& m) {
             "a"_a,
             "mode"_a = "reduced");
     mlinalg.def("cholesky", [](const ArrayBodyPtr& a) { return MoveArrayBody(Cholesky(Array{a})); }, "a"_a);
+    mlinalg.def(
+            "eigh",
+            [](const ArrayBodyPtr& a, const std::string& UPLO) {
+                if (UPLO.length() != 1) {
+                    throw py::value_error{"UPLO argument must be 'L' or 'U'."};
+                }
+                std::tuple<Array, Array> wv = Eigh(Array{a}, UPLO.c_str()[0]);
+                Array& w = std::get<0>(wv);
+                Array& v = std::get<1>(wv);
+                return std::make_tuple(MoveArrayBody(std::move(w)), MoveArrayBody(std::move(v)));
+            },
+            "a"_a,
+            "UPLO"_a = "L");
+    mlinalg.def(
+            "eigvalsh",
+            [](const ArrayBodyPtr& a, const std::string& UPLO) {
+                if (UPLO.length() != 1) {
+                    throw py::value_error{"UPLO argument must be 'L' or 'U'."};
+                }
+                return MoveArrayBody(Eigvalsh(Array{a}, UPLO.c_str()[0]));
+            },
+            "a"_a,
+            "UPLO"_a = "L");
 }
 
 void InitChainerxLogic(pybind11::module& m) {

@@ -122,6 +122,8 @@ Linear algebra
    chainerx.linalg.cholesky
    chainerx.linalg.qr
    chainerx.linalg.svd
+   chainerx.linalg.eigh
+   chainerx.linalg.eigvalsh
    chainerx.linalg.solve
    chainerx.linalg.inv
    chainerx.linalg.pinv

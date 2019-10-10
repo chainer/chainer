@@ -31,4 +31,8 @@ std::tuple<Array, Array> Qr(const Array& a, QrMode mode);
 
 Array Cholesky(const Array& a);
 
+std::tuple<Array, Array> Eigh(const Array& a, char uplo);
+
+Array Eigvalsh(const Array& a, char uplo);
+
 }  // namespace chainerx
