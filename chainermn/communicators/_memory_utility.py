@@ -214,7 +214,18 @@ def array_to_buffer_object(array, mpi_dtype=mpi4py.MPI.FLOAT):
 
 def get_device_memory_pointer(array):
     xp = chainer.backend.get_array_module(array)
-    array = xp.ascontiguousarray(array)
+
+    if xp == chx:
+        # This procedure is necesasry to avoid a bug
+        # https://github.com/chainer/chainer/issues/8259
+        # TODO(kfukuda): after the bug is fixed, remove this `if` block
+        pass
+        #--------------------------
+        # device = array.device
+        # array = xp.ascontiguousarray(array)
+        # array = array.to_device(device)
+    else:
+        array = xp.ascontiguousarray(array)
 
     if xp is np:
         return array

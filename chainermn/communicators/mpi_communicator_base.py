@@ -694,6 +694,9 @@ class MpiCommunicatorBase(communicator_base.CommunicatorBase):
         if chainer.is_debug():
             self._check_ready_to_allreduce(sendbuf, recvbuf)
 
+        print("multi_node_mean(): sendbuf={}".format(sendbuf))
+        print("multi_node_mean(): (1) recvbuf={}".format(recvbuf))
+
         is_float16 = recvbuf.dtype == numpy.float16
         if sendbuf is None:
             buffer_a = mpi4py.MPI.IN_PLACE
@@ -716,7 +719,9 @@ class MpiCommunicatorBase(communicator_base.CommunicatorBase):
             xp = chainer.backend.get_array_module(recvbuf)
             xp.copyto(recvbuf, array_b32.astype(numpy.float16), casting='no')
 
+        print("multi_node_mean(): (2) recvbuf={}".format(recvbuf))
         recvbuf *= 1.0 / self.mpi_comm.size
+        print("multi_node_mean(): (3) recvbuf={} (comm.size={})".format(recvbuf, self.mpi_comm.size))
 
         if chainer.is_debug():
             self._ensure_all_finite(recvbuf)
