@@ -22,6 +22,6 @@ def get_device(gpu_id=None, use_chainerx=False):
         if use_chainerx:
             device = 'native:0'
         else:
-            device = -1
+            device = '@numpy'
 
     return chainer.get_device(device)
