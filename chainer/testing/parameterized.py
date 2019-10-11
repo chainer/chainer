@@ -169,9 +169,8 @@ def _pairwise_product_dict(*parameters):
 
 
 def _pairwise_product_dict_iter(
-        *parameters  # type: tp.Iterable[tp.Dict[str, tp.Any]]
-):
-    # type: (...) -> tp.Iterator[tp.Dict[str, tp.Any]]
+        *parameters: tp.Iterable[tp.Dict[str, tp.Any]]
+) -> tp.Iterator[tp.Dict[str, tp.Any]]:
     """Generate combinations that cover all pairs.
 
     The argument is the same as `chainer.testing.product_dict`.
@@ -187,8 +186,9 @@ def _pairwise_product_dict_iter(
             for k, v in dicts[i].items()}
 
 
-def _nd_indices_to_cover_each_2d(shape):
-    # type: (tp.Sequence[int]) -> tp.Iterator[tp.Tuple[int, ...]]
+def _nd_indices_to_cover_each_2d(
+        shape: tp.Sequence[int]
+) -> tp.Iterator[tp.Tuple[int, ...]]:
     rs = numpy.random.RandomState(seed=0)
     n = len(shape)
     indices = [list(range(length)) for length in shape]  # type: tp.List[tp.List[int]]  # NOQA
