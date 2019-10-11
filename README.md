@@ -31,19 +31,16 @@ The stable version of current Chainer is separated in here: [v6](https://github.
 
 ## Installation
 
+*For more details, see the [installation guide](https://docs.chainer.org/en/stable/install.html).*
+
 To install Chainer, use `pip`.
 
 ```sh
 $ pip install chainer
 ```
 
-To enable CUDA support, [set up CUDA](https://docs.nvidia.com/cuda/index.html#installation-guides) and install [CuPy](https://github.com/cupy/cupy).
-
-```sh
-$ pip install cupy
-```
-
-[See the installation guide for more details](https://docs.chainer.org/en/stable/install.html).
+To enable CUDA support, [CuPy](https://github.com/cupy/cupy) is required.
+Refer to the [CuPy installation guide](https://docs-cupy.chainer.org/en/stable/install.html).
 
 
 ## Docker image
