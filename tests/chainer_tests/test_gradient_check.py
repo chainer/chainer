@@ -855,7 +855,6 @@ class TestCheckDoubleBackward(unittest.TestCase):
 )
 class TestSampleUnitVector(unittest.TestCase):
 
-    @condition.retry(3)
     def test_sample_unit_vector(self, backend_config):
         size = self.size
         device = backend_config.device
