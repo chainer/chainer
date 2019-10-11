@@ -10,7 +10,7 @@ class DataSizeError(RuntimeError):
 
 def scatter_dataset(dataset, comm, root=0, shuffle=False,
                     seed=None, max_buf_len=256 * 1024 * 1024,
-                    force_equal_length=True):
+                    *, force_equal_length=True):
     """Scatter the given dataset to the workers in the communicator.
 
     The dataset of worker ``root``
@@ -69,11 +69,13 @@ def scatter_dataset(dataset, comm, root=0, shuffle=False,
     assert data is not None
     (dataset, order) = data
 
-    (b, e) = scatter_index(len(dataset), comm, root, force_equal_length)
+    (b, e) = scatter_index(
+        len(dataset), comm, root,
+        force_equal_length=force_equal_length)
     return chainer.datasets.SubDataset(dataset, b, e, order)
 
 
-def scatter_index(n_total_samples, comm, root=0, force_equal_length=True):
+def scatter_index(n_total_samples, comm, root=0, *, force_equal_length=True):
     '''Scatters only index to avoid heavy dataset broadcast
 
     This is core functionality of ``scatter_dataset``, which is
