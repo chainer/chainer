@@ -557,6 +557,13 @@ class _CheckBackward(object):
             if shape is not None])
 
         # Sample the concatenated vector at random
+        directions = self._sample_unit_vector(total_size, xp)
+
+        # Unpack the concatenated vector and returns as a list of arrays.
+        return self._unpack_arrays(xp, directions, direction_shapes)
+
+    @staticmethod
+    def _sample_unit_vector(total_size, xp):
         directions = xp.random.normal(size=(total_size,))
 
         if total_size > 0:
@@ -586,8 +593,7 @@ class _CheckBackward(object):
             # Scale large elements.
             directions[is_large] *= scale
 
-        # Unpack the concatenated vector and returns as a list of arrays.
-        return self._unpack_arrays(xp, directions, direction_shapes)
+        return directions
 
     def _unpack_arrays(self, xp, packed_array, shapes):
         # Unpacks a flattened-and-concatenated array into original shapes.
