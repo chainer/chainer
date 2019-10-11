@@ -126,13 +126,12 @@ void InitChainerxCreation(pybind11::module& m) {
           "dtype"_a = nullptr,
           "device"_a = nullptr);
     m.def("ascontiguousarray",
-          [](py::handle a, py::handle dtype, py::handle device) {
-              Array arr{MakeArray(a, dtype, false, device)};
-              return MoveArrayBody(AsContiguousArray(arr));
+          [](const ArrayBodyPtr& a, py::handle dtype) {
+              Array arr{a};
+              return MoveArrayBody(AsContiguousArray(arr, dtype.is_none() ? arr.dtype() : GetDtype(dtype)));
           },
           "a"_a,
-          "dtype"_a = nullptr,
-          "device"_a = nullptr);
+          "dtype"_a = nullptr);
     m.def("empty",
           [](py::handle shape, py::handle dtype, py::handle device) {
               return MoveArrayBody(Empty(ToShape(shape), dtype.is_none() ? Dtype::kFloat32 : GetDtype(dtype), GetDevice(device)));
