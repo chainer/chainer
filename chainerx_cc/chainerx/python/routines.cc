@@ -262,16 +262,8 @@ void InitChainerxCreation(pybind11::module& m) {
           "k"_a = 0,
           "dtype"_a = "float64",
           "device"_a = nullptr);
-    m.def("diag",
-          [](const ArrayBodyPtr& v, int64_t k, py::handle device) { return MoveArrayBody(Diag(Array{v}, k, GetDevice(device))); },
-          "v"_a,
-          "k"_a = 0,
-          "device"_a = nullptr);
-    m.def("diagflat",
-          [](const ArrayBodyPtr& v, int64_t k, py::handle device) { return MoveArrayBody(Diagflat(Array{v}, k, GetDevice(device))); },
-          "v"_a,
-          "k"_a = 0,
-          "device"_a = nullptr);
+    m.def("diag", [](const ArrayBodyPtr& v, int64_t k) { return MoveArrayBody(Diag(Array{v}, k)); }, "v"_a, "k"_a = 0);
+    m.def("diagflat", [](const ArrayBodyPtr& v, int64_t k) { return MoveArrayBody(Diagflat(Array{v}, k)); }, "v"_a, "k"_a = 0);
     m.def("linspace",
           [](Scalar start, Scalar stop, int64_t num, bool endpoint, py::handle dtype, py::handle device) {
               return MoveArrayBody(Linspace(
