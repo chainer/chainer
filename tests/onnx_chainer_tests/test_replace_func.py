@@ -3,6 +3,7 @@ import warnings
 
 import chainer
 import chainer.functions as F
+import chainer.links as L
 from chainer import testing
 import numpy as np
 import onnx
@@ -75,6 +76,49 @@ class TestReplaceNumpyFullToConstantOfShape(ONNXModelTest):
         self.expect(
             model, x, skip_opset_version=[7, 8],
             external_converters=addon_converters)
+
+
+class TestReplaceWithOutputGrad(ONNXModelTest):
+
+    def test_output(self):
+        class Model(chainer.Chain):
+
+            def __init__(self):
+                super().__init__()
+                with self.init_scope():
+                    self.l = L.Linear(None, 2)
+
+            @as_funcnode('MulConstant')
+            def half(self, xs, value=0.5):
+                return xs * value
+
+            def forward(self, xs):
+                h = self.l(xs)
+                h = self.half(h)
+                return F.sum(chainer.as_variable(h))
+
+        model = Model()
+        x = input_generator.increasing(2, 5)
+
+        def gradient_check(m, test_path):
+            test_data_set_path = os.path.join(test_path, 'test_data_set_0')
+
+            gradient0_path = os.path.join(test_data_set_path, 'gradient_0.pb')
+            onnx_tensor = onnx.load_tensor(gradient0_path)
+            actual = onnx.numpy_helper.to_array(onnx_tensor)
+            expect = np.array([[-1.25, -0.75, -0.25, 0.25, 0.75],
+                               [-1.25, -0.75, -0.25, 0.25, 0.75]],
+                              dtype=np.float32)
+            np.testing.assert_allclose(actual, expect)
+
+            gradient1_path = os.path.join(test_data_set_path, 'gradient_1.pb')
+            onnx_tensor = onnx.load_tensor(gradient1_path)
+            actual = onnx.numpy_helper.to_array(onnx_tensor)
+            expect = np.array([1., 1.], dtype=np.float32)
+            np.testing.assert_allclose(actual, expect)
+
+        self.expect(
+            model, x, output_grad=True, custom_model_test_func=gradient_check)
 
 
 @testing.parameterize(
