@@ -1,7 +1,8 @@
 from chainer.backends import cuda
 from chainer import function_node
 from chainer.utils import type_check
-
+from chainer import utils
+from chainer import functions
 
 _cholesky_cpu = None
 
@@ -25,30 +26,27 @@ class Cholesky(function_node.FunctionNode):
         global _cholesky_cpu
         if _cholesky_cpu is None:
             try:
-                from scipy import linalg
+                from numpy import linalg
                 _cholesky_cpu = linalg.cholesky
             except ImportError:
-                raise ImportError('SciPy is not available. Forward computation'
+                raise ImportError('NumPy is not available. Forward computation'
                                   ' of cholesky can not be done.')
         self.retain_inputs((0, ))
-        return _cholesky_cpu(a),
+        return utils.force_array(_cholesky_cpu(a), dtype=a.dtype),
 
     def forward_gpu(self, inputs):
         a, = inputs
         self.retain_inputs((0, ))
-        return cuda.cupy.linalg.cholesky(cuda.cupy.array(a.array)),
+        return utils.force_array(
+            cuda.cupy.linalg.cholesky(a), dtype=a.dtype),
 
     def backward(self, indexes, gy):
-        a, = self.get_retained_inputs().array
-        return cuda.cupy.dot(a, a.T) * gy[0],
+        a, = self.get_retrained_inputs()
+        return functions.matmul(a, a, transb=True, dtype=a.type) * gy[0],
 
 
 def cholesky(a):
-    """Cholesky Decomposition function.
-
-    .. note::
-       Forward computation in CPU can not be done if
-       `SciPy <https://www.scipy.org/>`_ is not available.
+    """Cholesky Decomposition
 
     Args:
         a (:class:`~chainer.Variable` or :ref:`ndarray`): Input variable.
