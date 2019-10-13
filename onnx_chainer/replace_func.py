@@ -19,6 +19,7 @@ class WrappedFunctionNode(chainer.FunctionNode):
         self.func = func
         self.args = args
         self.kwargs = kwargs
+        self.proper_results = None
 
         if attributes is not None:
             for k, v in attributes.items():
@@ -29,16 +30,30 @@ class WrappedFunctionNode(chainer.FunctionNode):
         results = self.func(*self.args, **self.kwargs)
         if isinstance(results, (tuple, list)):
             dummy_results = tuple(_unwrap_var(ret) for ret in results)
+            if all([_is_var(ret) for ret in results]):
+                self.proper_results = tuple(results)
         elif isinstance(results, dict):
             dummy_results = tuple(_unwrap_var(ret) for ret in results.values())
+            if all([_is_var(ret) for ret in results.values()]):
+                self.proper_results = tuple(results.values())
         else:
             dummy_results = _unwrap_var(results)
             dummy_results = dummy_results,
+            if _is_var(results):
+                self.proper_results = results,
         if not chainer.is_arrays_compatible(dummy_results):
             raise ValueError(
                 'returned values from the function wrapped by \'as_funcnode\' '
                 'must consist only array, function name: {}'.format(self.name))
         return dummy_results
+
+    def backward(self, target_input_indexes, grad_outputs):
+        if self.proper_results is None:
+            raise ValueError(
+                'original function does not support backward, fail to'
+                'propagate')
+        chainer.backward(self.proper_results, grad_outputs)
+        return super().backward(target_input_indexes, grad_outputs)
 
 
 def fake_as_funcnode(alt_func, name, rename_attributes=None):
