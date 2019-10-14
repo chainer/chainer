@@ -3,9 +3,13 @@ import warnings
 
 import chainer
 
-from onnx_chainer.export import export
-from onnx_chainer.onnx_helper import cleanse_param_name
-from onnx_chainer.onnx_helper import write_tensor_pb
+from onnx_chainer.export import _available
+
+if _available:
+    from onnx_chainer.export import export
+
+    from onnx_chainer.onnx_helper import cleanse_param_name
+    from onnx_chainer.onnx_helper import write_tensor_pb
 
 
 def export_testcase(model, args, out_dir, output_grad=False, **kwargs):

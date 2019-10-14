@@ -4,19 +4,19 @@ from collections import OrderedDict
 import warnings
 
 import chainer
-import onnx
-from onnx.mapping import NP_TYPE_TO_TENSOR_TYPE
-from onnx import shape_inference
-
-from onnx_chainer.context import Context
-from onnx_chainer.graph import Graph
-from onnx_chainer import mapping
-from onnx_chainer.onnx_helper import is_support_non_standard_domain
 
 try:
+    import onnx
     from onnx import checker
     from onnx import helper
+    from onnx.mapping import NP_TYPE_TO_TENSOR_TYPE
     from onnx import numpy_helper
+    from onnx import shape_inference
+
+    from onnx_chainer.context import Context
+    from onnx_chainer.graph import Graph
+    from onnx_chainer import mapping
+    from onnx_chainer.onnx_helper import is_support_non_standard_domain
 
     _available = True
 except ImportError:
@@ -31,7 +31,7 @@ def _check_available():
         raise ImportError(
             'ONNX is not installed on your environment. Exporting your model '
             'in ONNX format needs the onnx package.\n\n'
-            '\t$ pip install onnx\n\n')
+            '\t$ pip install \'onnx<1.6.0\'\n\n')
 
 
 def convert_parameter(parameter, context):
