@@ -339,6 +339,21 @@ def test_asarray_with_device(device):
     array_utils.check_device(a, device)
 
 
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('padding', [False, True])
+def test_ascontiguousarray_from_chainerx_array(device, shape, dtype, padding):
+    np_arr = array_utils.create_dummy_ndarray(
+        numpy, shape, dtype, padding=padding)
+    obj = chainerx.testing._fromnumpy(np_arr, keepstrides=True, device=device)
+    a = chainerx.ascontiguousarray(obj)
+    if not padding and shape != ():  # () will be reshaped to (1,)
+        assert a is obj
+    e = chainerx.asarray(np_arr)
+    chainerx.testing.assert_array_equal_ex(e, a, strides_check=False)
+    assert a.is_contiguous
+    assert e.dtype.name == a.dtype.name
+
+
 def test_ascontiguousarray_from_chainerx_array_device():
     with chainerx.using_device(chainerx.get_device('native:0')):
         dev = chainerx.get_device('native:1')  # Non default one
