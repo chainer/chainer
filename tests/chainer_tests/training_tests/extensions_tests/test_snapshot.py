@@ -228,7 +228,7 @@ class TestRemoveStaleSnapshots(unittest.TestCase):
     def test_remove_stale_snapshots(self):
         fmt = 'snapshot_iter_{.updater.iteration}'
         retain = 3
-        snapshot = extensions.snapshot(filename=fmt, num_retain=retain,
+        snapshot = extensions.snapshot(filename=fmt, n_retains=retain,
                                        autoload=False)
 
         trainer = testing.get_trainer_with_mock_updater()
