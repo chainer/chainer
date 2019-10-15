@@ -10,7 +10,7 @@ Installation
 
 Install dependencies using ``pip`` via PyPI::
 
-  $ pip install packaging 'onnx<1.6.1'
+  $ pip install 'onnx<1.6.0'
 
 
 Quick Start

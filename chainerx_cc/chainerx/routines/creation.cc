@@ -257,8 +257,9 @@ Array AsContiguousArray(const Array& a, const absl::optional<Dtype>& dtype) {
     return out;
 }
 
-Array Diag(const Array& v, int64_t k, Device& device) {
+Array Diag(const Array& v, int64_t k) {
     Array out{};
+    Device& device = v.device();
 
     int8_t ndim = v.ndim();
     if (ndim == 1) {
@@ -293,9 +294,9 @@ Array Diag(const Array& v, int64_t k, Device& device) {
 
     BackwardBuilder bb{"diag", v, out};
     if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
-        bt.Define([& device = v.device(), k](BackwardContext& bctx) {
+        bt.Define([k](BackwardContext& bctx) {
             const Array& gout = *bctx.output_grad();
-            bctx.input_grad() = Diag(gout, k, device);
+            bctx.input_grad() = Diag(gout, k);
         });
     }
     bb.Finalize();
@@ -303,9 +304,9 @@ Array Diag(const Array& v, int64_t k, Device& device) {
     return out;
 }
 
-Array Diagflat(const Array& v, int64_t k, Device& device) {
+Array Diagflat(const Array& v, int64_t k) {
     // TODO(hvy): Use Ravel or Flatten when implemented instead of Reshape.
-    return Diag(v.Reshape({v.GetTotalSize()}), k, device);
+    return Diag(v.Reshape({v.GetTotalSize()}), k);
 }
 
 // Creates a 1-d array with evenly spaced numbers.

@@ -551,24 +551,69 @@ class _CheckBackward(object):
             if not no_gx]
         direction_param_shapes = [p.shape for p in params]
         direction_shapes = direction_xs_shapes + direction_param_shapes
-        directions = [
-            None if shape is None
-            else xp.random.normal(size=shape) for shape in direction_shapes]
 
-        # The direction vector is normalized in order to keep the scale of
-        # differentiation error invariant with respect to the number of input
-        # dimensions. Ideally, the scale of the curvature with respect to each
-        # input dimension should be taken into account, but we ignore the
-        # differences and assume that the curvature is uniform with respect to
-        # all the input dimensions.
-        norm = math.sqrt(
-            sum([0 if d is None else xp.square(d).sum() for d in directions]))
-        if norm != 0:
-            # norm could be zero if input arrays are 0-sized.
-            scale = 1. / norm
-            directions = [None if d is None else d * scale for d in directions]
+        total_size = sum([
+            int(numpy.prod(shape)) for shape in direction_shapes
+            if shape is not None])
 
-        return directions
+        # Sample the concatenated vector at random
+        directions = xp.random.normal(size=(total_size,))
+
+        if total_size > 0:
+            # The direction vector is normalized in order to keep the scale of
+            # differentiation error invariant with respect to the number of
+            # input dimensions. Ideally, the scale of the curvature with
+            # respect to each input dimension should be taken into account,
+            # but we ignore the differences and assume that the curvature is
+            # uniform with respect to all the input dimensions.
+            directions /= xp.sqrt(xp.square(directions).sum())
+
+            # Small elements in the direction vector leads to instability on
+            # gradients comparison.
+            # In order to avoid that, absolute values are capped at
+            # 0.1 / sqrt(N) at minimum, where N is the number of elements.
+            # Other elements are scaled uniformly so that the total L2 norm
+            # will remain 1.
+            min_d = 0.1 / math.sqrt(total_size)
+            is_small = min_d > xp.abs(directions)
+            is_large = xp.logical_not(is_small)
+            n_small = is_small.sum()
+            sq_large = xp.square(directions[is_large]).sum()
+            scale = xp.sqrt((1 - n_small * min_d ** 2) / sq_large)
+
+            # Cap small elements.
+            directions[is_small] = xp.sign(directions[is_small]) * min_d
+            # Scale large elements.
+            directions[is_large] *= scale
+
+        # Unpack the concatenated vector and returns as a list of arrays.
+        return self._unpack_arrays(xp, directions, direction_shapes)
+
+    def _unpack_arrays(self, xp, packed_array, shapes):
+        # Unpacks a flattened-and-concatenated array into original shapes.
+        # Shapes may include None.
+        assert packed_array.ndim == 1
+        n = len(shapes)
+
+        # For simplicity omit None from the shapes. They're recovered later.
+        none_indices = [
+            i for i, shape in enumerate(shapes) if shape is None]
+        shapes = [shape for shape in shapes if shape is not None]
+
+        # Unpack the array into given shapes
+        sizes = [int(numpy.prod(shape)) for shape in shapes]
+        cumsizes = numpy.cumsum(sizes)
+        unpacked_arrays = [
+            packed_array[cumsize - size:cumsize].reshape(shape)
+            for cumsize, size, shape
+            in zip(cumsizes, sizes, shapes)]
+
+        # Recover Nones
+        for i in none_indices:
+            unpacked_arrays.insert(i, None)
+
+        assert len(unpacked_arrays) == n
+        return tuple(unpacked_arrays)
 
     def _clear_grads(self, xs):
         for x in xs:
