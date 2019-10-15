@@ -138,6 +138,10 @@ py::object MakeCupyArrayFromArray(const py::module& m, py::handle self) {
 }  // namespace
 
 ArrayBodyPtr MakeArray(py::handle object, py::handle dtype, bool copy, py::handle device) {
+    if (!copy && py::isinstance<ArrayBody>(object) && device.is_none() && dtype.is_none()) {
+        return py::cast<ArrayBodyPtr>(object);
+    }
+
     absl::optional<Dtype> dtype_ = dtype.is_none() ? absl::nullopt : absl::optional<Dtype>(GetDtype(dtype));
     Device& dev = GetDevice(device);
 
