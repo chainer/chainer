@@ -141,7 +141,7 @@ ArrayBodyPtr MakeArray(py::handle object, py::handle dtype, bool copy, py::handl
     absl::optional<Dtype> dtype_ = dtype.is_none() ? absl::nullopt : absl::optional<Dtype>(GetDtype(dtype));
 
     Device* dev = nullptr;
-    if (py::isinstance<ArrayBody>(object) && device.is_none()) {
+    if (!copy && py::isinstance<ArrayBody>(object) && device.is_none()) {
         Array a = Array{py::cast<ArrayBodyPtr>(object)};
         dev = &a.device();
     } else {
