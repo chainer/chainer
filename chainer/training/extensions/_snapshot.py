@@ -164,8 +164,7 @@ n_retains=-1, autoload=False)
             'Argument `num_retain` is deprecated. '
             'Please use `n_retains` instead',
             DeprecationWarning)
-        kwargs['n_retains'] = kwargs['num_retain']
-        kwargs.pop('num_retain')
+        kwargs['n_retains'] = kwargs.pop('num_retain')
 
     return snapshot(target=target, filename=filename, savefun=savefun,
                     **kwargs)
@@ -288,8 +287,7 @@ ProcessQueueWriter`
             'Argument `num_retain` is deprecated. '
             'Please use `n_retains` instead',
             DeprecationWarning)
-        kwargs['n_retains'] = kwargs['num_retain']
-        kwargs.pop('num_retain')
+        kwargs['n_retains'] = kwargs.pop('num_retain')
 
     target, condition, writer, snapshot_on_error, n_retains,\
         autoload = argument.parse_kwargs(
