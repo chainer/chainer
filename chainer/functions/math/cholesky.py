@@ -41,8 +41,8 @@ class Cholesky(function_node.FunctionNode):
             cuda.cupy.linalg.cholesky(a), dtype=a.dtype),
 
     def backward(self, indexes, gy):
-        a, = self.get_retrained_inputs()
-        return functions.matmul(a, a, transb=True, dtype=a.type) * gy[0],
+        a, = self.get_retained_inputs()
+        return functions.matmul(a, a, transb=True) * gy[0],
 
 
 def cholesky(a):
