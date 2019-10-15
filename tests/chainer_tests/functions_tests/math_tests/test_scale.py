@@ -28,9 +28,6 @@ class TestScale(testing.FunctionTestCase):
 
     def setUp(self):
         self.axis = 1
-        self.check_backward_options.update({'atol': 1e-5, 'rtol': 1e-5})
-        self.check_double_backward_options.update(
-            {'atol': 1e-4, 'rtol': 1e-4})
 
     def generate_inputs(self):
         x1 = numpy.random.uniform(-1, 1, (3, 2, 3)).astype(numpy.float32)

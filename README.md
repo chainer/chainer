@@ -31,19 +31,16 @@ The stable version of current Chainer is separated in here: [v6](https://github.
 
 ## Installation
 
+*For more details, see the [installation guide](https://docs.chainer.org/en/stable/install.html).*
+
 To install Chainer, use `pip`.
 
 ```sh
 $ pip install chainer
 ```
 
-To enable CUDA support, [set up CUDA](https://docs.nvidia.com/cuda/index.html#installation-guides) and install [CuPy](https://github.com/cupy/cupy).
-
-```sh
-$ pip install cupy
-```
-
-[See the installation guide for more details](https://docs.chainer.org/en/stable/install.html).
+To enable CUDA support, [CuPy](https://github.com/cupy/cupy) is required.
+Refer to the [CuPy installation guide](https://docs-cupy.chainer.org/en/stable/install.html).
 
 
 ## Docker image
@@ -77,15 +74,16 @@ MIT License (see `LICENSE` file).
 
 - [Release notes](https://github.com/chainer/chainer/releases)
 
+## References
 
-## Reference
+Tokui, Seiya, et al. "Chainer: A Deep Learning Framework for Accelerating the Research Cycle." *Proceedings of the 25th ACM SIGKDD International Conference on Knowledge Discovery & Data Mining*. ACM, 2019.
+[URL](https://dl.acm.org/citation.cfm?id=3330756) [BibTex](chainer2019_bibtex.txt)
 
 Tokui, S., Oono, K., Hido, S. and Clayton, J.,
 Chainer: a Next-Generation Open Source Framework for Deep Learning,
 *Proceedings of Workshop on Machine Learning Systems(LearningSys) in
 The Twenty-ninth Annual Conference on Neural Information Processing Systems (NIPS)*, (2015)
 [URL](http://learningsys.org/papers/LearningSys_2015_paper_33.pdf), [BibTex](chainer_bibtex.txt)
-
 
 Akiba, T., Fukuda, K. and Suzuki, S.,
 ChainerMN: Scalable Distributed Deep Learning Framework,
