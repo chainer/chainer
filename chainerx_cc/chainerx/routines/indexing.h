@@ -22,8 +22,15 @@ Array At(const Array& a, const std::vector<ArrayIndex>& indices);
 // `axis` must be within [0, b.ndim()).
 // `indices` must have dtype kind of either kInt or kUInt.
 
-Array AddAt(const Array& a, const Array& indices, int8_t axis, const Array& b);
+Array AddAt(const Array& a, const Array& indices, int8_t axis, const Array& b, IndexBoundsMode mode);
 
+enum class IndexBoundsMode {
+    // Index out-of-bounds handling modes for take
+    kDefault,  // Default (raise for native, wrap for cuda)
+    kRaise,  // Raise exception on OOB
+    kWrap,  // Use the index modulo size of the dimension
+    kClip  // Clip the index, negative values are always 0
+};
 // Takes elements specified by indices from an array.
 // Indices that are out of bounds are wrapped around.
 //
@@ -33,7 +40,7 @@ Array AddAt(const Array& a, const Array& indices, int8_t axis, const Array& b);
 // TODO(niboshi): Support Scalar and StackVector as indices.
 // TODO(niboshi): Support axis=None behavior in NumPy.
 
-Array Take(const Array& a, const Array& indices, int8_t axis);
+Array Take(const Array& a, const Array& indices, int8_t axis, IndexBoundsMode mode);
 
 Array Where(const Array& condition, const Array& x, const Array& y);
 

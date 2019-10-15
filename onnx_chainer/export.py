@@ -462,7 +462,8 @@ def _export(model, args, filename, export_params, graph_name, save_text,
 
     if input_shapes is not None:
         for output in model.graph.output:
-            output.type.Clear()
+            for d in output.type.tensor_type.shape.dim:
+                d.Clear()
         model = shape_inference.infer_shapes(model)
         check_onnx_model(model, external_converters, external_opset_imports)
 

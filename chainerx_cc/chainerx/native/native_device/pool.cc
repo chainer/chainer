@@ -129,7 +129,8 @@ public:
         Device& device = x.device();
         Array gcol = Zeros({out_total_size * kernel_total_size}, x.dtype(), device);
         Array offset = Arange(0, out_total_size * kernel_total_size, kernel_total_size, indices.dtype(), device);
-        device.backend().CallKernel<AddAtKernel>(gcol, indices.Reshape(out_flat) + offset, 0, gout.Reshape(out_flat), gcol);
+        device.backend().CallKernel<AddAtKernel>(
+                gcol, indices.Reshape(out_flat) + offset, 0, gout.Reshape(out_flat), gcol, IndexBoundsMode::kRaise);
 
         // Reshape col gradients to (batch_size, channel, out_1, out_2, ..., out_n, k_1, k_2, ..., k_n).
         Shape out_shape_with_kernel = gout.shape();
@@ -179,7 +180,8 @@ public:
         return Take(
                 col.Transpose(GetSwapSpatialDimensionsAxes(kernel_size.size())).Reshape({col.GetTotalSize()}),
                 indices + offset.Reshape(indices.shape()),
-                0);
+                0,
+                IndexBoundsMode::kRaise);
     }
 };
 

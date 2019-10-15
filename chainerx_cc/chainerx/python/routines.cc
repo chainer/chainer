@@ -261,16 +261,8 @@ void InitChainerxCreation(pybind11::module& m) {
           "k"_a = 0,
           "dtype"_a = "float64",
           "device"_a = nullptr);
-    m.def("diag",
-          [](const ArrayBodyPtr& v, int64_t k, py::handle device) { return MoveArrayBody(Diag(Array{v}, k, GetDevice(device))); },
-          "v"_a,
-          "k"_a = 0,
-          "device"_a = nullptr);
-    m.def("diagflat",
-          [](const ArrayBodyPtr& v, int64_t k, py::handle device) { return MoveArrayBody(Diagflat(Array{v}, k, GetDevice(device))); },
-          "v"_a,
-          "k"_a = 0,
-          "device"_a = nullptr);
+    m.def("diag", [](const ArrayBodyPtr& v, int64_t k) { return MoveArrayBody(Diag(Array{v}, k)); }, "v"_a, "k"_a = 0);
+    m.def("diagflat", [](const ArrayBodyPtr& v, int64_t k) { return MoveArrayBody(Diagflat(Array{v}, k)); }, "v"_a, "k"_a = 0);
     m.def("linspace",
           [](Scalar start, Scalar stop, int64_t num, bool endpoint, py::handle dtype, py::handle device) {
               return MoveArrayBody(Linspace(
@@ -336,26 +328,42 @@ void InitChainerxEvaluation(pybind11::module& m) {
 void InitChainerxIndexing(pybind11::module& m) {
     // indexing routines
     m.def("take",
-          [](const ArrayBodyPtr& a, py::handle indices, const absl::optional<int8_t>& axis) {
+          [](const ArrayBodyPtr& a, py::handle indices, const absl::optional<int8_t>& axis, const absl::optional<std::string>& mode) {
               if (!axis.has_value()) {
                   throw NotImplementedError{"axis=None is not yet supported for chainerx.take."};
               }
+              IndexBoundsMode tmode{};
+              if (!mode.has_value()) {
+                  tmode = IndexBoundsMode::kDefault;
+              } else {
+                  const std::string& smode = mode.value();
+                  if (smode == "raise") {
+                      tmode = IndexBoundsMode::kRaise;
+                  } else if (smode == "wrap") {
+                      tmode = IndexBoundsMode::kWrap;
+                  } else if (smode == "clip") {
+                      tmode = IndexBoundsMode::kClip;
+                  } else {
+                      throw py::value_error{"mode must be 'raise', 'wrap', or 'clip'"};
+                  }
+              }
               if (py::isinstance<ArrayBody>(indices)) {
-                  return MoveArrayBody(Take(Array{a}, Array{py::cast<ArrayBodyPtr>(indices)}, axis.value()));
+                  return MoveArrayBody(Take(Array{a}, Array{py::cast<ArrayBodyPtr>(indices)}, axis.value(), tmode));
               }
               if (py::isinstance<py::sequence>(indices)) {
                   absl::optional<Dtype> dtype = Dtype::kInt64;
-                  return MoveArrayBody(Take(Array{a}, Array{MakeArray(indices, dtype, false, a->device())}, axis.value()));
+                  return MoveArrayBody(Take(Array{a}, Array{MakeArray(indices, dtype, false, a->device())}, axis.value(), tmode));
               }
               if (py::isinstance<py::array>(indices)) {
                   return MoveArrayBody(
-                          Take(Array{a}, Array{MakeArrayFromNumpyArray(py::cast<py::array>(indices), a->device())}, axis.value()));
+                          Take(Array{a}, Array{MakeArrayFromNumpyArray(py::cast<py::array>(indices), a->device())}, axis.value(), tmode));
               }
               throw py::type_error{"only integers, slices (`:`), sequence, numpy.ndarray and chainerx.newaxis (`None`) are valid indices"};
           },
           "a"_a,
           "indices"_a,
-          "axis"_a);
+          "axis"_a,
+          "mode"_a = nullptr);
     m.def("where",
           [](const ArrayBodyPtr& condition, const ArrayBodyPtr& x, const ArrayBodyPtr& y) {
               return MoveArrayBody(Where(Array{condition}, Array{x}, Array{y}));
@@ -446,6 +454,29 @@ void InitChainerxLinalg(pybind11::module& m) {
             "a"_a,
             "mode"_a = "reduced");
     mlinalg.def("cholesky", [](const ArrayBodyPtr& a) { return MoveArrayBody(Cholesky(Array{a})); }, "a"_a);
+    mlinalg.def(
+            "eigh",
+            [](const ArrayBodyPtr& a, const std::string& UPLO) {
+                if (UPLO.length() != 1) {
+                    throw py::value_error{"UPLO argument must be 'L' or 'U'."};
+                }
+                std::tuple<Array, Array> wv = Eigh(Array{a}, UPLO.c_str()[0]);
+                Array& w = std::get<0>(wv);
+                Array& v = std::get<1>(wv);
+                return std::make_tuple(MoveArrayBody(std::move(w)), MoveArrayBody(std::move(v)));
+            },
+            "a"_a,
+            "UPLO"_a = "L");
+    mlinalg.def(
+            "eigvalsh",
+            [](const ArrayBodyPtr& a, const std::string& UPLO) {
+                if (UPLO.length() != 1) {
+                    throw py::value_error{"UPLO argument must be 'L' or 'U'."};
+                }
+                return MoveArrayBody(Eigvalsh(Array{a}, UPLO.c_str()[0]));
+            },
+            "a"_a,
+            "UPLO"_a = "L");
 }
 
 void InitChainerxLogic(pybind11::module& m) {

@@ -567,6 +567,10 @@ Args:
         The indices of the values to extract. When indices are out of bounds,
         they are wrapped around.
     axis (int): The axis over which to select values.
+    mode (str): Specifies how out-of-bounds indices will behave.
+        'raise' - raise an error
+        'wrap' - wrap around
+        'clip' - clip to the range
 
 Returns:
     :func:`~chainerx.ndarray`: Output array.
@@ -577,6 +581,11 @@ Note:
 Note:
     During backpropagation, this function propagates the gradient of the
     output array to the input array ``a``.
+
+Note:
+   The default mode for the native backend is 'raise', while for the cuda
+   backend is 'wrap' in order to prevent device synchronization.
+   'raise' mode is currently not supported in the CUDA backend.
 
 .. seealso:: :func:`numpy.take`
 """)
@@ -806,6 +815,56 @@ Note:
       supported yet.)
 
 .. seealso:: :func:`numpy.linalg.cholesky`
+""")
+
+    _docs.set_doc(
+        chainerx.linalg.eigh,
+        """eigh(a, UPLO='L')
+Compute the eigenvalues and eigenvectors of a real symmetric matrix.
+
+Args:
+    a (~chainerx.ndarray): Real symmetric matrix whose eigenvalues
+        and eigenvectors are to be computed.
+    UPLO (str): Specifies whether the calculation is done with the lower
+        triangular part of a ('L', default) or the upper triangular part ('U').
+
+Returns:
+    tuple of :class:`~chainerx.ndarray`:
+        Returns a tuple ``(w, v)``. ``w`` contains eigenvalues and
+        ``v`` contains eigenvectors. ``v[:, i]`` is an eigenvector
+        corresponding to an eigenvalue ``w[i]``.
+
+Note:
+    The ``dtype`` must be ``float32`` or ``float64`` (``float16`` is not
+    supported yet.)
+
+.. seealso:: :func:`numpy.linalg.eigh`
+""")
+
+    _docs.set_doc(
+        chainerx.linalg.eigvalsh,
+        """eigvalsh(a, UPLO='L')
+Compute the eigenvalues of a real symmetric matrix.
+
+Main difference from eigh: the eigenvectors are not computed.
+
+Args:
+    a (~chainerx.ndarray): Real symmetric matrix whose eigenvalues
+        and eigenvectors are to be computed.
+    UPLO (str): Specifies whether the calculation is done with the lower
+        triangular part of a (‘L’, default) or the upper triangular part (‘U’).
+        (optional).
+
+Returns:
+    :class:`~chainerx.ndarray`: Returns eigenvalues as a vector.
+
+Note:
+    * The ``dtype`` must be ``float32`` or ``float64`` (``float16`` is not
+      supported yet.)
+    * Backpropagation requires eigenvectors and, therefore, is not implemented
+      for this function. ``linalg.eigh`` should be used instead.
+
+.. seealso:: :func:`numpy.linalg.eigvalsh`
 """)
 
 

@@ -98,11 +98,9 @@ inline Array AsContiguous(const Array& a) { return AsContiguous(a, a.dtype()); }
 // An input array with shape {} results in a new array with shape {1}.
 Array AsContiguousArray(const Array& a, const absl::optional<Dtype>& dtype = absl::nullopt);
 
-// TODO(niboshi): Remove device argument and use v.device(). Also fix tests
-Array Diag(const Array& v, int64_t k = 0, Device& device = GetDefaultDevice());
+Array Diag(const Array& v, int64_t k = 0);
 
-// TODO(niboshi): Remove device argument and use v.device(). Also fix tests
-Array Diagflat(const Array& v, int64_t k = 0, Device& device = GetDefaultDevice());
+Array Diagflat(const Array& v, int64_t k = 0);
 
 // Creates a 1-d array with evenly spaced numbers.
 Array Linspace(
