@@ -80,8 +80,8 @@ def _find_stale_snapshots(fmt, path, n_retains, **kwargs):
             take place.
         num_retain (int): Same as ``n_retains`` (deprecated).
 
-    Returns:
-        Generator that yields stale files that matches format
+    Yields:
+        str: The next stale file that matches format
         ``fmt`` directly under ``path`` and with older ``mtime``,
         excluding newest ``n_retains`` files.
 
@@ -94,11 +94,10 @@ def _find_stale_snapshots(fmt, path, n_retains, **kwargs):
         n_retains = kwargs['num_retain']
 
     snapshot_files = _find_snapshot_files(fmt, path)
-    num_remove = len(snapshot_files) - n_retains
-    if num_remove > 0:
-        for _, filename in snapshot_files[:num_remove]:
+    n_removes = len(snapshot_files) - n_retains
+    if n_removes > 0:
+        for _, filename in snapshot_files[:n_removes]:
             yield filename
-    return
 
 
 def snapshot_object(target, filename, savefun=None, **kwargs):
