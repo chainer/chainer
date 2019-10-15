@@ -19,7 +19,7 @@ class WrappedFunctionNode(chainer.FunctionNode):
         self.func = func
         self.args = args
         self.kwargs = kwargs
-        self.proper_results = None
+        self.internal_results = None
 
         if attributes is not None:
             for k, v in attributes.items():
@@ -31,16 +31,16 @@ class WrappedFunctionNode(chainer.FunctionNode):
         if isinstance(results, (tuple, list)):
             dummy_results = tuple(_unwrap_var(ret) for ret in results)
             if all([_is_var(ret) for ret in results]):
-                self.proper_results = tuple(results)
+                self.internal_results = tuple(results)
         elif isinstance(results, dict):
             dummy_results = tuple(_unwrap_var(ret) for ret in results.values())
             if all([_is_var(ret) for ret in results.values()]):
-                self.proper_results = tuple(results.values())
+                self.internal_results = tuple(results.values())
         else:
             dummy_results = _unwrap_var(results)
             dummy_results = dummy_results,
             if _is_var(results):
-                self.proper_results = results,
+                self.internal_results = results,
         if not chainer.is_arrays_compatible(dummy_results):
             raise ValueError(
                 'returned values from the function wrapped by \'as_funcnode\' '
@@ -48,11 +48,11 @@ class WrappedFunctionNode(chainer.FunctionNode):
         return dummy_results
 
     def backward(self, target_input_indexes, grad_outputs):
-        if self.proper_results is None:
+        if self.internal_results is None:
             raise ValueError(
-                'original function does not support backward, fail to'
-                'propagate')
-        chainer.backward(self.proper_results, grad_outputs)
+                'the target function does not support backward, propagation is'
+                'failed')
+        chainer.backward(self.internal_results, grad_outputs)
         return super().backward(target_input_indexes, grad_outputs)
 
 
