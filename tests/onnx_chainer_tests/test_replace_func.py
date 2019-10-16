@@ -15,6 +15,7 @@ from onnx_chainer import onnx_helper
 from onnx_chainer.replace_func import as_funcnode
 from onnx_chainer.replace_func import fake_as_funcnode
 from onnx_chainer.testing import input_generator
+from onnx_chainer_tests.helper import ONNXModelChecker
 from onnx_chainer_tests.helper import ONNXModelTest
 
 
@@ -78,9 +79,9 @@ class TestReplaceNumpyFullToConstantOfShape(ONNXModelTest):
             external_converters=addon_converters)
 
 
-class TestReplaceWithOutputGrad(ONNXModelTest):
+class TestReplaceWithOutputGrad(ONNXModelChecker):
 
-    def test_output(self):
+    def get_model(self):
         class Model(chainer.Chain):
 
             def __init__(self):
@@ -88,7 +89,6 @@ class TestReplaceWithOutputGrad(ONNXModelTest):
                 with self.init_scope():
                     self.l = L.Linear(None, 2)
 
-            @as_funcnode('MulConstant')
             def half(self, xs, value=0.5):
                 return xs * value
 
@@ -97,25 +97,52 @@ class TestReplaceWithOutputGrad(ONNXModelTest):
                 h = self.half(h)
                 return F.sum(chainer.as_variable(h))
 
-        model = Model()
+        return Model()
+
+    def test_grad_error(self):
+        model = self.get_model()
+        # this alternative function does not return chainer.Variable
+        # backward propagation will fail
+        model.half = fake_as_funcnode(
+            lambda xs, value=0.5: xs.array * value, 'MulConstant')
         x = input_generator.increasing(2, 5)
 
-        def gradient_check(m, test_path):
-            test_data_set_path = os.path.join(test_path, 'test_data_set_0')
+        with pytest.raises(ValueError):
+            self.expect(model, x, output_grad=True)
 
-            gradient0_path = os.path.join(test_data_set_path, 'gradient_0.pb')
-            onnx_tensor = onnx.load_tensor(gradient0_path)
-            actual = onnx.numpy_helper.to_array(onnx_tensor)
-            expect = np.array([[-1.25, -0.75, -0.25, 0.25, 0.75],
-                               [-1.25, -0.75, -0.25, 0.25, 0.75]],
-                              dtype=np.float32)
-            np.testing.assert_allclose(actual, expect)
+    def test_output(self, tmpdir):
+        # first, make expected gradients to temp directory
+        expected_result_path = str(tmpdir)
 
-            gradient1_path = os.path.join(test_data_set_path, 'gradient_1.pb')
-            onnx_tensor = onnx.load_tensor(gradient1_path)
-            actual = onnx.numpy_helper.to_array(onnx_tensor)
-            expect = np.array([1., 1.], dtype=np.float32)
-            np.testing.assert_allclose(actual, expect)
+        model = self.get_model()
+        x = input_generator.increasing(2, 5)
+        export_testcase(model, x, expected_result_path, output_grad=True)
+
+        data_set_name = 'test_data_set_0'
+        expected_gradients = [os.path.join(
+            expected_result_path, data_set_name, 'gradient_{}.pb').format(i)
+            for i in range(2)]
+        assert all([os.path.isfile(path) for path in expected_gradients])
+
+        # model.half returns chainer.Variable and enabled backward
+        # regardless using replacing
+        model.half = fake_as_funcnode(model.half, 'MulConstant')
+        x = input_generator.increasing(2, 5)
+
+        def gradient_check(model, path):
+            actual_gradients = [os.path.join(
+                path, data_set_name, 'gradient_{}.pb').format(i)
+                for i in range(2)]
+            assert all([os.path.isfile(path) for path in actual_gradients])
+
+            def load_tensor(path):
+                tensor = onnx.load_tensor(path)
+                return onnx.numpy_helper.to_array(tensor)
+
+            for e_path, a_path in zip(expected_gradients, actual_gradients):
+                expected = load_tensor(e_path)
+                actual = load_tensor(a_path)
+                np.testing.assert_allclose(expected, actual)
 
         self.expect(
             model, x, output_grad=True, custom_model_test_func=gradient_check)
