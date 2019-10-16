@@ -81,78 +81,52 @@ __global__ void TakeCudaKernel(
     out[out_indexer.It(yi)] = a[a_indexer.It(xi)];
 }
 
-template <typename T, typename TIndex>
-__global__ void AddAtWrapCudaKernel(
-        IndexableArray<const T> a_iarray,
-        IndexableArray<const T> b_iarray,
-        IndexableArray<T> out_iarray,
-        IndexableArray<const TIndex> indices_iarray,
-        Indexer<> b_indexer,
-        Indexer<> out_indexer,
-        Indexer<> indices_indexer,
-        TIndex common_total_size,
-        TIndex axis_dim) {
-    static_assert(std::is_same<TIndex, int64_t>::value || std::is_same<TIndex, int32_t>::value, "");
-    for (auto it = out_indexer.It(blockIdx.x * blockDim.x + threadIdx.x, blockDim.x * gridDim.x); it; ++it) {
-        TIndex axis_pos = static_cast<TIndex>(it.raw_index()) / common_total_size;
-        TIndex common_pos = static_cast<TIndex>(it.raw_index()) % common_total_size;
+template <typename T, typename TIndex, int kNdim>
+__global__ void AddAtCudaKernel(
+        IndexableArray<const T, kNdim> a,
+        IndexableArray<const T, kNdim> b,
+        IndexableArray<T, kNdim> out,
+        IndexableArray<const TIndex, kNdim> indices,
+        Indexer<kNdim> b_indexer,
+        Indexer<kNdim> out_indexer,
+        Indexer<kNdim> indices_indexer,
+        int target_dim,
+        int b_dim,
+        int right_dim,
+        int b_right_dim,
+        int num_iters,
+        IndexBoundsMode mode) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= num_iters) return;
+    int i = idx / (target_dim * right_dim);
+    int j = idx % (target_dim * right_dim);
+    int l = j % right_dim;
+    int k = j / right_dim;
 
-        cuda_internal::DataType<T> out_value = cuda_internal::StorageToDataType<const T>(a_iarray[it]);
+    auto out_it = out_indexer.It(idx);
+    cuda_internal::DataType<T> out_value = cuda_internal::StorageToDataType<const T>(a[out_it]);
 
-        for (auto it_indices = indices_indexer.It(0); it_indices; ++it_indices) {
-            TIndex index = indices_iarray[it_indices];
+    for (auto it_indices = indices_indexer.It(0); it_indices; ++it_indices) {
+        TIndex index = indices[it_indices];
 
+        if (mode == IndexBoundsMode::kWrap || mode == IndexBoundsMode::kDefault) {
             if (index < 0) {
-                index = axis_dim - ((-index + axis_dim - 1) % axis_dim + 1);
+                index = target_dim - ((-index + target_dim - 1) % target_dim + 1);
             } else {
-                index = index % axis_dim;
+                index = index % target_dim;
             }
-            CHAINERX_ASSERT(0 <= index);
-            CHAINERX_ASSERT(index < axis_dim);
-
-            if (index == axis_pos) {
-                out_value += cuda_internal::StorageToDataType<const T>(
-                        b_iarray[b_indexer.It(it_indices.raw_index() * common_total_size + common_pos)]);
-            }
+        } else if (mode == IndexBoundsMode::kClip) {
+            index = max(TIndex{0}, min(index, TIndex{target_dim} - 1));
         }
-
-        out_iarray[it] = cuda_internal::DataToStorageType<T>(out_value);
-    }
-}
-
-template <typename T, typename TIndex>
-__global__ void AddAtClipCudaKernel(
-        IndexableArray<const T> a_iarray,
-        IndexableArray<const T> b_iarray,
-        IndexableArray<T> out_iarray,
-        IndexableArray<const TIndex> indices_iarray,
-        Indexer<> b_indexer,
-        Indexer<> out_indexer,
-        Indexer<> indices_indexer,
-        TIndex common_total_size,
-        TIndex axis_dim) {
-    static_assert(std::is_same<TIndex, int64_t>::value || std::is_same<TIndex, int32_t>::value, "");
-    for (auto it = out_indexer.It(blockIdx.x * blockDim.x + threadIdx.x, blockDim.x * gridDim.x); it; ++it) {
-        TIndex axis_pos = static_cast<TIndex>(it.raw_index()) / common_total_size;
-        TIndex common_pos = static_cast<TIndex>(it.raw_index()) % common_total_size;
-
-        cuda_internal::DataType<T> out_value = cuda_internal::StorageToDataType<const T>(a_iarray[it]);
-
-        for (auto it_indices = indices_indexer.It(0); it_indices; ++it_indices) {
-            TIndex index = indices_iarray[it_indices];
-
-            index = max(TIndex{0}, min(index, axis_dim - 1));
-            CHAINERX_ASSERT(0 <= index);
-            CHAINERX_ASSERT(index < axis_dim);
-
-            if (index == axis_pos) {
-                out_value += cuda_internal::StorageToDataType<const T>(
-                        b_iarray[b_indexer.It(it_indices.raw_index() * common_total_size + common_pos)]);
-            }
+        CHAINERX_ASSERT(0 <= index);
+        CHAINERX_ASSERT(index < target_dim);
+        if (index == k) {
+            int bi = i * b_right_dim * b_dim + it_indices.raw_index() * right_dim + l;
+            out_value += cuda_internal::StorageToDataType<const T>(b[b_indexer.It(bi)]);
         }
-
-        out_iarray[it] = cuda_internal::DataToStorageType<T>(out_value);
     }
+
+    out[out_it] = cuda_internal::DataToStorageType<T>(out_value);
 }
 
 Array CollapseNdArray(const Array& a) {
@@ -253,7 +227,6 @@ template <typename TIndex>
 void AddAtImpl(Device& device, const Array& a, const Array& indices, int8_t axis, const Array& b, const Array& out, IndexBoundsMode mode) {
     // TODO(niboshi): Current implementation only distributes output elements in respective threads. Summation on the indices is performed
     // serially in each thread. This implementation can be improved by distributing indices as well, possibly using atomicAdd.
-
     static_assert(std::is_same<TIndex, int64_t>::value || std::is_same<TIndex, int32_t>::value, "");
     CHAINERX_ASSERT(
             (std::is_same<TIndex, int64_t>::value && indices.dtype() == Dtype::kInt64) ||
@@ -265,78 +238,76 @@ void AddAtImpl(Device& device, const Array& a, const Array& indices, int8_t axis
 
     VisitDtype(out.dtype(), [&a, &indices, axis, &b, &out, mode](auto pt) {
         using T = typename decltype(pt)::type;
-
-        // b and out are transposed as follows.
-        // a:       (Ni..., N,     Nj...) => (N,     Ni..., Nj...)
-        // b:       (Ni..., Nk..., Nj...) => (Nk..., Ni..., Nj...)
-        // out:     (Ni..., N    , Nj...) => (N    , Ni..., Nj...)
-        //
-        // indices is used as is.
-        // indices: (Nk...)
-
-        IndexableArray<const T> a_iarray{a};
-        Axes a_perm = MakeRollingPermutation(axis, axis + 1, a.ndim());
-        a_iarray.Permute(a_perm);
-        Shape a_shape = internal::TransposeShape(a.shape(), a_perm);
-        Indexer<> a_indexer{a_shape};
-
-        IndexableArray<const T> b_iarray{b};
-        Axes b_perm = MakeRollingPermutation(axis, axis + indices.ndim(), b.ndim());
-        b_iarray.Permute(b_perm);
-        Shape b_shape = internal::TransposeShape(b.shape(), b_perm);
-        Indexer<> b_indexer{b_shape};
-
-        IndexableArray<T> out_iarray{out};
-        Axes out_perm = MakeRollingPermutation(axis, axis + 1, out.ndim());
-        out_iarray.Permute(out_perm);
-        Shape out_shape = internal::TransposeShape(out.shape(), out_perm);
-        Indexer<> out_indexer{out_shape};
-
-        IndexableArray<const TIndex> indices_iarray{indices};
-        Indexer<> indices_indexer{indices.shape()};
-
-        // size of (Ni..., Nj...) part
-        TIndex common_total_size = gsl::narrow<TIndex>(a_indexer.total_size() / a_shape[0]);
-
-        TIndex axis_dim = gsl::narrow<TIndex>(a_shape[0]);
-
-        int64_t total_size = out_indexer.total_size();
-        static const int kWrapMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&AddAtWrapCudaKernel<T, TIndex>).block_size;
-        static const int kClipMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&AddAtClipCudaKernel<T, TIndex>).block_size;
-        int64_t grid_size;
-        int64_t block_size;
-        switch (mode) {
-            case IndexBoundsMode::kRaise:
-                throw BackendError{"Take with mode='raise' is not supported with CUDA backend"};
-            case IndexBoundsMode::kDefault:
-            case IndexBoundsMode::kWrap:
-                grid_size = (total_size + kWrapMaxBlockSize - 1) / kWrapMaxBlockSize;
-                block_size = std::min<int64_t>(total_size, kClipMaxBlockSize);
-                AddAtWrapCudaKernel<<<grid_size, block_size>>>(
-                        a_iarray,
-                        b_iarray,
-                        out_iarray,
-                        indices_iarray,
-                        b_indexer,
-                        out_indexer,
-                        indices_indexer,
-                        common_total_size,
-                        axis_dim);
-                break;
-            case IndexBoundsMode::kClip:
-                grid_size = (total_size + kClipMaxBlockSize - 1) / kClipMaxBlockSize;
-                block_size = std::min<int64_t>(total_size, kClipMaxBlockSize);
-                AddAtClipCudaKernel<<<grid_size, block_size>>>(
-                        a_iarray,
-                        b_iarray,
-                        out_iarray,
-                        indices_iarray,
-                        b_indexer,
-                        out_indexer,
-                        indices_indexer,
-                        common_total_size,
-                        axis_dim);
-                break;
+        int64_t target_dim = a.shape()[axis];
+        int64_t b_dim = b.shape()[axis];
+        int64_t right_dim = 1;
+        int64_t b_right_dim = 1;
+        uint8_t uaxis = axis;
+        int64_t num_iters = a.GetTotalSize();
+        for (size_t i = axis; i < a.shape().size(); ++i) {
+            if (i > uaxis) {
+                right_dim *= a.shape()[i];
+            }
+        }
+        for (size_t i = axis; i < b.shape().size(); ++i) {
+            if (i > uaxis) {
+                b_right_dim *= b.shape()[i];
+            }
+        }
+        static const int k1DMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&AddAtCudaKernel<T, TIndex, 1>).block_size;
+        static const int kNDMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&AddAtCudaKernel<T, TIndex, kDynamicNdim>).block_size;
+        Array af = CollapseNdArray(a);
+        Array bf = CollapseNdArray(b);
+        Array indicesf = CollapseNdArray(indices);
+        Array outf = CollapseNdArray(out);
+        // To get the maximum performance we need to explicitly instantiate the 1D
+        // version of the indexable array. If only one of the 3 arrays has more than one dim
+        // the performance is greatly affected. In such case we just treat all the arrays equally
+        // to simplify the code logic
+        if (af.ndim() == 1 && bf.ndim() == 1 && indicesf.ndim() == 1 && outf.ndim() == 1) {
+            IndexableArray<const T, 1> a_iarray{af};
+            IndexableArray<const T, 1> b_iarray{bf};
+            IndexableArray<const TIndex, 1> indices_iarray{indicesf};
+            IndexableArray<T, 1> out_iarray{outf};
+            Indexer<1> b_indexer{bf.shape()};
+            Indexer<1> out_indexer{outf.shape()};
+            Indexer<1> indices_indexer{indicesf.shape()};
+            AddAtCudaKernel<T, TIndex, 1><<<(num_iters + k1DMaxBlockSize - 1) / k1DMaxBlockSize, k1DMaxBlockSize>>>(
+                    a_iarray,
+                    b_iarray,
+                    out_iarray,
+                    indices_iarray,
+                    b_indexer,
+                    out_indexer,
+                    indices_indexer,
+                    target_dim,
+                    b_dim,
+                    right_dim,
+                    b_right_dim,
+                    num_iters,
+                    mode);
+        } else {
+            IndexableArray<const T> a_iarray{af};
+            IndexableArray<const T> b_iarray{bf};
+            IndexableArray<const TIndex> indices_iarray{indicesf};
+            IndexableArray<T> out_iarray{outf};
+            Indexer<> b_indexer{b.shape()};
+            Indexer<> out_indexer{out.shape()};
+            Indexer<> indices_indexer{indices.shape()};
+            AddAtCudaKernel<T, TIndex, kDynamicNdim><<<(num_iters + kNDMaxBlockSize - 1) / kNDMaxBlockSize, kNDMaxBlockSize>>>(
+                    a_iarray,
+                    b_iarray,
+                    out_iarray,
+                    indices_iarray,
+                    b_indexer,
+                    out_indexer,
+                    indices_indexer,
+                    target_dim,
+                    b_dim,
+                    right_dim,
+                    b_right_dim,
+                    num_iters,
+                    mode);
         }
     });
 }
