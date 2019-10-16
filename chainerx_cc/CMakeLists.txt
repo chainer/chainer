@@ -267,14 +267,6 @@ include_directories("${CMAKE_CURRENT_BINARY_DIR}/abseil")
 add_subdirectory("${CMAKE_CURRENT_BINARY_DIR}/abseil" "${CMAKE_CURRENT_BINARY_DIR}/abseil-build")
 
 # gtest
-
-# TODO(niboshi): Remove gtest dependency from testing
-get_third_party(gtest)
-add_subdirectory(${CMAKE_CURRENT_BINARY_DIR}/googletest-src
-    ${CMAKE_CURRENT_BINARY_DIR}/googletest-build
-    EXCLUDE_FROM_ALL)
-include_directories(${CMAKE_CURRENT_BINARY_DIR}/googletest-src/googletest/include)
-
 if(MSVC)
     if(CMAKE_CXX_COMPILER_ID MATCHES "GCC|Clang")
         # TODO(durswd): Remove it. It is hack for MSVC+LLVM
@@ -284,6 +276,13 @@ if(MSVC)
         set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
     endif()
 endif()
+
+# TODO(niboshi): Remove gtest dependency from testing
+get_third_party(gtest)
+add_subdirectory(${CMAKE_CURRENT_BINARY_DIR}/googletest-src
+    ${CMAKE_CURRENT_BINARY_DIR}/googletest-build
+    EXCLUDE_FROM_ALL)
+include_directories(${CMAKE_CURRENT_BINARY_DIR}/googletest-src/googletest/include)
 
 
 #------
