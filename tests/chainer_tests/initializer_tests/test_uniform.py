@@ -3,6 +3,7 @@ import unittest
 
 import numpy
 
+import chainer
 from chainer import backend
 from chainer.backends import cuda
 from chainer import initializers
@@ -28,22 +29,33 @@ default_fan = {
 }
 
 
-@testing.parameterize(*testing.product_dict(
-    [
-        {'target': initializers.Uniform, 'fan_option': None},
-        {'target': initializers.LeCunUniform, 'fan_option': None},
-        {'target': initializers.GlorotUniform, 'fan_option': None},
-        {'target': initializers.HeUniform, 'fan_option': None},
+@testing.parameterize(*testing.product({
+    'target,fan_option': [
+        (initializers.Uniform, None),
+        (initializers.LeCunUniform, None),
+        (initializers.GlorotUniform, None),
+        (initializers.HeUniform, None),
     ],
-    [
-        {'shape': (2, 3), 'fans': (3, 2)},
-        {'shape': (2, 3, 4), 'fans': (12, 8)},
+    'shape,fans': [
+        ((2, 3), (3, 2)),
+        ((2, 3, 4), (12, 8)),
     ],
-    testing.product({
-        'scale': [None, 7.3],
-        'dtype': [numpy.float16, numpy.float32, numpy.float64],
-    })
-))
+    'scale': [None, 7.3],
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'rng_class': [None, numpy.random.RandomState],
+}))
+@testing.backend.inject_backend_tests(
+    None,
+    [
+        {},
+        {'use_ideep': 'always'},
+        {'use_cuda': True, 'cuda_device': 0},
+        {'use_cuda': True, 'cuda_device': 1},
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
+    ]
+)
 class TestUniform(unittest.TestCase):
 
     def setUp(self):
@@ -52,6 +64,8 @@ class TestUniform(unittest.TestCase):
             kwargs['scale'] = self.scale
         if self.fan_option is not None:
             kwargs['fan_option'] = self.fan_option
+        if self.rng_class is not None:
+            kwargs['rng'] = self.rng_class()
         self.target_kwargs = kwargs
 
     def check_initializer(self, w):
@@ -60,33 +74,30 @@ class TestUniform(unittest.TestCase):
         self.assertTupleEqual(w.shape, self.shape)
         self.assertEqual(w.dtype, self.dtype)
 
-    def test_initializer_cpu(self):
+    def test_initializer(self, backend_config):
         w = numpy.empty(self.shape, dtype=self.dtype)
-        self.check_initializer(w)
+        w = backend_config.get_array(w)
+        with chainer.using_device(backend_config.device):
+            self.check_initializer(w)
 
-    @attr.gpu
-    def test_initializer_gpu(self):
-        w = cuda.cupy.empty(self.shape, dtype=self.dtype)
-        self.check_initializer(w)
-
-    def check_shaped_initializer(self, xp):
+    def check_shaped_initializer(self, backend_config):
         initializer = self.target(dtype=self.dtype, **self.target_kwargs)
+        xp = backend_config.xp
         w = initializers.generate_array(initializer, self.shape, xp)
         self.assertIs(backend.get_array_module(w), xp)
         self.assertTupleEqual(w.shape, self.shape)
         self.assertEqual(w.dtype, self.dtype)
 
-    def test_shaped_initializer_cpu(self):
-        self.check_shaped_initializer(numpy)
+    def test_shaped_initializer(self, backend_config):
+        with chainer.using_device(backend_config.device):
+            self.check_shaped_initializer(backend_config)
 
-    @attr.gpu
-    def test_shaped_initializer_gpu(self):
-        self.check_shaped_initializer(cuda.cupy)
-
-    def check_initializer_statistics(self, xp, n):
+    def check_initializer_statistics(self, backend_config, n):
         from scipy import stats
 
-        ws = xp.empty((n,) + self.shape, dtype=self.dtype)
+        xp = backend_config.xp
+        ws = numpy.empty((n,) + self.shape, dtype=self.dtype)
+        ws = backend_config.get_array(ws)
         for i in range(n):
             initializer = self.target(**self.target_kwargs)
             initializer(xp.squeeze(ws[i:i+1], axis=0))
@@ -115,27 +126,16 @@ class TestUniform(unittest.TestCase):
 
     @testing.with_requires('scipy')
     @condition.retry(3)
-    def test_initializer_statistics_cpu(self):
-        self.check_initializer_statistics(numpy, 100)
-
-    @attr.gpu
-    @testing.with_requires('scipy')
-    @condition.retry(3)
-    def test_initializer_statistics_gpu(self):
-        self.check_initializer_statistics(cuda.cupy, 100)
+    def test_initializer_statistics(self, backend_config):
+        with chainer.using_device(backend_config.device):
+            self.check_initializer_statistics(backend_config, 100)
 
     @attr.slow
     @testing.with_requires('scipy')
     @condition.repeat_with_success_at_least(5, 3)
-    def test_initializer_statistics_slow_cpu(self):
-        self.check_initializer_statistics(numpy, 10000)
-
-    @attr.slow
-    @attr.gpu
-    @testing.with_requires('scipy')
-    @condition.repeat_with_success_at_least(5, 3)
-    def test_initializer_statistics_slow_gpu(self):
-        self.check_initializer_statistics(cuda.cupy, 10000)
+    def test_initializer_statistics_slow(self, backend_config):
+        with chainer.using_device(backend_config.device):
+            self.check_initializer_statistics(backend_config, 10000)
 
 
 testing.run_module(__name__, __file__)

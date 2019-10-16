@@ -114,10 +114,10 @@ class SoftmaxCrossEntropy(function_node.FunctionNode):
         # TODO(niboshi): Current implementation is only intended to support
         # MNIST example.
         x, t = inputs
-        num_classes = x.shape[1]
+        n_classes = x.shape[1]
         score = chainerx.log_softmax(x, axis=1)
         mask = (t[:, chainerx.newaxis] == chainerx.arange(
-            num_classes, dtype=t.dtype, device=x.device)).astype(score.dtype)
+            n_classes, dtype=t.dtype, device=x.device)).astype(score.dtype)
         # TODO(beam2d): implement mean
         y = -(score * mask).sum() * (1 / x.shape[0])
         return y,
@@ -144,8 +144,6 @@ class SoftmaxCrossEntropy(function_node.FunctionNode):
 
         log_p *= t_valid.ravel()
         if self.reduce == 'mean':
-            # deal with the case where the SoftmaxCrossEntropy is
-            # unpickled from the old version
             if self.normalize:
                 count = t_valid.sum()
             else:

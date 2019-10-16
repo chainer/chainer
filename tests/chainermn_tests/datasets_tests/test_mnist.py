@@ -3,8 +3,10 @@
 import os
 import sys
 import tempfile
+import warnings
 
 import chainer
+from chainer.backends.cuda import cupy
 import chainer.functions as F
 import chainer.links as L
 import chainer.testing
@@ -33,6 +35,7 @@ def check_mnist(gpu, display_log=True):
     epoch = 5
     batchsize = 100
     n_units = 100
+    warnings.filterwarnings(action='always', category=DeprecationWarning)
 
     comm = chainermn.create_communicator('naive')
     if gpu:
@@ -43,7 +46,7 @@ def check_mnist(gpu, display_log=True):
 
     model = L.Classifier(MLP(n_units, 10))
     if gpu:
-        model.to_gpu()
+        model.to_device(cupy.cuda.Device())
 
     optimizer = chainermn.create_multi_node_optimizer(
         chainer.optimizers.Adam(), comm)

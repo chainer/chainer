@@ -435,3 +435,11 @@ def op_test(devices):
         return None
 
     return wrap
+
+
+def fix_random():
+    """Decorator that fixes random numbers in an op test.
+
+    .. seealso:: :func:`~chainer.testing.fix_random`
+    """
+    return chainer.testing.random._fix_random('setup', 'teardown')

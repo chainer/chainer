@@ -139,7 +139,8 @@ class TestSimpleChain(unittest.TestCase):
 
     @attr.gpu
     def test_forward_gpu(self):
-        self.chain.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.chain.to_gpu()
         self.check_forward(cuda.to_gpu(self.x))
 
     def check_backward(self, x_data, y_grad, chain):

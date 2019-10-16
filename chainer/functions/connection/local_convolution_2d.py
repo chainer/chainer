@@ -168,7 +168,10 @@ def local_convolution_2d(x, W, b=None, stride=1):
     If the bias vector is given, then it is added to all spatial locations of
     the output of convolution.
 
-    .. seealso:: :class:`~chainer.links.LocalConvolution2D`
+    .. seealso::
+
+        :class:`~chainer.links.LocalConvolution2D` to manage the model
+        parameters ``W`` and ``b``.
 
     .. admonition:: Example
 

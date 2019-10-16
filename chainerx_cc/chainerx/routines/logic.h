@@ -1,6 +1,6 @@
 #pragma once
 
-#include <nonstd/optional.hpp>
+#include <absl/types/optional.h>
 
 #include "chainerx/array.h"
 #include "chainerx/axes.h"
@@ -52,8 +52,14 @@ Array LogicalOr(const Array& x1, Scalar x2);
 
 Array LogicalXor(const Array& x1, const Array& x2);
 
-Array All(const Array& a, const OptionalAxes& axis = nonstd::nullopt, bool keepdims = false);
+Array All(const Array& a, const OptionalAxes& axis = absl::nullopt, bool keepdims = false);
 
-Array Any(const Array& a, const OptionalAxes& axis = nonstd::nullopt, bool keepdims = false);
+Array Any(const Array& a, const OptionalAxes& axis = absl::nullopt, bool keepdims = false);
+
+Array IsNan(const Array& x);
+
+Array IsInf(const Array& x);
+
+Array IsFinite(const Array& x);
 
 }  // namespace chainerx

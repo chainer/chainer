@@ -76,7 +76,7 @@ class OneHotCategorical(distribution.Distribution):
         return {'p': self.p}
 
     def sample_n(self, n):
-        xp = cuda.get_array_module(self.p)
+        xp = chainer.backend.get_array_module(self.p)
         obo_p = self.p.data.reshape((-1,) + self.event_shape)
         eye = xp.eye(self.event_shape[0], dtype=self.p.dtype)
         eps = [_random_choice(xp, one_p.shape[0], size=(n,), p=one_p)
