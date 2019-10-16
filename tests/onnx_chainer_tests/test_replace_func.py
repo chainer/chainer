@@ -148,6 +148,66 @@ class TestReplaceWithOutputGrad(ONNXModelChecker):
             model, x, output_grad=True, custom_model_test_func=gradient_check)
 
 
+class TestReplaceFuncBackward(ONNXModelTest):
+
+    def _test_replace_func(self, fn, xs, set_grad=False):
+        def make_list(v):
+            if isinstance(v, (list, tuple)):
+                return list(v)
+            else:
+                return [v]
+
+        xvs = [x for x in xs if isinstance(x, chainer.Variable)]
+        rfn = as_funcnode('fn')(fn)
+        eys = make_list(fn(*xs))
+        egxs = chainer.grad(eys, xvs, set_grad=set_grad)
+        ays = make_list(rfn(*xs))
+        agxs = chainer.grad(ays, xvs, set_grad=set_grad)
+        assert len(eys) == len(ays)
+        for ay, ey in zip(ays, eys):
+            np.testing.assert_allclose(ay.array, ey.array)
+        assert len(egxs) == len(agxs)
+        for agx, egx in zip(agxs, egxs):
+            if egx is None:
+                assert egx is None
+            else:
+                np.testing.assert_allclose(agx.array, egx.array)
+
+    def test_backward_simple(self):
+        self._test_replace_func(lambda a, b: a * b,
+                                [chainer.Variable(np.array(2.3)),
+                                 chainer.Variable(np.array(4.2))])
+
+    def test_backward_partially_differentiable(self):
+        self._test_replace_func(lambda a, b: a * b.array,
+                                [chainer.Variable(np.array(2.3)),
+                                 chainer.Variable(np.array(4.2))])
+
+    def test_backward_multi_outputs(self):
+        self._test_replace_func(lambda a, b, c: (a * b, a / b, a * b * c),
+                                [chainer.Variable(np.array(2.3)),
+                                 chainer.Variable(np.array(4.2)),
+                                 5])
+
+    def test_backward_no_side_effect(self):
+        a = chainer.Variable(np.array(2.3))
+        b = chainer.Variable(np.array(4.2))
+        x0 = a * b
+        x1 = chainer.Variable(np.array(3.7))
+        self._test_replace_func(lambda a, b: a * b, [x0, x1])
+        # No side-effect to `grad`.
+        assert x0.grad is None
+        assert x1.grad is None
+        assert a.grad is None
+        assert b.grad is None
+        # Gradient computation must stop at `x0` and `x1`.
+        self._test_replace_func(lambda a, b: a * b, [x0, x1], set_grad=True)
+        assert x0.grad is not None
+        assert x1.grad is not None
+        assert a.grad is None
+        assert b.grad is None
+
+
 @testing.parameterize(
     {'func_kind': 'list', 'in_shape': (2, 3, 4), 'op_type': 'Add'},
     {'func_kind': 'list_kwargs', 'in_shape': (2, 3, 4), 'op_type': 'Add'},
