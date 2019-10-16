@@ -11,14 +11,16 @@ class WrappedFunctionNode(chainer.FunctionNode):
         func (func): the target function
         args (list): args for the function
         kwargs (dict): kwargs for the function
+        arg_vars (list): list of `chainer.Variable`s in `args` and `kwargs`
         attributes (list): parameters to be set node's attributes
     """
 
-    def __init__(self, name, func, args, kwargs, attributes=None):
+    def __init__(self, name, func, args, kwargs, arg_vars, attributes=None):
         self.custom_function_node_name = name
         self.func = func
         self.args = args
         self.kwargs = kwargs
+        self.arg_vars = arg_vars
         self.internal_results = None
 
         if attributes is not None:
@@ -26,6 +28,7 @@ class WrappedFunctionNode(chainer.FunctionNode):
                 setattr(self, k, v)
 
     def forward(self, xs):
+        assert len(xs) == len(self.arg_vars)
         self.xs = xs
         results = self.func(*self.args, **self.kwargs)
         if isinstance(results, (tuple, list)):
@@ -50,10 +53,13 @@ class WrappedFunctionNode(chainer.FunctionNode):
     def backward(self, target_input_indexes, grad_outputs):
         if self.internal_results is None:
             raise ValueError(
-                'the target function does not support backward, propagation is'
-                'failed')
-        chainer.backward(self.internal_results, grad_outputs)
-        return super().backward(target_input_indexes, grad_outputs)
+                'the target function does not support backward, propagation '
+                'is failed')
+        grad_inputs = chainer.grad(self.internal_results, self.arg_vars,
+                                   grad_outputs=grad_outputs)
+        assert len(self.arg_vars) == len(grad_inputs)
+        return tuple(grad_input if i in target_input_indexes else None
+                     for i, grad_input in enumerate(grad_inputs))
 
 
 def fake_as_funcnode(alt_func, name, rename_attributes=None):
@@ -156,7 +162,7 @@ def fake_as_funcnode(alt_func, name, rename_attributes=None):
                 '{}'.format(name))
 
         wrapped = WrappedFunctionNode(
-            name, alt_func, args, kwargs, attributes=attributes)
+            name, alt_func, args, kwargs, inputs, attributes=attributes)
         ret = wrapped.apply(inputs)
         if len(ret) > 1:
             return ret
