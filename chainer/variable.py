@@ -787,7 +787,7 @@ class Variable(object):
     def __iter__(self):
         if self.ndim == 0:
             raise TypeError('iteration over a 0-d variable')
-        if chainer.config.enable_backprop:
+        if chainer.config.enable_backprop and len(self) > 1:
             warnings.warn(
                 'Backprop through `Variable.__iter__` is slow. Consider'
                 ' using `chainer.functions.split_axis`.',

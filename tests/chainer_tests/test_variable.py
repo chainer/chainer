@@ -341,7 +341,7 @@ class TestVariable(unittest.TestCase):
         x = chainer.Variable(a)
         if x.ndim == 0:
             pytest.raises(TypeError, x.__iter__)
-        else:
+        elif len(x) > 1:
             with testing.assert_warns(chainer.warnings.PerformanceWarning):
                 i = 0
                 for xi in x:
