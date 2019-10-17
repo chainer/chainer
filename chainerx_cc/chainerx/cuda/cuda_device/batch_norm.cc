@@ -63,6 +63,19 @@ void UpdateRunning(const Array& running, const Array& running_updated) {
             internal::GetRawOffsetData(running), internal::GetRawOffsetData(running_casted_back), running.GetNBytes(), device);
 }
 
+// Appends singleton axes to make an array with at least 4 dimensions.
+// Used for cuDNN BatchNorm, which only supports 4 or 5 dimension input.
+Array ExpandToAtLeast4D(const Array& x) {
+    if (x.ndim() >= 4) {
+        return x;
+    }
+    Shape shape = x.shape();
+    while (shape.size() < 4) {
+        shape.push_back(1);
+    }
+    return x.Reshape(shape);
+}
+
 // Derives a secondary tensor descriptor for the batch normalization parameters.
 cuda_internal::CudnnTensorDescriptor DeriveBatchNormTensorDescriptor(
         const cuda_internal::CudnnTensorDescriptor& x_desc, cudnnBatchNormMode_t mode) {
@@ -122,7 +135,7 @@ public:
         CudaSetDeviceScope scope{device.index()};
 
         Array x_cont = AsContiguous(x);
-        cuda_internal::CudnnTensorDescriptor x_desc{x_cont};
+        cuda_internal::CudnnTensorDescriptor x_desc{ExpandToAtLeast4D(x_cont)};
 
         cudnnBatchNormMode_t mode = GetBatchNormMode(axis);
         cuda_internal::CudnnTensorDescriptor gamma_beta_mean_var_desc = DeriveBatchNormTensorDescriptor(x_desc, mode);
@@ -239,7 +252,7 @@ public:
 
         Array gout_cont = AsContiguous(gout);
         Array actual_gx = EmptyLike(x, device);
-        cuda_internal::CudnnTensorDescriptor x_desc{x_cont};
+        cuda_internal::CudnnTensorDescriptor x_desc{ExpandToAtLeast4D(x_cont)};
 
         // The CudnnTensorDescriptor for `x_cont` can be reused for `gout_cont`.
         CHAINERX_ASSERT(x_desc.GetDtype() == cuda_internal::CudnnTensorDescriptor{gout_cont}.GetDtype());
@@ -339,7 +352,7 @@ public:
         CudaSetDeviceScope scope{device.index()};
 
         Array x_cont = AsContiguous(x);
-        cuda_internal::CudnnTensorDescriptor x_desc{x_cont};
+        cuda_internal::CudnnTensorDescriptor x_desc{ExpandToAtLeast4D(x_cont)};
 
         cudnnBatchNormMode_t mode = GetBatchNormMode(axis);
 
