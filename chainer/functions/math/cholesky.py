@@ -25,12 +25,8 @@ class Cholesky(function_node.FunctionNode):
         a, = inputs
         global _cholesky_cpu
         if _cholesky_cpu is None:
-            try:
-                from numpy import linalg
-                _cholesky_cpu = linalg.cholesky
-            except ImportError:
-                raise ImportError('NumPy is not available. Forward computation'
-                                  ' of cholesky can not be done.')
+            from numpy import linalg
+            _cholesky_cpu = linalg.cholesky
         self.retain_outputs((0,))
         return utils.force_array(_cholesky_cpu(a), dtype=a.dtype),
 
