@@ -348,7 +348,7 @@ def test_ascontiguousarray_from_chainerx_array(device, shape, dtype, padding):
     a = chainerx.ascontiguousarray(obj)
     if not padding and shape != ():  # () will be reshaped to (1,)
         assert a is obj
-    e = chainerx.asarray(np_arr)
+    e = np_arr
     chainerx.testing.assert_array_equal_ex(e, a, strides_check=False)
     assert a.is_contiguous
     assert e.dtype.name == a.dtype.name
