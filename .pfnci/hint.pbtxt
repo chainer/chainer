@@ -31,6 +31,7 @@ rules { name: "chainer_tests/functions_tests/activation_tests/test_softmax.py" x
 rules { name: "chainer_tests/functions_tests/activation_tests/test_tanh.py" xdist: 2 }
 rules { name: "chainer_tests/functions_tests/array_tests/test_cast.py" xdist: 2 }
 rules { name: "chainer_tests/functions_tests/activation_tests/test_elu.py" xdist: 2 }
+rules { name: "chainer_tests/functions_tests/math_tests/test_average.py" xdist: 2 }
 rules { name: "chainer_tests/functions_tests/math_tests/test_basic_math.py" xdist: 2 }
 rules { name: "chainer_tests/functions_tests/math_tests/test_maximum.py" xdist: 2 }
 rules { name: "chainer_tests/functions_tests/math_tests/test_prod.py" xdist: 2 }
