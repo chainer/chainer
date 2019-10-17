@@ -343,41 +343,6 @@ def test_asarray_with_device(device):
     array_utils.check_device(a, device)
 
 
-@chainerx.testing.numpy_chainerx_array_equal()
-@pytest.mark.parametrize('padding', [False, True])
-def test_ascontiguousarray_from_numpy_array(xp, shape, dtype, padding):
-    obj = array_utils.create_dummy_ndarray(
-        numpy, shape, dtype, padding=padding)
-    a = xp.ascontiguousarray(obj)
-    if xp is chainerx:
-        assert a.is_contiguous
-    return a
-
-
-@chainerx.testing.numpy_chainerx_array_equal()
-@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-@pytest.mark.parametrize('obj', _array_params(_array_params_list))
-@chainerx.testing.parametrize_dtype_specifier(
-    'dtype_spec', additional_args=(None, Unspecified))
-def test_ascontiguousarray_from_tuple_or_list(xp, device, obj, dtype_spec):
-    if xp is numpy and isinstance(dtype_spec, chainerx.dtype):
-        dtype_spec = dtype_spec.name
-    # Skip nan/inf -> integer conversion that would cause a cast error.
-    if (not _is_all_finite(obj)
-            and dtype_spec not in (None, Unspecified)
-            and chainerx.dtype(dtype_spec).kind not in ('f', 'c')):
-        return chainerx.testing.ignore()
-
-    if dtype_spec is Unspecified:
-        a = xp.ascontiguousarray(obj)
-    else:
-        a = xp.ascontiguousarray(obj, dtype=dtype_spec)
-
-    if xp is chainerx:
-        assert a.is_contiguous
-    return a
-
-
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @pytest.mark.parametrize('padding', [False, True])
 def test_ascontiguousarray_from_chainerx_array(device, shape, dtype, padding):
@@ -387,10 +352,21 @@ def test_ascontiguousarray_from_chainerx_array(device, shape, dtype, padding):
     a = chainerx.ascontiguousarray(obj)
     if not padding and shape != ():  # () will be reshaped to (1,)
         assert a is obj
-    e = chainerx.ascontiguousarray(np_arr)
+    e = np_arr
     chainerx.testing.assert_array_equal_ex(e, a, strides_check=False)
     assert a.is_contiguous
     assert e.dtype.name == a.dtype.name
+
+
+def test_ascontiguousarray_from_chainerx_array_device():
+    with chainerx.using_device(chainerx.get_device('native:0')):
+        dev = chainerx.get_device('native:1')  # Non default one
+        assert chainerx.get_default_device() is not dev
+
+        a = chainerx.arange(10, device=dev)
+        b = chainerx.ascontiguousarray(a)
+        assert b.is_contiguous is True
+        assert b.device is dev
 
 
 @chainerx.testing.numpy_chainerx_array_equal()
@@ -405,19 +381,6 @@ def test_ascontiguousarray_with_dtype(xp, device, shape, padding, dtype_spec):
     if xp is chainerx:
         assert a.is_contiguous
     return a
-
-
-@pytest.mark.parametrize(
-    'device', [None, 'native:1', chainerx.get_device('native:1'), 'native:0'])
-@pytest.mark.parametrize('padding', [False, True])
-def test_ascontiguousarray_with_device(device, shape, padding, dtype):
-    obj = array_utils.create_dummy_ndarray(
-        chainerx, shape, dtype, padding=padding)
-    a = chainerx.ascontiguousarray(obj, device=device)
-    b = chainerx.ascontiguousarray(obj)
-    array_utils.check_device(a, device)
-    assert a.is_contiguous
-    chainerx.testing.assert_array_equal_ex(a, b)
 
 
 def test_asanyarray_from_python_tuple_or_list():
