@@ -84,7 +84,7 @@ class TestBatchNormalization(ONNXModelTest):
         if hasattr(self, 'condition'):
             name += '_' + self.condition
 
-        def test_input_names(onnx_model):
+        def test_input_names(onnx_model, path):
             initializer_names = get_initializer_names(onnx_model)
             assert len(initializer_names) == 4
             assert 'param_bn_avg_mean' in initializer_names
@@ -131,7 +131,7 @@ class TestBatchNormalizationFunction(ONNXModelTest):
 
     def test_output(self):
 
-        def test_input_names(onnx_model):
+        def test_input_names(onnx_model, path):
             initializer_names = get_initializer_names(onnx_model)
             assert len(initializer_names) == 4
             assert 'BatchNormalization_0_param_avg_mean' in initializer_names
@@ -159,7 +159,7 @@ class TestFixedBatchNormalizationFunctionImplicitInputs(ONNXModelTest):
 
     def test_output(self):
 
-        def test_input_names(onnx_model):
+        def test_input_names(onnx_model, path):
             initializer_names = get_initializer_names(onnx_model)
             assert len(initializer_names) == 4
             assert 'FixedBatchNormalization_0_param_avg_mean' in\
