@@ -245,7 +245,7 @@ def test_array_from_chainerx_array_with_dtype_spec(
 
 
 @pytest.mark.parametrize('src_dtype', chainerx.testing.all_dtypes)
-@pytest.mark.parametrize('dst_dtype', chainerx.testing.all_dtypes)
+@pytest.mark.parametrize('dst_dtype', chainerx.testing.all_dtypes + (None, ))
 @pytest.mark.parametrize('copy', [True, False])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @pytest.mark.parametrize(
@@ -259,10 +259,14 @@ def test_array_from_chainerx_array_with_device(
 
     dst_device = chainerx.get_device(dst_device_spec)
 
-    if not copy and src_dtype == dst_dtype and device is dst_device:
+    if not copy and \
+       (dst_dtype is None or src_dtype == dst_dtype) and \
+       (dst_device_spec is None or device is dst_device):
         assert t is a
     else:
         assert t is not a
+        if dst_dtype is None:
+            dst_dtype = t.dtype
         chainerx.testing.assert_array_equal_ex(
             a, t.to_device(dst_device).astype(dst_dtype))
         assert a.dtype == chainerx.dtype(dst_dtype)
