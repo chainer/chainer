@@ -172,7 +172,7 @@ class TestSigmoidCrossEntropy(op_utils.ChainerOpTest):
         return out,
 
 
-@op_utils.op_test(['native:0'])
+@op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
     chainer.testing.product({
         'x_dtype': chainerx.testing.float_dtypes,
