@@ -440,7 +440,7 @@ Array Cholesky(const Array& a) {
 
                 Array gin = Dot(Dot(L_inv.Transpose(), phi), L_inv);
 
-                bctx.input_grad() = (gin + gin.Transpose()) * 0.5;
+                bctx.input_grad() = Tril(gin, 0) + Tril(gin.Transpose(), -1);
             });
         }
         bb.Finalize();

@@ -497,6 +497,10 @@ class TestCholesky(op_utils.NumpyOpTest):
         a = numpy.random.random(self.shape).astype(self.in_dtypes)
         # Make random square matrix a symmetric positive definite one
         a = numpy.array(a.T.dot(a)) + 1e-3 * numpy.eye(*self.shape)
+        # Scramble triu(k=1) to test the routine reads tril
+        a += numpy.triu(
+            numpy.random.random(self.shape).astype(self.in_dtypes),
+            k=1)
         return a,
 
     def forward_xp(self, inputs, xp):
@@ -504,9 +508,6 @@ class TestCholesky(op_utils.NumpyOpTest):
 
         if (_numpy_does_not_support_0d_input113 and a.size == 0):
             pytest.skip('Older NumPy versions do not work with empty arrays')
-
-        # Input has to be symmetrized for backward test to work
-        a = (a + a.T)/2. + 1e-3 * xp.eye(*self.shape)
 
         L = xp.linalg.cholesky(a)
         return L,
