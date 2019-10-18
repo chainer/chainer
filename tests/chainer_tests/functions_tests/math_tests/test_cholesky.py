@@ -25,7 +25,6 @@ from chainer import testing
         'chainerx_device': ['native:0', 'cuda:0', 'cuda:1']
     })
 )
-@testing.with_requires('numpy')
 class TestCholesky(testing.FunctionTestCase):
 
     def random_matrix(self, shape, dtype, scale, sym=False):
