@@ -259,9 +259,9 @@ def test_array_from_chainerx_array_with_device(
 
     dst_device = chainerx.get_device(dst_device_spec)
 
-    if not copy and \
-       (dst_dtype is None or src_dtype == dst_dtype) and \
-       (dst_device_spec is None or device is dst_device):
+    if (not copy
+            and (dst_dtype is None or src_dtype == dst_dtype)
+            and (dst_device_spec is None or device is dst_device)):
         assert t is a
     else:
         assert t is not a

@@ -144,7 +144,7 @@ ArrayBodyPtr MakeArray(py::handle object, py::handle dtype, bool copy, py::handl
     if (!copy && py::isinstance<ArrayBody>(object)) {
         ArrayBodyPtr body = py::cast<ArrayBodyPtr>(object);
         if ((device.is_none() || &dev == &body->device()) && (dtype.is_none() || *dtype_ == body->dtype())) {
-            return std::move(body);
+            return body;
         }
     }
 
