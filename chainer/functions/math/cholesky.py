@@ -22,7 +22,7 @@ class Cholesky(function_node.FunctionNode):
         a, = inputs
         self.retain_outputs((0,))
         xp = chainer.backend.get_array_module(a)
-        return xp.cholesky(a)
+        return xp.linalg.cholesky(a),
 
     def backward(self, indexes, grad_outputs):
         gy, = grad_outputs
