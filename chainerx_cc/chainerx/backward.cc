@@ -112,7 +112,6 @@ std::unordered_map<OpNode*, std::vector<uint8_t>> CreateSubgraph(
         // Initialize op node queue starting from outputs.
         for (const std::shared_ptr<ArrayNode>& array_node : output_array_nodes) {
             if (array_node != nullptr) {
-                forward_op_nodes.emplace(array_node.get(), nullptr);  // Outputs have no forward op nodes.
                 const std::shared_ptr<OpNode>& op_node = array_node->creator_op_node();
                 if (op_node != nullptr) {
                     PushNodeIfNotSeen(candidate_op_nodes, op_node.get(), seen_op_nodes);
@@ -159,16 +158,11 @@ std::unordered_map<OpNode*, std::vector<uint8_t>> CreateSubgraph(
 
             auto it_op_node = forward_op_nodes.find(array_node);
             if (it_op_node == forward_op_nodes.end()) {
-                // Array node is not mapped. It could be an output of an op node that was not given as output.
                 candidate_input_array_nodes.pop_back();
                 continue;
             }
 
             OpNode* op_node = it_op_node->second;
-            if (op_node == nullptr) {
-                candidate_input_array_nodes.pop_back();
-                continue;  // Array node is an output.
-            }
 
             std::vector<uint8_t>& flags = input_required_flags[op_node];
             if (flags.empty()) {
