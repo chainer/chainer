@@ -65,7 +65,7 @@ class TestCholesky(testing.FunctionTestCase):
         self.check_double_backward_options = {'atol': 1e-3, 'rtol': 1e-3}
 
     def generate_inputs(self):
-        a = self.random_matrix(self.shape, self.dtype, scale=(10, 10000),
+        a = self.random_matrix(self.shape, self.dtype, scale=(1e-2, 2.0),
                                sym=True)
         return a,
 
