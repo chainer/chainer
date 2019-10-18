@@ -1,10 +1,6 @@
 import chainer
-from chainer.backends import cuda
 from chainer import function_node
 from chainer.utils import type_check
-from chainer import utils
-
-_cholesky_cpu = None
 
 
 class Cholesky(function_node.FunctionNode):
@@ -22,20 +18,11 @@ class Cholesky(function_node.FunctionNode):
             a_type.ndim == 2,
         )
 
-    def forward_cpu(self, inputs):
-        a, = inputs
-        global _cholesky_cpu
-        if _cholesky_cpu is None:
-            from numpy import linalg
-            _cholesky_cpu = linalg.cholesky
-        self.retain_outputs((0,))
-        return utils.force_array(_cholesky_cpu(a), dtype=a.dtype),
-
-    def forward_gpu(self, inputs):
+    def forward(self, inputs):
         a, = inputs
         self.retain_outputs((0,))
-        return utils.force_array(
-            cuda.cupy.linalg.cholesky(a), dtype=a.dtype),
+        xp = chainer.backend.get_array_module(a)
+        return xp.cholesky(a)
 
     def backward(self, indexes, grad_outputs):
         gy, = grad_outputs
