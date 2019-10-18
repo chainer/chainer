@@ -5,9 +5,9 @@ from chainer.functions.activation import softmax
 from chainer.functions.array import concat
 from chainer.functions.array import expand_dims
 from chainer.functions.array import split_axis
-from chainer.functions.array import repeat
 from chainer.functions.array import reshape
 from chainer.functions.array import transpose
+from chainer.functions.array import tile
 from chainer.functions.array import where
 from chainer.functions.math import average
 from chainer.functions.math import matmul
@@ -173,7 +173,12 @@ def multi_head_attention(
             '`embedding_size` ({}) need to be '.format(embedding_size) +
             'divisible by `n_heads` ({})'.format(embedding_size, n_heads))
     if (bias_k is None) != (bias_v is None):
-        raise ValueError
+        _msg_fmt = 'bias for {} is not `None` while that for {} is `None`'
+        if bias_v is None:
+            msg = _msg_fmt.format('`key`', '`value`')
+        else:
+            msg = _msg_fmt.format('`value`', '`key`')
+        raise ValueError(msg)
     qkv_same = (query is key) and (query is value)
     kv_same = key is value
     target_length, batch_size, embedding_size = query.shape
@@ -201,8 +206,10 @@ def multi_head_attention(
     q *= dot_product_scaler
 
     if bias_k is not None:
-        k = concat.concat((k, repeat.repeat(bias_k, batch_size, axis=1)))
-        v = concat.concat((v, repeat.repeat(bias_v, batch_size, axis=1)))
+        k = concat.concat(
+            (k, tile.tile(bias_k, (1, batch_size, 1))), axis=0)
+        v = concat.concat(
+            (v, tile.tile(bias_v, (1, batch_size, 1))), axis=0)
         if attention_mask is not None:
             attention_mask = concat.concat(
                 (
