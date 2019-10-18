@@ -2218,6 +2218,36 @@ ChainList(
             self.c2.count_params()
         assert not w
 
+    def test_namedpersistent(self):
+        l1 = chainer.Link()
+        with l1.init_scope():
+            l1.x = chainer.Parameter(shape=(2, 3))
+            l1.y = chainer.Parameter()
+        l1.add_persistent('l1_a', numpy.array([1, 2, 3], dtype=numpy.float32))
+        l2 = chainer.Link()
+        with l2.init_scope():
+            l2.x = chainer.Parameter(shape=2)
+        l2.add_persistent('l2_a', numpy.array([1, 2, 3], dtype=numpy.float32))
+        l3 = chainer.Link()
+        with l3.init_scope():
+            l3.x = chainer.Parameter(shape=3)
+        l3.add_persistent('l3_a', numpy.array([1, 2, 3], dtype=numpy.float32))
+        c1 = chainer.ChainList(l1)
+        c1.add_link(l2)
+        c2 = chainer.ChainList(c1)
+        c2.append(l3)
+
+        namedpersistent = list(c2.namedpersistent())
+
+        assert (
+            [(name, id(p)) for name, p in namedpersistent] ==
+            [
+                ('/0/0/l1_a', id(l1.l1_a)),
+                ('/0/1/l2_a', id(l2.l2_a)),
+                ('/1/l3_a', id(l3.l3_a))
+            ]
+        )
+
 
 class TestChainListRepeat(unittest.TestCase):
 
