@@ -30,108 +30,125 @@ def _generate_ones(device, shape, dtype):
         return device.xp.ones(shape=shape, dtype=dtype)
 
 
-def multihead_attention(
-        n_head: int,
-        embedding_size: int,
-        query: InputType,
-        key: InputType,
-        value: InputType,
-        proj_in_W: tp.Union[variable.Variable, tp.Tuple[variable.Variable, variable.Variable, variable.Variable]],  # NOQA
-        proj_in_b: tp.Optional[variable.Variable],
-        bias_k: tp.Optional[variable.Variable],
-        bias_v: tp.Optional[variable.Variable],
-        proj_out_W: variable.Variable,
-        proj_out_b: variable.Variable,
-        add_zero_attention: bool = False,
-        attention_dropout: float = 0,
-        post_dropout: float = 0,
-        key_padding_mask: tp.Optional[InputType] = None,
-        attention_mask: tp.Optional[InputType] = None,
-        dot_product_scaler: tp.Optional[float] = None,
-        softmax_scaler: float = 1.0,
-        return_weights: bool = True
-) -> tp.Tuple[variable.Variable, variable.Variable]:
+def multi_head_attention(
+        n_heads,                   # type: int
+        embedding_size,            # type: int
+        query,                     # type: InputType
+        key,                       # type: InputType,
+        value,                     # type: InputType,
+        in_proj_W,                 # type: tp.Union[variable.Variable, tp.Tuple[variable.Variable, variable.Variable, variable.Variable]],  # NOQA
+        in_proj_b,                 # type:  tp.Optional[variable.Variable]
+        bias_k,                    # type: tp.Optional[variable.Variable]
+        bias_v,                    # type: tp.Optional[variable.Variable]
+        out_proj_W,                # type: variable.Variable
+        out_proj_b,                # type: variable.Variable
+        add_zero_attention=False,  # type:  bool
+        attention_dropout=0.0,     # type:  float
+        post_dropout=0.0,          # type: float
+        key_padding_mask=None,     # type: tp.Optional[InputType]
+        attention_mask=None,       # type: tp.Optional[InputType]
+        dot_product_scaler=None,   # type: tp.Optional[float]
+        softmax_scaler=1.0,        # type: float
+        return_weights=True        # type: bool
+):
+    # type: (...) -> tp.Tuple[variable.Variable, variable.Variable]
     """Multi-head Attention forward function.
 
     Args:
         query (:class:`~chainer.Variable` or :ref:`ndarray`):
-            A batch of query vectors whose shape is
-            :math:`(L, B, E_{\\text query})` where :math:`L` is the target
-            sequence length, :math:`B` is the
-            batch size, and :math:`E_{\\text query}` is the embedding size.
+            A batch of query vectors.
         key (:class:`~chainer.Variable` or :ref:`ndarray`)
-            A batch of key vectors whose shape is :math:`(S, B, E_{\\text key})`
-            where :math:`S` is the source sequence length, :math:`B` is the
-            batch size, and :math:`E` is the embedding size.
+            A batch of key vectors.
         value (:class:`~chainer.Variable` or :ref:`ndarray`)
-            A batch of value vectors whose shape is
-            :math:`(S, B, E_{\\text value})` where :math:`S` is the source
-            sequence length, :math:`B` is the batch size, and
-            :math:`E_{\\text value}` is the embedding size.
-        n_head (int): The number of parallel attention heads.
-        proj_in_W (:obj:`tuple`, :class:`~chainer.Variable` or :ref:`ndarray`):
+            A batch of value vectors.
+        n_heads (int): The number of parallel attention heads.
+        in_proj_W (:obj:`tuple`, :class:`~chainer.Variable` or :ref:`ndarray`):
             Weight(s) to project ``query``, ``key``, and ``value`` vectors.
-            If the input sizes of ``query``, ``key``, and ``value`` are
-            different, this should be the tuple of three weights,
-            otherwise, one weight.
-        proj_in_b (:class:`~chainer.Variable` or :ref:`ndarray`):
+            If three inputs have different size, this ``in_proj_W`` should be
+            a tuple of three weights (:class:`~chainer.Variable`\\s).
+        in_proj_b (:class:`~chainer.Variable` or :ref:`ndarray`):
             Bias added to projected `query`, `key`, and `value` vectors.
         bias_k (:class:`~chainer.Variable`, :ref:`ndarray`, or ``None``):
+            A bias concatenated to input ``key``.
         bias_v (:class:`~chainer.Variable`, :ref:`ndarray`, or ``None``):
+            A bias concatenated to input ``value``.
         add_zero_attention (bool): If ``True``, add a new batch of zeros to
             the key and value sequences at axis=1.
         attention_dropout (float): Dropout ratio at the attention layer.
         post_dropout (float): Dropout ratio at the output.
-        proj_out_W (:class:`~chainer.Variable` or :ref:`ndarray`):
-            Weight to project attention. The shape is
-            :math:`({\\text embedding_size}, {\\text embedding_size})`.
-        proj_out_b (:class:`~chainer.Variable` or :ref:`ndarray`):
+        out_proj_W (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Weight to project attention.
+        out_proj_b (:class:`~chainer.Variable` or :ref:`ndarray`):
             Bias for projected attention.
-            The shape is :math:`({\\text embedding_size},)`.
         key_padding_mask (:class:`~chainer.Variable` or :ref:`ndarray`):
             If not ``None``, specified padding elements in the key
             will be ignored by the attention.
-            The shape is :math:`(B, S)` where :math:`B` is the batch size,
-            and :math:`S` is the source sequence length.
         attention_mask (:class:`~chainer.Variable` or :ref:`ndarray`):
-            Mask help attention ignores certain positions.
-            The shape is :math:`(L, S)` where :math:`L` is
-            the target sequence length and :math:`S` is the source length.
+            This is a mask that helps attention to ignore certain positions.
             Masking is done by adding ``-inf`` to the elements to be ignored
             (:math:`\\exp(-\\text{inf}) = 0`).
         dot_product_scaler: (float): Scaler for dot product. If ``None``,
-            :math:`1 / \\sqrt{embedding_size / n_head}` is used.
+            :math:`1 / \\sqrt{embedding_size / n_heads}` is used.
         softmax_scaler (float): Softmax smoothing, or sharpening, coefficient.
             This value is for cuDNN implementation.
         return_weights (bool): If ``True``, return averaged attention weights.
 
     Returns:
-        tuple: This function returns a tuple containing ``attention_output`` and
-        ``attention_output_weights``.
+        tuple: This function returns a tuple containing ``attention_output``
+        and ``attention_output_weights``.
 
-        - ``attention_output`` is the output of attention whose shape is
-          :math:`(L, B, E)` where :math:`L` is the target sequence length,
-          :math:`B` is the batch size, and :math:`E` is the embedding size.
-        - ``attention_output_weights`` is the weights of attention whose shape is
-          :math:`(B, L, S)` where :math:`B` is the batch size,
-          :math:`L` is the target sequence length,
-          and :math:`S` is the source sequence length. If ``return_weights`` is
-          ``False``, this return value is ``None``.
+        - ``attention_output`` is the output of attention.
+        - ``attention_output_weights`` is the weights of attention.
+
+    Shape of Inputs:
+        - query: :math:`(L, B, E)` where :math:`L` is
+          the target sequence length, :math:`B` is the batch size,
+          :math:`E` is the embedding size (same as the ``embedding_size``
+          argument of :class:`~chainer.links.MultiHeadAttention`).
+        - key: :math:`(S, B, E_{\\rm key})`, where :math:`S` is
+          the source sequence length, :math:`B` is the batch size,
+          :math:`E_{\\rm key}` is the size of a vector of ``key``.
+        - value: :math:`(S, B, E_{\\rm value})` where :math:`S` is
+          the source sequence length, :math:`B` is the batch size,
+          :math:`E_{\\rm value}` is the embedding size.
+        - in_proj_weight: If this is a :class:`~chainer.Variable`,
+          :math:`(3E, E)`. Otherwise, this is a tuple of weights and they have
+          the shape of :math:`(E, E)`, :math:`(E, E_{\\rm key})`, and
+          :math:`(E, E_{\\rm value})`, respectively.
+        - in_proj_b: :math:`3E`. This is divided into three vectors and they
+          are added to projected ``query``, ``key``, and ``value``,
+          respectively.
+        - bias_k: :math:`L`.
+        - bias_v: :math:`L`.
+        - out_proj_W: :math:`(E, E)`.
+        - out_proj_b: :math:`E`.
+        - key_padding_mask: :math:`(B, S)` where :math:`B` is the batch size,
+          :math:`S` is the source sequence length.
+        - attention_mask: :math:`(L, S)` where :math:`L` is the target sequence
+          length, :math:`S` is the source sequence length.
+
+    Shape of Outputs:
+        - attention_output: :math:`(L, B, E)` where :math:`L` is the target
+          sequence length, :math:`B` is the batch size, :math:`E` is
+          the embedding dimension.
+        - attention_output_weights: :math:`(B, L, S)` where :math:`B` is
+          the batch size, :math:`L` is the target sequence length,
+          :math:`S` is the source sequence length.
 
     .. seealso:: :class:`~chainer.links.MultiHeadAttention`
 
     """
-    chainer.utils.experimental('chainer.functions.multihead_attention')
+    chainer.utils.experimental('chainer.functions.multi_head_attention')
 
-    are_different = isinstance(proj_in_W, tuple)
+    are_different = isinstance(in_proj_W, tuple)
 
     def _in_proj(x, start=0, end=None, weight_idx=None):
         if are_different:
-            W = proj_in_W[weight_idx]
+            W = in_proj_W[weight_idx]
         else:
-            W = proj_in_W[start:end, :]
-        if proj_in_b is not None:
-            b = proj_in_b[start:end]
+            W = in_proj_W[start:end, :]
+        if in_proj_b is not None:
+            b = in_proj_b[start:end]
         return linear.linear(x, W, b, n_batch_axes=x.ndim-1)
 
     def _in_proj_qkv(query):
@@ -151,16 +168,16 @@ def multihead_attention(
     def _in_proj_v(value):
         return _in_proj(value, start=2 * embedding_size, weight_idx=2)
 
-    if embedding_size % n_head != 0:
+    if embedding_size % n_heads != 0:
         raise ValueError(
             '`embedding_size` ({}) need to be '.format(embedding_size) +
-            'divisible by `n_head` ({})'.format(embedding_size, n_head))
+            'divisible by `n_heads` ({})'.format(embedding_size, n_heads))
     if (bias_k is None) != (bias_v is None):
         raise ValueError
     qkv_same = (query is key) and (query is value)
     kv_same = key is value
     target_length, batch_size, embedding_size = query.shape
-    head_size = embedding_size // n_head
+    head_size = embedding_size // n_heads
     if dot_product_scaler is None:
         dot_product_scaler = head_size ** -0.5
 
@@ -204,12 +221,12 @@ def multihead_attention(
                     )
                 )
             )
-    q = reshape.reshape(q, (target_length, batch_size * n_head, head_size))
+    q = reshape.reshape(q, (target_length, batch_size * n_heads, head_size))
     q = transpose.transpose(q, (1, 0, 2))
     if k is not None:
-        k = reshape.reshape(k, (-1, batch_size * n_head, head_size))
+        k = reshape.reshape(k, (-1, batch_size * n_heads, head_size))
         k = transpose.transpose(k, (1, 0, 2))
-        v = reshape.reshape(v, (-1, batch_size * n_head, head_size))
+        v = reshape.reshape(v, (-1, batch_size * n_heads, head_size))
         v = transpose.transpose(v, (1, 0, 2))
 
     # TODO(crcrpar): Investigate the possibility that
@@ -251,7 +268,7 @@ def multihead_attention(
     attention_output_weights = matmul.matmul(
         q, transpose.transpose(k, (0, 2, 1)))
     if (attention_output_weights.shape !=
-            (batch_size * n_head, target_length, source_length)):
+            (batch_size * n_heads, target_length, source_length)):
         raise ValueError('`attention_output_weights` is shaped wrongly')
 
     if attention_mask is not None:
@@ -261,7 +278,7 @@ def multihead_attention(
     if key_padding_mask is not None:
         attention_output_weights = reshape.reshape(
             attention_output_weights,
-            (batch_size, n_head, target_length, source_length)
+            (batch_size, n_heads, target_length, source_length)
         )
         expanded_mask = expand_dims.expand_dims(
             expand_dims.expand_dims(key_padding_mask, 1), 2)
@@ -273,10 +290,11 @@ def multihead_attention(
         )
         attention_output_weights = reshape.reshape(
             attention_output_weights,
-            (batch_size * n_head, target_length, source_length)
+            (batch_size * n_heads, target_length, source_length)
         )
 
-    attention_output_weights = softmax.softmax(attention_output_weights, axis=-1)
+    attention_output_weights = softmax.softmax(
+        attention_output_weights, axis=-1)
     if attention_dropout > 0.0:
         attention_output_weights = dropout.dropout(
             attention_output_weights, attention_dropout)
@@ -289,7 +307,7 @@ def multihead_attention(
     attention_output = reshape.reshape(
         attention_output, (target_length, batch_size, embedding_size))
     attention_output = linear.linear(
-        attention_output, proj_out_W, proj_out_b,
+        attention_output, out_proj_W, out_proj_b,
         n_batch_axes=attention_output.ndim-1)
     if post_dropout > 0.0:
         attention_output = dropout.dropout(attention_output, post_dropout)
@@ -297,9 +315,10 @@ def multihead_attention(
     if return_weights:
         attention_output_weights = reshape.reshape(
             attention_output_weights,
-            (batch_size, n_head, target_length, source_length)
+            (batch_size, n_heads, target_length, source_length)
         )
-        attention_output_weights = average.average(attention_output_weights, axis=1)
+        attention_output_weights = average.average(
+            attention_output_weights, axis=1)
     else:
         attention_output_weights = None
     return attention_output, attention_output_weights

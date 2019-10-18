@@ -79,7 +79,7 @@ from chainer.functions.connection.embed_id import embed_id  # NOQA
 from chainer.functions.connection.linear import linear  # NOQA
 from chainer.functions.connection.local_convolution_2d import local_convolution_2d  # NOQA
 from chainer.functions.connection.shift import shift  # NOQA
-from chainer.functions.connection.multihead_attention import multihead_attention  # NOQA
+from chainer.functions.connection.multi_head_attention import multi_head_attention  # NOQA
 
 from chainer.functions.evaluation.accuracy import accuracy  # NOQA
 from chainer.functions.evaluation.binary_accuracy import binary_accuracy  # NOQA

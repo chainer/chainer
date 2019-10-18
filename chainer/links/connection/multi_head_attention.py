@@ -19,13 +19,15 @@ class MultiHeadAttention(link.Chain):
     Args:
         n_head (int): The number of heads.
         embedding_size (int):
-            The size of input query vectors
-            and projected query, key, and value vectors.
+            The size of input query vectors.
+            This is also the size of projected query, key, and value vectors.
         self_attention (bool): If ``True``, this becomes self-attention.
-        ksize (int):
-            The size of input key vectors.
-        vsize (int):
-            The size of input value vectors.
+        ksize (int or None):
+            The size of input key vectors. If ``None`` or ``self_attention``,
+            this defaults to ``embedding_size``.
+        vsize (int or None):
+            The size of input value vectors. If ``None`` or ``self_attention``,
+            this defaults to ``embedding_size``.
         attention_dropout (float):
             The dropout ratio applied to attention before softmax.
         post_dropout (float):
@@ -50,20 +52,22 @@ class MultiHeadAttention(link.Chain):
 
     def __init__(
             self,
-            n_head: int,
-            embedding_size: int,
-            self_attention: bool = False,
-            ksize: tp.Optional[int] = None,
-            vsize: tp.Optional[int] = None,
-            attention_dropout: float = 0.0,
-            post_dropout: float = 0.0,
-            scaler: tp.Optional[float] = None,
-            softmax_scaler: tp.Optional[float] = None,
-            initialW: tp.Optional[types.InitializerSpec] = None,
-            initial_bias: tp.Optional[types.InitializerSpec] = None,
-            nobias: bool = False,
-            nobias_kv: bool = True
-    ) -> None:
+            n_head,                 # type: int
+            embedding_size,         # type: int
+            self_attention=False,   # type: bool
+            ksize=None,             # type: tp.Optional[int]
+            vsize=None,             # type: tp.Optional[int]
+            attention_dropout=0.0,  # float
+            post_dropout=0.0,       # float
+            scaler=None,            # type: tp.Optional[float]
+            softmax_scaler=None,    # type: tp.Optional[float]
+            initialW=None,          # type: tp.Optional[types.InitializerSpec]
+            initial_bias=None,      # type: tp.Optional[types.InitializerSpec]
+            nobias=False,           # type: bool
+            nobias_kv=True          # type: bool
+    ):
+        # type (...) -> None
+
         super().__init__()
 
         if embedding_size % n_head != 0:
@@ -78,7 +82,7 @@ class MultiHeadAttention(link.Chain):
             ksize = embedding_size
             vsize = embedding_size
         self.n_head = n_head
-        self.embedding_size = embedding_size  # == qsize
+        self.embedding_size = embedding_size  # this equals the size of query
         self.head_size = self.embedding_size // self.n_head
         self._self_attention = self_attention
         self.scaler = scaler
@@ -103,17 +107,17 @@ class MultiHeadAttention(link.Chain):
             if initial_bias is None:
                 _initial_bias = initializers.Zero()
             if self.qkv_same_size:
-                self.proj_in_W: variable.Variable = variable.Parameter(
+                self.proj_in_W = variable.Parameter(
                     _initialW, (3 * self.embedding_size, self.embedding_size))
             else:
-                self.proj_q_weight: variable.Variable = variable.Parameter(
+                self.proj_q_weight = variable.Parameter(
                     _initialW, (self.embedding_size, self.embedding_size))
-                self.proj_k_weight: variable.Variable = variable.Parameter(
+                self.proj_k_weight = variable.Parameter(
                     _initialW, (self.embedding_size, self.ksize))
-                self.proj_v_weight: variable.Variable = variable.Parameter(
+                self.proj_v_weight = variable.Parameter(
                     _initialW, (self.embedding_size, self.vsize))
             if not nobias:
-                self.proj_in_b: variable.Variable = variable.Parameter(
+                self.proj_in_b = variable.Parameter(
                     _initial_bias, (3 * self.embedding_size,))
             else:
                 self.proj_in_b = None
@@ -134,14 +138,15 @@ class MultiHeadAttention(link.Chain):
 
     def forward(
             self,
-            query: InputType,
-            key: tp.Optional[InputType] = None,
-            value: tp.Optional[InputType] = None,
-            key_padding_mask: tp.Optional[InputType] = None,
-            attention_mask: tp.Optional[InputType] = None,
-            add_zero_attention: tp.Optional[InputType] = False,
-            return_weights: tp.Optional[InputType] = False
-    ) -> tp.Union[tp.Tuple[variable.Variable, variable.Variable], variable.Variable]:  # NOQA
+            query,  # type: InputType
+            key=None,  # type: tp.Optional[InputType]
+            value=None,  # : tp.Optional[InputType]
+            key_padding_mask=None,  # type: tp.Optional[InputType]
+            attention_mask=None,  # type: tp.Optional[InputType]
+            add_zero_attention=None,  # type: tp.Optional[InputType]
+            return_weights=False  # type: tp.Optional[InputType]
+    ):
+        # type: (...) -> tp.Union[tp.Tuple[variable.Variable, variable.Variable], variable.Variable]  # NOQA
         """Compute attention weight and context vector.
 
         This computes and returns ``attention``. If ``return_weights`` is
@@ -158,21 +163,21 @@ class MultiHeadAttention(link.Chain):
         Args:
             query (:class:`~chainer.Variable` or :ref:`ndarray`):
                 The query vectors with the shape of
-                :math:`({\\text time}, {\\text batch_size}, {\\text query_in_size})`.  # NOQA
+                :math:`(S, B, E_{\\rm query})`.  # NOQA
             key (:class:`~chainer.Variable` or :ref:`ndarray`):
                 The key of the memory vectors with the shape of
-                :math:`({\\text time}, {\\text batch_size}, {\\text key_in_size})`.  # NOQA
+                :math:`(S, B, E_{\\text key})`.  # NOQA
             value (:class:`~chainer.Variable` or :ref:`ndarray`):
                 The value of the memory with the shape of
-                :math:`({\\text time}, {\\text batch_size}, {\\text value_in_size})`.  # NOQA
+                :math:`(S, B, E_{\\text value})`.  # NOQA
             key_padding_mask (:class:`~chainer.Variable` or :ref:`ndarray`):
                 If not ``None``, mask the memory slots.
-                The shape is :math:`({\\text batch_size}, {\\text source_length})`.  # NOQA
+                The shape is :math:`(B, S)`.
                 Each value is 0 (``False``) or 1 (``True``) where 1 means that
                 the memory slot will not be used.
             attention_mask (:class:`~chainer.Variable` or :ref:`ndarray`):
                 Mask help attention ignores certain positions.
-                The shape is :math:`(L, S)` where :math:`L` is
+                The shape is :math:`(B, S)` where :math:`L` is
                 the target sequence length and :math:`S` is the source sequence
                 length.
             add_zero_attention (bool): If ``True``, add a new batch of zeros to
