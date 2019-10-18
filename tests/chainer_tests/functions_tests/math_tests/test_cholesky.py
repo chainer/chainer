@@ -6,7 +6,7 @@ from chainer import testing
 
 @testing.parameterize(*testing.product({
     'dtype': [numpy.float32, numpy.float64],
-    'shape': [(2, 2)]
+    'shape': [(5, 5), (1, 1)]
 }))
 @testing.inject_backend_tests(
     None,
