@@ -343,6 +343,33 @@ def test_asarray_with_device(device):
     array_utils.check_device(a, device)
 
 
+@pytest.mark.parametrize('src_dtype', chainerx.testing.all_dtypes)
+@pytest.mark.parametrize('dst_dtype', chainerx.testing.all_dtypes + (None, ))
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@pytest.mark.parametrize(
+    'dst_device_spec',
+    [None, 'native:1', chainerx.get_device('native:1'), 'native:0'])
+def test_asarray_from_chainerx_array_with_device(
+        src_dtype, dst_dtype, device, dst_device_spec):
+    t = array_utils.create_dummy_ndarray(
+        chainerx, (2,), src_dtype, device=device)
+    a = chainerx.asarray(t, dtype=dst_dtype, device=dst_device_spec)
+
+    dst_device = chainerx.get_device(dst_device_spec)
+
+    if ((dst_dtype is None or src_dtype == dst_dtype)
+            and (dst_device_spec is None or device is dst_device)):
+        assert t is a
+    else:
+        assert t is not a
+        if dst_dtype is None:
+            dst_dtype = t.dtype
+        chainerx.testing.assert_array_equal_ex(
+            a, t.to_device(dst_device).astype(dst_dtype))
+        assert a.dtype == chainerx.dtype(dst_dtype)
+        assert a.device is dst_device
+
+
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @pytest.mark.parametrize('padding', [False, True])
 def test_ascontiguousarray_from_chainerx_array(device, shape, dtype, padding):
