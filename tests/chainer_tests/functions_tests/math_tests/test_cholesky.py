@@ -6,7 +6,7 @@ from chainer import testing
 
 @testing.parameterize(*testing.product({
     'dtype': [numpy.float32, numpy.float64],
-    'shape': [(2, 2)]
+    'shape': [(5, 5), (1, 1)]
 }))
 @testing.inject_backend_tests(
     None,
@@ -25,7 +25,6 @@ from chainer import testing
         'chainerx_device': ['native:0', 'cuda:0', 'cuda:1']
     })
 )
-@testing.with_requires('numpy')
 class TestCholesky(testing.FunctionTestCase):
 
     def random_matrix(self, shape, dtype, scale, sym=False):

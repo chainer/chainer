@@ -18,7 +18,8 @@ class Cholesky(function_node.FunctionNode):
         a_type, = in_types
 
         type_check.expect(
-            a_type.dtype.kind == 'f'
+            a_type.dtype.kind == 'f',
+            a_type.ndim == 2,
         )
 
     def forward_cpu(self, inputs):
