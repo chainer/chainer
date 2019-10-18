@@ -483,8 +483,7 @@ class Link(device_resident.DeviceResident):
             if include_uninit or d[name].data is not None:
                 yield '/' + name, d[name]
 
-    def namedpersistent(self):
-        # type: () -> tp.Iterator[tp.Tuple[str, tp.NdArray]]
+    def namedpersistent(self) -> tp.Iterator[tp.Tuple[str, types.NdArray]]:
         """Returns a generator of all (path, persistent) pairs \
 under the hierarchy.
 
@@ -977,8 +976,7 @@ class Chain(Link):
             for path, param in d[name].namedparams(include_uninit):
                 yield prefix + path, param
 
-    def namedpersistent(self):
-        # type: () -> tp.Iterator[tp.Tuple[str, tp.NdArray]]
+    def namedpersistent(self) -> tp.Iterator[tp.Tuple[str, types.NdArray]]:
         for ret in super(Chain, self).namedpersistent():
             yield ret
         d = self.__dict__
@@ -1192,8 +1190,7 @@ class ChainList(Link, collections_abc.MutableSequence):
             for path, param in link.namedparams(include_uninit):
                 yield prefix + path, param
 
-    def namedpersistent(self):
-        # type: () -> tp.Iterator[tp.Tuple[str, tp.NdArray]]
+    def namedpersistent(self) -> tp.Iterator[tp.Tuple[str, types.NdArray]]:
         for ret in super(ChainList, self).namedpersistent():
             yield ret
         for idx, link in enumerate(self._children):
