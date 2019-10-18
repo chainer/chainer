@@ -1,5 +1,5 @@
+import chainer
 from chainer import backend
-from chainer import cuda
 
 
 class GradientHardClipping(object):
@@ -46,6 +46,14 @@ class GradientHardClipping(object):
         grad = param.grad
         if grad is None:
             return
-        xp = backend.get_array_module(grad)
-        with cuda.get_device_from_array(grad):
-            xp.clip(grad, self.lower_bound, self.upper_bound, out=grad)
+        with chainer.using_device(param.device):
+            xp = param.device.xp
+            # TODO(kshitij12345): Fix when chainerx.clip
+            # supports kwarg `out`.
+            if xp == backend.chainerx \
+                    or isinstance(param.grad, backend.intel64.mdarray):
+                grad[...] = grad.clip(self.lower_bound, self.upper_bound)
+            else:
+                # Save on new object allocation when using numpy and cupy
+                # using kwarg `out`
+                xp.clip(grad, self.lower_bound, self.upper_bound, out=grad)

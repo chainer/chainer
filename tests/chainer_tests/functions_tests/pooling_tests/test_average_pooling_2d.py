@@ -38,6 +38,7 @@ class TestAveragePooling2D(testing.FunctionTestCase):
         if self.dtype == numpy.float16:
             self.check_forward_options = {'atol': 5e-4, 'rtol': 5e-3}
             self.check_backward_options = {'atol': 5e-4, 'rtol': 5e-3}
+            self.check_double_backward_options = {'atol': 5e-4, 'rtol': 5e-3}
 
     def generate_inputs(self):
         x = numpy.random.uniform(-1, 1, (2, 3, 4, 3)).astype(self.dtype)

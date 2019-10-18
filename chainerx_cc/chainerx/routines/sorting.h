@@ -1,22 +1,20 @@
 #pragma once
 
-#include <cstdint>
+#include <absl/types/optional.h>
 
 #include "chainerx/array.h"
 #include "chainerx/axes.h"
-#include "chainerx/backend.h"
-#include "chainerx/device.h"
-#include "chainerx/op.h"
 
 namespace chainerx {
 
-class ArgMaxOp : public Op {
-public:
-    static const char* name() { return "ArgMax"; }
+Array ArgMax(const Array& a, const OptionalAxes& axis = absl::nullopt);
 
-    virtual void Call(const Array& a, const Axes& axis, const Array& out) = 0;
-};
+Array ArgMin(const Array& a, const OptionalAxes& axis = absl::nullopt);
 
-Array ArgMax(const Array& a, const OptionalAxes& axis = nonstd::nullopt);
+Array CountNonzero(const Array& a, const OptionalAxes& axis = absl::nullopt);
+
+Array NanArgMax(const Array& a, const OptionalAxes& axis = absl::nullopt);
+
+Array NanArgMin(const Array& a, const OptionalAxes& axis = absl::nullopt);
 
 }  // namespace chainerx

@@ -26,11 +26,11 @@ These bugs are hard to fix.
 Chainer can check preconditions of each function, and helps to prevent such problems.
 These conditions may help a user to understand specification of functions.
 
-Each implementation of :class:`Function` has a method for type check, :meth:`check_type_forward`.
-This function is called just before the :meth:`forward` method of the :class:`Function` class.
+Each implementation of :class:`~chainer.Function` has a method for type check, :meth:`~chainer.Function.check_type_forward`.
+This function is called just before the :meth:`~chainer.Function.forward` method of the :class:`~chainer.Function` class.
 You can override this method to check the condition on types and shapes of arguments.
 
-:meth:`check_type_forward` gets an argument ``in_types``::
+:meth:`~chainer.Function.check_type_forward` gets an argument ``in_types``::
 
    def check_type_forward(self, in_types):
      ...
@@ -130,17 +130,17 @@ Actually ``x_type`` is a :class:`~utils.type_check.Expr` objects, and doesn't ha
 :class:`~utils.type_check.Expr` represents a syntax tree.
 ``x_type.ndim`` makes a :class:`~utils.type_check.Expr` object representing ``(getattr, x_type, 'ndim')``.
 ``x_type.ndim == 2`` makes an object like ``(eq, (getattr, x_type, 'ndim'), 2)``.
-:meth:`type_check.expect` gets a :class:`~utils.type_check.Expr` object and evaluates it.
+:meth:`~utils.type_check.expect` gets a :class:`~utils.type_check.Expr` object and evaluates it.
 When it is ``True``, it causes no error and shows nothing.
 Otherwise, this method shows a readable error message.
 
-If you want to evaluate a :class:`~utils.type_check.Expr` object, call :meth:`eval` method:
+If you want to evaluate a :class:`~utils.type_check.Expr` object, call :meth:`~utils.type_check.eval` method:
 
 .. testcode::
 
    actual_type = x_type.eval()
 
-``actual_type`` is an instance of :class:`TypeInfo`, while ``x_type`` is an instance of :class:`~utils.type_check.Expr`.
+``actual_type`` is an instance of :class:`~utils.type_check.TypeInfo`, while ``x_type`` is an instance of :class:`~utils.type_check.Expr`.
 In the same way, ``x_type.shape[0].eval()`` returns an int value.
 
 
@@ -230,7 +230,7 @@ More complicated cases
 ~~~~~~~~~~~~~~~~~~~~~~
 
 How to write a more complicated condition that can't be written with these operators?
-You can evaluate :class:`~utils.type_check.Expr` and get its result value with :meth:`eval` method.
+You can evaluate :class:`~utils.type_check.Expr` and get its result value with :meth:`~utils.type_check.eval` method.
 Then check the condition and show warning message by hand:
 
 .. testcode::

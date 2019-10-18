@@ -210,6 +210,7 @@ Mathematical functions
    chainer.functions.arcsin
    chainer.functions.arctan
    chainer.functions.arctan2
+   chainer.functions.arctanh
    chainer.functions.argmax
    chainer.functions.argmin
    chainer.functions.average
@@ -273,6 +274,7 @@ Mathematical functions
    chainer.functions.tanh
    chainer.functions.tan
    chainer.functions.tensordot
+   chainer.functions.zeta
 
 Noise injections
 ----------------

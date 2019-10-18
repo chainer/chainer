@@ -1,4 +1,5 @@
 import numpy
+import six
 
 from chainer import backend
 from chainer import function_node
@@ -15,9 +16,10 @@ class SelectorBase(function_node.FunctionNode):
         self.keepdims = keepdims
         if axis is None:
             self.axis = None
-        elif isinstance(axis, int):
+        elif isinstance(axis, six.integer_types):
             self.axis = (axis,)
-        elif isinstance(axis, tuple) and all(isinstance(a, int) for a in axis):
+        elif isinstance(axis, tuple) and all(
+                isinstance(a, six.integer_types) for a in axis):
             if len(set(axis)) != len(axis):
                 raise ValueError('duplicate value in axis: ({})'.format(
                     ', '.join(map(str, axis))))
@@ -81,6 +83,9 @@ class Max(SelectorBase):
 
 class Min(SelectorBase):
 
+    def forward_chainerx(self, x):
+        return chainerx.amin(x[0], axis=self.axis, keepdims=self.keepdims),
+
     def _fwd(self, x, xp):
         return xp.amin(x, axis=self.axis, keepdims=self.keepdims)
 
@@ -91,7 +96,7 @@ class IndexSelectorBase(function_node.FunctionNode):
     def __init__(self, axis=None):
         if axis is None:
             self.axis = None
-        elif isinstance(axis, int):
+        elif isinstance(axis, six.integer_types):
             self.axis = axis
         else:
             raise TypeError('None or int are required')
@@ -124,6 +129,9 @@ class IndexSelectorBase(function_node.FunctionNode):
 
 
 class ArgMin(IndexSelectorBase):
+
+    def forward_chainerx(self, x):
+        return chainerx.argmin(x[0], axis=self.axis).astype(numpy.int32),
 
     def _fwd(self, x, xp):
         return xp.argmin(x, axis=self.axis).astype(numpy.int32)

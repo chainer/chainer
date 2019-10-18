@@ -50,10 +50,7 @@ class ReLU(function_node.FunctionNode):
 
     def forward_gpu(self, inputs):
         x, = inputs
-        if chainer.should_use_cudnn('==always') and x.flags.c_contiguous:
-            # cupy.activation_backward requires the input.
-            # So, we retain it for backward computation.
-            self.retain_inputs((0,))
+        if chainer.should_use_cudnn('>=auto') and x.flags.c_contiguous:
             self._use_cudnn = True
             y = cudnn.activation_forward(x, _mode)
         else:
@@ -65,10 +62,9 @@ class ReLU(function_node.FunctionNode):
         gy, = grad_outputs
         y, = self.get_retained_outputs()
 
-        if chainer.should_use_cudnn('==always') and self._use_cudnn:
+        if self._use_cudnn and chainer.should_use_cudnn('>=auto'):
             # cuDNN implementation
-            x, = self.get_retained_inputs()
-            return ReLUGradCudnn(x.array, y.array).apply((gy,))
+            return ReLUGradCudnn(y.array).apply((gy,))
 
         # Generic implementation
         return ReLUGrad2(y.array).apply((gy,))
@@ -126,15 +122,13 @@ class ReLUGradCudnn(function_node.FunctionNode):
     we do not backpropagate errors toward them for computational efficiency.
     """
 
-    def __init__(self, x, y):
+    def __init__(self, y):
         super(ReLUGradCudnn, self).__init__()
-        self.x = x
         self.y = y
 
     def forward(self, inputs):
-        assert chainer.should_use_cudnn('==always')
         gy, = inputs
-        return cudnn.activation_backward(self.x, self.y, gy, _mode),
+        return cudnn.activation_backward(self.y, self.y, gy, _mode),
 
     def backward(self, indexes, grad_outputs):
         return ReLUGrad2(self.y).apply(grad_outputs)

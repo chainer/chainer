@@ -2,7 +2,9 @@
 
 #include <cublas_v2.h>
 #include <cudnn.h>
+#include <cusolverDn.h>
 
+#include <atomic>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -10,7 +12,7 @@
 #include <queue>
 #include <utility>
 
-#include <nonstd/optional.hpp>
+#include <absl/types/optional.h>
 
 #include "chainerx/array.h"
 #include "chainerx/axes.h"
@@ -18,8 +20,14 @@
 #include "chainerx/cuda/cuda_backend.h"
 #include "chainerx/cuda/cuda_conv.h"
 #include "chainerx/cuda/cudnn.h"
+#include "chainerx/cuda/cusolver.h"
 #include "chainerx/cuda/memory_pool.h"
 #include "chainerx/device.h"
+#include "chainerx/dtype.h"
+#include "chainerx/kernels/normalization.h"
+#include "chainerx/kernels/pooling.h"
+#include "chainerx/kernels/rnn.h"
+#include "chainerx/routines/normalization.h"
 #include "chainerx/routines/pooling.h"
 #include "chainerx/scalar.h"
 #include "chainerx/stack_vector.h"
@@ -37,7 +45,14 @@ class CudaConvTest;  // for unit-tests
 // Operations in this class are thread safe.
 class MemoryKeeper {
 public:
+    MemoryKeeper() = default;
+
     ~MemoryKeeper();
+
+    MemoryKeeper(const MemoryKeeper&) = delete;
+    MemoryKeeper(MemoryKeeper&&) = delete;
+    MemoryKeeper& operator=(const MemoryKeeper&) = delete;
+    MemoryKeeper& operator=(MemoryKeeper&&) = delete;
 
     // Registers a pointer to a memory chunk.
     // The memory is only freed after all preceding CUDA operations in the stream are finished.
@@ -50,22 +65,28 @@ public:
 private:
     std::mutex mutex_{};
     std::queue<std::pair<cudaEvent_t, std::shared_ptr<void>>> queue_{};
+    std::atomic<bool> is_empty_{true};
 };
 
 // Keeps handles and other device internals.
 // These internals are exposed through `GetDeviceInternals` for CUDA internal usages.
 class DeviceInternals {
 public:
+    explicit DeviceInternals(int device_index)
+        : cublas_handle_{device_index}, cudnn_handle_{device_index}, cusolverdn_handle_{device_index} {}
+
+    ~DeviceInternals() = default;
+
     DeviceInternals(const DeviceInternals&) = delete;
     DeviceInternals(DeviceInternals&&) = delete;
     DeviceInternals& operator=(const DeviceInternals&) = delete;
     DeviceInternals& operator=(DeviceInternals&&) = delete;
 
-    explicit DeviceInternals(int device_index) : cublas_handle_{device_index}, cudnn_handle_{device_index} {}
-
     cuda_internal::CublasHandle& cublas_handle() { return cublas_handle_; }
 
     cuda_internal::CudnnHandle& cudnn_handle() { return cudnn_handle_; }
+
+    cuda_internal::CusolverDnHandle& cusolverdn_handle() { return cusolverdn_handle_; }
 
     cuda_internal::CudaConv& cuda_conv() { return cuda_conv_; }
 
@@ -74,12 +95,48 @@ private:
 
     cuda_internal::CudnnHandle cudnn_handle_;
 
+    cuda_internal::CusolverDnHandle cusolverdn_handle_;
+
     cuda_internal::CudaConv cuda_conv_{};
 };
 
 DeviceInternals& GetDeviceInternals(CudaDevice& device);
 
 }  // namespace cuda_internal
+
+struct CudaBatchNormGradState : public BatchNormGradState {
+public:
+    CudaBatchNormGradState(Array x_cont, Array x_mean, Array x_inv_std, Dtype beta_dtype)
+        : x_cont_{std::move(x_cont)}, x_mean_{std::move(x_mean)}, x_inv_std_{std::move(x_inv_std)}, beta_dtype_{beta_dtype} {}
+
+    const Array& x_cont() const { return x_cont_; }
+    const Array& x_mean() const { return x_mean_; }
+    const Array& x_inv_std() const { return x_inv_std_; }
+    Dtype beta_dtype() const { return beta_dtype_; }
+
+private:
+    Array x_cont_;
+    Array x_mean_;
+    Array x_inv_std_;
+    Dtype beta_dtype_;
+};
+
+struct GenericRnnGradState : public RnnGradState {
+    GenericRnnGradState(cudnnRNNDescriptor_t rnn_desc, cudnnFilterDescriptor_t w_desc, Array w, Array reserve, Array workspace)
+        : rnn_desc_{rnn_desc}, w_desc_{w_desc}, w_{std::move(w)}, reserve_{std::move(reserve)}, workspace_{std::move(workspace)} {}
+    cudnnRNNDescriptor_t rnn_desc() { return rnn_desc_; }
+    cudnnFilterDescriptor_t wDesc() { return w_desc_; }
+    Array w() { return w_; }
+    Array reserve() { return reserve_; }
+    Array workspace() { return workspace_; }
+
+private:
+    cudnnRNNDescriptor_t rnn_desc_;
+    cudnnFilterDescriptor_t w_desc_;
+    Array w_;
+    Array reserve_;
+    Array workspace_;
+};
 
 // Pooling states are identical for most CUDA pooling ops so we define a common base class.
 class CudaPoolStateBase {
@@ -129,34 +186,6 @@ public:
 
     std::shared_ptr<void> FromHostMemory(const std::shared_ptr<void>& src_ptr, size_t bytesize) override;
 
-    // reduction.cu
-
-    void Sum(const Array& a, const Axes& axis, const Array& out) override;
-    void AMax(const Array& a, const Axes& axis, const Array& out) override;
-
-    // activation.cu
-
-    void IfLessElseASSA(const Array& x1, Scalar x2, Scalar pos, const Array& neg, const Array& out) override;
-
-    void IfGreaterElseASSA(const Array& x1, Scalar x2, Scalar pos, const Array& neg, const Array& out) override;
-    void IfGreaterElseAAAA(const Array& x1, const Array& x2, const Array& pos, const Array& neg, const Array& out) override;
-
-    void Tanh(const Array& x, const Array& out) override;
-
-    // exp_log.cu
-
-    void Exp(const Array& x, const Array& out) override;
-    void Log(const Array& x, const Array& out) override;
-
-    // misc.cu
-
-    void Square(const Array& x, const Array& out) override;
-
-    void Sqrt(const Array& x, const Array& out) override;
-
-    void IsNan(const Array& x, const Array& out) override;
-    void IsInf(const Array& x, const Array& out) override;
-
 protected:
     CudaDevice(CudaBackend& backend, int index)
         : Device{backend, index},
@@ -165,7 +194,7 @@ protected:
           device_internals_{index} {}
 
 private:
-    friend CudaDevice* cuda_internal::CreateDevice(CudaBackend&, int);
+    friend CudaDevice* cuda_internal::CreateDevice(CudaBackend& backend, int index);
 
     friend cuda_internal::DeviceInternals& cuda_internal::GetDeviceInternals(CudaDevice& device);
 

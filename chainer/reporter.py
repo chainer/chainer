@@ -3,18 +3,22 @@ import collections
 import contextlib
 import copy
 import json
+import threading
 import typing as tp  # NOQA
 import warnings
 
 import numpy
 import six
 
+import chainer
 from chainer import backend
-from chainer.backends import cuda
 from chainer import configuration
 from chainer import serializer as serializer_module
 from chainer import variable
 import chainerx
+
+
+_thread_local = threading.local()
 
 
 def _copy_variable(value):
@@ -78,11 +82,11 @@ class Reporter(object):
 
     def __enter__(self):
         """Makes this reporter object current."""
-        _reporters.append(self)
+        _get_reporters().append(self)
 
     def __exit__(self, exc_type, exc_value, traceback):
         """Recovers the previous reporter object to the current."""
-        _reporters.pop()
+        _get_reporters().pop()
 
     @contextlib.contextmanager
     def scope(self, observation):
@@ -171,12 +175,17 @@ class Reporter(object):
             self.observation.update(values)
 
 
-_reporters = []  # type: tp.Optional[tp.List[Reporter]]
+def _get_reporters():
+    try:
+        reporters = _thread_local.reporters
+    except AttributeError:
+        reporters = _thread_local.reporters = []
+    return reporters
 
 
 def get_current_reporter():
     """Returns the current reporter object."""
-    return _reporters[-1]
+    return _get_reporters()[-1]
 
 
 def report(values, observer=None):
@@ -231,8 +240,9 @@ def report(values, observer=None):
             of the observed value.
 
     """
-    if _reporters:
-        current = _reporters[-1]
+    reporters = _get_reporters()
+    if reporters:
+        current = reporters[-1]
         current.report(values, observer)
 
 
@@ -244,18 +254,11 @@ def report_scope(observation):
     except that it does not make the reporter current redundantly.
 
     """
-    current = _reporters[-1]
+    current = _get_reporters()[-1]
     old = current.observation
     current.observation = observation
     yield
     current.observation = old
-
-
-def _get_device(x):
-    if numpy.isscalar(x):
-        return cuda.DummyDevice
-    else:
-        return cuda.get_device_from_array(x)
 
 
 class Summary(object):
@@ -287,7 +290,7 @@ class Summary(object):
             # connected to the backprop graph.
             value = value.as_grad_stopped()
 
-        with _get_device(value):
+        with chainer.using_device(backend.get_device_from_array(value)):
             self._x += weight * value
             self._x2 += weight * value * value
             self._n += weight
@@ -295,7 +298,7 @@ class Summary(object):
     def compute_mean(self):
         """Computes the mean."""
         x, n = self._x, self._n
-        with _get_device(x):
+        with chainer.using_device(backend.get_device_from_array(x)):
             return x / n
 
     def make_statistics(self):
@@ -307,7 +310,7 @@ class Summary(object):
         """
         x, n = self._x, self._n
         xp = backend.get_array_module(x)
-        with _get_device(x):
+        with chainer.using_device(backend.get_device_from_array(x)):
             mean = x / n
             var = self._x2 / n - mean * mean
             std = xp.sqrt(var)

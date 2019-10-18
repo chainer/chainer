@@ -2,6 +2,7 @@ import unittest
 
 import numpy
 
+from chainer import backend
 from chainer.backends import cuda
 from chainer import distributions
 from chainer import gradient_check
@@ -68,7 +69,7 @@ class TestBernoulli(testing.distribution_unittest):
             log_prob = self.gpu_dist.log_prob(cuda.to_gpu(smp)).data
         else:
             log_prob = self.cpu_dist.log_prob(smp).data
-        xp = cuda.get_array_module(log_prob)
+        xp = backend.get_array_module(log_prob)
         if self.binary_check:
             self.assertTrue(xp.all(log_prob == -xp.inf))
         else:
@@ -87,7 +88,7 @@ class TestBernoulli(testing.distribution_unittest):
             prob = self.gpu_dist.prob(cuda.to_gpu(smp)).data
         else:
             prob = self.cpu_dist.prob(smp).data
-        xp = cuda.get_array_module(prob)
+        xp = backend.get_array_module(prob)
         if self.binary_check:
             self.assertTrue(xp.all(prob == 0))
         else:
@@ -102,16 +103,23 @@ class TestBernoulli(testing.distribution_unittest):
 
 
 @testing.parameterize(*testing.product({
-    'shape': [(2, 3), ()],
+    'logit_shape,x_shape': [
+        [(2, 3), (2, 3)],
+        [(), ()],
+        [(), (3,)]
+    ],
     'dtype': [numpy.float32, numpy.float64],
 }))
 class TestBernoulliLogProb(unittest.TestCase):
 
     def setUp(self):
-        self.logit = numpy.random.normal(size=self.shape).astype(self.dtype)
-        self.x = numpy.random.randint(0, 2, size=self.shape).astype(self.dtype)
-        self.gy = numpy.random.normal(size=self.shape).astype(self.dtype)
-        self.ggx = numpy.random.normal(size=self.shape).astype(self.dtype)
+        self.logit = numpy.random.normal(
+            size=self.logit_shape).astype(self.dtype)
+        self.x = numpy.random.randint(
+            0, 2, size=self.x_shape).astype(self.dtype)
+        self.gy = numpy.random.normal(size=self.x_shape).astype(self.dtype)
+        self.ggx = numpy.random.normal(
+            size=self.logit_shape).astype(self.dtype)
         self.backward_options = {'atol': 1e-2, 'rtol': 1e-2}
 
     def check_forward(self, logit_data, x_data):
@@ -155,6 +163,15 @@ class TestBernoulliLogProb(unittest.TestCase):
         self.check_double_backward(
             cuda.to_gpu(self.logit), cuda.to_gpu(self.x),
             cuda.to_gpu(self.gy), cuda.to_gpu(self.ggx))
+
+    def test_backward_where_logit_has_infinite_values(self):
+        self.logit[...] = numpy.inf
+        with numpy.errstate(invalid='ignore'):
+            log_prob = distributions.bernoulli._bernoulli_log_prob(
+                self.logit, self.x)
+
+        # just confirm that the backward method runs without raising error.
+        log_prob.backward()
 
 
 testing.run_module(__name__, __file__)

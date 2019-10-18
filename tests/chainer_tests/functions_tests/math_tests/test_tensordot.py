@@ -3,11 +3,8 @@ import unittest
 import numpy
 
 import chainer
-from chainer.backends import cuda
 import chainer.functions as F
-from chainer import gradient_check
 from chainer import testing
-from chainer.testing import attr
 
 
 @testing.parameterize(*testing.product_dict(
@@ -75,75 +72,49 @@ from chainer.testing import attr
         {'b_dtype': numpy.float64},
     ]
 ))
-class TestTensorDot(unittest.TestCase):
+@testing.inject_backend_tests(
+    None,
+    # CPU tests
+    [
+        {},
+    ]
+    # GPU tests
+    + testing.product({
+        'use_cuda': [True],
+        'cuda_device': [0, 1],
+    })
+    # ChainerX tests
+    + testing.product({
+        'use_chainerx': [True],
+        'chainerx_device': ['native:0', 'cuda:0', 'cuda:1']
+    })
+)
+class TestTensorDot(testing.FunctionTestCase):
 
     def setUp(self):
-        self.a = self._setup_tensor(.5, 1, self.a_shape, self.a_dtype)
-        self.b = self._setup_tensor(.5, 1, self.b_shape, self.b_dtype)
-        ret_dtype = numpy.result_type(self.a_dtype, self.b_dtype)
-        self.gc = self._setup_tensor(-1, 1, self.gc_shape, ret_dtype)
-        self.gga = self._setup_tensor(.5, 1, self.a_shape, self.a_dtype)
-        self.ggb = self._setup_tensor(.5, 1, self.b_shape, self.b_dtype)
+        if self.a_dtype == numpy.float16 or self.b_dtype == numpy.float16:
+            self.check_forward_options.update({'atol': 1e-3, 'rtol': 1e-3})
+            self.check_backward_options.update({'atol': 1e-2, 'rtol': 5e-2})
+            self.check_double_backward_options.update(
+                {'atol': 1e-2, 'rtol': 1e-2})
 
-        self.op = lambda a, b: F.tensordot(a, b, axes=self.axes)
-        self.forward_answer = numpy.tensordot(self.a, self.b, self.axes)
+    def generate_inputs(self):
+        a = self._setup_tensor(.5, 1, self.a_shape, self.a_dtype)
+        b = self._setup_tensor(.5, 1, self.b_shape, self.b_dtype)
+        return a, b
+
+    def forward_expected(self, inputs):
+        a, b = inputs
+        y_expect = numpy.tensordot(a, b, self.axes)
+        return y_expect,
+
+    def forward(self, inputs, device):
+        a, b = inputs
+        y = F.tensordot(a, b, axes=self.axes)
+        return y,
 
     def _setup_tensor(self, _min, _max, shape, dtype):
         return numpy.random.uniform(_min, _max, shape).astype(dtype)
-
-    def check_forward(self, a_data, b_data, atol=1e-4, rtol=1e-5):
-        a = chainer.Variable(a_data)
-        b = chainer.Variable(b_data)
-        c = self.op(a, b)
-        testing.assert_allclose(self.forward_answer, c.data, atol, rtol)
-
-    def test_tensordot_forward_cpu(self):
-        if self.a.dtype == numpy.float16 or self.b.dtype == numpy.float16:
-            self.check_forward(self.a, self.b, atol=1e-3, rtol=1e-3)
-        else:
-            self.check_forward(self.a, self.b)
-
-    @attr.gpu
-    def test_tensordot_forward_gpu(self):
-        a = cuda.to_gpu(self.a)
-        b = cuda.to_gpu(self.b)
-        if self.a.dtype == numpy.float16 or self.b.dtype == numpy.float16:
-            self.check_forward(a, b, atol=1e-3, rtol=1e-3)
-        else:
-            self.check_forward(a, b)
-
-    def check_backward(self, a_data, b_data, c_grad, atol, rtol):
-        gradient_check.check_backward(
-            self.op, (a_data, b_data), c_grad, atol=atol, rtol=rtol,
-            dtype=numpy.float32)
-
-    def test_tensordot_backward_cpu(self):
-        self.check_backward(self.a, self.b, self.gc, atol=1e-2, rtol=5e-2)
-
-    @attr.gpu
-    def test_tensordot_backward_gpu(self):
-        self.check_backward(
-            cuda.to_gpu(self.a), cuda.to_gpu(self.b),
-            cuda.to_gpu(self.gc), atol=1e-2, rtol=1e-2)
-
-    def check_double_backward(
-            self, a_data, b_data, y_grad, a_grad_grad, b_grad_grad,
-            atol, rtol):
-        gradient_check.check_double_backward(
-            self.op, (a_data, b_data), y_grad, (a_grad_grad, b_grad_grad),
-            atol=atol, rtol=rtol, dtype=numpy.float32)
-
-    def test_tensordot_double_backward_cpu(self):
-        self.check_double_backward(
-            self.a, self.b, self.gc, self.gga, self.ggb,
-            atol=1e-2, rtol=5e-2)
-
-    @attr.gpu
-    def test_tensordot_double_backward_gpu(self):
-        self.check_double_backward(
-            cuda.to_gpu(self.a), cuda.to_gpu(self.b),
-            cuda.to_gpu(self.gc), cuda.to_gpu(self.gga),
-            cuda.to_gpu(self.ggb), atol=1e-2, rtol=1e-2)
 
 
 class TestTensorDotInvalid(unittest.TestCase):

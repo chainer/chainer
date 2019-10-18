@@ -23,8 +23,11 @@ class IntervalTrigger(object):
     """
 
     def __init__(self, period, unit):
+        if unit not in ('epoch', 'iteration'):
+            raise ValueError(
+                'Trigger unit must be either \'epoch\' or \'iteration\'.')
+
         self.period = period
-        assert unit == 'epoch' or unit == 'iteration'
         self.unit = unit
 
         self._previous_iteration = 0
@@ -108,3 +111,13 @@ class IntervalTrigger(object):
 
     def get_training_length(self):
         return (self.period, self.unit)
+
+    def __str__(self):
+        """Returns a string describing the class and interval
+
+        Returns:
+            str: IntervalTrigger(<period>, '<unit>')
+        """
+        return '{}({}, \'{}\')'.format(
+            self.__class__.__name__, self.period, self.unit
+        )

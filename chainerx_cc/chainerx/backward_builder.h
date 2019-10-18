@@ -56,10 +56,13 @@ class RetainedArrayToken {
 public:
     RetainedArrayToken(internal::ArrayBody::Params array_params, size_t index) : array_params_{std::move(array_params)}, index_{index} {}
 
+    ~RetainedArrayToken() = default;
+
     RetainedArrayToken(const RetainedArrayToken&) = default;
-    RetainedArrayToken(RetainedArrayToken&&) = default;
+    RetainedArrayToken(RetainedArrayToken&&) noexcept = default;
     RetainedArrayToken& operator=(const RetainedArrayToken&) = default;
-    RetainedArrayToken& operator=(RetainedArrayToken&&) = default;
+    // TODO(hvy): Make the move assignment operator noexcept.
+    RetainedArrayToken& operator=(RetainedArrayToken&&) = default;  // NOLINT(performance-noexcept-move-constructor)
 
 private:
     friend class chainerx::BackwardContext;
@@ -132,6 +135,11 @@ public:
         : BackwardBuilder{op_name, std::vector<ConstArrayRef>{input}, std::vector<ConstArrayRef>{output}} {}
     ~BackwardBuilder() { CHAINERX_ASSERT(is_finalized_); }
 
+    BackwardBuilder(const BackwardBuilder&) = delete;
+    BackwardBuilder(BackwardBuilder&&) noexcept = default;
+    BackwardBuilder& operator=(const BackwardBuilder&) = delete;
+    BackwardBuilder& operator=(BackwardBuilder&&) = delete;
+
     // Creates a backward target for the specified inputs.
     Target CreateTarget(std::vector<size_t> input_indices) {
         // input_indices shouldn't have duplicates.
@@ -160,6 +168,8 @@ public:
     // TODO(hvy): Write comment.
     RetainedInputToken RetainInput(size_t input_index);
 
+    std::vector<RetainedInputToken> RetainInput(std::vector<size_t> indices);
+
     // Flags an output array to be retained for use in the backward pass.
     // Op implementations can use this function in combination with BackwardContext::GetRetainedOutput() to retrieve output arrays in the
     // backward pass.
@@ -176,6 +186,7 @@ public:
     // `output` must be one of the arrays specified in the constructor of BackwardBuilder as output arrays.
     // If invalid array is specified, ChainerxError will be thrown.
     RetainedOutputToken RetainOutput(size_t output_index);
+    std::vector<RetainedOutputToken> RetainOutput(std::vector<size_t> indices);
 
     // Finalizes the builder.
     //

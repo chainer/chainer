@@ -4,6 +4,8 @@
 #include <stdexcept>
 #include <string>
 
+#include <gsl/gsl>
+
 #include "chainerx/native/native_device.h"
 
 namespace chainerx {
@@ -33,6 +35,11 @@ std::unique_ptr<Device> NativeBackend::CreateDevice(int index) {
 
 bool NativeBackend::SupportsTransfer(Device& src_device, Device& dst_device) {
     return &src_device.backend() == this && &dst_device.backend() == this;
+}
+
+KernelRegistry& NativeBackend::GetGlobalKernelRegistry() {
+    static gsl::owner<KernelRegistry*> global_kernel_registry = new KernelRegistry{};
+    return *global_kernel_registry;
 }
 
 }  // namespace native

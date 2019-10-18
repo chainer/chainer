@@ -1,4 +1,5 @@
 import numpy
+import six
 
 import chainer
 from chainer import configuration
@@ -72,8 +73,8 @@ class BatchNormalization(link.Link):
         may have a slightly different behavior on inference. To emulate the
         old behavior, pass ``initial_avg_var=0`` for training.
 
-    See: `Batch Normalization: Accelerating Deep Network Training by Reducing\
-          Internal Covariate Shift <https://arxiv.org/abs/1502.03167>`_
+    See: `Batch Normalization: Accelerating Deep Network Training by Reducing
+    Internal Covariate Shift <https://arxiv.org/abs/1502.03167>`_
 
     .. seealso::
        :func:`~chainer.functions.batch_normalization`,
@@ -207,7 +208,7 @@ class BatchNormalization(link.Link):
         self.register_persistent('N')
         self.decay = decay
         self.eps = eps
-        if isinstance(axis, int):
+        if isinstance(axis, six.integer_types):
             axis = (axis,)
         self.axis = axis
         self._highprec_dtype = chainer.get_dtype(
@@ -274,7 +275,7 @@ class BatchNormalization(link.Link):
         input using batch statistics.
 
         Args:
-            x (Variable): Input variable.
+            x (~chainer.Variable): Input variable.
             finetune (bool): If it is in the training mode and ``finetune`` is
                 ``True``, BatchNormalization runs in fine-tuning mode; it
                 accumulates the input array to compute population statistics

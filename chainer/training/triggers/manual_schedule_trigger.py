@@ -26,7 +26,10 @@ class ManualScheduleTrigger(object):
     """
 
     def __init__(self, points, unit):
-        assert unit == 'epoch' or unit == 'iteration'
+        if unit not in ('epoch', 'iteration'):
+            raise ValueError(
+                'Trigger unit must be either \'epoch\' or \'iteration\'.')
+
         self.points = (points if isinstance(points, list) else [points])
         self.unit = unit
         self.finished = False
@@ -124,8 +127,8 @@ class ManualScheduleTrigger(object):
             self.finished = serializer('finished', self.finished)
         except KeyError:
             warnings.warn(
-                'The flag of finished is not saved.'
-                'ManualScheduleTrigger set the flag to `False` to force'
+                'The flag of finished is not saved. '
+                'ManualScheduleTrigger set the flag to `False` to force '
                 'initialization and reset in next `__call__`.')
             # set False to force initialization.
             self.finished = False

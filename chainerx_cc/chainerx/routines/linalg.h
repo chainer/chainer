@@ -1,24 +1,38 @@
 #pragma once
 
-#include <nonstd/optional.hpp>
+#include <tuple>
+
+#include <absl/types/optional.h>
 
 #include "chainerx/array.h"
 #include "chainerx/dtype.h"
-#include "chainerx/op.h"
 
 namespace chainerx {
 
-// Matrix multiplication. All the operands are matrices (i.e., two-dimensional arrays).
-// Let the shapes of `a` and `b` be `(M, K)` and `(L, N)`, respectively.
-// Then, it must hold that `K == L` and the shape of `out` must be `(M, N)`.
-// Otherwise, the behavior is undefined.
-class DotOp : public Op {
-public:
-    static const char* name() { return "Dot"; }
+Array Dot(const Array& a, const Array& b, absl::optional<Dtype> out_dtype = absl::nullopt);
 
-    virtual void Call(const Array& a, const Array& b, const Array& out) = 0;
+Array Solve(const Array& a, const Array& b);
+
+Array Inverse(const Array& a);
+
+std::tuple<Array, Array, Array> Svd(const Array& a, bool full_matrices, bool compute_uv);
+
+Array PseudoInverse(const Array& a, float rcond);
+
+enum class QrMode {
+    // if K = min(M, N), where `a` of shape (M, N)
+    kReduced,  // returns q, r with dimensions (M, K), (K, N) (default)
+    kComplete,  // returns q, r with dimensions (M, M), (M, N)
+    kR,  // returns empty q and r with dimensions (0, 0), (K, N)
+    kRaw  // returns h, tau with dimensions (N, M), (K, 1)
 };
 
-Array Dot(const Array& a, const Array& b, nonstd::optional<Dtype> out_dtype = nonstd::nullopt);
+std::tuple<Array, Array> Qr(const Array& a, QrMode mode);
+
+Array Cholesky(const Array& a);
+
+std::tuple<Array, Array> Eigh(const Array& a, char uplo);
+
+Array Eigvalsh(const Array& a, char uplo);
 
 }  // namespace chainerx

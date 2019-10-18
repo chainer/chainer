@@ -161,7 +161,7 @@ class CaffeFunction(link.Chain):
                     meth(self, layer)
                 else:
                     warnings.warn(
-                        'Skip the layer "%s", since CaffeFunction does not'
+                        'Skip the layer "%s", since CaffeFunction does not '
                         'support %s layer' % (layer.name, layer.type))
         else:  # v1 format
             for layer in net.layers:
@@ -170,7 +170,7 @@ class CaffeFunction(link.Chain):
                     meth(self, layer)
                 else:
                     warnings.warn(
-                        'Skip the layer "%s", since CaffeFunction does not'
+                        'Skip the layer "%s", since CaffeFunction does not '
                         'support it' % layer.name)
 
     def forward(self, inputs, outputs, disable=(), **kwargs):
@@ -587,7 +587,7 @@ def _get_height(blob):
         return blob.shape.dim[2]
     else:
         raise RuntimeError(
-            '{}-dimentional array is not supported'.format(
+            '{}-dimensional array is not supported'.format(
                 len(blob.shape.dim)))
 
 
@@ -600,7 +600,7 @@ def _get_width(blob):
         return blob.shape.dim[3]
     else:
         raise RuntimeError(
-            '{}-dimentional array is not supported'.format(
+            '{}-dimensional array is not supported'.format(
                 len(blob.shape.dim)))
 
 

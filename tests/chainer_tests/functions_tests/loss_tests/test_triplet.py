@@ -21,10 +21,13 @@ from chainer.testing import attr
 class TestTriplet(unittest.TestCase):
 
     def setUp(self):
+        # Sample differentiable inputs
         eps = 1e-3
+        if self.dtype == numpy.float16:
+            eps = 1e-2
+
         x_shape = (self.batchsize, self.input_dim)
 
-        # Sample differentiable inputs
         while True:
             self.a = numpy.random.uniform(-1, 1, x_shape).astype(self.dtype)
             self.p = numpy.random.uniform(-1, 1, x_shape).astype(self.dtype)
@@ -52,8 +55,7 @@ class TestTriplet(unittest.TestCase):
         if self.dtype == numpy.float16:
             self.check_forward_options = {'rtol': 5e-3, 'atol': 5e-3}
             self.check_backward_options = {'rtol': 5e-2, 'atol': 5e-2}
-            self.check_double_backward_options = {
-                'dtype': numpy.float64, 'rtol': 1e-3, 'atol': 1e-3}
+            self.check_double_backward_options = {'rtol': 5e-2, 'atol': 5e-2}
         elif self.dtype == numpy.float32:
             self.check_forward_options = {'rtol': 1e-4, 'atol': 1e-4}
             self.check_backward_options = {'rtol': 5e-4, 'atol': 5e-4}
@@ -132,7 +134,7 @@ class TestTriplet(unittest.TestCase):
         gradient_check.check_double_backward(
             f, (a_data, p_data, n_data), gy_data,
             (gga_data, ggp_data, ggn_data),
-            **self.check_double_backward_options)
+            dtype=numpy.float64, **self.check_double_backward_options)
 
     def test_double_backward_cpu(self):
         self.check_double_backward(

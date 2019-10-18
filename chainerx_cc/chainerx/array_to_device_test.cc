@@ -4,8 +4,8 @@
 #include <string>
 #include <vector>
 
+#include <absl/types/optional.h>
 #include <gtest/gtest.h>
-#include <nonstd/optional.hpp>
 
 #include "chainerx/array.h"
 #include "chainerx/backend.h"
@@ -131,7 +131,7 @@ protected:
     Device& GetDestinationDevice() { return backends_[dst_backend_num_].get().GetDevice(0); }
 
 private:
-    nonstd::optional<testing::ContextSession> context_session_;
+    absl::optional<testing::ContextSession> context_session_;
     std::unique_ptr<DeviceScope> device_scope_;
     std::vector<std::reference_wrapper<Backend>> backends_;
     int default_backend_num_{};

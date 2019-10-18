@@ -4,9 +4,15 @@
 This code is ported from the following implementation written in Torch.
 https://github.com/tomsercu/lstm
 
+Note for contributors:
+This example code is referred to from the "RNN Language Models" tutorial.
+If this file is to be modified, please also update the line numbers in
+`docs/source/examples/ptb.rst` accordingly.
+
 """
 from __future__ import division
 import argparse
+import sys
 
 import numpy as np
 
@@ -15,6 +21,7 @@ import chainer.functions as F
 import chainer.links as L
 from chainer import training
 from chainer.training import extensions
+import chainerx
 
 
 # Definition of a recurrent net for language modeling
@@ -50,18 +57,22 @@ class RNNForLM(chainer.Chain):
 class ParallelSequentialIterator(chainer.dataset.Iterator):
 
     def __init__(self, dataset, batch_size, repeat=True):
+        super(ParallelSequentialIterator, self).__init__()
         self.dataset = dataset
         self.batch_size = batch_size  # batch size
+        self.repeat = repeat
+        length = len(dataset)
+        # Offsets maintain the position of each sequence in the mini-batch.
+        self.offsets = [i * length // batch_size for i in range(batch_size)]
+        self.reset()
+
+    def reset(self):
         # Number of completed sweeps over the dataset. In this case, it is
         # incremented if every word is visited at least once after the last
         # increment.
         self.epoch = 0
         # True if the epoch is incremented at the last iteration.
         self.is_new_epoch = False
-        self.repeat = repeat
-        length = len(dataset)
-        # Offsets maintain the position of each sequence in the mini-batch.
-        self.offsets = [i * length // batch_size for i in range(batch_size)]
         # NOTE: this is not a count of parameter updates. It is just a count of
         # calls of ``__next__``.
         self.iteration = 0
@@ -153,7 +164,7 @@ class BPTTUpdater(training.updaters.StandardUpdater):
             x, t = self.converter(batch, self.device)
 
             # Compute the loss at this time step and accumulate it
-            loss += optimizer.target(chainer.Variable(x), chainer.Variable(t))
+            loss += optimizer.target(x, t)
 
         optimizer.target.cleargrads()  # Clear the parameter gradients
         loss.backward()  # Backprop
@@ -178,8 +189,11 @@ def main():
                              '(= length of truncated BPTT)')
     parser.add_argument('--epoch', '-e', type=int, default=39,
                         help='Number of sweeps over the dataset to train')
-    parser.add_argument('--gpu', '-g', type=int, default=-1,
-                        help='GPU ID (negative value indicates CPU)')
+    parser.add_argument('--device', '-d', type=str, default='-1',
+                        help='Device specifier. Either ChainerX device '
+                        'specifier or an integer. If non-negative integer, '
+                        'CuPy arrays with specified device id are used. If '
+                        'negative integer, NumPy arrays are used')
     parser.add_argument('--gradclip', '-c', type=float, default=5,
                         help='Gradient norm threshold to clip')
     parser.add_argument('--out', '-o', default='result',
@@ -193,7 +207,18 @@ def main():
                         help='Number of LSTM units in each layer')
     parser.add_argument('--model', '-m', default='model.npz',
                         help='Model file name to serialize')
+    group = parser.add_argument_group('deprecated arguments')
+    group.add_argument('--gpu', '-g', dest='device',
+                       type=int, nargs='?', const=0,
+                       help='GPU ID (negative value indicates CPU)')
     args = parser.parse_args()
+
+    device = chainer.get_device(args.device)
+    if device.xp is chainerx:
+        sys.stderr.write('This example does not support ChainerX devices.\n')
+        sys.exit(1)
+
+    device.use()
 
     # Load the Penn Tree Bank long word sequence dataset
     train, val, test = chainer.datasets.get_ptb_words()
@@ -213,10 +238,7 @@ def main():
     rnn = RNNForLM(n_vocab, args.unit)
     model = L.Classifier(rnn)
     model.compute_accuracy = False  # we only want the perplexity
-    if args.gpu >= 0:
-        # Make a specified GPU current
-        chainer.backends.cuda.get_device_from_id(args.gpu).use()
-        model.to_gpu()
+    model.to_device(device)
 
     # Set up an optimizer
     optimizer = chainer.optimizers.SGD(lr=1.0)
@@ -224,13 +246,13 @@ def main():
     optimizer.add_hook(chainer.optimizer_hooks.GradientClipping(args.gradclip))
 
     # Set up a trainer
-    updater = BPTTUpdater(train_iter, optimizer, args.bproplen, args.gpu)
+    updater = BPTTUpdater(train_iter, optimizer, args.bproplen, device)
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), out=args.out)
 
     eval_model = model.copy()  # Model with shared params and distinct states
     eval_rnn = eval_model.predictor
     trainer.extend(extensions.Evaluator(
-        val_iter, eval_model, device=args.gpu,
+        val_iter, eval_model, device=device,
         # Reset the RNN state at the beginning of each evaluation
         eval_hook=lambda _: eval_rnn.reset_state()))
 
@@ -253,7 +275,7 @@ def main():
     # Evaluate the final model
     print('test')
     eval_rnn.reset_state()
-    evaluator = extensions.Evaluator(test_iter, eval_model, device=args.gpu)
+    evaluator = extensions.Evaluator(test_iter, eval_model, device=device)
     result = evaluator()
     print('test perplexity: {}'.format(np.exp(float(result['main/loss']))))
 

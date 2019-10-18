@@ -1,24 +1,26 @@
 #pragma once
 
 #include "chainerx/array.h"
-#include "chainerx/op.h"
 #include "chainerx/scalar.h"
 
 namespace chainerx {
 
-class FillOp : public Op {
-public:
-    static const char* name() { return "Fill"; }
+Array Sqrt(const Array& x);
 
-    virtual void Call(const Array& out, Scalar value) = 0;
-};
+Array Square(const Array& x);
 
-// Casts the elements from one array to the other dtype, and store into the other.
-class AsTypeOp : public Op {
-public:
-    static const char* name() { return "AsType"; }
+Array Absolute(const Array& x);
 
-    virtual void Call(const Array& a, const Array& out) = 0;
-};
+Array Fabs(const Array& x);
+
+Array Sign(const Array& x);
+
+Array Maximum(const Array& x1, Scalar x2);
+Array Maximum(Scalar x1, const Array& x2);
+Array Maximum(const Array& x1, const Array& x2);
+
+Array Minimum(const Array& x1, Scalar x2);
+Array Minimum(Scalar x1, const Array& x2);
+Array Minimum(const Array& x1, const Array& x2);
 
 }  // namespace chainerx

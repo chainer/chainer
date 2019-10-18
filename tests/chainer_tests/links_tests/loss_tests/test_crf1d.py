@@ -1,7 +1,8 @@
+import itertools
 import unittest
 
-import itertools
 import numpy
+from six import moves
 
 import chainer
 from chainer.backends import cuda
@@ -14,6 +15,7 @@ from chainer.testing import attr
 @testing.parameterize(*testing.product({
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'initial_cost': ['random', None],
+    'transpose': [True, False],
 }))
 class TestCRF1d(unittest.TestCase):
     def _calc_score(self, batch, ys):
@@ -53,7 +55,7 @@ class TestCRF1d(unittest.TestCase):
         self.cost_shape = (self.n_label, self.n_label)
 
         if self.dtype == numpy.float16:
-            self.check_forward_options = {'atol': 5e-3}
+            self.check_forward_options = {'rtol': 5e-3, 'atol': 1e-2}
         else:
             self.check_forward_options = {'atol': 1e-4}
 
@@ -61,7 +63,21 @@ class TestCRF1d(unittest.TestCase):
         self._config_user.__exit__(None, None, None)
 
     def check_forward(self, x_data, t_data):
-        x = self.link(x_data, t_data)
+        if self.transpose:
+            # Make transposed arrays manually
+            xs = [self.link.xp.empty((l, 3), dtype=self.dtype)
+                  for l in self.lengths]
+            ts = [self.link.xp.empty((l,), dtype=numpy.int32)
+                  for l in self.lengths]
+            for i, batch in enumerate(self.batches):
+                for j in moves.range(batch):
+                    xs[j][i] = x_data[i][j]
+                    ts[j][i] = t_data[i][j]
+        else:
+            xs = x_data
+            ts = t_data
+
+        x = self.link(xs, ts, transpose=self.transpose)
         t = self._crf1d(self.link.cost.array, x_data, t_data)
         testing.assert_allclose(x.array, t,
                                 **self.check_forward_options)
@@ -71,7 +87,8 @@ class TestCRF1d(unittest.TestCase):
 
     @attr.gpu
     def test_forward_gpu(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.check_forward(cuda.to_gpu(self.xs), cuda.to_gpu(self.ys))
 
 
@@ -110,7 +127,8 @@ class TestInitialization(unittest.TestCase):
 
     @attr.gpu
     def test_param_gpu(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.check_param()
 
 
