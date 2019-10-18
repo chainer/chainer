@@ -129,22 +129,22 @@ class MultiHeadAttention(link.Chain):
             self.proj_out_b = self.out_proj.b
 
             if not nobias_kv:
-                self.bias_k: variable.Variable = variable.Parameter(
+                self.bias_k = variable.Parameter(
                     _initial_bias, (self.embedding_size,))
-                self.bias_v: variable.Variable = variable.Parameter(
+                self.bias_v = variable.Parameter(
                     _initial_bias, (self.embedding_size,))
             else:
                 self.bias_k, self.bias_v = None, None
 
     def forward(
             self,
-            query,  # type: InputType
-            key=None,  # type: tp.Optional[InputType]
-            value=None,  # : tp.Optional[InputType]
-            key_padding_mask=None,  # type: tp.Optional[InputType]
-            attention_mask=None,  # type: tp.Optional[InputType]
+            query,                    # type: InputType
+            key=None,                 # type: tp.Optional[InputType]
+            value=None,               # type: tp.Optional[InputType]
+            key_padding_mask=None,    # type: tp.Optional[InputType]
+            attention_mask=None,      # type: tp.Optional[InputType]
             add_zero_attention=None,  # type: tp.Optional[InputType]
-            return_weights=False  # type: tp.Optional[InputType]
+            return_weights=False      # type: tp.Optional[InputType]
     ):
         # type: (...) -> tp.Union[tp.Tuple[variable.Variable, variable.Variable], variable.Variable]  # NOQA
         """Compute attention weight and context vector.
