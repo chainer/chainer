@@ -122,8 +122,7 @@ class SoftmaxCrossEntropy(function_node.FunctionNode):
         y = chainerx.softmax_cross_entropy(x, t)
         if self.reduce == 'mean':
             return y.mean(),
-        else:
-            return y,
+        return y,
 
     def forward_cpu(self, inputs):
         class_weight = backend.from_chx(self.class_weight)

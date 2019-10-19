@@ -40,6 +40,7 @@ import chainerx
         'normalize': [True, False],
         'weight_apply': [True, False],
         'shape_ignore': ['special',
+                         ((2, 3), (0,)),
                          ((2, 3, 2, 2), (0, 1, 0))],
         'dtype': [numpy.float32],
         'label_dtype': [numpy.int32],

@@ -388,7 +388,7 @@ class TestCustomizedInputShape(ONNXModelTest):
                 h4 = self.l2(h3)
                 return F.relu(h4)
 
-        def check_input_shape(onnx_model):
+        def check_input_shape(onnx_model, path):
             assert [v.type.tensor_type.shape.dim[0] == 'b' for
                     v in onnx_model.graph.input]
             assert [v.type.tensor_type.shape.dim[0] == 'b' for
