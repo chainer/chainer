@@ -808,6 +808,13 @@ Returns:
     :class:`~chainerx.ndarray`: Output array. Cholesky factor of ``a``.
 
 Note:
+    This functions assumes that ``a`` is symmetric and is undefined otherwise.
+
+Note:
+    The computed gradient is a symmetric matrix and not an upper/lower
+    triangular matrix.
+
+Note:
     * GPU implementation of the Cholesky decomposition routine is based on
       cuSOLVER library. Older versions (<10.1) of it might not raise an error
       for some non positive-definite matrices.
@@ -833,6 +840,10 @@ Returns:
         Returns a tuple ``(w, v)``. ``w`` contains eigenvalues and
         ``v`` contains eigenvectors. ``v[:, i]`` is an eigenvector
         corresponding to an eigenvalue ``w[i]``.
+
+Note:
+    The computed gradient is a symmetric matrix and not an upper/lower
+    triangular matrix.
 
 Note:
     The ``dtype`` must be ``float32`` or ``float64`` (``float16`` is not
