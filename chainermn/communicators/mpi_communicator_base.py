@@ -717,6 +717,8 @@ class MpiCommunicatorBase(communicator_base.CommunicatorBase):
 
         if is_float16:
             xp = chainer.backend.get_array_module(recvbuf)
+            # chainerx is planning to support copyto
+            # https://github.com/chainer/chainer/pull/7521
             xp.copyto(recvbuf, array_b32.astype(numpy.float16), casting='no')
 
         print("multi_node_mean(): (2) recvbuf={}".format(recvbuf))

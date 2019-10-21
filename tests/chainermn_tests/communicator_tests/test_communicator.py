@@ -468,7 +468,7 @@ def check_collective_communication(param, use_gpu, use_chx):
 
 # chainer.testing.parameterize is not available at functions
 @pytest.mark.parametrize('param', cpu_params)
-@pytest.mark.parametrize('use_chx', [True])
+@pytest.mark.parametrize('use_chx', [True, False])
 def test_communicator_cpu(param, use_chx):
     check_send_recv(param, False, use_chx)
     check_collective_communication(param, False, use_chx)
@@ -483,7 +483,7 @@ def test_communicator_gpu(param, use_chx):
 
 
 @pytest.mark.parametrize('param', gpu_mixed_dtype_params)
-@pytest.mark.parametrize('use_chx', [False])  # Leave False for now
+@pytest.mark.parametrize('use_chx', [True, False])
 @chainer.testing.attr.gpu
 def test_mixed_dtype_communicator_gpu(param, use_chx):
     model = ExampleMixedModel()
