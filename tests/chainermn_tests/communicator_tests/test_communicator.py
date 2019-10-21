@@ -21,7 +21,7 @@ from chainermn.communicators.non_cuda_aware_communicator \
 from chainermn.communicators.pure_nccl_communicator \
     import PureNcclCommunicator
 from chainermn import nccl
-from chainermn.util import get_device
+import chainermn.testing
 
 
 class ExampleModel(chainer.Chain):
@@ -82,77 +82,77 @@ gpu_params = [Param(p) for p in [
     {
         'communicator_class': NaiveCommunicator,
         'multi_node': True,
-    #}, {
-    #    'communicator_class': NaiveCommunicator,
-    #    'model_dtype': np.float16,
-    #    'multi_node': True,
-    #}, {
-    #    'communicator_class': FlatCommunicator,
-    #    'multi_node': True,
-    #}, {
-    #    'communicator_class': FlatCommunicator,
-    #    'model_dtype': np.float16,
-    #    'multi_node': True,
-    #}, {
-    #     'communicator_class': NonCudaAwareCommunicator,
+    # }, {
+    #     'communicator_class': NaiveCommunicator,
+    #     'model_dtype': np.float16,
     #     'multi_node': True,
+    }, {
+        'communicator_class': FlatCommunicator,
+        'multi_node': True,
+    # }, {
+    #     'communicator_class': FlatCommunicator,
+    #     'model_dtype': np.float16,
+    #     'multi_node': True,
+    }, {
+        'communicator_class': NonCudaAwareCommunicator,
+        'multi_node': True,
     # }, {
     #     'communicator_class': NonCudaAwareCommunicator,
     #     'model_dtype': np.float16,
     #     'multi_node': False,
+    }, {
+        'communicator_class': PureNcclCommunicator,
+        'multi_node': True,
+        'nccl1': False,
+    }, {
+        'communicator_class': PureNcclCommunicator,
+        'multi_node': True,
+        'nccl1': False,
+        'allreduce_grad_dtype': np.float16,
     # }, {
-    #    'communicator_class': PureNcclCommunicator,
-    #    'multi_node': True,
-    #    'nccl1': False,
-    #}, {
-    #    'communicator_class': PureNcclCommunicator,
-    #    'multi_node': True,
-    #    'nccl1': False,
-    #    'allreduce_grad_dtype': np.float16,
-    #}, {
-    #    'communicator_class': PureNcclCommunicator,
-    #    'multi_node': True,
-    #    'nccl1': False,
-    #    'model_dtype': np.float16,
-    #    'allreduce_grad_dtype': np.float16,
-    #}, {
-    #    'communicator_class': PureNcclCommunicator,
-    #    'multi_node': True,
-    #    'nccl1': False,
-    #    'model_dtype': np.float64,
-    #    'allreduce_grad_dtype': np.float64,
-    #}, {
-    #    'communicator_class': PureNcclCommunicator,
-    #    'multi_node': True,
-    #    'nccl1': False,
-    #    'model_dtype': np.float16,
-    #    'allreduce_grad_dtype': np.float16,
-    #}, {
-    #    'communicator_class': PureNcclCommunicator,
-    #    'multi_node': True,
-    #    'nccl1': False,
-    #    'model_dtype': np.float16,
-    #    'allreduce_grad_dtype': np.float32,
-    #}, {
-    #    'communicator_class': PureNcclCommunicator,
-    #    'multi_node': True,
-    #    'nccl1': False,
-    #    'model_dtype': np.float32,
-    #    'allreduce_grad_dtype': np.float32,
-    #}, {
-    #    'communicator_class': PureNcclCommunicator,
-    #    'multi_node': True,
-    #    'nccl1': False,
-    #    'model_dtype': np.float32,
-    #    'allreduce_grad_dtype': np.float16,
+    #     'communicator_class': PureNcclCommunicator,
+    #     'multi_node': True,
+    #     'nccl1': False,
+    #     'model_dtype': np.float16,
+    #     'allreduce_grad_dtype': np.float16,
+    # }, {
+    #     'communicator_class': PureNcclCommunicator,
+    #     'multi_node': True,
+    #     'nccl1': False,
+    #     'model_dtype': np.float64,
+    #     'allreduce_grad_dtype': np.float64,
+    # }, {
+    #     'communicator_class': PureNcclCommunicator,
+    #     'multi_node': True,
+    #     'nccl1': False,
+    #     'model_dtype': np.float16,
+    #     'allreduce_grad_dtype': np.float16,
+    # }, {
+    #     'communicator_class': PureNcclCommunicator,
+    #     'multi_node': True,
+    #     'nccl1': False,
+    #     'model_dtype': np.float16,
+    #     'allreduce_grad_dtype': np.float32,
+    }, {
+        'communicator_class': PureNcclCommunicator,
+        'multi_node': True,
+        'nccl1': False,
+        'model_dtype': np.float32,
+        'allreduce_grad_dtype': np.float32,
+    }, {
+        'communicator_class': PureNcclCommunicator,
+        'multi_node': True,
+        'nccl1': False,
+        'model_dtype': np.float32,
+        'allreduce_grad_dtype': np.float16,
     }]]
 
 
 gpu_mixed_dtype_params = [Param(p) for p in [
     {
-    #     'communicator_class': NonCudaAwareCommunicator,
-    #     'multi_node': True,
-    # }, {
+        'communicator_class': NonCudaAwareCommunicator,
+        'multi_node': True,
+    }, {
         'communicator_class': NaiveCommunicator,
         'multi_node': True,
     }, {
@@ -177,7 +177,7 @@ for global_dtype in [np.float32, np.float16, chainer.mixed16, None]:
 mpi_comm = mpi4py.MPI.COMM_WORLD
 
 
-def create_communicator(param, use_gpu):
+def create_communicator(param, use_gpu, use_chx):
     if not param.multi_node:
         ranks = _communication_utility.init_ranks(mpi_comm)
         inter_size = ranks[4]
@@ -202,7 +202,7 @@ def create_communicator(param, use_gpu):
         assert param.allreduce_grad_dtype == value
 
     if use_gpu:
-        chainer.cuda.get_device_from_id(communicator.intra_rank).use()
+        chainermn.testing.get_device(communicator.intra_rank, use_chx).use()
 
     return communicator
 
@@ -253,8 +253,6 @@ def check_multi_node_mean_grad(communicator, model):
     # We need to repeat twice for regressions on lazy initialization of
     # sub communicators.
 
-    print("communicator={}".format(communicator))
-
     for _ in range(2):
         model.a.W.grad[:] = communicator.rank
         model.b.W.grad[:] = communicator.rank + 1
@@ -263,12 +261,6 @@ def check_multi_node_mean_grad(communicator, model):
         communicator.multi_node_mean_grad(model)
         base = (communicator.size - 1.0) / 2
 
-        print("model.a.W.grad = ", flush=True)
-        print(model.a.W.grad, flush=True)
-        print("model.b.W.grad = ", flush=True)
-        print(model.b.W.grad, flush=True)
-        print("model.c.b.grad = ", flush=True)
-        print(model.c.b.grad, flush=True)
         chainer.testing.assert_allclose(model.a.W.grad,
                                         (base + 0) * np.ones((3, 2)))
         chainer.testing.assert_allclose(model.b.W.grad,
@@ -327,8 +319,8 @@ def check_multi_node_mean_grad_empty_half(communicator, model):
                                         v * np.ones((5, )))
 
 
-def check_send_recv(param, use_gpu):
-    communicator = create_communicator(param, use_gpu)
+def check_send_recv(param, use_gpu, use_chx=False):
+    communicator = create_communicator(param, use_gpu, use_chx)
 
     assert mpi_comm.Get_rank() == communicator.rank
     assert mpi_comm.Get_size() == communicator.size
@@ -393,7 +385,10 @@ def check_multi_node_mean_grad_mixed_dtype(param, model, use_gpu, use_chx):
         else:
             answer_dtype = np.float16
 
-    model.to_device(get_device(communicator.intra_rank, use_chx))
+    if use_gpu:
+        device = chainermn.testing.get_device(communicator.intra_rank,
+                                              use_chainerx=use_chx)
+        model.to_device(device)
 
     model.a.W.grad[:] = communicator.rank
     model.b.W.grad[:] = communicator.rank + 1
@@ -431,29 +426,33 @@ def check_multi_node_mean_grad_mixed_dtype(param, model, use_gpu, use_chx):
 
 
 def check_collective_communication(param, use_gpu, use_chx):
-    communicator = create_communicator(param, use_gpu)
+    communicator = create_communicator(param, use_gpu, use_chx)
     mpi_comm.barrier()
 
     model = ExampleModel(param.model_dtype)
-    model.to_device(get_device(communicator.intra_rank, use_chx))
+    if use_gpu:
+        device = chainermn.testing.get_device(communicator.intra_rank, use_chx)
+    else:
+        device = chainermn.testing.get_device(use_chainerx=use_chx)
+
+    model.to_device(device)
     check_bcast_data(communicator, model)
 
     model = ExampleModel(param.model_dtype)
-    model.to_device(get_device(communicator.intra_rank, use_chx))
+    model.to_device(device)
     check_multi_node_mean_grad(communicator, model)
 
     model = ExampleModel(param.model_dtype)
-    model.to_device(get_device(communicator.intra_rank, use_chx))
-    if not use_chx:  # TODO(kfukuda)
-        check_multi_node_mean_grad_empty(communicator, model)
+    model.to_device(device)
+    check_multi_node_mean_grad_empty(communicator, model)
+
     model = ExampleModel(param.model_dtype)
-    model.to_device(get_device(communicator.intra_rank, use_chx))
-    if not use_chx: # TODO(kfukuda)
-        check_multi_node_mean_grad_empty_half(communicator, model)
+    model.to_device(device)
+    check_multi_node_mean_grad_empty_half(communicator, model)
 
     # Check allreduce debug mode
     model = ExampleModel()
-    model.to_device(get_device(communicator.intra_rank, use_chx))
+    model.to_device(device)
     # The example model includes some nan parameters so the debug mode
     # must detect it.
     chainer.set_debug(True)
@@ -471,7 +470,7 @@ def check_collective_communication(param, use_gpu, use_chx):
 @pytest.mark.parametrize('param', cpu_params)
 @pytest.mark.parametrize('use_chx', [True])
 def test_communicator_cpu(param, use_chx):
-    check_send_recv(param, False)
+    check_send_recv(param, False, use_chx)
     check_collective_communication(param, False, use_chx)
 
 
