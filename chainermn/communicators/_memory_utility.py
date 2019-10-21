@@ -14,6 +14,19 @@ except Exception:
     _cupy_avail = False
 
 
+def _get_memory_pointer_from_chainerx(array):
+    # Currently, ChainerMN requires CuPy to support ChainerX.
+    # This is because ChainerX's backend does not provide a raw
+    # memory pointer class.
+    return cp.cuda.MemoryPointer(
+        cp.cuda.UnownedMemory(
+            array.data_ptr + array.offset,
+            array.data_size,
+            array,
+            array.device.index),
+        0)
+
+
 class ParamsData(object):
     def __init__(self, params, attr_name, zero_fill):
         n_params = len(params)
@@ -26,7 +39,17 @@ class ParamsData(object):
             if attr_name == 'grad' and v is None and zero_fill:
                 v = param.xp.zeros_like(param.data)
                 setattr(param, attr_name, v)
-            params_dptr[i] = v.data.ptr
+            xp = chainer.backend.get_array_module(v)
+
+            if xp == cp:
+                v_data = v.data
+            elif xp == chx:
+                v_data = _get_memory_pointer_from_chainerx(v)
+            else:
+                raise ValueError(
+                    '{} is from an unsupported array module'.format(type(v)))
+
+            params_dptr[i] = v_data.ptr
             if v.dtype not in [np.float16, np.float32, np.float64]:
                 raise ValueError('dtype must be float16, float32 or float64.')
             params_dtype[i] = _communication_utility._get_nccl_type_id(v.dtype)
@@ -82,25 +105,13 @@ class DeviceMemory(object):
             self.size = size
             self.memory = cp.cuda.alloc(size)
 
-    def _get_memory_pointer_from_chainerx(self, array):
-        # Currently, ChainerMN requires CuPy to support ChainerX.
-        # This is because ChainerX's backend does not provide a raw
-        # memory pointer class.
-        return cp.cuda.MemoryPointer(
-            cp.cuda.UnownedMemory(
-                array.data_ptr + array.offset,
-                array.data_size,
-                array,
-                array.device.index),
-            0)
-
     def from_device(self, src, size, offset=0, stream=None):
         dst = self.memory + offset
         xp = chainer.backend.get_array_module(src)
         if xp == cp:
             src_data = src.data
         elif xp == chx:
-            src_data = self._get_memory_pointer_from_chainerx(src)
+            src_data = _get_memory_pointer_from_chainerx(src)
         else:
             raise ValueError(
                 '{} is from an unsupported array module'.format(type(src)))
@@ -115,7 +126,7 @@ class DeviceMemory(object):
         if xp == cp:
             dst_data = dst.data
         elif xp == chx:
-            dst_data = self._get_memory_pointer_from_chainerx(dst)
+            dst_data = _get_memory_pointer_from_chainerx(dst)
         else:
             raise ValueError(
                 '{} is from an unsupported array module'.format(type(dst)))
@@ -214,18 +225,7 @@ def array_to_buffer_object(array, mpi_dtype=mpi4py.MPI.FLOAT):
 
 def get_device_memory_pointer(array):
     xp = chainer.backend.get_array_module(array)
-
-    if xp == chx:
-        # This procedure is necesasry to avoid a bug
-        # https://github.com/chainer/chainer/issues/8259
-        # TODO(kfukuda): after the bug is fixed, remove this `if` block
-        pass
-        #--------------------------
-        # device = array.device
-        # array = xp.ascontiguousarray(array)
-        # array = array.to_device(device)
-    else:
-        array = xp.ascontiguousarray(array)
+    array = xp.ascontiguousarray(array)
 
     if xp is np:
         return array
