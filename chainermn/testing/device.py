@@ -10,7 +10,7 @@ def get_device(device_id=None, use_chainerx=False):
     (numpy, cupy, chainerx+native, chainerx+cuda). This utility function
     is a boilerplate to get device object in ChainerMN contexts.
     """
-    if device_id:
+    if device_id is not None:
         if use_chainerx:
             device = 'cuda:{}'.format(device_id)
         else:

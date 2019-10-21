@@ -94,20 +94,31 @@ class GeneralBatchNormalizationImpl(_BatchNormalizationImpl):
 
     def backward(self, axis, gamma, gy, x, xp,
                  expander, mean, inv_std, eps, var):
+        interm_dtype = numpy.promote_types(x.dtype, gamma.dtype)
+        if isinstance(gy, intel64.mdarray):
+            # intel64.mdarray does not support dtype option in sum, so we
+            # convert it to numpy here.
+            gy = numpy.asarray(gy)
+
         x_hat = _x_hat(x, mean[expander],
-                       inv_std[expander]).astype(x.dtype, copy=False)
+                       inv_std[expander])
+        assert x_hat.dtype == interm_dtype
         gbeta, ggamma = self.get_ggamma_and_gbeta(axis, gamma, gy, x_hat, xp)
 
         inv_m = gamma.dtype.type(1. / (x.size // gamma.size))
         if xp is numpy:
+            if (isinstance(gamma, intel64.mdarray)
+                    and interm_dtype != numpy.float32):
+                # Convert to numpy to avoid an error of "mkldnn::error"
+                gamma = numpy.asarray(gamma)
             gx = (gamma * inv_std)[expander] * (
                 gy - (x_hat * ggamma[expander] + gbeta[expander]) * inv_m)
             gx = gx.astype(dtype=x.dtype, copy=False)
         else:
-            # inv_std has a promoted type of x and gamma
+            # x_hat and inv_std have a promoted type of x and gamma
             gx = cuda.elementwise(
                 '''
-                T gy, T x_hat, U gamma, X inv_std, U ggamma, U gbeta,
+                T gy, X x_hat, U gamma, X inv_std, U ggamma, U gbeta,
                 U inv_m
                 ''',
                 'T gx',
@@ -122,20 +133,9 @@ class GeneralBatchNormalizationImpl(_BatchNormalizationImpl):
         return gx, ggamma, gbeta
 
 
-class _IDeepBatchNormalizationImpl(GeneralBatchNormalizationImpl):
-    _forward_fallback = False   # True if forward falls back to numpy impl.
-
+class _IDeepBatchNormalizationImpl(_BatchNormalizationImpl):
     def forward(self, axis, gamma, x, xp, expander,
                 beta, eps, decay, running_mean, running_var):
-        if not (
-                x.dtype == gamma.dtype
-                and gamma.ndim == 1
-                and intel64.inputs_all_ready((x,))):
-            self._forward_fallback = True
-            return super().forward(
-                axis, gamma, x, xp, expander, beta, eps, decay,
-                running_mean, running_var)
-
         expand_dim = False
         if x.ndim == 2:
             expand_dim = True
@@ -179,20 +179,6 @@ class _IDeepBatchNormalizationImpl(GeneralBatchNormalizationImpl):
 
     def backward(self, axis, gamma, gy, x, xp,
                  expander, mean, inv_std, eps, var):
-        if self._forward_fallback:
-            # intel64.mdarray does not support dtype option in sum, so we
-            # convert it to numpy here.
-            if isinstance(gy, intel64.mdarray):
-                gy = numpy.asarray(gy)
-
-            # Convert to numpy to avoid an error of "mkldnn::error"
-            if (isinstance(gamma, intel64.mdarray)
-                    and gy.dtype == numpy.float64
-                    and gamma.dtype == numpy.float32):
-                gamma = numpy.asarray(gamma)
-            return super().backward(
-                axis, gamma, gy, x, xp, expander, mean, inv_std, eps, var)
-
         expand_dim = False
         if x.ndim == 2:
             expand_dim = True
@@ -279,16 +265,15 @@ def _compute_key_axis(x_ndim, gamma_ndim=1, axis=None):
 
 
 def _impl_selector(batch_norm_func, inputs):
-    use_ideep = any([isinstance(a, intel64.mdarray) for a in inputs])
-    if use_ideep:
-        return _IDeepBatchNormalizationImpl()
-
     x, gamma, _ = inputs
     xp = backend.get_array_module(x)
     mode = _BNMode(x, gamma, batch_norm_func.key_axis)
     use_cudnn = mode.can_use_cudnn(xp)
+    use_ideep = mode.can_use_ideep()
 
-    if use_cudnn:
+    if use_ideep:
+        return _IDeepBatchNormalizationImpl()
+    elif use_cudnn:
         return _CudnnBatchNormalizationImpl(mode.is_for_conv2d,
                                             mode.get_cudnn_mode())
     else:

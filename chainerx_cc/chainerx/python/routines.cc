@@ -126,13 +126,12 @@ void InitChainerxCreation(pybind11::module& m) {
           "dtype"_a = nullptr,
           "device"_a = nullptr);
     m.def("ascontiguousarray",
-          [](py::handle a, py::handle dtype, py::handle device) {
-              Array arr{MakeArray(a, dtype, false, device)};
-              return MoveArrayBody(AsContiguousArray(arr));
+          [](const ArrayBodyPtr& a, py::handle dtype) {
+              Array arr{a};
+              return MoveArrayBody(AsContiguousArray(arr, dtype.is_none() ? arr.dtype() : GetDtype(dtype)));
           },
           "a"_a,
-          "dtype"_a = nullptr,
-          "device"_a = nullptr);
+          "dtype"_a = nullptr);
     m.def("empty",
           [](py::handle shape, py::handle dtype, py::handle device) {
               return MoveArrayBody(Empty(ToShape(shape), dtype.is_none() ? Dtype::kFloat32 : GetDtype(dtype), GetDevice(device)));
@@ -262,16 +261,8 @@ void InitChainerxCreation(pybind11::module& m) {
           "k"_a = 0,
           "dtype"_a = "float64",
           "device"_a = nullptr);
-    m.def("diag",
-          [](const ArrayBodyPtr& v, int64_t k, py::handle device) { return MoveArrayBody(Diag(Array{v}, k, GetDevice(device))); },
-          "v"_a,
-          "k"_a = 0,
-          "device"_a = nullptr);
-    m.def("diagflat",
-          [](const ArrayBodyPtr& v, int64_t k, py::handle device) { return MoveArrayBody(Diagflat(Array{v}, k, GetDevice(device))); },
-          "v"_a,
-          "k"_a = 0,
-          "device"_a = nullptr);
+    m.def("diag", [](const ArrayBodyPtr& v, int64_t k) { return MoveArrayBody(Diag(Array{v}, k)); }, "v"_a, "k"_a = 0);
+    m.def("diagflat", [](const ArrayBodyPtr& v, int64_t k) { return MoveArrayBody(Diagflat(Array{v}, k)); }, "v"_a, "k"_a = 0);
     m.def("linspace",
           [](Scalar start, Scalar stop, int64_t num, bool endpoint, py::handle dtype, py::handle device) {
               return MoveArrayBody(Linspace(

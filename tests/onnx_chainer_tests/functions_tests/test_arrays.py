@@ -419,7 +419,7 @@ class TestDynamicReshape(ONNXModelTest):
         x = input_generator.increasing(3, 4, 5)
         shape = np.array([12, 5], dtype=np.int64)
 
-        def check_no_param(onnx_model):
+        def check_no_param(onnx_model, path):
             assert not any(['param' in v.name for v in onnx_model.graph.input])
 
         self.expect(model, (x, shape), custom_model_test_func=check_no_param)

@@ -1,5 +1,4 @@
 import onnx
-from packaging import version
 
 
 __func_name = None  # not care the name is unique on whole graph
@@ -134,4 +133,11 @@ def cleanse_param_name(name):
 def is_support_non_standard_domain():
     # from ONNX 1.5, skip schema check on ops in non-standard domain
     # see: https://github.com/onnx/onnx/pull/1876
-    return version.parse(onnx.__version__) >= version.parse('1.5')
+    # this checker expects onnx adapts semantic versioning
+    versions = onnx.__version__.split('.')
+    if len(versions) < 2 or (not versions[1].isdecimal()):
+        raise RuntimeError(
+            'ONNX-Chainer cannot get major and minor version ONNX module: '
+            '{}'.format(onnx.__version__))
+    major, minor = versions[0], versions[1]
+    return major == '1' and int(minor) >= 5
