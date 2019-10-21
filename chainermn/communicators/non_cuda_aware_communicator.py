@@ -1,6 +1,7 @@
 import warnings
 
 import chainer.cuda
+import chainerx
 import math
 import mpi4py.MPI
 import numpy as np
@@ -71,7 +72,12 @@ class NonCudaAwareCommunicator(mpi_communicator_base.MpiCommunicatorBase):
                 if is_float16:
                     tmp_cpu = tmp_cpu.astype(np.float16)
 
-                tmp_gpu = chainer.cuda.to_gpu(tmp_cpu)
+                xp = chainer.backend.get_array_module(data)
+                if xp == chainerx:
+                    # create the chainerx ndarray
+                    tmp_gpu = chainerx.array(tmp_cpu, device=data.device)
+                else:
+                    tmp_gpu = chainer.cuda.to_gpu(tmp_cpu)
                 data[:] = tmp_gpu
 
     def multi_node_mean_grad(self, model, zero_fill=False):
