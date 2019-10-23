@@ -105,6 +105,24 @@ std::vector<Array> ArrayBodiesToArrays(std::vector<ArrayBodyPtr> array_bodies) {
     return arrays;
 }
 
+CastingMode ParseCastingMode(const std::string& casting) {
+    CastingMode mode{};
+    if (casting == "no") {
+        mode = CastingMode::kNo;
+    } else if (casting == "equiv") {
+        throw NotImplementedError{"'equiv' casting is not yet implemented."};
+    } else if (casting == "safe") {
+        throw NotImplementedError{"'safe' casting is not yet implemented."};
+    } else if (casting == "same_kind") {
+        throw NotImplementedError{"'same_kind' casting is not yet implemented."};
+    } else if (casting == "unsafe") {
+        throw NotImplementedError{"'unsafe' casting is not yet implemented."};
+    } else {
+        throw py::value_error{"Casting must be one of 'no', 'equiv', 'safe', 'same_kind', or 'unsafe'."};
+    }
+    return mode;
+}
+
 void InitChainerxCreation(pybind11::module& m) {
     // creation routines
     // TODO(niboshi): Accept CuPy ndarray in `array` and `asarray`. In principle it's CuPy's responsibility to provide some standard
@@ -819,27 +837,21 @@ void InitChainerxManipulation(pybind11::module& m) {
           "source"_a = nullptr,
           "destination"_a = nullptr);
     m.def("copyto",
-          [](const ArrayBodyPtr& dst, const ArrayBodyPtr& src, const std::string& casting, py::handle where) {
-              CastingMode mode{};
-              if (casting == "no") {
-                  mode = CastingMode::kNo;
-              } else {
-                  throw py::value_error{"casting must be 'no'"};
-              }
-
-              if (py::isinstance<ArrayBody>(where)) {
-                  CopyTo(Array{dst}, Array{src}, mode, Array{py::cast<ArrayBodyPtr>(where)});
-                  return;
-              } else if (py::isinstance<py::bool_>(where)) {
-                  CopyTo(Array{dst}, Array{src}, mode, Full({}, py::cast<bool>(where), Dtype::kBool));
-                  return;
-              }
-              throw py::value_error{"where must be either an array of bool or a bool"};
+          [](const ArrayBodyPtr& dst, const ArrayBodyPtr& src, const std::string& casting, Scalar where) {
+              CopyTo(Array{dst}, Array{src}, ParseCastingMode(casting), Full({}, where, Dtype::kBool));
           },
           "dst"_a,
           "src"_a,
           "casting"_a = "no",
           "where"_a = true);
+    m.def("copyto",
+          [](const ArrayBodyPtr& dst, const ArrayBodyPtr& src, const std::string& casting, const ArrayBodyPtr& where) {
+              CopyTo(Array{dst}, Array{src}, ParseCastingMode(casting), Array{where});
+          },
+          "dst"_a,
+          "src"_a,
+          "casting"_a = "no",
+          "where"_a);
 }
 
 void InitChainerxActivation(pybind11::module& m) {

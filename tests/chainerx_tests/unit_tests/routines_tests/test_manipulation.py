@@ -1553,7 +1553,7 @@ def test_moveaxis_invalid(xp, shape, source, dst):
     # Boolean where values
     + chainer.testing.product({
         'dst_shape,src_shape,where_shape': [((2, 3), (2, 3), None)],
-        'where': [True, False],
+        'where': [True, False, 2, 1.2],
         'in_dtypes': [(('float32', 'float32'), 'float32')],
         'casting': ['no'],
     })
@@ -1606,6 +1606,13 @@ class TestCopyTo(op_utils.NumpyOpTest):
         xp.copyto(dst, src, **kwargs)
 
         return dst,
+
+
+def test_copyto_invalid_casting():
+    a = array_utils.create_dummy_ndarray(chainerx, (2, 3), 'float32')
+    b = array_utils.create_dummy_ndarray(chainerx, (3,), 'float32')
+    with pytest.raises(ValueError):
+        chainerx.copyto(a, b, casting='some_invalid_casting')
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
