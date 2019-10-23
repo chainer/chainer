@@ -646,7 +646,7 @@ class MpiCommunicatorBase(communicator_base.CommunicatorBase):
                 buf = _memory_utility.array_to_buffer_object(data)
                 self.mpi_comm.Bcast(buf)
                 if is_float16:
-                    # use array as updating to .data directly
+                    # update to array as updating to .data directly
                     # is not supported in ChainerX
                     param.array[...] = data.astype(numpy.float16)
 
