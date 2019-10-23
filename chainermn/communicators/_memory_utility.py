@@ -211,7 +211,8 @@ def unpack_params(params, attr_name, buffer,
         buffer.to_device(v, size, offset, stream)
         offset += size
         if grad_dtype != transfer_dtype:
-            setattr(param, attr_name, v.astype(grad_dtype))
+            # avoid using setattr as ChainerX array cannot be directly updated
+            getattr(param, attr_name)[...] = v.astype(grad_dtype)
 
 
 def array_to_buffer_object(array, mpi_dtype=mpi4py.MPI.FLOAT):

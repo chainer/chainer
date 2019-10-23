@@ -715,10 +715,7 @@ class MpiCommunicatorBase(communicator_base.CommunicatorBase):
         self.mpi_comm.Allreduce(buffer_a, buffer_b)
 
         if is_float16:
-            xp = chainer.backend.get_array_module(recvbuf)
-            # chainerx is planning to support copyto
-            # https://github.com/chainer/chainer/pull/7521
-            xp.copyto(recvbuf, array_b32.astype(numpy.float16), casting='no')
+            recvbuf[...] = array_b32.astype(numpy.float16)
 
         recvbuf *= 1.0 / self.mpi_comm.size
 
