@@ -284,6 +284,25 @@ def _random_condition(shape, dtype):
     return pos * mask
 
 
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('shape,indices,axis', [
+    # Invalid: Index out of bounds
+    ((2, 3), [1, 1], 0),
+    ((2, 3, 4), [0, 1, 1], 1),
+])
+def test_take_non_contiguous(device, shape, indices, axis):
+    a = numpy.random.uniform(-1, 1, shape).astype('float32')
+    indices = numpy.array(indices).astype(numpy.int32)
+    chx_a = chainerx.array(a).astype('float32')
+    a = numpy.transpose(a, axes=range(chx_a.ndim)[::-1])
+    chx_a = chainerx.transpose(chx_a, axes=range(chx_a.ndim)[::-1])
+    assert(not chx_a.is_contiguous)
+    chx_indices = chainerx.array(indices).astype(numpy.int32)
+    chx_out = chainerx.take(chx_a, chx_indices, axis)
+    np_out = numpy.take(a, indices, axis)
+    numpy.testing.assert_array_equal(chx_out, np_out)
+
+
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
     # Special shapes
