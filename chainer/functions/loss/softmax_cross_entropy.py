@@ -109,22 +109,19 @@ class SoftmaxCrossEntropy(function_node.FunctionNode):
         return True
 
     def forward_chainerx(self, inputs):
+        if self.reduce == 'mean' and self.normalize:
+            x, t = inputs
+            n_classes = x.shape[1]
+            score = chainerx.log_softmax(x, axis=1)
+            mask = (t[:, chainerx.newaxis] == chainerx.arange(
+                n_classes, dtype=t.dtype, device=x.device)).astype(score.dtype)
+            y = (score * mask).sum() * (-1 / mask.sum())
+            return y,
+
         x, t = inputs
-        n_classes = x.shape[1]
-        score = chainerx.log_softmax(x, axis=1)
-        mask = (t[:, chainerx.newaxis] == chainerx.arange(
-            n_classes, dtype=t.dtype, device=x.device)).astype(score.dtype)
-
-        neg_log_p = -score * mask
+        y = chainerx.softmax_cross_entropy(x, t)
         if self.reduce == 'mean':
-            if self.normalize:
-                count = mask.sum()
-            else:
-                count = x.shape[0]
-            y = neg_log_p.sum() * (1 / count)
-        else:
-            y = neg_log_p.sum(axis=1)
-
+            return y.mean(),
         return y,
 
     def forward_cpu(self, inputs):

@@ -933,6 +933,10 @@ def softmax(
         x: ndarray,
         axis: tp.Optional[tp.Union[int, tp.List[int]]]=None) -> ndarray: ...
 
+def softmax_cross_entropy(
+        x1: ndarray,
+        x2: ndarray) -> ndarray: ...
+
 def softplus(x: ndarray, beta: double=1.0) -> ndarray: ...
 
 def split(

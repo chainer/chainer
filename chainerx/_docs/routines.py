@@ -1228,6 +1228,27 @@ Note:
     array to the input array ``x1`` only.
 """)
 
+    _docs.set_doc(
+        chainerx.softmax_cross_entropy,
+        """softmax_cross_entropy(x1, x2)
+
+Element-wise cross entropy loss for pre-softmax activations.
+
+Args:
+    x1 (~chainerx.ndarray): An array whose element indicates unnormalized log
+        probability: the first axis of the array represents the number of
+        samples, and the second axis represents the number of classes.
+    x2 (~chainerx.ndarray): A signed integer vector of ground truth labels. If
+        ``x2[i] == -1``, corresponding ``x1[i]`` is ignored.
+
+Returns:
+    :class:`~chainerx.ndarray`: An array of the cross entropy.
+
+Note:
+    During backpropagation, this function propagates the gradient of the output
+    array to the input array ``x1`` only.
+""")
+
 
 def _docs_manipulation():
     _docs.set_doc(
