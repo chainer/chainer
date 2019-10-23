@@ -126,6 +126,12 @@ class TestConvolutionND(testing.LinkTestCase):
         testing.assert_allclose(y_data1, y_data2, atol=0, rtol=0)
 
     def test_from_params(self, backend_config):
+        if (
+                (backend_config.use_cuda and
+                 backend_config.cuda_device == 1) or
+                (backend_config.use_chainerx and
+                 'cuda' in backend_config.chainerx_device)):
+            raise unittest.SkipTest()
         link1 = self.create_link(self.generate_params())
         link1.to_device(backend_config.device)
 

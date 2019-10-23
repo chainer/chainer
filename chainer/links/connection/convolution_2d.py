@@ -199,6 +199,9 @@ nobias=False, *, dilate=1, groups=1)
                 Input channel size ``in_channels`` and output channel size
                 ``out_channels`` must be exactly divisible by this value.
         """
+        # TODO(crcrpar): Support the below conditions.
+        # - W (and b) of cupy on non-default GPUs like id=1.
+        # - W (and b) of chainerx on cuda.
         dilate, groups = argument.parse_kwargs(
             kwargs, ('dilate', 1), ('groups', 1))
         out_channels, _in_channels, kw, kh = W.shape

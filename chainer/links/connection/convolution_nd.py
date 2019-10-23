@@ -180,6 +180,9 @@ nobias=False, *, cover_all=False, dilate=1, groups=1)
                 The number of groups to use grouped convolution.
                 The default is one, where grouped convolution is not used.
         """
+        # TODO(crcrpar): Support the below conditions.
+        # - W (and b) of cupy on non-default GPUs like id=1.
+        # - W (and b) of chainerx on cuda.
         cover_all, dilate, groups = argument.parse_kwargs(
             kwargs, ('cover_all', False), ('dilate', 1), ('groups', 1))
         out_channels, _in_channels, *ksize = W.shape
