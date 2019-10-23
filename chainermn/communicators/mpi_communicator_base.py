@@ -2,7 +2,6 @@ import mpi4py
 import numpy
 
 import chainer
-import chainerx
 import chainer.backends
 import chainer.utils
 from chainer.utils import collections_abc

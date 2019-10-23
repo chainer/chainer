@@ -5,7 +5,6 @@ import pytest
 import unittest
 
 import chainer
-from chainer.backends.cuda import cupy
 import chainer.initializers
 import chainer.links
 import chainer.testing
@@ -487,7 +486,6 @@ def test_communicator_gpu(param, use_chx):
 
 @pytest.mark.parametrize('param', gpu_mixed_dtype_params)
 @pytest.mark.parametrize('use_chx', [False])
-# @pytest.mark.parametrize('use_chx', [True, False])
 @chainer.testing.attr.gpu
 def test_mixed_dtype_communicator_gpu(param, use_chx):
     model = ExampleMixedModel()
