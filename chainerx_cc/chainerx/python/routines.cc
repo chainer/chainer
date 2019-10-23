@@ -617,12 +617,27 @@ void InitChainerxManipulation(pybind11::module& m) {
           "source"_a = nullptr,
           "destination"_a = nullptr);
     m.def("copyto",
-          [](const ArrayBodyPtr& dst, const ArrayBodyPtr& src, const ArrayBodyPtr& condition) {
-              CopyTo(Array{dst}, Array{src}, Array{condition});
+          [](const ArrayBodyPtr& dst, const ArrayBodyPtr& src, const std::string& casting, py::handle where) {
+              CastingMode mode{};
+              if (casting == "no") {
+                  mode = CastingMode::kNo;
+              } else {
+                  throw py::value_error{"casting must be 'no'"};
+              }
+
+              if (py::isinstance<ArrayBody>(where)) {
+                  CopyTo(Array{dst}, Array{src}, mode, Array{py::cast<ArrayBodyPtr>(where)});
+                  return;
+              } else if (py::isinstance<py::bool_>(where)) {
+                  CopyTo(Array{dst}, Array{src}, mode, Full({}, py::cast<bool>(where), Dtype::kBool));
+                  return;
+              }
+              throw py::value_error{"where must be either an array of bool or a bool"};
           },
           "dst"_a,
           "src"_a,
-          "condition"_a);
+          "casting"_a = "no",
+          "where"_a = true);
 }
 
 void InitChainerxMath(pybind11::module& m) {

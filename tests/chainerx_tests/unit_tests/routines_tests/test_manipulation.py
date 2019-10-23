@@ -1267,61 +1267,78 @@ def test_moveaxis_invalid(xp, shape, source, dst):
     return xp.moveaxis(a, source, dst)
 
 
-same_dtypes = [
-    dtypes for dtypes in dtype_utils.result_dtypes_two_arrays
-    if dtypes[0][0] == dtypes[0][1]]
-
-
 @op_utils.op_test(['native:0', 'cuda:0'])
-@chainer.testing.parameterize_pytest('dst_shape,src_shape,cond_shape', [
-    # Same Shapes
-    ((2, 3), (2, 3), (2, 3)),
-    # Broadcast Shapes
-    ((2, 3), (1, 3), (1, 3)),
-    ((2, 3), (2, 1), (1, 3)),
-    ((2, 3), (2, 3), (1, 3)),
-    ((4, 5), (4, 1), (1, 5)),
-    ((1, 4, 5), (1, 4, 1), (1, 1, 5)),
-])
-@chainer.testing.parameterize_pytest(
-    'in_dtypes,out_dtype', same_dtypes
-)
-@chainer.testing.parameterize_pytest(
-    'condition_dtype', chainerx.testing.all_dtypes)
+@chainer.testing.parameterize(*(
+    chainer.testing.product({'dst_shape,src_shape,where_shape': [
+        # Same Shapes
+        ((2, 3), (2, 3), (2, 3)),
+        # Broadcast Shapes
+        ((2, 3), (1, 3), (1, 3)),
+        ((2, 3), (2, 1), (1, 3)),
+        ((2, 3), (2, 3), (1, 3)),
+        ((4, 5), (4, 1), (1, 5)),
+        ((1, 4, 5), (1, 4, 1), (1, 1, 5)),
+        ((2, 3), (2, 3), (2, 3)),
+        # Omit where
+        ((2, 3), (2, 3), None),
+    ],
+        'in_dtypes,out_dtype': dtype_utils.result_numeric_dtypes_two_arrays,
+        'casting': ['no'],
+        'where': [None],
+    })
+    # Boolean where values
+    + chainer.testing.product({
+        'dst_shape,src_shape,where_shape': [((2, 3), (2, 3), None)],
+        'where': [True, False],
+        'in_dtypes': [(('float32', 'float32'), 'float32')],
+        'casting': ['no'],
+    })
+))
 class TestCopyTo(op_utils.NumpyOpTest):
 
+    skip_backward_test = True
+    skip_double_backward_test = True
     check_numpy_strides_compliance = False
 
-    def setup(self):
-        (x_dtype, y_dtype) = self.in_dtypes
-        if numpy.dtype(x_dtype).kind != 'f' or \
-           numpy.dtype(y_dtype).kind != 'f':
-            self.skip_backward_test = True
-            self.skip_double_backward_test = True
-
-        if x_dtype == 'float16' or y_dtype == 'float16':
-            self.check_backward_options.update({'rtol': 1e-3, 'atol': 1e-3})
+    forward_accept_errors = (TypeError, chainerx.DtypeError)
 
     def generate_inputs(self):
-        (x_dtype, y_dtype) = self.in_dtypes
+        dst_dtype, src_dtype = self.in_dtypes
 
-        # self.dst as input arrays can't change.
-        self.dst = array_utils.uniform(self.dst_shape, x_dtype)
-        src = array_utils.uniform(self.src_shape, y_dtype)
-        condition = numpy.random.uniform(0, 1, size=self.cond_shape)
-        self.condition = (condition > 0.5).astype(self.condition_dtype)
-        return src,
+        dst = array_utils.uniform(self.dst_shape, dst_dtype)
+        src = array_utils.uniform(self.src_shape, src_dtype)
+
+        if self.where_shape is not None:
+            where = numpy.random.uniform(0, 1, size=self.where_shape)
+            where = where > 0.5
+            return dst, src, where
+        return dst, src
 
     def forward_xp(self, inputs, xp):
-        src, = inputs
-        condition = xp.array(self.condition)
-        src = xp.array(src)
-        dst = xp.array(self.dst)
-
-        print(src.dtype, dst.dtype, self.in_dtypes)
-        if xp is numpy:
-            xp.copyto(dst, src, where=condition)
+        if self.where_shape is not None:
+            dst, src, where = inputs
         else:
-            xp.copyto(dst, src, condition)
-        o = dtype_utils.cast_if_numpy_array(xp, dst, self.out_dtype)
-        return o,
+            dst, src = inputs
+
+        if xp is chainerx:
+            dst = dst.as_grad_stopped().copy()
+            src = src.as_grad_stopped()
+            if self.where_shape is not None:
+                where = where.as_grad_stopped()
+        else:
+            dst = dst.copy()
+
+        # For testing boolean where.
+        if self.where is not None:
+            assert self.where_shape is None
+            where = self.where
+
+        kwargs = {}
+        if self.casting is not None:
+            kwargs['casting'] = self.casting
+        if self.where is not None or self.where_shape is not None:
+            kwargs['where'] = where
+
+        xp.copyto(dst, src, **kwargs)
+
+        return dst,

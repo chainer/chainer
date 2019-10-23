@@ -73,6 +73,10 @@ Array DStack(const std::vector<Array>& arrays);
 
 Array Moveaxis(const Array& a, const Axes& source, const Axes& destination);
 
-void CopyTo(const Array& dst, const Array& src, const Array& condition);
+enum class CastingMode {
+    kNo,
+};
+
+void CopyTo(const Array& dst, const Array& src, CastingMode casting, const Array& where);
 
 }  // namespace chainerx
