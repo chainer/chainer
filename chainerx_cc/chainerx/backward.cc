@@ -112,7 +112,6 @@ std::unordered_map<OpNode*, std::vector<uint8_t>> CreateSubgraph(
         // Initialize op node queue starting from outputs.
         for (const std::shared_ptr<ArrayNode>& array_node : output_array_nodes) {
             if (array_node != nullptr) {
-                forward_op_nodes.emplace(array_node.get(), nullptr);  // Outputs have no forward op nodes.
                 const std::shared_ptr<OpNode>& op_node = array_node->creator_op_node();
                 if (op_node != nullptr) {
                     PushNodeIfNotSeen(candidate_op_nodes, op_node.get(), seen_op_nodes);
@@ -162,26 +161,24 @@ std::unordered_map<OpNode*, std::vector<uint8_t>> CreateSubgraph(
             // A single array node could have been an input to multiple op nodes.
             while (it_op_node != forward_op_nodes.end()) {
                 OpNode* op_node = it_op_node->second;
-                if (op_node != nullptr) {  // If array node is not an output.
-                    std::vector<uint8_t>& flags = input_required_flags[op_node];
-                    if (flags.empty()) {
-                        flags.resize(op_node->input_array_node_count());
-                    }
+                std::vector<uint8_t>& flags = input_required_flags[op_node];
+                if (flags.empty()) {
+                    flags.resize(op_node->input_array_node_count());
+                }
 
-                    const std::vector<std::shared_ptr<ArrayNode>>& input_array_nodes = op_node->input_array_nodes();
-                    for (size_t i_input = 0; i_input < op_node->input_array_node_count(); ++i_input) {
-                        if (input_array_nodes[i_input].get() == array_node) {
-                            flags[i_input] = static_cast<int8_t>(true);
-                            // Cannot break since the same inputs may appear more than once in an op node.
-                        }
+                const std::vector<std::shared_ptr<ArrayNode>>& input_array_nodes = op_node->input_array_nodes();
+                for (size_t i_input = 0; i_input < op_node->input_array_node_count(); ++i_input) {
+                    if (input_array_nodes[i_input].get() == array_node) {
+                        flags[i_input] = static_cast<int8_t>(true);
+                        // Cannot break since the same inputs may appear more than once in an op node.
                     }
+                }
 
-                    for (const absl::optional<std::weak_ptr<ArrayNode>>& output_array_node : op_node->output_array_nodes()) {
-                        if (output_array_node.has_value()) {
-                            if (std::shared_ptr<ArrayNode> out = output_array_node->lock()) {
-                                if (PushNodeIfNotSeen(candidate_input_array_nodes, out.get(), seen_array_nodes)) {
-                                    candidate_input_array_nodes_keep_alive.emplace_back(std::move(out));
-                                }
+                for (const absl::optional<std::weak_ptr<ArrayNode>>& output_array_node : op_node->output_array_nodes()) {
+                    if (output_array_node.has_value()) {
+                        if (std::shared_ptr<ArrayNode> out = output_array_node->lock()) {
+                            if (PushNodeIfNotSeen(candidate_input_array_nodes, out.get(), seen_array_nodes)) {
+                                candidate_input_array_nodes_keep_alive.emplace_back(std::move(out));
                             }
                         }
                     }
