@@ -12,6 +12,7 @@ from chainer.testing.helper import assert_warns  # NOQA
 from chainer.testing.helper import patch  # NOQA
 from chainer.testing.helper import with_requires  # NOQA
 from chainer.testing.helper import without_requires  # NOQA
+from chainer.testing.matrix import generate_matrix  # NOQA
 from chainer.testing.parameterized import from_pytest_parameterize  # NOQA
 from chainer.testing.parameterized import parameterize  # NOQA
 from chainer.testing.parameterized import parameterize_pytest  # NOQA

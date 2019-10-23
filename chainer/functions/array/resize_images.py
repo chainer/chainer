@@ -176,10 +176,8 @@ def compute_indices_and_weights(out_size, in_size, mode, align_corners, xp):
     H, W = in_size
     if mode == 'bilinear':
         if align_corners:
-            y_scale = (H - 1) / (out_H - 1)
-            x_scale = (W - 1) / (out_W - 1)
-            v = xp.arange(out_H, dtype=numpy.float) * y_scale
-            u = xp.arange(out_W, dtype=numpy.float) * x_scale
+            v = xp.linspace(0, H - 1, num=out_H, dtype=numpy.float)
+            u = xp.linspace(0, W - 1, num=out_W, dtype=numpy.float)
         else:
             y_scale = H / out_H
             x_scale = W / out_W
@@ -301,11 +299,10 @@ class ResizeImagesGrad(function_node.FunctionNode):
             self.mode, self.align_corners).apply(grad_outputs)
 
 
-def resize_images(x, output_shape, mode='bilinear', align_corners=True):
+def resize_images(x, output_shape, *, mode='bilinear', align_corners=True):
     """Resize images to the given shape.
 
     This function resizes 2D data to :obj:`output_shape`.
-    Currently, only bilinear interpolation is supported as the sampling method.
 
     Notation: here is a notation for dimensionalities.
 

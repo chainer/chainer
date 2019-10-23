@@ -1,6 +1,6 @@
 #pragma once
 
-#include <nonstd/optional.hpp>
+#include <absl/types/optional.h>
 
 #include "chainerx/array.h"
 #include "chainerx/axes.h"
@@ -19,7 +19,7 @@ Array BatchNorm(
         const Array& running_var,
         Scalar eps = 2e-5,
         Scalar decay = 0.9,
-        const OptionalAxes& axis = nonstd::nullopt);
+        const OptionalAxes& axis = absl::nullopt);
 
 // Computes the fixed batch normalization.
 // axis argument is treated in the same way as BatchNorm.
@@ -31,6 +31,6 @@ Array FixedBatchNorm(
         const Array& mean,
         const Array& var,
         Scalar eps,
-        const OptionalAxes& axis = nonstd::nullopt);
+        const OptionalAxes& axis = absl::nullopt);
 
 }  // namespace chainerx

@@ -1,7 +1,8 @@
-import copy
 import functools
 
 import chainer
+import copy
+from chainer.backends.cuda import cupy
 import chainer.testing
 import chainer.testing.attr
 import numpy
@@ -23,6 +24,8 @@ params = [Param(p) for p in [
         'dtype': numpy.float16,
     }, {
         'dtype': numpy.float32,
+    }, {
+        'dtype': chainer.mixed16,
     }]]
 
 function = sigmoid
@@ -61,9 +64,10 @@ def create_models(gpu, param, communicator):
         for l in range(communicator.size)]
 
     if gpu:
-        model.to_gpu()
+        device = cupy.cuda.Device()
+        model.to_device(device)
         for model_ in entire_model:
-            model_.to_gpu()
+            model_.to_device(device)
 
     return (model, entire_model)
 

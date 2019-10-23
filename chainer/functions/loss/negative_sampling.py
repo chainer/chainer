@@ -7,6 +7,7 @@ from chainer.backends import cuda
 from chainer import function_node
 from chainer import utils
 from chainer.utils import argument
+from chainer.utils import precision
 from chainer.utils import type_check
 
 
@@ -53,6 +54,8 @@ class NegativeSamplingFunction(function_node.FunctionNode):
             w_type.ndim == 2,
         )
 
+    # Avoid fp16 computation to keep the precision in reduction operations.
+    @precision._fp16_mixed_precision_helper
     def forward_cpu(self, inputs):
         self.retain_inputs((0, 1, 2))
         x, t, W = inputs
@@ -74,6 +77,7 @@ class NegativeSamplingFunction(function_node.FunctionNode):
         self.samples = samples
         return loss,
 
+    @precision._fp16_mixed_precision_helper
     def forward_gpu(self, inputs):
         self.retain_inputs((0, 1, 2))
         x, t, W = inputs
@@ -397,7 +401,10 @@ return_samples=False)
     See: `Distributed Representations of Words and Phrases and their
     Compositionality <https://arxiv.org/abs/1310.4546>`_
 
-    .. seealso:: :class:`~chainer.links.NegativeSampling`.
+    .. seealso::
+
+        :class:`~chainer.links.NegativeSampling` to manage the model parameter
+        ``W``.
 
     """
     return_samples = False

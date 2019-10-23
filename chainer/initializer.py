@@ -15,13 +15,10 @@ class Initializer(object):
 
     """
 
-    def __init__(self, dtype=None):
-        # type: (tp.Optional[types.DTypeSpec]) -> None
-
+    def __init__(self, dtype: tp.Optional[types.DTypeSpec] = None) -> None:
         self.dtype = dtype  # type: types.DTypeSpec
 
-    def __call__(self, array):
-        # type: (types.NdArray) -> None
+    def __call__(self, array: types.NdArray) -> None:
         """Initializes given array.
 
         This method destructively changes the value of array.

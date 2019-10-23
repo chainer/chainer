@@ -11,7 +11,9 @@
 #include <vector>
 
 #include "chainerx/array.h"
+#include "chainerx/array_index.h"
 #include "chainerx/array_node.h"
+#include "chainerx/backprop_mode.h"
 #include "chainerx/constant.h"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
@@ -19,6 +21,8 @@
 #include "chainerx/indexer.h"
 #include "chainerx/native/data_type.h"
 #include "chainerx/numeric.h"
+#include "chainerx/routines/indexing.h"
+#include "chainerx/routines/manipulation.h"
 #include "chainerx/shape.h"
 
 namespace chainerx {
@@ -126,7 +130,7 @@ public:
 
 private:
     // Returns the integral part and fractional part as integers.
-    // Note that the fractional part is prefixed by 1 so that the information of preceeding zeros is not missed.
+    // Note that the fractional part is prefixed by 1 so that the information of preceding zeros is not missed.
     static std::pair<int64_t, int64_t> IntFracPartsToPrint(double value) {
         double int_part;
         const double frac_part = std::modf(value, &int_part);
@@ -165,58 +169,22 @@ struct ArrayReprImpl {
         Array native_array = array.AsGradStopped().ToNative();
         Formatter<T> formatter;
 
+        // array should be already synchronized
         // Let formatter scan all elements to print.
-        VisitElements<T>(native_array, [&formatter](const IndexableArray<const T, Ndim>& iarray, const IndexIterator<Ndim>& it) {
+        Indexer<Ndim> indexer{array.shape()};
+        IndexableArray<const T, Ndim> iarray{native_array};
+        for (auto it = indexer.It(0); it; ++it) {
             T value = native::StorageToDataType<const T>(iarray[it]);
             formatter.Scan(value);
-        });
+        }
 
-        // Print values using the formatter.
-        const int8_t ndim = array.ndim();
-        int cur_line_size = 0;
-        VisitElements<T>(
-                native_array,
-                [ndim, &cur_line_size, &formatter, &os](const IndexableArray<const T, Ndim>& iarray, const IndexIterator<Ndim>& it) {
-                    int8_t trailing_zeros = 0;
-                    if (ndim > 0) {
-                        for (int8_t i = ndim; --i >= 0;) {
-                            if (it.index()[i] == 0) {
-                                ++trailing_zeros;
-                            } else {
-                                break;
-                            }
-                        }
-                    }
-                    if (trailing_zeros == ndim) {
-                        // This is the first iteration, so print the header
-                        os << "array(";
-                        PrintNTimes(os, '[', ndim);
-                    } else if (trailing_zeros > 0) {
-                        PrintNTimes(os, ']', trailing_zeros);
-                        os << ',';
-                        PrintNTimes(os, '\n', trailing_zeros);
-                        PrintNTimes(os, ' ', 6 + ndim - trailing_zeros);
-                        PrintNTimes(os, '[', trailing_zeros);
-                        cur_line_size = 0;
-                    } else {
-                        if (cur_line_size == 10) {
-                            os << ",\n";
-                            PrintNTimes(os, ' ', 6 + ndim);
-                            cur_line_size = 0;
-                        } else {
-                            os << ", ";
-                        }
-                    }
-                    T value = native::StorageToDataType<const T>(iarray[it]);
-                    formatter.Print(os, value);
-                    ++cur_line_size;
-                });
-
+        os << "array(";
         if (array.GetTotalSize() == 0) {
-            // In case of an empty Array, print the header here
-            os << "array([]";
+            os << "[]";
         } else {
-            PrintNTimes(os, ']', ndim);
+            NoBackpropModeScope scope{};
+            bool should_abbreviate = array.GetTotalSize() > kThreshold;
+            ArrayReprRecursive<T>(native_array, formatter, 7, os, should_abbreviate);
         }
 
         // Print the footer
@@ -238,16 +206,53 @@ struct ArrayReprImpl {
     }
 
 private:
-    template <typename T, typename Visitor>
-    void VisitElements(const Array& array, Visitor&& visitor) const {
-        // array should be already synchronized
+    static constexpr int kMaxItemNumPerLine = 10;
+    static constexpr int64_t kThreshold = 1000;
+    static constexpr int64_t kEdgeItems = 3;
 
-        Indexer<Ndim> indexer{array.shape()};
-        IndexableArray<const T, Ndim> iarray{array};
-
-        for (auto it = indexer.It(0); it; ++it) {
-            visitor(iarray, it);
+    // The behavior of this function is recursively defined as follows:
+    // array.ndim() == 0 => Returns a string represenation of the single scalar.
+    // array.ndim() == 1 => Returns a string: space separated scalars.
+    // array.ndim() >= 2 => Returns a string: newline separated arrays with one less dimension.
+    template <typename T>
+    void ArrayReprRecursive(const Array& array, Formatter<T>& formatter, size_t indent, std::ostream& os, bool abbreviate = false) const {
+        const uint8_t ndim = array.ndim();
+        if (ndim == 0) {
+            formatter.Print(os, static_cast<T>(AsScalar(array)));
+            return;
         }
+        auto print_indent = [ndim, indent, &os](int64_t i) {
+            if (i != 0) {
+                os << ",";
+                if (ndim > 1 || i % kMaxItemNumPerLine == 0) {
+                    PrintNTimes(os, '\n', ndim - 1);
+                    PrintNTimes(os, ' ', indent);
+                } else {
+                    os << ' ';
+                }
+            }
+        };
+        os << "[";
+        int64_t size = array.shape().front();
+        if (abbreviate && size > kEdgeItems * 2) {
+            for (int64_t i = 0; i < kEdgeItems; ++i) {
+                print_indent(i);
+                ArrayReprRecursive<T>(internal::At(array, {ArrayIndex{i}}), formatter, indent + 1, os, abbreviate);
+            }
+            print_indent(1);
+            os << "...";
+            print_indent(1);
+            for (int64_t i = 0; i < kEdgeItems; ++i) {
+                print_indent(i);
+                ArrayReprRecursive<T>(internal::At(array, {ArrayIndex{i - kEdgeItems}}), formatter, indent + 1, os, abbreviate);
+            }
+        } else {
+            for (int64_t i = 0; i < size; ++i) {
+                print_indent(i);
+                ArrayReprRecursive<T>(internal::At(array, {ArrayIndex{i}}), formatter, indent + 1, os, abbreviate);
+            }
+        }
+        os << "]";
     }
 };
 
