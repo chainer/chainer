@@ -473,11 +473,8 @@ def test_communicator_cpu(param, use_chx):
     check_collective_communication(param, False, use_chx)
 
 
-# cannot test with ChainerX right now, as the `copyto` is not supported in
-# ChainerX.
-# Pending on https://github.com/chainer/chainer/pull/7521
 @pytest.mark.parametrize('param', gpu_params)
-@pytest.mark.parametrize('use_chx', [False])
+@pytest.mark.parametrize('use_chx', [True, False])
 @chainer.testing.attr.gpu
 def test_communicator_gpu(param, use_chx):
     check_send_recv(param, True)
@@ -485,7 +482,7 @@ def test_communicator_gpu(param, use_chx):
 
 
 @pytest.mark.parametrize('param', gpu_mixed_dtype_params)
-@pytest.mark.parametrize('use_chx', [False])
+@pytest.mark.parametrize('use_chx', [True, False])
 @chainer.testing.attr.gpu
 def test_mixed_dtype_communicator_gpu(param, use_chx):
     model = ExampleMixedModel()
