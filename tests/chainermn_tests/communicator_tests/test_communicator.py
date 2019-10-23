@@ -241,12 +241,12 @@ def check_send_and_recv_tuple(communicator, data):
 
 def check_bcast_data(communicator, model):
     model.a.W.data[:] = communicator.rank
-    # model.b.W.data[:] = communicator.rank + 1
-    # model.c.b.data[:] = communicator.rank + 2
+    model.b.W.data[:] = communicator.rank + 1
+    model.c.b.data[:] = communicator.rank + 2
     communicator.bcast_data(model)
     chainer.testing.assert_allclose(model.a.W.data, 0 * np.ones((3, 2)))
-    # chainer.testing.assert_allclose(model.b.W.data, 1 * np.ones((4, 3)))
-    # chainer.testing.assert_allclose(model.c.b.data, 2 * np.ones((5, )))
+    chainer.testing.assert_allclose(model.b.W.data, 1 * np.ones((4, 3)))
+    chainer.testing.assert_allclose(model.c.b.data, 2 * np.ones((5, )))
 
 
 def check_multi_node_mean_grad(communicator, model):
