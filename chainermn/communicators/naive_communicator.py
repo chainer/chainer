@@ -10,7 +10,6 @@ class NaiveCommunicator(mpi_communicator_base.MpiCommunicatorBase):
     def multi_node_mean_grad(self, model, zero_fill=False):
         params = _memory_utility.extract_params_set_grad(model, zero_fill)
         for param in params:
-            print("param={}".format(param.name), flush=True)
             if zero_fill and param.grad is None:
                 if param.data is None:
                     continue
