@@ -41,7 +41,7 @@ class ParamsData(object):
                 setattr(param, attr_name, v)
             xp = chainer.backend.get_array_module(v)
 
-            if xp == cp:
+            if xp == np or xp == cp:
                 v_data = v.data
             elif xp == chx:
                 v_data = _get_memory_pointer_from_chainerx(v)
