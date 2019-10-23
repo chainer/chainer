@@ -1548,14 +1548,6 @@ def test_moveaxis_invalid(xp, shape, source, dst):
     ],
         'in_dtypes,out_dtype': dtype_utils.result_numeric_dtypes_two_arrays,
         'casting': ['no'],
-        'where': [None],
-    })
-    # Boolean where values
-    + chainer.testing.product({
-        'dst_shape,src_shape,where_shape': [((2, 3), (2, 3), None)],
-        'where': [True, False, 2, 1.2],
-        'in_dtypes': [(('float32', 'float32'), 'float32')],
-        'casting': ['no'],
     })
 ))
 class TestCopyTo(op_utils.NumpyOpTest):
@@ -1571,39 +1563,61 @@ class TestCopyTo(op_utils.NumpyOpTest):
 
         dst = array_utils.uniform(self.dst_shape, dst_dtype)
         src = array_utils.uniform(self.src_shape, src_dtype)
+        where = array_utils.uniform(
+            self.where_shape if self.where_shape is not None else (1,),
+            'float32', 0, 1) > 0.5
 
-        if self.where_shape is not None:
-            where = numpy.random.uniform(0, 1, size=self.where_shape)
-            where = where > 0.5
-            return dst, src, where
-        return dst, src
+        return dst, src, where
 
     def forward_xp(self, inputs, xp):
-        if self.where_shape is not None:
-            dst, src, where = inputs
-        else:
-            dst, src = inputs
+        dst, src, where = inputs
 
         if xp is chainerx:
             dst = dst.as_grad_stopped().copy()
             src = src.as_grad_stopped()
-            if self.where_shape is not None:
-                where = where.as_grad_stopped()
+            where = where.as_grad_stopped()
         else:
             dst = dst.copy()
-
-        # For testing boolean where.
-        if self.where is not None:
-            assert self.where_shape is None
-            where = self.where
 
         kwargs = {}
         if self.casting is not None:
             kwargs['casting'] = self.casting
-        if self.where is not None or self.where_shape is not None:
+        if self.where_shape is not None:
             kwargs['where'] = where
 
         xp.copyto(dst, src, **kwargs)
+
+        return dst,
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    chainer.testing.product({
+        'where': [True, False, 2, 1.2],
+    })
+))
+class TestCopyToScalarWhere(op_utils.NumpyOpTest):
+
+    skip_backward_test = True
+    skip_double_backward_test = True
+    check_numpy_strides_compliance = False
+
+    def generate_inputs(self):
+        dst = array_utils.uniform((2, 3), 'float32')
+        src = array_utils.uniform((2, 3), 'float32')
+
+        return dst, src
+
+    def forward_xp(self, inputs, xp):
+        dst, src = inputs
+
+        if xp is chainerx:
+            dst = dst.as_grad_stopped().copy()
+            src = src.as_grad_stopped()
+        else:
+            dst = dst.copy()
+
+        xp.copyto(dst, src, casting='no', where=self.where)
 
         return dst,
 
