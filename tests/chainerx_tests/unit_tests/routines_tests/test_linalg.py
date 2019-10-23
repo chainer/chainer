@@ -212,6 +212,7 @@ class TestInverse(NumpyLinalgOpTest):
 
     def generate_inputs(self):
         a = numpy.random.random(self.shape).astype(self.dtype)
+        a = a * 10 + numpy.ones(self.shape)
         return a,
 
     def forward_xp(self, inputs, xp):
@@ -575,3 +576,169 @@ class TestCholeskyDtypeFailing(NumpyLinalgOpTest):
         a, = inputs
         L = xp.linalg.cholesky(a)
         return L,
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    chainer.testing.product({
+        'shape': [(0, 0), (1, 1), (3, 3), (6, 6)],
+        'in_dtypes': ['float32', 'float64'],
+        'UPLO': ['u', 'L']
+    })
+))
+class TestEigh(NumpyLinalgOpTest):
+
+    def setup(self):
+        device = chainerx.get_default_device()
+        if (device.backend.name == 'native'
+                and not chainerx.linalg._is_lapack_available()):
+            pytest.skip('LAPACK is not linked to ChainerX')
+        self.check_backward_options.update({
+            'eps': 1e-5, 'rtol': 1e-3, 'atol': 1e-3})
+        self.check_double_backward_options.update({
+            'eps': 1e-5, 'rtol': 1e-3, 'atol': 1e-3})
+
+    def generate_inputs(self):
+        a = numpy.random.random(self.shape).astype(self.in_dtypes)
+        return a,
+
+    def forward_xp(self, inputs, xp):
+        a, = inputs
+
+        if (_numpy_does_not_support_0d_input113 and a.size == 0):
+            pytest.skip('Older NumPy versions do not work with empty arrays')
+
+        # Input has to be symmetrized for backward test to work
+        a = (a + a.T)/2. + 1e-3 * xp.eye(*self.shape)
+
+        w, v = xp.linalg.eigh(a, UPLO=self.UPLO)
+
+        # The sign of eigenvectors is not unique,
+        # therefore absolute values are compared
+        return w, xp.abs(v)
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    chainer.testing.product({
+        'shape': [(), (2, 3), (3, 2)],
+        'in_dtypes': ['float32', 'float64'],
+        'UPLO': [None, 'A', 'wrong']
+    })
+))
+class TestEighFailing(NumpyLinalgOpTest):
+
+    forward_accept_errors = (numpy.linalg.LinAlgError,
+                             chainerx.DimensionError,
+                             ValueError,
+                             chainerx.ChainerxError,
+                             # for 'UPLO'=None
+                             AttributeError,
+                             TypeError)
+
+    def generate_inputs(self):
+        a = numpy.random.random(self.shape).astype(self.in_dtypes)
+        return a,
+
+    def forward_xp(self, inputs, xp):
+        a, = inputs
+        w, v = xp.linalg.eigh(a, UPLO=self.UPLO)
+        return w, v
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    chainer.testing.product({
+        'shape': [(3, 3)],
+        'in_dtypes': ['float16']
+    })
+))
+class TestEighDtypeFailing(NumpyLinalgOpTest):
+
+    forward_accept_errors = (TypeError,
+                             chainerx.DtypeError)
+
+    def generate_inputs(self):
+        a = numpy.random.random(self.shape).astype(self.in_dtypes)
+        return a,
+
+    def forward_xp(self, inputs, xp):
+        a, = inputs
+        w, v = xp.linalg.eigh(a)
+        return w, v
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    chainer.testing.product({
+        'shape': [(0, 0), (1, 1), (3, 3), (6, 6)],
+        'in_dtypes': ['float32', 'float64'],
+        'UPLO': ['u', 'L'],
+        'skip_backward_test': [True],
+        'skip_double_backward_test': [True]
+    })
+))
+class TestEigvalsh(NumpyLinalgOpTest):
+
+    def generate_inputs(self):
+        a = numpy.random.random(self.shape).astype(self.in_dtypes)
+        return a,
+
+    def forward_xp(self, inputs, xp):
+        a, = inputs
+
+        if (_numpy_does_not_support_0d_input113 and a.size == 0):
+            pytest.skip('Older NumPy versions do not work with empty arrays')
+
+        w = xp.linalg.eigvalsh(a, UPLO=self.UPLO)
+        return w,
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    chainer.testing.product({
+        'shape': [(), (2, 3), (3, 2)],
+        'in_dtypes': ['float32', 'float64'],
+        'UPLO': [None, 'A', 'wrong']
+    })
+))
+class TestEigvalshFailing(NumpyLinalgOpTest):
+
+    forward_accept_errors = (numpy.linalg.LinAlgError,
+                             chainerx.DimensionError,
+                             ValueError,
+                             chainerx.ChainerxError,
+                             # for 'UPLO'=None
+                             AttributeError,
+                             TypeError)
+
+    def generate_inputs(self):
+        a = numpy.random.random(self.shape).astype(self.in_dtypes)
+        return a,
+
+    def forward_xp(self, inputs, xp):
+        a, = inputs
+        w = xp.linalg.eigvalsh(a, UPLO=self.UPLO)
+        return w,
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    chainer.testing.product({
+        'shape': [(3, 3)],
+        'in_dtypes': ['float16']
+    })
+))
+class TestEigvalshDtypeFailing(NumpyLinalgOpTest):
+
+    forward_accept_errors = (TypeError,
+                             chainerx.DtypeError)
+
+    def generate_inputs(self):
+        a = numpy.random.random(self.shape).astype(self.in_dtypes)
+        return a,
+
+    def forward_xp(self, inputs, xp):
+        a, = inputs
+        w = xp.linalg.eigvalsh(a)
+        return w,

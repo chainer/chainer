@@ -202,7 +202,12 @@ test_chainermn_sub() {
   #-----------------------------------------------------------------------------
   # Install Chainer
   #-----------------------------------------------------------------------------
-  if ! python -m pip install /chainer[test] 2>&1 >/tmp/install-py3.log; then
+  CHAINER_BUILD_CHAINERX=1 CHAINERX_BUILD_CUDA=1 MAKEFLAGS="-j$(nproc)" \
+  CHAINERX_NVCC_GENERATE_CODE=arch=compute_70,code=sm_70 \
+      python -m pip install /chainer[test] 2>&1 >/tmp/install-py3.log &
+  install_pid=$!
+
+  if ! wait $install_pid; then
     cat /tmp/install-py3.log
     exit 1
   fi

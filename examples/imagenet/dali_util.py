@@ -26,20 +26,20 @@ def _pair(x):
 class DaliPipelineTrain(pipeline.Pipeline):
 
     def __init__(self, file_list, file_root, crop_size,
-                 batch_size, num_threads, device_id,
+                 batch_size, n_threads, device_id,
                  random_shuffle=True, seed=-1, mean=None, std=None,
-                 num_samples=None):
-        super(DaliPipelineTrain, self).__init__(batch_size, num_threads,
+                 n_samples=None):
+        super(DaliPipelineTrain, self).__init__(batch_size, n_threads,
                                                 device_id, seed=seed)
         crop_size = _pair(crop_size)
         if mean is None:
             mean = [0.485 * 255, 0.456 * 255, 0.406 * 255]
         if std is None:
             std = [0.229 * 255, 0.224 * 255, 0.225 * 255]
-        if num_samples is None:
+        if n_samples is None:
             initial_fill = 4096
         else:
-            initial_fill = min(4096, num_samples)
+            initial_fill = min(4096, n_samples)
         self.loader = ops.FileReader(file_root=file_root, file_list=file_list,
                                      random_shuffle=random_shuffle,
                                      initial_fill=initial_fill)
@@ -80,20 +80,20 @@ class DaliPipelineTrain(pipeline.Pipeline):
 class DaliPipelineVal(pipeline.Pipeline):
 
     def __init__(self, file_list, file_root, crop_size,
-                 batch_size, num_threads, device_id,
+                 batch_size, n_threads, device_id,
                  random_shuffle=False, seed=-1, mean=None, std=None,
-                 num_samples=None):
-        super(DaliPipelineVal, self).__init__(batch_size, num_threads,
+                 n_samples=None):
+        super(DaliPipelineVal, self).__init__(batch_size, n_threads,
                                               device_id, seed=seed)
         crop_size = _pair(crop_size)
         if mean is None:
             mean = [0.485 * 255, 0.456 * 255, 0.406 * 255]
         if std is None:
             std = [0.229 * 255, 0.224 * 255, 0.225 * 255]
-        if num_samples is None:
+        if n_samples is None:
             initial_fill = 512
         else:
-            initial_fill = min(512, num_samples)
+            initial_fill = min(512, n_samples)
         self.loader = ops.FileReader(file_root=file_root, file_list=file_list,
                                      random_shuffle=random_shuffle,
                                      initial_fill=initial_fill)

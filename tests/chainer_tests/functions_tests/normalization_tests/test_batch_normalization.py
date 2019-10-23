@@ -1,8 +1,8 @@
 import unittest
+import warnings
 
 import numpy
 import six
-import warnings
 
 import chainer
 from chainer.backends import cuda
@@ -59,8 +59,8 @@ def _batch_normalization(
         {'input_shape': (5, 4, 3), 'axis': (0, 1)},
     ],
     testing.product({
-        'xdtype': [numpy.float16, numpy.float32],
-        'dtype': [numpy.float16, numpy.float32],
+        'xdtype': [numpy.float32, numpy.float64],
+        'dtype': [numpy.float32, numpy.float64],
         'eps': [2e-5, 5e-1],
         'c_contiguous': [True, False],
         'running_statistics': [True, False],

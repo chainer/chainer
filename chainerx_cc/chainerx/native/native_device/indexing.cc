@@ -30,13 +30,13 @@ namespace {
 
 class NativeTakeKernel : public TakeKernel {
 public:
-    void Call(const Array& a, const Array& indices, int8_t axis, const Array& out) override {
+    void Call(const Array& a, const Array& indices, int8_t axis, const Array& out, IndexBoundsMode mode) override {
         CHAINERX_ASSERT(GetKind(indices.dtype()) == DtypeKind::kInt || GetKind(indices.dtype()) == DtypeKind::kUInt);
         a.device().CheckDevicesCompatible(a, indices, out);
 
         const Array& indices_cast = indices.dtype() == Dtype::kInt64 ? indices : indices.AsType(Dtype::kInt64);
 
-        VisitDtype(out.dtype(), [&a, &indices_cast, axis, &out](auto pt) {
+        VisitDtype(out.dtype(), [&a, &indices_cast, axis, &out, mode](auto pt) {
             using T = typename decltype(pt)::type;
 
             IndexableArray<const T> a_iarray{a};
@@ -65,10 +65,21 @@ public:
 
             for (auto it = indices_indexer.It(0); it; ++it) {
                 int64_t index = indices_iarray[it];
-                if (index < 0) {
-                    index = axis_dim - ((-index + axis_dim - 1) % axis_dim + 1);
-                } else {
-                    index = index % axis_dim;
+                if (mode == IndexBoundsMode::kRaise || mode == IndexBoundsMode::kDefault) {
+                    if (index < -axis_dim || axis_dim <= index) {
+                        throw IndexError{"Index ", index, " is out of bounds for axis ", axis, " with size ", axis_dim};
+                    }
+                    if (index < 0) {
+                        index = index + axis_dim;
+                    }
+                } else if (mode == IndexBoundsMode::kWrap) {
+                    if (index < 0) {
+                        index = axis_dim - ((-index + axis_dim - 1) % axis_dim + 1);
+                    } else {
+                        index = index % axis_dim;
+                    }
+                } else if (mode == IndexBoundsMode::kClip) {
+                    index = std::max(int64_t{0}, std::min(index, axis_dim - 1));
                 }
                 CHAINERX_ASSERT(0 <= index);
                 CHAINERX_ASSERT(index < axis_dim);
@@ -95,14 +106,14 @@ CHAINERX_NATIVE_REGISTER_KERNEL(TakeKernel, NativeTakeKernel);
 
 class NativeAddAtKernel : public AddAtKernel {
 public:
-    void Call(const Array& a, const Array& indices, int8_t axis, const Array& b, const Array& out) override {
+    void Call(const Array& a, const Array& indices, int8_t axis, const Array& b, const Array& out, IndexBoundsMode mode) override {
         CHAINERX_ASSERT(a.shape() == out.shape());
         CHAINERX_ASSERT(GetKind(indices.dtype()) == DtypeKind::kInt || GetKind(indices.dtype()) == DtypeKind::kUInt);
         a.device().CheckDevicesCompatible(a, indices, b);
 
         const Array& indices_cast = indices.dtype() == Dtype::kInt64 ? indices : indices.AsType(Dtype::kInt64);
 
-        VisitDtype(a.dtype(), [&a, &indices_cast, axis, &b, &out](auto pt) {
+        VisitDtype(a.dtype(), [&a, &indices_cast, axis, &b, &out, mode](auto pt) {
             using T = typename decltype(pt)::type;
 
             IndexableArray<const T> a_iarray{a};
@@ -138,10 +149,21 @@ public:
             // Add
             for (auto it = indices_indexer.It(0); it; ++it) {
                 int64_t index = indices_iarray[it];
-                if (index < 0) {
-                    index = axis_dim - ((-index + axis_dim - 1) % axis_dim + 1);
-                } else {
-                    index = index % axis_dim;
+                if (mode == IndexBoundsMode::kRaise || mode == IndexBoundsMode::kDefault) {
+                    if (index < -axis_dim || axis_dim <= index) {
+                        throw IndexError{"Index ", index, " is out of bounds for axis ", axis, " with size ", axis_dim};
+                    }
+                    if (index < 0) {
+                        index = index + axis_dim;
+                    }
+                } else if (mode == IndexBoundsMode::kWrap) {
+                    if (index < 0) {
+                        index = axis_dim - ((-index + axis_dim - 1) % axis_dim + 1);
+                    } else {
+                        index = index % axis_dim;
+                    }
+                } else if (mode == IndexBoundsMode::kClip) {
+                    index = std::max(int64_t{0}, std::min(index, axis_dim - 1));
                 }
                 CHAINERX_ASSERT(0 <= index);
                 CHAINERX_ASSERT(index < axis_dim);

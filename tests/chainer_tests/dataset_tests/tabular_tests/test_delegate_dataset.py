@@ -4,7 +4,6 @@ import chainer
 from chainer.dataset import tabular
 from chainer import testing
 
-
 from chainer_tests.dataset_tests.tabular_tests import dummy_dataset
 
 

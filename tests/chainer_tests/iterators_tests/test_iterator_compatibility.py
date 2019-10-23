@@ -1,7 +1,6 @@
 from __future__ import division
-import unittest
-
 import itertools
+import unittest
 
 from chainer import iterators
 from chainer import serializers

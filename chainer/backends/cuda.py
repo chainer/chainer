@@ -71,34 +71,31 @@ except Exception as e:
 
     class ndarray(object):  # type: ignore # for type testing
         @property
-        def shape(self):
-            # type: () -> types.Shape
+        def shape(self) -> types.Shape:
             pass
 
         @property
-        def device(self):
-            # type: () -> 'Device'
+        def device(self) -> 'Device':
             pass
 
-        def get(self, stream=None):
-            # type: (tp.Optional['Stream']) -> numpy.ndarray
+        def get(self, stream: tp.Optional['Stream'] = None) -> numpy.ndarray:
             pass
 
-        def set(self, arr, stream=None):
-            # type: (numpy.ndarray, tp.Optional['Stream']) -> None
+        def set(
+                self,
+                arr: numpy.ndarray,
+                stream: tp.Optional['Stream'] = None
+        ) -> None:
             pass
 
     class Device(object):  # type: ignore # for type testing
-        def __init__(self, device=None):
-            # type: (tp.Optional[int]) -> None
+        def __init__(self, device: tp.Optional[int] = None) -> None:
             pass
 
-        def __enter__(self):
-            # type: () -> 'Device'
+        def __enter__(self) -> 'Device':
             pass
 
-        def __exit__(self, *args):
-            # type: (*tp.Any) -> None
+        def __exit__(self, *args: tp.Any) -> None:
             pass
 
     class Event(object):  # type: ignore # for type testing
@@ -263,8 +260,7 @@ to the CUDA device ID.
 # ------------------------------------------------------------------------------
 # Global states
 # ------------------------------------------------------------------------------
-def get_device_from_id(device_id):
-    # type: (tp.Optional[int]) -> Device
+def get_device_from_id(device_id: tp.Optional[int]) -> Device:
     """Gets the device from an ID integer.
 
     Args:
@@ -278,8 +274,7 @@ def get_device_from_id(device_id):
     return DummyDevice
 
 
-def get_device_from_array(*arrays):
-    # type: (*ndarray) -> Device
+def get_device_from_array(*arrays: ndarray) -> Device:
     """Gets the device from a list of CuPy array or a single CuPy array.
 
     .. deprecated:: v6.0.0
@@ -361,9 +356,9 @@ def _get_cuda_device(*args):
     return DummyDevice
 
 
-def _get_device_or_current(device):
-    # type: (tp.Optional[types.CudaDeviceSpec]) -> Device
-
+def _get_device_or_current(
+        device: tp.Optional[types.CudaDeviceSpec]
+) -> Device:
     # Returns cuda.Device.
     # - If cuda.Device instance, it's returned intact.
     # - If None, the current device is returned.

@@ -865,6 +865,10 @@ def max_pool(
 def maximum(x1: tp.Any, x2: tp.Any) -> ndarray: ...
 
 
+def meshgrid(arrays: tp.List[ndarray],
+             indexing: tp.Optional[str]=...) -> tp.List[ndarray]: ...
+
+
 def minimum(x1: tp.Any, x2: tp.Any) -> ndarray: ...
 
 
@@ -929,6 +933,10 @@ def softmax(
         x: ndarray,
         axis: tp.Optional[tp.Union[int, tp.List[int]]]=None) -> ndarray: ...
 
+def softmax_cross_entropy(
+        x1: ndarray,
+        x2: ndarray) -> ndarray: ...
+
 def softplus(x: ndarray, beta: double=1.0) -> ndarray: ...
 
 def split(
@@ -942,6 +950,11 @@ def dsplit(
         ) -> tp.List[ndarray]: ...
 
 def vsplit(
+        ary: ndarray,
+        indices_or_sections: tp.Union[int, tp.List[int]],
+        ) -> tp.List[ndarray]: ...
+
+def hsplit(
         ary: ndarray,
         indices_or_sections: tp.Union[int, tp.List[int]],
         ) -> tp.List[ndarray]: ...

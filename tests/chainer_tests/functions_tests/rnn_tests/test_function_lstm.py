@@ -1,13 +1,13 @@
 import unittest
-import six
 
 import numpy
+import six
 
 from chainer.backends import cuda
-from chainer import gradient_check
 import chainer.functions as F
-from chainer import testing
 from chainer.functions.rnn import lstm
+from chainer import gradient_check
+from chainer import testing
 from chainer.testing import backend
 
 

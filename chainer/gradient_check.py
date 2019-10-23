@@ -1,5 +1,4 @@
 from __future__ import absolute_import
-import math
 import warnings
 
 import numpy
@@ -551,24 +550,69 @@ class _CheckBackward(object):
             if not no_gx]
         direction_param_shapes = [p.shape for p in params]
         direction_shapes = direction_xs_shapes + direction_param_shapes
-        directions = [
-            None if shape is None
-            else xp.random.normal(size=shape) for shape in direction_shapes]
+
+        total_size = sum([
+            int(numpy.prod(shape)) for shape in direction_shapes
+            if shape is not None])
+
+        # Sample the concatenated vector at random
+        directions = self._sample_unit_vector(total_size, xp)
+
+        # Unpack the concatenated vector and returns as a list of arrays.
+        return self._unpack_arrays(xp, directions, direction_shapes)
+
+    @staticmethod
+    def _sample_unit_vector(size, xp):
+        directions = xp.random.normal(size=(size,))
+        if size == 0:
+            return directions
 
         # The direction vector is normalized in order to keep the scale of
-        # differentiation error invariant with respect to the number of input
-        # dimensions. Ideally, the scale of the curvature with respect to each
-        # input dimension should be taken into account, but we ignore the
-        # differences and assume that the curvature is uniform with respect to
-        # all the input dimensions.
-        norm = math.sqrt(
-            sum([0 if d is None else xp.square(d).sum() for d in directions]))
-        if norm != 0:
-            # norm could be zero if input arrays are 0-sized.
-            scale = 1. / norm
-            directions = [None if d is None else d * scale for d in directions]
+        # differentiation error invariant with respect to the number of
+        # input dimensions. Ideally, the scale of the curvature with
+        # respect to each input dimension should be taken into account,
+        # but we ignore the differences and assume that the curvature is
+        # uniform with respect to all the input dimensions.
+        #
+        # Small elements in the direction vector leads to instability on
+        # gradients comparison. In order to avoid that, make absolute values
+        # at least 0.1 / sqrt(size).
+        sq_directions = xp.square(directions)
+        sq_norm = sq_directions.sum()
+        return xp.copysign(
+            # Weighted quadratic mean of
+            # abs(directions / norm) and xp.full(size, 1 / xp.sqrt(size)),
+            # where norm = xp.sqrt(sq_norm)
+            xp.sqrt(
+                (0.99 / sq_norm) * sq_directions
+                + 0.01 / size),
+            directions)
 
-        return directions
+    def _unpack_arrays(self, xp, packed_array, shapes):
+        # Unpacks a flattened-and-concatenated array into original shapes.
+        # Shapes may include None.
+        assert packed_array.ndim == 1
+        n = len(shapes)
+
+        # For simplicity omit None from the shapes. They're recovered later.
+        none_indices = [
+            i for i, shape in enumerate(shapes) if shape is None]
+        shapes = [shape for shape in shapes if shape is not None]
+
+        # Unpack the array into given shapes
+        sizes = [int(numpy.prod(shape)) for shape in shapes]
+        cumsizes = numpy.cumsum(sizes)
+        unpacked_arrays = [
+            packed_array[cumsize - size:cumsize].reshape(shape)
+            for cumsize, size, shape
+            in zip(cumsizes, sizes, shapes)]
+
+        # Recover Nones
+        for i in none_indices:
+            unpacked_arrays.insert(i, None)
+
+        assert len(unpacked_arrays) == n
+        return tuple(unpacked_arrays)
 
     def _clear_grads(self, xs):
         for x in xs:
@@ -941,7 +985,7 @@ def check_double_backward(func, x_data, y_grad, x_grad_grad, params=(),
     first-order gradient given by the usual :meth:`chainer.Variable.backward`
     is correct. The implementation of each differentiable function should be
     tested by :func:`~chainer.gradient_check.check_backward` first, and then
-    should be tested by this function if neccessary.
+    should be tested by this function if necessary.
 
     For the details of the arguments, see
     :func:`~chainer.gradient_check.check_backward`. The additional arguments

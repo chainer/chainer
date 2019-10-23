@@ -267,13 +267,11 @@ def check_cycle_model(gpu, param):
 
 
 @pytest.mark.parametrize('param', params)
-@pytest.mark.filterwarnings('ignore::DeprecationWarning')
 def test_cycle_model_cpu(param):
     check_cycle_model(False, param)
 
 
 @pytest.mark.parametrize('param', params)
-@pytest.mark.filterwarnings('ignore::DeprecationWarning')
 @chainer.testing.attr.gpu
 def test_cycle_model_gpu(param):
     check_cycle_model(True, param)
@@ -305,13 +303,11 @@ def check_crossing_model(gpu, param):
 
 
 @pytest.mark.parametrize('param', params)
-@pytest.mark.filterwarnings('ignore::DeprecationWarning')
 def test_crossing_model_cpu(param):
     check_crossing_model(False, param)
 
 
 @pytest.mark.parametrize('param', params)
-@pytest.mark.filterwarnings('ignore::DeprecationWarning')
 @chainer.testing.attr.gpu
 def test_crossing_model_gpu(param):
     check_crossing_model(True, param)
@@ -362,13 +358,11 @@ def check_branching_models(gpu, param):
 
 
 @pytest.mark.parametrize('param', params)
-@pytest.mark.filterwarnings('ignore::DeprecationWarning')
 def test_branching_models_cpu(param):
     check_branching_models(False, param)
 
 
 @pytest.mark.parametrize('param', params)
-@pytest.mark.filterwarnings('ignore::DeprecationWarning')
 @chainer.testing.attr.gpu
 def test_branching_models_gpu(param):
     check_branching_models(True, param)
@@ -403,13 +397,11 @@ def check_twisting_model(gpu, param):
 
 
 @pytest.mark.parametrize('param', params)
-@pytest.mark.filterwarnings('ignore::DeprecationWarning')
 def test_twisting_model_cpu(param):
     check_twisting_model(False, param)
 
 
 @pytest.mark.parametrize('param', params)
-@pytest.mark.filterwarnings('ignore::DeprecationWarning')
 @chainer.testing.attr.gpu
 def test_twisting_model_gpu(param):
     check_twisting_model(True, param)
@@ -449,13 +441,11 @@ def check_tuple_data_model(gpu, param):
 
 
 @pytest.mark.parametrize('param', params)
-@pytest.mark.filterwarnings('ignore::DeprecationWarning')
 def test_tuple_data_model_cpu(param):
     check_tuple_data_model(False, param)
 
 
 @pytest.mark.parametrize('param', params)
-@pytest.mark.filterwarnings('ignore::DeprecationWarning')
 @chainer.testing.attr.gpu
 def test_tuple_data_model_gpu(param):
     check_tuple_data_model(True, param)

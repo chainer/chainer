@@ -59,9 +59,9 @@ class TabularDataset(dataset_mixin.DatasetMixin):
     4
     >>> dataset.keys
     ('a', 'b', 'c')
-    >>> dataset.as_tuple()[0]
+    >>> dataset.astuple()[0]
     (0, 1, 2)
-    >>> sorted(dataset.as_dict()[0].items())
+    >>> sorted(dataset.asdict()[0].items())
     [('a', 0), ('b', 1), ('c', 2)]
     >>>
     >>> view = dataset.slice[[3, 2], ('c', 0)]
@@ -69,9 +69,9 @@ class TabularDataset(dataset_mixin.DatasetMixin):
     2
     >>> view.keys
     ('c', 'a')
-    >>> view.as_tuple()[1]
+    >>> view.astuple()[1]
     (8, 6)
-    >>> sorted(view.as_dict()[1].items())
+    >>> sorted(view.asdict()[1].items())
     [('a', 6), ('c', 8)]
 
     """
@@ -171,21 +171,21 @@ class TabularDataset(dataset_mixin.DatasetMixin):
         else:
             return _as_array(data)
 
-    def as_tuple(self):
+    def astuple(self):
         """Return a view with tuple mode.
 
         Returns:
             A view whose :attr:`mode` is :class:`tuple`.
         """
-        return chainer.dataset.tabular._as_mode._AsTuple(self)
+        return chainer.dataset.tabular._asmode._Astuple(self)
 
-    def as_dict(self):
+    def asdict(self):
         """Return a view with dict mode.
 
         Returns:
             A view whose :attr:`mode` is :class:`dict`.
         """
-        return chainer.dataset.tabular._as_mode._AsDict(self)
+        return chainer.dataset.tabular._asmode._Asdict(self)
 
     def concat(self, *datasets):
         """Stack datasets along rows.

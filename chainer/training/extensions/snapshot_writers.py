@@ -14,7 +14,7 @@ class Writer(object):
     """Base class of snapshot writers.
 
     :class:`~chainer.training.extensions.Snapshot` invokes ``__call__`` of this
-    class everytime when taking a snapshot.
+    class every time when taking a snapshot.
     This class determines how the actual saving function will be invoked.
 
     .. seealso::
@@ -70,7 +70,7 @@ class Writer(object):
         this is intended for cleaning up stale snapshots.
 
         Args:
-            hook_fun (callable): callable funtion to be called
+            hook_fun (callable): callable function to be called
                 right after save is done. It takes no arguments.
 
         """

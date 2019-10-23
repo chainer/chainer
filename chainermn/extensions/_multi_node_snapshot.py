@@ -42,7 +42,7 @@ def multi_node_snapshot(comm, snapshot, replica_sets):
     Here the first replica set is described as ``[0]``, or simply in
     short just ``0``, and the second replica set is ``range(1,
     comm.size)``, representing rest of processes other than ``0``. The
-    remaining list can be ommited. Thus in that case, it can be
+    remaining list can be omitted. Thus in that case, it can be
     simplified more::
 
         replica_sets = [0,]

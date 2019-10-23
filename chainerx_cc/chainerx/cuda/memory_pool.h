@@ -43,6 +43,14 @@ public:
 // This will be necessary when extending the MemoryPool with a function to explicitly free blocks.
 class Allocator {
 public:
+    Allocator() = default;
+    virtual ~Allocator() = default;
+
+    Allocator(const Allocator&) = delete;
+    Allocator(Allocator&&) = delete;
+    Allocator& operator=(const Allocator&) = delete;
+    Allocator& operator=(Allocator&&) = delete;
+
     // Allocates memory.
     // This function may throw.
     virtual MallocStatus Malloc(void** ptr, size_t bytesize) = 0;

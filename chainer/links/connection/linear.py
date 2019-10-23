@@ -94,10 +94,14 @@ class Linear(link.Link):
 
     """
 
-    def __init__(self, in_size, out_size=None, nobias=False,
-                 initialW=None, initial_bias=None):
-        # type: (tp.Optional[int], tp.Optional[int], bool, tp.Optional[types.InitializerSpec], tp.Optional[types.InitializerSpec]) -> None # NOQA
-
+    def __init__(
+            self,
+            in_size: tp.Optional[int],
+            out_size: tp.Optional[int] = None,
+            nobias: bool = False,
+            initialW: tp.Optional[types.InitializerSpec] = None,
+            initial_bias: tp.Optional[types.InitializerSpec] = None
+    ) -> None:
         super(Linear, self).__init__()
 
         if out_size is None:
@@ -119,9 +123,7 @@ class Linear(link.Link):
                 bias_initializer = initializers._get_initializer(initial_bias)
                 self.b = variable.Parameter(bias_initializer, out_size)
 
-    def _initialize_params(self, in_size):
-        # type: (int) -> None
-
+    def _initialize_params(self, in_size: int) -> None:
         self.W.initialize((self.out_size, in_size))  # type: ignore
 
     @classmethod
@@ -157,8 +159,11 @@ class Linear(link.Link):
         for spec in specs:
             yield spec
 
-    def forward(self, x, n_batch_axes=1):
-        # type: (variable.Variable, int) -> variable.Variable
+    def forward(
+            self,
+            x: variable.Variable,
+            n_batch_axes: int = 1
+    ) -> variable.Variable:
         """Applies the linear layer.
 
         Args:

@@ -2,11 +2,11 @@ import numpy
 import six
 
 import chainer
-import chainerx
 from chainer import backend
 from chainer.backends import cuda
 from chainer import function
 from chainer.utils import type_check
+import chainerx
 
 
 def _extract_gates(x, n_split=5):

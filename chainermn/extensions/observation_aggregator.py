@@ -26,7 +26,7 @@ class ObservationAggregator(extension.Extension):
     name = None
 
     def __init__(self, comm, original_key, aggregated_key=None,
-                 comm_trigger=(1, 'iteration'), aggregator=None):
+                 *, comm_trigger=(1, 'iteration'), aggregator=None):
         self.comm = comm
         self.original_key = original_key
 

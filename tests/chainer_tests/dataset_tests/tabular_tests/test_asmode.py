@@ -10,11 +10,11 @@ from chainer_tests.dataset_tests.tabular_tests import dummy_dataset
     {'mode': dict},
     {'mode': None},
 )
-class TestAsTuple(unittest.TestCase):
+class TestAstuple(unittest.TestCase):
 
-    def test_as_tuple(self):
+    def test_astuple(self):
         dataset = dummy_dataset.DummyDataset(mode=self.mode, convert=True)
-        view = dataset.as_tuple()
+        view = dataset.astuple()
         self.assertIsInstance(view, chainer.dataset.TabularDataset)
         self.assertEqual(len(view), len(dataset))
         self.assertEqual(view.keys, dataset.keys)
@@ -29,11 +29,11 @@ class TestAsTuple(unittest.TestCase):
     {'mode': dict},
     {'mode': None},
 )
-class TestAsDict(unittest.TestCase):
+class TestAsdict(unittest.TestCase):
 
-    def test_as_dict(self):
+    def test_asdict(self):
         dataset = dummy_dataset.DummyDataset(mode=self.mode, convert=True)
-        view = dataset.as_dict()
+        view = dataset.asdict()
         self.assertIsInstance(view, chainer.dataset.TabularDataset)
         self.assertEqual(len(view), len(dataset))
         self.assertEqual(view.keys, dataset.keys)

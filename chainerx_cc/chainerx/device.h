@@ -18,38 +18,6 @@
 namespace chainerx {
 
 class Array;
-enum class AveragePoolPadMode;
-
-class MaxPoolForwardBackward {
-public:
-    MaxPoolForwardBackward() = default;
-
-    virtual ~MaxPoolForwardBackward() = default;
-
-    MaxPoolForwardBackward(const MaxPoolForwardBackward&) = default;
-    MaxPoolForwardBackward(MaxPoolForwardBackward&&) = default;
-    MaxPoolForwardBackward& operator=(const MaxPoolForwardBackward&) = default;
-    MaxPoolForwardBackward& operator=(MaxPoolForwardBackward&&) = default;
-
-    virtual Array Forward(const Array& x) = 0;
-    virtual Array Backward(const Array& gout) = 0;
-    virtual Array DoubleBackward(const Array& ggx) = 0;
-};
-
-class AveragePoolForwardBackward {
-public:
-    AveragePoolForwardBackward() = default;
-
-    virtual ~AveragePoolForwardBackward() = default;
-
-    AveragePoolForwardBackward(const AveragePoolForwardBackward&) = default;
-    AveragePoolForwardBackward(AveragePoolForwardBackward&&) = default;
-    AveragePoolForwardBackward& operator=(const AveragePoolForwardBackward&) = default;
-    AveragePoolForwardBackward& operator=(AveragePoolForwardBackward&&) = default;
-
-    virtual Array Forward(const Array& x) = 0;
-    virtual Array Backward(const Array& gout) = 0;
-};
 
 // Device base class.
 // Note that these member functions may be called from the framework or user code.

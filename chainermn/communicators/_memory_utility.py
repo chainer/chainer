@@ -5,6 +5,8 @@ import numpy as np
 from chainermn.communicators import _communication_utility
 
 import chainer.backends
+import chainerx as chx
+
 try:
     import cupy as cp
     _cupy_avail = True
@@ -80,19 +82,47 @@ class DeviceMemory(object):
             self.size = size
             self.memory = cp.cuda.alloc(size)
 
+    def _get_memory_pointer_from_chainerx(self, array):
+        # Currently, ChainerMN requires CuPy to support ChainerX.
+        # This is because ChainerX's backend does not provide a raw
+        # memory pointer class.
+        return cp.cuda.MemoryPointer(
+            cp.cuda.UnownedMemory(
+                array.data_ptr + array.offset,
+                array.data_size,
+                array,
+                array.device.index),
+            0)
+
     def from_device(self, src, size, offset=0, stream=None):
         dst = self.memory + offset
-        if stream is None:
-            dst.copy_from_device(src.data, size)
+        xp = chainer.backend.get_array_module(src)
+        if xp == cp:
+            src_data = src.data
+        elif xp == chx:
+            src_data = self._get_memory_pointer_from_chainerx(src)
         else:
-            dst.copy_from_device_async(src.data, size, stream)
+            raise ValueError(
+                '{} is from an unsupported array module'.format(type(src)))
+        if stream is None:
+            dst.copy_from_device(src_data, size)
+        else:
+            dst.copy_from_device_async(src_data, size, stream)
 
     def to_device(self, dst, size, offset=0, stream=None):
         src = self.memory + offset
-        if stream is None:
-            dst.data.copy_from_device(src, size)
+        xp = chainer.backend.get_array_module(dst)
+        if xp == cp:
+            dst_data = dst.data
+        elif xp == chx:
+            dst_data = self._get_memory_pointer_from_chainerx(dst)
         else:
-            dst.data.copy_from_device_async(src, size, stream)
+            raise ValueError(
+                '{} is from an unsupported array module'.format(type(dst)))
+        if stream is None:
+            dst_data.copy_from_device(src, size)
+        else:
+            dst_data.copy_from_device_async(src, size, stream)
 
     def ptr(self):
         return self.memory.ptr
@@ -188,11 +218,23 @@ def get_device_memory_pointer(array):
 
     if xp is np:
         return array
-    else:
+    elif xp is cp:
         return ctypes.cast(
             array.data.ptr,
             ctypes.POINTER(ctypes.c_ubyte * array.nbytes)
         ).contents
+    elif xp is chx:
+        backend_name = array.device.backend.name
+        if backend_name not in ['native', 'cuda']:
+            raise ValueError(
+                '{} is an unsupported backend'.format(backend_name))
+        return ctypes.cast(
+            array.data_ptr,
+            ctypes.POINTER(ctypes.c_ubyte * array.nbytes)
+        ).contents
+    else:
+        raise ValueError(
+            '{} is from an unsupported array module'.format(type(array)))
 
 
 def _batched_pack_params(params_data, buffer, dtype, stream=None):

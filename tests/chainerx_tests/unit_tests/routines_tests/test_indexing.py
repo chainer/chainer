@@ -209,6 +209,8 @@ def test_getitem_zero_sized_offsets(device):
 @chainer.testing.parameterize_pytest(
     'indices_dtype', chainerx.testing.integral_dtypes)
 @chainer.testing.parameterize_pytest(
+    'mode', ['raise', 'wrap', 'clip'])
+@chainer.testing.parameterize_pytest(
     'a_dtype', chainerx.testing.all_dtypes)
 class TestTake(op_utils.NumpyOpTest):
 
@@ -216,7 +218,8 @@ class TestTake(op_utils.NumpyOpTest):
     forward_accept_errors = (chainerx.DimensionError, numpy.AxisError)
 
     def setup(self):
-        if (numpy.dtype(self.indices_dtype).kind == 'u'
+        if (self.mode == 'raise'
+                and numpy.dtype(self.indices_dtype).kind == 'u'
                 and (numpy.array(self.indices, 'int64') < 0).any()):
             raise unittest.SkipTest(
                 'Indices underflows and index out of bounds cannot be tested.')
@@ -236,6 +239,9 @@ class TestTake(op_utils.NumpyOpTest):
         axis = self.axis
         indices_type = self.indices_type
         a, = inputs
+        if (xp is chainerx and self.mode == 'raise'
+                and 'cuda' in xp.get_default_device().name):
+            pytest.skip('CUDA is not supportted with mode="raise"')
 
         assert isinstance(indices, list)
         if indices_type == 'list':
@@ -248,10 +254,26 @@ class TestTake(op_utils.NumpyOpTest):
             assert False, indices_type
 
         if self.is_module:
-            b = xp.take(a, indices, axis)
+            b = xp.take(a, indices, axis, mode=self.mode)
         else:
-            b = a.take(indices, axis)
+            b = a.take(indices, axis, mode=self.mode)
         return b,
+
+
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('shape,indices,axis', [
+    # Invalid: Index out of bounds
+    ((2, 3), [2], 0),
+    ((2, 3), [-3], 0),
+])
+def test_take_index_error(device, shape, indices, axis):
+    a = array_utils.create_dummy_ndarray(chainerx, shape, 'float32')
+    indices = numpy.array(indices).astype(numpy.int32)
+    error = IndexError
+    if device.backend.name == 'cuda':
+        error = chainerx.BackendError  # Not supported in CUDA
+    with pytest.raises(error):
+        chainerx.take(a, indices, axis, mode='raise')
 
 
 def _random_condition(shape, dtype):

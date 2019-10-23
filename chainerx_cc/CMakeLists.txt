@@ -6,7 +6,13 @@ if(POLICY CMP0054)
     cmake_policy(SET CMP0054 NEW)
 endif()
 
-SET(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake;${CMAKE_MODULE_PATH}")
+if(NOT APPLE)
+    set(CMAKE_INSTALL_RPATH $ORIGIN)
+else()
+    set(CMAKE_INSTALL_RPATH "@loader_path")
+endif()
+
 
 # includes
 include(cmake/clang-tidy.cmake)
@@ -72,6 +78,8 @@ endif()
 # Build setup
 #-------------
 
+message(STATUS "CMake generator: " ${CMAKE_GENERATOR})
+
 # Set CMAKE_BUILD_TYPE (defaults to Release).
 # CMake's specification is case-insensitive, but we only accept capitalized ones.
 if(NOT CMAKE_BUILD_TYPE)
@@ -107,9 +115,9 @@ if("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU|Clang|Intel")
     # cmake -DCHAINERX_WARNINGS_AS_ERRORS=ON|OFF
     if (CHAINERX_WARNINGS_AS_ERRORS)
         if (MSVC)
-            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4")
+            set(CHAINERX_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4")
         else()
-            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
+            set(CHAINERX_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
         endif()
     endif()
 
@@ -128,7 +136,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "^(Clang|AppleClang)$" AND NOT MSVC)
     if(CLANG_VERSION_STRING VERSION_LESS 6.0)
         # clang<6.0 suggests superfluous braces for std::array initialization.
         # https://bugs.llvm.org/show_bug.cgi?id=21629
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-missing-braces")
+        set(CHAINERX_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-missing-braces")
     endif()
 endif()
 
@@ -259,14 +267,6 @@ include_directories("${CMAKE_CURRENT_BINARY_DIR}/abseil")
 add_subdirectory("${CMAKE_CURRENT_BINARY_DIR}/abseil" "${CMAKE_CURRENT_BINARY_DIR}/abseil-build")
 
 # gtest
-
-# TODO(niboshi): Remove gtest dependency from testing
-get_third_party(gtest)
-add_subdirectory(${CMAKE_CURRENT_BINARY_DIR}/googletest-src
-    ${CMAKE_CURRENT_BINARY_DIR}/googletest-build
-    EXCLUDE_FROM_ALL)
-include_directories(${CMAKE_CURRENT_BINARY_DIR}/googletest-src/googletest/include)
-
 if(MSVC)
     if(CMAKE_CXX_COMPILER_ID MATCHES "GCC|Clang")
         # TODO(durswd): Remove it. It is hack for MSVC+LLVM
@@ -276,6 +276,13 @@ if(MSVC)
         set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
     endif()
 endif()
+
+# TODO(niboshi): Remove gtest dependency from testing
+get_third_party(gtest)
+add_subdirectory(${CMAKE_CURRENT_BINARY_DIR}/googletest-src
+    ${CMAKE_CURRENT_BINARY_DIR}/googletest-build
+    EXCLUDE_FROM_ALL)
+include_directories(${CMAKE_CURRENT_BINARY_DIR}/googletest-src/googletest/include)
 
 
 #------
