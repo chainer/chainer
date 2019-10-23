@@ -2,6 +2,7 @@ import mpi4py
 import numpy
 
 import chainer
+import chainerx
 import chainer.backends
 import chainer.utils
 from chainer.utils import collections_abc
@@ -646,7 +647,9 @@ class MpiCommunicatorBase(communicator_base.CommunicatorBase):
                 buf = _memory_utility.array_to_buffer_object(data)
                 self.mpi_comm.Bcast(buf)
                 if is_float16:
-                    param.data = data.astype(numpy.float16)
+                    # use array as updating to .data directly
+                    # is not supported in ChainerX
+                    param.array[...] = data.astype(numpy.float16)
 
     # Private methods
     def _init_ranks(self):
@@ -694,9 +697,6 @@ class MpiCommunicatorBase(communicator_base.CommunicatorBase):
         if chainer.is_debug():
             self._check_ready_to_allreduce(sendbuf, recvbuf)
 
-        print("multi_node_mean(): sendbuf={}".format(sendbuf))
-        print("multi_node_mean(): (1) recvbuf={}".format(recvbuf))
-
         is_float16 = recvbuf.dtype == numpy.float16
         if sendbuf is None:
             buffer_a = mpi4py.MPI.IN_PLACE
@@ -721,9 +721,7 @@ class MpiCommunicatorBase(communicator_base.CommunicatorBase):
             # https://github.com/chainer/chainer/pull/7521
             xp.copyto(recvbuf, array_b32.astype(numpy.float16), casting='no')
 
-        print("multi_node_mean(): (2) recvbuf={}".format(recvbuf))
         recvbuf *= 1.0 / self.mpi_comm.size
-        print("multi_node_mean(): (3) recvbuf={} (comm.size={})".format(recvbuf, self.mpi_comm.size))
 
         if chainer.is_debug():
             self._ensure_all_finite(recvbuf)
