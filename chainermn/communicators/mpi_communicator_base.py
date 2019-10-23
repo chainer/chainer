@@ -646,7 +646,9 @@ class MpiCommunicatorBase(communicator_base.CommunicatorBase):
                 buf = _memory_utility.array_to_buffer_object(data)
                 self.mpi_comm.Bcast(buf)
                 if is_float16:
-                    param.data = data.astype(numpy.float16)
+                    # update to array as updating to .data directly
+                    # is not supported in ChainerX
+                    param.array[...] = data.astype(numpy.float16)
 
     # Private methods
     def _init_ranks(self):
@@ -713,8 +715,7 @@ class MpiCommunicatorBase(communicator_base.CommunicatorBase):
         self.mpi_comm.Allreduce(buffer_a, buffer_b)
 
         if is_float16:
-            xp = chainer.backend.get_array_module(recvbuf)
-            xp.copyto(recvbuf, array_b32.astype(numpy.float16), casting='no')
+            recvbuf[...] = array_b32.astype(numpy.float16)
 
         recvbuf *= 1.0 / self.mpi_comm.size
 
