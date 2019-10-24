@@ -29,7 +29,6 @@ namespace chainerx {
 namespace cuda {
 namespace {
 
-// TODO(sonots): Support other than 4, 5 dimensional arrays by reshaping into 4-dimensional arrays as Chainer does.
 cudnnBatchNormMode_t GetBatchNormMode(const Axes& axis) {
     if (axis.ndim() == 1 && axis[0] == 0) {  // (1, channels, (depth, )height, width)
         return CUDNN_BATCHNORM_PER_ACTIVATION;
