@@ -10,8 +10,8 @@
 #include <utility>
 #include <vector>
 
-#include <gsl/gsl>
 #include <absl/container/flat_hash_map.h>
+#include <gsl/gsl>
 
 #include "chainerx/array.h"
 #include "chainerx/array_body.h"
