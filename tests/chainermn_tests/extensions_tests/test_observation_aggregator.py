@@ -10,7 +10,9 @@ import chainer.testing
 from chainer.training import extension
 from chainer.backend import cuda
 import chainermn
+import chainermn.testing
 from chainermn.extensions import ObservationAggregator
+import chainerx
 
 
 class DummyChain(chainer.Chain):
@@ -26,14 +28,39 @@ class DummyChain(chainer.Chain):
 
 @pytest.mark.parametrize('use_chainer_variable', [False, True])
 @pytest.mark.parametrize('communicate_interval', [1, 2])
+@pytest.mark.parametrize('xp', [chainerx, np])
 def test_observation_aggregator_cpu(use_chainer_variable,
-                                    communicate_interval):
+                                    communicate_interval,
+                                    xp):
     communicator = chainermn.create_communicator('naive')
-    xp = np
     run_test_observation_aggregator(communicator, xp,
                                     use_chainer_variable,
                                     communicate_interval,
                                     use_cupy=False)
+
+
+@pytest.mark.parametrize('use_chainer_variable', [False, True])
+@pytest.mark.parametrize('communicate_interval', [1])
+@chainer.testing.attr.gpu
+def test_observation_aggregator_gpu_chainerx(use_chainer_variable,
+                                             communicate_interval):
+    xp = chainerx
+    communicator = chainermn.create_communicator('pure_nccl')
+    device_name = "cuda:{}".format(communicator.intra_rank)
+    with chainerx.using_device(device_name):
+        if use_chainer_variable:
+            run_test_observation_aggregator(communicator, xp,
+                                            use_chainer_variable,
+                                            communicate_interval,
+                                            use_cupy=True,
+                                            device_name=device_name)
+        else:
+            with pytest.raises(ValueError):
+                run_test_observation_aggregator(communicator, xp,
+                                                use_chainer_variable,
+                                                communicate_interval,
+                                                use_cupy=True,
+                                                device_name=device_name)
 
 
 @pytest.mark.parametrize('use_chainer_variable', [False, True])
@@ -53,15 +80,21 @@ def test_observation_aggregator_gpu(use_chainer_variable,
 def run_test_observation_aggregator(comm, xp,
                                     use_chainer_variable,
                                     communicate_interval,
-                                    use_cupy):
+                                    use_cupy, device_name=None):
     model = DummyChain()
-    if use_cupy:
-        model.to_device(cupy.cuda.Device())
+    if xp == chainerx:
+        model.to_chx()
+        if use_cupy:
+            model.to_device(device_name)
+        train = chainerx.array(np.random.rand(10, 1).astype(np.float32))
+    else:
+        if use_cupy:
+            model.to_device(cupy.cuda.Device())
+        train = xp.random.rand(10, 1).astype(np.float32)
     optimizer = chainermn.create_multi_node_optimizer(
         chainer.optimizers.Adam(), comm)
     optimizer.setup(model)
 
-    train = xp.random.rand(10, 1).astype(np.float32)
     train_iter = chainer.iterators.SerialIterator(train,
                                                   batch_size=1,
                                                   repeat=True,
