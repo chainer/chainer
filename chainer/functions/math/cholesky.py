@@ -1,6 +1,7 @@
 import chainer
 from chainer import function_node
 from chainer.utils import type_check
+import chainerx
 
 
 class Cholesky(function_node.FunctionNode):
@@ -23,6 +24,9 @@ class Cholesky(function_node.FunctionNode):
         self.retain_outputs((0,))
         xp = chainer.backend.get_array_module(a)
         return xp.linalg.cholesky(a),
+
+    def forward_chainerx(self, inputs):
+        return chainerx.linalg.cholesky(*inputs)
 
     def backward(self, indexes, grad_outputs):
         gy, = grad_outputs
