@@ -90,18 +90,18 @@ __global__ void AddAtCudaKernel(
         Indexer<kNdim> b_indexer,
         Indexer<kNdim> out_indexer,
         Indexer<kNdim> indices_indexer,
-        int target_dim,
-        int b_dim,
-        int right_dim,
-        int b_right_dim,
-        int num_iters,
+        TIndex target_dim,
+        TIndex b_dim,
+        TIndex right_dim,
+        TIndex b_right_dim,
+        TIndex num_iters,
         IndexBoundsMode mode) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= num_iters) return;
-    int i = idx / (target_dim * right_dim);
-    int j = idx % (target_dim * right_dim);
-    int l = j % right_dim;
-    int k = j / right_dim;
+    TIndex i = idx / (target_dim * right_dim);
+    TIndex j = idx % (target_dim * right_dim);
+    TIndex l = j % right_dim;
+    TIndex k = j / right_dim;
 
     auto out_it = out_indexer.It(idx);
     cuda_internal::DataType<T> out_value = cuda_internal::StorageToDataType<const T>(a[out_it]);
@@ -121,7 +121,7 @@ __global__ void AddAtCudaKernel(
         CHAINERX_ASSERT(0 <= index);
         CHAINERX_ASSERT(index < target_dim);
         if (index == k) {
-            int bi = i * b_right_dim * b_dim + it_indices.raw_index() * right_dim + l;
+            TIndex bi = i * b_right_dim * b_dim + it_indices.raw_index() * right_dim + l;
             out_value += cuda_internal::StorageToDataType<const T>(b[b_indexer.It(bi)]);
         }
     }
@@ -238,22 +238,11 @@ void AddAtImpl(Device& device, const Array& a, const Array& indices, int8_t axis
 
     VisitDtype(out.dtype(), [&a, &indices, axis, &b, &out, mode](auto pt) {
         using T = typename decltype(pt)::type;
-        int64_t target_dim = a.shape()[axis];
-        int64_t b_dim = b.shape()[axis];
-        int64_t right_dim = 1;
-        int64_t b_right_dim = 1;
-        uint8_t uaxis = axis;
-        int64_t num_iters = a.GetTotalSize();
-        for (size_t i = axis; i < a.shape().size(); ++i) {
-            if (i > uaxis) {
-                right_dim *= a.shape()[i];
-            }
-        }
-        for (size_t i = axis; i < b.shape().size(); ++i) {
-            if (i > uaxis) {
-                b_right_dim *= b.shape()[i];
-            }
-        }
+        TIndex target_dim = a.shape()[axis];
+        TIndex b_dim = b.shape()[axis];
+        TIndex right_dim = std::accumulate(a.shape().begin() + axis + 1, a.shape().end(), int64_t{1}, std::multiplies<>());
+        TIndex b_right_dim = std::accumulate(b.shape().begin() + axis + 1, b.shape().end(), int64_t{1}, std::multiplies<>());
+        TIndex num_iters = a.GetTotalSize();
         static const int k1DMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&AddAtCudaKernel<T, TIndex, 1>).block_size;
         static const int kNDMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&AddAtCudaKernel<T, TIndex, kDynamicNdim>).block_size;
         Array af = CollapseNdArray(a);
