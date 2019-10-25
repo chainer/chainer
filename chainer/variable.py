@@ -520,6 +520,9 @@ class Variable(object):
     # instance.
     _grad = None
 
+    # None if unknown (e.g. contiguous i.e. NCHW), 'nhwc' if NHWC
+    _layout = None
+
     def __init__(
             self,
             data: tp.Optional[types.NdArray] = None,
@@ -715,6 +718,10 @@ class Variable(object):
         else:
             device = self.device
             return None if device is None else device.xp
+
+    @property
+    def layout(self):
+        return self._layout
 
     @property
     def name(self):
@@ -1234,6 +1241,33 @@ class Variable(object):
         else:
             if node._data is not None:
                 node.retain_data()
+
+    def to_layout(self, layout):
+        if layout != 'nhwc':
+            raise ValueError('Unsupported layout {}'.format(layout))
+        if self.array is None:
+            raise ValueError('Uninitialized Variable should be Parameter')
+        self._layout = layout
+        device = self.device
+        with chainer.using_device(device):
+            xp = device.xp
+            self.array = xp.moveaxis(
+                xp.ascontiguousarray(xp.moveaxis(self.array, -3, -1)),
+                -1, -3)
+        # TODO(kataoka): Should self.grad be fixed?
+
+    def assert_layout(self, layout):
+        if layout is None:
+            return
+        if chainer.is_debug():
+            if layout != 'nhwc':
+                raise ValueError('Unsupported layout {}'.format(layout))
+            xp = self.xp
+            # transpose operation can be done without using the device
+            if not xp.moveaxis(self.array, -3, -1).flags.c_contiguous:
+                raise ValueError(
+                    'array is not of layout {}'.format(layout))
+        self._layout = layout
 
     def cleargrad(self):
         """Clears the gradient array."""
@@ -1769,6 +1803,12 @@ class Parameter(Variable):
         self._initial_device = device
         super(Parameter, self)._to_device(device, allow_unchaining=True)
 
+    def to_layout(self, layout):
+        if self.array is None:
+            self._layout = layout
+        else:
+            super().to_layout(layout)
+
     def cleargrad(self):
         super(Parameter, self).cleargrad()
         if self.array is None:
@@ -1808,6 +1848,11 @@ class Parameter(Variable):
         # TODO(niboshi): This could be done in generate_array().
         if isinstance(self._initial_device, intel64.Intel64Device):
             self.to_intel64()
+
+        layout = self.layout
+        if layout is not None:
+            self._layout = None
+            super().to_layout(layout)
 
     def update(self):
         """Updates the data array using the gradient and the update rule.

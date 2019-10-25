@@ -36,7 +36,8 @@ class Convolution2DFunction(function_node.FunctionNode):
 
     _use_ideep = False
 
-    def __init__(self, stride=1, pad=0, cover_all=False, **kwargs):
+    def __init__(
+            self, stride=1, pad=0, cover_all=False, *, layout=None, **kwargs):
         dilate, groups = argument.parse_kwargs(
             kwargs, ('dilate', 1), ('groups', 1),
             deterministic='deterministic argument is not supported anymore. '
@@ -52,6 +53,7 @@ class Convolution2DFunction(function_node.FunctionNode):
         self.cover_all = cover_all
         self.dy, self.dx = _pair(dilate)
         self.groups = groups
+        self.layout = layout
 
         if self.dx < 1 or self.dy < 1:
             raise ValueError('Dilate should be positive, but {} is '
@@ -174,7 +176,7 @@ class Convolution2DFunction(function_node.FunctionNode):
         n, _, h, w = x.shape
 
         out_h, out_w = self._get_out_size(inputs)
-        y = cuda.cupy.empty((n, out_c, out_h, out_w), dtype=x.dtype)
+        y_shape = n, out_c, out_h, out_w
 
         use_cudnn = (
             chainer.should_use_cudnn('>=auto')
@@ -186,7 +188,7 @@ class Convolution2DFunction(function_node.FunctionNode):
 
         if use_cudnn:
             # cuDNN implementation
-            return self._forward_cudnn(x, W, b, y)
+            return self._forward_cudnn(x, W, b, y_shape)
 
         elif self.groups > 1:
             return self._forward_grouped_convolution(x, W, b)
@@ -239,15 +241,26 @@ class Convolution2DFunction(function_node.FunctionNode):
 
         return y,
 
-    def _forward_cudnn(self, x, W, b, y):
+    def _forward_cudnn(self, x, W, b, y_shape):
         pad = (self.ph, self.pw)
         stride = (self.sy, self.sx)
         dilation = (self.dy, self.dx)
         auto_tune = configuration.config.autotune
         tensor_core = configuration.config.use_cudnn_tensor_core
+        if self.layout == 'nhwc':
+            tensor_layout = cuda.cuda.cudnn.CUDNN_TENSOR_NHWC
+            y_shape = y_shape[0], y_shape[2], y_shape[3], y_shape[1]
+            x, W = [cuda.cupy.moveaxis(arr, -3, -1) for arr in (x, W)]
+        else:
+            tensor_layout = cuda.cuda.cudnn.CUDNN_TENSOR_NCHW
+        y = cuda.cupy.empty(y_shape, dtype=x.dtype)
         cuda.cudnn.convolution_forward(
             x, W, b, y, pad, stride, dilation, self.groups,
-            auto_tune=auto_tune, tensor_core=tensor_core)
+            auto_tune=auto_tune, tensor_core=tensor_core,
+            d_layout=tensor_layout, w_layout=tensor_layout,
+        )
+        if self.layout == 'nhwc':
+            y = cuda.cupy.moveaxis(y, -1, -3)
         return y,
 
     def backward(self, indexes, grad_outputs):
@@ -580,11 +593,16 @@ cover_all=True)
         'Use chainer.using_config(\'cudnn_deterministic\', value) '
         'context where value is either `True` or `False`.')
 
+    layout = 'nhwc' if any(
+        isinstance(v, chainer.Variable) and v.layout == 'nhwc'
+        for v in (x, W)
+    ) else None
     fnode = Convolution2DFunction(stride, pad, cover_all, dilate=dilate,
-                                  groups=groups)
+                                  groups=groups, layout=layout)
     if b is None:
         args = x, W
     else:
         args = x, W, b
     y, = fnode.apply(args)
+    y.assert_layout(layout)
     return y
