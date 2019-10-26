@@ -122,6 +122,8 @@ Linear algebra
    chainerx.linalg.cholesky
    chainerx.linalg.qr
    chainerx.linalg.svd
+   chainerx.linalg.eigh
+   chainerx.linalg.eigvalsh
    chainerx.linalg.solve
    chainerx.linalg.inv
    chainerx.linalg.pinv
@@ -163,6 +165,7 @@ Loss functions
    chainerx.huber_loss
    chainerx.gaussian_kl_divergence
    chainerx.sigmoid_cross_entropy
+   chainerx.softmax_cross_entropy
 
 Mathematical functions
 ----------------------

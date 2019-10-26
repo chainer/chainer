@@ -186,6 +186,7 @@ setup_kwargs = dict(
               'chainermn.functions',
               'chainermn.iterators',
               'chainermn.links',
+              'chainermn.testing',
               'onnx_chainer',
               'onnx_chainer.functions',
               'onnx_chainer.testing'],

@@ -76,5 +76,10 @@ size_t CudaBackend::GetCudnnMaxWorkspaceSize() {
     return *cudnn_max_workspace_size_;
 }
 
+KernelRegistry& CudaBackend::GetGlobalKernelRegistry() {
+    static gsl::owner<KernelRegistry*> global_kernel_registry = new KernelRegistry{};
+    return *global_kernel_registry;
+}
+
 }  // namespace cuda
 }  // namespace chainerx

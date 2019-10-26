@@ -40,6 +40,11 @@ class CMakeBuild(build_ext.build_ext):
         if cmake_version < '3.1.0':
             raise RuntimeError('CMake >= 3.1.0 is required to build ChainerX')
 
+        generator = os.getenv('CHAINERX_CMAKE_GENERATOR', '').lower()
+        if generator not in ['', 'ninja']:
+            raise RuntimeError("Generator %s is not supported." % generator)
+        self.use_ninja = generator == 'ninja'
+
         for ext in self.extensions:
             self.build_extension(ext)
 
@@ -61,7 +66,8 @@ class CMakeBuild(build_ext.build_ext):
 
         extdir = os.path.abspath(
             os.path.dirname(self.get_ext_fullpath(ext.name)))
-        cmake_args = [
+        cmake_args = ['-GNinja'] if self.use_ninja else []
+        cmake_args += [
             '-DCHAINERX_BUILD_PYTHON=1',
             '-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=' + extdir,
             '-DPYTHON_EXECUTABLE=' + sys.executable,
@@ -76,9 +82,10 @@ class CMakeBuild(build_ext.build_ext):
                 '-DCMAKE_LIBRARY_OUTPUT_DIRECTORY_{}={}'.format(
                     build_type.upper(), extdir)]
 
-            if sys.maxsize > 2**32:
-                cmake_args += ['-A', 'x64']
-            build_args += ['--', '/m']
+            if not self.use_ninja:
+                if sys.maxsize > 2**32:
+                    cmake_args += ['-A', 'x64']
+                build_args += ['--', '/m']
         else:
             build_args += ['--']
             build_args += ext.build_targets

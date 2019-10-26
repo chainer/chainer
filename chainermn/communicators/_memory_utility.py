@@ -5,11 +5,27 @@ import numpy as np
 from chainermn.communicators import _communication_utility
 
 import chainer.backends
+import chainerx as chx
+
 try:
     import cupy as cp
     _cupy_avail = True
 except Exception:
+    cp = None
     _cupy_avail = False
+
+
+def _get_memory_pointer_from_chainerx(array):
+    # Currently, ChainerMN requires CuPy to support ChainerX.
+    # This is because ChainerX's backend does not provide a raw
+    # memory pointer class.
+    return cp.cuda.MemoryPointer(
+        cp.cuda.UnownedMemory(
+            array.data_ptr + array.offset,
+            array.data_size,
+            array,
+            array.device.index),
+        0)
 
 
 class ParamsData(object):
@@ -24,7 +40,17 @@ class ParamsData(object):
             if attr_name == 'grad' and v is None and zero_fill:
                 v = param.xp.zeros_like(param.data)
                 setattr(param, attr_name, v)
-            params_dptr[i] = v.data.ptr
+            xp = chainer.backend.get_array_module(v)
+
+            if xp == cp:
+                v_data = v.data
+            elif xp == chx:
+                v_data = _get_memory_pointer_from_chainerx(v)
+            else:
+                raise ValueError(
+                    '{} is from an unsupported array module'.format(type(v)))
+
+            params_dptr[i] = v_data.ptr
             if v.dtype not in [np.float16, np.float32, np.float64]:
                 raise ValueError('dtype must be float16, float32 or float64.')
             params_dtype[i] = _communication_utility._get_nccl_type_id(v.dtype)
@@ -82,17 +108,33 @@ class DeviceMemory(object):
 
     def from_device(self, src, size, offset=0, stream=None):
         dst = self.memory + offset
-        if stream is None:
-            dst.copy_from_device(src.data, size)
+        xp = chainer.backend.get_array_module(src)
+        if xp == cp:
+            src_data = src.data
+        elif xp == chx:
+            src_data = _get_memory_pointer_from_chainerx(src)
         else:
-            dst.copy_from_device_async(src.data, size, stream)
+            raise ValueError(
+                '{} is from an unsupported array module'.format(type(src)))
+        if stream is None:
+            dst.copy_from_device(src_data, size)
+        else:
+            dst.copy_from_device_async(src_data, size, stream)
 
     def to_device(self, dst, size, offset=0, stream=None):
         src = self.memory + offset
-        if stream is None:
-            dst.data.copy_from_device(src, size)
+        xp = chainer.backend.get_array_module(dst)
+        if xp == cp:
+            dst_data = dst.data
+        elif xp == chx:
+            dst_data = _get_memory_pointer_from_chainerx(dst)
         else:
-            dst.data.copy_from_device_async(src, size, stream)
+            raise ValueError(
+                '{} is from an unsupported array module'.format(type(dst)))
+        if stream is None:
+            dst_data.copy_from_device(src, size)
+        else:
+            dst_data.copy_from_device_async(src, size, stream)
 
     def ptr(self):
         return self.memory.ptr
@@ -170,7 +212,8 @@ def unpack_params(params, attr_name, buffer,
         buffer.to_device(v, size, offset, stream)
         offset += size
         if grad_dtype != transfer_dtype:
-            setattr(param, attr_name, v.astype(grad_dtype))
+            # avoid using setattr as ChainerX array cannot be directly updated
+            getattr(param, attr_name)[...] = v.astype(grad_dtype)
 
 
 def array_to_buffer_object(array, mpi_dtype=mpi4py.MPI.FLOAT):
@@ -188,11 +231,23 @@ def get_device_memory_pointer(array):
 
     if xp is np:
         return array
-    else:
+    elif xp is cp:
         return ctypes.cast(
             array.data.ptr,
             ctypes.POINTER(ctypes.c_ubyte * array.nbytes)
         ).contents
+    elif xp is chx:
+        backend_name = array.device.backend.name
+        if backend_name not in ['native', 'cuda']:
+            raise ValueError(
+                '{} is an unsupported backend'.format(backend_name))
+        return ctypes.cast(
+            array.data_ptr,
+            ctypes.POINTER(ctypes.c_ubyte * array.nbytes)
+        ).contents
+    else:
+        raise ValueError(
+            '{} is from an unsupported array module'.format(type(array)))
 
 
 def _batched_pack_params(params_data, buffer, dtype, stream=None):

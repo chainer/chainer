@@ -41,6 +41,8 @@ inline std::shared_ptr<ArrayBody>&& MoveArrayBody(Array&& array);
 
 }  // namespace internal
 
+enum class IndexBoundsMode;
+
 // The user interface of multi-dimensional arrays.
 //
 // This wraps an ArrayBody, providing accessors, an interface for graph operations and differentiable operations.
@@ -202,7 +204,7 @@ public:
     // TODO(niboshi): Support Scalar and StackVector as indices.
     // TODO(niboshi): Support axis=None behavior in NumPy.
     // TODO(niboshi): Support indices dtype other than int64.
-    Array Take(const Array& indices, int8_t axis) const;
+    Array Take(const Array& indices, int8_t axis, IndexBoundsMode mode) const;
 
     // Creates a copy.
     // It will be connected to all the graphs.

@@ -5,6 +5,7 @@
 
 # Slow tests take 60+ seconds.
 rules { name: "chainer_tests/functions_tests/activation_tests/test_crelu.py" xdist: 4 deadline: 240 }
+rules { name: "chainer_tests/functions_tests/evaluation_tests/test_accuracy.py" xdist: 4 deadline: 240 }
 rules { name: "chainer_tests/functions_tests/loss_tests/test_softmax_cross_entropy.py" xdist: 8 deadline: 240 }
 rules { name: "chainer_tests/functions_tests/math_tests/test_sparse_matmul.py" xdist: 4 deadline: 240 }
 rules { name: "chainer_tests/functions_tests/normalization_tests/test_batch_normalization.py" xdist: 4 deadline: 240 }
@@ -30,6 +31,7 @@ rules { name: "chainer_tests/functions_tests/activation_tests/test_softmax.py" x
 rules { name: "chainer_tests/functions_tests/activation_tests/test_tanh.py" xdist: 2 }
 rules { name: "chainer_tests/functions_tests/array_tests/test_cast.py" xdist: 2 }
 rules { name: "chainer_tests/functions_tests/activation_tests/test_elu.py" xdist: 2 }
+rules { name: "chainer_tests/functions_tests/math_tests/test_average.py" xdist: 2 }
 rules { name: "chainer_tests/functions_tests/math_tests/test_basic_math.py" xdist: 2 }
 rules { name: "chainer_tests/functions_tests/math_tests/test_maximum.py" xdist: 2 }
 rules { name: "chainer_tests/functions_tests/math_tests/test_prod.py" xdist: 2 }
@@ -55,7 +57,6 @@ rules { name: "chainer_tests/functions_tests/connection_tests/test_convolution_n
 rules { name: "chainer_tests/functions_tests/connection_tests/test_deconvolution_2d.py" }
 rules { name: "chainer_tests/functions_tests/connection_tests/test_deconvolution_nd.py" }
 rules { name: "chainer_tests/functions_tests/connection_tests/test_embed_id.py" }
-rules { name: "chainer_tests/functions_tests/evaluation_tests/test_accuracy.py" }
 rules { name: "chainer_tests/functions_tests/loss_tests/test_contrastive.py" }
 rules { name: "chainer_tests/functions_tests/loss_tests/test_negative_sampling.py" }
 rules { name: "chainer_tests/functions_tests/loss_tests/test_sigmoid_cross_entropy.py" }

@@ -6,6 +6,7 @@ from chainer import backend
 from chainer.dataset import convert
 from chainer import function
 from chainer.utils import argument
+import chainerx as chx
 
 
 class GenericMultiNodeEvaluator(extension.Extension):
@@ -216,6 +217,28 @@ def create_multi_node_evaluator(actual_evaluator, communicator):
 
     def new_evaluate(self):
         local_mean_dict = self._mn_original_evaluate()
+
+        # ChainerX support:
+        # We need convert chainerx ndarray to Native array because
+        #   (1) allreduce_obj is used to compute global mean values, since
+        #       a simple allreduce operation cannot be applied in evaluation.
+        #   (2) allreduce_obj calls mpi4py.allreduce, which pickles the object
+        #   (3) chainerx.ndarray preserves CUDA device internally when pickled
+        #   (4) An error will occur when an ndarray is unpickled in another
+        #       process
+        array0 = list(local_mean_dict.values())[0]
+        xp = backend.get_array_module(array0)
+        if xp == chx and array0.device.backend.name == 'cuda':
+            # Results of evaluation is fairly small, so
+            # the ndarray is transferred to CPU and allreduce()-ed.
+            # NOTE: Matrices for evaluation are transferred to the host memory
+            # and sent via MPI instead of NCCL. Although evaluation matrices
+            # are small in most cases, this is a potential performance issue.
+            local_mean_dict = {
+                name: chx.to_numpy(value)
+                for name, value in local_mean_dict.items()
+            }
+
         global_mean_dict = {
             name:
             self._mn_communicator.allreduce_obj(

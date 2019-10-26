@@ -567,6 +567,10 @@ Args:
         The indices of the values to extract. When indices are out of bounds,
         they are wrapped around.
     axis (int): The axis over which to select values.
+    mode (str): Specifies how out-of-bounds indices will behave.
+        'raise' - raise an error
+        'wrap' - wrap around
+        'clip' - clip to the range
 
 Returns:
     :func:`~chainerx.ndarray`: Output array.
@@ -577,6 +581,11 @@ Note:
 Note:
     During backpropagation, this function propagates the gradient of the
     output array to the input array ``a``.
+
+Note:
+   The default mode for the native backend is 'raise', while for the cuda
+   backend is 'wrap' in order to prevent device synchronization.
+   'raise' mode is currently not supported in the CUDA backend.
 
 .. seealso:: :func:`numpy.take`
 """)
@@ -806,6 +815,56 @@ Note:
       supported yet.)
 
 .. seealso:: :func:`numpy.linalg.cholesky`
+""")
+
+    _docs.set_doc(
+        chainerx.linalg.eigh,
+        """eigh(a, UPLO='L')
+Compute the eigenvalues and eigenvectors of a real symmetric matrix.
+
+Args:
+    a (~chainerx.ndarray): Real symmetric matrix whose eigenvalues
+        and eigenvectors are to be computed.
+    UPLO (str): Specifies whether the calculation is done with the lower
+        triangular part of a ('L', default) or the upper triangular part ('U').
+
+Returns:
+    tuple of :class:`~chainerx.ndarray`:
+        Returns a tuple ``(w, v)``. ``w`` contains eigenvalues and
+        ``v`` contains eigenvectors. ``v[:, i]`` is an eigenvector
+        corresponding to an eigenvalue ``w[i]``.
+
+Note:
+    The ``dtype`` must be ``float32`` or ``float64`` (``float16`` is not
+    supported yet.)
+
+.. seealso:: :func:`numpy.linalg.eigh`
+""")
+
+    _docs.set_doc(
+        chainerx.linalg.eigvalsh,
+        """eigvalsh(a, UPLO='L')
+Compute the eigenvalues of a real symmetric matrix.
+
+Main difference from eigh: the eigenvectors are not computed.
+
+Args:
+    a (~chainerx.ndarray): Real symmetric matrix whose eigenvalues
+        and eigenvectors are to be computed.
+    UPLO (str): Specifies whether the calculation is done with the lower
+        triangular part of a (‘L’, default) or the upper triangular part (‘U’).
+        (optional).
+
+Returns:
+    :class:`~chainerx.ndarray`: Returns eigenvalues as a vector.
+
+Note:
+    * The ``dtype`` must be ``float32`` or ``float64`` (``float16`` is not
+      supported yet.)
+    * Backpropagation requires eigenvectors and, therefore, is not implemented
+      for this function. ``linalg.eigh`` should be used instead.
+
+.. seealso:: :func:`numpy.linalg.eigvalsh`
 """)
 
 
@@ -1160,6 +1219,27 @@ Args:
         integer vector of ground truth labels 0 or 1. If ``x2[i, j] == -1``,
         corresponding ``x1[i, j]`` is ignored. Loss is zero if all ground truth
         labels are -1.
+
+Returns:
+    :class:`~chainerx.ndarray`: An array of the cross entropy.
+
+Note:
+    During backpropagation, this function propagates the gradient of the output
+    array to the input array ``x1`` only.
+""")
+
+    _docs.set_doc(
+        chainerx.softmax_cross_entropy,
+        """softmax_cross_entropy(x1, x2)
+
+Element-wise cross entropy loss for pre-softmax activations.
+
+Args:
+    x1 (~chainerx.ndarray): An array whose element indicates unnormalized log
+        probability: the first axis of the array represents the number of
+        samples, and the second axis represents the number of classes.
+    x2 (~chainerx.ndarray): A signed integer vector of ground truth labels. If
+        ``x2[i] == -1``, corresponding ``x1[i]`` is ignored.
 
 Returns:
     :class:`~chainerx.ndarray`: An array of the cross entropy.

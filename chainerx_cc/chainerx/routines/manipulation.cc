@@ -24,9 +24,12 @@
 #include "chainerx/error.h"
 #include "chainerx/graph.h"
 #include "chainerx/kernels/creation.h"
+#include "chainerx/kernels/indexing.h"
 #include "chainerx/kernels/misc.h"
 #include "chainerx/macro.h"
 #include "chainerx/routines/creation.h"
+#include "chainerx/routines/indexing.h"
+#include "chainerx/routines/routines_util.h"
 #include "chainerx/routines/type_util.h"
 #include "chainerx/shape.h"
 #include "chainerx/strides.h"
@@ -1000,6 +1003,28 @@ Array Moveaxis(const Array& a, const Axes& source, const Axes& destination) {
     }
 
     return a.Transpose(order);
+}
+
+void CopyTo(const Array& dst, const Array& src, CastingMode casting, const Array& where) {
+    internal::CheckNoUnsafeInplace(dst, {dst, src, where});
+
+    switch (casting) {
+        case CastingMode::kNo:
+            if (dst.dtype() != src.dtype()) {
+                throw DtypeError{"Source and destination must have same dtype."};
+            }
+            break;
+        default:
+            CHAINERX_NEVER_REACH();
+    }
+
+    const Array& src_b = src.shape() != dst.shape() ? src.BroadcastTo(dst.shape()) : src;
+    const Array& where_b = where.shape() != dst.shape() ? where.BroadcastTo(dst.shape()) : where;
+
+    {
+        NoBackpropModeScope scope;
+        dst.device().backend().CallKernel<WhereKernel>(where_b, src_b, dst, dst);
+    }
 }
 
 }  // namespace chainerx

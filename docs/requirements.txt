@@ -1,2 +1,1 @@
-packaging
 onnx<1.6.0

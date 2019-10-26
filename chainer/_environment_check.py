@@ -96,8 +96,10 @@ See the following page for more details:
 --------------------------------------------------------------------------------
 Multiple installations of {name} package has been detected.
 You should select only one package from from {pkgs}.
-Run `pip list` to see the list of packages currently installed, then
-`pip uninstall <package name>` to uninstall unnecessary package(s).
+Follow these steps to resolve this issue:
+  1. `pip list` to list {name} packages installed
+  2. `pip uninstall <package name>` to uninstall all {name} packages
+  3. `pip install <package name>` to install the proper one
 --------------------------------------------------------------------------------
 '''.format(name=name, pkgs=pkgs))
                 installed = True
