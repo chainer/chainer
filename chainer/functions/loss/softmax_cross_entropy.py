@@ -115,7 +115,7 @@ class SoftmaxCrossEntropy(function_node.FunctionNode):
             score = chainerx.log_softmax(x, axis=1)
             mask = (t[:, chainerx.newaxis] == chainerx.arange(
                 n_classes, dtype=t.dtype, device=x.device)).astype(score.dtype)
-            y = -(score * mask).sum() * (1 / mask.sum())
+            y = (score * mask).sum() * (-1 / mask.sum())
             return y,
 
         x, t = inputs

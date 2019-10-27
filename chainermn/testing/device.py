@@ -1,7 +1,7 @@
 import chainer
 
 
-def get_device(gpu_id=None, use_chainerx=False):
+def get_device(device_id=None, use_chainerx=False):
     """Get device object
 
     Currently in Chainer, there are 3 officially-supported backends
@@ -10,11 +10,11 @@ def get_device(gpu_id=None, use_chainerx=False):
     (numpy, cupy, chainerx+native, chainerx+cuda). This utility function
     is a boilerplate to get device object in ChainerMN contexts.
     """
-    if gpu_id:
+    if device_id is not None:
         if use_chainerx:
-            device = 'cuda:{}'.format(gpu_id)
+            device = 'cuda:{}'.format(device_id)
         else:
-            device = '@cupy:{}'.format(gpu_id)
+            device = '@cupy:{}'.format(device_id)
     else:
         if use_chainerx:
             device = 'native:0'
