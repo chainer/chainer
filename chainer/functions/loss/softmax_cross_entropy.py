@@ -118,7 +118,7 @@ class SoftmaxCrossEntropy(function_node.FunctionNode):
         neg_log_p = -score * mask
         if self.reduce == 'mean':
             if self.normalize:
-                count = mask.sum()
+                count = float(mask.sum())
             else:
                 count = x.shape[0]
             y = neg_log_p.sum() * (1 / count)
