@@ -10,6 +10,7 @@ from chainer import testing
 from chainer.testing import attr
 from chainer.testing import condition
 from chainer.utils import type_check
+from chainer_tests.functions_tests.pooling_tests import pooling_nd_helper
 
 
 @testing.parameterize(*testing.product_dict(
@@ -32,12 +33,7 @@ class TestSpatialPyramidPooling2D(unittest.TestCase):
         # To avoid instability of numerical gradient, use enough different
         # values.
         shape = (self.n, self.c, self.h, self.w)
-        size = numpy.prod(shape)
-        self.x = numpy.arange(size, dtype=self.dtype).reshape(shape)
-        numpy.random.shuffle(self.x)
-        self.x += numpy.random.uniform(
-            0.4, 0.6, shape).astype(self.dtype)
-        self.x /= size
+        self.x = pooling_nd_helper.shuffled_linspace(shape, self.dtype)
 
         self.one = numpy.ones(
             (self.n, self.c, self.h, self.w)).astype(self.dtype)
