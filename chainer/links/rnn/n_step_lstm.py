@@ -97,11 +97,12 @@ class NStepLSTM(NStepLSTMBase):
         >>> from chainer import Variable
         >>> from chainer import links as L
         >>> import numpy as np
-        >>> chainer.global_config.dtype = np.float64  # setting default tenspr dtype.
         >>> dropout_ratio = 0.0
         >>> in_size, seq_len, n_layers, out_size = 2, 4, 2, 3
         >>> batch = 5
-        >>> xs = [Variable(np.random.rand(seq_len, in_size)) for i in range(batch)]
+        >>> xs = [
+        ...     Variable(np.random.rand(seq_len, in_size).astype(np.float32))
+        ...     for i in range(batch)]
         >>> [x.shape for x in xs]
         [(4, 2), (4, 2), (4, 2), (4, 2), (4, 2)]
         >>> lstm = L.NStepLSTM(n_layers, in_size, out_size, dropout_ratio)
@@ -113,8 +114,8 @@ class NStepLSTM(NStepLSTMBase):
         >>> len(ys)  # should be equal to batch
         5
         >>> h_shape = (n_layers, batch, out_size)
-        >>> hx = Variable(np.ones(h_shape))
-        >>> cx = Variable(np.ones(h_shape))
+        >>> hx = Variable(np.ones(h_shape, np.float32))
+        >>> cx = Variable(np.ones(h_shape, np.float32))
         >>> hy, cy, ys = lstm(hx, cx, xs)  # passing hidden and cell state
         >>> hy.shape  # shape should be (n_layers, batch, out_size)
         (2, 5, 3)
