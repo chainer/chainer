@@ -332,8 +332,9 @@ class MaxPooling2DWithIndexes(function_node.FunctionNode):
             for (int y = in_y_0; y < in_y_1; ++y) {
                 int offset_y = w * (y + h * c0);
                 for (int x = in_x_0; x < in_x_1; ++x) {
-                    float v = in[x + offset_y];
+                    T v = in[x + offset_y];
                     if (maxval < v) {
+                        maxval = v;
                         argmax_y = y;
                         argmax_x = x;
                     }
