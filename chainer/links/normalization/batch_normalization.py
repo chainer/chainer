@@ -6,6 +6,7 @@ from chainer import configuration
 from chainer import functions
 from chainer import initializers
 from chainer import link
+from chainer.graph_optimizations.static_graph_utilities import static_code
 from chainer.utils import argument
 from chainer import variable
 
@@ -252,6 +253,13 @@ class BatchNormalization(link.Link):
             initializer, size, self.xp, dtype=self._highprec_dtype,
             device=self.device)
 
+    @static_code
+    def _get_beta(self):
+        with chainer.using_device(self.device):
+            beta = self.xp.zeros(
+                self.avg_mean.shape, dtype=self._highprec_dtype)
+        return beta,
+
     @property
     def printable_specs(self):
         specs = [
@@ -301,11 +309,12 @@ class BatchNormalization(link.Link):
                 gamma = self.xp.ones(
                     self.avg_mean.shape, dtype=self._highprec_dtype)
 
+        # When using static_graph optimizations beta might not be
+        # initialized and is not retained by the function, so the
+        # static forward pass will get a None instead
         beta = self.beta
         if beta is None:
-            with chainer.using_device(self.device):
-                beta = self.xp.zeros(
-                    self.avg_mean.shape, dtype=self._highprec_dtype)
+            beta, = self._get_beta()
 
         if configuration.config.train:
             if finetune:
