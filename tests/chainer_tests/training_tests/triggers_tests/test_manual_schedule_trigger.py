@@ -1,10 +1,11 @@
 from __future__ import division
 
-import numpy as np
 import random
-import six
 import tempfile
 import unittest
+
+import numpy as np
+import six
 
 from chainer import serializers
 from chainer import testing
@@ -68,7 +69,7 @@ def expected_finished(pos, num):
         'expected': [True, False, False, False, False, False, False],
         'finished': expected_finished(0, 7)},
 )
-class TestTrigger(unittest.TestCase):
+class TestManualScheduleTrigger(unittest.TestCase):
 
     def test_trigger(self):
         trainer = testing.get_trainer_with_mock_updater(
@@ -162,6 +163,13 @@ class TestTrigger(unittest.TestCase):
                 trainer.updater.update()
                 self.assertEqual(trigger(trainer), expected)
                 self.assertEqual(trigger.finished, finished)
+
+
+class TestInvalidManualScheduleTrigger(unittest.TestCase):
+
+    def test_invalid_unit(self):
+        with self.assertRaises(ValueError):
+            training.triggers.ManualScheduleTrigger(1, 'day')
 
 
 testing.run_module(__name__, __file__)

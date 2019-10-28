@@ -24,18 +24,22 @@ class _TestCopyToBase(object):
     def _get_dst(self):
         raise NotImplementedError
 
+    @staticmethod
+    def _to_cpu(arr):
+        return backend.CpuDevice().send(arr)
+
     def test_from_cpu(self):
         src = self.src_data
         dst = self._get_dst()
         backend.copyto(dst, src)
-        numpy.testing.assert_array_equal(cuda.to_cpu(dst), self.src_data)
+        numpy.testing.assert_array_equal(self._to_cpu(dst), self.src_data)
 
     @attr.gpu
     def test_from_gpu(self):
         src = cuda.cupy.array(self.src_data)
         dst = self._get_dst()
         backend.copyto(dst, src)
-        numpy.testing.assert_array_equal(cuda.to_cpu(dst), self.src_data)
+        numpy.testing.assert_array_equal(self._to_cpu(dst), self.src_data)
 
     @attr.ideep
     def test_from_ideep(self):
@@ -43,7 +47,22 @@ class _TestCopyToBase(object):
         dst = self._get_dst()
         assert isinstance(src, intel64.mdarray)
         backend.copyto(dst, src)
-        numpy.testing.assert_array_equal(cuda.to_cpu(dst), self.src_data)
+        numpy.testing.assert_array_equal(self._to_cpu(dst), self.src_data)
+
+    @attr.chainerx
+    def test_from_chx_native(self):
+        src = chainerx.array(self.src_data, device='native')
+        dst = self._get_dst()
+        backend.copyto(dst, src)
+        numpy.testing.assert_array_equal(self._to_cpu(dst), self.src_data)
+
+    @attr.chainerx
+    @attr.gpu
+    def test_from_chx_cuda(self):
+        src = chainerx.array(self.src_data, device='cuda:0')
+        dst = self._get_dst()
+        backend.copyto(dst, src)
+        numpy.testing.assert_array_equal(self._to_cpu(dst), self.src_data)
 
 
 class TestCopyToCPU(_TestCopyToBase, unittest.TestCase):
@@ -71,6 +90,19 @@ class TestCopyToIDeep(_TestCopyToBase, unittest.TestCase):
         dst = intel64.ideep.array(self.src_data)
         assert isinstance(dst, intel64.mdarray)
         return dst
+
+
+@attr.chainerx
+class TestCopyToChxNative(_TestCopyToBase, unittest.TestCase):
+    def _get_dst(self):
+        return chainerx.array(self.dst_data, device='native')
+
+
+@attr.chainerx
+@attr.gpu
+class TestCopyToChxCuda(_TestCopyToBase, unittest.TestCase):
+    def _get_dst(self):
+        return chainerx.array(self.dst_data, device='cuda:0')
 
 
 class TestCopyToError(unittest.TestCase):
@@ -279,27 +311,57 @@ class TestDeviceSpec(unittest.TestCase):
         # tuple is no longer supported from Chainer
         self.check_invalid(('native', 0))
 
+    def test_cuda_dummy_device_invalid(self):
+        self.check_invalid(cuda.DummyDevice)
+
+    @unittest.skipIf(
+        chainerx.is_available(), 'Only tested when ChainerX is not built')
+    def test_chx_device_spec_without_chx_available(self):
+        # If chainerx is not available, get_device() with unprefixed string
+        # should mention ChainerX unavailability in the error message.
+        with pytest.raises(RuntimeError, match=r'.*ChainerX.*'):
+            chainer.get_device('foo')
+
 
 class TestDevice(unittest.TestCase):
 
     def test_repr_str_numpy(self):
         device = chainer.get_device('@numpy')
-        assert str(device) == '<CpuDevice (numpy)>'
+        assert str(device) == '@numpy'
 
     @attr.chainerx
     def test_repr_str_chainerx_device(self):
         device = chainer.get_device('native:0')
-        assert str(device) == '<ChainerxDevice native:0>'
+        assert str(device) == 'native:0'
 
     @attr.gpu
     def test_repr_str_cupy_device(self):
         device = chainer.get_device('@cupy:0')
-        assert str(device) == '<GpuDevice (cupy):0>'
+        assert str(device) == '@cupy:0'
 
     @attr.ideep
     def test_repr_str_intel64_device(self):
         device = chainer.get_device('@intel64')
-        assert str(device) == '<Intel64Device>'
+        assert str(device) == '@intel64'
+
+    def test_repr_numpy(self):
+        device = chainer.get_device('@numpy')
+        assert repr(device) == '<CpuDevice (numpy)>'
+
+    @attr.chainerx
+    def test_repr_chainerx_device(self):
+        device = chainer.get_device('native:0')
+        assert repr(device) == '<ChainerxDevice native:0>'
+
+    @attr.gpu
+    def test_repr_cupy_device(self):
+        device = chainer.get_device('@cupy:0')
+        assert repr(device) == '<GpuDevice (cupy):0>'
+
+    @attr.ideep
+    def test_repr_intel64_device(self):
+        device = chainer.get_device('@intel64')
+        assert repr(device) == '<Intel64Device>'
 
     def test_eq_numpy(self):
         assert backend.get_device('@numpy') == backend.get_device('@numpy')

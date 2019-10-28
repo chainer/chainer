@@ -1,14 +1,15 @@
 import unittest
 
 import numpy
-
+import pytest
 
 import chainer
+from chainer import backend
+from chainer.backends import _cpu
 from chainer.backends import cuda
 from chainer import functions
-from chainer import gradient_check
 from chainer import testing
-from chainer.testing import attr
+import chainerx
 
 
 def _to_gpu(x, device_id):
@@ -18,106 +19,239 @@ def _to_gpu(x, device_id):
         return x
 
 
-@testing.parameterize(*testing.product({
-    'dtype': [numpy.float16, numpy.float32, numpy.float64],
-}))
-class TestCopy(unittest.TestCase):
+_nonchainerx_backend_configs = (
+    [
+        # NumPy
+        {},
+        # CuPy
+        {'use_cuda': True, 'cuda_device': 0},
+        {'use_cuda': True, 'cuda_device': 1},
+    ])
+
+
+_chainerx_backend_configs = (
+    [
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
+    ])
+
+
+_backend_configs = _nonchainerx_backend_configs + _chainerx_backend_configs
+
+_numpy_device = chainer.get_device('@numpy')
+
+
+class CopyTestBase(object):
 
     def setUp(self):
-        self.x_data = numpy.random.uniform(
-            -1, 1, (10, 5)).astype(self.dtype)
+        self.x = numpy.random.uniform(-1, 1, (10, 5)).astype(self.dtype)
         self.gy = numpy.random.uniform(-1, 1, (10, 5)).astype(self.dtype)
         self.ggx = numpy.random.uniform(-1, 1, (10, 5)).astype(self.dtype)
         self.check_double_backward_options = {}
         if self.dtype == numpy.float16:
             self.check_double_backward_options = {'atol': 5e-3, 'rtol': 5e-2}
 
-    def check_forward(self, src_id, dst_id):
-        x_data = _to_gpu(self.x_data, src_id)
-        x = chainer.Variable(x_data)
-        y = functions.copy(x, dst_id)
+    def _check_forward_internal(
+            self, dst_device_spec, src_device, dst_device, x_mode):
+        x = src_device.send(self.x)
 
-        self.assertEqual(self.x_data.dtype, self.dtype)
-        numpy.testing.assert_array_equal(self.x_data, cuda.to_cpu(y.data))
+        if x_mode == 'array':
+            pass
+        elif x_mode == 'non_requires_grad':
+            x = chainer.Variable(x, requires_grad=False)
+        elif x_mode == 'requires_grad':
+            x = chainer.Variable(x, requires_grad=True)
+        else:
+            assert False, x_mode
 
-    def check_backward(self, src_id, dst_id):
-        x_data = _to_gpu(self.x_data, src_id)
-        x = chainer.Variable(x_data)
+        error_expected = (
+            (src_device.xp is chainerx) != (dst_device.xp is chainerx)
+            and x_mode == 'requires_grad')
+        if error_expected:
+            with pytest.raises(RuntimeError):
+                functions.copy(x, dst_device_spec)
+            return
 
-        y = functions.copy(x, dst_id)
-        gy = _to_gpu(self.gy, dst_id)
-        y.grad = gy
+        y = functions.copy(x, dst_device_spec)
 
-        y.backward()
+        assert y.device == dst_device
+        assert backend.get_device_from_array(y.array) == dst_device
+        assert y.dtype == self.dtype
+        numpy.testing.assert_array_equal(_numpy_device.send(y.array), self.x)
 
-        x_grad = x.grad
-        self.assertEqual(cuda.get_device_from_array(x_grad).id, src_id)
+    def check_forward(
+            self, dst_device_spec, src_device_spec, dst_device):
+        self._check_forward_internal(
+            dst_device_spec, src_device_spec, dst_device, 'array')
+        self._check_forward_internal(
+            dst_device_spec, src_device_spec, dst_device, 'non_requires_grad')
+        self._check_forward_internal(
+            dst_device_spec, src_device_spec, dst_device, 'requires_grad')
+
+    def test_forward(self, src_backend_config, dst_backend_config):
+        self.check_forward(
+            dst_backend_config.device,
+            src_backend_config.device,
+            dst_backend_config.device)
+
+    def test_backward(self, src_backend_config, dst_backend_config):
+        src_device = src_backend_config.device
+        dst_device = dst_backend_config.device
+        if (src_device.xp is chainerx) is not (dst_device.xp is chainerx):
+            raise unittest.SkipTest(
+                'ChainerX to non-ChainerX does not support backward.')
+
+        x = src_backend_config.get_array(self.x)
+        gy = dst_backend_config.get_array(self.gy)
+
+        x_var = chainer.Variable(x, requires_grad=True)
+
+        y_var = functions.copy(x_var, dst_device)
+        y_var.grad = gy
+
+        y_var.backward()
+
+        x_grad = x_var.grad
+        assert x_var.grad_var.device == src_device
+        assert backend.get_device_from_array(x_grad) == src_device
+        numpy.testing.assert_array_equal(_numpy_device.send(x_grad), self.gy)
+
+    def test_double_backward(self, src_backend_config, dst_backend_config):
+        src_device = src_backend_config.device
+        dst_device = dst_backend_config.device
+        if (src_device.xp is chainerx) is not (dst_device.xp is chainerx):
+            raise unittest.SkipTest(
+                'ChainerX to non-ChainerX does not support backward.')
+
+        x = src_backend_config.get_array(self.x)
+        gy = dst_backend_config.get_array(self.gy)
+        ggx = src_backend_config.get_array(self.ggx)
+
+        x_var = chainer.Variable(x, requires_grad=True)
+
+        y_var = functions.copy(x_var, dst_device)
+
+        y_var.grad = gy
+
+        gy_var = y_var.grad_var
+        y_var.backward(enable_double_backprop=True)
+
+        assert x_var.grad_var.requires_grad is True
+
+        x_var.grad_var.grad = ggx
+        x_var.grad_var.backward()
+
+        assert gy_var.grad_var.device == dst_device
+        assert (
+            backend.get_device_from_array(gy_var.grad_var.array)
+            == dst_device)
         numpy.testing.assert_array_equal(
-            cuda.to_cpu(x_grad), self.gy)
-
-    def test_forward_cpu(self):
-        self.check_forward(-1, -1)
-
-    def test_backward_cpu(self):
-        self.check_backward(-1, -1)
-
-    @attr.gpu
-    def test_forward_gpu(self):
-        device_id = cuda.Device().id
-        self.check_forward(device_id, device_id)
-
-    @attr.gpu
-    def test_check_backward_gpu(self):
-        device_id = cuda.Device().id
-        self.check_forward(device_id, device_id)
-
-    @attr.gpu
-    def test_forward_cpu_to_gpu(self):
-        device_id = cuda.Device().id
-        self.check_forward(-1, device_id)
-
-    @attr.gpu
-    def test_backward_cpu_to_gpu(self):
-        device_id = cuda.Device().id
-        self.check_backward(-1, device_id)
-
-    @attr.gpu
-    def test_forward_gpu_to_cpu(self):
-        device_id = cuda.Device().id
-        self.check_forward(device_id, -1)
-
-    @attr.gpu
-    def test_backward_gpu_to_cpu(self):
-        device_id = cuda.Device().id
-        self.check_backward(device_id, -1)
-
-    @attr.multi_gpu(2)
-    def test_forward_multigpu(self):
-        self.check_forward(0, 1)
-
-    @attr.multi_gpu(2)
-    def test_backward_multigpu(self):
-        self.check_backward(0, 1)
-
-    def check_double_backward(self, x_data, y_grad, x_grad_grad):
-        def f(x):
-            return functions.copy(x, -1)
-
-        gradient_check.check_double_backward(
-            f, x_data, y_grad, x_grad_grad, dtype=numpy.float64,
-            **self.check_double_backward_options)
-
-    def test_double_backward_cpu(self):
-        self.check_double_backward(self.x_data, self.gy, self.ggx)
+            _numpy_device.send(gy_var.grad_var.array), self.ggx)
 
 
-class TestCopyArgument(unittest.TestCase):
+@testing.inject_backend_tests(None, _nonchainerx_backend_configs)  # dst
+@testing.inject_backend_tests(None, _backend_configs)  # src
+@testing.parameterize(*testing.product({
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
+}))
+class TestCopyToNonChainerx(CopyTestBase, unittest.TestCase):
 
-    def setUp(self):
-        self.x_data = numpy.zeros((2, 3))
+    def test_forward_int(self, src_backend_config, dst_backend_config):
+        assert dst_backend_config.xp is not chainerx
+        src_device = src_backend_config.device
+        dst_device = dst_backend_config.device
+        if dst_device.xp is numpy:
+            dst_device_spec = -1
+        elif dst_device.xp is chainer.backends.cuda.cupy:
+            dst_device_spec = dst_device.device.id
+        else:
+            assert False, dst_device
 
-    def test_call_forward_with_device(self):
-        functions.copy(self.x_data, cuda.DummyDevice)
+        self.check_forward(
+            dst_device_spec,
+            src_device,
+            dst_device)
+
+    def test_forward_str(self, src_backend_config, dst_backend_config):
+        assert dst_backend_config.xp is not chainerx
+        src_device = src_backend_config.device
+        dst_device = dst_backend_config.device
+        if dst_device.xp is numpy:
+            dst_device_spec = '@numpy'
+        elif dst_device.xp is chainer.backends.cuda.cupy:
+            dst_device_spec = '@cupy:{}'.format(dst_device.device.id)
+        else:
+            assert False, dst_device
+
+        self.check_forward(
+            dst_device_spec,
+            src_device,
+            dst_device)
+
+
+@testing.inject_backend_tests(None, _chainerx_backend_configs)  # dst
+@testing.inject_backend_tests(None, _backend_configs)  # src
+@testing.parameterize(*testing.product({
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
+}))
+class TestCopyToChainerx(CopyTestBase, unittest.TestCase):
+
+    def test_forward_str(self, src_backend_config, dst_backend_config):
+        assert dst_backend_config.xp is chainerx
+        src_device = src_backend_config.device
+        dst_device = dst_backend_config.device
+        dst_device_spec = dst_device.device.name
+
+        self.check_forward(
+            dst_device_spec,
+            src_device,
+            dst_device)
+
+
+@testing.inject_backend_tests(None, _chainerx_backend_configs)
+@testing.inject_backend_tests(None, _nonchainerx_backend_configs)
+class TestCopyBetweenChainerxAndNonChainerx(unittest.TestCase):
+    # Copy between non-ChainerX and ChainerX devices are not supported.
+
+    dtype = numpy.float32
+
+    def check_invalid(self, src_device, dst_device_spec):
+        x = src_device.send(
+            numpy.random.uniform(-1, 1, (10, 5)).astype(self.dtype))
+
+        x_var = chainer.Variable(x)
+
+        with pytest.raises(RuntimeError):
+            functions.copy(x_var, dst_device_spec)
+
+    def test_invalid(self, nonchx_backend_config, chx_backend_config):
+        assert nonchx_backend_config.xp is not chainerx
+        assert chx_backend_config.xp is chainerx
+
+        self.check_invalid(
+            nonchx_backend_config.device, chx_backend_config.device)
+        self.check_invalid(
+            chx_backend_config.device, nonchx_backend_config.device)
+        # cuda.DummyDevice is not supported either.
+        self.check_invalid(
+            chx_backend_config.device, cuda.DummyDevice)
+
+
+@testing.inject_backend_tests(None, _nonchainerx_backend_configs)
+@testing.inject_backend_tests(None, _nonchainerx_backend_configs)
+class TestCopyCudaDummyDevice(unittest.TestCase):
+
+    def test_dummy_device(self, src_backend_config, current_backend_config):
+
+        x_arr = src_backend_config.get_array(numpy.zeros((2, 3)))
+
+        with current_backend_config:
+            y = functions.copy(x_arr, cuda.DummyDevice)
+
+        # Always transferred to NumPy device, regardless of the current CUDA
+        # device.
+        assert isinstance(y.device, _cpu.CpuDevice)
 
 
 testing.run_module(__name__, __file__)

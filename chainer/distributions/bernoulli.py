@@ -6,8 +6,10 @@ from chainer.backends import cuda
 from chainer import distribution
 import chainer.distributions.utils
 from chainer.functions.activation import sigmoid
+from chainer.functions.array import where
 from chainer.functions.math import exponential
 from chainer.functions.math import logarithm_1p
+from chainer.functions.math import sum
 from chainer import utils
 from chainer.utils import cache
 
@@ -35,7 +37,7 @@ class BernoulliLogProb(chainer.function_node.FunctionNode):
 
         if self.binary_check:
             self.invalid = utils.force_array(xp.bitwise_and(x != 0, x != 1))
-            y[self.invalid] = - xp.inf
+            y[self.invalid] = -xp.inf
 
         return utils.force_array(y, logit.dtype),
 
@@ -46,14 +48,13 @@ class BernoulliLogProb(chainer.function_node.FunctionNode):
         dlogit = x - 1. / (1. + exponential.exp(-logit))
 
         # extreme logit
-        nan_dlogit = xp.zeros_like(dlogit.array)
+        nan = xp.array(xp.nan).astype(dlogit.dtype)
+        logit_isinf = xp.bitwise_or(self.logit_ispinf, self.logit_isminf)
+        dlogit = where.where(logit_isinf, nan, dlogit)
         if self.binary_check:
-            nan_dlogit[self.invalid] = numpy.nan
-        nan_dlogit[self.logit_ispinf] = numpy.nan
-        nan_dlogit[self.logit_isminf] = numpy.nan
-        dlogit += nan_dlogit
+            dlogit = where.where(self.invalid, nan, dlogit)
 
-        return gy * dlogit, None
+        return sum.sum_to(gy * dlogit, logit.shape), None
 
 
 def _bernoulli_log_prob(logit, x, binary_check=False):
@@ -113,8 +114,8 @@ class Bernoulli(distribution.Distribution):
     def entropy(self):
         p = self.p
         q = p.dtype.type(1.) - p
-        return - chainer.distributions.utils._modified_xlogx(p) \
-            - chainer.distributions.utils._modified_xlogx(q)
+        return (- chainer.distributions.utils._modified_xlogx(p)
+                - chainer.distributions.utils._modified_xlogx(q))
 
     @property
     def event_shape(self):
@@ -170,6 +171,7 @@ class Bernoulli(distribution.Distribution):
 
 @distribution.register_kl(Bernoulli, Bernoulli)
 def _kl_bernoulli_bernoulli(dist1, dist2):
-    return (dist1.logit - dist2.logit) * (dist1.p - 1.) \
-        - exponential.log(exponential.exp(-dist1.logit) + 1) \
-        + exponential.log(exponential.exp(-dist2.logit) + 1)
+    return (
+        (dist1.logit - dist2.logit) * (dist1.p - 1.)
+        - exponential.log(exponential.exp(-dist1.logit) + 1)
+        + exponential.log(exponential.exp(-dist2.logit) + 1))

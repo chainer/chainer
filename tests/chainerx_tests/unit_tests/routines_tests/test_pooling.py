@@ -1,3 +1,5 @@
+import functools
+from operator import mul
 import unittest
 
 import chainer
@@ -48,7 +50,14 @@ class TestMaxPool(op_utils.ChainerOpTest):
     def generate_inputs(self):
         x_shape = self.x_shape
         dtype = self.dtype
-        x = numpy.random.uniform(-1, 1, x_shape).astype(dtype)
+
+        if self.test_name in ('test_backward', 'test_double_backward'):
+            x = numpy.arange(functools.reduce(mul, x_shape), dtype=dtype)
+            x = x.reshape(x_shape)
+            x = 2 * x / x.size - 1
+        else:
+            x = numpy.random.randn(*x_shape).astype(dtype, copy=False)
+
         return x,
 
     def forward_chainerx(self, inputs):
@@ -123,7 +132,7 @@ def _get_pad_mode_kwargs(pad_mode, is_chainerx):
     ((1, 3, 2, 6, 3, 2), (1, 3, 1, 1), 1, 1),
 ])
 @chainer.testing.parameterize_pytest('pad_mode', ['zero', 'ignore', None])
-# ignore warning occuring when pad_value is None in chainer
+# ignore warning occurring when pad_value is None in chainer
 @pytest.mark.filterwarnings('ignore:invalid value encountered in true_divide')
 class TestAveragePool(op_utils.ChainerOpTest):
 

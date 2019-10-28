@@ -1,3 +1,5 @@
+include_directories("${PROJECT_SOURCE_DIR}")
+
 add_executable(train_mnist
   mnist.cc
   train_mnist.cc

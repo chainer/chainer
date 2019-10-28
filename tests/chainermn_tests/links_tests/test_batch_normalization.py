@@ -1,4 +1,5 @@
 import chainer
+from chainer.backends.cuda import cupy
 import chainer.testing
 import chainer.utils
 import mpi4py.MPI
@@ -123,10 +124,11 @@ def check_multi_node_bn(comm, use_gpu=False, backend='auto',
         # m2 may be different.
 
     if use_gpu:
-        m1.to_gpu()
-        m2.to_gpu()
-        m3.to_gpu()
-        m4.to_gpu()
+        device = cupy.cuda.Device()
+        m1.to_device(device)
+        m2.to_device(device)
+        m3.to_device(device)
+        m4.to_device(device)
 
     m2.copyparams(m1)
     m3.copyparams(m1)
@@ -139,7 +141,7 @@ def check_multi_node_bn(comm, use_gpu=False, backend='auto',
     l2 = m2(x_local, y_local)
     m2.cleargrads()
     l2.backward()
-    comm.allreduce_grad(m2)
+    comm.multi_node_mean_grad(m2)
 
     l3 = m3(x, y)
     m3.cleargrads()
@@ -148,7 +150,7 @@ def check_multi_node_bn(comm, use_gpu=False, backend='auto',
     l4 = m4(x_local, y_local)
     m4.cleargrads()
     l4.backward()
-    comm.allreduce_grad(m4)
+    comm.multi_node_mean_grad(m4)
 
     if comm.rank == 0:
         for p1, p2, p3, p4 in zip(
@@ -182,6 +184,16 @@ def check_multi_node_bn(comm, use_gpu=False, backend='auto',
             # This is to see that this test is valid.
             if comm.size >= 2:
                 assert_not_allclose(p1[1].grad, p2[1].grad)
+
+
+def check_link_copyable(comm):
+    #  Regression test for #5854
+    bn0 = ModelDistributedBN(comm)
+    bn1 = bn0.copy(mode='copy')
+    assert bn1 is not None
+    bn2 = MultiNodeBatchNormalization(10, comm)
+    bn3 = bn2.copy(mode='copy')
+    assert bn3 is not None
 
 
 def assert_not_allclose(x, y, atol=1e-5, rtol=1e-4, verbose=True):
@@ -226,6 +238,7 @@ def test_multi_node_bn_cpu(communicator_class, backend, dtype):
     comm = create_communicator(communicator_class, mpi_comm,
                                use_gpu=False)
     check_multi_node_bn(comm, backend=backend, dtype=dtype)
+    check_link_copyable(comm)
     comm.mpi_comm.barrier()
 
 
@@ -242,6 +255,7 @@ def test_multi_node_bn_gpu(communicator_class, backend, dtype):
     comm = create_communicator(communicator_class, mpi_comm,
                                use_gpu=True)
     check_multi_node_bn(comm, use_gpu=True, backend=backend, dtype=dtype)
+    check_link_copyable(comm)
     chainer.cuda.Stream.null.synchronize()
     comm.mpi_comm.barrier()
     if hasattr(comm, 'nccl_comm'):

@@ -1,9 +1,10 @@
 from __future__ import division
 
-import numpy as np
 import random
 import tempfile
 import unittest
+
+import numpy as np
 
 from chainer import serializers
 from chainer import testing
@@ -115,6 +116,22 @@ class TestIntervalTrigger(unittest.TestCase):
             for expected in self.expected[self.resume:]:
                 trainer.updater.update()
                 self.assertEqual(trigger(trainer), expected)
+
+    def test_str(self):
+        trigger = training.triggers.IntervalTrigger(*self.interval)
+
+        expected = 'IntervalTrigger({}, \'{}\')'.format(*self.interval)
+        actual = str(trigger)
+
+        assert expected == actual, 'Expected "{}" == "{}"'.format(
+            expected, actual)
+
+
+class TestInvalidIntervalTrigger(unittest.TestCase):
+
+    def test_invalid_unit(self):
+        with self.assertRaises(ValueError):
+            training.triggers.IntervalTrigger(1, 'day')
 
 
 testing.run_module(__name__, __file__)

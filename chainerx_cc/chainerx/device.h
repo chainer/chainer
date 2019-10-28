@@ -4,36 +4,20 @@
 #include <memory>
 #include <string>
 
-#include <nonstd/optional.hpp>
+#include <absl/types/optional.h>
 
 #include "chainerx/axes.h"
 #include "chainerx/backend.h"
 #include "chainerx/constant.h"
 #include "chainerx/dtype.h"
 #include "chainerx/error.h"
+#include "chainerx/macro.h"
 #include "chainerx/scalar.h"
 #include "chainerx/shape.h"
-#include "chainerx/stack_vector.h"
 
 namespace chainerx {
 
 class Array;
-enum class AveragePoolPadMode;
-
-class MaxPoolForwardBackward {
-public:
-    virtual ~MaxPoolForwardBackward() = default;
-    virtual Array Forward(const Array& x) = 0;
-    virtual Array Backward(const Array& gout) = 0;
-    virtual Array DoubleBackward(const Array& ggx) = 0;
-};
-
-class AveragePoolForwardBackward {
-public:
-    virtual ~AveragePoolForwardBackward() = default;
-    virtual Array Forward(const Array& x) = 0;
-    virtual Array Backward(const Array& gout) = 0;
-};
 
 // Device base class.
 // Note that these member functions may be called from the framework or user code.
@@ -139,14 +123,18 @@ public:
     DeviceScope& operator=(const DeviceScope&) = delete;
     DeviceScope& operator=(DeviceScope&&) = delete;
 
-    DeviceScope(DeviceScope&& other) : orig_(other.orig_), exited_(other.exited_) { other.exited_ = true; }
+    DeviceScope(DeviceScope&& other) noexcept : orig_{other.orig_}, exited_{other.exited_} { other.exited_ = true; }
 
     ~DeviceScope() { Exit(); }
 
     // Explicitly recovers the original device. It will invalidate the scope object so that dtor will do nothing.
     void Exit() {
         if (!exited_) {
-            SetDefaultDevice(orig_);
+            try {
+                SetDefaultDevice(orig_);
+            } catch (...) {
+                CHAINERX_NEVER_REACH();
+            }
             exited_ = true;
         }
     }

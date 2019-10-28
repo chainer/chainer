@@ -8,8 +8,8 @@
 #include <utility>
 #include <vector>
 
-#include <gsl/gsl>
-#include <nonstd/optional.hpp>
+#include <absl/types/optional.h>
+#include <absl/types/span.h>
 
 #include "chainerx/array_body.h"
 #include "chainerx/array_fwd.h"
@@ -31,7 +31,7 @@
 namespace chainerx {
 namespace internal {
 
-BackpropId GetArrayBackpropId(const Array& array, const nonstd::optional<BackpropId>& backprop_id);
+BackpropId GetArrayBackpropId(const Array& array, const absl::optional<BackpropId>& backprop_id);
 
 Array MakeArray(const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset = 0);
 
@@ -41,12 +41,16 @@ inline std::shared_ptr<ArrayBody>&& MoveArrayBody(Array&& array);
 
 }  // namespace internal
 
+enum class IndexBoundsMode;
+
 // The user interface of multi-dimensional arrays.
 //
 // This wraps an ArrayBody, providing accessors, an interface for graph operations and differentiable operations.
 class Array {
 public:
     Array() = default;
+
+    ~Array() = default;
 
     // TODO(hvy): Consider making this contructor private and prohibit body from being null (assert that given body is not null).
     explicit Array(std::shared_ptr<internal::ArrayBody> body) : body_{std::move(body)} {
@@ -82,6 +86,18 @@ public:
     Array& operator*=(Scalar rhs);
     Array& operator/=(const Array& rhs);
     Array& operator/=(Scalar rhs);
+    Array& operator%=(const Array& rhs);
+    Array& operator%=(Scalar rhs);
+    Array& operator&=(const Array& rhs);
+    Array& operator&=(Scalar rhs);
+    Array& operator|=(const Array& rhs);
+    Array& operator|=(Scalar rhs);
+    Array& operator^=(const Array& rhs);
+    Array& operator^=(Scalar rhs);
+    Array& operator<<=(const Array& rhs);
+    Array& operator<<=(Scalar rhs);
+    Array& operator>>=(const Array& rhs);
+    Array& operator>>=(Scalar rhs);
 
     const Array& operator+=(const Array& rhs) const;
     const Array& operator+=(Scalar rhs) const;
@@ -91,6 +107,18 @@ public:
     const Array& operator*=(Scalar rhs) const;
     const Array& operator/=(const Array& rhs) const;
     const Array& operator/=(Scalar rhs) const;
+    const Array& operator%=(const Array& rhs) const;
+    const Array& operator%=(Scalar rhs) const;
+    const Array& operator&=(const Array& rhs) const;
+    const Array& operator&=(Scalar rhs) const;
+    const Array& operator|=(const Array& rhs) const;
+    const Array& operator|=(Scalar rhs) const;
+    const Array& operator^=(const Array& rhs) const;
+    const Array& operator^=(Scalar rhs) const;
+    const Array& operator<<=(const Array& rhs) const;
+    const Array& operator<<=(Scalar rhs) const;
+    const Array& operator>>=(const Array& rhs) const;
+    const Array& operator>>=(Scalar rhs) const;
 
     Array operator+(const Array& rhs) const;
     Array operator+(Scalar rhs) const;
@@ -100,12 +128,26 @@ public:
     Array operator*(Scalar rhs) const;
     Array operator/(const Array& rhs) const;
     Array operator/(Scalar rhs) const;
+    Array operator%(const Array& rhs) const;
+    Array operator%(Scalar rhs) const;
+    Array operator&(const Array& rhs) const;
+    Array operator&(Scalar rhs) const;
+    Array operator|(const Array& rhs) const;
+    Array operator|(Scalar rhs) const;
+    Array operator^(const Array& rhs) const;
+    Array operator^(Scalar rhs) const;
+    Array operator<<(const Array& rhs) const;
+    Array operator<<(Scalar rhs) const;
+    Array operator>>(const Array& rhs) const;
+    Array operator>>(Scalar rhs) const;
 
     // Returns a view selected with the indices.
     Array At(const std::vector<ArrayIndex>& indices) const;
 
     // Returns a transposed view of the array.
-    Array Transpose(const OptionalAxes& axes = nonstd::nullopt) const;
+    Array Transpose(const OptionalAxes& axes = absl::nullopt) const;
+
+    Array Ravel() const;
 
     // Returns a reshaped array.
     // TODO(niboshi): Support shape with dimension -1.
@@ -115,7 +157,7 @@ public:
     //
     // If no axes are specified, all axes of unit-lengths are removed.
     // If no axes can be removed, an array with aliased data is returned.
-    Array Squeeze(const OptionalAxes& axis = nonstd::nullopt) const;
+    Array Squeeze(const OptionalAxes& axis = absl::nullopt) const;
 
     // Interchange two axes of an array.
     Array Swapaxes(int8_t axis1, int8_t axis2) const;
@@ -125,31 +167,34 @@ public:
     Array BroadcastTo(const Shape& shape) const;
 
     // Returns the indices of the maximum values along the given axis.
-    Array ArgMax(const OptionalAxes& axis = nonstd::nullopt) const;
+    Array ArgMax(const OptionalAxes& axis = absl::nullopt) const;
+
+    // Returns the indices of the minimum values along the given axis.
+    Array ArgMin(const OptionalAxes& axis = absl::nullopt) const;
 
     // Returns a sum of the array.
     // If `axis` is set, it will be summed over the specified axes.
     // Otherwise, it will be summed over all the existing axes.
     // Note: When implementing chainerx::Sum(), be careful of the semantics of the default value of `keepdims`. See NumPy documentation.
-    Array Sum(const OptionalAxes& axis = nonstd::nullopt, bool keepdims = false) const;
+    Array Sum(const OptionalAxes& axis = absl::nullopt, bool keepdims = false) const;
 
     // Returns the maximum value of the array.
     // If `axis` is set, the maximum value is chosen along the specified axes.
     // Otherwise, all the elements are searched at once.
-    Array Max(const OptionalAxes& axis = nonstd::nullopt, bool keepdims = false) const;
+    Array Max(const OptionalAxes& axis = absl::nullopt, bool keepdims = false) const;
 
     // Returns the minimum value of the array.
     // If `axis` is set, the minimum value is chosen along the specified axes.
     // Otherwise, all the elements are searched at once.
-    Array Min(const OptionalAxes& axis = nonstd::nullopt, bool keepdims = false) const;
+    Array Min(const OptionalAxes& axis = absl::nullopt, bool keepdims = false) const;
 
-    Array Mean(const OptionalAxes& axis = nonstd::nullopt, bool keepdims = false) const;
+    Array Mean(const OptionalAxes& axis = absl::nullopt, bool keepdims = false) const;
 
-    Array Var(const OptionalAxes& axis = nonstd::nullopt, bool keepdims = false) const;
+    Array Var(const OptionalAxes& axis = absl::nullopt, bool keepdims = false) const;
 
-    Array All(const OptionalAxes& axis = nonstd::nullopt, bool keepdims = false) const;
+    Array All(const OptionalAxes& axis = absl::nullopt, bool keepdims = false) const;
 
-    Array Any(const OptionalAxes& axis = nonstd::nullopt, bool keepdims = false) const;
+    Array Any(const OptionalAxes& axis = absl::nullopt, bool keepdims = false) const;
 
     // Returns a dot product of the array with another one.
     Array Dot(const Array& b) const;
@@ -159,12 +204,14 @@ public:
     // TODO(niboshi): Support Scalar and StackVector as indices.
     // TODO(niboshi): Support axis=None behavior in NumPy.
     // TODO(niboshi): Support indices dtype other than int64.
-    Array Take(const Array& indices, int8_t axis) const;
+    Array Take(const Array& indices, int8_t axis, IndexBoundsMode mode) const;
 
     // Creates a copy.
     // It will be connected to all the graphs.
     // It will be always C-contiguous.
     Array Copy() const;
+
+    Array Flatten() const;
 
     // Creates a view.
     // It creates a new array node and connects graphs.
@@ -189,9 +236,9 @@ public:
 
     // Creates a copy or a view. It will be disconnected from the specified graphs.
     // If `kind` is `CopyKind::kCopy`, the returned array will be always C-contiguous.
-    Array AsGradStopped(gsl::span<const BackpropId> backprop_ids, CopyKind kind = CopyKind::kView) const;
+    Array AsGradStopped(absl::Span<const BackpropId> backprop_ids, CopyKind kind = CopyKind::kView) const;
     Array AsGradStopped(std::initializer_list<const BackpropId> backprop_ids, CopyKind kind = CopyKind::kView) const {
-        return AsGradStopped(gsl::span<const BackpropId>{backprop_ids.begin(), backprop_ids.end()}, kind);
+        return AsGradStopped(absl::MakeConstSpan(backprop_ids.begin(), backprop_ids.end()), kind);
     }
 
     // Casts to a specified type.
@@ -206,14 +253,14 @@ public:
     // ChainerxError is thrown if the array is constant with respect to the computation for the specified backprop ID.
     // ChainerxError is thrown if the array is not flagged as requiring gradient.
     // This function ignores no/force-backprop mode.
-    const nonstd::optional<Array>& GetGrad(const nonstd::optional<BackpropId>& backprop_id = nonstd::nullopt) const;
+    const absl::optional<Array>& GetGrad(const absl::optional<BackpropId>& backprop_id = absl::nullopt) const;
 
     // Sets the gradient of the array.
     // This function also flags the array as requiring gradient, so that preceding GetGrad() can return the gradient.
     //
     // ChainerxError is thrown if the array is constant with respect to the computation for the specified backprop ID.
     // This function ignores no/force-backprop mode.
-    void SetGrad(Array grad, const nonstd::optional<BackpropId>& backprop_id = nonstd::nullopt) const;
+    void SetGrad(Array grad, const absl::optional<BackpropId>& backprop_id = absl::nullopt) const;
 
     // Clears the gradient of the array if set.
     // This function does not change the state of the array other than that. For example, if the array is flagged as requiring gradient,
@@ -221,28 +268,28 @@ public:
     //
     // ChainerxError is thrown if the array is constant with respect to the computation for the specified backprop ID.
     // This function ignores no/force-backprop mode.
-    void ClearGrad(const nonstd::optional<BackpropId>& backprop_id = nonstd::nullopt) const;
+    void ClearGrad(const absl::optional<BackpropId>& backprop_id = absl::nullopt) const;
 
     // Returns whether the array needs to backprop.
     //
     // If no-backprop mode is set with respect to the specified backprop ID, this function returns false.
-    bool IsBackpropRequired(const nonstd::optional<BackpropId>& backprop_id = nonstd::nullopt) const;
+    bool IsBackpropRequired(const absl::optional<BackpropId>& backprop_id = absl::nullopt) const;
     bool IsBackpropRequired(AnyGraph any_graph) const;
 
     // Returns whether the array is flagged to compute the gradient during backprop.
     //
     // This function ignores no/force-backprop mode.
-    bool IsGradRequired(const nonstd::optional<BackpropId>& backprop_id = nonstd::nullopt) const;
+    bool IsGradRequired(const absl::optional<BackpropId>& backprop_id = absl::nullopt) const;
 
     // Flags the array to compute the gradient during backprop.
     // If the array is constant with respect to the computation of the backprop ID, this function makes the array non-constant.
     //
     // This function ignores no/force-backprop mode.
-    const Array& RequireGrad(const nonstd::optional<BackpropId>& backprop_id = nonstd::nullopt) const {
+    const Array& RequireGrad(const absl::optional<BackpropId>& backprop_id = absl::nullopt) const {
         return RequireGradImpl(*this, backprop_id);
     }
 
-    Array& RequireGrad(const nonstd::optional<BackpropId>& backprop_id = nonstd::nullopt) { return RequireGradImpl(*this, backprop_id); }
+    Array& RequireGrad(const absl::optional<BackpropId>& backprop_id = absl::nullopt) { return RequireGradImpl(*this, backprop_id); }
 
     int64_t GetTotalSize() const { return body_->GetTotalSize(); }
 
@@ -281,7 +328,7 @@ private:
     Array(const Shape& shape, const Strides& strides, Dtype dtype, Device& device, std::shared_ptr<void> data, int64_t offset = 0);
 
     template <typename T>
-    static T& RequireGradImpl(T& array, const nonstd::optional<BackpropId>& backprop_id);
+    static T& RequireGradImpl(T& array, const absl::optional<BackpropId>& backprop_id);
 
     std::shared_ptr<internal::ArrayBody> body_;
 };
@@ -289,7 +336,11 @@ private:
 Array operator+(Scalar lhs, const Array& rhs);
 Array operator-(Scalar lhs, const Array& rhs);
 Array operator*(Scalar lhs, const Array& rhs);
-// TODO(hvy): Implement Scalar / Array using e.g. multiplication with reciprocal.
+Array operator/(Scalar lhs, const Array& rhs);
+Array operator%(Scalar lhs, const Array& rhs);
+
+Array operator<<(Scalar lhs, const Array& rhs);
+Array operator>>(Scalar lhs, const Array& rhs);
 
 namespace internal {
 
@@ -299,14 +350,14 @@ inline std::shared_ptr<ArrayBody>&& MoveArrayBody(Array&& array) { return std::m
 
 std::vector<std::shared_ptr<ArrayBody>> MoveArrayBodies(std::vector<Array>&& arrays);
 
-std::vector<std::shared_ptr<ArrayBody>> MoveArrayBodies(std::vector<nonstd::optional<Array>>&& arrays);
+std::vector<std::shared_ptr<ArrayBody>> MoveArrayBodies(std::vector<absl::optional<Array>>&& arrays);
 
 }  // namespace internal
 
 void DebugDumpComputationalGraph(
         std::ostream& os,
         const Array& array,
-        const nonstd::optional<BackpropId>& backprop_id,
+        const absl::optional<BackpropId>& backprop_id,
         int indent = 0,
         const std::vector<std::pair<ConstArrayRef, std::string>>& array_name_map = {});
 

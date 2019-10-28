@@ -37,7 +37,11 @@ def _check_available():
 
 class PlotReport(extension.Extension):
 
-    """Trainer extension to output plots.
+    """__init__(\
+y_keys, x_key='iteration', trigger=(1, 'epoch'), postprocess=None, \
+filename='plot.png', marker='x', grid=True)
+
+    Trainer extension to output plots.
 
     This extension accumulates the observations of the trainer to
     :class:`~chainer.DictSummary` at a regular interval specified by a supplied
@@ -68,7 +72,7 @@ class PlotReport(extension.Extension):
 
             trainer.extend(
                 extensions.PlotReport(['main/loss', 'validation/main/loss'],
-                                      'epoch', file_name='loss.png'))
+                                      'epoch', filename='loss.png'))
             trainer.run()
 
         Then, once one of instances of this extension is called,
@@ -79,7 +83,7 @@ class PlotReport(extension.Extension):
 
     Args:
         y_keys (iterable of strs): Keys of values regarded as y. If this is
-            None, nothing is output to the graph.
+            ``None``, nothing is output to the graph.
         x_key (str): Keys of values regarded as x. The default value is
             'iteration'.
         trigger: Trigger that decides when to aggregate the result and output
@@ -90,14 +94,13 @@ class PlotReport(extension.Extension):
             object, Axes object, and all plot data are passed to this callback
             in this order. This callback can modify the figure.
         filename (str): Name of the figure file under the output directory.
-            It can be a format string. Although it is recommended to
-            use this argument, you can also specify the file name of
-            a figure with the `file_name` argument for backward
-            compatibility.  If both `filename` and `file_name` are specified,
-            `filename` will be used.
+            It can be a format string.
+            For historical reasons ``file_name`` is also accepted as an alias
+            of this argument.
         marker (str): The marker used to plot the graph. Default is ``'x'``. If
             ``None`` is given, it draws with no markers.
-        grid (bool): Set the axis grid on if True. Default is True.
+        grid (bool): If ``True``, set the axis grid on.
+            The default value is ``True``.
 
     """
 
@@ -147,7 +150,7 @@ class PlotReport(extension.Extension):
         else:
             summary.add({k: observation[k] for k in keys if k in observation})
 
-        if self._trigger(trainer):
+        if trainer.is_before_training or self._trigger(trainer):
             stats = self._summary.compute_mean()
             stats_cpu = {}
             for name, value in six.iteritems(stats):

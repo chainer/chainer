@@ -64,7 +64,7 @@ class TestThinStackGet(unittest.TestCase):
 
         self.assertIsNone(i.grad)
         # Thin stack reueses the same gradient array.
-        self.assertIs(s.grad, t.grad)
+        self.assertIs(s.grad, gt_data)
 
     def test_backward_cpu(self):
         self.check_backward(self.s, self.i, self.gx, self.gt)
@@ -130,7 +130,7 @@ class TestThinStackSet(unittest.TestCase):
 
         self.assertIsNone(i.grad)
         # Thin stack reueses the same gradient array.
-        self.assertIs(s.grad, t.grad)
+        self.assertIs(s.grad, gt_data)
 
     def test_backward_cpu(self):
         self.check_backward(self.s, self.i, self.x, self.gt)

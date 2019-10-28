@@ -3,6 +3,8 @@
 #include <memory>
 #include <string>
 
+#include <gsl/gsl>
+
 #include "chainerx/backend.h"
 #include "chainerx/device.h"
 #include "chainerx/kernel_registry.h"
@@ -33,12 +35,11 @@ public:
 
     int GetDeviceCount() const override;
 
+    bool IsNative() const override { return true; }
+
     bool SupportsTransfer(Device& src_device, Device& dst_device) override;
 
-    static KernelRegistry& GetGlobalKernelRegistry() {
-        static KernelRegistry* global_kernel_registry = new KernelRegistry{};
-        return *global_kernel_registry;
-    }
+    static KernelRegistry& GetGlobalKernelRegistry();
 
 protected:
     KernelRegistry& GetParentKernelRegistry() override { return GetGlobalKernelRegistry(); }

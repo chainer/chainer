@@ -18,7 +18,7 @@ You can also enable or disable debug mode for the specific scope of code with :f
 
 See :ref:`configuration` for the details of Chainer's configuration mechanism.
 
-In debug mode, Chainer checks all results of forward and backward computation, and if it finds a NaN value, it raises :class:`RuntimeError`.
+In debug mode, Chainer checks all results of forward and backward computation, and if it finds a NaN value, it raises a :class:`RuntimeError`.
 Some functions and links also check validity of input values more strictly.
 
 You can check if debug mode is enabled with :func:`chainer.is_debug` function.

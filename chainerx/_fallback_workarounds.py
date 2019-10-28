@@ -62,6 +62,13 @@ def _from_chx(array, check_backprop=True):
     # Objects with other types are kept intact.
     # Returns a pair: (xp, cupy device or dummy context, numpy/cupy.ndarray).
     if not isinstance(array, chainerx.ndarray):
+        if (isinstance(array, numpy.ndarray)
+                or (cupy and isinstance(array, cupy.ndarray))):
+            raise TypeError(
+                'ChainerX function fallback using NumPy/CuPy arrays '
+                'is not supported.')
+        # _from_chx is also called for slice and tuple objects
+        # Used to index a chx array
         return None, _dummy_context, array
     if check_backprop and array.is_backprop_required():
         raise RuntimeError(
@@ -94,45 +101,37 @@ def _to_chx(array):
 
 def _populate_module_functions():
 
-    def _isfinite(arr):
+    def _fix(arr):
         xp, dev, arr = _from_chx(arr)
         with dev:
-            ret = xp.isfinite(arr)
+            ret = xp.fix(arr)
+            ret = xp.asarray(ret)
         return _to_chx(ret)
 
-    chainerx.isfinite = _isfinite
+    def _broadcast_arrays(*args):
+        xps, devs, arrs = zip(*(_from_chx(arr) for arr in args))
+        backend = xps[0]
+        if not all([xp is backend for xp in xps]):
+            raise TypeError(
+                'ChainerX function fallback using mixed NumPy/CuPy '
+                'arrays is not supported.')
+        bcasted = backend.broadcast_arrays(*arrs)
+        return [_to_chx(ret) for ret in bcasted]
 
-    def _hstack(arrs):
-        assert len(arrs) > 0
-        arrs2 = []
-        for a in arrs:
-            xp, dev, a2 = _from_chx(a)
-            arrs2.append(a2)
-        with dev:
-            ret = xp.hstack(arrs2)
-        return _to_chx(ret)
+    def _copysign(*args):
+        xps, devs, arrs = zip(*(_from_chx(arr) for arr in args))
+        backend = xps[0]
+        if not all([xp is backend for xp in xps]):
+            raise TypeError(
+                'ChainerX function fallback using mixed NumPy/CuPy '
+                'arrays is not supported.')
+        with devs[0]:
+            y = backend.copysign(*arrs)
+        return _to_chx(y)
 
-    chainerx.hstack = _hstack
-
-    def _vstack(arrs):
-        assert len(arrs) > 0
-        arrs2 = []
-        for a in arrs:
-            xp, dev, a2 = _from_chx(a)
-            arrs2.append(a2)
-        with dev:
-            ret = xp.vstack(arrs2)
-        return _to_chx(ret)
-
-    chainerx.vstack = _vstack
-
-    def _sign(arr):
-        xp, dev, arr = _from_chx(arr)
-        with dev:
-            ret = xp.sign(arr)
-        return _to_chx(ret)
-
-    chainerx.sign = _sign
+    chainerx.fix = _fix
+    chainerx.broadcast_arrays = _broadcast_arrays
+    chainerx.copysign = _copysign
 
 
 def _populate_ndarray():
@@ -142,15 +141,19 @@ def _populate_ndarray():
     old_getitem = ndarray.__getitem__
 
     def __getitem__(arr, key):
-        try:
+        if not isinstance(key, chainerx.ndarray):
             return old_getitem(arr, key)
-        except (IndexError, chainerx.DimensionError):
-            pass
 
         is_backprop_required = arr.is_backprop_required()
 
         xp, dev, arr = _from_chx(arr, check_backprop=False)
-        _, _, key = _from_chx(key, check_backprop=False)
+        # The elements used for indexing the array might be
+        # also ChainerX arrays. _from_chx ignores
+        # other types and return them as-is
+        if isinstance(key, tuple):
+            key = tuple([_from_chx(k, check_backprop=False)[2] for k in key])
+        else:
+            _, _, key = _from_chx(key, check_backprop=False)
 
         with dev:
             ret = arr[key]
@@ -185,6 +188,14 @@ def _populate_ndarray():
 
     ndarray.__setitem__ = __setitem__
     ndarray.__getitem__ = __getitem__
+
+    def tolist(arr):
+        _, dev, arr = _from_chx(arr)
+        with dev:
+            ret = arr.tolist()
+        return ret
+
+    ndarray.tolist = tolist
 
 
 def populate():

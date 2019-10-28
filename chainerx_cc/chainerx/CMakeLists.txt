@@ -1,3 +1,7 @@
+include_directories("${PROJECT_SOURCE_DIR}")
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CHAINERX_CXX_FLAGS}")
+
 add_subdirectory(kernels)
 add_subdirectory(routines)
 add_subdirectory(native)
@@ -27,6 +31,7 @@ install(FILES
     backward_builder.h
     backward_context.h
     backward_fwd.h
+    chainerx.h
     check_backward.h
     constant.h
     context.h
@@ -61,7 +66,6 @@ install(FILES
     strides.h
     thread_local_state.h
     util.h
-    chainerx.h
     DESTINATION include/chainerx
     )
 
@@ -69,6 +73,7 @@ set(chainerx_srcs
     array.cc
     array_body.cc
     array_body_leak_detection.cc
+    array_index.cc
     array_repr.cc
     axes.cc
     backend.cc
@@ -109,14 +114,40 @@ if(MSVC)
         )
     add_library(chainerx STATIC ${chainerx_srcs})
 else()
-    add_library(chainerx SHARED ${chainerx_srcs})
+    add_library(chainerx_base STATIC ${chainerx_srcs})
+    add_library(chainerx SHARED empty.cc)
 endif()
 
-if(${APPLE})
+# abseil
+target_link_libraries(
+    chainerx
+    PUBLIC
+    absl::failure_signal_handler
+    absl::bad_optional_access)
+
+if(MSVC)
     target_link_libraries(chainerx
         PUBLIC
         ${CMAKE_DL_LIBS})
 
+    target_link_options(chainerx PUBLIC /wholearchive:$<TARGET_FILE:chainerx_routines>)
+    target_link_options(chainerx PUBLIC /wholearchive:$<TARGET_FILE:chainerx_native>)
+    target_link_options(chainerx PUBLIC /wholearchive:$<TARGET_FILE:chainerx_testing>)
+    target_link_libraries(chainerx PRIVATE chainerx_routines)
+    target_link_libraries(chainerx PRIVATE chainerx_native)
+    target_link_libraries(chainerx PRIVATE chainerx_testing)
+
+    if(${CUDA_FOUND})
+      target_link_options(chainerx PUBLIC /wholearchive:$<TARGET_FILE:chainerx_cuda>)
+      target_link_libraries(chainerx PRIVATE chainerx_cuda)
+    endif()
+
+elseif(${APPLE})
+    target_link_libraries(chainerx
+        PUBLIC
+        ${CMAKE_DL_LIBS})
+
+    target_link_libraries(chainerx PRIVATE -Wl,-force_load chainerx_base)
     target_link_libraries(chainerx PRIVATE -Wl,-force_load chainerx_routines)
     target_link_libraries(chainerx PRIVATE -Wl,-force_load chainerx_native)
     target_link_libraries(chainerx PRIVATE -Wl,-force_load chainerx_testing)
@@ -133,6 +164,7 @@ else()
         PRIVATE
         -Wl,--whole-archive)
 
+    target_link_libraries(chainerx PRIVATE chainerx_base)
     target_link_libraries(chainerx PRIVATE chainerx_routines)
     target_link_libraries(chainerx PRIVATE chainerx_native)
     target_link_libraries(chainerx PRIVATE chainerx_testing)

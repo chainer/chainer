@@ -1,6 +1,6 @@
 import numpy
 
-from chainer import backend
+import chainer
 from chainer.backends import cuda
 from chainer import optimizer
 from chainer import types
@@ -65,9 +65,8 @@ class RMSpropRule(optimizer.UpdateRule):
             self.hyperparam.eps_inside_sqrt = eps_inside_sqrt
 
     def init_state(self, param):
-        xp = backend.get_array_module(param.data)
-        with cuda.get_device_from_array(param.data):
-            self.state['ms'] = xp.zeros_like(param.data)
+        with chainer.using_device(param.device):
+            self.state['ms'] = param.device.xp.zeros_like(param.data)
 
     def update_core_cpu(self, param):
         grad = param.grad
