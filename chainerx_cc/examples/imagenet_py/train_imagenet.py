@@ -41,7 +41,7 @@ def evaluate(model, X_test, Y_test, eval_size, batch_size):
             t = Y_test[i:min(i + batch_size, N_test)]
 
             y = model(x)
-            total_loss += chainerx.softmax_cross_entropy(y, t)
+            total_loss += chx.softmax_cross_entropy(y, t)
             num_correct += (y.argmax(axis=1).astype(t.dtype)
                             == t).astype(chx.int32).sum()
 
@@ -113,7 +113,7 @@ def main():
         for i in range(0, N // batch_size):
             x, t = get_imagenet(train_iter)
             y = model(x)
-            loss = chainerx.softmax_cross_entropy(y, t).mean()
+            loss = chx.softmax_cross_entropy(y, t).mean()
 
             loss.backward()
             model.update(lr=0.01)
