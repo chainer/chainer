@@ -93,10 +93,6 @@ class NStepLSTM(NStepLSTMBase):
 
         *Read* :meth:`forward` *method below first.*
 
-        >>> import chainer
-        >>> from chainer import Variable
-        >>> from chainer import links as L
-        >>> import numpy as np
         >>> dropout_ratio = 0.0
         >>> in_size, seq_len, n_layers, out_size = 2, 4, 2, 3
         >>> batch = 5
@@ -106,17 +102,23 @@ class NStepLSTM(NStepLSTMBase):
         >>> [x.shape for x in xs]
         [(4, 2), (4, 2), (4, 2), (4, 2), (4, 2)]
         >>> lstm = L.NStepLSTM(n_layers, in_size, out_size, dropout_ratio)
-        >>> hy, cy, ys = lstm(None, None, xs)  # passing no hidden or cell state
+
+        Without hidden or cell state:
+
+        >>> hy, cy, ys = lstm(None, None, xs)
         >>> hy.shape  # shape should be (n_layers, batch, out_size)
         (2, 5, 3)
         >>> ys[0].shape  # should be (seq_len, out_size)
         (4, 3)
         >>> len(ys)  # should be equal to batch
         5
+
+        With hidden and cell states:
+
         >>> h_shape = (n_layers, batch, out_size)
         >>> hx = Variable(np.ones(h_shape, np.float32))
         >>> cx = Variable(np.ones(h_shape, np.float32))
-        >>> hy, cy, ys = lstm(hx, cx, xs)  # passing hidden and cell state
+        >>> hy, cy, ys = lstm(hx, cx, xs)
         >>> hy.shape  # shape should be (n_layers, batch, out_size)
         (2, 5, 3)
         >>> ys[0].shape  # should be (seq_len, out_size)
