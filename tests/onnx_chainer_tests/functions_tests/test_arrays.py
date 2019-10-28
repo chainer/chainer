@@ -180,6 +180,8 @@ from onnx_chainer_tests.helper import ONNXModelTest
      'input_argname': 'x', 'args': {}, 'name': 'separate_axis0'},
     {'ops': 'separate', 'input_shape': (2, 3),
      'input_argname': 'x', 'args': {'axis': 1}, 'name': 'separate_axis1'},
+    {'ops': 'separate', 'input_shape': (1, 2, 3),
+     'input_argname': 'x', 'args': {}, 'name': 'separate_single_output'},
 
     # moveaxis
     {'ops': 'moveaxis', 'input_shape': (2, 3, 4, 5),
