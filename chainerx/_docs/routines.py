@@ -846,11 +846,11 @@ Returns:
         corresponding to an eigenvalue ``w[i]``.
 
 Note:
-    Although ``UPLO`` can be specified to ignore either the lower or the upper
-    part of the input matrix, the backward computation assumes that the inputs
-    is symmetric and the computed gradient is always a symmetric matrix with
-    respect to ``UPLO``. More specifically, the gradient is computed as if the
-    function is restricted to a Riemannian submanifold of
+    Although ``UPLO`` can be specified to ignore either the strictly lower or
+    upper part of the input matrix, the backward computation assumes that the
+    inputs is symmetric and the computed gradient is always a symmetric matrix
+    with respect to ``UPLO``. More specifically, the gradient is computed as if
+    the function is restricted to a Riemannian submanifold of
     :math:`R_{n \times n}` consisting just of symmetric matrices and is
     faithful to the mathematical definition of the eigenvalue decomposition of
     symmetric matrices.
