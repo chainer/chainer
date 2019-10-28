@@ -808,17 +808,15 @@ Returns:
     :class:`~chainerx.ndarray`: Output array. Cholesky factor of ``a``.
 
 Note:
-    This functions assumes that ``a`` is symmetric and is undefined otherwise.
-
-Note:
     The forward computation does not necessarily check if the input matrix is
     symmetric (e.g. the native backend relying on LAPACK does not). However,
-    both the forward and the backward computations assume that it is and the
-    computed gradient is always a symmetric matrix. More specifically, the
-    gradient is computed as if the function is restricted to a Riemannian
-    submanifold of :math:`R_{n \times n}` consisting just of positive-definite
-    symmetric matrices and is faithful to the mathematical definition of the
-    Cholesky decomposition.
+    both the forward and the backward computations assume that it is and their
+    results are unspecified otherwise. The computed gradient is always a
+    symmetric matrix. More specifically, the gradient is computed as if the
+    function is restricted to a Riemannian submanifold of
+    :math:`R_{n \times n}` consisting just of positive-definite symmetric
+    matrices and is faithful to the mathematical definition of the Cholesky
+    decomposition.
 
 Note:
     * GPU implementation of the Cholesky decomposition routine is based on
@@ -848,14 +846,14 @@ Returns:
         corresponding to an eigenvalue ``w[i]``.
 
 Note:
-    The forward computation does not necessarily check if the input matrix is
-    symmetric (e.g. the native backend relying on LAPACK does not). However,
-    both the forward and the backward computations assume that it is and the
-    computed gradient is always a symmetric matrix. More specifically, the
-    gradient is computed as if the function is restricted to a Riemannian
-    submanifold of :math:`R_{n \times n}` consisting just of symmetric matrices
-    and is faithful to the mathematical definition of the eigenvalue
-    decomposition of symmetric matrices.
+    Although ``UPLO`` can be specified to ignore either the lower or the upper
+    part of the input matrix, the backward computation assumes that the inputs
+    is symmetric and the computed gradient is always a symmetric matrix with
+    respect to ``UPLO``. More specifically, the gradient is computed as if the
+    function is restricted to a Riemannian submanifold of
+    :math:`R_{n \times n}` consisting just of symmetric matrices and is
+    faithful to the mathematical definition of the eigenvalue decomposition of
+    symmetric matrices.
 
 Note:
     The ``dtype`` must be ``float32`` or ``float64`` (``float16`` is not
