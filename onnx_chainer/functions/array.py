@@ -509,6 +509,8 @@ def convert_Separate(func, opset_version, input_names, output_names, context):
     gb = onnx_helper.GraphBuilder()
     split_outs = gb.op(
         'Split', input_names, num_outputs=len(output_names), axis=func.axis)
+    if len(output_names) == 1:
+        split_outs = [split_outs]
     for i, node_name in enumerate(split_outs):
         gb.op_output_named(
             'Squeeze', [node_name], [output_names[i]], axes=[func.axis])
