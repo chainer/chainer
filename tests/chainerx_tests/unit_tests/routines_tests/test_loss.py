@@ -189,8 +189,10 @@ class TestSoftmaxCrossEntropy(op_utils.ChainerOpTest):
         self.t = t.astype(self.t_dtype)
 
         if self.x_dtype == 'float16':
-            self.check_forward_options.update({'rtol': 5e-3, 'atol': 5e-4})
-            self.check_backward_options.update({'rtol': 5e-3, 'atol': 5e-4})
+            self.check_forward_options.update({'rtol': 5e-3, 'atol': 5e-3})
+            self.check_backward_options.update({'rtol': 1e-2, 'atol': 5e-3})
+            self.check_double_backward_options.update(
+                {'rtol': 1e-2, 'atol': 3e-1})
 
     def generate_inputs(self):
         x = numpy.random.normal(loc=0, scale=1.0, size=self.shape)
