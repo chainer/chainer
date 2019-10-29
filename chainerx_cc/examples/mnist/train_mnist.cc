@@ -137,7 +137,7 @@ void Run(int64_t epochs, int64_t batch_size, int64_t n_hidden, int64_t n_layers,
                 chx::Array x = test_x.At(indices);
                 chx::Array t = test_t.At(indices);
                 chx::Array y = model(x);
-                loss += chx::SoftmaxCrossEntropy(y, t);
+                loss += chx::SoftmaxCrossEntropy(y, t).Sum();
                 acc += (y.ArgMax(1).AsType(t.dtype()) == t).Sum().AsType(acc.dtype());
             }
 
