@@ -9,6 +9,7 @@ from chainer import functions
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
+from chainer_tests.functions_tests.pooling_tests import pooling_nd_helper
 
 
 @testing.parameterize(*testing.product_dict(
@@ -36,11 +37,8 @@ class TestUnpooling2D(unittest.TestCase):
         self.N = 2
         self.n_channels = 3
         inh, inw = 2, 1
-        self.x = numpy.arange(
-            self.N * self.n_channels * inh * inw,
-            dtype=self.dtype).reshape(self.N, self.n_channels, inh, inw)
-        numpy.random.shuffle(self.x)
-        self.x = 2 * self.x / self.x.size - 1
+        self.x = pooling_nd_helper.shuffled_linspace(
+            (self.N, self.n_channels, inh, inw), self.dtype)
 
         self.ksize = 2
         outh, outw = self.outsize or self.expected_outsize
@@ -159,11 +157,8 @@ class TestIntegerScaleUnpooling2D(unittest.TestCase):
         self.N = 2
         self.n_channels = 3
         inh, inw = self.insize
-        self.x = numpy.arange(
-            self.N * self.n_channels * inh * inw,
-            dtype=self.dtype).reshape(self.N, self.n_channels, inh, inw)
-        numpy.random.shuffle(self.x)
-        self.x = 2 * self.x / self.x.size - 1
+        self.x = pooling_nd_helper.shuffled_linspace(
+            (self.N, self.n_channels, inh, inw), self.dtype)
 
         outh, outw = self.outsize or self.expected_outsize
         self.gy = numpy.random.uniform(
