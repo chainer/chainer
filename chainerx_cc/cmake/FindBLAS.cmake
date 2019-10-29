@@ -409,12 +409,28 @@ endif ()
 if (BLA_VENDOR STREQUAL "OpenBLAS" OR BLA_VENDOR STREQUAL "All")
   if(NOT BLAS_LIBRARIES)
     # OpenBLAS (http://www.openblas.net)
+    # ChainerX modification: check `cblas_sgemm` since ChianerX uses CBLAS API.
     check_fortran_libraries(
       BLAS_LIBRARIES
       BLAS
-      sgemm
+      cblas_sgemm
       ""
       "openblas"
+      ""
+      )
+  endif()
+endif ()
+
+if (BLA_VENDOR STREQUAL "OpenBLAS" OR BLA_VENDOR STREQUAL "All")
+  if(NOT BLAS_LIBRARIES)
+    # ChainerX modification: search libcblas if `cblas_sgemm` not found.
+    # OpenBLAS might be built without cblas functions (e.g. on Arch Linux.)
+    check_fortran_libraries(
+      BLAS_LIBRARIES
+      BLAS
+      cblas_sgemm
+      ""
+      "openblas;cblas"
       ""
       )
   endif()
