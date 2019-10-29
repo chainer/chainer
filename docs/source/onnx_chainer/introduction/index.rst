@@ -205,6 +205,6 @@ on GPU environment::
 Contribution
 ------------
 
-Any contribution to ONNX-Chainer is welcom!
+Any contribution to ONNX-Chainer is welcome!
 
-* Python codes follow `Chainer Coding Guidelines <ttps://docs.chainer.org/en/stable/contribution.html#coding-guidelines>`__
+* Python codes follow `Chainer Coding Guidelines <https://docs.chainer.org/en/stable/contribution.html#coding-guidelines>`__
