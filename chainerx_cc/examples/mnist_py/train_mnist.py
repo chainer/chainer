@@ -128,7 +128,7 @@ def main():
             t = Y.take(indices, axis=0)
 
             y = model.forward(x)
-            loss = chx.softmax_cross_entropy(y, t)
+            loss = chx.softmax_cross_entropy(y, t).mean()
 
             loss.backward()
             model.update(lr=0.01)
