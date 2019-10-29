@@ -223,6 +223,21 @@ def convert_Pad(func, opset_version, input_names, output_names, context):
     return node,
 
 
+@support((9, 11))
+def convert_Permutate(func, opset_version, input_names, output_names, context):
+    gb = onnx_helper.GraphBuilder()
+    indices_name = context.get_name(func.indices)
+    if func.inv:
+        empty = context.add_const(
+            np.zeros(dtype=np.int64, shape=func.indices.shape), 'empty')
+        r = context.add_const(np.arange(len(func.indices), dtype=np.int64),
+                              'range')
+        indices_name = gb.op('Scatter', [empty, indices_name, r])
+    input_names.append(indices_name)
+    gb.op_output_named('Gather', input_names, output_names, axis=func.axis)
+    return gb.nodes()
+
+
 @support((1, 5))
 def convert_Reshape(func, opset_version, input_names, output_names, context):
     if opset_version == 1:

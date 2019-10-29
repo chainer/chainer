@@ -28,6 +28,7 @@ _supported_function_node_set = {
     'Hstack',
     'Moveaxis',
     'Pad',
+    'Permutate',
     'Repeat',
     'Reshape',
     'ResizeImages',

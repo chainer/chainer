@@ -423,3 +423,32 @@ class TestDynamicReshape(ONNXModelTest):
             assert not any(['param' in v.name for v in onnx_model.graph.input])
 
         self.expect(model, (x, shape), custom_model_test_func=check_no_param)
+
+
+@testing.parameterize(
+    {'kwargs': {}, 'name': 'permutate'},
+    {'kwargs': {'inv': True}, 'name': 'permutate_inv'},
+    {'kwargs': {'axis': 1}, 'name': 'permutate_axis1'},
+    {'kwargs': {'axis': 1, 'inv': True}, 'name': 'permutate_axis1_inv'},
+)
+class TestPermutate(ONNXModelTest):
+
+    def test_output(self):
+
+        class Model(chainer.Chain):
+            def __init__(self, kwargs):
+                super(Model, self).__init__()
+                self.kwargs = kwargs
+
+            def forward(self, x, indices):
+                return F.permutate(x, indices, **self.kwargs)
+
+        model = Model(kwargs=self.kwargs)
+
+        x = np.arange(6).reshape((3, 2)).astype(np.float32)
+        if self.kwargs.get('axis') == 1:
+            indices = np.array([1, 0], np.int32)
+        else:
+            indices = np.array([2, 0, 1], np.int32)
+        self.expect(model, (x, indices), name=self.name,
+                    skip_opset_version=[7, 8])
