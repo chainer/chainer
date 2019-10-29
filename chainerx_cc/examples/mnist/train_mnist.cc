@@ -19,6 +19,7 @@
 #include "chainerx/dtype.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/linalg.h"
+#include "chainerx/routines/loss.h"
 #include "chainerx/routines/manipulation.h"
 #include "chainerx/routines/misc.h"
 #include "chainerx/routines/reduction.h"
