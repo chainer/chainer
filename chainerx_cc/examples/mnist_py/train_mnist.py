@@ -63,7 +63,7 @@ def evaluate(model, X_test, Y_test, eval_size, batch_size):
             t = Y_test[i:min(i + batch_size, N_test)]
 
             y = model.forward(x)
-            total_loss += chx.softmax_cross_entropy(y, t)
+            total_loss += chx.softmax_cross_entropy(y, t).sum()
             num_correct += (y.argmax(axis=1).astype(t.dtype)
                             == t).astype(chx.int32).sum()
 
