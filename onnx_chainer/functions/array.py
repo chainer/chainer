@@ -146,13 +146,17 @@ def convert_GetItem(func, opset_version, input_names, output_names, context):
                         ' indexing')
                 if is_used_slice_whole:
                     raise ValueError(
-                        'ONNX-Chainer does not support multiple advanced '
-                        'indexing with whole indexing(`[:]`)')
+                        'ONNX-Chainer does not support whole indexing(`[:]`)'
+                        'in front of multiple advanced indexing')
+                if unsqueeze_idxs:
+                    raise ValueError(
+                        'ONNX-Chainer does not support new axis in front of '
+                        'multiple advanced indexing')
                 # multiple advanced index, convert to GatherND
                 idx_array = _to_ndarray(idx)
-                gather_nd_idx = np.vstack((
-                    gather_nd_idx or gather_idx,
-                    np.broadcast_to(idx_array, gather_idx.shape)))
+                base_idx = gather_idx if gather_nd_idx is None else\
+                    gather_nd_idx
+                gather_nd_idx = np.vstack((base_idx, idx_array))
                 prev_gathered_axis = i
             else:
                 # convert to Gather, if next index is also list, change to
@@ -161,7 +165,6 @@ def convert_GetItem(func, opset_version, input_names, output_names, context):
                 gather_idx = _to_ndarray(idx)
                 prev_gathered_axis = i
         else:
-            # not support advanced index like `array[[0,1], [0, 1]]`
             raise ValueError(
                 'GetItem with type {} cannot handle in ONNX Slice, so that '
                 'ONNX-Chainer does not accept the type'.format(type(idx)))
