@@ -6,7 +6,9 @@ import numpy as np
 
 import chainer
 from chainer import testing
+import chainerx
 import chainermn
+import chainermn.testing
 from chainermn.extensions import MultiNodeEarlyStoppingTrigger
 from chainer.training import util
 from chainer.backend import cuda
@@ -29,12 +31,25 @@ class TestMultiNodeEarlyStoppingTrigger(unittest.TestCase):
         self.xp = np
         self.run_test_early_stopping_trigger_with_accuracy()
 
+    def test_early_stopping_trigger_with_accuracy_cpu_chx(self):
+        self.communicator = chainermn.create_communicator('naive')
+        self.xp = chainerx
+        self.run_test_early_stopping_trigger_with_accuracy()
+
     @chainer.testing.attr.gpu
     def test_early_stopping_trigger_with_accuracy_gpu(self):
         self.communicator = chainermn.create_communicator('pure_nccl')
         self.xp = cuda.cupy
         cuda.Device(self.communicator.intra_rank).use()
         self.run_test_early_stopping_trigger_with_accuracy()
+
+    @chainer.testing.attr.gpu
+    def test_early_stopping_trigger_with_accuracy_gpu_chx(self):
+        self.communicator = chainermn.create_communicator('pure_nccl')
+        self.xp = chainerx
+        chainermn.testing.get_device(self.communicator.intra_rank, True).use()
+        with chainerx.using_device("cuda", self.communicator.intra_rank):
+            self.run_test_early_stopping_trigger_with_accuracy()
 
     def run_test_early_stopping_trigger_with_accuracy(self):
         comm = self.communicator

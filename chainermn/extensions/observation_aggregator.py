@@ -44,7 +44,9 @@ class ObservationAggregator(extension.Extension):
         if self.original_key in trainer.observation:
             value = trainer.observation[self.original_key]
             if isinstance(value, Variable):
-                value.to_cpu()
+                # use to native device as ChainerX array cannot
+                # be converted to numpy directly, which is what `to_cpu()` does
+                value.to_device("native")
             self.observation_history.append(value)
 
         if not self.comm_trigger(trainer):

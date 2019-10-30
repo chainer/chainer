@@ -16,6 +16,15 @@ enum class ArrayIndexTag {
     kEllipsis,
 };
 
+// Index out-of-bounds handling modes for
+// numpy compatible take, choose, put routines
+enum class IndexBoundsMode {
+    kDefault,  // Default (raise for native, wrap for cuda)
+    kRaise,  // Raise exception on OOB
+    kWrap,  // Use the index modulo size of the dimension
+    kClip  // Clip the index, negative values are always 0
+};
+
 class NewAxis {};
 
 class Ellipsis {};
