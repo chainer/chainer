@@ -369,7 +369,7 @@ def convert_Where(func, opset_version, input_names, output_names, context):
     return onnx_helper.make_node('Where', input_names, output_names),
 
 
-@support((7, 9, 10))
+@support((7, 9, 10, 11))
 def convert_Repeat(func, opset_version, input_names, output_names, context):
     repeats = func.repeats
     if len(repeats) > 1:
@@ -392,16 +392,23 @@ def convert_Repeat(func, opset_version, input_names, output_names, context):
         gb.op_output_named('Upsample', inputs, output_names, scales=scales)
         return gb.nodes()
 
+    scales_name = context.add_const(
+        np.array(scales, dtype=np.float32), 'scales')
+
     if opset_version in [9, 10]:
-        scales_name = context.add_const(
-            np.array(scales, dtype=np.float32), 'scales')
         inputs.append(scales_name)
         op = 'Upsample' if opset_version == 9 else 'Resize'
         gb.op_output_named(op, inputs, output_names)
         return gb.nodes()
 
+    if opset_version == 11:
+        roi = context.add_const(np.array([]), 'roi')
+        inputs.extend([roi, scales_name])
+        gb.op_output_named('Resize', inputs, output_names)
+        return gb.nodes()
 
-@support((7, 9, 10))
+
+@support((7, 9, 10, 11))
 def convert_ResizeImages(
         func, opset_version, input_names, output_names, context):
 
@@ -435,13 +442,19 @@ def convert_ResizeImages(
         return onnx_helper.make_node('Upsample', input_names, output_names,
                                      scales=scales, mode=mode),
 
+    scales_name = context.add_const(
+        np.array(scales, dtype=np.float32), 'scales')
     if opset_version in [9, 10]:
-        scales_name = context.add_const(
-            np.array(scales, dtype=np.float32), 'scales')
         input_names.append(scales_name)
         op = 'Upsample' if opset_version == 9 else 'Resize'
         return onnx_helper.make_node(op, input_names, output_names,
                                      mode=mode),
+
+    if opset_version == 11:
+        roi_name = context.add_const(np.array([]), 'roi')
+        input_names.extend([roi_name, scales_name])
+        return onnx_helper.make_node(
+            'Resize', input_names, output_names, mode=mode),
 
 
 def convert_Stack(func, opset_version, input_names, output_names, context):
