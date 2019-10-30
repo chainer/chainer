@@ -184,7 +184,7 @@ def convert_Pad(func, opset_version, input_names, output_names, context):
         # 'constant_values' only accepts int or array-like on Chainer
         if not isinstance(constant_value, int) and len(constant_value) > 1:
             raise ValueError(
-                'ONNX doesn\'t support multiple constant value for Pad '
+                'ONNX doesn\'t support multiple constant values for Pad '
                 'operation')
         elif not isinstance(constant_value, int):
             constant_value = float(constant_value[0])
