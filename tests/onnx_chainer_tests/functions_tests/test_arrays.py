@@ -212,10 +212,8 @@ class TestArrayOperators(ONNXModelTest):
         name = self.ops
         if hasattr(self, 'name'):
             name = self.name
-        skip_ver = None
         self.expect(
-            self.model, self.x, name=name, skip_outvalue_version=skip_ver,
-            expected_num_initializers=0)
+            self.model, self.x, name=name, expected_num_initializers=0)
 
 
 class TestGetItemGather(ONNXModelChecker):
@@ -232,9 +230,17 @@ class TestGetItemGather(ONNXModelChecker):
             ('gather_before_squeezed', (slice(None), 0, [[0, 1], [2, 3]])),
             ('gather_after_squeezed', (slice(None), [[0, 1], [1, 2]], 0)),
             ('gather_unsqueezed', (
-                slice(None), None, [[0, 1], [1, 2]], slice(None)))
+                slice(None), None, [[0, 1], [1, 2]], slice(None))),
+            # ('gathernd', [[0, 1], [0, 1], [2, 3]]),
+            ('gathernd_broadcast', [[0, 1], [1, 2]]),
+            ('gathernd_before_slice', [0, [0, 1], [2, 3]]),
+            ('gathernd_after_slice', [[0, 1], [0, 2], 0]),
+            # ('gathernd_unsqueezed', [None, [0, 1], [0, 2]])
         ])
     def test_output(self, name, slices):
+        skip_opsets = None
+        if name.startswith('gathernd'):
+            skip_opsets = tuple(range(7, 11))
         name = 'get_item_' + name
 
         model = chainer.Sequential(
@@ -242,7 +248,8 @@ class TestGetItemGather(ONNXModelChecker):
         x = input_generator.increasing(2, 3, 4)
 
         self.expect(
-            model, x, name=name, expected_num_initializers=0)
+            model, x, name=name, expected_num_initializers=0,
+            skip_opset_version=skip_opsets)
 
 
 class TestConcat(ONNXModelTest):
