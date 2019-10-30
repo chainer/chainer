@@ -226,7 +226,8 @@ def convert_Permutate(func, opset_version, input_names, output_names, context):
             np.zeros(dtype=np.int64, shape=func.indices.shape), 'empty')
         r = context.add_const(np.arange(len(func.indices), dtype=np.int64),
                               'range')
-        indices_name = gb.op('Scatter', [empty, indices_name, r])
+        op = 'ScatterElements' if opset_version == 11 else 'Scatter'
+        indices_name = gb.op(op, [empty, indices_name, r])
     input_names.append(indices_name)
     gb.op_output_named('Gather', input_names, output_names, axis=func.axis)
     return gb.nodes()
