@@ -140,6 +140,14 @@ py::object MakeCupyArrayFromArray(const py::module& m, py::handle self) {
 ArrayBodyPtr MakeArray(py::handle object, py::handle dtype, bool copy, py::handle device) {
     absl::optional<Dtype> dtype_ = dtype.is_none() ? absl::nullopt : absl::optional<Dtype>(GetDtype(dtype));
     Device& dev = GetDevice(device);
+
+    if (!copy && py::isinstance<ArrayBody>(object)) {
+        ArrayBodyPtr body = py::cast<ArrayBodyPtr>(object);
+        if ((device.is_none() || &dev == &body->device()) && (dtype.is_none() || *dtype_ == body->dtype())) {
+            return body;
+        }
+    }
+
     return MakeArray(object, dtype_, copy, dev);
 }
 
