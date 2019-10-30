@@ -35,6 +35,8 @@ First, install `ChainerCV <https://github.com/chainer/chainercv>`__ to get the p
 
 ``vgg16.onnx`` file will be exported.
 
+Other export examples are put on `onnx_chainer/examples <https://github.com/chainer/chainer/tree/master/onnx_chainer/examples>`__. Please check them.
+
 Supported Functions
 -------------------
 
@@ -65,6 +67,7 @@ Currently 82 Chainer Functions are supported to export in ONNX format.
 * GetItem
 * Hstack
 * Pad [#pad1]_ [#pad2]_
+* Permutate
 * Repeat
 * Reshape
 * ResizeImages
@@ -170,7 +173,6 @@ Tested Environments
 
     * opset version 7, 8, 9, 10
 
-* Chainer stable, preview
 * ONNX-Runtime 0.5.0
 
 
