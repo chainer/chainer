@@ -112,10 +112,12 @@ class NumpyLinalgOpTest(op_utils.NumpyOpTest):
     dodge_nondifferentiable = True
 
     def setup(self):
+        super().setup()
         device = chainerx.get_default_device()
         if (device.backend.name == 'native'
                 and not chainerx.linalg._is_lapack_available()):
             pytest.skip('LAPACK is not linked to ChainerX')
+        self.check_forward_options.update({'rtol': 1e-4, 'atol': 1e-4})
         self.check_backward_options.update({'rtol': 5e-3})
         self.check_double_backward_options.update({'rtol': 5e-3})
 
