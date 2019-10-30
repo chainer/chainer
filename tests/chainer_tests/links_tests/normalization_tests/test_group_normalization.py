@@ -3,7 +3,6 @@ import unittest
 import numpy
 
 import chainer
-from chainer import backend
 from chainer.backends import cuda
 from chainer import gradient_check
 from chainer import links
@@ -62,19 +61,23 @@ class GroupNormalizationTest(unittest.TestCase):
         return x,
 
     def test_forward(self, backend_config):
+        y_data_expected, = self.forward_expected(self.link, (self.x,))
         self.link.to_device(backend_config.device)
         x_data = backend_config.get_array(self.x)
         y = self.link(x_data)
         self.assertEqual(y.data.dtype, self.dtype)
+        testing.assert_allclose(
+            y.data, y_data_expected,
+            **self.check_forward_options)
 
-        # Verify that forward isn't be affected by batch size
-        if self.shape[0] > 1:
-            xp = backend.get_array_module(x_data)
-            y_one_each = chainer.functions.concat(
-                [self.link(xp.expand_dims(one_x, axis=0))
-                 for one_x in x_data], axis=0)
-            testing.assert_allclose(
-                y.data, y_one_each.data, **self.check_forward_options)
+    def forward_expected(self, link, inputs):
+        # TODO(kataoka): gamma, beta
+        x, = inputs
+        x = x.reshape(self.shape[0] * self.groups, -1)
+        x -= x.mean(axis=1, keepdims=True)
+        x /= numpy.sqrt(link.eps + numpy.square(x).mean(axis=1, keepdims=True))
+        x = x.reshape(self.shape)
+        return x,
 
     def test_backward(self, backend_config):
         self.link.to_device(backend_config.device)
