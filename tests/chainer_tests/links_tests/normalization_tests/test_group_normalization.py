@@ -11,6 +11,17 @@ from chainer import testing
 from chainer.testing import attr
 
 
+@testing.inject_backend_tests(
+    None,
+    # CPU tests
+    [{}]
+    # GPU tests
+    + testing.product({
+        'use_cuda': [True],
+        'use_cudnn': ['never', 'always'],
+        'cuda_device': [0, 1],
+    })
+)
 @testing.parameterize(*(testing.product({
     'shape': [(1, 4, 5, 3), (5, 4, 7), (3, 20)],
     'groups': [1, 2, 4],
@@ -50,7 +61,9 @@ class GroupNormalizationTest(unittest.TestCase):
 
         return x,
 
-    def check_forward(self, x_data):
+    def test_forward(self, backend_config):
+        self.link.to_device(backend_config.device)
+        x_data = backend_config.get_array(self.x)
         y = self.link(x_data)
         self.assertEqual(y.data.dtype, self.dtype)
 
@@ -63,51 +76,14 @@ class GroupNormalizationTest(unittest.TestCase):
             testing.assert_allclose(
                 y.data, y_one_each.data, **self.check_forward_options)
 
-    def test_forward_cpu(self):
-        self.check_forward(self.x)
-
-    @attr.gpu
-    def test_forward_gpu(self):
-        with testing.assert_warns(DeprecationWarning):
-            self.link.to_gpu()
-        self.check_forward(cuda.to_gpu(self.x))
-
-    @attr.cudnn
-    def test_forward_gpu_without_cudnn(self):
-        self.link.use_cudnn = False
-        self.test_forward_gpu()
-
-    @attr.multi_gpu(2)
-    def test_forward_multi_gpu(self):
-        with cuda.get_device_from_id(1):
-            with testing.assert_warns(DeprecationWarning):
-                self.link.to_gpu()
-            x = cuda.to_gpu(self.x)
-        with cuda.get_device_from_id(0):
-            self.check_forward(x)
-
-    def check_backward(self, x_data, y_grad):
+    def test_backward(self, backend_config):
+        self.link.to_device(backend_config.device)
+        x_data = backend_config.get_array(self.x)
+        y_grad = backend_config.get_array(self.gy)
         gradient_check.check_backward(
             self.link, x_data, y_grad,
             (self.link.gamma, self.link.beta),
             eps=2e-2, **self.check_backward_options)
-
-    def test_backward_cpu(self):
-        self.link(numpy.zeros(self.shape, dtype=self.dtype))
-        self.check_backward(self.x, self.gy)
-
-    @attr.gpu
-    def test_backward_gpu(self):
-        with testing.assert_warns(DeprecationWarning):
-            self.link.to_gpu()
-        self.link(cuda.cupy.zeros(self.shape, dtype=self.dtype))
-        self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
-
-    @attr.cudnn
-    def test_backward_gpu_without_cudnn(self):
-        self.link.use_cudnn = False
-        self.link(numpy.zeros(self.shape, dtype=self.dtype))
-        self.test_backward_gpu()
 
 
 @testing.parameterize(*testing.product({
