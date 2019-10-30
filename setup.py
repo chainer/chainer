@@ -52,7 +52,7 @@ requirements = {
     'docs': [
         'sphinx==1.8.2',
         'sphinx_rtd_theme',
-        'onnx<1.6.0',
+        'onnx<1.7.0',
         'packaging',
     ],
     'appveyor': [
