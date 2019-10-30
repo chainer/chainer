@@ -140,10 +140,10 @@ def convert_GetItem(func, opset_version, input_names, output_names, context):
             skipped = len(x.shape) - axis - rest_slice_len - 1
         elif isinstance(idx, (list,) + chainer.get_array_types()):
             if prev_gathered_axis >= 0:
-                if (i-1) != prev_gathered_axis:
+                if (i - 1) != prev_gathered_axis:
                     raise ValueError(
-                        'ONNX-Chainer does not support split multiple advanced'
-                        ' indexing')
+                        'ONNX-Chainer does not support non-consecutive'
+                        'multiple advanced indexing')
                 if is_used_slice_whole:
                     raise ValueError(
                         'ONNX-Chainer does not support whole indexing(`[:]`)'
