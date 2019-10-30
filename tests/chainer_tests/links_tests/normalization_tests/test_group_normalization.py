@@ -27,13 +27,11 @@ from chainer.testing import attr
     'dtype': [numpy.float16, numpy.float32, numpy.float64,
               chainer.mixed16],
 })))
-class GroupNormalizationTest(unittest.TestCase):
+class GroupNormalizationTest(testing.LinkTestCase):
+
+    param_names = ('gamma', 'beta')
 
     def setUp(self):
-        with chainer.using_config('dtype', self.dtype):
-            self.link = links.GroupNormalization(self.groups)
-        self.link.cleargrads()
-
         self.x, = self.generate_inputs()
         self.gy = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
 
@@ -43,6 +41,25 @@ class GroupNormalizationTest(unittest.TestCase):
         else:
             self.check_forward_options = {'atol': 1e-4, 'rtol': 1e-3}
             self.check_backward_options = {'atol': 1e-3, 'rtol': 1e-2}
+
+    def create_link(self, initializers):
+        initial_gamma, initial_beta = initializers
+        with chainer.using_config('dtype', self.dtype):
+            link = links.GroupNormalization(
+                self.groups,
+                initial_gamma=initial_gamma,
+                initial_beta=initial_beta,
+            )
+        return link
+
+    def generate_params(self):
+        highprec_dtype = chainer.get_dtype(
+            self.dtype, map_mixed16=numpy.float32)
+        initial_gamma = numpy.random.uniform(
+            -1, 1, (self.shape[1],)).astype(highprec_dtype)
+        initial_beta = numpy.random.uniform(
+            -1, 1, (self.shape[1],)).astype(highprec_dtype)
+        return initial_gamma, initial_beta
 
     def generate_inputs(self):
         shape = self.shape
@@ -60,33 +77,23 @@ class GroupNormalizationTest(unittest.TestCase):
 
         return x,
 
-    def test_forward(self, backend_config):
-        y_data_expected, = self.forward_expected(self.link, (self.x,))
-        self.link.to_device(backend_config.device)
-        x_data = backend_config.get_array(self.x)
-        y = self.link(x_data)
-        self.assertEqual(y.data.dtype, self.dtype)
-        testing.assert_allclose(
-            y.data, y_data_expected,
-            **self.check_forward_options)
-
     def forward_expected(self, link, inputs):
-        # TODO(kataoka): gamma, beta
+        gamma = link.gamma.array
+        beta = link.beta.array
         x, = inputs
-        x = x.reshape(self.shape[0] * self.groups, -1)
+        shape = self.shape
+        param_reshape = tuple([
+            s if i == 1 else 1 for i, s in enumerate(shape)])
+        x = x.astype(chainer.get_dtype(
+            self.dtype, map_mixed16=numpy.float32))
+        x = x.reshape(shape[0] * self.groups, -1)
         x -= x.mean(axis=1, keepdims=True)
         x /= numpy.sqrt(link.eps + numpy.square(x).mean(axis=1, keepdims=True))
-        x = x.reshape(self.shape)
+        x = x.reshape(shape)
+        x = gamma.reshape(param_reshape) * x + beta.reshape(param_reshape)
+        if self.dtype == chainer.mixed16:
+            x = x.astype(numpy.float16)
         return x,
-
-    def test_backward(self, backend_config):
-        self.link.to_device(backend_config.device)
-        x_data = backend_config.get_array(self.x)
-        y_grad = backend_config.get_array(self.gy)
-        gradient_check.check_backward(
-            self.link, x_data, y_grad,
-            (self.link.gamma, self.link.beta),
-            eps=2e-2, **self.check_backward_options)
 
 
 @testing.parameterize(*testing.product({
