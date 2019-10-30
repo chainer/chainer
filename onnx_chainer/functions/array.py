@@ -162,7 +162,7 @@ def convert_GetItem(func, opset_version, input_names, output_names, context):
     return gb.nodes(output_names=output_names)
 
 
-@support((1, 2))
+@support((1, 2, 11))
 def convert_Pad(func, opset_version, input_names, output_names, context):
     if func.mode not in ['constant', 'reflect', 'edge']:
         raise ValueError(
@@ -179,48 +179,42 @@ def convert_Pad(func, opset_version, input_names, output_names, context):
         pad_end.append(pp[1])
     pad = pad_begin + pad_end
 
-    if 'constant_values' in func.keywords:
-        values = func.keywords['constant_values']
-        if not isinstance(values, int) and len(values) > 1:
+    constant_value = func.keywords.get('constant_values', None)
+    if constant_value is not None:
+        # 'constant_values' only accepts int or array-like on Chainer
+        if not isinstance(constant_value, int) and len(constant_value) > 1:
             raise ValueError(
-                'ONNX doesn\'t support multiple constant values for Pad '
+                'ONNX doesn\'t support multiple constant value for Pad '
                 'operation')
-        elif not isinstance(values, int):
-            values = float(values[0])
+        elif not isinstance(constant_value, int):
+            constant_value = float(constant_value[0])
         else:
-            values = float(values)
+            constant_value = float(constant_value)
 
-        if opset_version == 1:
-            node = onnx_helper.make_node(
-                'Pad', input_names, output_names,
-                mode=func.mode,
-                paddings=pad,
-                value=values
-            )
-        elif opset_version == 2:
-            node = onnx_helper.make_node(
-                'Pad', input_names, output_names,
-                mode=func.mode,
-                pads=pad,
-                value=values
-            )
-    else:
-        if opset_version == 1:
-            node = onnx_helper.make_node(
-                'Pad', input_names, output_names,
-                mode=func.mode,
-                paddings=pad,
-                value=0.,
-            )
-        elif opset_version == 2:
-            node = onnx_helper.make_node(
-                'Pad', input_names, output_names,
-                mode=func.mode,
-                pads=pad,
-                value=0.,
-            )
+    if opset_version == 1:
+        kwargs = {
+            'mode': func.mode,
+            'paddings': pad,
+        }
+        if constant_value is not None:
+            kwargs['value'] = constant_value
+    elif opset_version == 2:
+        kwargs = {
+            'mode': func.mode,
+            'pads': pad,
+        }
+        if constant_value is not None:
+            kwargs['value'] = constant_value
+    elif opset_version == 11:
+        pads_name = context.add_const(np.array(pad, dtype=np.int64), 'pads')
+        input_names.append(pads_name)
+        if constant_value is not None:
+            constant_value_name = context.add_const(
+                np.array(constant_value, dtype=np.float32), 'constant_value')
+            input_names.append(constant_value_name)
+        kwargs = {'mode': func.mode}
 
-    return node,
+    return onnx_helper.make_node('Pad', input_names, output_names, **kwargs),
 
 
 @support((9, 11))
