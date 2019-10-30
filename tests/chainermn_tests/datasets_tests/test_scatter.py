@@ -10,6 +10,7 @@ import pytest
 import chainermn
 from chainermn.communicators.flat_communicator import FlatCommunicator
 from chainermn.communicators.naive_communicator import NaiveCommunicator
+import chainerx as chx
 
 
 class TestDataset(unittest.TestCase):
@@ -56,6 +57,11 @@ class TestDataset(unittest.TestCase):
                 self.check_scatter_dataset(np.array([0]), shuffle, root)
                 self.check_scatter_dataset(np.arange(n), shuffle, root)
                 self.check_scatter_dataset(np.arange(n * 5 - 1), shuffle, root)
+
+                self.check_scatter_dataset(chx.array([]), shuffle, root)
+                self.check_scatter_dataset(chx.array([0]), shuffle, root)
+                self.check_scatter_dataset(chx.arange(n), shuffle, root)
+                self.check_scatter_dataset(chx.arange(n * 5 - 1), shuffle, root)
 
 
 def scatter_large_data(communicator):
