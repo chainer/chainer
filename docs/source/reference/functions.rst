@@ -197,6 +197,7 @@ Loss functions
    chainer.functions.softmax_cross_entropy
    chainer.functions.squared_error
    chainer.functions.triplet
+   chainer.functions.soft_nearest_neighbor_loss
 
 Mathematical functions
 ----------------------

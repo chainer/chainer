@@ -91,6 +91,8 @@ Machine learning models
    :nosignatures:
 
    chainer.links.Classifier
+   chainer.links.ClassifierSNNL
+
 
 Pre-trained models
 ------------------
@@ -238,6 +240,7 @@ Chainer provides a link-hook mechanism that enriches the behavior of :class:`~ch
    chainer.link_hooks.SpectralNormalization
    chainer.link_hooks.TimerHook
    chainer.link_hooks.WeightStandardization
+   chainer.link_hooks.SNNL_hook
 
 You can also implement your own link-hook to inject arbitrary code before/after the forward propagation.
 

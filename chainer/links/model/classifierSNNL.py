@@ -7,6 +7,43 @@ from chainer import reporter
 
 
 class ClassifierSNNL(link.Chain):
+
+    """A simple classifier model with soft nearest neighbor loss.
+
+    See: `Analyzing and Improving Representations
+    with the Soft Nearest Neighbor Loss
+    <https://arxiv.org/abs/1902.01889>`_.
+
+    A combination loss of soft nearest neighbor loss calculated at every layer
+    in the network, and standard cross entropy of the logits.
+
+
+    Args:
+        predictor (~chainer.Link): Predictor network.
+        lossfun (callable): Loss function.
+        accfun (callable): Function that computes accuracy.
+        factor (float32):
+            The balance factor between SNNL and ross Entropy. If factor is
+            negative, then SNNL will be maximized.
+        link_names(list):
+            The names of the layers at which to calculate SNNL.
+            If not provided, then SNNL is applied to each internal layer.
+
+    Attributes:
+        predictor (~chainer.Link): Predictor network.
+        lossfun (callable): Loss function.
+        accfun (callable): Function that computes accuracy.
+        factor (float32): The balance factor between SNNL and ross Entropy.
+        y (~chainer.Variable): Prediction for the last minibatch.
+        loss (~chainer.Variable): Loss value for the last minibatch.
+        snns_loss (~chainer.Variable):
+            Combination loss of Soft Nearest Neighbor Loss calculated at every
+            layer in the network, and standard cross entropy of the logits.
+        accuracy (~chainer.Variable): Accuracy for the last minibatch.
+        snns_hooks: List of snns hook link.
+
+    """
+
     def __init__(self, predictor,
                  lossfun=softmax_cross_entropy.softmax_cross_entropy,
                  accfun=accuracy.accuracy,

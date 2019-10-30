@@ -5,26 +5,30 @@ from chainer import variable
 
 
 def optimized_temp_SNNL(x, y, initial_temp, cos_distance):
-    """The optimized variant of Soft Nearest Neighbor Loss.
+    """The optimized variant of soft nearest neighbor loss.
 
-    Every time this tensor is evaluated, the temperature is optimized
+    Every time this function is evaluated, the temperature is optimized
     to minimize the loss value, this results in more numerically stable
     calculations of the SNNL.
-    :param x: a matrix.
-    :param y: a list of labels for each element of x.
-    :param initial_temp: Temperature.
-    :cos_distance: Boolean for using cosine or Euclidean distance.
 
-    :returns: A tensor for the Soft Nearest Neighbor Loss of the points
-              in x with labels y, optimized for temperature.
+    Args:
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
+            A representation of the raw input viector in some hidden layer.
+        t (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Variable holding a signed integer vector of ground truth
+            labels.
+        initial_temp (float32): a temperature
+        cos_distance (bool): Boolean for using cosine or Euclidean distance.
+
+    Returns:
+        ~chainer.Variable: A variable holding a scalar array of the soft
+        nearest neighbor loss at a optimized temperature.
+
     """
     xp = x.xp
     t = variable.Variable(xp.asarray([1], dtype=xp.float32))
 
     def inverse_temp(t):
-        # pylint: disable=missing-docstring
-        # we use inverse_temp because it was observed to be more stable
-        # when optimizing.
         return initial_temp / t
     ent_loss = F.soft_nearest_neighbor_loss(
         x, y, inverse_temp(t), cos_distance)
@@ -41,6 +45,16 @@ def optimized_temp_SNNL(x, y, initial_temp, cos_distance):
 
 
 class SNNL_hook(link_hook.LinkHook):
+    """link hook for calculate the soft nearest neighbor loss at hidden layer.
+
+    Args:
+        temperature (float32): Temperature used for SNNL.
+        optimize_temperature (bool):
+            Optimize temperature at each calculation to minimize the loss.
+            This makes the loss more stable.
+        cos_distance (bool): Use cosine distance when calculating SNNL.
+    """
+
     name = 'SNNL_hook'
 
     def __init__(self, temperature=100.,

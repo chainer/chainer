@@ -7,14 +7,7 @@ STABILITY_EPS = 0.00001
 
 
 def pairwise_euclid_distance(A, B):
-    """Pairwise Euclidean distance between two matrices.
-
-    :param A: a matrix.
-    :param B: a matrix.
-    :returns: A tensor for the pairwise Euclidean between A and B.
-
-    """
-
+    # Pairwise Euclidean distance between two matrices.
     F = chainer.functions
     batchA = A.data.shape[0]
     batchB = B.data.shape[0]
@@ -29,15 +22,7 @@ def pairwise_euclid_distance(A, B):
 
 
 def pairwise_cos_distance(A, B):
-    """Pairwise cosine distance between two matrices.
-
-    :param A: a matrix.
-    :param B: a matrix.
-
-    :returns: A tensor for the pairwise cosine between A and B.
-
-    """
-
+    # Pairwise cosine distance between two matrices.
     F = chainer.functions
     normalized_A = F.normalize(A, axis=1)
     normalized_B = F.normalize(B, axis=1)
@@ -46,18 +31,7 @@ def pairwise_cos_distance(A, B):
 
 
 def fits(A, B, temp, cos_distance):
-    """Exponentiated pairwise distance between each element of A and B.
-
-    :param A: a matrix.
-    :param B: a matrix.
-    :param temp: Temperature
-    :cos_distance: Boolean for using cosine or Euclidean distance.
-
-    :returns: A tensor for the exponentiated pairwise distance between
-    each element and A and all those of B.
-
-    """
-
+    # Exponentiated pairwise distance between each element of A and B.
     if cos_distance:
         distance_matrix = pairwise_cos_distance(A, B)
     else:
@@ -66,19 +40,7 @@ def fits(A, B, temp, cos_distance):
 
 
 def pick_probability(x, temp, cos_distance):
-    """Row normalized exponentiated pairwise distance between all the elements
-
-    of x. Conceptualized as the probability of sampling a neighbor point for
-    every element of x, proportional to the distance between the points.
-    :param x: a matrix
-    :param temp: Temperature
-    :cos_distance: Boolean for using cosine or euclidean distance
-
-    :returns: A tensor for the row normalized exponentiated pairwise distance
-              between all the elements of x.
-
-    """
-
+    # Row normalized exponentiated pairwise distance between all the elements
     F = chainer.functions
     batch = x.data.shape[0]
     dtype = numpy.float32
@@ -94,42 +56,40 @@ def pick_probability(x, temp, cos_distance):
 
 
 def same_label_mask(y, y2, xp):
-    """Masking matrix such that element i,j is 1 iff y[i] == y2[i].
-
-    :param y: a list of labels
-    :param y2: a list of labels
-
-    :returns: A tensor for the masking matrix.
-    """
+    # Masking matrix such that element i,j is 1 iff y[i] == y2[i].
     return xp.squeeze(xp.equal(y, xp.expand_dims(y2, 1)))
 
 
 def masked_pick_probability(x, y, temp, cos_distance):
-    """The pairwise sampling probabilities for the elements of x for neighbor
-
-    points which share labels.
-    :param x: a matrix
-    :param y: a list of labels for each element of x
-    :param temp: Temperature
-    :cos_distance: Boolean for using cosine or Euclidean distance
-
-    :returns: A tensor for the pairwise sampling probabilities.
-    """
-
+    # The pairwise sampling probabilities for the elements of x for neighbor
     return pick_probability(x, temp, cos_distance) * \
         same_label_mask(y, y, x.xp)
 
 
 def soft_nearest_neighbor_loss(x, y, temp, cos_distance):
-    """Soft Nearest Neighbor Loss
+    """Computes soft nearest neighbor loss.
 
-    :param x: a matrix.
-    :param y: a list of labels for each element of x.
-    :param temp: Temperature.
-    :cos_distance: Boolean for using cosine or Euclidean distance.
+    See: `Analyzing and Improving Representations
+    with the Soft Nearest Neighbor Loss
+    <https://arxiv.org/abs/1902.01889>`_.
 
-    :returns: A tensor for the Soft Nearest Neighbor Loss of the points
-              in x with labels y.
+
+    Args:
+        x (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Variable holding a multidimensional array whose element indicates
+            unnormalized log probability: the first axis of the variable
+            represents the number of samples, and the second axis represents
+            the number of classes.
+        t (:class:`~chainer.Variable` or :ref:`ndarray`):
+            Variable holding a signed integer vector of ground truth
+            labels.
+        temp (float32): a temperature
+        cos_distance (bool): Boolean for using cosine or Euclidean distance.
+
+    Returns:
+        ~chainer.Variable: A variable holding a scalar array of the soft
+        nearest neighbor loss of the points in x with labels y.
+
     """
     F = chainer.functions
     summed_masked_pick_prob = F.sum(
