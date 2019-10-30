@@ -84,6 +84,13 @@ def get_slice_node(
         return gb.op('Slice', input_names)
 
 
+def _to_ndarray(x, dtype=np.int64):
+    if isinstance(x, list):
+        return np.array(x, dtype=dtype)
+    else:
+        return chainer.cuda.to_cpu(x).astype(dtype)
+
+
 @support((1, 10))
 def convert_GetItem(func, opset_version, input_names, output_names, context):
     x = func.inputs[0]
@@ -91,7 +98,11 @@ def convert_GetItem(func, opset_version, input_names, output_names, context):
     squeeze_idxs, unsqueeze_idxs = [], []
     skipped = 0  # when set ellipsis, need to skip index rolling
 
-    gather_axis, gather_idx = [], []
+    prev_gathered_axis = -1
+    gather_axis = -1
+    gather_idx = None  # when GatherND, set first array for broadcasting
+    gather_nd_idx = None
+    is_used_slice_whole = False  # GatherND does not support axis, need to care
 
     for i, idx in enumerate(func.slices):
         # axis means the index of input x, adjust None and Ellipsis counts
@@ -102,6 +113,7 @@ def convert_GetItem(func, opset_version, input_names, output_names, context):
                     'GetItem with {}step slicing is not supported in ONNX '
                     'Slice operator'.format(idx.step))
             if idx.start is None and idx.stop is None:
+                is_used_slice_none = True
                 continue
             axes.append(axis)
             starts.append(0 if idx.start is None else idx.start)
@@ -127,14 +139,27 @@ def convert_GetItem(func, opset_version, input_names, output_names, context):
             assert skipped == 0
             skipped = len(x.shape) - axis - rest_slice_len - 1
         elif isinstance(idx, (list,) + chainer.get_array_types()):
-            if gather_axis:
-                raise ValueError(
-                    'ONNX-Chainer does not support multiple advanced index')
-            gather_axis.append(axis - len(squeeze_idxs) + len(unsqueeze_idxs))
-            if isinstance(idx, list):
-                gather_idx = np.array(idx, dtype=np.int64)
+            if prev_gathered_axis >= 0:
+                if (i-1) != prev_gathered_axis:
+                    raise ValueError(
+                        'ONNX-Chainer does not support split multiple advanced'
+                        ' indexing')
+                if is_used_slice_whole:
+                    raise ValueError(
+                        'ONNX-Chainer does not support multiple advanced '
+                        'indexing with whole indexing(`[:]`)')
+                # multiple advanced index, convert to GatherND
+                idx_array = _to_ndarray(idx)
+                gather_nd_idx = np.vstack((
+                    gather_nd_idx or gather_idx,
+                    np.broadcast_to(idx_array, gather_idx.shape)))
+                prev_gathered_axis = i
             else:
-                gather_idx = chainer.cuda.to_cpu(idx)
+                # convert to Gather, if next index is also list, change to
+                # GatherND
+                gather_axis = axis - len(squeeze_idxs) + len(unsqueeze_idxs)
+                gather_idx = _to_ndarray(idx)
+                prev_gathered_axis = i
         else:
             # not support advanced index like `array[[0,1], [0, 1]]`
             raise ValueError(
@@ -154,10 +179,14 @@ def convert_GetItem(func, opset_version, input_names, output_names, context):
         output = gb.op('Unsqueeze', slice_output, axes=unsqueeze_idxs)
         slice_output = [output]
 
-    if gather_axis:
+    if gather_nd_idx is not None:
+        gather_nd_idx_name = context.add_const(gather_nd_idx.T, 'indices')
+        slice_output.append(gather_nd_idx_name)
+        gb.op('GatherND', slice_output)
+    elif gather_idx is not None:
         gather_idx_name = context.add_const(gather_idx, 'indices')
         slice_output.append(gather_idx_name)
-        gb.op('Gather', slice_output, axis=gather_axis[0])
+        gb.op('Gather', slice_output, axis=gather_axis)
 
     return gb.nodes(output_names=output_names)
 
