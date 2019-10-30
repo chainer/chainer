@@ -35,7 +35,7 @@ First, install `ChainerCV <https://github.com/chainer/chainercv>`__ to get the p
 
 ``vgg16.onnx`` file will be exported.
 
-Other export examples are put on `onnx-chainer/examples <https://github.com/chainer/chainer/tree/master/onnx_chainer/examples>`__. Please check them.
+Other export examples are put on `onnx_chainer/examples <https://github.com/chainer/chainer/tree/master/onnx_chainer/examples>`__. Please check them.
 
 Supported Functions
 -------------------
