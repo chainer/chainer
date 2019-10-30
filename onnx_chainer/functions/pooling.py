@@ -131,7 +131,7 @@ def convert_ROIPooling2D(
     ),
 
 
-@support((7, 9, 10))
+@support((7, 9, 10, 11))
 def convert_Unpooling2D(
         func, opset_version, input_names, output_names, context):
     pad = [func.ph, func.pw]
@@ -165,9 +165,13 @@ def convert_Unpooling2D(
     if opset_version == 7:
         return onnx_helper.make_node('Upsample', input_names, output_names,
                                      scales=scales),
+    scales_name = context.add_const(
+        np.array(scales, dtype=np.float32), 'scales')
     if opset_version in [9, 10]:
-        scales_name = context.add_const(
-            np.array(scales, dtype=np.float32), 'scales')
         input_names.append(scales_name)
         op = 'Upsample' if opset_version == 9 else 'Resize'
         return onnx_helper.make_node(op, input_names, output_names),
+    if opset_version == 11:
+        roi_name = context.add_const(np.array([]), 'roi')
+        input_names.extend([roi_name, scales_name])
+        return onnx_helper.make_node('Resize', input_names, output_names),

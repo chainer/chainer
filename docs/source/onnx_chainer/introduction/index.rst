@@ -169,9 +169,9 @@ Tested Environments
     * Windows 10
 
 * Python 3.5.5, 3.6.7, 3.7.2
-* ONNX 1.4.1, 1.5.0
+* ONNX 1.4.1, 1.5.0, 1.6.0
 
-    * opset version 7, 8, 9, 10
+    * opset version 7, 8, 9, 10, 11
 
 * ONNX-Runtime 0.5.0
 

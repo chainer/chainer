@@ -162,7 +162,7 @@ def convert_GetItem(func, opset_version, input_names, output_names, context):
     return gb.nodes(output_names=output_names)
 
 
-@support((1, 2))
+@support((1, 2, 11))
 def convert_Pad(func, opset_version, input_names, output_names, context):
     if func.mode not in ['constant', 'reflect', 'edge']:
         raise ValueError(
@@ -179,48 +179,42 @@ def convert_Pad(func, opset_version, input_names, output_names, context):
         pad_end.append(pp[1])
     pad = pad_begin + pad_end
 
-    if 'constant_values' in func.keywords:
-        values = func.keywords['constant_values']
-        if not isinstance(values, int) and len(values) > 1:
+    constant_value = func.keywords.get('constant_values', None)
+    if constant_value is not None:
+        # 'constant_values' only accepts int or array-like on Chainer
+        if not isinstance(constant_value, int) and len(constant_value) > 1:
             raise ValueError(
                 'ONNX doesn\'t support multiple constant values for Pad '
                 'operation')
-        elif not isinstance(values, int):
-            values = float(values[0])
+        elif not isinstance(constant_value, int):
+            constant_value = float(constant_value[0])
         else:
-            values = float(values)
+            constant_value = float(constant_value)
 
-        if opset_version == 1:
-            node = onnx_helper.make_node(
-                'Pad', input_names, output_names,
-                mode=func.mode,
-                paddings=pad,
-                value=values
-            )
-        elif opset_version == 2:
-            node = onnx_helper.make_node(
-                'Pad', input_names, output_names,
-                mode=func.mode,
-                pads=pad,
-                value=values
-            )
-    else:
-        if opset_version == 1:
-            node = onnx_helper.make_node(
-                'Pad', input_names, output_names,
-                mode=func.mode,
-                paddings=pad,
-                value=0.,
-            )
-        elif opset_version == 2:
-            node = onnx_helper.make_node(
-                'Pad', input_names, output_names,
-                mode=func.mode,
-                pads=pad,
-                value=0.,
-            )
+    if opset_version == 1:
+        kwargs = {
+            'mode': func.mode,
+            'paddings': pad,
+        }
+        if constant_value is not None:
+            kwargs['value'] = constant_value
+    elif opset_version == 2:
+        kwargs = {
+            'mode': func.mode,
+            'pads': pad,
+        }
+        if constant_value is not None:
+            kwargs['value'] = constant_value
+    elif opset_version == 11:
+        pads_name = context.add_const(np.array(pad, dtype=np.int64), 'pads')
+        input_names.append(pads_name)
+        if constant_value is not None:
+            constant_value_name = context.add_const(
+                np.array(constant_value, dtype=np.float32), 'constant_value')
+            input_names.append(constant_value_name)
+        kwargs = {'mode': func.mode}
 
-    return node,
+    return onnx_helper.make_node('Pad', input_names, output_names, **kwargs),
 
 
 @support((9, 11))
@@ -232,7 +226,8 @@ def convert_Permutate(func, opset_version, input_names, output_names, context):
             np.zeros(dtype=np.int64, shape=func.indices.shape), 'empty')
         r = context.add_const(np.arange(len(func.indices), dtype=np.int64),
                               'range')
-        indices_name = gb.op('Scatter', [empty, indices_name, r])
+        op = 'ScatterElements' if opset_version == 11 else 'Scatter'
+        indices_name = gb.op(op, [empty, indices_name, r])
     input_names.append(indices_name)
     gb.op_output_named('Gather', input_names, output_names, axis=func.axis)
     return gb.nodes()
@@ -375,7 +370,7 @@ def convert_Where(func, opset_version, input_names, output_names, context):
     return onnx_helper.make_node('Where', input_names, output_names),
 
 
-@support((7, 9, 10))
+@support((7, 9, 10, 11))
 def convert_Repeat(func, opset_version, input_names, output_names, context):
     repeats = func.repeats
     if len(repeats) > 1:
@@ -398,16 +393,23 @@ def convert_Repeat(func, opset_version, input_names, output_names, context):
         gb.op_output_named('Upsample', inputs, output_names, scales=scales)
         return gb.nodes()
 
+    scales_name = context.add_const(
+        np.array(scales, dtype=np.float32), 'scales')
+
     if opset_version in [9, 10]:
-        scales_name = context.add_const(
-            np.array(scales, dtype=np.float32), 'scales')
         inputs.append(scales_name)
         op = 'Upsample' if opset_version == 9 else 'Resize'
         gb.op_output_named(op, inputs, output_names)
         return gb.nodes()
 
+    if opset_version == 11:
+        roi = context.add_const(np.array([]), 'roi')
+        inputs.extend([roi, scales_name])
+        gb.op_output_named('Resize', inputs, output_names)
+        return gb.nodes()
 
-@support((7, 9, 10))
+
+@support((7, 9, 10, 11))
 def convert_ResizeImages(
         func, opset_version, input_names, output_names, context):
 
@@ -441,13 +443,19 @@ def convert_ResizeImages(
         return onnx_helper.make_node('Upsample', input_names, output_names,
                                      scales=scales, mode=mode),
 
+    scales_name = context.add_const(
+        np.array(scales, dtype=np.float32), 'scales')
     if opset_version in [9, 10]:
-        scales_name = context.add_const(
-            np.array(scales, dtype=np.float32), 'scales')
         input_names.append(scales_name)
         op = 'Upsample' if opset_version == 9 else 'Resize'
         return onnx_helper.make_node(op, input_names, output_names,
                                      mode=mode),
+
+    if opset_version == 11:
+        roi_name = context.add_const(np.array([]), 'roi')
+        input_names.extend([roi_name, scales_name])
+        return onnx_helper.make_node(
+            'Resize', input_names, output_names, mode=mode),
 
 
 def convert_Stack(func, opset_version, input_names, output_names, context):

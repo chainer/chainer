@@ -23,7 +23,7 @@ except ImportError:
     _available = False
 
 MINIMUM_OPSET_VERSION = 7
-MAXIMUM_OPSET_VERSION = 10
+MAXIMUM_OPSET_VERSION = 11
 
 
 def _check_available():
