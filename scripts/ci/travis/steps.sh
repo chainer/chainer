@@ -158,7 +158,7 @@ step_chainer_tests() {
 step_chainerx_python_tests() {
     # In Travis CI only pairwise testing is performed.
     env CHAINER_TEST_PAIRWISE_PARAMETERIZATION=always \
-        pytest -rfEX "$REPO_DIR"/tests/chainerx_tests
+        pytest --maxfail=10 -rfEX "$REPO_DIR"/tests/chainerx_tests
 }
 
 
