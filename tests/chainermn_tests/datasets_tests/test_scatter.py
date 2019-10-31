@@ -2,11 +2,12 @@ from __future__ import with_statement
 import itertools
 import unittest
 
-from chainer import testing
 import mpi4py.MPI
 import numpy as np
 import pytest
 
+from chainer import testing
+import chainer
 import chainermn
 from chainermn.communicators.flat_communicator import FlatCommunicator
 from chainermn.communicators.naive_communicator import NaiveCommunicator
@@ -40,6 +41,11 @@ class TestDataset(unittest.TestCase):
             # Test the content of scattered datasets
             joined_dataset = sum((sub_dataset[:]
                                   for sub_dataset in sub_datasets), [])
+
+            # NOTE: values in original_dataset must be int-like type
+            # (i.e. dtype('int64') or dtype('int32')
+            joined_dataset = [int(e) for e in joined_dataset]
+            original_dataset = [int(e) for e in original_dataset]
             self.assertEqual(set(joined_dataset), set(original_dataset))
 
     def test_scatter_dataset(self):
@@ -47,6 +53,7 @@ class TestDataset(unittest.TestCase):
 
         for shuffle in [True, False]:
             for root in range(self.communicator.size):
+                self.communicator.mpi_comm.barrier()
                 self.check_scatter_dataset([], shuffle, root)
                 self.check_scatter_dataset([0], shuffle, root)
                 self.check_scatter_dataset(list(range(n)), shuffle, root)
