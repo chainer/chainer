@@ -29,14 +29,12 @@ matrix:
       - MATRIX_EVAL="CC=gcc-5 && CXX=g++-5"
       if: type in (pull_request)
 
-    - name: "macOS Py35 | chainer, chainermn, chainerx, docs"
+    - name: "macOS Py3 | chainer, chainermn, chainerx, docs"
       os: osx
       language: generic
       env:
       - CHAINER_TRAVIS_TEST="chainer"
-      - PYTHON_VERSION=3.5.1
-      - PYENV_ROOT=~/.pyenv
-      - PATH=$PYENV_ROOT/shims:$PATH:$PYENV_ROOT/bin
+      - PYTHON_VERSION=3
       if: (branch = master OR branch = v6) AND (NOT type in (pull_request))
 
 before_install:
