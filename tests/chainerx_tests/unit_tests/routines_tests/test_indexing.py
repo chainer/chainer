@@ -276,9 +276,11 @@ def test_take_index_error(device, shape, indices, axis):
         chainerx.take(a, indices, axis, mode='raise')
 
 
-def _random_condition(shape, dtype):
-    neg_mask = numpy.random.randint(0, 2, size=shape).astype('bool')
-    cond = array_utils.uniform(shape, dtype)
+def _random_condition(shape, dtype, *, random_state=None):
+    if random_state is None:
+        random_state = numpy.random.RandomState()
+    neg_mask = random_state.randint(0, 2, size=shape).astype('bool')
+    cond = array_utils.uniform(shape, dtype, random_state=random_state)
     # Replace zeros with nonzero, making the average number of zero elements
     # in cond independent of the dtype.
     cond[cond == 0] = 1
@@ -415,7 +417,9 @@ _in_out_dtypes_where_scalar = [
 @pytest.mark.parametrize('cond_dtype', chainerx.testing.all_dtypes)
 @pytest.mark.parametrize('in_types,out_dtype', _in_out_dtypes_where_scalar)
 def test_where_scalar_scalar(xp, cond_shape, cond_dtype, in_types, out_dtype):
-    cond = xp.array(_random_condition(cond_shape, cond_dtype))
+    cond = _random_condition(
+        cond_shape, cond_dtype, random_state=numpy.random.RandomState(seed=0))
+    cond = xp.array(cond)
     x_type, y_type = in_types
     x = x_type(0)
     y = y_type(2)
