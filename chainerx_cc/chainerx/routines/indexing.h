@@ -5,6 +5,7 @@
 
 #include "chainerx/array.h"
 #include "chainerx/array_index.h"
+#include "chainerx/scalar.h"
 
 namespace chainerx {
 namespace internal {
@@ -21,7 +22,6 @@ Array At(const Array& a, const std::vector<ArrayIndex>& indices);
 //
 // `axis` must be within [0, b.ndim()).
 // `indices` must have dtype kind of either kInt or kUInt.
-
 Array AddAt(const Array& a, const Array& indices, int8_t axis, const Array& b, IndexBoundsMode mode = IndexBoundsMode::kDefault);
 
 // Takes elements specified by indices from an array.
@@ -32,7 +32,6 @@ Array AddAt(const Array& a, const Array& indices, int8_t axis, const Array& b, I
 //
 // TODO(niboshi): Support Scalar and StackVector as indices.
 // TODO(niboshi): Support axis=None behavior in NumPy.
-
 Array Take(const Array& a, const Array& indices, int8_t axis, IndexBoundsMode mode = IndexBoundsMode::kDefault);
 
 Array Where(const Array& condition, const Array& x, const Array& y);
