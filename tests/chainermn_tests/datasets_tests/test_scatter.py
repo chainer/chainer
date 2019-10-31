@@ -68,7 +68,8 @@ class TestDataset(unittest.TestCase):
                 self.check_scatter_dataset(chx.array([]), shuffle, root)
                 self.check_scatter_dataset(chx.array([0]), shuffle, root)
                 self.check_scatter_dataset(chx.arange(n), shuffle, root)
-                self.check_scatter_dataset(chx.arange(n * 5 - 1), shuffle, root)
+                self.check_scatter_dataset(
+                    chx.arange(n * 5 - 1), shuffle, root)
 
 
 def scatter_large_data(communicator):
