@@ -35,7 +35,6 @@ matrix:
       env:
       - CHAINER_TRAVIS_TEST="chainer"
       - PYTHON_VERSION=3
-      if: (branch = master OR branch = v6) AND (NOT type in (pull_request))
 
 before_install:
   - bash scripts/ci/travis/run-tests.sh before_install
