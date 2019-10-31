@@ -3,27 +3,34 @@ import unittest
 import numpy
 
 import chainer
-from chainer import backend
 from chainer.backends import cuda
-from chainer import gradient_check
 from chainer import links
 from chainer import testing
 from chainer.testing import attr
 
 
+@testing.inject_backend_tests(
+    None,
+    # CPU tests
+    [{}]
+    # GPU tests
+    + testing.product({
+        'use_cuda': [True],
+        'use_cudnn': ['never', 'always'],
+        'cuda_device': [0, 1],
+    })
+)
 @testing.parameterize(*(testing.product({
     'shape': [(1, 4, 5, 3), (5, 4, 7), (3, 20)],
     'groups': [1, 2, 4],
     'dtype': [numpy.float16, numpy.float32, numpy.float64,
               chainer.mixed16],
 })))
-class GroupNormalizationTest(unittest.TestCase):
+class GroupNormalizationTest(testing.LinkTestCase):
+
+    param_names = ('gamma', 'beta')
 
     def setUp(self):
-        with chainer.using_config('dtype', self.dtype):
-            self.link = links.GroupNormalization(self.groups)
-        self.link.cleargrads()
-
         self.x, = self.generate_inputs()
         self.gy = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
 
@@ -33,6 +40,25 @@ class GroupNormalizationTest(unittest.TestCase):
         else:
             self.check_forward_options = {'atol': 1e-4, 'rtol': 1e-3}
             self.check_backward_options = {'atol': 1e-3, 'rtol': 1e-2}
+
+    def create_link(self, initializers):
+        initial_gamma, initial_beta = initializers
+        with chainer.using_config('dtype', self.dtype):
+            link = links.GroupNormalization(
+                self.groups,
+                initial_gamma=initial_gamma,
+                initial_beta=initial_beta,
+            )
+        return link
+
+    def generate_params(self):
+        highprec_dtype = chainer.get_dtype(
+            self.dtype, map_mixed16=numpy.float32)
+        initial_gamma = numpy.random.uniform(
+            -1, 1, (self.shape[1],)).astype(highprec_dtype)
+        initial_beta = numpy.random.uniform(
+            -1, 1, (self.shape[1],)).astype(highprec_dtype)
+        return initial_gamma, initial_beta
 
     def generate_inputs(self):
         shape = self.shape
@@ -50,6 +76,7 @@ class GroupNormalizationTest(unittest.TestCase):
 
         return x,
 
+<<<<<<< HEAD
     def check_forward(self, x_data):
         y = self.link(x_data)
         self.assertEqual(y.data.dtype, self.dtype)
@@ -105,6 +132,25 @@ class GroupNormalizationTest(unittest.TestCase):
         self.link.use_cudnn = False
         self.link(numpy.zeros(self.shape, dtype=self.dtype))
         self.test_backward_gpu()
+=======
+    def forward_expected(self, link, inputs):
+        gamma = link.gamma.array
+        beta = link.beta.array
+        x, = inputs
+        shape = self.shape
+        param_reshape = tuple([
+            s if i == 1 else 1 for i, s in enumerate(shape)])
+        x = x.astype(chainer.get_dtype(
+            self.dtype, map_mixed16=numpy.float32))
+        x = x.reshape(shape[0] * self.groups, -1)
+        x -= x.mean(axis=1, keepdims=True)
+        x /= numpy.sqrt(link.eps + numpy.square(x).mean(axis=1, keepdims=True))
+        x = x.reshape(shape)
+        x = gamma.reshape(param_reshape) * x + beta.reshape(param_reshape)
+        if self.dtype == chainer.mixed16:
+            x = x.astype(numpy.float16)
+        return x,
+>>>>>>> 2ba41afc9... Merge pull request #8343 from toslunar/gn-test
 
 
 @testing.parameterize(*testing.product({
