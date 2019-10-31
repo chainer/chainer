@@ -187,6 +187,9 @@ configs {
     time_limit {
       seconds: 3600
     }
+    checkout_strategy {
+      include_dot_git: true
+    }
     command: "git clone https://github.com/chainer/chainercv.git --depth 1 && sh chainercv/.pfnci/tests.sh"
     environment_variables {
       key: "REPOSITORY"
@@ -210,6 +213,9 @@ configs {
       memory: 24
       disk: 10
       gpu: 1
+    }
+    checkout_strategy {
+      include_dot_git: true
     }
     command: "git clone https://github.com/chainer/chainercv.git --depth 1 && sh chainercv/.pfnci/tests_gpu.sh"
     environment_variables {
@@ -237,6 +243,9 @@ configs {
     }
     time_limit {
       seconds: 1800
+    }
+    checkout_strategy {
+      include_dot_git: true
     }
     command: "git clone https://github.com/chainer/chainercv.git --depth 1 && sh chainercv/.pfnci/examples_tests.sh"
     environment_variables {
@@ -331,6 +340,22 @@ configs {
   }
 }
 configs {
+  key: "onnxchainer.py37.cpu.onnx15"
+  value {
+    requirement {
+      cpu: 4
+      disk: 10
+      memory: 16
+    }
+    time_limit {
+      seconds: 600
+    }
+    command: "sh onnx_chainer/.flexci/run_test.sh"
+    environment_variables { key: "PYTHON_VER" value: "37" }
+    environment_variables { key: "ONNX_VER" value: "1.5" }
+  }
+}
+configs {
   key: "onnxchainer.py36.cpu"
   value {
     requirement {
@@ -389,6 +414,6 @@ configs {
     time_limit {
       seconds: 600
     }
-    command: "onnx_chainer\\.flexci\\run_test.bat 10_0 37"
+    command: "onnx_chainer\\.flexci\\run_test.bat 10.1 37"
   }
 }

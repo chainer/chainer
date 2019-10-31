@@ -531,4 +531,137 @@ class TestForwardConsistency(unittest.TestCase):
             self.check_consistency(cuda.cupy)
 
 
+class BaseSoftTarget(object):
+
+    def setUp(self):
+        x_shape = (self.nb,) + self.shape
+        self.x = numpy.random.uniform(-1, 1, x_shape).astype(self.dtype)
+        if self.reduce == 'mean':
+            self.gy = numpy.random.uniform(-1, 1, ()).astype(self.dtype)
+        else:
+            y_shape = (self.nb,) + self.shape[1:]
+            self.gy = numpy.random.uniform(-1, 1, y_shape).astype(self.dtype)
+        if self.dtype == numpy.float16:
+            self.check_forward_options = {'atol': 5e-3, 'rtol': 5e-2}
+            self.check_backward_options = {'atol': 5e-3, 'rtol': 5e-2}
+        else:
+            self.check_forward_options = {}
+            self.check_backward_options = {}
+
+    def check_forward(self, xp):
+        raise NotImplementedError
+
+    def test_forward_cpu(self):
+        self.check_forward(numpy)
+
+    @attr.gpu
+    def test_forward_gpu(self):
+        self.check_forward(cuda.cupy)
+
+    def check_backward(self, xp):
+        x = xp.asarray(self.x)
+        t = xp.asarray(self.t)
+        gy = None
+        if self.reduce == 'no':
+            gy = xp.asarray(self.gy)
+
+        def f(x_, t_):
+            return functions.softmax_cross_entropy(
+                x_, t_, reduce=self.reduce)
+
+        gradient_check.check_backward(f, (x, t), gy, dtype=numpy.float64,
+                                      no_grads=(False, True),
+                                      **self.check_backward_options)
+
+    def test_backward_cpu(self):
+        self.check_backward(numpy)
+
+    @attr.gpu
+    def test_backward_gpu(self):
+        self.check_backward(cuda.cupy)
+
+
+@testing.parameterize(*(testing.product({
+    'nb': [1, 2, 4],
+    'shape': [(3,), (3, 2), (3, 2, 2)],
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'reduce': ['mean', 'no'],
+    'soft_target_loss': ['cross-entropy', 'kl-divergence'],
+})))
+class TestSoftTargetCompareToHard(BaseSoftTarget, unittest.TestCase):
+
+    def setUp(self):
+        BaseSoftTarget.setUp(self)
+        t_hard_shape = (self.nb,) + self.shape[1:]
+        self.t_hard = numpy.random.randint(
+            0, self.shape[0], t_hard_shape).astype(numpy.int32)
+        t = numpy.zeros(self.x.size).astype(self.dtype)
+        t = t.reshape(self.shape[0], -1)
+        t[[self.t_hard.ravel()], [range(t.shape[1])]] = 1.0
+        t = t.reshape((self.shape[0], self.nb,) + self.shape[1:])
+        self.t = t.swapaxes(0, 1)
+
+    def check_forward(self, xp):
+        x = xp.asarray(self.x)
+        t = xp.asarray(self.t)
+        loss = functions.softmax_cross_entropy(x, t, reduce=self.reduce)
+        expect = functions.softmax_cross_entropy(
+            x, xp.asarray(self.t_hard), reduce=self.reduce,
+            soft_target_loss=self.soft_target_loss)
+        testing.assert_allclose(loss.data, expect.data,
+                                **self.check_forward_options)
+
+
+@testing.parameterize(*(testing.product({
+    'nb': [1, 2, 4],
+    'shape': [(3,), (3, 2), (3, 2, 2)],
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'reduce': ['mean', 'no'],
+    'soft_target_loss': ['kl-divergence'],
+})))
+class TestSoftTargetKLDivergence(BaseSoftTarget, unittest.TestCase):
+
+    def setUp(self):
+        BaseSoftTarget.setUp(self)
+        self.t = functions.softmax(self.x).array
+
+    def check_forward(self, xp):
+        x = xp.asarray(self.x)
+        t = xp.asarray(self.t)
+        loss = functions.softmax_cross_entropy(
+            x, t, reduce=self.reduce, soft_target_loss=self.soft_target_loss)
+        if self.reduce == 'mean':
+            expect = 0.
+        else:
+            expect = numpy.zeros(self.gy.shape, dtype=self.dtype)
+        testing.assert_allclose(loss.data, expect,
+                                **self.check_forward_options)
+
+
+@testing.parameterize(*(testing.product({
+    'nb': [1, 2, 4],
+    'shape': [(3,), (3, 2), (3, 2, 2)],
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'reduce': ['mean', 'no'],
+    'soft_target_loss': ['cross-entropy'],
+})))
+class TestSoftTargetCrossEntropy(BaseSoftTarget, unittest.TestCase):
+
+    def setUp(self):
+        BaseSoftTarget.setUp(self)
+        self.t = functions.softmax(self.x).array
+        self.expect = numpy.sum(-self.t * functions.log_softmax(self.x).array,
+                                axis=1)
+        if self.reduce == 'mean':
+            self.expect = numpy.average(self.expect)
+
+    def check_forward(self, xp):
+        x = xp.asarray(self.x)
+        t = xp.asarray(self.t)
+        loss = functions.softmax_cross_entropy(
+            x, t, reduce=self.reduce, soft_target_loss=self.soft_target_loss)
+        testing.assert_allclose(loss.data, self.expect,
+                                **self.check_forward_options)
+
+
 testing.run_module(__name__, __file__)

@@ -2,8 +2,10 @@ import chainer
 import chainer.functions as F
 from chainer import testing
 import numpy as np
+import onnx
 import pytest
 
+from onnx_chainer import export
 from onnx_chainer.testing import input_generator
 from onnx_chainer_tests.helper import ONNXModelChecker
 from onnx_chainer_tests.helper import ONNXModelTest
@@ -180,6 +182,8 @@ from onnx_chainer_tests.helper import ONNXModelTest
      'input_argname': 'x', 'args': {}, 'name': 'separate_axis0'},
     {'ops': 'separate', 'input_shape': (2, 3),
      'input_argname': 'x', 'args': {'axis': 1}, 'name': 'separate_axis1'},
+    {'ops': 'separate', 'input_shape': (1, 2, 3),
+     'input_argname': 'x', 'args': {}, 'name': 'separate_single_output'},
 
     # moveaxis
     {'ops': 'moveaxis', 'input_shape': (2, 3, 4, 5),
@@ -210,10 +214,8 @@ class TestArrayOperators(ONNXModelTest):
         name = self.ops
         if hasattr(self, 'name'):
             name = self.name
-        skip_ver = None
         self.expect(
-            self.model, self.x, name=name, skip_outvalue_version=skip_ver,
-            expected_num_initializers=0)
+            self.model, self.x, name=name, expected_num_initializers=0)
 
 
 class TestGetItemGather(ONNXModelChecker):
@@ -230,9 +232,18 @@ class TestGetItemGather(ONNXModelChecker):
             ('gather_before_squeezed', (slice(None), 0, [[0, 1], [2, 3]])),
             ('gather_after_squeezed', (slice(None), [[0, 1], [1, 2]], 0)),
             ('gather_unsqueezed', (
-                slice(None), None, [[0, 1], [1, 2]], slice(None)))
+                slice(None), None, [[0, 1], [1, 2]], slice(None))),
+            ('gathernd', [[0, 1], [1, 2]]),
+            ('gathernd_slice_none', [[0, 1], [0, 1], slice(None)]),
+            ('gathernd_full_idx', [[0, 1], [0, 1], [2, 3]]),
+            ('gathernd_before_slice', [0, [0, 1], [2, 3]]),
+            ('gathernd_after_slice', [[0, 1], [0, 2], 0]),
+            ('gathernd_unsqueezed', [[0, 1], [0, 2], None])
         ])
     def test_output(self, name, slices):
+        skip_opsets = None
+        if name.startswith('gathernd'):
+            skip_opsets = tuple(range(7, 11))
         name = 'get_item_' + name
 
         model = chainer.Sequential(
@@ -240,7 +251,27 @@ class TestGetItemGather(ONNXModelChecker):
         x = input_generator.increasing(2, 3, 4)
 
         self.expect(
-            model, x, name=name, expected_num_initializers=0)
+            model, x, name=name, expected_num_initializers=0,
+            skip_opset_version=skip_opsets)
+
+
+@pytest.mark.skipif(
+    onnx.defs.onnx_opset_version() < 11, reason='not support GatherND')
+@pytest.mark.parametrize(
+    'slices', [
+        [slice(0, 2, 2)],
+        [[0, 1], 0, [0, 1]],
+        [slice(None), [0, 1], [0, 1]],
+        [None, [0, 1], [0, 1]]
+    ]
+)
+def test_get_item_error(slices):
+    model = chainer.Sequential(
+        lambda x: F.get_item(x, slices=slices))
+    x = input_generator.increasing(2, 3, 4)
+
+    with pytest.raises(ValueError):
+        export(model, x)
 
 
 class TestConcat(ONNXModelTest):
@@ -423,3 +454,32 @@ class TestDynamicReshape(ONNXModelTest):
             assert not any(['param' in v.name for v in onnx_model.graph.input])
 
         self.expect(model, (x, shape), custom_model_test_func=check_no_param)
+
+
+@testing.parameterize(
+    {'kwargs': {}, 'name': 'permutate'},
+    {'kwargs': {'inv': True}, 'name': 'permutate_inv'},
+    {'kwargs': {'axis': 1}, 'name': 'permutate_axis1'},
+    {'kwargs': {'axis': 1, 'inv': True}, 'name': 'permutate_axis1_inv'},
+)
+class TestPermutate(ONNXModelTest):
+
+    def test_output(self):
+
+        class Model(chainer.Chain):
+            def __init__(self, kwargs):
+                super(Model, self).__init__()
+                self.kwargs = kwargs
+
+            def forward(self, x, indices):
+                return F.permutate(x, indices, **self.kwargs)
+
+        model = Model(kwargs=self.kwargs)
+
+        x = np.arange(6).reshape((3, 2)).astype(np.float32)
+        if self.kwargs.get('axis') == 1:
+            indices = np.array([1, 0], np.int32)
+        else:
+            indices = np.array([2, 0, 1], np.int32)
+        self.expect(model, (x, indices), name=self.name,
+                    skip_opset_version=[7, 8])

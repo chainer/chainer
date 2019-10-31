@@ -84,6 +84,13 @@ def get_slice_node(
         return gb.op('Slice', input_names)
 
 
+def _to_ndarray(x, dtype=np.int64):
+    if isinstance(x, list):
+        return np.array(x, dtype=dtype)
+    else:
+        return chainer.cuda.to_cpu(x).astype(dtype)
+
+
 @support((1, 10))
 def convert_GetItem(func, opset_version, input_names, output_names, context):
     x = func.inputs[0]
@@ -91,7 +98,11 @@ def convert_GetItem(func, opset_version, input_names, output_names, context):
     squeeze_idxs, unsqueeze_idxs = [], []
     skipped = 0  # when set ellipsis, need to skip index rolling
 
-    gather_axis, gather_idx = [], []
+    prev_gathered_axis = -1
+    gather_axis = -1
+    gather_idx = None  # when GatherND, set first array for broadcasting
+    gather_nd_idx = None
+    is_used_slice_whole = False  # GatherND does not support axis, need to care
 
     for i, idx in enumerate(func.slices):
         # axis means the index of input x, adjust None and Ellipsis counts
@@ -102,6 +113,7 @@ def convert_GetItem(func, opset_version, input_names, output_names, context):
                     'GetItem with {}step slicing is not supported in ONNX '
                     'Slice operator'.format(idx.step))
             if idx.start is None and idx.stop is None:
+                is_used_slice_whole = True
                 continue
             axes.append(axis)
             starts.append(0 if idx.start is None else idx.start)
@@ -127,16 +139,32 @@ def convert_GetItem(func, opset_version, input_names, output_names, context):
             assert skipped == 0
             skipped = len(x.shape) - axis - rest_slice_len - 1
         elif isinstance(idx, (list,) + chainer.get_array_types()):
-            if gather_axis:
-                raise ValueError(
-                    'ONNX-Chainer does not support multiple advanced index')
-            gather_axis.append(axis - len(squeeze_idxs) + len(unsqueeze_idxs))
-            if isinstance(idx, list):
-                gather_idx = np.array(idx, dtype=np.int64)
+            if prev_gathered_axis >= 0:
+                if (i - 1) != prev_gathered_axis:
+                    raise ValueError(
+                        'ONNX-Chainer does not support non-consecutive'
+                        'multiple advanced indexing')
+                if is_used_slice_whole:
+                    raise ValueError(
+                        'ONNX-Chainer does not support whole indexing(`[:]`)'
+                        'in front of multiple advanced indexing')
+                if unsqueeze_idxs:
+                    raise ValueError(
+                        'ONNX-Chainer does not support new axis in front of '
+                        'multiple advanced indexing')
+                # multiple advanced index, convert to GatherND
+                idx_array = _to_ndarray(idx)
+                base_idx = gather_idx if gather_nd_idx is None else\
+                    gather_nd_idx
+                gather_nd_idx = np.vstack((base_idx, idx_array))
+                prev_gathered_axis = i
             else:
-                gather_idx = chainer.cuda.to_cpu(idx)
+                # convert to Gather, if next index is also list, change to
+                # GatherND
+                gather_axis = axis - len(squeeze_idxs) + len(unsqueeze_idxs)
+                gather_idx = _to_ndarray(idx)
+                prev_gathered_axis = i
         else:
-            # not support advanced index like `array[[0,1], [0, 1]]`
             raise ValueError(
                 'GetItem with type {} cannot handle in ONNX Slice, so that '
                 'ONNX-Chainer does not accept the type'.format(type(idx)))
@@ -154,15 +182,19 @@ def convert_GetItem(func, opset_version, input_names, output_names, context):
         output = gb.op('Unsqueeze', slice_output, axes=unsqueeze_idxs)
         slice_output = [output]
 
-    if gather_axis:
+    if gather_nd_idx is not None:
+        gather_nd_idx_name = context.add_const(gather_nd_idx.T, 'indices')
+        slice_output.append(gather_nd_idx_name)
+        gb.op('GatherND', slice_output)
+    elif gather_idx is not None:
         gather_idx_name = context.add_const(gather_idx, 'indices')
         slice_output.append(gather_idx_name)
-        gb.op('Gather', slice_output, axis=gather_axis[0])
+        gb.op('Gather', slice_output, axis=gather_axis)
 
     return gb.nodes(output_names=output_names)
 
 
-@support((1, 2))
+@support((1, 2, 11))
 def convert_Pad(func, opset_version, input_names, output_names, context):
     if func.mode not in ['constant', 'reflect', 'edge']:
         raise ValueError(
@@ -179,48 +211,58 @@ def convert_Pad(func, opset_version, input_names, output_names, context):
         pad_end.append(pp[1])
     pad = pad_begin + pad_end
 
-    if 'constant_values' in func.keywords:
-        values = func.keywords['constant_values']
-        if not isinstance(values, int) and len(values) > 1:
+    constant_value = func.keywords.get('constant_values', None)
+    if constant_value is not None:
+        # 'constant_values' only accepts int or array-like on Chainer
+        if not isinstance(constant_value, int) and len(constant_value) > 1:
             raise ValueError(
                 'ONNX doesn\'t support multiple constant values for Pad '
                 'operation')
-        elif not isinstance(values, int):
-            values = float(values[0])
+        elif not isinstance(constant_value, int):
+            constant_value = float(constant_value[0])
         else:
-            values = float(values)
+            constant_value = float(constant_value)
 
-        if opset_version == 1:
-            node = onnx_helper.make_node(
-                'Pad', input_names, output_names,
-                mode=func.mode,
-                paddings=pad,
-                value=values
-            )
-        elif opset_version == 2:
-            node = onnx_helper.make_node(
-                'Pad', input_names, output_names,
-                mode=func.mode,
-                pads=pad,
-                value=values
-            )
-    else:
-        if opset_version == 1:
-            node = onnx_helper.make_node(
-                'Pad', input_names, output_names,
-                mode=func.mode,
-                paddings=pad,
-                value=0.,
-            )
-        elif opset_version == 2:
-            node = onnx_helper.make_node(
-                'Pad', input_names, output_names,
-                mode=func.mode,
-                pads=pad,
-                value=0.,
-            )
+    if opset_version == 1:
+        kwargs = {
+            'mode': func.mode,
+            'paddings': pad,
+        }
+        if constant_value is not None:
+            kwargs['value'] = constant_value
+    elif opset_version == 2:
+        kwargs = {
+            'mode': func.mode,
+            'pads': pad,
+        }
+        if constant_value is not None:
+            kwargs['value'] = constant_value
+    elif opset_version == 11:
+        pads_name = context.add_const(np.array(pad, dtype=np.int64), 'pads')
+        input_names.append(pads_name)
+        if constant_value is not None:
+            constant_value_name = context.add_const(
+                np.array(constant_value, dtype=np.float32), 'constant_value')
+            input_names.append(constant_value_name)
+        kwargs = {'mode': func.mode}
 
-    return node,
+    return onnx_helper.make_node('Pad', input_names, output_names, **kwargs),
+
+
+@support((9, 11))
+def convert_Permutate(func, opset_version, input_names, output_names, context):
+    gb = onnx_helper.GraphBuilder()
+    indices_name = context.get_name(func.indices)
+    if func.inv:
+        empty = context.add_const(
+            np.zeros(dtype=np.int64, shape=func.indices.shape), 'empty')
+        r = context.add_const(np.arange(len(func.indices), dtype=np.int64),
+                              'range')
+        op = 'ScatterElements' if opset_version == 11 else 'Scatter'
+        indices_name = gb.op(op, [empty, indices_name, r])
+    input_names.append(indices_name)
+    gb.op_output_named('Gather', input_names, output_names, axis=func.axis)
+    return gb.nodes()
 
 
 @support((1, 5))
@@ -360,7 +402,7 @@ def convert_Where(func, opset_version, input_names, output_names, context):
     return onnx_helper.make_node('Where', input_names, output_names),
 
 
-@support((7, 9, 10))
+@support((7, 9, 10, 11))
 def convert_Repeat(func, opset_version, input_names, output_names, context):
     repeats = func.repeats
     if len(repeats) > 1:
@@ -383,16 +425,23 @@ def convert_Repeat(func, opset_version, input_names, output_names, context):
         gb.op_output_named('Upsample', inputs, output_names, scales=scales)
         return gb.nodes()
 
+    scales_name = context.add_const(
+        np.array(scales, dtype=np.float32), 'scales')
+
     if opset_version in [9, 10]:
-        scales_name = context.add_const(
-            np.array(scales, dtype=np.float32), 'scales')
         inputs.append(scales_name)
         op = 'Upsample' if opset_version == 9 else 'Resize'
         gb.op_output_named(op, inputs, output_names)
         return gb.nodes()
 
+    if opset_version == 11:
+        roi = context.add_const(np.array([]), 'roi')
+        inputs.extend([roi, scales_name])
+        gb.op_output_named('Resize', inputs, output_names)
+        return gb.nodes()
 
-@support((7, 9, 10))
+
+@support((7, 9, 10, 11))
 def convert_ResizeImages(
         func, opset_version, input_names, output_names, context):
 
@@ -426,13 +475,19 @@ def convert_ResizeImages(
         return onnx_helper.make_node('Upsample', input_names, output_names,
                                      scales=scales, mode=mode),
 
+    scales_name = context.add_const(
+        np.array(scales, dtype=np.float32), 'scales')
     if opset_version in [9, 10]:
-        scales_name = context.add_const(
-            np.array(scales, dtype=np.float32), 'scales')
         input_names.append(scales_name)
         op = 'Upsample' if opset_version == 9 else 'Resize'
         return onnx_helper.make_node(op, input_names, output_names,
                                      mode=mode),
+
+    if opset_version == 11:
+        roi_name = context.add_const(np.array([]), 'roi')
+        input_names.extend([roi_name, scales_name])
+        return onnx_helper.make_node(
+            'Resize', input_names, output_names, mode=mode),
 
 
 def convert_Stack(func, opset_version, input_names, output_names, context):
@@ -494,6 +549,8 @@ def convert_Separate(func, opset_version, input_names, output_names, context):
     gb = onnx_helper.GraphBuilder()
     split_outs = gb.op(
         'Split', input_names, num_outputs=len(output_names), axis=func.axis)
+    if len(output_names) == 1:
+        split_outs = [split_outs]
     for i, node_name in enumerate(split_outs):
         gb.op_output_named(
             'Squeeze', [node_name], [output_names[i]], axes=[func.axis])

@@ -123,7 +123,10 @@ target_link_libraries(
     chainerx
     PUBLIC
     absl::failure_signal_handler
-    absl::bad_optional_access)
+    absl::bad_optional_access
+    PRIVATE
+    absl::flat_hash_map
+    )
 
 if(MSVC)
     target_link_libraries(chainerx

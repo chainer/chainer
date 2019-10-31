@@ -23,7 +23,7 @@ except ImportError:
     _available = False
 
 MINIMUM_OPSET_VERSION = 7
-MAXIMUM_OPSET_VERSION = 10
+MAXIMUM_OPSET_VERSION = 11
 
 
 def _check_available():
@@ -31,7 +31,7 @@ def _check_available():
         raise ImportError(
             'ONNX is not installed on your environment. Exporting your model '
             'in ONNX format needs the onnx package.\n\n'
-            '\t$ pip install \'onnx<1.6.0\'\n\n')
+            '\t$ pip install \'onnx<1.7.0\'\n\n')
 
 
 def convert_parameter(parameter, context):

@@ -1,3 +1,5 @@
+import numpy as np
+
 from onnx_chainer.functions.opset_version import support
 from onnx_chainer import onnx_helper
 
@@ -25,7 +27,7 @@ def _convert_softmax_impl(op_type, func, input_names, output_names):
     return gb.nodes(output_names=output_names)
 
 
-@support((1, 6))
+@support((1, 6, 11))
 def convert_ClippedReLU(
         func, opset_version, input_names, output_names, context):
     if opset_version == 1:
@@ -39,6 +41,12 @@ def convert_ClippedReLU(
             'Clip', input_names, output_names,
             min=0.0, max=func.cap,
         ),
+    elif opset_version == 11:
+        min_name = context.add_const(np.array(0, dtype=np.float32), 'zero')
+        max_name = context.add_const(
+            np.array(func.cap, dtype=np.float32), 'clip_z')
+        input_names.extend([min_name, max_name])
+        return onnx_helper.make_node('Clip', input_names, output_names),
 
 
 @support((1, 6))
