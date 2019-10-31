@@ -76,63 +76,6 @@ class GroupNormalizationTest(testing.LinkTestCase):
 
         return x,
 
-<<<<<<< HEAD
-    def check_forward(self, x_data):
-        y = self.link(x_data)
-        self.assertEqual(y.data.dtype, self.dtype)
-
-        # Verify that forward isn't be affected by batch size
-        if self.shape[0] > 1:
-            xp = backend.get_array_module(x_data)
-            y_one_each = chainer.functions.concat(
-                [self.link(xp.expand_dims(one_x, axis=0))
-                 for one_x in x_data], axis=0)
-            testing.assert_allclose(
-                y.data, y_one_each.data, **self.check_forward_options)
-
-    def test_forward_cpu(self):
-        self.check_forward(self.x)
-
-    @attr.gpu
-    def test_forward_gpu(self):
-        self.link.to_gpu()
-        self.check_forward(cuda.to_gpu(self.x))
-
-    @attr.cudnn
-    def test_forward_gpu_without_cudnn(self):
-        self.link.use_cudnn = False
-        self.test_forward_gpu()
-
-    @attr.multi_gpu(2)
-    def test_forward_multi_gpu(self):
-        with cuda.get_device_from_id(1):
-            self.link.to_gpu()
-            x = cuda.to_gpu(self.x)
-        with cuda.get_device_from_id(0):
-            self.check_forward(x)
-
-    def check_backward(self, x_data, y_grad):
-        gradient_check.check_backward(
-            self.link, x_data, y_grad,
-            (self.link.gamma, self.link.beta),
-            eps=2e-2, **self.check_backward_options)
-
-    def test_backward_cpu(self):
-        self.link(numpy.zeros(self.shape, dtype=self.dtype))
-        self.check_backward(self.x, self.gy)
-
-    @attr.gpu
-    def test_backward_gpu(self):
-        self.link.to_gpu()
-        self.link(cuda.cupy.zeros(self.shape, dtype=self.dtype))
-        self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
-
-    @attr.cudnn
-    def test_backward_gpu_without_cudnn(self):
-        self.link.use_cudnn = False
-        self.link(numpy.zeros(self.shape, dtype=self.dtype))
-        self.test_backward_gpu()
-=======
     def forward_expected(self, link, inputs):
         gamma = link.gamma.array
         beta = link.beta.array
@@ -150,7 +93,6 @@ class GroupNormalizationTest(testing.LinkTestCase):
         if self.dtype == chainer.mixed16:
             x = x.astype(numpy.float16)
         return x,
->>>>>>> 2ba41afc9... Merge pull request #8343 from toslunar/gn-test
 
 
 @testing.parameterize(*testing.product({
