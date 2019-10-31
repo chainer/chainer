@@ -50,7 +50,7 @@ step_install_chainer_test_deps() {
 step_before_install_chainer_test() {
     # Remove oclint as it conflicts with GCC (indirect dependency of hdf5)
     if [[ $TRAVIS_OS_NAME = "osx" ]]; then
-        brew install python
+        brew outdated python || brew upgrade python
         # Unversioned symlinks `python`, `pip` etc.
         export PATH=/usr/local/opt/python/libexec/bin:$PATH
         python --version
