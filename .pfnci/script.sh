@@ -120,7 +120,7 @@ main() {
 
 # run executes a command.  If DRYRUN is enabled, run just prints the command.
 run() {
-  echo '+' "$@"
+  echo '+' "$@" >&2
   if [ "${DRYRUN:-}" == '' ]; then
     "$@"
   fi
