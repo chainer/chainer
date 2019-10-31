@@ -381,6 +381,20 @@ class Link(device_resident.DeviceResident):
         self._persistent.add(name)
         self._params.discard(name)
 
+    @classmethod
+    def from_params(cls, *args, **kwargs):
+        """Initialize link with given parameters.
+
+        This method initializes the link with given :ref:`ndarray`\\s.
+        Arguments includes
+
+        * some parameters for a specific link.
+        * constants such as stride width of a convolutional layer.
+
+        """
+        raise NotImplementedError(
+            'This link does not implement `from_params`.')
+
     def copy(self, mode: str = 'share') -> 'Link':
         """Copies the link hierarchy to new one.
 
