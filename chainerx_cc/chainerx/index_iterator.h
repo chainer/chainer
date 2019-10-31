@@ -64,10 +64,28 @@ private:
     CHAINERX_HOST_DEVICE void Set(int64_t i) {
         CHAINERX_ASSERT(total_size_ > 0);
         raw_index_ = i;
+#ifdef __CUDA_ARCH__
+        // TODO(ecastill) add 32-bit case
+        // 64-bit division is very slow on GPU
+        uint64_t a = static_cast<uint64_t>(i);
+        for (int8_t dim = kNdim; --dim > 0;) {
+            uint64_t s = static_cast<uint64_t>(shape_[dim]);
+            if (s & (s - 1)) {
+                uint64_t t = a / s;
+                index_[dim] = static_cast<int64_t>(a - t * s);
+                a = t;
+            } else {  // exp of 2
+                index_[dim] = static_cast<int64_t>(a & (s - 1));
+                a >>= __popcll(s - 1);
+            }
+        }
+        index_[0] = a;
+#else
         for (int8_t j = kNdim; --j >= 0;) {
             index_[j] = i % shape_[j];  // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
             i /= shape_[j];
         }
+#endif
     }
 
     const int64_t* shape_;
@@ -127,6 +145,8 @@ public:
     CHAINERX_HOST_DEVICE int64_t* index() { return &raw_index_; }
 
     CHAINERX_HOST_DEVICE const int64_t* index() const { return &raw_index_; }
+
+    CHAINERX_HOST_DEVICE void Set(int64_t i) { raw_index_ = i; }
 
 private:
     int64_t raw_index_{0};
@@ -247,10 +267,31 @@ private:
     CHAINERX_HOST_DEVICE void Set(int64_t i) {
         CHAINERX_ASSERT(total_size_ > 0);
         raw_index_ = i;
+        if (ndim_ == 0) {
+            return;
+        }
+#ifdef __CUDA_ARCH__
+        // TODO(ecastill) add 32-bit case
+        // 64-bit division is very slow on GPU
+        uint64_t a = static_cast<uint64_t>(i);
+        for (int8_t dim = ndim_; --dim > 0;) {
+            uint64_t s = static_cast<uint64_t>(shape_[dim]);
+            if (s & (s - 1)) {
+                uint64_t t = a / s;
+                index_[dim] = static_cast<int64_t>(a - t * s);
+                a = t;
+            } else {  // exp of 2
+                index_[dim] = static_cast<int64_t>(a & (s - 1));
+                a >>= __popcll(s - 1);
+            }
+        }
+        index_[0] = a;
+#else
         for (int8_t j = ndim_; --j >= 0;) {
             index_[j] = i % shape_[j];  // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
             i /= shape_[j];
         }
+#endif
     }
 
     const int64_t* shape_;
