@@ -50,7 +50,6 @@ step_install_chainer_test_deps() {
 step_before_install_chainer_test() {
     # Remove oclint as it conflicts with GCC (indirect dependency of hdf5)
     if [[ $TRAVIS_OS_NAME = "osx" ]]; then
-        # https://docs.travis-ci.com/user/languages/python/
         python --version
 
         brew install hdf5
