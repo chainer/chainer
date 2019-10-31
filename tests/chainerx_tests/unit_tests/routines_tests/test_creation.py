@@ -1264,7 +1264,7 @@ class TestTrilTriu(op_utils.NumpyOpTest):
 
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize_pytest('indexing', ['xy', 'ij'])
-@chainer.testing.parameterize_pytest('input_arrs', [1, 2, 3, 4, 5, 6])
+@chainer.testing.parameterize_pytest('input_arrs', [1, 2, 3, 4])
 class TestMeshgrid(op_utils.NumpyOpTest):
 
     check_numpy_strides_compliance = False
