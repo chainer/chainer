@@ -60,7 +60,8 @@ class TestLinear(unittest.TestCase):
     @attr.gpu
     @condition.retry(3)
     def test_forward_gpu(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.check_forward(cuda.to_gpu(self.x))
 
     def check_backward(self, x_data, y_grad):
@@ -75,7 +76,8 @@ class TestLinear(unittest.TestCase):
     @attr.gpu
     @condition.retry(3)
     def test_backward_gpu(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
 
 
@@ -122,7 +124,8 @@ class TestLinearParameterShapePlaceholder(unittest.TestCase):
     @attr.gpu
     @condition.retry(3)
     def test_forward_gpu(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.check_forward(cuda.to_gpu(self.x))
 
     def check_backward(self, x_data, y_grad):
@@ -136,7 +139,8 @@ class TestLinearParameterShapePlaceholder(unittest.TestCase):
     @attr.gpu
     @condition.retry(3)
     def test_backward_gpu(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
 
     def test_serialization(self):
@@ -185,6 +189,26 @@ class TestInvalidLinear(unittest.TestCase):
     def test_invalid_size(self):
         with self.assertRaises(type_check.InvalidType):
             self.link(chainer.Variable(self.x))
+
+
+@testing.parameterize(*testing.product({
+    'nobias': [True, False],
+}))
+class TestLinearFromParams(unittest.TestCase):
+
+    def setUp(self):
+        self.out_size = 10
+        self.in_size = 5
+
+    def test_from_params(self):
+        link1 = links.Linear(
+            self.in_size, self.out_size, nobias=self.nobias)
+        link2 = links.Linear.from_params(link1.W, link1.b, nobias=self.nobias)
+
+        assert link1.W.shape == link2.W.shape
+        assert (link2.b is None) == self.nobias
+        if not self.nobias:
+            assert link2.b.shape == link1.b.shape
 
 
 testing.run_module(__name__, __file__)

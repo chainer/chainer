@@ -449,7 +449,7 @@ class NumericalGradientDetectNondifferentiableTest(unittest.TestCase):
                 'input: {}\n'
                 'xp: {}\n\n'
                 '{}: {}'
-                ''.format(
+                .format(
                     func_name, eps, input, xp.__name__,
                     e.__class__.__name__, e))
 
@@ -677,21 +677,21 @@ class TestCheckBackwardNoneConvention(unittest.TestCase):
 
     def test_multiple_output(self):
         size = self.size
-        x1 = numpy.arange(size).astype('f')
-        x2 = numpy.arange(size).astype('f')
-        g1 = numpy.ones(size, dtype='f')
-        g2 = numpy.ones(size, dtype='f')
+        x1 = numpy.arange(size).astype('float32')
+        x2 = numpy.arange(size).astype('float32')
+        g1 = numpy.ones(size, dtype='float32')
+        g2 = numpy.ones(size, dtype='float32')
 
         def f(x, y):
             s, t = IdentNoneIsZero()(x, y)
             return s, t
 
         gradient_check.check_backward(
-            f, (x1, x2), (g1, g2), dtype=self.dtype, atol=1e-4, rtol=1e-3)
+            f, (x1, x2), (g1, g2), dtype=self.dtype, atol=1e-2, rtol=1e-2)
         gradient_check.check_backward(
-            f, (x1, x2), (g1, None), dtype=self.dtype, atol=1e-4, rtol=1e-3)
+            f, (x1, x2), (g1, None), dtype=self.dtype, atol=1e-2, rtol=1e-2)
         gradient_check.check_backward(
-            f, (x1, x2), (None, g2), dtype=self.dtype, atol=1e-4, rtol=1e-3)
+            f, (x1, x2), (None, g2), dtype=self.dtype, atol=1e-2, rtol=1e-2)
 
 
 class TestCheckBackwardFailure(unittest.TestCase):
@@ -831,6 +831,47 @@ class TestCheckDoubleBackward(unittest.TestCase):
 
         gradient_check.check_double_backward(
             f, x, gy, ggx, param, ggparam, atol=1e-3, rtol=1e-3)
+
+
+@testing.parameterize(*testing.product({
+    'size': [0, 1, 5, 64]
+}))
+@backend.inject_backend_tests(
+    None,
+    # CPU tests
+    [
+        {},
+    ]
+    # GPU tests
+    + testing.product({
+        'use_cuda': [True],
+        'cuda_device': [0, 1],
+    })
+    # ChainerX tests
+    + testing.product({
+        'use_chainerx': [True],
+        'chainerx_device': ['native:0', 'cuda:0', 'cuda:1'],
+    })
+)
+class TestSampleUnitVector(unittest.TestCase):
+
+    def test_sample_unit_vector(self, backend_config):
+        size = self.size
+        device = backend_config.device
+
+        # _sample_unit_vector uses the current device
+        with chainer.using_device(device):
+            y = gradient_check._CheckBackward._sample_unit_vector(
+                size, device.xp)
+        assert device.is_array_supported(y)
+        assert y.shape == (size,)
+
+        y_cpu = chainer.get_device('@numpy').send(y)
+        if size >= 1:
+            numpy.testing.assert_allclose(numpy.square(y_cpu).sum(), 1.0)
+            assert numpy.min(abs(y_cpu)) >= 0.1 / numpy.sqrt(size)
+        if size >= 64:
+            assert numpy.min(y_cpu) < 0 < numpy.max(y_cpu)
 
 
 testing.run_module(__name__, __file__)

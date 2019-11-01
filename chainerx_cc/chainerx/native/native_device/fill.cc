@@ -17,6 +17,16 @@
 #include "chainerx/shape.h"
 
 namespace chainerx {
+
+namespace internal {
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(Arange)
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(Identity)
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(Eye)
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(Diagflat)
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(Linspace)
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(Tri)
+}  // namespace internal
+
 namespace native {
 namespace {
 
@@ -158,6 +168,28 @@ public:
 };
 
 CHAINERX_NATIVE_REGISTER_KERNEL(FillKernel, NativeFillKernel);
+
+class NativeTriKernel : public TriKernel {
+public:
+    void Call(int64_t k, const Array& out) override {
+        VisitDtype(out.dtype(), [k, &out](auto pt) {
+            using T = typename decltype(pt)::type;
+            struct Impl {
+                void operator()(int64_t i, T& out) {
+                    int64_t row = i / m;
+                    int64_t col = i % m;
+                    out = col <= row + k ? T{1} : T{0};
+                }
+                int64_t m;
+                int64_t k;
+            };
+            int64_t m = out.shape()[1];
+            Elementwise<T>(Impl{m, k}, out);
+        });
+    }
+};
+
+CHAINERX_NATIVE_REGISTER_KERNEL(TriKernel, NativeTriKernel);
 
 }  // namespace
 }  // namespace native

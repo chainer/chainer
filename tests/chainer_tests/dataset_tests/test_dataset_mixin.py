@@ -1,5 +1,6 @@
-import numpy
 import unittest
+
+import numpy
 
 from chainer import dataset
 from chainer import testing

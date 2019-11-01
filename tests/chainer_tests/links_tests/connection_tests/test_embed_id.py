@@ -50,7 +50,8 @@ class TestEmbedID(unittest.TestCase):
     @attr.gpu
     @condition.retry(3)
     def test_forward_gpu(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.check_forward(cuda.to_gpu(self.x))
 
     @attr.gpu
@@ -61,7 +62,8 @@ class TestEmbedID(unittest.TestCase):
 
     @attr.gpu
     def test_forward_mixed_cpu_gpu_2(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         with self.assertRaises(TypeError):
             # self.x is not sent to gpu
             self.check_forward(self.x)
@@ -77,7 +79,8 @@ class TestEmbedID(unittest.TestCase):
     @attr.gpu
     @condition.retry(3)
     def test_backward_gpu(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
 
 
@@ -127,6 +130,18 @@ class TestEmbedIDUnpickleOldFile(unittest.TestCase):
         x = chainer.Variable(numpy.arange(2, dtype=numpy.int32))
         y = embed(x)
         self.assertEqual(y.data.shape, (2, 4))
+
+
+class TestEmbedIDFromParams(unittest.TestCase):
+
+    def setUp(self):
+        self.in_size, self.out_size = 10, 5
+
+    def test_from_params(self):
+        link1 = links.EmbedID(self.in_size, self.out_size)
+        link2 = links.EmbedID.from_params(link1.W)
+
+        assert link2.W.shape == link1.W.shape
 
 
 testing.run_module(__name__, __file__)

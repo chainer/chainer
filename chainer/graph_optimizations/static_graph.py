@@ -174,7 +174,7 @@ class ArrayInfo(object):
         self.shape = array.shape
         self.dtype = array.dtype
         # either numpy or cupy
-        self.ndarray_module = cuda.get_array_module(array)
+        self.ndarray_module = chainer.backend.get_array_module(array)
         if self.ndarray_module is cuda.cupy:
             # device id, if available.
             self.device = cuda.get_device_from_array(array)
@@ -1131,7 +1131,7 @@ def static_graph(*args, **kwargs):
     `chain.schedule_manager.end_forward()`on the static chain each iteration.
     - Static graphs allow tradeoffs between computation and memory usage.
     For example, the `minimize_cache_size` argument will typically result in
-    higher memory useage when set to `False` because all cached schedules
+    higher memory usage when set to `False` because all cached schedules
     are retained.
     - When this feature is enabled, only the Chainer function and/or link
     calls inside the chain's `__call__()` method will be included in the
@@ -1273,6 +1273,12 @@ def static_graph(*args, **kwargs):
 
     def wrap(func):
         def wrapped_func(*inner_args, **inner_kwargs):
+            # The static subgraph optimization feature can be turned off using
+            # a configuration, in which case this decorator merely calls the
+            # wrapped function without introducing any side effects.
+            if not chainer.config.use_static_graph:
+                return func(*inner_args, **inner_kwargs)
+
             if verbosity_level >= 2:
                 print('Calling static chain...')
 

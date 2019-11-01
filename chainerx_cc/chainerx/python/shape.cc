@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <string>
+#include <vector>
 
 #include "chainerx/shape.h"
 
@@ -12,10 +14,20 @@ namespace python_internal {
 
 namespace py = pybind11;
 
-Shape ToShape(const py::tuple& tup) {
-    Shape shape{};
-    std::transform(tup.begin(), tup.end(), std::back_inserter(shape), [](auto& item) { return py::cast<int64_t>(item); });
-    return shape;
+Shape ToShape(py::handle shape) {
+    if (py::isinstance<py::sequence>(shape)) {
+        std::vector<int64_t> seq{};
+        try {
+            seq = py::cast<std::vector<int64_t>>(shape);
+        } catch (const py::cast_error& e) {
+            throw py::type_error{"shape not understood: " + py::cast<std::string>(py::repr(shape))};
+        }
+        return Shape{seq};
+    }
+    if (py::isinstance<py::int_>(shape)) {
+        return Shape{shape.cast<int64_t>()};
+    }
+    throw py::type_error{"expected sequence object or a single integer"};
 }
 
 py::tuple ToTuple(const Shape& shape) {

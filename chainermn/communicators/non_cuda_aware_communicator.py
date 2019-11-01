@@ -1,6 +1,7 @@
 import warnings
 
 import chainer.cuda
+import chainerx
 import math
 import mpi4py.MPI
 import numpy as np
@@ -14,6 +15,7 @@ from chainermn import nccl
 class NonCudaAwareCommunicator(mpi_communicator_base.MpiCommunicatorBase):
 
     def __init__(self, mpi_comm):
+
         super(NonCudaAwareCommunicator, self).__init__(mpi_comm)
         if not nccl._available:
             raise RuntimeError(
@@ -35,6 +37,14 @@ class NonCudaAwareCommunicator(mpi_communicator_base.MpiCommunicatorBase):
         self.gpu_buffer_b = _memory_utility.DeviceMemory()
         self.cpu_buffer_a = _memory_utility.HostPinnedMemory()
         self.cpu_buffer_b = _memory_utility.HostPinnedMemory()
+
+    def finalize(self):
+        super(NonCudaAwareCommunicator, self).finalize()
+        if self.intra_nccl_comm is not None:
+            chainer.cuda.Stream.null.synchronize()
+            self.mpi_comm.barrier()
+            self.intra_nccl_comm.destroy()
+            self.intra_nccl_comm = None
 
     def _init_comms(self):
         if self.inter_mpi_comm is not None:
@@ -62,10 +72,15 @@ class NonCudaAwareCommunicator(mpi_communicator_base.MpiCommunicatorBase):
                 if is_float16:
                     tmp_cpu = tmp_cpu.astype(np.float16)
 
-                tmp_gpu = chainer.cuda.to_gpu(tmp_cpu)
+                xp = chainer.backend.get_array_module(data)
+                if xp == chainerx:
+                    # create the chainerx ndarray
+                    tmp_gpu = chainerx.array(tmp_cpu, device=data.device)
+                else:
+                    tmp_gpu = chainer.cuda.to_gpu(tmp_cpu)
                 data[:] = tmp_gpu
 
-    def allreduce_grad(self, model, zero_fill=False):
+    def multi_node_mean_grad(self, model, zero_fill=False):
         self._init_comms()
         stream = chainer.cuda.Stream.null
 
@@ -83,14 +98,15 @@ class NonCudaAwareCommunicator(mpi_communicator_base.MpiCommunicatorBase):
 
         allreduce_grad_dtype = np.float32
 
-        _memory_utility.pack_params(
-            params, 'grad', self.gpu_buffer_a, allreduce_grad_dtype, zero_fill)
+        self._pack_params_to_buffer(params, 'grad', buffer=self.gpu_buffer_a,
+                                    allreduce_grad_dtype=allreduce_grad_dtype,
+                                    zero_fill=zero_fill)
 
         if chainer.is_debug():
             stream.synchronize()
             array_a = self.gpu_buffer_a.array(n_elems_total)
             array_b = self.gpu_buffer_b.array(n_elems_total)
-            self.check_ready_to_allreduce(array_a, array_b)
+            self._check_ready_to_allreduce(array_a, array_b)
 
         # Intra-node reduce
         self.intra_nccl_comm.reduce(
@@ -130,7 +146,7 @@ class NonCudaAwareCommunicator(mpi_communicator_base.MpiCommunicatorBase):
 
         if chainer.is_debug():
             stream.synchronize()
-            self.ensure_all_finite(self.gpu_buffer_b.array(n_elems_total))
+            self._ensure_all_finite(self.gpu_buffer_b.array(n_elems_total))
 
-        _memory_utility.unpack_params(
-            params, 'grad', self.gpu_buffer_b, allreduce_grad_dtype, zero_fill)
+        self._unpack_params_from_buffer(params, 'grad', self.gpu_buffer_b,
+                                        allreduce_grad_dtype, zero_fill)

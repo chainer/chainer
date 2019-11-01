@@ -25,7 +25,10 @@ class _Join(tabular_dataset.TabularDataset):
 
     @property
     def mode(self):
-        return self._datasets[0].mode
+        for dataset in self._datasets:
+            if dataset.mode:
+                return dataset.mode
+        return tuple
 
     def get_examples(self, indices, key_indices):
         if key_indices is None:
@@ -55,3 +58,6 @@ class _Join(tabular_dataset.TabularDataset):
             key_offset += len(dataset.keys)
 
         return tuple(examples[key_index] for key_index in key_indices)
+
+    def convert(self, data):
+        return self._datasets[0].convert(data)

@@ -135,7 +135,7 @@ If you feel the code too verbose, you can also use ``from import`` or ``import a
    One of the typical pitfalls is a way to import ``chainer.functions``.
    An import like ``import chainer.functions as F`` within modules under ``chainer.functions`` does not work.
    An import like ``from chainer import functions`` works well with Python 3, but does not with Python 2.
-   We recommend you to use ``import chainer.functions`` and spell out like ``chainer.functions.foo`` in your methods.
+   We recommend that you use ``import chainer.functions`` and spell out like ``chainer.functions.foo`` in your methods.
 
 .. _testing-guide:
 
@@ -275,6 +275,14 @@ To build the documentation, you need to install `Sphinx <http://www.sphinx-doc.o
 
   $ pip install sphinx sphinx_rtd_theme
 
+
+.. note::
+
+   Docstrings (documentation comments in the source code) are collected from the installed Chainer module.
+   If you have edited docstrings in checked-out source files and want to see those changes reflected in the generated html,
+   Chainer must be installed in develop mode to see those changes reflected in the generated documentation.
+   To do this use ``pip install -e .`` from the the top of the Chainer directory.
+
 Then you can build the documentation in HTML format locally::
 
   $ cd docs
@@ -282,11 +290,6 @@ Then you can build the documentation in HTML format locally::
 
 HTML files are generated under ``build/html`` directory.
 Open ``index.html`` with the browser and see if it is rendered as expected.
-
-.. note::
-
-   Docstrings (documentation comments in the source code) are collected from the installed Chainer module.
-   If you modified docstrings, make sure to install the module (e.g., using `pip install -e .`) before building the documentation.
 
 .. note::
 
@@ -395,4 +398,4 @@ There are some rules on sending backport PRs.
 
 There is a `backport tool <https://github.com/chainer/backport>`_ maintained by the core team that automates the process of creating backport PRs conforming to the rules above.
 
-Note: PRs that do not include any changes/additions to APIs (e.g. bug fixes, documentation improvements) are backported by the core team, but contributors are also welcomed to do so to make development faster.
+Note: PRs that do not include any changes/additions to APIs (e.g. bug fixes, documentation improvements) are backported by the core team, but contributors are also welcome to do so for faster development.

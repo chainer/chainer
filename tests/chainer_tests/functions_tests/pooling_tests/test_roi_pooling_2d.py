@@ -8,6 +8,7 @@ from chainer import functions
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
+from chainer_tests.functions_tests.pooling_tests import pooling_nd_helper
 
 
 @testing.parameterize(*testing.product({
@@ -18,11 +19,8 @@ class TestROIPooling2D(unittest.TestCase):
     def setUp(self):
         N = 3
         n_channels = 3
-        self.x = numpy.arange(
-            N * n_channels * 12 * 8,
-            dtype=numpy.float32).reshape((N, n_channels, 12, 8))
-        numpy.random.shuffle(self.x)
-        self.x = (2 * self.x / self.x.size - 1).astype(self.dtype)
+        self.x = pooling_nd_helper.shuffled_linspace(
+            (N, n_channels, 12, 8), self.dtype)
         self.rois = numpy.array([
             [0, 1, 1, 6, 6],
             [2, 6, 2, 7, 11],

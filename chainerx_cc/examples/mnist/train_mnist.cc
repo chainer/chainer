@@ -19,6 +19,7 @@
 #include "chainerx/dtype.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/routines/linalg.h"
+#include "chainerx/routines/loss.h"
 #include "chainerx/routines/manipulation.h"
 #include "chainerx/routines/misc.h"
 #include "chainerx/routines/reduction.h"
@@ -83,15 +84,6 @@ private:
     std::vector<chx::Array> params_;
 };
 
-chx::Array SoftmaxCrossEntropy(const chx::Array& y, const chx::Array& t, bool normalize = true) {
-    chx::Array score = chx::LogSoftmax(y, 1);
-    chx::Array mask = (t.At({chx::Slice{}, chx::NewAxis{}}) == chx::Arange(score.shape()[1], t.dtype())).AsType(score.dtype());
-    if (normalize) {
-        return -(score * mask).Sum() / y.shape()[0];
-    }
-    return -(score * mask).Sum();
-}
-
 void Run(int64_t epochs, int64_t batch_size, int64_t n_hidden, int64_t n_layers, float lr, const std::string& mnist_root) {
     // Read the MNIST dataset.
     chx::Array train_x = ReadMnistImages(mnist_root + "train-images-idx3-ubyte");
@@ -123,7 +115,7 @@ void Run(int64_t epochs, int64_t batch_size, int64_t n_hidden, int64_t n_layers,
             chx::Array x = train_x.Take(indices, 0);
             chx::Array t = train_t.Take(indices, 0);
 
-            chx::Backward(SoftmaxCrossEntropy(model(x), t));
+            chx::Backward(chx::SoftmaxCrossEntropy(model(x), t).Mean());
 
             // Vanilla SGD.
             for (const chx::Array& param : model.params()) {
@@ -145,7 +137,7 @@ void Run(int64_t epochs, int64_t batch_size, int64_t n_hidden, int64_t n_layers,
                 chx::Array x = test_x.At(indices);
                 chx::Array t = test_t.At(indices);
                 chx::Array y = model(x);
-                loss += SoftmaxCrossEntropy(y, t, false);
+                loss += chx::SoftmaxCrossEntropy(y, t).Sum();
                 acc += (y.ArgMax(1).AsType(t.dtype()) == t).Sum().AsType(acc.dtype());
             }
 

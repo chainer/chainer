@@ -1,8 +1,8 @@
 import os
-import six
 import unittest
 
 import numpy
+import six
 
 import chainer
 from chainer import testing

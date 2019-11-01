@@ -5,31 +5,43 @@ from chainer import testing
 
 
 def _decorrelated_batch_normalization(x, mean, projection, groups):
+    xs = numpy.split(x, groups, axis=1)
+    assert mean.shape[0] == groups
+    assert projection.shape[0] == groups
+    ys = [
+        _decorrelated_batch_normalization_1group(xi, m, p)
+        for (xi, m, p) in zip(xs, mean, projection)]
+    return numpy.concatenate(ys, axis=1)
+
+
+def _decorrelated_batch_normalization_1group(x, mean, projection):
     spatial_ndim = len(x.shape[2:])
     spatial_axis = tuple(range(2, 2 + spatial_ndim))
-    b, c = x.shape[:2]
-    g = groups
-    C = c // g
-    x = x.reshape((b * g, C) + x.shape[2:])
+    b, C = x.shape[:2]
     x_hat = x.transpose((1, 0) + spatial_axis).reshape(C, -1)
     y_hat = projection.dot(x_hat - mean[:, None])
-    y = y_hat.reshape((C, b * g) + x.shape[2:]).transpose(
+    y = y_hat.reshape((C, b) + x.shape[2:]).transpose(
         (1, 0) + spatial_axis)
-    y = y.reshape((-1, c) + x.shape[2:])
     return y
 
 
 def _calc_projection(x, mean, eps, groups):
+    xs = numpy.split(x, groups, axis=1)
+    assert mean.shape[0] == groups
+    projections = [
+        _calc_projection_1group(xi, m, eps)
+        for (xi, m) in zip(xs, mean)]
+    return numpy.concatenate([p[None] for p in projections])
+
+
+def _calc_projection_1group(x, mean, eps):
     spatial_ndim = len(x.shape[2:])
     spatial_axis = tuple(range(2, 2 + spatial_ndim))
-    b, c = x.shape[:2]
-    g = groups
-    C = c // g
-    m = b * g
+    b, C = x.shape[:2]
+    m = b
     for i in spatial_axis:
         m *= x.shape[i]
 
-    x = x.reshape((b * g, C) + x.shape[2:])
     x_hat = x.transpose((1, 0) + spatial_axis).reshape(C, -1)
     mean = x_hat.mean(axis=1)
     x_hat = x_hat - mean[:, None]
@@ -37,6 +49,11 @@ def _calc_projection(x, mean, eps, groups):
     eigvals, eigvectors = numpy.linalg.eigh(cov)
     projection = eigvectors.dot(numpy.diag(eigvals ** -0.5)).dot(eigvectors.T)
     return projection
+
+
+def _calc_mean(x, groups):
+    axis = (0,) + tuple(range(2, x.ndim))
+    return x.mean(axis=axis).reshape(groups, -1)
 
 
 @testing.parameterize(*(testing.product({
@@ -74,13 +91,9 @@ class TestDecorrelatedBatchNormalization(testing.FunctionTestCase):
     skip_double_backward_test = True
 
     def setUp(self):
-        self.decay = 0.9
-        check_forward_options = {'atol': 1e-4, 'rtol': 1e-3}
-        check_backward_options = {'atol': 1e-4, 'rtol': 1e-3}
-        if self.dtype == numpy.float16:
-            check_forward_options = {'atol': 1e-2, 'rtol': 1e-2}
-            check_backward_options = {'atol': 1e-2, 'rtol': 1e-2}
-        elif self.dtype == numpy.float32:
+        check_forward_options = {'atol': 1e-3, 'rtol': 1e-3}
+        check_backward_options = {'atol': 1e-3, 'rtol': 1e-3}
+        if self.dtype == numpy.float32:
             check_backward_options = {'atol': 1e-2, 'rtol': 1e-2}
         self.check_forward_options = check_forward_options
         self.check_backward_options = check_backward_options
@@ -89,7 +102,36 @@ class TestDecorrelatedBatchNormalization(testing.FunctionTestCase):
         dtype = self.dtype
         ndim = self.ndim
         shape = (5, self.n_channels) + (2,) * ndim
-        x = numpy.random.uniform(-1, 1, shape).astype(dtype)
+        m = 5 * 2 ** ndim
+
+        # NOTE(kataoka): The current implementation uses linalg.eigh. Small
+        # eigenvalues of the correlation matrix, which can be as small as
+        # eps=2e-5, cannot be computed with good *relative* accuracy, but
+        # the eigenvalues are used later as `eigvals ** -0.5`. Require the
+        # following is sufficiently large:
+        # min(eigvals[:k]) == min(singular_vals ** 2 / m + eps)
+        min_singular_value = 0.1
+        # NOTE(kataoka): Decorrelated batch normalization should be free from
+        # "stochastic axis swapping". Requiring a gap between singular values
+        # just hides mistakes in implementations.
+        min_singular_value_gap = 0.001
+        g = self.groups
+        zca_shape = g, self.n_channels // g, m
+        x = numpy.random.uniform(-1, 1, zca_shape)
+        mean = x.mean(axis=2, keepdims=True)
+        a = x - mean
+        u, s, vh = numpy.linalg.svd(a, full_matrices=False)
+        # Decrement the latter dim because of the constraint `sum(_) == 0`
+        k = min(zca_shape[1], zca_shape[2] - 1)
+        s[:, :k] += (
+            min_singular_value
+            + min_singular_value_gap * numpy.arange(k)
+        )[::-1]
+        a = numpy.einsum('bij,bj,bjk->bik', u, s, vh)
+        x = a + mean
+
+        x = x.reshape((self.n_channels, shape[0]) + shape[2:]).swapaxes(0, 1)
+        x = x.astype(dtype)
         return x,
 
     def forward(self, inputs, device):
@@ -99,16 +141,11 @@ class TestDecorrelatedBatchNormalization(testing.FunctionTestCase):
 
     def forward_expected(self, inputs):
         x, = inputs
-        C = self.n_channels // self.groups
-        head_ndim = 2
-        spatial_axis = tuple(range(head_ndim, x.ndim))
-        x_hat = x.reshape((5 * self.groups, C) + x.shape[2:])
-        x_hat = x_hat.transpose((1, 0) + spatial_axis).reshape(C, -1)
-        mean = x_hat.mean(axis=1)
-        projection = _calc_projection(x, mean, self.eps, self.groups)
-
+        groups = self.groups
+        mean = _calc_mean(x, groups)
+        projection = _calc_projection(x, mean, self.eps, groups)
         return _decorrelated_batch_normalization(
-            x, mean, projection, self.groups),
+            x, mean, projection, groups),
 
 
 @testing.parameterize(*(testing.product({
@@ -147,8 +184,10 @@ class TestFixedDecorrelatedBatchNormalization(testing.FunctionTestCase):
     def setUp(self):
         C = self.n_channels // self.groups
         dtype = self.dtype
-        self.mean = numpy.random.uniform(-1, 1, C).astype(dtype)
-        self.projection = numpy.random.uniform(0.5, 1, (C, C)).astype(dtype)
+        self.mean = numpy.random.uniform(
+            -1, 1, (self.groups, C)).astype(dtype)
+        self.projection = numpy.random.uniform(
+            0.5, 1, (self.groups, C, C)).astype(dtype)
 
         check_forward_options = {'atol': 1e-4, 'rtol': 1e-3}
         check_backward_options = {'atol': 1e-4, 'rtol': 1e-3}

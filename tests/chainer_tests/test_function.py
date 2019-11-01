@@ -145,7 +145,9 @@ class TestFunction(unittest.TestCase):
         self.assertIsInstance(y.creator.outputs, tuple)
 
         if check_backward:
-            ys[0].creator_node.backward((0, 1), (self.gy1, self.gy2))
+            ys[0].creator_node.backward(
+                (0, 1),
+                (chainer.Variable(self.gy1), chainer.Variable(self.gy2)))
 
     def test_call_cpu(self):
         self.check_call()

@@ -3,8 +3,8 @@
 #include <memory>
 #include <string>
 
+#include <absl/types/optional.h>
 #include <gsl/gsl>
-#include <nonstd/optional.hpp>
 
 #include "chainerx/backend.h"
 #include "chainerx/context.h"
@@ -50,10 +50,7 @@ public:
     // Gets maximum cuDNN workspace size.
     size_t GetCudnnMaxWorkspaceSize();
 
-    static KernelRegistry& GetGlobalKernelRegistry() {
-        static gsl::owner<KernelRegistry*> global_kernel_registry = new KernelRegistry{};
-        return *global_kernel_registry;
-    }
+    static KernelRegistry& GetGlobalKernelRegistry();
 
 protected:
     KernelRegistry& GetParentKernelRegistry() override { return GetGlobalKernelRegistry(); }
@@ -62,7 +59,7 @@ private:
     std::unique_ptr<Device> CreateDevice(int index) override;
 
     // TODO(hvy): Move to CudaDevice.
-    nonstd::optional<size_t> cudnn_max_workspace_size_{};
+    absl::optional<size_t> cudnn_max_workspace_size_{};
 
     std::mutex mutex_;
 };

@@ -94,10 +94,14 @@ class Linear(link.Link):
 
     """
 
-    def __init__(self, in_size, out_size=None, nobias=False,
-                 initialW=None, initial_bias=None):
-        # type: (tp.Optional[int], tp.Optional[int], bool, tp.Optional[types.InitializerSpec], tp.Optional[types.InitializerSpec]) -> None # NOQA
-
+    def __init__(
+            self,
+            in_size: tp.Optional[int],
+            out_size: tp.Optional[int] = None,
+            nobias: bool = False,
+            initialW: tp.Optional[types.InitializerSpec] = None,
+            initial_bias: tp.Optional[types.InitializerSpec] = None
+    ) -> None:
         super(Linear, self).__init__()
 
         if out_size is None:
@@ -119,10 +123,31 @@ class Linear(link.Link):
                 bias_initializer = initializers._get_initializer(initial_bias)
                 self.b = variable.Parameter(bias_initializer, out_size)
 
-    def _initialize_params(self, in_size):
-        # type: (int) -> None
-
+    def _initialize_params(self, in_size: int) -> None:
         self.W.initialize((self.out_size, in_size))  # type: ignore
+
+    @classmethod
+    def from_params(cls, W, b=None, nobias=False):
+        """Initialize a :class:`~chainer.links.Linear` with given parameters.
+
+        This method uses ``W`` and optional ``b`` to initialize a linear layer.
+
+        Args:
+            W (:class:`~chainer.Variable` or :ref:`ndarray`):
+                The weight parameter.
+            b (:class:`~chainer.Variable`, :ref:`ndarray`, or ``None``):
+                The bias parameter.
+            nobias (bool): If ``True``, the argument of ``b`` is ignored
+                in spite of whether it's given or not.
+        """
+        out_size, in_size = W.shape
+        if b is not None:
+            if out_size != b.size:
+                raise ValueError('`out_size` does not match the size of `b`')
+        link = cls(
+            in_size, out_size, nobias,
+            initialW=variable.as_array(W), initial_bias=variable.as_array(b))
+        return link
 
     @property
     def printable_specs(self):
@@ -134,8 +159,11 @@ class Linear(link.Link):
         for spec in specs:
             yield spec
 
-    def forward(self, x, n_batch_axes=1):
-        # type: (variable.Variable, int) -> variable.Variable
+    def forward(
+            self,
+            x: variable.Variable,
+            n_batch_axes: int = 1
+    ) -> variable.Variable:
         """Applies the linear layer.
 
         Args:

@@ -1,3 +1,4 @@
+import numpy
 import six
 
 import numpy
@@ -56,10 +57,16 @@ class Accuracy(function_node.FunctionNode):
             count = (pred == t).sum() - ignore_cnt
             total = t.size - ignore_cnt
 
-            if total == 0:
-                acc = xp.asarray(0.0, dtype=y.dtype)
+            if xp is numpy:
+                # Avoid warning of `divide by zero`
+                if total == 0:
+                    acc = xp.asarray(0.0, dtype=y.dtype)
+                else:
+                    acc = xp.asarray(float(count) / total, dtype=y.dtype)
             else:
-                acc = xp.asarray(float(count) / total, dtype=y.dtype)
+                acc = xp.where(total == 0,
+                               xp.asarray(0.0, dtype=y.dtype),
+                               xp.asarray(count / total, dtype=y.dtype))
         else:
             pred = y.argmax(axis=1).reshape(t.shape)
             if xp is chainerx:

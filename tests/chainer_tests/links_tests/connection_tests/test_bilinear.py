@@ -74,7 +74,8 @@ class TestBilinear(unittest.TestCase):
     @attr.gpu
     @condition.retry(3)
     def test_forward_gpu(self):
-        self.f.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.f.to_gpu()
         _check_forward(cuda.to_gpu(self.e1),
                        cuda.to_gpu(self.e2),
                        self.f, self.y)
@@ -86,7 +87,8 @@ class TestBilinear(unittest.TestCase):
     @attr.gpu
     @condition.retry(3)
     def test_backward_gpu(self):
-        self.f.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.f.to_gpu()
         _check_backward(cuda.to_gpu(self.e1),
                         cuda.to_gpu(self.e2),
                         cuda.to_gpu(self.gy),
@@ -173,7 +175,8 @@ class TestBilinearWOBias(TestBilinear):
     @attr.gpu
     @condition.retry(3)
     def test_backward_gpu(self):
-        self.f.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.f.to_gpu()
         _check_backward(cuda.to_gpu(self.e1), cuda.to_gpu(self.e2),
                         cuda.to_gpu(self.gy), self.f, False)
 

@@ -5,8 +5,8 @@
 #include <type_traits>
 
 #include <cublas_v2.h>
+#include <cuda_fp16.h>
 #include <cuda_runtime.h>
-#include <cuda_fp16.hpp>
 
 #include "chainerx/array.h"
 #include "chainerx/axes.h"
@@ -28,7 +28,6 @@
 #include "chainerx/kernels/reduction.h"
 #include "chainerx/macro.h"
 #include "chainerx/routines/creation.h"
-#include "chainerx/routines/math.h"
 
 namespace chainerx {
 namespace cuda {
@@ -79,6 +78,10 @@ public:
         CHAINERX_ASSERT(a.ndim() == 2);
         CHAINERX_ASSERT(b.ndim() == 2);
         CHAINERX_ASSERT(out.ndim() == 2);
+
+        if (out.GetTotalSize() == 0) {
+            return;
+        }
 
         int64_t m = a.shape()[0];
         int64_t k = a.shape()[1];

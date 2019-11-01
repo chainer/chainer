@@ -1,496 +1,156 @@
 import unittest
 
-import numpy
+import mock
+import numpy as np
+import pytest
 
 import chainer
+from chainer.backends import cuda
 from chainer import testing
-import chainer.testing.backend
+from chainer.testing import attr
 import chainerx
 
 
-def _get_expected_xp(backend_config, is_function):
-    # Returns a pair of xp's expected in forward() and backward() respectively.
-    xp = backend_config.xp
-
-    if xp is chainerx:
-        forward_xp = backend_config.device.fallback_device.xp
-    else:
-        forward_xp = xp
-
-    if is_function:
-        # chainer.Function
-        backward_xp = forward_xp
-    else:
-        # chainer.FunctionNode
-        backward_xp = xp
-
-    return forward_xp, backward_xp
-
-
-@testing.parameterize(*testing.product({
-    'function_node': [True, False],
-}))
-@testing.backend.inject_backend_tests(
-    None,
-    [
-        # CPU
-        {},
-        # CUDA
-        {'use_cuda': True, 'cuda_device': 0},
-        {'use_cuda': True, 'cuda_device': 1},
-        # ChainerX
-        {'use_chainerx': True, 'chainerx_device': 'native:0'},
-        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
-        {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
-    ])
-class TestFunctionBackprop(unittest.TestCase):
-
-    def call_func_function(self, backend_config, x1, x2, x3):
-        forward_xp, backward_xp = _get_expected_xp(backend_config, True)
-
-        class Func(chainer.Function):
-            def __init__(self):
-                self.array_init = backend_config.device.send(
-                    numpy.array([3], numpy.float32))
-
-            def forward(self, inputs):
-                # Inputs
-                assert isinstance(inputs, tuple)
-                # x1, x3: float32
-                # x2: int32
-                x1, x2, x3 = inputs
-                assert isinstance(x1, forward_xp.ndarray)
-                assert isinstance(x2, forward_xp.ndarray)
-                assert isinstance(x3, forward_xp.ndarray)
-
-                # attribute fallback
-                assert isinstance(self.array_init, forward_xp.ndarray)
-                self.array_forward = forward_xp.array([2], numpy.float32)
-                assert isinstance(self.array_forward, forward_xp.ndarray)
-
-                y1 = x2 - 1  # int32
-                y2 = x1 * x3 + x2.astype(x1.dtype)
-                y3 = x1 + x3
-                self.retain_inputs((0, 2))
-                self.retain_outputs((0, 1,))
-                return y1, y2, y3
-
-            def backward(self, inputs, grad_outputs):
-
-                # Retained inputs
-                assert isinstance(inputs, tuple)
-                x1, x2, x3 = inputs
-                assert isinstance(x1, backward_xp.ndarray)
-                assert x2 is None  # not retained
-                assert isinstance(x3, backward_xp.ndarray)
-
-                # Output gradients
-                assert isinstance(grad_outputs, tuple)
-                gy1, gy2, gy3 = grad_outputs
-                assert gy1 is None  # y1 is int32
-                # y3 is disconnected
-                # TODO(niboshi): Expression after "or" is workaround for
-                # chainerx. ChainerX backward should return None for
-                # disconnected output and this workaround should be removed.
-                assert (gy3 is None
-                        or (float(gy3.max()) == 0
-                            and float((-gy3).max()) == 0))
-
-                # Retained outputs
-                output_data = self.output_data
-                assert isinstance(output_data, tuple)
-                y1, y2, y3 = output_data
-                assert isinstance(y1, backward_xp.ndarray)
-                assert isinstance(y2, backward_xp.ndarray)
-                assert y3 is None
-
-                # attribute fallback
-                assert isinstance(self.array_init, backward_xp.ndarray)
-                assert isinstance(self.array_forward, backward_xp.ndarray)
-                self.array_backward = backward_xp.array([4], numpy.float32)
-                assert isinstance(self.array_backward, backward_xp.ndarray)
-
-                gx1 = x3 * gy2  # + gy3
-                gx2 = None
-                gx3 = x1 * gy2  # + gy3
-                return gx1, gx2, gx3
-
-        return Func()(x1, x2, x3)
-
-    def call_func_function_node(self, backend_config, x1, x2, x3):
-        forward_xp, backward_xp = _get_expected_xp(backend_config, False)
-
-        class Func(chainer.FunctionNode):
-            def __init__(self):
-                self.array_init = backend_config.device.send(
-                    numpy.array([3], numpy.float32))
-
-            def forward(self, inputs):
-
-                # Inputs
-                # x1, x3: float32
-                # x2: int32
-                x1, x2, x3 = inputs
-                assert isinstance(x1, forward_xp.ndarray)
-                assert isinstance(x2, forward_xp.ndarray)
-                assert isinstance(x3, forward_xp.ndarray)
-
-                # attribute fallback
-                assert isinstance(self.array_init, forward_xp.ndarray)
-                self.array_forward = forward_xp.array([2], numpy.float32)
-                assert isinstance(self.array_forward, forward_xp.ndarray)
-
-                y1 = x2 - 1  # int32
-                y2 = x1 * x3 + x2.astype(x1.dtype)
-                y3 = x1 + x3
-                self.retain_inputs((0, 2))
-                self.retain_outputs((0, 1,))
-                return y1, y2, y3
-
-            def backward(self, input_indexes, grad_outputs):
-
-                # Input indexes
-                assert isinstance(input_indexes, tuple)
-                assert input_indexes == (0, 2)
-
-                # Retained inputs
-                retained_inputs = self.get_retained_inputs()
-                assert isinstance(retained_inputs, tuple)
-                x1, x3 = retained_inputs
-                assert isinstance(x1.array, backward_xp.ndarray)
-                assert isinstance(x3.array, backward_xp.ndarray)
-
-                # Output gradients
-                assert isinstance(grad_outputs, tuple)
-                gy1, gy2, gy3 = grad_outputs
-                assert gy1 is None  # y1 is int32
-                assert isinstance(gy2.array, backward_xp.ndarray)
-                # y3 is disconnected
-                # TODO(niboshi): Expression after "or" is workaround for
-                # chainerx. ChainerX backward should return None for
-                # disconnected output and this workaround should be removed.
-                assert (gy3 is None
-                        or (float(gy3.array.max()) == 0
-                            and float((-gy3.array).max()) == 0))
-
-                # Retained outputs
-                retained_outputs = self.get_retained_outputs()
-                assert isinstance(retained_outputs, tuple)
-                y1, y2, = retained_outputs
-                assert isinstance(y1.array, backward_xp.ndarray)
-                assert isinstance(y2.array, backward_xp.ndarray)
-
-                # attribute fallback
-                assert isinstance(self.array_init, backward_xp.ndarray)
-                assert isinstance(self.array_forward, backward_xp.ndarray)
-                self.array_backward = backward_xp.array([4], numpy.float32)
-                assert isinstance(self.array_backward, backward_xp.ndarray)
-
-                gx1 = x3 * gy2  # + gy3
-                gx2 = None
-                gx3 = x1 * gy2  # + gy3
-                return gx1, gx2, gx3
-
-        return Func().apply((x1, x2, x3))
-
-    def call_func(self, backend_config, x1, x2, x3):
-        if self.function_node:
-            return self.call_func_function_node(backend_config, x1, x2, x3)
-        else:
-            return self.call_func_function(backend_config, x1, x2, x3)
-
-    def test_backprop(self, backend_config):
-
-        x1_arr = numpy.array([2, 3], numpy.float32)
-        x2_arr = numpy.array([3, 1], numpy.int32)
-        x3_arr = numpy.array([5, 2], numpy.float32)
-        gy2_arr = numpy.array([2, 4], numpy.float32)
-        x1_arr, x2_arr, x3_arr, gy2_arr = backend_config.get_array(
-            (x1_arr, x2_arr, x3_arr, gy2_arr))
-
-        x1 = chainer.Variable(x1_arr)
-        x2 = chainer.Variable(x2_arr, requires_grad=False)
-        x3 = chainer.Variable(x3_arr)
-
-        # Forward
-        y1, y2, y3 = self.call_func(backend_config, x1, x2, x3)
-
-        assert isinstance(y1.array, backend_config.xp.ndarray)
-        assert isinstance(y2.array, backend_config.xp.ndarray)
-        assert isinstance(y3.array, backend_config.xp.ndarray)
-
-        # Backward
-        y2.grad = gy2_arr
-        y2.backward()
-
-        assert isinstance(x1.grad, backend_config.xp.ndarray)
-        assert x2.grad is None
-        assert isinstance(x3.grad, backend_config.xp.ndarray)
-
-
-@testing.parameterize(*testing.product({
-    'function_node': [True, False],
-}))
-@testing.backend.inject_backend_tests(
-    None,
-    [
-        # CPU
-        {},
-        # CUDA
-        {'use_cuda': True, 'cuda_device': 0},
-        {'use_cuda': True, 'cuda_device': 1},
-        # ChainerX
-        {'use_chainerx': True, 'chainerx_device': 'native:0'},
-        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
-        {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
-    ])
-class TestFunctionInputNone(unittest.TestCase):
-
-    def call_func_function(self, backend_config, x2):
-        forward_xp, backward_xp = _get_expected_xp(backend_config, True)
-
-        class Func(chainer.Function):
-            def forward(self, inputs):
-
-                # Inputs
-                assert isinstance(inputs, tuple)
-                x1, x2, x3 = inputs
-                assert x1 is None
-                assert isinstance(x2, forward_xp.ndarray)
-                assert x3 is None
-
-                y1 = x2 * 3
-                self.retain_inputs((1, 2))
-                self.retain_outputs(())
-                return y1,
-
-            def backward(self, inputs, grad_outputs):
-
-                # Retained inputs
-                assert isinstance(inputs, tuple)
-                x1, x2, x3 = inputs
-                assert x1 is None
-                assert isinstance(x2, backward_xp.ndarray)
-                assert x3 is None
-
-                # Output gradients
-                assert isinstance(grad_outputs, tuple)
-                gy1, = grad_outputs
-                assert isinstance(gy1, backward_xp.ndarray)
-
-                # Retained outputs
-                output_data = self.output_data
-                assert isinstance(output_data, tuple)
-                y1, = output_data
-                assert y1 is None
-
-                gx2 = 3 * gy1
-                return None, gx2, None
-
-        return Func()(None, x2, None),
-
-    def call_func_function_node(self, backend_config, x2):
-        forward_xp, backward_xp = _get_expected_xp(backend_config, False)
-
-        class Func(chainer.FunctionNode):
-            def forward(self, inputs):
-
-                # Inputs
-                x1, x2, x3 = inputs
-                assert x1 is None
-                assert isinstance(x2, forward_xp.ndarray)
-                assert x3 is None
-
-                y1 = x2 * 3
-                self.retain_inputs((1, 2))
-                self.retain_outputs(())
-                return y1,
-
-            def backward(self, input_indexes, grad_outputs):
-
-                # Input indexes
-                assert isinstance(input_indexes, tuple)
-                assert input_indexes == (1,)
-
-                # Retained inputs
-                retained_inputs = self.get_retained_inputs()
-                assert isinstance(retained_inputs, tuple)
-                x2, x3 = retained_inputs
-                assert isinstance(x2.array, backward_xp.ndarray)
-                assert x3 is None
-
-                # Output grads
-                assert isinstance(grad_outputs, tuple)
-                gy1, = grad_outputs
-                assert isinstance(gy1.array, backward_xp.ndarray)
-
-                # Retained outputs
-                retained_outputs = self.get_retained_outputs()
-                assert retained_outputs is ()
-
-                gx2 = 3 * gy1
-                return None, gx2, None
-
-        return Func().apply((None, x2, None))
-
-    def call_func(self, backend_config, x1):
-        if self.function_node:
-            return self.call_func_function_node(backend_config, x1)
-        else:
-            return self.call_func_function(backend_config, x1)
-
-    def test_backprop(self, backend_config):
-
-        x2_arr = numpy.array([2, 3], numpy.float32)
-        gy1_arr = numpy.array([2, 4], numpy.float32)
-        x2_arr, gy1_arr = backend_config.get_array((x2_arr, gy1_arr))
-
-        x2 = chainer.Variable(x2_arr, requires_grad=True)
-
-        # Forward
-        y1, = self.call_func(backend_config, x2)
-
-        assert isinstance(y1.array, backend_config.xp.ndarray)
-
-        # Backward
-        y1.grad = gy1_arr
-        y1.backward()
-
-        assert isinstance(x2.grad, backend_config.xp.ndarray)
-
-
-@testing.parameterize(*testing.product({
-    'function_node': [True, False],
-}))
-@testing.backend.inject_backend_tests(
-    None,
-    [
-        # CPU
-        {},
-        # CUDA
-        {'use_cuda': True, 'cuda_device': 0},
-        {'use_cuda': True, 'cuda_device': 1},
-        # ChainerX
-        {'use_chainerx': True, 'chainerx_device': 'native:0'},
-        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
-        {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
-    ])
-class TestFunctionOutputNone(unittest.TestCase):
-
-    def call_func_function(self, backend_config, x1):
-        forward_xp, backward_xp = _get_expected_xp(backend_config, True)
-
-        class Func(chainer.Function):
-            def forward(self, inputs):
-
-                # Inputs
-                assert isinstance(inputs, tuple)
-                x1, = inputs
-                assert isinstance(x1, forward_xp.ndarray)
-
-                y2 = x1 * 3 + 2
-                self.retain_inputs(())
-                self.retain_outputs((1, 2,))
-                return None, y2, None
-
-            def backward(self, inputs, grad_outputs):
-
-                # Retained inputs
-                assert isinstance(inputs, tuple)
-                x1, = inputs
-                assert x1 is None
-
-                # Output gradients
-                assert isinstance(grad_outputs, tuple)
-                gy1, gy2, gy3 = grad_outputs
-                assert gy1 is None
-                assert isinstance(gy2, backward_xp.ndarray)
-                assert gy3 is None
-
-                # Retained outputs
-                output_data = self.output_data
-                assert isinstance(output_data, tuple)
-                assert len(output_data) == 3
-                y1, y2, y3 = output_data
-                assert y1 is None
-                assert isinstance(y2, backward_xp.ndarray)
-                assert y3 is None
-
-                gx1 = 3 * gy2
-                return gx1,
-
-        return Func()(x1)
-
-    def call_func_function_node(self, backend_config, x1):
-        forward_xp, backward_xp = _get_expected_xp(backend_config, False)
-
-        class Func(chainer.FunctionNode):
-            def forward(self, inputs):
-
-                # Inputs
-                x1, = inputs
-                assert isinstance(x1, forward_xp.ndarray)
-
-                y2 = x1 * 3 + 2
-                self.retain_outputs((1, 2))
-                return None, y2, None
-
-            def backward(self, input_indexes, grad_outputs):
-
-                # Input indexes
-                assert isinstance(input_indexes, tuple)
-                assert input_indexes == (0,)
-
-                # Retained inputs
-                retained_inputs = self.get_retained_inputs()
-                assert isinstance(retained_inputs, tuple)
-                assert retained_inputs == ()
-
-                # Output grads
-                assert isinstance(grad_outputs, tuple)
-                gy1, gy2, gy3 = grad_outputs
-                assert gy1 is None
-                assert isinstance(gy2.array, backward_xp.ndarray)
-                assert gy3 is None
-
-                # Retained outputs
-                retained_outputs = self.get_retained_outputs()
-                assert isinstance(retained_outputs, tuple)
-                y2, y3 = retained_outputs
-                assert y3 is None
-                assert isinstance(y2.array, backward_xp.ndarray)
-
-                gx1 = 3 * gy2
-                return gx1,
-
-        return Func().apply((x1,))
-
-    def call_func(self, backend_config, x1):
-        if self.function_node:
-            return self.call_func_function_node(backend_config, x1)
-        else:
-            return self.call_func_function(backend_config, x1)
-
-    def test_backprop(self, backend_config):
-
-        x1_arr = numpy.array([2, 3], numpy.float32)
-        gy2_arr = numpy.array([2, 4], numpy.float32)
-        x1_arr, gy2_arr = backend_config.get_array((x1_arr, gy2_arr))
-
-        x1 = chainer.Variable(x1_arr, requires_grad=True)
-
-        # Forward
-        y1, y2, y3 = self.call_func(backend_config, x1)
-
-        assert y1.array is None
-        assert isinstance(y2.array, backend_config.xp.ndarray)
-        assert y3.array is None
-
-        # Backward
-        y2.grad = gy2_arr
-        y2.backward()
-
-        assert isinstance(x1.grad, backend_config.xp.ndarray)
+class TestBackward(unittest.TestCase):
+
+    def test_no_output(self):
+        chainer.backward([])
+        chainer.backward([], [])
+
+    def check_multiple_output_1arg(self, xp, skip_retain_grad_test=False):
+        x = chainer.Variable(xp.array([1, 2], np.float32))
+        h = x * 2
+        y0 = h * 3
+        y1 = h * 4
+        y0.grad = xp.array([1, 10], np.float32)
+        y1.grad = xp.array([100, 1000], np.float32)
+        chainer.backward([y0, y1])
+        testing.assert_allclose(x.grad, np.array([806, 8060], np.float32))
+        if skip_retain_grad_test:
+            return
+        assert y0.grad is None
+        assert y1.grad is None
+
+    def check_multiple_output_2args(self, xp, skip_retain_grad_test=False):
+        x = chainer.Variable(xp.array([1, 2], np.float32))
+        h = x * 2
+        y0 = h * 3
+        y1 = h * 4
+        gy0 = chainer.Variable(xp.array([1, 10], np.float32))
+        gy1 = chainer.Variable(xp.array([100, 1000], np.float32))
+        chainer.backward([y0, y1], [gy0, gy1])
+        testing.assert_allclose(x.grad, np.array([806, 8060], np.float32))
+        if skip_retain_grad_test:
+            return
+        assert y0.grad is None
+        assert y1.grad is None
+
+    def test_multiple_output_cpu(self):
+        self.check_multiple_output_1arg(np)
+        self.check_multiple_output_2args(np)
+
+    @attr.gpu
+    def test_multiple_output_gpu(self):
+        self.check_multiple_output_1arg(cuda.cupy)
+        self.check_multiple_output_2args(cuda.cupy)
+
+    @attr.chainerx
+    def test_multiple_output_chainerx_partially_ok(self):
+        self.check_multiple_output_1arg(
+            chainerx, skip_retain_grad_test=True)
+        self.check_multiple_output_2args(
+            chainerx, skip_retain_grad_test=True)
+
+    # TODO(kataoka): Variable.backward with ChainerX backend unexpectedly
+    # behaves like retain_grad=True
+    @pytest.mark.xfail(strict=True)
+    @attr.chainerx
+    def test_multiple_output_1arg_chainerx(self):
+        self.check_multiple_output_1arg(chainerx)
+
+    # TODO(kataoka): Variable.backward with ChainerX backend unexpectedly
+    # behaves like retain_grad=True
+    @pytest.mark.xfail(strict=True)
+    @attr.chainerx
+    def test_multiple_output_2args_chainerx(self):
+        self.check_multiple_output_2args(chainerx)
+
+    def test_multiple_output_call_count(self):
+        x = chainer.Variable(np.array([1, 2], np.float32))
+
+        f = chainer.FunctionNode()
+        f.forward = mock.MagicMock(
+            side_effect=lambda xs: tuple(x * 2 for x in xs))
+        f.backward = mock.MagicMock(
+            side_effect=lambda _, gys: tuple(gy * 2 for gy in gys))
+
+        h, = f.apply((x,))
+        y0 = h * 3
+        y1 = h * 4
+        y0.grad = np.array([1, 10], np.float32)
+        y1.grad = np.array([100, 1000], np.float32)
+        chainer.backward([y0, y1])
+        testing.assert_allclose(x.grad, np.array([806, 8060], np.float32))
+        assert f.backward.call_count == 1
+
+    def test_warn_no_grad(self):
+        x = chainer.Variable(np.array(4, np.float32))
+        x.grad = np.array(3, np.float32)
+        y = x * 2
+        with testing.assert_warns(RuntimeWarning):
+            chainer.backward([y])
+        testing.assert_allclose(x.grad, np.array(3, np.float32))
+        assert y.grad is None
+
+    def test_duplicate_outputs(self):
+        x = chainer.Variable(np.array(0, np.float32))
+        y = chainer.functions.identity(x)
+        y.grad = np.array(3, np.float32)
+        with testing.assert_warns(RuntimeWarning):
+            chainer.backward([y, y])
+        # 6 might be expected, but y.grad is used only once
+        testing.assert_allclose(x.grad, np.array(3, np.float32))
+
+
+# see also test_function_node.TestGradTypeCheck
+class TestBackwardTypeCheck(unittest.TestCase):
+
+    def _rand(self):
+        return np.random.uniform(-1, 1, (2, 3)).astype(np.float32)
+
+    def test_type_check(self):
+        x = chainer.Variable(self._rand())
+        y = x * x
+        y.grad = self._rand()
+        gy = chainer.Variable(self._rand())
+
+        with self.assertRaises(TypeError):
+            chainer.backward(y)
+        with self.assertRaises(TypeError):
+            chainer.backward([y], gy)
+
+        chainer.backward([y])
+        chainer.backward([y], [gy])
+
+
+# see also test_function_node.TestGradValueCheck
+class TestBackwardValueCheck(unittest.TestCase):
+
+    def test_length_check(self):
+        x = chainer.Variable(np.array(3, np.float32))
+        y = chainer.functions.identity(x)
+        gy = chainer.Variable(np.array(7, np.float32))
+
+        with self.assertRaises(ValueError):
+            chainer.backward([y], [])
+        with self.assertRaises(ValueError):
+            chainer.backward([y], [gy, gy])
+        with self.assertRaises(ValueError):
+            chainer.backward([], [gy])
+        with self.assertRaises(ValueError):
+            chainer.backward([y, y], [gy])
+
+        chainer.backward([y], [gy])
 
 
 testing.run_module(__name__, __file__)

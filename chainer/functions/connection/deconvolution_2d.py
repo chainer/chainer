@@ -44,6 +44,10 @@ class Deconvolution2DFunction(function_node.FunctionNode):
         self.dy, self.dx = _pair(dilate)
         self.groups = groups
 
+        if self.dx < 1 or self.dy < 1:
+            raise ValueError('Dilate should be positive, but {} is '
+                             'supplied.'.format(dilate))
+
     def check_type_forward(self, in_types):
         n_in = in_types.size()
         type_check.expect(2 <= n_in, n_in <= 3)
@@ -401,6 +405,11 @@ http://www.matthewzeiler.com/pubs/cvpr2010/cvpr2010.pdf
     Returns:
         ~chainer.Variable:
             Output variable of shape :math:`(n, c_O, h_O, w_O)`.
+
+    .. seealso::
+
+        :class:`~chainer.links.Deconvolution2D` to manage the model parameters
+        ``W`` and ``b``.
 
     .. admonition:: Example
 
