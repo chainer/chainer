@@ -1,8 +1,6 @@
 import numpy
 import six
 
-import numpy
-
 from chainer.backends import cuda
 from chainer import function_node
 from chainer.utils import type_check
