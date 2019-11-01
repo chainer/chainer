@@ -355,7 +355,7 @@ class BatchNormalization(function_node.FunctionNode):
 
         x, gamma, beta = inputs
         axis_chx = _chainerx_compute_axis(x.ndim, gamma.ndim, self.axis)
-        if not _chainerx_is_supported(x.device, axis_chx):
+        if not _chainerx_is_supported(x, axis_chx):
             return chainer.Fallback
 
         y = chainerx.batch_norm(
@@ -578,7 +578,7 @@ class FixedBatchNormalization(function_node.FunctionNode):
 
         x, gamma, beta, mean, var = inputs
         axis_chx = _chainerx_compute_axis(x.ndim, gamma.ndim, self.axis)
-        if not _chainerx_is_supported(x.device, axis_chx):
+        if not _chainerx_is_supported(x, axis_chx):
             return chainer.Fallback
 
         y = chainerx.fixed_batch_norm(
@@ -797,20 +797,19 @@ def _chainerx_compute_axis(x_ndim, gamma_ndim, axis):
         else axis if isinstance(axis, tuple)
         else (axis,))
     axis_chx = _compute_axis(x_ndim, gamma_ndim, axis_chx)
+    assert isinstance(axis_chx, tuple)
     return axis_chx
 
 
-def _chainerx_is_supported(device, axis_chx):
+def _chainerx_is_supported(x, axis_chx):
     # Checks if the input configuration is supported in ChainerX
-    axis_ndim_chx = len(axis_chx)
+    device = x.device
     if device.backend.name == 'cuda':
         # cuDNN batch norm restriction
-        if not ((axis_ndim_chx == 3 and axis_chx[0] == 0
-                 and axis_chx[1] == 2 and axis_chx[2] == 3)
-                or (axis_ndim_chx == 4 and axis_chx[0] == 0
-                    and axis_chx[1] == 2 and axis_chx[2] == 3
-                    and axis_chx[3] == 4)):
-            return False
+        return (x.ndim, axis_chx) in [
+            (4, (0, 2, 3)),
+            (5, (0, 2, 3, 4)),
+        ]
     return True
 
 
