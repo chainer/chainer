@@ -48,15 +48,6 @@ def new_linear_params(n_in, n_out):
     return W, b
 
 
-def compute_loss(y, t):
-    # softmax cross entropy
-    score = chx.log_softmax(y, axis=1)
-    mask = (t[:, chx.newaxis] == chx.arange(
-        10, dtype=t.dtype)).astype(score.dtype)
-    # TODO(beam2d): implement mean
-    return -(score * mask).sum() * (1 / y.shape[0])
-
-
 def evaluate(model, X_test, Y_test, eval_size, batch_size):
     N_test = X_test.shape[0] if eval_size is None else eval_size
 
@@ -72,7 +63,7 @@ def evaluate(model, X_test, Y_test, eval_size, batch_size):
             t = Y_test[i:min(i + batch_size, N_test)]
 
             y = model.forward(x)
-            total_loss += compute_loss(y, t) * batch_size
+            total_loss += chx.softmax_cross_entropy(y, t).sum()
             num_correct += (y.argmax(axis=1).astype(t.dtype)
                             == t).astype(chx.int32).sum()
 
@@ -137,7 +128,7 @@ def main():
             t = Y.take(indices, axis=0)
 
             y = model.forward(x)
-            loss = compute_loss(y, t)
+            loss = chx.softmax_cross_entropy(y, t).mean()
 
             loss.backward()
             model.update(lr=0.01)
