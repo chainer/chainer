@@ -133,7 +133,7 @@ _numpy_does_not_support_0d_input116 = \
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
     chainer.testing.product({
-        'shape': [(0, 0), (1, 1), (3, 3), (6, 6)],
+        'shape': [(0, 0), (1, 1), (3, 3)],
         'b_columns': [(), (1,), (3,), (4,)],
         'dtypes': [
             ('float32', 'float32'),
@@ -203,7 +203,7 @@ class TestSolveDtypeFailing(NumpyLinalgOpTest):
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
     chainer.testing.product({
-        'shape': [(0, 0), (1, 1), (3, 3), (6, 6)],
+        'shape': [(0, 0), (1, 1), (3, 3)],
         'dtype': ['float32', 'float64']
     })
 ))
@@ -266,12 +266,12 @@ class TestInverseDtypeFailing(NumpyLinalgOpTest):
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
     chainer.testing.product({
-        'shape': [(0, 0), (0, 3), (3, 0), (1, 1), (2, 3), (3, 2), (6, 6)],
+        'shape': [(0, 0), (0, 3), (3, 0), (1, 1), (2, 3), (3, 2), (3, 3)],
         'dtype': ['float32', 'float64'],
         'full_matrices': [False],
         'compute_uv': [True]
     }) + chainer.testing.product({
-        'shape': [(0, 0), (0, 3), (3, 0), (1, 1), (2, 3), (3, 2), (6, 6)],
+        'shape': [(0, 0), (0, 3), (3, 0), (1, 1), (2, 3), (3, 2), (3, 3)],
         'dtype': ['float32', 'float64'],
         'full_matrices': [True],
         'compute_uv': [False],
@@ -326,7 +326,7 @@ class TestSVDDtypeFailing(NumpyLinalgOpTest):
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
     chainer.testing.product({
-        'shape': [(0, 0), (0, 3), (3, 0), (1, 1), (2, 3), (3, 2), (6, 6)],
+        'shape': [(0, 0), (0, 3), (3, 0), (1, 1), (2, 3), (3, 2), (3, 3)],
         'rcond': [1e-15, 0.3, 0.5, 0.6],
         'dtype': ['float32', 'float64']
     })
@@ -397,7 +397,7 @@ class TestPseudoInverseDtypeFailing(NumpyLinalgOpTest):
 @chainer.testing.parameterize(*(
     # backward for 'r', 'raw' modes is not implemented
     chainer.testing.product({
-        'shape': [(0, 3), (3, 0), (1, 1), (2, 3), (3, 2), (6, 6)],
+        'shape': [(0, 3), (3, 0), (1, 1), (2, 3), (3, 2), (3, 3)],
         'in_dtypes': ['float32', 'float64'],
         'mode': ['r', 'raw'],
         'skip_backward_test': [True],
@@ -412,7 +412,7 @@ class TestPseudoInverseDtypeFailing(NumpyLinalgOpTest):
         'skip_double_backward_test': [True]
     }) +
     chainer.testing.product({
-        'shape': [(1, 1), (6, 6)],
+        'shape': [(1, 1), (3, 3)],
         'in_dtypes': ['float32', 'float64'],
         'mode': ['reduced', 'complete']
     }) + chainer.testing.product({
@@ -452,7 +452,7 @@ class TestQR(NumpyLinalgOpTest):
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
     chainer.testing.product({
-        'shape': [(1, 1), (2, 3), (3, 2), (6, 6)],
+        'shape': [(1, 1), (2, 3), (3, 2), (3, 3)],
         'in_dtypes': ['float16'],
         'mode': ['r', 'raw', 'reduced', 'complete']
     })
@@ -475,7 +475,7 @@ class TestQRFailing(NumpyLinalgOpTest):
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
     chainer.testing.product({
-        'shape': [(0, 0), (1, 1), (3, 3), (6, 6)],
+        'shape': [(0, 0), (1, 1), (3, 3)],
         'in_dtypes': ['float32', 'float64']
     })
 ))
@@ -517,7 +517,7 @@ class TestCholesky(op_utils.NumpyOpTest):
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
     chainer.testing.product({
-        'shape': [(), (2, 3), (3, 2), (6, 6)],
+        'shape': [(), (2, 3), (3, 2), (3, 3)],
         'in_dtypes': ['float32', 'float64'],
     })
 ))
@@ -561,7 +561,7 @@ class TestCholeskySemiDefiniteFailing(NumpyLinalgOpTest):
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
     chainer.testing.product({
-        'shape': [(6, 6)],
+        'shape': [(3, 3)],
         'in_dtypes': ['float16'],
     })
 ))
@@ -583,7 +583,7 @@ class TestCholeskyDtypeFailing(NumpyLinalgOpTest):
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
     chainer.testing.product({
-        'shape': [(0, 0), (1, 1), (3, 3), (6, 6)],
+        'shape': [(0, 0), (1, 1), (3, 3)],
         'in_dtypes': ['float32', 'float64'],
         'UPLO': ['u', 'L']
     })
@@ -673,7 +673,7 @@ class TestEighDtypeFailing(NumpyLinalgOpTest):
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
     chainer.testing.product({
-        'shape': [(0, 0), (1, 1), (3, 3), (6, 6)],
+        'shape': [(0, 0), (1, 1), (3, 3)],
         'in_dtypes': ['float32', 'float64'],
         'UPLO': ['u', 'L'],
         'skip_backward_test': [True],
