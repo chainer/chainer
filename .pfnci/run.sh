@@ -90,7 +90,6 @@ test_py37() {
     exit 1
   fi
   xpytest_args=(
-      -rfEX
       --python=python3.7 -m "${marker}"
       --bucket="${bucket}" --thread="$(( XPYTEST_NUM_THREADS / bucket ))"
       --hint="/chainer/.pfnci/hint.pbtxt"
@@ -99,6 +98,8 @@ test_py37() {
   if [ "${SPREADSHEET_ID:-}" != '' ]; then
     xpytest_args+=(--spreadsheet_id="${SPREADSHEET_ID}")
   fi
+  # TODO(niboshi): Allow option pass-through (https://github.com/chainer/xpytest/issues/14)
+  export PYTEST_ADDOPTS=-rfEX
   # TODO(imos): Enable xpytest to support python_files setting in setup.cfg.
   OMP_NUM_THREADS=1 xpytest "${xpytest_args[@]}" \
       '/chainer/tests/chainerx_tests/**/test_*.py' \
@@ -148,7 +149,6 @@ test_py27and35() {
     exit 1
   fi
   xpytest_args=(
-      -rfEX
       --python=python3.5 -m "${marker}"
       --bucket="${bucket}" --thread="$(( XPYTEST_NUM_THREADS / bucket ))"
       --hint="/chainer/.pfnci/hint.pbtxt"
@@ -157,6 +157,8 @@ test_py27and35() {
   if [ "${SPREADSHEET_ID:-}" != '' ]; then
     xpytest_args+=(--spreadsheet_id="${SPREADSHEET_ID}")
   fi
+  # TODO(niboshi): Allow option pass-through (https://github.com/chainer/xpytest/issues/14)
+  export PYTEST_ADDOPTS=-rfEX
   # NOTE: PYTHONHASHSEED=0 is necessary to use pytest-xdist.
   OMP_NUM_THREADS=1 PYTHONHASHSEED=0 xpytest "${xpytest_args[@]}" \
       '/chainer/tests/chainer_tests/**/test_*.py' && :
