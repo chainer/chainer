@@ -45,10 +45,9 @@ class Accuracy(function.Function):
             count = (pred == t).sum() - ignore_cnt
             total = t.size - ignore_cnt
 
-            if total == 0:
-                return xp.asarray(0.0, dtype=y.dtype),
-            else:
-                return xp.asarray(float(count) / total, dtype=y.dtype),
+            return xp.where(total == 0,
+                            xp.asarray(0.0, dtype=y.dtype),
+                            xp.asarray(count / total, dtype=y.dtype)),
         else:
             pred = y.argmax(axis=1).reshape(t.shape)
             return xp.asarray((pred == t).mean(dtype=y.dtype)),
