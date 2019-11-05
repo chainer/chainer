@@ -38,7 +38,7 @@ namespace {
 //
 // It is not in-place  operation: the input arrays are not altered.
 // It is differentiable with respect to `a` and `b`.
-Array AddAt(const Array& a, const std::vector<ArrayIndex>& indices, const Array& b) {
+Array AtGrad(const Array& a, const std::vector<ArrayIndex>& indices, const Array& b) {
     // TODO(sonots): dtype conversion
     CheckEqual(a.dtype(), b.dtype());
 
@@ -123,7 +123,7 @@ Array At(const Array& a, const std::vector<ArrayIndex>& indices) {
         bt.Define([indices = std::move(normalized_indices), a_shape = a.shape(), a_dtype = a.dtype()](BackwardContext& bctx) {
             const Array& gout = *bctx.output_grad();
             Array gin = Zeros(a_shape, a_dtype, gout.device());
-            bctx.input_grad() = AddAt(gin, indices, gout);
+            bctx.input_grad() = AtGrad(gin, indices, gout);
         });
     }
     bb.Finalize();
@@ -133,14 +133,15 @@ Array At(const Array& a, const std::vector<ArrayIndex>& indices) {
 
 }  // namespace internal
 
-// Adds elements of `b` indexed by `indices` into `a` and returns the result.
-// Used in backward pass of Take()
-//
-// It is not in-place operation: the input arrays are not altered.
-// It is differentiable with respect to `a` and `b`.
 Array AddAt(const Array& a, const Array& indices, int8_t axis, const Array& b, IndexBoundsMode mode) {
-    CHAINERX_ASSERT(0 <= axis && axis < a.ndim());
-    CHAINERX_ASSERT(b.ndim() == indices.ndim() + a.ndim() - 1);
+    if (b.ndim() != indices.ndim() + a.ndim() - 1) {
+        throw DimensionError{"Input dimensions are invalid. a: ", a.ndim(), ", b:", b.ndim(), ", indices:", indices.ndim(), "."};
+    }
+
+    if (!(0 <= axis && axis < a.ndim())) {
+        throw DimensionError{"Axis ", axis, " is out of bounds for array of dimension ", a.ndim()};
+    }
+
     CheckEqual(a.dtype(), b.dtype());
 
     CHAINERX_ASSERT(internal::GetArrayBody(indices)->nodes().empty());

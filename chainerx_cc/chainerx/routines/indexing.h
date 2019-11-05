@@ -16,12 +16,12 @@ Array At(const Array& a, const std::vector<ArrayIndex>& indices);
 }  // namespace internal
 
 // Adds each slice of `b` along the axis `axis` to `a`'s corresponding slices, specified by `indices`.
-// Input arrays `a`, `indices`, and `b` are not altered.
-//
-// TODO(niboshi): This function may be replaced with full-featured assignable advanced indexing.
+// The resulting array is returned. It is not in-place operation: the input arrays are not altered.
 //
 // `axis` must be within [0, b.ndim()).
 // `indices` must have dtype kind of either kInt or kUInt.
+//
+// It is differentiable with respect to `a` and `b`.
 Array AddAt(const Array& a, const Array& indices, int8_t axis, const Array& b, IndexBoundsMode mode = IndexBoundsMode::kDefault);
 
 // Takes elements specified by indices from an array.
