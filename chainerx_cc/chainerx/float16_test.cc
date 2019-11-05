@@ -121,6 +121,42 @@ TEST(NativeFloat16Test, Float16Nan) {
     EXPECT_TRUE(IsNan(Float16{double{NAN}}));
 }
 
+union Float32Bits {
+public:
+    explicit Float32Bits(uint32_t v) : u{v} {}
+    uint32_t u;
+    float f;
+};
+
+// Test if a fp32 was NOT rounded as specified in numpy algorithm
+TEST(NativeFloat16Test, Float16Rounding32) {
+    // For the significand not to be rounded half significand must be even,
+    // and the remaining pattern 1000...0
+    Float32Bits bits{static_cast<uint32_t>((0x3f << 24) + (5 << 12))};
+    // If the number was not rounded, then the last bit of the
+    // significand is lost and the rest remain as it was
+    // (5 << 12 ) >> 13
+    EXPECT_EQ((Float16{bits.f}.data() & 0x3ffU), 0x2);
+}
+
+union Float64Bits {
+public:
+    explicit Float64Bits(uint64_t v) : u{v} {}
+    uint64_t u;
+    double f;
+};
+
+// Test if a fp64 was NOT rounded as specified in numpy algorithm
+TEST(NativeFloat16Test, Float16Rounding64) {
+    // For the significand not to be rounded half significand must be even,
+    // and the remaining pattern 1000...0
+    Float64Bits bits{static_cast<uint64_t>((0x3ffULL << 52) + (5ULL << 41))};
+    // If the number was not rounded, then the last bit of the
+    // significand is lost and the rest remain as it was
+    // (5 << 12 ) >> 13
+    EXPECT_EQ((Float16{bits.f}.data() & 0x3ffU), 0x2);
+}
+
 // Get the partial set of all Float16 values for reduction of test execution time.
 // The returned list includes the all values whose trailing 8 digits are `0b00000000` or `0b01010101`.
 // This list includes all special values (e.g. signed zero, infinity) and some of normalized/denormalize numbers and NaN.
