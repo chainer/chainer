@@ -16,6 +16,7 @@ case "$phase" in
         ;;
 esac
 
+export CHAINER_CI=travis
 
 # Assign default values
 : "${MATRIX_EVAL:=}"
