@@ -202,7 +202,7 @@ public:
             DoubleBackpropOption double_backprop,
             std::unordered_map<ArrayNode*, internal::GradRef> array_node_grad_map,
             bool retain_grad,
-            const absl::optional<float>& loss_scale)
+            absl::optional<float> loss_scale)
         : inputs_{inputs},
           outputs_{outputs},
           backprop_id_{backprop_id},
@@ -240,7 +240,7 @@ public:
             const std::vector<ConstArrayRef>& outputs,
             const BackpropId& backprop_id,
             DoubleBackpropOption double_backprop,
-            const absl::optional<float>& loss_scale)
+            absl::optional<float> loss_scale)
         : BackwardImpl{inputs, outputs, backprop_id, double_backprop, {}, false, loss_scale} {}
 
     void Run() {
@@ -597,7 +597,7 @@ private:
     bool retain_grad_;
 
     // To apply the loss scale while going backward
-    const absl::optional<float>& loss_scale_;
+    absl::optional<float> loss_scale_;
 
     std::unordered_set<internal::GradRef*> to_scale_back_nodes_;
 };
@@ -608,7 +608,7 @@ void Backward(
         const Array& output,
         const absl::optional<BackpropId>& backprop_id,
         DoubleBackpropOption double_backprop,
-        const absl::optional<float>& loss_scale) {
+        absl::optional<float> loss_scale) {
     BackpropId actual_backprop_id = internal::GetArrayBackpropId(output, backprop_id);
     std::vector<ConstArrayRef> outputs{output};  // Do not inline it; we need to guarantee that the vector is alive until Run() finishes.
     BackwardImpl{{}, outputs, actual_backprop_id, double_backprop, loss_scale}.Run();
@@ -618,7 +618,7 @@ void Backward(
         const std::vector<ConstArrayRef>& outputs,
         const absl::optional<BackpropId>& backprop_id,
         DoubleBackpropOption double_backprop,
-        const absl::optional<float>& loss_scale) {
+        absl::optional<float> loss_scale) {
     if (outputs.empty()) {
         return;
     }
@@ -634,7 +634,7 @@ std::vector<absl::optional<Array>> Grad(
         bool set_grad,
         bool retain_grad,
         const std::vector<ConstArrayRef>& grad_outputs,
-        const absl::optional<float>& loss_scale) {
+        absl::optional<float> loss_scale) {
     if (inputs.empty()) {
         return {};
     }

@@ -239,7 +239,7 @@ Array AsContiguous(const Array& a, Dtype dtype) {
     return out;
 }
 
-Array AsContiguousArray(const Array& a, const absl::optional<Dtype>& dtype) {
+Array AsContiguousArray(const Array& a, absl::optional<Dtype> dtype) {
     Dtype src_dt = a.dtype();
     Dtype dt = dtype.value_or(src_dt);
 
@@ -310,8 +310,7 @@ Array Diagflat(const Array& v, int64_t k) {
 }
 
 // Creates a 1-d array with evenly spaced numbers.
-Array Linspace(
-        Scalar start, Scalar stop, const absl::optional<int64_t>& num, bool endpoint, const absl::optional<Dtype>& dtype, Device& device) {
+Array Linspace(Scalar start, Scalar stop, absl::optional<int64_t> num, bool endpoint, absl::optional<Dtype> dtype, Device& device) {
     static const int64_t kDefaultNum = 50;
 
     // Always default to float type.
