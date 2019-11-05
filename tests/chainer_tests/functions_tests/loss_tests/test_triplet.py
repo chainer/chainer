@@ -39,7 +39,7 @@ class TestTriplet(unittest.TestCase):
             dist = numpy.sum(
                 (self.a - self.p) ** 2 - (self.a - self.n) ** 2,
                 axis=1) + self.margin
-            if (abs(dist) < 2 * eps).any():
+            if (abs(dist) < 5 * eps).any():
                 continue
             break
 
