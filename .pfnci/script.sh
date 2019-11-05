@@ -163,7 +163,7 @@ is_known_base_branch() {
 # get_base_branch returns the base development branch for the current HEAD.
 get_base_branch() {
   for BASE_BRANCH in master v6; do
-    run git merge-base --is-ancestor "${BASE_BRANCH}" HEAD && echo "${BASE_BRANCH}" && return 0
+    run git merge-base --is-ancestor "origin/${BASE_BRANCH}" HEAD && echo "${BASE_BRANCH}" && return 0
   done
   return 1
 }
