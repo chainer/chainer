@@ -30,7 +30,7 @@ using ConstArrayBodyPtr = std::shared_ptr<const ArrayBody>;
 
 ArrayBodyPtr MakeArray(pybind11::handle object, pybind11::handle dtype, bool copy, pybind11::handle device);
 
-ArrayBodyPtr MakeArray(pybind11::handle object, const absl::optional<Dtype>& dtype, bool copy, Device& device);
+ArrayBodyPtr MakeArray(pybind11::handle object, absl::optional<Dtype> dtype, bool copy, Device& device);
 
 pybind11::tuple ToTuple(const std::vector<Array>& ary);
 

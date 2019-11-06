@@ -21,7 +21,7 @@
 
 namespace chainerx {
 
-Array Accuracy(const Array& y, const Array& t, const absl::optional<int64_t>& ignore_label) {
+Array Accuracy(const Array& y, const Array& t, absl::optional<int64_t> ignore_label) {
     if (GetKind(y.dtype()) != DtypeKind::kFloat) {
         throw DtypeError{"y must be of float type."};
     }
