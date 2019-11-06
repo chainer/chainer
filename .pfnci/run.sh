@@ -15,6 +15,8 @@
 
 set -eux
 
+export CHAINER_CI=flexci
+
 cp -a /src /chainer
 cp /chainer/setup.cfg /
 cd /
