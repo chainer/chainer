@@ -111,7 +111,12 @@ __global__ void SetVecInMat(
         int64_t mat_row_start,
         int64_t mat_col_start) {
     auto mat_it = mat_indexer.It(0);
-    for (auto vec_it = vec_indexer.It(blockIdx.x * blockDim.x + threadIdx.x, blockDim.x * gridDim.x); vec_it; ++vec_it) {
+    int64_t id = static_cast<int64_t>(blockIdx.x);
+    int64_t size = static_cast<int64_t>(gridDim.x);
+    int64_t block_dim = static_cast<int64_t>(blockDim.x);
+    id = id * block_dim + static_cast<int64_t>(threadIdx.x);
+    size *= block_dim;
+    for (auto vec_it = vec_indexer.It(id, size); vec_it; ++vec_it) {
         mat_it.index()[0] = mat_row_start + vec_it.raw_index();
         mat_it.index()[1] = mat_col_start + vec_it.raw_index();
         mat_iarray[mat_it] = vec_iarray[vec_it];

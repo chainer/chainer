@@ -44,7 +44,9 @@ namespace {
 namespace {
 
 __global__ void InitGpuDataKer(float* data, int64_t num_elements, float* value) {
-    int64_t tid = blockIdx.x * blockDim.x + threadIdx.x;
+    int64_t tid = static_cast<int64_t>(blockIdx.x);
+    int64_t block_dim = static_cast<int64_t>(blockDim.x);
+    tid = tid * block_dim + static_cast<int64_t>(threadIdx.x);
     if (tid < num_elements) {
         data[tid] = value[tid];
     }
