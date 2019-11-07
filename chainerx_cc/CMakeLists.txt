@@ -182,14 +182,17 @@ if(${CHAINERX_BUILD_CUDA})
         endif()
     endif()
 
-    # Allow to specify *one* --generate-code option of the nvcc command.
+    # Allow to specify --generate-code option of the nvcc command.
     # Supposed usage is to avoid slowness of PTX JIT compilation on development.
+    # Multiple code specs can be given delimited by semicolons.
     set(CHAINERX_NVCC_GENERATE_CODE "$ENV{CHAINERX_NVCC_GENERATE_CODE}" CACHE STRING "nvcc --generate-code option")
 
     find_package(CuDNN 7 REQUIRED)
     include_directories(${CUDNN_INCLUDE_DIRS})
     if(NOT CHAINERX_NVCC_GENERATE_CODE STREQUAL "")
-        list(APPEND CUDA_NVCC_FLAGS --generate-code=${CHAINERX_NVCC_GENERATE_CODE})
+        foreach(generate_code ${CHAINERX_NVCC_GENERATE_CODE})
+            list(APPEND CUDA_NVCC_FLAGS --generate-code=${generate_code})
+        endforeach(generate_code)
     elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
         list(APPEND CUDA_NVCC_FLAGS --generate-code=arch=compute_30,code=sm_30)
         list(APPEND CUDA_NVCC_FLAGS --generate-code=arch=compute_50,code=sm_50)
