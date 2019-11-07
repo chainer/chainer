@@ -4,7 +4,7 @@
 # this should fall back to CPU testing automatically.  This script requires that
 # a corresponding Docker image is accessible from the machine.
 # TODO(imos): Enable external contributors to test this script on their
-# machines.  Specifically, locate a Dockerfile generating chainer-ci-prep.*.
+# machines.
 #
 # Usage: .pfnci/script.sh [target]
 # - target is a test target (e.g., "py37").
