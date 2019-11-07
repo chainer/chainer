@@ -106,17 +106,17 @@ def run_test_observation_aggregator(comm, xp,
 
     @extension.make_extension(
         trigger=(1, 'iteration'), priority=extension.PRIORITY_WRITER)
-    def rank_reporter(trainer):
+    def rank_reporter(trainer_):
         tmp = xp.asarray(comm.rank, dtype=np.float32)
         if use_chainer_variable:
             tmp = chainer.Variable(tmp)
-        trainer.observation['rank'] = tmp
+        trainer_.observation['rank'] = tmp
 
     @extension.make_extension(
         trigger=(communicate_interval, 'iteration'),
         priority=extension.PRIORITY_READER)
-    def aggregated_rank_checker(trainer):
-        actual = trainer.observation['rank-aggregated']
+    def aggregated_rank_checker(trainer_):
+        actual = trainer_.observation['rank-aggregated']
         if use_chainer_variable:
             actual = actual.data
         expected = (comm.size - 1) / 2
