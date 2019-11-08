@@ -19,5 +19,6 @@ def _is_in_ci():
 def pytest_configure(config):
     # Print installed packages
     if _is_in_ci() and _is_pip_installed():
-        print("***** Installed packages *****", flush=True)
+        sys.stdout.write("***** Installed packages *****\n")
+        sys.stdout.flush()
         subprocess.check_call([sys.executable, '-m', 'pip', 'freeze', '--all'])
