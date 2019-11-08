@@ -3,6 +3,7 @@ import warnings
 from chainer.utils import conv
 import numpy as np
 
+from onnx_chainer.functions.array import get_slice_node
 from onnx_chainer.functions.opset_version import support
 from onnx_chainer import onnx_helper
 
@@ -139,9 +140,9 @@ def convert_Unpooling2D(
     ksize = [func.kh, func.kw]
     outsize = [func.outh, func.outw]
     # TODO(hamaji): These could be implemented by `Slice` and `Pad`.
-    if func.cover_all:
+    if func.cover_all and opset_version < 11:
         raise RuntimeError('ONNX-chainer does not support `cover_all=True` '
-                           'for Unpooling2D')
+                           'for Unpooling2D with opset version < 11')
     h, w = func.inputs[0].shape[2:]
     expected_outsize = [
         conv.get_deconv_outsize(
@@ -161,17 +162,35 @@ def convert_Unpooling2D(
         raise RuntimeError('ONNX-chainer does not support `stride!=ksize` '
                            'for Unpooling2D: stride={} ksize={}'.format(
                                stride, ksize))
+
     scales = [1.0, 1.0, float(func.kh), float(func.kw)]
+
+    def add_const(array, name, dtype=np.float32):
+        return context.add_const(np.array(array, dtype=dtype), name)
+
     if opset_version == 7:
         return onnx_helper.make_node('Upsample', input_names, output_names,
                                      scales=scales),
-    scales_name = context.add_const(
-        np.array(scales, dtype=np.float32), 'scales')
     if opset_version in [9, 10]:
-        input_names.append(scales_name)
+        input_names.append(add_const(scales, 'scales'))
         op = 'Upsample' if opset_version == 9 else 'Resize'
         return onnx_helper.make_node(op, input_names, output_names),
     if opset_version == 11:
         roi_name = context.add_const(np.array([]), 'roi')
-        input_names.extend([roi_name, scales_name])
-        return onnx_helper.make_node('Resize', input_names, output_names),
+        if func.cover_all:
+            gb = onnx_helper.GraphBuilder()
+            # make output size considered dynamic shape
+            # get batch_size, channel_size and append deconv outsize
+            x_shape = gb.op('Shape', [input_names[0]])
+            x_shape_bc = get_slice_node(
+                gb, opset_version, context, [x_shape], [0], [0], [2])
+            deconv_outsize = add_const(outsize, 'sizes', np.int64)
+            outsize = gb.op('Concat', [x_shape_bc, deconv_outsize], axis=0)
+
+            scales_name = add_const([], 'scales')
+            input_names.extend([roi_name, scales_name, outsize])
+            gb.op_output_named('Resize', input_names, output_names)
+            return gb.nodes()
+        else:
+            input_names.extend([roi_name, add_const(scales, 'scales')])
+            return onnx_helper.make_node('Resize', input_names, output_names),
