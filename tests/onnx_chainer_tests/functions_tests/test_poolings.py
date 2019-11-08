@@ -24,6 +24,11 @@ from onnx_chainer_tests.helper import ONNXModelTest
      'in_shape': (1, 3, 6, 5, 4), 'args': [3, 2, 1], 'cover_all': True},
     {'op_name': 'unpooling_2d',
      'in_shape': (1, 3, 6, 6), 'args': [3, None, 0], 'cover_all': False},
+    # when cover_all=True, interpolation between Chainer and ONNXRuntime
+    # does not match, so skip output value check.
+    {'op_name': 'unpooling_2d', 'condition': 'coverall',
+     'in_shape': (1, 3, 6, 6), 'args': [3, None, 0], 'cover_all': True,
+     'skip_ver': tuple(range(7, 11)), 'skip_check_ver': (11,)},
 )
 class TestPoolings(ONNXModelTest):
 
@@ -36,8 +41,11 @@ class TestPoolings(ONNXModelTest):
         name = self.op_name
         if hasattr(self, 'condition'):
             name += '_' + self.condition
-        self.expect(self.model, self.x, name=name,
-                    expected_num_initializers=0)
+        skip_ver = getattr(self, 'skip_ver', None)
+        skip_check_ver = getattr(self, 'skip_check_ver', None)
+        self.expect(
+            self.model, self.x, name=name, skip_opset_version=skip_ver,
+            skip_outvalue_version=skip_check_ver, expected_num_initializers=0)
 
 
 class Model(chainer.Chain):
