@@ -59,16 +59,21 @@ def convert_AveragePoolingND(
         ),
 
 
-@support((1, 8))
+@support((1, 8, 11))
 def convert_MaxPooling2D(
         func, opset_version, input_names, output_names, context):
     pad = [func.ph, func.pw]
     stride = [func.sy, func.sx]
     ksize = [func.kh, func.kw]
+    attrs = {}
     if func.cover_all:
-        # Supports cover_all by setting extra padding
-        # NOTE: onnxruntime may not run when "k <= p + s - 1".
-        pad.extend([p + s - 1 for p, s in zip(pad, stride)])
+        if opset_version < 11:
+            # Supports cover_all by setting extra padding
+            # NOTE: onnxruntime may not run when "k <= p + s - 1".
+            pad.extend([p + s - 1 for p, s in zip(pad, func.stride)])
+        else:
+            pad = pad * 2
+            attrs['ceil_mode'] = 1
     else:
         pad = pad * 2
 
@@ -79,24 +84,30 @@ def convert_MaxPooling2D(
             pads=pad,
             strides=stride
         ),
-    elif opset_version == 8:
+    elif opset_version >= 8:
         return onnx_helper.make_node(
             'MaxPool', input_names, output_names,
             kernel_shape=ksize,
             pads=pad,
             strides=stride,
             storage_order=0,  # row major
+            **attrs,
         ),
 
 
-@support((1, 8))
+@support((1, 8, 11))
 def convert_MaxPoolingND(
         func, opset_version, input_names, output_names, context):
     pad = list(func.pad[:])
+    attrs = {}
     if func.cover_all:
-        # Supports cover_all by setting extra padding
-        # NOTE: onnxruntime may not run when "k <= p + s - 1".
-        pad.extend([p + s - 1 for p, s in zip(pad, func.stride)])
+        if opset_version < 11:
+            # Supports cover_all by setting extra padding
+            # NOTE: onnxruntime may not run when "k <= p + s - 1".
+            pad.extend([p + s - 1 for p, s in zip(pad, func.stride)])
+        else:
+            pad = pad * 2
+            attrs['ceil_mode'] = 1
     else:
         pad = pad * 2
 
@@ -107,13 +118,14 @@ def convert_MaxPoolingND(
             pads=pad,
             strides=func.stride
         ),
-    elif opset_version == 8:
+    elif opset_version >= 8:
         return onnx_helper.make_node(
             'MaxPool', input_names, output_names,
             kernel_shape=func.ksize,
             pads=pad,
             strides=func.stride,
             storage_order=0,  # row major
+            **attrs,
         ),
 
 
