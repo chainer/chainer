@@ -43,7 +43,7 @@ class TestTriplet(unittest.TestCase):
             self.check_double_backward_options = {
                 'eps': eps, 'rtol': 1e-3, 'atol': 1e-3}
         else:
-            raise ValueError('invalid dtype')
+            assert False
 
         # Sample differentiable inputs
         x_shape = (self.batchsize, self.input_dim)
