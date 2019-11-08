@@ -59,7 +59,7 @@ class TestTriplet(unittest.TestCase):
             dist = numpy.sum(
                 (self.a - self.p) ** 2 - (self.a - self.n) ** 2,
                 axis=1) + self.margin
-            # TODO(imanishi): Investigate whether this condition is enogh
+            # TODO(imanishi): Investigate whether this condition is enough
             # to dodge non-differentialble points.
             if (abs(dist) < 4 * eps).any():
                 continue
