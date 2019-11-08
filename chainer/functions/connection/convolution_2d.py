@@ -263,7 +263,8 @@ class Convolution2DFunction(function_node.FunctionNode):
                 groups=self.groups)
             ret.append(gx)
         if 1 in indexes:
-            gW, = Convolution2DGradW(self).apply((x, gy))
+            ksize = W.shape[2:]
+            gW, = Convolution2DGradW(self, ksize, W.dtype).apply((x, gy))
             ret.append(gW)
         if 2 in indexes:
             gb = chainer.functions.sum(gy, axis=(0, 2, 3))
@@ -274,9 +275,8 @@ class Convolution2DFunction(function_node.FunctionNode):
 
 class Convolution2DGradW(function_node.FunctionNode):
 
-    def __init__(self, conv2d):
-        W_node = conv2d.inputs[1]
-        self.kh, self.kw = W_node.shape[2:]
+    def __init__(self, conv2d, ksize, w_dtype):
+        self.kh, self.kw = ksize
         self.sy = conv2d.sy
         self.sx = conv2d.sx
         self.ph = conv2d.ph
@@ -284,7 +284,7 @@ class Convolution2DGradW(function_node.FunctionNode):
         self.dy = conv2d.dy
         self.dx = conv2d.dx
         self.cover_all = conv2d.cover_all
-        self.W_dtype = W_node.dtype
+        self.W_dtype = w_dtype
         self.groups = conv2d.groups
         self._use_ideep = conv2d._use_ideep
 

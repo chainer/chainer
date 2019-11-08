@@ -312,7 +312,9 @@ class Deconvolution2DFunction(function_node.FunctionNode):
         if 1 in indexes:
             if self.cover_all is None:
                 self._set_cover_all(x, W)
-            gW, = convolution_2d.Convolution2DGradW(self).apply((gy, x))
+            ksize = W.shape[2:]
+            gW, = convolution_2d.Convolution2DGradW(
+                self, ksize, W.dtype).apply((gy, x))
             ret.append(gW)
         if 2 in indexes:
             gb = chainer.functions.sum(gy, axis=(0, 2, 3))
