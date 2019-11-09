@@ -31,19 +31,12 @@ class WrappedFunctionNode(chainer.FunctionNode):
         assert len(xs) == len(self.arg_vars)
         self.xs = xs
         results = self.func(*self.args, **self.kwargs)
-        if isinstance(results, (tuple, list)):
-            dummy_results = tuple(_unwrap_var(ret) for ret in results)
-            if all([_is_var(ret) for ret in results]):
-                self.internal_results = tuple(results)
-        elif isinstance(results, dict):
-            dummy_results = tuple(_unwrap_var(ret) for ret in results.values())
-            if all([_is_var(ret) for ret in results.values()]):
-                self.internal_results = tuple(results.values())
-        else:
-            dummy_results = _unwrap_var(results)
-            dummy_results = dummy_results,
-            if _is_var(results):
-                self.internal_results = results,
+
+        self.skeleton, flattened_results = self._flatten_return_value(results)
+        dummy_results = tuple(_unwrap_var(ret) for ret in flattened_results)
+        if all([_is_var(ret) for ret in flattened_results]):
+            self.internal_results = flattened_results
+
         if not chainer.is_arrays_compatible(dummy_results):
             raise ValueError(
                 'returned values from the function wrapped by \'as_funcnode\' '
@@ -60,6 +53,36 @@ class WrappedFunctionNode(chainer.FunctionNode):
         assert len(self.arg_vars) == len(grad_inputs)
         return tuple(grad_input if i in target_input_indexes else None
                      for i, grad_input in enumerate(grad_inputs))
+
+    def _flatten_return_value(self, x):
+        outputs = []
+
+        def skeletonize(r):
+            if isinstance(r, tuple):
+                return tuple(skeletonize(e) for e in r)
+            elif isinstance(r, list):
+                return [skeletonize(e) for e in r]
+            elif isinstance(r, dict):
+                return {k: skeletonize(v) for k, v in r.items()}
+            else:
+                index = len(outputs)
+                outputs.append(r)
+                return index
+
+        skeleton = skeletonize(x)
+        return skeleton, outputs
+
+    def reconstruct_return_value(self, outputs):
+        def f(skeleton):
+            if isinstance(skeleton, tuple):
+                return tuple(f(e) for e in skeleton)
+            elif isinstance(skeleton, list):
+                return [f(e) for e in skeleton]
+            elif isinstance(skeleton, dict):
+                return {k: f(v) for k, v in skeleton.items()}
+            else:
+                return outputs[skeleton]
+        return f(self.skeleton)
 
 
 def fake_as_funcnode(alt_func, name, rename_attributes=None):
@@ -164,9 +187,7 @@ def fake_as_funcnode(alt_func, name, rename_attributes=None):
         wrapped = WrappedFunctionNode(
             name, alt_func, args, kwargs, inputs, attributes=attributes)
         ret = wrapped.apply(inputs)
-        if len(ret) > 1:
-            return ret
-        return ret[0]
+        return wrapped.reconstruct_return_value(ret)
 
     chainer.utils.experimental('as_funcnode')
     return _wrapper
