@@ -35,5 +35,3 @@ class TestEmptyDataset(unittest.TestCase):
         self.check_create_empty_dataset(xp.array([0]))
         self.check_create_empty_dataset(xp.arange(n))
         self.check_create_empty_dataset(xp.arange(n * 5 - 1))
-
-

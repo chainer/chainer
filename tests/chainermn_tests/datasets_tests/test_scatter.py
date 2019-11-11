@@ -7,7 +7,6 @@ import numpy as np
 import pytest
 
 from chainer import testing
-import chainer
 import chainermn
 from chainermn.communicators.flat_communicator import FlatCommunicator
 from chainermn.communicators.naive_communicator import NaiveCommunicator
