@@ -89,7 +89,7 @@ def reshape(x, shape):
         chainer.utils.type_check.InvalidType:
         Invalid operation is performed in: Reshape (Forward)
         <BLANKLINE>
-        Expect: prod(in_types[0].shape) == prod((4, 3))
+        Expect: prod(x.shape) == prod((4, 3))
         Actual: 8 != 12
 
     """
