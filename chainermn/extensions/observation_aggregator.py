@@ -1,6 +1,7 @@
 from __future__ import division
 from chainer.training import extension, util
 from chainer import Variable
+import chainerx as chx
 
 
 class ObservationAggregator(extension.Extension):
@@ -37,7 +38,6 @@ class ObservationAggregator(extension.Extension):
 
         self.comm_trigger = util.get_trigger(comm_trigger)
         self.observation_history = []
-
         self.aggregator = aggregator or _average_2d
 
     def compute_summary(self, trainer):
@@ -47,6 +47,8 @@ class ObservationAggregator(extension.Extension):
                 # use to native device as ChainerX array cannot
                 # be converted to numpy directly, which is what `to_cpu()` does
                 value.to_device("native")
+            elif isinstance(value, chx.ndarray) and not value.device.name.startswith('native'):
+                raise ValueError("observation aggregator does not support ChainerX ndarray")
             self.observation_history.append(value)
 
         if not self.comm_trigger(trainer):
@@ -66,7 +68,6 @@ class ObservationAggregator(extension.Extension):
 
     def __call__(self, trainer):
         summary = self.compute_summary(trainer)
-
         if summary is not None:
             trainer.observation[self.aggregated_key] = summary
 
