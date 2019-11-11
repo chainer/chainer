@@ -120,6 +120,7 @@ step_python_style_check() {
         "$REPO_DIR"/chainer
         "$REPO_DIR"/chainermn
         "$REPO_DIR"/chainerx
+        "$REPO_DIR"/onnx_chainer
         "$REPO_DIR"/tests
         "$REPO_DIR"/examples
         "$REPO_DIR"/chainerx_cc/examples
