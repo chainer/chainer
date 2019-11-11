@@ -143,7 +143,7 @@ class NStepRNNBase(link.ChainList):
                 the hidden units.
             xs (list of :class:`~chainer.Variable`): List of input sequences.
                 Each element ``xs[i]`` is a :class:`chainer.Variable` holding
-                a sequence. Its shape is ``(L_i, I)``, where ``L_t`` is the
+                a sequence. Its shape is ``(L_i, I)``, where ``L_i`` is the
                 length of a sequence for batch ``i``, and ``I`` is the size of
                 the input and is equal to ``in_size``.
 
@@ -156,7 +156,7 @@ class NStepRNNBase(link.ChainList):
               ``ys[i]`` holds hidden states of the last layer corresponding
               to an input ``xs[i]``. Its shape is ``(L_i, N)`` for
               uni-directional RNN and ``(L_i, 2N)`` for bi-directional RNN
-              where ``L_t`` is the length of a sequence for batch ``i``,
+              where ``L_i`` is the length of a sequence for batch ``i``,
               and ``N`` is size of hidden units.
         """
         (hy,), ys = self._call([hx], xs, **kwargs)
