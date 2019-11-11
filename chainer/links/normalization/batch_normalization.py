@@ -254,6 +254,13 @@ class BatchNormalization(link.Link):
             device=self.device)
 
     @static_code
+    def _get_gamma(self):
+        with chainer.using_device(self.device):
+            gamma = self.xp.ones(
+                self.avg_mean.shape, dtype=self._highprec_dtype)
+        return gamma,
+
+    @static_code
     def _get_beta(self):
         with chainer.using_device(self.device):
             beta = self.xp.zeros(
@@ -305,9 +312,7 @@ class BatchNormalization(link.Link):
 
         gamma = self.gamma
         if gamma is None:
-            with chainer.using_device(self.device):
-                gamma = self.xp.ones(
-                    self.avg_mean.shape, dtype=self._highprec_dtype)
+            gamma, = self._get_gamma()
 
         # When using static_graph optimizations beta might not be
         # initialized and is not retained by the function, so the
