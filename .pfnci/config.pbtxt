@@ -18,6 +18,9 @@ configs {
     time_limit: {
       seconds: 900
     }
+    checkout_strategy {
+      include_dot_git: true
+    }
     environment_variables { key: "GPU" value: "0" }
     environment_variables {
       key: "SPREADSHEET_ID"
@@ -36,6 +39,9 @@ configs {
     }
     time_limit: {
       seconds: 900
+    }
+    checkout_strategy {
+      include_dot_git: true
     }
     environment_variables { key: "GPU" value: "2" }
     # NOTE: If # of threads / # of GPUs exceeds 10, GPU tests may cause
@@ -63,6 +69,9 @@ configs {
     time_limit: {
       seconds: 900
     }
+    checkout_strategy {
+      include_dot_git: true
+    }
     environment_variables { key: "GPU" value: "0" }
     environment_variables {
       key: "SPREADSHEET_ID"
@@ -82,6 +91,9 @@ configs {
     time_limit: {
       seconds: 900
     }
+    checkout_strategy {
+      include_dot_git: true
+    }
     environment_variables { key: "GPU" value: "2" }
     # NOTE: If # of threads / # of GPUs exceeds 10, GPU tests may cause
     # cudaErrorLaunchFailure because of insufficient memory on GPU.
@@ -91,5 +103,235 @@ configs {
       value: "1u5OYiPOL3XRppn73XBSgR-XyDuHKb_4Ilmx1kgJfa-k"
     }
     command: "bash .pfnci/script.sh py27and35"
+  }
+}
+
+# Chainer CI related targets: chainer.docker.{version}.{action}.
+# - version should be either "py37" or "py27and35".
+# - action should be either "test" or "push".  "test" only builds a Docker
+#   image, and "push" additionally pushes the Docker image to Google Container
+#   Registry.
+# CAVEAT: chainer.docker.*.push targets should be triggered by CuPy repository
+# to enable to fix its CuPy commit.  The process should be implemented as
+# a default command in the CI targets.
+configs {
+  key: "chainer.docker.py37.test"
+  value {
+    requirement {
+      cpu: 2
+      memory: 12
+    }
+    time_limit: {
+      seconds: 3600
+    }
+    checkout_strategy {
+      include_dot_git: true
+    }
+    command: "bash .pfnci/script.sh docker.py37.test"
+  }
+}
+configs {
+  key: "chainer.docker.py27and35.test"
+  value {
+    requirement {
+      cpu: 2
+      memory: 12
+    }
+    time_limit: {
+      seconds: 3600
+    }
+    checkout_strategy {
+      include_dot_git: true
+    }
+    command: "bash .pfnci/script.sh docker.py27and35.test"
+  }
+}
+configs {
+  key: "chainer.docker.py37.push"
+  value {
+    requirement {
+      cpu: 2
+      memory: 12
+    }
+    time_limit: {
+      seconds: 3600
+    }
+    checkout_strategy {
+      include_dot_git: true
+    }
+    command: "bash .pfnci/script.sh docker.py37.push"
+  }
+}
+configs {
+  key: "chainer.docker.py27and35.push"
+  value {
+    requirement {
+      cpu: 2
+      memory: 12
+    }
+    time_limit: {
+      seconds: 3600
+    }
+    checkout_strategy {
+      include_dot_git: true
+    }
+    command: "bash .pfnci/script.sh docker.py27and35.push"
+  }
+}
+
+# Python 2 tests are disabled in the master branch, but configs can be removed
+# only after removing web hooks.
+# TODO(niboshi): Completely remove them after discontinuing v6 series.
+configs {
+  key: "chainer.py2.cv"
+  value {
+    command: "true"
+  }
+}
+configs {
+  key: "chainer.py2.cv.gpu"
+  value {
+    command: "true"
+  }
+}
+configs {
+  key: "chainer.py2.cv.examples"
+  value {
+    command: "true"
+  }
+}
+configs {
+  key: "chainer.py3.cv"
+  value {
+    requirement {
+      cpu: 6
+      memory: 36
+      disk: 10
+    }
+    time_limit {
+      seconds: 3600
+    }
+    checkout_strategy {
+      include_dot_git: true
+    }
+    command: "git clone https://github.com/chainer/chainercv.git --depth 1 && sh chainercv/.pfnci/tests.sh"
+    environment_variables {
+      key: "REPOSITORY"
+      value: "chainer"
+    }
+    environment_variables {
+      key: "PYTHON"
+      value: "3"
+    }
+    environment_variables {
+      key: "OPTIONAL_MODULES"
+      value: "1"
+    }
+  }
+}
+configs {
+  key: "chainer.py3.cv.gpu"
+  value {
+    requirement {
+      cpu: 4
+      memory: 24
+      disk: 10
+      gpu: 1
+    }
+    checkout_strategy {
+      include_dot_git: true
+    }
+    command: "git clone https://github.com/chainer/chainercv.git --depth 1 && sh chainercv/.pfnci/tests_gpu.sh"
+    environment_variables {
+      key: "REPOSITORY"
+      value: "chainer"
+    }
+    environment_variables {
+      key: "PYTHON"
+      value: "3"
+    }
+    environment_variables {
+      key: "OPTIONAL_MODULES"
+      value: "1"
+    }
+  }
+}
+configs {
+  key: "chainer.py3.cv.examples"
+  value {
+    requirement {
+      cpu: 6
+      memory: 36
+      disk: 10
+      gpu: 2
+    }
+    time_limit {
+      seconds: 1800
+    }
+    checkout_strategy {
+      include_dot_git: true
+    }
+    command: "git clone https://github.com/chainer/chainercv.git --depth 1 && sh chainercv/.pfnci/examples_tests.sh"
+    environment_variables {
+      key: "REPOSITORY"
+      value: "chainer"
+    }
+    environment_variables {
+      key: "PYTHON"
+      value: "3"
+    }
+    environment_variables {
+      key: "OPTIONAL_MODULES"
+      value: "1"
+    }
+  }
+}
+configs {
+  key: "chainermn.cpu"
+  value {
+    requirement {
+      cpu: 8
+      memory: 30
+      disk: 50
+    }
+    time_limit: {
+      seconds: 1200
+    }
+    checkout_strategy {
+      include_dot_git: true
+    }
+    command: "bash .pfnci/script.sh chainermn"
+  }
+}
+configs {
+  key: "chainermn.gpu"
+  value {
+    requirement {
+      cpu: 8
+      memory: 30
+      disk: 50
+      gpu: 2
+    }
+    time_limit: {
+      seconds: 900
+    }
+    checkout_strategy {
+      include_dot_git: true
+    }
+	environment_variables { key: "GPU" value: "2" }
+    command: "bash .pfnci/script.sh chainermn"
+  }
+}
+configs {
+  key: "chainermn-ci-prep.cuda92"
+  value {
+    requirement {
+	  cpu: 2
+	  memory: 12
+    }
+	time_limit: {
+	  seconds: 7200
+	}
+	command: "bash .pfnci/chainermn-ci-prep.sh chainermn-ci-prep-cuda92 9.2-cudnn7-devel"
   }
 }
