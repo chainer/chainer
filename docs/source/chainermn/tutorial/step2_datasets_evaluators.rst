@@ -15,7 +15,7 @@ If you want to keep the definition of 'one epoch' correct,
 we need to scatter the dataset to all workers.
 
 For this purpose, ChainerMN provides a method ``scatter_dataset``.
-It scatters the dataset of worker 0 (by default, the worker whose ``comm.rank`` is 0)
+It scatters the dataset of the specified root worker (by default, the worker whose ``comm.rank`` is 0)
 to all workers. The given dataset of other workers are ignored.
 The dataset is split into sub datasets of equal sizes, by duplicating some elements if necessary,
 and scattered to the workers. To create a sub dataset, ``chainer.datasets.SubDataset`` is
