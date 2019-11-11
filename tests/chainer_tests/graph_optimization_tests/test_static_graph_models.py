@@ -419,7 +419,7 @@ class BN(chainer.Chain):
 
 
 @testing.parameterize(*testing.product({
-    'x_dtype': [numpy.float32, numpy.float64],
+    'x_dtype': [numpy.float16, numpy.float32, numpy.float64],
     'use_static_graph': [True, False],
     'use_gamma': [True, False],
     'use_beta': [True, False],
