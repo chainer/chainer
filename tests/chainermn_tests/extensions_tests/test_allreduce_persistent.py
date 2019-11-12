@@ -5,6 +5,7 @@ import chainer.testing.attr
 import unittest
 
 import chainermn
+import chainerx as chx
 
 
 class ExampleModel(chainer.Chain):
@@ -20,7 +21,23 @@ class ExampleModel(chainer.Chain):
 
 class TestAllreducePersistent(unittest.TestCase):
 
-    def _test(self, comm, model):
+    def _test(self, comm, model, use_gpu, use_chx):
+
+        if use_gpu:
+            if use_chx:
+                device_id = 'cuda:{}'.format(comm.intra_rank)
+            else:
+                device_id = '@cupy:{}'.format(comm.intra_rank)
+        else:
+            if use_chx:
+                device_id = 'native'
+            else:
+                device_id = '@numpy'
+
+        device = chainer.get_device(device_id)
+        device.use()
+        model.to_device(device)
+
         rank = comm.rank
         model.bn1.avg_mean.fill(rank * 1)
         model.bn2.avg_mean.fill(rank * 2)
@@ -39,14 +56,14 @@ class TestAllreducePersistent(unittest.TestCase):
 
     def test_allreduce_persistent_cpu(self):
         comm = chainermn.create_communicator('naive')
-        self._test(comm, ExampleModel())
+        device = chainer.get_device('native')
+        model = ExampleModel()
+        self._test(comm, model, False, False)
+        self._test(comm, model, False, True)
 
     @chainer.testing.attr.gpu
     def test_allreduce_persistent_gpu(self):
         comm = chainermn.create_communicator('flat')
-        device = comm.intra_rank
-        chainer.cuda.get_device_from_id(device).use()
-
         model = ExampleModel()
-        model.to_device(cupy.cuda.Device(device))
-        self._test(comm, model)
+        self._test(comm, model, True, False)
+        self._test(comm, model, True, True)
