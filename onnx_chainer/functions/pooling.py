@@ -151,15 +151,12 @@ def convert_Unpooling2D(
     ksize = [func.kh, func.kw]
     outsize = [func.outh, func.outw]
     # TODO(hamaji): These could be implemented by `Slice` and `Pad`.
-    if func.cover_all:
-        raise RuntimeError('ONNX-chainer does not support `cover_all=True` '
-                           'for Unpooling2D')
     h, w = func.inputs[0].shape[2:]
     expected_outsize = [
         conv.get_deconv_outsize(
             h, func.kh, func.sy, func.ph, cover_all=func.cover_all),
         conv.get_deconv_outsize(
-            w, func.kh, func.sy, func.ph, cover_all=func.cover_all)
+            w, func.kw, func.sx, func.pw, cover_all=func.cover_all)
     ]
     if outsize != expected_outsize:
         raise RuntimeError('ONNX-chainer does not support `outsize!=None` '
@@ -173,7 +170,21 @@ def convert_Unpooling2D(
         raise RuntimeError('ONNX-chainer does not support `stride!=ksize` '
                            'for Unpooling2D: stride={} ksize={}'.format(
                                stride, ksize))
-    scales = [1.0, 1.0, float(func.kh), float(func.kw)]
+
+    if func.cover_all:
+        uncovered_outsize = [
+            conv.get_deconv_outsize(
+                h, func.kh, func.sy, func.ph, cover_all=False),
+            conv.get_deconv_outsize(
+                w, func.kw, func.sx, func.pw, cover_all=False)
+        ]
+        scales = [
+            1.0, 1.0,
+            func.kh * outsize[0] / uncovered_outsize[0],
+            func.kw * outsize[1] / uncovered_outsize[1],
+        ]
+    else:
+        scales = [1.0, 1.0, float(func.kh), float(func.kw)]
     if opset_version == 7:
         return onnx_helper.make_node('Upsample', input_names, output_names,
                                      scales=scales),
