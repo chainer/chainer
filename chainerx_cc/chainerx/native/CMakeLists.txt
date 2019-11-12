@@ -56,8 +56,8 @@ if(${CHAINERX_BUILD_TEST})
   )
   target_link_libraries(chainerx_native_test
       chainerx
-      chainerx_native
-      chainerx_testing
-      gtest)
+      chainerx_test_main
+      # gtest is linked via chainerx_testing.
+      )
   add_test(NAME chainerx_native_test COMMAND chainerx_native_test)
 endif()

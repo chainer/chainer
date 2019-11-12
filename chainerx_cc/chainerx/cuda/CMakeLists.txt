@@ -56,7 +56,7 @@ CUDA_ADD_CUBLAS_TO_TARGET(chainerx_cuda)
 target_link_libraries(chainerx_cuda ${CUDNN_LIBRARIES} ${CUDA_cusolver_LIBRARY})
 
 if(${CHAINERX_BUILD_TEST})
-    add_executable(chainerx_cuda_test
+    CUDA_ADD_EXECUTABLE(chainerx_cuda_test
         cuda_backend_test.cc
         cuda_conv_test.cc
         cuda_set_device_scope_test.cc
@@ -66,8 +66,8 @@ if(${CHAINERX_BUILD_TEST})
         )
     target_link_libraries(chainerx_cuda_test
         chainerx
-        chainerx_cuda
-        chainerx_testing
-        gtest)
+        chainerx_test_main
+        # gtest is linked via chainerx_testing.
+        )
     add_test(NAME chainerx_cuda_test COMMAND chainerx_cuda_test)
 endif()
