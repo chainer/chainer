@@ -40,7 +40,7 @@ class Cholesky(function_node.FunctionNode):
         mask = xp.tri(n, dtype=dtype) - 0.5 * xp.eye(n, dtype=dtype)
         phi = mask * F.matmul(y, gy, transa=True)
         s = F.matmul(F.matmul(y_inv, phi, transa=True), y_inv)
-        gx = mask * (s + s.T)
+        gx = 0.5 * (s + s.T)
         return gx,
 
 
