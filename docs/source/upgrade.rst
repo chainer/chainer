@@ -31,7 +31,7 @@ Dropping Support of Python 3.4
 ------------------------------
 
 In Chainer v6, Python 3.4 is no longer supported as it reaches its end-of-life (EOL) in March 2019.
-Python 3.5.2 is the minimum Python 3 version supported by Chainer v6.
+Python 3.5.1 is the minimum Python 3 version supported by Chainer v6.
 Please upgrade the Python version if you are using Python 3.4 to any later versions listed under :ref:`install-guide`.
 
 CuPy Needs To Be Manually Updated
