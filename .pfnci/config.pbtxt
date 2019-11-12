@@ -193,7 +193,7 @@ configs {
     checkout_strategy {
       include_dot_git: true
     }
-    command: "git clone https://github.com/chainer/chainercv.git --depth 1 && sh chainercv/.pfnci/tests.sh"
+    command: "git clone https://github.com/Hakuyume/chainercv.git --branch fix-stable-check --depth 1 && sh chainercv/.pfnci/tests.sh"
     environment_variables {
       key: "REPOSITORY"
       value: "chainer"
