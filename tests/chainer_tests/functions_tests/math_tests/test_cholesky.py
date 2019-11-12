@@ -70,6 +70,7 @@ class TestCholesky(testing.FunctionTestCase):
 
     def forward_expected(self, inputs):
         a, = inputs
+        a = 0.5 * (a + a.T)
         y_expect = numpy.linalg.cholesky(a)
         return y_expect.astype(self.dtype),
 
