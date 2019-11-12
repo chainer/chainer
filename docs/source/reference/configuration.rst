@@ -334,7 +334,7 @@ Here are the environment variables Chainer uses.
 +-------------------------------------------+-------------------------------------------------------------------------------------------------------+
 | ``CHAINER_PYTHON_350_FORCE``              | Set ``1`` to force using Chainer with Python 3.5.0.                                                   |
 |                                           | Note that Chainer does not work with Python 3.5.0.                                                    |
-|                                           | Use Python 3.5.1+ or other supported versions (see :ref:`install-guide`).                             |
+|                                           | Use Python 3.5.2+ or other supported versions (see :ref:`install-guide`).                             |
 +-------------------------------------------+-------------------------------------------------------------------------------------------------------+
 
 The following environment variables are only effective when running unit tests.
