@@ -14,7 +14,7 @@ Dropping Support of Python 2.7
 ------------------------------
 
 In Chainer v7, Python 2.7 is no longer supported as it reaches its end-of-life (EOL) in January 2020.
-Python 3.5.1 is the minimum Python version supported by Chainer v7.
+Python 3.5.2 is the minimum Python version supported by Chainer v7.
 Please upgrade the Python version if you are using Python 2.7 to any later versions listed under :ref:`install-guide`.
 
 CuPy v7
