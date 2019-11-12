@@ -437,28 +437,28 @@ TEST(MemoryPoolTest, Hook) {
     memory_pool.SetMallocPostprocessHook(malloc_postprocess_hook);
     memory_pool.SetFreeHook(free_preprocess_hook);
 
-    EXPECT_EQ(total_memory, 0);
-    EXPECT_EQ(memories.size(), 0);
+    EXPECT_EQ(total_memory, 0U);
+    EXPECT_EQ(memories.size(), 0U);
 
     void* ptr1 = memory_pool.Malloc(12);
 
-    EXPECT_EQ(total_memory, 12);
-    EXPECT_EQ(memories.size(), 1);
+    EXPECT_EQ(total_memory, 12U);
+    EXPECT_EQ(memories.size(), 1U);
 
     void* ptr2 = memory_pool.Malloc(300);
 
-    EXPECT_EQ(total_memory, 312);
-    EXPECT_EQ(memories.size(), 2);
+    EXPECT_EQ(total_memory, 312U);
+    EXPECT_EQ(memories.size(), 2U);
 
     memory_pool.Free(ptr1);
 
-    EXPECT_EQ(total_memory, 300);
-    EXPECT_EQ(memories.size(), 1);
+    EXPECT_EQ(total_memory, 300U);
+    EXPECT_EQ(memories.size(), 1U);
 
     memory_pool.Free(ptr2);
 
-    EXPECT_EQ(total_memory, 0);
-    EXPECT_EQ(memories.size(), 0);
+    EXPECT_EQ(total_memory, 0U);
+    EXPECT_EQ(memories.size(), 0U);
 }
 
 }  // namespace
