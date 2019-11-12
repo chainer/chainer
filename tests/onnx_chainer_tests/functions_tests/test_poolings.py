@@ -24,8 +24,8 @@ from onnx_chainer_tests.helper import ONNXModelTest
      'in_shape': (1, 3, 6, 5, 4), 'args': [3, 2, 1], 'cover_all': True},
     {'op_name': 'unpooling_2d',
      'in_shape': (1, 3, 6, 6), 'args': [3, None, 0], 'cover_all': False},
-    # when cover_all=True, interpolation between Chainer and ONNXRuntime
-    # does not match, so skip output value check.
+    # TODO(disktnk): when cover_all=True, interpolation between Chainer and
+    # ONNXRuntime does not match, so skip output value check.
     {'op_name': 'unpooling_2d', 'condition': 'coverall',
      'in_shape': (1, 3, 6, 6), 'args': [3, None, 0], 'cover_all': True,
      'skip_check_ver': True},
