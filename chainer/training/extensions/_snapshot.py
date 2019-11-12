@@ -78,10 +78,10 @@ def _find_stale_snapshots(fmt, path, n_retains, **kwargs):
         n_retains (int): Number of snapshot files to retain
             through the cleanup. Must be a positive integer for any cleanup to
             take place.
-        num_retain (int): Same as n_retains (deprecated).
+        num_retain (int): Same as ``n_retains`` (deprecated).
 
-    Returns:
-        Generator that yields stale files that matches format
+    Yields:
+        str: The next stale file that matches format
         ``fmt`` directly under ``path`` and with older ``mtime``,
         excluding newest ``n_retains`` files.
 
@@ -94,17 +94,16 @@ def _find_stale_snapshots(fmt, path, n_retains, **kwargs):
         n_retains = kwargs['num_retain']
 
     snapshot_files = _find_snapshot_files(fmt, path)
-    num_remove = len(snapshot_files) - n_retains
-    if num_remove > 0:
-        for _, filename in snapshot_files[:num_remove]:
+    n_removes = len(snapshot_files) - n_retains
+    if n_removes > 0:
+        for _, filename in snapshot_files[:n_removes]:
             yield filename
-    return
 
 
 def snapshot_object(target, filename, savefun=None, **kwargs):
     """snapshot_object(target, filename, savefun=None, \
 *, condition=None, writer=None, snapshot_on_error=False, \
-num_retain=-1, autoload=False)
+n_retains=-1, autoload=False)
 
     Returns a trainer extension to take snapshots of a given object.
 
@@ -147,7 +146,7 @@ num_retain=-1, autoload=False)
             through the cleanup. Must be a positive integer for any cleanup to
             take place. Automatic deletion of old snapshots only works when the
             filename is string.
-        num_retain (int): Same as n_retains (deprecated).
+        num_retain (int): Same as ``n_retains`` (deprecated).
         autoload (bool): With this enabled, the extension automatically
             finds the latest snapshot and loads the data to the target.
             Automatic loading only works when the filename is a string.
@@ -164,8 +163,7 @@ num_retain=-1, autoload=False)
             'Argument `num_retain` is deprecated. '
             'Please use `n_retains` instead',
             DeprecationWarning)
-        kwargs['n_retains'] = kwargs['num_retain']
-        kwargs.pop('num_retain')
+        kwargs['n_retains'] = kwargs.pop('num_retain')
 
     return snapshot(target=target, filename=filename, savefun=savefun,
                     **kwargs)
@@ -175,7 +173,7 @@ def snapshot(savefun=None,
              filename='snapshot_iter_{.updater.iteration}', **kwargs):
     """snapshot(savefun=None, filename='snapshot_iter_{.updater.iteration}', \
 *, target=None, condition=None, writer=None, snapshot_on_error=False, \
-num_retain=-1, autoload=False)
+n_retains=-1, autoload=False)
 
     Returns a trainer extension to take snapshots of the trainer.
 
@@ -226,7 +224,7 @@ num_retain=-1, autoload=False)
             through the cleanup. Must be a positive integer for any cleanup to
             take place. Automatic deletion of old snapshots only works when the
             filename is string.
-        num_retain (int): Same as n_retains (deprecated).
+        num_retain (int): Same as ``n_retains`` (deprecated).
         autoload (bool): With this enabled, the extension
             automatically finds the latest snapshot and loads the data
             to the target.  Automatic loading only works when the
@@ -288,8 +286,7 @@ ProcessQueueWriter`
             'Argument `num_retain` is deprecated. '
             'Please use `n_retains` instead',
             DeprecationWarning)
-        kwargs['n_retains'] = kwargs['num_retain']
-        kwargs.pop('num_retain')
+        kwargs['n_retains'] = kwargs.pop('num_retain')
 
     target, condition, writer, snapshot_on_error, n_retains,\
         autoload = argument.parse_kwargs(
