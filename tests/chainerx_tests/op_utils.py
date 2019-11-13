@@ -442,4 +442,6 @@ def fix_random():
 
     .. seealso:: :func:`~chainer.testing.fix_random`
     """
-    return chainer.testing.random._fix_random('setup', 'teardown')
+    return chainer.testing.random.fix_random(
+        setup_method='setup',
+        teardown_method='teardown')
