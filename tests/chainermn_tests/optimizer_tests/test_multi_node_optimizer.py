@@ -1,11 +1,11 @@
 import chainer
-from chainer.backends.cuda import cupy
 import chainer.testing
 import chainer.testing.attr
 import chainermn
+import chainermn.testing
 import mock
 import numpy as np
-import unittest
+import pytest
 
 
 class ExampleModel(chainer.Chain):
@@ -17,7 +17,7 @@ class ExampleModel(chainer.Chain):
             self.c = chainer.links.Linear(4, 5)
 
 
-class TestMultiNodeOptimizer(unittest.TestCase):
+class TestMultiNodeOptimizer(object):
 
     def setup_cpu(self):
         self.comm = chainermn.create_communicator('naive')
@@ -31,12 +31,14 @@ class TestMultiNodeOptimizer(unittest.TestCase):
         self.actual_optimizer = chainer.GradientMethod()
         self.actual_optimizer.create_update_rule = mock.MagicMock
 
-    def setup_gpu(self, device=None):
+    def setup_gpu(self, use_chx=False):
         self.comm = chainermn.create_communicator('flat')
-        device = self.comm.intra_rank
-        chainer.cuda.get_device_from_id(device).use()
         self.target = ExampleModel()
-        self.target.to_device(cupy.cuda.Device())
+        self.device = chainermn.testing.get_device(self.comm.intra_rank,
+                                                   use_chx)
+        chainer.cuda.get_device_from_id(self.comm.intra_rank).use()
+        self.target.to_device(self.device)
+
         self.target.a.W.data[:] = self.comm.rank
         self.target.b.W.data[:] = self.comm.rank + 1
         self.target.c.W.data[:] = self.comm.rank + 2
@@ -53,13 +55,13 @@ class TestMultiNodeOptimizer(unittest.TestCase):
         opt = self.optimizer.setup(self.target)
         assert opt is self.optimizer
         self.optimizer.update()
-        self.assertEqual(self.actual_optimizer.t, 0)
+        assert self.actual_optimizer.t == 0
         self.optimizer.target.a.W.grad[:] = self.comm.rank
         self.optimizer.target.b.W.grad[:] = self.comm.rank + 1
         self.optimizer.target.c.W.grad[:] = self.comm.rank + 2
 
         self.optimizer.update()
-        self.assertEqual(self.actual_optimizer.t, 1)
+        assert self.actual_optimizer.t == 1
         self.optimizer.target.a.W.update_rule.update.assert_called_once_with(
             self.optimizer.target.a.W)
         self.optimizer.target.b.W.update_rule.update.assert_called_once_with(
@@ -76,20 +78,22 @@ class TestMultiNodeOptimizer(unittest.TestCase):
                                         (base + 2) * np.ones((5, 4)))
 
     @chainer.testing.attr.gpu
-    def test_update_with_gpu(self):
-        self.setup_gpu()
+    @pytest.mark.parametrize("use_chx", [True, False])
+    def test_update_with_gpu(self, use_chx):
+        self.setup_gpu(use_chx)
         self.optimizer = chainermn.create_multi_node_optimizer(
             self.actual_optimizer, self.comm)
         opt = self.optimizer.setup(self.target)
         assert opt is self.optimizer
         self.optimizer.update()
-        self.assertEqual(self.actual_optimizer.t, 0)
+        assert self.actual_optimizer.t == 0
+
         self.optimizer.target.a.W.grad[:] = self.comm.rank
         self.optimizer.target.b.W.grad[:] = self.comm.rank + 1
         self.optimizer.target.c.W.grad[:] = self.comm.rank + 2
 
         self.optimizer.update()
-        self.assertEqual(self.actual_optimizer.t, 1)
+        assert self.actual_optimizer.t == 1
         self.optimizer.target.a.W.update_rule.update.assert_called_once_with(
             self.optimizer.target.a.W)
         self.optimizer.target.b.W.update_rule.update.assert_called_once_with(
@@ -115,7 +119,7 @@ class DynamicExampleModel(chainer.Chain):
             self.b = chainer.links.Linear(3, 4)
 
 
-class TestMultiNodeOptimizerWithDynamicModel(unittest.TestCase):
+class TestMultiNodeOptimizerWithDynamicModel(object):
 
     def setup_cpu(self):
         self.comm = chainermn.create_communicator('naive')
@@ -127,12 +131,14 @@ class TestMultiNodeOptimizerWithDynamicModel(unittest.TestCase):
         self.actual_optimizer = chainer.GradientMethod()
         self.actual_optimizer.create_update_rule = mock.MagicMock
 
-    def setup_gpu(self, device=None):
+    def setup_gpu(self, use_chx=False):
         self.comm = chainermn.create_communicator('flat')
-        device = self.comm.intra_rank
-        chainer.cuda.get_device_from_id(device).use()
         self.target = DynamicExampleModel()
-        self.target.to_device(cupy.cuda.Device())
+        self.device = chainermn.testing.get_device(self.comm.intra_rank,
+                                                   use_chx)
+        chainer.cuda.get_device_from_id(self.comm.intra_rank).use()
+        self.target.to_device(self.device)
+
         self.target.a.W.data[:] = self.comm.rank
         self.target.b.W.data[:] = self.comm.rank + 1
         self.target.a.W.grad[:] = 0
@@ -147,7 +153,7 @@ class TestMultiNodeOptimizerWithDynamicModel(unittest.TestCase):
         opt = self.optimizer.setup(self.target)
         assert opt is self.optimizer
         self.optimizer.update()
-        self.assertEqual(self.actual_optimizer.t, 0)
+        assert self.actual_optimizer.t == 0
 
         with self.target.init_scope():
             self.target.c = chainer.links.Linear(4, 4)
@@ -155,7 +161,7 @@ class TestMultiNodeOptimizerWithDynamicModel(unittest.TestCase):
             self.target.c.W.data[:] = self.comm.rank + 2
         self.optimizer.setup(self.target)
         self.optimizer.update()
-        self.assertEqual(self.actual_optimizer.t, 0)
+        assert self.actual_optimizer.t == 0
 
         send_buf = chainer.cuda.to_cpu(self.optimizer.target.c.W.data)
         recv_buf = self.comm.mpi_comm.allgather(send_buf)
@@ -166,7 +172,7 @@ class TestMultiNodeOptimizerWithDynamicModel(unittest.TestCase):
         self.optimizer.target.b.W.grad[:] = self.comm.rank + 1
         self.optimizer.target.c.W.grad[:] = self.comm.rank + 2
         self.optimizer.update()
-        self.assertEqual(self.actual_optimizer.t, 1)
+        assert self.actual_optimizer.t == 1
         self.optimizer.target.a.W.update_rule.update.assert_called_once_with(
             self.optimizer.target.a.W)
         self.optimizer.target.b.W.update_rule.update.assert_called_once_with(
@@ -183,24 +189,25 @@ class TestMultiNodeOptimizerWithDynamicModel(unittest.TestCase):
                                         (base + 2) * np.ones((4, 4)))
 
     @chainer.testing.attr.gpu
-    def test_update_with_gpu(self):
-        self.setup_gpu()
+    @pytest.mark.parametrize("use_chx", [True, False])
+    def test_update_with_gpu(self, use_chx):
+        self.setup_gpu(use_chx)
         self.optimizer = chainermn.create_multi_node_optimizer(
             self.actual_optimizer, self.comm)
         opt = self.optimizer.setup(self.target)
         assert opt is self.optimizer
         self.optimizer.update()
-        self.assertEqual(self.actual_optimizer.t, 0)
+        assert self.actual_optimizer.t == 0
 
         with self.target.init_scope():
             c = chainer.links.Linear(4, 4)
-            c.to_device(cupy.cuda.Device())
+            c.to_device(self.device)
             self.target.c = c
         if self.comm.rank == 0:
             self.target.c.W.data[:] = self.comm.rank + 2
         self.optimizer.setup(self.target)
         self.optimizer.update()
-        self.assertEqual(self.actual_optimizer.t, 0)
+        assert self.actual_optimizer.t == 0
 
         send_buf = chainer.cuda.to_cpu(self.optimizer.target.c.W.data)
         recv_buf = self.comm.mpi_comm.allgather(send_buf)
@@ -211,7 +218,7 @@ class TestMultiNodeOptimizerWithDynamicModel(unittest.TestCase):
         self.optimizer.target.b.W.grad[:] = self.comm.rank + 1
         self.optimizer.target.c.W.grad[:] = self.comm.rank + 2
         self.optimizer.update()
-        self.assertEqual(self.actual_optimizer.t, 1)
+        assert self.actual_optimizer.t == 1
         self.optimizer.target.a.W.update_rule.update.assert_called_once_with(
             self.optimizer.target.a.W)
         self.optimizer.target.b.W.update_rule.update.assert_called_once_with(
