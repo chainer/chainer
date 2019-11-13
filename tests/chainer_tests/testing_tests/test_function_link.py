@@ -264,6 +264,7 @@ class FuncWithIncorrectBackward(chainer.FunctionNode):
 @testing.parameterize(*testing.product({
     'shape': [(3, 2), (2,), (1,), ()],
 }))
+@testing.fix_random()
 @_inject_backend_tests
 @pytest.mark.xfail(strict=True, raises=testing.FunctionTestError)
 class TestFunctionTestIncorrectBackward(testing.FunctionTestCase):
@@ -283,6 +284,37 @@ class TestFunctionTestIncorrectBackward(testing.FunctionTestCase):
         return _forward_correct(*inputs)
 
 
+<<<<<<< HEAD
+=======
+@testing.fix_random()
+@_inject_backend_tests
+@pytest.mark.xfail(strict=True, raises=testing.FunctionTestError)
+class TestFunctionTestIncorrectBackwardNoneGrads(testing.FunctionTestCase):
+    skip_forward_test = True
+    skip_double_backward_test = True
+
+    def generate_inputs(self):
+        x1 = numpy.random.uniform(-1, 1, (3, 2)).astype(numpy.float32)
+        x2 = numpy.random.uniform(-1, 1, (3, 2)).astype(numpy.float32)
+        return x1, x2
+
+    def generate_grad_outputs(self, output_templates):
+        grad_outputs = (
+            None,
+            (numpy.random.uniform(-1, 1, output_templates[1].shape)
+             .astype(output_templates[1].dtype)))
+        return grad_outputs
+
+    def forward(self, inputs, device):
+        func = FuncWithIncorrectBackward(
+            expect_grad_outputs_none=(True, False))
+        return func.apply(inputs)
+
+    def forward_expected(self, inputs):
+        return _forward_correct(*inputs)
+
+
+>>>>>>> 6fb2fc43a... Merge pull request #8419 from toslunar/xfail-backward
 # TestFunctionTestIncorrectDoubleBackward
 #
 # This test checks if it can detect incorrect double backward implementation.
@@ -321,6 +353,7 @@ class FuncGradWithIncorrectDoubleBackward(chainer.FunctionNode):
 @testing.parameterize(*testing.product({
     'shape': [(3, 2), (2,), (1,), ()],
 }))
+@testing.fix_random()
 @_inject_backend_tests
 @pytest.mark.xfail(strict=True, raises=testing.FunctionTestError)
 class TestFunctionTestIncorrectDoubleBackward(testing.FunctionTestCase):
@@ -340,6 +373,46 @@ class TestFunctionTestIncorrectDoubleBackward(testing.FunctionTestCase):
         return _forward_correct(*inputs)
 
 
+<<<<<<< HEAD
+=======
+@testing.fix_random()
+@_inject_backend_tests
+@pytest.mark.xfail(strict=True, raises=testing.FunctionTestError)
+class TestFunctionTestIncorrectDoubleBackwardNoneGrads(
+        testing.FunctionTestCase):
+    skip_forward_test = True
+    skip_backward_test = True
+
+    def generate_inputs(self):
+        x1 = numpy.random.uniform(-1, 1, (3, 2)).astype(numpy.float32)
+        x2 = numpy.random.uniform(-1, 1, (3, 2)).astype(numpy.float32)
+        return x1, x2
+
+    def generate_grad_outputs(self, output_templates):
+        grad_outputs = (
+            None,
+            (numpy.random.uniform(-1, 1, output_templates[1].shape)
+             .astype(output_templates[1].dtype)))
+        return grad_outputs
+
+    def generate_grad_grad_inputs(self, input_templates):
+        grad_inputs = (
+            (numpy.random.uniform(-1, 1, input_templates[0].shape)
+             .astype(input_templates[0].dtype)),
+            None)
+        return grad_inputs
+
+    def forward(self, inputs, device):
+        func = FuncWithIncorrectDoubleBackward(
+            expect_grad_outputs_none=(True, False),
+            expect_grad_grad_inputs_none=(False, True))
+        return func.apply(inputs)
+
+    def forward_expected(self, inputs):
+        return _forward_correct(*inputs)
+
+
+>>>>>>> 6fb2fc43a... Merge pull request #8419 from toslunar/xfail-backward
 # FunctionTestCaseArrayContiguousnessTest
 
 
@@ -630,6 +703,7 @@ class TestLinkIncorrectForward(DotLinkTestBase, testing.LinkTestCase):
         return link
 
 
+@testing.fix_random()
 @_inject_backend_tests
 @pytest.mark.xfail(strict=True, raises=testing.LinkTestError)
 class TestLinkIncorrectBackwardInput(DotLinkTestBase, testing.LinkTestCase):
@@ -645,6 +719,7 @@ class TestLinkIncorrectBackwardInput(DotLinkTestBase, testing.LinkTestCase):
         return link
 
 
+@testing.fix_random()
 @_inject_backend_tests
 @pytest.mark.xfail(strict=True, raises=testing.LinkTestError)
 class TestLinkIncorrectBackwardParam(DotLinkTestBase, testing.LinkTestCase):
