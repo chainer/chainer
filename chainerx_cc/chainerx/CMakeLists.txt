@@ -116,12 +116,12 @@ if(MSVC)
         )
     add_library(chainerx STATIC empty.cc)
 else()
-    add_library(chainerx SHARED empty.cc)
+    add_library(chainerx STATIC empty.cc)
 endif()
 
 # abseil
 target_link_libraries(
-    chainerx
+    chainerx_base
     PUBLIC
     absl::failure_signal_handler
     absl::bad_optional_access
@@ -157,6 +157,7 @@ elseif(${APPLE})
 else()
     target_link_libraries(chainerx
         PRIVATE
+        -Wl,--allow-multiple-definition
         -Wl,--whole-archive
         ${chainerx_sub_libs}
         -Wl,--no-whole-archive
