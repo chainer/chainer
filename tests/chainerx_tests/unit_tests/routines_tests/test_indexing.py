@@ -276,12 +276,16 @@ def test_take_index_error(device, shape, indices, axis):
         chainerx.take(a, indices, axis, mode='raise')
 
 
-def _random_condition(shape, dtype):
-    size = int(numpy.prod(shape))
-    mask = numpy.random.randint(0, 1, size).astype('bool_').reshape(shape)
-    pos = array_utils.uniform(shape, dtype)
-    pos[numpy.logical_not(pos)] = True  # All elements are True
-    return pos * mask
+def _random_condition(shape, dtype, *, random_state=None):
+    if random_state is None:
+        random_state = numpy.random.RandomState()
+    neg_mask = random_state.randint(0, 2, size=shape).astype('bool')
+    cond = array_utils.uniform(shape, dtype, random_state=random_state)
+    # Replace zeros with nonzero, making the average number of zero elements
+    # in cond independent of the dtype.
+    cond[cond == 0] = 1
+    cond[neg_mask] = 0
+    return cond
 
 
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
@@ -334,9 +338,9 @@ class TestWhere(math_utils.BinaryMathTestBase, op_utils.NumpyOpTest):
     input_lhs = 'random'
     input_rhs = 'random'
 
-    def generate_inputs(self):
+    def setup(self):
+        super().setup()
         self.condition = _random_condition(self.cond_shape, self.cond_dtype)
-        return super().generate_inputs()
 
     def func(self, xp, x, y):
         condition = xp.array(self.condition)
@@ -383,9 +387,9 @@ class TestWhereScalar(math_utils.MathScalarTestBase, op_utils.NumpyOpTest):
     input = 'random'
     scalar_value = 3
 
-    def generate_inputs(self):
+    def setup(self):
+        super().setup()
         self.condition = _random_condition(self.cond_shape, self.cond_dtype)
-        return super().generate_inputs()
 
     def func_scalar(self, xp, a, scalar):
         condition = xp.array(self.condition)
@@ -413,7 +417,9 @@ _in_out_dtypes_where_scalar = [
 @pytest.mark.parametrize('cond_dtype', chainerx.testing.all_dtypes)
 @pytest.mark.parametrize('in_types,out_dtype', _in_out_dtypes_where_scalar)
 def test_where_scalar_scalar(xp, cond_shape, cond_dtype, in_types, out_dtype):
-    cond = xp.array(_random_condition(cond_shape, cond_dtype))
+    cond = _random_condition(
+        cond_shape, cond_dtype, random_state=numpy.random.RandomState(seed=0))
+    cond = xp.array(cond)
     x_type, y_type = in_types
     x = x_type(0)
     y = y_type(2)
