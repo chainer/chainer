@@ -47,8 +47,10 @@ class ObservationAggregator(extension.Extension):
                 # use to native device as ChainerX array cannot
                 # be converted to numpy directly, which is what `to_cpu()` does
                 value.to_device("native")
-            elif isinstance(value, chx.ndarray) and not value.device.name.startswith('native'):
-                raise ValueError("observation aggregator does not support ChainerX ndarray")
+            elif isinstance(value, chx.ndarray) and \
+                    not value.device.name.startswith('native'):
+                raise ValueError(
+                    "observation aggregator does not support ChainerX ndarray")
             self.observation_history.append(value)
 
         if not self.comm_trigger(trainer):
