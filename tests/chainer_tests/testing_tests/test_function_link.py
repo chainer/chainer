@@ -343,6 +343,7 @@ class FuncWithIncorrectBackward(chainer.FunctionNode):
 @testing.parameterize(*testing.product({
     'shape': [(3, 2), (2,), (1,), ()],
 }))
+@testing.fix_random()
 @_inject_backend_tests
 @pytest.mark.xfail(strict=True, raises=testing.FunctionTestError)
 class TestFunctionTestIncorrectBackward(testing.FunctionTestCase):
@@ -362,6 +363,7 @@ class TestFunctionTestIncorrectBackward(testing.FunctionTestCase):
         return _forward_correct(*inputs)
 
 
+@testing.fix_random()
 @_inject_backend_tests
 @pytest.mark.xfail(strict=True, raises=testing.FunctionTestError)
 class TestFunctionTestIncorrectBackwardNoneGrads(testing.FunctionTestCase):
@@ -450,6 +452,7 @@ class FuncGradWithIncorrectDoubleBackward(chainer.FunctionNode):
 @testing.parameterize(*testing.product({
     'shape': [(3, 2), (2,), (1,), ()],
 }))
+@testing.fix_random()
 @_inject_backend_tests
 @pytest.mark.xfail(strict=True, raises=testing.FunctionTestError)
 class TestFunctionTestIncorrectDoubleBackward(testing.FunctionTestCase):
@@ -469,6 +472,7 @@ class TestFunctionTestIncorrectDoubleBackward(testing.FunctionTestCase):
         return _forward_correct(*inputs)
 
 
+@testing.fix_random()
 @_inject_backend_tests
 @pytest.mark.xfail(strict=True, raises=testing.FunctionTestError)
 class TestFunctionTestIncorrectDoubleBackwardNoneGrads(
@@ -795,6 +799,7 @@ class TestLinkIncorrectForward(DotLinkTestBase, testing.LinkTestCase):
         return link
 
 
+@testing.fix_random()
 @_inject_backend_tests
 @pytest.mark.xfail(strict=True, raises=testing.LinkTestError)
 class TestLinkIncorrectBackwardInput(DotLinkTestBase, testing.LinkTestCase):
@@ -810,6 +815,7 @@ class TestLinkIncorrectBackwardInput(DotLinkTestBase, testing.LinkTestCase):
         return link
 
 
+@testing.fix_random()
 @_inject_backend_tests
 @pytest.mark.xfail(strict=True, raises=testing.LinkTestError)
 class TestLinkIncorrectBackwardParam(DotLinkTestBase, testing.LinkTestCase):
