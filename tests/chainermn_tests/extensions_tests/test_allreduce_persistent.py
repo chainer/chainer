@@ -1,5 +1,4 @@
 import chainer
-from chainer.backends.cuda import cupy
 import chainer.testing
 import chainer.testing.attr
 import unittest
@@ -44,7 +43,6 @@ class TestAllreducePersistent(unittest.TestCase):
 
     def test_allreduce_persistent_cpu(self):
         comm = chainermn.create_communicator('naive')
-        device = chainer.get_device('native')
         model = ExampleModel()
         self._test(comm, model, False, False)
         self._test(comm, model, False, True)
