@@ -5,7 +5,7 @@ import chainer.testing.attr
 import unittest
 
 import chainermn
-import chainerx as chx
+from chainermn.testing.device import get_device
 
 
 class ExampleModel(chainer.Chain):
@@ -22,19 +22,7 @@ class ExampleModel(chainer.Chain):
 class TestAllreducePersistent(unittest.TestCase):
 
     def _test(self, comm, model, use_gpu, use_chx):
-
-        if use_gpu:
-            if use_chx:
-                device_id = 'cuda:{}'.format(comm.intra_rank)
-            else:
-                device_id = '@cupy:{}'.format(comm.intra_rank)
-        else:
-            if use_chx:
-                device_id = 'native'
-            else:
-                device_id = '@numpy'
-
-        device = chainer.get_device(device_id)
+        device = get_device(comm.intra_rank if use_gpu else None, use_chx)
         device.use()
         model.to_device(device)
 
