@@ -49,7 +49,7 @@ class TestMaxPooling2D(unittest.TestCase):
 
         # Avoid unstability of numerical gradient
         x = numpy.arange(2 * 3 * 4 * 3, dtype=dtype).reshape(2, 3, 4, 3)
-        numpy.random.shuffle(x)
+        numpy.random.shuffle(x.ravel())
         x = 2 * x / x.size - 1
         if self.cover_all:
             gy = numpy.random.uniform(-1, 1, (2, 3, 3, 2)).astype(dtype)
@@ -259,7 +259,7 @@ class TestMaxPooling2DIndices(unittest.TestCase):
     def setUp(self):
         self.x = numpy.arange(
             2 * 3 * 4 * 4, dtype=numpy.float32).reshape(2, 3, 4, 4)
-        numpy.random.shuffle(self.x)
+        numpy.random.shuffle(self.x.ravel())
 
     def _check(self, x):
         out, indices = functions.max_pooling_2d(
