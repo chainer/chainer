@@ -1,3 +1,5 @@
+#include "chainerx/python/common_export.h"
+
 #include "chainerx/python/cuda/cuda_module.h"
 
 #include <cstddef>

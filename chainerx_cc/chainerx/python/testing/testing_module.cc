@@ -1,3 +1,5 @@
+#include "chainerx/python/common_export.h"
+
 #include "chainerx/python/testing/testing_module.h"
 
 #include "chainerx/python/testing/device_buffer.h"

@@ -1,6 +1,8 @@
-#include <string>
+#include "chainerx/python/common_export.h"
 
 #include "chainerx/python/scalar.h"
+
+#include <string>
 
 #include <pybind11/operators.h>
 

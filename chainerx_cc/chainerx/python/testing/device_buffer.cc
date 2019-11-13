@@ -1,3 +1,5 @@
+#include "chainerx/python/common_export.h"
+
 #include "chainerx/python/testing/device_buffer.h"
 
 #include <algorithm>
@@ -8,7 +10,6 @@
 
 #include "chainerx/device.h"
 #include "chainerx/error.h"
-#include "chainerx/macro.h"
 #include "chainerx/python/device.h"
 #include "chainerx/python/dtype.h"
 #include "chainerx/python/shape.h"
@@ -29,7 +30,7 @@ using py::literals::operator""_a;
 // (py::buffer_info only holds a raw pointer and does not manage the lifetime of the pointed data). Memoryviews created from this buffer
 // will also share ownership. Note that accessing the .obj attribute of a memoryview may increase the reference count and should thus be
 // avoided.
-class CHAINERX_VISIBILITY_HIDDEN PyDeviceBuffer {
+class PyDeviceBuffer {
 public:
     PyDeviceBuffer(std::shared_ptr<void> data, std::shared_ptr<py::buffer_info> info) : data_{std::move(data)}, info_{std::move(info)} {}
 
