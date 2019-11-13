@@ -15,6 +15,8 @@ from chainer import training
 import chainermn
 from chainermn.extensions.checkpoint import _CheckpointStats
 from chainermn.extensions.checkpoint import create_multi_node_checkpointer
+from chainermn.testing.device import get_device
+import chainerx as chx
 
 
 class MLP(chainer.Chain):
@@ -49,12 +51,12 @@ class TestCheckpoint(unittest.TestCase):
         stats = _CheckpointStats()
         assert isinstance(stats.report(), str)
 
-    def test_filename_converters(self):
+    def check_filename_converters(self, xp):
         checkpointer = create_multi_node_checkpointer(name='hoge',
                                                       comm=self.communicator,
                                                       cp_interval=23,
                                                       gc_interval=32)
-        nums = [np.random.randint(4096) for _ in range(234)]
+        nums = [int(xp.random.uniform() * 4096) for _ in range(234)]
         filenames = checkpointer._filenames(nums)
         nums2 = []
         for n, r, i in checkpointer._parse_filenames(filenames):
@@ -68,12 +70,18 @@ class TestCheckpoint(unittest.TestCase):
 
         assert set(filenames) == set(filenames2)
 
-    def setup_mnist_trainer(self, display_log=False):
+    def test_filename_converters(self):
+        self.check_filename_converters(np)
+        self.check_filename_converters(chx)
+
+    def setup_mnist_trainer(self, display_log=False, use_chx=False):
         batchsize = 100
         n_units = 100
 
         comm = self.communicator
         model = L.Classifier(MLP(n_units, 10))
+
+        model.to_device(get_device(None, use_chx))
 
         optimizer = chainermn.create_multi_node_optimizer(
             chainer.optimizers.Adam(), comm)
@@ -101,7 +109,12 @@ class TestCheckpoint(unittest.TestCase):
 
     @chainer.testing.attr.slow
     def test_mnist_simple(self, display_log=True):
-        updater, optimizer, train_iter, _, model = self.setup_mnist_trainer()
+        self.check_mnist_simple(display_log, False)
+        self.check_mnist_simple(display_log, True)
+
+    def check_mnist_simple(self, display_log=True, use_chx=False):
+        updater, optimizer, train_iter, _, model = \
+            self.setup_mnist_trainer(use_chx)
 
         path = tempfile.mkdtemp(dir='/tmp', prefix=__name__ + '-tmp-')
         if display_log:
