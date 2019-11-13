@@ -190,6 +190,10 @@ from onnx_chainer_tests.helper import ONNXModelTest
      'input_argname': 'x', 'args': {'source': 0, 'destination': -1}},
     {'ops': 'moveaxis', 'input_shape': (2, 3, 4, 5),
      'input_argname': 'x', 'args': {'source': (0, 3), 'destination': (2, 0)}},
+
+    # rollaxis
+    {'ops': 'rollaxis', 'input_shape': (2, 3, 4, 5),
+     'input_argname': 'x', 'args': {'axis': 2, 'start': 0}},
 )
 class TestArrayOperators(ONNXModelTest):
 
