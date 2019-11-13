@@ -497,6 +497,17 @@ class UpdateRule(object):
         self._use_fp32_update = flag
 
 
+class _OptimizerHookable(_Hookable):
+    def __init__(self, optimizer):
+        super(_OptimizerHookable, self).__init__(
+            invalid_timing_fallback=True)
+        self.optimizer = optimizer
+
+    def call_hook(self, hook, args):
+        assert args == ()
+        self.optimizer.call_hook(hook)
+
+
 class Optimizer(object):
     """Base class of all numerical optimizers.
 
@@ -571,18 +582,7 @@ class Optimizer(object):
         self.t = 0
         self.epoch = 0
 
-        optimizer = self
-
-        class OptimizerHookable(_Hookable):
-            def __init__(self):
-                super(OptimizerHookable, self).__init__(
-                    invalid_timing_fallback=True)
-
-            def call_hook(self, hook, args):
-                assert args == ()
-                optimizer.call_hook(hook)
-
-        self._hookable = OptimizerHookable()
+        self._hookable = _OptimizerHookable(self)
         return self
 
     def update(self, lossfun=None, *args, **kwds):
