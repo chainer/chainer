@@ -31,22 +31,6 @@ namespace chainerx {
 namespace cuda {
 namespace {
 
-// Makes axes for permutation that moves [first_axis, last_axis) to the head.
-Axes MakeRollingPermutation(int8_t first_axis, int8_t last_axis, int8_t ndim) {
-    CHAINERX_ASSERT(0 <= first_axis);
-    CHAINERX_ASSERT(first_axis < last_axis);
-    CHAINERX_ASSERT(last_axis <= ndim);
-
-    Axes permutation{};
-    permutation.resize(ndim);
-    auto head_end = permutation.begin() + (last_axis - first_axis);
-    auto last = permutation.begin() + last_axis;
-    std::iota(permutation.begin(), head_end, first_axis);
-    std::iota(head_end, last, int8_t{0});
-    std::iota(last, permutation.end(), last_axis);
-    return permutation;
-}
-
 template <typename T, typename TIndex, int8_t kNdim>
 __global__ void TakeCudaKernel(
         IndexableArray<const T, kNdim> a,
