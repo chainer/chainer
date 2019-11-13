@@ -61,7 +61,7 @@ class NStepRNNBase(link.ChainList):
         initialW, initial_bias = argument.parse_kwargs(
             kwargs,
             ("initialW", None),
-            ("initiali_bias", None),
+            ("initial_bias", None),
             use_cudnn="use_cudnn argument is not supported anymore. "
             "Use chainer.using_config",
             use_bi_direction="use_bi_direction is not supported anymore",
