@@ -575,3 +575,16 @@ def convert_Moveaxis(func, opset_version, input_names, output_names, context):
                                  perm=order)
 
     return node,
+
+
+def convert_Rollaxis(func, opset_version, input_names, output_names, context):
+    ndim = len(func.inputs[0].shape)
+
+    order = list(range(ndim))
+    order.remove(func.axis)
+    order.insert(func.start, func.axis)
+
+    node = onnx_helper.make_node('Transpose', input_names, output_names,
+                                 perm=order)
+
+    return node,

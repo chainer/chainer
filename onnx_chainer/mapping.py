@@ -32,6 +32,7 @@ _supported_function_node_set = {
     'Repeat',
     'Reshape',
     'ResizeImages',
+    'Rollaxis',
     'Separate',
     'Shape',
     'Space2Depth',
