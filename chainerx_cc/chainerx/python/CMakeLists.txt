@@ -33,7 +33,8 @@ endif()
 pybind11_add_module(${module_name} MODULE ${srcs})
 
 # Strip symbols
-target_link_options(${module_name} PRIVATE -Wl,--exclude-libs,ALL)
+# (Note: target_link_options() is only since CMake 3.13)
+target_link_libraries(${module_name} PRIVATE -Wl,--exclude-libs,ALL)
 
 # CUDA specific bindings.
 if(${CUDA_FOUND})
