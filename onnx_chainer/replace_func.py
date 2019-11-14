@@ -47,7 +47,8 @@ class WrappedFunctionNode(chainer.FunctionNode):
         if not chainer.is_arrays_compatible(dummy_results):
             raise ValueError(
                 'returned values from the function wrapped by \'as_funcnode\' '
-                'must consist only array, function name: {}'.format(self.name))
+                'must consist only array, function name: {}'.format(
+                    self.custom_function_node_name))
         return dummy_results
 
     def backward(self, target_input_indexes, grad_outputs):
