@@ -39,14 +39,14 @@ def test_observation_aggregator_cpu(use_chainer_variable,
 
 
 @pytest.mark.parametrize('use_chainer_variable', [False, True])
-@pytest.mark.parametrize('communicate_interval', [1])
+@pytest.mark.parametrize('communicate_interval', [1, 2])
 @chainer.testing.attr.gpu
 def test_observation_aggregator_gpu_chainerx(use_chainer_variable,
                                              communicate_interval):
     xp = chainerx
     communicator = chainermn.create_communicator('pure_nccl')
     device = get_device(communicator.intra_rank, True)
-    with chainerx.using_device(device):
+    with chainerx.using_device(device.device):
         if use_chainer_variable:
             run_test_observation_aggregator(communicator, xp,
                                             use_chainer_variable,
@@ -54,7 +54,6 @@ def test_observation_aggregator_gpu_chainerx(use_chainer_variable,
                                             use_gpu=True)
         else:
             with pytest.raises(ValueError):
-                raise ValueError("")
                 run_test_observation_aggregator(communicator, xp,
                                                 use_chainer_variable,
                                                 communicate_interval,
@@ -68,14 +67,9 @@ def test_observation_aggregator_gpu_chainerx(use_chainer_variable,
 def test_observation_aggregator_gpu_cupy(use_chainer_variable,
                                     communicate_interval):
     communicator = chainermn.create_communicator('pure_nccl')
-    xp = cuda.cupy
-    rank = communicator.intra_rank
-    # cuda.Device(rank).use()
-    # chainer.get_device('@cupy:{}'.format(rank)).use()
-    # chainer.get_device('cuda:{}'.format(rank)).use()
-    # chainer.cuda.get_device_from_id(rank).use()
+    device = get_device(communicator.intra_rank, False).use()
 
-    run_test_observation_aggregator(communicator, xp,
+    run_test_observation_aggregator(communicator, cuda.cupy,
                                     use_chainer_variable,
                                     communicate_interval,
                                     use_gpu=True)
@@ -91,7 +85,7 @@ def run_test_observation_aggregator(comm, xp,
         # Use CuPy's Device class to force call cudaSetDevice()
         get_device(comm.intra_rank, False).use()
 
-    device = get_device(comm.intra_rank if use_gpu else None, xp)
+    device = get_device(comm.intra_rank if use_gpu else None, xp == chainerx)
     device.use()
 
     if xp == chainerx:
@@ -133,10 +127,10 @@ def run_test_observation_aggregator(comm, xp,
         expected = (comm.size - 1) / 2
         chainer.testing.assert_allclose(actual, expected)
 
-    # trainer.extend(rank_reporter)
-    # trainer.extend(ObservationAggregator(
-    #     comm, 'rank', 'rank-aggregated',
-    #     comm_trigger=(communicate_interval, 'iteration')))
-    # trainer.extend(aggregated_rank_checker)
+    trainer.extend(rank_reporter)
+    trainer.extend(ObservationAggregator(
+        comm, 'rank', 'rank-aggregated',
+        comm_trigger=(communicate_interval, 'iteration')))
+    trainer.extend(aggregated_rank_checker)
 
     trainer.run()
