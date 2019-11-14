@@ -21,6 +21,10 @@ class ExampleModel(chainer.Chain):
 class TestAllreducePersistent(unittest.TestCase):
 
     def _test(self, comm, model, use_gpu, use_chx):
+        if use_gpu:
+            # Use CuPy's Device class to force call cudaSetDevice()
+            get_device(comm.intra_rank, False).use()
+
         device = get_device(comm.intra_rank if use_gpu else None, use_chx)
         device.use()
         model.to_device(device)
