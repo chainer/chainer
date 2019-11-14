@@ -18,3 +18,7 @@ rules { name: "chainerx_tests/unit_tests/routines_tests/test_logic.py" deadline:
 rules { name: "chainerx_tests/unit_tests/routines_tests/test_misc.py" deadline: 240 }
 rules { name: "chainerx_tests/unit_tests/routines_tests/test_normalization.py" deadline: 240 }
 rules { name: "chainerx_tests/unit_tests/routines_tests/test_reduction.py" deadline: 240 }
+
+# Slow tests take 30+ seconds.
+rules { name: "chainerx_tests/unit_tests/routines_tests/test_binary.py" deadline: 120 }
+rules { name: "chainerx_tests/unit_tests/routines_tests/test_linalg.py" deadline: 120 }
