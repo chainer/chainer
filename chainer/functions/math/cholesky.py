@@ -26,7 +26,7 @@ class Cholesky(function_node.FunctionNode):
         return xp.linalg.cholesky(a),
 
     def forward_chainerx(self, inputs):
-        return chainerx.linalg.cholesky(*inputs)
+        return chainerx.linalg.cholesky(*inputs),
 
     def backward(self, indexes, grad_outputs):
         gy, = grad_outputs
