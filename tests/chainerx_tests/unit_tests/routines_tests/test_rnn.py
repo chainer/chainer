@@ -240,6 +240,7 @@ class TestNStepBiLstm(op_utils.ChainerOpTest):
             'in_dtypes, out_dtype', n_step_lstm_dtypes_valid)
     ])
 ))
+@op_utils.fix_random()  # This test is unstable.
 class TestNStepGru(op_utils.ChainerOpTest):
 
     def setup(self):
