@@ -11,7 +11,7 @@ class Cholesky(function_node.FunctionNode):
         return 'cholesky'
 
     def check_type_forward(self, in_types):
-        type_check._argname(in_types, ('a'))
+        type_check._argname(in_types, ('a', ))
         a_type, = in_types
 
         type_check.expect(
