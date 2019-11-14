@@ -672,7 +672,7 @@ class TestSerialize(unittest.TestCase):
         bn(x)
         x = numpy.random.rand(*self.x_shape).astype(numpy.float32)
         bn(x, finetune=True)
-        # link1 has non-trivial values to be stored
+        # has non-trivial values to be stored
         assert bn.avg_mean is not None
         assert bn.N == 1
 
