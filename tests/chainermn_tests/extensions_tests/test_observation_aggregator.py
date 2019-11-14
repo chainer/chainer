@@ -9,7 +9,7 @@ import chainer.testing
 from chainer.training import extension
 from chainer.backend import cuda
 import chainermn
-import chainermn.testing
+from chainermn.testing import get_device
 from chainermn.extensions import ObservationAggregator
 import chainerx
 
@@ -45,22 +45,20 @@ def test_observation_aggregator_gpu_chainerx(use_chainer_variable,
                                              communicate_interval):
     xp = chainerx
     communicator = chainermn.create_communicator('pure_nccl')
-    device_name = "cuda:{}".format(communicator.intra_rank)
-    with chainerx.using_device(device_name):
+    device = get_device(communicator.intra_rank, True)
+    with chainerx.using_device(device):
         if use_chainer_variable:
             run_test_observation_aggregator(communicator, xp,
                                             use_chainer_variable,
                                             communicate_interval,
-                                            use_gpu=True,
-                                            device_name=device_name)
+                                            use_gpu=True)
         else:
             with pytest.raises(ValueError):
                 raise ValueError("")
                 run_test_observation_aggregator(communicator, xp,
                                                 use_chainer_variable,
                                                 communicate_interval,
-                                                use_gpu=True,
-                                                device_name=device_name)
+                                                use_gpu=True)
     del communicator
 
 
@@ -86,22 +84,14 @@ def test_observation_aggregator_gpu_cupy(use_chainer_variable,
 def run_test_observation_aggregator(comm, xp,
                                     use_chainer_variable,
                                     communicate_interval,
-                                    use_gpu, device_name=None):
+                                    use_gpu):
     model = DummyChain()
 
-    if device_name is None:
-        if use_gpu:
-            if xp == chainerx:
-                # model.to_chx()
-                device_name = 'cuda:{}'.format(comm.intra_rank)
-            else:
-                cuda.get_device_from_id(comm.intra_rank).use()
-                device_name = '@cupy:{}'.format(comm.intra_rank)
-        else:
-            device_name = 'native'
+    if use_gpu:
+        # Use CuPy's Device class to force call cudaSetDevice()
+        get_device(comm.intra_rank, False).use()
 
-    print(device_name, flush=True)
-    device = chainer.get_device(device_name)
+    device = get_device(comm.intra_rank if use_gpu else None, xp)
     device.use()
 
     if xp == chainerx:
@@ -120,7 +110,8 @@ def run_test_observation_aggregator(comm, xp,
         chainer.optimizers.Adam(), comm)
     optimizer.setup(model)
 
-    updater = chainer.training.StandardUpdater(train_iter, optimizer, device=device)
+    updater = chainer.training.StandardUpdater(train_iter, optimizer,
+                                               device=device)
 
     trainer = chainer.training.Trainer(updater, (1, 'epoch'))
 
