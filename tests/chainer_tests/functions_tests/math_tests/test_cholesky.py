@@ -76,6 +76,7 @@ class TestCholesky(testing.FunctionTestCase):
 
     def forward(self, inputs, device):
         a, = inputs
+        a = 0.5 * (a + a.T)
         y = F.cholesky(a)
         return y,
 
