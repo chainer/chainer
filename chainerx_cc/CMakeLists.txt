@@ -149,6 +149,8 @@ endif()
 if(${CHAINERX_BUILD_CUDA})
     find_package(CUDA REQUIRED QUIET)
 
+    add_definitions(-DCHAINERX_ENABLE_CUDA=1)
+
     list(APPEND CUDA_NVCC_FLAGS "-std=c++${CMAKE_CXX_STANDARD}")
 
     # Ignore unused function warnings in NVCC that comes from CUDA system headers.
@@ -160,7 +162,6 @@ if(${CHAINERX_BUILD_CUDA})
     # CUDA_cublas_device_LIBRARY is required for CUDA > 9.2 with cmake < to 3.12.2.
     # This is because cublas_device was deprecated in CUDA 9.2, but FindCUDA supported it in 3.12.2.
     set(CUDA_cublas_device_LIBRARY ${CUDA_LIBRARIES})
-    add_definitions(-DCHAINERX_ENABLE_CUDA=1)
 
     # If CHAINERX_CUDNN_USE_CUPY is set, retrieve cuDNN files from CuPy installation.
     if(CHAINERX_CUDNN_USE_CUPY)
