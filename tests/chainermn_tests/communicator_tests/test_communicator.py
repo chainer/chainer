@@ -934,33 +934,35 @@ class TestMpiCommunicatorBase(unittest.TestCase):
         self.teardown()
 
     @chainer.testing.attr.gpu
-    def test_send_recv_obj_chx_gpu(self):
+    def test_send_obj_chx_gpu(self):
         self.setup()
 
+        rank_next = (self.communicator.rank + 1) % self.communicator.size
         with chainerx.using_device("cuda"):
             chx_array = chainerx.array([0])
             with pytest.raises(ValueError):
-                self.check_send_recv_obj(chx_array)
+                self.communicator.send_obj(chx_array, dest=rank_next)
 
             chx_array_list = [[0], chainerx.array([1])]
             with pytest.raises(ValueError):
-                self.check_send_recv_obj(chx_array_list)
+                self.communicator.send_obj(chx_array_list, dest=rank_next)
 
             chx_array_tuple = (0, chainerx.array([2]))
             with pytest.raises(ValueError):
-                self.check_send_recv_obj(chx_array_tuple)
+                self.communicator.send_obj(chx_array_tuple, dest=rank_next)
 
             chx_array_dict_value = {0: chainerx.array([2])}
             with pytest.raises(ValueError):
-                self.check_send_recv_obj(chx_array_dict_value)
+                self.communicator.send_obj(chx_array_dict_value,
+                                           dest=rank_next)
 
             chx_array_dict_key = {chainerx.array([2]): 0}
             with pytest.raises(ValueError):
-                self.check_send_recv_obj(chx_array_dict_key)
+                self.communicator.send_obj(chx_array_dict_key, dest=rank_next)
 
             chx_array_dict_set = {chainerx.array([2]), 0}
             with pytest.raises(ValueError):
-                self.check_send_recv_obj(chx_array_dict_set)
+                self.communicator.send_obj(chx_array_dict_set, dest=rank_next)
 
         self.teardown()
 
