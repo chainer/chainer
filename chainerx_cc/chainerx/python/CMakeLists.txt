@@ -32,6 +32,9 @@ endif()
 
 pybind11_add_module(${module_name} MODULE ${srcs})
 
+# Strip symbols
+target_link_options(${module_name} PRIVATE -Wl,--exclude-libs,ALL)
+
 # CUDA specific bindings.
 if(${CUDA_FOUND})
     CUDA_ADD_LIBRARY(_core_cuda STATIC cuda/cuda_module.cc)
