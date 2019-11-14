@@ -1,7 +1,6 @@
 import unittest
 
 import numpy
-import pytest
 import six
 
 import chainer
@@ -219,10 +218,6 @@ class DetFunctionTest(unittest.TestCase):
     def test_zero_det_cpu(self):
         self.check_zero_det(self.x, self.gy, ValueError)
 
-    # TODO(hvy): Do not skip but instead configure the errstate to raise linalg
-    # errors after the following PR in CuPy is merged.
-    # https://github.com/cupy/cupy/pull/2437.
-    @pytest.mark.skip
     @attr.gpu
     def test_zero_det_gpu(self):
         with chainer.using_config('debug', True):

@@ -1,4 +1,5 @@
 import chainer
+from chainer.backends import cuda
 from chainer import function_node
 import chainer.functions
 from chainer.utils import precision
@@ -27,7 +28,12 @@ class BatchDet(function_node.FunctionNode):
         self.retain_outputs((0,))
         x, = inputs
         xp = chainer.backend.get_array_module(x)
-        detx = xp.linalg.det(x)
+        det = xp.linalg.det
+        if xp is cuda.cupy:
+            with cuda.cupyx.errstate(linalg='raise'):  # NumPy compatibility.
+                detx = det(x)
+        else:
+            detx = det(x)
         return detx,
 
     def backward(self, indexes, gy):
