@@ -58,7 +58,6 @@ class TestDataset(unittest.TestCase):
 
         for shuffle in [True, False]:
             for root in range(self.communicator.size):
-                self.communicator.mpi_comm.barrier()
                 self.check_scatter_dataset([], shuffle, root)
                 self.check_scatter_dataset([0], shuffle, root)
                 self.check_scatter_dataset(list(range(n)), shuffle, root)
