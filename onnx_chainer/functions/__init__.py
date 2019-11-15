@@ -26,6 +26,7 @@ from onnx_chainer.functions.array import convert_Repeat  # NOQA
 from onnx_chainer.functions.array import convert_Reshape  # NOQA
 from onnx_chainer.functions.array import convert_ResizeImages  # NOQA
 from onnx_chainer.functions.array import convert_Rollaxis  # NOQA
+from onnx_chainer.functions.array import convert_SelectItem  # NOQA
 from onnx_chainer.functions.array import convert_Separate  # NOQA
 from onnx_chainer.functions.array import convert_Shape  # NOQA
 from onnx_chainer.functions.array import convert_Space2Depth  # NOQA

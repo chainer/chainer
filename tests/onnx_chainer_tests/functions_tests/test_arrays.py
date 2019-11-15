@@ -155,6 +155,11 @@ from onnx_chainer_tests.helper import ONNXModelTest
      'args': {'slices': (slice(None), slice(0, 1), slice(None, 2))},
      'name': 'get_item_start_from_none'},
 
+    # select_item
+    {'ops': 'select_item', 'input_shape': (3, 3),
+     'input_argname': 'x',
+     'args': {'t': np.array([2, 1, 0], dtype=np.int32)}},
+
     # expand_dims
     {'ops': 'expand_dims', 'input_shape': (3,),
      'input_argname': 'x', 'args': {'axis': 0},
