@@ -58,7 +58,6 @@ def test_observation_aggregator_gpu_chainerx(use_chainer_variable,
                                                 use_chainer_variable,
                                                 communicate_interval,
                                                 use_gpu=True)
-    del communicator
 
 
 @pytest.mark.parametrize('use_chainer_variable', [True, False])
@@ -82,7 +81,7 @@ def run_test_observation_aggregator(comm, xp,
 
     if use_gpu:
         # Use CuPy's Device class to force call cudaSetDevice()
-        get_device(comm.intra_rank, False).use()
+        chainer.cuda.get_device_from_id(comm.intra_rank).use()
 
     device = get_device(comm.intra_rank if use_gpu else None, xp == chainerx)
     device.use()
