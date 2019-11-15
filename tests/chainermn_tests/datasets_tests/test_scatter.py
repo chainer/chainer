@@ -41,14 +41,24 @@ class TestDataset(unittest.TestCase):
             joined_dataset = sum((sub_dataset[:]
                                   for sub_dataset in sub_datasets), [])
 
-            # NOTE: values in original_dataset must be int-like type
-            # (i.e. dtype('int64') or dtype('int32')
-            # This is necessary because numpy and cupy/chainerx have
-            # different behaviours on this.
+            # NOTE: The values in `original_dataset` and
+            # `joined_dataset` must be casted to int to compare.
+            # There are 2 backgrounds on this issue.
+            #
+            # (1) numpy and cupy/chainerx have different behaviours on
+            # 1-element array. Numpy implicitly converts a 1-element array to
+            # a scalar value.
             # type(numpy.array([1])[0])
             # =>  <class 'numpy.int64'>  # Scalar
             # type(chainerx.array([1])[0])
             # => <class 'chainerx.ndarray'>  # array of one element
+            #
+            # (2) Two different ChainerX arrays are never identical in the
+            # context of `set()`.
+            # set([chainerx.array([0]), chainerx.array([0])])
+            # => {array([0], shape=(1,), dtype=int64, device='native:0'),
+            #     array([0], shape=(1,), dtype=int64, device='native:0')}
+
             joined_dataset = [int(e) for e in joined_dataset]
             original_dataset = [int(e) for e in original_dataset]
             self.assertEqual(set(joined_dataset), set(original_dataset))
