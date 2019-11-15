@@ -48,12 +48,12 @@ class TestAllreducePersistent(unittest.TestCase):
     def test_allreduce_persistent_cpu(self):
         comm = chainermn.create_communicator('naive')
         model = ExampleModel()
-        self._test(comm, model, False, False)
-        self._test(comm, model, False, True)
+        self._test(comm, model, False, False)  # CPU test (numpy)
+        self._test(comm, model, False, True)  # CPU test (ChainerX)
 
     @chainer.testing.attr.gpu
     def test_allreduce_persistent_gpu(self):
         comm = chainermn.create_communicator('flat')
         model = ExampleModel()
-        self._test(comm, model, True, False)
-        self._test(comm, model, True, True)
+        self._test(comm, model, True, False)  # GPU test (CuPy)
+        self._test(comm, model, True, True)  # GPU test (ChainerX)
