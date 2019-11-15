@@ -39,7 +39,8 @@ class TestCreateMnBnModel(unittest.TestCase):
         self.communicator = chainermn.create_communicator('naive')
 
         # Use CuPy's Device class to foce call cudaSetDevice()
-        get_device(self.communicator.intra_rank, False).use()
+        if chainer.backends.cuda.available:
+            get_device(self.communicator.intra_rank, False).use()
 
     def check_create_mnbn_model_chain(self, use_gpu, use_chx):
         model = BnChain(3)
