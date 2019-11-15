@@ -1,7 +1,6 @@
 import unittest
 
 import chainer
-from chainer.backends.cuda import cupy
 import chainer.testing
 import chainer.testing.attr
 import chainermn
