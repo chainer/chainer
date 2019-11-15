@@ -65,9 +65,8 @@ def test_observation_aggregator_gpu_chainerx(use_chainer_variable,
 @pytest.mark.parametrize('communicate_interval', [1, 2])
 @chainer.testing.attr.gpu
 def test_observation_aggregator_gpu_cupy(use_chainer_variable,
-                                    communicate_interval):
+                                         communicate_interval):
     communicator = chainermn.create_communicator('pure_nccl')
-    device = get_device(communicator.intra_rank, False).use()
 
     run_test_observation_aggregator(communicator, cuda.cupy,
                                     use_chainer_variable,
