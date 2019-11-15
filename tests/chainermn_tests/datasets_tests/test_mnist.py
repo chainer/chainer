@@ -43,7 +43,7 @@ def check_mnist(use_gpu, use_chx, display_log=True):
 
     if use_gpu:
         # Call CuPy's `Device.use()` to force cudaSetDevice()
-        get_device(comm.intra_rank, False).use()
+        chainer.cuda.get_device_from_id(comm.intra_rank).use()
 
     device = get_device(comm.intra_rank if use_gpu else None, use_chx)
     device.use()
