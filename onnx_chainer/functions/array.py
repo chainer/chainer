@@ -588,3 +588,17 @@ def convert_Rollaxis(func, opset_version, input_names, output_names, context):
                                  perm=order)
 
     return node,
+
+
+def convert_TransposeSequence(
+        func, opset_version, input_names, output_names, context):
+    if len(input_names) == 1:
+        return onnx_helper.make_node(
+            'Split', input_names, output_names, axis=0),
+    elif len(output_names) == 1:
+        return onnx_helper.make_node(
+            'Concat', input_names, output_names, axis=0),
+    else:
+        raise ValueError(
+            'ONNX-Chainer can convert TransposeSequence only when input '
+            'or output length is 1')

@@ -42,6 +42,7 @@ _supported_function_node_set = {
     'Swapaxes',
     'Tile',
     'Transpose',
+    'TransposeSequence',
     'Vstack',
     'Where',
 
