@@ -8,6 +8,7 @@ import chainer.functions as F
 import chainer.links as L
 from chainer import training
 from chainer.training import extensions
+import chainerx
 
 import chainermn
 
@@ -15,12 +16,12 @@ import chainermn
 class MLP(chainer.Chain):
 
     def __init__(self, n_units, n_out):
-        super(MLP, self).__init__(
+        super(MLP, self).__init__()
+        with self.init_scope():
             # the size of the inputs to each layer will be inferred
-            l1=L.Linear(784, n_units),  # n_in -> n_units
-            l2=L.Linear(n_units, n_units),  # n_units -> n_units
-            l3=L.Linear(n_units, n_out),  # n_units -> n_out
-        )
+            self.l1 = L.Linear(None, n_units)  # n_in -> n_units
+            self.l2 = L.Linear(None, n_units)  # n_units -> n_units
+            self.l3 = L.Linear(None, n_out)  # n_units -> n_out
 
     def __call__(self, x):
         h1 = F.relu(self.l1(x))
@@ -33,11 +34,13 @@ def main():
     parser.add_argument('--batchsize', '-b', type=int, default=100,
                         help='Number of images in each mini-batch')
     parser.add_argument('--communicator', type=str,
-                        default='hierarchical', help='Type of communicator')
+                        default='pure_nccl', help='Type of communicator')
     parser.add_argument('--epoch', '-e', type=int, default=20,
                         help='Number of sweeps over the dataset to train')
     parser.add_argument('--gpu', '-g', action='store_true',
                         help='Use GPU')
+    parser.add_argument('--chainerx', '-x', action='store_true',
+                        default=False, help='Use ChainerX')
     parser.add_argument('--out', '-o', default='result',
                         help='Directory to output the result')
     parser.add_argument('--resume', '-r', default='',
@@ -53,13 +56,19 @@ def main():
             print('Error: \'naive\' communicator does not support GPU.\n')
             exit(-1)
         comm = chainermn.create_communicator(args.communicator)
-        device = comm.intra_rank
+        if args.chainerx:
+            device = chainer.get_device('cuda:{}'.format(comm.intra_rank))
+        else:
+            device = chainer.get_device(comm.intra_rank)
     else:
         if args.communicator != 'naive':
             print('Warning: using naive communicator '
                   'because only naive supports CPU-only execution')
         comm = chainermn.create_communicator('naive')
-        device = -1
+        if args.chainerx:
+            device = chainer.get_device('native')
+        else:
+            device = chainer.get_device(-1)
 
     if comm.rank == 0:
         print('==========================================')
@@ -73,9 +82,8 @@ def main():
         print('==========================================')
 
     model = L.Classifier(MLP(args.unit, 10))
-    if device >= 0:
-        chainer.cuda.get_device_from_id(device).use()
-        model.to_gpu()
+
+    model.to_device(device)
 
     # Create a multi node optimizer from a standard Chainer optimizer.
     optimizer = chainermn.create_multi_node_optimizer(
@@ -106,7 +114,12 @@ def main():
     # Some display and output extensions are necessary only for one worker.
     # (Otherwise, there would just be repeated outputs.)
     if comm.rank == 0:
-        trainer.extend(extensions.DumpGraph('main/loss'))
+        if device.xp is not chainerx:
+            # Disabled for ChainerX.
+            # This is because ChainerX doesn't have a public API set
+            # to traverse computational graphs.
+            # See examples/mnist/train_mnist.py
+            trainer.extend(extensions.DumpGraph('main/loss'))
         trainer.extend(extensions.LogReport())
         trainer.extend(extensions.PrintReport(
             ['epoch', 'main/loss', 'validation/main/loss',

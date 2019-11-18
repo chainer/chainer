@@ -1,4 +1,5 @@
 import math
+
 import six
 
 import chainer
@@ -29,8 +30,8 @@ def spatial_pyramid_pooling_2d(x, pyramid_height, pooling=None):
     :math:`b_h, b_w` are height and width of input variable ``x``,
     respectively. Note that index of pyramid level :math:`i` is zero-based.
 
-    See detail in paper: `Spatial Pyramid Pooling in Deep Convolutional \
-    Networks for Visual Recognition \
+    See detail in paper: `Spatial Pyramid Pooling in Deep Convolutional
+    Networks for Visual Recognition
     <https://arxiv.org/abs/1406.4729>`_.
 
     Args:
@@ -53,14 +54,14 @@ def spatial_pyramid_pooling_2d(x, pyramid_height, pooling=None):
 
     # create pooling functions for different pyramid levels and apply it
     for pyramid_level in six.moves.range(pyramid_height):
-        num_bins = int(2 ** pyramid_level)
+        n_bins = int(2 ** pyramid_level)
 
-        ksize_h = int(math.ceil(bottom_h / (float(num_bins))))
-        remainder_h = ksize_h * num_bins - bottom_h
+        ksize_h = int(math.ceil(bottom_h / (float(n_bins))))
+        remainder_h = ksize_h * n_bins - bottom_h
         pad_h = remainder_h // 2
 
-        ksize_w = int(math.ceil(bottom_w / (float(num_bins))))
-        remainder_w = ksize_w * num_bins - bottom_w
+        ksize_w = int(math.ceil(bottom_w / (float(n_bins))))
+        remainder_w = ksize_w * n_bins - bottom_w
         pad_w = remainder_w // 2
 
         ksize = (ksize_h, ksize_w)

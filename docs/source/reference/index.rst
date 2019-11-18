@@ -17,6 +17,7 @@ API Reference
    datasets
    iterators
    serializers
+   backends
    util
    configuration
    debug

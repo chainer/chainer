@@ -205,7 +205,7 @@ class Sequential(_link.ChainList):
             The output of the final layer in the given layers.
 
         """
-        if len(self._layers) == 0:
+        if not self._layers:
             raise RuntimeError('Sequential does not have any layer.')
 
         for layer in self._layers:

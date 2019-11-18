@@ -108,14 +108,15 @@ class SplitAxis(function_node.FunctionNode):
         return tuple(chainerx.split(x, self.indices_or_sections, self.axis))
 
     def forward(self, inputs):
+        x, = inputs
+        self._xp = backend.get_array_module(x)
+
         # Currently iDeep only supports 4 dims
         if (intel64.should_use_ideep('>=auto')
                 and intel64.inputs_all_ready(inputs, (4,))
                 and self._ideep_is_supported(inputs)):
             return self._forward_ideep(inputs)
 
-        x, = inputs
-        self._xp = backend.get_array_module(x)
         indices_or_sections = self.indices_or_sections
         ret = self._xp.split(x, indices_or_sections, self.axis)
         if self._xp == numpy and not _numpy_split_ok:
@@ -195,7 +196,7 @@ def split_axis(x, indices_or_sections, axis, force_tuple=True):
             is one.
 
     Returns:
-        tuple or Variable: Tuple of :class:`~chainer.Variable` objects
+        tuple or ~chainer.Variable: Tuple of :class:`~chainer.Variable` objects
         if the number of outputs is more than 1 or
         :class:`~chainer.Variable` otherwise.
         When ``force_tuple`` is ``True``, returned value is always a tuple

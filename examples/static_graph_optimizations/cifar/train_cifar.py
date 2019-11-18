@@ -6,12 +6,16 @@ the code is mostly unchanged except for the addition of the
 `@static_graph` decorator to the model chain's `__call__()` method.
 """
 import argparse
+import warnings
+
+import numpy
 
 import chainer
 import chainer.links as L
 from chainer import training
 from chainer.training import extensions
 from chainer.training import triggers
+import chainerx
 
 from chainer.datasets import get_cifar10
 from chainer.datasets import get_cifar100
@@ -21,7 +25,7 @@ import models.VGG
 
 def main():
     parser = argparse.ArgumentParser(description='Chainer CIFAR example:')
-    parser.add_argument('--dataset', '-d', default='cifar10',
+    parser.add_argument('--dataset', default='cifar10',
                         help='The dataset to use: cifar10 or cifar100')
     parser.add_argument('--batchsize', '-b', type=int, default=64,
                         help='Number of images in each mini-batch')
@@ -29,20 +33,35 @@ def main():
                         help='Learning rate for SGD')
     parser.add_argument('--epoch', '-e', type=int, default=300,
                         help='Number of sweeps over the dataset to train')
-    parser.add_argument('--gpu', '-g', type=int, default=0,
-                        help='GPU ID (negative value indicates CPU)')
+    parser.add_argument('--device', '-d', type=str, default='0',
+                        help='Device specifier. Either ChainerX device '
+                        'specifier or an integer. If non-negative integer, '
+                        'CuPy arrays with specified device id are used. If '
+                        'negative integer, NumPy arrays are used')
     parser.add_argument('--out', '-o', default='result',
                         help='Directory to output the result')
     parser.add_argument('--resume', '-r', default='',
                         help='Resume the training from snapshot')
     parser.add_argument('--early-stopping', type=str,
                         help='Metric to watch for early stopping')
+    group = parser.add_argument_group('deprecated arguments')
+    group.add_argument('--gpu', '-g', dest='device',
+                       type=int, nargs='?', const=0,
+                       help='GPU ID (negative value indicates CPU)')
     args = parser.parse_args()
 
-    print('GPU: {}'.format(args.gpu))
+    if chainer.get_dtype() == numpy.float16:
+        warnings.warn(
+            'This example may cause NaN in FP16 mode.', RuntimeWarning)
+
+    device = chainer.get_device(args.device)
+
+    print('Device: {}'.format(device))
     print('# Minibatch-size: {}'.format(args.batchsize))
     print('# epoch: {}'.format(args.epoch))
     print('')
+
+    device.use()
 
     # Set up a neural network to train.
     # Classifier reports softmax cross entropy loss and accuracy at every
@@ -58,10 +77,7 @@ def main():
     else:
         raise RuntimeError('Invalid dataset choice.')
     model = L.Classifier(models.VGG.VGG(class_labels))
-    if args.gpu >= 0:
-        # Make a specified GPU current
-        chainer.backends.cuda.get_device_from_id(args.gpu).use()
-        model.to_gpu()  # Copy the model to the GPU
+    model.to_device(device)
 
     optimizer = chainer.optimizers.MomentumSGD(args.learnrate)
     optimizer.setup(model)
@@ -80,11 +96,11 @@ def main():
 
     # Set up a trainer
     updater = training.updaters.StandardUpdater(
-        train_iter, optimizer, device=args.gpu)
+        train_iter, optimizer, device=device)
     trainer = training.Trainer(updater, stop_trigger, out=args.out)
 
     # Evaluate the model with the test dataset for each epoch
-    trainer.extend(extensions.Evaluator(test_iter, model, device=args.gpu))
+    trainer.extend(extensions.Evaluator(test_iter, model, device=device))
 
     # Reduce the learning rate by half every 25 epochs.
     trainer.extend(extensions.ExponentialShift('lr', 0.5),
@@ -92,7 +108,9 @@ def main():
 
     # Dump a computational graph from 'loss' variable at the first iteration
     # The "main" refers to the target link of the "main" optimizer.
-    trainer.extend(extensions.DumpGraph('main/loss'))
+    # TODO(hvy): Support ChainerX
+    if device.xp is not chainerx:
+        trainer.extend(extensions.DumpGraph('main/loss'))
 
     # Take a snapshot at each epoch
     trainer.extend(extensions.snapshot(), trigger=(args.epoch, 'epoch'))
@@ -117,7 +135,14 @@ def main():
         chainer.serializers.load_npz(args.resume, trainer)
 
     # Run the training
-    trainer.run()
+    if device.xp is not chainerx:
+        trainer.run()
+    else:
+        warnings.warn(
+            'Static subgraph optimization does not support ChainerX and will'
+            ' be disabled.', UserWarning)
+        with chainer.using_config('use_static_graph', False):
+            trainer.run()
 
 
 if __name__ == '__main__':

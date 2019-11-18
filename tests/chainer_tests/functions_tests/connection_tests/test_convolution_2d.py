@@ -11,7 +11,7 @@ from chainer.testing import backend
 
 
 @testing.parameterize(*(testing.product({
-    'c_contiguous': [True, False],
+    'contiguous': ['C', None],
     'cover_all': [True, False],
     'x_dtype': [numpy.float32],
     'W_dtype': [numpy.float32],
@@ -19,7 +19,7 @@ from chainer.testing import backend
     'groups': [1, 2],
     'nobias': [True, False],
 }) + testing.product({
-    'c_contiguous': [False],
+    'contiguous': [None],
     'cover_all': [False],
     'x_dtype': [numpy.float16, numpy.float32, numpy.float64],
     'W_dtype': [numpy.float16, numpy.float32, numpy.float64],
@@ -83,8 +83,19 @@ class TestConvolution2DFunction(testing.FunctionTestCase):
                 'atol': 1e-3, 'rtol': 1e-3
             })
             self.check_double_backward_options.update({
-                'atol': 1e-3, 'rtol': 1e-3
+                'atol': 1e-2, 'rtol': 1e-2
             })
+
+    def before_test(self, test_name):
+        # cuDNN 5 and 5.1 results suffer from precision issues
+        using_old_cudnn = (self.backend_config.xp is cuda.cupy
+                           and self.backend_config.use_cudnn == 'always'
+                           and cuda.cuda.cudnn.getVersion() < 6000)
+        if using_old_cudnn:
+            self.check_backward_options.update({
+                'atol': 1e-3, 'rtol': 1e-3})
+            self.check_double_backward_options.update({
+                'atol': 1e-2, 'rtol': 1e-2})
 
     def generate_inputs(self):
         W = numpy.random.normal(
@@ -102,6 +113,12 @@ class TestConvolution2DFunction(testing.FunctionTestCase):
             return x, W, b
 
     def forward_expected(self, inputs):
+        """
+        Current forward_expected implementation depends on
+        F.convolution_2d itself and thus it's only capable
+        of checking consistency between backends, not absolute
+        correctness of computations
+        """
         if self.nobias:
             x, W = inputs
             b = None
@@ -298,6 +315,52 @@ class TestConvolution2DBackwardNoncontiguousGradOutputs(unittest.TestCase):
         y = F.convolution_2d(x, chainer.Variable(w))
         z = F.sum(y)
         z.backward()
+
+
+class TestConvolution2DInvalidDilation(unittest.TestCase):
+
+    n_batches = 2
+    in_channels = 3
+    out_channels = 2
+    dilate = 0
+    x_shape = (n_batches, in_channels, 10, 10)
+    w_shape = (out_channels, in_channels, 3, 3)
+
+    def check_invalid_dilation(self, x_data, w_data):
+        x = chainer.Variable(x_data)
+        w = chainer.Variable(w_data)
+        F.convolution_2d(x, w, dilate=self.dilate)
+
+    def test_invalid_dilation_cpu(self):
+        x = numpy.ones(self.x_shape, numpy.float32)
+        w = numpy.ones(self.w_shape, numpy.float32)
+        with self.assertRaises(ValueError):
+            with chainer.using_config('use_ideep', 'never'):
+                self.check_invalid_dilation(x, w)
+
+    @attr.ideep
+    def test_invalid_dilation_cpu_ideep(self):
+        x = numpy.ones(self.x_shape, numpy.float32)
+        w = numpy.ones(self.w_shape, numpy.float32)
+        with self.assertRaises(ValueError):
+            with chainer.using_config('use_ideep', 'always'):
+                self.check_invalid_dilation(x, w)
+
+    @attr.gpu
+    def test_invalid_dilation_gpu(self):
+        x = cuda.cupy.ones(self.x_shape, numpy.float32)
+        w = cuda.cupy.ones(self.w_shape, numpy.float32)
+        with self.assertRaises(ValueError):
+            with chainer.using_config('use_cudnn', 'never'):
+                self.check_invalid_dilation(x, w)
+
+    @attr.cudnn
+    def test_invalid_dilation_gpu_cudnn(self):
+        x = cuda.cupy.ones(self.x_shape, numpy.float32)
+        w = cuda.cupy.ones(self.w_shape, numpy.float32)
+        with self.assertRaises(ValueError):
+            with chainer.using_config('use_cudnn', 'always'):
+                self.check_invalid_dilation(x, w)
 
 
 testing.run_module(__name__, __file__)

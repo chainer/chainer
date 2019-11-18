@@ -1,0 +1,24 @@
+# hint.pbtxt is a config file for xpytest.
+#
+# Proto type: xpytest.proto.HintFile
+# https://github.com/chainer/xpytest/blob/master/proto/test_case.proto
+
+# Slow tests take 240+ seconds.
+rules { name: "chainerx_tests/unit_tests/routines_tests/test_indexing.py" deadline: 720 }
+
+# Slow tests take 120+ seconds.
+rules { name: "chainerx_tests/unit_tests/routines_tests/test_arithmetic.py" deadline: 480 }
+rules { name: "chainerx_tests/unit_tests/routines_tests/test_connection.py" deadline: 480 }
+rules { name: "chainerx_tests/unit_tests/routines_tests/test_manipulation.py" deadline: 480 }
+rules { name: "chainerx_tests/unit_tests/routines_tests/test_rnn.py" deadline: 480 }
+
+# Slow tests take 60+ seconds.
+rules { name: "chainerx_tests/unit_tests/routines_tests/test_creation.py" deadline: 240 }
+rules { name: "chainerx_tests/unit_tests/routines_tests/test_logic.py" deadline: 240 }
+rules { name: "chainerx_tests/unit_tests/routines_tests/test_misc.py" deadline: 240 }
+rules { name: "chainerx_tests/unit_tests/routines_tests/test_normalization.py" deadline: 240 }
+rules { name: "chainerx_tests/unit_tests/routines_tests/test_reduction.py" deadline: 240 }
+
+# Slow tests take 30+ seconds.
+rules { name: "chainerx_tests/unit_tests/routines_tests/test_binary.py" deadline: 120 }
+rules { name: "chainerx_tests/unit_tests/routines_tests/test_linalg.py" deadline: 120 }

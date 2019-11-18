@@ -1,6 +1,7 @@
 import functools
 import unittest
 
+import _pytest.outcomes
 import six
 
 
@@ -42,13 +43,20 @@ def repeat_with_success_at_least(times, min_success):
             def fail():
                 msg = '\nFail: {0}, Success: {1}'.format(
                     failure_counter, success_counter)
-                if len(results) > 0:
+                if results:
                     first = results[0]
                     errs = first.failures + first.errors
-                    if len(errs) > 0:
+                    if errs:
                         err_msg = '\n'.join(fail[1] for fail in errs)
                         msg += '\n\nThe first error message:\n' + err_msg
                 instance.fail(msg)
+
+            # Wrapper to convert pytest.skip() to unittest.SkipTest
+            def f_wrap(ins, args, kwargs):
+                try:
+                    f(ins, *args[1:], **kwargs)
+                except _pytest.outcomes.Skipped as e:
+                    ins.skipTest(e.msg)
 
             for _ in six.moves.range(times):
                 suite = unittest.TestSuite()
@@ -57,7 +65,7 @@ def repeat_with_success_at_least(times, min_success):
                 ins = type(instance)(instance._testMethodName)
                 suite.addTest(
                     unittest.FunctionTestCase(
-                        lambda: f(ins, *args[1:], **kwargs),
+                        lambda: f_wrap(ins, args, kwargs),
                         setUp=ins.setUp,
                         tearDown=ins.tearDown))
 

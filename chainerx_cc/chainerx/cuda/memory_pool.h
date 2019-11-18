@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <map>
 #include <memory>
 #include <mutex>
@@ -42,6 +43,14 @@ public:
 // This will be necessary when extending the MemoryPool with a function to explicitly free blocks.
 class Allocator {
 public:
+    Allocator() = default;
+    virtual ~Allocator() = default;
+
+    Allocator(const Allocator&) = delete;
+    Allocator(Allocator&&) = delete;
+    Allocator& operator=(const Allocator&) = delete;
+    Allocator& operator=(Allocator&&) = delete;
+
     // Allocates memory.
     // This function may throw.
     virtual MallocStatus Malloc(void** ptr, size_t bytesize) = 0;
@@ -75,8 +84,13 @@ public:
     Chunk(void* ptr, size_t offset, size_t bytesize)
         : ptr_{reinterpret_cast<void*>(reinterpret_cast<intptr_t>(ptr) + offset)},  // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
           bytesize_{bytesize} {}
+
+    ~Chunk() = default;
+
     Chunk(const Chunk&) = default;
-    ~Chunk() {}
+    Chunk(Chunk&&) = default;
+    Chunk& operator=(const Chunk&) = default;
+    Chunk& operator=(Chunk&&) = default;
 
     // Splits this chunk into a chunk with the given bytesize and one with the remaining.
     //
@@ -116,11 +130,12 @@ public:
     explicit MemoryPool(int device_index, std::unique_ptr<Allocator> allocator)
         : device_index_{device_index}, allocator_{std::move(allocator)} {}
 
-    MemoryPool(const MemoryPool&) = delete;
-
-    MemoryPool operator=(const MemoryPool&) = delete;
-
     ~MemoryPool();
+
+    MemoryPool(const MemoryPool&) = delete;
+    MemoryPool(MemoryPool&&) = delete;
+    MemoryPool& operator=(const MemoryPool&) = delete;
+    MemoryPool& operator=(MemoryPool&&) = delete;
 
     void FreeUnusedBlocks();
 
@@ -130,6 +145,10 @@ public:
     void Free(void* ptr);
 
     void FreeNoExcept(void* ptr) noexcept;
+
+    void SetMallocPreprocessHook(std::function<void(MemoryPool&, size_t)> hook);
+    void SetMallocPostprocessHook(std::function<void(MemoryPool&, size_t, void*)> hook);
+    void SetFreeHook(std::function<void(MemoryPool&, void*)> hook);
 
 private:
     friend class cuda_internal::MemoryPoolTest;  // for unit-tests
@@ -150,6 +169,10 @@ private:
     cuda_internal::FreeBinsMap free_bins_;  // allocation size => cuda_internal::FreeList
     std::mutex in_use_mutex_;
     std::mutex free_bins_mutex_;
+
+    std::function<void(MemoryPool&, size_t)> malloc_preprocess_hook_;
+    std::function<void(MemoryPool&, size_t, void*)> malloc_postprocess_hook_;
+    std::function<void(MemoryPool&, void*)> free_hook_;
 };
 
 }  // namespace cuda

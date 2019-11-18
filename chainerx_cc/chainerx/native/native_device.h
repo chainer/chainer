@@ -5,7 +5,7 @@
 #include <tuple>
 #include <utility>
 
-#include <nonstd/optional.hpp>
+#include <absl/types/optional.h>
 
 #include "chainerx/array.h"
 #include "chainerx/axes.h"
@@ -13,6 +13,7 @@
 #include "chainerx/dtype.h"
 #include "chainerx/indexable_array.h"
 #include "chainerx/indexer.h"
+#include "chainerx/kernels/pooling.h"
 #include "chainerx/native/native_backend.h"
 #include "chainerx/routines/pooling.h"
 #include "chainerx/scalar.h"
@@ -53,17 +54,17 @@ private:
 
 class NativeAveragePoolGradState : public AveragePoolGradState {
 public:
-    NativeAveragePoolGradState(Array x, Shape gcol_shape, nonstd::optional<Array> width_ignore)
+    NativeAveragePoolGradState(Array x, Shape gcol_shape, absl::optional<Array> width_ignore)
         : x_{std::move(x)}, gcol_shape_{std::move(gcol_shape)}, width_ignore_{std::move(width_ignore)} {}
 
     const Array& x() const { return x_; }
     const Shape& gcol_shape() const { return gcol_shape_; }
-    const nonstd::optional<Array>& width_ignore() const { return width_ignore_; }
+    const absl::optional<Array>& width_ignore() const { return width_ignore_; }
 
 private:
     Array x_;
     Shape gcol_shape_;
-    nonstd::optional<Array> width_ignore_;
+    absl::optional<Array> width_ignore_;
 };
 
 class NativeDevice : public Device {
@@ -85,39 +86,11 @@ public:
 
     std::shared_ptr<void> FromHostMemory(const std::shared_ptr<void>& src_ptr, size_t bytesize) override;
 
-    // reduction.cc
-
-    void Sum(const Array& a, const Axes& axis, const Array& out) override;
-    void AMax(const Array& a, const Axes& axis, const Array& out) override;
-
-    // activation.cc
-
-    void IfLessElseASSA(const Array& x1, Scalar x2, Scalar pos, const Array& neg, const Array& out) override;
-
-    void IfGreaterElseASSA(const Array& x1, Scalar x2, Scalar pos, const Array& neg, const Array& out) override;
-    void IfGreaterElseAAAA(const Array& x1, const Array& x2, const Array& pos, const Array& neg, const Array& out) override;
-
-    void Tanh(const Array& x, const Array& out) override;
-
-    // exp_log.cc
-
-    void Exp(const Array& x, const Array& out) override;
-    void Log(const Array& x, const Array& out) override;
-
-    // misc.cc
-
-    void Square(const Array& x, const Array& out) override;
-
-    void Sqrt(const Array& x, const Array& out) override;
-
-    void IsNan(const Array& x, const Array& out) override;
-    void IsInf(const Array& x, const Array& out) override;
-
 protected:
     NativeDevice(NativeBackend& backend, int index) : Device(backend, index) {}
 
 private:
-    friend NativeDevice* native_internal::CreateDevice(NativeBackend&, int);
+    friend NativeDevice* native_internal::CreateDevice(NativeBackend& backend, int index);
 };
 
 }  // namespace native

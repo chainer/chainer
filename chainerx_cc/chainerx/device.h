@@ -4,36 +4,20 @@
 #include <memory>
 #include <string>
 
-#include <nonstd/optional.hpp>
+#include <absl/types/optional.h>
 
 #include "chainerx/axes.h"
 #include "chainerx/backend.h"
 #include "chainerx/constant.h"
 #include "chainerx/dtype.h"
 #include "chainerx/error.h"
+#include "chainerx/macro.h"
 #include "chainerx/scalar.h"
 #include "chainerx/shape.h"
-#include "chainerx/stack_vector.h"
 
 namespace chainerx {
 
 class Array;
-enum class AveragePoolPadMode;
-
-class MaxPoolForwardBackward {
-public:
-    virtual ~MaxPoolForwardBackward() = default;
-    virtual Array Forward(const Array& x) = 0;
-    virtual Array Backward(const Array& gout) = 0;
-    virtual Array DoubleBackward(const Array& ggx) = 0;
-};
-
-class AveragePoolForwardBackward {
-public:
-    virtual ~AveragePoolForwardBackward() = default;
-    virtual Array Forward(const Array& x) = 0;
-    virtual Array Backward(const Array& gout) = 0;
-};
 
 // Device base class.
 // Note that these member functions may be called from the framework or user code.
@@ -83,42 +67,6 @@ public:
     // It may allocate a new memory or return an alias.
     // src_ptr must reside in the host memory.
     virtual std::shared_ptr<void> FromHostMemory(const std::shared_ptr<void>& src_ptr, size_t bytesize) = 0;
-
-    // Calculate the sum of an array.
-    // It will be summed over the specified axes.
-    // `axis` must be normalized so that
-    // - it has only positive values,
-    // - it is sorted, and
-    // - it has no duplicated values.
-    // Otherwise, the behavior is undefined.
-    virtual void Sum(const Array& a, const Axes& axis, const Array& out) = 0;
-
-    // Calculates the maximum along specified axes.
-    // See Sum() for the explanation of arguments.
-    virtual void AMax(const Array& src, const Axes& axis, const Array& out) = 0;
-
-    // Compares x1 and x2 and assign either pos or neg according to the result.
-    //
-    // Formally, it calculates: out = x1 < x2 ? pos : neg
-    virtual void IfLessElseASSA(const Array& x1, Scalar x2, Scalar pos, const Array& neg, const Array& out) = 0;
-
-    // Compares x1 and x2 and assign either pos or neg according to the result.
-    //
-    // Formally, it calculates: out = x1 > x2 ? pos : neg
-    virtual void IfGreaterElseASSA(const Array& x1, Scalar x2, Scalar pos, const Array& neg, const Array& out) = 0;
-    virtual void IfGreaterElseAAAA(const Array& x1, const Array& x2, const Array& pos, const Array& neg, const Array& out) = 0;
-
-    virtual void Tanh(const Array& x, const Array& out) = 0;
-
-    virtual void Exp(const Array& x, const Array& out) = 0;
-    virtual void Log(const Array& x, const Array& out) = 0;
-
-    virtual void Square(const Array& x, const Array& out) = 0;
-
-    virtual void Sqrt(const Array& x, const Array& out) = 0;
-
-    virtual void IsNan(const Array& x, const Array& out) = 0;
-    virtual void IsInf(const Array& x, const Array& out) = 0;
 
     virtual void Synchronize() = 0;
 
@@ -175,14 +123,18 @@ public:
     DeviceScope& operator=(const DeviceScope&) = delete;
     DeviceScope& operator=(DeviceScope&&) = delete;
 
-    DeviceScope(DeviceScope&& other) : orig_(other.orig_), exited_(other.exited_) { other.exited_ = true; }
+    DeviceScope(DeviceScope&& other) noexcept : orig_{other.orig_}, exited_{other.exited_} { other.exited_ = true; }
 
     ~DeviceScope() { Exit(); }
 
     // Explicitly recovers the original device. It will invalidate the scope object so that dtor will do nothing.
     void Exit() {
         if (!exited_) {
-            SetDefaultDevice(orig_);
+            try {
+                SetDefaultDevice(orig_);
+            } catch (...) {
+                CHAINERX_NEVER_REACH();
+            }
             exited_ = true;
         }
     }

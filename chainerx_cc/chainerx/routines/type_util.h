@@ -2,7 +2,7 @@
 
 #include <utility>
 
-#include <nonstd/optional.hpp>
+#include <absl/types/optional.h>
 
 #include "chainerx/array.h"
 #include "chainerx/dtype.h"
@@ -26,6 +26,13 @@ inline Dtype GetDefaultDtype(DtypeKind kind) {
     }
 }
 
+inline Dtype GetMathResultDtype(Dtype dtype) {
+    if (GetKind(dtype) == DtypeKind::kFloat) {
+        return dtype;
+    }
+    return Dtype::kFloat32;  // TODO(niboshi): Default dtype
+}
+
 }  // namespace internal
 
 namespace type_util_detail {
@@ -47,8 +54,8 @@ public:
     void AddArg(Scalar arg);
 
 private:
-    nonstd::optional<Dtype> array_max_dtype_;
-    nonstd::optional<Dtype> scalar_max_dtype_;
+    absl::optional<Dtype> array_max_dtype_;
+    absl::optional<Dtype> scalar_max_dtype_;
 
     void AddArgsImpl() {
         // nop
@@ -84,7 +91,7 @@ Dtype ResultType(Arg arg, Args... args) {
 template <typename Container>
 Dtype ResultType(Container args) {
     type_util_detail::ResultTypeResolver resolver{};
-    if (args.size() == 0U) {
+    if (args.empty()) {
         throw ChainerxError{"At least one argument is required."};
     }
     for (const Array& arg : args) {

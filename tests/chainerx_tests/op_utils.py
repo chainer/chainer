@@ -1,5 +1,6 @@
 import inspect
 import sys
+import unittest
 
 import numpy
 import pytest
@@ -78,6 +79,27 @@ class OpTest(chainer.testing.function_link.FunctionTestBase):
     def forward_chainerx(self, inputs):
         raise NotImplementedError(
             'Op test implementation must override `forward_chainerx`.')
+
+    def run_test_forward(self, backend_config):
+        # Skipping Forward -> Test Skipped
+        if self.skip_forward_test:
+            raise unittest.SkipTest('skip_forward_test is set')
+
+        super(OpTest, self).run_test_forward(backend_config)
+
+    def run_test_backward(self, backend_config):
+        # Skipping Backward -> Test PASS
+        if self.skip_backward_test:
+            return
+
+        super(OpTest, self).run_test_backward(backend_config)
+
+    def run_test_double_backward(self, backend_config):
+        # Skipping Double Backward -> Test PASS
+        if self.skip_double_backward_test:
+            return
+
+        super(OpTest, self).run_test_double_backward(backend_config)
 
 
 class ChainerOpTest(OpTest):
@@ -413,3 +435,13 @@ def op_test(devices):
         return None
 
     return wrap
+
+
+def fix_random():
+    """Decorator that fixes random numbers in an op test.
+
+    .. seealso:: :func:`~chainer.testing.fix_random`
+    """
+    return chainer.testing.random.fix_random(
+        setup_method='setup',
+        teardown_method='teardown')

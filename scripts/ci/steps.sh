@@ -89,6 +89,7 @@ step_python_style_check() {
         "$REPO_DIR"/chainer
         "$REPO_DIR"/chainermn
         "$REPO_DIR"/chainerx
+        "$REPO_DIR"/onnx_chainer
         "$REPO_DIR"/tests
         "$REPO_DIR"/examples
         "$CHAINERX_DIR"/examples
@@ -140,6 +141,7 @@ step_cmake() {
         -DCMAKE_BUILD_TYPE=Debug \
         -DCHAINERX_BUILD_CUDA=ON \
         -DCHAINERX_BUILD_TEST=ON \
+        -DCHAINERX_BUILD_EXAMPLES=ON \
         -DCHAINERX_BUILD_PYTHON=OFF \
         -DCHAINERX_WARNINGS_AS_ERRORS=ON \
         -DCMAKE_INSTALL_PREFIX="$WORK_DIR"/install_target \
@@ -193,6 +195,7 @@ step_python_test_chainerx() {
     # TODO(niboshi): threshold is temporarily lowered from 80 to 50. Restore it after writing tests for testing package.
     COVERAGE_FILE="$WORK_DIR"/coverage-data \
     pytest \
+        -rfEX \
         --showlocals \
         --cov=chainerx \
         --no-cov-on-fail \
@@ -210,6 +213,7 @@ step_python_test_chainer() {
     pushd "$temp_dir"
 
     pytest \
+        -rfEX \
         --showlocals \
         -m 'not slow and not ideep' \
         "$REPO_DIR"/tests/chainer_tests

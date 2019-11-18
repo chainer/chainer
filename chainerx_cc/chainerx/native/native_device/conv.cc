@@ -6,42 +6,49 @@
 #include <numeric>
 #include <vector>
 
+#include <absl/types/optional.h>
 #include <gsl/gsl>
-#include <nonstd/optional.hpp>
 
 #include "chainerx/array.h"
 #include "chainerx/axes.h"
 #include "chainerx/device.h"
+#include "chainerx/dims.h"
 #include "chainerx/dtype.h"
 #include "chainerx/error.h"
 #include "chainerx/indexable_array.h"
 #include "chainerx/indexer.h"
+#include "chainerx/kernels/connection.h"
+#include "chainerx/kernels/creation.h"
 #include "chainerx/macro.h"
 #include "chainerx/native/col2im.h"
 #include "chainerx/native/im2col.h"
-#include "chainerx/native/op_regist.h"
+#include "chainerx/native/kernel_regist.h"
 #include "chainerx/native/tensor_dot.h"
-#include "chainerx/routines/connection.h"
-#include "chainerx/routines/creation.h"
 #include "chainerx/routines/manipulation.h"
 #include "chainerx/shape.h"
-#include "chainerx/stack_vector.h"
 
 namespace chainerx {
+
+namespace internal {
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(Conv)
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(ConvTranspose)
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(ConvGradWeight)
+}  // namespace internal
+
 namespace native {
 namespace {
 
-class NativeConvOp : public ConvOp {
+class NativeConvKernel : public ConvKernel {
 public:
     Array Call(
             const Array& x,
             const Array& w,
-            const nonstd::optional<Array>& b,
-            const StackVector<int64_t, kMaxNdim>& stride,
-            const StackVector<int64_t, kMaxNdim>& pad,
+            const absl::optional<Array>& b,
+            const Dims& stride,
+            const Dims& pad,
             bool cover_all,
             Dtype out_dtype,
-            const nonstd::optional<Array>& out) override {
+            const absl::optional<Array>& out) override {
         // TODO(niboshi): Implement and test the `out` argument.
         if (out.has_value()) {
             throw NotImplementedError{"Passing out as an argument is not yet supported."};
@@ -50,7 +57,7 @@ public:
         int8_t ndim = w.ndim() - 2;  // Number of spatial dimensions
 
         // Compute the kernel size from the weight array.
-        StackVector<int64_t, kMaxNdim> kernel_size;
+        Dims kernel_size;
         std::copy_n(w.shape().begin() + 2, ndim, std::back_inserter(kernel_size));
 
         // Convert to colum representation of shape (batch_size, channel, k_1, k_2, ..., k_n, out_1, out_2, ..., out_n).
@@ -81,19 +88,19 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(ConvOp, NativeConvOp);
+CHAINERX_NATIVE_REGISTER_KERNEL(ConvKernel, NativeConvKernel);
 
-class NativeConvGradWeightOp : public ConvGradWeightOp {
+class NativeConvGradWeightKernel : public ConvGradWeightKernel {
 public:
     Array Call(
             Dtype w_dtype,
             const Shape& w_shape,
             const Array& x,
             const Array& gy,
-            const StackVector<int64_t, kMaxNdim>& stride,
-            const StackVector<int64_t, kMaxNdim>& pad,
+            const Dims& stride,
+            const Dims& pad,
             bool cover_all,
-            const nonstd::optional<Array>& out) override {
+            const absl::optional<Array>& out) override {
         CHAINERX_ASSERT(x.ndim() == w_shape.ndim());
 
         // TODO(niboshi): Implement and test the `out` argument.
@@ -104,7 +111,7 @@ public:
         int8_t ndim = x.ndim() - 2;  // Number of spatial dimensions
 
         // Compute the kernel size
-        StackVector<int64_t, kMaxNdim> kernel_size{w_shape.begin() + 2, w_shape.end()};
+        Dims kernel_size{w_shape.begin() + 2, w_shape.end()};
 
         // Im2Col
         Array col = native_internal::Im2Col(x, kernel_size, stride, pad, cover_all, 0);
@@ -120,19 +127,19 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(ConvGradWeightOp, NativeConvGradWeightOp);
+CHAINERX_NATIVE_REGISTER_KERNEL(ConvGradWeightKernel, NativeConvGradWeightKernel);
 
-class NativeConvTransposeOp : public ConvTransposeOp {
+class NativeConvTransposeKernel : public ConvTransposeKernel {
 public:
     Array Call(
             const Array& x,
             const Array& w,
-            const nonstd::optional<Array>& b,
-            const StackVector<int64_t, kMaxNdim>& stride,
-            const StackVector<int64_t, kMaxNdim>& pad,
-            const StackVector<int64_t, kMaxNdim>& out_size,
+            const absl::optional<Array>& b,
+            const Dims& stride,
+            const Dims& pad,
+            const Dims& out_size,
             Dtype out_dtype,
-            const nonstd::optional<Array>& out) override {
+            const absl::optional<Array>& out) override {
         // TODO(niboshi): Implement and test the `out` argument.
         if (out.has_value()) {
             throw NotImplementedError{"Passing out as an argument is not yet supported."};
@@ -158,7 +165,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(ConvTransposeOp, NativeConvTransposeOp);
+CHAINERX_NATIVE_REGISTER_KERNEL(ConvTransposeKernel, NativeConvTransposeKernel);
 
 }  // namespace
 }  // namespace native

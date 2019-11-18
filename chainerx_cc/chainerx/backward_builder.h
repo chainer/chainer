@@ -7,10 +7,10 @@
 #include <memory>
 #include <numeric>
 #include <set>
-#include <unordered_map>
 #include <utility>
 #include <vector>
 
+#include <absl/container/flat_hash_map.h>
 #include <gsl/gsl>
 
 #include "chainerx/array.h"
@@ -56,10 +56,13 @@ class RetainedArrayToken {
 public:
     RetainedArrayToken(internal::ArrayBody::Params array_params, size_t index) : array_params_{std::move(array_params)}, index_{index} {}
 
+    ~RetainedArrayToken() = default;
+
     RetainedArrayToken(const RetainedArrayToken&) = default;
-    RetainedArrayToken(RetainedArrayToken&&) = default;
+    RetainedArrayToken(RetainedArrayToken&&) noexcept = default;
     RetainedArrayToken& operator=(const RetainedArrayToken&) = default;
-    RetainedArrayToken& operator=(RetainedArrayToken&&) = default;
+    // TODO(hvy): Make the move assignment operator noexcept.
+    RetainedArrayToken& operator=(RetainedArrayToken&&) = default;  // NOLINT(performance-noexcept-move-constructor)
 
 private:
     friend class chainerx::BackwardContext;
@@ -111,13 +114,13 @@ public:
 
         // Collect input ArrayNodes, grouped by graph considering IsBackpropRequired.
         // This functions is only called once in the constructor.
-        std::unordered_map<BackpropId, InputArrayNodes> CreateInputArrayNodesMap() const;
+        absl::flat_hash_map<BackpropId, InputArrayNodes> CreateInputArrayNodesMap() const;
 
         BackwardBuilder& builder_;
         std::vector<size_t> input_indices_;
 
         // TODO(hvy): Consider using linear search since elements are usually few.
-        std::unordered_map<BackpropId, InputArrayNodes> graph_to_input_array_nodes_;
+        absl::flat_hash_map<BackpropId, InputArrayNodes> graph_to_input_array_nodes_;
     };
 
     // TODO(niboshi): Add an overload to accept `const std::vector<Array>&` as `inputs` and `outputs`
@@ -131,6 +134,11 @@ public:
     BackwardBuilder(const char* op_name, const Array& input, const Array& output)
         : BackwardBuilder{op_name, std::vector<ConstArrayRef>{input}, std::vector<ConstArrayRef>{output}} {}
     ~BackwardBuilder() { CHAINERX_ASSERT(is_finalized_); }
+
+    BackwardBuilder(const BackwardBuilder&) = delete;
+    BackwardBuilder(BackwardBuilder&&) noexcept = default;
+    BackwardBuilder& operator=(const BackwardBuilder&) = delete;
+    BackwardBuilder& operator=(BackwardBuilder&&) = delete;
 
     // Creates a backward target for the specified inputs.
     Target CreateTarget(std::vector<size_t> input_indices) {
@@ -160,6 +168,8 @@ public:
     // TODO(hvy): Write comment.
     RetainedInputToken RetainInput(size_t input_index);
 
+    std::vector<RetainedInputToken> RetainInput(std::vector<size_t> indices);
+
     // Flags an output array to be retained for use in the backward pass.
     // Op implementations can use this function in combination with BackwardContext::GetRetainedOutput() to retrieve output arrays in the
     // backward pass.
@@ -176,6 +186,7 @@ public:
     // `output` must be one of the arrays specified in the constructor of BackwardBuilder as output arrays.
     // If invalid array is specified, ChainerxError will be thrown.
     RetainedOutputToken RetainOutput(size_t output_index);
+    std::vector<RetainedOutputToken> RetainOutput(std::vector<size_t> indices);
 
     // Finalizes the builder.
     //
@@ -211,7 +222,7 @@ private:
 
     // A collection of op nodes, each of which corresponds to a graph.
     // This record is increasingly populated as new graphs are encountered in multiple Define() calls.
-    std::unordered_map<BackpropId, std::shared_ptr<internal::OpNode>> op_node_map_;
+    absl::flat_hash_map<BackpropId, std::shared_ptr<internal::OpNode>> op_node_map_;
 
     backward_builder_detail::RetentionRecord input_retention_record_;
     backward_builder_detail::RetentionRecord output_retention_record_;

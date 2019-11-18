@@ -112,7 +112,8 @@ class TestSequential(unittest.TestCase):
     @attr.gpu
     def test_copy_and_send_to_gpu(self):
         s2 = self.s2.copy()
-        self.s2.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.s2.to_gpu()
         self.assertIsInstance(self.s2[0][0].b.data, cuda.cupy.ndarray)
         self.assertIsInstance(self.s2[0][1].W.data, cuda.cupy.ndarray)
         self.assertIsInstance(s2[0][0].b.data, numpy.ndarray)
@@ -121,7 +122,8 @@ class TestSequential(unittest.TestCase):
     @attr.gpu
     def test_copy_and_send_to_gpu_2(self):
         s2 = self.s2.copy()
-        s2.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            s2.to_gpu()
         self.assertIsInstance(self.s2[0][0].b.data, numpy.ndarray)
         self.assertIsInstance(self.s2[0][1].W.data, numpy.ndarray)
         self.assertIsInstance(s2[0][0].b.data, cuda.cupy.ndarray)
@@ -130,8 +132,10 @@ class TestSequential(unittest.TestCase):
     @attr.multi_gpu(2)
     def test_copy_and_send_to_gpu_multi(self):
         s2 = self.s2.copy()
-        self.s2.to_gpu(0)
-        s2.to_gpu(1)
+        with testing.assert_warns(DeprecationWarning):
+            self.s2.to_gpu(0)
+        with testing.assert_warns(DeprecationWarning):
+            s2.to_gpu(1)
         self.assertEqual(self.s2[0][0].b.data.device.id, 0)
         self.assertEqual(self.s2[0][1].W.data.device.id, 0)
         self.assertEqual(s2[0][0].b.data.device.id, 1)
@@ -145,7 +149,8 @@ class TestSequential(unittest.TestCase):
         x3 = self.l3.W.data
         gx3 = self.l3.W.grad
 
-        self.s2.to_cpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.s2.to_cpu()
 
         self.assertIs(self.l1.b.data, x1)
         self.assertIs(self.l1.b.grad, gx1)
@@ -156,8 +161,10 @@ class TestSequential(unittest.TestCase):
 
     @attr.gpu
     def test_to_cpu(self):
-        self.s2.to_gpu()
-        self.s2.to_cpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.s2.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.s2.to_cpu()
         self.assertIs(self.s2.xp, numpy)
         self.assertIs(self.s1.xp, numpy)
         self.assertIs(self.l1.xp, numpy)
@@ -173,7 +180,8 @@ class TestSequential(unittest.TestCase):
     @attr.gpu
     def test_to_gpu(self):
         cupy = cuda.cupy
-        self.s2.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.s2.to_gpu()
         self.assertIs(self.s2.xp, cupy)
         self.assertIs(self.s1.xp, cupy)
         self.assertIs(self.l1.xp, cupy)

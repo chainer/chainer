@@ -4,6 +4,7 @@ import weakref
 
 import six
 
+import chainer
 from chainer import backend
 from chainer.backends import cuda
 from chainer import configuration
@@ -141,9 +142,7 @@ class FunctionAdapter(function_node.FunctionNode):
     _function = None  # type: Function
     _weak_function = None  # type: weakref.ReferenceType[Function]
 
-    def __init__(self, function):
-        # type: (Function) -> None
-
+    def __init__(self, function: 'Function') -> None:
         super(FunctionAdapter, self).__init__()
         self._weak_function = weakref.ref(function)
         function._owned_node = self
@@ -189,7 +188,7 @@ class FunctionAdapter(function_node.FunctionNode):
             in_data[i_in] = None if retained is None else retained.array
         in_data = tuple(in_data)
 
-        grad_out_data = tuple([None if grad is None else grad.data
+        grad_out_data = tuple([None if grad is None else grad.array
                                for grad in grad_outputs])
 
         is_chainerx_fallback_mode = self._is_chainerx_fallback_mode
@@ -199,7 +198,8 @@ class FunctionAdapter(function_node.FunctionNode):
             grad_out_data = backend.from_chx(grad_out_data)
 
         # Call Function.backward
-        with cuda.get_device_from_array(*(in_data + grad_out_data)):
+        with chainer.using_device(
+                backend.get_device_from_array(*(in_data + grad_out_data))):
             if is_chainerx_fallback_mode:
                 # Enable attribute fallback
                 with function_node._chainerx_attribute_fallback(
@@ -590,7 +590,7 @@ class Function(object):
         :attr:`output_data`.
 
         .. note::
-           It is STRONGLY RECOMMENDED to use this method if the function
+           It is STRONGLY RECOMMENDED that you use this method if the function
            requires some or all output arrays in backprop. The function can
            also use output arrays just by keeping references to them directly,
            whereas it might influence on the performance of later function

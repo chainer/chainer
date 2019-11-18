@@ -9,15 +9,16 @@
 #include "chainerx/backend.h"
 #include "chainerx/constant.h"
 #include "chainerx/device.h"
+#include "chainerx/dims.h"
 #include "chainerx/indexable_array.h"
 #include "chainerx/indexer.h"
+#include "chainerx/kernels/creation.h"
 #include "chainerx/macro.h"
 #include "chainerx/routines/connection.h"
 #include "chainerx/routines/creation.h"
 #include "chainerx/scalar.h"
 #include "chainerx/shape.h"
 #include "chainerx/slice.h"
-#include "chainerx/stack_vector.h"
 
 namespace chainerx {
 namespace native {
@@ -29,9 +30,9 @@ template <typename T, int8_t kKernelNdim>
 void Im2ColImpl(
         const Array& x,
         const Array& out,
-        const StackVector<int64_t, kMaxNdim>& kernel_size,
-        const StackVector<int64_t, kMaxNdim>& stride,
-        const StackVector<int64_t, kMaxNdim>& out_dims,
+        const Dims& kernel_size,
+        const Dims& stride,
+        const Dims& out_dims,
         const Indexer<2>& batch_channel_indexer) {
     static constexpr int8_t kInNdim = 2 + kKernelNdim;
     static constexpr int8_t kOutNdim = 2 + 2 * kKernelNdim;
@@ -78,13 +79,7 @@ void Im2ColImpl(
 
 }  // namespace
 
-Array Im2Col(
-        const Array& x,
-        const StackVector<int64_t, kMaxNdim>& kernel_size,
-        const StackVector<int64_t, kMaxNdim>& stride,
-        const StackVector<int64_t, kMaxNdim>& pad,
-        bool cover_all,
-        Scalar pad_value) {
+Array Im2Col(const Array& x, const Dims& kernel_size, const Dims& stride, const Dims& pad, bool cover_all, Scalar pad_value) {
     auto ndim = static_cast<int8_t>(kernel_size.size());  // Number of input image dimensions.
     CHAINERX_ASSERT(ndim == static_cast<int8_t>(stride.size()));
     CHAINERX_ASSERT(ndim == static_cast<int8_t>(pad.size()));
@@ -102,11 +97,11 @@ Array Im2Col(
     }
     Array padded_x = static_cast<int64_t>(pad_value) == int64_t{0} ? Zeros(padded_shape, x.dtype(), device)
                                                                    : Full(padded_shape, pad_value, x.dtype(), device);
-    device.backend().CallOp<CopyOp>(x, padded_x.At(unpadded_slice));
+    device.backend().CallKernel<CopyKernel>(x, padded_x.At(unpadded_slice));
     CHAINERX_ASSERT(ndim + 2 == padded_x.ndim());
 
     // Create the output array.
-    StackVector<int64_t, kMaxNdim> out_dims;  // Number of patches along each axis
+    Dims out_dims;  // Number of patches along each axis
     for (int8_t i = 0; i < ndim; ++i) {
         out_dims.emplace_back(internal::GetConvOutDim(x.shape()[i + 2], kernel_size[i], stride[i], pad[i], cover_all));
         CHAINERX_ASSERT(out_dims.back() > 0);

@@ -4,6 +4,7 @@
 #include <utility>
 #include <vector>
 
+#include <absl/types/optional.h>
 #include <cuda_runtime.h>
 #include <gtest/gtest.h>
 
@@ -76,6 +77,11 @@ TEST(CudaBackendTest, GetDeviceCount) {
     int count = 0;
     CheckCudaError(cudaGetDeviceCount(&count));
     EXPECT_EQ(count, CudaBackend(ctx).GetDeviceCount());
+}
+
+TEST(NativeBackendTest, IsNative) {
+    Context ctx;
+    EXPECT_FALSE(CudaBackend{ctx}.IsNative());
 }
 
 TEST(CudaBackendTest, GetDeviceCountGetNameThreadSafe) {
@@ -396,7 +402,7 @@ public:
 
 private:
     const std::string name_{};
-    nonstd::optional<std::string> old_value_{};
+    absl::optional<std::string> old_value_{};
 };
 
 TEST(CudaBackendTest, GetCudnnMaxWorkspaceSize) {

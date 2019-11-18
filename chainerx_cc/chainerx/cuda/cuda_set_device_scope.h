@@ -16,11 +16,6 @@ public:
         CheckCudaError(cudaSetDevice(index_));
     }
 
-    CudaSetDeviceScope(const CudaSetDeviceScope&) = delete;
-    CudaSetDeviceScope& operator=(const CudaSetDeviceScope&) = delete;
-    CudaSetDeviceScope& operator=(CudaSetDeviceScope&&) = delete;
-    CudaSetDeviceScope(CudaSetDeviceScope&& other) = delete;
-
     ~CudaSetDeviceScope() {
         if (CHAINERX_DEBUG) {
             cudaError_t status = cudaSetDevice(orig_index_);
@@ -30,11 +25,16 @@ public:
         }
     }
 
+    CudaSetDeviceScope(const CudaSetDeviceScope&) = delete;
+    CudaSetDeviceScope& operator=(const CudaSetDeviceScope&) = delete;
+    CudaSetDeviceScope& operator=(CudaSetDeviceScope&&) = delete;
+    CudaSetDeviceScope(CudaSetDeviceScope&& other) = delete;
+
     int index() const { return index_; }
 
 private:
-    int index_;
-    int orig_index_;
+    int index_{};
+    int orig_index_{};
 };
 
 }  // namespace cuda

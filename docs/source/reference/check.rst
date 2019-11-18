@@ -7,7 +7,6 @@ Chainer provides some facilities to make debugging easy.
 
 Type checking utilities
 -----------------------
-
 :class:`~chainer.FunctionNode` uses a systematic type checking of the :mod:`chainer.utils.type_check` module.
 It enables users to easily find bugs of forward and backward implementations.
 You can find examples of type checking in some function implementations.
@@ -19,9 +18,11 @@ You can find examples of type checking in some function implementations.
    :nosignatures:
 
    chainer.utils.type_check.Expr
+   chainer.utils.type_check.eval
    chainer.utils.type_check.expect
    chainer.utils.type_check.TypeInfo
    chainer.utils.type_check.TypeInfoTuple
+   chainer.utils.type_check.Variable
 
 Gradient checking utilities
 ---------------------------
@@ -68,6 +69,18 @@ Utilities for testing functions.
 
    chainer.testing.FunctionTestCase
    chainer.testing.unary_math_function_unittest
+
+Link testing utilities
+--------------------------
+
+Utilities for testing links.
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.testing.LinkInitializersTestCase
+   chainer.testing.LinkTestCase
 
 Serialization testing utilities
 -------------------------------

@@ -1,6 +1,6 @@
 import copy
 
-from chainer.backends import cuda
+from chainer import backend
 
 
 class Distribution(object):
@@ -245,8 +245,8 @@ class Distribution(object):
 
         This function calls `sample_n` and reshapes a result of `sample_n` to
         `sample_shape + batch_shape + event_shape`. On implementing sampling
-        code in an inherited ditribution class, it is not recommended to
-        override this function. Instead of doing this, it is preferable to
+        code in an inherited distribution class, it is not recommended that
+        you override this function. Instead of doing this, it is preferable to
         override `sample_n`.
 
         Args:
@@ -274,7 +274,7 @@ class Distribution(object):
 
         This function returns sampled points whose shape is
         `(n,) + batch_shape + event_shape`. When implementing sampling code in
-        a subclass, it is recommended to override this method.
+        a subclass, it is recommended that you override this method.
 
         Args:
             n(int): Sampling size.
@@ -334,7 +334,7 @@ class Distribution(object):
         Depending on which of CPU/GPU this distribution is on, this property
         returns :mod:`numpy` or :mod:`cupy`.
         """
-        return cuda.get_array_module(*self.params.values())
+        return backend.get_array_module(*self.params.values())
 
 
 _KLDIVERGENCE = {}

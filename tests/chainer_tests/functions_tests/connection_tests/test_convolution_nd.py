@@ -1,8 +1,8 @@
+import functools
+from operator import mul
 import unittest
 
-import functools
 import numpy
-from operator import mul
 
 import chainer
 from chainer.backends import cuda
@@ -35,8 +35,7 @@ from chainer.utils import conv
     'nobias': [True, False],
 })))
 @testing.inject_backend_tests(
-    ['test_forward', 'test_backward', 'test_double_backward',
-     'test_consistency_forward', 'test_consistency_regression_forward'],
+    None,
     # CPU tests
     [{}]
     # GPU tests
@@ -83,7 +82,19 @@ class TestConvolutionND(testing.FunctionTestCase):
                 'atol': 2 ** -4, 'rtol': 2 ** -4})
 
     def before_test(self, test_name):
+        # Some of the test configurations do not
+        # support autotune so this hack is necessary
+        # for the CI to work
         self.backend_config.autotune = self.autotune
+        # cuDNN 5 and 5.1 results suffer from precision issues
+        using_old_cudnn = (self.backend_config.xp is cuda.cupy
+                           and self.backend_config.use_cudnn == 'always'
+                           and cuda.cuda.cudnn.getVersion() < 6000)
+        if using_old_cudnn:
+            self.check_backward_options.update({
+                'atol': 1e-3, 'rtol': 1e-3})
+            self.check_double_backward_options.update({
+                'atol': 1e-2, 'rtol': 1e-2})
 
     def generate_inputs(self):
         W = numpy.random.normal(
@@ -97,6 +108,12 @@ class TestConvolutionND(testing.FunctionTestCase):
             return x, W, b
 
     def forward_expected(self, inputs):
+        """
+        Current forward_expected implementation depends on
+        F.convolution_nd itself and thus it's only capable
+        of checking consistency between backends, not absolute
+        correctness of computations
+        """
         if self.nobias:
             x, W = inputs
             b = None
@@ -119,40 +136,6 @@ class TestConvolutionND(testing.FunctionTestCase):
             cover_all=self.cover_all, dilate=self.dilate,
             groups=self.groups)
         return y,
-
-    def check_forward_consistency(self, backend_config):
-        inputs = self.generate_inputs()
-        if self.nobias:
-            x, W = inputs
-            b = None
-        else:
-            x, W, b = inputs
-        x_cpu = chainer.Variable(x)
-        W_cpu = chainer.Variable(W)
-        b_cpu = None if b is None else chainer.Variable(b)
-        y_cpu = F.convolution_nd(
-            x_cpu, W_cpu, b_cpu, stride=self.stride, pad=self.pad,
-            cover_all=self.cover_all, dilate=self.dilate,
-            groups=self.groups)
-
-        x = backend_config.get_array(x)
-        W = backend_config.get_array(W)
-        if self.nobias:
-            b = None
-        else:
-            b = backend_config.get_array(b)
-        with backend_config:
-            y_gpu = F.convolution_nd(
-                x, W, b, stride=self.stride, pad=self.pad,
-                cover_all=self.cover_all, dilate=self.dilate,
-                groups=self.groups)
-
-        testing.assert_allclose(
-            y_cpu.array, y_gpu.array, **self.check_forward_options)
-
-    def test_consistency_forward(self, backend_config):
-        if backend_config.use_cuda or backend_config.use_chainerx:
-            self.check_forward_consistency(backend_config)
 
     def check_forward_consistency_regression(self, backend_config):
         inputs = self.generate_inputs()

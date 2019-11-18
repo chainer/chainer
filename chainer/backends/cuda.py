@@ -71,34 +71,31 @@ except Exception as e:
 
     class ndarray(object):  # type: ignore # for type testing
         @property
-        def shape(self):
-            # type: () -> types.Shape
+        def shape(self) -> types.Shape:
             pass
 
         @property
-        def device(self):
-            # type: () -> 'Device'
+        def device(self) -> 'Device':
             pass
 
-        def get(self, stream=None):
-            # type: (tp.Optional['Stream']) -> numpy.ndarray
+        def get(self, stream: tp.Optional['Stream'] = None) -> numpy.ndarray:
             pass
 
-        def set(self, arr, stream=None):
-            # type: (numpy.ndarray, tp.Optional['Stream']) -> None
+        def set(
+                self,
+                arr: numpy.ndarray,
+                stream: tp.Optional['Stream'] = None
+        ) -> None:
             pass
 
     class Device(object):  # type: ignore # for type testing
-        def __init__(self, device=None):
-            # type: (tp.Optional[int]) -> None
+        def __init__(self, device: tp.Optional[int] = None) -> None:
             pass
 
-        def __enter__(self):
-            # type: () -> 'Device'
+        def __enter__(self) -> 'Device':
             pass
 
-        def __exit__(self, *args):
-            # type: (*tp.Any) -> None
+        def __exit__(self, *args: tp.Any) -> None:
             pass
 
     class Event(object):  # type: ignore # for type testing
@@ -147,7 +144,7 @@ def check_cuda_available():
         check_cuda_available._already_warned = True
 
 
-class DummyDeviceType(Device):
+class DummyDeviceType(object):
 
     """Dummy device class that does nothing with cupy.cuda.Device interface.
 
@@ -202,6 +199,13 @@ _integer_types = six.integer_types + (numpy.integer,)
 # ------------------------------------------------------------------------------
 class GpuDevice(_backend.Device):
 
+    """Device for GPU (CuPy) backend"""
+
+    xp = cupy
+    supported_array_types = (ndarray,)
+
+    __hash__ = _backend.Device.__hash__
+
     def __init__(self, device):
         check_cuda_available()
         assert isinstance(device, Device)
@@ -211,6 +215,9 @@ class GpuDevice(_backend.Device):
 
     @staticmethod
     def from_device_id(device_id):
+        """Returns a :class:`~chainer.backend.GpuDevice` corresponding \
+to the CUDA device ID.
+        """
         check_cuda_available()
 
         if not (isinstance(device_id, _integer_types) and device_id >= 0):
@@ -224,20 +231,16 @@ class GpuDevice(_backend.Device):
             return GpuDevice(array.device)
         return None
 
+    @property
+    def name(self):
+        return '@cupy:{}'.format(self.device.id)
+
     def __eq__(self, other):
         return isinstance(other, GpuDevice) and other.device == self.device
 
     def __repr__(self):
         return '<{} (cupy):{}>'.format(
             self.__class__.__name__, self.device.id)
-
-    @property
-    def xp(self):
-        return cupy
-
-    @property
-    def supported_array_types(self):
-        return (ndarray,)
 
     def create_context(self):
         # Creates a new cuda.Device instance because a single cuda.Device
@@ -250,12 +253,14 @@ class GpuDevice(_backend.Device):
     def use(self):
         self.device.use()
 
+    def is_array_supported(self, array):
+        return isinstance(array, ndarray) and self.device == array.device
+
 
 # ------------------------------------------------------------------------------
 # Global states
 # ------------------------------------------------------------------------------
-def get_device_from_id(device_id):
-    # type: (tp.Optional[int]) -> Device
+def get_device_from_id(device_id: tp.Optional[int]) -> Device:
     """Gets the device from an ID integer.
 
     Args:
@@ -269,14 +274,13 @@ def get_device_from_id(device_id):
     return DummyDevice
 
 
-def get_device_from_array(*arrays):
-    # type: (*ndarray) -> Device
+def get_device_from_array(*arrays: ndarray) -> Device:
     """Gets the device from a list of CuPy array or a single CuPy array.
 
     .. deprecated:: v6.0.0
 
         This API is deprecated. Please use
-        :func:`~chainer.backend.get_device_from_array` instead.
+        :func:`chainer.backend.get_device_from_array` instead.
 
     The device on which the given CuPy array reside is returned.
 
@@ -352,9 +356,9 @@ def _get_cuda_device(*args):
     return DummyDevice
 
 
-def _get_device_or_current(device):
-    # type: (tp.Optional[types.CudaDeviceSpec]) -> Device
-
+def _get_device_or_current(
+        device: tp.Optional[types.CudaDeviceSpec]
+) -> Device:
     # Returns cuda.Device.
     # - If cuda.Device instance, it's returned intact.
     # - If None, the current device is returned.
@@ -417,17 +421,7 @@ def _array_to_gpu(array, device, stream):
         # the array interface.
         if array.device.backend.name == 'cuda':
             # Convert to cupy.ndarray on the same device as source array
-            array = cupy.ndarray(
-                array.shape,
-                array.dtype,
-                cupy.cuda.MemoryPointer(
-                    cupy.cuda.UnownedMemory(
-                        array.data_ptr + array.offset,
-                        array.data_size,
-                        array,
-                        array.device.index),
-                    0),
-                strides=array.strides)
+            array = chainerx._to_cupy(array)
         else:
             array = chainerx.to_numpy(array)
     elif isinstance(array, (numpy.number, numpy.bool_)):

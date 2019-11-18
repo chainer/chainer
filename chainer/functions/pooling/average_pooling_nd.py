@@ -76,83 +76,103 @@ class AveragePoolingND(pooling_nd._PoolingND):
         return width
 
     def forward_chainerx(self, inputs):
+        ndim = self.ndim
+        ksize = self.ksize
+        stride = self.stride
+        pad = self.pad
+        pad_value = self.pad_value
+
         x, = inputs
-        if x.device.backend.name == 'cuda' and self.ndim not in (2, 3):
+        if x.device.backend.name == 'cuda' and ndim not in (2, 3):
             return chainer.Fallback
 
-        if self.pad_value == 0:
+        if pad_value == 0:
             pad_mode = 'zero'
-        elif self.pad_value is None:
+        elif pad_value is None:
             pad_mode = 'ignore'
         else:
             assert False
 
-        return chainerx.average_pool(
-            x, self.ksize, self.stride, self.pad, pad_mode),
+        y = chainerx.average_pool(x, ksize, stride, pad, pad_mode)
+        return y,
 
     def forward_cpu(self, inputs):
-        x, = inputs
-        self._in_shape = x.shape
-        self._in_dtype = x.dtype
+        ksize = self.ksize
+        stride = self.stride
+        pad = self.pad
+        pad_value = self.pad_value
+        cover_all = self.cover_all
 
-        col = conv_nd.im2col_nd_cpu(
-            x, self.ksize, self.stride, self.pad, cover_all=self.cover_all)
+        x, = inputs
+        in_shape = x.shape
+        in_dtype = x.dtype
+
+        col = conv_nd.im2col_nd_cpu(x, ksize, stride, pad, cover_all=cover_all)
 
         # mean along (_, _, k_1, k_2, ..., k_N, _, ..., _)
-        y_axis = tuple(six.moves.range(2, 2 + len(self.ksize)))
-        if self.pad_value is None:
+        y_axis = tuple(six.moves.range(2, 2 + len(ksize)))
+        if pad_value is None:
             dims = x.shape[2:]
             width = self._get_pooling_width(numpy, dims, x.dtype)
             y = col.sum(axis=y_axis) / width
-            self.width = width
         else:
-            assert self.pad_value == 0
+            assert pad_value == 0
             y = col.mean(axis=y_axis)
+            width = None
 
+        self.width = width
+        self._in_shape = in_shape
+        self._in_dtype = in_dtype
         return y,
 
     def forward_gpu(self, inputs):
         if chainer.should_use_cudnn('>=auto') and 2 <= self.ndim <= 3:
             # With cuDNN v3 or greater, use cuDNN implementation for inputs
             # with spatial dimensions of two or more.
-            self.retain_inputs((0,))
-            return super(AveragePoolingND, self).forward_gpu(inputs)
+            return self.forward_cudnn(inputs)
+
+        ndim = self.ndim
+        ksize = self.ksize
+        stride = self.stride
+        pad = self.pad
+        pad_value = self.pad_value
+        cover_all = self.cover_all
 
         x, = inputs
-        self._in_shape = x.shape
-        self._in_dtype = x.dtype
+        in_shape = x.shape
+        in_dtype = x.dtype
 
-        n, c = x.shape[:2]
-        idims = x.shape[2:]
+        n, c = in_shape[:2]
+        idims = in_shape[2:]
         odims = tuple(
-            conv.get_conv_outsize(d, k, s, p, cover_all=self.cover_all)
-            for (d, k, s, p) in six.moves.zip(
-                idims, self.ksize, self.stride, self.pad))
+            conv.get_conv_outsize(d, k, s, p, cover_all=cover_all)
+            for (d, k, s, p) in six.moves.zip(idims, ksize, stride, pad))
         # (n, c, y_1, y_2, ..., y_N)
         y_shape = (n, c) + odims
         y = cuda.cupy.empty(y_shape, dtype=x.dtype)
-        if self.pad_value is None:
+        if pad_value is None:
             coeff = self._get_pooling_width(cuda.cupy, idims, x.dtype)
             coeff = cuda.cupy.reciprocal(coeff, out=coeff)
-            self.coeff = coeff
         else:
-            assert self.pad_value == 0
-            coeff = 1. / functools.reduce(operator.mul, self.ksize)
+            assert pad_value == 0
+            coeff = 1. / functools.reduce(operator.mul, ksize)
 
         in_params, out_params, operation, name = \
             average_pooling_nd_kernel.AveragePoolingNDKernelForward.generate(
-                self.ndim)
+                ndim)
         cuda.elementwise(in_params, out_params, operation, name)(
             x.reduced_view(),
-            *(idims + odims + self.ksize + self.stride + self.pad
-              + (coeff, y)))
+            *(idims + odims + ksize + stride + pad + (coeff, y)))
 
+        self.coeff = coeff
+        self._in_shape = in_shape
+        self._in_dtype = in_dtype
         return y,
 
     def backward(self, indexes, gy):
         return AveragePoolingNDGrad(self).apply(gy)
 
-    def _get_pool_mode(self):
+    def get_cudnn_pool_mode(self):
         if self.pad_value is None:
             return cuda.cuda.cudnn.CUDNN_POOLING_AVERAGE_COUNT_EXCLUDE_PADDING
         else:
@@ -163,70 +183,80 @@ class AveragePoolingND(pooling_nd._PoolingND):
 class AveragePoolingNDGrad(function_node.FunctionNode):
 
     def __init__(self, apoolnd):
-        self.ndim = apoolnd.ndim
-        self.ksize = apoolnd.ksize
-        self.stride = apoolnd.stride
-        self.pad = apoolnd.pad
-        self.cover_all = apoolnd.cover_all
-        self._used_cudnn = apoolnd._used_cudnn
-        if not self._used_cudnn:
-            self._in_shape = apoolnd._in_shape
-            self._in_dtype = apoolnd._in_dtype
-        self.pad_value = apoolnd.pad_value
-        self.apoolnd = apoolnd
+        self.func = apoolnd
 
     def forward_cpu(self, gys):
+        func = self.func
+        pad_value = func.pad_value
+        ksize = func.ksize
+        stride = func.stride
+        pad = func.pad
+        in_shape = func._in_shape
+
         gy, = gys
-        idims = self._in_shape[2:]
+        idims = in_shape[2:]
         odims = gy.shape[2:]
         colon = slice(None, None, None)
-        is_pad_value_none = self.pad_value is None
+        is_pad_value_none = pad_value is None
         if is_pad_value_none:
-            width = self.apoolnd.width
-            numpy.divide(gy, width, out=gy)
+            numpy.divide(gy, func.width, out=gy)
         gy_index = (colon, colon) + (None,) * len(idims)
-        gcol_reps = (1, 1) + self.ksize + (1,) * len(odims)
+        gcol_reps = (1, 1) + ksize + (1,) * len(odims)
         gcol = numpy.tile(gy[gy_index], gcol_reps)
-        gx = conv_nd.col2im_nd_cpu(gcol, self.stride, self.pad, idims)
+        gx = conv_nd.col2im_nd_cpu(gcol, stride, pad, idims)
         if not is_pad_value_none:
-            gx /= functools.reduce(operator.mul, self.ksize)
+            gx /= functools.reduce(operator.mul, ksize)
         return gx,
 
     def forward_gpu(self, gys):
-        if self._used_cudnn:
-            x, = self.apoolnd.get_retained_inputs()
-            return self.apoolnd.backward_gpu((x.data,), gys)
+        func = self.func
 
-        is_pad_value_none = self.pad_value is None
+        if func.is_cudnn_used:
+            return func.backward_cudnn(gys)
+
+        ndim = func.ndim
+        pad_value = func.pad_value
+        ksize = func.ksize
+        stride = func.stride
+        pad = func.pad
+        in_shape = func._in_shape
+        in_dtype = func._in_dtype
+
+        is_pad_value_none = pad_value is None
 
         gy, = gys
-        n, c = self._in_shape[:2]
-        idims = self._in_shape[2:]
+        n, c = in_shape[:2]
+        idims = in_shape[2:]
         odims = gy.shape[2:]
         if is_pad_value_none:
-            coeff = self.apoolnd.coeff
             # This conversion from chainerx to cupy exists here for
             # double backward of chainerx on cuda.
-            coeff = backend.from_chx(coeff)
+            coeff = backend.from_chx(func.coeff)
             gy *= coeff
-        gx = cuda.cupy.empty(self._in_shape, self._in_dtype)
+        gx = cuda.cupy.empty(in_shape, in_dtype)
 
         in_params, out_params, operation, name = \
             average_pooling_nd_kernel.AveragePoolingNDKernelBackward.generate(
-                self.ndim)
+                ndim)
         cuda.elementwise(in_params, out_params, operation, name)(
             gy.reduced_view(),
-            *(idims + odims + self.ksize + self.stride + self.pad
-              + (gx,)))
+            *(idims + odims + ksize + stride + pad + (gx,)))
 
         if not is_pad_value_none:
-            gx /= functools.reduce(operator.mul, self.ksize)
+            gx /= functools.reduce(operator.mul, ksize)
         return gx,
 
     def backward(self, indexes, grad_outputs):
+        func = self.func
+        ndim = func.ndim
+        pad_value = func.pad_value
+        ksize = func.ksize
+        stride = func.stride
+        pad = func.pad
+
         return AveragePoolingND(
-            self.ndim, self.ksize, self.stride, self.pad,
-            cover_all=False, pad_value=self.pad_value).apply(grad_outputs)
+            ndim, ksize, stride, pad, cover_all=False, pad_value=pad_value
+        ).apply(grad_outputs)
 
 
 def average_pooling_nd(x, ksize, stride=None, pad=0, pad_value=0):

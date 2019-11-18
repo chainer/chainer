@@ -107,7 +107,10 @@ class TestNpzDeserializer(unittest.TestCase):
                       'zi64': numpy.array(-2**60, dtype=numpy.int64),
                       'w': None})
 
-        self.npzfile = numpy.load(path)
+        try:
+            self.npzfile = numpy.load(path, allow_pickle=True)
+        except TypeError:
+            self.npzfile = numpy.load(path)
         self.deserializer = npz.NpzDeserializer(self.npzfile)
 
     def tearDown(self):
@@ -140,6 +143,12 @@ class TestNpzDeserializer(unittest.TestCase):
     def test_deserialize_chainerx(self):
         y = numpy.empty((2, 3), dtype=numpy.float32)
         self.check_deserialize(chainerx.asarray(y), 'y')
+
+    @attr.chainerx
+    @attr.gpu
+    def test_deserialize_chainerx_non_native(self):
+        y = numpy.empty((2, 3), dtype=numpy.float32)
+        self.check_deserialize(chainerx.asarray(y, device='cuda:0'), 'y')
 
     def test_deserialize_cpu(self):
         y = numpy.empty((2, 3), dtype=numpy.float32)

@@ -5,33 +5,20 @@
 #include "chainerx/array.h"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
+#include "chainerx/kernels/creation.h"
 #include "chainerx/native/elementwise.h"
-#include "chainerx/native/op_regist.h"
-#include "chainerx/routines/creation.h"
-#include "chainerx/routines/misc.h"
+#include "chainerx/native/kernel_regist.h"
 
 namespace chainerx {
+
+namespace internal {
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(Copy)
+}  // namespace internal
+
 namespace native {
 namespace {
 
-class NativeCopyOp : public CopyOp {
-public:
-    void Call(const Array& a, const Array& out) override {
-        Device& device = a.device();
-        device.CheckDevicesCompatible(a, out);
-        VisitDtype(out.dtype(), [&](auto pt) {
-            using T = typename decltype(pt)::type;
-            struct Impl {
-                void operator()(int64_t /*i*/, T a, T& out) { out = a; }
-            };
-            Elementwise<const T, T>(Impl{}, a, out);
-        });
-    }
-};
-
-CHAINERX_REGISTER_OP_NATIVE(CopyOp, NativeCopyOp);
-
-class NativeAsTypeOp : public AsTypeOp {
+class NativeCopyKernel : public CopyKernel {
 public:
     void Call(const Array& a, const Array& out) override {
         a.device().CheckDevicesCompatible(a, out);
@@ -47,7 +34,7 @@ public:
     }
 };
 
-CHAINERX_REGISTER_OP_NATIVE(AsTypeOp, NativeAsTypeOp);
+CHAINERX_NATIVE_REGISTER_KERNEL(CopyKernel, NativeCopyKernel);
 
 }  // namespace
 }  // namespace native

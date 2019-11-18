@@ -23,14 +23,19 @@ Requirements
 You need to have the following components to use Chainer.
 
 * `Python <https://python.org/>`_
-    * Supported Versions: 2.7.6+, 3.5.1+, 3.6.0+ and 3.7.0+.
+    * Supported Versions: 3.5.2+, 3.6.0+ and 3.7.0+.
 * `NumPy <http://www.numpy.org/>`_
-    * Supported Versions: 1.9, 1.10, 1.11, 1.12, 1.13, 1.14, 1.15 and 1.16.
+    * Supported Versions: 1.9, 1.10, 1.11, 1.12, 1.13, 1.14, 1.15, 1.16 and 1.17.
     * NumPy will be installed automatically during the installation of Chainer.
 
-Before installing Chainer, we recommend you to upgrade ``setuptools`` and ``pip``::
+Before installing Chainer, we recommend that you upgrade ``setuptools`` and ``pip``::
 
   $ pip install -U setuptools pip
+
+.. note::
+
+   Python 2 is not supported in Chainer v7.x releases.
+   Please consider migrating Python 3 or use Chainer v6.x, which is the last version that supports Python 2.
 
 Hardware Acceleration Support
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
