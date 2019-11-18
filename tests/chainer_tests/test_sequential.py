@@ -609,69 +609,62 @@ class TestEmptySequential(unittest.TestCase):
             seq(x)
 
 
+@testing.parameterize_pytest(
+    'expect_error,orig,pos,is_link', [
+        (False, (), 0, False),
+        (False, (), 0, True),
+        (False, (False,), 0, False),
+        (False, (True,), 0, True),
+        (False, (False,), 1, False),
+        (False, (True,), 1, True),
+        (False, (False,), -1, False),
+        (False, (True,), -1, True),
+        (False, (False, False), -1, False),
+        (False, (True, True), -1, True),
+        (False, (False, False), 1, False),
+        (False, (True, True), 1, True),
+        (True, (), 1, True),
+        (True, (), -1, False),
+        (True, (True,), 2, True),
+        (True, (False,), -2, False),
+    ]
+)
 class TestSequentialInsert(unittest.TestCase):
-    def test_empty(self):
-        seq = chainer.Sequential()
-        seq.insert(0, functions.sin)
-        assert len(seq) == 1
-        assert seq[0] is functions.sin
+    def test_insert(self):
+        funcs = [
+            functions.sin,
+            functions.cos,
+            functions.tan,
+        ]
+        # Prepare the original sequential before insertion.
+        orig = []
+        for orig_is_link in self.orig:
+            if orig_is_link:
+                orig.append(links.Linear((3, 3)))
+            else:
+                orig.append(funcs.pop(0))
 
-    def test_single_1(self):
-        seq = chainer.Sequential(functions.cos)
-        seq.insert(0, functions.sin)
-        assert len(seq) == 2
-        assert seq[0] is functions.sin
-        assert seq[1] is functions.cos
+        # The subject of insertion
+        if self.is_link:
+            subj = links.Linear((3, 3))
+        else:
+            subj = funcs.pop(0)
 
-    def test_single_2(self):
-        seq = chainer.Sequential(functions.cos)
-        seq.insert(1, functions.sin)
-        assert len(seq) == 2
-        assert seq[0] is functions.cos
-        assert seq[1] is functions.sin
+        # Instantiate the sequential
+        seq = chainer.Sequential(*orig)
 
-    def test_single_3(self):
-        seq = chainer.Sequential(functions.cos)
-        seq.insert(-1, functions.sin)
-        assert len(seq) == 2
-        assert seq[0] is functions.sin
-        assert seq[1] is functions.cos
+        if self.expect_error:
+            with pytest.raises(IndexError):
+                seq.insert(self.pos, subj)
+        else:
+            seq.insert(self.pos, subj)
 
-    def test_multiple_1(self):
-        seq = chainer.Sequential(functions.cos, functions.tan)
-        seq.insert(-1, functions.sin)
-        assert len(seq) == 3
-        assert seq[0] is functions.cos
-        assert seq[1] is functions.sin
-        assert seq[2] is functions.tan
+            # Inserting to the `orig` similarly for the following comparison
+            orig.insert(self.pos, subj)
 
-    def test_multiple_2(self):
-        seq = chainer.Sequential(functions.cos, functions.tan)
-        seq.insert(1, functions.sin)
-        assert len(seq) == 3
-        assert seq[0] is functions.cos
-        assert seq[1] is functions.sin
-        assert seq[2] is functions.tan
-
-    def test_index_out_of_bounds_empty_positive(self):
-        seq = chainer.Sequential()
-        with pytest.raises(IndexError):
-            seq.insert(1, functions.sin)
-
-    def test_index_out_of_bounds_empty_negative(self):
-        seq = chainer.Sequential()
-        with pytest.raises(IndexError):
-            seq.insert(-1, functions.sin)
-
-    def test_index_out_of_bounds_single_positive(self):
-        seq = chainer.Sequential(functions.sin)
-        with pytest.raises(IndexError):
-            seq.insert(2, functions.sin)
-
-    def test_index_out_of_bounds_single_negative(self):
-        seq = chainer.Sequential(functions.sin)
-        with pytest.raises(IndexError):
-            seq.insert(-2, functions.sin)
+            assert len(seq) == len(self.orig) + 1
+            for i in range(len(self.orig) + 1):
+                assert seq[i] is orig[i]
 
 
 testing.run_module(__name__, __file__)
