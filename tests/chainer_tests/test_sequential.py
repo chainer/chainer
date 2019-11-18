@@ -611,18 +611,22 @@ class TestEmptySequential(unittest.TestCase):
 
 @testing.parameterize_pytest(
     'expect_error,orig,pos,is_link', [
+        # Insertion into an empty sequential
         (False, (), 0, False),
         (False, (), 0, True),
+        # Insertion into a sequential with 1 element
         (False, (False,), 0, False),
         (False, (True,), 0, True),
         (False, (False,), 1, False),
         (False, (True,), 1, True),
         (False, (False,), -1, False),
         (False, (True,), -1, True),
+        # Insertion into a sequential with multiple elements
         (False, (False, False), -1, False),
         (False, (True, True), -1, True),
         (False, (False, False), 1, False),
         (False, (True, True), 1, True),
+        # Index error expected
         (True, (), 1, True),
         (True, (), -1, False),
         (True, (True,), 2, True),
