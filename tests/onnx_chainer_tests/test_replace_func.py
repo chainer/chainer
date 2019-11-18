@@ -79,6 +79,139 @@ class TestReplaceNumpyFullToConstantOfShape(ONNXModelTest):
             external_converters=addon_converters)
 
 
+def n_step_gru_converter(params):
+    n_layers, dropout_ratio, hx, ws, bs, xs = params.func.args
+    assert n_layers >= 1
+    hidden_size = hx.shape[2]
+
+    gb = onnx_helper.GraphBuilder()
+
+    hx_name = params.input_names[0]
+    offset = 1
+    ws_names = [[params.input_names[offset + i * 6 + j] for j in range(6)]
+                for i in range(n_layers)]
+    offset += 6 * n_layers
+    bs_names = [[params.input_names[offset + i * 6 + j] for j in range(6)]
+                for i in range(n_layers)]
+    offset += 6 * n_layers
+    xs_names = params.input_names[offset:]
+
+    split_outs = gb.op('Split', [hx_name], num_outputs=n_layers, axis=0)
+    if n_layers == 1:
+        split_outs = [split_outs]
+    # Removing layer dimention and adding num_directions cancels each other
+    hx_names = split_outs
+
+    hy_name, ys_name_list = \
+        params.func.reconstruct_return_value(params.output_names)
+
+    y_name = None
+    hy_names = []
+
+    for layer in range(n_layers):
+        if layer == 0:
+            x_name = gb.op(
+                'Concat',
+                [gb.op('Unsqueeze', [name], axes=[0]) for name in xs_names],
+                axis=0)
+        else:
+            # remove num_directions dimention
+            x_name = gb.op('Squeeze', [y_name], axes=[1])
+
+        w = ws_names[layer]
+        b = bs_names[layer]
+
+        # W[zrh]; shape: (seq_length, batch_size, input_size)
+        w_name = gb.op(
+            'Unsqueeze',
+            [gb.op('Concat', [w[1], w[0], w[2]], axis=0)],
+            axes=[0])
+        # R[zrh]; shape: (num_directions, 3*hidden_size, input_size)
+        r_name = gb.op(
+            'Unsqueeze',
+            [gb.op('Concat', [w[4], w[3], w[5]], axis=0)],
+            axes=[0])
+        # Wb[zrh], Rb[zrh]; shape: (num_directions, 3*hidden_size, hidden_size)
+        b_name = gb.op(
+            'Unsqueeze',
+            [gb.op('Concat', [b[1], b[0], b[2], b[4], b[3], b[5]], axis=0)],
+            axes=[0])
+
+        # shape: (seq_length, num_directions, batch_size, hidden_size)
+        y_name = gb.node_name() + "_Y"
+        # shape: (num_directions, batch_size, hidden_size)
+        hy_name_ = gb.node_name() + "_h"
+        hy_names.append(hy_name_)
+        gb.op_output_named(
+            'GRU',
+            (x_name, w_name, r_name, b_name, "", hx_names[layer]),
+            (y_name, hy_name_),
+            hidden_size=hidden_size)
+
+    split_outs = gb.op(
+        'Split',
+        # remove num_directions dimention
+        [gb.op('Squeeze', [y_name], axes=[1])],
+        num_outputs=len(ys_name_list), axis=0)
+    if len(ys_name_list) == 1:
+        split_outs = [split_outs]
+    for i, node_name in enumerate(split_outs):
+        # remove seq_length dimention
+        gb.op_output_named('Squeeze', [node_name], [ys_name_list[i]], axes=[0])
+
+    # Removal of num_directions and new dimention for concatenation cancel
+    # each other.
+    gb.op_output_named('Concat', hy_names, [hy_name], axis=0)
+
+    return gb.nodes()
+
+
+@testing.parameterize(
+    {'n_layers': 1, 'name': 'n_step_gru_1_layer'},
+    {'n_layers': 2, 'name': 'n_step_gru_2_layer'},
+)
+class TestReplaceNStepGRU(ONNXModelTest):
+    # This test case is a real-world example, to handle
+    # chainer.functions.n_step_gru
+    def test_output(self):
+        n_layers = self.n_layers
+        dropout_ratio = 0.0
+        batch_size = 3
+        input_size = 4
+        hidden_size = 5
+        seq_length = 6
+
+        n_step_gru = fake_as_funcnode(F.n_step_gru, 'xNStepGRU')
+
+        class Model(chainer.Chain):
+            def __init__(self):
+                super().__init__()
+
+            def __call__(self, hx, ws1, ws2, ws3, bs, xs):
+                ws = [F.separate(ws1) + F.separate(ws2)]
+                if n_layers > 1:
+                    ws.extend([F.separate(w) for w in F.separate(ws3)])
+                bs = [F.separate(b) for b in F.separate(bs)]
+                xs = F.separate(xs)
+                hy, ys = n_step_gru(n_layers, dropout_ratio,
+                                    hx, ws, bs, xs)
+                return hy, F.stack(ys, axis=0)
+
+        model = Model()
+
+        hx = input_generator.increasing(n_layers, batch_size, hidden_size)
+        ws1 = input_generator.increasing(3, hidden_size, input_size)
+        ws2 = input_generator.increasing(3, hidden_size, hidden_size)
+        ws3 = input_generator.increasing(
+            n_layers - 1, 6, hidden_size, hidden_size)
+        bs = input_generator.increasing(n_layers, 6, hidden_size)
+        xs = input_generator.increasing(seq_length, batch_size, input_size)
+
+        addon_converters = {'xNStepGRU': n_step_gru_converter}
+        self.expect(model, (hx, ws1, ws2, ws3, bs, xs),
+                    external_converters=addon_converters)
+
+
 class TestReplaceWithOutputGrad(ONNXModelChecker):
 
     def get_model(self):
