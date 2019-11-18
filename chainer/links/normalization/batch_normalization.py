@@ -310,13 +310,13 @@ class BatchNormalization(link.Link):
                 if i not in self.axis])
             self._initialize_params(param_shape)
 
+        # When using static_graph optimizations beta or gamma might not be
+        # initialized and is not retained by the function, so the
+        # static forward pass will get a None instead
         gamma = self.gamma
         if gamma is None:
             gamma, = self._get_gamma()
 
-        # When using static_graph optimizations beta might not be
-        # initialized and is not retained by the function, so the
-        # static forward pass will get a None instead
         beta = self.beta
         if beta is None:
             beta, = self._get_beta()
