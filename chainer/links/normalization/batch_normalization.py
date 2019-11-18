@@ -190,8 +190,6 @@ class BatchNormalization(link.Link):
 
     gamma = None
     beta = None
-    avg_mean = None
-    avg_var = None
 
     def __init__(self, size=None, decay=0.9, eps=2e-5, dtype=None,
                  use_gamma=True, use_beta=True,
@@ -229,16 +227,19 @@ class BatchNormalization(link.Link):
                 beta_initializer.dtype = self._highprec_dtype
                 self.beta = variable.Parameter(beta_initializer)
 
-        if size is not None:
+        if size is None:
+            self.avg_mean = None
+            self.avg_var = None
+        else:
             self._initialize_params(size)
+        self.register_persistent('avg_mean')
+        self.register_persistent('avg_var')
 
     def _initialize_params(self, shape):
         self.avg_mean = self._init_array(self._initial_avg_mean, 0, shape)
         self._initial_avg_mean = None
-        self.register_persistent('avg_mean')
         self.avg_var = self._init_array(self._initial_avg_var, 1, shape)
         self._initial_avg_var = None
-        self.register_persistent('avg_var')
         if self.gamma is not None:
             self.gamma.initialize(shape)
         if self.beta is not None:
