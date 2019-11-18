@@ -429,12 +429,6 @@ class TestSequential(unittest.TestCase):
         self.assertIs(self.s2[2], s3[0])
         self.assertIs(self.s2[3], s3[1])
 
-    def test_insert(self):
-        l1 = links.Linear(3, 3)
-        self.s1.insert(1, l1)
-        self.assertEqual(len(self.s1), 3)
-        self.assertIs(self.s1[1], l1)
-
     def test_remove(self):
         self.s2.remove(self.s1)
         self.assertEqual(len(self.s2), 1)
@@ -613,6 +607,68 @@ class TestEmptySequential(unittest.TestCase):
         x = numpy.ones((2, 3), numpy.float32)
         with pytest.raises(RuntimeError):
             seq(x)
+
+
+@testing.parameterize_pytest(
+    'expect_error,orig,pos,is_link', [
+        # Insertion into an empty sequential
+        (False, (), 0, False),
+        (False, (), 0, True),
+        # Insertion into a sequential with 1 element
+        (False, (False,), 0, False),
+        (False, (True,), 0, True),
+        (False, (False,), 1, False),
+        (False, (True,), 1, True),
+        (False, (False,), -1, False),
+        (False, (True,), -1, True),
+        # Insertion into a sequential with multiple elements
+        (False, (False, False), -1, False),
+        (False, (True, True), -1, True),
+        (False, (False, False), 1, False),
+        (False, (True, True), 1, True),
+        # Index error expected
+        (True, (), 1, True),
+        (True, (), -1, False),
+        (True, (True,), 2, True),
+        (True, (False,), -2, False),
+    ]
+)
+class TestSequentialInsert(unittest.TestCase):
+    def test_insert(self):
+        funcs = [
+            functions.sin,
+            functions.cos,
+            functions.tan,
+        ]
+        # Prepare the original sequential before insertion.
+        orig = []
+        for orig_is_link in self.orig:
+            if orig_is_link:
+                orig.append(links.Linear((3, 3)))
+            else:
+                orig.append(funcs.pop(0))
+
+        # The subject of insertion
+        if self.is_link:
+            subj = links.Linear((3, 3))
+        else:
+            subj = funcs.pop(0)
+
+        # Instantiate the sequential
+        seq = chainer.Sequential(*orig)
+
+        if self.expect_error:
+            with pytest.raises(IndexError):
+                seq.insert(self.pos, subj)
+        else:
+            seq.insert(self.pos, subj)
+
+            # Inserting to the `orig` similarly for the following comparison
+            orig.insert(self.pos, subj)
+
+            assert len(seq) == len(self.orig) + 1
+            for i in range(len(self.orig) + 1):
+                assert seq[i] is orig[i]
 
 
 testing.run_module(__name__, __file__)
