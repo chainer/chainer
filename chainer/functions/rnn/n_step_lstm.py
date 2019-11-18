@@ -149,7 +149,7 @@ def n_step_lstm(
             ``ws[i]`` represents the weights for the i-th layer.
             Each ``ws[i]`` is a list containing eight matrices.
             ``ws[i][j]`` corresponds to :math:`W_j` in the equation.
-            Only ``ws[0][j]`` where ``0 <= j < 4`` are ``(I, N)``-shaped as
+            Only ``ws[0][j]`` where ``0 <= j < 4`` are ``(N, I)``-shaped as
             they are multiplied with input variables, where ``I`` is the size
             of the input and ``N`` is the dimension of the hidden units. All
             other matrices are ``(N, N)``-shaped.
@@ -306,7 +306,7 @@ def n_step_bilstm(
             ``m == 1`` means the backward direction.) Each ``ws[i]`` is a
             list containing eight matrices. ``ws[i][j]`` corresponds to
             :math:`W_j` in the equation. ``ws[0][j]`` and ``ws[1][j]`` where
-            ``0 <= j < 4`` are ``(I, N)``-shaped because they are multiplied
+            ``0 <= j < 4`` are ``(N, I)``-shaped because they are multiplied
             with input variables, where ``I`` is the size of the input.
             ``ws[i][j]`` where ``2 <= i`` and ``0 <= j < 4`` are
             ``(N, 2N)``-shaped because they are multiplied with two hidden
@@ -420,7 +420,7 @@ def n_step_lstm_base(
             ``ws[i]`` represents the weights for the i-th layer.
             Each ``ws[i]`` is a list containing eight matrices.
             ``ws[i][j]`` corresponds to :math:`W_j` in the equation.
-            Only ``ws[0][j]`` where ``0 <= j < 4`` are ``(I, N)``-shape as they
+            Only ``ws[0][j]`` where ``0 <= j < 4`` are ``(N, I)``-shape as they
             are multiplied with input variables, where ``I`` is the size of
             the input and ``N`` is the dimension of the hidden units. All
             other matrices are ``(N, N)``-shaped.
