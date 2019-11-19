@@ -120,8 +120,12 @@ def convert_GetItem(func, opset_version, input_names, output_names, context):
             ends.append(x.shape[axis] if idx.stop is None else idx.stop)
         elif isinstance(idx, int):
             axes.append(axis)
-            starts.append(idx)
-            ends.append(idx+1)
+            if idx == -1:
+                starts.append(idx)
+                ends.append(np.iinfo(np.int64).max)
+            else:
+                starts.append(idx)
+                ends.append(idx+1)
             squeeze_idxs.append(axis)
         elif isinstance(idx, np.ndarray) and idx.ndim == 0:
             scalar_idx = idx.item()
