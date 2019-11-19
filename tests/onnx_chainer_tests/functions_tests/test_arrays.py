@@ -487,3 +487,26 @@ class TestPermutate(ONNXModelTest):
             indices = np.array([2, 0, 1], np.int32)
         self.expect(model, (x, indices), name=self.name,
                     skip_opset_version=[7, 8])
+
+
+@testing.parameterize(
+    {'in_shapes': [(3, 4)], 'name': 'transpose_sequence_single_input'},
+    {'in_shapes': [(1, 3), (1, 3)],
+     'name': 'transpose_sequence_single_output'},
+)
+class TestTransposeSequence(ONNXModelTest):
+
+    def test_output(self):
+
+        class Model(chainer.Chain):
+            def __init__(self):
+                super(Model, self).__init__()
+
+            def __call__(self, *xs):
+                return F.transpose_sequence(xs)
+
+        model = Model()
+        xs = [input_generator.increasing(*shape) for
+              shape in self.in_shapes]
+
+        self.expect(model, xs, name=self.name)

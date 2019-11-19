@@ -35,6 +35,7 @@ from onnx_chainer.functions.array import convert_Stack  # NOQA
 from onnx_chainer.functions.array import convert_Swapaxes  # NOQA
 from onnx_chainer.functions.array import convert_Tile  # NOQA
 from onnx_chainer.functions.array import convert_Transpose  # NOQA
+from onnx_chainer.functions.array import convert_TransposeSequence  # NOQA
 from onnx_chainer.functions.array import convert_Vstack  # NOQA
 from onnx_chainer.functions.array import convert_Where  # NOQA
 
