@@ -155,11 +155,6 @@ from onnx_chainer_tests.helper import ONNXModelTest
      'args': {'slices': (slice(None), slice(0, 1), slice(None, 2))},
      'name': 'get_item_start_from_none'},
 
-    # select_item
-    {'ops': 'select_item', 'input_shape': (3, 3),
-     'input_argname': 'x',
-     'args': {'t': np.array([2, 1, 0], dtype=np.int32)}},
-
     # expand_dims
     {'ops': 'expand_dims', 'input_shape': (3,),
      'input_argname': 'x', 'args': {'axis': 0},
@@ -515,3 +510,20 @@ class TestTransposeSequence(ONNXModelTest):
               shape in self.in_shapes]
 
         self.expect(model, xs, name=self.name)
+
+
+class TestSelectItem(ONNXModelTest):
+
+    def test_output(self):
+
+        class Model(chainer.Chain):
+            def forward(self, x, t):
+                return F.select_item(x, t)
+
+        model = Model()
+        x = input_generator.increasing(3, 3)
+        t = np.array([2, 1, 0], dtype=np.int32)
+
+        self.expect(
+            model, (x, t), expected_num_initializers=0,
+            skip_opset_version=list(range(1, 9)))
