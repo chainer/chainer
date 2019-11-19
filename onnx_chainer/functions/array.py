@@ -205,6 +205,7 @@ def convert_SelectItem(func, opset_version, input_names, output_names,
                         to=NP_TYPE_TO_TENSOR_TYPE[np.dtype('int64')])
     n_rows = gb.op('Shape', [target_idxs])
 
+    # This is an equivalent of using Range.
     one_1 = onnx.helper.make_tensor('one_1', onnx.TensorProto.FLOAT, [1], [1])
     ones = gb.op('ConstantOfShape', [n_rows], value=one_1)
     row_idxs = gb.op('Squeeze', [gb.op('NonZero', [ones])])
