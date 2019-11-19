@@ -180,6 +180,11 @@ step_chainer_tests() {
 }
 
 
+step_chainer_example_tests() {
+    pytest -v -rfEX "$REPO_DIR"/examples/tests
+}
+
+
 step_chainerx_python_tests() {
     pushd $WORK_DIR
     # In Travis CI only pairwise testing is performed.

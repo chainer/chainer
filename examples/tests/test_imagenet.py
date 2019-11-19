@@ -1,10 +1,10 @@
 import os
 import unittest
 
-from examples.tests import runner
+import test_utils
 
 
-EXAMPLES_ROOT = runner.EXAMPLES_ROOT
+EXAMPLES_ROOT = test_utils.EXAMPLES_ROOT
 
 
 class TestImagenet(unittest.TestCase):
@@ -13,7 +13,7 @@ class TestImagenet(unittest.TestCase):
         image_root_dir = os.path.join(root_dir, '.testdata/images')
         list_file = os.path.join(root_dir, '.testdata/data.txt')
 
-        with runner.ExampleRunner(root_dir) as r:
+        with test_utils.ExampleRunner(root_dir) as r:
 
             r.run(
                 'compute_mean.py',

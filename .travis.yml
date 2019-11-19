@@ -30,6 +30,13 @@ matrix:
       - GOROOT=$HOME/go
       if: type in (pull_request)
 
+    - name: "Examples"
+      language: python
+      dist: xenial
+      python: "3.5"
+      env:
+      - CHAINER_TRAVIS_TEST="examples"
+
     - name: "macOS Py35 | chainer, chainermn, chainerx, docs"
       os: osx
       language: generic
