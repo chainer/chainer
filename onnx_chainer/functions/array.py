@@ -195,7 +195,6 @@ def convert_GetItem(func, opset_version, input_names, output_names, context):
     return gb.nodes(output_names=output_names)
 
 
-@support((9, 11))
 def convert_SelectItem(func, opset_version, input_names, output_names,
                        context):
     gb = onnx_helper.GraphBuilder()
