@@ -75,7 +75,8 @@ void WeightsForward(
                 cudnnFilterDescriptor_t lin_layer_mat_desc;
                 cudnnCreateFilterDescriptor(&lin_layer_mat_desc);
                 float* m_offset;
-                device_internals.cudnn_handle().Call(
+                CHAINERX_CUDA_CUDNN_CALL_WITH_HANDLE(
+                        device_internals.cudnn_handle(),
                         cudnnGetRNNLinLayerMatrixParams,
                         rnn_desc,
                         index,
@@ -101,7 +102,8 @@ void WeightsForward(
                 cudnnFilterDescriptor_t lin_layer_bias_desc;
                 cudnnCreateFilterDescriptor(&lin_layer_bias_desc);
                 float* b_offset;
-                device_internals.cudnn_handle().Call(
+                CHAINERX_CUDA_CUDNN_CALL_WITH_HANDLE(
+                        device_internals.cudnn_handle(),
                         cudnnGetRNNLinLayerBiasParams,
                         rnn_desc,
                         index,
@@ -143,7 +145,8 @@ std::vector<Array> WeightsBackward(
                 cudnnFilterDescriptor_t lin_layer_mat_desc;
                 cudnnCreateFilterDescriptor(&lin_layer_mat_desc);
                 float* m_offset;
-                device_internals.cudnn_handle().Call(
+                CHAINERX_CUDA_CUDNN_CALL_WITH_HANDLE(
+                        device_internals.cudnn_handle(),
                         cudnnGetRNNLinLayerMatrixParams,
                         rnn_desc,
                         index,
@@ -169,7 +172,8 @@ std::vector<Array> WeightsBackward(
                 cudnnFilterDescriptor_t lin_layer_bias_desc;
                 cudnnCreateFilterDescriptor(&lin_layer_bias_desc);
                 float* b_offset;
-                device_internals.cudnn_handle().Call(
+                CHAINERX_CUDA_CUDNN_CALL_WITH_HANDLE(
+                        device_internals.cudnn_handle(),
                         cudnnGetRNNLinLayerBiasParams,
                         rnn_desc,
                         index,
@@ -236,13 +240,14 @@ public:
 
         size_t state_size;
         void* states;
-        device_internals.cudnn_handle().Call(cudnnDropoutGetStatesSize, &state_size);
+        CHAINERX_CUDA_CUDNN_CALL_WITH_HANDLE(device_internals.cudnn_handle(), cudnnDropoutGetStatesSize, &state_size);
 
         cudaMalloc(&states, state_size);
 
         cudnnSetDropoutDescriptor(dropout_desc, device_internals.cudnn_handle().handle(), 0, states, state_size, seed);
         cudnnCreateRNNDescriptor(&rnn_desc);
-        device_internals.cudnn_handle().Call(
+        CHAINERX_CUDA_CUDNN_CALL_WITH_HANDLE(
+                device_internals.cudnn_handle(),
                 cudnnSetRNNDescriptor,
                 rnn_desc,
                 hidden_dim,
@@ -275,17 +280,20 @@ public:
         Array y = Concatenate(ys, 0);
 
         size_t weight_size;
-        device_internals.cudnn_handle().Call(cudnnGetRNNParamsSize, rnn_desc, x_desc[0], &weight_size, CUDNN_DATA_FLOAT);
+        CHAINERX_CUDA_CUDNN_CALL_WITH_HANDLE(
+                device_internals.cudnn_handle(), cudnnGetRNNParamsSize, rnn_desc, x_desc[0], &weight_size, CUDNN_DATA_FLOAT);
         Array w = AsContiguous(Zeros({static_cast<int64_t>(weight_size) / 4, 1, 1}, x.dtype(), x.device()));
         cuda_internal::CudnnFilterDescriptor w_desc{w};
 
         WeightsForward(device_internals, rnn_desc, ws, bs, n_layers, num_directions, x_desc[0], *w_desc, w);
         size_t work_size;
         size_t reserve_size;
-        device_internals.cudnn_handle().Call(cudnnGetRNNWorkspaceSize, rnn_desc, xs.size(), x_desc, &work_size);
+        CHAINERX_CUDA_CUDNN_CALL_WITH_HANDLE(
+                device_internals.cudnn_handle(), cudnnGetRNNWorkspaceSize, rnn_desc, xs.size(), x_desc, &work_size);
         Array workspace = AsContiguous(Zeros({static_cast<int64_t>(work_size)}, hx.dtype(), hx.device()));
 
-        device_internals.cudnn_handle().Call(cudnnGetRNNTrainingReserveSize, rnn_desc, xs.size(), x_desc, &reserve_size);
+        CHAINERX_CUDA_CUDNN_CALL_WITH_HANDLE(
+                device_internals.cudnn_handle(), cudnnGetRNNTrainingReserveSize, rnn_desc, xs.size(), x_desc, &reserve_size);
         Array reserve = AsContiguous(Zeros({static_cast<int64_t>(reserve_size)}, hx.dtype(), hx.device()));
         hx = AsContiguous(hx.AsType(Dtype::kFloat32));
         Array hy = AsContiguous(Zeros(hx.shape(), hx.dtype(), hx.device()));
@@ -300,7 +308,8 @@ public:
         cuda_internal::CudnnTensorDescriptor cx_desc{_cx};
         cuda_internal::CudnnTensorDescriptor hy_desc{hy};
         cuda_internal::CudnnTensorDescriptor cy_desc{cy};
-        device_internals.cudnn_handle().Call(
+        CHAINERX_CUDA_CUDNN_CALL_WITH_HANDLE(
+                device_internals.cudnn_handle(),
                 cudnnRNNForwardTraining,
                 rnn_desc,
                 xs.size(),
@@ -431,7 +440,8 @@ public:
         cuda_internal::CudnnTensorDescriptor dcx_desc{dcx};
         reserve = AsContiguous(reserve);
 
-        device_internals.cudnn_handle().Call(
+        CHAINERX_CUDA_CUDNN_CALL_WITH_HANDLE(
+                device_internals.cudnn_handle(),
                 cudnnRNNBackwardData,
                 rnn_desc,
                 xs.size(),
@@ -462,7 +472,8 @@ public:
 
         Array dw = AsContiguous(Zeros(w.shape(), hx.dtype(), hx.device()));
         cuda_internal::CudnnFilterDescriptor dw_desc{dw};
-        device_internals.cudnn_handle().Call(
+        CHAINERX_CUDA_CUDNN_CALL_WITH_HANDLE(
+                device_internals.cudnn_handle(),
                 cudnnRNNBackwardWeights,
                 rnn_desc,
                 xs.size(),
