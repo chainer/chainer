@@ -19,11 +19,7 @@ from chainer import testing
         'use_cuda': [True],
         'cuda_device': [0, 1],
     })
-    # ChainerX tests
-    + testing.product({
-        'use_chainerx': [True],
-        'chainerx_device': ['native:0', 'cuda:0', 'cuda:1']
-    })
+    # TODO(niboshi): Add ChainerX tests
 )
 class TestCholesky(testing.FunctionTestCase):
 
