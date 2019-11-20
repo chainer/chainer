@@ -240,10 +240,16 @@ if(${CHAINERX_ENABLE_LAPACK})
     if (${LAPACK_FOUND})
         message(STATUS "Found LAPACK (library: ${LAPACK_LIBRARIES})")
         message(STATUS "Defining CHAINERX_ENABLE_LAPACK variable.")
-        add_definitions(-DCHAINERX_ENABLE_LAPACK=1)
     else()
         message(STATUS "LAPACK not found")
+        set(CHAINERX_ENABLE_LAPACK OFF)
     endif()
+endif()
+
+if(${CHAINERX_ENABLE_LAPACK})
+    add_definitions(-DCHAINERX_ENABLE_LAPACK=1)
+else()
+    add_definitions(-DCHAINERX_ENABLE_LAPACK=0)
 endif()
 
 # dl libs
