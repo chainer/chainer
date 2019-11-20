@@ -59,13 +59,12 @@ class WeightStandardization(link_hook.LinkHook):
     def forward_preprocess(self, cb_args):
         # This method normalizes target link's weight by statistics
         link = cb_args.link
-        input_variable = cb_args.args[0]
-        if not self._initialized:
-            if getattr(link, self.weight_name).array is None:
-                if input_variable is None:
-                    raise ValueError('Input variable does not exist!')
-                link._initialize_params(input_variable.shape[1])
         weight = getattr(link, self.weight_name)
+        input_variable = cb_args.args[0]
+        if weight.array is None:
+            if input_variable is None:
+                raise ValueError('Input variable does not exist!')
+            link._initialize_params(input_variable.shape[1])
         with chainer.using_device(link.device):
             gamma = link.xp.ones(
                 (weight.shape[1],), dtype=weight.dtype)
@@ -74,14 +73,15 @@ class WeightStandardization(link_hook.LinkHook):
         # For link.W or equivalents to be chainer.Parameter
         # consistently to users, this hook maintains a reference to
         # the unnormalized weight.
-        self.original_weight = weight
+        self.original_weight = weight.array
         # note: `normalized_weight` is ~chainer.Variable
         normalized_weight = group_normalization.group_normalization(
             weight, groups=1, gamma=gamma, beta=beta, eps=self.eps)
-        setattr(link, self.weight_name, normalized_weight)
+        weight.array = normalized_weight.array
 
     def forward_postprocess(self, cb_args):
         # Here, the computational graph is already created,
         # we can reset link.W or equivalents to be Parameter.
         link = cb_args.link
-        setattr(link, self.weight_name, self.original_weight)
+        weight = getattr(link, self.weight_name)
+        weight.array = self.original_weight

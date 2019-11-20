@@ -29,6 +29,25 @@ class TestExceptions(unittest.TestCase):
                 self.layer(self.x)
 
 
+class TestWeightReference(unittest.TestCase):
+
+    def test_weight_reference(self):
+        class MyLinear(L.Linear):
+            def forward(self, x):
+                # weight should be unchanged
+                assert self.W is original_weight
+                assert isinstance(self.W, chainer.Parameter)
+                return super().forward(x)
+
+        layer = MyLinear(5, 20)
+        original_weight = layer.W
+        hook = WeightStandardization(weight_name='W')
+        layer.add_hook(hook)
+        x = chainer.Variable(numpy.ones((10, 5), dtype=numpy.float32))
+
+        layer(x)
+
+
 class BaseTest(object):
 
     def test_add_ws_hook(self):
