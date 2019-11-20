@@ -211,6 +211,7 @@ public:
             const absl::optional<Array>& ggamma,
             const absl::optional<Array>& gbeta) override {
         CHAINERX_ASSERT(gamma.shape() == internal::ReduceShape(x.shape(), axis, true));
+        CHAINERX_ASSERT(x.dtype() == gout.dtype());
         CHAINERX_ASSERT(x.shape() == gout.shape());
         CHAINERX_ASSERT(&x.device() == &gamma.device());
         CHAINERX_ASSERT(&x.device() == &gout.device());
@@ -252,9 +253,6 @@ public:
         Array gout_cont = AsContiguous(gout);
         Array actual_gx = EmptyLike(x, device);
         cuda_internal::CudnnTensorDescriptor x_desc{ExpandToAtLeast4D(x_cont)};
-
-        // The CudnnTensorDescriptor for `x_cont` can be reused for `gout_cont`.
-        CHAINERX_ASSERT(x_desc.GetDtype() == cuda_internal::CudnnTensorDescriptor{gout_cont}.GetDtype());
 
         cudnnBatchNormMode_t mode = GetBatchNormMode(axis);
 
