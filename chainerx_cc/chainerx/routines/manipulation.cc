@@ -24,9 +24,12 @@
 #include "chainerx/error.h"
 #include "chainerx/graph.h"
 #include "chainerx/kernels/creation.h"
+#include "chainerx/kernels/indexing.h"
 #include "chainerx/kernels/misc.h"
 #include "chainerx/macro.h"
 #include "chainerx/routines/creation.h"
+#include "chainerx/routines/indexing.h"
+#include "chainerx/routines/routines_util.h"
 #include "chainerx/routines/type_util.h"
 #include "chainerx/shape.h"
 #include "chainerx/strides.h"
@@ -656,6 +659,34 @@ std::vector<Array> VSplit(const Array& ary, std::vector<int64_t> indices) {
     return Split(ary, std::move(indices), 0);
 }
 
+std::vector<Array> HSplit(const Array& ary, int64_t sections) {
+    if (sections < 1) {
+        throw DimensionError("Number of sections must be larger than 0.");
+    }
+
+    if (ary.ndim() == 0) {
+        throw DimensionError("hsplit only works on arrays of 1 or more dimensions.");
+    }
+
+    if (ary.ndim() > 1) {
+        return Split(ary, sections, 1);
+    }
+
+    return Split(ary, sections, 0);
+}
+
+std::vector<Array> HSplit(const Array& ary, std::vector<int64_t> indices) {
+    if (ary.ndim() == 0) {
+        throw DimensionError("hsplit only works on arrays of 1 or more dimensions.");
+    }
+
+    if (ary.ndim() > 1) {
+        return Split(ary, std::move(indices), 1);
+    }
+
+    return Split(ary, std::move(indices), 0);
+}
+
 Array Swapaxes(const Array& a, int8_t axis1, int8_t axis2) {
     Shape shape = a.shape();
     Strides strides = a.strides();
@@ -972,6 +1003,28 @@ Array Moveaxis(const Array& a, const Axes& source, const Axes& destination) {
     }
 
     return a.Transpose(order);
+}
+
+void CopyTo(const Array& dst, const Array& src, CastingMode casting, const Array& where) {
+    internal::CheckNoUnsafeInplace(dst, {dst, src, where});
+
+    switch (casting) {
+        case CastingMode::kNo:
+            if (dst.dtype() != src.dtype()) {
+                throw DtypeError{"Source and destination must have same dtype."};
+            }
+            break;
+        default:
+            CHAINERX_NEVER_REACH();
+    }
+
+    const Array& src_b = src.shape() != dst.shape() ? src.BroadcastTo(dst.shape()) : src;
+    const Array& where_b = where.shape() != dst.shape() ? where.BroadcastTo(dst.shape()) : where;
+
+    {
+        NoBackpropModeScope scope;
+        dst.device().backend().CallKernel<WhereKernel>(where_b, src_b, dst, dst);
+    }
 }
 
 }  // namespace chainerx

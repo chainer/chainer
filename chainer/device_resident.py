@@ -55,8 +55,7 @@ class DeviceResident(utils.enable_final(meta_base=abc.ABCMeta)):
         return self._device
 
     @property
-    def xp(self):
-        # type: () -> types.Xp
+    def xp(self) -> types.Xp:
         """Array module corresponding to the device.
 
         Depending on the device in which this object resides, this property
@@ -69,8 +68,7 @@ class DeviceResident(utils.enable_final(meta_base=abc.ABCMeta)):
         return device.xp
 
     @utils.final(action=DeprecationWarning)
-    def to_cpu(self):
-        # type: () -> 'DeviceResident'
+    def to_cpu(self) -> 'DeviceResident':
         """Copies parameter variables and persistent values to CPU.
 
          .. deprecated:: v7.0.0
@@ -93,9 +91,8 @@ class DeviceResident(utils.enable_final(meta_base=abc.ABCMeta)):
     @utils.final(action=DeprecationWarning)
     def to_gpu(
             self,
-            device=None,  # type: tp.Optional[types.CudaDeviceSpec]
-    ):
-        # type: (...) -> 'DeviceResident'
+            device: tp.Optional[types.CudaDeviceSpec] = None,
+    ) -> 'DeviceResident':
         """Copies parameter variables and persistent values to GPU.
 
          .. deprecated:: v7.0.0
@@ -129,8 +126,7 @@ class DeviceResident(utils.enable_final(meta_base=abc.ABCMeta)):
         return self
 
     @utils.final(action=DeprecationWarning)
-    def to_intel64(self):
-        # type: () -> 'DeviceResident'
+    def to_intel64(self) -> 'DeviceResident':
         """Copies parameter variables and persistent values to CPU.
 
          .. deprecated:: v7.0.0
@@ -181,9 +177,8 @@ to NumPy/CuPy devices without any copy."""
     @utils.final
     def to_device(
             self,
-            device  # type: types.DeviceSpec
-    ):
-        # type: (...) -> 'DeviceResident'
+            device: types.DeviceSpec
+    ) -> 'DeviceResident':
         """Copies parameter variables and persistent values to the specified \
 device.
 

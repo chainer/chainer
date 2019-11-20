@@ -94,29 +94,31 @@ class GeneralBatchNormalizationImpl(_BatchNormalizationImpl):
 
     def backward(self, axis, gamma, gy, x, xp,
                  expander, mean, inv_std, eps, var):
+        interm_dtype = numpy.promote_types(x.dtype, gamma.dtype)
         if isinstance(gy, intel64.mdarray):
             # intel64.mdarray does not support dtype option in sum, so we
             # convert it to numpy here.
             gy = numpy.asarray(gy)
 
         x_hat = _x_hat(x, mean[expander],
-                       inv_std[expander]).astype(x.dtype, copy=False)
+                       inv_std[expander])
+        assert x_hat.dtype == interm_dtype
         gbeta, ggamma = self.get_ggamma_and_gbeta(axis, gamma, gy, x_hat, xp)
 
         inv_m = gamma.dtype.type(1. / (x.size // gamma.size))
         if xp is numpy:
-            # cast to avoid a error of "mkldnn::error"
-            if gy.dtype == numpy.float64 and gamma.dtype == numpy.float32:
-                gamma = gamma.astype(numpy.float64, copy=False)
-
+            if (isinstance(gamma, intel64.mdarray)
+                    and interm_dtype != numpy.float32):
+                # Convert to numpy to avoid an error of "mkldnn::error"
+                gamma = numpy.asarray(gamma)
             gx = (gamma * inv_std)[expander] * (
                 gy - (x_hat * ggamma[expander] + gbeta[expander]) * inv_m)
             gx = gx.astype(dtype=x.dtype, copy=False)
         else:
-            # inv_std has a promoted type of x and gamma
+            # x_hat and inv_std have a promoted type of x and gamma
             gx = cuda.elementwise(
                 '''
-                T gy, T x_hat, U gamma, X inv_std, U ggamma, U gbeta,
+                T gy, X x_hat, U gamma, X inv_std, U ggamma, U gbeta,
                 U inv_m
                 ''',
                 'T gx',
@@ -353,7 +355,7 @@ class BatchNormalization(function_node.FunctionNode):
 
         x, gamma, beta = inputs
         axis_chx = _chainerx_compute_axis(x.ndim, gamma.ndim, self.axis)
-        if not _chainerx_is_supported(x.device, axis_chx):
+        if not _chainerx_is_supported(x, axis_chx):
             return chainer.Fallback
 
         y = chainerx.batch_norm(
@@ -576,7 +578,7 @@ class FixedBatchNormalization(function_node.FunctionNode):
 
         x, gamma, beta, mean, var = inputs
         axis_chx = _chainerx_compute_axis(x.ndim, gamma.ndim, self.axis)
-        if not _chainerx_is_supported(x.device, axis_chx):
+        if not _chainerx_is_supported(x, axis_chx):
             return chainer.Fallback
 
         y = chainerx.fixed_batch_norm(
@@ -795,20 +797,19 @@ def _chainerx_compute_axis(x_ndim, gamma_ndim, axis):
         else axis if isinstance(axis, tuple)
         else (axis,))
     axis_chx = _compute_axis(x_ndim, gamma_ndim, axis_chx)
+    assert isinstance(axis_chx, tuple)
     return axis_chx
 
 
-def _chainerx_is_supported(device, axis_chx):
+def _chainerx_is_supported(x, axis_chx):
     # Checks if the input configuration is supported in ChainerX
-    axis_ndim_chx = len(axis_chx)
+    device = x.device
     if device.backend.name == 'cuda':
         # cuDNN batch norm restriction
-        if not ((axis_ndim_chx == 3 and axis_chx[0] == 0
-                 and axis_chx[1] == 2 and axis_chx[2] == 3)
-                or (axis_ndim_chx == 4 and axis_chx[0] == 0
-                    and axis_chx[1] == 2 and axis_chx[2] == 3
-                    and axis_chx[3] == 4)):
-            return False
+        return (x.ndim, axis_chx) in [
+            (4, (0, 2, 3)),
+            (5, (0, 2, 3, 4)),
+        ]
     return True
 
 

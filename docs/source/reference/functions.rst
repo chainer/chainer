@@ -219,6 +219,7 @@ Mathematical functions
    chainer.functions.batch_matmul
    chainer.functions.bias
    chainer.functions.ceil
+   chainer.functions.cholesky
    chainer.functions.clip
    chainer.functions.cos
    chainer.functions.cosh

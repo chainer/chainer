@@ -198,7 +198,7 @@ class Trainer(object):
         return _get_time() - self._start_at + self._snapshot_elapsed_time
 
     def extend(self, extension, name=None, trigger=None, priority=None,
-               call_before_training=False, **kwargs):
+               *, call_before_training=False, **kwargs):
         """Registers an extension to the trainer.
 
         :class:`Extension` is a callable object which is called after each

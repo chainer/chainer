@@ -4,9 +4,9 @@ import numpy as np
 
 import chainer
 from chainer import cuda
-from chainer import testing
 import chainer.functions as F
 from chainer.functions.array.as_strided import _stride_array
+from chainer import testing
 
 
 def _broadcast_to(xp, x, shape):

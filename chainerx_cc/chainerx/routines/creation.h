@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <vector>
 
 #include <absl/types/optional.h>
 
@@ -95,22 +96,24 @@ inline Array AsContiguous(const Array& a) { return AsContiguous(a, a.dtype()); }
 
 // Returns a C-contiguous array.
 // An input array with shape {} results in a new array with shape {1}.
-Array AsContiguousArray(const Array& a, const absl::optional<Dtype>& dtype = absl::nullopt);
+Array AsContiguousArray(const Array& a, absl::optional<Dtype> dtype = absl::nullopt);
 
-// TODO(niboshi): Remove device argument and use v.device(). Also fix tests
-Array Diag(const Array& v, int64_t k = 0, Device& device = GetDefaultDevice());
+Array Diag(const Array& v, int64_t k = 0);
 
-// TODO(niboshi): Remove device argument and use v.device(). Also fix tests
-Array Diagflat(const Array& v, int64_t k = 0, Device& device = GetDefaultDevice());
+Array Diagflat(const Array& v, int64_t k = 0);
 
 // Creates a 1-d array with evenly spaced numbers.
 Array Linspace(
         Scalar start,
         Scalar stop,
-        const absl::optional<int64_t>& num = absl::nullopt,
+        absl::optional<int64_t> num = absl::nullopt,
         bool endpoint = true,
-        const absl::optional<Dtype>& dtype = absl::nullopt,
+        absl::optional<Dtype> dtype = absl::nullopt,
         Device& device = GetDefaultDevice());
+
+enum class MeshgridIndexingMode { kCartesian, kMatrix };
+
+std::vector<Array> Meshgrid(const std::vector<Array>& arrays, MeshgridIndexingMode mode);
 
 // Creates a 2-dimensional array with ones at and below the given diagonal and zeros elsewhere.
 Array Tri(

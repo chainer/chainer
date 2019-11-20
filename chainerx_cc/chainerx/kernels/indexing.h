@@ -5,17 +5,18 @@
 #include "chainerx/array.h"
 #include "chainerx/array_index.h"
 #include "chainerx/kernel.h"
+#include "chainerx/routines/indexing.h"
 
 namespace chainerx {
 
 class AddAtKernel : public Kernel {
 public:
-    virtual void Call(const Array& a, const Array& indices, int8_t axis, const Array& b, const Array& out) = 0;
+    virtual void Call(const Array& a, const Array& indices, int8_t axis, const Array& b, const Array& out, IndexBoundsMode mode) = 0;
 };
 
 class TakeKernel : public Kernel {
 public:
-    virtual void Call(const Array& a, const Array& indices, int8_t axis, const Array& out) = 0;
+    virtual void Call(const Array& a, const Array& indices, int8_t axis, const Array& out, IndexBoundsMode mode) = 0;
 };
 
 class WhereKernel : public Kernel {

@@ -1,11 +1,13 @@
+import numpy
 import six
 
-from chainer import backend
-from chainer import function
+from chainer.backends import cuda
+from chainer import function_node
 from chainer.utils import type_check
+import chainerx
 
 
-class Accuracy(function.Function):
+class Accuracy(function_node.FunctionNode):
 
     def __init__(self, ignore_label=None):
         self.ignore_label = ignore_label
@@ -28,8 +30,16 @@ class Accuracy(function.Function):
         for i in six.moves.range(t_ndim + 1, type_check.eval(x_type.ndim)):
             type_check.expect(x_type.shape[i] == 1)
 
-    def forward(self, inputs):
-        xp = backend.get_array_module(*inputs)
+    def forward_chainerx(self, inputs):
+        return self._forward(chainerx, inputs)
+
+    def forward_cpu(self, inputs):
+        return self._forward(numpy, inputs)
+
+    def forward_gpu(self, inputs):
+        return self._forward(cuda.cupy, inputs)
+
+    def _forward(self, xp, inputs):
         y, t = inputs
 
         if self.ignore_label is not None:
@@ -45,13 +55,25 @@ class Accuracy(function.Function):
             count = (pred == t).sum() - ignore_cnt
             total = t.size - ignore_cnt
 
-            if total == 0:
-                return xp.asarray(0.0, dtype=y.dtype),
+            if xp is numpy:
+                # Avoid warning of `divide by zero`
+                if total == 0:
+                    acc = xp.asarray(0.0, dtype=y.dtype)
+                else:
+                    acc = xp.asarray(float(count) / total, dtype=y.dtype)
             else:
-                return xp.asarray(float(count) / total, dtype=y.dtype),
+                acc = xp.where(total == 0,
+                               xp.asarray(0.0, dtype=y.dtype),
+                               xp.asarray(count / total, dtype=y.dtype))
         else:
             pred = y.argmax(axis=1).reshape(t.shape)
-            return xp.asarray((pred == t).mean(dtype=y.dtype)),
+            if xp is chainerx:
+                # TODO(niboshi): ChainerX mean() does not support dtype
+                # argument. Support it.
+                acc = xp.asarray((pred == t).astype(y.dtype, False).mean())
+            else:
+                acc = xp.asarray((pred == t).mean(dtype=y.dtype))
+        return acc,
 
 
 def accuracy(y, t, ignore_label=None):
@@ -95,4 +117,5 @@ y(i, j, k, ...)`.
         array(1.)
 
     """
-    return Accuracy(ignore_label=ignore_label)(y, t)
+    acc, = Accuracy(ignore_label=ignore_label).apply((y, t))
+    return acc

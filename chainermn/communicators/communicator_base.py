@@ -414,8 +414,7 @@ class CommunicatorBase(six.with_metaclass(ABCMeta)):
         self.multi_node_mean_grad(model, zero_fill)
 
     @property
-    def within_config_scope(self):
-        # type: () -> bool
+    def within_config_scope(self) -> bool:
         """True if the current code is inside of an initialization scope.
 
         See :meth:`init_scope` for the details of the initialization scope.

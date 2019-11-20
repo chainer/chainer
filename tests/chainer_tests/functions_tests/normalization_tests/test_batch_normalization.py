@@ -1,8 +1,8 @@
 import unittest
+import warnings
 
 import numpy
 import six
-import warnings
 
 import chainer
 from chainer.backends import cuda

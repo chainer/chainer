@@ -1,13 +1,13 @@
 import numpy
 import six
 
-import chainerx
 from chainer import backend
 from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import function
 from chainer import function_node
 from chainer.utils import type_check
+import chainerx
 
 
 def _extract_gates(x):

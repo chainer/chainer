@@ -57,6 +57,24 @@ class EmbedID(link.Link):
                 initialW = normal.Normal(1.0)
             self.W = variable.Parameter(initialW, (in_size, out_size))
 
+    @classmethod
+    def from_params(cls, W, ignore_label=None):
+        """Initialize `~chainer.links.EmbedID` with the given parameter.
+
+        Args:
+            W (:class:`~chainer.Variable` or :ref:`ndarray`):
+                The weight parameter.
+            ignore_label (int or None): If ``ignore_label`` is an int value,
+                ``i``-th column of return value is filled with ``0``.
+        """
+        in_size, out_size = W.shape
+        link = cls(
+            in_size, out_size,
+            initialW=variable.as_array(W),
+            ignore_label=ignore_label
+        )
+        return link
+
     def forward(self, x):
         """Extracts the word embedding of given IDs.
 

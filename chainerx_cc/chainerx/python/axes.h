@@ -21,7 +21,7 @@ inline OptionalAxes ToAxes(const absl::optional<std::vector<int8_t>>& vec) {
     return absl::nullopt;
 }
 
-inline OptionalAxes ToAxes(const absl::optional<int8_t>& vec) {
+inline OptionalAxes ToAxes(absl::optional<int8_t> vec) {
     if (vec.has_value()) {
         return Axes{*vec};
     }

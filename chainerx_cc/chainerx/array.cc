@@ -375,7 +375,7 @@ Array Array::Any(const OptionalAxes& axis, bool keepdims) const { return chainer
 
 Array Array::Dot(const Array& b) const { return chainerx::Dot(*this, b); }
 
-Array Array::Take(const Array& indices, int8_t axis) const { return chainerx::Take(*this, indices, axis); }
+Array Array::Take(const Array& indices, int8_t axis, IndexBoundsMode mode) const { return chainerx::Take(*this, indices, axis, mode); }
 
 Array Array::Copy() const { return chainerx::Copy(*this); }
 

@@ -14,6 +14,9 @@ from chainer import utils
 def _param_to_str(obj):
     if isinstance(obj, type):
         return obj.__name__
+    elif hasattr(obj, '__name__') and isinstance(obj.__name__, str):
+        # print __name__ attribute for classes, functions and modules
+        return obj.__name__
     return repr(obj)
 
 
@@ -156,8 +159,9 @@ def product_dict(*parameters):
         for dicts in itertools.product(*parameters)]
 
 
-# TODO(kataoka): product_dict is patched by tests/chainer_tests/conftest.py
-# and tests/chainerx_tests/conftest.py while tests are collected. Also used in
+# TODO(kataoka): product_dict is patched by tests/conftest.py while tests are
+# collected if CHAINER_TEST_PAIRWISE_PARAMETERIZATION is configured
+# accordingly. Also used in
 # tests/chainer_tests/testing_tests/test_parameterized.py
 _product_dict_orig = product_dict
 
@@ -169,9 +173,8 @@ def _pairwise_product_dict(*parameters):
 
 
 def _pairwise_product_dict_iter(
-        *parameters  # type: tp.Iterable[tp.Dict[str, tp.Any]]
-):
-    # type: (...) -> tp.Iterator[tp.Dict[str, tp.Any]]
+        *parameters: tp.Iterable[tp.Dict[str, tp.Any]]
+) -> tp.Iterator[tp.Dict[str, tp.Any]]:
     """Generate combinations that cover all pairs.
 
     The argument is the same as `chainer.testing.product_dict`.
@@ -187,8 +190,9 @@ def _pairwise_product_dict_iter(
             for k, v in dicts[i].items()}
 
 
-def _nd_indices_to_cover_each_2d(shape):
-    # type: (tp.Sequence[int]) -> tp.Iterator[tp.Tuple[int, ...]]
+def _nd_indices_to_cover_each_2d(
+        shape: tp.Sequence[int]
+) -> tp.Iterator[tp.Tuple[int, ...]]:
     rs = numpy.random.RandomState(seed=0)
     n = len(shape)
     indices = [list(range(length)) for length in shape]  # type: tp.List[tp.List[int]]  # NOQA

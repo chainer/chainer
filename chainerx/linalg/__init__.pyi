@@ -1,6 +1,12 @@
 import typing as tp
 
 
+def eigh(a: ndarray, UPLO: str=...) -> tp.Tuple[ndarray, ndarray]: ...
+
+
+def eigvalsh(a: ndarray, UPLO: str=...) -> ndarray: ...
+
+
 def inv(a: ndarray) -> ndarray: ...
 
 

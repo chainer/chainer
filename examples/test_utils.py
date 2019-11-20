@@ -52,8 +52,7 @@ class TemplateOutputEvaluator(OutputEvaluator):
                 raise TypeError('Invalid check type: {}'.format(typ))
 
 
-REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(
-    os.path.realpath(__file__))))
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
 EXAMPLES_ROOT = os.path.join(REPO_ROOT, 'examples')
 

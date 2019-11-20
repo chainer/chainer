@@ -109,6 +109,13 @@ void CheckSquareMatrix(const Array& a) {
     }
 }
 
+void CheckUplo(char uplo) {
+    char uplo_uppercase = toupper(uplo);
+    if (uplo_uppercase != 'U' && uplo_uppercase != 'L') {
+        throw ChainerxError{"UPLO argument must be 'L' or 'U'."};
+    }
+}
+
 }  // namespace
 
 Array Solve(const Array& a, const Array& b) {
@@ -440,6 +447,67 @@ Array Cholesky(const Array& a) {
     }
 
     return out;
+}
+
+std::tuple<Array, Array> Eigh(const Array& a, char uplo) {
+    CheckRankTwoArray(a);
+    CheckSquareMatrix(a);
+    CheckUplo(uplo);
+
+    Array w = Empty(Shape{a.shape()[0]}, a.dtype(), a.device());
+    Array v = Empty(a.shape(), a.dtype(), a.device());
+
+    {
+        NoBackpropModeScope scope{};
+        a.device().backend().CallKernel<SyevdKernel>(a, w, v, uplo, /*compute_v=*/true);
+    }
+
+    // Reference:
+    // Section 3.1 https://people.maths.ox.ac.uk/gilesm/files/NA-08-01.pdf
+    {
+        BackwardBuilder bb{"eigh", a, {w, v}};
+        if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+            bt.Define([w_tok = bb.RetainOutput(0), v_tok = bb.RetainOutput(1), a_dtype = a.dtype(), &a_device = a.device()](
+                              BackwardContext& bctx) {
+                const Array& w = bctx.GetRetainedOutput(w_tok);
+                const Array& v = bctx.GetRetainedOutput(v_tok);
+
+                const Array& gw = bctx.output_grad(0).has_value() ? *bctx.output_grad(0) : Zeros(w.shape(), a_dtype, a_device);
+                const Array& gv = bctx.output_grad(1).has_value() ? *bctx.output_grad(1) : Zeros(v.shape(), a_dtype, a_device);
+
+                Array vt = v.Transpose();
+
+                Array f = ExpandDims(w, 0) - ExpandDims(w, 1);
+                // Invert values of `f`, and fill the diagonal with 0s.
+                // `f` has 0s on the diagonal, therefore fill it first with infinity.
+                Array mask = Eye(f.shape()[0], f.shape()[1], 0, Dtype::kBool, a_device);
+                f = Where(mask, std::numeric_limits<float>::infinity(), f);
+                f = Reciprocal(f);
+
+                Array gin = Dot(Dot(v, f * Dot(vt, gv) + Diag(gw)), vt);
+                bctx.input_grad() = 0.5 * (gin + gin.Transpose());
+            });
+        }
+        bb.Finalize();
+    }
+
+    return std::make_tuple(std::move(w), std::move(v));
+}
+
+Array Eigvalsh(const Array& a, char uplo) {
+    CheckRankTwoArray(a);
+    CheckSquareMatrix(a);
+    CheckUplo(uplo);
+
+    Array w = Empty(Shape{a.shape()[0]}, a.dtype(), a.device());
+    Array v = Empty(a.shape(), a.dtype(), a.device());
+
+    {
+        NoBackpropModeScope scope{};
+        a.device().backend().CallKernel<SyevdKernel>(a, w, v, uplo, /*compute_v=*/false);
+    }
+
+    return w;
 }
 
 }  // namespace chainerx

@@ -42,4 +42,9 @@ public:
     virtual void Call(const Array& a, const Array& out) = 0;
 };
 
+class SyevdKernel : public Kernel {
+public:
+    virtual void Call(const Array& a, const Array& w, const Array& v, char uplo, bool compute_v) = 0;
+};
+
 }  // namespace chainerx

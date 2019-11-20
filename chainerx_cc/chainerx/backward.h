@@ -35,7 +35,7 @@ void Backward(
         const Array& output,
         const absl::optional<BackpropId>& backprop_id = absl::nullopt,
         DoubleBackpropOption double_backprop = DoubleBackpropOption::kDisable,
-        const absl::optional<float>& loss_scale = absl::nullopt);
+        absl::optional<float> loss_scale = absl::nullopt);
 
 // Updates the gradients held by the input arrays using backpropagation.
 //
@@ -44,7 +44,7 @@ void Backward(
         const std::vector<ConstArrayRef>& outputs,
         const absl::optional<BackpropId>& backprop_id = absl::nullopt,
         DoubleBackpropOption double_backprop = DoubleBackpropOption::kDisable,
-        const absl::optional<float>& loss_scale = absl::nullopt);
+        absl::optional<float> loss_scale = absl::nullopt);
 
 // Returns gradient arrays for all inputs.
 std::vector<absl::optional<Array>> Grad(
@@ -55,6 +55,6 @@ std::vector<absl::optional<Array>> Grad(
         bool set_grad = false,
         bool retain_grad = false,
         const std::vector<ConstArrayRef>& grad_outputs = {},
-        const absl::optional<float>& loss_scale = absl::nullopt);
+        absl::optional<float> loss_scale = absl::nullopt);
 
 }  // namespace chainerx

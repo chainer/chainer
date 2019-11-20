@@ -47,7 +47,8 @@ class TestResizeImagesForwardIdentity(testing.FunctionTestCase):
         x, = inputs
         output_shape = self.in_shape[2:]
         y = functions.resize_images(
-            x, output_shape, self.mode, align_corners=self.align_corners)
+            x, output_shape,
+            mode=self.mode, align_corners=self.align_corners)
         return y,
 
 
@@ -97,7 +98,8 @@ class TestResizeImagesForwardDownScale(testing.FunctionTestCase):
         x, = inputs
         output_shape = self.output_shape[2:]
         y = functions.resize_images(
-            x, output_shape, self.mode, self.align_corners)
+            x, output_shape,
+            mode=self.mode, align_corners=self.align_corners)
         return y,
 
 
@@ -197,7 +199,8 @@ class TestResizeImagesBackward(unittest.TestCase):
     def check_backward(self, x, output_shape, gy):
         def f(x):
             return functions.resize_images(
-                x, output_shape, self.mode, self.align_corners)
+                x, output_shape,
+                mode=self.mode, align_corners=self.align_corners)
 
         gradient_check.check_backward(
             f, x, gy, dtype='d', atol=1e-2, rtol=1e-3, eps=1e-5)
@@ -213,7 +216,8 @@ class TestResizeImagesBackward(unittest.TestCase):
     def check_double_backward(self, x, output_shape, gy, ggx):
         def f(x):
             return functions.resize_images(
-                x, output_shape, self.mode, self.align_corners)
+                x, output_shape,
+                mode=self.mode, align_corners=self.align_corners)
 
         gradient_check.check_double_backward(
             f, x, gy, ggx, atol=1e-2, rtol=1e-3)

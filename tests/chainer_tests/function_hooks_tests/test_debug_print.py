@@ -1,6 +1,7 @@
 import re
 import unittest
 
+import numpy
 import six
 
 import chainer
@@ -8,7 +9,6 @@ from chainer.backends import cuda
 from chainer import function_hooks
 from chainer import testing
 from chainer.testing import attr
-import numpy
 
 
 class DummyFunction(chainer.Function):

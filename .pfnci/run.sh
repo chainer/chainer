@@ -15,6 +15,8 @@
 
 set -eux
 
+export CHAINER_CI=flexci
+
 cp -a /src /chainer
 cp /chainer/setup.cfg /
 cd /
@@ -98,6 +100,8 @@ test_py37() {
   if [ "${SPREADSHEET_ID:-}" != '' ]; then
     xpytest_args+=(--spreadsheet_id="${SPREADSHEET_ID}")
   fi
+  # TODO(niboshi): Allow option pass-through (https://github.com/chainer/xpytest/issues/14)
+  export PYTEST_ADDOPTS=-rfEX
   # TODO(imos): Enable xpytest to support python_files setting in setup.cfg.
   OMP_NUM_THREADS=1 xpytest "${xpytest_args[@]}" \
       '/chainer/tests/chainerx_tests/**/test_*.py' \
@@ -155,6 +159,8 @@ test_py27and35() {
   if [ "${SPREADSHEET_ID:-}" != '' ]; then
     xpytest_args+=(--spreadsheet_id="${SPREADSHEET_ID}")
   fi
+  # TODO(niboshi): Allow option pass-through (https://github.com/chainer/xpytest/issues/14)
+  export PYTEST_ADDOPTS=-rfEX
   # NOTE: PYTHONHASHSEED=0 is necessary to use pytest-xdist.
   OMP_NUM_THREADS=1 PYTHONHASHSEED=0 xpytest "${xpytest_args[@]}" \
       '/chainer/tests/chainer_tests/**/test_*.py' && :
@@ -202,7 +208,12 @@ test_chainermn_sub() {
   #-----------------------------------------------------------------------------
   # Install Chainer
   #-----------------------------------------------------------------------------
-  if ! python -m pip install /chainer[test] 2>&1 >/tmp/install-py3.log; then
+  CHAINER_BUILD_CHAINERX=1 CHAINERX_BUILD_CUDA=1 MAKEFLAGS="-j$(nproc)" \
+  CHAINERX_NVCC_GENERATE_CODE=arch=compute_70,code=sm_70 \
+      python -m pip install /chainer[test] 2>&1 >/tmp/install-py3.log &
+  install_pid=$!
+
+  if ! wait $install_pid; then
     cat /tmp/install-py3.log
     exit 1
   fi

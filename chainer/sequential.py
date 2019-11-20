@@ -260,6 +260,12 @@ class Sequential(_link.ChainList):
             self.append(layer)
 
     def insert(self, i, layer):
+        n = len(self._layers)
+        if not (-n <= i < (n + 1)):
+            raise IndexError(
+                'Index out of range: {}'.format(i))
+        if i < 0:
+            i += n
         if not callable(layer):
             raise ValueError(
                 'All elements of the argument should be callable. But '

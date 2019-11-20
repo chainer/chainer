@@ -178,9 +178,12 @@ class VariableNode(object):
     # by an old-style Function
     _old_style_grad_generator = None  # type: str
 
-    def __init__(self, variable, name, **kwargs):
-        # type: (Variable, tp.Optional[str], **tp.Any) -> None
-
+    def __init__(
+            self,
+            variable: 'Variable',
+            name: tp.Optional[str],
+            **kwargs: tp.Any
+    ) -> None:
         if kwargs:
             argument.check_unexpected_kwargs(
                 kwargs,
@@ -517,9 +520,11 @@ class Variable(object):
     # instance.
     _grad = None
 
-    def __init__(self, data=None, **kwargs):
-        # type: (tp.Optional[types.NdArray], **tp.Any) -> None
-
+    def __init__(
+            self,
+            data: tp.Optional[types.NdArray] = None,
+            **kwargs: tp.Any
+    ) -> None:
         name, grad, requires_grad, grad_valid = argument.parse_kwargs(
             kwargs, ('name', None), ('grad', None), ('requires_grad', True),
             ('_grad_valid', True),
@@ -651,8 +656,11 @@ class Variable(object):
             if self._grad is not None:
                 self._grad_var = Variable(self._grad)
 
-    def _set_chainerx_array(self, array, grad):
-        # type: (tp.Optional[chainerx.ndarray], tp.Optional[chainerx.ndarray]) -> None # NOQA
+    def _set_chainerx_array(
+            self,
+            array: tp.Optional['chainerx.ndarray'],
+            grad: tp.Optional['chainerx.ndarray']
+    ) -> None:
 
         # Sets chainerx array and grad.
         assert array is None or isinstance(array, chainerx.ndarray)
@@ -700,8 +708,7 @@ class Variable(object):
         return self._device
 
     @property
-    def xp(self):
-        # type: () -> tp.Optional[types.Xp]
+    def xp(self) -> tp.Optional[types.Xp]:
         """Array module for the data array of this variable."""
         if self._has_chainerx_array:
             return chainerx
@@ -848,8 +855,7 @@ class Variable(object):
         self._node.creator_node = func
 
     @property
-    def array(self):
-        # type: () -> tp.Optional[types.NdArray]
+    def array(self) -> tp.Optional[types.NdArray]:
         """The underlying data array.
 
         It is either :class:`numpy.ndarray` or :class:`cupy.ndarray` object,
@@ -868,9 +874,7 @@ class Variable(object):
         return self._data[0]
 
     @array.setter
-    def array(self, d):
-        # type: (tp.Optional[types.NdArray]) -> None
-
+    def array(self, d: tp.Optional[types.NdArray]) -> None:
         if self._has_chainerx_array:
             d_old = self._data[0]
             if (d_old is not None
@@ -906,8 +910,7 @@ class Variable(object):
         return self._data[0].view()
 
     @property
-    def data(self):
-        # type: () -> tp.Optional[types.NdArray]
+    def data(self) -> tp.Optional[types.NdArray]:
         """The underlying data array (equivalent to :attr:`array`).
 
         Note that using this attribute directly is discouraged; use
@@ -920,9 +923,7 @@ class Variable(object):
         return self.array
 
     @data.setter
-    def data(self, d):
-        # type: (types.NdArray) -> None
-
+    def data(self, d: types.NdArray) -> None:
         self.array = d
 
     def _set_chainerx_grad(self, g, from_grad_var):
@@ -965,8 +966,7 @@ class Variable(object):
         self._grad_valid = True
 
     @property
-    def grad(self):
-        # type: () -> tp.Optional[types.NdArray]
+    def grad(self) -> tp.Optional[types.NdArray]:
         """Gradient array of this variable.
 
         Note that this property returns the underlying array of the gradient
@@ -1014,8 +1014,7 @@ class Variable(object):
         return self._grad
 
     @grad.setter
-    def grad(self, g):
-        # type: (tp.Optional[types.NdArray]) -> None
+    def grad(self, g: tp.Optional[types.NdArray]) -> None:
         if g is not None:
             _check_grad_type(None, self, False, g)
         self._set_grad_without_check(g)
@@ -1032,15 +1031,13 @@ class Variable(object):
         self._grad = None if gv is None else gv.array
 
     @property
-    def grad_var(self):
-        # type: () -> tp.Optional["Variable"]
+    def grad_var(self) -> tp.Optional['Variable']:
         """Gradient variable."""
         self._ensure_grad_var_up_to_date()
         return self._grad_var
 
     @grad_var.setter
-    def grad_var(self, g):
-        # type: (tp.Optional["Variable"]) -> None
+    def grad_var(self, g: tp.Optional['Variable']) -> None:
         if g is not None:
             _check_grad_type(None, self, False, g.array)
         self._set_grad_var_without_check(g)
@@ -1481,7 +1478,7 @@ class Variable(object):
         """
         return self.array.item()
 
-    def mean(self, axis=None, weights=None, keepdims=False):
+    def mean(self, axis=None, *, weights=None, keepdims=False):
         """Calculate weighted average of array elements over a given axis.
 
         .. seealso::
@@ -1661,9 +1658,12 @@ class Parameter(Variable):
     # TODO(okapies): fix the behavior when shape is None and remove NdArray
     _grad_initializer = None  # type: tp.Optional[types.AbstractInitializer]
 
-    def __init__(self, initializer=None, shape=None, name=None):
-        # type: (tp.Optional[types.InitializerSpec], tp.Optional[types.ShapeSpec], tp.Optional[str]) -> None # NOQA
-
+    def __init__(
+            self,
+            initializer: tp.Optional[types.InitializerSpec] = None,
+            shape: tp.Optional[types.ShapeSpec] = None,
+            name: tp.Optional[str] = None
+    ) -> None:
         if initializer is None:
             initializer = constant.NaN()
         elif numpy.isscalar(initializer):

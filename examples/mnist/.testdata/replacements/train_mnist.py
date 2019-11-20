@@ -103,7 +103,7 @@ def main():
     # Take a snapshot each ``frequency`` epoch, delete old stale
     # snapshots and automatically load from snapshot files if any
     # files are already resident at result directory.
-    trainer.extend(extensions.snapshot(num_retain=1, autoload=args.autoload),
+    trainer.extend(extensions.snapshot(n_retains=1, autoload=args.autoload),
                    trigger=(frequency, 'epoch'))
 
     # Write a log of evaluation statistics for each epoch

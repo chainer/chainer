@@ -1,15 +1,15 @@
 import os
 
-from examples.tests import runner
+import test_utils
 
 
-EXAMPLES_ROOT = runner.EXAMPLES_ROOT
+EXAMPLES_ROOT = test_utils.EXAMPLES_ROOT
 
 
 def test_1():
     root_dir = os.path.join(EXAMPLES_ROOT, 'mnist')
 
-    output_evaluator = runner.TemplateOutputEvaluator(
+    output_evaluator = test_utils.TemplateOutputEvaluator(
         b'''\
 Device: @numpy
 # unit: 10
@@ -30,7 +30,7 @@ epoch       main/loss   validation/main/loss  main/accuracy  validation/main/acc
         e1=(float, lambda x: 0. < x < 100.),
     )
 
-    with runner.ExampleRunner(root_dir) as r:
+    with test_utils.ExampleRunner(root_dir) as r:
 
         r.run(
             'train_mnist.py',

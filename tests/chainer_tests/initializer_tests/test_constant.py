@@ -1,10 +1,11 @@
 import unittest
 
+import numpy
+
 import chainer
 from chainer import backend
 from chainer import initializers
 from chainer import testing
-import numpy
 
 
 @testing.parameterize(*testing.product({

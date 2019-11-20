@@ -102,6 +102,8 @@ set(chainerx_srcs
     util.cc
     )
 
+add_library(chainerx_base STATIC ${chainerx_srcs})
+
 if(MSVC)
     install(FILES
         platform/windows.h
@@ -112,9 +114,9 @@ if(MSVC)
         "${chainerx_srcs}"
         platform/windows.cc
         )
-    add_library(chainerx STATIC ${chainerx_srcs})
+    add_library(chainerx STATIC empty.cc)
 else()
-    add_library(chainerx SHARED ${chainerx_srcs})
+    add_library(chainerx SHARED empty.cc)
 endif()
 
 # abseil
@@ -122,55 +124,43 @@ target_link_libraries(
     chainerx
     PUBLIC
     absl::failure_signal_handler
-    absl::bad_optional_access)
+    absl::bad_optional_access
+    PRIVATE
+    absl::flat_hash_map
+    )
+
+# dlopen / dlclose
+target_link_libraries(chainerx PUBLIC ${CMAKE_DL_LIBS})
+
+# ChainerX
+set(chainerx_sub_libs
+    chainerx_base
+    chainerx_routines
+    chainerx_native
+    chainerx_testing
+    )
+
+if(${CUDA_FOUND})
+    set(chainerx_sub_libs ${chainerx_sub_libs} chainerx_cuda)
+endif()
 
 if(MSVC)
-    target_link_libraries(chainerx
-        PUBLIC
-        ${CMAKE_DL_LIBS})
-
-    target_link_options(chainerx PUBLIC /wholearchive:$<TARGET_FILE:chainerx_routines>)
-    target_link_options(chainerx PUBLIC /wholearchive:$<TARGET_FILE:chainerx_native>)
-    target_link_options(chainerx PUBLIC /wholearchive:$<TARGET_FILE:chainerx_testing>)
-    target_link_libraries(chainerx PRIVATE chainerx_routines)
-    target_link_libraries(chainerx PRIVATE chainerx_native)
-    target_link_libraries(chainerx PRIVATE chainerx_testing)
-
-    if(${CUDA_FOUND})
-      target_link_options(chainerx PUBLIC /wholearchive:$<TARGET_FILE:chainerx_cuda>)
-      target_link_libraries(chainerx PRIVATE chainerx_cuda)
-    endif()
-
+    target_link_libraries(chainerx PRIVATE ${chainerx_sub_libs})
+    foreach(lib ${chainerx_sub_libs})
+        target_link_options(chainerx PUBLIC /wholearchive:$<TARGET_FILE:${lib}>)
+    endforeach(lib)
 elseif(${APPLE})
-    target_link_libraries(chainerx
-        PUBLIC
-        ${CMAKE_DL_LIBS})
-
-    target_link_libraries(chainerx PRIVATE -Wl,-force_load chainerx_routines)
-    target_link_libraries(chainerx PRIVATE -Wl,-force_load chainerx_native)
-    target_link_libraries(chainerx PRIVATE -Wl,-force_load chainerx_testing)
-
-    if(${CUDA_FOUND})
-      target_link_libraries(chainerx PRIVATE -Wl,-force_load chainerx_cuda)
-    endif()
-
+    foreach(lib ${chainerx_sub_libs})
+        target_link_libraries(chainerx PRIVATE -Wl,-force_load ${lib})
+    endforeach(lib)
     target_link_libraries(chainerx PRIVATE -Wl,-noall_load)
 else()
     target_link_libraries(chainerx
-        PUBLIC
-        ${CMAKE_DL_LIBS}
         PRIVATE
-        -Wl,--whole-archive)
-
-    target_link_libraries(chainerx PRIVATE chainerx_routines)
-    target_link_libraries(chainerx PRIVATE chainerx_native)
-    target_link_libraries(chainerx PRIVATE chainerx_testing)
-
-    if(${CUDA_FOUND})
-        target_link_libraries(chainerx PRIVATE chainerx_cuda)
-    endif()
-
-    target_link_libraries(chainerx PRIVATE -Wl,--no-whole-archive)
+        -Wl,--whole-archive
+        ${chainerx_sub_libs}
+        -Wl,--no-whole-archive
+        )
 endif()
 
 install(TARGETS chainerx DESTINATION lib)
@@ -219,6 +209,8 @@ if(${CHAINERX_BUILD_TEST})
 
     target_link_libraries(chainerx_test
         chainerx
-        gtest)
+        chainerx_test_main
+        # gtest is linked via chainerx_testing.
+        )
     add_test(NAME chainerx_test COMMAND chainerx_test)
 endif()

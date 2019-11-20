@@ -111,6 +111,22 @@ class TestConvolution2D(testing.LinkTestCase):
 
         testing.assert_allclose(y_data1, y_data2, atol=0, rtol=0)
 
+    def test_from_params(self, backend_config):
+        if (
+                (backend_config.use_cuda and
+                 backend_config.cuda_device == 1) or
+                (backend_config.use_chainerx and
+                 'cuda' in backend_config.chainerx_device)):
+            raise unittest.SkipTest()
+        link1 = self.create_link(self.generate_params())
+        link1.to_device(backend_config.device)
+        link2 = links.Convolution2D.from_params(
+            link1.W, link1.b, stride=self.stride, pad=self.pad)
+        assert link2.W.shape == link1.W.shape
+        assert link2.b.shape == link2.b.shape
+        assert link2.stride == link1.stride
+        assert link2.pad == link1.pad
+
 
 @testing.parameterize(*testing.product({
     'x_dtype': [numpy.float16, numpy.float32, numpy.float64],

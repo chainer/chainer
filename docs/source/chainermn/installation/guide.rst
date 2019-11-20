@@ -123,7 +123,7 @@ We tested ChainerMN on all the following environments.
   * Ubuntu 14.04 LTS 64bit
   * Ubuntu 16.04 LTS 64bit
 
-* Python 2.7.13, 3.5.1, 3.6.1
+* Python 2.7.13, 3.5.2, 3.6.1
 * MPI
 
   * Open MPI 2.1.6, 3.0.4, 3.1.4

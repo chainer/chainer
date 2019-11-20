@@ -175,6 +175,44 @@ class TestSigmoidCrossEntropy(op_utils.ChainerOpTest):
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
     chainer.testing.product({
+        'x_dtype': chainerx.testing.float_dtypes,
+        't_dtype': chainerx.testing.signed_integral_dtypes,
+    })
+))
+class TestSoftmaxCrossEntropy(op_utils.ChainerOpTest):
+
+    def setup(self):
+        self.shape = (2, 2)
+
+        t_shape = self.shape[0],
+        t = numpy.random.randint(0, self.shape[1], t_shape)
+        self.t = t.astype(self.t_dtype)
+
+        if self.x_dtype == 'float16':
+            self.check_forward_options.update({'rtol': 5e-3, 'atol': 5e-3})
+            self.check_backward_options.update({'rtol': 1e-2, 'atol': 5e-3})
+            self.check_double_backward_options.update(
+                {'rtol': 1e-2, 'atol': 3e-1})
+
+    def generate_inputs(self):
+        x = numpy.random.normal(loc=0, scale=1.0, size=self.shape)
+        return x.astype(self.x_dtype),
+
+    def forward_chainerx(self, inputs):
+        x, = inputs
+        t = self.backend_config.get_array(self.t)
+        out = chainerx.softmax_cross_entropy(x, t)
+        return out,
+
+    def forward_chainer(self, inputs):
+        x, = inputs
+        out = F.softmax_cross_entropy(x, self.t, reduce='no')
+        return out,
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    chainer.testing.product({
         'shape': [(2, 2), (3, 5), (7, 1)],
         'x_dtype': chainerx.testing.float_dtypes,
         't_dtype': ['int8', 'int16', 'int32', 'int64'],
