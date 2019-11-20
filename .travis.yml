@@ -36,6 +36,7 @@ matrix:
       python: "3.5"
       env:
       - CHAINER_TRAVIS_TEST="examples"
+      - GOROOT=$HOME/go
 
     - name: "macOS Py35 | chainer, chainermn, chainerx, docs"
       os: osx
