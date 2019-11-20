@@ -44,22 +44,38 @@ step_install_chainer_test_deps() {
         pillow
     )
     pip install "${reqs[@]}"
+
+    git clone --depth=1 https://github.com/chainer/xpytest.git $WORK_DIR/xpytest_repo
+    pushd $WORK_DIR/xpytest_repo
+    $GOROOT/bin/go version
+    $GOROOT/bin/go build -o $WORK_DIR/xpytest ./cmd/xpytest
+    popd
 }
 
 
 step_before_install_chainer_test() {
     # Remove oclint as it conflicts with GCC (indirect dependency of hdf5)
-    if [[ $TRAVIS_OS_NAME = "osx" ]]; then
-        brew update >/dev/null
-        brew uninstall openssl@1.1 || :  # tentative workaround: pyenv/pyenv#1302
-        brew outdated pyenv || brew upgrade pyenv
+    case "$TRAVIS_OS_NAME" in
+        linux)
+            # install golang to $HOME/go
+            wget https://dl.google.com/go/go1.13.3.linux-amd64.tar.gz
+            tar -C $HOME -xzf go1.13.3.linux-amd64.tar.gz
+            ;;
+        osx)
+            brew outdated pyenv || brew upgrade pyenv
 
-        PYTHON_CONFIGURE_OPTS="--enable-unicode=ucs2" pyenv install -ks $PYTHON_VERSION
-        pyenv global $PYTHON_VERSION
-        python --version
+            PYTHON_CONFIGURE_OPTS="--enable-unicode=ucs2" pyenv install -ks $PYTHON_VERSION
+            pyenv global $PYTHON_VERSION
+            python --version
 
-        brew install hdf5
-    fi
+            brew install hdf5
+
+            brew outdated go || brew upgrade go
+            ;;
+        *)
+            false
+            ;;
+    esac
 }
 
 step_before_install_chainermn_test_deps() {
@@ -83,6 +99,16 @@ step_install_chainermn_test_deps() {
 }
 
 
+step_before_install_chainerx_test_deps() {
+    # LAPACK is installed only for Linux
+    # OSX has LAPACK available natively with Accelerate framework
+    # Currently Windows is not tested
+    if [[ $TRAVIS_OS_NAME = "linux" ]]; then
+        sudo apt-get install -y libblas-dev liblapack-dev
+    fi
+}
+
+
 step_install_chainer_docs_deps() {
     _install_chainer_deps docs
 }
@@ -94,6 +120,7 @@ step_python_style_check() {
         "$REPO_DIR"/chainer
         "$REPO_DIR"/chainermn
         "$REPO_DIR"/chainerx
+        "$REPO_DIR"/onnx_chainer
         "$REPO_DIR"/tests
         "$REPO_DIR"/examples
         "$REPO_DIR"/chainerx_cc/examples
@@ -138,6 +165,7 @@ step_chainer_install_from_sdist() {
 
 
 step_chainer_tests() {
+    pushd $WORK_DIR
     local mark="not slow and not gpu and not cudnn and not ideep"
 
     # On Windows theano fails to import
@@ -145,12 +173,28 @@ step_chainer_tests() {
         mark="$mark and not theano"
     fi
 
-    pytest -rfEX -m "$mark" "$REPO_DIR"/tests/chainer_tests
+    # In Travis CI only pairwise testing is performed.
+    env CHAINER_TEST_PAIRWISE_PARAMETERIZATION=always \
+        pytest -rfEX -m "$mark" "$REPO_DIR"/tests/chainer_tests
+    popd
+}
+
+
+step_chainer_example_tests() {
+    pytest -v -rfEX "$REPO_DIR"/examples/tests
 }
 
 
 step_chainerx_python_tests() {
-    pytest -rfEX "$REPO_DIR"/tests/chainerx_tests
+    pushd $WORK_DIR
+    # In Travis CI only pairwise testing is performed.
+    env CHAINER_TEST_PAIRWISE_PARAMETERIZATION=always \
+        OMP_NUM_THREADS=1 \
+        PYTEST_ADDOPTS="-rfEX" \
+        $WORK_DIR/xpytest --retry=1 --thread=2 \
+        --hint="$REPO_DIR"/scripts/ci/travis/xpytest-hint-chainerx.pbtxt \
+        $(find "$REPO_DIR"/tests/chainerx_tests -name "test_*.py")
+    popd
 }
 
 

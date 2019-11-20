@@ -1,6 +1,6 @@
+import itertools
 import unittest
 
-import itertools
 import numpy
 import six
 

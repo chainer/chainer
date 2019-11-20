@@ -59,7 +59,7 @@ std::shared_ptr<OpNode> OpNode::CreateWithOutputArrayNodes(
             op_node->output_array_nodes_.emplace_back(output_array_node);
             output_array_node->set_creator_op_node(op_node);
         } else {
-            op_node->output_array_nodes_.emplace_back(nonstd::nullopt);
+            op_node->output_array_nodes_.emplace_back(absl::nullopt);
         }
     }
     op_node->AssertConsistency();
@@ -115,7 +115,7 @@ void AssertOuterGraphsArrayNodesConsistency(
     // Corresponding array nodes across graphs (corresponding to the same input/output array) should have the same array body, if it's
     // alive.
     for (size_t i = 0; i < array_node_count; ++i) {
-        nonstd::optional<ArrayBody*> array_body{};
+        absl::optional<ArrayBody*> array_body{};
         for (const auto& tup : outer_graphs_array_nodes) {
             const std::vector<std::shared_ptr<ArrayNode>>& vec = std::get<1>(tup);
             CHAINERX_ASSERT(vec.size() == array_node_count);

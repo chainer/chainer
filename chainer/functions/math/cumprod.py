@@ -1,3 +1,5 @@
+import six
+
 import chainer
 from chainer import backend
 from chainer import function_node
@@ -9,7 +11,7 @@ class Cumprod(function_node.FunctionNode):
     """Cumulative prod of array elements over a given axis."""
 
     def __init__(self, axis):
-        if isinstance(axis, int) or axis is None:
+        if isinstance(axis, six.integer_types) or axis is None:
             self.axis = axis
         else:
             raise TypeError('axis must be int or None')

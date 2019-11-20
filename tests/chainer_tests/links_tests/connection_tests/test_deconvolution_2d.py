@@ -1,15 +1,11 @@
-import unittest
-
 import numpy
 
 import chainer
 from chainer.backends import cuda
-from chainer import gradient_check
+import chainer.functions as F
 from chainer import links as L
 from chainer import testing
-from chainer.testing import attr
 from chainer.testing import parameterize
-from chainer.utils import conv
 
 
 def _pair(x):
@@ -21,74 +17,99 @@ def _pair(x):
 @parameterize(
     *testing.product({
         'nobias': [True, False],
-        'use_cudnn': ['always', 'never'],
         'dilate': [1, 2],
         'groups': [1, 3],
+        'x_dtype': [numpy.float32],
+        'W_dtype': [numpy.float32],
     })
 )
-class TestDeconvolution2D(unittest.TestCase):
+@testing.inject_backend_tests(
+    ['test_forward', 'test_backward'],
+    # CPU tests
+    [
+        {},
+        {'use_ideep': 'always'},
+    ]
+    # GPU tests
+    + testing.product({
+        'use_cuda': [True],
+        'use_cudnn': ['never', 'always'],
+        'cuda_device': [0, 1],
+    })
+    + [
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
+    ])
+class TestDeconvolution2D(testing.LinkTestCase):
 
     def setUp(self):
-        in_channels = 3
-        out_channels = 6
-        ksize = 3
-        stride = 2
-        pad = 1
-        self.link = L.Deconvolution2D(
-            in_channels, out_channels, ksize, stride=stride, pad=pad,
-            nobias=self.nobias, dilate=self.dilate, groups=self.groups)
-        self.link.W.data[...] = numpy.random.uniform(
-            -1, 1, self.link.W.data.shape).astype(numpy.float32)
-        if not self.nobias:
-            self.link.b.data[...] = numpy.random.uniform(
-                -1, 1, self.link.b.data.shape).astype(numpy.float32)
+        self.in_channels = 3
+        self.out_channels = 6
+        self.ksize = 3
+        self.stride = 2
+        self.pad = 1
+        if self.nobias:
+            TestDeconvolution2D.param_names = ('W',)
+        else:
+            TestDeconvolution2D.param_names = ('W', 'b')
 
-        self.link.cleargrads()
+        self.check_backward_options.update({'atol': 1e-3, 'rtol': 1e-2})
 
+    def before_test(self, test_name):
+        # cuDNN 5 and 5.1 results suffer from precision issues
+        using_old_cudnn = (self.backend_config.xp is cuda.cupy
+                           and self.backend_config.use_cudnn == 'always'
+                           and cuda.cuda.cudnn.getVersion() < 6000)
+        if using_old_cudnn:
+            self.check_backward_options.update({'atol': 3e-2, 'rtol': 5e-2})
+
+    def generate_inputs(self):
         N = 2
         h, w = 3, 2
-        kh, kw = _pair(ksize)
-        out_h = conv.get_deconv_outsize(h, kh, stride, pad, d=self.dilate)
-        out_w = conv.get_deconv_outsize(w, kw, stride, pad, d=self.dilate)
-        self.gy = numpy.random.uniform(
-            -1, 1, (N, out_channels, out_h, out_w)).astype(numpy.float32)
-        self.x = numpy.random.uniform(
-            -1, 1, (N, in_channels, h, w)).astype(numpy.float32)
+        x = numpy.random.uniform(
+            -1, 1, (N, self.in_channels, h, w)).astype(self.x_dtype)
+        return x,
 
-    def check_forward_consistency(self):
-        x_cpu = chainer.Variable(self.x)
-        y_cpu = self.link(x_cpu)
-        self.assertEqual(y_cpu.data.dtype, numpy.float32)
+    def generate_params(self):
+        initialW = chainer.initializers.Normal(1, self.W_dtype)
+        initial_bias = chainer.initializers.Normal(1, self.x_dtype)
+        return initialW, initial_bias
 
-        self.link.to_gpu()
-        x_gpu = chainer.Variable(cuda.to_gpu(self.x))
-        y_gpu = self.link(x_gpu)
-        self.assertEqual(y_gpu.data.dtype, numpy.float32)
+    def create_link(self, initializers):
+        initialW, initial_bias = initializers
 
-        testing.assert_allclose(y_cpu.data, y_gpu.data.get())
+        if self.nobias:
+            link = L.Deconvolution2D(
+                self.in_channels, self.out_channels, self.ksize,
+                stride=self.stride, pad=self.pad, nobias=self.nobias,
+                dilate=self.dilate, groups=self.groups,
+                initialW=initialW)
+        else:
+            link = L.Deconvolution2D(
+                self.in_channels, self.out_channels, self.ksize,
+                stride=self.stride, pad=self.pad, nobias=self.nobias,
+                dilate=self.dilate, groups=self.groups,
+                initialW=initialW,
+                initial_bias=initial_bias)
 
-    @attr.gpu
-    def test_forward_consistency(self):
-        with chainer.using_config('use_cudnn', self.use_cudnn):
-            self.check_forward_consistency()
+        return link
 
-    def check_backward(self, x_data, y_grad):
-        params = [self.link.W]
-        if not self.nobias:
-            params.append(self.link.b)
-
-        gradient_check.check_backward(
-            self.link, x_data, y_grad, params, dtype=numpy.float64,
-            atol=1e-3, rtol=1e-2)
-
-    def test_backward_cpu(self):
-        self.check_backward(self.x, self.gy)
-
-    @attr.gpu
-    def test_backward_gpu(self):
-        self.link.to_gpu()
-        with chainer.using_config('use_cudnn', self.use_cudnn):
-            self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
+    def forward_expected(self, link, inputs):
+        x, = inputs
+        W = link.W
+        if self.nobias:
+            y = F.deconvolution_2d(
+                x, W,
+                stride=self.stride, pad=self.pad,
+                dilate=self.dilate, groups=self.groups)
+        else:
+            b = link.b
+            y = F.deconvolution_2d(
+                x, W, b,
+                stride=self.stride, pad=self.pad,
+                dilate=self.dilate, groups=self.groups)
+        return y.array,
 
 
 @parameterize(
@@ -100,65 +121,66 @@ class TestDeconvolution2D(unittest.TestCase):
                         ((None, 2, 3, 2, 1), {})]
     })
 )
-class TestDeconvolution2DParameterShapePlaceholder(unittest.TestCase):
+@testing.inject_backend_tests(
+    ['test_forward', 'test_backward'],
+    # CPU tests
+    [
+        {},
+        {'use_ideep': 'always'},
+    ]
+    # GPU tests
+    + testing.product({
+        'use_cuda': [True],
+        'use_cudnn': ['never', 'always'],
+        'cuda_device': [0, 1],
+    })
+    + [
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
+    ])
+class TestDeconvolution2DParameterShapePlaceholder(testing.LinkTestCase):
 
     def setUp(self):
-        args, kwargs = self.deconv_args
-        kwargs['nobias'] = self.nobias
-        self.link = L.Deconvolution2D(*args, **kwargs)
-        if not self.nobias:
-            self.link.b.data[...] = numpy.random.uniform(
-                -1, 1, self.link.b.data.shape).astype(numpy.float32)
-        out_channels = self.link.out_channels
-        ksize = self.link.ksize
-        stride = self.link.stride[0]
-        pad = self.link.pad[0]
+        if self.nobias:
+            self.param_names = ('W',)
+        else:
+            self.param_names = ('W', 'b')
+        self.check_backward_options.update({'atol': 1e-4, 'rtol': 1e-3})
+
+    def before_test(self, test_name):
+        # cuDNN 5 and 5.1 results suffer from precision issues
+        using_old_cudnn = (self.backend_config.xp is cuda.cupy
+                           and self.backend_config.use_cudnn == 'always'
+                           and cuda.cuda.cudnn.getVersion() < 6000)
+        if using_old_cudnn:
+            self.check_backward_options.update({'atol': 3e-2, 'rtol': 5e-2})
+
+    def generate_inputs(self):
         N = 2
         h, w = 3, 2
-        kh, kw = _pair(ksize)
-        out_h = conv.get_deconv_outsize(h, kh, stride, pad)
-        out_w = conv.get_deconv_outsize(w, kw, stride, pad)
-        self.gy = numpy.random.uniform(
-            -1, 1, (N, out_channels, out_h, out_w)).astype(numpy.float32)
-        self.x = numpy.random.uniform(
+        x = numpy.random.uniform(
             -1, 1, (N, 3, h, w)).astype(numpy.float32)
-        self.link(chainer.Variable(self.x))
-        self.link.cleargrads()
+        return x,
 
-    def check_forward_consistency(self):
-        x_cpu = chainer.Variable(self.x)
-        y_cpu = self.link(x_cpu)
-        self.assertEqual(y_cpu.data.dtype, numpy.float32)
+    def generate_params(self):
+        return []
 
-        self.link.to_gpu()
-        x_gpu = chainer.Variable(cuda.to_gpu(self.x))
-        y_gpu = self.link(x_gpu)
-        self.assertEqual(y_gpu.data.dtype, numpy.float32)
+    def create_link(self, initializers):
 
-        testing.assert_allclose(y_cpu.data, y_gpu.data.get())
-
-    @attr.gpu
-    def test_forward_consistency(self):
-        with chainer.using_config('use_cudnn', self.use_cudnn):
-            self.check_forward_consistency()
-
-    def check_backward(self, x_data, y_grad):
-        params = [self.link.W]
+        args, kwargs = self.deconv_args
+        kwargs['nobias'] = self.nobias
+        link = L.Deconvolution2D(*args, **kwargs)
         if not self.nobias:
-            params.append(self.link.b)
+            link.b.data[...] = numpy.random.uniform(
+                -1, 1, link.b.data.shape).astype(numpy.float32)
 
-        gradient_check.check_backward(
-            self.link, x_data, y_grad, params, dtype=numpy.float64,
-            atol=1e-4, rtol=1e-3)
+        return link
 
-    def test_backward_cpu(self):
-        self.check_backward(self.x, self.gy)
-
-    @attr.gpu
-    def test_backward_gpu(self):
-        self.link.to_gpu()
-        with chainer.using_config('use_cudnn', self.use_cudnn):
-            self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
+    def forward_expected(self, link, inputs):
+        x, = inputs
+        y = link(x).array
+        return y,
 
 
 testing.run_module(__name__, __file__)

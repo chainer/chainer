@@ -127,7 +127,7 @@ def main():
     parser.add_argument('--val_batchsize', '-b', type=int, default=250,
                         help='Validation minibatch size')
     parser.add_argument('--test', action='store_true')
-    parser.add_argument('--communicator', default='hierarchical')
+    parser.add_argument('--communicator', default='pure_nccl')
     parser.set_defaults(test=False)
     args = parser.parse_args()
 
@@ -198,14 +198,8 @@ def main():
     updater = training.StandardUpdater(train_iter, optimizer, device=device)
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), args.out)
 
-    checkpoint_interval = (10, 'iteration') if args.test else (1, 'epoch')
     val_interval = (10, 'iteration') if args.test else (1, 'epoch')
     log_interval = (10, 'iteration') if args.test else (1, 'epoch')
-
-    checkpointer = chainermn.create_multi_node_checkpointer(
-        name='imagenet-example', comm=comm)
-    checkpointer.maybe_load(trainer, optimizer)
-    trainer.extend(checkpointer, trigger=checkpoint_interval)
 
     # Create a multi node evaluator from an evaluator.
     evaluator = TestModeEvaluator(val_iter, model, device=device)

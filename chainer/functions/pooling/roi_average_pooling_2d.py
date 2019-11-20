@@ -28,6 +28,7 @@
 # Written by Ross Girshick
 # -----------------------------------------------------------------------------
 
+import numbers
 import numpy
 import six
 
@@ -51,17 +52,18 @@ class ROIAveragePooling2D(function.Function):
 
     def __init__(self, outsize, spatial_scale):
         outh, outw = _pair(outsize)
-        if not (isinstance(outh, int) and outh > 0):
+        if not (isinstance(outh, numbers.Integral) and outh > 0):
             raise TypeError(
                 'outsize[0] must be positive integer: {}, {}'
                 .format(type(outh), outh))
-        if not (isinstance(outw, int) and outw > 0):
+        if not (isinstance(outw, numbers.Integral) and outw > 0):
             raise TypeError(
                 'outsize[1] must be positive integer: {}, {}'
                 .format(type(outw), outw))
-        if isinstance(spatial_scale, int):
+        if isinstance(spatial_scale, numbers.Integral):
             spatial_scale = float(spatial_scale)
-        if not (isinstance(spatial_scale, float) and spatial_scale > 0):
+        if not (isinstance(spatial_scale, numbers.Real) and
+                spatial_scale > 0):
             raise TypeError(
                 'spatial_scale must be a positive float number: {}, {}'
                 .format(type(spatial_scale), spatial_scale))
@@ -313,7 +315,7 @@ def roi_average_pooling_2d(x, rois, roi_indices, outsize, spatial_scale):
 
     Args:
         x (~chainer.Variable): Input variable. The shape is expected to be
-            4 dimentional: (n: batch, c: channel, h, height, w: width).
+            4 dimensional: (n: batch, c: channel, h, height, w: width).
         rois (~chainer.Variable): Input roi variable. The shape is expected to
             be (n: data size, 4), and each datum is set as below:
             (y_min, x_min, y_max, x_max).

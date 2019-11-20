@@ -2,7 +2,7 @@ import chainer
 from chainer.functions.activation import relu
 from chainer.functions.array import concat
 from chainer.functions.pooling import average_pooling_2d
-from chainer.functions.pooling import max_pooling_2d
+from chainer.functions.pooling import max_pooling_nd
 from chainer import link
 from chainer.links.connection import convolution_2d
 from chainer.links.normalization import batch_normalization
@@ -111,7 +111,7 @@ class InceptionBN(link.Chain):
         outs.append(h33)
 
         if self.pooltype == 'max':
-            p = max_pooling_2d.max_pooling_2d(x, 3, stride=self.stride, pad=1,
+            p = max_pooling_nd.max_pooling_2d(x, 3, stride=self.stride, pad=1,
                                               cover_all=False)
         else:
             p = average_pooling_2d.average_pooling_2d(x, 3, stride=self.stride,

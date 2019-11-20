@@ -14,9 +14,12 @@ class Where(function_node.FunctionNode):
         self.condition = condition
 
     def check_type_forward(self, in_types):
-        type_check.expect(in_types.size() == 2)
+        type_check._argname(in_types, ('x', 'y'))
         x_type, y_type = in_types
-        condition = self.condition
+        condition = type_check._make_variable_from_array(
+            # allow scalar `condition`
+            chainer.utils.force_array(self.condition),
+            'condition')
 
         type_check.expect(
             condition.dtype == numpy.bool_,

@@ -41,7 +41,7 @@ class TestMaxout(unittest.TestCase):
 
     def setUp(self):
         # x, W, and b are set so that the result of forward
-        # propagation gets stable, meaning that their small pertubations
+        # propagation gets stable, meaning that their small perturbations
         # do not change :math:`argmax_{j} W_{ij\cdot} x + b_{ij}`.
 
         x_shape = (self.batchsize, ) + self.in_shape
@@ -88,7 +88,8 @@ class TestMaxout(unittest.TestCase):
     @attr.gpu
     @condition.retry(3)
     def test_forward_gpu(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.check_forward(cuda.to_gpu(self.x))
 
     def check_backward(self, x_data, y_grad):
@@ -105,7 +106,8 @@ class TestMaxout(unittest.TestCase):
     @attr.gpu
     @condition.retry(3)
     def test_backward_gpu(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
 
 
@@ -199,7 +201,8 @@ class TestInitialization(unittest.TestCase):
 
     @attr.gpu
     def test_param_gpu(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.check_param()
 
 

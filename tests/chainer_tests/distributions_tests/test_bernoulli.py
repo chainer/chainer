@@ -2,6 +2,7 @@ import unittest
 
 import numpy
 
+from chainer import backend
 from chainer.backends import cuda
 from chainer import distributions
 from chainer import gradient_check
@@ -68,7 +69,7 @@ class TestBernoulli(testing.distribution_unittest):
             log_prob = self.gpu_dist.log_prob(cuda.to_gpu(smp)).data
         else:
             log_prob = self.cpu_dist.log_prob(smp).data
-        xp = cuda.get_array_module(log_prob)
+        xp = backend.get_array_module(log_prob)
         if self.binary_check:
             self.assertTrue(xp.all(log_prob == -xp.inf))
         else:
@@ -87,7 +88,7 @@ class TestBernoulli(testing.distribution_unittest):
             prob = self.gpu_dist.prob(cuda.to_gpu(smp)).data
         else:
             prob = self.cpu_dist.prob(smp).data
-        xp = cuda.get_array_module(prob)
+        xp = backend.get_array_module(prob)
         if self.binary_check:
             self.assertTrue(xp.all(prob == 0))
         else:

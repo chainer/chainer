@@ -2,7 +2,9 @@
 # The original code is at the README of google-test:
 # https://github.com/google/googletest/tree/master/googletest
 function(get_third_party name)
-    configure_file("third_party/${name}.cmake" "${name}-download/CMakeLists.txt")
+    configure_file(
+        "${PROJECT_SOURCE_DIR}/third_party/${name}.cmake"
+        "${CMAKE_CURRENT_BINARY_DIR}/${name}-download/CMakeLists.txt")
     execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" .
         RESULT_VARIABLE result
         WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/${name}-download")

@@ -38,6 +38,16 @@ def dropout(a, prob=0.5):
     return numpy.array(a)
 
 
+_cmp_funcs = {
+    'equal': lambda a, b: a == b,
+    'not_equal': lambda a, b: a != b,
+    'greater': lambda a, b: a > b,
+    'greater_equal': lambda a, b: a >= b,
+    'less': lambda a, b: a < b,
+    'less_equal': lambda a, b: a <= b,
+}
+
+
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
     # All dtypes
@@ -86,14 +96,7 @@ def dropout(a, prob=0.5):
         ]
     })
 ))
-@chainer.testing.parameterize_pytest('cmp_op,module_func', [
-    (lambda a, b: a == b, 'equal'),
-    (lambda a, b: a != b, 'not_equal'),
-    (lambda a, b: a > b, 'greater'),
-    (lambda a, b: a >= b, 'greater_equal'),
-    (lambda a, b: a < b, 'less'),
-    (lambda a, b: a <= b, 'less_equal'),
-])
+@chainer.testing.parameterize_pytest('cmp_func', sorted(_cmp_funcs.keys()))
 # Ignore warnings from numpy for NaN comparisons.
 @pytest.mark.filterwarnings('ignore:invalid value encountered in ')
 class TestCmp(op_utils.NumpyOpTest):
@@ -110,8 +113,8 @@ class TestCmp(op_utils.NumpyOpTest):
 
     def forward_xp(self, inputs, xp):
         a, b = inputs
-        cmp_op = self.cmp_op
-        module_func = getattr(xp, self.module_func)
+        cmp_op = _cmp_funcs[self.cmp_func]
+        module_func = getattr(xp, self.cmp_func)
 
         y1 = cmp_op(a, b)
         y2 = cmp_op(b, a)
@@ -125,15 +128,11 @@ class TestCmp(op_utils.NumpyOpTest):
     ((2,), (2, 3)),
     ((1, 2, 3), (1, 2, 3, 4)),
 ])
-@pytest.mark.parametrize('cmp_op, chx_cmp', [
-    (lambda a, b: a == b, chainerx.equal),
-    (lambda a, b: a != b, chainerx.not_equal),
-    (lambda a, b: a > b, chainerx.greater),
-    (lambda a, b: a >= b, chainerx.greater_equal),
-    (lambda a, b: a < b, chainerx.less),
-    (lambda a, b: a < b, chainerx.less_equal),
-])
-def test_cmp_invalid_shapes(cmp_op, chx_cmp, a_shape, b_shape):
+@pytest.mark.parametrize('cmp_func', sorted(_cmp_funcs.keys()))
+def test_cmp_invalid_shapes(cmp_func, a_shape, b_shape):
+    cmp_op = _cmp_funcs[cmp_func]
+    chx_cmp = getattr(chainerx, cmp_func)
+
     def check(x, y):
         with pytest.raises(chainerx.DimensionError):
             cmp_op(x, y)
@@ -147,15 +146,11 @@ def test_cmp_invalid_shapes(cmp_op, chx_cmp, a_shape, b_shape):
     check(b, a)
 
 
-@pytest.mark.parametrize('cmp_op, chx_cmp', [
-    (lambda a, b: a == b, chainerx.equal),
-    (lambda a, b: a != b, chainerx.not_equal),
-    (lambda a, b: a > b, chainerx.greater),
-    (lambda a, b: a >= b, chainerx.greater_equal),
-    (lambda a, b: a < b, chainerx.less),
-    (lambda a, b: a < b, chainerx.less_equal),
-])
-def test_cmp_invalid_dtypes(cmp_op, chx_cmp, numeric_dtype):
+@pytest.mark.parametrize('cmp_func', sorted(_cmp_funcs.keys()))
+def test_cmp_invalid_dtypes(cmp_func, numeric_dtype):
+    cmp_op = _cmp_funcs[cmp_func]
+    chx_cmp = getattr(chainerx, cmp_func)
+
     def check(x, y):
         with pytest.raises(chainerx.DtypeError):
             cmp_op(x, y)
@@ -216,23 +211,11 @@ class TestLogicalNot(op_utils.NumpyOpTest):
         return b,
 
 
-def logical_and(xp, a, b):
-    return xp.logical_and(a, b)
-
-
-def logical_or(xp, a, b):
-    return xp.logical_or(a, b)
-
-
-def logical_xor(xp, a, b):
-    return xp.logical_xor(a, b)
-
-
 _binary_logical_params = \
     chainer.testing.product({
         'dtypes': _expected_all_dtypes_comparison,
         'func': [
-            logical_and, logical_or, logical_xor
+            'logical_and', 'logical_or', 'logical_xor'
         ],
         'inputs': [
             ([], []),
@@ -242,7 +225,7 @@ _binary_logical_params = \
     }) + chainer.testing.product({
         'dtypes': _expected_numeric_dtypes_comparison,
         'func': [
-            logical_and, logical_or, logical_xor
+            'logical_and', 'logical_or', 'logical_xor'
         ],
         'inputs': [
             ([0], [0]),
@@ -265,7 +248,7 @@ _binary_logical_params = \
     }) + chainer.testing.product({
         'dtypes': _expected_float_dtypes_comparison,
         'func': [
-            logical_and, logical_or
+            'logical_and', 'logical_or'
         ],
         'inputs': [
             ([0., numpy.nan], [0., 1.]),
@@ -300,23 +283,10 @@ class TestLogicalBinary(op_utils.NumpyOpTest):
 
     def forward_xp(self, inputs, xp):
         a, b = inputs
-        y1 = self.func(xp, a, b)
-        y2 = self.func(xp, b, a)
+        fn = getattr(xp, self.func)
+        y1 = fn(a, b)
+        y2 = fn(b, a)
         return y1, y2
-
-
-def compute_all(xp, a, axis, keepdims, is_module):
-    if is_module:
-        return xp.all(a, axis=axis, keepdims=keepdims)
-    else:
-        return a.all(axis=axis, keepdims=keepdims)
-
-
-def compute_any(xp, a, axis, keepdims, is_module):
-    if is_module:
-        return xp.any(a, axis=axis, keepdims=keepdims)
-    else:
-        return a.any(axis=axis, keepdims=keepdims)
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
@@ -354,7 +324,7 @@ def compute_any(xp, a, axis, keepdims, is_module):
         'keepdims': [True, False],
         'in_dtype':
             _make_in_dtypes(1, chainerx.testing.all_dtypes),
-        'func': [compute_all, compute_any],
+        'func': ['all', 'any'],
         # With all zero,
         # partially zero,
         # all non-zero arrays
@@ -376,7 +346,12 @@ class TestLogicalReductions(op_utils.NumpyOpTest):
 
     def forward_xp(self, inputs, xp):
         a, = inputs
-        y = self.func(xp, a, self.axis, self.keepdims, self.is_module)
+        if self.is_module:
+            fn = getattr(xp, self.func)
+            y = fn(a, axis=self.axis, keepdims=self.keepdims)
+        else:
+            fn = getattr(a, self.func)
+            y = fn(axis=self.axis, keepdims=self.keepdims)
         return y,
 
 
@@ -397,12 +372,53 @@ class TestLogicalReductions(op_utils.NumpyOpTest):
     ((2, 3,), (0, -2)),
 ])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-@pytest.mark.parametrize('func', [
-    compute_all,
-    compute_any
-])
+@pytest.mark.parametrize('func', ['all', 'any'])
 @pytest.mark.parametrize('is_module', [False, True])
 def test_logical_reductions_invalid(func, is_module, xp, shape,
                                     axis, keepdims, dtype, device):
     a = array_utils.create_dummy_ndarray(xp, shape, dtype, device)
-    func(xp, a, axis, keepdims, is_module)
+    if is_module:
+        fn = getattr(xp, func)
+        fn(a, axis=axis, keepdims=keepdims)
+    else:
+        fn = getattr(a, func)
+        fn(axis=axis, keepdims=keepdims)
+
+
+@chainerx.testing.numpy_chainerx_array_equal()
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('input', [
+    numpy.asarray(0), numpy.asarray(-1), numpy.asarray(
+        10), numpy.asarray(float('inf')), numpy.asarray(-float('inf')),
+    numpy.asarray(float('nan')), numpy.full(
+        (), 2), numpy.full((0,), 2), numpy.full((2, 3), 2)
+])
+def test_isnan(xp, device, input, dtype):
+    a = xp.array(input.astype(dtype))
+    return xp.isnan(a)
+
+
+@chainerx.testing.numpy_chainerx_array_equal()
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('input', [
+    numpy.asarray(0), numpy.asarray(-1), numpy.asarray(
+        10), numpy.asarray(float('inf')), numpy.asarray(-float('inf')),
+    numpy.asarray(float('nan')), numpy.full(
+        (), 2), numpy.full((0,), 2), numpy.full((2, 3), 2)
+])
+def test_isinf(xp, device, input, dtype):
+    a = xp.array(input.astype(dtype))
+    return xp.isinf(a)
+
+
+@chainerx.testing.numpy_chainerx_array_equal()
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('input', [
+    numpy.asarray(0), numpy.asarray(-1), numpy.asarray(
+        10), numpy.asarray(float('inf')), numpy.asarray(-float('inf')),
+    numpy.asarray(float('nan')), numpy.full(
+        (), 2), numpy.full((0,), 2), numpy.full((2, 3), 2)
+])
+def test_isfinite(xp, device, input, dtype):
+    a = xp.array(input.astype(dtype))
+    return xp.isfinite(a)

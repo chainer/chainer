@@ -4,41 +4,8 @@ import unittest
 import numpy
 
 from chainer import iterators
-from chainer import serializer
+from chainer import serializers
 from chainer import testing
-
-
-class DummySerializer(serializer.Serializer):
-
-    def __init__(self, target):
-        super(DummySerializer, self).__init__()
-        self.target = target
-
-    def __getitem__(self, key):
-        raise NotImplementedError
-
-    def __call__(self, key, value):
-        self.target[key] = value
-        return self.target[key]
-
-
-class DummyDeserializer(serializer.Deserializer):
-
-    def __init__(self, target):
-        super(DummyDeserializer, self).__init__()
-        self.target = target
-
-    def __getitem__(self, key):
-        raise NotImplementedError
-
-    def __call__(self, key, value):
-        if value is None:
-            value = self.target[key]
-        elif isinstance(value, numpy.ndarray):
-            numpy.copyto(value, self.target[key])
-        else:
-            value = type(value)(numpy.asarray(self.target[key]))
-        return value
 
 
 class TestSerialIterator(unittest.TestCase):
@@ -269,10 +236,10 @@ class TestSerialIteratorSerialize(unittest.TestCase):
         self.assertAlmostEqual(it.previous_epoch_detail, 2 / 6)
 
         target = dict()
-        it.serialize(DummySerializer(target))
+        it.serialize(serializers.DictionarySerializer(target))
 
         it = iterators.SerialIterator(dataset, 2)
-        it.serialize(DummyDeserializer(target))
+        it.serialize(serializers.NpzDeserializer(target))
         self.assertFalse(it.is_new_epoch)
         self.assertAlmostEqual(it.epoch_detail, 4 / 6)
         self.assertAlmostEqual(it.previous_epoch_detail, 2 / 6)
@@ -307,7 +274,7 @@ class TestSerialIteratorSerialize(unittest.TestCase):
         self.assertAlmostEqual(it.previous_epoch_detail, 2 / 6)
 
         target = dict()
-        it.serialize(DummySerializer(target))
+        it.serialize(serializers.DictionarySerializer(target))
         # older version uses '_order'
         target['_order'] = target['order']
         del target['order']
@@ -315,7 +282,7 @@ class TestSerialIteratorSerialize(unittest.TestCase):
         del target['previous_epoch_detail']
 
         it = iterators.SerialIterator(dataset, 2)
-        it.serialize(DummyDeserializer(target))
+        it.serialize(serializers.NpzDeserializer(target))
         self.assertFalse(it.is_new_epoch)
         self.assertAlmostEqual(it.epoch_detail, 4 / 6)
         self.assertAlmostEqual(it.previous_epoch_detail, 2 / 6)

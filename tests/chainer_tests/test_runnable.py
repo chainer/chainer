@@ -1,5 +1,6 @@
 import io
 import os
+import re
 import unittest
 
 from chainer import testing
@@ -9,9 +10,10 @@ class TestRunnable(unittest.TestCase):
 
     def test_runnable(self):
         cwd = os.path.dirname(__file__)
+        regex = re.compile(r'^test_.*\.py$')
         for dirpath, dirnames, filenames in os.walk(cwd):
             for filename in filenames:
-                if not filename.endswith('.py') or '__init__' in filename:
+                if not regex.match(filename):
                     continue
                 path = os.path.join(dirpath, filename)
                 with io.open(path, encoding='utf-8') as f:

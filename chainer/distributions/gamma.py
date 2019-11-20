@@ -39,8 +39,11 @@ class Gamma(distribution.Distribution):
 
     @cache.cached_property
     def entropy(self):
-        return self.k + exponential.log(self.theta) + lgamma.lgamma(self.k) \
-            + (1 - self.k) * digamma.digamma(self.k)
+        return (
+            self.k
+            + exponential.log(self.theta)
+            + lgamma.lgamma(self.k)
+            + (1 - self.k) * digamma.digamma(self.k))
 
     @property
     def event_shape(self):
@@ -51,8 +54,11 @@ class Gamma(distribution.Distribution):
         return isinstance(self.k.data, cuda.ndarray)
 
     def log_prob(self, x):
-        logp = - lgamma.lgamma(self.k) - self.k * exponential.log(self.theta) \
-            + (self.k - 1) * exponential.log(x) - x / self.theta
+        logp = (
+            - lgamma.lgamma(self.k)
+            - self.k * exponential.log(self.theta)
+            + (self.k - 1) * exponential.log(x)
+            - x / self.theta)
         xp = logp.xp
         inf = xp.full_like(logp.array, xp.inf)
         if isinstance(x, chainer.Variable):
@@ -68,7 +74,7 @@ class Gamma(distribution.Distribution):
         return {'k': self.k, 'theta': self.theta}
 
     def sample_n(self, n):
-        xp = cuda.get_array_module(self.k)
+        xp = chainer.backend.get_array_module(self.k)
         if xp is cuda.cupy:
             eps = xp.random.gamma(
                 self.k.data, size=(n,) + self.batch_shape, dtype=self.k.dtype)
@@ -89,8 +95,9 @@ class Gamma(distribution.Distribution):
 
 @distribution.register_kl(Gamma, Gamma)
 def _kl_gamma_gamma(dist1, dist2):
-    return (dist1.k - dist2.k) * digamma.digamma(dist1.k) \
-        - (lgamma.lgamma(dist1.k) - lgamma.lgamma(dist2.k)) \
-        + dist2.k\
-        * (exponential.log(dist2.theta) - exponential.log(dist1.theta)) \
-        + dist1.k * (dist1.theta / dist2.theta - 1)
+    return (
+        (dist1.k - dist2.k) * digamma.digamma(dist1.k)
+        - (lgamma.lgamma(dist1.k) - lgamma.lgamma(dist2.k))
+        + dist2.k * (exponential.log(dist2.theta)
+                     - exponential.log(dist1.theta))
+        + dist1.k * (dist1.theta / dist2.theta - 1))

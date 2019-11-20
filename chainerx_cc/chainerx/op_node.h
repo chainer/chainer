@@ -8,8 +8,8 @@
 #include <utility>
 #include <vector>
 
-#include <gsl/gsl>
-#include <nonstd/optional.hpp>
+#include <absl/types/optional.h>
+#include <absl/types/span.h>
 
 #include "chainerx/array_body.h"
 #include "chainerx/array_fwd.h"
@@ -110,9 +110,9 @@ public:
 
     const std::vector<std::shared_ptr<ArrayNode>>& input_array_nodes() const;
 
-    gsl::span<OpNodeBackwardEntry> backward_entries() { return backward_entries_; }
+    absl::Span<OpNodeBackwardEntry> backward_entries() { return absl::MakeSpan(backward_entries_); }
 
-    gsl::span<const OpNodeBackwardEntry> backward_entries() const { return backward_entries_; }
+    absl::Span<const OpNodeBackwardEntry> backward_entries() const { return absl::MakeConstSpan(backward_entries_); }
 
     size_t input_array_node_count() const { return input_array_nodes_.size(); }
 
@@ -128,10 +128,10 @@ public:
     }
 
     // Returns the list of output array nodes on "this" graph.
-    const std::vector<nonstd::optional<std::weak_ptr<ArrayNode>>>& output_array_nodes() const { return output_array_nodes_; }
+    const std::vector<absl::optional<std::weak_ptr<ArrayNode>>>& output_array_nodes() const { return output_array_nodes_; }
 
     // Returns the list of output array nodes on "this" graph.
-    std::vector<nonstd::optional<std::weak_ptr<ArrayNode>>>& output_array_nodes() { return output_array_nodes_; }
+    std::vector<absl::optional<std::weak_ptr<ArrayNode>>>& output_array_nodes() { return output_array_nodes_; }
 
     // Returns the input array nodes of all graphs.
     const std::vector<std::tuple<BackpropId, std::vector<std::shared_ptr<ArrayNode>>>>& outer_graphs_input_array_nodes() const {
@@ -161,7 +161,7 @@ private:
     std::vector<std::shared_ptr<ArrayNode>> input_array_nodes_;
 
     // List of output array nodes of this graph.
-    std::vector<nonstd::optional<std::weak_ptr<ArrayNode>>> output_array_nodes_;
+    std::vector<absl::optional<std::weak_ptr<ArrayNode>>> output_array_nodes_;
 
     // List of input/output array nodes of outer graphs.
     // Outer graphs refer to graphs with lower ordinals.

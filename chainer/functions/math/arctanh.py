@@ -1,4 +1,4 @@
-from chainer.backends import cuda
+from chainer import backend
 from chainer import function_node
 from chainer import utils
 from chainer.utils import type_check
@@ -17,7 +17,7 @@ class Arctanh(function_node.FunctionNode):
     def forward(self, inputs):
         self.retain_inputs((0,))
         x, = inputs
-        xp = cuda.get_array_module(x)
+        xp = backend.get_array_module(x)
         y = xp.arctanh(x)
         return utils.force_array(y, dtype=x.dtype),
 

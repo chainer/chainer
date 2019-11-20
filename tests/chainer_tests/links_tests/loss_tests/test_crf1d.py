@@ -1,6 +1,6 @@
+import itertools
 import unittest
 
-import itertools
 import numpy
 from six import moves
 
@@ -55,7 +55,7 @@ class TestCRF1d(unittest.TestCase):
         self.cost_shape = (self.n_label, self.n_label)
 
         if self.dtype == numpy.float16:
-            self.check_forward_options = {'atol': 5e-3}
+            self.check_forward_options = {'rtol': 5e-3, 'atol': 1e-2}
         else:
             self.check_forward_options = {'atol': 1e-4}
 
@@ -87,7 +87,8 @@ class TestCRF1d(unittest.TestCase):
 
     @attr.gpu
     def test_forward_gpu(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.check_forward(cuda.to_gpu(self.xs), cuda.to_gpu(self.ys))
 
 
@@ -126,7 +127,8 @@ class TestInitialization(unittest.TestCase):
 
     @attr.gpu
     def test_param_gpu(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.check_param()
 
 

@@ -18,6 +18,7 @@ namespace python {
 namespace python_internal {
 
 namespace py = pybind11;  // standard convention
+using py::literals::operator""_a;
 
 class PyBackpropScope {
 public:
@@ -68,8 +69,8 @@ void InitChainerxBackpropScope(pybind11::module& m) {
 
     m.def("backprop_scope",
           [](const std::string& backprop_name, py::handle context) { return PyBackpropScope(backprop_name, GetContext(context)); },
-          py::arg("backprop_name"),
-          py::arg("context") = py::none());
+          "backprop_name"_a,
+          "context"_a = py::none());
 }
 
 }  // namespace python_internal

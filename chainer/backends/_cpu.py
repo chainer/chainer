@@ -12,13 +12,11 @@ class CpuDevice(_backend.Device):
 
     """Device for CPU (NumPy) backend"""
 
-    @property
-    def xp(self):
-        return numpy
+    name = '@numpy'
+    xp = numpy
+    supported_array_types = (numpy.ndarray,)
 
-    @property
-    def supported_array_types(self):
-        return (numpy.ndarray,)
+    __hash__ = _backend.Device.__hash__
 
     @staticmethod
     def from_array(array):
@@ -32,11 +30,11 @@ class CpuDevice(_backend.Device):
     def __repr__(self):
         return '<{} (numpy)>'.format(self.__class__.__name__)
 
-    def __str__(self):
-        return '@numpy'
-
     def send_array(self, array):
         return _array_to_cpu(array)
+
+    def is_array_supported(self, array):
+        return isinstance(array, numpy.ndarray)
 
 
 def _to_cpu(array):

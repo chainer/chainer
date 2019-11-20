@@ -5,7 +5,7 @@
 #include <tuple>
 #include <utility>
 
-#include <nonstd/optional.hpp>
+#include <absl/types/optional.h>
 
 #include <cudnn.h>
 
@@ -83,7 +83,7 @@ public:
             Scalar decay,
             const Axes& axis,
             bool return_state,
-            const nonstd::optional<Array>& out) override {
+            const absl::optional<Array>& out) override {
         if (CHAINERX_DEBUG) {
             Shape reduced_shape = internal::ReduceShape(x.shape(), axis, true);
             CHAINERX_ASSERT(gamma.shape() == reduced_shape);
@@ -196,9 +196,9 @@ public:
             Scalar eps,
             const Axes& axis,
             const std::shared_ptr<BatchNormGradState>& state,
-            const nonstd::optional<Array>& gx,
-            const nonstd::optional<Array>& ggamma,
-            const nonstd::optional<Array>& gbeta) override {
+            const absl::optional<Array>& gx,
+            const absl::optional<Array>& ggamma,
+            const absl::optional<Array>& gbeta) override {
         CHAINERX_ASSERT(gamma.shape() == internal::ReduceShape(x.shape(), axis, true));
         CHAINERX_ASSERT(x.shape() == gout.shape());
         CHAINERX_ASSERT(&x.device() == &gamma.device());
@@ -222,7 +222,7 @@ public:
 
         // TODO(hvy): Implement recomputation of x_cont, x_mean and x_inv_std in case they are not given by the state.
         CHAINERX_ASSERT(state != nullptr);
-        auto cuda_state = dynamic_cast<CudaBatchNormGradState&>(*state);
+        auto& cuda_state = dynamic_cast<CudaBatchNormGradState&>(*state);
         const Array& x_cont = cuda_state.x_cont();
         const Array& x_mean = cuda_state.x_mean();
         const Array& x_inv_std = cuda_state.x_inv_std();
@@ -309,7 +309,7 @@ public:
             const Array& var,
             Scalar eps,
             const Axes& axis,
-            const nonstd::optional<Array>& out) override {
+            const absl::optional<Array>& out) override {
         if (CHAINERX_DEBUG) {
             Shape reduced_shape = internal::ReduceShape(x.shape(), axis, true);
             CHAINERX_ASSERT(gamma.shape() == reduced_shape);

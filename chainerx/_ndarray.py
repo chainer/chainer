@@ -15,14 +15,4 @@ def populate():
         """
         return chainerx.clip(self, a_min, a_max)
 
-    def ravel(self):
-        """Returns an array flattened into one dimension.
-
-        .. seealso:: :func:`chainerx.ravel` for full documentation,
-            :meth:`numpy.ndarray.ravel`
-
-        """
-        return chainerx.ravel(self)
-
     chainerx.ndarray.clip = clip
-    chainerx.ndarray.ravel = ravel

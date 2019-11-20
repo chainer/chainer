@@ -7,6 +7,7 @@ import six
 import chainer
 from chainer.backends import cuda
 from chainer.backends import intel64
+import chainerx
 
 
 class _RuntimeInfo(object):
@@ -18,6 +19,7 @@ class _RuntimeInfo(object):
 
     def __init__(self):
         self.chainer_version = chainer.__version__
+        self.chainerx_available = chainerx.is_available()
         self.numpy_version = numpy.__version__
         self.platform_version = platform.platform()
         if cuda.available:
@@ -33,6 +35,8 @@ class _RuntimeInfo(object):
         s = six.StringIO()
         s.write('''Platform: {}\n'''.format(self.platform_version))
         s.write('''Chainer: {}\n'''.format(self.chainer_version))
+        s.write('''ChainerX: {}\n'''.format(
+            'Available' if self.chainerx_available else 'Not Available'))
         s.write('''NumPy: {}\n'''.format(self.numpy_version))
         if self.cuda_info is None:
             s.write('''CuPy: Not Available\n''')
@@ -47,13 +51,39 @@ class _RuntimeInfo(object):
         return s.getvalue()
 
 
-def get_runtime_info():
+def _get_runtime_info():
     return _RuntimeInfo()
 
 
 def print_runtime_info(out=None):
+    """Shows Chainer runtime information.
+
+    Runtime information includes:
+
+    - OS platform
+
+    - Chainer version
+
+    - ChainerX version
+
+    - NumPy version
+
+    - CuPy version
+
+      - CUDA information
+      - cuDNN information
+      - NCCL information
+
+    - iDeep version
+
+    Args:
+        out: Output destination.
+            If it is ``None``, runtime information
+            will be shown in ``sys.stdout``.
+
+    """
     if out is None:
         out = sys.stdout
-    out.write(str(get_runtime_info()))
+    out.write(str(_get_runtime_info()))
     if hasattr(out, 'flush'):
         out.flush()

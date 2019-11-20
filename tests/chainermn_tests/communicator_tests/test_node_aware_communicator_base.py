@@ -12,7 +12,7 @@ class NodeAwareNaiveCommunicator(MpiCommunicatorBase):
     def __init__(self, mpi_comm):
         super(NodeAwareNaiveCommunicator, self).__init__(mpi_comm)
 
-    def allreduce_grad(self, model):
+    def multi_node_mean_grad(self, model):
         raise NotImplementedError()
 
 

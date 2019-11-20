@@ -47,7 +47,8 @@ class TestMLPConvolution2D(unittest.TestCase):
 
     @attr.gpu
     def test_call_gpu(self):
-        self.mlp.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.mlp.to_gpu()
         self.check_call(cuda.to_gpu(self.x))
 
 
@@ -61,7 +62,8 @@ class TestMLPConvolution2DCudnnCall(unittest.TestCase):
     def setUp(self):
         self.mlp = links.MLPConvolution2D(
             3, (96, 96, 96), 11, activation=functions.sigmoid)
-        self.mlp.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.mlp.to_gpu()
         self.x = cuda.cupy.zeros((10, 3, 20, 20), dtype=numpy.float32)
         self.gy = cuda.cupy.zeros((10, 96, 10, 10), dtype=numpy.float32)
 
@@ -125,7 +127,8 @@ class TestMLPConvolution2DShapePlaceholder(unittest.TestCase):
 
     @attr.gpu
     def test_call_gpu(self):
-        self.mlp.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.mlp.to_gpu()
         self.check_call(cuda.to_gpu(self.x))
 
 

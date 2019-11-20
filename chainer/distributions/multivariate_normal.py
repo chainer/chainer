@@ -67,7 +67,9 @@ class TriangularInv(chainer.function_node.FunctionNode):
             # linalg.solve_triangular crashes
             return x,
         invx = cuda.cupyx.scipy.linalg.solve_triangular(
-            x, cuda.cupy.eye(len(x), dtype=x.dtype), lower=self._lower)
+            x,
+            cuda.cupy.eye(len(x), dtype=x.dtype),
+            lower=self._lower)
         return invx,
 
     def backward(self, target_input_indexes, grad_outputs):
@@ -168,8 +170,8 @@ class MultivariateNormal(distribution.Distribution):
         return isinstance(self.loc.data, cuda.ndarray)
 
     def log_prob(self, x):
-        scale_tril_inv = \
-            _batch_triangular_inv(self.scale_tril.reshape(-1, self.d, self.d))
+        scale_tril_inv = _batch_triangular_inv(
+            self.scale_tril.reshape(-1, self.d, self.d))
         scale_tril_inv = scale_tril_inv.reshape(
             self.batch_shape+(self.d, self.d))
 
@@ -196,8 +198,9 @@ class MultivariateNormal(distribution.Distribution):
             eps = numpy.random.standard_normal(
                 (n,)+self.loc.shape+(1,)).astype(numpy.float32)
 
-        return self.loc + squeeze.squeeze(
-            matmul.matmul(self.scale_tril, eps), axis=-1)
+        return (
+            self.loc
+            + squeeze.squeeze(matmul.matmul(self.scale_tril, eps), axis=-1))
 
     @property
     def support(self):
@@ -210,21 +213,30 @@ class MultivariateNormal(distribution.Distribution):
     @property
     def covariance(self):
         return matmul.matmul(
-            self.scale_tril, transpose.transpose(
+            self.scale_tril,
+            transpose.transpose(
                 self.scale_tril,
                 tuple(range(len(self.batch_shape))) + (-1, -2)))
 
 
 @distribution.register_kl(MultivariateNormal, MultivariateNormal)
 def _kl_multivariatenormal_multivariatenormal(dist1, dist2):
-    scale_tril_inv2 = _batch_triangular_inv(dist2.scale_tril.reshape(
-        -1, dist2.d, dist2.d))
-    trace = sum_mod.sum(matmul.matmul(
-        scale_tril_inv2, dist1.scale_tril.reshape(-1, dist2.d, dist2.d)) ** 2,
-        axis=(-1, -2)).reshape(dist1.batch_shape)
+    scale_tril_inv2 = _batch_triangular_inv(
+        dist2.scale_tril.reshape(-1, dist2.d, dist2.d))
+    trace = (
+        sum_mod.sum(
+            matmul.matmul(
+                scale_tril_inv2,
+                dist1.scale_tril.reshape(-1, dist2.d, dist2.d)) ** 2,
+            axis=(-1, -2))
+        .reshape(dist1.batch_shape))
 
     mu = dist1.loc - dist2.loc
     mah = matmul.matmul(scale_tril_inv2, mu.reshape(-1, dist1.d, 1))
     mah = sum_mod.sum(mah ** 2, axis=-2).reshape(dist1.batch_shape)
-    return dist2._logdet_scale - dist1._logdet_scale \
-        + 0.5 * trace + 0.5 * mah - 0.5 * dist1.d
+    return (
+        dist2._logdet_scale
+        - dist1._logdet_scale
+        + 0.5 * trace
+        + 0.5 * mah
+        - 0.5 * dist1.d)

@@ -2,7 +2,7 @@
 
 #include <utility>
 
-#include <nonstd/optional.hpp>
+#include <absl/types/optional.h>
 
 #include "chainerx/array.h"
 #include "chainerx/dtype.h"
@@ -54,8 +54,8 @@ public:
     void AddArg(Scalar arg);
 
 private:
-    nonstd::optional<Dtype> array_max_dtype_;
-    nonstd::optional<Dtype> scalar_max_dtype_;
+    absl::optional<Dtype> array_max_dtype_;
+    absl::optional<Dtype> scalar_max_dtype_;
 
     void AddArgsImpl() {
         // nop

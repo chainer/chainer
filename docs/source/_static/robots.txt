@@ -1,4 +1,5 @@
 User-Agent: *
+Allow: /
 Allow: /en/stable/
 Allow: /en/latest/
-Disallow: /
+Disallow: /en/

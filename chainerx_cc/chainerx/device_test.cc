@@ -2,9 +2,9 @@
 
 #include <future>
 
+#include <absl/types/optional.h>
 #include <gtest/gtest.h>
 #include <gsl/gsl>
-#include <nonstd/optional.hpp>
 
 #include "chainerx/backend.h"
 #include "chainerx/context.h"
@@ -27,7 +27,7 @@ protected:
     void TearDown() override { context_session_.reset(); }
 
 private:
-    nonstd::optional<testing::ContextSession> context_session_;
+    absl::optional<testing::ContextSession> context_session_;
 };
 
 TEST_F(DeviceTest, Ctor) {

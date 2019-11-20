@@ -3,9 +3,6 @@
 #include <cstdint>
 #include <ostream>
 
-#include "chainerx/constant.h"
-#include "chainerx/stack_vector.h"
-
 namespace chainerx {
 
 void DimsFormatter::Print(std::ostream& os) const {

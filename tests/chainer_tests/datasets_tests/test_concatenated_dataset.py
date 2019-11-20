@@ -1,7 +1,7 @@
-import numpy as np
-import six
 import unittest
 
+import numpy as np
+import six
 
 from chainer.datasets import ConcatenatedDataset
 from chainer import testing

@@ -28,6 +28,7 @@ RUN chown testuser:testuser "$USER_TEMP_DIR"
 RUN chown testuser:testuser "$WORKSPACE_DIR"
 
 USER testuser
+WORKDIR "$USER_TEMP_DIR"
 
 RUN mkdir -p "$WORK_DIR"
 RUN mkdir -p "$CONDA_DIR"

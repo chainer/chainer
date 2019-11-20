@@ -15,7 +15,7 @@ from chainer.testing import attr
 @testing.parameterize(*testing.product_dict(
     [{'dtype': numpy.float16,
       'forward_options': {'rtol': 1e-2, 'atol': 1e-2},
-      'backward_options': {'rtol': 1e-2, 'atol': 1e-3},
+      'backward_options': {'rtol': 1e-2, 'atol': 1e-2},
       'double_backward_options': {'rtol': 3e-1, 'atol': 3e-1}},
      {'dtype': numpy.float32,
       'forward_options': {'rtol': 1e-2},
@@ -43,7 +43,7 @@ class TestContrastive(unittest.TestCase):
             self.x0 = numpy.random.uniform(-1, 1, x_shape).astype(self.dtype)
             self.x1 = numpy.random.uniform(-1, 1, x_shape).astype(self.dtype)
             d = numpy.sqrt(numpy.sum((self.x0 - self.x1) ** 2, axis=1))
-            if (numpy.abs(d - self.margin) > 1e-2).all():
+            if (d > 3e-2).all() and (numpy.abs(d - self.margin) > 1e-2).all():
                 break
             retry += 1
             assert retry <= 10, 'Too many retries to generate inputs'

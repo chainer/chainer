@@ -4,7 +4,7 @@
 # this should fall back to CPU testing automatically.  This script requires that
 # a corresponding Docker image is accessible from the machine.
 # TODO(imos): Enable external contributors to test this script on their
-# machines.  Specifically, locate a Dockerfile generating chainer-ci-prep.*.
+# machines.
 #
 # Usage: .pfnci/script.sh [target]
 # - target is a test target (e.g., "py37").
@@ -23,8 +23,6 @@
 
 set -eu
 
-cd "$(dirname "${BASH_SOURCE}")"/..
-
 ################################################################################
 # Main function
 ################################################################################
@@ -36,24 +34,85 @@ main() {
   wait
 
   # Prepare docker args.
-  docker_args=(docker run  --rm --volume="$(pwd):/src:ro")
-  if [ "${GPU:-0}" != '0' ]; then
-    docker_args+=(--ipc=host --privileged --env="GPU=${GPU}" --runtime=nvidia)
-  fi
-  if [ "${XPYTEST:-}" != '' ]; then
-    docker_args+=(--volume="${XPYTEST}:/usr/local/bin/xpytest:ro")
-  fi
-  docker_args+=(--env="XPYTEST_NUM_THREADS=${XPYTEST_NUM_THREADS:-$(nproc)}")
-  if [ "${SPREADSHEET_ID:-}" != '' ]; then
-    docker_args+=(--env="SPREADSHEET_ID=${SPREADSHEET_ID}")
-  fi
+  docker_args=(docker run  --rm)
+
+  # Base development branch name.
+  base_branch="$(get_base_branch)"
 
   # Run target-specific commands.
   case "${TARGET}" in
     # Unit tests.
     'py37' | 'py27and35' )
+      docker_args+=(
+          --volume="$(cd "$(dirname "${BASH_SOURCE}")/.."; pwd):/src:ro")
+      if [ "${GPU:-0}" != '0' ]; then
+        docker_args+=(
+            --ipc=host --privileged --env="GPU=${GPU}" --runtime=nvidia)
+      fi
+      if [ "${XPYTEST:-}" != '' ]; then
+        docker_args+=(--volume="${XPYTEST}:/usr/local/bin/xpytest:ro")
+      fi
+      docker_args+=(
+          --env="XPYTEST_NUM_THREADS=${XPYTEST_NUM_THREADS:-$(nproc)}")
+      if [ "${SPREADSHEET_ID:-}" != '' ]; then
+        docker_args+=(--env="SPREADSHEET_ID=${SPREADSHEET_ID}")
+      fi
       run "${docker_args[@]}" \
-          "asia.gcr.io/pfn-public-ci/chainer-ci-prep.${TARGET}" \
+          "asia.gcr.io/pfn-public-ci/chainer-ci-prep.${TARGET}:${base_branch}" \
+          bash /src/.pfnci/run.sh "${TARGET}"
+      ;;
+    # Docker builds.
+    docker.* )
+      # Parse the target as "docker.{target}.{action}".
+      local fragments
+      IFS=. fragments=(${TARGET})
+      local target="${fragments[1]}"
+      local action="${fragments[2]}"
+      if [ "${action}" != 'push' -a "${action}" != 'test' ]; then
+        echo "Unsupported docker target action: ${action}" >&2
+        exit 1
+      fi
+      if [ "${action}" = "push" ] && ! is_known_base_branch "${FLEXCI_BRANCH}"; then
+        echo "Branch invalid for docker push: ${FLEXCI_BRANCH}" >&2
+        exit 1
+      fi
+
+      # This script can be run in CuPy repository to enable CI to build Chainer
+      # base images with a specified CuPy version.  This block enables the
+      # script can also be run even in Chainer repository.
+      # NOTE: This explicitly pulls CuPy repository instead of pulling from
+      # docker because of ensuring its CuPy version.
+      local cupy_directory="$(pwd)"
+      if [ ! -d "${cupy_directory}/cupy" ]; then
+        if [ ! -d .pfnci/cupy ]; then
+          run git clone https://github.com/cupy/cupy.git .pfnci/cupy
+          run git -C .pfnci/cupy checkout "${base_branch}"
+        fi
+        cupy_directory=.pfnci/cupy
+      fi
+      run docker build -t \
+          "asia.gcr.io/pfn-public-ci/chainer-ci-prep.${target}:${base_branch}" \
+          -f "$(dirname "${BASH_SOURCE}")/${target}.Dockerfile" \
+          "${cupy_directory}"
+      if [ "${action}" == 'push' ]; then
+        run docker push "asia.gcr.io/pfn-public-ci/chainer-ci-prep.${target}:${base_branch}"
+      fi
+      ;;
+	'chainermn' )
+      docker_args+=(
+          --volume="$(cd "$(dirname "${BASH_SOURCE}")/.."; pwd):/src:ro")
+      if [ "${GPU:-0}" != '0' ]; then
+        docker_args+=(
+            --ipc=host --privileged --env="GPU=${GPU}" --runtime=nvidia)
+      fi
+      docker_args+=(--env="CUPY_VERSION=${CUPY_VERSION:-master}")
+      # prepare CuPy wheel
+      CUPY_MASTER=$(gsutil -q cp gs://tmp-asia-pfn-public-ci/cupy/wheel/master -)
+      mkdir /tmp/cupy-wheel
+      gsutil -q cp gs://tmp-asia-pfn-public-ci/cupy/wheel/${CUPY_MASTER}/cuda9.2/*.whl /tmp/cupy-wheel
+      docker_args+=(--volume="/tmp/cupy-wheel:/cupy-wheel:ro")
+      run "${docker_args[@]}" \
+          "asia.gcr.io/pfn-public-ci/chainermn-ci-prep-${CUDATAG:-cuda92}" \
           bash /src/.pfnci/run.sh "${TARGET}"
       ;;
     # Unsupported targets.
@@ -70,7 +129,7 @@ main() {
 
 # run executes a command.  If DRYRUN is enabled, run just prints the command.
 run() {
-  echo '+' "$@"
+  echo '+' "$@" >&2
   if [ "${DRYRUN:-}" == '' ]; then
     "$@"
   fi
@@ -87,6 +146,26 @@ prepare_docker() {
   fi
   # Configure docker to pull images from gcr.io.
   run gcloud auth configure-docker
+}
+
+# is_known_base_branch returns 0 only if the given branch name is a known
+# base development branch.
+is_known_base_branch() {
+  local branch="${1##refs/heads/}"
+  for BASE_BRANCH in master v6; do
+    if [ "${branch}" = "${BASE_BRANCH}" ]; then
+      return 0
+    fi
+  done
+  return 1
+}
+
+# get_base_branch returns the base development branch for the current HEAD.
+get_base_branch() {
+  for BASE_BRANCH in master v6; do
+    run git merge-base --is-ancestor "origin/${BASE_BRANCH}" HEAD && echo "${BASE_BRANCH}" && return 0
+  done
+  return 1
 }
 
 ################################################################################

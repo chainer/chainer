@@ -11,8 +11,8 @@ from chainer_tests.dataset_tests.tabular_tests import dummy_dataset
 
 @testing.parameterize(*testing.product_dict(
     testing.product({
-        'mode_a': [tuple, dict],
-        'mode_b': [tuple, dict],
+        'mode_a': [tuple, dict, None],
+        'mode_b': [tuple, dict, None],
         'return_array': [True, False],
     }),
     [
@@ -42,15 +42,19 @@ class TestConcat(unittest.TestCase):
             self.assertIsNone(key_indices)
 
         dataset_a = dummy_dataset.DummyDataset(
+            keys=('a', 'b', 'c') if self.mode_b else ('a',),
             mode=self.mode_a,
-            return_array=self.return_array, callback=callback_a)
+            return_array=self.return_array, callback=callback_a,
+            convert=True)
 
         def callback_b(indices, key_indices):
             self.assertEqual(indices, self.expected_indices_b)
             self.assertIsNone(key_indices)
 
         dataset_b = dummy_dataset.DummyDataset(
-            size=5, mode=self.mode_b,
+            size=5,
+            keys=('a', 'b', 'c') if self.mode_a else ('a',),
+            mode=self.mode_b,
             return_array=self.return_array, callback=callback_b)
 
         view = dataset_a.concat(dataset_b)
@@ -73,6 +77,8 @@ class TestConcat(unittest.TestCase):
                 self.assertIsInstance(out, np.ndarray)
             else:
                 self.assertIsInstance(out, list)
+
+        self.assertEqual(view.convert(output), 'converted')
 
 
 class TestConcatInvalid(unittest.TestCase):

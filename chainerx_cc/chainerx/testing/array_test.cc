@@ -5,8 +5,8 @@
 #include <string>
 #include <vector>
 
+#include <absl/types/optional.h>
 #include <gtest/gtest.h>
-#include <nonstd/optional.hpp>
 
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
@@ -36,7 +36,7 @@ protected:
     }
 
 private:
-    nonstd::optional<DeviceSession> device_session_;
+    absl::optional<DeviceSession> device_session_;
 };
 
 template <typename T>

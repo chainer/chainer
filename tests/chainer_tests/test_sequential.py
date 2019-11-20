@@ -112,7 +112,8 @@ class TestSequential(unittest.TestCase):
     @attr.gpu
     def test_copy_and_send_to_gpu(self):
         s2 = self.s2.copy()
-        self.s2.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.s2.to_gpu()
         self.assertIsInstance(self.s2[0][0].b.data, cuda.cupy.ndarray)
         self.assertIsInstance(self.s2[0][1].W.data, cuda.cupy.ndarray)
         self.assertIsInstance(s2[0][0].b.data, numpy.ndarray)
@@ -121,7 +122,8 @@ class TestSequential(unittest.TestCase):
     @attr.gpu
     def test_copy_and_send_to_gpu_2(self):
         s2 = self.s2.copy()
-        s2.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            s2.to_gpu()
         self.assertIsInstance(self.s2[0][0].b.data, numpy.ndarray)
         self.assertIsInstance(self.s2[0][1].W.data, numpy.ndarray)
         self.assertIsInstance(s2[0][0].b.data, cuda.cupy.ndarray)
@@ -130,8 +132,10 @@ class TestSequential(unittest.TestCase):
     @attr.multi_gpu(2)
     def test_copy_and_send_to_gpu_multi(self):
         s2 = self.s2.copy()
-        self.s2.to_gpu(0)
-        s2.to_gpu(1)
+        with testing.assert_warns(DeprecationWarning):
+            self.s2.to_gpu(0)
+        with testing.assert_warns(DeprecationWarning):
+            s2.to_gpu(1)
         self.assertEqual(self.s2[0][0].b.data.device.id, 0)
         self.assertEqual(self.s2[0][1].W.data.device.id, 0)
         self.assertEqual(s2[0][0].b.data.device.id, 1)
@@ -145,7 +149,8 @@ class TestSequential(unittest.TestCase):
         x3 = self.l3.W.data
         gx3 = self.l3.W.grad
 
-        self.s2.to_cpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.s2.to_cpu()
 
         self.assertIs(self.l1.b.data, x1)
         self.assertIs(self.l1.b.grad, gx1)
@@ -156,8 +161,10 @@ class TestSequential(unittest.TestCase):
 
     @attr.gpu
     def test_to_cpu(self):
-        self.s2.to_gpu()
-        self.s2.to_cpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.s2.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.s2.to_cpu()
         self.assertIs(self.s2.xp, numpy)
         self.assertIs(self.s1.xp, numpy)
         self.assertIs(self.l1.xp, numpy)
@@ -173,7 +180,8 @@ class TestSequential(unittest.TestCase):
     @attr.gpu
     def test_to_gpu(self):
         cupy = cuda.cupy
-        self.s2.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.s2.to_gpu()
         self.assertIs(self.s2.xp, cupy)
         self.assertIs(self.s1.xp, cupy)
         self.assertIs(self.l1.xp, cupy)
@@ -421,12 +429,6 @@ class TestSequential(unittest.TestCase):
         self.assertIs(self.s2[2], s3[0])
         self.assertIs(self.s2[3], s3[1])
 
-    def test_insert(self):
-        l1 = links.Linear(3, 3)
-        self.s1.insert(1, l1)
-        self.assertEqual(len(self.s1), 3)
-        self.assertIs(self.s1[1], l1)
-
     def test_remove(self):
         self.s2.remove(self.s1)
         self.assertEqual(len(self.s2), 1)
@@ -605,6 +607,68 @@ class TestEmptySequential(unittest.TestCase):
         x = numpy.ones((2, 3), numpy.float32)
         with pytest.raises(RuntimeError):
             seq(x)
+
+
+@testing.parameterize_pytest(
+    'expect_error,orig,pos,is_link', [
+        # Insertion into an empty sequential
+        (False, (), 0, False),
+        (False, (), 0, True),
+        # Insertion into a sequential with 1 element
+        (False, (False,), 0, False),
+        (False, (True,), 0, True),
+        (False, (False,), 1, False),
+        (False, (True,), 1, True),
+        (False, (False,), -1, False),
+        (False, (True,), -1, True),
+        # Insertion into a sequential with multiple elements
+        (False, (False, False), -1, False),
+        (False, (True, True), -1, True),
+        (False, (False, False), 1, False),
+        (False, (True, True), 1, True),
+        # Index error expected
+        (True, (), 1, True),
+        (True, (), -1, False),
+        (True, (True,), 2, True),
+        (True, (False,), -2, False),
+    ]
+)
+class TestSequentialInsert(unittest.TestCase):
+    def test_insert(self):
+        funcs = [
+            functions.sin,
+            functions.cos,
+            functions.tan,
+        ]
+        # Prepare the original sequential before insertion.
+        orig = []
+        for orig_is_link in self.orig:
+            if orig_is_link:
+                orig.append(links.Linear((3, 3)))
+            else:
+                orig.append(funcs.pop(0))
+
+        # The subject of insertion
+        if self.is_link:
+            subj = links.Linear((3, 3))
+        else:
+            subj = funcs.pop(0)
+
+        # Instantiate the sequential
+        seq = chainer.Sequential(*orig)
+
+        if self.expect_error:
+            with pytest.raises(IndexError):
+                seq.insert(self.pos, subj)
+        else:
+            seq.insert(self.pos, subj)
+
+            # Inserting to the `orig` similarly for the following comparison
+            orig.insert(self.pos, subj)
+
+            assert len(seq) == len(self.orig) + 1
+            for i in range(len(self.orig) + 1):
+                assert seq[i] is orig[i]
 
 
 testing.run_module(__name__, __file__)

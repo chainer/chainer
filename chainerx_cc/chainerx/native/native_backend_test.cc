@@ -45,6 +45,11 @@ TEST(NativeBackendTest, GetDeviceCount) {
     EXPECT_EQ(4, NativeBackend{ctx}.GetDeviceCount());
 }
 
+TEST(NativeBackendTest, IsNative) {
+    Context ctx;
+    EXPECT_TRUE(NativeBackend{ctx}.IsNative());
+}
+
 TEST(NativeBackendTest, GetDeviceCountGetNameThreadSafe) {
     static constexpr size_t kThreadCount = 2;
 

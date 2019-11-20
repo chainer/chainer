@@ -40,7 +40,8 @@ class TestTimerHook(unittest.TestCase):
     def check_forward(self, xp):
         link = MyModel()
         if xp is cuda.cupy:
-            link = link.to_gpu()
+            with testing.assert_warns(DeprecationWarning):
+                link = link.to_gpu()
         hook = link_hooks.TimerHook()
 
         with hook:

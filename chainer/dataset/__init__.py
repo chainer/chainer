@@ -2,6 +2,7 @@
 from chainer.dataset.convert import concat_examples  # NOQA
 from chainer.dataset.convert import ConcatWithAsyncTransfer  # NOQA
 from chainer.dataset.convert import converter  # NOQA
+from chainer.dataset.convert import Converter  # NOQA
 from chainer.dataset.convert import to_device  # NOQA
 from chainer.dataset.dataset_mixin import DatasetMixin  # NOQA
 from chainer.dataset.download import cache_or_load_file  # NOQA

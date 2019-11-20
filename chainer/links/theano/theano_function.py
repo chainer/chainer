@@ -58,7 +58,7 @@ class TheanoFunction(link.Link):
 
     .. note::
 
-       The current implementation always copys :class:`cupy.ndarray` to CPU.
+       The current implementation always copies :class:`cupy.ndarray` to CPU.
 
     Args:
         inputs (tuple of ``theano.tensor.TensorVariable``): Input variables of

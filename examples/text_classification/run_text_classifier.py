@@ -36,6 +36,7 @@ def setup_model(device, model_setup):
 
 def run_online(device):
     # predict labels online
+    print('Enter inputs for Online Predictions')
     for l in sys.stdin:
         l = l.strip()
         if not l:
@@ -66,6 +67,7 @@ def run_batch(device, batchsize=64):
             print('{}\t{:.4f}\t{}'.format(answer, score, ' '.join(words)))
 
     batch = []
+    print('Enter inputs for Batch Predictions')
     for l in sys.stdin:
         l = l.strip()
         if not l:

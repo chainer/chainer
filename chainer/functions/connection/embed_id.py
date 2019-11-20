@@ -37,7 +37,7 @@ class EmbedIDFunction(function_node.FunctionNode):
             if self.ignore_label is not None:
                 valid_x = xp.logical_or(valid_x, x == self.ignore_label)
             if not valid_x.all():
-                raise ValueError('Each not ignored `x` value need to satisfy'
+                raise ValueError('Each not ignored `x` value need to satisfy '
                                  '`0 <= x < len(W)`')
 
         if self.ignore_label is not None:
@@ -125,7 +125,7 @@ def embed_id(x, W, ignore_label=None):
     arguments: a set of IDs (words) ``x`` in :math:`B` dimensional integer
     vector, and a set of all ID (word) embeddings ``W`` in :math:`V \\times d`
     float matrix. It outputs :math:`B \\times d` matrix whose ``i``-th
-    column is the ``x[i]``-th column of ``W``.
+    row is the ``x[i]``-th row of ``W``.
 
     This function is only differentiable on the input ``W``.
 
@@ -135,13 +135,15 @@ def embed_id(x, W, ignore_label=None):
         W (:class:`~chainer.Variable` or :ref:`ndarray`):
             Distributed representation of each ID (a.k.a. word embeddings).
         ignore_label (:class:`int` or :class:`None`):
-            If ``ignore_label`` is an int value, ``i``-th column of return
+            If ``ignore_label`` is an int value, ``i``-th row of return
             value is filled with ``0``.
 
     Returns:
         ~chainer.Variable: Output variable.
 
-    .. seealso:: :class:`~chainer.links.EmbedID`
+    .. seealso::
+
+        :class:`~chainer.links.EmbedID` to manage the model parameter ``W``.
 
     .. admonition:: Example
 

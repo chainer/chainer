@@ -36,6 +36,9 @@ _chainerx_backend_configs = (
         {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
     ])
 
+
+_backend_configs = _nonchainerx_backend_configs + _chainerx_backend_configs
+
 _numpy_device = chainer.get_device('@numpy')
 
 
@@ -49,16 +52,42 @@ class CopyTestBase(object):
         if self.dtype == numpy.float16:
             self.check_double_backward_options = {'atol': 5e-3, 'rtol': 5e-2}
 
-    def check_forward(self, dst_device_spec, src_device, dst_device):
+    def _check_forward_internal(
+            self, dst_device_spec, src_device, dst_device, x_mode):
         x = src_device.send(self.x)
 
-        x_var = chainer.Variable(x)
-        y = functions.copy(x_var, dst_device_spec)
+        if x_mode == 'array':
+            pass
+        elif x_mode == 'non_requires_grad':
+            x = chainer.Variable(x, requires_grad=False)
+        elif x_mode == 'requires_grad':
+            x = chainer.Variable(x, requires_grad=True)
+        else:
+            assert False, x_mode
+
+        error_expected = (
+            (src_device.xp is chainerx) != (dst_device.xp is chainerx)
+            and x_mode == 'requires_grad')
+        if error_expected:
+            with pytest.raises(RuntimeError):
+                functions.copy(x, dst_device_spec)
+            return
+
+        y = functions.copy(x, dst_device_spec)
 
         assert y.device == dst_device
         assert backend.get_device_from_array(y.array) == dst_device
         assert y.dtype == self.dtype
         numpy.testing.assert_array_equal(_numpy_device.send(y.array), self.x)
+
+    def check_forward(
+            self, dst_device_spec, src_device_spec, dst_device):
+        self._check_forward_internal(
+            dst_device_spec, src_device_spec, dst_device, 'array')
+        self._check_forward_internal(
+            dst_device_spec, src_device_spec, dst_device, 'non_requires_grad')
+        self._check_forward_internal(
+            dst_device_spec, src_device_spec, dst_device, 'requires_grad')
 
     def test_forward(self, src_backend_config, dst_backend_config):
         self.check_forward(
@@ -67,10 +96,14 @@ class CopyTestBase(object):
             dst_backend_config.device)
 
     def test_backward(self, src_backend_config, dst_backend_config):
-        x = src_backend_config.get_array(self.x)
-        gy = dst_backend_config.get_array(self.gy)
         src_device = src_backend_config.device
         dst_device = dst_backend_config.device
+        if (src_device.xp is chainerx) is not (dst_device.xp is chainerx):
+            raise unittest.SkipTest(
+                'ChainerX to non-ChainerX does not support backward.')
+
+        x = src_backend_config.get_array(self.x)
+        gy = dst_backend_config.get_array(self.gy)
 
         x_var = chainer.Variable(x, requires_grad=True)
 
@@ -85,10 +118,15 @@ class CopyTestBase(object):
         numpy.testing.assert_array_equal(_numpy_device.send(x_grad), self.gy)
 
     def test_double_backward(self, src_backend_config, dst_backend_config):
+        src_device = src_backend_config.device
+        dst_device = dst_backend_config.device
+        if (src_device.xp is chainerx) is not (dst_device.xp is chainerx):
+            raise unittest.SkipTest(
+                'ChainerX to non-ChainerX does not support backward.')
+
         x = src_backend_config.get_array(self.x)
         gy = dst_backend_config.get_array(self.gy)
         ggx = src_backend_config.get_array(self.ggx)
-        dst_device = dst_backend_config.device
 
         x_var = chainer.Variable(x, requires_grad=True)
 
@@ -112,14 +150,15 @@ class CopyTestBase(object):
             _numpy_device.send(gy_var.grad_var.array), self.ggx)
 
 
-@testing.inject_backend_tests(None, _nonchainerx_backend_configs)
-@testing.inject_backend_tests(None, _nonchainerx_backend_configs)
+@testing.inject_backend_tests(None, _nonchainerx_backend_configs)  # dst
+@testing.inject_backend_tests(None, _backend_configs)  # src
 @testing.parameterize(*testing.product({
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
 }))
-class TestCopyNonChainerx(CopyTestBase, unittest.TestCase):
+class TestCopyToNonChainerx(CopyTestBase, unittest.TestCase):
 
     def test_forward_int(self, src_backend_config, dst_backend_config):
+        assert dst_backend_config.xp is not chainerx
         src_device = src_backend_config.device
         dst_device = dst_backend_config.device
         if dst_device.xp is numpy:
@@ -135,6 +174,7 @@ class TestCopyNonChainerx(CopyTestBase, unittest.TestCase):
             dst_device)
 
     def test_forward_str(self, src_backend_config, dst_backend_config):
+        assert dst_backend_config.xp is not chainerx
         src_device = src_backend_config.device
         dst_device = dst_backend_config.device
         if dst_device.xp is numpy:
@@ -150,14 +190,15 @@ class TestCopyNonChainerx(CopyTestBase, unittest.TestCase):
             dst_device)
 
 
-@testing.inject_backend_tests(None, _chainerx_backend_configs)
-@testing.inject_backend_tests(None, _chainerx_backend_configs)
+@testing.inject_backend_tests(None, _chainerx_backend_configs)  # dst
+@testing.inject_backend_tests(None, _backend_configs)  # src
 @testing.parameterize(*testing.product({
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
 }))
-class TestCopyChainerx(CopyTestBase, unittest.TestCase):
+class TestCopyToChainerx(CopyTestBase, unittest.TestCase):
 
     def test_forward_str(self, src_backend_config, dst_backend_config):
+        assert dst_backend_config.xp is chainerx
         src_device = src_backend_config.device
         dst_device = dst_backend_config.device
         dst_device_spec = dst_device.device.name

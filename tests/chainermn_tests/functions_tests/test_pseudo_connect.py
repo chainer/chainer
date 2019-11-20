@@ -13,7 +13,7 @@ import chainermn.functions
 @testing.parameterize(*testing.product({
     'shape_x': [[(4, 5), (3, 2)], [(3, 2)], [()]],
     'shape_delegate': [(3, 2), ()],
-    'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'dtype': [numpy.float16, numpy.float32, numpy.float64, chainer.mixed16],
 }))
 class TestPseudoConnect(unittest.TestCase):
 

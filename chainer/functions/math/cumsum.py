@@ -1,3 +1,5 @@
+import six
+
 from chainer import backend
 from chainer import function_node
 from chainer.functions.array import flip
@@ -8,7 +10,7 @@ class Cumsum(function_node.FunctionNode):
     """Cumulative sum of array elements over a given axis."""
 
     def __init__(self, axis=None):
-        if isinstance(axis, int) or axis is None:
+        if isinstance(axis, six.integer_types) or axis is None:
             self.axis = axis
         else:
             raise TypeError('axis must be int or None')

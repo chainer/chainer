@@ -5,8 +5,8 @@
 #ifdef CHAINERX_ENABLE_CUDA
 #include <cuda_runtime.h>
 #endif  // CHAINERX_ENABLE_CUDA
+#include <absl/types/optional.h>
 #include <gtest/gtest.h>
-#include <nonstd/optional.hpp>
 
 #include "chainerx/backend.h"
 #include "chainerx/context.h"
@@ -31,7 +31,7 @@ protected:
     void TearDown() override { context_session_.reset(); }
 
 private:
-    nonstd::optional<testing::ContextSession> context_session_;
+    absl::optional<testing::ContextSession> context_session_;
 };
 
 // Check that Arrays are created on the default device if no other devices are specified

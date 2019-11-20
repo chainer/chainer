@@ -100,8 +100,10 @@ class Normal(distribution.Distribution):
         return log_ndtr.log_ndtr((x - self.loc) / self.scale)
 
     def log_prob(self, x):
-        return LOGPROBC - self.log_scale \
-            - 0.5 * (x - self.loc) ** 2 / self.variance
+        return (
+            LOGPROBC
+            - self.log_scale
+            - 0.5 * (x - self.loc) ** 2 / self.variance)
 
     def log_survival_function(self, x):
         return log_ndtr.log_ndtr((self.loc - x) / self.scale)
@@ -115,8 +117,10 @@ class Normal(distribution.Distribution):
         return {'loc': self.loc, 'scale': self.scale}
 
     def prob(self, x):
-        return (PROBC / self.scale) * exponential.exp(
-            - 0.5 * (x - self.loc) ** 2 / self.variance)
+        return (
+            (PROBC / self.scale)
+            * exponential.exp(
+                -0.5 * (x - self.loc) ** 2 / self.variance))
 
     def sample_n(self, n):
         dtype = self.loc.dtype
@@ -125,8 +129,10 @@ class Normal(distribution.Distribution):
         if device.xp is cuda.cupy:
             if dtype == numpy.float16:
                 # cuRAND supports only FP32 and FP64
-                eps = cuda.cupy.random.standard_normal(
-                    shape, dtype=numpy.float32).astype(numpy.float16)
+                eps = (
+                    cuda.cupy.random.standard_normal(
+                        shape, dtype=numpy.float32)
+                    .astype(numpy.float16))
             else:
                 eps = cuda.cupy.random.standard_normal(shape, dtype=dtype)
         elif device.xp is chainerx:
@@ -155,6 +161,8 @@ class Normal(distribution.Distribution):
 
 @distribution.register_kl(Normal, Normal)
 def _kl_normal_normal(dist1, dist2):
-    return dist2.log_scale - dist1.log_scale \
-        + 0.5 * (dist1.variance + (dist1.loc - dist2.loc) ** 2) \
-        / dist2.variance - 0.5
+    return (
+        dist2.log_scale
+        - dist1.log_scale
+        + 0.5 * (dist1.variance + (dist1.loc - dist2.loc)**2) / dist2.variance
+        - 0.5)

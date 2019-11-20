@@ -72,7 +72,8 @@ class TestBlackOut(unittest.TestCase):
 
     @attr.gpu
     def test_forward_gpu(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.check_forward(cuda.to_gpu(self.x), cuda.to_gpu(self.t))
 
     @attr.chainerx

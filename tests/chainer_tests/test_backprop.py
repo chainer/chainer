@@ -2,6 +2,7 @@ import unittest
 
 import mock
 import numpy as np
+import pytest
 
 import chainer
 from chainer.backends import cuda
@@ -62,14 +63,14 @@ class TestBackward(unittest.TestCase):
 
     # TODO(kataoka): Variable.backward with ChainerX backend unexpectedly
     # behaves like retain_grad=True
-    @unittest.expectedFailure
+    @pytest.mark.xfail(strict=True)
     @attr.chainerx
     def test_multiple_output_1arg_chainerx(self):
         self.check_multiple_output_1arg(chainerx)
 
     # TODO(kataoka): Variable.backward with ChainerX backend unexpectedly
     # behaves like retain_grad=True
-    @unittest.expectedFailure
+    @pytest.mark.xfail(strict=True)
     @attr.chainerx
     def test_multiple_output_2args_chainerx(self):
         self.check_multiple_output_2args(chainerx)

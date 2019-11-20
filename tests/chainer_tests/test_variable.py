@@ -417,7 +417,7 @@ class TestVariable(unittest.TestCase):
 
     # TODO(kataoka): Variable.backward with ChainerX backend unexpectedly
     # behaves like retain_grad=True
-    @unittest.expectedFailure
+    @pytest.mark.xfail(strict=True)
     @attr.chainerx
     def test_backward_chainerx(self):
         ret = self.create_linear_chain(2, chainerx)
@@ -672,8 +672,8 @@ class TestVariable(unittest.TestCase):
         cp.testing.assert_array_equal(x.grad, d.grad)
 
 
-@testing.backend.inject_backend_tests(None, _chainerx_backend_params)
-@testing.backend.inject_backend_tests(None, _chainerx_backend_params)
+@testing.backend.inject_backend_tests(None, _backend_params)
+@testing.backend.inject_backend_tests(None, _backend_params)
 @testing.parameterize(*testing.product({'shape': [(10,), (0,), ()]}))
 class TestVariableCopydata(unittest.TestCase):
 
@@ -1740,7 +1740,8 @@ class TestUninitializedParameter(unittest.TestCase):
     def test_init_without_data(self):
         x = chainer.Parameter()
         assert x.data is None
-        assert x.grad is None
+        with pytest.raises(RuntimeError):
+            x.grad
 
     def test_initialize(self):
         x = chainer.Parameter()
@@ -1789,64 +1790,6 @@ class TestUninitializedParameter(unittest.TestCase):
         assert x.node.shape == (2, 3)
         assert x.node.dtype == np.float64
 
-    @attr.gpu
-    def test_initialize_to_gpu(self):
-        x = chainer.Parameter(initializer=initializers.Constant(self.a))
-        x.to_gpu()
-        self.check_constant_initialization(
-            x, self.a, cuda.cupy, backend.GpuDevice.from_device_id(0))
-
-    @attr.multi_gpu(2)
-    def test_initialize_to_noncurrent_gpu(self):
-        x = chainer.Parameter(initializer=initializers.Constant(self.a))
-        x.to_gpu(1)
-        self.check_constant_initialization(
-            x, self.a, cuda.cupy, backend.GpuDevice.from_device_id(1))
-
-    @attr.gpu
-    def test_initialize_to_cpu(self):
-        x = chainer.Parameter(initializer=initializers.Constant(self.a))
-        x.to_gpu()
-        x.to_cpu()
-        self.check_constant_initialization(
-            x, self.a, np, backend.CpuDevice())
-
-    @attr.ideep
-    def test_initialize_to_intel64(self):
-        x = chainer.Parameter(initializer=initializers.Constant(self.a))
-        assert x.data is None
-        x.to_intel64()
-        x.initialize(self.a.shape)
-        assert isinstance(x.data, intel64.mdarray)
-        np.testing.assert_array_equal(x.data, self.a)
-        np.testing.assert_array_equal(x.grad, np.float32('nan'))
-
-    @attr.chainerx
-    def test_initialize_to_chx_native(self):
-        x = chainer.Parameter(initializer=initializers.Constant(self.a))
-        x.to_device('@numpy')
-        x.to_chx()
-        self.check_constant_initialization(
-            x, self.a, chainerx, chainer.get_device('native:0'))
-
-    @attr.chainerx
-    @attr.gpu
-    def test_initialize_to_chx_cuda(self):
-        x = chainer.Parameter(initializer=initializers.Constant(self.a))
-        x.to_device('@cupy:0')
-        x.to_chx()
-        self.check_constant_initialization(
-            x, self.a, chainerx, chainer.get_device('cuda:0'))
-
-    @attr.chainerx
-    @attr.multi_gpu(2)
-    def test_initialize_to_chx_cuda_noncurrent_gpu(self):
-        x = chainer.Parameter(initializer=initializers.Constant(self.a))
-        x.to_device('@cupy:1')
-        x.to_chx()
-        self.check_constant_initialization(
-            x, self.a, chainerx, chainer.get_device('cuda:1'))
-
     def test_copy_to_initialize(self):
         # This test intends the use case of link.copy() method.
         x = chainer.Parameter()
@@ -1860,63 +1803,102 @@ class TestUninitializedParameter(unittest.TestCase):
         x.initialize((3, 2))
         assert x.grad is None
 
-    def check_zerograd(self, x, xp):
-        assert isinstance(x.grad, xp.ndarray)
-        assert x.grad.shape == x.data.shape
-        assert x.grad.dtype == x.data.dtype
-        xp.testing.assert_array_equal(x.grad, 0)
-
-    def test_zerograd(self):
-        x = chainer.Parameter()
-        with testing.assert_warns(DeprecationWarning):
-            x.zerograd()
-        x.initialize((3, 2))
-        self.check_zerograd(x, np)
-
-    @attr.gpu
-    def test_zerograd_to_gpu(self):
-        x = chainer.Parameter()
-        with testing.assert_warns(DeprecationWarning):
-            x.zerograd()
-        x.to_gpu()
-        x.initialize((3, 2))
-        self.check_zerograd(x, cuda.cupy)
-
-    @attr.gpu
-    def test_to_gpu_zerograd(self):
-        x = chainer.Parameter()
-        x.to_gpu()
-        with testing.assert_warns(DeprecationWarning):
-            x.zerograd()
-        x.initialize((3, 2))
-        self.check_zerograd(x, cuda.cupy)
-
-    @attr.chainerx
-    def test_zerograd_to_chx(self):
-        x = chainer.Parameter()
-        with testing.assert_warns(DeprecationWarning):
-            x.zerograd()
-        x.to_device('@numpy')
-        x.to_chx()
-        x.initialize((3, 2))
-        self.check_zerograd(x, chainerx)
-
-    @attr.chainerx
-    def test_to_chx_zerograd(self):
-        x = chainer.Parameter()
-        x.to_device('@numpy')
-        x.to_chx()
-        with testing.assert_warns(DeprecationWarning):
-            x.zerograd()
-        x.initialize((3, 2))
-        self.check_zerograd(x, chainerx)
-
     def test_zerograd_dtype(self):
         x = chainer.Parameter(initializers.Zero(dtype=np.float16))
         with testing.assert_warns(DeprecationWarning):
             x.zerograd()
         x.initialize((3, 2))
         assert x.grad.dtype == x.data.dtype
+
+    def test_dtype_given_by_initializer(self):
+        class MyInitializer(object):
+            dtype = 'float16'
+
+            def __call__(self, array):
+                assert False  # never called
+
+        param = chainer.Parameter(MyInitializer())
+        assert param.dtype == np.float16
+
+    def test_dtype_not_given(self):
+        class MyInitializer(object):
+            def __call__(self, array):
+                assert False  # never called
+
+        param = chainer.Parameter(MyInitializer())
+        with pytest.raises(RuntimeError):
+            param.dtype
+
+
+@testing.backend.inject_backend_tests(None, _backend_params)
+class TestUninitializedParameterWithDevices(unittest.TestCase):
+
+    def setUp(self):
+        self.a = np.random.rand(3, 2).astype(np.float32)
+        self.b = np.random.rand(*self.a.shape).astype(self.a.dtype)
+
+    def check_constant_initialization(
+            self, x, a, xp, expected_dtype, expected_device):
+        x.initialize(a.shape)
+        assert isinstance(x.data, xp.ndarray)
+        assert x._has_chainerx_array is (xp is chainerx)
+        assert x.dtype == expected_dtype
+        assert x.grad.dtype == expected_dtype
+        xp.testing.assert_array_equal(x.data, xp.asarray(a))
+        xp.testing.assert_array_equal(x.grad, np.float32('nan'))
+        assert backend.get_device_from_array(x.data) == expected_device
+        assert backend.get_device_from_array(x.grad) == expected_device
+
+    def test_initialize_to_device(self, backend_config):
+        x = chainer.Parameter(initializer=initializers.Constant(self.a))
+        x.to_device(backend_config.device)
+        self.check_constant_initialization(
+            x, self.a, backend_config.xp, self.a.dtype, backend_config.device)
+
+    def test_initialize_to_device_with_dtype(self, backend_config):
+        x = chainer.Parameter(initializer=initializers.Constant(
+            self.a, dtype=np.float64))
+        x.to_device(backend_config.device)
+        with chainer.using_config('dtype', np.float16):
+            self.check_constant_initialization(
+                x, self.a, backend_config.xp, np.float64,
+                backend_config.device)
+
+    def test_initialize_with_device(self, backend_config):
+        a = backend_config.get_array(self.a)
+        x = chainer.Parameter(initializer=initializers.Constant(a))
+        # Parameters arrays are always initialized in numpy side
+        self.check_constant_initialization(
+            x, self.a, np, self.a.dtype, _numpy_device)
+
+    def check_zerograd(self, x, xp):
+        assert isinstance(x.grad, xp.ndarray)
+        assert x.grad.shape == x.data.shape
+        assert x.grad.dtype == x.data.dtype
+        xp.testing.assert_array_equal(x.grad, 0)
+
+    def test_zerograd_to_device(self, backend_config):
+        x = chainer.Parameter()
+        with testing.assert_warns(DeprecationWarning):
+            x.zerograd()
+        x.to_device(backend_config.device)
+        x.initialize((3, 2))
+        self.check_zerograd(x, backend_config.xp)
+
+    def test_to_device_zerograd(self, backend_config):
+        x = chainer.Parameter()
+        x.to_device(backend_config.device)
+        with testing.assert_warns(DeprecationWarning):
+            x.zerograd()
+        x.initialize((3, 2))
+        self.check_zerograd(x, backend_config.xp)
+
+
+class TestAddgradToUninitializedParameter(unittest.TestCase):
+
+    def setUp(self):
+        self.a = np.random.rand(3, 2).astype(np.float32)
+        self.b = np.random.rand(*self.a.shape).astype(self.a.dtype)
 
     def test_addgrad_to_uninitialized_parameter(self):
         x = chainer.Parameter()
@@ -2646,7 +2628,7 @@ class IdentityFunction(chainer.Function):
 class TestVariableDoubleBackward(unittest.TestCase):
 
     def test_default_backward(self):
-        x = chainer.Variable(np.empty((), np.float32))
+        x = chainer.Variable(np.array(42, np.float32))
         y = x * 2  # x.grad_var will be different from y.grad_var
         y.backward(retain_grad=True)
         assert x.grad_var is not y.grad_var
@@ -2655,14 +2637,14 @@ class TestVariableDoubleBackward(unittest.TestCase):
         assert y.grad_var.grad_var is None
 
     def test_raise_double_backprop(self):
-        x = chainer.Variable(np.empty((), np.float32))
+        x = chainer.Variable(np.array(42, np.float32))
         y = IdentityFunction()(x)
         y.backward(enable_double_backprop=True)
         with pytest.raises(RuntimeError):
             x.grad_var.backward()
 
     def test_raise_double_backprop_2(self):
-        x = chainer.Variable(np.empty((), np.float32))
+        x = chainer.Variable(np.array(42, np.float32))
         z = F.identity(x)  # new style
         y = IdentityFunction()(z)  # old style
         y.backward(enable_double_backprop=True)
@@ -2670,14 +2652,14 @@ class TestVariableDoubleBackward(unittest.TestCase):
             x.grad_var.backward()
 
     def test_grad_raise_double_backprop(self):
-        x = chainer.Variable(np.empty((), np.float32))
+        x = chainer.Variable(np.array(42, np.float32))
         y = IdentityFunction()(x)
         y.backward(enable_double_backprop=True)
         with pytest.raises(RuntimeError):
             chainer.grad([x.grad_var], [y.grad_var])
 
     def test_grad_raise_double_backprop_2(self):
-        x = chainer.Variable(np.empty((), np.float32))
+        x = chainer.Variable(np.array(42, np.float32))
         z = F.identity(x)  # new style
         y = IdentityFunction()(z)  # old style
         y.backward(enable_double_backprop=True)
@@ -2690,7 +2672,7 @@ class TestVariableDoubleBackwardOneElementScalar(unittest.TestCase):
     # See: https://github.com/chainer/chainer/pull/4199
 
     def test_default_backward(self):
-        x = chainer.Variable(np.empty(1, np.float32))
+        x = chainer.Variable(np.array([42], np.float32))
         y = x * 2  # x.grad_var will be different from y.grad_var
         with testing.assert_warns(DeprecationWarning):
             y.backward(retain_grad=True)
@@ -2702,7 +2684,7 @@ class TestVariableDoubleBackwardOneElementScalar(unittest.TestCase):
         assert y.grad_var.grad_var is None
 
     def test_raise_double_backprop(self):
-        x = chainer.Variable(np.empty(1, np.float32))
+        x = chainer.Variable(np.array([42], np.float32))
         y = IdentityFunction()(x)
         with testing.assert_warns(DeprecationWarning):
             y.backward(enable_double_backprop=True)
@@ -2713,7 +2695,7 @@ class TestVariableDoubleBackwardOneElementScalar(unittest.TestCase):
                 x.grad_var.backward()
 
     def test_raise_double_backprop_2(self):
-        x = chainer.Variable(np.empty(1, np.float32))
+        x = chainer.Variable(np.array([42], np.float32))
         z = F.identity(x)  # new style
         y = IdentityFunction()(z)  # old style
         with testing.assert_warns(DeprecationWarning):
@@ -2725,7 +2707,7 @@ class TestVariableDoubleBackwardOneElementScalar(unittest.TestCase):
                 x.grad_var.backward()
 
     def test_grad_raise_double_backprop(self):
-        x = chainer.Variable(np.empty(1, np.float32))
+        x = chainer.Variable(np.array([42], np.float32))
         y = IdentityFunction()(x)
         with testing.assert_warns(DeprecationWarning):
             y.backward(enable_double_backprop=True)
@@ -2733,7 +2715,7 @@ class TestVariableDoubleBackwardOneElementScalar(unittest.TestCase):
             chainer.grad([x.grad_var], [y.grad_var])
 
     def test_grad_raise_double_backprop_2(self):
-        x = chainer.Variable(np.empty(1, np.float32))
+        x = chainer.Variable(np.array([42], np.float32))
         z = F.identity(x)  # new style
         y = IdentityFunction()(z)  # old style
         with testing.assert_warns(DeprecationWarning):
@@ -2804,13 +2786,14 @@ class TestLossScale(unittest.TestCase):
         self.x = np.random.uniform(-1, 1, self.in_shape).astype(self.dtype)
         self.y = np.random.uniform(-1, 1, self.in_shape).astype(self.dtype)
 
-    def check_loss_scale(self, x_data, y_data):
+    def check_loss_scale(self, xp, x_data, y_data):
         x = chainer.Variable(x_data)
         y = chainer.Variable(y_data)
         z = x * y
         loss = F.sum(z)
         loss.backward(loss_scale=self.loss_scale)
-        if self.loss_scale is not None:
+        # ChainerX scales back gradients on the backward method
+        if xp is not chainerx and self.loss_scale is not None:
             x.grad /= self.loss_scale
             y.grad /= self.loss_scale
         rtol, atol = 1e-4, 1e-5
@@ -2820,11 +2803,24 @@ class TestLossScale(unittest.TestCase):
         testing.assert_allclose(y.data, x.grad, rtol=rtol, atol=atol)
 
     def test_loss_scale_cpu(self):
-        self.check_loss_scale(self.x, self.y)
+        self.check_loss_scale(np, self.x, self.y)
 
     @attr.gpu
     def test_loss_scale_gpu(self):
-        self.check_loss_scale(cuda.to_gpu(self.x), cuda.to_gpu(self.y))
+        self.check_loss_scale(cuda, cuda.to_gpu(self.x), cuda.to_gpu(self.y))
+
+    @attr.chainerx
+    def test_loss_scale_chainerx_cpu(self):
+        x = chainerx.array(self.x, device='native:0')
+        y = chainerx.array(self.y, device='native:0')
+        self.check_loss_scale(chainerx, x, y)
+
+    @attr.gpu
+    @attr.chainerx
+    def test_loss_scale_chainerx_gpu(self):
+        x = chainerx.array(self.x, device='cuda:0')
+        y = chainerx.array(self.y, device='cuda:0')
+        self.check_loss_scale(chainerx, x, y)
 
 
 @testing.parameterize(*testing.product({

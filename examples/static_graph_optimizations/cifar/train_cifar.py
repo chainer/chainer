@@ -6,7 +6,6 @@ the code is mostly unchanged except for the addition of the
 `@static_graph` decorator to the model chain's `__call__()` method.
 """
 import argparse
-import sys
 import warnings
 
 import numpy
@@ -56,9 +55,6 @@ def main():
             'This example may cause NaN in FP16 mode.', RuntimeWarning)
 
     device = chainer.get_device(args.device)
-    if device.xp is chainerx:
-        sys.stderr.write('This example does not support ChainerX devices.\n')
-        sys.exit(1)
 
     print('Device: {}'.format(device))
     print('# Minibatch-size: {}'.format(args.batchsize))
@@ -139,7 +135,14 @@ def main():
         chainer.serializers.load_npz(args.resume, trainer)
 
     # Run the training
-    trainer.run()
+    if device.xp is not chainerx:
+        trainer.run()
+    else:
+        warnings.warn(
+            'Static subgraph optimization does not support ChainerX and will'
+            ' be disabled.', UserWarning)
+        with chainer.using_config('use_static_graph', False):
+            trainer.run()
 
 
 if __name__ == '__main__':

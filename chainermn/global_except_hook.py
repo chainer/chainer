@@ -66,7 +66,7 @@ def add_hook():
     global _orig_except_hook
 
     if _orig_except_hook is not None:
-        warnings.warn('chainermn.global_except_hook.add_hook()'
+        warnings.warn('chainermn.global_except_hook.add_hook() '
                       'seems to be called multiple times. Ignoring.',
                       stacklevel=2)
         return

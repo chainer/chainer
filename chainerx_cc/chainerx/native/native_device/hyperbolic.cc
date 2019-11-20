@@ -13,6 +13,15 @@
 #include "chainerx/scalar.h"
 
 namespace chainerx {
+
+namespace internal {
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(Sinh)
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(Cosh)
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(Tanh)
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(Arcsinh)
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(Arccosh)
+}  // namespace internal
+
 namespace native {
 namespace {
 

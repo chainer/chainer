@@ -9,6 +9,14 @@ from chainer.dataset.tabular import tabular_dataset
 class _Slice(tabular_dataset.TabularDataset):
 
     def __init__(self, dataset, indices, keys):
+        if keys is None:
+            self._unary = None
+        elif isinstance(keys, tuple):
+            self._unary = False
+        else:
+            self._unary = True
+            keys = keys,
+
         self._dataset = dataset
         self._indices = _as_indices(indices, len(dataset))
         self._key_indices = _as_key_indices(keys, dataset.keys)
@@ -32,13 +40,21 @@ class _Slice(tabular_dataset.TabularDataset):
 
     @property
     def mode(self):
-        return self._dataset.mode
+        if self._unary is None:
+            return self._dataset.mode
+        elif self._unary:
+            return None
+        else:
+            return self._dataset.mode or tuple
 
     def get_examples(self, indices, key_indices):
         indices = _merge_indices(
             self._indices, indices, len(self._dataset), len(self))
         key_indices = _merge_key_indices(self._key_indices, key_indices)
         return self._dataset.get_examples(indices, key_indices)
+
+    def convert(self, data):
+        return self._dataset.convert(data)
 
 
 class _SliceHelper(object):
@@ -60,31 +76,23 @@ def _as_indices(indices, len_):
     if isinstance(indices, slice) or len(indices) == 0:
         return indices
 
-    if isinstance(indices[0], (bool, np.bool_)):
+    if all(isinstance(index, (bool, np.bool_)) for index in indices):
         if not len(indices) == len_:
             raise ValueError('The number of booleans is '
                              'different from the length of dataset')
-        new_indices = []
-        for i, index in enumerate(indices):
-            if not isinstance(index, (bool, np.bool_)):
-                raise ValueError('{} is not a boolean'.format(index))
-            elif index:
-                new_indices.append(i)
-        return new_indices
-    elif isinstance(indices[0], numbers.Integral):
-        new_indices = []
+        return [i for i, index in enumerate(indices) if index]
+    else:
+        checked_indices = []
         for index in indices:
-            if isinstance(index, numbers.Integral):
-                if index < 0:
-                    index += len_
-                if index < 0 or len_ <= index:
-                    raise IndexError(
-                        'index {} is out of bounds ''for dataset with size {}'
-                        .format(index, len_))
-            else:
-                raise ValueError('{} is not an integer'.format(index))
-            new_indices.append(index)
-        return new_indices
+            index = int(index)
+            if index < 0:
+                index += len_
+            if index < 0 or len_ <= index:
+                raise IndexError(
+                    'index {} is out of bounds for dataset with size {}'
+                    .format(index, len_))
+            checked_indices.append(index)
+        return checked_indices
 
 
 def _as_key_indices(keys, key_names):

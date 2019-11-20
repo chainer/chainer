@@ -8,15 +8,21 @@ namespace chainerx {
 
 class ArgMaxKernel : public Kernel {
 public:
-    static const char* name() { return "ArgMax"; }
-
     virtual void Call(const Array& a, const Axes& axis, const Array& out) = 0;
 };
 
 class ArgMinKernel : public Kernel {
 public:
-    static const char* name() { return "ArgMin"; }
+    virtual void Call(const Array& a, const Axes& axis, const Array& out) = 0;
+};
 
+class NanArgMaxKernel : public Kernel {
+public:
+    virtual void Call(const Array& a, const Axes& axis, const Array& out) = 0;
+};
+
+class NanArgMinKernel : public Kernel {
+public:
     virtual void Call(const Array& a, const Axes& axis, const Array& out) = 0;
 };
 

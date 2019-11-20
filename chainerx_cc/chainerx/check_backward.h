@@ -3,7 +3,7 @@
 #include <functional>
 #include <vector>
 
-#include <nonstd/optional.hpp>
+#include <absl/types/optional.h>
 
 #include "chainerx/array.h"
 #include "chainerx/constant.h"
@@ -24,7 +24,7 @@ void CheckBackward(
         size_t concurrent_check_thread_count = 2U,
         double atol = 1e-5,
         double rtol = 1e-4,
-        const nonstd::optional<BackpropId>& backprop_id = nonstd::nullopt);
+        const absl::optional<BackpropId>& backprop_id = absl::nullopt);
 
 // Tests twice differentiation of a given procedure.
 //
@@ -43,7 +43,7 @@ void CheckBackward(
 // is correct; the numerical gradient assumes that the first-order gradient given
 // by the usual `Backward` is correct. The implementation of each differentiable
 // function should be tested by `CheckBackwardComputation` first, and then should be
-// tested by this function if neccessary.
+// tested by this function if necessary.
 void CheckDoubleBackwardComputation(
         const std::function<std::vector<Array>(const std::vector<Array>&)>& func,
         const std::vector<Array>& inputs,
@@ -53,6 +53,6 @@ void CheckDoubleBackwardComputation(
         size_t concurrent_check_thread_count = 2U,
         double atol = 1e-5,
         double rtol = 1e-4,
-        const nonstd::optional<BackpropId>& backprop_id = nonstd::nullopt);
+        const absl::optional<BackpropId>& backprop_id = absl::nullopt);
 
 }  // namespace chainerx

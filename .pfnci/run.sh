@@ -15,6 +15,8 @@
 
 set -eux
 
+export CHAINER_CI=flexci
+
 cp -a /src /chainer
 cp /chainer/setup.cfg /
 cd /
@@ -93,10 +95,13 @@ test_py37() {
       --python=python3.7 -m "${marker}"
       --bucket="${bucket}" --thread="$(( XPYTEST_NUM_THREADS / bucket ))"
       --hint="/chainer/.pfnci/hint.pbtxt"
+      --retry=1
   )
   if [ "${SPREADSHEET_ID:-}" != '' ]; then
     xpytest_args+=(--spreadsheet_id="${SPREADSHEET_ID}")
   fi
+  # TODO(niboshi): Allow option pass-through (https://github.com/chainer/xpytest/issues/14)
+  export PYTEST_ADDOPTS=-rfEX
   # TODO(imos): Enable xpytest to support python_files setting in setup.cfg.
   OMP_NUM_THREADS=1 xpytest "${xpytest_args[@]}" \
       '/chainer/tests/chainerx_tests/**/test_*.py' \
@@ -113,6 +118,8 @@ test_py37() {
 }
 
 # test_py27and35 is a test function for chainer.py27and35.
+# Despite the name, Python 2.7 is no longer tested in the master branch.
+# TODO(niboshi): Completely remove Python 2.7 after discontinuing v6 series.
 test_py27and35() {
   #-----------------------------------------------------------------------------
   # Configure parameters
@@ -130,34 +137,11 @@ test_py27and35() {
   #-----------------------------------------------------------------------------
   # Install Chainer
   #-----------------------------------------------------------------------------
-  # Install Chainer for python2.7.
-  if ! python2.7 -m pip install /chainer[test] 2>&1 >/tmp/install-py27.log; then
-    cat /tmp/install-py27.log
-    exit 1
-  fi
-  # Install Chainer for python3.5 asynchronously.
-  # NOTE: Installation of python3.5 takes much longer time because it requires
-  # ChainerX builds.  It is difficult to speed up with parallelization, so this
-  # script runs it in the background of python2.7 unit testing.
+  # Install Chainer for python3.5.
   CHAINER_BUILD_CHAINERX=1 CHAINERX_BUILD_CUDA=1 MAKEFLAGS="-j$(nproc)" \
   CHAINERX_NVCC_GENERATE_CODE=arch=compute_70,code=sm_70 \
       python3.5 -m pip install /chainer[test] 2>&1 >/tmp/install-py35.log &
   install_pid=$!
-
-  #-----------------------------------------------------------------------------
-  # Test python2.7
-  #-----------------------------------------------------------------------------
-  xpytest_args=(
-      --python=python2.7 -m "${marker}"
-      --bucket="${bucket}" --thread="$(( XPYTEST_NUM_THREADS / bucket ))"
-      --hint="/chainer/.pfnci/hint.pbtxt"
-  )
-  if [ "${SPREADSHEET_ID:-}" != '' ]; then
-    xpytest_args+=(--spreadsheet_id="${SPREADSHEET_ID}")
-  fi
-  OMP_NUM_THREADS=1 xpytest "${xpytest_args[@]}" \
-      '/chainer/tests/chainer_tests/**/test_*.py' && :
-  py27_test_status=$?
 
   #-----------------------------------------------------------------------------
   # Test python3.5
@@ -170,10 +154,13 @@ test_py27and35() {
       --python=python3.5 -m "${marker}"
       --bucket="${bucket}" --thread="$(( XPYTEST_NUM_THREADS / bucket ))"
       --hint="/chainer/.pfnci/hint.pbtxt"
+      --retry=1
   )
   if [ "${SPREADSHEET_ID:-}" != '' ]; then
     xpytest_args+=(--spreadsheet_id="${SPREADSHEET_ID}")
   fi
+  # TODO(niboshi): Allow option pass-through (https://github.com/chainer/xpytest/issues/14)
+  export PYTEST_ADDOPTS=-rfEX
   # NOTE: PYTHONHASHSEED=0 is necessary to use pytest-xdist.
   OMP_NUM_THREADS=1 PYTHONHASHSEED=0 xpytest "${xpytest_args[@]}" \
       '/chainer/tests/chainer_tests/**/test_*.py' && :
@@ -182,9 +169,64 @@ test_py27and35() {
   #-----------------------------------------------------------------------------
   # Finalize
   #-----------------------------------------------------------------------------
-  echo "py27_test_status=${py27_test_status}"
   echo "py35_test_status=${py35_test_status}"
-  exit $((py27_test_status || py35_test_status))
+  exit ${py35_test_status}
+}
+
+# test_chainermn is a test function for chainermn
+test_chainermn() {
+  export PYENV_VERSION=""
+  . /root/.bash_profile
+
+  TEST_PYTHON_VERSIONS="3.6.8"
+  ret=0
+  for VERSION in $TEST_PYTHON_VERSIONS
+  do
+    pyenv shell ${VERSION}
+	MAJOR_VERSION=${VERSION:0:1}
+	test_chainermn_sub
+	tmp_ret=$?
+	ret=$(( ret || tmp_ret ))
+  done
+  exit $ret
+}
+
+# test_chainermn_sub runs tests for chainermn with current Python runtime
+test_chainermn_sub() {
+  marker='not slow'
+  if (( !GPU )); then
+    marker+=' and not gpu'
+  else
+    marker+=' and gpu'
+  fi
+
+  #-----------------------------------------------------------------------------
+  # Install CuPy from wheel
+  #-----------------------------------------------------------------------------
+  pip install /cupy-wheel/cupy-*-cp${MAJOR_VERSION}*-cp${MAJOR_VERSION}*-linux_x86_64.whl
+
+  #-----------------------------------------------------------------------------
+  # Install Chainer
+  #-----------------------------------------------------------------------------
+  CHAINER_BUILD_CHAINERX=1 CHAINERX_BUILD_CUDA=1 MAKEFLAGS="-j$(nproc)" \
+  CHAINERX_NVCC_GENERATE_CODE=arch=compute_70,code=sm_70 \
+      python -m pip install /chainer[test] 2>&1 >/tmp/install-py3.log &
+  install_pid=$!
+
+  if ! wait $install_pid; then
+    cat /tmp/install-py3.log
+    exit 1
+  fi
+
+  #-----------------------------------------------------------------------------
+  # Test python
+  #-----------------------------------------------------------------------------
+  mpirun --allow-run-as-root -n 2 python -m pytest --color=yes \
+                   --full-trace \
+                   --durations=10 \
+                   -x --capture=no \
+                   -s -v -m "${marker}" \
+				   /chainer/tests/chainermn_tests
 }
 
 ################################################################################
@@ -193,5 +235,6 @@ test_py27and35() {
 case "${TARGET}" in
   'py37' ) test_py37;;
   'py27and35' ) test_py27and35;;
+  'chainermn' ) test_chainermn;;
   * ) echo "Unsupported target: ${TARGET}" >&2; exit 1;;
 esac

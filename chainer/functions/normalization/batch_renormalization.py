@@ -76,8 +76,8 @@ class BatchRenormalizationFunction(function.Function):
         # batch renormalization
         axis = (0,) + tuple(range(head_ndim, x.ndim))
         mean = x.mean(axis=axis, dtype=gamma.dtype)
-        var = x.var(axis=axis, dtype=gamma.dtype) + self.eps
-        self.std = xp.sqrt(var, dtype=var.dtype)
+        var = x.var(axis=axis, dtype=gamma.dtype)
+        self.std = xp.sqrt(var + self.eps, dtype=var.dtype)
 
         running_sigma = xp.sqrt(self._running_var + self.eps,
                                 dtype=self._running_mean.dtype)
@@ -196,7 +196,11 @@ def batch_renormalization(x, gamma, beta, rmax, dmax, eps=2e-5,
     See: `Batch Renormalization: Towards Reducing Minibatch Dependence in
     Batch-Normalized Models <https://arxiv.org/abs/1702.03275>`_
 
-    .. seealso:: :class:`~chainer.links.BatchRenormalization`
+    .. seealso::
+
+        :class:`~chainer.links.BatchRenormalization` to manage the model
+        parameters (``gamma``, ``beta``) and the statistics (``running_mean``,
+        ``running_var``).
 
     """
     if running_mean is None:

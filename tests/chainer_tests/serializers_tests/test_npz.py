@@ -144,6 +144,12 @@ class TestNpzDeserializer(unittest.TestCase):
         y = numpy.empty((2, 3), dtype=numpy.float32)
         self.check_deserialize(chainerx.asarray(y), 'y')
 
+    @attr.chainerx
+    @attr.gpu
+    def test_deserialize_chainerx_non_native(self):
+        y = numpy.empty((2, 3), dtype=numpy.float32)
+        self.check_deserialize(chainerx.asarray(y, device='cuda:0'), 'y')
+
     def test_deserialize_cpu(self):
         y = numpy.empty((2, 3), dtype=numpy.float32)
         self.check_deserialize(y, 'y')

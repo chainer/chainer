@@ -1,6 +1,7 @@
 import os
 import tempfile
 import unittest
+import warnings
 
 import numpy as np
 
@@ -34,6 +35,7 @@ class TestCheckpoint(unittest.TestCase):
 
     def setUp(self):
         self.communicator = chainermn.create_communicator('naive')
+        warnings.filterwarnings(action='always', category=DeprecationWarning)
 
     def test_stats(self):
         stats = _CheckpointStats()

@@ -115,7 +115,7 @@ class Statistician(object):
             out['std'] = x.std(axis=axis)
 
         if self.percentile_sigmas:
-            xp = cuda.get_array_module(x)
+            xp = backend.get_array_module(x)
             p = xp.percentile(x, self.percentile_sigmas, axis=axis)
             out['percentile'] = p
 

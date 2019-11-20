@@ -185,7 +185,13 @@ def prelu(x, W):
         where :math:`B` is the batch size and the number of trailing
         :math:`S`'s :math:`N` is an arbitrary non-negative integer.
 
-    .. seealso:: :class:`chainer.links.PReLU`
+    .. warning::
+        :math:`W` is a trainable parameter in the original paper
+        (https://arxiv.org/abs/1502.01852). To train :math:`W`, use
+        :class:`chainer.links.PReLU` instead.
+
+    .. seealso::
+        :class:`chainer.links.PReLU` to manage the model parameter ``W``.
 
     """
     return PReLUFunction().apply((x, W))[0]

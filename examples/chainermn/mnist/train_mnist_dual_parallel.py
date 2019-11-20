@@ -78,7 +78,7 @@ def main():
 
     # Prepare ChainerMN communicator.
     if args.gpu:
-        comm = chainermn.create_communicator('hierarchical')
+        comm = chainermn.create_communicator('pure_nccl')
         data_axis, model_axis = comm.rank % 2, comm.rank // 2
         data_comm = comm.split(data_axis, comm.rank)
         model_comm = comm.split(model_axis, comm.rank)
@@ -92,7 +92,7 @@ def main():
 
     if model_comm.size != 2:
         raise ValueError(
-            'This example can only be executed on the even number'
+            'This example can only be executed on the even number '
             'of processes.')
 
     if comm.rank == 0:
@@ -140,7 +140,7 @@ def main():
     evaluator = chainermn.create_multi_node_evaluator(evaluator, data_comm)
     trainer.extend(evaluator)
 
-    # Some display and output extentions are necessary only for worker 0.
+    # Some display and output extensions are necessary only for worker 0.
     if comm.rank == 0:
         trainer.extend(extensions.DumpGraph('main/loss'))
         trainer.extend(extensions.LogReport())

@@ -11,19 +11,16 @@ from chainer.functions.activation.elu import elu  # NOQA
 from chainer.functions.activation.hard_sigmoid import hard_sigmoid  # NOQA
 from chainer.functions.activation.leaky_relu import leaky_relu  # NOQA
 from chainer.functions.activation.log_softmax import log_softmax  # NOQA
-from chainer.functions.activation.lstm import lstm  # NOQA
 from chainer.functions.activation.maxout import maxout  # NOQA
 from chainer.functions.activation.prelu import prelu  # NOQA
 from chainer.functions.activation.relu import relu  # NOQA
 from chainer.functions.activation.rrelu import rrelu  # NOQA
 from chainer.functions.activation.selu import selu  # NOQA
 from chainer.functions.activation.sigmoid import sigmoid  # NOQA
-from chainer.functions.activation.slstm import slstm  # NOQA
 from chainer.functions.activation.softmax import softmax  # NOQA
 from chainer.functions.activation.softplus import softplus  # NOQA
 from chainer.functions.activation.swish import swish  # NOQA
 from chainer.functions.activation.tanh import tanh  # NOQA
-from chainer.functions.activation.tree_lstm import tree_lstm  # NOQA
 
 from chainer.functions.array.as_strided import as_strided  # NOQA
 from chainer.functions.array.broadcast import broadcast  # NOQA
@@ -81,12 +78,6 @@ from chainer.functions.connection.dilated_convolution_2d import dilated_convolut
 from chainer.functions.connection.embed_id import embed_id  # NOQA
 from chainer.functions.connection.linear import linear  # NOQA
 from chainer.functions.connection.local_convolution_2d import local_convolution_2d  # NOQA
-from chainer.functions.connection.n_step_gru import n_step_bigru  # NOQA
-from chainer.functions.connection.n_step_gru import n_step_gru  # NOQA
-from chainer.functions.connection.n_step_lstm import n_step_bilstm  # NOQA
-from chainer.functions.connection.n_step_lstm import n_step_lstm  # NOQA
-from chainer.functions.connection.n_step_rnn import n_step_birnn  # NOQA
-from chainer.functions.connection.n_step_rnn import n_step_rnn  # NOQA
 from chainer.functions.connection.shift import shift  # NOQA
 
 from chainer.functions.evaluation.accuracy import accuracy  # NOQA
@@ -113,6 +104,7 @@ from chainer.functions.loss.mean_squared_error import mean_squared_error  # NOQA
 from chainer.functions.loss.negative_sampling import negative_sampling  # NOQA
 from chainer.functions.loss.sigmoid_cross_entropy import sigmoid_cross_entropy  # NOQA
 from chainer.functions.loss.softmax_cross_entropy import softmax_cross_entropy  # NOQA
+from chainer.functions.loss.squared_error import squared_difference  # NOQA
 from chainer.functions.loss.squared_error import squared_error  # NOQA
 from chainer.functions.loss.triplet import triplet  # NOQA
 from chainer.functions.loss.vae import bernoulli_nll  # NOQA
@@ -126,6 +118,7 @@ from chainer.functions.math.basic_math import add  # NOQA
 from chainer.functions.math.batch_l2_norm_squared import batch_l2_norm_squared  # NOQA
 from chainer.functions.math.bias import bias  # NOQA
 from chainer.functions.math.ceil import ceil  # NOQA
+from chainer.functions.math.cholesky import cholesky  # NOQA
 from chainer.functions.math.clip import clip  # NOQA
 from chainer.functions.math.cumprod import cumprod  # NOQA
 from chainer.functions.math.cumsum import cumsum  # NOQA
@@ -176,7 +169,6 @@ from chainer.functions.math.sparse_matmul import sparse_matmul  # NOQA
 from chainer.functions.math.sqrt import rsqrt  # NOQA
 from chainer.functions.math.sqrt import sqrt  # NOQA
 from chainer.functions.math.square import square  # NOQA
-from chainer.functions.math.squared_difference import squared_difference  # NOQA
 from chainer.functions.math.sum import sum  # NOQA
 from chainer.functions.math.sum import sum_to  # NOQA
 from chainer.functions.math.tensordot import tensordot  # NOQA
@@ -187,6 +179,7 @@ from chainer.functions.math.trigonometric import arctan2  # NOQA
 from chainer.functions.math.trigonometric import cos  # NOQA
 from chainer.functions.math.trigonometric import sin  # NOQA
 from chainer.functions.math.trigonometric import tan  # NOQA
+from chainer.functions.math.zeta import zeta  # NOQA
 
 from chainer.functions.noise.dropout import dropout  # NOQA
 from chainer.functions.noise.gaussian import gaussian  # NOQA
@@ -205,12 +198,22 @@ from chainer.functions.normalization.l2_normalization import normalize  # NOQA
 from chainer.functions.normalization.layer_normalization import layer_normalization  # NOQA
 from chainer.functions.normalization.local_response_normalization import local_response_normalization  # NOQA
 
+from chainer.functions.rnn.lstm import lstm  # NOQA
+from chainer.functions.rnn.n_step_gru import n_step_bigru  # NOQA
+from chainer.functions.rnn.n_step_gru import n_step_gru  # NOQA
+from chainer.functions.rnn.n_step_lstm import n_step_bilstm  # NOQA
+from chainer.functions.rnn.n_step_lstm import n_step_lstm  # NOQA
+from chainer.functions.rnn.n_step_rnn import n_step_birnn  # NOQA
+from chainer.functions.rnn.n_step_rnn import n_step_rnn  # NOQA
+from chainer.functions.rnn.slstm import slstm  # NOQA
+from chainer.functions.rnn.tree_lstm import tree_lstm  # NOQA
+
 from chainer.functions.pooling.average_pooling_2d import average_pooling_2d  # NOQA
 from chainer.functions.pooling.average_pooling_nd import average_pooling_1d  # NOQA
 from chainer.functions.pooling.average_pooling_nd import average_pooling_3d  # NOQA
 from chainer.functions.pooling.average_pooling_nd import average_pooling_nd  # NOQA
-from chainer.functions.pooling.max_pooling_2d import max_pooling_2d  # NOQA
 from chainer.functions.pooling.max_pooling_nd import max_pooling_1d  # NOQA
+from chainer.functions.pooling.max_pooling_nd import max_pooling_2d  # NOQA
 from chainer.functions.pooling.max_pooling_nd import max_pooling_3d  # NOQA
 from chainer.functions.pooling.max_pooling_nd import max_pooling_nd  # NOQA
 from chainer.functions.pooling.roi_average_align_2d import roi_average_align_2d  # NOQA

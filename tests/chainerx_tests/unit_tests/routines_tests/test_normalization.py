@@ -47,12 +47,12 @@ def _create_batch_norm_ndarray_args(
 # 5-dimenisional data.
 # x_shape,reduced_shape,axis
 _batch_norm_params = [
-    ((2, 3, 4, 5), (3, 4, 5), None),
-    ((2, 3, 4, 5), (3, 4, 5), (0,)),
-    ((2, 3, 4, 5), (3,), (0, 2, 3)),
-    ((2, 3, 4, 5, 2), (3, 4, 5, 2), None),
-    ((2, 3, 4, 5, 2), (3, 4, 5, 2), (0,)),
-    ((2, 3, 4, 5, 2), (3,), (0, 2, 3, 4))
+    ((5, 4, 3, 2), (4, 3, 2), None),
+    ((5, 4, 3, 2), (4, 3, 2), (0,)),
+    ((5, 4, 3, 2), (4,), (0, 2, 3)),
+    ((5, 4, 3, 2, 2), (4, 3, 2, 2), None),
+    ((5, 4, 3, 2, 2), (4, 3, 2, 2), (0,)),
+    ((5, 4, 3, 2, 2), (4,), (0, 2, 3, 4))
 ]
 
 
@@ -152,7 +152,7 @@ class TestBatchNorm(op_utils.ChainerOpTest):
         param_dtype = self.param_dtype
 
         x = numpy.random.uniform(-1, 1, x_shape).astype(x_dtype)
-        gamma = numpy.random.uniform(-1, 1, reduced_shape).astype(param_dtype)
+        gamma = numpy.random.uniform(0.5, 1, reduced_shape).astype(param_dtype)
         beta = numpy.random.uniform(-1, 1, reduced_shape).astype(param_dtype)
 
         return x, gamma, beta,

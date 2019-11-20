@@ -453,7 +453,12 @@ def convolution_nd(x, W, b=None, stride=1, pad=0, cover_all=False,
     can provide a significant performance boost for fixed neural nets.
     To enable, set `chainer.using_config('autotune', True)`
 
-    .. seealso:: :class:`~chainer.links.ConvolutionND`, :func:`convolution_2d`
+    .. seealso::
+
+        :class:`~chainer.links.ConvolutionND` to manage the model parameters
+        ``W`` and ``b``.
+
+    .. seealso:: :func:`convolution_2d`
 
     .. admonition:: Example
 

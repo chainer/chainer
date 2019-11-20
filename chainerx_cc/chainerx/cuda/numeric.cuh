@@ -44,6 +44,12 @@ __device__ inline float Arccosh(float x) { return std::acoshf(x); }
 
 __device__ inline cuda::Float16 Arccosh(cuda::Float16 x) { return cuda::Float16{std::acoshf(static_cast<float>(x))}; }
 
+__device__ inline double Log2(double x) { return std::log2(x); }
+
+__device__ inline float Log2(float x) { return std::log2f(x); }
+
+__device__ inline cuda::Float16 Log2(cuda::Float16 x) { return cuda::Float16{std::log2f(static_cast<float>(x))}; }
+
 __device__ inline double Log1p(double x) { return std::log1p(x); }
 
 __device__ inline float Log1p(float x) { return std::log1pf(x); }
@@ -82,6 +88,26 @@ __device__ inline float Exp2(float x) { return std::exp2f(x); }
 
 __device__ inline cuda::Float16 Exp2(cuda::Float16 x) { return cuda::Float16{std::exp2f(static_cast<float>(x))}; }
 
+__device__ inline uint8_t Abs(uint8_t x) { return x; }
+__device__ inline int8_t Abs(int8_t x) { return std::labs(x); }
+__device__ inline int16_t Abs(int16_t x) { return std::labs(x); }
+__device__ inline int32_t Abs(int32_t x) { return std::labs(x); }
+__device__ inline int64_t Abs(int64_t x) { return std::llabs(x); }
+__device__ inline double Abs(double x) { return std::fabs(x); }
+__device__ inline float Abs(float x) { return std::fabs(x); }
+__device__ inline cuda::Float16 Abs(cuda::Float16 x) { return static_cast<cuda::Float16>(std::fabs(static_cast<float>(x))); }
+
+template <typename T>
+__device__ inline T Fmod(T x1, T x2) {
+    return x1 % x2;
+}
+
+__device__ inline cuda::Float16 Fmod(cuda::Float16 x1, cuda::Float16 x2) {
+    return cuda::Float16{std::fmod(static_cast<float>(x1), static_cast<float>(x2))};
+}
+__device__ inline float Fmod(float x1, float x2) { return std::fmod(x1, x2); }
+__device__ inline double Fmod(double x1, double x2) { return std::fmod(x1, x2); }
+
 #define CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(name, func) \
     template <typename T>                                       \
     __device__ inline T name(T x) {                             \
@@ -104,7 +130,6 @@ CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Exp, std::exp)
 CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Log, std::log)
 CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Log10, std::log10)
 CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Sqrt, std::sqrt)
-CHAINERX_DEFINE_CUDA_FLOAT16_FALLBACK_UNARY(Fabs, std::fabs)
 
 namespace numeric_detail {
 

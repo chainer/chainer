@@ -52,7 +52,7 @@ class Geometric(distribution.Distribution):
         return {'p': self.p}
 
     def sample_n(self, n):
-        xp = cuda.get_array_module(self.p)
+        xp = chainer.backend.get_array_module(self.p)
         if xp is cuda.cupy:
             eps = xp.random.geometric(
                 self.p.data,
@@ -74,6 +74,8 @@ class Geometric(distribution.Distribution):
 
 @distribution.register_kl(Geometric, Geometric)
 def _kl_geometric_geometric(dist1, dist2):
-    return (1 / dist1.p - 1) \
-        * (exponential.log(1 - dist1.p) - exponential.log(1 - dist2.p)) \
-        + exponential.log(dist1.p) - exponential.log(dist2.p)
+    return (
+        (1 / dist1.p - 1)
+        * (exponential.log(1 - dist1.p) - exponential.log(1 - dist2.p))
+        + exponential.log(dist1.p)
+        - exponential.log(dist2.p))

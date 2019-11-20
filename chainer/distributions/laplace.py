@@ -125,11 +125,13 @@ class Laplace(distribution.Distribution):
 
     def sample_n(self, n):
         if self._is_gpu:
-            eps = cuda.cupy.random.laplace(
-                size=(n,) + self.loc.shape).astype(numpy.float32)
+            eps = (
+                cuda.cupy.random.laplace(size=(n,) + self.loc.shape)
+                .astype(numpy.float32))
         else:
-            eps = numpy.random.laplace(
-                size=(n,) + self.loc.shape).astype(numpy.float32)
+            eps = (
+                numpy.random.laplace(size=(n,) + self.loc.shape)
+                .astype(numpy.float32))
 
         return self.scale * eps + self.loc
 
@@ -149,6 +151,9 @@ class Laplace(distribution.Distribution):
 @distribution.register_kl(Laplace, Laplace)
 def _kl_laplace_laplace(dist1, dist2):
     diff = abs(dist1.loc - dist2.loc)
-    return exponential.log(dist2.scale) - exponential.log(dist1.scale) \
-        + diff / dist2.scale \
-        + dist1.scale / dist2.scale * exponential.exp(- diff / dist1.scale) - 1
+    return (
+        exponential.log(dist2.scale)
+        - exponential.log(dist1.scale)
+        + diff / dist2.scale
+        + dist1.scale / dist2.scale * exponential.exp(-diff / dist1.scale)
+        - 1)

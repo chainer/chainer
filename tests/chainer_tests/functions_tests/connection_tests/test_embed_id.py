@@ -8,89 +8,73 @@ from chainer.functions.connection import embed_id
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
+from chainer.testing import backend
 
 
 @testing.parameterize(*testing.product_dict(
-    [{'x_data': [0, 1, 0], 'ignore_label': None},
-     {'x_data': [[0, 1, 0], [1, 0, 1]], 'ignore_label': None},
-     {'x_data': [0, 1, -1], 'ignore_label': -1},
-     {'x_data': [[0, 1, -1], [-1, 0, 1]], 'ignore_label': -1}],
-    [{'dtype': numpy.float16},
-     {'dtype': numpy.float32},
-     {'dtype': numpy.float64}],
-    [{'label_dtype': numpy.int8},
-     {'label_dtype': numpy.int16},
-     {'label_dtype': numpy.int32},
-     {'label_dtype': numpy.int64}]
+    [
+        {'x': (0, 1, 2), 'w_shape': (5, 3), 'ignore_label': 1},
+        {'x': (2, 1, 2), 'w_shape': (6, 3), 'ignore_label': None},
+        {'x': (3, 1), 'w_shape': (4, 3), 'ignore_label': 3},
+    ], [
+        {'w_dtype': numpy.float16},
+        {'w_dtype': numpy.float32},
+        {'w_dtype': numpy.float64},
+    ], [
+        {'x_dtype': numpy.int16},
+        {'x_dtype': numpy.int32},
+        {'x_dtype': numpy.int64},
+    ]
 ))
-class TestEmbedID(unittest.TestCase):
+@testing.fix_random()
+@backend.inject_backend_tests(
+    None,
+    # ChainerX tests
+    testing.product({
+        'use_chainerx': [True],
+        'chainerx_device': ['native:0', 'cuda:0'],
+    })
+    # CPU tests
+    + testing.product({
+        'use_cuda': [False],
+        'use_ideep': ['never', 'always'],
+    })
+    # GPU tests
+    + testing.product([
+        [{'use_cuda': True}],
+
+        # Without cuDNN
+        testing.product({
+            'use_cudnn': ['never'],
+        })
+        # With cuDNN
+        + testing.product({
+            'use_cudnn': ['always'],
+            'cudnn_deterministic': [True, False],
+            'autotune': [True, False],
+        })]))
+class TestEmbedID(testing.FunctionTestCase):
 
     def setUp(self):
-        self.x = numpy.array(self.x_data, dtype=self.label_dtype)
-        self.W = numpy.random.uniform(-1, 1, (3, 2)).astype(self.dtype)
-        y_shape = self.x.shape + (2,)
-        self.gy = numpy.random.uniform(-1, 1, y_shape).astype(self.dtype)
-        self.ggW = numpy.random.uniform(-1, 1, (3, 2)).astype(self.dtype)
-
         self.check_backward_options = {'atol': 1e-2, 'rtol': 1e-2}
         self.check_double_backward_options = {'atol': 1e-2, 'rtol': 1e-2}
-        if self.dtype == numpy.float16:
-            self.check_backward_options['dtype'] = numpy.float64
-            self.check_double_backward_options['dtype'] = numpy.float64
 
-    def check_forward(self, x_data, W_data):
-        x = chainer.Variable(x_data)
-        W = chainer.Variable(W_data)
-        y = chainer.functions.embed_id(x, W, self.ignore_label)
-        self.assertEqual(y.data.dtype, self.dtype)
+    def generate_inputs(self):
+        x = numpy.array(self.x).astype(self.x_dtype)
+        W = numpy.random.uniform(-1, 1, self.w_shape).astype(self.w_dtype)
+        return x, W,
 
-        y_expect = numpy.empty_like(self.gy)
-        for i in numpy.ndindex(self.x.shape):
-            if self.x[i] == -1:
-                y_expect[i] = 0
-            else:
-                y_expect[i] = self.W[int(self.x[i])]
+    def forward(self, inputs, device):
+        x, W = inputs
+        out = chainer.functions.embed_id(x, W, self.ignore_label)
+        return out,
 
-        testing.assert_allclose(y_expect, y.data, atol=0, rtol=0)
-
-    def test_forward_cpu(self):
-        self.check_forward(self.x, self.W)
-
-    @attr.gpu
-    def test_forward_gpu(self):
-        self.check_forward(cuda.to_gpu(self.x), cuda.to_gpu(self.W))
-
-    def check_backward(self, x_data, W_data, y_grad):
-        def f(x, W):
-            return chainer.functions.embed_id(x, W, self.ignore_label)
-
-        gradient_check.check_backward(
-            f, (x_data, W_data), y_grad, **self.check_backward_options)
-
-    def test_backward_cpu(self):
-        self.check_backward(self.x, self.W, self.gy)
-
-    @attr.gpu
-    def test_backward_gpu(self):
-        self.check_backward(
-            cuda.to_gpu(self.x), cuda.to_gpu(self.W), cuda.to_gpu(self.gy))
-
-    def check_double_backward(self, x_data, W_data, gy_data, ggW_data):
-        def f(W):
-            return chainer.functions.embed_id(
-                x_data, W, self.ignore_label)
-
-        gradient_check.check_double_backward(
-            f, W_data, gy_data, ggW_data, **self.check_double_backward_options)
-
-    def test_double_backward_cpu(self):
-        self.check_double_backward(self.x, self.W, self.gy, self.ggW)
-
-    @attr.gpu
-    def test_double_backward_gpu(self):
-        self.check_double_backward(
-            cuda.to_gpu(self.x), cuda.to_gpu(self.W), cuda.to_gpu(self.gy),
-            cuda.to_gpu(self.ggW))
+    def forward_expected(self, inputs):
+        x, W = inputs
+        if self.ignore_label is not None:
+            mask = (x == self.ignore_label)
+            return numpy.where(mask[..., None], 0, W[numpy.where(mask, 0, x)]),
+        return W[x],
 
 
 @testing.parameterize(

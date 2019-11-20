@@ -1,5 +1,7 @@
 import contextlib
 import tempfile
+import threading
+import time
 import unittest
 
 import numpy
@@ -27,6 +29,36 @@ class TestReporter(unittest.TestCase):
             with reporter2:
                 self.assertIs(chainer.get_current_reporter(), reporter2)
             self.assertIs(chainer.get_current_reporter(), reporter1)
+
+    def test_enter_exit_threadsafe(self):
+        # This test ensures reporter.__enter__ correctly stores the reporter
+        # in the thread-local storage.
+
+        def thread_func(reporter, record):
+            with reporter:
+                # Sleep for a tiny moment to cause an overlap of the context
+                # managers.
+                time.sleep(0.01)
+                record.append(chainer.get_current_reporter())
+
+        record1 = []  # The current repoter in each thread is stored here.
+        record2 = []
+        reporter1 = chainer.Reporter()
+        reporter2 = chainer.Reporter()
+        thread1 = threading.Thread(
+            target=thread_func,
+            args=(reporter1, record1))
+        thread2 = threading.Thread(
+            target=thread_func,
+            args=(reporter2, record2))
+        thread1.daemon = True
+        thread2.daemon = True
+        thread1.start()
+        thread2.start()
+        thread1.join()
+        thread2.join()
+        self.assertIs(record1[0], reporter1)
+        self.assertIs(record2[0], reporter2)
 
     def test_scope(self):
         reporter1 = chainer.Reporter()

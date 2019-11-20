@@ -70,10 +70,11 @@ class Contrastive(function_node.FunctionNode):
             alpha = gy[:, None]
         alpha = chainer.functions.broadcast_to(alpha, y.shape)
         dist = chainer.functions.repeat(dist[:, None], x_dim, axis=1)
-        # avoid division by zero, 1e-7 is sufficiently small value that can be
-        # represented even in half precision
+        # avoid division by zero, 1e-7 is not sufficiently small value because
+        # 1e7 cannot be represented in half precision.
+        eps = 5e-3 if dist.dtype == 'float16' else 1e-7
         dist = chainer.functions.maximum(
-            dist, xp.full(dist.shape, 1e-7, dtype=dist.dtype))
+            dist, xp.full(dist.shape, eps, dtype=dist.dtype))
         # similar pair
         gx0 = alpha * y.astype(alpha.dtype) * diff
         # dissimilar pair

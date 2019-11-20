@@ -1,16 +1,28 @@
 import os
-import sys
 import warnings
 
+try:
+    from chainerx import _build_info
+except ImportError:
+    raise ImportError(
+        '''\
+Cannot import chainerx because _build_info.py cannot be found.
 
-if sys.version_info[0] < 3:
-    _available = False
+The chainer and chainerx module being imported was not correctly \
+installed by `pip install`.
+
+It may be caused by either of the following reasons.
+
+1. You are directly importing chainer source files without installing it with \
+`pip install`.
+2. You installed chainer in non-editable mode (`pip install` without -e) and \
+are importing chainer source files instead of the installed module.''')
+
+if _build_info.build_chainerx:
+    from chainerx import _core
+    _available = True
 else:
-    try:
-        from chainerx import _core
-        _available = True
-    except Exception:
-        _available = False
+    _available = False
 
 
 if _available:
@@ -39,8 +51,6 @@ if _available:
     from chainerx.creation.from_data import fromiter  # NOQA
     from chainerx.creation.from_data import fromstring  # NOQA
     from chainerx.creation.from_data import loadtxt  # NOQA
-
-    from chainerx.manipulation.shape import ravel  # NOQA
 
     from chainerx.math.misc import clip  # NOQA
 

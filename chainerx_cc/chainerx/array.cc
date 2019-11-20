@@ -14,8 +14,8 @@
 #include <utility>
 #include <vector>
 
-#include <gsl/gsl>
-#include <nonstd/optional.hpp>
+#include <absl/types/optional.h>
+#include <absl/types/span.h>
 
 #include "chainerx/array_body.h"
 #include "chainerx/array_node.h"
@@ -31,6 +31,7 @@
 #include "chainerx/dtype.h"
 #include "chainerx/error.h"
 #include "chainerx/graph.h"
+#include "chainerx/kernels/creation.h"
 #include "chainerx/kernels/misc.h"
 #include "chainerx/macro.h"
 #include "chainerx/native/native_backend.h"
@@ -42,7 +43,6 @@
 #include "chainerx/routines/linalg.h"
 #include "chainerx/routines/logic.h"
 #include "chainerx/routines/manipulation.h"
-#include "chainerx/routines/math.h"
 #include "chainerx/routines/reduction.h"
 #include "chainerx/routines/routines_util.h"
 #include "chainerx/routines/sorting.h"
@@ -52,7 +52,7 @@
 namespace chainerx {
 namespace internal {
 
-BackpropId GetArrayBackpropId(const Array& array, const nonstd::optional<BackpropId>& backprop_id) {
+BackpropId GetArrayBackpropId(const Array& array, const absl::optional<BackpropId>& backprop_id) {
     return backprop_id.has_value() ? *backprop_id : array.device().context().default_backprop_id();
 }
 
@@ -69,10 +69,10 @@ std::vector<std::shared_ptr<ArrayBody>> MoveArrayBodies(std::vector<Array>&& arr
     return array_body_ptrs;
 }
 
-std::vector<std::shared_ptr<ArrayBody>> MoveArrayBodies(std::vector<nonstd::optional<Array>>&& arrays) {
+std::vector<std::shared_ptr<ArrayBody>> MoveArrayBodies(std::vector<absl::optional<Array>>&& arrays) {
     std::vector<std::shared_ptr<ArrayBody>> array_body_ptrs;
     array_body_ptrs.reserve(arrays.size());
-    for (nonstd::optional<Array>& array : arrays) {
+    for (absl::optional<Array>& array : arrays) {
         if (array.has_value()) {
             array_body_ptrs.emplace_back(MoveArrayBody(std::move(*array)));
         } else {
@@ -141,6 +141,16 @@ Array& Array::operator/=(Scalar rhs) {
     return *this;
 }
 
+Array& Array::operator%=(const Array& rhs) {
+    internal::IMod(*this, rhs);
+    return *this;
+}
+
+Array& Array::operator%=(Scalar rhs) {
+    internal::IMod(*this, rhs);
+    return *this;
+}
+
 Array& Array::operator&=(const Array& rhs) {
     internal::IBitwiseAnd(*this, rhs);
     return *this;
@@ -168,6 +178,26 @@ Array& Array::operator^=(const Array& rhs) {
 
 Array& Array::operator^=(Scalar rhs) {
     internal::IBitwiseXor(*this, rhs);
+    return *this;
+}
+
+Array& Array::operator<<=(const Array& rhs) {
+    internal::ILeftShift(*this, rhs);
+    return *this;
+}
+
+Array& Array::operator<<=(Scalar rhs) {
+    internal::ILeftShift(*this, rhs);
+    return *this;
+}
+
+Array& Array::operator>>=(const Array& rhs) {
+    internal::IRightShift(*this, rhs);
+    return *this;
+}
+
+Array& Array::operator>>=(Scalar rhs) {
+    internal::IRightShift(*this, rhs);
     return *this;
 }
 
@@ -211,6 +241,16 @@ const Array& Array::operator/=(Scalar rhs) const {
     return *this;
 }
 
+const Array& Array::operator%=(const Array& rhs) const {
+    internal::IMod(*this, rhs);
+    return *this;
+}
+
+const Array& Array::operator%=(Scalar rhs) const {
+    internal::IMod(*this, rhs);
+    return *this;
+}
+
 const Array& Array::operator&=(const Array& rhs) const {
     internal::IBitwiseAnd(*this, rhs);
     return *this;
@@ -241,6 +281,26 @@ const Array& Array::operator^=(Scalar rhs) const {
     return *this;
 }
 
+const Array& Array::operator<<=(const Array& rhs) const {
+    internal::ILeftShift(*this, rhs);
+    return *this;
+}
+
+const Array& Array::operator<<=(Scalar rhs) const {
+    internal::ILeftShift(*this, rhs);
+    return *this;
+}
+
+const Array& Array::operator>>=(const Array& rhs) const {
+    internal::IRightShift(*this, rhs);
+    return *this;
+}
+
+const Array& Array::operator>>=(Scalar rhs) const {
+    internal::IRightShift(*this, rhs);
+    return *this;
+}
+
 Array Array::operator+(const Array& rhs) const { return chainerx::Add(*this, rhs); }
 
 Array Array::operator+(Scalar rhs) const { return chainerx::Add(*this, rhs); }
@@ -257,6 +317,10 @@ Array Array::operator/(const Array& rhs) const { return chainerx::Divide(*this, 
 
 Array Array::operator/(Scalar rhs) const { return chainerx::Divide(*this, rhs); }
 
+Array Array::operator%(const Array& rhs) const { return chainerx::Mod(*this, rhs); }
+
+Array Array::operator%(Scalar rhs) const { return chainerx::Mod(*this, rhs); }
+
 Array Array::operator&(const Array& rhs) const { return chainerx::BitwiseAnd(*this, rhs); }
 
 Array Array::operator&(Scalar rhs) const { return chainerx::BitwiseAnd(*this, rhs); }
@@ -269,9 +333,19 @@ Array Array::operator^(const Array& rhs) const { return chainerx::BitwiseXor(*th
 
 Array Array::operator^(Scalar rhs) const { return chainerx::BitwiseXor(*this, rhs); }
 
+Array Array::operator<<(const Array& rhs) const { return chainerx::LeftShift(*this, rhs); }
+
+Array Array::operator<<(Scalar rhs) const { return chainerx::LeftShift(*this, rhs); }
+
+Array Array::operator>>(const Array& rhs) const { return chainerx::RightShift(*this, rhs); }
+
+Array Array::operator>>(Scalar rhs) const { return chainerx::RightShift(*this, rhs); }
+
 Array Array::At(const std::vector<ArrayIndex>& indices) const { return internal::At(*this, indices); }
 
 Array Array::Transpose(const OptionalAxes& axes) const { return chainerx::Transpose(*this, axes); }
+
+Array Array::Ravel() const { return chainerx::Ravel(*this); }
 
 Array Array::Reshape(const Shape& newshape) const { return chainerx::Reshape(*this, newshape); }
 
@@ -301,9 +375,14 @@ Array Array::Any(const OptionalAxes& axis, bool keepdims) const { return chainer
 
 Array Array::Dot(const Array& b) const { return chainerx::Dot(*this, b); }
 
-Array Array::Take(const Array& indices, int8_t axis) const { return chainerx::Take(*this, indices, axis); }
+Array Array::Take(const Array& indices, int8_t axis, IndexBoundsMode mode) const { return chainerx::Take(*this, indices, axis, mode); }
 
 Array Array::Copy() const { return chainerx::Copy(*this); }
+
+Array Array::Flatten() const {
+    Array out = (*this).Copy().Reshape({(*this).GetTotalSize()});
+    return out;
+}
 
 Array Array::MakeView() const {
     Array out{shape(), strides(), dtype(), device(), data(), offset()};
@@ -359,8 +438,8 @@ Array Array::ToDevice(Device& dst_device) const {
 }
 
 Array Array::ToNative() const {
-    Context& context = device().backend().context();
-    Device& native_device = context.GetNativeBackend().GetDevice(0);
+    Backend& backend = device().backend();
+    Device& native_device = backend.IsNative() ? device() : backend.context().GetNativeBackend().GetDevice(0);
     return ToDevice(native_device);
 }
 
@@ -384,7 +463,7 @@ Array Array::AsGradStopped(CopyKind kind) const {
     return CopyOrMakeView(*this, kind);
 }
 
-Array Array::AsGradStopped(gsl::span<const BackpropId> backprop_ids, CopyKind kind) const {
+Array Array::AsGradStopped(absl::Span<const BackpropId> backprop_ids, CopyKind kind) const {
     NoBackpropModeScope scope{std::vector<BackpropId>{backprop_ids.begin(), backprop_ids.end()}};
     return CopyOrMakeView(*this, kind);
 }
@@ -396,7 +475,8 @@ Array Array::AsType(Dtype dtype, bool copy) const {
     }
 
     Array out = Empty(shape(), dtype, device());
-    device().backend().CallKernel<AsTypeKernel>(*this, out);
+    // Note: In CopyKernel, Input Array Elements are casted to the type of Output Array.
+    device().backend().CallKernel<CopyKernel>(*this, out);
 
     if (GetKind(dtype) == DtypeKind::kFloat) {
         BackwardBuilder bb{"astype", *this, out};
@@ -415,19 +495,19 @@ void Array::Fill(Scalar value) const {
     device().backend().CallKernel<FillKernel>(*this, value);
 }
 
-const nonstd::optional<Array>& Array::GetGrad(const nonstd::optional<BackpropId>& backprop_id) const {
+const absl::optional<Array>& Array::GetGrad(const absl::optional<BackpropId>& backprop_id) const {
     BackpropId actual_backprop_id = internal::GetArrayBackpropId(*this, backprop_id);
     if (!IsGradRequired(actual_backprop_id)) {
         throw ChainerxError{"Array is not flagged as requiring gradient for backprop id: '", actual_backprop_id, "'."};
     }
-    const nonstd::optional<Array>* grad = body_->GetGrad(actual_backprop_id);
+    const absl::optional<Array>* grad = body_->GetGrad(actual_backprop_id);
     CHAINERX_ASSERT(grad != nullptr);
     return *grad;
 }
 
-void Array::SetGrad(Array grad, const nonstd::optional<BackpropId>& backprop_id) const {
+void Array::SetGrad(Array grad, const absl::optional<BackpropId>& backprop_id) const {
     BackpropId actual_backprop_id = internal::GetArrayBackpropId(*this, backprop_id);
-    nonstd::optional<Array>* target_grad = body_->GetGrad(actual_backprop_id);
+    absl::optional<Array>* target_grad = body_->GetGrad(actual_backprop_id);
     if (target_grad == nullptr) {
         throw ChainerxError{"Array is constant with respect to the computation for backprop ID: '", actual_backprop_id, "'."};
     }
@@ -438,7 +518,7 @@ void Array::SetGrad(Array grad, const nonstd::optional<BackpropId>& backprop_id)
     internal::SetGrad(*target_grad, std::move(grad), shape(), dtype(), device());
 }
 
-void Array::ClearGrad(const nonstd::optional<BackpropId>& backprop_id) const {
+void Array::ClearGrad(const absl::optional<BackpropId>& backprop_id) const {
     BackpropId actual_backprop_id = internal::GetArrayBackpropId(*this, backprop_id);
     if (!body_->HasArrayNode(actual_backprop_id)) {
         throw ChainerxError{"Array is constant with respect to the computation for backprop ID: '", actual_backprop_id, "'."};
@@ -446,7 +526,7 @@ void Array::ClearGrad(const nonstd::optional<BackpropId>& backprop_id) const {
     body_->ClearGrad(actual_backprop_id);
 }
 
-bool Array::IsBackpropRequired(const nonstd::optional<BackpropId>& backprop_id) const {
+bool Array::IsBackpropRequired(const absl::optional<BackpropId>& backprop_id) const {
     BackpropId actual_backprop_id = internal::GetArrayBackpropId(*this, backprop_id);
     return body_->HasArrayNode(actual_backprop_id) && chainerx::IsBackpropRequired(actual_backprop_id);
 }
@@ -458,13 +538,13 @@ bool Array::IsBackpropRequired(AnyGraph /*any_graph*/) const {
     });
 }
 
-bool Array::IsGradRequired(const nonstd::optional<BackpropId>& backprop_id) const {
+bool Array::IsGradRequired(const absl::optional<BackpropId>& backprop_id) const {
     BackpropId actual_backprop_id = internal::GetArrayBackpropId(*this, backprop_id);
     return body_->IsGradRequired(actual_backprop_id);
 }
 
 template <typename T>
-T& Array::RequireGradImpl(T& array, const nonstd::optional<BackpropId>& backprop_id) {
+T& Array::RequireGradImpl(T& array, const absl::optional<BackpropId>& backprop_id) {
     if (GetKind(array.dtype()) != DtypeKind::kFloat) {
         throw DtypeError{"Array with integral dtype (", GetDtypeName(array.dtype()), ") cannot compute gradient"};
     }
@@ -473,8 +553,8 @@ T& Array::RequireGradImpl(T& array, const nonstd::optional<BackpropId>& backprop
     return array;
 }
 
-template const Array& Array::RequireGradImpl<const Array>(const Array& array, const nonstd::optional<BackpropId>& backprop_id);
-template Array& Array::RequireGradImpl<Array>(Array& array, const nonstd::optional<BackpropId>& backprop_id);
+template const Array& Array::RequireGradImpl<const Array>(const Array& array, const absl::optional<BackpropId>& backprop_id);
+template Array& Array::RequireGradImpl<Array>(Array& array, const absl::optional<BackpropId>& backprop_id);
 
 std::string Array::ToString() const { return ArrayRepr(*this); }
 
@@ -482,6 +562,10 @@ Array operator+(Scalar lhs, const Array& rhs) { return Add(lhs, rhs); }
 Array operator-(Scalar lhs, const Array& rhs) { return Subtract(lhs, rhs); }
 Array operator*(Scalar lhs, const Array& rhs) { return Multiply(lhs, rhs); }
 Array operator/(Scalar lhs, const Array& rhs) { return Divide(lhs, rhs); }
+Array operator%(Scalar lhs, const Array& rhs) { return Mod(lhs, rhs); }
+
+Array operator<<(Scalar lhs, const Array& rhs) { return LeftShift(lhs, rhs); }
+Array operator>>(Scalar lhs, const Array& rhs) { return RightShift(lhs, rhs); }
 
 namespace {
 
@@ -550,7 +634,7 @@ public:
                     os_ << Indent(indent + 2) << "body=(gone)" << std::endl;
                 } else {
                     os_ << Indent(indent + 2) << "body=" << body.get() << std::endl;
-                    const nonstd::optional<Array>* grad = body->GetGrad(array_node.backprop_id());
+                    const absl::optional<Array>* grad = body->GetGrad(array_node.backprop_id());
                     CHAINERX_ASSERT(grad != nullptr);
                     if (grad->has_value()) {
                         os_ << Indent(indent + 2) << "grad=<shape=" << (*grad)->shape() << " dtype=" << GetDtypeName((*grad)->dtype())
@@ -588,7 +672,7 @@ private:
 void DebugDumpComputationalGraph(
         std::ostream& os,
         const Array& array,
-        const nonstd::optional<BackpropId>& backprop_id,
+        const absl::optional<BackpropId>& backprop_id,
         int indent,
         const std::vector<std::pair<ConstArrayRef, std::string>>& array_name_map) {
     PrintComputationalGraphImpl impl{os};

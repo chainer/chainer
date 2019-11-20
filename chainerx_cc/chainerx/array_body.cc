@@ -77,7 +77,7 @@ const std::shared_ptr<ArrayNode>& ArrayBody::AddNode(const std::shared_ptr<Array
     array_node->weak_body_ = body;
 
     body->nodes_.emplace_back(std::move(array_node));
-    body->grads_.emplace_back(std::make_unique<nonstd::optional<Array>>(nonstd::nullopt));
+    body->grads_.emplace_back(std::make_unique<absl::optional<Array>>(absl::nullopt));
 
     body->AssertConsistency();
     return body->nodes_.back();
@@ -99,7 +99,7 @@ void ArrayBody::AssertConsistency() const {
         CHAINERX_ASSERT(nodes_.size() == grads_.size());
         for (size_t i = 0; i < nodes_.size(); ++i) {
             const std::shared_ptr<ArrayNode>& array_node = nodes_[i];
-            const nonstd::optional<Array>& grad = *grads_[i];
+            const absl::optional<Array>& grad = *grads_[i];
             CHAINERX_ASSERT(array_node != nullptr);
             CHAINERX_ASSERT(this == array_node->weak_body().lock().get());
 
@@ -113,30 +113,30 @@ void ArrayBody::AssertConsistency() const {
     }
 }
 
-nonstd::optional<size_t> ArrayBody::GetNodeIndex(const BackpropId& backprop_id) const {
+absl::optional<size_t> ArrayBody::GetNodeIndex(const BackpropId& backprop_id) const {
     for (size_t i = 0; i < nodes_.size(); ++i) {
         if (nodes_[i]->backprop_id() == backprop_id) {
             return i;
         }
     }
-    return nonstd::nullopt;
+    return absl::nullopt;
 }
 
 void ArrayBody::SetGrad(Array grad, const BackpropId& backprop_id) {
-    nonstd::optional<Array>* target_grad = GetGrad(backprop_id);
+    absl::optional<Array>* target_grad = GetGrad(backprop_id);
     CHAINERX_ASSERT(target_grad != nullptr);
     internal::SetGrad(*target_grad, std::move(grad), shape_, dtype_, device_);
 }
 
 void ArrayBody::ClearGrad(const BackpropId& backprop_id) {
-    nonstd::optional<Array>* grad = GetGrad(backprop_id);
+    absl::optional<Array>* grad = GetGrad(backprop_id);
     CHAINERX_ASSERT(grad != nullptr);
     grad->reset();
 }
 
 template <typename ThisPtr, typename ReturnType>
 ReturnType ArrayBody::GetGradImpl(ThisPtr this_ptr, const BackpropId& backprop_id) {
-    nonstd::optional<size_t> i = this_ptr->GetNodeIndex(backprop_id);
+    absl::optional<size_t> i = this_ptr->GetNodeIndex(backprop_id);
     if (!i.has_value()) {
         return nullptr;
     }
@@ -144,8 +144,8 @@ ReturnType ArrayBody::GetGradImpl(ThisPtr this_ptr, const BackpropId& backprop_i
     return this_ptr->grads_[*i].get();
 }
 
-template nonstd::optional<Array>* ArrayBody::GetGradImpl<ArrayBody*, nonstd::optional<Array>*>(ArrayBody*, const BackpropId&);
-template const nonstd::optional<Array>* ArrayBody::GetGradImpl<const ArrayBody*, const nonstd::optional<Array>*>(
+template absl::optional<Array>* ArrayBody::GetGradImpl<ArrayBody*, absl::optional<Array>*>(ArrayBody*, const BackpropId&);
+template const absl::optional<Array>* ArrayBody::GetGradImpl<const ArrayBody*, const absl::optional<Array>*>(
         const ArrayBody*, const BackpropId&);
 
 }  // namespace internal

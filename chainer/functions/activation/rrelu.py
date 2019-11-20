@@ -149,7 +149,7 @@ def rrelu(x, l=1. / 8, u=1. / 3, **kwargs):
     if kwargs:
         r, return_r = argument.parse_kwargs(
             kwargs, ('r', r), ('return_r', r),
-            train='train argument is not supported anymore.'
+            train='train argument is not supported anymore. '
                   'Use chainer.using_config')
 
     func = RReLU(l, u, r)

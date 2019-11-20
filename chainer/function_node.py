@@ -21,10 +21,15 @@ from chainer import variable
 import chainerx
 
 
-def _to_variable_with_chainerx_fallback_array(chainerx_array, fallback_array):
+def _to_variable_with_chainerx_fallback_array(
+        chainerx_device, chainerx_array, fallback_array):
     # chainerx_array can be None.
-    var = variable.Variable(
+    assert (
+        chainerx_array is None
+        or chainerx_array.device == chainerx_device.device)
+    var = variable.Variable._init_unchecked(
         chainerx_array,
+        device=chainerx_device,
         requires_grad=(
             False if chainerx_array is None
             else chainerx_array.is_backprop_required()))
@@ -239,9 +244,9 @@ Use apply() method instead.\
 
         .. note::
 
-           If the :data:`~Variable.data` attribute of input variables exist on
-           a GPU device, that device is made current before calling
-           :meth:`forward`, so implementors do not need to take care of device
+           If the :data:`~Variable.data` attributes of the input variables
+           exist on a GPU device, that device is made current before calling
+           :meth:`forward`, so implementers do not need to take care of device
            selection in most cases.
 
         Args:
@@ -257,6 +262,8 @@ Use apply() method instead.\
         chainerx_in_data = None
         chainerx_device = None
         is_chainerx, in_data = _extract_apply_in_data(inputs)
+
+        utils._check_arrays_forward_compatible(in_data, self.label)
 
         if is_chainerx:
             # Try ChainerX C++ implementation.
@@ -284,8 +291,6 @@ Use apply() method instead.\
                 self._chainerx_apply_fallback_preprocess(in_data, inputs))
             self._is_chainerx_fallback_mode = True
             self.chainerx_device = chainerx_device
-
-        utils._check_arrays_forward_compatible(in_data, self.label)
 
         is_debug = chainer.is_debug()
         if is_debug:
@@ -326,6 +331,17 @@ Use apply() method instead.\
                 'Actual: {}'.format(self.label, type(outputs)))
 
         if not chainer.is_arrays_compatible(outputs):
+            if not all(
+                    isinstance(y, chainer.get_array_types())
+                    for y in outputs):
+                raise TypeError(
+                    'forward output must be a tuple of ndarrays.\n'
+                    'Function: {}\n'
+                    'Actual output types: {}'
+                    .format(
+                        self.label,
+                        tuple(type(y) for y in outputs)))
+
             raise TypeError(
                 'incompatible array types are mixed in the forward output '
                 '({}).\n'
@@ -338,16 +354,17 @@ Use apply() method instead.\
 
         # NaN check of output values
         if is_debug:
-            if any(chainer.backend._contains_nan(out)
-                   for out in outputs):
-                msg = ('NaN is detected on forward computation of '
-                       '{}'.format(self.label))
-                raise RuntimeError(msg)
+            for out in outputs:
+                if out is not None and chainer.backend._contains_nan(out):
+                    msg = ('NaN is detected on forward computation of '
+                           '{}'.format(self.label))
+                    raise RuntimeError(msg)
 
         self._output_count = len(outputs)
 
         if self._is_chainerx_fallback_mode:
             ret = self._chainerx_apply_fallback_postprocess(
+                chainerx_device,
                 chainerx_in_data, inputs, outputs)
 
         else:
@@ -441,11 +458,11 @@ Use apply() method instead.\
         return chainerx_in_data, in_data, device
 
     def _chainerx_apply_fallback_postprocess(
-            self, chainerx_in_data, inputs, outputs):
+            self, chainerx_device, chainerx_in_data, inputs, outputs):
 
         # TODO(hvy): Take configuration.config.enable_backprop into
         # account?
-        chainerx_out_data = backend.to_chx(outputs)
+        chainerx_out_data = chainerx_device.send(outputs)
 
         # Insert a ChainerX op-node that calls FunctionNode.backward in
         # backprop. Note that chainerx_out_data may not require gradients.
@@ -462,6 +479,7 @@ Use apply() method instead.\
 
         ret = tuple([
             _to_variable_with_chainerx_fallback_array(
+                chainerx_device,
                 chainerx_out_array, out_array)
             for chainerx_out_array, out_array
             in six.moves.zip(chainerx_out_data, outputs)])
@@ -962,7 +980,7 @@ def grad(outputs, inputs, grad_outputs=None, grad_inputs=None, set_grad=False,
             the memory consumption (and possibly the computational time) to
             remember the intermediate gradient values for the second
             backpropagation.
-        loss_scale (float): Loss scaling factor. Loss scaling is a usefull
+        loss_scale (float): Loss scaling factor. Loss scaling is a useful
             technique to mitigate vanishing gradient issue that tends to happen
             when low precision data type like float16 is used during training.
             If you set loss scaling factor, gradients of loss values are to be
@@ -1001,6 +1019,39 @@ def grad(outputs, inputs, grad_outputs=None, grad_inputs=None, set_grad=False,
                 'grad_inputs must be of the same length as inputs.\n'
                 'len(inputs) = {}, len(grad_inputs) = {}'
                 .format(len(inputs), len(grad_inputs)))
+
+    # Check if all the inputs are chainerx arrays and if so
+    # Relies in chainerx.grad function
+    n_chx_inputs = sum([False if x is None else x._has_chainerx_array
+                        for x in inputs])
+    if n_chx_inputs == len(inputs):
+        # Need to access the arrays to invoke the chainer grad function
+        if grad_outputs:
+            grad_outputs_chx = [x._data[0] for x in grad_outputs]
+        else:
+            grad_outputs_chx = []
+        outputs_chx = [x._data[0] for x in outputs]
+        inputs_chx = [x._data[0] for x in inputs]
+        # pybind has issues when converting opt<int> -> opt<float>
+        if loss_scale is not None:
+            loss_scale = float(loss_scale)
+        grads = chainerx.grad(outputs_chx, inputs_chx,
+                              backprop_id=None,
+                              enable_double_backprop=enable_double_backprop,
+                              set_grad=set_grad,
+                              retain_grad=retain_grad,
+                              grad_outputs=grad_outputs_chx,
+                              loss_scale=loss_scale)
+
+        if grad_inputs:
+            grads = [g+gi._data[0] for g, gi in zip(grads, grad_inputs)]
+
+        return [variable.Variable(g, requires_grad=g.is_backprop_required())
+                for g in grads]
+
+    elif n_chx_inputs > 0:
+        raise TypeError(
+            'Mixing chainerx and non-chainerx variables is not allowed')
 
     for v in outputs:
         # Raise error here if v is created by Function.backward.
@@ -1065,8 +1116,8 @@ def grad(outputs, inputs, grad_outputs=None, grad_inputs=None, set_grad=False,
             with chainer.using_device(y.device):
                 gy_data = y.device.xp.ones_like(y.array)
                 gy = variable.Variable(gy_data, requires_grad=False)
-            if loss_scale is not None:
-                gy.data *= loss_scale
+                if loss_scale is not None:
+                    gy.data *= loss_scale
         grads[y.node] = gy
 
     if grad_inputs is not None:
@@ -1187,8 +1238,8 @@ def _extract_apply_in_data(inputs):
     # `Variable._data[0]` (which is backproppable in contrast to
     # `Variable.array`) is returned.
     #
-    # If at least one of the arrays is a ChainerX array, all other NumPy/CuPy
-    # arrays are converted to ChainerX arrays without copy.
+    # If at least one of the arrays is a ChainerX array, all other
+    # arrays need to be ChainerX arrays.
     if not inputs:
         return False, ()
 
@@ -1209,12 +1260,7 @@ def _extract_apply_in_data(inputs):
                 if not has_chainerx_array:
                     if isinstance(x, chainerx.ndarray):
                         has_chainerx_array = True
-
-        if has_chainerx_array:
-            return True, tuple(backend.to_chx(arrays))
-        else:
-            return False, tuple(arrays)
-
+        return has_chainerx_array, tuple(arrays)
     else:
         return False, tuple([
             x.array if isinstance(x, variable.Variable) else x

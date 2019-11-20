@@ -60,6 +60,7 @@ class TestCReLU(testing.FunctionTestCase):
         expected_latter = numpy.maximum(-x, 0)
         expected = numpy.concatenate(
             (expected_former, expected_latter), axis=self.axis)
+        assert expected.shape == self.y_shape
         return expected,
 
 

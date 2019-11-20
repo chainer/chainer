@@ -5,7 +5,7 @@
 #include <utility>
 #include <vector>
 
-#include <nonstd/optional.hpp>
+#include <absl/types/optional.h>
 
 #include "chainerx/backprop_mode.h"
 #include "chainerx/context.h"
@@ -21,6 +21,7 @@ namespace python_internal {
 namespace {
 
 namespace py = pybind11;  // standard convention
+using py::literals::operator""_a;
 
 template <class BackpropModeScope>
 class PyBackpropModeScope {
@@ -45,7 +46,7 @@ private:
     // optional requires having copy ctor, so use unique_ptr instead
     std::unique_ptr<BackpropModeScope> scope_;
     Context* context_{nullptr};
-    nonstd::optional<std::vector<BackpropId>> backprop_ids_{};
+    absl::optional<std::vector<BackpropId>> backprop_ids_{};
 };
 
 template <class BackpropModeScope>
@@ -58,7 +59,7 @@ void InitChainerxBackpropModeScope(pybind11::module& m, const char* class_name, 
     m.def(function_name, [](const std::vector<BackpropId>& backprop_ids) { return PyBackpropModeScope<BackpropModeScope>{backprop_ids}; });
     m.def(function_name,
           [](py::object context) { return PyBackpropModeScope<BackpropModeScope>{GetContext(context)}; },
-          py::arg("context") = py::none());
+          "context"_a = py::none());
 }
 
 }  // namespace
@@ -67,10 +68,8 @@ void InitChainerxBackpropMode(pybind11::module& m) {
     InitChainerxBackpropModeScope<NoBackpropModeScope>(m, "NoBackpropMode", "no_backprop_mode");
     InitChainerxBackpropModeScope<ForceBackpropModeScope>(m, "ForceBackpropMode", "force_backprop_mode");
 
-    m.def("is_backprop_required", [](const BackpropId& backprop_id) { return IsBackpropRequired(backprop_id); }, py::arg("backprop_id"));
-    m.def("is_backprop_required",
-          [](py::handle context) { return IsBackpropRequired(GetContext(context)); },
-          py::arg("context") = py::none());
+    m.def("is_backprop_required", [](const BackpropId& backprop_id) { return IsBackpropRequired(backprop_id); }, "backprop_id"_a);
+    m.def("is_backprop_required", [](py::handle context) { return IsBackpropRequired(GetContext(context)); }, "context"_a = py::none());
 }
 
 }  // namespace python_internal

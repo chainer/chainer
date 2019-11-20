@@ -5,12 +5,9 @@ import numpy
 import chainer
 from chainer.backends import cuda
 import chainer.functions as F
-from chainer import gradient_check
 from chainer import testing
 from chainer.testing import array
 from chainer.testing import attr
-from chainer.testing import backend
-from chainer.testing import condition
 from chainer.testing import parameterize
 from chainer.utils import conv
 
@@ -23,7 +20,7 @@ def _pair(x):
 
 @parameterize(*(testing.product([
     testing.product({
-        'c_contiguous': [True],
+        'contiguous': ['C'],
         'test_outsize': [True, False],
         'nobias': [True],
         'stride': [1, 2],
@@ -33,7 +30,7 @@ def _pair(x):
         'groups': [1, 2],
     })
     + testing.product({
-        'c_contiguous': [False],
+        'contiguous': [None],
         'test_outsize': [True],
         'nobias': [False],
         'stride': [1, 2],
@@ -43,8 +40,8 @@ def _pair(x):
         'groups': [1, 2],
     }),
 ])))
-@backend.inject_backend_tests(
-    ['test_forward', 'test_backward', 'test_double_backward'],
+@testing.inject_backend_tests(
+    None,
     # CPU tests
     testing.product({
         'use_cuda': [False],
@@ -69,154 +66,92 @@ def _pair(x):
         'use_chainerx': [True],
         'chainerx_device': ['native:0', 'cuda:0'],
     }))
-class TestDeconvolution2DFunction(unittest.TestCase):
+class TestDeconvolution2DFunction(testing.FunctionTestCase):
 
     def setUp(self):
-        in_channels_a_group = 3
-        out_channels_a_group = 2
-        self.in_channels = in_channels_a_group * self.groups
-        self.out_channels = out_channels_a_group * self.groups
+        self.N = 2
+        self.inh, self.inw = 4, 3
+        self.in_channels_a_group = 3
+        self.out_channels_a_group = 2
+        self.in_channels = self.in_channels_a_group * self.groups
+        self.out_channels = self.out_channels_a_group * self.groups
         self.ksize = 3
         self.pad = 1
-        kh, kw = _pair(self.ksize)
-        sh, sw = _pair(self.stride)
-        ph, pw = _pair(self.pad)
+        self.kh, self.kw = _pair(self.ksize)
+        self.sh, self.sw = _pair(self.stride)
+        self.ph, self.pw = _pair(self.pad)
 
-        W = numpy.random.normal(
-            0, numpy.sqrt(1. / (kh * kw * in_channels_a_group)),
-            (self.in_channels, out_channels_a_group, kh, kw)
-        ).astype(self.W_dtype)
-        b = None if self.nobias else numpy.random.uniform(
-            -1, 1, self.out_channels).astype(self.x_dtype)
+        outh = conv.get_deconv_outsize(self.inh, self.kh, self.sh,
+                                       self.ph, d=self.dilate)
+        outw = conv.get_deconv_outsize(self.inw, self.kw, self.sw,
+                                       self.pw, d=self.dilate)
 
-        N = 2
-        inh, inw = 4, 3
-        outh = conv.get_deconv_outsize(inh, kh, sh, ph, d=self.dilate)
-        outw = conv.get_deconv_outsize(inw, kw, sw, pw, d=self.dilate)
         self.outsize = (outh, outw) if self.test_outsize else None
-        x = numpy.random.uniform(
-            -1, 1, (N, self.in_channels, inh, inw)).astype(self.x_dtype)
-        gy = numpy.random.uniform(
-            -1, 1, (N, self.out_channels, outh, outw)).astype(self.x_dtype)
 
-        ggx = numpy.random.uniform(-1, 1, x.shape).astype(
-            self.x_dtype)
-        ggW = numpy.random.uniform(-1, 1, W.shape).astype(
-            self.W_dtype)
-        ggb = None if self.nobias else numpy.random.uniform(
-            -1, 1, b.shape).astype(self.x_dtype)
-
-        self.inputs = [x, W, b]
-        self.grad_outputs = [gy]
-        self.grad_grad_inputs = [ggx, ggW, ggb]
-
-        self.test_forward_options = {}
-        self.check_backward_options = {'dtype': numpy.float64}
-        self.check_double_backward_options = {'dtype': numpy.float64}
         if self.x_dtype == numpy.float16:
-            self.test_forward_options.update(atol=5e-3, rtol=5e-2)
-            self.check_backward_options.update(atol=5e-4, rtol=5e-3)
+            self.check_forward_options.update(atol=5e-3, rtol=5e-2)
+            self.check_backward_options.update(atol=5e-3, rtol=5e-2)
             self.check_double_backward_options.update(atol=5e-3, rtol=5e-2)
         elif self.W_dtype == numpy.float16:
-            self.check_backward_options.update(atol=5e-4, rtol=5e-3)
+            self.check_backward_options.update(atol=5e-3, rtol=5e-2)
             self.check_double_backward_options.update(atol=5e-3, rtol=5e-2)
 
-    def forward_cpu(self, inputs):
-        x, W, b = inputs
-        x_cpu = chainer.Variable(x)
-        W_cpu = chainer.Variable(W)
-        b_cpu = None if b is None else chainer.Variable(b)
-        with chainer.using_config('use_ideep', 'never'):
-            y_cpu = F.deconvolution_2d(
-                x_cpu, W_cpu, b_cpu, stride=self.stride, pad=self.pad,
-                outsize=self.outsize, dilate=self.dilate, groups=self.groups)
-        return y_cpu,
+    def before_test(self, test_name):
+        # cuDNN 5 and 5.1 results suffer from precision issues
+        using_old_cudnn = (self.backend_config.xp is cuda.cupy
+                           and self.backend_config.use_cudnn == 'always'
+                           and cuda.cuda.cudnn.getVersion() < 6000)
+        if using_old_cudnn:
+            self.check_backward_options.update({
+                'atol': 1e-3, 'rtol': 1e-3})
+            self.check_double_backward_options.update({
+                'atol': 1e-2, 'rtol': 1e-2})
 
-    def check_forward(self, inputs, backend_config):
-        y_expected, = self.forward_cpu(inputs)
+    def generate_inputs(self):
+        W = numpy.random.normal(
+            0, numpy.sqrt(1. / (self.kh * self.kw * self.in_channels_a_group)),
+            (self.in_channels, self.out_channels_a_group, self.kh, self.kw)
+        ).astype(self.W_dtype)
 
-        x, W, b = backend_config.get_array(inputs)
-        x = chainer.Variable(x)
-        W = chainer.Variable(W)
-        b = None if b is None else chainer.Variable(b)
+        x = numpy.random.uniform(
+            -1, 1, (self.N, self.in_channels,
+                    self.inh, self.inw)).astype(self.x_dtype)
+        if self.nobias:
+            return x, W
+        else:
+            b = numpy.random.uniform(
+                -1, 1, self.out_channels).astype(self.x_dtype)
+            return x, W, b
 
-        with backend_config:
-            y_actual = F.deconvolution_2d(
-                x, W, b, stride=self.stride, pad=self.pad,
-                outsize=self.outsize, dilate=self.dilate, groups=self.groups)
+    def forward_expected(self, inputs):
+        """
+        Current forward_expected implementation depends on
+        F.deconvolution_2d itself and thus it's only capable
+        of checking consistency between backends, not absolute
+        correctness of computations
+        """
+        if self.nobias:
+            x, W = inputs
+            b = None
+        else:
+            x, W, b = inputs
+        y_expected = F.deconvolution_2d(
+            x, W, b, stride=self.stride, pad=self.pad,
+            outsize=self.outsize, dilate=self.dilate,
+            groups=self.groups)
+        return y_expected.array,
 
-        assert y_expected.data.dtype == self.x_dtype
-        assert y_actual.data.dtype == self.x_dtype
-        testing.assert_allclose(
-            y_expected.data, y_actual.data, **self.test_forward_options)
-
-    @attr.gpu
-    def test_forward(self, backend_config):
-        self.check_forward(self.inputs, backend_config)
-
-    def check_backward(self, inputs, grad_outputs, backend_config):
-        inputs = backend_config.get_array(inputs)
-        grad_outputs = backend_config.get_array(grad_outputs)
-
-        if not self.c_contiguous:
-            inputs = array._as_noncontiguous_array(inputs)
-            grad_outputs = array._as_noncontiguous_array(grad_outputs)
-
-        x_data, W_data, b_data = inputs
-        y_grad, = grad_outputs
-
-        args = (x_data, W_data)
-        if b_data is not None:
-            args = args + (b_data,)
-
-        def f(*args):
-            return F.deconvolution_2d(
-                *args, stride=self.stride, pad=self.pad, outsize=self.outsize,
-                dilate=self.dilate, groups=self.groups)
-
-        with backend_config:
-            gradient_check.check_backward(
-                f, args, y_grad, **self.check_backward_options)
-
-    @condition.retry(10)
-    def test_backward(self, backend_config):
-        self.check_backward(self.inputs, self.grad_outputs, backend_config)
-
-    def check_double_backward(
-            self, inputs, grad_outputs, grad_grad_inputs, backend_config):
-        inputs = backend_config.get_array(inputs)
-        grad_outputs = backend_config.get_array(grad_outputs)
-        grad_grad_inputs = backend_config.get_array(grad_grad_inputs)
-
-        if not self.c_contiguous:
-            inputs = array._as_noncontiguous_array(inputs)
-            grad_outputs = array._as_noncontiguous_array(grad_outputs)
-            grad_grad_inputs = array._as_noncontiguous_array(grad_grad_inputs)
-
-        x_data, W_data, b_data = inputs
-        y_grad, = grad_outputs
-        x_grad_grad, W_grad_grad, b_grad_grad = grad_grad_inputs
-
-        args = (x_data, W_data)
-        grad_grads = (x_grad_grad, W_grad_grad)
-        if b_data is not None:
-            args = args + (b_data,)
-            grad_grads = grad_grads + (b_grad_grad,)
-
-        def f(*args):
-            return F.deconvolution_2d(
-                *args, stride=self.stride, pad=self.pad, outsize=self.outsize,
-                dilate=self.dilate, groups=self.groups)
-
-        with backend_config:
-            gradient_check.check_double_backward(
-                f, args, y_grad, grad_grads,
-                **self.check_double_backward_options)
-
-    @condition.retry(10)
-    def test_double_backward(self, backend_config):
-        self.check_double_backward(self.inputs, self.grad_outputs,
-                                   self.grad_grad_inputs, backend_config)
+    def forward(self, inputs, device):
+        if self.nobias:
+            x, W = inputs
+            b = None
+        else:
+            x, W, b = inputs
+        y = F.deconvolution_2d(
+            x, W, b, stride=self.stride, pad=self.pad,
+            outsize=self.outsize, dilate=self.dilate,
+            groups=self.groups)
+        return y,
 
 
 @testing.parameterize(*testing.product({
@@ -353,6 +288,52 @@ class TestDeconvolution2DFunctionCudnnDeterministic(unittest.TestCase):
             y = F.deconvolution_2d(x, W, b, stride=self.stride, pad=self.pad,
                                    groups=self.groups)
         return x, W, b, y
+
+
+class TestDeconvolution2DInvalidDilation(unittest.TestCase):
+
+    n_batches = 2
+    in_channels = 3
+    out_channels = 2
+    dilate = 0
+    x_shape = (n_batches, in_channels, 10, 10)
+    w_shape = (in_channels, out_channels, 3, 3)
+
+    def check_invalid_dilation(self, x_data, w_data):
+        x = chainer.Variable(x_data)
+        w = chainer.Variable(w_data)
+        F.deconvolution_2d(x, w, dilate=self.dilate)
+
+    def test_invalid_dilation_cpu(self):
+        x = numpy.ones(self.x_shape, numpy.float32)
+        w = numpy.ones(self.w_shape, numpy.float32)
+        with self.assertRaises(ValueError):
+            with chainer.using_config('use_ideep', 'never'):
+                self.check_invalid_dilation(x, w)
+
+    @attr.ideep
+    def test_invalid_dilation_cpu_ideep(self):
+        x = numpy.ones(self.x_shape, numpy.float32)
+        w = numpy.ones(self.w_shape, numpy.float32)
+        with self.assertRaises(ValueError):
+            with chainer.using_config('use_ideep', 'always'):
+                self.check_invalid_dilation(x, w)
+
+    @attr.gpu
+    def test_invalid_dilation_gpu(self):
+        x = cuda.cupy.ones(self.x_shape, numpy.float32)
+        w = cuda.cupy.ones(self.w_shape, numpy.float32)
+        with self.assertRaises(ValueError):
+            with chainer.using_config('use_cudnn', 'never'):
+                self.check_invalid_dilation(x, w)
+
+    @attr.cudnn
+    def test_invalid_dilation_gpu_cudnn(self):
+        x = cuda.cupy.ones(self.x_shape, numpy.float32)
+        w = cuda.cupy.ones(self.w_shape, numpy.float32)
+        with self.assertRaises(ValueError):
+            with chainer.using_config('use_cudnn', 'cudnn'):
+                self.check_invalid_dilation(x, w)
 
 
 testing.run_module(__name__, __file__)

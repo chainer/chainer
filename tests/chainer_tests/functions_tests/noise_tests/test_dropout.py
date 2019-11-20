@@ -8,7 +8,6 @@ from chainer import functions
 from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
-from chainer.testing import backend
 
 
 @testing.parameterize(
@@ -17,7 +16,7 @@ from chainer.testing import backend
     {'dtype': numpy.float64, 'ratio': 0.5},
     {'dtype': numpy.float64, 'ratio': 0.0},
 )
-@backend.inject_backend_tests(
+@testing.inject_backend_tests(
     ['test_forward', 'test_backward', 'test_double_backward',
      'test_immutable'],
     # CPU tests

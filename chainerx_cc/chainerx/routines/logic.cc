@@ -96,4 +96,31 @@ Array Any(const Array& a, const OptionalAxes& axis, bool keepdims) {
     return out;
 }
 
+Array IsNan(const Array& x) {
+    Array out = Empty(x.shape(), Dtype::kBool, x.device());
+    {
+        NoBackpropModeScope scope{};
+        x.device().backend().CallKernel<IsNanKernel>(x, out);
+    }
+    return out;
+}
+
+Array IsInf(const Array& x) {
+    Array out = Empty(x.shape(), Dtype::kBool, x.device());
+    {
+        NoBackpropModeScope scope{};
+        x.device().backend().CallKernel<IsInfKernel>(x, out);
+    }
+    return out;
+}
+
+Array IsFinite(const Array& x) {
+    Array out = Empty(x.shape(), Dtype::kBool, x.device());
+    {
+        NoBackpropModeScope scope{};
+        x.device().backend().CallKernel<IsFiniteKernel>(x, out);
+    }
+    return out;
+}
+
 }  // namespace chainerx

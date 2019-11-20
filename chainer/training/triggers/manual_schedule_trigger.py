@@ -127,8 +127,8 @@ class ManualScheduleTrigger(object):
             self.finished = serializer('finished', self.finished)
         except KeyError:
             warnings.warn(
-                'The flag of finished is not saved.'
-                'ManualScheduleTrigger set the flag to `False` to force'
+                'The flag of finished is not saved. '
+                'ManualScheduleTrigger set the flag to `False` to force '
                 'initialization and reset in next `__call__`.')
             # set False to force initialization.
             self.finished = False

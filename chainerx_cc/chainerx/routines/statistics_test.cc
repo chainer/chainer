@@ -7,8 +7,8 @@
 #include <string>
 #include <vector>
 
+#include <absl/types/optional.h>
 #include <gtest/gtest.h>
-#include <nonstd/optional.hpp>
 
 #include "chainerx/array.h"
 #include "chainerx/axes.h"
@@ -37,7 +37,7 @@ protected:
     void TearDown() override { device_session_.reset(); }
 
 private:
-    nonstd::optional<testing::DeviceSession> device_session_;
+    absl::optional<testing::DeviceSession> device_session_;
 };
 
 TEST_P(StatisticsTest, Mean) {

@@ -8,6 +8,7 @@
 #include "chainerx/array_index.h"
 #include "chainerx/constant.h"
 #include "chainerx/device.h"
+#include "chainerx/dims.h"
 #include "chainerx/dtype.h"
 #include "chainerx/indexable_array.h"
 #include "chainerx/indexer.h"
@@ -17,7 +18,6 @@
 #include "chainerx/scalar.h"
 #include "chainerx/shape.h"
 #include "chainerx/slice.h"
-#include "chainerx/stack_vector.h"
 
 namespace chainerx {
 namespace native {
@@ -26,7 +26,7 @@ namespace native_internal {
 namespace {
 
 template <typename T, int8_t kKernelNdim>
-void Col2ImImpl(const Array& col, const Array& out, const StackVector<int64_t, kMaxNdim>& stride, const Indexer<2>& batch_channel_indexer) {
+void Col2ImImpl(const Array& col, const Array& out, const Dims& stride, const Indexer<2>& batch_channel_indexer) {
     static constexpr int8_t kColNdim = 2 + 2 * kKernelNdim;
     static constexpr int8_t kOutNdim = 2 + kKernelNdim;
 
@@ -72,11 +72,7 @@ void Col2ImImpl(const Array& col, const Array& out, const StackVector<int64_t, k
 
 }  // namespace
 
-Array Col2Im(
-        const Array& col,
-        const StackVector<int64_t, kMaxNdim>& stride,
-        const StackVector<int64_t, kMaxNdim>& pad,
-        const StackVector<int64_t, kMaxNdim>& out_size) {
+Array Col2Im(const Array& col, const Dims& stride, const Dims& pad, const Dims& out_size) {
     int64_t batch_size = col.shape()[0];
     int64_t channels = col.shape()[1];
     auto ndim = static_cast<int8_t>(stride.size());

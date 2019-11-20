@@ -35,12 +35,11 @@ public:
 
     int GetDeviceCount() const override;
 
+    bool IsNative() const override { return true; }
+
     bool SupportsTransfer(Device& src_device, Device& dst_device) override;
 
-    static KernelRegistry& GetGlobalKernelRegistry() {
-        static gsl::owner<KernelRegistry*> global_kernel_registry = new KernelRegistry{};
-        return *global_kernel_registry;
-    }
+    static KernelRegistry& GetGlobalKernelRegistry();
 
 protected:
     KernelRegistry& GetParentKernelRegistry() override { return GetGlobalKernelRegistry(); }

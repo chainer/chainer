@@ -89,12 +89,15 @@ class LogNormal(distribution.Distribution):
 
     @cache.cached_property
     def variance(self):
-        return exponential.exp(2 * self.mu + self.sigma ** 2) \
-            * (exponential.exp(self.sigma ** 2) - 1)
+        return (
+            exponential.exp(2 * self.mu + self.sigma ** 2)
+            * (exponential.exp(self.sigma ** 2) - 1))
 
 
 @distribution.register_kl(LogNormal, LogNormal)
 def _kl_log_normal_log_normal(dist1, dist2):
-    return 0.5 * ((dist1.mu - dist2.mu) ** 2 +
-                  dist1.sigma ** 2) / dist2.sigma ** 2 - 0.5 \
-        + dist2._log_sigma - dist1._log_sigma
+    return (
+        0.5 * ((dist1.mu - dist2.mu)**2 + dist1.sigma**2) / dist2.sigma**2
+        - 0.5
+        + dist2._log_sigma
+        - dist1._log_sigma)

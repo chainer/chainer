@@ -1,6 +1,5 @@
-import six
-
 import numpy
+import six
 
 from chainer import functions
 import chainer.functions.normalization.group_normalization as gn_module
@@ -27,7 +26,7 @@ def _simple_group_normalization(x, groups, gamma, beta, eps=1e-5):
 
 
 @testing.parameterize(*(testing.product({
-    'shape': [(1, 4, 5, 5), (5, 4, 15)],
+    'shape': [(1, 4, 5, 3), (5, 4, 7), (3, 20)],
     'groups': [1, 2, 4],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'eps': [1e-5, 1e-1],
@@ -63,9 +62,21 @@ class TestGroupNormalization(testing.FunctionTestCase):
                 {'atol': 1e-2, 'rtol': 1e-2})
 
     def generate_inputs(self):
-        x = numpy.random.uniform(-1, 1, self.shape).astype(self.dtype)
-        gamma = numpy.random.uniform(-1, 1, self.shape[1]).astype(self.dtype)
-        beta = numpy.random.uniform(-1, 1, self.shape[1]).astype(self.dtype)
+        shape = self.shape
+
+        # sample x such that x.std >= min_std
+        min_std = 0.2 if self.dtype == numpy.float16 else 0.02
+        retry = 0
+        while True:
+            x = numpy.random.uniform(-1, 1, shape).astype(self.dtype)
+            x_groups = x.reshape(shape[0], self.groups, -1)
+            if x_groups.std(axis=2).min() >= min_std:
+                break
+            retry += 1
+            assert retry <= 20, 'Too many retries to generate inputs'
+
+        gamma = numpy.random.uniform(-1, 1, shape[1]).astype(self.dtype)
+        beta = numpy.random.uniform(-1, 1, shape[1]).astype(self.dtype)
         return x, gamma, beta
 
     def forward(self, inputs, device):

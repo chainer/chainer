@@ -1,5 +1,3 @@
-import numpy
-
 import chainer
 from chainer import backend
 from chainer import configuration
@@ -8,7 +6,6 @@ from chainer import link_hook
 import chainer.links as L
 from chainer import variable
 import chainerx
-from chainerx import _fallback_workarounds as fallback
 
 
 def l2normalize(xp, v, eps):
@@ -240,17 +237,18 @@ class SpectralNormalization(link_hook.LinkHook):
             # Initialize the scaling parameter with the max singular value.
             weight_matrix = self.reshape_W(initialW.array)
             # TODO(crcrpar): Remove this when chainerx supports SVD.
-            if link.xp is chainerx:
-                xp, device, array = fallback._from_chx(weight_matrix)
-                if xp is numpy:
-                    _, s, _ = numpy.linalg.svd(array)
-                else:
-                    with chainer.using_device(device):
-                        _, s, _ = xp.linalg.svd(array)
+            device = link.device
+            if device.xp is chainerx:
+                fallback_device = device.fallback_device
+                weight_matrix_ = fallback_device.send(weight_matrix)
+                with chainer.using_device(fallback_device):
+                    _, s_, _ = fallback_device.xp.linalg.svd(weight_matrix_)
+                s = device.send(s_)
             else:
                 _, s, _ = link.xp.linalg.svd(weight_matrix)
+            s0 = chainer.utils.force_array(s[0])
             with link.init_scope():
-                link.gamma = variable.Parameter(s[0], ())
+                link.gamma = variable.Parameter(s0)
         self._initialized = True
 
     def normalize_weight(self, link):

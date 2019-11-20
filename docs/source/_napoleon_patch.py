@@ -1,3 +1,5 @@
+from typing import List
+
 import sphinx
 
 
@@ -16,8 +18,7 @@ def qualify_name(attr_name, klass):
 def setup(app):
     app.setup_extension('sphinx.ext.napoleon')
 
-    def _parse_attributes_section(self, section):
-        # type: (unicode) -> List[unicode]
+    def _parse_attributes_section(self, section: str) -> List[str]:
         lines = []
         for _name, _type, _desc in self._consume_fields():
             if self._config.napoleon_use_ivar:

@@ -20,8 +20,7 @@ class DeformableConvolution2D(link.Chain):
         in_channels (int): Number of channels of input arrays. If ``None``,
             parameter initialization will be deferred until the first forward
             data pass at which time the size will be determined.
-        channel_multiplier (int): Channel multiplier number. Number of output
-            arrays equal ``in_channels * channel_multiplier``.
+        out_channels (int): Number of channels of output arrays.
         ksize (int or pair of ints): Size of filters (a.k.a. kernels).
             ``ksize=k`` and ``ksize=(k, k)`` are equivalent.
         stride (int or pair of ints): Stride of filter applications.

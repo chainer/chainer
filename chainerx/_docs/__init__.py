@@ -7,6 +7,7 @@ from chainerx._docs import backprop
 from chainerx._docs import context
 from chainerx._docs import device
 from chainerx._docs import routines
+from chainerx._docs import utils
 
 
 def set_doc(obj, docstring):
@@ -20,5 +21,5 @@ def set_doc(obj, docstring):
 
 
 def set_docs():
-    for m in (array, backend, backprop, context, device, routines):
+    for m in (array, backend, backprop, context, device, routines, utils):
         m.set_docs()

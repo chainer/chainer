@@ -11,14 +11,6 @@ environment:
     # a later point release.
     # See: https://www.appveyor.com/docs/installed-software#python
 
-    - PYTHON: "C:\\Miniconda"
-      PYTHON_VERSION: "2.7.x"
-      PYTHON_ARCH: "32"
-
-    - PYTHON: "C:\\Miniconda-x64"
-      PYTHON_VERSION: "2.7.x"
-      PYTHON_ARCH: "64"
-
     - PYTHON: "C:\\Miniconda35"
       PYTHON_VERSION: "3.5.x"
       PYTHON_ARCH: "32"

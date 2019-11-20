@@ -29,14 +29,14 @@ public:
     CHAINERX_HOST_DEVICE explicit operator double() const;
 
     CHAINERX_HOST_DEVICE explicit operator bool() const { return static_cast<float>(*this) != 0.0f; }
-    CHAINERX_HOST_DEVICE explicit operator int16_t() const { return static_cast<float>(*this); }
-    CHAINERX_HOST_DEVICE explicit operator uint16_t() const { return static_cast<float>(*this); }
-    CHAINERX_HOST_DEVICE explicit operator int32_t() const { return static_cast<double>(*this); }
-    CHAINERX_HOST_DEVICE explicit operator uint32_t() const { return static_cast<double>(*this); }
-    CHAINERX_HOST_DEVICE explicit operator int64_t() const { return static_cast<double>(*this); }
-    CHAINERX_HOST_DEVICE explicit operator uint64_t() const { return static_cast<double>(*this); }
-    CHAINERX_HOST_DEVICE explicit operator signed char() const { return static_cast<float>(*this); }
-    CHAINERX_HOST_DEVICE explicit operator unsigned char() const { return static_cast<float>(*this); }
+    CHAINERX_HOST_DEVICE explicit operator int16_t() const { return static_cast<int16_t>(static_cast<float>(*this)); }
+    CHAINERX_HOST_DEVICE explicit operator uint16_t() const { return static_cast<uint16_t>(static_cast<float>(*this)); }
+    CHAINERX_HOST_DEVICE explicit operator int32_t() const { return static_cast<int32_t>(static_cast<double>(*this)); }
+    CHAINERX_HOST_DEVICE explicit operator uint32_t() const { return static_cast<uint32_t>(static_cast<double>(*this)); }
+    CHAINERX_HOST_DEVICE explicit operator int64_t() const { return static_cast<int64_t>(static_cast<double>(*this)); }
+    CHAINERX_HOST_DEVICE explicit operator uint64_t() const { return static_cast<uint64_t>(static_cast<double>(*this)); }
+    CHAINERX_HOST_DEVICE explicit operator int8_t() const { return static_cast<int8_t>(static_cast<float>(*this)); }
+    CHAINERX_HOST_DEVICE explicit operator uint8_t() const { return static_cast<uint8_t>(static_cast<float>(*this)); }
 
     CHAINERX_HOST_DEVICE bool operator==(Float16 r) const { return static_cast<float>(*this) == static_cast<float>(r); }
     CHAINERX_HOST_DEVICE bool operator!=(Float16 r) const { return static_cast<float>(*this) != static_cast<float>(r); }

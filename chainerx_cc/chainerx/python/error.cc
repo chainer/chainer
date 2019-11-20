@@ -20,6 +20,16 @@ void InitChainerxError(pybind11::module& m) {
     py::register_exception<NotImplementedError>(m, "NotImplementedError");
     py::register_exception<GradientError>(m, "GradientError");
     py::register_exception<GradientCheckError>(m, "GradientCheckError");
+
+    py::register_exception_translator([](std::exception_ptr p) {
+        try {
+            if (p != nullptr) {
+                std::rethrow_exception(p);
+            }
+        } catch (const IndexError& e) {
+            throw py::index_error{e.what()};
+        }
+    });
 }
 
 }  // namespace python_internal

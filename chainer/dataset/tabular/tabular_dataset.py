@@ -23,6 +23,8 @@ class TabularDataset(dataset_mixin.DatasetMixin):
     Since an example can be represented by both tuple and dict (
     :obj:`(a[i], b[i], c[i])` and :obj:`{'a': a[i], 'b': b[i], 'c': c[i]}`),
     this class uses :attr:`mode` to indicate which representation will be used.
+    If there is only one column, an example also can be represented by a value
+    (:obj:`a[i]`). In this case, :attr:`mode` is :obj:`None`.
 
     An inheritance should implement
     :meth:`__len__`, :attr:`keys`, :attr:`mode` and :meth:`get_examples`.
@@ -57,9 +59,9 @@ class TabularDataset(dataset_mixin.DatasetMixin):
     4
     >>> dataset.keys
     ('a', 'b', 'c')
-    >>> dataset.as_tuple()[0]
+    >>> dataset.astuple()[0]
     (0, 1, 2)
-    >>> sorted(dataset.as_dict()[0].items())
+    >>> sorted(dataset.asdict()[0].items())
     [('a', 0), ('b', 1), ('c', 2)]
     >>>
     >>> view = dataset.slice[[3, 2], ('c', 0)]
@@ -67,9 +69,9 @@ class TabularDataset(dataset_mixin.DatasetMixin):
     2
     >>> view.keys
     ('c', 'a')
-    >>> view.as_tuple()[1]
+    >>> view.astuple()[1]
     (8, 6)
-    >>> sorted(view.as_dict()[1].items())
+    >>> sorted(view.asdict()[1].items())
     [('a', 6), ('c', 8)]
 
     """
@@ -89,9 +91,9 @@ class TabularDataset(dataset_mixin.DatasetMixin):
     def mode(self):
         """Mode of representation.
 
-        This indicates the type of value returend
+        This indicates the type of value returned
         by :meth:`fetch` and :meth:`__getitem__`.
-        :class:`tuple` and :class:`dict` are supported.
+        :class:`tuple`, :class:`dict`, and :obj:`None` are supported.
         """
         raise NotImplementedError
 
@@ -115,10 +117,10 @@ class TabularDataset(dataset_mixin.DatasetMixin):
 
         Args:
            indices (list/array of ints/bools or slice): Requested rows.
-           keys (tuple of ints/strs): Requested columns.
+           keys (tuple of ints/strs or int or str): Requested columns.
 
         Returns:
-            A view of specifed range.
+            A view of specified range.
         """
         return chainer.dataset.tabular._slice._SliceHelper(self)
 
@@ -127,8 +129,9 @@ class TabularDataset(dataset_mixin.DatasetMixin):
 
         This method fetches all data of the dataset/view.
         Note that this method returns a column-major data
-        (i.e. :obj:`([a[0], ..., a[3]], ..., [c[0], ... c[3]])` or
-        :obj:`{'a': [a[0], ..., a[3]], ..., 'c': [c[0], ..., c[3]]}`).
+        (i.e. :obj:`([a[0], ..., a[3]], ..., [c[0], ... c[3]])`,
+        :obj:`{'a': [a[0], ..., a[3]], ..., 'c': [c[0], ..., c[3]]}`, or
+        :obj:`[a[0], ..., a[3]]`).
 
         Returns:
             If :attr:`mode` is :class:`tuple`,
@@ -141,22 +144,48 @@ class TabularDataset(dataset_mixin.DatasetMixin):
             return examples
         elif self.mode is dict:
             return dict(six.moves.zip(self.keys, examples))
+        elif self.mode is None:
+            return examples[0]
 
-    def as_tuple(self):
+    def convert(self, data):
+        """Convert fetched data.
+
+        This method takes data fetched by :meth:`fetch` and
+        pre-process them before passing them to models.
+        The default behaviour is converting each column into an ndarray.
+        This behaviour can be overridden by :meth:`with_converter`.
+        If the dataset is constructed by :meth:`concat` or :meth:`join`,
+        the converter of the first dataset is used.
+
+        Args:
+            data (tuple or dict): Data from :meth:`fetch`.
+
+        Returns:
+            A tuple or dict.
+            Each value is an ndarray.
+        """
+        if isinstance(data, tuple):
+            return tuple(_as_array(d) for d in data)
+        elif isinstance(data, dict):
+            return {k: _as_array(v) for k, v in data.items()}
+        else:
+            return _as_array(data)
+
+    def astuple(self):
         """Return a view with tuple mode.
 
         Returns:
             A view whose :attr:`mode` is :class:`tuple`.
         """
-        return chainer.dataset.tabular._as_mode._AsTuple(self)
+        return chainer.dataset.tabular._asmode._Astuple(self)
 
-    def as_dict(self):
+    def asdict(self):
         """Return a view with dict mode.
 
         Returns:
             A view whose :attr:`mode` is :class:`dict`.
         """
-        return chainer.dataset.tabular._as_mode._AsDict(self)
+        return chainer.dataset.tabular._asmode._Asdict(self)
 
     def concat(self, *datasets):
         """Stack datasets along rows.
@@ -184,6 +213,53 @@ class TabularDataset(dataset_mixin.DatasetMixin):
         """
         return chainer.dataset.tabular._join._Join(self, *datasets)
 
+    def transform(self, keys, transform):
+        """Apply a transform to each example.
+
+        Args:
+            keys (tuple of strs): The keys of transformed examples.
+            transform (callable): A callable that takes an example
+                and returns transformed example. :attr:`mode` of
+                transformed dataset is determined by the transformed
+                examples.
+
+        Returns:
+            A transfromed dataset.
+        """
+        return chainer.dataset.tabular._transform._Transform(
+            self, keys, transform)
+
+    def transform_batch(self, keys, transform_batch):
+        """Apply a transform to examples.
+
+        Args:
+            keys (tuple of strs): The keys of transformed examples.
+            transform_batch (callable): A callable that takes examples
+                and returns transformed examples. :attr:`mode` of
+                transformed dataset is determined by the transformed
+                examples.
+
+        Returns:
+            A transfromed dataset.
+        """
+        return chainer.dataset.tabular._transform._TransformBatch(
+            self, keys, transform_batch)
+
+    def with_converter(self, converter):
+        """Override the behaviour of :meth:`convert`.
+
+        This method overrides :meth:`convert`.
+
+        Args:
+            converter (callable): A new converter.
+
+        Returns:
+            A dataset with the new converter.
+        """
+
+        return chainer.dataset.tabular._with_converter._WithConverter(
+            self, converter)
+
     def get_example(self, i):
         example = self.get_examples([i], None)
         example = tuple(col[0] for col in example)
@@ -191,3 +267,17 @@ class TabularDataset(dataset_mixin.DatasetMixin):
             return example
         elif self.mode is dict:
             return dict(six.moves.zip(self.keys, example))
+        elif self.mode is None:
+            return example[0]
+
+    def __iter__(self):
+        return (self.get_example(i) for i in six.moves.range(len(self)))
+
+
+def _as_array(data):
+    if isinstance(data, chainer.get_array_types()):
+        return data
+    else:
+        device = chainer.backend.get_device_from_array(data[0])
+        with chainer.using_device(device):
+            return device.xp.asarray(data)

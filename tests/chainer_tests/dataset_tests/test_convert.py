@@ -2,6 +2,7 @@ import sys
 import unittest
 
 import numpy
+import pytest
 
 from chainer import backend
 from chainer.backends import cuda
@@ -146,7 +147,7 @@ class TestConcatExamples(ConverterTestBase, unittest.TestCase):
 class _XFailConcatWithAsyncTransfer(object):
 
     @attr.chainerx
-    @unittest.expectedFailure
+    @pytest.mark.xfail(strict=True)
     def test_concat_arrays_to_chainerx(self, *args, **kwargs):
         (
             super(_XFailConcatWithAsyncTransfer, self)
@@ -154,7 +155,7 @@ class _XFailConcatWithAsyncTransfer(object):
         )
 
     @attr.chainerx
-    @unittest.expectedFailure
+    @pytest.mark.xfail(strict=True)
     def test_concat_tuples_to_chainerx(self, *args, **kwargs):
         (
             super(_XFailConcatWithAsyncTransfer, self)
@@ -162,7 +163,7 @@ class _XFailConcatWithAsyncTransfer(object):
         )
 
     @attr.chainerx
-    @unittest.expectedFailure
+    @pytest.mark.xfail(strict=True)
     def test_concat_dicts_to_chainerx(self, *args, **kwargs):
         (
             super(_XFailConcatWithAsyncTransfer, self)

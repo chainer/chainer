@@ -105,7 +105,8 @@ class Uniform(distribution.Distribution):
         return where.where(
             utils.force_array(
                 (x.data >= self.low.data) & (x.data <= self.high.data)),
-            logp, xp.array(-xp.inf, logp.dtype))
+            logp,
+            xp.array(-xp.inf, logp.dtype))
 
     @cache.cached_property
     def mean(self):
@@ -124,8 +125,9 @@ class Uniform(distribution.Distribution):
             eps = xp.random.uniform(
                 0, 1, (n,) + self.low.shape, dtype=self.low.dtype)
         else:
-            eps = xp.random.uniform(
-                0, 1, (n,) + self.low.shape).astype(self.low.dtype)
+            eps = (
+                xp.random.uniform(0, 1, (n,) + self.low.shape)
+                .astype(self.low.dtype))
 
         noise = self.icdf(eps)
 
@@ -150,8 +152,8 @@ def _kl_uniform_uniform(dist1, dist2):
 
     is_inf = xp.logical_or(dist1.high.data > dist2.high.data,
                            dist1.low.data < dist2.low.data)
-    kl = - exponential.log(dist1.high - dist1.low) \
-        + exponential.log(dist2.high - dist2.low)
+    kl = (- exponential.log(dist1.high - dist1.low)
+          + exponential.log(dist2.high - dist2.low))
     inf = xp.array(xp.inf, dist1.high.dtype)
 
     return where.where(is_inf, inf, kl)

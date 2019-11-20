@@ -2,11 +2,11 @@
 
 #include <string>
 
-#include <nonstd/optional.hpp>
+#include <absl/types/optional.h>
 
 namespace chainerx {
 
-nonstd::optional<std::string> GetEnv(const std::string& name);
+absl::optional<std::string> GetEnv(const std::string& name);
 
 void SetEnv(const std::string& name, const std::string& value);
 

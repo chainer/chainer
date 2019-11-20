@@ -37,7 +37,7 @@ class BernoulliLogProb(chainer.function_node.FunctionNode):
 
         if self.binary_check:
             self.invalid = utils.force_array(xp.bitwise_and(x != 0, x != 1))
-            y[self.invalid] = - xp.inf
+            y[self.invalid] = -xp.inf
 
         return utils.force_array(y, logit.dtype),
 
@@ -114,8 +114,8 @@ class Bernoulli(distribution.Distribution):
     def entropy(self):
         p = self.p
         q = p.dtype.type(1.) - p
-        return - chainer.distributions.utils._modified_xlogx(p) \
-            - chainer.distributions.utils._modified_xlogx(q)
+        return (- chainer.distributions.utils._modified_xlogx(p)
+                - chainer.distributions.utils._modified_xlogx(q))
 
     @property
     def event_shape(self):
@@ -171,6 +171,7 @@ class Bernoulli(distribution.Distribution):
 
 @distribution.register_kl(Bernoulli, Bernoulli)
 def _kl_bernoulli_bernoulli(dist1, dist2):
-    return (dist1.logit - dist2.logit) * (dist1.p - 1.) \
-        - exponential.log(exponential.exp(-dist1.logit) + 1) \
-        + exponential.log(exponential.exp(-dist2.logit) + 1)
+    return (
+        (dist1.logit - dist2.logit) * (dist1.p - 1.)
+        - exponential.log(exponential.exp(-dist1.logit) + 1)
+        + exponential.log(exponential.exp(-dist2.logit) + 1))

@@ -28,19 +28,21 @@ class Independent(distribution.Distribution):
         super(Independent, self).__init__()
         self.__distribution = distribution
         if reinterpreted_batch_ndims is None:
-            reinterpreted_batch_ndims = \
-                self._get_default_reinterpreted_batch_ndims(distribution)
+            reinterpreted_batch_ndims = (
+                self._get_default_reinterpreted_batch_ndims(distribution))
         elif reinterpreted_batch_ndims > len(distribution.batch_shape):
             raise ValueError(
                 'reinterpreted_batch_ndims must be less than or equal to the '
                 'number of dimensions of `distribution.batch_shape`.')
         self.__reinterpreted_batch_ndims = reinterpreted_batch_ndims
 
-        batch_ndim = \
-            len(self.distribution.batch_shape) - self.reinterpreted_batch_ndims
+        batch_ndim = (
+            len(self.distribution.batch_shape)
+            - self.reinterpreted_batch_ndims)
         self.__batch_shape = distribution.batch_shape[:batch_ndim]
-        self.__event_shape = \
-            distribution.batch_shape[batch_ndim:] + distribution.event_shape
+        self.__event_shape = (
+            distribution.batch_shape[batch_ndim:]
+            + distribution.event_shape)
 
     @property
     def distribution(self):
@@ -85,19 +87,19 @@ class Independent(distribution.Distribution):
         Returns:
             ~chainer.Variable: The covariance of the distribution.
         """
-        num_repeat = array.size_of_shape(
+        n_repeats = array.size_of_shape(
             self.distribution.batch_shape[-self.reinterpreted_batch_ndims:])
         dim = array.size_of_shape(self.distribution.event_shape)
         cov = repeat.repeat(
             reshape.reshape(
                 self.distribution.covariance,
-                ((self.batch_shape) + (1, num_repeat, dim, dim))),
-            num_repeat, axis=-4)
+                ((self.batch_shape) + (1, n_repeats, dim, dim))),
+            n_repeats, axis=-4)
         cov = reshape.reshape(
             transpose.transpose(
                 cov, axes=(
                     tuple(range(len(self.batch_shape))) + (-4, -2, -3, -1))),
-            self.batch_shape + (num_repeat * dim, num_repeat * dim))
+            self.batch_shape + (n_repeats * dim, n_repeats * dim))
         block_indicator = self.xp.reshape(
             self._block_indicator,
             tuple([1] * len(self.batch_shape)) + self._block_indicator.shape)
@@ -188,12 +190,12 @@ class Independent(distribution.Distribution):
 
     @cache.cached_property
     def _block_indicator(self):
-        num_repeat = array.size_of_shape(
+        n_repeats = array.size_of_shape(
             self.distribution.batch_shape[-self.reinterpreted_batch_ndims:])
         dim = array.size_of_shape(self.distribution.event_shape)
         block_indicator = numpy.fromfunction(
             lambda i, j: i // dim == j // dim,
-            (num_repeat * dim, num_repeat * dim)).astype(int)
+            (n_repeats * dim, n_repeats * dim)).astype(int)
         if self.xp is cuda.cupy:
             block_indicator = cuda.to_gpu(block_indicator)
         return block_indicator
@@ -234,11 +236,11 @@ def _kl_independent_independent(dist1, dist2):
     # KL(p || q) and do a `reduce_sum` on the reinterpreted batch dimensions.
     if dist1.event_shape == dist2.event_shape:
         if p.event_shape == q.event_shape:
-            num_reduce_dims = len(dist1.event_shape) - len(p.event_shape)
-            reduce_dims = tuple([-i - 1 for i in range(0, num_reduce_dims)])
+            n_axes = len(dist1.event_shape) - len(p.event_shape)
+            n_reduce_dims = tuple([-i - 1 for i in range(0, n_axes)])
 
             return sum_mod.sum(
-                distribution.kl_divergence(p, q), axis=reduce_dims)
+                distribution.kl_divergence(p, q), axis=n_reduce_dims)
         else:
             raise NotImplementedError(
                 'KL between Independents with different '

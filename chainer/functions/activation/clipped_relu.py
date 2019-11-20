@@ -39,7 +39,7 @@ class ClippedReLU(function_node.FunctionNode):
 
     def forward_chainerx(self, inputs):
         x, = inputs
-        return chainerx.minimum(chainerx.maximum(0, x), self.cap),
+        return chainerx.clipped_relu(x, self.cap),
 
     def forward_cpu(self, inputs):
         self.retain_inputs((0,))

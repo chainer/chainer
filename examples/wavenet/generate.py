@@ -49,7 +49,7 @@ if device.xp is chainer.backends.cuda.cupy:
 _, condition, _ = Preprocess(
     sr=16000, n_fft=1024, hop_length=256, n_mels=128, top_db=20,
     length=None, quantize=args.a_channels)(args.input)
-x = numpy.zeros([1, args.a_channels, 1, 1], dtype=condition.dtype)
+x = numpy.zeros([1, args.a_channels, 1], dtype=condition.dtype)
 condition = numpy.expand_dims(condition, axis=0)
 
 # Define networks
@@ -93,9 +93,9 @@ for i in tqdm.tqdm(range(len(output))):
     value = random_choice(
         device,
         args.a_channels, size=1,
-        p=chainer.functions.softmax(out).array[0, :, 0, 0])[0]
+        p=chainer.functions.softmax(out).array[0, :, 0])[0]
     zeros = decoder.xp.zeros_like(x.array)
-    zeros[:, value, :, :] = 1
+    zeros[:, value, :] = 1
     x = chainer.Variable(zeros)
     output[i] = value
 

@@ -1,3 +1,5 @@
+import numpy
+
 import chainer
 from chainer import backend
 from chainer.backends import cuda
@@ -31,8 +33,8 @@ class GroupNormalization(function_node.FunctionNode):
             x_type.ndim >= 2,
             gamma_type.ndim == 1,
             beta_type.ndim == 1,
-            gamma_type.dtype == x_type.dtype,
-            beta_type.dtype == x_type.dtype,
+            gamma_type.dtype.kind == 'f',
+            gamma_type.dtype == beta_type.dtype,
             x_type.shape[1] == gamma_type.shape[0],
             gamma_type.shape == beta_type.shape,
         )
@@ -50,19 +52,24 @@ class GroupNormalization(function_node.FunctionNode):
         self.retain_inputs((0, 1))
         x, gamma, beta = inputs
 
+        interm_dtype = numpy.promote_types(x.dtype, gamma.dtype)
+
+        gamma = gamma.astype(interm_dtype, copy=False)
+        beta = beta.astype(interm_dtype, copy=False)
+
         orig_shape = x.shape
         batch_size, channels = orig_shape[:2]
         groups = self.groups
         reduced_shape = (batch_size * groups, -1)
         x = x.reshape(reduced_shape)
 
-        self.mean = x.mean(axis=1)
+        self.mean = x.mean(axis=1, dtype=interm_dtype)
         x_hat = x - self.mean[:, None]
         var = (x_hat * x_hat).mean(axis=1)
         var += self.eps
         self.inv_std = var
         del var
-        xp.sqrt(self.inv_std, out=self.inv_std, dtype=x.dtype)
+        xp.sqrt(self.inv_std, out=self.inv_std)
         xp.reciprocal(self.inv_std, out=self.inv_std)
         x_hat *= self.inv_std[:, None]
 
@@ -71,7 +78,7 @@ class GroupNormalization(function_node.FunctionNode):
         y += beta[:, None]
 
         y = y.reshape(orig_shape)
-        return y,
+        return y.astype(x.dtype, copy=False),
 
     def forward_cudnn(self, inputs):
         if self.eps < libcudnn.CUDNN_BN_MIN_EPSILON:
@@ -83,6 +90,11 @@ class GroupNormalization(function_node.FunctionNode):
         x, gamma, beta = inputs
         xp = cuda.cupy
 
+        interm_dtype = numpy.promote_types(x.dtype, gamma.dtype)
+
+        gamma = gamma.astype(interm_dtype, copy=False)
+        beta = beta.astype(interm_dtype, copy=False)
+
         orig_shape = x.shape
         batch_size, channels = orig_shape[:2]
         groups = self.groups
@@ -90,7 +102,7 @@ class GroupNormalization(function_node.FunctionNode):
         x = x.reshape(cudnn_shape)
 
         with x.device:
-            dummy_beta = xp.zeros(batch_size * groups, dtype=x.dtype)
+            dummy_beta = xp.zeros(batch_size * groups, dtype=beta.dtype)
             self.dummy_gamma = xp.ones_like(dummy_beta)
         x_hat, self.mean, self.inv_std = \
             cudnn.batch_normalization_forward_training(
@@ -100,7 +112,7 @@ class GroupNormalization(function_node.FunctionNode):
 
         y = x_hat.reshape((batch_size, channels, -1))
         cuda.elementwise(
-            'T gamma, T beta', 'T y',
+            'T gamma, T beta', 'U y',
             'y = y * gamma + beta',
             'groupnorm_y')(gamma[:, None], beta[:, None], y)
 
@@ -111,22 +123,29 @@ class GroupNormalization(function_node.FunctionNode):
         x, gamma = self.get_retained_inputs()
         gy, = grad_outputs
 
+        interm_dtype = numpy.promote_types(x.dtype, gamma.dtype)
+
+        gamma = chainer.functions.cast(gamma, interm_dtype)
+
         orig_shape = x.shape
         batch_size = orig_shape[0]
         groups = self.groups
         reduced_shape = (batch_size * groups, -1)
         x = x.reshape(reduced_shape)
+        x_ = chainer.functions.cast(x, interm_dtype)
 
         x_hat, = _XHat(
             self.eps, self.mean, self.inv_std,
-            self.dummy_gamma).apply((x,))
-        gx_hat, ggamma, gbeta = _ScaleShiftGrad().apply((x_hat, gamma, gy))
+            self.dummy_gamma).apply((x_,))
+        gx_hat, ggamma, gbeta = _ScaleShiftGrad().apply((
+            x_hat, gamma, chainer.functions.cast(gy, interm_dtype)))
         gx, = _XHatGrad(
             self.eps, self.mean, self.inv_std,
-            self.dummy_gamma, x_hat.array).apply((x, gx_hat))
+            self.dummy_gamma, x_hat.array).apply(
+                (x_, gx_hat))
 
         gx = gx.reshape(orig_shape)
-        return gx, ggamma, gbeta
+        return chainer.functions.cast(gx, x.dtype), ggamma, gbeta
 
 
 class _ScaleShiftGrad(function_node.FunctionNode):
@@ -196,7 +215,7 @@ class _XHat(function_node.FunctionNode):
         self.retain_inputs((0,))
         x, = inputs
         x_hat = cuda.elementwise(
-            'T x, T mean, T inv_std', 'T x_hat',
+            'T x, U mean, U inv_std', 'T x_hat',
             'x_hat = (x - mean) * inv_std',
             'groupnorm_x_hat')(x, self.mean[:, None], self.inv_std[:, None])
         self.retain_outputs((0,))
@@ -382,5 +401,11 @@ def group_normalization(x, groups, gamma, beta, eps=1e-5):
         as :math:`x`.
 
     See: `Group Normalization <https://arxiv.org/abs/1803.08494>`_
+
+    .. seealso::
+
+        :class:`~chainer.links.GroupNormalization` to manage the model
+        parameters ``gamma`` and ``beta``.
+
     """
     return GroupNormalization(groups, eps).apply((x, gamma, beta))[0]

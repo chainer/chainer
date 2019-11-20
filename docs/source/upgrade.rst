@@ -7,14 +7,32 @@ Upgrade Guide
 This is a list of changes introduced in each release that users should be aware of when migrating from older versions.
 Most changes are carefully designed not to break existing code; however changes that may possibly break them are highlighted with a box.
 
+Chainer v7
+==========
+
+Dropping Support of Python 2.7
+------------------------------
+
+In Chainer v7, Python 2.7 is no longer supported as it reaches its end-of-life (EOL) in January 2020.
+Python 3.5.2 is the minimum Python version supported by Chainer v7.
+Please upgrade the Python version if you are using Python 2.7 to any later versions listed under :ref:`install-guide`.
+
+CuPy v7
+-------
+
+Chainer v7 requires CuPy v7 if you need GPU support.
+Please see the `Upgrade Guide for CuPy v7 <https://docs-cupy.chainer.org/en/latest/upgrade.html#cupy-v7>`_ for details.
+
+
 Chainer v6
 ==========
 
-Dropping Python 3.4
--------------------
+Dropping Support of Python 3.4
+------------------------------
 
-Starting from Chainer v6, Python 3.4 will no longer be supported as it reaches its end-of-life (EOL) and Python 3.5.1 will become the minimum Python 3 version supported by Chainer.
-Please upgrade the Python version if you are using Python 3.4 to any version listed under :ref:`install-guide`.
+In Chainer v6, Python 3.4 is no longer supported as it reaches its end-of-life (EOL) in March 2019.
+Python 3.5.1 is the minimum Python 3 version supported by Chainer v6.
+Please upgrade the Python version if you are using Python 3.4 to any later versions listed under :ref:`install-guide`.
 
 CuPy Needs To Be Manually Updated
 ---------------------------------

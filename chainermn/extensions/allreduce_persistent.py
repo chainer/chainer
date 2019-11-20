@@ -42,6 +42,6 @@ class AllreducePersistent(chainer.training.extension.Extension):
     def __call__(self, trainer=None):
         for _, param in sorted(_namedpersistents(self.model)):
             if hasattr(param, 'dtype'):
-                self.comm.multi_node_mean(None, param)
+                self.comm._multi_node_mean(None, param)
             else:
                 pass  # Integer persistent variables are ignored

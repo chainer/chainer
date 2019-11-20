@@ -124,7 +124,7 @@ device=None, eval_hook=None, eval_func=None, *, progress_bar=False)
                 'over iterators until they stop, '
                 'but as the property being `True`, this iterator '
                 'might not stop and evaluation could go into '
-                'an infinite loop.'
+                'an infinite loop. '
                 'We recommend to check the configuration '
                 'of iterators'.format(key)
                 warnings.warn(msg)

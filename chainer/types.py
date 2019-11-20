@@ -54,8 +54,7 @@ class AbstractInitializer(tpe.Protocol):
     """
     dtype = None  # type: tp.Optional[DTypeSpec]
 
-    def __call__(self, array):
-        # type: (NdArray) -> None
+    def __call__(self, array: NdArray) -> None:
         pass
 
 

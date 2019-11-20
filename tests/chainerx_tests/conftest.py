@@ -19,13 +19,22 @@ def pytest_runtest_teardown(item, nextitem):
 
 
 def pytest_generate_tests(metafunc):
+    device_fixtures = {'parametrize_device': 'device',
+                       'parametrize_device_name': 'device_name'}
     marker = [
         m for m in metafunc.definition.iter_markers()
-        if m.name == 'parametrize_device']
+        if m.name in ('parametrize_device', 'parametrize_device_name')]
     if marker:
         marker, = marker  # asserts len == 1
         device_names, = marker.args
-        metafunc.parametrize('device', device_names, indirect=True)
+        # fixture name is either device or device_name
+        fixture_name = device_fixtures[marker.name]
+        metafunc.parametrize(fixture_name, device_names, indirect=True)
+
+
+def pytest_collection_modifyitems(session, config, items):
+    # Make the order of tests deterministic
+    items[:] = sorted(items, key=lambda item: item.location)
 
 
 def _register_cuda_marker(config):
@@ -65,18 +74,21 @@ def _get_required_cuda_devices_from_device_name(device_name):
     return int(s[1]) + 1
 
 
+def _skip_if_no_cuda_device_available(device_name):
+    # Skip if the device is CUDA device and there's no sufficient CUDA devices.
+    cuda_device_count = _get_required_cuda_devices_from_device_name(
+        device_name)
+    if cuda_device_count > cuda_utils.get_cuda_limit():
+        pytest.skip()
+
+
 @pytest.fixture
 def device(request):
     # A fixture to wrap a test with a device scope, given a device name.
     # Device instance is passed to the test.
 
     device_name = request.param
-
-    # Skip if the device is CUDA device and there's no sufficient CUDA devices.
-    cuda_device_count = _get_required_cuda_devices_from_device_name(
-        device_name)
-    if cuda_device_count > cuda_utils.get_cuda_limit():
-        pytest.skip()
+    _skip_if_no_cuda_device_available(device_name)
 
     device = chainerx.get_device(device_name)
     device_scope = chainerx.using_device(device)
@@ -87,6 +99,16 @@ def device(request):
     request.addfinalizer(finalize)
     device_scope.__enter__()
     return device
+
+
+@pytest.fixture
+def device_name(request):
+    # A fixture to check if a device is available using its name
+
+    device_name = request.param
+    _skip_if_no_cuda_device_available(device_name)
+
+    return device_name
 
 
 @pytest.fixture(params=chainerx.testing.all_dtypes)
@@ -123,7 +145,10 @@ _shapes = [
     (2, 0, 3),
 ]
 
-_shapes_as_tuple_or_int = _shapes + [0, 1, 5]
+_shapes_as_sequence_or_int = (
+    _shapes
+    + [[], [0]]  # shape as a list instead of tuple
+    + [0, 1, 5])
 
 
 @pytest.fixture(params=_shapes)
@@ -131,6 +156,6 @@ def shape(request):
     return request.param
 
 
-@pytest.fixture(params=_shapes_as_tuple_or_int)
-def shape_as_tuple_or_int(request):
+@pytest.fixture(params=_shapes_as_sequence_or_int)
+def shape_as_sequence_or_int(request):
     return request.param

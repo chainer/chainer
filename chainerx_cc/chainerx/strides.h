@@ -9,6 +9,7 @@
 #include <string>
 #include <tuple>
 
+#include <absl/types/span.h>
 #include <gsl/gsl>
 
 #include "chainerx/axes.h"
@@ -20,8 +21,8 @@
 
 namespace chainerx {
 
-class Strides : public StackVector<int64_t, kMaxNdim> {
-    using BaseVector = StackVector<int64_t, kMaxNdim>;
+class Strides : public Dims {
+    using BaseVector = Dims;
 
 public:
     using const_iterator = BaseVector::const_iterator;
@@ -44,8 +45,8 @@ public:
         insert(begin(), first, last);
     }
 
-    // by gsl:span
-    explicit Strides(gsl::span<const int64_t> dims) : Strides{dims.begin(), dims.end()} {}
+    // by span
+    explicit Strides(absl::Span<const int64_t> dims) : Strides{dims.begin(), dims.end()} {}
 
     // by initializer list
     Strides(std::initializer_list<int64_t> dims) : Strides{dims.begin(), dims.end()} {}
@@ -77,7 +78,7 @@ public:
     }
 
     // span
-    gsl::span<const int64_t> span() const { return {*this}; }
+    absl::Span<const int64_t> span() const { return {*this}; }
 
     // Rearranges strides in the order specified by the axes.
     //

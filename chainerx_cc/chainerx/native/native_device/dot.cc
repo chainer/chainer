@@ -5,7 +5,7 @@
 #include <type_traits>
 
 #ifdef CHAINERX_ENABLE_BLAS
-#include <cblas.h>
+#include <chainerx/native/native_device/cblas.h>
 #endif  // CHAINERX_ENABLE_BLAS
 
 #include "chainerx/array.h"
@@ -150,6 +150,10 @@ public:
         // TODO(sonots): Support ndim >= 2
         if (a.ndim() != 2 || b.ndim() != 2 || out.ndim() != 2) {
             throw DimensionError{"ChainerX dot supports only 2-dimensional arrays."};
+        }
+
+        if (out.GetTotalSize() == 0) {
+            return;
         }
 
 #ifdef CHAINERX_ENABLE_BLAS

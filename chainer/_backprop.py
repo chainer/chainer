@@ -132,7 +132,7 @@ def backward(outputs, grad_outputs=None, **kwargs):
             if grad_var is None:
                 warnings.warn(
                     'outputs contains a Variable without grad, or '
-                    'duplicate outputs. Note that'
+                    'duplicate outputs. Note that '
                     'chainer.backward does not set default grad.',
                     RuntimeWarning)
             y.grad_var = None

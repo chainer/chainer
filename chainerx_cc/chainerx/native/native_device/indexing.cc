@@ -15,18 +15,28 @@
 #include "chainerx/shape.h"
 
 namespace chainerx {
+
+namespace internal {
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(AddAt)
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(Take)
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(Where)
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(WhereAAS)
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(WhereASA)
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(WhereASS)
+}  // namespace internal
+
 namespace native {
 namespace {
 
 class NativeTakeKernel : public TakeKernel {
 public:
-    void Call(const Array& a, const Array& indices, int8_t axis, const Array& out) override {
+    void Call(const Array& a, const Array& indices, int8_t axis, const Array& out, IndexBoundsMode mode) override {
         CHAINERX_ASSERT(GetKind(indices.dtype()) == DtypeKind::kInt || GetKind(indices.dtype()) == DtypeKind::kUInt);
         a.device().CheckDevicesCompatible(a, indices, out);
 
         const Array& indices_cast = indices.dtype() == Dtype::kInt64 ? indices : indices.AsType(Dtype::kInt64);
 
-        VisitDtype(out.dtype(), [&a, &indices_cast, axis, &out](auto pt) {
+        VisitDtype(out.dtype(), [&a, &indices_cast, axis, &out, mode](auto pt) {
             using T = typename decltype(pt)::type;
 
             IndexableArray<const T> a_iarray{a};
@@ -55,15 +65,25 @@ public:
 
             for (auto it = indices_indexer.It(0); it; ++it) {
                 int64_t index = indices_iarray[it];
-                if (index < 0) {
-                    index = axis_dim - ((-index + axis_dim - 1) % axis_dim + 1);
-                } else {
-                    index = index % axis_dim;
+                if (mode == IndexBoundsMode::kRaise || mode == IndexBoundsMode::kDefault) {
+                    if (index < -axis_dim || axis_dim <= index) {
+                        throw IndexError{"Index ", index, " is out of bounds for axis ", axis, " with size ", axis_dim};
+                    }
+                    if (index < 0) {
+                        index = index + axis_dim;
+                    }
+                } else if (mode == IndexBoundsMode::kWrap) {
+                    if (index < 0) {
+                        index = axis_dim - ((-index + axis_dim - 1) % axis_dim + 1);
+                    } else {
+                        index = index % axis_dim;
+                    }
+                } else if (mode == IndexBoundsMode::kClip) {
+                    index = std::max(int64_t{0}, std::min(index, axis_dim - 1));
                 }
                 CHAINERX_ASSERT(0 <= index);
                 CHAINERX_ASSERT(index < axis_dim);
                 it_axis.Restart(index);
-
                 it_out.CopyIndex(it, it_left.ndim());
                 it_a.CopyIndex(it_axis, it_left.ndim());
 
@@ -86,14 +106,14 @@ CHAINERX_NATIVE_REGISTER_KERNEL(TakeKernel, NativeTakeKernel);
 
 class NativeAddAtKernel : public AddAtKernel {
 public:
-    void Call(const Array& a, const Array& indices, int8_t axis, const Array& b, const Array& out) override {
+    void Call(const Array& a, const Array& indices, int8_t axis, const Array& b, const Array& out, IndexBoundsMode mode) override {
         CHAINERX_ASSERT(a.shape() == out.shape());
         CHAINERX_ASSERT(GetKind(indices.dtype()) == DtypeKind::kInt || GetKind(indices.dtype()) == DtypeKind::kUInt);
         a.device().CheckDevicesCompatible(a, indices, b);
 
         const Array& indices_cast = indices.dtype() == Dtype::kInt64 ? indices : indices.AsType(Dtype::kInt64);
 
-        VisitDtype(a.dtype(), [&a, &indices_cast, axis, &b, &out](auto pt) {
+        VisitDtype(a.dtype(), [&a, &indices_cast, axis, &b, &out, mode](auto pt) {
             using T = typename decltype(pt)::type;
 
             IndexableArray<const T> a_iarray{a};
@@ -102,7 +122,7 @@ public:
             IndexableArray<T> out_iarray{out};
             Indexer<> b_indexer{b.shape()};
             Indexer<> indices_indexer{indices_cast.shape()};
-            Indexer<> out_indexer{out.shape()};  // indexer for both out_iarray and a_array
+            Indexer<> out_indexer{out.shape()};  // indexer for both out_iarray and a_iarray
 
             int64_t axis_dim = a.shape()[axis];
 
@@ -129,10 +149,21 @@ public:
             // Add
             for (auto it = indices_indexer.It(0); it; ++it) {
                 int64_t index = indices_iarray[it];
-                if (index < 0) {
-                    index = axis_dim - ((-index + axis_dim - 1) % axis_dim + 1);
-                } else {
-                    index = index % axis_dim;
+                if (mode == IndexBoundsMode::kRaise || mode == IndexBoundsMode::kDefault) {
+                    if (index < -axis_dim || axis_dim <= index) {
+                        throw IndexError{"Index ", index, " is out of bounds for axis ", axis, " with size ", axis_dim};
+                    }
+                    if (index < 0) {
+                        index = index + axis_dim;
+                    }
+                } else if (mode == IndexBoundsMode::kWrap) {
+                    if (index < 0) {
+                        index = axis_dim - ((-index + axis_dim - 1) % axis_dim + 1);
+                    } else {
+                        index = index % axis_dim;
+                    }
+                } else if (mode == IndexBoundsMode::kClip) {
+                    index = std::max(int64_t{0}, std::min(index, axis_dim - 1));
                 }
                 CHAINERX_ASSERT(0 <= index);
                 CHAINERX_ASSERT(index < axis_dim);
@@ -148,7 +179,9 @@ public:
                     for (it_right.Restart(); it_right; ++it_right) {
                         it_out.CopyIndex(it_right, it_left.ndim() + it_axis.ndim());
                         it_b.CopyIndex(it_right, it_left.ndim() + it.ndim());
-                        out_iarray[it_out] += b_iarray[it_b];
+                        T b_value = native_internal::StorageToDataType<const T>(b_iarray[it_b]);
+                        T& out_ref = native_internal::StorageToDataType<T>(out_iarray[it_out]);
+                        out_ref += b_value;
                     }
                 }
             }

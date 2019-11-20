@@ -3,16 +3,16 @@
 #include <numeric>
 #include <vector>
 
+#include <absl/types/span.h>
 #include <gtest/gtest.h>
-#include <gsl/gsl>
 
 #include "chainerx/axes.h"
 
 namespace chainerx {
 namespace {
 
-void CheckSpanEqual(std::initializer_list<int64_t> expect, gsl::span<const int64_t> actual) {
-    EXPECT_EQ(gsl::make_span(expect.begin(), expect.end()), actual);
+void CheckSpanEqual(std::initializer_list<int64_t> expect, absl::Span<const int64_t> actual) {
+    EXPECT_EQ(absl::MakeConstSpan(expect.begin(), expect.end()), actual);
 }
 
 TEST(StridesTest, Ctor) {
@@ -27,9 +27,9 @@ TEST(StridesTest, Ctor) {
         EXPECT_EQ(size_t{3}, strides.size());
         CheckSpanEqual({48, 16, 4}, strides.span());
     }
-    {  // From gsl::span
+    {  // From span
         const std::array<int64_t, 3> dims{48, 16, 4};
-        const Strides strides{gsl::make_span(dims)};
+        const Strides strides{absl::MakeConstSpan(dims)};
         EXPECT_EQ(3, strides.ndim());
         CheckSpanEqual({48, 16, 4}, strides.span());
     }
@@ -44,9 +44,9 @@ TEST(StridesTest, Ctor) {
         EXPECT_EQ(0, strides.ndim());
         CheckSpanEqual({}, strides.span());
     }
-    {  // From empty gsl::span
+    {  // From empty span
         const std::array<int64_t, 0> dims{};
-        const Strides strides{gsl::make_span(dims)};
+        const Strides strides{absl::MakeConstSpan(dims)};
         EXPECT_EQ(0, strides.ndim());
         CheckSpanEqual({}, strides.span());
     }
@@ -71,9 +71,9 @@ TEST(StridesTest, Ctor) {
     {  // Too long std::initializer_list
         EXPECT_THROW(Strides({1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}), DimensionError);
     }
-    {  // Too long gsl::span
+    {  // Too long span
         const std::array<int64_t, kMaxNdim + 1> too_long{1};
-        EXPECT_THROW(Strides{gsl::make_span(too_long)}, DimensionError);
+        EXPECT_THROW(Strides{absl::MakeConstSpan(too_long)}, DimensionError);
     }
     {  // Too long iterators
         std::vector<int64_t> dims{};
@@ -125,8 +125,8 @@ TEST(StridesTest, CheckEqual) {
 
 TEST(StridesTest, Iterator) {
     const Strides strides = {48, 16, 4};
-    CheckSpanEqual({48, 16, 4}, gsl::make_span(std::vector<int64_t>{strides.begin(), strides.end()}));
-    CheckSpanEqual({4, 16, 48}, gsl::make_span(std::vector<int64_t>{strides.rbegin(), strides.rend()}));
+    CheckSpanEqual({48, 16, 4}, absl::MakeConstSpan(std::vector<int64_t>{strides.begin(), strides.end()}));
+    CheckSpanEqual({4, 16, 48}, absl::MakeConstSpan(std::vector<int64_t>{strides.rbegin(), strides.rend()}));
 }
 
 TEST(StridesTest, ToString) {
@@ -146,7 +146,7 @@ TEST(StridesTest, ToString) {
 
 TEST(StridesTest, SpanFromStrides) {
     const Strides strides = {2, 3, 4};
-    CheckSpanEqual({2, 3, 4}, gsl::make_span(strides));
+    CheckSpanEqual({2, 3, 4}, absl::MakeConstSpan(strides));
 }
 
 TEST(StridesTest, Permute) {

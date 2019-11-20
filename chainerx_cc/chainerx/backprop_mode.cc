@@ -4,7 +4,7 @@
 #include <memory>
 #include <vector>
 
-#include <nonstd/optional.hpp>
+#include <absl/types/optional.h>
 
 #include "chainerx/array.h"
 #include "chainerx/array_node.h"

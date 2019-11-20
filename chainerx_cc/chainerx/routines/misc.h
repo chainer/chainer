@@ -9,8 +9,6 @@ Array Sqrt(const Array& x);
 
 Array Square(const Array& x);
 
-Array SquaredDifference(const Array& x1, const Array& x2);
-
 Array Absolute(const Array& x);
 
 Array Fabs(const Array& x);

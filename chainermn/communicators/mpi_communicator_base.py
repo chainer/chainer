@@ -9,6 +9,7 @@ from chainermn.communicators import _communication_utility
 from chainermn.communicators._communication_utility import chunked_bcast_obj
 from chainermn.communicators import _memory_utility
 from chainermn.communicators import communicator_base
+import chainerx
 
 
 _dtype_mpi_type = {
@@ -102,14 +103,16 @@ class MpiCommunicatorBase(communicator_base.CommunicatorBase):
     :class:`CommunicatorBase`. This communicator assumes MPI4py and
     all ChainerMN processes are invoked by ``mpirun`` (``mpiexec``)
     command. Although this lacks several important methods such as
-    ``allreduce_grad`` to be impelmented with speficic algorithm. See
-    hierarcical communicator or pure_nccl communicator for example.
+    ``multi_node_mean_grad`` to be impelmented with speficic algorithm. See
+    hierarchical communicator or pure_nccl communicator for example.
 
     '''
 
     def __init__(self, mpi_comm):
         self.mpi_comm = mpi_comm
         self._init_ranks()
+        with self.config_scope():
+            self.batched_copy = False
 
     @property
     def rank(self):
@@ -134,6 +137,21 @@ class MpiCommunicatorBase(communicator_base.CommunicatorBase):
     @property
     def inter_size(self):
         return self._inter_size
+
+    def set_config(self, name, value=True, **kwargs):
+        if name == 'batched_copy':
+            with self.config_scope():
+                self.batched_copy = value
+        else:
+            # Although MpiCommunicatorBase has no ancestor, practice
+            return super(MpiCommunicatorBase, self).set_config(name, **kwargs)
+
+    def get_config(self, name=None):
+        if name == 'batched_copy':
+            return self.batched_copy
+        else:
+            # Although MpiCommunicatorBase has no ancestor, practice.
+            return super(MpiCommunicatorBase, self).get_config(name)
 
     def split(self, color, key):
         return self.__class__(mpi_comm=self.mpi_comm.Split(color, key))
@@ -508,21 +526,6 @@ class MpiCommunicatorBase(communicator_base.CommunicatorBase):
 
         return dbuf.reshape(shape)
 
-    # Objects
-    def send_obj(self, obj, dest, tag=0):
-        self.mpi_comm.send(obj, dest=dest, tag=tag)
-
-    def recv_obj(self, source, status=None, tag=mpi4py.MPI.ANY_TAG):
-        return self.mpi_comm.recv(source=source, status=status, tag=tag)
-
-    def bcast_obj(self, obj, max_buf_len=256 * 1024 * 1024, root=0):
-        return chunked_bcast_obj(obj, self.mpi_comm,
-                                 max_buf_len=max_buf_len,
-                                 root=root)
-
-    def gather_obj(self, obj, root=0):
-        return self.mpi_comm.gather(obj, root=root)
-
     def scatter(self, xs, root=0):
         """A primitive of inter-process scatter communication.
 
@@ -615,8 +618,77 @@ class MpiCommunicatorBase(communicator_base.CommunicatorBase):
                 root)
             return rbuf.reshape(shape)
 
+    def _check_obj_type_for_chainerx(self, obj):
+        # Do NOT support chainerx ndarray with CUDA
+        # for the following reason:
+        # (1) mpi4py.send pickles the object
+        # (2) chainerx.ndarray preserves CUDA
+        # device internally when pickled
+        # (3) An error will occur when an ndarray is unpickled in another
+        #     process
+        #
+        if None is obj:
+            return False
+
+        # check collections of list, tuple and set
+        elif type(obj) in [list, tuple, set]:
+            for item in obj:
+                xp = chainer.backend.get_array_module(item)
+                # DO NOT use device.backend.name as
+                # 'ChainerxDevice' object has no attribute 'backend'
+                if xp == chainerx and item.device.name.startswith('cuda'):
+                    return True
+
+        # check dict
+        elif type(obj) is dict:
+            for key, value in obj.items():
+                xp = chainer.backend.get_array_module(key)
+                if xp == chainerx and key.device.name.startswith('cuda'):
+                    return True
+
+                xp = chainer.backend.get_array_module(value)
+                if xp == chainerx and value.device.name.startswith('cuda'):
+                    return True
+        else:
+            xp = chainer.backend.get_array_module(obj)
+            if xp == chainerx and obj.device.name.startswith('cuda'):
+                return True
+
+        return False
+
+    # Objects
+    def send_obj(self, obj, dest, tag=0):
+        if self._check_obj_type_for_chainerx(obj):
+            raise ValueError(
+                'calling send_obj on chainerx \
+                with cuda is not supported')
+        self.mpi_comm.send(obj, dest=dest, tag=tag)
+
+    def recv_obj(self, source, status=None, tag=mpi4py.MPI.ANY_TAG):
+        return self.mpi_comm.recv(source=source, status=status, tag=tag)
+
+    def bcast_obj(self, obj, max_buf_len=256 * 1024 * 1024, root=0):
+        if self._check_obj_type_for_chainerx(obj):
+            raise ValueError(
+                'calling bcast_obj on chainerx \
+                with cuda is not supported')
+        return chunked_bcast_obj(obj, self.mpi_comm,
+                                 max_buf_len=max_buf_len,
+                                 root=root)
+
+    def gather_obj(self, obj, root=0):
+        if self._check_obj_type_for_chainerx(obj):
+            raise ValueError(
+                'calling gather_obj on chainerx \
+                with cuda is not supported')
+        return self.mpi_comm.gather(obj, root=root)
+
     def allreduce_obj(self, obj):
         # Summation by default
+        if self._check_obj_type_for_chainerx(obj):
+            raise ValueError(
+                'calling allreduce_obj on chainerx \
+                with cuda is not supported')
         return self.mpi_comm.allreduce(obj)
 
     def bcast_data(self, model):
@@ -629,7 +701,9 @@ class MpiCommunicatorBase(communicator_base.CommunicatorBase):
                 buf = _memory_utility.array_to_buffer_object(data)
                 self.mpi_comm.Bcast(buf)
                 if is_float16:
-                    param.data = data.astype(numpy.float16)
+                    # update to array as updating to .data directly
+                    # is not supported in ChainerX
+                    param.array[...] = data.astype(numpy.float16)
 
     # Private methods
     def _init_ranks(self):
@@ -640,7 +714,7 @@ class MpiCommunicatorBase(communicator_base.CommunicatorBase):
         self._inter_rank = my_ranks[3]
         self._inter_size = my_ranks[4]
 
-    def check_ready_to_allreduce(self, array_a, array_b):
+    def _check_ready_to_allreduce(self, array_a, array_b):
         my_shapes = ((None if array_a is None else array_a.shape,
                       None if array_a is None else array_a.dtype),
                      array_b.shape,
@@ -653,41 +727,89 @@ class MpiCommunicatorBase(communicator_base.CommunicatorBase):
                                      ' at rank 0 while {} at rank {}'
                                      .format(my_shapes, shapes, rank))
 
-    def ensure_all_finite(self, array):
+    def _ensure_all_finite(self, array):
         xp = chainer.backend.get_array_module(array)
         if not xp.isfinite(array).all():
             raise ValueError('Parameters diverged after allreduce.')
 
-    def multi_node_mean(self, array_a, array_b):
-        # The name is allreduce but actually a mean
-        # Sigma(a, all-procs)/n -> b or
-        # Sigma(b, all-procs)/n -> b if array_a is None
-        if chainer.is_debug():
-            self.check_ready_to_allreduce(array_a, array_b)
+    def _multi_node_mean(self, sendbuf, recvbuf):
+        """Compute mean of each element on each processes.
 
-        is_float16 = array_b.dtype == numpy.float16
-        if array_a is None:
+        The function compute mean of each element in ``sendbuf`` on each
+        processes. The result is stored in ``recvbuf``.
+
+        If ``sendbuf`` is ``None``, the function compute mean of each element
+        in ``recvbuf`` on each processes and replaces ``recvbuf` with the
+        computed mean.
+
+        Args:
+            sendbuf (numpy/cupy array): Input arrays.
+            recvbuf (numpy/cupy array): Output arrays.
+
+        """
+
+        if chainer.is_debug():
+            self._check_ready_to_allreduce(sendbuf, recvbuf)
+
+        is_float16 = recvbuf.dtype == numpy.float16
+        if sendbuf is None:
             buffer_a = mpi4py.MPI.IN_PLACE
         elif is_float16:
-            assert array_a.dtype == array_b.dtype
+            assert sendbuf.dtype == recvbuf.dtype
             buffer_a = _memory_utility.array_to_buffer_object(
-                array_a.astype(numpy.float32))
+                sendbuf.astype(numpy.float32))
         else:
-            buffer_a = _memory_utility.array_to_buffer_object(array_a)
+            buffer_a = _memory_utility.array_to_buffer_object(sendbuf)
 
         if is_float16:
-            array_b32 = array_b.astype(numpy.float32)
+            array_b32 = recvbuf.astype(numpy.float32)
         else:
-            array_b32 = array_b
+            array_b32 = recvbuf
         buffer_b = _memory_utility.array_to_buffer_object(array_b32)
 
         self.mpi_comm.Allreduce(buffer_a, buffer_b)
 
         if is_float16:
-            xp = chainer.backend.get_array_module(array_b)
-            xp.copyto(array_b, array_b32.astype(numpy.float16), casting='no')
+            recvbuf[...] = array_b32.astype(numpy.float16)
 
-        array_b *= 1.0 / self.mpi_comm.size
+        recvbuf *= 1.0 / self.mpi_comm.size
 
         if chainer.is_debug():
-            self.ensure_all_finite(array_b)
+            self._ensure_all_finite(recvbuf)
+
+    def _pack_params_to_buffer(self, params, attr_name, buffer,
+                               allreduce_grad_dtype, zero_fill, stream=None):
+
+        if self.batched_copy:
+            params_data = _memory_utility.ParamsData(params,
+                                                     attr_name, zero_fill)
+            _memory_utility._batched_pack_params(
+                params_data, buffer,
+                allreduce_grad_dtype, stream=stream)
+            self.params_data = params_data
+        else:
+            _memory_utility.pack_params(
+                params, attr_name,
+                buffer,
+                transfer_dtype=allreduce_grad_dtype,
+                zero_fill=zero_fill,
+                stream=stream)
+
+    def _unpack_params_from_buffer(self, params, attr_name, buffer,
+                                   allreduce_grad_dtype,
+                                   zero_fill, stream=None):
+        if self.batched_copy:
+            if self.params_data is not None:
+                params_data = self.params_data
+                self.params_data = None
+            else:
+                params_data = _memory_utility.ParamsData(
+                    params, attr_name, zero_fill)
+            _memory_utility._batched_unpack_params(
+                params_data, buffer,
+                allreduce_grad_dtype, stream=stream)
+            return
+        else:
+            _memory_utility.unpack_params(
+                params, attr_name, buffer,
+                allreduce_grad_dtype, zero_fill, stream)

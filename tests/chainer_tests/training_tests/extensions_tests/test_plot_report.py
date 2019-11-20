@@ -1,6 +1,8 @@
 import unittest
 import warnings
 
+import pytest
+
 from chainer import testing
 from chainer.training import extensions
 
@@ -15,14 +17,12 @@ except ImportError:
 class TestPlotReport(unittest.TestCase):
 
     def test_available(self):
-        with warnings.catch_warnings(record=True) as w:
-            self.assertEqual(extensions.PlotReport.available(), _available)
-
-        # It shows warning only when matplotlib is not available
         if _available:
-            self.assertEqual(len(w), 0)
+            self.assertTrue(extensions.PlotReport.available())
         else:
-            self.assertEqual(len(w), 1)
+            # It shows warning only when matplotlib is not available
+            with pytest.warns(UserWarning):
+                self.assertFalse(extensions.PlotReport.available())
 
     # In the following we explicitly use plot_report._available instead of
     # PlotReport.available() because in some cases `test_available()` fails

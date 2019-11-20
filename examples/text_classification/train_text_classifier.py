@@ -114,15 +114,16 @@ def main():
         test_iter, model,
         converter=convert_seq, device=device))
 
-    # Take a best snapshot
-    record_trigger = training.triggers.MaxValueTrigger(
-        'validation/main/accuracy', (1, 'epoch'))
+    # Take a snapshot of Trainer every epoch
     trainer.extend(
         extensions.snapshot(filename='snapshot_epoch_{.updater.epoch}'),
-        trigger=record_trigger)
+        trigger=(1, 'epoch'))
+    # Take the best snapshot of the model
+    best_trigger = training.triggers.MaxValueTrigger(
+        'validation/main/accuracy', (1, 'epoch'))
     trainer.extend(extensions.snapshot_object(
         model, 'best_model.npz'),
-        trigger=record_trigger)
+        trigger=best_trigger)
 
     # Write a log of evaluation statistics for each epoch
     trainer.extend(extensions.LogReport())

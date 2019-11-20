@@ -30,6 +30,9 @@ class ModifiedXLogX(chainer.function_node.FunctionNode):
 def _modified_xlogx(x):
     x = chainer.as_variable(x)
     xp = x.xp
-    return ModifiedXLogX(exponential.log(
-        where.where(utils.force_array(x.array > 0),
-                    x, xp.ones_like(x.array)))).apply((x,))[0]
+    return ModifiedXLogX(
+        exponential.log(
+            where.where(
+                utils.force_array(x.array > 0),
+                x,
+                xp.ones_like(x.array)))).apply((x,))[0]

@@ -119,6 +119,25 @@ class TestTrainer(unittest.TestCase):
         self.assertTrue(dummy_callable_class.is_called)
         self.assertTrue(dummy_callable_class.is_finalized)
 
+    def test_add_called_before_training_extension(self):
+
+        class MyDummyCallableClass(DummyCallableClass):
+            def __init__(self, test_case):
+                super(MyDummyCallableClass, self).__init__(test_case)
+                self.is_called_before_training = False
+
+            def __call__(self, trainer):
+                if trainer.is_before_training:
+                    self.is_called_before_training = True
+                return super(MyDummyCallableClass, self).__call__(trainer)
+
+        dummy_callable_class = MyDummyCallableClass(self)
+        self.trainer.extend(dummy_callable_class, call_before_training=True)
+        self.trainer.run()
+        self.assertTrue(dummy_callable_class.is_called)
+        self.assertTrue(dummy_callable_class.is_called_before_training)
+        self.assertTrue(dummy_callable_class.is_finalized)
+
     def test_add_lambda_extension(self):
         dummy_class = DummyClass()
         self.trainer.extend(lambda x: dummy_class.touch())

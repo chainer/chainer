@@ -1,4 +1,4 @@
-from chainer.backends import cuda
+from chainer import backend
 from chainer.functions.activation.relu import relu
 from chainer.functions.array.broadcast import broadcast_to
 from chainer.functions.math.basic_math import absolute
@@ -81,7 +81,7 @@ class DiscriminativeMarginBasedClusteringLoss(object):
 
         l_dist = 0.0
         count = 0
-        xp = cuda.get_array_module(embeddings)
+        xp = backend.get_array_module(embeddings)
 
         emb = embeddings[None, :]
         emb = broadcast_to(emb, (emb.shape[1],

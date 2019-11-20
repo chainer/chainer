@@ -7,7 +7,7 @@
 #include <utility>
 #include <vector>
 
-#include <nonstd/optional.hpp>
+#include <absl/types/optional.h>
 
 #include "chainerx/backend.h"
 #include "chainerx/device.h"
@@ -69,7 +69,7 @@ public:
                 context_detail::BackendDeleter{[](gsl::owner<Backend*> ptr) { delete ptr; }}};
         auto pair = RegisterBackend(backend_name, std::move(backend));
         if (!pair.second) {
-            ContextError{"Backend is already registered: ", backend_name};
+            throw ContextError{"Backend is already registered: ", backend_name};
         }
         return pair.first;
     }
@@ -136,7 +136,7 @@ private:
 
         // If this member has a value, it indicates that this Backprop ID is prohibited for further backprop.
         // Its value is the backprop ID which caused the prohibition.
-        nonstd::optional<BackpropOrdinal> prohibiting_ordinal{nonstd::nullopt};
+        absl::optional<BackpropOrdinal> prohibiting_ordinal{absl::nullopt};
     };
 
     // Finds the BackpropSetItem instance.
@@ -222,8 +222,12 @@ public:
     // Explicitly recovers the original context. It will invalidate the scope object so that dtor will do nothing.
     void Exit() {
         if (!exited_) {
-            SetDefaultContext(orig_ctx_);
-            SetDefaultDevice(orig_device_);
+            try {
+                SetDefaultContext(orig_ctx_);
+                SetDefaultDevice(orig_device_);
+            } catch (...) {
+                CHAINERX_NEVER_REACH();
+            }
             exited_ = true;
         }
     }

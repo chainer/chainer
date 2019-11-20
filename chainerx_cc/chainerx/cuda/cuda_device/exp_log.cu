@@ -31,6 +31,8 @@ CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(LogKernel, { out = cuda::Log(x
 
 CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(Log10Kernel, { out = cuda::Log10(x); });
 
+CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(Log2Kernel, { out = cuda::Log2(x); });
+
 CHAINERX_CUDA_REGISTER_ELTWISE_FLOAT_UNARY_KERNEL(Log1pKernel, { out = cuda::Log1p(x); });
 
 }  // namespace

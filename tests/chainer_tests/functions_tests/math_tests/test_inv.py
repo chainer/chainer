@@ -113,7 +113,7 @@ class BatchInvFunctionTest(testing.FunctionTestCase):
         if self.dtype == numpy.float16:
             self.check_forward_dtype = numpy.float32
             self.check_forward_options.update({'atol': 1e-3, 'rtol': 1e-3})
-            self.check_backward_options.update({'atol': 1e-3, 'rtol': 1e-3})
+            self.check_backward_options.update({'atol': 2e-3, 'rtol': 2e-3})
             self.check_double_backward_options.update({
                 'atol': 5e-3, 'rtol': 5e-3})
         else:
@@ -124,8 +124,8 @@ class BatchInvFunctionTest(testing.FunctionTestCase):
                 'atol': 1e-3, 'rtol': 1e-3})
 
     def generate_inputs(self):
-        x = (numpy.eye(self.shape[-1]) +
-             numpy.random.uniform(-0.01, 0.01, self.shape)).astype(self.dtype)
+        x = numpy.random.uniform(-0.01, 0.01, self.shape).astype(self.dtype)
+        x += numpy.eye(self.shape[-1])
         return x,
 
     def forward(self, inputs, device):

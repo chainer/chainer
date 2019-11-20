@@ -26,15 +26,6 @@ def get_imagenet(dataset_iter):
     return chx.array(x), chx.array(t)
 
 
-def compute_loss(y, t):
-    # softmax cross entropy
-    score = chx.log_softmax(y, axis=1)
-    mask = (t[:, chx.newaxis] == chx.arange(
-        1000, dtype=t.dtype)).astype(score.dtype)
-    # TODO(beam2d): implement mean
-    return -(score * mask).sum() * (1 / y.shape[0])
-
-
 def evaluate(model, X_test, Y_test, eval_size, batch_size):
     N_test = X_test.shape[0] if eval_size is None else eval_size
 
@@ -50,7 +41,7 @@ def evaluate(model, X_test, Y_test, eval_size, batch_size):
             t = Y_test[i:min(i + batch_size, N_test)]
 
             y = model(x)
-            total_loss += compute_loss(y, t) * batch_size
+            total_loss += chx.softmax_cross_entropy(y, t).sum()
             num_correct += (y.argmax(axis=1).astype(t.dtype)
                             == t).astype(chx.int32).sum()
 
@@ -122,7 +113,7 @@ def main():
         for i in range(0, N // batch_size):
             x, t = get_imagenet(train_iter)
             y = model(x)
-            loss = compute_loss(y, t)
+            loss = chx.softmax_cross_entropy(y, t).mean()
 
             loss.backward()
             model.update(lr=0.01)

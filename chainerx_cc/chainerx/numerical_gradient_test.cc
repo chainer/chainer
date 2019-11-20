@@ -5,9 +5,9 @@
 #include <string>
 #include <vector>
 
+#include <absl/types/optional.h>
 #include <gtest/gtest.h>
 #include <gsl/gsl>
-#include <nonstd/optional.hpp>
 
 #include "chainerx/array.h"
 #include "chainerx/array_repr.h"
@@ -73,7 +73,7 @@ public:
     }
 
 private:
-    nonstd::optional<testing::DeviceSession> device_session_;
+    absl::optional<testing::DeviceSession> device_session_;
 };
 
 TEST_P(NumericalGradientTest, NumericalGradientAdd) {

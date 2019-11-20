@@ -24,10 +24,12 @@ class Clip(function_node.FunctionNode):
         x_type, = in_types
         type_check.expect(x_type.dtype.kind == 'f')
 
-    def forward_cpu(self, x):
+    def forward_cpu(self, inputs):
         self.retain_inputs((0,))
+        x, = inputs
         return utils.force_array(
-            numpy.clip(x[0], self.x_min, self.x_max)),
+            numpy.clip(x, self.x_min, self.x_max),
+            x.dtype),
 
     def forward_gpu(self, x):
         self.retain_inputs((0,))
@@ -55,7 +57,9 @@ class ClipGrad(function_node.FunctionNode):
         type_check.expect(in_types[0].dtype.kind == 'f')
 
     def forward_cpu(self, inputs):
-        return utils.force_array(inputs[0] * self.cond),
+        gy, = inputs
+        gx = utils.force_array(gy * self.cond, gy.dtype)
+        return gx,
 
     def forward_gpu(self, inputs):
         gx = cuda.elementwise(

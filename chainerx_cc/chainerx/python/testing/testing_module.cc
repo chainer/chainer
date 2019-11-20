@@ -13,6 +13,7 @@ namespace testing {
 namespace testing_internal {
 
 namespace py = pybind11;
+using py::literals::operator""_a;
 
 void InitChainerxTestingModule(pybind11::module& m) {
     InitChainerxDeviceBuffer(m);
@@ -25,9 +26,9 @@ void InitChainerxTestingModule(pybind11::module& m) {
               }
               return python_internal::MakeArray(array, array.dtype(), true, device);
           },
-          py::arg("array"),
-          py::arg("keepstrides") = false,
-          py::arg("device") = nullptr);
+          "array"_a,
+          "keepstrides"_a = false,
+          "device"_a = nullptr);
 }
 
 }  // namespace testing_internal

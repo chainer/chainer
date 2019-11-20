@@ -212,6 +212,33 @@ public:
 
 CHAINERX_CUDA_REGISTER_KERNEL(FillKernel, CudaFillKernel);
 
+template <typename T>
+struct TriImpl {
+    using CudaType = cuda_internal::DataType<T>;
+    __device__ void operator()(int64_t i, CudaType& out) {
+        int64_t row = i / m;
+        int64_t col = i % m;
+        out = col <= row + k ? CudaType{1} : CudaType{0};
+    }
+    int64_t m;
+    int64_t k;
+};
+
+class CudaTriKernel : public TriKernel {
+public:
+    void Call(int64_t k, const Array& out) override {
+        Device& device = out.device();
+        CudaSetDeviceScope scope{device.index()};
+        VisitDtype(out.dtype(), [k, &out](auto pt) {
+            using T = typename decltype(pt)::type;
+            int64_t m = out.shape()[1];
+            Elementwise<T>(TriImpl<T>{m, k}, out);
+        });
+    }
+};
+
+CHAINERX_CUDA_REGISTER_KERNEL(TriKernel, CudaTriKernel);
+
 }  // namespace
 }  // namespace cuda
 }  // namespace chainerx

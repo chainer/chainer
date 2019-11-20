@@ -206,15 +206,34 @@ class _RetrieveAsCaffeModel(object):
                     b.retain_data()
                     _add_blob(layer, [n_out], b.data)
 
-        elif func.label in ('MaxPooling2D', 'AveragePooling2D'):
+        elif func.label == 'AveragePooling2D':
             kw = func.kw
             kh = func.kh
             pooling_param = {
-                'pool': 0 if func.label == 'MaxPooling2D' else 1,
+                'pool': 1,
                 'pad_w': func.pw,
                 'pad_h': func.ph,
                 'stride_w': func.sx,
                 'stride_h': func.sy,
+                'kernel_w': kw,
+                'kernel_h': kh,
+            }
+            params['type'] = 'Pooling'
+            params['pooling_param'] = pooling_param
+            if net is not None:
+                for k, v in six.iteritems(pooling_param):
+                    setattr(layer.pooling_param, k, v)
+
+        elif func.label == 'MaxPoolingND' and func.ndim == 2:
+            kh, kw = func.ksize
+            sy, sx = func.stride
+            ph, pw = func.pad
+            pooling_param = {
+                'pool': 0,
+                'pad_w': pw,
+                'pad_h': ph,
+                'stride_w': sx,
+                'stride_h': sy,
                 'kernel_w': kw,
                 'kernel_h': kh,
             }

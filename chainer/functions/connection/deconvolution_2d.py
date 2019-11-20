@@ -44,6 +44,10 @@ class Deconvolution2DFunction(function_node.FunctionNode):
         self.dy, self.dx = _pair(dilate)
         self.groups = groups
 
+        if self.dx < 1 or self.dy < 1:
+            raise ValueError('Dilate should be positive, but {} is '
+                             'supplied.'.format(dilate))
+
     def check_type_forward(self, in_types):
         n_in = in_types.size()
         type_check.expect(2 <= n_in, n_in <= 3)
@@ -308,7 +312,9 @@ class Deconvolution2DFunction(function_node.FunctionNode):
         if 1 in indexes:
             if self.cover_all is None:
                 self._set_cover_all(x, W)
-            gW, = convolution_2d.Convolution2DGradW(self).apply((gy, x))
+            ksize = W.shape[2:]
+            gW, = convolution_2d.Convolution2DGradW(
+                self, ksize, W.dtype).apply((gy, x))
             ret.append(gW)
         if 2 in indexes:
             gb = chainer.functions.sum(gy, axis=(0, 2, 3))
@@ -401,6 +407,11 @@ http://www.matthewzeiler.com/pubs/cvpr2010/cvpr2010.pdf
     Returns:
         ~chainer.Variable:
             Output variable of shape :math:`(n, c_O, h_O, w_O)`.
+
+    .. seealso::
+
+        :class:`~chainer.links.Deconvolution2D` to manage the model parameters
+        ``W`` and ``b``.
 
     .. admonition:: Example
 

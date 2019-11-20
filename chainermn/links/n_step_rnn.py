@@ -1,5 +1,5 @@
 import chainer
-import chainer.links.connection as lconn
+import chainer.links.rnn as rnn
 import chainermn.functions
 
 
@@ -12,7 +12,7 @@ class _MultiNodeNStepRNN(chainer.Chain):
         self.rank_in = rank_in
         self.rank_out = rank_out
 
-        check_lstm = isinstance(link, lconn.n_step_rnn.NStepRNNBase)
+        check_lstm = isinstance(link, rnn.n_step_rnn.NStepRNNBase)
         if not check_lstm:
             raise ValueError('link must be NStepRNN and its inherited link')
         else:

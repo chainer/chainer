@@ -65,7 +65,7 @@ only exception is when you run ChainerMN on CPU-only environments. See
 
 .. note::
 
-   We reccomend NCCL 2 but NCCL 1 can be used.
+   We recommend NCCL 2 but NCCL 1 can be used.
    However, for NCCL 1, ``PureNcclCommunicator`` is not supported in ChainerMN.
    If you use NCCL 1, please properly configure environment variables to expose NCCL both when you install and use ChainerMN.
    Typical configurations should look like the following::
@@ -123,7 +123,7 @@ We tested ChainerMN on all the following environments.
   * Ubuntu 14.04 LTS 64bit
   * Ubuntu 16.04 LTS 64bit
 
-* Python 2.7.13, 3.5.1, 3.6.1
+* Python 2.7.13, 3.5.2, 3.6.1
 * MPI
 
   * Open MPI 2.1.6, 3.0.4, 3.1.4

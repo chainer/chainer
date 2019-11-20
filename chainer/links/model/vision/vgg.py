@@ -19,7 +19,7 @@ from chainer.functions.activation.softmax import softmax
 from chainer.functions.array.reshape import reshape
 from chainer.functions.math.sum import sum
 from chainer.functions.noise.dropout import dropout
-from chainer.functions.pooling.max_pooling_2d import max_pooling_2d
+from chainer.functions.pooling.max_pooling_nd import max_pooling_2d
 from chainer.initializers import constant
 from chainer.initializers import normal
 from chainer import link
@@ -93,7 +93,7 @@ class VGGLayers(link.Chain):
 
         if n_layers not in [16, 19]:
             raise ValueError(
-                'The n_layers argument should be either 16 or 19,'
+                'The n_layers argument should be either 16 or 19, '
                 'but {} was given.'.format(n_layers)
             )
 

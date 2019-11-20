@@ -1,17 +1,17 @@
 #include "chainerx/cuda/cuda_device.h"
 
-#include <nonstd/optional.hpp>
+#include <absl/types/optional.h>
 
 #include "chainerx/array.h"
 #include "chainerx/constant.h"
 #include "chainerx/cuda/cuda_conv.h"
 #include "chainerx/cuda/kernel_regist.h"
+#include "chainerx/dims.h"
 #include "chainerx/dtype.h"
 #include "chainerx/error.h"
 #include "chainerx/kernels/connection.h"
 #include "chainerx/native/kernel_regist.h"
 #include "chainerx/shape.h"
-#include "chainerx/stack_vector.h"
 
 namespace chainerx {
 namespace cuda {
@@ -22,12 +22,12 @@ public:
     Array Call(
             const Array& x,
             const Array& w,
-            const nonstd::optional<Array>& b,
-            const StackVector<int64_t, kMaxNdim>& stride,
-            const StackVector<int64_t, kMaxNdim>& pad,
+            const absl::optional<Array>& b,
+            const Dims& stride,
+            const Dims& pad,
             bool cover_all,
             Dtype out_dtype,
-            const nonstd::optional<Array>& out) override {
+            const absl::optional<Array>& out) override {
         // TODO(niboshi): Implement and test the `out` argument.
         if (out.has_value()) {
             throw NotImplementedError{"Passing out as an argument is not yet supported."};
@@ -46,12 +46,12 @@ public:
     Array Call(
             const Array& x,
             const Array& w,
-            const nonstd::optional<Array>& b,
-            const StackVector<int64_t, kMaxNdim>& stride,
-            const StackVector<int64_t, kMaxNdim>& pad,
-            const StackVector<int64_t, kMaxNdim>& out_size,
+            const absl::optional<Array>& b,
+            const Dims& stride,
+            const Dims& pad,
+            const Dims& out_size,
             Dtype out_dtype,
-            const nonstd::optional<Array>& out) override {
+            const absl::optional<Array>& out) override {
         // TODO(niboshi): Implement and test the `out` argument.
         if (out.has_value()) {
             throw NotImplementedError{"Passing out as an argument is not yet supported."};
@@ -71,10 +71,10 @@ public:
             const Shape& w_shape,
             const Array& x,
             const Array& gy,
-            const StackVector<int64_t, kMaxNdim>& stride,
-            const StackVector<int64_t, kMaxNdim>& pad,
+            const Dims& stride,
+            const Dims& pad,
             bool cover_all,
-            const nonstd::optional<Array>& out) override {
+            const absl::optional<Array>& out) override {
         // TODO(niboshi): Implement and test the `out` argument.
         if (out.has_value()) {
             throw NotImplementedError{"Passing out as an argument is not yet supported."};

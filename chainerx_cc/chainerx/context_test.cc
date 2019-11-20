@@ -4,8 +4,8 @@
 #include <future>
 #include <vector>
 
+#include <absl/types/optional.h>
 #include <gtest/gtest.h>
-#include <nonstd/optional.hpp>
 
 #include "chainerx/backend.h"
 #include "chainerx/device.h"

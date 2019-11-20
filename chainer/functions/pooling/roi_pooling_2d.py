@@ -353,7 +353,7 @@ def roi_pooling_2d(x, rois, outh, outw, spatial_scale):
 
     Args:
         x (~chainer.Variable): Input variable. The shape is expected to be
-            4 dimentional: (n: batch, c: channel, h, height, w: width).
+            4 dimensional: (n: batch, c: channel, h, height, w: width).
         rois (~chainer.Variable): Input roi variable. The shape is expected to
             be (n: data size, 5), and each datum is set as below:
             (batch_index, x_min, y_min, x_max, y_max).

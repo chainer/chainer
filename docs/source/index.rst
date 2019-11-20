@@ -31,6 +31,7 @@ Chainer -- A flexible framework of neural networks
    install
    chainerx/index
    chainermn/index
+   onnx_chainer/index
 
 .. toctree::
    :maxdepth: 1
@@ -41,7 +42,6 @@ Chainer -- A flexible framework of neural networks
    tips
    performance
    upgrade
-   comparison
    license
 
 Indices and tables
@@ -55,5 +55,5 @@ Indices and tables
    :maxdepth: 1
    :caption: Community
 
-   Slack Chat <https://bit.ly/join-chainer-slack>
+   Slack Chat <https://bit.ly/go-chainer-slack>
    Forums <https://groups.google.com/forum/#!forum/chainer>

@@ -5,7 +5,7 @@
 #include <utility>
 #include <vector>
 
-#include <nonstd/optional.hpp>
+#include <absl/types/optional.h>
 
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
@@ -97,7 +97,7 @@ public:
     int64_t GetNBytes() const { return GetTotalSize() * GetItemSize(); }
 
     const std::shared_ptr<ArrayNode>& GetArrayNode(const BackpropId& backprop_id) const {
-        nonstd::optional<size_t> index = GetNodeIndex(backprop_id);
+        absl::optional<size_t> index = GetNodeIndex(backprop_id);
         if (index.has_value()) {
             return nodes_[*index];
         }
@@ -123,14 +123,14 @@ public:
 
     // Returns a gradient array.
     // Returns nullptr if the array does not belong to the specified graph.
-    const nonstd::optional<Array>* GetGrad(const BackpropId& backprop_id) const {
-        return GetGradImpl<const ArrayBody*, const nonstd::optional<Array>*>(this, backprop_id);
+    const absl::optional<Array>* GetGrad(const BackpropId& backprop_id) const {
+        return GetGradImpl<const ArrayBody*, const absl::optional<Array>*>(this, backprop_id);
     }
 
     // Returns a gradient array.
     // Returns nullptr if the array does not belong to the specified graph.
-    nonstd::optional<Array>* GetGrad(const BackpropId& backprop_id) {
-        return GetGradImpl<ArrayBody*, nonstd::optional<Array>*>(this, backprop_id);
+    absl::optional<Array>* GetGrad(const BackpropId& backprop_id) {
+        return GetGradImpl<ArrayBody*, absl::optional<Array>*>(this, backprop_id);
     }
 
     // Sets a gradient array.
@@ -159,7 +159,7 @@ private:
     template <typename ThisPtr, typename ReturnType>
     static ReturnType GetGradImpl(ThisPtr this_ptr, const BackpropId& backprop_id);
 
-    nonstd::optional<size_t> GetNodeIndex(const BackpropId& backprop_id) const;
+    absl::optional<size_t> GetNodeIndex(const BackpropId& backprop_id) const;
 
     // The use of non-POD static storage object here is safe, because destructing a shared_ptr with nullptr does not incur any
     // destruction order problem.
@@ -174,7 +174,7 @@ private:
 
     std::vector<BackpropId> grad_required_backprop_ids_;
     std::vector<std::shared_ptr<ArrayNode>> nodes_;
-    std::vector<std::unique_ptr<nonstd::optional<Array>>> grads_;
+    std::vector<std::unique_ptr<absl::optional<Array>>> grads_;
 };
 
 std::shared_ptr<ArrayBody> CreateArrayBody(

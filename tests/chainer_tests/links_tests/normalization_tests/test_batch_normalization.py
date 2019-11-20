@@ -294,7 +294,8 @@ class TestPopulationStatistics(unittest.TestCase):
 
     @attr.gpu
     def test_statistics_gpu(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.check_statistics(cuda.to_gpu(self.x), cuda.to_gpu(self.y))
 
     @attr.cudnn
@@ -326,7 +327,8 @@ class TestPopulationStatistics(unittest.TestCase):
 
     @attr.gpu
     def test_statistics2_gpu(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.check_statistics2(
             cuda.to_gpu(self.x),
             cuda.to_gpu(self.y))
@@ -386,14 +388,16 @@ class BatchNormalizationTestWithoutGammaAndBeta(unittest.TestCase):
 
     @attr.gpu
     def test_forward_gpu(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         x = cuda.to_gpu(self.x)
         self.check_forward(x)
 
     @attr.multi_gpu(2)
     def test_forward_gpu_multi(self):
         with cuda.get_device_from_id(0):
-            self.link.to_gpu()
+            with testing.assert_warns(DeprecationWarning):
+                self.link.to_gpu()
             x = cuda.to_gpu(self.x)
         with cuda.get_device_from_id(1):
             self.check_forward(x)
@@ -414,7 +418,8 @@ class BatchNormalizationTestWithoutGammaAndBeta(unittest.TestCase):
     @attr.gpu
     @condition.retry(3)
     def test_backward_gpu(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         x = cuda.to_gpu(self.x)
         gy = cuda.to_gpu(self.gy)
         self.check_backward(x, gy)
@@ -458,7 +463,8 @@ class TestInitialize(unittest.TestCase):
     @attr.gpu
     @condition.retry(3)
     def test_initialize_gpu(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         testing.assert_allclose(self.initial_gamma, self.link.gamma.data)
         testing.assert_allclose(self.initial_beta, self.link.beta.data)
         testing.assert_allclose(self.initial_avg_mean, self.link.avg_mean)
@@ -496,7 +502,8 @@ class TestDefaultInitializer(unittest.TestCase):
 
     @attr.gpu
     def test_initialize_gpu(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.x = cuda.to_gpu(self.x)
         self.check_initialize()
 
@@ -515,7 +522,8 @@ class TestInvalidInput(unittest.TestCase):
 
     @attr.gpu
     def test_invalid_shape_gpu(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         with self.assertRaises(type_check.InvalidType):
             self.link(chainer.Variable(cuda.cupy.zeros(self.shape, dtype='f')))
 
@@ -582,7 +590,8 @@ class TestChannalSizeInference(unittest.TestCase):
     @attr.gpu
     def test_inference_gpu(self):
         bn = links.BatchNormalization(axis=self.axis)
-        bn.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            bn.to_gpu()
         bn(cuda.to_gpu(self.x))
         assert isinstance(bn.beta.data, cuda.cupy.ndarray)
         assert isinstance(bn.gamma.data, cuda.cupy.ndarray)
@@ -645,6 +654,50 @@ class TestLazyInitializationWithNonZeroCurrentCudaDevice(unittest.TestCase):
         assert bn.avg_var is not None
         assert backend.GpuDevice.from_array(bn.avg_mean) == device
         assert backend.GpuDevice.from_array(bn.avg_var) == device
+
+
+@testing.parameterize(*testing.product({
+    'x_shape,bn_kwargs': [
+        ((4, 3), {'axis': (0,)}),
+        ((4, 3), {'size': (3,)}),
+    ],
+}))
+class TestSerialize(unittest.TestCase):
+
+    def create_link(self):
+        return links.BatchNormalization(**self.bn_kwargs)
+
+    def train_link(self, bn):
+        x = numpy.random.rand(*self.x_shape).astype(numpy.float32)
+        bn(x)
+        x = numpy.random.rand(*self.x_shape).astype(numpy.float32)
+        bn(x, finetune=True)
+        # has non-trivial values to be stored
+        assert bn.avg_mean is not None
+        assert bn.N == 1
+
+    def create_serializer_pair(self):
+        target = {}
+        return (
+            chainer.serializers.DictionarySerializer(target),
+            chainer.serializers.NpzDeserializer(target),
+        )
+
+    def test_serialize(self):
+        ser, de = self.create_serializer_pair()
+
+        link1 = self.create_link()
+        self.train_link(link1)
+        link1.serialize(ser)
+
+        link2 = self.create_link()
+        link2.serialize(de)
+
+        testing.assert_allclose(link2.avg_mean, link1.avg_mean)
+        testing.assert_allclose(link2.avg_var, link1.avg_var)
+        testing.assert_allclose(link2.beta.array, link1.beta.array)
+        testing.assert_allclose(link2.gamma.array, link1.gamma.array)
+        assert link2.N == link1.N
 
 
 testing.run_module(__name__, __file__)

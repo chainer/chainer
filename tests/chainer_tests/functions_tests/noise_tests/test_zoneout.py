@@ -79,7 +79,7 @@ class TestZoneout(unittest.TestCase):
 
         gradient_check.check_double_backward(
             f, (h_data, x_data), y_grad, (h_grad_grad, x_grad_grad),
-            dtype=numpy.float64, atol=1e-7, rtol=1e-7)
+            dtype=numpy.float64)
 
     def test_forward_cpu(self):
         self.check_forward(self.h, self.x)

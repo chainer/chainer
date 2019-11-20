@@ -65,7 +65,7 @@ class TensorDot(function_node.FunctionNode):
             if len(axes) != 2:
                 raise ValueError('axes must be a pair of sequence of integers '
                                  'when it is a list or tuple.')
-        elif isinstance(axes, int):
+        elif isinstance(axes, six.integer_types):
             pass
         else:
             raise TypeError('axes must be a pair of sequence of integers or '

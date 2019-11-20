@@ -16,6 +16,7 @@ case "$phase" in
         ;;
 esac
 
+export CHAINER_CI=travis
 
 # Assign default values
 : "${MATRIX_EVAL:=}"
@@ -93,10 +94,14 @@ case "${CHAINER_TRAVIS_TEST}" in
             ;;
             install)
                 run_prestep install_chainerx_style_check_deps
+                run_prestep chainerx_cmake  # cmake is required for clang-tidy
             ;;
             script)
                 run_step chainerx_cpplint
                 run_step chainerx_clang_format
+
+                run_step chainerx_clang_tidy normal
+                run_step chainerx_clang_tidy test
             ;;
         esac
         ;;
@@ -109,6 +114,10 @@ case "${CHAINER_TRAVIS_TEST}" in
 
                 if [[ $SKIP_CHAINERMN != 1 ]]; then
                     run_prestep before_install_chainermn_test_deps
+                fi
+
+                if [[ $SKIP_CHAINERX != 1 ]]; then
+                    run_prestep before_install_chainerx_test_deps
                 fi
 
                 if [[ $TRAVIS_OS_NAME == "windows" ]]; then
@@ -152,6 +161,23 @@ case "${CHAINER_TRAVIS_TEST}" in
                 else
                     echo "Documentation build is skipped as ChainerX is not available.";
                 fi
+                ;;
+        esac
+        ;;
+
+    "examples")
+        case "$phase" in
+            before_install)
+                run_prestep before_install_chainer_test
+                ;;
+
+            install)
+                run_prestep install_chainer_test_deps
+                run_prestep chainer_install_from_sdist
+                ;;
+
+            script)
+                run_step chainer_example_tests
                 ;;
         esac
         ;;

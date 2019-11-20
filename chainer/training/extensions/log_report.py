@@ -89,7 +89,7 @@ keys=None, trigger=(1, 'epoch'), postprocess=None, filename='log')
         else:
             summary.add({k: observation[k] for k in keys if k in observation})
 
-        if self._trigger(trainer):
+        if trainer.is_before_training or self._trigger(trainer):
             # output the result
             stats = self._summary.compute_mean()
             stats_cpu = {}

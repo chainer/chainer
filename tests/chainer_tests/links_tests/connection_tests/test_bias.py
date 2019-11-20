@@ -55,7 +55,8 @@ class TestBias(unittest.TestCase):
 
     @attr.gpu
     def test_forward_gpu(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         x = cuda.to_gpu(self.x)
         if self.learn_b:
             b = None
@@ -83,7 +84,8 @@ class TestBias(unittest.TestCase):
     @attr.gpu
     @condition.retry(3)
     def test_backward_gpu(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         x = cuda.to_gpu(self.x)
         if self.learn_b:
             b = None

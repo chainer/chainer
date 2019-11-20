@@ -31,91 +31,114 @@ namespace chainerx {
 namespace cuda {
 namespace {
 
-// Makes axes for permutation that moves [first_axis, last_axis) to the head.
-Axes MakeRollingPermutation(int8_t first_axis, int8_t last_axis, int8_t ndim) {
-    CHAINERX_ASSERT(0 <= first_axis);
-    CHAINERX_ASSERT(first_axis < last_axis);
-    CHAINERX_ASSERT(last_axis <= ndim);
-
-    Axes permutation{};
-    permutation.resize(ndim);
-    auto head_end = permutation.begin() + (last_axis - first_axis);
-    auto last = permutation.begin() + last_axis;
-    std::iota(permutation.begin(), head_end, first_axis);
-    std::iota(head_end, last, int8_t{0});
-    std::iota(last, permutation.end(), last_axis);
-    return permutation;
+template <typename T, typename TIndex, int8_t kNdim>
+__global__ void TakeCudaKernel(
+        IndexableArray<const T, kNdim> a,
+        IndexableArray<const TIndex, kNdim> indices,
+        IndexableArray<T, kNdim> out,
+        Indexer<kNdim> a_indexer,
+        Indexer<kNdim> indices_indexer,
+        Indexer<kNdim> out_indexer,
+        TIndex num_indices,
+        TIndex target_dim,
+        TIndex right_dim,
+        TIndex num_iters,
+        IndexBoundsMode mode) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= num_iters) return;
+    TIndex left_idx = idx / (num_indices * right_dim);
+    TIndex index_idx = idx % (num_indices * right_dim);
+    TIndex right_idx = index_idx % right_dim;
+    TIndex index_pos = index_idx / right_dim;
+    TIndex index = indices[indices_indexer.It(index_pos)];
+    if (mode == IndexBoundsMode::kWrap || mode == IndexBoundsMode::kDefault) {
+        if (index < 0) {
+            index = target_dim - ((-index + target_dim - 1) % target_dim + 1);
+        } else {
+            index = index % target_dim;
+        }
+    } else if (mode == IndexBoundsMode::kClip) {
+        index = max(TIndex{0}, min(index, TIndex{target_dim} - 1));
+    }
+    TIndex yi = (left_idx * num_indices + index_pos) * right_dim + right_idx;
+    TIndex xi = (left_idx * target_dim + index) * right_dim + right_idx;
+    out[out_indexer.It(yi)] = a[a_indexer.It(xi)];
 }
 
-template <typename T, typename TIndex>
-__global__ void TakeCudaKernel(
-        IndexableArray<const T> a_iarray,
-        IndexableArray<T> out_iarray,
-        IndexableArray<const TIndex> indices_iarray,
-        Indexer<> a_indexer,
-        Indexer<> out_indexer,
-        Indexer<> indices_indexer,
-        TIndex common_total_size,
-        TIndex axis_dim) {
-    static_assert(std::is_same<TIndex, int64_t>::value || std::is_same<TIndex, int32_t>::value, "");
-    for (auto it = out_indexer.It(blockIdx.x * blockDim.x + threadIdx.x, blockDim.x * gridDim.x); it; ++it) {
-        TIndex indices_pos = static_cast<TIndex>(it.raw_index()) / common_total_size;
-        TIndex common_pos = static_cast<TIndex>(it.raw_index()) % common_total_size;
+template <typename T, typename TIndex, int kNdim>
+__global__ void AddAtCudaKernel(
+        IndexableArray<const T, kNdim> a,
+        IndexableArray<const T, kNdim> b,
+        IndexableArray<T, kNdim> out,
+        IndexableArray<const TIndex, kNdim> indices,
+        Indexer<kNdim> b_indexer,
+        Indexer<kNdim> out_indexer,
+        Indexer<kNdim> indices_indexer,
+        TIndex target_dim,
+        TIndex b_dim,
+        TIndex right_dim,
+        TIndex b_right_dim,
+        TIndex num_iters,
+        IndexBoundsMode mode) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= num_iters) return;
+    TIndex i = idx / (target_dim * right_dim);
+    TIndex j = idx % (target_dim * right_dim);
+    TIndex l = j % right_dim;
+    TIndex k = j / right_dim;
 
-        TIndex index = indices_iarray[indices_indexer.It(indices_pos)];
-        if (index < 0) {
-            index = axis_dim - ((-index + axis_dim - 1) % axis_dim + 1);
-        } else {
-            index = index % axis_dim;
+    auto out_it = out_indexer.It(idx);
+    cuda_internal::DataType<T> out_value = cuda_internal::StorageToDataType<const T>(a[out_it]);
+
+    for (auto it_indices = indices_indexer.It(0); it_indices; ++it_indices) {
+        TIndex index = indices[it_indices];
+
+        if (mode == IndexBoundsMode::kWrap || mode == IndexBoundsMode::kDefault) {
+            if (index < 0) {
+                index = target_dim - ((-index + target_dim - 1) % target_dim + 1);
+            } else {
+                index = index % target_dim;
+            }
+        } else if (mode == IndexBoundsMode::kClip) {
+            index = max(TIndex{0}, min(index, TIndex{target_dim} - 1));
         }
         CHAINERX_ASSERT(0 <= index);
-        CHAINERX_ASSERT(index < axis_dim);
-
-        out_iarray[it] = a_iarray[a_indexer.It(index * common_total_size + common_pos)];
+        CHAINERX_ASSERT(index < target_dim);
+        if (index == k) {
+            TIndex bi = i * b_right_dim * b_dim + it_indices.raw_index() * right_dim + l;
+            out_value += cuda_internal::StorageToDataType<const T>(b[b_indexer.It(bi)]);
+        }
     }
+
+    out[out_it] = cuda_internal::DataToStorageType<T>(out_value);
 }
 
-template <typename T, typename TIndex>
-__global__ void AddAtCudaKernel(
-        IndexableArray<const T> a_iarray,
-        IndexableArray<const T> b_iarray,
-        IndexableArray<T> out_iarray,
-        IndexableArray<const TIndex> indices_iarray,
-        Indexer<> b_indexer,
-        Indexer<> out_indexer,
-        Indexer<> indices_indexer,
-        TIndex common_total_size,
-        TIndex axis_dim) {
-    static_assert(std::is_same<TIndex, int64_t>::value || std::is_same<TIndex, int32_t>::value, "");
-    for (auto it = out_indexer.It(blockIdx.x * blockDim.x + threadIdx.x, blockDim.x * gridDim.x); it; ++it) {
-        TIndex axis_pos = static_cast<TIndex>(it.raw_index()) / common_total_size;
-        TIndex common_pos = static_cast<TIndex>(it.raw_index()) % common_total_size;
+Array CollapseNdArray(const Array& a) {
+    Strides new_strides;
+    Shape new_shape;
+    const Strides& strides = a.strides();
+    const Shape& shape = a.shape();
 
-        cuda_internal::DataType<T> out_value = cuda_internal::StorageToDataType<const T>(a_iarray[it]);
+    size_t size = strides.size();
 
-        for (auto it_indices = indices_indexer.It(0); it_indices; ++it_indices) {
-            TIndex index = indices_iarray[it_indices];
-
-            if (index < 0) {
-                index = axis_dim - ((-index + axis_dim - 1) % axis_dim + 1);
-            } else {
-                index = index % axis_dim;
-            }
-            CHAINERX_ASSERT(0 <= index);
-            CHAINERX_ASSERT(index < axis_dim);
-
-            if (index == axis_pos) {
-                out_value += cuda_internal::StorageToDataType<const T>(
-                        b_iarray[b_indexer.It(it_indices.raw_index() * common_total_size + common_pos)]);
-            }
+    for (size_t i = 0; i < size; i++) {
+        if (!new_shape.empty() && new_strides.back() == strides[i] * shape[i]) {
+            new_shape.back() *= shape[i];
+            new_strides.back() = strides[i];
+        } else {
+            new_shape.push_back(shape[i]);
+            new_strides.push_back(strides[i]);
         }
-
-        out_iarray[it] = cuda_internal::DataToStorageType<T>(out_value);
     }
+
+    return internal::MakeArray(new_shape, new_strides, a.dtype(), a.device(), a.data(), a.offset());
 }
 
 template <typename TIndex>
-void TakeImpl(Device& device, const Array& a, const Array& indices, int8_t axis, const Array& out) {
+void TakeImpl(Device& device, const Array& a, const Array& indices, int8_t axis, const Array& out, IndexBoundsMode mode) {
+    if (mode == IndexBoundsMode::kRaise) {
+        throw BackendError{"Take with mode='raise' is not supported with CUDA backend"};
+    }
     static_assert(std::is_same<TIndex, int64_t>::value || std::is_same<TIndex, int32_t>::value, "");
     CHAINERX_ASSERT(
             (std::is_same<TIndex, int64_t>::value && indices.dtype() == Dtype::kInt64) ||
@@ -124,53 +147,70 @@ void TakeImpl(Device& device, const Array& a, const Array& indices, int8_t axis,
 
     CudaSetDeviceScope scope{device.index()};
 
-    VisitDtype(out.dtype(), [&a, &indices, axis, &out](auto pt) {
+    VisitDtype(out.dtype(), [&a, &indices, axis, &out, mode](auto pt) {
         using T = typename decltype(pt)::type;
+        TIndex num_indices = indices.GetTotalSize();
+        TIndex target_dim = a.shape()[axis];
+        TIndex num_iters = out.GetTotalSize();
+        TIndex right_dim = std::accumulate(a.shape().begin() + axis + 1, a.shape().end(), int64_t{1}, std::multiplies<>());
+        static const int k1DMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&TakeCudaKernel<T, TIndex, 1>).block_size;
+        static const int kNDMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&TakeCudaKernel<T, TIndex, kDynamicNdim>).block_size;
+        Array af = CollapseNdArray(a);
+        Array indicesf = CollapseNdArray(indices);
+        Array outf = CollapseNdArray(out);
+        // To get the maximum performance we need to explicitly instantiate the 1D
+        // version of the indexable array. If only one of the 3 arrays has more than one dim
+        // the performance is greatly affected. In such case we just treat all the arrays equally
+        // to simplify the code logic
+        if (af.ndim() == 1 && indicesf.ndim() == 1 && outf.ndim() == 1) {
+            IndexableArray<const T, 1> a_iarray{af};
+            IndexableArray<const TIndex, 1> indices_iarray{indicesf};
+            IndexableArray<T, 1> out_iarray{outf};
+            Indexer<1> a_indexer{af.shape()};
+            Indexer<1> indices_indexer{indicesf.shape()};
+            Indexer<1> out_indexer{outf.shape()};
 
-        // a and out are transposed as follows.
-        // a:       (Ni..., N,     Nj...) => (N,     Ni..., Nj...)
-        // out:     (Ni..., Nk..., Nj...) => (Nk..., Ni..., Nj...)
-        //
-        // indices is used as is.
-        // indices: (Nk...)
+            TakeCudaKernel<T, TIndex, 1><<<(num_iters + k1DMaxBlockSize - 1) / k1DMaxBlockSize, k1DMaxBlockSize>>>(
+                    a_iarray,
+                    indices_iarray,
+                    out_iarray,
+                    a_indexer,
+                    indices_indexer,
+                    out_indexer,
+                    num_indices,
+                    target_dim,
+                    right_dim,
+                    num_iters,
+                    mode);
+        } else {
+            IndexableArray<const T> a_iarray{af};
+            IndexableArray<const TIndex> indices_iarray{indicesf};
+            IndexableArray<T> out_iarray{outf};
+            Indexer<> a_indexer{af.shape()};
+            Indexer<> indices_indexer{indicesf.shape()};
+            Indexer<> out_indexer{outf.shape()};
 
-        IndexableArray<const T> a_iarray{a};
-        Axes a_perm = MakeRollingPermutation(axis, axis + 1, a.ndim());
-        a_iarray.Permute(a_perm);
-        Shape a_shape = internal::TransposeShape(a.shape(), a_perm);
-        Indexer<> a_indexer{a_shape};
-
-        IndexableArray<T> out_iarray{out};
-        Axes out_perm = MakeRollingPermutation(axis, axis + indices.ndim(), out.ndim());
-        out_iarray.Permute(out_perm);
-        Shape out_shape = internal::TransposeShape(out.shape(), out_perm);
-        Indexer<> out_indexer{out_shape};
-
-        IndexableArray<const TIndex> indices_iarray{indices};
-        Indexer<> indices_indexer{indices.shape()};
-
-        // size of (Ni..., Nj...) part
-        TIndex common_total_size = gsl::narrow<TIndex>(a_indexer.total_size() / a_shape[0]);
-
-        TIndex axis_dim = gsl::narrow<TIndex>(a_shape[0]);
-
-        // TODO(niboshi): Calculate kMaxBlockSize per device
-        std::lock_guard<std::mutex> lock{*cuda_internal::g_mutex};
-        static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&TakeCudaKernel<T, TIndex>).block_size;
-        int64_t total_size = out_indexer.total_size();
-        int64_t grid_size = (total_size + kMaxBlockSize - 1) / kMaxBlockSize;
-        int64_t block_size = std::min<TIndex>(total_size, kMaxBlockSize);
-
-        TakeCudaKernel<<<grid_size, block_size>>>(
-                a_iarray, out_iarray, indices_iarray, a_indexer, out_indexer, indices_indexer, common_total_size, axis_dim);
+            TakeCudaKernel<T, TIndex, kDynamicNdim><<<(num_iters + kNDMaxBlockSize - 1) / kNDMaxBlockSize, kNDMaxBlockSize>>>(
+                    a_iarray,
+                    indices_iarray,
+                    out_iarray,
+                    a_indexer,
+                    indices_indexer,
+                    out_indexer,
+                    num_indices,
+                    target_dim,
+                    right_dim,
+                    num_iters,
+                    mode);
+        }
+        return;
     });
 }
 
 template <typename TIndex>
-void AddAtImpl(Device& device, const Array& a, const Array& indices, int8_t axis, const Array& b, const Array& out) {
+void AddAtImpl(Device& device, const Array& a, const Array& indices, int8_t axis, const Array& b, const Array& out, IndexBoundsMode mode) {
     // TODO(niboshi): Current implementation only distributes output elements in respective threads. Summation on the indices is performed
     // serially in each thread. This implementation can be improved by distributing indices as well, possibly using atomicAdd.
-
     static_assert(std::is_same<TIndex, int64_t>::value || std::is_same<TIndex, int32_t>::value, "");
     CHAINERX_ASSERT(
             (std::is_same<TIndex, int64_t>::value && indices.dtype() == Dtype::kInt64) ||
@@ -180,56 +220,74 @@ void AddAtImpl(Device& device, const Array& a, const Array& indices, int8_t axis
 
     CudaSetDeviceScope scope{device.index()};
 
-    VisitDtype(out.dtype(), [&a, &indices, axis, &b, &out](auto pt) {
+    VisitDtype(out.dtype(), [&a, &indices, axis, &b, &out, mode](auto pt) {
         using T = typename decltype(pt)::type;
-
-        // b and out are transposed as follows.
-        // a:       (Ni..., N,     Nj...) => (N,     Ni..., Nj...)
-        // b:       (Ni..., Nk..., Nj...) => (Nk..., Ni..., Nj...)
-        // out:     (Ni..., N    , Nj...) => (N    , Ni..., Nj...)
-        //
-        // indices is used as is.
-        // indices: (Nk...)
-
-        IndexableArray<const T> a_iarray{a};
-        Axes a_perm = MakeRollingPermutation(axis, axis + 1, a.ndim());
-        a_iarray.Permute(a_perm);
-        Shape a_shape = internal::TransposeShape(a.shape(), a_perm);
-        Indexer<> a_indexer{a_shape};
-
-        IndexableArray<const T> b_iarray{b};
-        Axes b_perm = MakeRollingPermutation(axis, axis + indices.ndim(), b.ndim());
-        b_iarray.Permute(b_perm);
-        Shape b_shape = internal::TransposeShape(b.shape(), b_perm);
-        Indexer<> b_indexer{b_shape};
-
-        IndexableArray<T> out_iarray{out};
-        Axes out_perm = MakeRollingPermutation(axis, axis + 1, out.ndim());
-        out_iarray.Permute(out_perm);
-        Shape out_shape = internal::TransposeShape(out.shape(), out_perm);
-        Indexer<> out_indexer{out_shape};
-
-        IndexableArray<const TIndex> indices_iarray{indices};
-        Indexer<> indices_indexer{indices.shape()};
-
-        // size of (Ni..., Nj...) part
-        TIndex common_total_size = gsl::narrow<TIndex>(a_indexer.total_size() / a_shape[0]);
-
-        TIndex axis_dim = gsl::narrow<TIndex>(a_shape[0]);
-
-        static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&AddAtCudaKernel<T, TIndex>).block_size;
-        int64_t total_size = out_indexer.total_size();
-        int64_t grid_size = (total_size + kMaxBlockSize - 1) / kMaxBlockSize;
-        int64_t block_size = std::min<int64_t>(total_size, kMaxBlockSize);
-
-        AddAtCudaKernel<<<grid_size, block_size>>>(
-                a_iarray, b_iarray, out_iarray, indices_iarray, b_indexer, out_indexer, indices_indexer, common_total_size, axis_dim);
+        TIndex target_dim = a.shape()[axis];
+        TIndex b_dim = b.shape()[axis];
+        TIndex right_dim = std::accumulate(a.shape().begin() + axis + 1, a.shape().end(), int64_t{1}, std::multiplies<>());
+        TIndex b_right_dim = std::accumulate(b.shape().begin() + axis + 1, b.shape().end(), int64_t{1}, std::multiplies<>());
+        TIndex num_iters = a.GetTotalSize();
+        static const int k1DMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&AddAtCudaKernel<T, TIndex, 1>).block_size;
+        static const int kNDMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&AddAtCudaKernel<T, TIndex, kDynamicNdim>).block_size;
+        Array af = CollapseNdArray(a);
+        Array bf = CollapseNdArray(b);
+        Array indicesf = CollapseNdArray(indices);
+        Array outf = CollapseNdArray(out);
+        // To get the maximum performance we need to explicitly instantiate the 1D
+        // version of the indexable array. If only one of the 3 arrays has more than one dim
+        // the performance is greatly affected. In such case we just treat all the arrays equally
+        // to simplify the code logic
+        if (af.ndim() == 1 && bf.ndim() == 1 && indicesf.ndim() == 1 && outf.ndim() == 1) {
+            IndexableArray<const T, 1> a_iarray{af};
+            IndexableArray<const T, 1> b_iarray{bf};
+            IndexableArray<const TIndex, 1> indices_iarray{indicesf};
+            IndexableArray<T, 1> out_iarray{outf};
+            Indexer<1> b_indexer{bf.shape()};
+            Indexer<1> out_indexer{outf.shape()};
+            Indexer<1> indices_indexer{indicesf.shape()};
+            AddAtCudaKernel<T, TIndex, 1><<<(num_iters + k1DMaxBlockSize - 1) / k1DMaxBlockSize, k1DMaxBlockSize>>>(
+                    a_iarray,
+                    b_iarray,
+                    out_iarray,
+                    indices_iarray,
+                    b_indexer,
+                    out_indexer,
+                    indices_indexer,
+                    target_dim,
+                    b_dim,
+                    right_dim,
+                    b_right_dim,
+                    num_iters,
+                    mode);
+        } else {
+            IndexableArray<const T> a_iarray{af};
+            IndexableArray<const T> b_iarray{bf};
+            IndexableArray<const TIndex> indices_iarray{indicesf};
+            IndexableArray<T> out_iarray{outf};
+            Indexer<> b_indexer{b.shape()};
+            Indexer<> out_indexer{out.shape()};
+            Indexer<> indices_indexer{indices.shape()};
+            AddAtCudaKernel<T, TIndex, kDynamicNdim><<<(num_iters + kNDMaxBlockSize - 1) / kNDMaxBlockSize, kNDMaxBlockSize>>>(
+                    a_iarray,
+                    b_iarray,
+                    out_iarray,
+                    indices_iarray,
+                    b_indexer,
+                    out_indexer,
+                    indices_indexer,
+                    target_dim,
+                    b_dim,
+                    right_dim,
+                    b_right_dim,
+                    num_iters,
+                    mode);
+        }
     });
 }
 
 class CudaTakeKernel : public TakeKernel {
 public:
-    void Call(const Array& a, const Array& indices, int8_t axis, const Array& out) override {
+    void Call(const Array& a, const Array& indices, int8_t axis, const Array& out, IndexBoundsMode mode) override {
         Device& device = a.device();
         CHAINERX_ASSERT(GetKind(indices.dtype()) == DtypeKind::kInt || GetKind(indices.dtype()) == DtypeKind::kUInt);
         device.CheckDevicesCompatible(a, indices, out);
@@ -237,10 +295,10 @@ public:
         CudaSetDeviceScope scope{device.index()};
 
         if (indices.dtype() == Dtype::kInt64) {
-            TakeImpl<int64_t>(device, a, indices, axis, out);
+            TakeImpl<int64_t>(device, a, indices, axis, out, mode);
         } else {
             const Array& indices_cast = indices.dtype() == Dtype::kInt32 ? indices : indices.AsType(Dtype::kInt32);
-            TakeImpl<int32_t>(device, a, indices_cast, axis, out);
+            TakeImpl<int32_t>(device, a, indices_cast, axis, out, mode);
         }
     }
 };
@@ -249,7 +307,7 @@ CHAINERX_CUDA_REGISTER_KERNEL(TakeKernel, CudaTakeKernel);
 
 class CudaAddAtKernel : public AddAtKernel {
 public:
-    void Call(const Array& a, const Array& indices, int8_t axis, const Array& b, const Array& out) override {
+    void Call(const Array& a, const Array& indices, int8_t axis, const Array& b, const Array& out, IndexBoundsMode mode) override {
         Device& device = a.device();
         CHAINERX_ASSERT(GetKind(indices.dtype()) == DtypeKind::kInt || GetKind(indices.dtype()) == DtypeKind::kUInt);
         device.CheckDevicesCompatible(a, indices, out);
@@ -257,10 +315,10 @@ public:
         CudaSetDeviceScope scope{device.index()};
 
         if (indices.dtype() == Dtype::kInt64) {
-            AddAtImpl<int64_t>(device, a, indices, axis, b, out);
+            AddAtImpl<int64_t>(device, a, indices, axis, b, out, mode);
         } else {
             const Array& indices_cast = indices.dtype() == Dtype::kInt32 ? indices : indices.AsType(Dtype::kInt32);
-            AddAtImpl<int32_t>(device, a, indices_cast, axis, b, out);
+            AddAtImpl<int32_t>(device, a, indices_cast, axis, b, out, mode);
         }
     }
 };

@@ -5,7 +5,7 @@
 #include <utility>
 #include <vector>
 
-#include <nonstd/optional.hpp>
+#include <absl/types/optional.h>
 
 #include "chainerx/array.h"
 #include "chainerx/constant.h"
@@ -17,13 +17,13 @@ namespace internal {
 
 class BackpropMode {
 public:
-    BackpropMode(Context& context, bool backprop) : context_{context}, backprop_id_{nonstd::nullopt}, backprop_{backprop} {}
+    BackpropMode(Context& context, bool backprop) : context_{context}, backprop_id_{absl::nullopt}, backprop_{backprop} {}
     BackpropMode(const BackpropId& backprop_id, bool backprop)
         : context_{backprop_id.context()}, backprop_id_{backprop_id}, backprop_{backprop} {}
 
     Context& context() const { return context_; }
 
-    const nonstd::optional<BackpropId>& backprop_id() const { return backprop_id_; }
+    const absl::optional<BackpropId>& backprop_id() const { return backprop_id_; }
 
     bool backprop() const { return backprop_; }
 
@@ -31,7 +31,7 @@ private:
     // Using reference_wrapper to make this class move assignable because we use vector::erase in BackpropModeScope dtor.
     std::reference_wrapper<Context> context_;
 
-    nonstd::optional<BackpropId> backprop_id_;
+    absl::optional<BackpropId> backprop_id_;
     bool backprop_;  // false for NoBackpropMode, and true for ForceBackpropMode
 };
 

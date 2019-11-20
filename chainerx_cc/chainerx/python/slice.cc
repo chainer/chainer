@@ -1,6 +1,6 @@
 #include "chainerx/python/slice.h"
 
-#include <nonstd/optional.hpp>
+#include <absl/types/optional.h>
 
 namespace chainerx {
 namespace python {
@@ -11,9 +11,9 @@ namespace py = pybind11;
 Slice MakeSlice(const py::slice& slice) {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     const auto* py_slice = reinterpret_cast<const PySliceObject*>(slice.ptr());
-    auto to_optional = [](PyObject* var) -> nonstd::optional<int64_t> {
+    auto to_optional = [](PyObject* var) -> absl::optional<int64_t> {
         if (var == Py_None) {
-            return nonstd::nullopt;
+            return absl::nullopt;
         }
         return py::cast<int64_t>(var);
     };
