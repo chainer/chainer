@@ -510,3 +510,20 @@ class TestTransposeSequence(ONNXModelTest):
               shape in self.in_shapes]
 
         self.expect(model, xs, name=self.name)
+
+
+class TestSelectItem(ONNXModelTest):
+
+    def test_output(self):
+
+        class Model(chainer.Chain):
+            def forward(self, x, t):
+                return F.select_item(x, t)
+
+        model = Model()
+        x = input_generator.increasing(3, 3)
+        t = np.array([2, 1, 0], dtype=np.int32)
+
+        self.expect(
+            model, (x, t), expected_num_initializers=0,
+            skip_opset_version=list(range(1, 9)))

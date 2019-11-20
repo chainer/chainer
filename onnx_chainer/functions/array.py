@@ -1,6 +1,7 @@
 import warnings
 
 import chainer
+import onnx
 import numpy as np
 from onnx.mapping import NP_TYPE_TO_TENSOR_TYPE
 
@@ -192,6 +193,31 @@ def convert_GetItem(func, opset_version, input_names, output_names, context):
         gb.op('Gather', slice_output, axis=gather_axis)
 
     return gb.nodes(output_names=output_names)
+
+
+def convert_SelectItem(func, opset_version, input_names, output_names,
+                       context):
+    gb = onnx_helper.GraphBuilder()
+
+    data, target_idxs = input_names
+    target_idxs = gb.op('Cast', [target_idxs],
+                        to=NP_TYPE_TO_TENSOR_TYPE[np.dtype('int64')])
+    n_rows = gb.op('Shape', [target_idxs])
+
+    # This is an equivalent of using Range.
+    one_1 = onnx.helper.make_tensor('one_1', onnx.TensorProto.FLOAT, [1], [1])
+    ones = gb.op('ConstantOfShape', [n_rows], value=one_1)
+    row_idxs = gb.op('Squeeze', [gb.op('NonZero', [ones])])
+
+    data_shape = gb.op('Shape', [data])
+    one_2 = context.add_const(np.array([1]), 'one_2')
+    n_cols = gb.op('Gather', [data_shape, one_2], axis=0)
+
+    data = gb.op('Squeeze', [gb.op('Flatten', [data], axis=2)])
+    target_idxs = gb.op('Add', [target_idxs, gb.op('Mul', [row_idxs, n_cols])])
+    gb.op('Gather', [data, target_idxs], axis=0)
+
+    return gb.nodes(output_names)
 
 
 @support((1, 2, 11))
