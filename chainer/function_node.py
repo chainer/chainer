@@ -459,9 +459,26 @@ Use apply() method instead.\
 
     def check_layout_forward(self, inputs):
         if self.is_elementwise:
-            assert all([x.layout == inputs[0].layout for x in inputs])
+            if not all([x.layout == inputs[0].layout for x in inputs]):
+                raise RuntimeError(
+                    'Inputs with mixed memory layouts were given to '
+                    'an elementwise function. \n'
+                    'Function: {}\n'
+                    'Input layouts: {}\n'.format(
+                        self.label,
+                        ', '.join(str(x.layout) for x in inputs),
+                    ))
         else:
-            assert all([x.layout is None for x in inputs])
+            if not all([x.layout is None for x in inputs]):
+                raise RuntimeError(
+                    'Inputs with non-standard layouts were given to '
+                    'a function without explicit `check_layout_forward` '
+                    'implementation.\n'
+                    'Function: {}\n'
+                    'Input layouts: {}\n'.format(
+                        self.label,
+                        ', '.join(str(x.layout) for x in inputs),
+                    ))
 
     def _chainerx_apply_fallback_preprocess(self, in_data, inputs):
         chainerx_in_data = in_data
