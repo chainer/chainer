@@ -29,7 +29,6 @@ namespace chainerx {
 namespace cuda {
 namespace {
 
-// TODO(sonots): Support other than 4, 5 dimensional arrays by reshaping into 4-dimensional arrays as Chainer does.
 cudnnBatchNormMode_t GetBatchNormMode(const Axes& axis) {
     if (axis.ndim() == 1 && axis[0] == 0) {  // (1, channels, (depth, )height, width)
         return CUDNN_BATCHNORM_PER_ACTIVATION;
@@ -61,6 +60,19 @@ void UpdateRunning(const Array& running, const Array& running_updated) {
     Device& device = running.device();
     device.MemoryCopyFrom(
             internal::GetRawOffsetData(running), internal::GetRawOffsetData(running_casted_back), running.GetNBytes(), device);
+}
+
+// Appends singleton axes to make an array with at least 4 dimensions.
+// Used for cuDNN BatchNorm, which only supports 4 or 5 dimension input.
+Array ExpandToAtLeast4D(const Array& x) {
+    if (x.ndim() >= 4) {
+        return x;
+    }
+    Shape shape = x.shape();
+    while (shape.size() < 4) {
+        shape.push_back(1);
+    }
+    return x.Reshape(shape);
 }
 
 // Derives a secondary tensor descriptor for the batch normalization parameters.
@@ -122,7 +134,7 @@ public:
         CudaSetDeviceScope scope{device.index()};
 
         Array x_cont = AsContiguous(x);
-        cuda_internal::CudnnTensorDescriptor x_desc{x_cont};
+        cuda_internal::CudnnTensorDescriptor x_desc{ExpandToAtLeast4D(x_cont)};
 
         cudnnBatchNormMode_t mode = GetBatchNormMode(axis);
         cuda_internal::CudnnTensorDescriptor gamma_beta_mean_var_desc = DeriveBatchNormTensorDescriptor(x_desc, mode);
@@ -199,6 +211,7 @@ public:
             const absl::optional<Array>& ggamma,
             const absl::optional<Array>& gbeta) override {
         CHAINERX_ASSERT(gamma.shape() == internal::ReduceShape(x.shape(), axis, true));
+        CHAINERX_ASSERT(x.dtype() == gout.dtype());
         CHAINERX_ASSERT(x.shape() == gout.shape());
         CHAINERX_ASSERT(&x.device() == &gamma.device());
         CHAINERX_ASSERT(&x.device() == &gout.device());
@@ -239,10 +252,7 @@ public:
 
         Array gout_cont = AsContiguous(gout);
         Array actual_gx = EmptyLike(x, device);
-        cuda_internal::CudnnTensorDescriptor x_desc{x_cont};
-
-        // The CudnnTensorDescriptor for `x_cont` can be reused for `gout_cont`.
-        CHAINERX_ASSERT(x_desc.GetDtype() == cuda_internal::CudnnTensorDescriptor{gout_cont}.GetDtype());
+        cuda_internal::CudnnTensorDescriptor x_desc{ExpandToAtLeast4D(x_cont)};
 
         cudnnBatchNormMode_t mode = GetBatchNormMode(axis);
 
@@ -339,7 +349,7 @@ public:
         CudaSetDeviceScope scope{device.index()};
 
         Array x_cont = AsContiguous(x);
-        cuda_internal::CudnnTensorDescriptor x_desc{x_cont};
+        cuda_internal::CudnnTensorDescriptor x_desc{ExpandToAtLeast4D(x_cont)};
 
         cudnnBatchNormMode_t mode = GetBatchNormMode(axis);
 
