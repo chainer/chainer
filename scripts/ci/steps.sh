@@ -185,7 +185,7 @@ step_python_build() {
     CHAINER_BUILD_CHAINERX=1 \
     CHAINERX_BUILD_CUDA=ON \
     CHAINERX_BUILD_TYPE=Debug \
-    pip install "$REPO_DIR"[test]
+    pip install -v "$REPO_DIR"[test]
 }
 
 
