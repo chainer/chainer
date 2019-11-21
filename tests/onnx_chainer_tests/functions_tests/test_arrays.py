@@ -525,8 +525,8 @@ class TestSelectItem(ONNXModelTest):
                 return F.select_item(x, t)
 
         model = Model()
-        x = input_generator.increasing(3, 3)
-        t = np.array([2, 1, 0], dtype=np.int32)
+        x = input_generator.increasing(3, 5)
+        t = np.array([4, 1, 0], dtype=np.int32)
 
         self.expect(
             model, (x, t), expected_num_initializers=0,
