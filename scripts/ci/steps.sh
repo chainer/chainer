@@ -196,6 +196,7 @@ step_python_test_chainerx() {
     COVERAGE_FILE="$WORK_DIR"/coverage-data \
     pytest \
         -rfEX \
+        -m 'not slow' \
         --showlocals \
         --cov=chainerx \
         --no-cov-on-fail \
