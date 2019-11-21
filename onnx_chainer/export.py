@@ -225,7 +225,7 @@ def export(model, args, filename=None, export_params=True,
            graph_name='Graph', save_text=False, opset_version=None,
            input_names=None, output_names=None, train=False,
            return_named_inout=False, external_converters=None,
-           external_opset_imports=None, input_shapes=None):
+           external_opset_imports=None, input_shapes=None, no_testcase=False):
     """Export function for chainer.Chain in ONNX format.
 
     This function performs a forward computation of the given
@@ -305,6 +305,11 @@ def export(model, args, filename=None, export_params=True,
     """
 
     _check_available()
+
+    if not no_testcase:
+        warnings.warn(
+            'Exporting ONNX without testcases is deprecated',
+            DeprecationWarning)
 
     with chainer.using_config('train', train),\
             chainer.using_config('in_recomputing', True),\
