@@ -279,7 +279,7 @@ def test_get_item_error(slices):
     x = input_generator.increasing(2, 3, 4)
 
     with pytest.raises(ValueError):
-        export(model, x)
+        export(model, x, no_testcase=True)
 
 
 class TestConcat(ONNXModelTest):

@@ -34,7 +34,7 @@ def test_fake_as_funcnode_without_replace():
     model = Model()
     x = input_generator.increasing(3, 4)
 
-    onnx_model = export(model, x)
+    onnx_model = export(model, x, no_testcase=True)
     sigmoid_nodes = [
         node for node in onnx_model.graph.node if node.op_type == 'Sigmoid']
     assert len(sigmoid_nodes) == 1
