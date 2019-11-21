@@ -308,7 +308,8 @@ def export(model, args, filename=None, export_params=True,
 
     if not no_testcase:
         warnings.warn(
-            'Exporting ONNX without testcases is deprecated',
+            'Exporting ONNX without testcases is deprecated. '
+            'Use export_testcase instead',
             DeprecationWarning)
 
     with chainer.using_config('train', train),\
