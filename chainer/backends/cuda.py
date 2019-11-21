@@ -65,6 +65,9 @@ try:
     from cupy.cuda import Event  # type: ignore # NOQA
     from cupy.cuda import Stream  # type: ignore # NOQA
 
+    # Alias for ignoring the warning in setup.cfg
+    from cupy.util import PerformanceWarning as _PerformanceWarning  # NOQA
+
     available = True
 except Exception as e:
     _resolution_error = e
@@ -106,6 +109,10 @@ except Exception as e:
 
     # for `xp is chainer.backends.cuda.cupy` to always work
     cupy = object()
+
+    # Dummy class for ignoring cupy.util.PerformanceWarning in setup.cfg.
+    class _PerformanceWarning(Warning):
+        pass
 
 
 if available:
