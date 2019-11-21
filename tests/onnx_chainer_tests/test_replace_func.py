@@ -137,16 +137,14 @@ def n_step_gru_converter(params):
             [gb.op('Concat', [b[1], b[0], b[2], b[4], b[3], b[5]], axis=0)],
             axes=[0])
 
-        # shape: (seq_length, num_directions, batch_size, hidden_size)
-        y_name = gb.node_name() + "_Y"
-        # shape: (num_directions, batch_size, hidden_size)
-        hy_name_ = gb.node_name() + "_h"
-        hy_names.append(hy_name_)
-        gb.op_output_named(
+        # y_name.shape : (seq_length, num_directions, batch_size, hidden_size)
+        # hy_name_.shape: (num_directions, batch_size, hidden_size)
+        y_name, hy_name_ = gb.op(
             'GRU',
             (x_name, w_name, r_name, b_name, "", hx_names[layer]),
-            (y_name, hy_name_),
-            hidden_size=hidden_size)
+            hidden_size=hidden_size,
+            num_outputs=2)
+        hy_names.append(hy_name_)
 
     split_outs = gb.op(
         'Split',
