@@ -143,6 +143,7 @@ def n_step_gru_converter(params):
             'GRU',
             (x_name, w_name, r_name, b_name, "", hx_names[layer]),
             hidden_size=hidden_size,
+            linear_before_reset=1,
             num_outputs=2)
         hy_names.append(hy_name_)
 
