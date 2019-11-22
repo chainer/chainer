@@ -431,20 +431,16 @@ void QrImpl(const Array& a, const Array& q, const Array& r, const Array& tau, Qr
 class NativeSolveKernel : public SolveKernel {
 public:
     void Call(const Array& a, const Array& b, const Array& out) override {
-#if CHAINERX_ENABLE_LAPACK
         CHAINERX_ASSERT(a.ndim() == 2);
         CHAINERX_ASSERT(a.shape()[0] == a.shape()[1]);
+        if (!CHAINERX_ENABLE_LAPACK) {
+            throw ChainerxError{"LAPACK is not linked to ChainerX."};
+        }
 
         VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
             using T = typename decltype(pt)::type;
             SolveImpl<T>(a.dtype() == out.dtype() ? a : a.AsType(out.dtype()), b.dtype() == out.dtype() ? b : b.AsType(out.dtype()), out);
         });
-#else  // CHAINERX_ENABLE_LAPACK
-        (void)a;  // unused
-        (void)b;  // unused
-        (void)out;  // unused
-        throw ChainerxError{"LAPACK is not linked to ChainerX."};
-#endif  // CHAINERX_ENABLE_LAPACK
     }
 };
 
@@ -453,20 +449,16 @@ CHAINERX_NATIVE_REGISTER_KERNEL(SolveKernel, NativeSolveKernel);
 class NativeInverseKernel : public InverseKernel {
 public:
     void Call(const Array& a, const Array& out) override {
-#if CHAINERX_ENABLE_LAPACK
-
         CHAINERX_ASSERT(a.ndim() == 2);
         CHAINERX_ASSERT(a.shape()[0] == a.shape()[1]);
+        if (!CHAINERX_ENABLE_LAPACK) {
+            throw ChainerxError{"LAPACK is not linked to ChainerX."};
+        }
 
         VisitFloatingPointDtype(a.dtype(), [&](auto pt) {
             using T = typename decltype(pt)::type;
             InverseImpl<T>(a, out);
         });
-#else  // CHAINERX_ENABLE_LAPACK
-        (void)a;  // unused
-        (void)out;  // unused
-        throw ChainerxError{"LAPACK is not linked to ChainerX."};
-#endif  // CHAINERX_ENABLE_LAPACK
     }
 };
 
@@ -475,11 +467,14 @@ CHAINERX_NATIVE_REGISTER_KERNEL(InverseKernel, NativeInverseKernel);
 class NativeSvdKernel : public SvdKernel {
 public:
     void Call(const Array& a, const Array& u, const Array& s, const Array& vt, bool full_matrices, bool compute_uv) override {
-#if CHAINERX_ENABLE_LAPACK
         Device& device = a.device();
         Dtype dtype = a.dtype();
 
         CHAINERX_ASSERT(a.ndim() == 2);
+
+        if (!CHAINERX_ENABLE_LAPACK) {
+            throw ChainerxError{"LAPACK is not linked to ChainerX."};
+        }
 
         if (a.shape().GetTotalSize() == 0) {
             if (full_matrices && compute_uv) {
@@ -540,15 +535,6 @@ public:
         };
 
         VisitFloatingPointDtype(dtype, svd_impl);
-#else  // CHAINERX_LAPACK_AVAILABLE
-        (void)a;  // unused
-        (void)u;  // unused
-        (void)s;  // unused
-        (void)vt;  // unused
-        (void)full_matrices;  // unused
-        (void)compute_uv;  // unused
-        throw ChainerxError{"LAPACK is not linked to ChainerX."};
-#endif  // CHAINERX_LAPACK_AVAILABLE
     }
 };
 
@@ -557,21 +543,15 @@ CHAINERX_NATIVE_REGISTER_KERNEL(SvdKernel, NativeSvdKernel);
 class NativeQrKernel : public QrKernel {
 public:
     void Call(const Array& a, const Array& q, const Array& r, const Array& tau, QrMode mode) override {
-#if CHAINERX_ENABLE_LAPACK
         CHAINERX_ASSERT(a.ndim() == 2);
+        if (!CHAINERX_ENABLE_LAPACK) {
+            throw ChainerxError{"LAPACK is not linked to ChainerX."};
+        }
 
         VisitFloatingPointDtype(a.dtype(), [&](auto pt) {
             using T = typename decltype(pt)::type;
             QrImpl<T>(a, q, r, tau, mode);
         });
-#else  // CHAINERX_ENABLE_LAPACK
-        (void)a;  // unused
-        (void)q;  // unused
-        (void)r;  // unused
-        (void)tau;  // unused
-        (void)mode;  // unused
-        throw ChainerxError{"LAPACK is not linked to ChainerX."};
-#endif  // CHAINERX_ENABLE_LAPACK
     }
 };
 
@@ -580,7 +560,6 @@ CHAINERX_NATIVE_REGISTER_KERNEL(QrKernel, NativeQrKernel);
 class NativeCholeskyKernel : public CholeskyKernel {
 public:
     void Call(const Array& a, const Array& out) override {
-#if CHAINERX_ENABLE_LAPACK
         Device& device = a.device();
         device.CheckDevicesCompatible(a, out);
 
@@ -589,6 +568,9 @@ public:
         CHAINERX_ASSERT(a.shape()[0] == a.shape()[1]);
         CHAINERX_ASSERT(out.IsContiguous());
         CHAINERX_ASSERT(a.dtype() == out.dtype());
+        if (!CHAINERX_ENABLE_LAPACK) {
+            throw ChainerxError{"LAPACK is not linked to ChainerX."};
+        }
 
         // potrf (cholesky) stores result in-place, therefore copy ``a`` to ``out`` and then pass ``out`` to the routine
         device.backend().CallKernel<CopyKernel>(Tril(a, 0), out);
@@ -612,11 +594,6 @@ public:
         };
 
         VisitFloatingPointDtype(a.dtype(), cholesky_impl);
-#else  // CHAINERX_LAPACK_AVAILABLE
-        (void)a;  // unused
-        (void)out;  // unused
-        throw ChainerxError{"LAPACK is not linked to ChainerX."};
-#endif  // CHAINERX_LAPACK_AVAILABLE
     }
 };
 
@@ -625,11 +602,13 @@ CHAINERX_NATIVE_REGISTER_KERNEL(CholeskyKernel, NativeCholeskyKernel);
 class NativeSyevdKernel : public SyevdKernel {
 public:
     void Call(const Array& a, const Array& w, const Array& v, char uplo, bool compute_v) override {
-#if CHAINERX_ENABLE_LAPACK
         Device& device = a.device();
         Dtype dtype = a.dtype();
 
         CHAINERX_ASSERT(a.ndim() == 2);
+        if (!CHAINERX_ENABLE_LAPACK) {
+            throw ChainerxError{"LAPACK is not linked to ChainerX."};
+        }
 
         // Syevd stores the result in-place, copy a to v to avoid destroying the input matrix
         device.backend().CallKernel<CopyKernel>(a, v);
@@ -678,14 +657,6 @@ public:
         };
 
         VisitFloatingPointDtype(dtype, syevd_impl);
-#else  // CHAINERX_LAPACK_AVAILABLE
-        (void)a;  // unused
-        (void)w;  // unused
-        (void)v;  // unused
-        (void)uplo;  // unused
-        (void)compute_v;  // unused
-        throw ChainerxError{"LAPACK is not linked to ChainerX."};
-#endif  // CHAINERX_LAPACK_AVAILABLE
     }
 };
 
