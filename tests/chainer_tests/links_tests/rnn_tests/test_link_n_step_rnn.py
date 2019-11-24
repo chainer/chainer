@@ -7,6 +7,7 @@ from chainer.backends import cuda
 from chainer import gradient_check
 from chainer import links
 from chainer import testing
+from chainer import initializers
 from chainer.testing import attr
 from chainer.testing import condition
 
@@ -411,6 +412,72 @@ class TestNStepBiRNN(unittest.TestCase):
 
     def test_n_cells(self):
         assert self.rnn.n_cells == 1
+
+
+@testing.parameterize(
+    *testing.product(
+        {
+            'dtype': [numpy.float32, numpy.float64],
+            'initializer': ['random', None],
+            'activation_type': ['tanh', 'relu'],
+            'use_bi_direction': [True, False]
+        }
+    )
+)
+class TestInitialization(unittest.TestCase):
+    def setUp(self):
+        if self.initializer is None:
+            initializer = initializers.constant.Zero()
+
+        elif self.initializer == 'random':
+            initializer = initializers.GlorotUniform()
+
+        self.initialW = numpy.zeros((10, 10), dtype=self.dtype)
+        self.initial_bias = numpy.zeros((10, 1), dtype=self.dtype)
+
+        initializer(self.initialW)
+        initializer(self.initial_bias)
+        self.initial_bias = self.initial_bias.reshape(-1)  # FIXME (himkt) workaround
+
+        with chainer.using_config('dtype', self.dtype):
+            if self.activation_type == 'tanh':
+                if self.use_bi_direction:
+                    link = links.NStepBiRNNTanh
+                else:
+                    link = links.NStepRNNTanh
+
+            elif self.activation_type == 'relu':
+                if self.use_bi_direction:
+                    link = links.NStepBiRNNReLU
+                else:
+                    link = links.NStepRNNReLU
+
+            self.link = link(
+                1, 10, 10, 0.0,
+                initialW=self.initialW,
+                initial_bias=self.initial_bias)
+
+    def check_param(self):
+        link = self.link
+        dtype = self.dtype
+        for ws_i in link.ws:
+            for w in ws_i:
+                assert w.dtype == dtype
+                testing.assert_allclose(w.array, self.initialW, atol=0, rtol=0)
+
+        for bs_i in link.bs:
+            for b in bs_i:
+                assert b.dtype == dtype
+                testing.assert_allclose(b.array, self.initial_bias, atol=0, rtol=0)
+
+    def test_param_cpu(self):
+        self.check_param()
+
+    @attr.gpu
+    def test_param_gpu(self):
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
+        self.check_param()
 
 
 testing.run_module(__name__, __file__)
