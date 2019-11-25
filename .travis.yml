@@ -44,7 +44,7 @@ matrix:
       language: generic
       env:
       - CHAINER_TRAVIS_TEST="chainer"
-      - PYTHON_VERSION=2.7.10
+      - PYTHON_VERSION=2.7.16
       - PYENV_ROOT=~/.pyenv
       - PATH=$PYENV_ROOT/shims:$PATH:$PYENV_ROOT/bin
       - SKIP_CHAINERX=1
