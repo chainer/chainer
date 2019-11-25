@@ -1,6 +1,7 @@
 import warnings
 
 import chainer
+import onnx
 import numpy as np
 from onnx.mapping import NP_TYPE_TO_TENSOR_TYPE
 
@@ -120,8 +121,12 @@ def convert_GetItem(func, opset_version, input_names, output_names, context):
             ends.append(x.shape[axis] if idx.stop is None else idx.stop)
         elif isinstance(idx, int):
             axes.append(axis)
-            starts.append(idx)
-            ends.append(idx+1)
+            if idx == -1:
+                starts.append(idx)
+                ends.append(np.iinfo(np.int64).max)
+            else:
+                starts.append(idx)
+                ends.append(idx+1)
             squeeze_idxs.append(axis)
         elif isinstance(idx, np.ndarray) and idx.ndim == 0:
             scalar_idx = idx.item()
@@ -192,6 +197,39 @@ def convert_GetItem(func, opset_version, input_names, output_names, context):
         gb.op('Gather', slice_output, axis=gather_axis)
 
     return gb.nodes(output_names=output_names)
+
+
+@support((9, 11))
+def convert_SelectItem(func, opset_version, input_names, output_names,
+                       context):
+    gb = onnx_helper.GraphBuilder()
+
+    if opset_version >= 11:
+        t = gb.op('Unsqueeze', [input_names[1]], axes=[1])
+        out = gb.op('GatherElements', [input_names[0], t], axis=1)
+        gb.op('Squeeze', [out], axes=[1])
+    else:
+        data, target_idxs = input_names
+        target_idxs = gb.op('Cast', [target_idxs],
+                            to=NP_TYPE_TO_TENSOR_TYPE[np.dtype('int64')])
+        n_rows = gb.op('Shape', [target_idxs])
+
+        # This is an equivalent of using Range.
+        one_1 = onnx.helper.make_tensor(
+            'one_1', onnx.TensorProto.FLOAT, [1], [1])
+        ones = gb.op('ConstantOfShape', [n_rows], value=one_1)
+        row_idxs = gb.op('Squeeze', [gb.op('NonZero', [ones])])
+
+        data_shape = gb.op('Shape', [data])
+        one_2 = context.add_const(np.array([1]), 'one_2')
+        n_cols = gb.op('Gather', [data_shape, one_2], axis=0)
+
+        data = gb.op('Squeeze', [gb.op('Flatten', [data], axis=2)])
+        target_idxs = gb.op(
+            'Add', [target_idxs, gb.op('Mul', [row_idxs, n_cols])])
+        gb.op('Gather', [data, target_idxs], axis=0)
+
+    return gb.nodes(output_names)
 
 
 @support((1, 2, 11))
@@ -588,3 +626,17 @@ def convert_Rollaxis(func, opset_version, input_names, output_names, context):
                                  perm=order)
 
     return node,
+
+
+def convert_TransposeSequence(
+        func, opset_version, input_names, output_names, context):
+    if len(input_names) == 1:
+        return onnx_helper.make_node(
+            'Split', input_names, output_names, axis=0),
+    elif len(output_names) == 1:
+        return onnx_helper.make_node(
+            'Concat', input_names, output_names, axis=0),
+    else:
+        raise ValueError(
+            'ONNX-Chainer can convert TransposeSequence only when input '
+            'or output length is 1')

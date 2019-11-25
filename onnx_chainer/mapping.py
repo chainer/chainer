@@ -33,6 +33,7 @@ _supported_function_node_set = {
     'Reshape',
     'ResizeImages',
     'Rollaxis',
+    'SelectItem',
     'Separate',
     'Shape',
     'Space2Depth',
@@ -42,6 +43,7 @@ _supported_function_node_set = {
     'Swapaxes',
     'Tile',
     'Transpose',
+    'TransposeSequence',
     'Vstack',
     'Where',
 

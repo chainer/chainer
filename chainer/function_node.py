@@ -353,6 +353,17 @@ Use apply() method instead.\
                     ))
 
         if not chainer.is_arrays_compatible(outputs):
+            if not all(
+                    isinstance(y, chainer.get_array_types())
+                    for y in outputs):
+                raise TypeError(
+                    'forward output must be a tuple of ndarrays.\n'
+                    'Function: {}\n'
+                    'Actual output types: {}'
+                    .format(
+                        self.label,
+                        tuple(type(y) for y in outputs)))
+
             raise TypeError(
                 'incompatible array types are mixed in the forward output '
                 '({}).\n'
