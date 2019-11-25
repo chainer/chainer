@@ -180,6 +180,11 @@ step_chainer_tests() {
 }
 
 
+step_install_chainer_example_tests() {
+    pip install -U matplotlib
+}
+
+
 step_chainer_example_tests() {
     pytest -v -rfEX "$REPO_DIR"/examples/tests
 }
