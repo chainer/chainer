@@ -157,6 +157,9 @@ elseif(${APPLE})
 else()
     target_link_libraries(chainerx
         PRIVATE
+        # TODO(niboshi): --allow-multiple-definition should not be necessary,
+        # but without it there would be duplicate symbol errors.
+        # These respective causes should be addressed instead of using this flag.
         -Wl,--allow-multiple-definition
         -Wl,--whole-archive
         ${chainerx_sub_libs}
