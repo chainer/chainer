@@ -115,8 +115,18 @@ def n_step_gru_converter(params):
                 [gb.op('Unsqueeze', [name], axes=[0]) for name in xs_names],
                 axis=0)
         else:
+            if params.opset_version >= 7:
+                x_name = gb.op('Dropout', [y_name], ratio=dropout_ratio)
+            elif params.opset_version >= 6:
+                x_name = gb.op('Dropout', [y_name], ratio=dropout_ratio,
+                               is_test=0 if chainer.config.train else 1)
+            else:
+                x_name = gb.op('Dropout', [y_name], ratio=dropout_ratio,
+                               is_test=0 if chainer.config.train else 1,
+                               consumed_inputs=[1])
+
             # remove num_directions dimention
-            x_name = gb.op('Squeeze', [y_name], axes=[1])
+            x_name = gb.op('Squeeze', [x_name], axes=[1])
 
         w = ws_names[layer]
         b = bs_names[layer]
