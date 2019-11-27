@@ -50,6 +50,7 @@ class RMSpropRule(optimizer.UpdateRule):
             details.
 
     """
+    is_elementwise = True
 
     def __init__(self, parent_hyperparam=None, lr=None, alpha=None, eps=None,
                  eps_inside_sqrt=None):

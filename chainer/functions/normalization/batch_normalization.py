@@ -9,6 +9,7 @@ from chainer.backends import cuda
 from chainer.backends import intel64
 from chainer import configuration
 from chainer import function_node
+from chainer import memory_layouts
 from chainer.utils import argument
 from chainer.utils import collections_abc
 from chainer.utils import type_check
@@ -17,17 +18,17 @@ import chainerx
 
 class _BatchNormalizationImpl:
 
-    def forward(self, axis, gamma, x, xp, expander,
+    def forward(self, axis, gamma, x, x_layout, xp, expander,
                 beta, eps, decay, running_mean, running_var):
         raise NotImplementedError()
 
-    def backward(self, axis, gamma, gy, x, xp,
-                 expander, mean, inv_std, eps, var):
+    def backward(self, axis, gamma, gy, x, x_layout, xp,
+                 expander, mean, inv_std, eps, var, forward_data):
         raise NotImplementedError()
 
 
 class GeneralBatchNormalizationImpl(_BatchNormalizationImpl):
-    def forward(self, axis, gamma, x, xp, expander,
+    def forward(self, axis, gamma, x, x_layout, xp, expander,
                 beta, eps, decay, running_mean, running_var):
         interm_dtype = numpy.promote_types(x.dtype, gamma.dtype)
 
@@ -79,7 +80,8 @@ class GeneralBatchNormalizationImpl(_BatchNormalizationImpl):
                 running_mean = backend.to_chx(running_mean)
                 running_var = backend.to_chx(running_var)
 
-        return y, running_mean, running_var, mean, var, inv_std
+        y_layout = x_layout
+        return y, y_layout, running_mean, running_var, mean, var, inv_std, None
 
     def get_mean_and_var(self, axis, gamma, x, xp, interm_dtype):
         mean = x.mean(axis=axis, dtype=interm_dtype)
@@ -92,8 +94,8 @@ class GeneralBatchNormalizationImpl(_BatchNormalizationImpl):
 
         return gbeta, ggamma
 
-    def backward(self, axis, gamma, gy, x, xp,
-                 expander, mean, inv_std, eps, var):
+    def backward(self, axis, gamma, gy, x, x_layout, xp,
+                 expander, mean, inv_std, eps, var, forward_data):
         interm_dtype = numpy.promote_types(x.dtype, gamma.dtype)
         if isinstance(gy, intel64.mdarray):
             # intel64.mdarray does not support dtype option in sum, so we
@@ -130,11 +132,11 @@ class GeneralBatchNormalizationImpl(_BatchNormalizationImpl):
                                gbeta[expander],
                                inv_m).astype(x.dtype, copy=False)
 
-        return gx, ggamma, gbeta
+        return gx, None, ggamma, gbeta
 
 
 class _IDeepBatchNormalizationImpl(_BatchNormalizationImpl):
-    def forward(self, axis, gamma, x, xp, expander,
+    def forward(self, axis, gamma, x, x_layout, xp, expander,
                 beta, eps, decay, running_mean, running_var):
         expand_dim = False
         if x.ndim == 2:
@@ -175,10 +177,10 @@ class _IDeepBatchNormalizationImpl(_BatchNormalizationImpl):
             else:
                 running_var *= decay
                 running_var += var * adjust * (1 - decay)
-        return y, running_mean, running_var, mean, var, inv_std
+        return y, None, running_mean, running_var, mean, var, inv_std, None
 
-    def backward(self, axis, gamma, gy, x, xp,
-                 expander, mean, inv_std, eps, var):
+    def backward(self, axis, gamma, gy, x, x_layout, xp,
+                 expander, mean, inv_std, eps, var, forward_data):
         expand_dim = False
         if x.ndim == 2:
             expand_dim = True
@@ -202,7 +204,7 @@ class _IDeepBatchNormalizationImpl(_BatchNormalizationImpl):
         ggamma = ggamma.astype(gamma.dtype, copy=False)
         gbeta = gbeta.astype(gamma.dtype, copy=False)
 
-        return gx, ggamma, gbeta
+        return gx, None, ggamma, gbeta
 
 
 class _CudnnBatchNormalizationImpl(_BatchNormalizationImpl):
@@ -210,7 +212,7 @@ class _CudnnBatchNormalizationImpl(_BatchNormalizationImpl):
         self.is_for_conv2d = is_for_conv2d
         self.cudnn_mode = cudnn_mode
 
-    def forward(self, axis, gamma, x, xp, expander,
+    def forward(self, axis, gamma, x, x_layout, xp, expander,
                 beta, eps, decay, running_mean, running_var):
         if running_mean is not None:
             mean = running_mean
@@ -223,26 +225,35 @@ class _CudnnBatchNormalizationImpl(_BatchNormalizationImpl):
         # mean and inv_std are used as buffers to save
         # intermediate results computed during forward pass. These buffers
         # are used to speed-up backward pass.
-        y, mean, inv_std = (
-            cudnn.batch_normalization_forward_training(
+        cudnn_x_layout = cuda._get_cudnn_tensor_layout_x(x_layout)
+        reserve_space, y, mean, inv_std = (
+            cudnn.batch_normalization_forward_training_ex(
                 x, gamma, beta, mean, var, None, None,
                 eps, decay, self.is_for_conv2d,
-                self.cudnn_mode, chainer.is_debug()))
+                self.cudnn_mode, chainer.is_debug(),
+                d_layout=cudnn_x_layout))
 
-        return y, running_mean, running_var, mean, var, inv_std
+        y_layout = x_layout
+        return (
+            y, y_layout, running_mean, running_var, mean, var, inv_std,
+            reserve_space)
 
-    def backward(self, axis, gamma, gy, x, xp,
-                 expander, mean, inv_std, eps, var):
+    def backward(self, axis, gamma, gy, x, x_layout, xp,
+                 expander, mean, inv_std, eps, var, forward_data):
+        cudnn_x_layout = cuda._get_cudnn_tensor_layout_x(x_layout)
         gx, ggamma, gbeta = cudnn.batch_normalization_backward(
             x, gamma, gy, mean, inv_std, eps,
             self.is_for_conv2d, self.cudnn_mode,
-            chainer.is_debug())
+            chainer.is_debug(),
+            d_layout=cudnn_x_layout,
+            reserve_space=forward_data)
 
         gx = gx.astype(x.dtype, copy=False)
         ggamma = ggamma.astype(gamma.dtype, copy=False)
         gbeta = gbeta.astype(gamma.dtype, copy=False)
 
-        return gx, ggamma, gbeta
+        gx_layout = x_layout
+        return gx, gx_layout, ggamma, gbeta
 
 
 if cuda.cudnn_enabled:
@@ -251,14 +262,14 @@ if cuda.cudnn_enabled:
     _cudnn_version = cuda.cuda.cudnn.getVersion()
 
 
-def _compute_axis(x_ndim, gamma_ndim=1, axis=None):
-    if axis is None:
-        axis = (0,) + tuple(range(gamma_ndim + 1, x_ndim))
-    return axis
+def _compute_axis(x_ndim, gamma_ndim, axis):
+    if axis is not None:
+        return axis
+    return (0,) + tuple(range(gamma_ndim + 1, x_ndim))
 
 
 # Computes a complementary set of axis
-def _compute_key_axis(x_ndim, gamma_ndim=1, axis=None):
+def _compute_key_axis(x_ndim, gamma_ndim, axis):
     axis = _compute_axis(x_ndim, gamma_ndim, axis)
     key_axis = tuple([i for i in range(x_ndim) if i not in axis])
     return key_axis
@@ -284,6 +295,7 @@ class BatchNormalization(function_node.FunctionNode):
 
     mean = None
     inv_std = None
+    forward_data = None  # Arbitrary data passed from forward to backward
 
     def __init__(self, eps=2e-5, mean=None, var=None, decay=0.9, axis=None,
                  impl_selector=_impl_selector):
@@ -338,6 +350,10 @@ class BatchNormalization(function_node.FunctionNode):
                 x_type.shape[_key_axis[i]] == gamma_type.shape[i],
             )
 
+    def check_layout_forward(self, inputs):
+        # TODO(niboshi): Write input layout check
+        pass
+
     def forward_chainerx(self, inputs):
         # TODO(niboshi): Support conditions implemented as fallback
 
@@ -366,11 +382,15 @@ class BatchNormalization(function_node.FunctionNode):
     def forward(self, inputs):
         self.retain_inputs((0, 1))
         x, gamma, beta = inputs
+        x_layout, _, _ = self.input_layouts
+        self.output_layouts = (x_layout,)
 
         self.axis = _compute_axis(x.ndim, gamma.ndim, self.axis)
         self.key_axis = _compute_key_axis(x.ndim, gamma.ndim, self.axis)
 
-        if all(x.shape[i] == 1 for i in self.axis):
+        x_shape = memory_layouts._transpose_shape(x.shape, x_layout, None)
+
+        if all(x_shape[i] == 1 for i in self.axis):
             if 0 in self.axis:
                 warnings.warn(
                     'A batch with no more than one sample has been given'
@@ -399,21 +419,25 @@ class BatchNormalization(function_node.FunctionNode):
         for i in self.key_axis:
             expander[i] = slice(None)
         expander = tuple(expander)
+        expander = memory_layouts._transpose_shape(expander, None, x_layout)
         self.expander = expander
 
         xp = backend.get_array_module(x)
 
         self._impl = self._impl_selector(self, inputs)
 
-        y, self.running_mean, self.running_var,\
-            self.mean, self.var, self.inv_std = \
-            self._impl.forward(axis=self.axis, gamma=gamma, x=x,
-                               xp=xp, expander=expander,
-                               beta=beta, eps=self.eps,
-                               decay=self.decay,
-                               running_mean=self.running_mean,
-                               running_var=self.running_var)
+        (
+            y, y_layout, self.running_mean, self.running_var,
+            self.mean, self.var, self.inv_std,
+            self.forward_data) = (
+                self._impl.forward(
+                    axis=self.axis, gamma=gamma, x=x, x_layout=x_layout,
+                    xp=xp, expander=expander, beta=beta, eps=self.eps,
+                    decay=self.decay,
+                    running_mean=self.running_mean,
+                    running_var=self.running_var))
 
+        self.output_layouts = (y_layout,)
         return y,
 
     def backward(self, indexes, grad_outputs):
@@ -431,7 +455,9 @@ class BatchNormalization(function_node.FunctionNode):
             self.axis,
             self.mean, var,
             self.inv_std, self.key_axis,
-            self._impl)
+            self._impl,
+            self.forward_data,
+        )
 
         return f.apply((x, gamma, gy))
 
@@ -439,7 +465,7 @@ class BatchNormalization(function_node.FunctionNode):
 class BatchNormalizationGrad(function_node.FunctionNode):
 
     def __init__(self, eps, expander, axis, mean, var,
-                 inv_std, key_axis, impl):
+                 inv_std, key_axis, impl, forward_data):
         self.eps = eps
         self.expander = expander
         self.axis = axis
@@ -448,20 +474,27 @@ class BatchNormalizationGrad(function_node.FunctionNode):
         self.inv_std = inv_std
         self.key_axis = key_axis
         self._impl = impl
+        self.forward_data = forward_data
+
+    def check_layout_forward(self, inputs):
+        pass
 
     def forward(self, inputs):
         self.retain_inputs((0, 1, 2))
         x, gamma, gy = inputs
+        x_layout, _, _ = self.input_layouts
+        self.output_layouts = (x_layout, None, None)
+
         expander = self.expander
         xp = backend.get_array_module(x)
 
-        gx, ggamma, gbeta = self._impl.backward(self.axis, gamma, gy,
-                                                x, xp, expander,
-                                                self.mean, self.inv_std,
-                                                self.eps, self.var)
+        gx, gx_layout, ggamma, gbeta = self._impl.backward(
+            self.axis, gamma, gy, x, x_layout, xp, expander,
+            self.mean, self.inv_std, self.eps, self.var, self.forward_data)
 
         self.retain_inputs((0, 1, 2))
         self.retain_outputs((0, 1))
+        self.output_layouts = (gx_layout, None, None)
         return gx, ggamma, gbeta
 
     def backward(self, indexes, grad_outputs):

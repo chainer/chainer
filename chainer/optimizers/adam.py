@@ -114,6 +114,8 @@ class AdamRule(optimizer.UpdateRule):
         gamma (float): Convergence speed of the bound functions in AdaBound.
 
     """
+    is_elementwise = True
+
     _kernel = None
     _amsgrad_kernel = None
     _adabound_kernel = None
