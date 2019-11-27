@@ -302,14 +302,14 @@ class TestOutputTypeCheck(unittest.TestCase):
         x = np.ones((1, 3, 4, 5), dtype=np.float32)
 
         if self.out_kind == 'var':
-            export(model, (x,), no_testcase=True)  # should be no error
+            export(model, (x,))  # should be no error
         elif self.out_kind == 'array':
             with self.assertRaises(RuntimeError) as e:
-                export(model, (x,), no_testcase=True)
+                export(model, (x,))
             assert 'Unexpected output type'.find(e.exception.args[0])
         else:
             with self.assertRaises(ValueError) as e:
-                export(model, (x,), no_testcase=True)
+                export(model, (x,))
             assert 'must be Chainer Variable'.find(e.exception.args[0])
 
 
@@ -437,4 +437,4 @@ def test_invalid_customized_input_shape(x_shape, shape_option):
               k, shape in x_shape.items()}
 
     with pytest.raises(ValueError):
-        export(model, xs, input_shapes=shape_option, no_testcase=True)
+        export(model, xs, input_shapes=shape_option)

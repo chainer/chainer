@@ -306,7 +306,7 @@ def export(model, args, filename=None, export_params=True,
 
     _check_available()
 
-    if not no_testcase:
+    if not no_testcase and filename is not None:
         warnings.warn(
             'Exporting ONNX without testcases is deprecated. '
             'Use export_testcase instead',
