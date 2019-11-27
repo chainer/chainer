@@ -147,6 +147,8 @@ endif()
 
 # CUDA
 if(${CHAINERX_BUILD_CUDA})
+    unset(CUDA_USE_STATIC_CUDA_RUNTIME CACHE)
+    option(CUDA_USE_STATIC_CUDA_RUNTIME OFF)
     find_package(CUDA REQUIRED QUIET)
 
     add_definitions(-DCHAINERX_ENABLE_CUDA=1)
