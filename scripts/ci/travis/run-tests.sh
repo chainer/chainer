@@ -174,6 +174,7 @@ case "${CHAINER_TRAVIS_TEST}" in
             install)
                 run_prestep install_chainer_test_deps
                 run_prestep chainer_install_from_sdist
+                run_prestep install_chainer_example_tests
                 ;;
 
             script)
