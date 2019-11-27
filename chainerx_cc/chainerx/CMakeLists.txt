@@ -102,8 +102,6 @@ set(chainerx_srcs
     util.cc
     )
 
-add_library(chainerx_base STATIC ${chainerx_srcs})
-
 if(MSVC)
     install(FILES
         platform/windows.h
@@ -114,10 +112,12 @@ if(MSVC)
         "${chainerx_srcs}"
         platform/windows.cc
         )
-    add_library(chainerx STATIC empty.cc)
-else()
-    add_library(chainerx STATIC empty.cc)
 endif()
+
+
+add_library(chainerx_base STATIC ${chainerx_srcs})
+
+add_library(chainerx STATIC empty.cc)
 
 # abseil
 target_link_libraries(
