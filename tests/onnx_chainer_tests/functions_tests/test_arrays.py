@@ -226,7 +226,7 @@ class TestArrayOperators(ONNXModelTest):
             self.model, self.x, name=name, expected_num_initializers=0)
 
 
-class TestGetItemGather(ONNXModelChecker):
+class TestGetItem(ONNXModelChecker):
     # When chainer.testing.parameterize is used with list or ndarray parameter,
     # it causes regex warning. To resolve, use pytest's parameterize.
 
@@ -248,7 +248,7 @@ class TestGetItemGather(ONNXModelChecker):
             ('gathernd_after_slice', [[0, 1], [0, 2], 0]),
             ('gathernd_unsqueezed', [[0, 1], [0, 2], None])
         ])
-    def test_output(self, name, slices):
+    def test_get_item_gather(self, name, slices):
         skip_opsets = None
         if name.startswith('gathernd'):
             skip_opsets = tuple(range(7, 11))
@@ -262,11 +262,30 @@ class TestGetItemGather(ONNXModelChecker):
             model, x, name=name, expected_num_initializers=0,
             skip_opset_version=skip_opsets)
 
+    @pytest.mark.parametrize(
+        'name,slices', [
+            ('step1', [slice(1, None, 1)]),
+            ('step2', [slice(None, None, None), slice(None, 4, 2)]),
+        ])
+    def test_get_item_slice_step(self, name, slices):
+        skip_opsets = tuple(range(7, 11))
+        name = 'get_item_' + name
+
+        model = chainer.Sequential(
+            lambda x: F.get_item(x, slices=slices))
+        x = input_generator.increasing(2, 3, 4)
+
+        self.expect(
+            model, x, name=name, expected_num_initializers=0,
+            skip_opset_version=skip_opsets)
+
 
 class TestGetItemError(object):
 
-    @pytest.mark.parametrize('slices', [[[0, 1], [1, 2]]])
-    def test_get_item_not_supported(self, slices):
+    @pytest.mark.parametrize('slices', [
+        [[0, 1], [1, 2]], [slice(None, None, 2)]
+    ])
+    def test_get_item_unsupported(self, slices):
         model = chainer.Sequential(
             lambda x: F.get_item(x, slices=slices))
         x = input_generator.increasing(2, 3, 4)
@@ -278,13 +297,12 @@ class TestGetItemError(object):
         onnx.defs.onnx_opset_version() < 11, reason='not support GatherND')
     @pytest.mark.parametrize(
         'slices', [
-            [slice(0, 2, 2)],
             [[0, 1], 0, [0, 1]],
             [slice(None), [0, 1], [0, 1]],
             [None, [0, 1], [0, 1]]
         ]
     )
-    def test_get_item_error(self, slices):
+    def test_get_item_unsupported_advanced_index(self, slices):
         model = chainer.Sequential(
             lambda x: F.get_item(x, slices=slices))
         x = input_generator.increasing(2, 3, 4)

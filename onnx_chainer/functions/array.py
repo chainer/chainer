@@ -73,14 +73,22 @@ def convert_Depth2Space(
 
 
 def get_slice_node(
-        gb, opset_version, context, input_names, axes, starts, ends):
+        gb, opset_version, context, input_names, axes, starts, ends, steps):
+    if opset_version < 11 and any([i != 1 for i in steps]):
+        raise ValueError(
+            'GetItem with n-step slicing is supported from opset11, '
+            'opset{} is not supported'.format(opset_version))
+
     if opset_version < 10:
         return gb.op(
             'Slice', input_names, axes=axes, starts=starts, ends=ends)
     else:
-        for param in [('starts', starts), ('ends', ends), ('axes', axes)]:
+        inputs = [('starts', starts), ('ends', ends), ('axes', axes)]
+        if opset_version > 10:
+            inputs.append(('steps', steps))
+        for name, values in inputs:
             param_name = context.add_const(
-                np.asarray(list(param[1]), dtype=np.int64), param[0])
+                np.asarray(list(values), dtype=np.int64), name)
             input_names.append(param_name)
         return gb.op('Slice', input_names)
 
@@ -95,7 +103,7 @@ def _to_ndarray(x, dtype=np.int64):
 @support((1, 10, 11))
 def convert_GetItem(func, opset_version, input_names, output_names, context):
     x = func.inputs[0]
-    axes, starts, ends = [], [], []
+    axes, starts, ends, steps = [], [], [], []
     squeeze_idxs, unsqueeze_idxs = [], []
     skipped = 0  # when set ellipsis, need to skip index rolling
 
@@ -109,18 +117,16 @@ def convert_GetItem(func, opset_version, input_names, output_names, context):
         # axis means the index of input x, adjust None and Ellipsis counts
         axis = i - len(unsqueeze_idxs) + skipped
         if isinstance(idx, slice):
-            if idx.step is not None and idx.step != 1:
-                raise ValueError(
-                    'GetItem with {}step slicing is not supported in ONNX '
-                    'Slice operator'.format(idx.step))
-            if idx.start is None and idx.stop is None:
+            if idx.start is None and idx.stop is None and idx.step is None:
                 is_used_slice_whole = True
                 continue
             axes.append(axis)
             starts.append(0 if idx.start is None else idx.start)
             ends.append(x.shape[axis] if idx.stop is None else idx.stop)
+            steps.append(1 if idx.step is None else idx.step)
         elif isinstance(idx, int):
             axes.append(axis)
+            steps.append(1)
             if idx == -1:
                 starts.append(idx)
                 ends.append(np.iinfo(np.int64).max)
@@ -133,6 +139,7 @@ def convert_GetItem(func, opset_version, input_names, output_names, context):
             axes.append(axis)
             starts.append(scalar_idx)
             ends.append(scalar_idx+1)
+            steps.append(1)
             squeeze_idxs.append(axis)
         elif idx is None:
             unsqueeze_idxs.append(i - len(squeeze_idxs) + skipped)
@@ -178,7 +185,8 @@ def convert_GetItem(func, opset_version, input_names, output_names, context):
     slice_output = input_names
     if axes:
         output = get_slice_node(
-            gb, opset_version, context, slice_output, axes, starts, ends)
+            gb, opset_version, context, slice_output, axes, starts, ends,
+            steps)
         slice_output = [output]
     if squeeze_idxs:
         output = gb.op('Squeeze', slice_output, axes=squeeze_idxs)
