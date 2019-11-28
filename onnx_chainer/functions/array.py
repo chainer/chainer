@@ -92,7 +92,7 @@ def _to_ndarray(x, dtype=np.int64):
         return chainer.cuda.to_cpu(x).astype(dtype)
 
 
-@support((1, 10))
+@support((1, 10, 11))
 def convert_GetItem(func, opset_version, input_names, output_names, context):
     x = func.inputs[0]
     axes, starts, ends = [], [], []
@@ -188,6 +188,10 @@ def convert_GetItem(func, opset_version, input_names, output_names, context):
         slice_output = [output]
 
     if gather_nd_idx is not None:
+        if opset_version < 11:
+            raise ValueError(
+                'ONNX-Chainer supports multiple advanced indexing from opset11'
+                ', opset{} is not supported'.format(opset_version))
         gather_nd_idx_name = context.add_const(gather_nd_idx.T, 'indices')
         slice_output.append(gather_nd_idx_name)
         gb.op('GatherND', slice_output)

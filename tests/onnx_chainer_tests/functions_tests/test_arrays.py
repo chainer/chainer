@@ -263,23 +263,34 @@ class TestGetItemGather(ONNXModelChecker):
             skip_opset_version=skip_opsets)
 
 
-@pytest.mark.skipif(
-    onnx.defs.onnx_opset_version() < 11, reason='not support GatherND')
-@pytest.mark.parametrize(
-    'slices', [
-        [slice(0, 2, 2)],
-        [[0, 1], 0, [0, 1]],
-        [slice(None), [0, 1], [0, 1]],
-        [None, [0, 1], [0, 1]]
-    ]
-)
-def test_get_item_error(slices):
-    model = chainer.Sequential(
-        lambda x: F.get_item(x, slices=slices))
-    x = input_generator.increasing(2, 3, 4)
+class TestGetItemError(object):
 
-    with pytest.raises(ValueError):
-        export(model, x)
+    @pytest.mark.parametrize('slices', [[[0, 1], [1, 2]]])
+    def test_get_item_not_supported(self, slices):
+        model = chainer.Sequential(
+            lambda x: F.get_item(x, slices=slices))
+        x = input_generator.increasing(2, 3, 4)
+
+        with pytest.raises(ValueError):
+            export(model, x, opset_version=7)
+
+    @pytest.mark.skipif(
+        onnx.defs.onnx_opset_version() < 11, reason='not support GatherND')
+    @pytest.mark.parametrize(
+        'slices', [
+            [slice(0, 2, 2)],
+            [[0, 1], 0, [0, 1]],
+            [slice(None), [0, 1], [0, 1]],
+            [None, [0, 1], [0, 1]]
+        ]
+    )
+    def test_get_item_error(self, slices):
+        model = chainer.Sequential(
+            lambda x: F.get_item(x, slices=slices))
+        x = input_generator.increasing(2, 3, 4)
+
+        with pytest.raises(ValueError):
+            export(model, x)
 
 
 class TestConcat(ONNXModelTest):
