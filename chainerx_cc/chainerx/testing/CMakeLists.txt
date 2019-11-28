@@ -27,7 +27,7 @@ if(${CHAINERX_BUILD_TEST})
         routines_test.cc)
 
     target_link_libraries(chainerx_testing_test
-      chainerx
+      chainerx_shared
       chainerx_test_main)
     add_test(NAME chainerx_testing_test COMMAND chainerx_testing_test)
 endif()

@@ -55,7 +55,7 @@ if(${CHAINERX_BUILD_TEST})
       native_device_test.cc
   )
   target_link_libraries(chainerx_native_test
-      chainerx
+      chainerx_shared
       chainerx_test_main
       # gtest is linked via chainerx_testing.
       )

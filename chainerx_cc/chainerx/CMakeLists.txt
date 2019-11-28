@@ -118,6 +118,19 @@ endif()
 add_library(chainerx_base STATIC ${chainerx_srcs})
 
 add_library(chainerx STATIC empty.cc)
+add_library(chainerx_static STATIC empty.cc)
+add_library(chainerx_shared SHARED empty.cc)
+target_link_libraries(chainerx_static
+    PUBLIC
+    -Wl,--whole-archive
+    chainerx
+    -Wl,--no-whole-archive
+    )
+
+target_link_libraries(chainerx_shared
+    PRIVATE
+    chainerx
+    )
 
 # abseil
 target_link_libraries(
@@ -156,14 +169,14 @@ elseif(${APPLE})
     target_link_libraries(chainerx PRIVATE -Wl,-noall_load)
 else()
     target_link_libraries(chainerx
-        PRIVATE
+        PUBLIC
         -Wl,--whole-archive
         ${chainerx_sub_libs}
         -Wl,--no-whole-archive
         )
 endif()
 
-install(TARGETS chainerx DESTINATION lib)
+install(TARGETS chainerx_static DESTINATION lib)
 
 if(${CHAINERX_BUILD_TEST})
     add_subdirectory(backend_testdata)
@@ -208,7 +221,7 @@ if(${CHAINERX_BUILD_TEST})
         CHAINERX_TEST_DIR="${CMAKE_CURRENT_BINARY_DIR}")
 
     target_link_libraries(chainerx_test
-        chainerx
+        chainerx_shared
         chainerx_test_main
         # gtest is linked via chainerx_testing.
         )

@@ -65,7 +65,7 @@ if(${CHAINERX_BUILD_TEST})
         memory_pool_test.cc
         )
     target_link_libraries(chainerx_cuda_test
-        chainerx
+        chainerx_shared
         chainerx_test_main
         # gtest is linked via chainerx_testing.
         )
