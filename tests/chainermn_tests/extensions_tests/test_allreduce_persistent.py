@@ -26,7 +26,6 @@ class TestAllreducePersistent(unittest.TestCase):
             chainer.cuda.get_device_from_id(comm.intra_rank).use()
 
         device = get_device(comm.intra_rank if use_gpu else None, use_chx)
-        device.use()
         model.to_device(device)
 
         rank = comm.rank
