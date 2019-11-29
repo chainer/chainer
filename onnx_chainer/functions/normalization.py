@@ -114,7 +114,7 @@ def convert_GroupNormalization(
     # make reduced input
     original_shape = gb.op('Shape', [input_names[0]])
     batch_size = get_slice_node(
-        gb, opset_version, context, [original_shape], [0], [0], [1])
+        gb, opset_version, context, [original_shape], [0], [0], [1], [1])
     batched_group = gb.op('Mul', [batch_size, group])
     reduce_shape = gb.op('Concat', [batched_group, neg_one], axis=0)
     reduced_x = gb.op('Reshape', [input_names[0], reduce_shape])
