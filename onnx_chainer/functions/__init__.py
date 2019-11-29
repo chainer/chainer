@@ -82,6 +82,7 @@ from onnx_chainer.functions.math import convert_PowVarConst  # NOQA
 from onnx_chainer.functions.math import convert_PowVarVar  # NOQA
 from onnx_chainer.functions.math import convert_Prod  # NOQA
 from onnx_chainer.functions.math import convert_RsqrtGPU  # NOQA
+from onnx_chainer.functions.math import convert_Sign  # NOQA
 from onnx_chainer.functions.math import convert_Sin  # NOQA
 from onnx_chainer.functions.math import convert_Sinh  # NOQA
 from onnx_chainer.functions.math import convert_Sqrt  # NOQA

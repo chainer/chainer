@@ -394,3 +394,8 @@ def convert_ArgMax(func, opset_version, input_names, output_names, context):
 @support((6,))
 def convert_ArgMin(func, opset_version, input_names, output_names, context):
     return _argminmax_nodes('ArgMin', func, input_names, output_names, context)
+
+
+@support((9,))
+def convert_Sign(func, opset_verseion, input_names, output_names, context):
+    return onnx_helper.make_node('Sign', input_names, output_names),

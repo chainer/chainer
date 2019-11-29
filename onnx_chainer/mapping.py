@@ -92,6 +92,7 @@ _supported_function_node_set = {
     'PowVarVar',
     'Prod',
     'RsqrtGPU',
+    'Sign',
     'Sin',
     'Sinh',
     'Sqrt',
