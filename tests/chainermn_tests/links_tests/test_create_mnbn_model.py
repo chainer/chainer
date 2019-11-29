@@ -40,7 +40,7 @@ class TestCreateMnBnModel(unittest.TestCase):
 
         # Use CuPy's Device class to foce call cudaSetDevice()
         if chainer.backends.cuda.available:
-            get_device(self.communicator.intra_rank, False).use()
+            chainer.cuda.get_device_from_id(self.communicator.intra_rank).use()
 
     def check_create_mnbn_model_chain(self, use_gpu, use_chx):
         model = BnChain(3)
@@ -53,7 +53,6 @@ class TestCreateMnBnModel(unittest.TestCase):
                        chainermn.links.MultiNodeBatchNormalization))
         device = get_device(self.communicator.intra_rank if use_gpu else None,
                             use_chx)
-        device.use()
         mnbn_model.to_device(device)
 
         with chainer.using_device(mnbn_model.device):
@@ -71,7 +70,6 @@ class TestCreateMnBnModel(unittest.TestCase):
                        chainermn.links.MultiNodeBatchNormalization))
         device = get_device(self.communicator.intra_rank if use_gpu else None,
                             use_chx)
-        device.use()
         mnbn_model.to_device(device)
 
         with chainer.using_device(mnbn_model.device):
@@ -91,7 +89,6 @@ class TestCreateMnBnModel(unittest.TestCase):
 
         device = get_device(self.communicator.intra_rank if use_gpu else None,
                             use_chx)
-        device.use()
         mnbn_model.to_device(device)
 
         with chainer.using_device(mnbn_model.device):
