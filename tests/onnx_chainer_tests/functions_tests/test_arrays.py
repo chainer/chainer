@@ -266,6 +266,8 @@ class TestGetItem(ONNXModelChecker):
         'name,slices', [
             ('step1', [slice(1, None, 1)]),
             ('step2', [slice(None, None, None), slice(None, 4, 2)]),
+            ('step_neg1', [slice(None, None, -1)]),
+            ('step_neg2', [slice(None, None, None), slice(4, None, -2)]),
         ])
     def test_get_item_slice_step(self, name, slices):
         skip_opsets = tuple(range(7, 11))

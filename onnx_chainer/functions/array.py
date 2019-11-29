@@ -121,9 +121,17 @@ def convert_GetItem(func, opset_version, input_names, output_names, context):
                 is_used_slice_whole = True
                 continue
             axes.append(axis)
-            starts.append(0 if idx.start is None else idx.start)
-            ends.append(x.shape[axis] if idx.stop is None else idx.stop)
-            steps.append(1 if idx.step is None else idx.step)
+            step = 1 if idx.step is None else idx.step
+            steps.append(step)
+            if step < 0:
+                starts.append(
+                    np.iinfo(np.int64).max if idx.start is None else idx.start)
+                ends.append(
+                    np.iinfo(np.int64).min if idx.stop is None else idx.stop)
+            else:
+                starts.append(0 if idx.start is None else idx.start)
+                ends.append(
+                    np.iinfo(np.int64).max if idx.stop is None else idx.stop)
         elif isinstance(idx, int):
             axes.append(axis)
             steps.append(1)
