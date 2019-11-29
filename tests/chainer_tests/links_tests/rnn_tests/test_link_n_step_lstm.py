@@ -6,6 +6,7 @@ import chainer
 from chainer.backends import cuda
 from chainer import gradient_check
 from chainer import links
+from chainer import initializers
 from chainer import testing
 from chainer.testing import attr
 
@@ -460,6 +461,78 @@ class TestNStepBiLSTM(unittest.TestCase):
 
     def test_n_cells(self):
         assert self.rnn.n_cells == 2
+
+
+@testing.parameterize(
+    *testing.product(
+        {
+            'dtype': [numpy.float32, numpy.float64],
+            'initializer': ['random'],
+            'use_bi_direction': [True, False]
+        }
+    )
+)
+class TestInitialization(unittest.TestCase):
+    def setUp(self):
+        if self.initializer is None:
+            initializer = initializers.constant.Zero()
+
+        elif self.initializer == 'random':
+            initializer = initializers.GlorotUniform()
+
+        self.lateral_init = numpy.zeros((10, 10), dtype=self.dtype)
+        self.upward_init = numpy.zeros((10, 10), dtype=self.dtype)
+        self.bias_init = numpy.zeros((10, 1), dtype=self.dtype)
+        self.forget_bias_init = numpy.zeros((10, 1), dtype=self.dtype)
+
+        initializer(self.lateral_init)
+        initializer(self.upward_init)
+        initializer(self.bias_init)
+        initializer(self.forget_bias_init)
+        print('#lateral: ', self.lateral_init)
+        print('#upward: ', self.upward_init)
+
+        # FIXME (himkt) .reshape(-1) is a workaronud
+        self.bias_init = self.bias_init.reshape(-1)
+        self.forget_bias_init = self.forget_bias_init.reshape(-1)
+
+        with chainer.using_config('dtype', self.dtype):
+            if self.use_bi_direction:
+                link = links.NStepBiLSTM
+            else:
+                link = links.NStepLSTM
+
+            self.link = link(
+                1, 10, 10, 0.0,
+                lateral_init=self.lateral_init,
+                upward_init=self.upward_init,
+                bias_init=self.bias_init,
+                forget_bias_init=self.forget_bias_init)
+
+    def check_param(self):
+        link = self.link
+        dtype = self.dtype
+        for ws_i in link.ws:
+            for i, w in enumerate(ws_i):
+                assert w.dtype == dtype
+                if 0 <= i <= 3:
+                    testing.assert_allclose(w.array, self.upward_init, atol=0, rtol=0)
+                elif 4 <= i <= 7:
+                    testing.assert_allclose(w.array, self.lateral_init, atol=0, rtol=0)
+
+        for bs_i in link.bs:
+            for i, b in enumerate(bs_i):
+                assert b.dtype == dtype
+                testing.assert_allclose(b.array, self.bias_init, atol=0, rtol=0)
+
+    def test_param_cpu(self):
+        self.check_param()
+
+    @attr.gpu
+    def test_param_gpu(self):
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
+        self.check_param()
 
 
 testing.run_module(__name__, __file__)
