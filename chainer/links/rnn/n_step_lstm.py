@@ -73,26 +73,30 @@ class NStepLSTMBase(n_step_rnn.NStepRNNBase):
 
         if lateral_init is not None:
             lateral_init = initializers._get_initializer(lateral_init)
-            for w in (self.w4, self.w5, self.w6, self.w7):
-                w.initializer = lateral_init
+            for ws_i in self.ws:
+                for w in (ws_i[4], ws_i[5], ws_i[6], ws_i[7]):
+                    w.initializer = lateral_init
 
         if upward_init is not None:
             upward_init = initializers._get_initializer(upward_init)
-            for w in (self.w0, self.w1, self.w2, self.w3):
-                w.initializer = upward_init
+            for ws_i in self.ws:
+                for w in (ws_i[0], ws_i[1], ws_i[2], ws_i[3]):
+                    w.initializer = upward_init
 
         if bias_init is not None:
             bias_init = initializers._get_initializer(bias_init)
             # Leave b{4,6,7} as zero to avoid doubling the effective bias
             # for each gate.
-            for b in (self.b0, self.b2, self.b3):
-                b.initializer = bias_init
+            for bs_i in self.bs:
+                for b in (bs_i[0], bs_i[2], bs_i[3]):
+                    b.initializer = bias_init
 
         if forget_bias_init is not None:
             forget_bias_init = initializers._get_initializer(forget_bias_init)
             # Leave b5 as zero to avoid doubling the effective bias
             # for each gate.
-            self.b1.initializer = forget_bias_init
+            for bs_i in self.bs:
+                bs_i[1].initializer = forget_bias_init
 
     def forward(self, hx, cx, xs, **kwargs):
         """forward(self, hx, cx, xs)
