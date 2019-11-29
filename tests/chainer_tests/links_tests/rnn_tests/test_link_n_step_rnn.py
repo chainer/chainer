@@ -437,7 +437,9 @@ class TestInitialization(unittest.TestCase):
 
         initializer(self.initialW)
         initializer(self.initial_bias)
-        self.initial_bias = self.initial_bias.reshape(-1)  # FIXME (himkt) workaround
+
+        # FIXME (himkt) workaround
+        self.initial_bias = self.initial_bias.reshape(-1)
 
         with chainer.using_config('dtype', self.dtype):
             if self.activation_type == 'tanh':
@@ -463,12 +465,14 @@ class TestInitialization(unittest.TestCase):
         for ws_i in link.ws:
             for w in ws_i:
                 assert w.dtype == dtype
-                testing.assert_allclose(w.array, self.initialW, atol=0, rtol=0)
+                testing.assert_allclose(
+                    w.array, self.initialW, atol=0, rtol=0)
 
         for bs_i in link.bs:
             for b in bs_i:
                 assert b.dtype == dtype
-                testing.assert_allclose(b.array, self.initial_bias, atol=0, rtol=0)
+                testing.assert_allclose(
+                    b.array, self.initial_bias, atol=0, rtol=0)
 
     def test_param_cpu(self):
         self.check_param()
