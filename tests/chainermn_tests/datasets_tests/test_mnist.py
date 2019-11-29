@@ -46,7 +46,6 @@ def check_mnist(use_gpu, use_chx, display_log=True):
         chainer.cuda.get_device_from_id(comm.intra_rank).use()
 
     device = get_device(comm.intra_rank if use_gpu else None, use_chx)
-    device.use()
     model.to_device(device)
     optimizer = chainermn.create_multi_node_optimizer(
         chainer.optimizers.Adam(), comm)
