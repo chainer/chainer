@@ -39,7 +39,11 @@ target_link_libraries(${module_name} PRIVATE -Wl,--exclude-libs,ALL)
 # CUDA specific bindings.
 if(${CUDA_FOUND})
     CUDA_ADD_LIBRARY(_core_cuda STATIC cuda/cuda_module.cc)
-    target_link_libraries(_core_cuda pybind11::module)
+    target_link_libraries(
+        _core_cuda
+        pybind11::module
+        chainerx
+        )
     target_link_libraries(${module_name} PRIVATE _core_cuda)
 endif()
 
