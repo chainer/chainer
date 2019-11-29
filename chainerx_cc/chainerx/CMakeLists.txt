@@ -120,17 +120,8 @@ add_library(chainerx_base STATIC ${chainerx_srcs})
 add_library(chainerx STATIC empty.cc)
 add_library(chainerx_static STATIC empty.cc)
 add_library(chainerx_shared SHARED empty.cc)
-target_link_libraries(chainerx_static
-    PUBLIC
-    -Wl,--whole-archive
-    chainerx
-    -Wl,--no-whole-archive
-    )
-
-target_link_libraries(chainerx_shared
-    PRIVATE
-    chainerx
-    )
+target_link_libraries(chainerx_static PUBLIC chainerx)
+target_link_libraries(chainerx_shared PRIVATE chainerx)
 
 # abseil
 target_link_libraries(
