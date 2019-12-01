@@ -110,6 +110,7 @@ def n_step_gru_converter(params):
 
     for layer in range(n_layers):
         if layer == 0:
+            # X; shape: (seq_length, batch_size, input_size)
             x_name = gb.op(
                 'Concat',
                 [gb.op('Unsqueeze', [name], axes=[0]) for name in xs_names],
@@ -131,7 +132,7 @@ def n_step_gru_converter(params):
         w = ws_names[layer]
         b = bs_names[layer]
 
-        # W[zrh]; shape: (seq_length, batch_size, input_size)
+        # W[zrh]; shape: (num_directions, 3*hidden_size, input_size)
         w_name = gb.op(
             'Unsqueeze',
             [gb.op('Concat', [w[1], w[0], w[2]], axis=0)],
@@ -141,14 +142,14 @@ def n_step_gru_converter(params):
             'Unsqueeze',
             [gb.op('Concat', [w[4], w[3], w[5]], axis=0)],
             axes=[0])
-        # Wb[zrh], Rb[zrh]; shape: (num_directions, 3*hidden_size, hidden_size)
+        # Wb[zrh], Rb[zrh]; shape: (num_directions, 6*hidden_size)
         b_name = gb.op(
             'Unsqueeze',
             [gb.op('Concat', [b[1], b[0], b[2], b[4], b[3], b[5]], axis=0)],
             axes=[0])
 
-        # y_name.shape : (seq_length, num_directions, batch_size, hidden_size)
-        # hy_name_.shape: (num_directions, batch_size, hidden_size)
+        # Y; shape: (seq_length, num_directions, batch_size, hidden_size)
+        # Y_h; shape: (num_directions, batch_size, hidden_size)
         y_name, hy_name_ = gb.op(
             'GRU',
             (x_name, w_name, r_name, b_name, "", hx_names[layer]),
