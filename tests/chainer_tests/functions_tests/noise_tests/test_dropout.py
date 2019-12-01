@@ -76,12 +76,10 @@ class TestDropout(testing.FunctionTestCase):
     # CPU tests
     [
         {},
-        {'use_ideep': 'always'},
     ]
     # GPU tests
     + testing.product({
         'use_cuda': [True],
-        'use_cudnn': ['never', 'always'],
         'cuda_device': [0, 1],
     })
     # ChainerX tests
@@ -104,7 +102,6 @@ class TestDropoutMask(testing.FunctionTestCase):
 
     def forward(self, inputs, device):
         x, = inputs
-        x.array = device.send(x.array)
         mask = device.send(self.mask) if self.specify_mask else None
         with chainer.using_config('train', self.train):
             y, y_mask = functions.dropout(x, 0.5, mask=mask,
