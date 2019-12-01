@@ -10,9 +10,7 @@ def total_size(shape):
     return functools.reduce(operator.mul, shape, 1)
 
 
-def uniform(shape, dtype, low=None, high=None, *, random_state=None):
-    if random_state is None:
-        random_state = numpy.random.RandomState()
+def uniform(shape, dtype, low=None, high=None, *, random_state=numpy.random):
     kind = numpy.dtype(dtype).kind
     if kind == 'f':
         return (random_state.uniform(
