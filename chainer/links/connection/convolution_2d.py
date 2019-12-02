@@ -1,6 +1,8 @@
+import chainer
 from chainer.functions.connection import convolution_2d
 from chainer import initializers
 from chainer import link
+from chainer import memory_layouts
 from chainer.utils import argument
 from chainer import variable
 
@@ -119,6 +121,14 @@ nobias=False, initialW=None, initial_bias=None, *, dilate=1, groups=1)
         if ksize is None:
             out_channels, ksize, in_channels = in_channels, out_channels, None
 
+        cudnn_fast = chainer.get_compute_mode() == 'cudnn_fast'
+        if cudnn_fast:
+            x_layout = memory_layouts.CUDNN_CHANNEL_LAST_X
+            w_layout = memory_layouts.CUDNN_CHANNEL_LAST_W
+        else:
+            x_layout = memory_layouts.CUDNN_CHANNEL_FIRST_X
+            w_layout = memory_layouts.CUDNN_CHANNEL_FIRST_W
+
         self.ksize = ksize
         self.stride = _pair(stride)
         self.pad = _pair(pad)
@@ -126,10 +136,11 @@ nobias=False, initialW=None, initial_bias=None, *, dilate=1, groups=1)
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.groups = int(groups)
+        self.x_layout = x_layout
 
         with self.init_scope():
             W_initializer = initializers._get_initializer(initialW)
-            self.W = variable.Parameter(W_initializer)
+            self.W = variable.Parameter(W_initializer, layout=w_layout)
             if in_channels is not None:
                 self._initialize_params(in_channels)
 
@@ -227,8 +238,14 @@ nobias=False, *, dilate=1, groups=1)
             ~chainer.Variable: Output of the convolution.
 
         """
-        if self.W.array is None:
-            self._initialize_params(x.shape[1])
+        x = chainer.as_variable(x)
+        assert x.layout == self.x_layout
+        # self.W can be a Variable instead of Parameter: #8462
+        # TODO(niboshi): Use Parameter.is_initialized.
+        if self.W.raw_array is None:
+            _, c, _, _ = memory_layouts.get_semantic_shape(
+                x, assumed_layout=self.x_layout)
+            self._initialize_params(c)
         return convolution_2d.convolution_2d(
             x, self.W, self.b, self.stride, self.pad, dilate=self.dilate,
             groups=self.groups)

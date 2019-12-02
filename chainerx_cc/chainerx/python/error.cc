@@ -1,3 +1,5 @@
+#include "chainerx/python/common_export.h"
+
 #include "chainerx/python/error.h"
 
 #include "chainerx/error.h"

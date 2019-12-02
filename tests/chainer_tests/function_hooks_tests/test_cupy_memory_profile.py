@@ -161,15 +161,15 @@ class TestCupyMemoryProfileReportBase(unittest.TestCase):
     def setUp(self):
         cuda.memory_pool.free_all_blocks()
         self.h = function_hooks.CupyMemoryProfileHook()
-        self.f1 = functions.math.exponential.Exp()
-        self.f2 = functions.activation.relu.ReLU()
+        f1 = functions.exp
+        f2 = functions.relu
         self.x = numpy.random.uniform(-0.1, 0.1, (3, 5)).astype(numpy.float32)
         x = cuda.to_gpu(self.x)
         with self.h:
-            self.f1.apply((chainer.Variable(x),))
-            self.f1.apply((chainer.Variable(x),))
-            self.f2.apply((chainer.Variable(x),))
-            self.f2.apply((chainer.Variable(x),))
+            f1(chainer.Variable(x))
+            f1(chainer.Variable(x))
+            f2(chainer.Variable(x))
+            f2(chainer.Variable(x))
 
 
 class TestCupyMemoryProfilerStatistics(TestCupyMemoryProfileReportBase):

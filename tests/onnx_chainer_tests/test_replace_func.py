@@ -508,7 +508,6 @@ def test_fake_as_funcnode_keep_structure(tmpdir):
 
     with testing.assert_warns(UserWarning):
         export_testcase(model, x, path, external_converters=addon_converters)
-        export_testcase(model, x, ".", external_converters=addon_converters)
 
     model_filepath = os.path.join(path, 'model.onnx')
     assert os.path.isfile(model_filepath)

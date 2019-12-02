@@ -1,5 +1,10 @@
+from contextlib import contextmanager
+
+import chainer.functions as F
+
 from onnx_chainer import functions
 from onnx_chainer.functions.converter import FunctionConverter
+from onnx_chainer.replace_func import fake_as_funcnode
 
 
 _supported_function_node_set = {
@@ -33,6 +38,7 @@ _supported_function_node_set = {
     'Reshape',
     'ResizeImages',
     'Rollaxis',
+    'SelectItem',
     'Separate',
     'Shape',
     'Space2Depth',
@@ -42,6 +48,7 @@ _supported_function_node_set = {
     'Swapaxes',
     'Tile',
     'Transpose',
+    'TransposeSequence',
     'Vstack',
     'Where',
 
@@ -90,6 +97,7 @@ _supported_function_node_set = {
     'PowVarVar',
     'Prod',
     'RsqrtGPU',
+    'sign',
     'Sin',
     'Sinh',
     'Sqrt',
@@ -134,3 +142,24 @@ def _get_converters():
 
 
 converters = _get_converters()
+
+
+_supported_function_set = {
+    # Math
+    'sign',
+}
+
+
+@contextmanager
+def patch_functions():
+    org_funcs = {}
+    for name in _supported_function_set:
+        org_func = getattr(F, name)
+        org_funcs[name] = org_func
+        setattr(F, name, fake_as_funcnode(
+            org_func, name, experimental_warning=False))
+    try:
+        yield
+    finally:
+        for name in _supported_function_set:
+            setattr(F, name, org_funcs[name])

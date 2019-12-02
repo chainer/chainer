@@ -44,7 +44,11 @@ __global__ void TakeCudaKernel(
         TIndex right_dim,
         TIndex num_iters,
         IndexBoundsMode mode) {
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    int64_t idx = static_cast<int64_t>(blockIdx.x);
+    int64_t size = static_cast<int64_t>(gridDim.x);
+    int64_t block_dim = static_cast<int64_t>(blockDim.x);
+    idx = idx * block_dim + static_cast<int64_t>(threadIdx.x);
+    size *= block_dim;
     if (idx >= num_iters) return;
     TIndex left_idx = idx / (num_indices * right_dim);
     TIndex index_idx = idx % (num_indices * right_dim);
@@ -80,7 +84,11 @@ __global__ void AddAtCudaKernel(
         TIndex b_right_dim,
         TIndex num_iters,
         IndexBoundsMode mode) {
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    int64_t idx = static_cast<int64_t>(blockIdx.x);
+    int64_t size = static_cast<int64_t>(gridDim.x);
+    int64_t block_dim = static_cast<int64_t>(blockDim.x);
+    idx = idx * block_dim + static_cast<int64_t>(threadIdx.x);
+    size *= block_dim;
     if (idx >= num_iters) return;
     TIndex i = idx / (target_dim * right_dim);
     TIndex j = idx % (target_dim * right_dim);

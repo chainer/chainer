@@ -2,6 +2,7 @@ import warnings
 
 import chainer
 import numpy as np
+import onnx
 from onnx.mapping import NP_TYPE_TO_TENSOR_TYPE
 
 from onnx_chainer.functions.opset_version import support
@@ -72,14 +73,22 @@ def convert_Depth2Space(
 
 
 def get_slice_node(
-        gb, opset_version, context, input_names, axes, starts, ends):
+        gb, opset_version, context, input_names, axes, starts, ends, steps):
+    if opset_version < 11 and any([i != 1 for i in steps]):
+        raise ValueError(
+            'GetItem with n-step slicing is supported from opset11, '
+            'opset{} is not supported'.format(opset_version))
+
     if opset_version < 10:
         return gb.op(
             'Slice', input_names, axes=axes, starts=starts, ends=ends)
     else:
-        for param in [('starts', starts), ('ends', ends), ('axes', axes)]:
+        inputs = [('starts', starts), ('ends', ends), ('axes', axes)]
+        if opset_version > 10:
+            inputs.append(('steps', steps))
+        for name, values in inputs:
             param_name = context.add_const(
-                np.asarray(list(param[1]), dtype=np.int64), param[0])
+                np.asarray(list(values), dtype=np.int64), name)
             input_names.append(param_name)
         return gb.op('Slice', input_names)
 
@@ -91,10 +100,10 @@ def _to_ndarray(x, dtype=np.int64):
         return chainer.cuda.to_cpu(x).astype(dtype)
 
 
-@support((1, 10))
+@support((1, 10, 11))
 def convert_GetItem(func, opset_version, input_names, output_names, context):
     x = func.inputs[0]
-    axes, starts, ends = [], [], []
+    axes, starts, ends, steps = [], [], [], []
     squeeze_idxs, unsqueeze_idxs = [], []
     skipped = 0  # when set ellipsis, need to skip index rolling
 
@@ -108,26 +117,37 @@ def convert_GetItem(func, opset_version, input_names, output_names, context):
         # axis means the index of input x, adjust None and Ellipsis counts
         axis = i - len(unsqueeze_idxs) + skipped
         if isinstance(idx, slice):
-            if idx.step is not None and idx.step != 1:
-                raise ValueError(
-                    'GetItem with {}step slicing is not supported in ONNX '
-                    'Slice operator'.format(idx.step))
-            if idx.start is None and idx.stop is None:
+            if idx.start is None and idx.stop is None and idx.step is None:
                 is_used_slice_whole = True
                 continue
             axes.append(axis)
-            starts.append(0 if idx.start is None else idx.start)
-            ends.append(x.shape[axis] if idx.stop is None else idx.stop)
+            step = 1 if idx.step is None else idx.step
+            steps.append(step)
+            if step < 0:
+                starts.append(
+                    np.iinfo(np.int64).max if idx.start is None else idx.start)
+                ends.append(
+                    np.iinfo(np.int64).min if idx.stop is None else idx.stop)
+            else:
+                starts.append(0 if idx.start is None else idx.start)
+                ends.append(
+                    np.iinfo(np.int64).max if idx.stop is None else idx.stop)
         elif isinstance(idx, int):
             axes.append(axis)
-            starts.append(idx)
-            ends.append(idx+1)
+            steps.append(1)
+            if idx == -1:
+                starts.append(idx)
+                ends.append(np.iinfo(np.int64).max)
+            else:
+                starts.append(idx)
+                ends.append(idx+1)
             squeeze_idxs.append(axis)
         elif isinstance(idx, np.ndarray) and idx.ndim == 0:
             scalar_idx = idx.item()
             axes.append(axis)
             starts.append(scalar_idx)
             ends.append(scalar_idx+1)
+            steps.append(1)
             squeeze_idxs.append(axis)
         elif idx is None:
             unsqueeze_idxs.append(i - len(squeeze_idxs) + skipped)
@@ -173,7 +193,8 @@ def convert_GetItem(func, opset_version, input_names, output_names, context):
     slice_output = input_names
     if axes:
         output = get_slice_node(
-            gb, opset_version, context, slice_output, axes, starts, ends)
+            gb, opset_version, context, slice_output, axes, starts, ends,
+            steps)
         slice_output = [output]
     if squeeze_idxs:
         output = gb.op('Squeeze', slice_output, axes=squeeze_idxs)
@@ -183,6 +204,10 @@ def convert_GetItem(func, opset_version, input_names, output_names, context):
         slice_output = [output]
 
     if gather_nd_idx is not None:
+        if opset_version < 11:
+            raise ValueError(
+                'ONNX-Chainer supports multiple advanced indexing from opset11'
+                ', opset{} is not supported'.format(opset_version))
         gather_nd_idx_name = context.add_const(gather_nd_idx.T, 'indices')
         slice_output.append(gather_nd_idx_name)
         gb.op('GatherND', slice_output)
@@ -192,6 +217,39 @@ def convert_GetItem(func, opset_version, input_names, output_names, context):
         gb.op('Gather', slice_output, axis=gather_axis)
 
     return gb.nodes(output_names=output_names)
+
+
+@support((9, 11))
+def convert_SelectItem(func, opset_version, input_names, output_names,
+                       context):
+    gb = onnx_helper.GraphBuilder()
+
+    if opset_version >= 11:
+        t = gb.op('Unsqueeze', [input_names[1]], axes=[1])
+        out = gb.op('GatherElements', [input_names[0], t], axis=1)
+        gb.op('Squeeze', [out], axes=[1])
+    else:
+        data, target_idxs = input_names
+        target_idxs = gb.op('Cast', [target_idxs],
+                            to=NP_TYPE_TO_TENSOR_TYPE[np.dtype('int64')])
+        n_rows = gb.op('Shape', [target_idxs])
+
+        # This is an equivalent of using Range.
+        one_1 = onnx.helper.make_tensor(
+            'one_1', onnx.TensorProto.FLOAT, [1], [1])
+        ones = gb.op('ConstantOfShape', [n_rows], value=one_1)
+        row_idxs = gb.op('Squeeze', [gb.op('NonZero', [ones])])
+
+        data_shape = gb.op('Shape', [data])
+        one_2 = context.add_const(np.array([1]), 'one_2')
+        n_cols = gb.op('Gather', [data_shape, one_2], axis=0)
+
+        data = gb.op('Squeeze', [gb.op('Flatten', [data], axis=2)])
+        target_idxs = gb.op(
+            'Add', [target_idxs, gb.op('Mul', [row_idxs, n_cols])])
+        gb.op('Gather', [data, target_idxs], axis=0)
+
+    return gb.nodes(output_names)
 
 
 @support((1, 2, 11))
@@ -588,3 +646,17 @@ def convert_Rollaxis(func, opset_version, input_names, output_names, context):
                                  perm=order)
 
     return node,
+
+
+def convert_TransposeSequence(
+        func, opset_version, input_names, output_names, context):
+    if len(input_names) == 1:
+        return onnx_helper.make_node(
+            'Split', input_names, output_names, axis=0),
+    elif len(output_names) == 1:
+        return onnx_helper.make_node(
+            'Concat', input_names, output_names, axis=0),
+    else:
+        raise ValueError(
+            'ONNX-Chainer can convert TransposeSequence only when input '
+            'or output length is 1')

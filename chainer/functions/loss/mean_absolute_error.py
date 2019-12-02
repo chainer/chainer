@@ -6,6 +6,15 @@ from chainer import function_node
 from chainer.utils import type_check
 
 
+def _get_intermediate_dtype(dtype):
+    # Returns the dtype for intermediate calculation.
+    # For float16 input, float32 is used.
+    # Otherwise the same dtype as the parameter is used.
+    if dtype == numpy.float16:
+        return numpy.float32
+    return dtype
+
+
 class MeanAbsoluteError(function_node.FunctionNode):
 
     """Mean absolute error function."""
@@ -21,14 +30,19 @@ class MeanAbsoluteError(function_node.FunctionNode):
     def forward_cpu(self, inputs):
         x0, x1 = inputs
         self.diff = x0 - x1
-        diff = self.diff.ravel()
-        return numpy.array(abs(diff).sum() / diff.size, dtype=diff.dtype),
+        orig_dtype = self.diff.dtype
+        dtype = _get_intermediate_dtype(orig_dtype)
+        diff = self.diff.ravel().astype(dtype, copy=False)
+        return numpy.array(abs(diff).sum() / diff.size, dtype=orig_dtype),
 
     def forward_gpu(self, inputs):
         x0, x1 = inputs
         self.diff = x0 - x1
-        diff = self.diff.ravel()
-        return abs(diff).sum() / diff.dtype.type(diff.size),
+        orig_dtype = self.diff.dtype
+        dtype = _get_intermediate_dtype(orig_dtype)
+        diff = self.diff.ravel().astype(dtype, copy=False)
+        return (abs(diff).sum() / diff.dtype.type(diff.size)).astype(
+            orig_dtype, copy=False),
 
     def backward(self, indexes, grad_outputs):
         gy, = grad_outputs

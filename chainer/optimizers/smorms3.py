@@ -37,6 +37,8 @@ class SMORMS3Rule(optimizer.UpdateRule):
         eps (float): Small value for the numerical stability.
 
     """
+    is_elementwise = True
+
     _kernel = None
 
     def __init__(self, parent_hyperparam=None, lr=None, eps=None):

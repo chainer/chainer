@@ -1,3 +1,5 @@
+#include "chainerx/python/common_export.h"
+
 #include "chainerx/python/strides.h"
 
 #include <algorithm>

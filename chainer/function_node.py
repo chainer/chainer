@@ -143,6 +143,8 @@ class FunctionNode(object):
 
     inputs = None
     outputs = None
+    _input_layouts = None
+    _output_layouts = None
     _output_count = None
     rank = 0
     stack = None
@@ -159,6 +161,7 @@ class FunctionNode(object):
     _chainerx_retained_inputs = None
     _chainerx_retained_outputs = None
     lazy_grad_sum = False
+    is_elementwise = False
 
     @property
     def local_function_hooks(self):
@@ -297,9 +300,15 @@ Use apply() method instead.\
             # Keep stack trace for debug
             self.stack = traceback.extract_stack()
 
+        input_vars = [chainer.as_variable(x) for x in inputs]
+        self._input_layouts = tuple([x.layout for x in input_vars])
+
         if configuration.config.type_check:
             self._check_data_type_forward(in_data)
 
+        self.check_layout_forward(input_vars)
+
+        # Call preprocess hooks
         hooks = chainer.get_function_hooks()
         if self._n_local_function_hooks > 0:
             hooks = collections.OrderedDict(hooks)
@@ -330,7 +339,31 @@ Use apply() method instead.\
                 'forward output must be a tuple ({})\n'
                 'Actual: {}'.format(self.label, type(outputs)))
 
+        if self.is_elementwise:
+            if not all([y.shape == outputs[0].shape for y in outputs]):
+                raise RuntimeError(
+                    'An elementwise function returned outputs with '
+                    'different shapes.\n'
+                    'Function: {}\n'
+                    'Input shapes: {}\n'
+                    'Output shapes: {}'.format(
+                        self.label,
+                        ', '.join(repr(x.shape) for x in outputs),
+                        ', '.join(repr(y.shape) for y in outputs),
+                    ))
+
         if not chainer.is_arrays_compatible(outputs):
+            if not all(
+                    isinstance(y, chainer.get_array_types())
+                    for y in outputs):
+                raise TypeError(
+                    'forward output must be a tuple of ndarrays.\n'
+                    'Function: {}\n'
+                    'Actual output types: {}'
+                    .format(
+                        self.label,
+                        tuple(type(y) for y in outputs)))
+
             raise TypeError(
                 'incompatible array types are mixed in the forward output '
                 '({}).\n'
@@ -338,6 +371,15 @@ Use apply() method instead.\
                     self.label,
                     ', '.join(str(type(x)) for x in outputs)))
 
+        # If output layouts is not specified, assign the default layouts.
+        if self.is_elementwise:
+            assert self._output_layouts is None
+            layout = self._input_layouts[0]
+            self._output_layouts = (layout,) * len(outputs)
+        elif self._output_layouts is None:
+            self._output_layouts = (None,) * len(outputs)
+
+        # Call postprocess hooks
         for hook in hooks:
             hook.forward_postprocess(self, in_data)
 
@@ -357,12 +399,12 @@ Use apply() method instead.\
                 chainerx_in_data, inputs, outputs)
 
         else:
-            input_vars = [chainer.as_variable(x) for x in inputs]
             requires_grad = any([x.requires_grad for x in input_vars])
 
             ret = tuple(
-                [variable.Variable(y, requires_grad=requires_grad)
-                 for y in outputs])
+                [variable.Variable(
+                    y, requires_grad=requires_grad, layout=layout)
+                 for y, layout in zip(outputs, self.output_layouts)])
 
             if configuration.config.enable_backprop:
                 # Topological ordering
@@ -391,7 +433,14 @@ Use apply() method instead.\
         return ret
 
     def _check_data_type_forward(self, in_data):
-        in_type = type_check.get_light_types(in_data)
+        in_layouts = self.input_layouts
+        in_shapes = None
+        if any([layout is not None for layout in in_layouts]):
+            in_shapes = tuple([
+                chainer.memory_layouts._transpose_shape(x.shape, layout, None)
+                for x, layout in zip(in_data, in_layouts)])
+        in_type = type_check.get_light_types(in_data, shapes=in_shapes)
+
         try:
             with type_check.light_mode:
                 self.check_type_forward(in_type)
@@ -400,7 +449,8 @@ Use apply() method instead.\
             # Ignore errors on first run
             pass
 
-        in_type = type_check.get_types(in_data, 'in_types', False)
+        in_type = type_check.get_types(
+            in_data, 'in_types', False, shapes=in_shapes)
         with type_check.get_function_check_context(self):
             self.check_type_forward(in_type)
 
@@ -417,6 +467,29 @@ Use apply() method instead.\
 
         """
         pass
+
+    def check_layout_forward(self, inputs):
+        if self.is_elementwise:
+            if not all([x.layout == inputs[0].layout for x in inputs]):
+                raise RuntimeError(
+                    'Inputs with mixed memory layouts were given to '
+                    'an elementwise function. \n'
+                    'Function: {}\n'
+                    'Input layouts: {}\n'.format(
+                        self.label,
+                        ', '.join(str(x.layout) for x in inputs),
+                    ))
+        else:
+            if not all([x.layout is None for x in inputs]):
+                raise RuntimeError(
+                    'Inputs with non-standard layouts were given to '
+                    'a function without explicit `check_layout_forward` '
+                    'implementation.\n'
+                    'Function: {}\n'
+                    'Input layouts: {}\n'.format(
+                        self.label,
+                        ', '.join(str(x.layout) for x in inputs),
+                    ))
 
     def _chainerx_apply_fallback_preprocess(self, in_data, inputs):
         chainerx_in_data = in_data
@@ -551,6 +624,21 @@ Use apply() method instead.\
 
         """
         raise NotImplementedError
+
+    @property
+    def input_layouts(self):
+        assert self._input_layouts is not None
+        return self._input_layouts
+
+    @property
+    def output_layouts(self):
+        assert self._output_layouts is not None
+        return self._output_layouts
+
+    @output_layouts.setter
+    def output_layouts(self, layouts):
+        assert isinstance(layouts, tuple)
+        self._output_layouts = layouts
 
     def retain_inputs(self, indexes):
         """Lets specified input variable nodes keep data arrays.
@@ -757,6 +845,9 @@ Use apply() method instead.\
     def _backward_target_inputs(self, target_input_indexes, grad_outputs):
         # Filters out input gradients that are not required and returns the
         # rest.
+        assert all([
+            gy is None or yl == gy.layout
+            for yl, gy in zip(self.output_layouts, grad_outputs)])
         gxs = self.backward(target_input_indexes, grad_outputs)
 
         len_gxs = len(gxs)
@@ -862,7 +953,7 @@ Use apply() method instead.\
             else:
                 output_var = output.get_variable()
 
-            if output_var.array is None:
+            if output_var.raw_array is None:
                 ret.append(None)
             else:
                 ret.append(output_var)
@@ -1239,11 +1330,9 @@ def _extract_apply_in_data(inputs):
         arrays = []
         for x in inputs:
             if isinstance(x, variable.Variable):
+                arrays.append(x._data[0])
                 if x._has_chainerx_array:
-                    arrays.append(x._data[0])
                     has_chainerx_array = True
-                else:
-                    arrays.append(x.array)
             else:  # x is ndarray
                 arrays.append(x)
                 if not has_chainerx_array:
@@ -1252,7 +1341,7 @@ def _extract_apply_in_data(inputs):
         return has_chainerx_array, tuple(arrays)
     else:
         return False, tuple([
-            x.array if isinstance(x, variable.Variable) else x
+            x.raw_array if isinstance(x, variable.Variable) else x
             for x in inputs])
 
 

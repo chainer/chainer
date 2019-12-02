@@ -1,12 +1,14 @@
 import unittest
 
 import numpy
+import pytest
 import six.moves.cPickle as pickle
 
 import chainer
 from chainer.backends import cuda
 from chainer import functions as F
 from chainer import links
+from chainer import memory_layouts
 from chainer import testing
 from chainer.testing import attr
 from chainer.utils import conv
@@ -229,6 +231,91 @@ class TestConvolution2DParameterShapePlaceholder(testing.LinkTestCase):
         y_data2 = y.data
 
         testing.assert_allclose(y_data1, y_data2, atol=0, rtol=0)
+
+
+@testing.inject_backend_tests(
+    [
+        'test_param_layout_to_device',
+        'test_forward',
+    ],
+    # CPU tests
+    [{}]
+    # GPU tests
+    + testing.product({
+        'use_cuda': [True],
+        'use_cudnn': ['never', 'always'],
+    }))
+class TestConvolution2DMemoryLayouts(unittest.TestCase):
+    batch = 2
+    in_channels = 5
+    out_channels = 7
+    height = 13
+    width = 11
+    kernel_height = 5
+    kernel_width = 4
+    strides_height = 3
+    strides_width = 2
+    dtype = numpy.float32
+
+    def create_link(self):
+        link = links.Convolution2D(
+            self.in_channels,
+            self.out_channels,
+            (self.kernel_height, self.kernel_width),
+            (self.strides_height, self.strides_width))
+        return link
+
+    def create_input_array(self):
+        x_shape = (self.batch, self.height, self.width, self.in_channels)
+        x = cuda.cupy.ones(x_shape, self.dtype)
+        return x
+
+    def test_param_layout(self):
+        with chainer.using_config('compute_mode', 'cudnn_fast'):
+            link = self.create_link()
+        assert link.W.layout == memory_layouts.CUDNN_CHANNEL_LAST_W
+
+    def test_param_layout_to_device(self, backend_config):
+        with chainer.using_config('compute_mode', 'cudnn_fast'):
+            link = self.create_link()
+        assert link.W.device == chainer.get_device('@numpy')
+        link.to_device(backend_config.device)
+        assert link.W.device == backend_config.device
+        assert link.W.layout == memory_layouts.CUDNN_CHANNEL_LAST_W
+
+    def test_forward(self, backend_config):
+        if not backend_config.use_cuda:
+            raise unittest.SkipTest(
+                'forward with non-standard layout is only supported with '
+                'cupy arrays.')
+        with chainer.using_config('compute_mode', 'cudnn_fast'):
+            link = self.create_link()
+        link.to_device(backend_config.device)
+
+        x = self.create_input_array()
+        x = chainer.Variable(x, layout=memory_layouts.CUDNN_CHANNEL_LAST_X)
+        x.to_device(backend_config.device)
+        y = link(x)
+
+        assert link.W.device == backend_config.device
+        assert y.layout == memory_layouts.CUDNN_CHANNEL_LAST_X
+        assert y.shape == (
+            self.batch,
+            self.out_channels,
+            (self.height - self.kernel_height + 1) // self.strides_height,
+            (self.width - self.kernel_width + 1) // self.strides_width)
+
+    def test_forward_invalid_backend(self):
+        with chainer.using_config('compute_mode', 'cudnn_fast'):
+            link = self.create_link()
+        link.to_device('@numpy')
+
+        x = self.create_input_array()
+        x = chainer.Variable(x, layout=memory_layouts.CUDNN_CHANNEL_LAST_X)
+        x.to_device('@numpy')
+
+        with pytest.raises(RuntimeError):
+            link(x)
 
 
 testing.run_module(__name__, __file__)

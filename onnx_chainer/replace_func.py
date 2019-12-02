@@ -86,7 +86,8 @@ class WrappedFunctionNode(chainer.FunctionNode):
         return f(self.skeleton)
 
 
-def fake_as_funcnode(alt_func, name, rename_attributes=None):
+def fake_as_funcnode(alt_func, name, rename_attributes=None,
+                     experimental_warning=True):
     """The target function fakes FunctionNode
 
     The target function is replaced to the alternative function to connect
@@ -129,6 +130,8 @@ def fake_as_funcnode(alt_func, name, rename_attributes=None):
         rename_attributes (list or tuple): rename attribute name, set list
             of ``tuple(index_of_args, new_name)`` or
             ``tuple(kwargs_name, new_name)``
+        experimental_warning: this function is experimental utility, if set
+            ``False``, run without experimental warning.
 
     Returns:
         func: wrapped function, called on exporting.
@@ -190,7 +193,8 @@ def fake_as_funcnode(alt_func, name, rename_attributes=None):
         ret = wrapped.apply(inputs)
         return wrapped.reconstruct_return_value(ret)
 
-    chainer.utils.experimental('as_funcnode')
+    if experimental_warning:
+        chainer.utils.experimental('as_funcnode')
     return _wrapper
 
 

@@ -22,6 +22,7 @@ class ReLU(function_node.FunctionNode):
 
     """Rectified Linear Unit."""
 
+    is_elementwise = True
     _use_cudnn = False
 
     def check_type_forward(self, in_types):
@@ -61,13 +62,14 @@ class ReLU(function_node.FunctionNode):
     def backward(self, indexes, grad_outputs):
         gy, = grad_outputs
         y, = self.get_retained_outputs()
+        y_arr = y.raw_array
 
         if self._use_cudnn and chainer.should_use_cudnn('>=auto'):
             # cuDNN implementation
-            return ReLUGradCudnn(y.array).apply((gy,))
+            return ReLUGradCudnn(y_arr).apply((gy,))
 
         # Generic implementation
-        return ReLUGrad2(y.array).apply((gy,))
+        return ReLUGrad2(y_arr).apply((gy,))
 
 
 class ReLUGrad2(function_node.FunctionNode):
@@ -121,6 +123,8 @@ class ReLUGradCudnn(function_node.FunctionNode):
     As the gradient of f with respect to a and b are 0,
     we do not backpropagate errors toward them for computational efficiency.
     """
+
+    is_elementwise = True
 
     def __init__(self, y):
         super(ReLUGradCudnn, self).__init__()
