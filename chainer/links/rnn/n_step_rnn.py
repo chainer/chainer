@@ -53,12 +53,12 @@ class NStepRNNBase(link.ChainList):
     def __init__(self, n_layers, in_size, out_size, dropout, **kwargs):
         initialW, initial_bias = argument.parse_kwargs(
             kwargs,
-            ("initialW", None),
-            ("initial_bias", None),
-            use_cudnn="use_cudnn argument is not supported anymore. "
-            "Use chainer.using_config",
-            use_bi_direction="use_bi_direction is not supported anymore",
-            activation="activation is not supported anymore",
+            ('initialW', None),
+            ('initial_bias', None),
+            use_cudnn='use_cudnn argument is not supported anymore. '
+            'Use chainer.using_config',
+            use_bi_direction='use_bi_direction is not supported anymore',
+            activation='activation is not supported anymore',
         )
 
         weights = []
@@ -84,8 +84,8 @@ class NStepRNNBase(link.ChainList):
                             w_in = out_size
                         w = variable.Parameter(W_initializer, (out_size, w_in))
                         b = variable.Parameter(bias_initializer, out_size)
-                        setattr(weight, "w%d" % j, w)
-                        setattr(weight, "b%d" % j, b)
+                        setattr(weight, 'w%d' % j, w)
+                        setattr(weight, 'b%d' % j, b)
                 weights.append(weight)
 
         super(NStepRNNBase, self).__init__(*weights)
@@ -102,14 +102,14 @@ class NStepRNNBase(link.ChainList):
         self.out_size = out_size
         self.direction = direction
 
-    def copy(self, mode="share"):
+    def copy(self, mode='share'):
         ret = super(NStepRNNBase, self).copy(mode)
         ret.ws = [
-            [getattr(layer, "w%d" % i) for i in six.moves.range(ret.n_weights)]
+            [getattr(layer, 'w%d' % i) for i in six.moves.range(ret.n_weights)]
             for layer in ret
         ]
         ret.bs = [
-            [getattr(layer, "b%d" % i) for i in six.moves.range(ret.n_weights)]
+            [getattr(layer, 'b%d' % i) for i in six.moves.range(ret.n_weights)]
             for layer in ret
         ]
         return ret
@@ -248,7 +248,7 @@ class NStepRNNTanh(NStepRNNBase):
     use_bi_direction = False
 
     def rnn(self, *args):
-        return rnn.n_step_rnn(*args, activation="tanh")
+        return rnn.n_step_rnn(*args, activation='tanh')
 
     @property
     def n_cells(self):
@@ -285,7 +285,7 @@ class NStepRNNReLU(NStepRNNBase):
     use_bi_direction = False
 
     def rnn(self, *args):
-        return rnn.n_step_rnn(*args, activation="relu")
+        return rnn.n_step_rnn(*args, activation='relu')
 
     @property
     def n_cells(self):
@@ -322,7 +322,7 @@ class NStepBiRNNTanh(NStepRNNBase):
     use_bi_direction = True
 
     def rnn(self, *args):
-        return rnn.n_step_birnn(*args, activation="tanh")
+        return rnn.n_step_birnn(*args, activation='tanh')
 
     @property
     def n_cells(self):
@@ -359,7 +359,7 @@ class NStepBiRNNReLU(NStepRNNBase):
     use_bi_direction = True
 
     def rnn(self, *args):
-        return rnn.n_step_birnn(*args, activation="relu")
+        return rnn.n_step_birnn(*args, activation='relu')
 
     @property
     def n_cells(self):
