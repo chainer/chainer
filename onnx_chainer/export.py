@@ -334,7 +334,7 @@ def _export(model, args, filename, export_params, graph_name, save_text,
         # if input shapes are invalid, raise exception before forwarding.
         input_shapes = format_customized_shapes(args, input_shapes)
 
-    with RetainInputHook():
+    with RetainInputHook(), mapping.patch_functions():
         # Forward computation
         context = Context(model)
         network_inputs = OrderedDict()
