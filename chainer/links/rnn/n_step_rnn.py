@@ -104,14 +104,10 @@ class NStepRNNBase(link.ChainList):
 
     def copy(self, mode='share'):
         ret = super(NStepRNNBase, self).copy(mode)
-        ret.ws = [
-            [getattr(layer, 'w%d' % i) for i in six.moves.range(ret.n_weights)]
-            for layer in ret
-        ]
-        ret.bs = [
-            [getattr(layer, 'b%d' % i) for i in six.moves.range(ret.n_weights)]
-            for layer in ret
-        ]
+        ret.ws = [[getattr(layer, 'w%d' % i)
+                   for i in six.moves.range(ret.n_weights)] for layer in ret]
+        ret.bs = [[getattr(layer, 'b%d' % i)
+                   for i in six.moves.range(ret.n_weights)] for layer in ret]
         return ret
 
     def init_hx(self, xs):
@@ -185,10 +181,8 @@ class NStepRNNBase(link.ChainList):
         """
         if kwargs:
             argument.check_unexpected_kwargs(
-                kwargs,
-                train="train argument is not supported anymore. "
-                "Use chainer.using_config",
-            )
+                kwargs, train='train argument is not supported anymore. '
+                'Use chainer.using_config')
             argument.assert_kwargs_empty(kwargs)
 
         assert isinstance(xs, (list, tuple))
@@ -205,8 +199,8 @@ class NStepRNNBase(link.ChainList):
 
         trans_x = transpose_sequence.transpose_sequence(xs)
 
-        args = [self.n_layers, self.dropout] + hxs \
-            + [self.ws, self.bs, trans_x]
+        args = [self.n_layers, self.dropout] + hxs + \
+               [self.ws, self.bs, trans_x]
         result = self.rnn(*args)
 
         hys = [permutate.permutate(h, indices, axis=1, inv=True)
