@@ -650,13 +650,26 @@ def convert_Rollaxis(func, opset_version, input_names, output_names, context):
 
 def convert_TransposeSequence(
         func, opset_version, input_names, output_names, context):
-    if len(input_names) == 1:
-        return onnx_helper.make_node(
-            'Split', input_names, output_names, axis=0),
-    elif len(output_names) == 1:
-        return onnx_helper.make_node(
-            'Concat', input_names, output_names, axis=0),
-    else:
+    if any(x.shape != func.inputs[0].shape for x in func.inputs):
         raise ValueError(
-            'ONNX-Chainer can convert TransposeSequence only when input '
-            'or output length is 1')
+            'ONNX-Chainer can convert TransposeSequence only when all '
+            'inputs have same shape')
+    gb = onnx_helper.GraphBuilder()
+    n = func.inputs[0].shape[0]
+
+    concat_out = gb.op(
+        'Concat',
+        [gb.op('Unsqueeze', [name], axes=[0]) for name in input_names],
+        axis=0)
+
+    perm = list(range(len(func.inputs[0].shape) + 1))
+    perm[0], perm[1] = perm[1], perm[0]
+    transpose_out = gb.op('Transpose', [concat_out], perm=perm)
+
+    split_outs = gb.op('Split', [transpose_out], axis=0, num_outputs=n)
+    if n == 1:
+        split_outs = [split_outs]
+    for i, name in enumerate(split_outs):
+        gb.op_output_named('Squeeze', [name], [output_names[i]], axes=[0])
+
+    return gb.nodes()
