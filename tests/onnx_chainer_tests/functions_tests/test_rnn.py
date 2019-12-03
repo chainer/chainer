@@ -2,7 +2,9 @@ import chainer
 import chainer.functions as F
 import chainer.links as L
 from chainer import testing
+import numpy as np
 
+from onnx_chainer import onnx_helper
 from onnx_chainer.testing import input_generator
 from onnx_chainer_tests.helper import ONNXModelTest
 
@@ -47,6 +49,25 @@ class TestNStepGRU(ONNXModelTest):
         self.expect(model, (hx, ws1, ws2, ws3, bs, xs))
 
 
+def convert_Permutate(params):
+    gb = onnx_helper.GraphBuilder()
+    # indices_name = params.context.get_name(func.indices)
+    indices_name = params.context.add_const(params.func.indices,
+                                            'indices')  # XXX
+    if params.func.inv:
+        empty = params.context.add_const(
+            np.zeros(dtype=np.int64, shape=params.func.indices.shape), 'empty')
+        r = params.context.add_const(
+            np.arange(len(params.func.indices), dtype=np.int64),
+            'range')
+        op = 'ScatterElements' if params.opset_version == 11 else 'Scatter'
+        indices_name = gb.op(op, [empty, indices_name, r])
+    params.input_names.append(indices_name)
+    gb.op_output_named('Gather', params.input_names, params.output_names,
+                       axis=params.func.axis)
+    return gb.nodes()
+
+
 @testing.parameterize(
     {'n_layers': 1, 'name': 'TestNStepGRU_1_layer'},
     {'n_layers': 2, 'name': 'TestNStepGRU_2_layer'},
@@ -74,4 +95,16 @@ class TestNStepGRULink(ONNXModelTest):
         model = Model()
         xs = [input_generator.increasing(seq_length, input_size)
               for i in range(batch_size)]
-        self.expect(model, xs, skip_opset_version=[7, 8])
+
+        # XXX: Replace Permutate converter for avoiding error like:
+        # ValidationError: Nodes in a graph must be topologically sorted, \
+        # however input 'v330' of node:
+        # input: "Permutate_0_const_empty" input: "v330" \
+        # input: "Permutate_0_const_range" output: "Permutate_0_tmp_0" \
+        # name: "Permutate_0_tmp_0" op_type: "Scatter"
+        # is not output of any previous nodes.
+        addon_converters = {
+            'Permutate': convert_Permutate,
+        }
+        self.expect(model, xs, skip_opset_version=[7, 8],
+                    external_converters=addon_converters)
