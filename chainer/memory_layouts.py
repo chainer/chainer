@@ -91,7 +91,7 @@ def _get_layout_transpose_axes(ndim, src_layout, dst_layout, inverse=False):
     if inverse:
         t = [None] * ndim
         for i, n in enumerate(trans):
-            t[i] = n
+            t[n] = i
         trans = tuple(t)
 
     # Postconditions:
