@@ -38,8 +38,8 @@ class Convolution2DFunction(function_node.FunctionNode):
     _use_ideep = False
 
     def __init__(self, stride=1, pad=0, cover_all=False, **kwargs):
-        dilate, groups = argument.parse_kwargs(
-            kwargs, ('dilate', 1), ('groups', 1),
+        dilate, groups, cudnn_fast = argument.parse_kwargs(
+            kwargs, ('dilate', 1), ('groups', 1), ('cudnn_fast', False),
             deterministic='deterministic argument is not supported anymore. '
             'Use chainer.using_config(\'cudnn_deterministic\', value) context '
             'where value is either `True` or `False`.',
@@ -53,6 +53,7 @@ class Convolution2DFunction(function_node.FunctionNode):
         self.cover_all = cover_all
         self.dy, self.dx = _pair(dilate)
         self.groups = groups
+        self.cudnn_fast = cudnn_fast
 
         if self.dx < 1 or self.dy < 1:
             raise ValueError('Dilate should be positive, but {} is '
@@ -136,6 +137,11 @@ class Convolution2DFunction(function_node.FunctionNode):
             cover_all=self.cover_all),
 
     def forward_cpu(self, inputs):
+
+        if self.cudnn_fast:
+            raise RuntimeError(
+                '\'cudnn_fast\' can\'t be used in the CPU backend')
+
         self._check_input_layouts_all_standard()
         self.retain_inputs((0, 1))  # retain only x and W
         if len(inputs) == 2:
@@ -216,6 +222,9 @@ class Convolution2DFunction(function_node.FunctionNode):
             and ((self.dy == 1 and self.dx == 1) or _cudnn_version >= 6000)
             and (self.groups <= 1 or _cudnn_version >= 7000)
         )
+
+        if self.cudnn_fast and not use_cudnn:
+            raise RuntimeError('\'cudnn_fast\' requires cuDNN to work')
 
         if use_cudnn:
             # cuDNN implementation
@@ -634,14 +643,14 @@ cover_all=True)
         True
 
     """
-    dilate, groups = argument.parse_kwargs(
-        kwargs, ('dilate', 1), ('groups', 1),
+    dilate, groups, cudnn_fast = argument.parse_kwargs(
+        kwargs, ('dilate', 1), ('groups', 1), ('cudnn_fast', False),
         deterministic='deterministic argument is not supported anymore. '
         'Use chainer.using_config(\'cudnn_deterministic\', value) '
         'context where value is either `True` or `False`.')
 
     fnode = Convolution2DFunction(stride, pad, cover_all, dilate=dilate,
-                                  groups=groups)
+                                  groups=groups, cudnn_fast=cudnn_fast)
     if b is None:
         args = x, W
     else:
