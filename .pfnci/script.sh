@@ -165,6 +165,7 @@ get_base_branch() {
   for BASE_BRANCH in master v6; do
     run git merge-base --is-ancestor "origin/${BASE_BRANCH}" HEAD && echo "${BASE_BRANCH}" && return 0
   done
+  echo "Base branch of HEAD is not valid." >&2
   return 1
 }
 
