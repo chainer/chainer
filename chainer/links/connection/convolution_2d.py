@@ -121,8 +121,8 @@ nobias=False, initialW=None, initial_bias=None, *, dilate=1, groups=1)
         if ksize is None:
             out_channels, ksize, in_channels = in_channels, out_channels, None
 
-        cudnn_fast = chainer.get_compute_mode() == 'cudnn_fast'
-        if cudnn_fast:
+        self.cudnn_fast = chainer.get_compute_mode() == 'cudnn_fast'
+        if self.cudnn_fast:
             x_layout = memory_layouts.CUDNN_CHANNEL_LAST_X
             w_layout = memory_layouts.CUDNN_CHANNEL_LAST_W
         else:
@@ -248,7 +248,7 @@ nobias=False, *, dilate=1, groups=1)
             self._initialize_params(c)
         return convolution_2d.convolution_2d(
             x, self.W, self.b, self.stride, self.pad, dilate=self.dilate,
-            groups=self.groups)
+            groups=self.groups, cudnn_fast=self.cudnn_fast)
 
 
 def _pair(x):
