@@ -253,9 +253,9 @@ class Convolution2DMemoryLayoutsTestBase(object):
             (self.strides_height, self.strides_width))
         return link
 
-    def create_input_array(self):
+    def create_input_array(self, xp):
         x_shape = (self.batch, self.height, self.width, self.in_channels)
-        x = cuda.cupy.ones(x_shape, self.dtype)
+        x = xp.ones(x_shape, self.dtype)
         return x
 
 
@@ -287,7 +287,7 @@ class TestConvolution2DMemoryLayouts(unittest.TestCase,
             link = self.create_link()
         link.to_device(backend_config.device)
 
-        x = self.create_input_array()
+        x = self.create_input_array(backend_config.xp)
         x = chainer.Variable(x, layout=memory_layouts.CUDNN_CHANNEL_LAST_X)
         x.to_device(backend_config.device)
         with backend_config:
@@ -318,7 +318,7 @@ class TestConvolution2DInvalidComputeMode(unittest.TestCase,
             link = self.create_link()
         link.to_device(backend_config.device)
 
-        x = self.create_input_array()
+        x = self.create_input_array(backend_config.xp)
         x = chainer.Variable(x, layout=memory_layouts.CUDNN_CHANNEL_LAST_X)
         x.to_device(backend_config.device)
 
