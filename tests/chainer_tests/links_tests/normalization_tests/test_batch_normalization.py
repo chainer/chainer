@@ -708,7 +708,8 @@ class TestSerialize(unittest.TestCase):
         'test_forward',
     ],
     # CPU tests
-    [{}]
+    [{},
+     {'use_ideep': 'always'}]
     # GPU tests
     + testing.product({
         'use_cuda': [True],
@@ -763,7 +764,8 @@ class TestBatchNormalizationMemoryLayouts(unittest.TestCase):
         x = self.create_input_array()
         x = chainer.Variable(x, layout=memory_layouts.CUDNN_CHANNEL_LAST_X)
         x.to_device(backend_config.device)
-        y = link(x)
+        with backend_config:
+            y = link(x)
 
         assert link.gamma.device == backend_config.device
         assert link.beta.device == backend_config.device
