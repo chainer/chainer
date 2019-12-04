@@ -16,7 +16,7 @@ configs {
       memory: 30
     }
     time_limit: {
-      seconds: 900
+      seconds: 1200
     }
     checkout_strategy {
       include_dot_git: true
@@ -38,7 +38,7 @@ configs {
       gpu: 2
     }
     time_limit: {
-      seconds: 900
+      seconds: 1200
     }
     checkout_strategy {
       include_dot_git: true
@@ -67,7 +67,7 @@ configs {
       memory: 30
     }
     time_limit: {
-      seconds: 900
+      seconds: 1200
     }
     checkout_strategy {
       include_dot_git: true
@@ -89,7 +89,7 @@ configs {
       gpu: 2
     }
     time_limit: {
-      seconds: 900
+      seconds: 1200
     }
     checkout_strategy {
       include_dot_git: true
