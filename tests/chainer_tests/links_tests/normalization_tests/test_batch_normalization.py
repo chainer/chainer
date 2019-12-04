@@ -1,7 +1,6 @@
 import unittest
 
 import numpy
-import pytest
 import six
 
 import chainer
@@ -729,9 +728,9 @@ class TestBatchNormalizationMemoryLayouts(unittest.TestCase):
             axis=self.axis)
         return link
 
-    def create_input_array(self):
+    def create_input_array(self, xp):
         x_shape = (self.batch, self.height, self.width, self.channels)
-        x = cuda.cupy.ones(x_shape, self.dtype)
+        x = xp.ones(x_shape, self.dtype)
         return x
 
     def test_param_layout(self):
@@ -756,7 +755,7 @@ class TestBatchNormalizationMemoryLayouts(unittest.TestCase):
             link = self.create_link()
         link.to_device(backend_config.device)
 
-        x = self.create_input_array()
+        x = self.create_input_array(backend_config.xp)
         x = chainer.Variable(x, layout=memory_layouts.CUDNN_CHANNEL_LAST_X)
         x.to_device(backend_config.device)
         with backend_config:
@@ -770,18 +769,6 @@ class TestBatchNormalizationMemoryLayouts(unittest.TestCase):
             self.channels,
             self.height,
             self.width)
-
-    def test_forward_invalid_backend(self):
-        with chainer.using_config('compute_mode', 'cudnn_fast'):
-            link = self.create_link()
-        link.to_device('@numpy')
-
-        x = self.create_input_array()
-        x = chainer.Variable(x, layout=memory_layouts.CUDNN_CHANNEL_LAST_X)
-        x.to_device('@numpy')
-
-        with pytest.raises(RuntimeError):
-            link(x)
 
 
 testing.run_module(__name__, __file__)
