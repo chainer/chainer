@@ -708,8 +708,7 @@ class TestSerialize(unittest.TestCase):
         'test_forward',
     ],
     # CPU tests
-    [{},
-     {'use_ideep': 'always'}]
+    [{}]
     # GPU tests
     + testing.product({
         'use_cuda': [True],
@@ -753,10 +752,6 @@ class TestBatchNormalizationMemoryLayouts(unittest.TestCase):
         assert link.beta.layout is None
 
     def test_forward(self, backend_config):
-        if not backend_config.use_cuda:
-            raise unittest.SkipTest(
-                'forward with non-standard layout is only supported with '
-                'cupy arrays.')
         with chainer.using_config('compute_mode', 'cudnn_fast'):
             link = self.create_link()
         link.to_device(backend_config.device)
