@@ -59,7 +59,8 @@ test_py37() {
   #-----------------------------------------------------------------------------
   # Install Chainer
   #-----------------------------------------------------------------------------
-  CHAINER_BUILD_CHAINERX=1 CHAINERX_BUILD_CUDA=1 MAKEFLAGS="-j$(nproc)" \
+  CHAINER_BUILD_CHAINERX=1 CHAINERX_BUILD_CUDA=1 \
+  MAKEFLAGS="-j$(get_build_concurrency)" \
   CHAINERX_NVCC_GENERATE_CODE=arch=compute_70,code=sm_70 \
       python3.7 -m pip install /chainer[test] 2>&1 >/tmp/install.log &
   install_pid=$!
@@ -79,7 +80,7 @@ test_py37() {
       -DCHAINERX_WARNINGS_AS_ERRORS=ON \
       /chainer/chainerx_cc
   # NOTE: Use nice to prioritize pip install process.
-  nice -n 19 make "-j$(nproc)"
+  nice -n 19 make "-j$(get_build_concurrency)"
   ctest --output-on-failure "-j$(nproc)" && :
   cc_test_status=$?
   popd
@@ -138,7 +139,8 @@ test_py27and35() {
   # Install Chainer
   #-----------------------------------------------------------------------------
   # Install Chainer for python3.5.
-  CHAINER_BUILD_CHAINERX=1 CHAINERX_BUILD_CUDA=1 MAKEFLAGS="-j$(nproc)" \
+  CHAINER_BUILD_CHAINERX=1 CHAINERX_BUILD_CUDA=1 \
+  MAKEFLAGS="-j$(get_build_concurrency)" \
   CHAINERX_NVCC_GENERATE_CODE=arch=compute_70,code=sm_70 \
       python3.5 -m pip install /chainer[test] 2>&1 >/tmp/install-py35.log &
   install_pid=$!
@@ -208,7 +210,8 @@ test_chainermn_sub() {
   #-----------------------------------------------------------------------------
   # Install Chainer
   #-----------------------------------------------------------------------------
-  CHAINER_BUILD_CHAINERX=1 CHAINERX_BUILD_CUDA=1 MAKEFLAGS="-j$(nproc)" \
+  CHAINER_BUILD_CHAINERX=1 CHAINERX_BUILD_CUDA=1 \
+  MAKEFLAGS="-j$(get_build_concurrency)" \
   CHAINERX_NVCC_GENERATE_CODE=arch=compute_70,code=sm_70 \
       python -m pip install /chainer[test] 2>&1 >/tmp/install-py3.log &
   install_pid=$!
@@ -227,6 +230,18 @@ test_chainermn_sub() {
                    -x --capture=no \
                    -s -v -m "${marker}" \
 				   /chainer/tests/chainermn_tests
+}
+
+# get_build_concurrency determines the parallelism of the build process.
+# Currently maximum is set to 16 to avoid exhausting memory.
+get_build_concurrency() {
+    local num_cores="$(nproc)"
+    local num_cores_max="16"
+    if [ ${num_cores} -gt ${num_cores_max} ]; then
+        echo "${num_cores_max}"
+    else
+        echo "${num_cores}"
+    fi
 }
 
 ################################################################################
