@@ -59,7 +59,8 @@ test_py37() {
   #-----------------------------------------------------------------------------
   # Install Chainer
   #-----------------------------------------------------------------------------
-  CHAINER_BUILD_CHAINERX=1 CHAINERX_BUILD_CUDA=1 MAKEFLAGS="-j$(nproc)" \
+  CHAINER_BUILD_CHAINERX=1 CHAINERX_BUILD_CUDA=1 \
+  MAKEFLAGS="-j$(get_build_concurrency)" \
   CHAINERX_NVCC_GENERATE_CODE=arch=compute_70,code=sm_70 \
       python3.7 -m pip install /chainer[test] 2>&1 >/tmp/install.log &
   install_pid=$!
@@ -79,7 +80,7 @@ test_py37() {
       -DCHAINERX_WARNINGS_AS_ERRORS=ON \
       /chainer/chainerx_cc
   # NOTE: Use nice to prioritize pip install process.
-  nice -n 19 make "-j$(nproc)"
+  nice -n 19 make "-j$(get_build_concurrency)"
   ctest --output-on-failure "-j$(nproc)" && :
   cc_test_status=$?
   popd
@@ -135,6 +136,7 @@ test_py27and35() {
   #-----------------------------------------------------------------------------
   # Install Chainer
   #-----------------------------------------------------------------------------
+<<<<<<< HEAD
   # Install Chainer for python2.7.
   if ! python2.7 -m pip install /chainer[test] 2>&1 >/tmp/install-py27.log; then
     cat /tmp/install-py27.log
@@ -145,6 +147,11 @@ test_py27and35() {
   # ChainerX builds.  It is difficult to speed up with parallelization, so this
   # script runs it in the background of python2.7 unit testing.
   CHAINER_BUILD_CHAINERX=1 CHAINERX_BUILD_CUDA=1 MAKEFLAGS="-j$(nproc)" \
+=======
+  # Install Chainer for python3.5.
+  CHAINER_BUILD_CHAINERX=1 CHAINERX_BUILD_CUDA=1 \
+  MAKEFLAGS="-j$(get_build_concurrency)" \
+>>>>>>> 31524c886... Merge pull request #8498 from kmaehashi/extend-timeout-flexci
   CHAINERX_NVCC_GENERATE_CODE=arch=compute_70,code=sm_70 \
       python3.5 -m pip install /chainer[test] 2>&1 >/tmp/install-py35.log &
   install_pid=$!
@@ -192,7 +199,80 @@ test_py27and35() {
   #-----------------------------------------------------------------------------
   echo "py27_test_status=${py27_test_status}"
   echo "py35_test_status=${py35_test_status}"
+<<<<<<< HEAD
   exit $((py27_test_status || py35_test_status))
+=======
+  exit ${py35_test_status}
+}
+
+# test_chainermn is a test function for chainermn
+test_chainermn() {
+  export PYENV_VERSION=""
+  . /root/.bash_profile
+
+  TEST_PYTHON_VERSIONS="3.6.8"
+  ret=0
+  for VERSION in $TEST_PYTHON_VERSIONS
+  do
+    pyenv shell ${VERSION}
+	MAJOR_VERSION=${VERSION:0:1}
+	test_chainermn_sub
+	tmp_ret=$?
+	ret=$(( ret || tmp_ret ))
+  done
+  exit $ret
+}
+
+# test_chainermn_sub runs tests for chainermn with current Python runtime
+test_chainermn_sub() {
+  marker='not slow'
+  if (( !GPU )); then
+    marker+=' and not gpu'
+  else
+    marker+=' and gpu'
+  fi
+
+  #-----------------------------------------------------------------------------
+  # Install CuPy from wheel
+  #-----------------------------------------------------------------------------
+  pip install /cupy-wheel/cupy-*-cp${MAJOR_VERSION}*-cp${MAJOR_VERSION}*-linux_x86_64.whl
+
+  #-----------------------------------------------------------------------------
+  # Install Chainer
+  #-----------------------------------------------------------------------------
+  CHAINER_BUILD_CHAINERX=1 CHAINERX_BUILD_CUDA=1 \
+  MAKEFLAGS="-j$(get_build_concurrency)" \
+  CHAINERX_NVCC_GENERATE_CODE=arch=compute_70,code=sm_70 \
+      python -m pip install /chainer[test] 2>&1 >/tmp/install-py3.log &
+  install_pid=$!
+
+  if ! wait $install_pid; then
+    cat /tmp/install-py3.log
+    exit 1
+  fi
+
+  #-----------------------------------------------------------------------------
+  # Test python
+  #-----------------------------------------------------------------------------
+  mpirun --allow-run-as-root -n 2 python -m pytest --color=yes \
+                   --full-trace \
+                   --durations=10 \
+                   -x --capture=no \
+                   -s -v -m "${marker}" \
+				   /chainer/tests/chainermn_tests
+>>>>>>> 31524c886... Merge pull request #8498 from kmaehashi/extend-timeout-flexci
+}
+
+# get_build_concurrency determines the parallelism of the build process.
+# Currently maximum is set to 16 to avoid exhausting memory.
+get_build_concurrency() {
+    local num_cores="$(nproc)"
+    local num_cores_max="16"
+    if [ ${num_cores} -gt ${num_cores_max} ]; then
+        echo "${num_cores_max}"
+    else
+        echo "${num_cores}"
+    fi
 }
 
 ################################################################################
