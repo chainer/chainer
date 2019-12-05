@@ -27,7 +27,10 @@ For more details about Chainer, see the documents and resources listed above and
 
 ## Stable version
 
-The stable version of current Chainer is separated in here: [v6](https://github.com/chainer/chainer/tree/v6).
+Currently we're maintaining two stable versions:
+
+* v7 series: [master](https://github.com/chainer/chainer/tree/master) branch
+* v6 series: [v6](https://github.com/chainer/chainer/tree/v6) branch
 
 ## Installation
 
