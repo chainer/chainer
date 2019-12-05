@@ -8,4 +8,4 @@ RUN apt-get update -y && \
     python-setuptools && \
     rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 
-RUN pip install --no-cache-dir 'numpy<1.17' 'ideep4py<2.1' chainer==6.5.0
+RUN pip install --no-cache-dir 'numpy<1.17' 'ideep4py<2.1' chainer==6.6.0
