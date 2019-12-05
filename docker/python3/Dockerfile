@@ -13,4 +13,4 @@ RUN apt-get update -y && \
     && \
     rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 
-RUN CHAINER_BUILD_CHAINERX=1 CHAINERX_BUILD_CUDA=1 pip3 install --no-cache-dir cupy-cuda92==7.0.0rc1 chainer==7.0.0rc1
+RUN CHAINER_BUILD_CHAINERX=1 CHAINERX_BUILD_CUDA=1 pip3 install --no-cache-dir cupy-cuda92==7.0.0 chainer==7.0.0
