@@ -52,10 +52,8 @@ class NStepRNNBase(link.ChainList):
 
     def __init__(self, n_layers, in_size, out_size, dropout,
                  initialW=None, initial_bias=None, **kwargs):
-        initialW, initial_bias = argument.parse_kwargs(
+        argument.parse_kwargs(
             kwargs,
-            ('initialW', None),
-            ('initial_bias', None),
             use_cudnn='use_cudnn argument is not supported anymore. '
             'Use chainer.using_config',
             use_bi_direction='use_bi_direction is not supported anymore',
