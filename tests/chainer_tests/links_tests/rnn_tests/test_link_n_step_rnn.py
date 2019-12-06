@@ -418,7 +418,7 @@ class TestNStepBiRNN(unittest.TestCase):
     *testing.product(
         {
             'dtype': [numpy.float32, numpy.float64],
-            'initializer': ['random', None],
+            'initializer': ['random', 'zero'],
             'activation_type': ['tanh', 'relu'],
             'use_bi_direction': [True, False]
         }
@@ -426,11 +426,11 @@ class TestNStepBiRNN(unittest.TestCase):
 )
 class TestInitialization(unittest.TestCase):
     def setUp(self):
-        if self.initializer is None:
-            initializer = initializers.constant.Zero()
-
-        elif self.initializer == 'random':
+        if self.initializer == 'random':
             initializer = initializers.GlorotUniform()
+
+        elif self.initializer is 'zero':
+            initializer = initializers.constant.Zero()
 
         self.initialW = numpy.zeros((10, 10), dtype=self.dtype)
         self.initial_bias = numpy.zeros((10, 1), dtype=self.dtype)
