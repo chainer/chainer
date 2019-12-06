@@ -50,7 +50,8 @@ class NStepRNNBase(link.ChainList):
 
     """
 
-    def __init__(self, n_layers, in_size, out_size, dropout, **kwargs):
+    def __init__(self, n_layers, in_size, out_size, dropout,
+                 initialW=None, initial_bias=None, **kwargs):
         initialW, initial_bias = argument.parse_kwargs(
             kwargs,
             ('initialW', None),
