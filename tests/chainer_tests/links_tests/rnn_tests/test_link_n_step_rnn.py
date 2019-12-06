@@ -429,7 +429,7 @@ class TestInitialization(unittest.TestCase):
         if self.initializer == 'random':
             initializer = initializers.GlorotUniform()
 
-        elif self.initializer is 'zero':
+        elif self.initializer == 'zero':
             initializer = initializers.constant.Zero()
 
         self.initialW = numpy.zeros((10, 10), dtype=self.dtype)
