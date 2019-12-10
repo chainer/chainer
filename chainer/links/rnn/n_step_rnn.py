@@ -51,7 +51,7 @@ class NStepRNNBase(link.ChainList):
     """
 
     def __init__(self, n_layers, in_size, out_size, dropout,
-                 initialW=None, initial_bias=None, **kwargs):
+                 *, initialW=None, initial_bias=None, **kwargs):
         argument.parse_kwargs(
             kwargs,
             use_cudnn='use_cudnn argument is not supported anymore. '
