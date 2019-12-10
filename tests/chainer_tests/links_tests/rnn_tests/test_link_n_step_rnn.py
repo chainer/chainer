@@ -479,8 +479,7 @@ class TestInitialization(unittest.TestCase):
 
     @attr.gpu
     def test_param_gpu(self):
-        with testing.assert_warns(DeprecationWarning):
-            self.link.to_gpu()
+        self.link.to_device('@cupy:0')
         self.check_param()
 
 
