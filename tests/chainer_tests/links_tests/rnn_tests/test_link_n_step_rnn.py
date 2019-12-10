@@ -418,7 +418,8 @@ class TestNStepBiRNN(unittest.TestCase):
     *testing.product(
         {
             'dtype': [numpy.float32, numpy.float64],
-            'initializer': ['random', 'zero'],
+            'initialW': ['zero', 'random'],
+            'initial_bias': ['zero', 'random'],
             'activation_type': ['tanh', 'relu'],
             'use_bi_direction': [True, False]
         }
@@ -426,20 +427,21 @@ class TestNStepBiRNN(unittest.TestCase):
 )
 class TestInitialization(unittest.TestCase):
     def setUp(self):
-        if self.initializer == 'random':
-            initializer = initializers.GlorotUniform()
+        if self.initialW == 'zero':
+            weight_initializer = initializers.constant.Zero()
+        elif self.initialW == 'random':
+            weight_initializer = initializers.GlorotUniform()
 
-        elif self.initializer == 'zero':
-            initializer = initializers.constant.Zero()
+        if self.initial_bias == 'zero':
+            bias_initializer = initializers.constant.Zero()
+        elif self.initial_bias == 'random':
+            bias_initializer = initializers.Uniform()
 
-        self.initialW = numpy.zeros((10, 10), dtype=self.dtype)
-        self.initial_bias = numpy.zeros((10, 1), dtype=self.dtype)
+        self.initialW = numpy.random.uniform(-1, 1, (10, 10)).astype(self.dtype)
+        self.initial_bias = numpy.random.uniform(-1, 1, 10).astype(self.dtype)
 
-        initializer(self.initialW)
-        initializer(self.initial_bias)
-
-        # FIXME (himkt) workaround
-        self.initial_bias = self.initial_bias.reshape(-1)
+        weight_initializer(self.initialW)
+        bias_initializer(self.initial_bias)
 
         with chainer.using_config('dtype', self.dtype):
             if self.activation_type == 'tanh':
