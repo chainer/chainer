@@ -71,11 +71,6 @@ class NStepRNNBase(link.ChainList):
             initial_bias = 0
         bias_initializer = initializers._get_initializer(initial_bias)
 
-        if isinstance(bias_initializer,
-                      (initializers.GlorotUniform, initializers.GlorotNormal)):
-            raise ValueError('GlorotUniform and GlorotNormal'
-                             ' are not allowed to initialize bias vector')
-
         for i in six.moves.range(n_layers):
             for di in six.moves.range(direction):
                 weight = link.Link()
