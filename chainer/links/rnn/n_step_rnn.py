@@ -61,13 +61,15 @@ class NStepRNNBase(link.ChainList):
 
     def __init__(self, n_layers, in_size, out_size, dropout,
                  *, initialW=None, initial_bias=None, **kwargs):
-        argument.check_unexpected_kwargs(
-            kwargs,
-            use_cudnn='use_cudnn argument is not supported anymore. '
-            'Use chainer.using_config',
-            use_bi_direction='use_bi_direction is not supported anymore',
-            activation='activation is not supported anymore',
-        )
+        if kwargs:
+            argument.check_unexpected_kwargs(
+                kwargs,
+                use_cudnn='use_cudnn argument is not supported anymore. '
+                'Use chainer.using_config',
+                use_bi_direction='use_bi_direction is not supported anymore',
+                activation='activation is not supported anymore',
+            )
+            argument.assert_kwargs_empty(kwargs)
 
         weights = []
         if self.use_bi_direction:
