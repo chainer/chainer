@@ -437,8 +437,9 @@ class TestInitialization(unittest.TestCase):
         elif self.initial_bias == 'random':
             bias_initializer = initializers.Uniform()
 
-        self.initialW = numpy.random.uniform(-1, 1, (10, 10)).astype(self.dtype)
-        self.initial_bias = numpy.random.uniform(-1, 1, 10).astype(self.dtype)
+        self.initialW = numpy.random.uniform(
+            -1, 1, (10, 10)).astype(self.dtype)
+        self.initial_bias = numpy.random.uniform(-1, 1, 0).astype(self.dtype)
 
         weight_initializer(self.initialW)
         bias_initializer(self.initial_bias)
