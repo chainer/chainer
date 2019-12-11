@@ -27,7 +27,8 @@ def permutate_list(lst, indices, inv):
 
 
 class NStepRNNBase(link.ChainList):
-    """__init__(self, n_layers, in_size, out_size, dropout)
+    """__init__(self, n_layers, in_size, out_size, dropout, \
+*, initialW=None, initial_bias=None, **kwargs):
 
     Base link class for Stacked RNN/BiRNN links.
 
@@ -41,6 +42,14 @@ class NStepRNNBase(link.ChainList):
         in_size (int): Dimensionality of input vectors.
         out_size (int): Dimensionality of hidden states and output vectors.
         dropout (float): Dropout ratio.
+        initialW (:ref:`initializer <initializer>`): Initializer to initialize
+            the weight. When it is :class:`numpy.ndarray`,
+            its ``ndim`` should be 2. If ``initialW`` is ``None``, then the
+            weights are initialized with i.i.d. Gaussian samples, each of which
+            has zero mean and deviation :math:`\\sqrt{1/\\text{in_size}}`.
+        initial_bias (:ref:`initializer <initializer>`): Initializer to
+            initialize the bias. If ``None``, the bias will be initialized to
+            zero. When it is :class:`numpy.ndarray`, its ``ndim`` should be 1.
 
     .. seealso::
         :func:`chainer.links.NStepRNNReLU`
