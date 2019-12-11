@@ -67,8 +67,7 @@ class NStepRNNBase(link.ChainList):
                 use_cudnn='use_cudnn argument is not supported anymore. '
                 'Use chainer.using_config',
                 use_bi_direction='use_bi_direction is not supported anymore',
-                activation='activation is not supported anymore',
-            )
+                activation='activation is not supported anymore')
             argument.assert_kwargs_empty(kwargs)
 
         weights = []
