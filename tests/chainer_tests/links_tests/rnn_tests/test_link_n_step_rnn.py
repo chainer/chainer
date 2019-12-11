@@ -1,3 +1,4 @@
+import copy
 import unittest
 
 import numpy
@@ -430,19 +431,24 @@ class TestInitialization(unittest.TestCase):
         if self.initialW == 'zero':
             weight_initializer = initializers.constant.Zero()
         elif self.initialW == 'random':
-            weight_initializer = initializers.GlorotUniform()
+            weight_initializer = initializers.GlorotUniform(
+                rng=numpy.random.RandomState(seed=0))
 
         if self.initial_bias == 'zero':
             bias_initializer = initializers.constant.Zero()
         elif self.initial_bias == 'random':
-            bias_initializer = initializers.Uniform()
+            bias_initializer = initializers.Uniform(
+                rng=numpy.random.RandomState(seed=0))
+
+        weight_initializer_clone = copy.deepcopy(weight_initializer)
+        bias_initializer_clone = copy.deepcopy(bias_initializer)
 
         self.initialW = numpy.random.uniform(
             -1, 1, (10, 10)).astype(self.dtype)
         self.initial_bias = numpy.random.uniform(-1, 1, 0).astype(self.dtype)
 
-        weight_initializer(self.initialW)
-        bias_initializer(self.initial_bias)
+        weight_initializer_clone(self.initialW)
+        bias_initializer_clone(self.initial_bias)
 
         with chainer.using_config('dtype', self.dtype):
             if self.activation_type == 'tanh':
@@ -459,8 +465,8 @@ class TestInitialization(unittest.TestCase):
 
             self.link = link(
                 1, 10, 10, 0.0,
-                initialW=self.initialW,
-                initial_bias=self.initial_bias)
+                initialW=weight_initializer,
+                initial_bias=bias_initializer)
 
     def check_param(self):
         link = self.link
