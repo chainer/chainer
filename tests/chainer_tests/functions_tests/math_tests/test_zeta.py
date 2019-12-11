@@ -9,7 +9,9 @@ from chainer import testing
 
 @testing.parameterize(*testing.product({
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
-    'shape': [(), (3, 2)]
+    'shape': [(), (3, 2)],
+    'x_range': [(1.1, 2), (2, 50)],
+    'q_range': [(1.1, 2), (2, 50)],
 }))
 @testing.inject_backend_tests(
     None,
@@ -32,16 +34,23 @@ from chainer import testing
 class TestZeta(testing.FunctionTestCase):
 
     def setUp(self):
-        self.check_forward_options = {'atol': 1e-3, 'rtol': 1e-3}
-        self.check_backward_options = {'atol': 1e-3, 'rtol': 1e-3}
-        self.check_double_backward_options = {'atol': 1e-3, 'rtol': 1e-3}
+        if self.dtype == numpy.float16:
+            self.check_forward_options = {'atol': 1e-2, 'rtol': 1e-2}
+            self.check_backward_options = {'atol': 1e-2, 'rtol': 1e-2}
+            self.check_double_backward_options = {'atol': 1e-2, 'rtol': 1e-2}
+        else:
+            self.check_forward_options = {'atol': 1e-3, 'rtol': 1e-3}
+            self.check_backward_options = {'atol': 1e-3, 'rtol': 1e-3}
+            self.check_double_backward_options = {'atol': 1e-3, 'rtol': 1e-3}
 
-        self._x = numpy.random.uniform(low=2, high=50, size=self.shape).\
-            astype(self.dtype)
+        low, high = self.x_range
+        self._x = numpy.random.uniform(
+            low=low, high=high, size=self.shape).astype(self.dtype)
 
     def generate_inputs(self):
-        q = numpy.random.uniform(low=1, high=50, size=self.shape).\
-            astype(self.dtype)
+        low, high = self.q_range
+        q = numpy.random.uniform(
+            low=low, high=high, size=self.shape).astype(self.dtype)
         return q,
 
     def forward_expected(self, inputs):
