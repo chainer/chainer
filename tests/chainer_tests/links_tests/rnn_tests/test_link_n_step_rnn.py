@@ -427,7 +427,8 @@ class TestNStepBiRNN(unittest.TestCase):
     )
 )
 class TestInitialization(unittest.TestCase):
-    def setUp(self):
+
+    def get_initializers(self):
         if self.initialW == 'zero':
             weight_initializer = initializers.constant.Zero()
         elif self.initialW == 'random':
@@ -440,16 +441,10 @@ class TestInitialization(unittest.TestCase):
             bias_initializer = initializers.Uniform(
                 rng=numpy.random.RandomState(seed=0))
 
-        weight_initializer_clone = copy.deepcopy(weight_initializer)
-        bias_initializer_clone = copy.deepcopy(bias_initializer)
+        return weight_initializer, bias_initializer
 
-        self.initialW = numpy.random.uniform(
-            -1, 1, (10, 10)).astype(self.dtype)
-        self.initial_bias = numpy.random.uniform(-1, 1, 0).astype(self.dtype)
-
-        weight_initializer_clone(self.initialW)
-        bias_initializer_clone(self.initial_bias)
-
+    def setUp(self):
+        weight_initializer, bias_initializer = self.get_initializers()
         with chainer.using_config('dtype', self.dtype):
             if self.activation_type == 'tanh':
                 if self.use_bi_direction:
@@ -469,19 +464,25 @@ class TestInitialization(unittest.TestCase):
                 initial_bias=bias_initializer)
 
     def check_param(self):
+        weight_initializer, bias_initializer = self.get_initializers()
         link = self.link
+        xp = link.xp
         dtype = self.dtype
         for ws_i in link.ws:
             for w in ws_i:
                 assert w.dtype == dtype
+                w_expected = xp.empty(w.shape, dtype)
+                weight_initializer(w_expected)
                 testing.assert_allclose(
-                    w.array, self.initialW, atol=0, rtol=0)
+                    w.array, w_expected, atol=0, rtol=0)
 
         for bs_i in link.bs:
             for b in bs_i:
                 assert b.dtype == dtype
+                b_expected = xp.empty(b.shape, dtype)
+                bias_initializer(b_expected)
                 testing.assert_allclose(
-                    b.array, self.initial_bias, atol=0, rtol=0)
+                    b.array, b_expected, atol=0, rtol=0)
 
     def test_param_cpu(self):
         self.check_param()
