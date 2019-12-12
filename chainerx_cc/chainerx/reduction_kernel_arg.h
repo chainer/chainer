@@ -23,12 +23,12 @@ namespace chainerx {
 // Input and output arrays are transposed so that the reduction axes come last. Axes of length 1 are also removed.
 //
 // Any instance of this struct can be passed directly to a kernel function (including CUDA __global__ function).
-template <typename In, typename Out, int8_t InNdim = kDynamicNdim, int8_t OutNdim = kDynamicNdim>
+template <typename In, typename Out, int8_t InNdim = kDynamicNdim, int8_t OutNdim = kDynamicNdim, typename TIndexIn = Indexer<InNdim>, typename TIndexOut = Indexer<OutNdim>>
 struct ReductionKernelArg {
     IndexableArray<const In, InNdim> in;
     IndexableArray<Out, OutNdim> out;
-    Indexer<InNdim> in_indexer;
-    Indexer<OutNdim> out_indexer;
+    TIndexIn in_indexer;
+    TIndexOut out_indexer;
 };
 
 // A structure to represent argument of Reduce function.
@@ -61,12 +61,12 @@ private:
 };
 
 // Creates ReductionKernelArg from ReductionArg
-template <typename In, typename Out, int8_t InNdim = kDynamicNdim, int8_t OutNdim = kDynamicNdim>
-ReductionKernelArg<In, Out, InNdim, OutNdim> MakeReductionKernelArg(const ReductionArg& arg) {
-    return ReductionKernelArg<In, Out, InNdim, OutNdim>{IndexableArray<const In, InNdim>{arg.in(), arg.in_strides()},
-                                                        IndexableArray<Out, OutNdim>{arg.out(), arg.out_strides()},
-                                                        Indexer<InNdim>{arg.in_shape()},
-                                                        Indexer<OutNdim>{arg.out_shape()}};
+template <typename In, typename Out, int8_t InNdim = kDynamicNdim, int8_t OutNdim = kDynamicNdim, typename TIndexIn = Indexer<InNdim>, typename TIndexOut = Indexer<OutNdim>>
+ReductionKernelArg<In, Out, InNdim, OutNdim, TIndexIn, TIndexOut> MakeReductionKernelArg(const ReductionArg& arg) {
+    return ReductionKernelArg<In, Out, InNdim, OutNdim, TIndexIn, TIndexOut>{IndexableArray<const In, InNdim>{arg.in(), arg.in_strides()},
+                                                                             IndexableArray<Out, OutNdim>{arg.out(), arg.out_strides()},
+                                                                             TIndexIn{arg.in_shape()},
+                                                                             TIndexOut{arg.out_shape()}};
 }
 
 }  // namespace chainerx

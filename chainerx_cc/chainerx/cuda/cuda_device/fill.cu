@@ -12,7 +12,7 @@
 #include "chainerx/cuda/cuda_runtime.h"
 #include "chainerx/cuda/cuda_set_device_scope.h"
 #include "chainerx/cuda/elementwise.cuh"
-#include "chainerx/cuda/indexer.cuh"
+#include "chainerx/cuda/indexer.h"
 #include "chainerx/cuda/kernel_regist.h"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
@@ -119,7 +119,7 @@ __global__ void SetVecInMat(
     for (auto vec_it = vec_indexer.It(id, size); vec_it; ++vec_it) {
         mat_it.index()[0] = mat_row_start + vec_it.raw_index();
         mat_it.index()[1] = mat_col_start + vec_it.raw_index();
-        mat_iarray[mat_it.index()] = vec_iarray[vec_it];
+        mat_iarray[mat_it.index()] = vec_iarray[vec_it.index()];
     }
 }
 

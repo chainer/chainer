@@ -11,6 +11,7 @@
 #include "chainerx/cuda/cuda_runtime.h"
 #include "chainerx/cuda/data_type.cuh"
 #include "chainerx/cuda/indexer.h"
+#include "chainerx/cuda/index_iterator.cuh"
 #include "chainerx/indexable_array.h"
 #include "chainerx/shape.h"
 #include "chainerx/squash_dims.h"

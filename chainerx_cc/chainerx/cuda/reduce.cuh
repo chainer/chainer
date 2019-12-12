@@ -8,6 +8,7 @@
 #include "chainerx/cuda/cuda.h"
 #include "chainerx/cuda/cuda_runtime.h"
 #include "chainerx/cuda/data_type.cuh"
+#include "chainerx/cuda/indexer.h"
 #include "chainerx/macro.h"
 #include "chainerx/reduction_kernel_arg.h"
 
@@ -31,7 +32,7 @@ inline int64_t RoundUpToPowerOf2(int64_t x) {
 
 template <typename In, typename Out, typename ReductionImpl, int8_t InNdim = kDynamicNdim, int8_t OutNdim = kDynamicNdim>
 __global__ void ReductionKernel(
-        ReductionKernelArg<In, Out, InNdim, OutNdim> arg, int out_block_size, int reduce_block_size, ReductionImpl impl) {
+        ReductionKernelArg<In, Out, InNdim, OutNdim, CudaIndexer<InNdim>, CudaIndexer<OutNdim>> arg, int out_block_size, int reduce_block_size, ReductionImpl impl) {
     using AccumType = decltype(impl.Identity());
 
     extern __shared__ __align__(8) uint8_t work_bytes[];
@@ -53,7 +54,7 @@ __global__ void ReductionKernel(
 
         int64_t i_reduce = reduce_block_offset;
         for (it_in.Restart(it_out.raw_index() + reduce_offset); it_in; ++it_in, i_reduce += reduce_block_size) {
-            impl.Reduce(impl.MapIn(cuda_internal::StorageToDataType<const In>(arg.in[it_in]), i_reduce), accum);
+            impl.Reduce(impl.MapIn(cuda_internal::StorageToDataType<const In>(arg.in[it_in.index()]), i_reduce), accum);
         }
 
         if (out_block_size <= kMaxReductionBlockSize / 2) {
@@ -72,14 +73,14 @@ __global__ void ReductionKernel(
             __syncthreads();
         }
         if (reduce_block_offset == 0 && it_out) {
-            arg.out[it_out] = cuda_internal::DataToStorageType<Out>(impl.MapOut(accum));
+            arg.out[it_out.index()] = cuda_internal::DataToStorageType<Out>(impl.MapOut(accum));
         }
     }
 }
 
 template <typename In, typename Out, typename ReductionImpl, int8_t InNdim = kDynamicNdim, int8_t OutNdim = kDynamicNdim>
 __global__ void ScanKernel(
-        ReductionKernelArg<In, Out, InNdim, OutNdim> arg,
+        ReductionKernelArg<In, Out, InNdim, OutNdim,  CudaIndexer<InNdim>, CudaIndexer<OutNdim>> arg,
         int out_block_size,
         int reduce_block_size,
         ReductionImpl impl,
@@ -96,8 +97,8 @@ __global__ void ScanKernel(
     int64_t out_stride = gridDim.x * out_block_size;
 
     auto reduce = [&impl, &arg](auto& it_from, auto& it_to) {
-        auto from = cuda_internal::StorageToDataType<Out>(arg.out[it_from]);
-        auto& to = cuda_internal::StorageToDataType<Out>(arg.out[it_to]);
+        auto from = cuda_internal::StorageToDataType<Out>(arg.out[it_from.index()]);
+        auto& to = cuda_internal::StorageToDataType<Out>(arg.out[it_to.index()]);
         impl.Reduce(from, to);
         ++it_from;
         ++it_to;
@@ -108,8 +109,8 @@ __global__ void ScanKernel(
         auto it_in = arg.in_indexer.It(i + reduce_offset, reduce_stride);
         auto it_out = arg.out_indexer.It(i + reduce_offset, reduce_stride);
         for (int64_t j = reduce_block_offset; j < reduce_len; j += reduce_block_size, ++it_in, ++it_out) {
-            auto value = cuda_internal::StorageToDataType<const In>(arg.in[it_in]);
-            arg.out[it_out] = cuda_internal::DataToStorageType<Out>(impl.MapIn(value, j));
+            auto value = cuda_internal::StorageToDataType<const In>(arg.in[it_in.index()]);
+            arg.out[it_out.index()] = cuda_internal::DataToStorageType<Out>(impl.MapIn(value, j));
         }
         __syncthreads();
 
@@ -201,11 +202,11 @@ void Reduce(const Array& in, const Axes& axis, const Array& out, ReductionImpl&&
             switch (arg.out_strides().ndim()) {
                 case 0:
                     reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
-                            MakeReductionKernelArg<In, Out, 1, 0>(arg), out_block_size, reduce_block_size, impl);
+                            MakeReductionKernelArg<In, Out, 1, 0, CudaIndexer<1>, CudaIndexer<0>>(arg), out_block_size, reduce_block_size, impl);
                     return;
                 case 1:
                     reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
-                            MakeReductionKernelArg<In, Out, 1, 1>(arg), out_block_size, reduce_block_size, impl);
+                            MakeReductionKernelArg<In, Out, 1, 1, CudaIndexer<1>, CudaIndexer<1>>(arg), out_block_size, reduce_block_size, impl);
                     return;
             }
             break;
@@ -213,11 +214,11 @@ void Reduce(const Array& in, const Axes& axis, const Array& out, ReductionImpl&&
             switch (arg.out_strides().ndim()) {
                 case 0:
                     reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
-                            MakeReductionKernelArg<In, Out, 2, 0>(arg), out_block_size, reduce_block_size, impl);
+                            MakeReductionKernelArg<In, Out, 2, 0, CudaIndexer<2>, CudaIndexer<0>>(arg), out_block_size, reduce_block_size, impl);
                     return;
                 case 1:
                     reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
-                            MakeReductionKernelArg<In, Out, 2, 1>(arg), out_block_size, reduce_block_size, impl);
+                            MakeReductionKernelArg<In, Out, 2, 1, CudaIndexer<2>, CudaIndexer<1>>(arg), out_block_size, reduce_block_size, impl);
                     return;
             }
             break;
@@ -225,11 +226,11 @@ void Reduce(const Array& in, const Axes& axis, const Array& out, ReductionImpl&&
             switch (arg.out_strides().ndim()) {
                 case 0:
                     reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
-                            MakeReductionKernelArg<In, Out, 3, 0>(arg), out_block_size, reduce_block_size, impl);
+                            MakeReductionKernelArg<In, Out, 3, 0, CudaIndexer<3>, CudaIndexer<0>>(arg), out_block_size, reduce_block_size, impl);
                     return;
                 case 1:
                     reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
-                            MakeReductionKernelArg<In, Out, 3, 1>(arg), out_block_size, reduce_block_size, impl);
+                            MakeReductionKernelArg<In, Out, 3, 1, CudaIndexer<3>, CudaIndexer<1>>(arg), out_block_size, reduce_block_size, impl);
                     return;
             }
             break;
@@ -237,11 +238,11 @@ void Reduce(const Array& in, const Axes& axis, const Array& out, ReductionImpl&&
             switch (arg.out_strides().ndim()) {
                 case 0:
                     reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
-                            MakeReductionKernelArg<In, Out, 4, 0>(arg), out_block_size, reduce_block_size, impl);
+                            MakeReductionKernelArg<In, Out, 4, 0, CudaIndexer<4>, CudaIndexer<0>>(arg), out_block_size, reduce_block_size, impl);
                     return;
                 case 1:
                     reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
-                            MakeReductionKernelArg<In, Out, 4, 1>(arg), out_block_size, reduce_block_size, impl);
+                            MakeReductionKernelArg<In, Out, 4, 1, CudaIndexer<4>, CudaIndexer<1>>(arg), out_block_size, reduce_block_size, impl);
                     return;
             }
             break;
@@ -249,7 +250,7 @@ void Reduce(const Array& in, const Axes& axis, const Array& out, ReductionImpl&&
 #endif  // NDEBUG
 
     reduce_detail::ReductionKernel<<<grid_size, block_size, shared_mem_size>>>(
-            MakeReductionKernelArg<In, Out>(arg), out_block_size, reduce_block_size, impl);
+            MakeReductionKernelArg<In, Out, kDynamicNdim, kDynamicNdim, CudaIndexer<kDynamicNdim>, CudaIndexer<kDynamicNdim>>(arg), out_block_size, reduce_block_size, impl);
 }
 
 template <typename In, typename Out, typename ReductionImpl>
@@ -282,13 +283,13 @@ void Scan(const Array& in, int8_t axis, const Array& out, ReductionImpl&& impl) 
     // Currently, only contiguous output arrays are optimized.
     if (arg.in_strides().ndim() == 1 && arg.out_strides().ndim() == 1) {
         reduce_detail::ScanKernel<<<grid_size, block_size, shared_mem_size>>>(
-                MakeReductionKernelArg<In, Out, 1, 1>(arg), out_block_size, reduce_block_size, impl, reduce_len);
+                MakeReductionKernelArg<In, Out, 1, 1, CudaIndexer<1>, CudaIndexer<1>>(arg), out_block_size, reduce_block_size, impl, reduce_len);
         return;
     }
 #endif  // NDEBUG
 
     reduce_detail::ScanKernel<<<grid_size, block_size, shared_mem_size>>>(
-            MakeReductionKernelArg<In, Out>(arg), out_block_size, reduce_block_size, impl, reduce_len);
+            MakeReductionKernelArg<In, Out, kDynamicNdim, kDynamicNdim, CudaIndexer<kDynamicNdim>, CudaIndexer<kDynamicNdim>>(arg), out_block_size, reduce_block_size, impl, reduce_len);
 }
 
 }  // namespace cuda

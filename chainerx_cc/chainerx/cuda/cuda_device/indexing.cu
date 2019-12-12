@@ -54,7 +54,7 @@ __global__ void TakeCudaKernel(
     TIndex index_idx = idx % (num_indices * right_dim);
     TIndex right_idx = index_idx % right_dim;
     TIndex index_pos = index_idx / right_dim;
-    TIndex index = indices[indices_indexer.It(index_pos)];
+    TIndex index = indices[indices_indexer.It(index_pos).index()];
     if (mode == IndexBoundsMode::kWrap || mode == IndexBoundsMode::kDefault) {
         if (index < 0) {
             index = target_dim - ((-index + target_dim - 1) % target_dim + 1);
@@ -66,7 +66,7 @@ __global__ void TakeCudaKernel(
     }
     TIndex yi = (left_idx * num_indices + index_pos) * right_dim + right_idx;
     TIndex xi = (left_idx * target_dim + index) * right_dim + right_idx;
-    out[out_indexer.It(yi)] = a[a_indexer.It(xi)];
+    out[out_indexer.It(yi).index()] = a[a_indexer.It(xi).index()];
 }
 
 template <typename T, typename TIndex, int kNdim>
@@ -96,10 +96,10 @@ __global__ void AddAtCudaKernel(
     TIndex k = j / right_dim;
 
     auto out_it = out_indexer.It(idx);
-    cuda_internal::DataType<T> out_value = cuda_internal::StorageToDataType<const T>(a[out_it]);
+    cuda_internal::DataType<T> out_value = cuda_internal::StorageToDataType<const T>(a[out_it.index()]);
 
     for (auto it_indices = indices_indexer.It(0); it_indices; ++it_indices) {
-        TIndex index = indices[it_indices];
+        TIndex index = indices[it_indices.index()];
 
         if (mode == IndexBoundsMode::kWrap || mode == IndexBoundsMode::kDefault) {
             if (index < 0) {
@@ -114,11 +114,11 @@ __global__ void AddAtCudaKernel(
         CHAINERX_ASSERT(index < target_dim);
         if (index == k) {
             TIndex bi = i * b_right_dim * b_dim + it_indices.raw_index() * right_dim + l;
-            out_value += cuda_internal::StorageToDataType<const T>(b[b_indexer.It(bi)]);
+            out_value += cuda_internal::StorageToDataType<const T>(b[b_indexer.It(bi).index()]);
         }
     }
 
-    out[out_it] = cuda_internal::DataToStorageType<T>(out_value);
+    out[out_it.index()] = cuda_internal::DataToStorageType<T>(out_value);
 }
 
 Array CollapseNdArray(const Array& a) {

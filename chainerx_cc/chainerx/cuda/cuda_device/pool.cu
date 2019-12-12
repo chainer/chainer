@@ -68,7 +68,7 @@ __global__ void MaxPoolDoubleBackwardKernel(
         it_x.index()[0] = it_out.index()[0];  // batch.
         it_x.index()[1] = it_out.index()[1];  // channel.
 
-        cuda_internal::StorageType<T> out = out_iarray[it_out];
+        cuda_internal::StorageType<T> out = out_iarray[it_out.index()];
 
         // Iterate over the kernel in the reverse order, since the resulting index should the be first match.
         for (it_kernel.Restart(); it_kernel.raw_index() >= 0; --it_kernel) {
@@ -78,8 +78,8 @@ __global__ void MaxPoolDoubleBackwardKernel(
                 idx = min(idx, x_indexer.shape()[i] - 1);
                 it_x.index()[i] = idx;
             }
-            if (out == x_iarray[it_x]) {
-                ggout_iarray[it_out] = ggx_iarray[it_x];
+            if (out == x_iarray[it_x.index()]) {
+                ggout_iarray[it_out.index()] = ggx_iarray[it_x.index()];
             }
         }
     }
