@@ -37,7 +37,7 @@ private:
     int8_t ndim_;
 };
 
-template <int8_t kNdim = kDynamicNdim>
+template <int8_t kNdim = kDynamicNdim, class T = IndexIterator<kNdim>>
 class Indexer {
 public:
     explicit Indexer(const Shape& shape) : total_size_{shape.GetTotalSize()} {
@@ -45,8 +45,8 @@ public:
         std::copy_n(shape.begin(), kNdim, shape_);
     }
 
-    CHAINERX_HOST_DEVICE IndexIterator<kNdim> It(int64_t start, int64_t step = 1) const {
-        return IndexIterator<kNdim>{shape_, total_size_, start, step};
+    CHAINERX_HOST_DEVICE T It(int64_t start, int64_t step = 1) const {
+        return T{shape_, total_size_, start, step};
     }
 
     CHAINERX_HOST_DEVICE constexpr int8_t ndim() const { return kNdim; }
@@ -61,8 +61,8 @@ private:
 };
 
 // Static 0-dimensional specialization.
-template <>
-class Indexer<0> {
+template <class T>
+class Indexer<0, T> {
 public:
     explicit Indexer(const Shape& shape) {
         CHAINERX_ASSERT(shape.ndim() == 0);
@@ -79,8 +79,8 @@ public:
 };
 
 // Static 1-dimensional specialization.
-template <>
-class Indexer<1> {
+template <class T>
+class Indexer<1, T> {
 public:
     explicit Indexer(const Shape& shape) : total_size_{shape[0]} { CHAINERX_ASSERT(1 == shape.ndim()); }
 
@@ -97,8 +97,8 @@ private:
 };
 
 // Runtime determined dynamic dimension specialization.
-template <>
-class Indexer<kDynamicNdim> {
+template <class T>
+class Indexer<kDynamicNdim, T> {
 public:
     explicit Indexer(const Shape& shape) : ndim_{shape.ndim()}, total_size_{shape.GetTotalSize()} {
         std::copy(shape.begin(), shape.end(), shape_);

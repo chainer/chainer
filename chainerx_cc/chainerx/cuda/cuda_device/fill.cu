@@ -12,6 +12,7 @@
 #include "chainerx/cuda/cuda_runtime.h"
 #include "chainerx/cuda/cuda_set_device_scope.h"
 #include "chainerx/cuda/elementwise.cuh"
+#include "chainerx/cuda/index_iterator.cuh"
 #include "chainerx/cuda/kernel_regist.h"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
@@ -106,8 +107,8 @@ template <typename T>
 __global__ void SetVecInMat(
         IndexableArray<const T, 1> vec_iarray,
         IndexableArray<T, 2> mat_iarray,
-        Indexer<1> vec_indexer,
-        Indexer<2> mat_indexer,
+        Indexer<1, CudaIndexIterator<1>> vec_indexer,
+        Indexer<2, CudaIndexIterator<2>> mat_indexer,
         int64_t mat_row_start,
         int64_t mat_col_start) {
     auto mat_it = mat_indexer.It(0);
@@ -119,7 +120,7 @@ __global__ void SetVecInMat(
     for (auto vec_it = vec_indexer.It(id, size); vec_it; ++vec_it) {
         mat_it.index()[0] = mat_row_start + vec_it.raw_index();
         mat_it.index()[1] = mat_col_start + vec_it.raw_index();
-        mat_iarray[mat_it] = vec_iarray[vec_it];
+        mat_iarray[mat_it.index()] = vec_iarray[vec_it];
     }
 }
 
@@ -149,8 +150,8 @@ public:
 
             IndexableArray<const T, 1> v_iarray{v};
             IndexableArray<T, 2> out_iarray{out};
-            Indexer<1> v_indexer{v.shape()};
-            Indexer<2> out_indexer{out.shape()};
+            Indexer<1, CudaIndexIterator<1>> v_indexer{v.shape()};
+            Indexer<2, CudaIndexIterator<2>> out_indexer{out.shape()};
 
             // TODO(niboshi): Calculate kMaxBlockSize per device
             std::lock_guard<std::mutex> lock{*cuda_internal::g_mutex};

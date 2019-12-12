@@ -11,6 +11,7 @@
 #include "chainerx/array.h"
 #include "chainerx/context.h"
 #include "chainerx/cuda/cuda_runtime.h"
+#include "chainerx/cuda/index_iterator.cuh"
 #include "chainerx/device.h"
 #include "chainerx/indexable_array.h"
 #include "chainerx/indexer.h"
@@ -63,7 +64,7 @@ void ExpectArraysEqual(const Array& expected, const Array& actual) {
         using T = typename decltype(pt)::type;
         IndexableArray<const T> expected_iarray{expected};
         IndexableArray<const T> actual_iarray{actual};
-        Indexer<> indexer{expected.shape()};
+        Indexer<kDynamicNdim, CudaIndexIterator<>> indexer{expected.shape()};
 
         actual.device().Synchronize();
         expected.device().Synchronize();
