@@ -17,12 +17,11 @@
 #include "chainerx/cuda/cuda_set_device_scope.h"
 #include "chainerx/cuda/data_type.cuh"
 #include "chainerx/cuda/elementwise.cuh"
-#include "chainerx/cuda/index_iterator.cuh"
+#include "chainerx/cuda/indexer.h"
 #include "chainerx/cuda/kernel_regist.h"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
 #include "chainerx/indexable_array.h"
-#include "chainerx/indexer.h"
 #include "chainerx/kernels/indexing.h"
 #include "chainerx/macro.h"
 #include "chainerx/routines/indexing.h"
@@ -37,9 +36,9 @@ __global__ void TakeCudaKernel(
         IndexableArray<const T, kNdim> a,
         IndexableArray<const TIndex, kNdim> indices,
         IndexableArray<T, kNdim> out,
-        Indexer<kNdim, CudaIndexIterator<kNdim>> a_indexer,
-        Indexer<kNdim, CudaIndexIterator<kNdim>> indices_indexer,
-        Indexer<kNdim, CudaIndexIterator<kNdim>> out_indexer,
+        CudaIndexer<kNdim> a_indexer,
+        CudaIndexer<kNdim> indices_indexer,
+        CudaIndexer<kNdim> out_indexer,
         TIndex num_indices,
         TIndex target_dim,
         TIndex right_dim,
@@ -76,9 +75,9 @@ __global__ void AddAtCudaKernel(
         IndexableArray<const T, kNdim> b,
         IndexableArray<T, kNdim> out,
         IndexableArray<const TIndex, kNdim> indices,
-        Indexer<kNdim, CudaIndexIterator<kNdim>> b_indexer,
-        Indexer<kNdim, CudaIndexIterator<kNdim>> out_indexer,
-        Indexer<kNdim, CudaIndexIterator<kNdim>> indices_indexer,
+        CudaIndexer<kNdim> b_indexer,
+        CudaIndexer<kNdim> out_indexer,
+        CudaIndexer<kNdim> indices_indexer,
         TIndex target_dim,
         TIndex b_dim,
         TIndex right_dim,
@@ -175,9 +174,9 @@ void TakeImpl(Device& device, const Array& a, const Array& indices, int8_t axis,
             IndexableArray<const T, 1> a_iarray{af};
             IndexableArray<const TIndex, 1> indices_iarray{indicesf};
             IndexableArray<T, 1> out_iarray{outf};
-            Indexer<1, CudaIndexIterator<1>> a_indexer{af.shape()};
-            Indexer<1, CudaIndexIterator<1>> indices_indexer{indicesf.shape()};
-            Indexer<1, CudaIndexIterator<1>> out_indexer{outf.shape()};
+            CudaIndexer<1> a_indexer{af.shape()};
+            CudaIndexer<1> indices_indexer{indicesf.shape()};
+            CudaIndexer<1> out_indexer{outf.shape()};
 
             TakeCudaKernel<T, TIndex, 1><<<(num_iters + k1DMaxBlockSize - 1) / k1DMaxBlockSize, k1DMaxBlockSize>>>(
                     a_iarray,
@@ -195,9 +194,9 @@ void TakeImpl(Device& device, const Array& a, const Array& indices, int8_t axis,
             IndexableArray<const T> a_iarray{af};
             IndexableArray<const TIndex> indices_iarray{indicesf};
             IndexableArray<T> out_iarray{outf};
-            Indexer<kDynamicNdim, CudaIndexIterator<kDynamicNdim>> a_indexer{af.shape()};
-            Indexer<kDynamicNdim, CudaIndexIterator<kDynamicNdim>> indices_indexer{indicesf.shape()};
-            Indexer<kDynamicNdim, CudaIndexIterator<kDynamicNdim>> out_indexer{outf.shape()};
+            CudaIndexer<> a_indexer{af.shape()};
+            CudaIndexer<> indices_indexer{indicesf.shape()};
+            CudaIndexer<> out_indexer{outf.shape()};
 
             TakeCudaKernel<T, TIndex, kDynamicNdim><<<(num_iters + kNDMaxBlockSize - 1) / kNDMaxBlockSize, kNDMaxBlockSize>>>(
                     a_iarray,
@@ -251,9 +250,9 @@ void AddAtImpl(Device& device, const Array& a, const Array& indices, int8_t axis
             IndexableArray<const T, 1> b_iarray{bf};
             IndexableArray<const TIndex, 1> indices_iarray{indicesf};
             IndexableArray<T, 1> out_iarray{outf};
-            Indexer<1, CudaIndexIterator<1>> b_indexer{bf.shape()};
-            Indexer<1, CudaIndexIterator<1>> out_indexer{outf.shape()};
-            Indexer<1, CudaIndexIterator<1>> indices_indexer{indicesf.shape()};
+            CudaIndexer<1> b_indexer{bf.shape()};
+            CudaIndexer<1> out_indexer{outf.shape()};
+            CudaIndexer<1> indices_indexer{indicesf.shape()};
             AddAtCudaKernel<T, TIndex, 1><<<(num_iters + k1DMaxBlockSize - 1) / k1DMaxBlockSize, k1DMaxBlockSize>>>(
                     a_iarray,
                     b_iarray,
@@ -273,9 +272,9 @@ void AddAtImpl(Device& device, const Array& a, const Array& indices, int8_t axis
             IndexableArray<const T> b_iarray{bf};
             IndexableArray<const TIndex> indices_iarray{indicesf};
             IndexableArray<T> out_iarray{outf};
-            Indexer<kDynamicNdim, CudaIndexIterator<kDynamicNdim>> b_indexer{b.shape()};
-            Indexer<kDynamicNdim, CudaIndexIterator<kDynamicNdim>> out_indexer{out.shape()};
-            Indexer<kDynamicNdim, CudaIndexIterator<kDynamicNdim>> indices_indexer{indices.shape()};
+            CudaIndexer<> b_indexer{b.shape()};
+            CudaIndexer<> out_indexer{out.shape()};
+            CudaIndexer<> indices_indexer{indices.shape()};
             AddAtCudaKernel<T, TIndex, kDynamicNdim><<<(num_iters + kNDMaxBlockSize - 1) / kNDMaxBlockSize, kNDMaxBlockSize>>>(
                     a_iarray,
                     b_iarray,

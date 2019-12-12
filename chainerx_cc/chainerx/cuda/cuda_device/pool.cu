@@ -17,13 +17,12 @@
 #include "chainerx/cuda/cuda_set_device_scope.h"
 #include "chainerx/cuda/cudnn.h"
 #include "chainerx/cuda/data_type.cuh"
-#include "chainerx/cuda/index_iterator.cuh"
+#include "chainerx/cuda/indexer.h"
 #include "chainerx/cuda/kernel_regist.h"
 #include "chainerx/device.h"
 #include "chainerx/dtype.h"
 #include "chainerx/error.h"
 #include "chainerx/indexable_array.h"
-#include "chainerx/indexer.h"
 #include "chainerx/kernels/pooling.h"
 #include "chainerx/macro.h"
 #include "chainerx/numeric_limits.h"
@@ -52,9 +51,9 @@ __global__ void MaxPoolDoubleBackwardKernel(
         IndexableArray<const T> x_iarray,
         IndexableArray<const T> out_iarray,
         IndexableArray<T> ggout_iarray,
-        Indexer<kDynamicNdim, CudaIndexIterator<kDynamicNdim>> x_indexer,
-        Indexer<kDynamicNdim, CudaIndexIterator<kDynamicNdim>> out_indexer,
-        Indexer<kDynamicNdim, CudaIndexIterator<kDynamicNdim>> kernel_indexer,
+        CudaIndexer<> x_indexer,
+        CudaIndexer<> out_indexer,
+        CudaIndexer<> kernel_indexer,
         CudaDims stride,
         CudaDims pad) {
     auto it_kernel = kernel_indexer.It(kernel_indexer.total_size() - 1);
@@ -233,9 +232,9 @@ Array MaxPoolGradGrad(
         IndexableArray<const T> out_iarray{out};
         IndexableArray<T> ggout_iarray{actual_ggout};
 
-        Indexer<kDynamicNdim, CudaIndexIterator<kDynamicNdim>> x_indexer{x.shape()};
-        Indexer<kDynamicNdim, CudaIndexIterator<kDynamicNdim>> out_indexer{out.shape()};
-        Indexer<kDynamicNdim, CudaIndexIterator<kDynamicNdim>> kernel_indexer{Shape{kernel_size.begin(), kernel_size.end()}};
+        CudaIndexer<> x_indexer{x.shape()};
+        CudaIndexer<> out_indexer{out.shape()};
+        CudaIndexer<> kernel_indexer{Shape{kernel_size.begin(), kernel_size.end()}};
 
         static const int kMaxBlockSize = CudaOccupancyMaxPotentialBlockSize(&MaxPoolDoubleBackwardKernel<T>).block_size;
         int64_t total_size = out_indexer.total_size();

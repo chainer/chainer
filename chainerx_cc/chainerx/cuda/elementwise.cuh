@@ -10,9 +10,8 @@
 #include "chainerx/cuda/cuda.h"
 #include "chainerx/cuda/cuda_runtime.h"
 #include "chainerx/cuda/data_type.cuh"
-#include "chainerx/cuda/index_iterator.cuh"
+#include "chainerx/cuda/indexer.h"
 #include "chainerx/indexable_array.h"
-#include "chainerx/indexer.h"
 #include "chainerx/shape.h"
 #include "chainerx/squash_dims.h"
 
@@ -21,7 +20,7 @@ namespace cuda {
 namespace elementwise_detail {
 
 template <int8_t Ndim, typename Op, typename... Ts>
-__global__ void ElementwiseKernel(Op op, Indexer<Ndim, CudaIndexIterator<Ndim>> indexer, IndexableArray<Ts, Ndim>... args) {
+__global__ void ElementwiseKernel(Op op, CudaIndexer<Ndim> indexer, IndexableArray<Ts, Ndim>... args) {
     int64_t id = static_cast<int64_t>(blockIdx.x);
     int64_t size = static_cast<int64_t>(gridDim.x);
     int64_t block_dim = static_cast<int64_t>(blockDim.x);
@@ -44,7 +43,7 @@ void LaunchElementwiseKernel(Op&& op, const Shape& shape, const Axes& keep, cons
     int64_t block_size = std::min<int64_t>(total_size, kMaxBlockSize);
 
     ElementwiseKernel<Ndim, Op, Ts...><<<grid_size, block_size>>>(
-            op, Indexer<Ndim, CudaIndexIterator<Ndim>>{shape}, IndexableArray<Ts, Ndim>{args, GetSquashedStrides(args.strides(), keep)}...);
+            op, CudaIndexer<Ndim>{shape}, IndexableArray<Ts, Ndim>{args, GetSquashedStrides(args.strides(), keep)}...);
 }
 
 }  // namespace elementwise_detail
