@@ -37,13 +37,17 @@ class DiscriminativeMarginBasedClusteringLoss(object):
 
     """
 
-    def __init__(self, delta_v=0.5, delta_d=1.5,
+    def __init__(self, delta_v=0.5, delta_d=1.5, max_embedding_dim=None,
                  norm=1, alpha=1.0, beta=1.0, gamma=0.001, **kwargs):
-        argument.parse_kwargs(kwargs,
-                              max_embedding_dim='max_embedding_dim argument'
-                                                ' is not supported anymore. '
-                                                'This information is obtained'
-                                                ' from channel of input array')
+        argument.parse_kwargs(kwargs)
+        if max_embedding_dim is not None:
+            warnings.warn(
+                'max_embedding_dim argument'
+                ' is not supported anymore. '
+                'This information is obtained'
+                ' from channel of input array',
+                DeprecationWarning)
+
         self.delta_v = delta_v
         self.delta_d = delta_d
         self.alpha = alpha
@@ -157,7 +161,7 @@ class DiscriminativeMarginBasedClusteringLoss(object):
 
 def discriminative_margin_based_clustering_loss(
         embeddings, labels,
-        delta_v, delta_d,
+        delta_v, delta_d, max_embedding_dims=None,
         norm=1, alpha=1.0, beta=1.0, gamma=0.001):
     """Discriminative margin-based clustering loss function
 
@@ -198,6 +202,7 @@ def discriminative_margin_based_clustering_loss(
             (batch size, height, width)
         delta_v (float): Minimum distance to start penalizing variance
         delta_d (float): Maximum distance to stop penalizing distance
+        max_embedding_dims (float): Deprecated
         norm (int): Norm to calculate pixels and cluster center distances
         alpha (float): Weight for variance loss
         beta (float): Weight for distance loss
@@ -212,5 +217,5 @@ def discriminative_margin_based_clustering_loss(
     """
 
     loss = DiscriminativeMarginBasedClusteringLoss(
-        delta_v, delta_d, norm, alpha, beta, gamma)
+        delta_v, delta_d, max_embedding_dims, norm, alpha, beta, gamma)
     return loss(embeddings, labels)
