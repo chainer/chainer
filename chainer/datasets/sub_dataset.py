@@ -182,10 +182,10 @@ def split_dataset_n_random(dataset, n, seed=None):
             for i in six.moves.range(n)]
 
 
-def get_cross_validation_datasets(dataset, n_fold, order=None):
+def get_cross_validation_datasets(dataset, n_folds, order=None):
     """Creates a set of training/test splits for cross validation.
 
-    This function generates ``n_fold`` splits of the given dataset. The first
+    This function generates ``n_folds`` splits of the given dataset. The first
     part of each split corresponds to the training dataset, while the second
     part to the test dataset. No pairs of test datasets share any examples, and
     all test datasets together cover the whole base dataset. Each test dataset
@@ -193,7 +193,7 @@ def get_cross_validation_datasets(dataset, n_fold, order=None):
 
     Args:
         dataset: Dataset to split.
-        n_fold (int): Number of splits for cross validation.
+        n_folds (int): Number of splits for cross validation.
         order (sequence of ints): Order of indexes with which each split is
             determined. If it is ``None``, then no permutation is used.
 
@@ -207,8 +207,8 @@ def get_cross_validation_datasets(dataset, n_fold, order=None):
         order = numpy.array(order)  # copy
 
     whole_size = len(dataset)
-    borders = [whole_size * i // n_fold for i in six.moves.range(n_fold + 1)]
-    test_sizes = [borders[i + 1] - borders[i] for i in six.moves.range(n_fold)]
+    borders = [whole_size * i // n_folds for i in six.moves.range(n_folds + 1)]
+    test_sizes = [borders[i + 1] - borders[i] for i in six.moves.range(n_folds)]
 
     splits = []
     for test_size in reversed(test_sizes):
@@ -222,7 +222,7 @@ def get_cross_validation_datasets(dataset, n_fold, order=None):
     return splits
 
 
-def get_cross_validation_datasets_random(dataset, n_fold, seed=None):
+def get_cross_validation_datasets_random(dataset, n_folds, seed=None):
     """Creates a set of training/test splits for cross validation randomly.
 
     This function acts almost same as :func:`get_cross_validation_dataset`,
@@ -230,7 +230,7 @@ def get_cross_validation_datasets_random(dataset, n_fold, seed=None):
 
     Args:
         dataset: Dataset to split.
-        n_fold (int): Number of splits for cross validation.
+        n_folds (int): Number of splits for cross validation.
         seed (int): Seed the generator used for the permutation of indexes.
             If an integer beging convertible to 32 bit unsigned integers is
             specified, it is guaranteed that each sample
@@ -242,4 +242,4 @@ def get_cross_validation_datasets_random(dataset, n_fold, seed=None):
 
     """
     order = numpy.random.RandomState(seed).permutation(len(dataset))
-    return get_cross_validation_datasets(dataset, n_fold, order)
+    return get_cross_validation_datasets(dataset, n_folds, order)
