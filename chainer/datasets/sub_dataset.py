@@ -209,7 +209,8 @@ def get_cross_validation_datasets(dataset, n_folds, order=None):
     whole_size = len(dataset)
     borders = [whole_size * i // n_folds for i in six.moves.range(n_folds + 1)]
     test_sizes = [borders[i + 1] - borders[i]
-    for i in six.moves.range(n_folds)]
+                  for i in six.moves.range(n_fold)]
+
 
     splits = []
     for test_size in reversed(test_sizes):
