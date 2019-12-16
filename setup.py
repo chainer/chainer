@@ -9,6 +9,13 @@ from setuptools import setup
 import chainerx_build_helper
 
 
+if sys.version_info[0] == 2:
+    msg = """
+Chainer does not work with Python 2.
+Please install Chainer lower than 7.0.0."""
+    print(msg)
+    sys.exit(1)
+
 if sys.version_info[:3] == (3, 5, 0):
     if not int(os.getenv('CHAINER_PYTHON_350_FORCE', '0')):
         msg = """
@@ -194,6 +201,7 @@ setup_kwargs = dict(
     install_requires=install_requires,
     tests_require=tests_require,
     extras_require=extras_require,
+    python_requires='>=3',
 )
 
 
