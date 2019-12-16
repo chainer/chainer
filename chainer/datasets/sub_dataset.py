@@ -1,6 +1,6 @@
 import numpy
 import six
-
+import warnings
 from chainer.dataset import dataset_mixin
 
 
