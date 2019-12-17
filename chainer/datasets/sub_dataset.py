@@ -195,7 +195,7 @@ def get_cross_validation_datasets(dataset, n_folds=None, order=None, **kwargs):
         dataset: Dataset to split.
         n_fold(int): *(deprecated)*
             `n_fold` is now deprecated for consistency of naming choice.
-             Please use `n_folds` instead.
+            Please use `n_folds` instead.
         n_folds (int): Number of splits for cross validation.
         order (sequence of ints): Order of indexes with which each split is
             determined. If it is ``None``, then no permutation is used.
