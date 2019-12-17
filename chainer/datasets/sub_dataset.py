@@ -182,7 +182,7 @@ def split_dataset_n_random(dataset, n, seed=None):
             for i in six.moves.range(n)]
 
 
-def get_cross_validation_datasets(dataset, n_folds=None, order=None,**kwargs):
+def get_cross_validation_datasets(dataset, n_folds=None, order=None, **kwargs):
     """Creates a set of training/test splits for cross validation.
 
     This function generates ``n_folds`` splits of the given dataset. The first
@@ -204,13 +204,13 @@ def get_cross_validation_datasets(dataset, n_folds=None, order=None,**kwargs):
         list of tuples: List of dataset splits.
 
     """
-    
+
     if 'n_fold' in kwargs:
-            warnings.warn(
-                'Argument `n_fold` is deprecated. '
-                'Please use `n_folds` instead',
-                DeprecationWarning)
-            n_folds = kwargs['n_fold']
+        warnings.warn(
+           'Argument `n_fold` is deprecated. '
+           'Please use `n_folds` instead',
+            DeprecationWarning)
+        n_folds = kwargs['n_fold']
     if order is None:
         order = numpy.arange(len(dataset))
     else:
@@ -220,7 +220,6 @@ def get_cross_validation_datasets(dataset, n_folds=None, order=None,**kwargs):
     borders = [whole_size * i // n_folds for i in six.moves.range(n_folds + 1)]
     test_sizes = [borders[i + 1] - borders[i]
                   for i in six.moves.range(n_folds)]
-
 
     splits = []
     for test_size in reversed(test_sizes):
@@ -234,7 +233,7 @@ def get_cross_validation_datasets(dataset, n_folds=None, order=None,**kwargs):
     return splits
 
 
-def get_cross_validation_datasets_random(dataset, n_folds, seed=None):
+def get_cross_validation_datasets_random(dataset, n_folds, seed=None, **kwargs):
     """Creates a set of training/test splits for cross validation randomly.
 
     This function acts almost same as :func:`get_cross_validation_dataset`,
@@ -257,10 +256,10 @@ def get_cross_validation_datasets_random(dataset, n_folds, seed=None):
 
     """
     if 'n_fold' in kwargs:
-            warnings.warn(
-                'Argument `n_fold` is deprecated. '
-                'Please use `n_folds` instead',
-                DeprecationWarning)
-            n_folds = kwargs['n_fold']
+        warnings.warn(
+           'Argument `n_fold` is deprecated. '
+           'Please use `n_folds` instead',
+            DeprecationWarning)
+        n_folds = kwargs['n_fold']
     order = numpy.random.RandomState(seed).permutation(len(dataset))
     return get_cross_validation_datasets(dataset, n_folds, order)
