@@ -15,4 +15,4 @@ RUN apt-get update -y && \
     && \
     rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 
-RUN CHAINER_BUILD_CHAINERX=1 pip3 install --no-cache-dir 'ideep4py<2.1' chainer==7.0.0rc1
+RUN CHAINER_BUILD_CHAINERX=1 pip3 install --no-cache-dir 'ideep4py<2.1' chainer==7.0.0

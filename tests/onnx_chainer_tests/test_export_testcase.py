@@ -8,6 +8,7 @@ import onnx
 import pytest
 
 from onnx_chainer import export_testcase
+from onnx_chainer import export
 
 
 @pytest.fixture(scope='function')
@@ -75,3 +76,16 @@ def test_output_grad(tmpdir, model, x, train, disable_experimental_warning):
         assert tensor.name in initializer_names
     assert not os.path.isfile(
         os.path.join(path, 'test_data_set_0', 'gradient_12.pb'))
+
+
+def test_check_warning(tmpdir, model, x):
+    path = str(tmpdir)
+    with pytest.warns(None):
+        export_testcase(model, (x,), os.path.join(path, "with_testcase"))
+    with pytest.warns(None):
+        export(
+            model, (x,),
+            os.path.join(path, 'no_testcase.onnx'),
+            no_testcase=True)
+    with pytest.warns(DeprecationWarning):
+        export(model, (x,), os.path.join(path, 'model.onnx'))

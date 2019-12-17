@@ -528,6 +528,8 @@ class TestPermutate(ONNXModelTest):
     {'in_shapes': [(3, 4)], 'name': 'transpose_sequence_single_input'},
     {'in_shapes': [(1, 3), (1, 3)],
      'name': 'transpose_sequence_single_output'},
+    {'in_shapes': [(2, 3), (2, 3), (2, 3), (2, 3)],
+     'name': 'transpose_sequence_same_shape'},
 )
 class TestTransposeSequence(ONNXModelTest):
 

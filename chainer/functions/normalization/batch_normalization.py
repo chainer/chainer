@@ -426,12 +426,18 @@ class BatchNormalization(function_node.FunctionNode):
 
         self._impl = self._impl_selector(self, inputs)
 
+        raw_axis = self.axis
+        t = chainer.memory_layouts._get_layout_transpose_axes(
+            x.ndim, None, x_layout, True)
+        if t is not None:
+            raw_axis = tuple(t[i] for i in self.axis)
+
         (
             y, y_layout, self.running_mean, self.running_var,
             self.mean, self.var, self.inv_std,
             self.forward_data) = (
                 self._impl.forward(
-                    axis=self.axis, gamma=gamma, x=x, x_layout=x_layout,
+                    axis=raw_axis, gamma=gamma, x=x, x_layout=x_layout,
                     xp=xp, expander=expander, beta=beta, eps=self.eps,
                     decay=self.decay,
                     running_mean=self.running_mean,
