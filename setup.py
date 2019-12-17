@@ -64,6 +64,7 @@ requirements = {
         'pytest-timeout<1.3.0',
         'pytest-cov',
         'nose',
+        'coverage<5.0',
         'coveralls',
         'codecov',
     ],
