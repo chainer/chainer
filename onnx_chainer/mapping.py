@@ -146,20 +146,20 @@ converters = _get_converters()
 
 _supported_function_set = {
     # Math
-    'sign',
+    (F, 'sign'),
 }
 
 
 @contextmanager
 def patch_functions():
     org_funcs = {}
-    for name in _supported_function_set:
-        org_func = getattr(F, name)
-        org_funcs[name] = org_func
-        setattr(F, name, fake_as_funcnode(
+    for mod, name in _supported_function_set:
+        org_func = getattr(mod, name)
+        org_funcs[(mod, name)] = org_func
+        setattr(mod, name, fake_as_funcnode(
             org_func, name, experimental_warning=False))
     try:
         yield
     finally:
-        for name in _supported_function_set:
-            setattr(F, name, org_funcs[name])
+        for mod, name in _supported_function_set:
+            setattr(mod, name, org_funcs[(mod, name)])
