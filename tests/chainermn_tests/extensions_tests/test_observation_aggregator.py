@@ -84,7 +84,6 @@ def run_test_observation_aggregator(comm, xp,
         chainer.cuda.get_device_from_id(comm.intra_rank).use()
 
     device = get_device(comm.intra_rank if use_gpu else None, xp == chainerx)
-    device.use()
 
     if xp == chainerx:
         train = xp.array(np.random.rand(10, 1).astype(np.float32))
