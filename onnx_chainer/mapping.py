@@ -150,7 +150,7 @@ converters = _get_converters()
 _supported_function_set = {
     # Math
     (F, 'sign'),
- 
+
     # RNN
     (F, 'n_step_gru'),
 }
