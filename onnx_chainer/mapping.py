@@ -124,6 +124,9 @@ _supported_function_node_set = {
     'MaxPoolingND',
     'ROIPooling2D',
     'Unpooling2D',
+
+    # RNN
+    'n_step_gru',
 }
 
 _converters = None
@@ -147,6 +150,9 @@ converters = _get_converters()
 _supported_function_set = {
     # Math
     (F, 'sign'),
+
+    # RNN
+    (F, 'n_step_gru'),
 }
 
 
