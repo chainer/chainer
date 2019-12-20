@@ -96,7 +96,7 @@ class TestNStepGRULink(ONNXModelTest):
         xs = [input_generator.increasing(seq_length, input_size)
               for i in range(batch_size)]
 
-        # XXX: Replace Permutate converter for avoiding error like:
+        # NOTE(msakai): Replace Permutate converter for avoiding error like:
         # ValidationError: Nodes in a graph must be topologically sorted, \
         # however input 'v330' of node:
         # input: "Permutate_0_const_empty" input: "v330" \
