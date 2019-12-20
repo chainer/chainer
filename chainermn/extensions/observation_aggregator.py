@@ -49,8 +49,8 @@ class ObservationAggregator(extension.Extension):
                 value.to_device("native")
             elif isinstance(value, chx.ndarray) and \
                     not value.device.name.startswith('native'):
-                raise ValueError(
-                    "observation aggregator does not support ChainerX ndarray")
+                raise ValueError("observation aggregator does not support "
+                                 "ChainerX ndarray on CUDA device.")
             self.observation_history.append(value)
 
         if not self.comm_trigger(trainer):
