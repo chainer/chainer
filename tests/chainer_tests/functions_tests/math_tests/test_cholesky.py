@@ -56,8 +56,9 @@ class TestCholesky(testing.FunctionTestCase):
 
     def setUp(self):
         self.check_forward_options = {'atol': 1e-3, 'rtol': 1e-3}
-        self.check_backward_options = {'atol': 1e-3, 'rtol': 1e-3}
-        self.check_double_backward_options = {'atol': 1e-3, 'rtol': 1e-3}
+        self.check_backward_options = {'atol': 1e-3, 'rtol': 1e-3, 'eps': 1e-4}
+        self.check_double_backward_options = {
+            'atol': 1e-3, 'rtol': 1e-3, 'eps': 1e-4}
 
     def generate_inputs(self):
         a = self.random_matrix(self.shape, self.dtype, scale=(1e-2, 2.0),
