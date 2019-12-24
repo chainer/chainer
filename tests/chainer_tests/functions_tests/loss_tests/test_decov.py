@@ -11,7 +11,7 @@ from chainer.testing import attr
 from chainer.testing import backend
 
 
-def _deconv(h):
+def _decov(h):
     h = cuda.to_cpu(h)
     h_mean = h.mean(axis=0)
     N, M = h.shape
@@ -25,15 +25,10 @@ def _deconv(h):
     return loss_expect / N
 
 
-@testing.parameterize(*testing.product_dict(
-    [{'dtype': numpy.float16},
-     {'dtype': numpy.float32},
-     {'dtype': numpy.float64},
-     ],
-    [{'reduce': 'half_squared_sum'},
-     {'reduce': 'no'},
-     ],
-))
+@testing.parameterize(*testing.product({
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'reduce': ['half_squared_sum', 'no'],
+}))
 @backend.inject_backend_tests(
     None,
     # CPU tests
@@ -56,12 +51,12 @@ class TestDeCov(testing.FunctionTestCase):
             self.check_backward_options.update({'atol': 1e-3, 'eps': 0.02})
 
     def generate_inputs(self):
-        self.h = numpy.random.uniform(-1, 1, (4, 3)).astype(self.dtype)
-        return self.h,
+        h = numpy.random.uniform(-1, 1, (4, 3)).astype(self.dtype)
+        return h,
 
     def forward_expected(self, inputs):
-        h_data, = inputs
-        loss_expect = _deconv(h_data)
+        h, = inputs
+        loss_expect = _decov(h)
         if self.reduce == 'half_squared_sum':
             loss_expect = (loss_expect ** 2).sum() * 0.5
         return chainer.utils.force_array(loss_expect, self.dtype),
