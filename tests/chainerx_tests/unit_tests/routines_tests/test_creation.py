@@ -1084,7 +1084,8 @@ def test_frombuffer_with_device(device):
 def test_fromfile(xp, count, sep, dtype_spec, device):
     # Skip if bool_ dtype and text mode
     if numpy.dtype(dtype_spec) == numpy.bool_ and sep == 'a':
-        return []
+        pytest.skip(
+            'numpy.fromfile does not work with bool_ dtype and text mode')
 
     # Write array data to temporary file.
     if isinstance(dtype_spec, chainerx.dtype):
