@@ -12,7 +12,6 @@ from chainer.testing import backend
 
 
 def _decov(h):
-    h = cuda.to_cpu(h)
     h_mean = h.mean(axis=0)
     N, M = h.shape
     loss_expect = numpy.zeros((M, M), dtype=h.dtype)
