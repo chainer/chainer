@@ -1082,6 +1082,11 @@ def test_frombuffer_with_device(device):
 @pytest.mark.parametrize('device', ['native:0', 'cuda:0'])
 @chainerx.testing.parametrize_dtype_specifier('dtype_spec')
 def test_fromfile(xp, count, sep, dtype_spec, device):
+    # Skip if bool_ dtype and text mode
+    if numpy.dtype(dtype_spec) == numpy.bool_ and sep == 'a':
+        pytest.skip(
+            'numpy.fromfile does not work with bool_ dtype and text mode')
+
     # Write array data to temporary file.
     if isinstance(dtype_spec, chainerx.dtype):
         numpy_dtype_spec = dtype_spec.name
