@@ -153,6 +153,7 @@ _supported_function_set = {
 
     # RNN
     (F, 'n_step_gru'),
+    (F.rnn.n_step_gru, 'n_step_gru'),
 }
 
 
