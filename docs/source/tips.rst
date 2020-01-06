@@ -109,20 +109,20 @@ Here are some examples of ``InvalidType`` errors:
     import chainer.functions as F
     import numpy as np
 
-    x = np.arange(10) - 5
-    F.relu(x)
+    arr = np.arange(10) - 5
+    F.relu(arr)
 
 .. testoutput::
 
-   Traceback (most recent call last):
-   ...
-   chainer.utils.type_check.InvalidType:
-   Invalid operation is performed in: ReLU (Forward)
+    Traceback (most recent call last):
+    ...
+    chainer.utils.type_check.InvalidType:
+    Invalid operation is performed in: ReLU (Forward)
 
-   Expect: in_types[0].dtype.kind == f
-   Actual: i != f
+    Expect: x.dtype.kind == f
+    Actual: i != f
 
-In this case, :attr:`~numpy.dtype.kind` of ``in_types[0]`` (which means the first input to the function, ``x``) is expected to be ``f`` (floating-point), whereas the input was ``i`` (signed integer).
+In this case, :attr:`~numpy.dtype.kind` of ``x`` (the first argument of the function :func:`~chainer.functions.relu`) is expected to be ``f`` (floating-point), whereas the input was ``i`` (signed integer).
 You need to cast the input appropriately before passing to the function (e.g., ``x.astype(np.float32)``).
 
 .. testcode::
@@ -136,13 +136,13 @@ You need to cast the input appropriately before passing to the function (e.g., `
 
 .. testoutput::
 
-   Traceback (most recent call last):
-   ...
-   chainer.utils.type_check.InvalidType:
-   Invalid operation is performed in: Concat (Forward)
+    Traceback (most recent call last):
+    ...
+    chainer.utils.type_check.InvalidType:
+    Invalid operation is performed in: Concat (Forward)
 
-   Expect: in_types[0].shape[0] == in_types[1].shape[0]
-   Actual: 4 != 3
+    Expect: in_types[0].shape[0] == in_types[1].shape[0]
+    Actual: 4 != 3
 
 In this case, the function expects that ``x.shape[0]`` is equal to ``y.shape[0]``, but actually it was ``4`` and ``3``, respectively.
 

@@ -186,6 +186,8 @@ class UpdateRule(object):
 
     """
 
+    is_elementwise = False
+
     def __init__(self, parent_hyperparam=None):
         self._state = None
         self.enabled = True
@@ -244,7 +246,8 @@ class UpdateRule(object):
         self.t += 1
 
         with chainer.using_device(param.device):
-            self.__update(param)
+            with variable._AllowArrayAccessWithNonstandardLayout():
+                self.__update(param)
 
     def __update(self, param):
         try:
@@ -497,6 +500,17 @@ class UpdateRule(object):
         self._use_fp32_update = flag
 
 
+class _OptimizerHookable(_Hookable):
+    def __init__(self, optimizer):
+        super(_OptimizerHookable, self).__init__(
+            invalid_timing_fallback=True)
+        self.optimizer = optimizer
+
+    def call_hook(self, hook, args):
+        assert args == ()
+        self.optimizer.call_hook(hook)
+
+
 class Optimizer(object):
     """Base class of all numerical optimizers.
 
@@ -571,18 +585,7 @@ class Optimizer(object):
         self.t = 0
         self.epoch = 0
 
-        optimizer = self
-
-        class OptimizerHookable(_Hookable):
-            def __init__(self):
-                super(OptimizerHookable, self).__init__(
-                    invalid_timing_fallback=True)
-
-            def call_hook(self, hook, args):
-                assert args == ()
-                optimizer.call_hook(hook)
-
-        self._hookable = OptimizerHookable()
+        self._hookable = _OptimizerHookable(self)
         return self
 
     def update(self, lossfun=None, *args, **kwds):
@@ -835,10 +838,14 @@ class GradientMethod(Optimizer):
 
         """
         for name, param in self.target.namedparams(False):
-            if param.grad is None:
+            with variable._AllowArrayAccessWithNonstandardLayout():
+                has_grad = param.grad is not None
+            if not has_grad:
                 device = param.device
                 with chainer.using_device(device):
-                    param.grad = device.xp.zeros_like(param.data)
+                    param._set_grad(
+                        device.xp.zeros_like(param.raw_array),
+                        layout_check=False)
 
     def call_hook(self, hook):
         super(GradientMethod, self).call_hook(hook)

@@ -184,7 +184,7 @@ is same as the above image.
 2.2 Define the discriminator model
 -----------------------------------
 
-In addtion, let's define the network for the discriminator.
+In addition, let's define the network for the discriminator.
 
 .. literalinclude:: ../../../examples/dcgan/net.py
    :language: python

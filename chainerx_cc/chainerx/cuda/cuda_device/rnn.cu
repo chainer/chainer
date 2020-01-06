@@ -44,7 +44,9 @@ namespace {
 namespace {
 
 __global__ void InitGpuDataKer(float* data, int64_t num_elements, float* value) {
-    int64_t tid = blockIdx.x * blockDim.x + threadIdx.x;
+    int64_t tid = static_cast<int64_t>(blockIdx.x);
+    int64_t block_dim = static_cast<int64_t>(blockDim.x);
+    tid = tid * block_dim + static_cast<int64_t>(threadIdx.x);
     if (tid < num_elements) {
         data[tid] = value[tid];
     }
@@ -368,7 +370,7 @@ public:
         CudaSetDeviceScope scope{device.index()};
 
         cuda_internal::DeviceInternals& device_internals = cuda_internal::GetDeviceInternals(device);
-        auto cuda_state = dynamic_cast<GenericRnnGradState&>(*state);
+        auto& cuda_state = dynamic_cast<GenericRnnGradState&>(*state);
         Dtype type = hx.dtype();
         const auto input_dim = xs[0].shape()[1];
         const auto hidden_dim = hx.shape()[2];

@@ -65,6 +65,7 @@ def _calc_mean(x, groups):
 @testing.parameterize(*(testing.product({
     'n_channels': [8],
     'groups': [1, 2],
+    'eps': [2e-5, 5e-1],
     'test': [True, False],
     'ndim': [0, 2],
     # NOTE(crcrpar): np.linalg.eigh does not support float16
@@ -90,7 +91,7 @@ class DecorrelatedBatchNormalizationTest(testing.LinkTestCase):
     param_names = ()
 
     def setUp(self):
-        self.check_forward_options = {'atol': 1e-4, 'rtol': 1e-3}
+        self.check_forward_options = {'atol': 1e-3, 'rtol': 1e-3}
         self.check_backward_options = {'atol': 5e-3, 'rtol': 1e-3}
         if self.dtype == numpy.float32:
             self.check_backward_options = {'atol': 5e-2, 'rtol': 5e-2}
@@ -109,7 +110,8 @@ class DecorrelatedBatchNormalizationTest(testing.LinkTestCase):
     def create_link(self, initializers):
         mean, projection = initializers
         link = links.DecorrelatedBatchNormalization(
-            self.n_channels, groups=self.groups, dtype=self.dtype)
+            self.n_channels, groups=self.groups, eps=self.eps,
+            dtype=self.dtype)
         link.cleargrads()
         if self.test:
             link.avg_mean[...] = mean

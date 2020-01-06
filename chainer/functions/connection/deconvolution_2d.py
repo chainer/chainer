@@ -7,6 +7,7 @@ from chainer import configuration
 from chainer import function_node
 import chainer.functions
 from chainer.functions.connection import convolution_2d
+from chainer import memory_layouts
 from chainer.utils import argument
 from chainer.utils import conv
 from chainer.utils import type_check
@@ -91,10 +92,15 @@ class Deconvolution2DFunction(function_node.FunctionNode):
                 # b_type.shape[0] == w_type.shape[1],
             )
 
-    def _calc_out_size(self, x, W):
+    def check_layout_forward(self, inputs):
+        # TODO(niboshi): Write input layout check
+        pass
+
+    def _calc_out_size(self, x_shape, w_shape):
         """Calculates and stores `outh` and `outw`."""
-        kh, kw = W.shape[2:]
-        _, _, in_h, in_w = x.shape
+        _, _, kh, kw = w_shape
+        _, _, in_h, in_w = x_shape
+
         # - k, m, n: shape of out_channel
         # - b: number of inputs
         # - h, w: height and width of kernels
@@ -120,10 +126,14 @@ class Deconvolution2DFunction(function_node.FunctionNode):
         self.retain_inputs((0, 1))  # only retain x and W
         if len(inputs) == 2:
             (x, W), b = inputs, None
+            x_layout, w_layout = self.input_layouts
         else:
             x, W, b = inputs
+            x_layout, w_layout, _ = self.input_layouts
 
-        self._calc_out_size(x, W)
+        x_shape = memory_layouts._transpose_shape(x.shape, x_layout, None)
+        w_shape = memory_layouts._transpose_shape(W.shape, w_layout, None)
+        self._calc_out_size(x_shape, w_shape)
 
         if self.groups > 1:
             # Grouped convolution implementation
@@ -182,11 +192,15 @@ class Deconvolution2DFunction(function_node.FunctionNode):
         self.retain_inputs((0, 1))  # only retain x and W
         if len(inputs) == 2:
             (x, W), b = inputs, None
+            x_layout, w_layout = self.input_layouts
         else:
             x, W, b = inputs
+            x_layout, w_layout, _ = self.input_layouts
 
-        self._calc_out_size(x, W)
-        self._set_cover_all(x, W)
+        x_shape = memory_layouts._transpose_shape(x.shape, x_layout, None)
+        w_shape = memory_layouts._transpose_shape(W.shape, w_layout, None)
+        self._calc_out_size(x_shape, w_shape)
+        self._set_cover_all(x_shape, w_shape)
 
         use_cudnn = (
             chainer.should_use_cudnn('>=auto')
@@ -200,7 +214,7 @@ class Deconvolution2DFunction(function_node.FunctionNode):
 
         if use_cudnn:
             # cuDNN implementation
-            return self._forward_cudnn(x, W, b)
+            return self._forward_cudnn(x, W, b, (x_layout, w_layout))
 
         elif self.groups > 1:
             return self._forward_grouped_convolution(x, W, b)
@@ -255,21 +269,29 @@ class Deconvolution2DFunction(function_node.FunctionNode):
             y += b.reshape(1, b.size, 1, 1)
         return y,
 
-    def _forward_cudnn(self, x, W, b):
+    def _forward_cudnn(self, x, W, b, input_layouts):
+        x_layout, w_layout = input_layouts
+        self.output_layouts = (x_layout,)
         n = len(x)
-        yC = W.shape[1] * self.groups
 
-        y = cuda.cupy.empty((n, yC, self.outh, self.outw), dtype=x.dtype)
+        _, c, _, _ = memory_layouts._transpose_shape(W.shape, w_layout, None)
+        y_raw_shape = memory_layouts._transpose_shape(
+            (n, c*self.groups, self.outh, self.outw), None, x_layout)
+
+        y = cuda.cupy.empty(y_raw_shape, dtype=x.dtype)
         pad = (self.ph, self.pw)
         stride = (self.sy, self.sx)
         dilation = (self.dy, self.dx)
         deterministic = configuration.config.cudnn_deterministic
         auto_tune = configuration.config.autotune
         tensor_core = configuration.config.use_cudnn_tensor_core
+        cudnn_x_layout = cuda._get_cudnn_tensor_layout_x(x_layout)
+        cudnn_w_layout = cuda._get_cudnn_tensor_layout_w(w_layout)
         cuda.cudnn.convolution_backward_data(
             W, x, b, y, pad, stride, dilation, self.groups,
             deterministic=deterministic, auto_tune=auto_tune,
-            tensor_core=tensor_core)
+            tensor_core=tensor_core,
+            d_layout=cudnn_x_layout, w_layout=cudnn_w_layout)
 
         return y,
 
@@ -284,8 +306,8 @@ class Deconvolution2DFunction(function_node.FunctionNode):
         if any(a.dtype != inputs[0].dtype for a in inputs):
             return chainer.Fallback
         # TODO(imanishi): Support it
-        self._calc_out_size(inputs[0], inputs[1])
-        self._set_cover_all(inputs[0], inputs[1])
+        self._calc_out_size(inputs[0].shape, inputs[1].shape)
+        self._set_cover_all(inputs[0].shape, inputs[1].shape)
         if self.cover_all:
             return chainer.Fallback
 
@@ -298,12 +320,16 @@ class Deconvolution2DFunction(function_node.FunctionNode):
 
     def backward(self, indexes, grad_outputs):
         x, W = self.get_retained_inputs()
+        if len(self.input_layouts) == 2:
+            x_layout, w_layout = self.input_layouts
+        else:
+            x_layout, w_layout, _ = self.input_layouts
         gy, = grad_outputs
 
         ret = []
         if 0 in indexes:
             if self.cover_all is None:
-                self._set_cover_all(x, W)
+                self._set_cover_all(x.shape, W.shape)
             gx = chainer.functions.convolution_2d(
                 gy, W, stride=(self.sy, self.sx), pad=(self.ph, self.pw),
                 cover_all=self.cover_all, dilate=(self.dy, self.dx),
@@ -312,7 +338,8 @@ class Deconvolution2DFunction(function_node.FunctionNode):
         if 1 in indexes:
             if self.cover_all is None:
                 self._set_cover_all(x, W)
-            gW, = convolution_2d.Convolution2DGradW(self).apply((gy, x))
+            gW, = convolution_2d.Convolution2DGradW(
+                self, W.shape, W.dtype, w_layout).apply((gy, x))
             ret.append(gW)
         if 2 in indexes:
             gb = chainer.functions.sum(gy, axis=(0, 2, 3))
@@ -320,9 +347,10 @@ class Deconvolution2DFunction(function_node.FunctionNode):
 
         return ret
 
-    def _set_cover_all(self, x, W):
-        in_h, in_w = x.shape[2:]
-        kh, kw = W.shape[2:]
+    def _set_cover_all(self, x_shape, w_shape):
+        _, _, kh, kw = w_shape
+        _, _, in_h, in_w = x_shape
+
         self.cover_all = (
             in_h != conv.get_conv_outsize(self.outh, kh, self.sy,
                                           self.ph, d=self.dy) or

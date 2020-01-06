@@ -209,6 +209,8 @@ def test_getitem_zero_sized_offsets(device):
 @chainer.testing.parameterize_pytest(
     'indices_dtype', chainerx.testing.integral_dtypes)
 @chainer.testing.parameterize_pytest(
+    'mode', ['raise', 'wrap', 'clip'])
+@chainer.testing.parameterize_pytest(
     'a_dtype', chainerx.testing.all_dtypes)
 class TestTake(op_utils.NumpyOpTest):
 
@@ -216,7 +218,8 @@ class TestTake(op_utils.NumpyOpTest):
     forward_accept_errors = (chainerx.DimensionError, numpy.AxisError)
 
     def setup(self):
-        if (numpy.dtype(self.indices_dtype).kind == 'u'
+        if (self.mode == 'raise'
+                and numpy.dtype(self.indices_dtype).kind == 'u'
                 and (numpy.array(self.indices, 'int64') < 0).any()):
             raise unittest.SkipTest(
                 'Indices underflows and index out of bounds cannot be tested.')
@@ -236,6 +239,9 @@ class TestTake(op_utils.NumpyOpTest):
         axis = self.axis
         indices_type = self.indices_type
         a, = inputs
+        if (xp is chainerx and self.mode == 'raise'
+                and 'cuda' in xp.get_default_device().name):
+            pytest.skip('CUDA is not supportted with mode="raise"')
 
         assert isinstance(indices, list)
         if indices_type == 'list':
@@ -248,18 +254,57 @@ class TestTake(op_utils.NumpyOpTest):
             assert False, indices_type
 
         if self.is_module:
-            b = xp.take(a, indices, axis)
+            b = xp.take(a, indices, axis, mode=self.mode)
         else:
-            b = a.take(indices, axis)
+            b = a.take(indices, axis, mode=self.mode)
         return b,
 
 
-def _random_condition(shape, dtype):
-    size = int(numpy.prod(shape))
-    mask = numpy.random.randint(0, 1, size).astype('bool_').reshape(shape)
-    pos = array_utils.uniform(shape, dtype)
-    pos[numpy.logical_not(pos)] = True  # All elements are True
-    return pos * mask
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('shape,indices,axis', [
+    # Invalid: Index out of bounds
+    ((2, 3), [2], 0),
+    ((2, 3), [-3], 0),
+])
+def test_take_index_error(device, shape, indices, axis):
+    a = array_utils.create_dummy_ndarray(chainerx, shape, 'float32')
+    indices = numpy.array(indices).astype(numpy.int32)
+    error = IndexError
+    if device.backend.name == 'cuda':
+        error = chainerx.BackendError  # Not supported in CUDA
+    with pytest.raises(error):
+        chainerx.take(a, indices, axis, mode='raise')
+
+
+def _random_condition(shape, dtype, *, random_state=None):
+    if random_state is None:
+        random_state = numpy.random.RandomState()
+    neg_mask = random_state.randint(0, 2, size=shape).astype('bool')
+    cond = array_utils.uniform(shape, dtype, random_state=random_state)
+    # Replace zeros with nonzero, making the average number of zero elements
+    # in cond independent of the dtype.
+    cond[cond == 0] = 1
+    cond[neg_mask] = 0
+    return cond
+
+
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('shape,indices,axis', [
+    # Invalid: Index out of bounds
+    ((2, 3), [1, 1], 0),
+    ((2, 3, 4), [0, 1, 1], 1),
+])
+def test_take_non_contiguous(device, shape, indices, axis):
+    a = numpy.random.uniform(-1, 1, shape).astype('float32')
+    indices = numpy.array(indices).astype(numpy.int32)
+    chx_a = chainerx.array(a).astype('float32')
+    a = numpy.transpose(a, axes=range(chx_a.ndim)[::-1])
+    chx_a = chainerx.transpose(chx_a, axes=range(chx_a.ndim)[::-1])
+    assert(not chx_a.is_contiguous)
+    chx_indices = chainerx.array(indices).astype(numpy.int32)
+    chx_out = chainerx.take(chx_a, chx_indices, axis)
+    np_out = numpy.take(a, indices, axis)
+    numpy.testing.assert_array_equal(chx_out, np_out)
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
@@ -293,9 +338,9 @@ class TestWhere(math_utils.BinaryMathTestBase, op_utils.NumpyOpTest):
     input_lhs = 'random'
     input_rhs = 'random'
 
-    def generate_inputs(self):
+    def setup(self):
+        super().setup()
         self.condition = _random_condition(self.cond_shape, self.cond_dtype)
-        return super().generate_inputs()
 
     def func(self, xp, x, y):
         condition = xp.array(self.condition)
@@ -342,9 +387,9 @@ class TestWhereScalar(math_utils.MathScalarTestBase, op_utils.NumpyOpTest):
     input = 'random'
     scalar_value = 3
 
-    def generate_inputs(self):
+    def setup(self):
+        super().setup()
         self.condition = _random_condition(self.cond_shape, self.cond_dtype)
-        return super().generate_inputs()
 
     def func_scalar(self, xp, a, scalar):
         condition = xp.array(self.condition)
@@ -372,7 +417,9 @@ _in_out_dtypes_where_scalar = [
 @pytest.mark.parametrize('cond_dtype', chainerx.testing.all_dtypes)
 @pytest.mark.parametrize('in_types,out_dtype', _in_out_dtypes_where_scalar)
 def test_where_scalar_scalar(xp, cond_shape, cond_dtype, in_types, out_dtype):
-    cond = xp.array(_random_condition(cond_shape, cond_dtype))
+    cond = _random_condition(
+        cond_shape, cond_dtype, random_state=numpy.random.RandomState(seed=0))
+    cond = xp.array(cond)
     x_type, y_type = in_types
     x = x_type(0)
     y = y_type(2)

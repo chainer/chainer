@@ -1,8 +1,8 @@
 import unittest
+import warnings
 
 import numpy
 import six
-import warnings
 
 import chainer
 from chainer.backends import cuda
@@ -59,7 +59,8 @@ def _batch_normalization(
         {'input_shape': (5, 4, 3), 'axis': (0, 1)},
     ],
     testing.product({
-        'dtype': [numpy.float32],
+        'xdtype': [numpy.float32, numpy.float64],
+        'dtype': [numpy.float32, numpy.float64],
         'eps': [2e-5, 5e-1],
         'c_contiguous': [True, False],
         'running_statistics': [True, False],
@@ -68,6 +69,7 @@ def _batch_normalization(
     'param_shape': [(3,)],
     'ndim': [1],
     'eps': [2e-5, 5e-1],
+    'xdtype': [numpy.float16, numpy.float32, numpy.float64],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
     'c_contiguous': [True, False],
     'running_statistics': [True, False],
@@ -94,6 +96,7 @@ class TestBatchNormalization(unittest.TestCase):
 
     def setUp(self):
         dtype = self.dtype
+        xdtype = self.xdtype
 
         if not hasattr(self, 'axis'):
             param_shape = self.param_shape
@@ -110,11 +113,13 @@ class TestBatchNormalization(unittest.TestCase):
             )
             shape = self.input_shape
 
+        # x, ggx, gy must share the same data type
+        # gamma, beta, gggamma, ggbeta must share the same data type
         gamma = numpy.random.uniform(.5, 1, param_shape).astype(dtype)
         beta = numpy.random.uniform(-1, 1, param_shape).astype(dtype)
-        x = numpy.random.uniform(-1, 1, shape).astype(dtype)
-        gy = numpy.random.uniform(-1, 1, shape).astype(dtype)
-        ggx = numpy.random.uniform(-1, 1, shape).astype(dtype)
+        x = numpy.random.uniform(-1, 1, shape).astype(xdtype)
+        gy = numpy.random.uniform(-1, 1, shape).astype(xdtype)
+        ggx = numpy.random.uniform(-1, 1, shape).astype(xdtype)
         gggamma = numpy.random.uniform(-1, 1, param_shape).astype(dtype)
         ggbeta = numpy.random.uniform(-1, 1, param_shape).astype(dtype)
 
@@ -156,10 +161,11 @@ class TestBatchNormalization(unittest.TestCase):
         if hasattr(self, 'axis'):
             self.bn_options['axis'] = self.axis
         self.check_forward_options = {'atol': 1e-4, 'rtol': 1e-3}
-        self.check_backward_options = {'dtype': numpy.float64}
+        self.check_backward_options = {
+            'dtype': numpy.float64, 'atol': 1e-4, 'rtol': 1e-3}
         self.check_double_backward_options = {
             'dtype': numpy.float64, 'atol': 1e-3, 'rtol': 1e-2}
-        if self.dtype == numpy.float16:
+        if self.xdtype == numpy.float16 or self.dtype == numpy.float16:
             self.check_forward_options = {'atol': 1e-2, 'rtol': 1e-2}
             self.check_backward_options = {
                 'dtype': numpy.float64, 'atol': 1e-2, 'rtol': 1e-2}
@@ -197,7 +203,7 @@ class TestBatchNormalization(unittest.TestCase):
             y = functions.batch_normalization(
                 *inputs, running_mean=running_mean,
                 running_var=running_var, **self.bn_options)
-        assert y.data.dtype == self.dtype
+        assert y.data.dtype == self.xdtype
 
         testing.assert_allclose(
             y_expected, y.data, **self.check_forward_options)
@@ -431,7 +437,7 @@ class TestBatchNormalizationCudnnCall(unittest.TestCase):
     def test_call_cudnn_forward(self):
         with chainer.using_config('use_cudnn', self.use_cudnn):
             with testing.patch(
-                    'cupy.cudnn.batch_normalization_forward_training'
+                    'cupy.cudnn.batch_normalization_forward_training_ex'
             ) as func:
                 self.forward()
                 self.assertEqual(func.called, self.expect)

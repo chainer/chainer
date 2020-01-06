@@ -75,6 +75,14 @@ void sgeqrf_(int* m, int* n, float* a, int* lda, float* tau, float* work, int* l
 // orgqr
 void dorgqr_(int* m, int* n, int* k, double* a, int* lda, double* tau, double* work, int* lwork, int* info);
 void sorgqr_(int* m, int* n, int* k, float* a, int* lda, float* tau, float* work, int* lwork, int* info);
+
+// potrf
+void dpotrf_(char* uplo, int* n, double* a, int* lda, int* info);
+void spotrf_(char* uplo, int* n, float* a, int* lda, int* info);
+
+// syevd
+void dsyevd_(char* jobz, char* uplo, int* n, double* a, int* lda, double* w, double* work, int* lwork, int* iwork, int* liwork, int* info);
+void ssyevd_(char* jobz, char* uplo, int* n, float* a, int* lda, float* w, float* work, int* lwork, int* iwork, int* liwork, int* info);
 }
 #endif  // CHAINERX_ENABLE_LAPACK
 
@@ -86,6 +94,8 @@ CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(Solve)
 CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(Inverse)
 CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(Svd)
 CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(Qr)
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(Cholesky)
+CHAINERX_REGISTER_BUILTIN_KEY_KERNEL(Syevd)
 }  // namespace internal
 
 namespace native {
@@ -133,6 +143,27 @@ void Geqrf(int /*m*/, int /*n*/, T* /*a*/, int /*lda*/, T* /*tau*/, T* /*work*/,
 template <typename T>
 void Orgqr(int /*m*/, int /*n*/, int /*k*/, T* /*a*/, int /*lda*/, T* /*tau*/, T* /*work*/, int /*lwork*/, int* /*info*/) {
     throw DtypeError{"Only Arrays of float or double type are supported by orgqr (QR)"};
+}
+
+template <typename T>
+void Potrf(char /*uplo*/, int /*n*/, T* /*a*/, int /*lda*/, int* /*info*/) {
+    throw DtypeError{"Only Arrays of float or double type are supported by potrf (Cholesky)"};
+}
+
+template <typename T>
+void Syevd(
+        char /*jobz*/,
+        char /*uplo*/,
+        int /*n*/,
+        T* /*a*/,
+        int /*lda*/,
+        T* /*w*/,
+        T* /*work*/,
+        int /*lwork*/,
+        int* /*iwork*/,
+        int /*liwork*/,
+        int* /*info*/) {
+    throw DtypeError{"Only Arrays of float or double type are supported by syevd (Eigen)"};
 }
 
 #if CHAINERX_ENABLE_LAPACK
@@ -222,6 +253,26 @@ void Orgqr<double>(int m, int n, int k, double* a, int lda, double* tau, double*
 template <>
 void Orgqr<float>(int m, int n, int k, float* a, int lda, float* tau, float* work, int lwork, int* info) {
     sorgqr_(&m, &n, &k, a, &lda, tau, work, &lwork, info);
+}
+
+template <>
+void Potrf<double>(char uplo, int n, double* a, int lda, int* info) {
+    dpotrf_(&uplo, &n, a, &lda, info);
+}
+
+template <>
+void Potrf<float>(char uplo, int n, float* a, int lda, int* info) {
+    spotrf_(&uplo, &n, a, &lda, info);
+}
+
+template <>
+void Syevd<double>(char jobz, char uplo, int n, double* a, int lda, double* w, double* work, int lwork, int* iwork, int liwork, int* info) {
+    dsyevd_(&jobz, &uplo, &n, a, &lda, w, work, &lwork, iwork, &liwork, info);
+}
+
+template <>
+void Syevd<float>(char jobz, char uplo, int n, float* a, int lda, float* w, float* work, int lwork, int* iwork, int liwork, int* info) {
+    ssyevd_(&jobz, &uplo, &n, a, &lda, w, work, &lwork, iwork, &liwork, info);
 }
 #endif  // CHAINERX_ENABLE_LAPACK
 
@@ -380,20 +431,16 @@ void QrImpl(const Array& a, const Array& q, const Array& r, const Array& tau, Qr
 class NativeSolveKernel : public SolveKernel {
 public:
     void Call(const Array& a, const Array& b, const Array& out) override {
-#if CHAINERX_ENABLE_LAPACK
         CHAINERX_ASSERT(a.ndim() == 2);
         CHAINERX_ASSERT(a.shape()[0] == a.shape()[1]);
+        if (!CHAINERX_ENABLE_LAPACK) {
+            throw ChainerxError{"LAPACK is not linked to ChainerX."};
+        }
 
         VisitFloatingPointDtype(out.dtype(), [&](auto pt) {
             using T = typename decltype(pt)::type;
             SolveImpl<T>(a.dtype() == out.dtype() ? a : a.AsType(out.dtype()), b.dtype() == out.dtype() ? b : b.AsType(out.dtype()), out);
         });
-#else  // CHAINERX_ENABLE_LAPACK
-        (void)a;  // unused
-        (void)b;  // unused
-        (void)out;  // unused
-        throw ChainerxError{"LAPACK is not linked to ChainerX."};
-#endif  // CHAINERX_ENABLE_LAPACK
     }
 };
 
@@ -402,20 +449,16 @@ CHAINERX_NATIVE_REGISTER_KERNEL(SolveKernel, NativeSolveKernel);
 class NativeInverseKernel : public InverseKernel {
 public:
     void Call(const Array& a, const Array& out) override {
-#if CHAINERX_ENABLE_LAPACK
-
         CHAINERX_ASSERT(a.ndim() == 2);
         CHAINERX_ASSERT(a.shape()[0] == a.shape()[1]);
+        if (!CHAINERX_ENABLE_LAPACK) {
+            throw ChainerxError{"LAPACK is not linked to ChainerX."};
+        }
 
         VisitFloatingPointDtype(a.dtype(), [&](auto pt) {
             using T = typename decltype(pt)::type;
             InverseImpl<T>(a, out);
         });
-#else  // CHAINERX_ENABLE_LAPACK
-        (void)a;  // unused
-        (void)out;  // unused
-        throw ChainerxError{"LAPACK is not linked to ChainerX."};
-#endif  // CHAINERX_ENABLE_LAPACK
     }
 };
 
@@ -424,11 +467,14 @@ CHAINERX_NATIVE_REGISTER_KERNEL(InverseKernel, NativeInverseKernel);
 class NativeSvdKernel : public SvdKernel {
 public:
     void Call(const Array& a, const Array& u, const Array& s, const Array& vt, bool full_matrices, bool compute_uv) override {
-#if CHAINERX_ENABLE_LAPACK
         Device& device = a.device();
         Dtype dtype = a.dtype();
 
         CHAINERX_ASSERT(a.ndim() == 2);
+
+        if (!CHAINERX_ENABLE_LAPACK) {
+            throw ChainerxError{"LAPACK is not linked to ChainerX."};
+        }
 
         if (a.shape().GetTotalSize() == 0) {
             if (full_matrices && compute_uv) {
@@ -489,15 +535,6 @@ public:
         };
 
         VisitFloatingPointDtype(dtype, svd_impl);
-#else  // CHAINERX_LAPACK_AVAILABLE
-        (void)a;  // unused
-        (void)u;  // unused
-        (void)s;  // unused
-        (void)vt;  // unused
-        (void)full_matrices;  // unused
-        (void)compute_uv;  // unused
-        throw ChainerxError{"LAPACK is not linked to ChainerX."};
-#endif  // CHAINERX_LAPACK_AVAILABLE
     }
 };
 
@@ -506,25 +543,124 @@ CHAINERX_NATIVE_REGISTER_KERNEL(SvdKernel, NativeSvdKernel);
 class NativeQrKernel : public QrKernel {
 public:
     void Call(const Array& a, const Array& q, const Array& r, const Array& tau, QrMode mode) override {
-#if CHAINERX_ENABLE_LAPACK
         CHAINERX_ASSERT(a.ndim() == 2);
+        if (!CHAINERX_ENABLE_LAPACK) {
+            throw ChainerxError{"LAPACK is not linked to ChainerX."};
+        }
 
         VisitFloatingPointDtype(a.dtype(), [&](auto pt) {
             using T = typename decltype(pt)::type;
             QrImpl<T>(a, q, r, tau, mode);
         });
-#else  // CHAINERX_ENABLE_LAPACK
-        (void)a;  // unused
-        (void)q;  // unused
-        (void)r;  // unused
-        (void)tau;  // unused
-        (void)mode;  // unused
-        throw ChainerxError{"LAPACK is not linked to ChainerX."};
-#endif  // CHAINERX_ENABLE_LAPACK
     }
 };
 
 CHAINERX_NATIVE_REGISTER_KERNEL(QrKernel, NativeQrKernel);
+
+class NativeCholeskyKernel : public CholeskyKernel {
+public:
+    void Call(const Array& a, const Array& out) override {
+        Device& device = a.device();
+        device.CheckDevicesCompatible(a, out);
+
+        CHAINERX_ASSERT(a.ndim() == 2);
+        CHAINERX_ASSERT(out.ndim() == 2);
+        CHAINERX_ASSERT(a.shape()[0] == a.shape()[1]);
+        CHAINERX_ASSERT(out.IsContiguous());
+        CHAINERX_ASSERT(a.dtype() == out.dtype());
+        if (!CHAINERX_ENABLE_LAPACK) {
+            throw ChainerxError{"LAPACK is not linked to ChainerX."};
+        }
+
+        // potrf (cholesky) stores result in-place, therefore copy ``a`` to ``out`` and then pass ``out`` to the routine
+        device.backend().CallKernel<CopyKernel>(Tril(a, 0), out);
+
+        auto cholesky_impl = [&](auto pt) {
+            using T = typename decltype(pt)::type;
+
+            // Note that LAPACK uses Fortran order.
+            // To compute a lower triangular matrix L = cholesky(A), we use LAPACK to compute an upper triangular matrix U = cholesky(A).
+            char uplo = 'U';
+
+            auto out_ptr = static_cast<T*>(internal::GetRawOffsetData(out));
+            int64_t n = a.shape()[0];
+
+            int info;
+            Potrf<T>(uplo, n, out_ptr, std::max(int64_t{1}, n), &info);
+
+            if (info != 0) {
+                throw ChainerxError{"Unsuccessful potrf (Cholesky) execution. Info = ", info};
+            }
+        };
+
+        VisitFloatingPointDtype(a.dtype(), cholesky_impl);
+    }
+};
+
+CHAINERX_NATIVE_REGISTER_KERNEL(CholeskyKernel, NativeCholeskyKernel);
+
+class NativeSyevdKernel : public SyevdKernel {
+public:
+    void Call(const Array& a, const Array& w, const Array& v, char uplo, bool compute_v) override {
+        Device& device = a.device();
+        Dtype dtype = a.dtype();
+
+        CHAINERX_ASSERT(a.ndim() == 2);
+        if (!CHAINERX_ENABLE_LAPACK) {
+            throw ChainerxError{"LAPACK is not linked to ChainerX."};
+        }
+
+        // Syevd stores the result in-place, copy a to v to avoid destroying the input matrix
+        device.backend().CallKernel<CopyKernel>(a, v);
+
+        int64_t m = a.shape()[0];
+        int64_t n = a.shape()[1];
+
+        auto syevd_impl = [&](auto pt) {
+            using T = typename decltype(pt)::type;
+
+            auto v_ptr = static_cast<T*>(internal::GetRawOffsetData(v));
+            auto w_ptr = static_cast<T*>(internal::GetRawOffsetData(w));
+
+            char jobz = compute_v ? 'V' : 'N';
+
+            // LAPACK assumes that arrays are stored in column-major order
+            // The uplo argument is swapped instead of transposing the input matrix
+            char uplo_swapped = toupper(uplo) == 'U' ? 'L' : 'U';
+
+            int info;
+            int lwork = -1;
+            int liwork = -1;
+            T work_size;
+            int iwork_size;
+
+            // When calling Syevd matrix dimensions are swapped instead of transposing the input matrix
+            Syevd<T>(jobz, uplo_swapped, n, v_ptr, std::max(int64_t{1}, m), w_ptr, &work_size, lwork, &iwork_size, liwork, &info);
+
+            lwork = static_cast<int>(work_size);
+            Array work = Empty(Shape{lwork}, dtype, device);
+            auto work_ptr = static_cast<T*>(internal::GetRawOffsetData(work));
+
+            liwork = static_cast<int>(iwork_size);
+            Array iwork = Empty(Shape{liwork}, Dtype::kInt32, device);
+            auto iwork_ptr = static_cast<int*>(internal::GetRawOffsetData(iwork));
+
+            Syevd<T>(jobz, uplo_swapped, n, v_ptr, std::max(int64_t{1}, m), w_ptr, work_ptr, lwork, iwork_ptr, liwork, &info);
+
+            if (info != 0) {
+                throw ChainerxError{"Unsuccessful syevd (Eigen Decomposition) execution. Info = ", info};
+            }
+
+            // v is stored now in column-major order, need to transform it to row-major
+            // copy of transposed array is needed for correct results
+            device.backend().CallKernel<CopyKernel>(v.Transpose().Copy(), v);
+        };
+
+        VisitFloatingPointDtype(dtype, syevd_impl);
+    }
+};
+
+CHAINERX_NATIVE_REGISTER_KERNEL(SyevdKernel, NativeSyevdKernel);
 
 }  // namespace native
 }  // namespace chainerx

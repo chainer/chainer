@@ -34,10 +34,12 @@ void MemoryKeeper::Add(cudaStream_t stream, std::shared_ptr<void> memory) {
 
     std::lock_guard<std::mutex> lock{mutex_};
     queue_.emplace(event, std::move(memory));
+    is_empty_ = false;
 }
 
 void MemoryKeeper::Collect() {
-    if (queue_.empty()) {
+    // std::queue::empty() is not thread safe. Avoid using it in order to skip the lock.
+    if (is_empty_) {
         return;
     }
 
@@ -55,6 +57,7 @@ void MemoryKeeper::Collect() {
         CheckCudaError(cudaEventDestroy(pair.first));
         queue_.pop();
     }
+    is_empty_ = queue_.empty();
 }
 
 DeviceInternals& GetDeviceInternals(CudaDevice& device) { return device.device_internals_; }

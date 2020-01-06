@@ -1,4 +1,5 @@
 import os
+import warnings
 
 import chainer
 from chainer.serializers import npz
@@ -65,7 +66,7 @@ def _find_latest_snapshot(fmt, path):
     return None
 
 
-def _find_stale_snapshots(fmt, path, num_retain):
+def _find_stale_snapshots(fmt, path, n_retains, **kwargs):
     """Finds stale snapshots in a directory, retaining several files
 
     Args:
@@ -74,28 +75,35 @@ def _find_stale_snapshots(fmt, path, num_retain):
             only examined. Also, files' staleness is judged
             by timestamps. The default is metime.
         path (str): a directory path to search for snapshot files.
-        num_retain (int): Number of snapshot files to retain
+        n_retains (int): Number of snapshot files to retain
             through the cleanup. Must be a positive integer for any cleanup to
             take place.
+        num_retain (int): Same as ``n_retains`` (deprecated).
 
-    Returns:
-        Generator that yields stale files that matches format
+    Yields:
+        str: The next stale file that matches format
         ``fmt`` directly under ``path`` and with older ``mtime``,
-        excluding newest ``num_retain`` files.
+        excluding newest ``n_retains`` files.
 
     """
+    if 'num_retain' in kwargs:
+        warnings.warn(
+            'Argument `num_retain` is deprecated. '
+            'Please use `n_retains` instead',
+            DeprecationWarning)
+        n_retains = kwargs['num_retain']
+
     snapshot_files = _find_snapshot_files(fmt, path)
-    num_remove = len(snapshot_files) - num_retain
-    if num_remove > 0:
-        for _, filename in snapshot_files[:num_remove]:
+    n_removes = len(snapshot_files) - n_retains
+    if n_removes > 0:
+        for _, filename in snapshot_files[:n_removes]:
             yield filename
-    return
 
 
 def snapshot_object(target, filename, savefun=None, **kwargs):
     """snapshot_object(target, filename, savefun=None, \
 *, condition=None, writer=None, snapshot_on_error=False, \
-num_retain=-1, autoload=False)
+n_retains=-1, autoload=False)
 
     Returns a trainer extension to take snapshots of a given object.
 
@@ -134,10 +142,11 @@ num_retain=-1, autoload=False)
             used.
         snapshot_on_error (bool): Whether to take a snapshot in case trainer
             loop has been failed.
-        num_retain (int): Number of snapshot files to retain
+        n_retains (int): Number of snapshot files to retain
             through the cleanup. Must be a positive integer for any cleanup to
             take place. Automatic deletion of old snapshots only works when the
             filename is string.
+        num_retain (int): Same as ``n_retains`` (deprecated).
         autoload (bool): With this enabled, the extension automatically
             finds the latest snapshot and loads the data to the target.
             Automatic loading only works when the filename is a string.
@@ -149,6 +158,12 @@ num_retain=-1, autoload=False)
 
         - :meth:`chainer.training.extensions.snapshot`
     """
+    if 'num_retain' in kwargs:
+        warnings.warn(
+            'Argument `num_retain` is deprecated. '
+            'Please use `n_retains` instead',
+            DeprecationWarning)
+        kwargs['n_retains'] = kwargs.pop('num_retain')
 
     return snapshot(target=target, filename=filename, savefun=savefun,
                     **kwargs)
@@ -158,7 +173,7 @@ def snapshot(savefun=None,
              filename='snapshot_iter_{.updater.iteration}', **kwargs):
     """snapshot(savefun=None, filename='snapshot_iter_{.updater.iteration}', \
 *, target=None, condition=None, writer=None, snapshot_on_error=False, \
-num_retain=-1, autoload=False)
+n_retains=-1, autoload=False)
 
     Returns a trainer extension to take snapshots of the trainer.
 
@@ -205,10 +220,11 @@ num_retain=-1, autoload=False)
             used.
         snapshot_on_error (bool): Whether to take a snapshot in case trainer
             loop has been failed.
-        num_retain (int): Number of snapshot files to retain
+        n_retains (int): Number of snapshot files to retain
             through the cleanup. Must be a positive integer for any cleanup to
             take place. Automatic deletion of old snapshots only works when the
             filename is string.
+        num_retain (int): Same as ``n_retains`` (deprecated).
         autoload (bool): With this enabled, the extension
             automatically finds the latest snapshot and loads the data
             to the target.  Automatic loading only works when the
@@ -265,11 +281,18 @@ ProcessQueueWriter`
 
         - :meth:`chainer.training.extensions.snapshot_object`
     """
-    target, condition, writer, snapshot_on_error, num_retain,\
+    if 'num_retain' in kwargs:
+        warnings.warn(
+            'Argument `num_retain` is deprecated. '
+            'Please use `n_retains` instead',
+            DeprecationWarning)
+        kwargs['n_retains'] = kwargs.pop('num_retain')
+
+    target, condition, writer, snapshot_on_error, n_retains,\
         autoload = argument.parse_kwargs(
             kwargs,
             ('target', None), ('condition', None), ('writer', None),
-            ('snapshot_on_error', False), ('num_retain', -1),
+            ('snapshot_on_error', False), ('n_retains', -1),
             ('autoload', False))
     argument.assert_kwargs_empty(kwargs)
 
@@ -284,7 +307,7 @@ ProcessQueueWriter`
 
     return _Snapshot(
         target=target, condition=condition, writer=writer, filename=filename,
-        snapshot_on_error=snapshot_on_error, num_retain=num_retain,
+        snapshot_on_error=snapshot_on_error, n_retains=n_retains,
         autoload=autoload)
 
 
@@ -312,17 +335,24 @@ class _Snapshot(extension.Extension):
     def __init__(
             self, target=None, condition=None, writer=None,
             filename='snapshot_iter_{.updater.iteration}',
-            snapshot_on_error=False, num_retain=-1, autoload=False):
+            snapshot_on_error=False, n_retains=-1, autoload=False, **kwargs):
         if condition is None:
             condition = _always_true
         if writer is None:
             writer = snapshot_writers.SimpleWriter()
+        if 'num_retain' in kwargs:
+            warnings.warn(
+                'Argument `num_retain` is deprecated. '
+                'Please use `n_retains` instead',
+                DeprecationWarning)
+            n_retains = kwargs['num_retain']
+
         self._target = target
         self.filename = filename
         self.condition = condition
         self.writer = writer
         self._snapshot_on_error = snapshot_on_error
-        self.num_retain = num_retain
+        self.n_retains = n_retains
         self.autoload = autoload
 
     def initialize(self, trainer):
@@ -351,17 +381,17 @@ class _Snapshot(extension.Extension):
                     print('Snapshot loaded from', snapshot_file)
 
         if (hasattr(self.writer, '_add_cleanup_hook')
-                and self.num_retain > 0
+                and self.n_retains > 0
                 and isinstance(self.filename, str)):
             # This block sets a method to automatic cleanup of stale
-            # snapshots, when ``num_retain`` argument is positive
+            # snapshots, when ``n_retains`` argument is positive
             # number. When the given snapshot writer is Chainer's
             # built-in writer, a cleanup method that is to be
             # triggered right after creation of new snapshot file, is
             # injected here.
             def _cleanup():
                 files = _find_stale_snapshots(self.filename, outdir,
-                                              self.num_retain)
+                                              self.n_retains)
                 for file in files:
                     os.remove(os.path.join(outdir, file))
 

@@ -1,3 +1,4 @@
+import copy
 import os
 import subprocess
 import sys
@@ -13,8 +14,6 @@ import chainer.reporter
 from chainer import testing
 from chainer.testing import attr
 import chainer.training.updaters.multiprocess_parallel_updater as mpu
-
-import copy
 
 
 class SimpleNet(chainer.Chain):

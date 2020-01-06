@@ -1,3 +1,5 @@
+#include "chainerx/python/common_export.h"
+
 #include "chainerx/python/backward.h"
 
 #include <iterator>
@@ -42,7 +44,7 @@ void InitChainerxBackward(pybind11::module& m) {
           [](const ArrayBodyPtr& body,
              const absl::optional<BackpropId>& backprop_id,
              bool enable_double_backprop,
-             const absl::optional<float>& loss_scale) {
+             absl::optional<float> loss_scale) {
               Array array{body};
               auto double_backprop = enable_double_backprop ? DoubleBackpropOption::kEnable : DoubleBackpropOption::kDisable;
               Backward(array, backprop_id, double_backprop, loss_scale);
@@ -56,7 +58,7 @@ void InitChainerxBackward(pybind11::module& m) {
           [](const std::vector<ArrayBodyPtr>& outputs,
              const absl::optional<BackpropId>& backprop_id,
              bool enable_double_backprop,
-             const absl::optional<float>& loss_scale) {
+             absl::optional<float> loss_scale) {
               std::vector<Array> arrays = ConvertToArrays(outputs);
               auto double_backprop = enable_double_backprop ? DoubleBackpropOption::kEnable : DoubleBackpropOption::kDisable;
               Backward({arrays.begin(), arrays.end()}, backprop_id, double_backprop, loss_scale);
@@ -74,7 +76,7 @@ void InitChainerxBackward(pybind11::module& m) {
              bool set_grad,
              bool retain_grad,
              const std::vector<ArrayBodyPtr>& grad_outputs,
-             const absl::optional<float>& loss_scale) {
+             absl::optional<float> loss_scale) {
               std::vector<Array> output_arrays = ConvertToArrays(outputs);
               std::vector<Array> input_arrays = ConvertToArrays(inputs);
 

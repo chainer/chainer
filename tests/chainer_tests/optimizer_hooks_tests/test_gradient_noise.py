@@ -1,5 +1,5 @@
-import unittest
 import itertools
+import unittest
 
 import mock
 import numpy as np

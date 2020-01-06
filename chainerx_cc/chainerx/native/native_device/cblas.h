@@ -12,35 +12,35 @@ enum CBLAS_TRANSPOSE { CblasNoTrans = 111, CblasTrans = 112 };
 #endif
 
 void cblas_sgemm(
-        const enum CBLAS_ORDER Order,
-        const enum CBLAS_TRANSPOSE TransA,
-        const enum CBLAS_TRANSPOSE TransB,
-        const int M,
-        const int N,
-        const int K,
-        const float alpha,
+        enum CBLAS_ORDER Order,
+        enum CBLAS_TRANSPOSE TransA,
+        enum CBLAS_TRANSPOSE TransB,
+        int M,
+        int N,
+        int K,
+        float alpha,
         const float* A,
-        const int lda,
+        int lda,
         const float* B,
-        const int ldb,
-        const float beta,
+        int ldb,
+        float beta,
         float* C,
-        const int ldc);
+        int ldc);
 
 void cblas_dgemm(
-        const enum CBLAS_ORDER Order,
-        const enum CBLAS_TRANSPOSE TransA,
-        const enum CBLAS_TRANSPOSE TransB,
-        const int M,
-        const int N,
-        const int K,
-        const double alpha,
+        enum CBLAS_ORDER Order,
+        enum CBLAS_TRANSPOSE TransA,
+        enum CBLAS_TRANSPOSE TransB,
+        int M,
+        int N,
+        int K,
+        double alpha,
         const double* A,
-        const int lda,
+        int lda,
         const double* B,
-        const int ldb,
-        const double beta,
+        int ldb,
+        double beta,
         double* C,
-        const int ldc);
+        int ldc);
 
 }  // extern "C"

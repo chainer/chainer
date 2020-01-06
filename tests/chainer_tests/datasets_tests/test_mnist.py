@@ -1,7 +1,7 @@
+import importlib
 import os
 import unittest
 
-import importlib
 import mock
 import numpy
 

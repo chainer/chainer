@@ -31,6 +31,7 @@ class GlobalConfig(object):
     in_recomputing = None  # type: bool
     use_static_graph = None  # type: bool
     _will_recompute = None  # type: bool
+    compute_mode = None  # type: str
 
     """The plain object that represents the global configuration of Chainer."""
 

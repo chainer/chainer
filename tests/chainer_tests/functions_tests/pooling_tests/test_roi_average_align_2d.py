@@ -9,6 +9,7 @@ from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
 from chainer.testing import condition
+from chainer_tests.functions_tests.pooling_tests import pooling_nd_helper
 
 
 def _pair(x):
@@ -35,11 +36,8 @@ class TestROIAlign2D(unittest.TestCase):
     def setUp(self):
         N = 3
         n_channels = 3
-        self.x = numpy.arange(
-            N * n_channels * 12 * 8,
-            dtype=numpy.float32).reshape((N, n_channels, 12, 8))
-        numpy.random.shuffle(self.x)
-        self.x = 2 * self.x / self.x.size - 1
+        self.x = pooling_nd_helper.shuffled_linspace(
+            (N, n_channels, 12, 8), numpy.float32)
         self.rois = numpy.array([
             [1, 1, 6, 6],
             [2, 6, 11, 7],

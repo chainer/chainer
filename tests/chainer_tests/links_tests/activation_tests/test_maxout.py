@@ -41,7 +41,7 @@ class TestMaxout(unittest.TestCase):
 
     def setUp(self):
         # x, W, and b are set so that the result of forward
-        # propagation gets stable, meaning that their small pertubations
+        # propagation gets stable, meaning that their small perturbations
         # do not change :math:`argmax_{j} W_{ij\cdot} x + b_{ij}`.
 
         x_shape = (self.batchsize, ) + self.in_shape

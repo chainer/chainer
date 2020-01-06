@@ -219,7 +219,7 @@ std::tuple<Array, Array, Array> GenericBatchNormGradKernel::Call(
 
     // TODO(hvy): Implement recomputation of x_mean and x_inv_std in case they are not given by the state.
     CHAINERX_ASSERT(state != nullptr);
-    auto generic_state = dynamic_cast<GenericBatchNormGradState&>(*state);
+    auto& generic_state = dynamic_cast<GenericBatchNormGradState&>(*state);
     // x_mean and x_inv_std have promoted dtypes.
     const Array& x_mean = generic_state.x_mean();
     const Array& x_inv_std = generic_state.x_inv_std();  // Note: x_inv_std_ has the information of eps.

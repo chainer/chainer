@@ -65,40 +65,40 @@ try:
     from cupy.cuda import Event  # type: ignore # NOQA
     from cupy.cuda import Stream  # type: ignore # NOQA
 
+    # Alias for ignoring the warning in setup.cfg
+    from cupy.util import PerformanceWarning as _PerformanceWarning  # NOQA
+
     available = True
 except Exception as e:
     _resolution_error = e
 
     class ndarray(object):  # type: ignore # for type testing
         @property
-        def shape(self):
-            # type: () -> types.Shape
+        def shape(self) -> types.Shape:
             pass
 
         @property
-        def device(self):
-            # type: () -> 'Device'
+        def device(self) -> 'Device':
             pass
 
-        def get(self, stream=None):
-            # type: (tp.Optional['Stream']) -> numpy.ndarray
+        def get(self, stream: tp.Optional['Stream'] = None) -> numpy.ndarray:
             pass
 
-        def set(self, arr, stream=None):
-            # type: (numpy.ndarray, tp.Optional['Stream']) -> None
+        def set(
+                self,
+                arr: numpy.ndarray,
+                stream: tp.Optional['Stream'] = None
+        ) -> None:
             pass
 
     class Device(object):  # type: ignore # for type testing
-        def __init__(self, device=None):
-            # type: (tp.Optional[int]) -> None
+        def __init__(self, device: tp.Optional[int] = None) -> None:
             pass
 
-        def __enter__(self):
-            # type: () -> 'Device'
+        def __enter__(self) -> 'Device':
             pass
 
-        def __exit__(self, *args):
-            # type: (*tp.Any) -> None
+        def __exit__(self, *args: tp.Any) -> None:
             pass
 
     class Event(object):  # type: ignore # for type testing
@@ -109,6 +109,10 @@ except Exception as e:
 
     # for `xp is chainer.backends.cuda.cupy` to always work
     cupy = object()
+
+    # Dummy class for ignoring cupy.util.PerformanceWarning in setup.cfg.
+    class _PerformanceWarning(Warning):
+        pass
 
 
 if available:
@@ -263,8 +267,7 @@ to the CUDA device ID.
 # ------------------------------------------------------------------------------
 # Global states
 # ------------------------------------------------------------------------------
-def get_device_from_id(device_id):
-    # type: (tp.Optional[int]) -> Device
+def get_device_from_id(device_id: tp.Optional[int]) -> Device:
     """Gets the device from an ID integer.
 
     Args:
@@ -278,8 +281,7 @@ def get_device_from_id(device_id):
     return DummyDevice
 
 
-def get_device_from_array(*arrays):
-    # type: (*ndarray) -> Device
+def get_device_from_array(*arrays: ndarray) -> Device:
     """Gets the device from a list of CuPy array or a single CuPy array.
 
     .. deprecated:: v6.0.0
@@ -361,9 +363,9 @@ def _get_cuda_device(*args):
     return DummyDevice
 
 
-def _get_device_or_current(device):
-    # type: (tp.Optional[types.CudaDeviceSpec]) -> Device
-
+def _get_device_or_current(
+        device: tp.Optional[types.CudaDeviceSpec]
+) -> Device:
     # Returns cuda.Device.
     # - If cuda.Device instance, it's returned intact.
     # - If None, the current device is returned.
@@ -798,3 +800,17 @@ def get_cudnn_dropout_states_core(thread_id):
 
     seed += numpy.uint64(states_id)
     return cudnn.DropoutStates(None, seed)
+
+
+def _get_cudnn_tensor_layout_x(x_layout):
+    if x_layout == chainer.memory_layouts.CUDNN_CHANNEL_FIRST_X:
+        return cuda.cudnn.CUDNN_TENSOR_NCHW
+    assert x_layout == chainer.memory_layouts.CUDNN_CHANNEL_LAST_X
+    return cuda.cudnn.CUDNN_TENSOR_NHWC
+
+
+def _get_cudnn_tensor_layout_w(w_layout):
+    if w_layout == chainer.memory_layouts.CUDNN_CHANNEL_FIRST_W:
+        return cuda.cudnn.CUDNN_TENSOR_NCHW
+    assert w_layout == chainer.memory_layouts.CUDNN_CHANNEL_LAST_W
+    return cuda.cudnn.CUDNN_TENSOR_NHWC

@@ -1,6 +1,5 @@
-import six
-
 import numpy
+import six
 
 from chainer import functions
 import chainer.functions.normalization.group_normalization as gn_module

@@ -16,6 +16,7 @@ case "$phase" in
         ;;
 esac
 
+export CHAINER_CI=travis
 
 # Assign default values
 : "${MATRIX_EVAL:=}"
@@ -160,6 +161,24 @@ case "${CHAINER_TRAVIS_TEST}" in
                 else
                     echo "Documentation build is skipped as ChainerX is not available.";
                 fi
+                ;;
+        esac
+        ;;
+
+    "examples")
+        case "$phase" in
+            before_install)
+                run_prestep before_install_chainer_test
+                ;;
+
+            install)
+                run_prestep install_chainer_test_deps
+                run_prestep chainer_install_from_sdist
+                run_prestep install_chainer_example_tests
+                ;;
+
+            script)
+                run_step chainer_example_tests
                 ;;
         esac
         ;;

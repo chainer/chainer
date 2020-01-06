@@ -1,7 +1,7 @@
-from six import moves
 import unittest
 
 import numpy
+from six import moves
 
 from chainer import cuda
 from chainer.functions.connection import convolution_2d

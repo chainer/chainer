@@ -38,9 +38,9 @@ class ResidualBlock(chainer.Chain):
     def initialize(self, n):
         self.queue = chainer.Variable(self.xp.zeros((
             n, self.residual_channels,
-            self.dilation * (self.filter_size - 1) + 1, 1),
+            self.dilation * (self.filter_size - 1) + 1),
             dtype=self.conv.W.dtype))
-        self.conv.pad = (0, 0)
+        self.conv.pad = 0
 
     def pop(self, condition):
         return self(self.queue, condition)

@@ -46,7 +46,7 @@ class WaveNet(chainer.Chain):
     def forward(self, x, condition, generating=False):
         length = x.shape[2]
         x = self.embed(x)
-        x = x[:, :, :length, :]  # crop
+        x = x[:, :, :length]  # crop
         if self.use_embed_tanh:
             x = F.tanh(x)
         z = F.relu(self.resnet(x, condition))
@@ -57,15 +57,15 @@ class WaveNet(chainer.Chain):
     def initialize(self, n):
         self.resnet.initialize(n)
 
-        self.embed.pad = (0, 0)
+        self.embed.pad = 0
         self.embed_queue = chainer.Variable(self.xp.zeros(
-            (n, self.a_channels, 2, 1), dtype=self.embed.W.dtype))
+            (n, self.a_channels, 2), dtype=self.embed.W.dtype))
 
         self.proj1_queue = chainer.Variable(self.xp.zeros(
-            (n, self.s_channels, 1, 1), dtype=self.proj1.W.dtype))
+            (n, self.s_channels, 1), dtype=self.proj1.W.dtype))
 
         self.proj2_queue3 = chainer.Variable(self.xp.zeros(
-            (n, self.s_channels, 1, 1), dtype=self.proj2.W.dtype))
+            (n, self.s_channels, 1), dtype=self.proj2.W.dtype))
 
     def generate(self, x, condition):
         self.embed_queue = F.concat((self.embed_queue[:, :, 1:], x), axis=2)

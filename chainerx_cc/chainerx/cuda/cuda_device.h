@@ -4,6 +4,7 @@
 #include <cudnn.h>
 #include <cusolverDn.h>
 
+#include <atomic>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -64,6 +65,7 @@ public:
 private:
     std::mutex mutex_{};
     std::queue<std::pair<cudaEvent_t, std::shared_ptr<void>>> queue_{};
+    std::atomic<bool> is_empty_{true};
 };
 
 // Keeps handles and other device internals.

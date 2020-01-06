@@ -39,16 +39,15 @@ if(${CUDA_FOUND})
     target_link_libraries(${module_name} PRIVATE _core_cuda)
 endif()
 
-if(${APPLE})
-    target_link_libraries(${module_name} PRIVATE "-Wl,-rpath,@loader_path" chainerx)
-else()
-    target_link_libraries(${module_name} PRIVATE "-Wl,-R,'$ORIGIN/.'" chainerx)
-endif()
+target_link_libraries(${module_name} PRIVATE chainerx)
 
-# Visibility (CXX_VISIBILITY_PRESET) must be set to "default" to register custom exceptions, overriding the visibility configured by pybind11_add_module.
-# Note however that this only seems to be an issue when building with libc++.
+# Only python binding needs to be relocatable, it will load chainerx related shared library at runtime.
+set_target_properties(${module_name}
+    PROPERTIES
+    SKIP_BUILD_RPATH FALSE
+    BUILD_WITH_INSTALL_RPATH TRUE)
+
 set_target_properties(${module_name}
     PROPERTIES
     PREFIX "${PYTHON_MODULE_PREFIX}"
-    SUFFIX "${PYTHON_MODULE_SUFFIX}"
-    CXX_VISIBILITY_PRESET "default")
+    SUFFIX "${PYTHON_MODULE_SUFFIX}")

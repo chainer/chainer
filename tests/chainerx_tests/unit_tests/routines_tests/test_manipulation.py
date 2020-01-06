@@ -864,6 +864,67 @@ class TestVSplit(op_utils.NumpyOpTest):
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize_pytest('shape,indices_or_sections', [
+    ((2,), []),
+    ((2, 4), 2),
+    ((2, 4), [2, -3]),
+    ((2, 6, 4), [2, 8]),
+    ((2, 8, 4), [2, 5]),
+    ((2, 5, 4), [1, -3]),
+    ((2, 10, 4), [1, 4]),
+    ((2, 6, 4), [4, 2, 1]),
+    ((2, 6, 4), [1, 3, -2]),
+    ((2, 6, 4), numpy.array([1, 2])),  # indices with 1-d numpy array
+    ((2, 6, 4), numpy.array([2])),  # indices with (1,)-shape numpy array
+    ((2, 8, 4), numpy.array(2)),  # sections numpy scalar
+    ((2, 6, 4, 8), numpy.array(2.0)),  # sections with numpy scalar, float
+    ((2, 6, 4, 8), 2.0),  # float type sections, without fraction
+    # indices with empty numpy indices
+    ((2, 8, 4, 10), numpy.array([], numpy.int32)),
+    ((2, 5, 4, 10), numpy.array([], numpy.float64)),
+])
+class TestHSplit(op_utils.NumpyOpTest):
+
+    def setup(self):
+        # TODO(ishanrai05): There's a bug in backward of split() in which the
+        # gradient shape differs from the input if indices are not in the
+        # sorted order. Fix this.
+        indices_or_sections = self.indices_or_sections
+        if (isinstance(indices_or_sections, list) and
+                sorted(indices_or_sections) != indices_or_sections):
+            self.skip_backward_test = True
+            self.skip_double_backward_test = True
+
+    def generate_inputs(self):
+        a = array_utils.create_dummy_ndarray(numpy, self.shape, 'float32')
+        return a,
+
+    def forward_xp(self, inputs, xp):
+        a, = inputs
+        b = xp.hsplit(a, self.indices_or_sections)
+        assert isinstance(b, list)
+        return tuple(b)
+
+
+@chainerx.testing.numpy_chainerx_array_equal(
+    accept_error=(
+        chainerx.DimensionError, IndexError, ValueError, TypeError,
+        ZeroDivisionError))
+@pytest.mark.parametrize('shape,indices_or_sections', [
+    ((), 1),  # Empty Shape
+    ((2,), 0),  # Zero Section
+    ((2, 6, 4), -1),  # Negative section
+    ((2, 6, 4), 3),  # Uneven split
+    ((2, 6, 4), [2.0]),  # float type indices
+    ((2, 6, 4), 3.1),  # float type section with fraction
+    ((2, 6, 4), '4'),  # Invalid type
+])
+def test_hsplit_invalid(xp, shape, indices_or_sections):
+    a = array_utils.create_dummy_ndarray(xp, shape, 'float32')
+    return xp.hsplit(a, indices_or_sections)
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize_pytest('shape,axis1,axis2', [
     ((1, 1), 0, 1),
     ((2, 4), -1, 1),
@@ -1468,6 +1529,104 @@ def test_moveaxis_invalid(xp, shape, source, dst):
     a = array_utils.uniform(shape, 'float')
     a = xp.array(a)
     return xp.moveaxis(a, source, dst)
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    chainer.testing.product({'dst_shape,src_shape,where_shape': [
+        # Same Shapes
+        ((2, 3), (2, 3), (2, 3)),
+        # Broadcast Shapes
+        ((2, 3), (1, 3), (1, 3)),
+        ((2, 3), (2, 1), (1, 3)),
+        ((2, 3), (2, 3), (1, 3)),
+        ((4, 5), (4, 1), (1, 5)),
+        ((1, 4, 5), (1, 4, 1), (1, 1, 5)),
+        ((2, 3), (2, 3), (2, 3)),
+        # Omit where
+        ((2, 3), (2, 3), None),
+    ],
+        'in_dtypes,out_dtype': dtype_utils.result_numeric_dtypes_two_arrays,
+        'casting': ['no'],
+    })
+))
+class TestCopyTo(op_utils.NumpyOpTest):
+
+    skip_backward_test = True
+    skip_double_backward_test = True
+    check_numpy_strides_compliance = False
+
+    forward_accept_errors = (TypeError, chainerx.DtypeError)
+
+    def generate_inputs(self):
+        dst_dtype, src_dtype = self.in_dtypes
+
+        dst = array_utils.uniform(self.dst_shape, dst_dtype)
+        src = array_utils.uniform(self.src_shape, src_dtype)
+        where = array_utils.uniform(
+            self.where_shape if self.where_shape is not None else (1,),
+            'float32', 0, 1) > 0.5
+
+        return dst, src, where
+
+    def forward_xp(self, inputs, xp):
+        dst, src, where = inputs
+
+        if xp is chainerx:
+            dst = dst.as_grad_stopped().copy()
+            src = src.as_grad_stopped()
+            where = where.as_grad_stopped()
+        else:
+            dst = dst.copy()
+
+        kwargs = {}
+        if self.casting is not None:
+            kwargs['casting'] = self.casting
+        if self.where_shape is not None:
+            kwargs['where'] = where
+
+        xp.copyto(dst, src, **kwargs)
+
+        return dst,
+
+
+@op_utils.op_test(['native:0', 'cuda:0'])
+@chainer.testing.parameterize(*(
+    chainer.testing.product({
+        'where': [True, False, 2, 1.2],
+    })
+))
+class TestCopyToScalarWhere(op_utils.NumpyOpTest):
+
+    skip_backward_test = True
+    skip_double_backward_test = True
+    check_numpy_strides_compliance = False
+
+    def generate_inputs(self):
+        dst = array_utils.uniform((2, 3), 'float32')
+        src = array_utils.uniform((2, 3), 'float32')
+
+        return dst, src
+
+    def forward_xp(self, inputs, xp):
+        dst, src = inputs
+
+        if xp is chainerx:
+            dst = dst.as_grad_stopped().copy()
+            src = src.as_grad_stopped()
+        else:
+            dst = dst.copy()
+
+        xp.copyto(dst, src, casting='no', where=self.where)
+
+        return dst,
+
+
+def test_copyto_invalid_casting():
+    a = array_utils.create_dummy_ndarray(chainerx, (2, 3), 'float32')
+    b = array_utils.create_dummy_ndarray(chainerx, (3,), 'float32')
+    with pytest.raises(ValueError):
+        chainerx.copyto(a, b, casting='some_invalid_casting')
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])

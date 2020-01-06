@@ -1,12 +1,14 @@
 import unittest
 
 import numpy
+import pytest
 import six.moves.cPickle as pickle
 
 import chainer
 from chainer.backends import cuda
 from chainer import functions as F
 from chainer import links
+from chainer import memory_layouts
 from chainer import testing
 from chainer.testing import attr
 from chainer.utils import conv
@@ -111,6 +113,22 @@ class TestConvolution2D(testing.LinkTestCase):
 
         testing.assert_allclose(y_data1, y_data2, atol=0, rtol=0)
 
+    def test_from_params(self, backend_config):
+        if (
+                (backend_config.use_cuda and
+                 backend_config.cuda_device == 1) or
+                (backend_config.use_chainerx and
+                 'cuda' in backend_config.chainerx_device)):
+            raise unittest.SkipTest()
+        link1 = self.create_link(self.generate_params())
+        link1.to_device(backend_config.device)
+        link2 = links.Convolution2D.from_params(
+            link1.W, link1.b, stride=self.stride, pad=self.pad)
+        assert link2.W.shape == link1.W.shape
+        assert link2.b.shape == link2.b.shape
+        assert link2.stride == link1.stride
+        assert link2.pad == link1.pad
+
 
 @testing.parameterize(*testing.product({
     'x_dtype': [numpy.float16, numpy.float32, numpy.float64],
@@ -213,6 +231,100 @@ class TestConvolution2DParameterShapePlaceholder(testing.LinkTestCase):
         y_data2 = y.data
 
         testing.assert_allclose(y_data1, y_data2, atol=0, rtol=0)
+
+
+class Convolution2DMemoryLayoutsTestBase(object):
+    batch = 2
+    in_channels = 5
+    out_channels = 7
+    height = 13
+    width = 11
+    kernel_height = 5
+    kernel_width = 4
+    strides_height = 3
+    strides_width = 2
+    dtype = numpy.float32
+
+    def create_link(self):
+        link = links.Convolution2D(
+            self.in_channels,
+            self.out_channels,
+            (self.kernel_height, self.kernel_width),
+            (self.strides_height, self.strides_width))
+        return link
+
+    def create_input_array(self, xp):
+        x_shape = (self.batch, self.height, self.width, self.in_channels)
+        x = xp.ones(x_shape, self.dtype)
+        return x
+
+
+@testing.inject_backend_tests(
+    [
+        'test_param_layout_to_device',
+        'test_forward',
+    ],
+    # GPU tests
+    [{'use_cuda': True, 'use_cudnn': 'always'}])
+class TestConvolution2DMemoryLayouts(unittest.TestCase,
+                                     Convolution2DMemoryLayoutsTestBase):
+
+    def test_param_layout(self):
+        with chainer.using_config('compute_mode', 'cudnn_fast'):
+            link = self.create_link()
+        assert link.W.layout == memory_layouts.CUDNN_CHANNEL_LAST_W
+
+    def test_param_layout_to_device(self, backend_config):
+        with chainer.using_config('compute_mode', 'cudnn_fast'):
+            link = self.create_link()
+        assert link.W.device == chainer.get_device('@numpy')
+        link.to_device(backend_config.device)
+        assert link.W.device == backend_config.device
+        assert link.W.layout == memory_layouts.CUDNN_CHANNEL_LAST_W
+
+    def test_forward(self, backend_config):
+        with chainer.using_config('compute_mode', 'cudnn_fast'):
+            link = self.create_link()
+        link.to_device(backend_config.device)
+
+        x = self.create_input_array(backend_config.xp)
+        x = chainer.Variable(x, layout=memory_layouts.CUDNN_CHANNEL_LAST_X)
+        x.to_device(backend_config.device)
+        with backend_config:
+            y = link(x)
+
+        assert link.W.device == backend_config.device
+        assert y.layout == memory_layouts.CUDNN_CHANNEL_LAST_X
+        assert y.shape == (
+            self.batch,
+            self.out_channels,
+            (self.height - self.kernel_height + 1) // self.strides_height,
+            (self.width - self.kernel_width + 1) // self.strides_width)
+
+
+@testing.inject_backend_tests(
+    [
+        'test_forward',
+    ],
+    # CPU tests
+    [{},
+     # GPU tests
+     {'use_cuda': True, 'use_cudnn': 'never'}])
+class TestConvolution2DInvalidComputeMode(unittest.TestCase,
+                                          Convolution2DMemoryLayoutsTestBase):
+
+    def test_forward(self, backend_config):
+        with chainer.using_config('compute_mode', 'cudnn_fast'):
+            link = self.create_link()
+        link.to_device(backend_config.device)
+
+        x = self.create_input_array(backend_config.xp)
+        x = chainer.Variable(x, layout=memory_layouts.CUDNN_CHANNEL_LAST_X)
+        x.to_device(backend_config.device)
+
+        with backend_config:
+            with pytest.raises(RuntimeError):
+                link(x)
 
 
 testing.run_module(__name__, __file__)

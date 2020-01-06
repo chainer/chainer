@@ -1,8 +1,8 @@
+import functools
+from operator import mul
 import unittest
 
-import functools
 import numpy
-from operator import mul
 
 import chainer
 from chainer.backends import cuda

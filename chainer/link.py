@@ -19,9 +19,7 @@ from chainer.utils import collections_abc
 from chainer import variable
 
 
-def _is_shape(value):
-    # type: (tp.Optional[tp.Any]) -> bool
-
+def _is_shape(value: tp.Optional[tp.Any]) -> bool:
     if value is None:
         return True
     elif isinstance(value, collections_abc.Sequence):
@@ -36,8 +34,9 @@ def _is_shape(value):
         return False
 
 
-def _ensure_shape_dtype(value):
-    # type: (tp.Optional[tp.Any]) -> tp.Tuple[tp.Optional[types.ShapeSpec], types.DTypeSpec] # NOQA
+def _ensure_shape_dtype(
+        value: tp.Optional[tp.Any]
+) -> tp.Tuple[tp.Optional[types.ShapeSpec], types.DTypeSpec]:
 
     # Return value paired with dtype FP32 if it is a shape.
     if _is_shape(value):
@@ -143,9 +142,7 @@ class Link(device_resident.DeviceResident):
     _local_link_hooks = None  # type: tp.Optional[collections.OrderedDict[str, chainer.LinkHook]] # NOQA
     __init_done = False
 
-    def __init__(self, **params):
-        # type: (**tp.Any) -> None
-
+    def __init__(self, **params: tp.Any) -> None:
         super(Link, self).__init__()
 
         self._params = set()  # type: tp.Set[str]
@@ -173,8 +170,9 @@ class Link(device_resident.DeviceResident):
         )
 
     @property
-    def local_link_hooks(self):
-        # type: () -> collections.OrderedDict[str, chainer.LinkHook]
+    def local_link_hooks(
+            self
+    ) -> 'collections.OrderedDict[str, chainer.LinkHook]':
         """Ordered dictionary of registered link hooks.
 
         Contrary to ``chainer.thread_local.link_hooks``,
@@ -187,9 +185,7 @@ class Link(device_resident.DeviceResident):
         return self._local_link_hooks
 
     @property
-    def _n_local_link_hooks(self):
-        # type: () -> int
-
+    def _n_local_link_hooks(self) -> int:
         return (0 if self._local_link_hooks is None
                 else len(self._local_link_hooks))
 
@@ -219,8 +215,7 @@ class Link(device_resident.DeviceResident):
             yield
 
     @property
-    def within_init_scope(self):
-        # type: () -> bool
+    def within_init_scope(self) -> bool:
         """True if the current code is inside of an initialization scope.
 
         See :meth:`init_scope` for the details of the initialization scope.
@@ -229,8 +224,7 @@ class Link(device_resident.DeviceResident):
         return getattr(self, '_within_init_scope', False)
 
     @contextlib.contextmanager
-    def init_scope(self):
-        # type: () -> tp.Iterator[None]
+    def init_scope(self) -> tp.Iterator[None]:
         """Creates an initialization scope.
 
         This method returns a context manager object that enables registration
@@ -265,8 +259,7 @@ class Link(device_resident.DeviceResident):
         finally:
             self._within_init_scope = old_flag
 
-    def __call__(self, *args, **kwargs):
-        # type: (*tp.Any, **tp.Any) -> tp.Any # NOQA
+    def __call__(self, *args: tp.Any, **kwargs: tp.Any) -> tp.Any:
         self.__check_init_done()
 
         # TODO(niboshi): Support link hooks for other forward methods.
@@ -302,25 +295,25 @@ class Link(device_resident.DeviceResident):
 
         return out
 
-    def __setattr__(self, name, value):
-        # type: (str, tp.Any) -> None
-
+    def __setattr__(self, name: str, value: tp.Any) -> None:
         if self.within_init_scope and isinstance(value, variable.Parameter):
             value.name = name
             self._params.add(name)
             self._persistent.discard(name)
         super(Link, self).__setattr__(name, value)
 
-    def __delattr__(self, name):
-        # type: (str) -> None
-
+    def __delattr__(self, name: str) -> None:
         self._params.discard(name)
         self._persistent.discard(name)
         super(Link, self).__delattr__(name)
 
-    def add_param(self, name, shape=None, dtype=numpy.float32,
-                  initializer=None):
-        # type: (str, tp.Optional[types.ShapeSpec], types.DTypeSpec, tp.Optional[types.InitializerSpec]) -> None # NOQA
+    def add_param(
+        self,
+        name: str,
+        shape: tp.Optional[types.ShapeSpec] = None,
+        dtype: types.DTypeSpec = numpy.float32,
+        initializer: tp.Optional[types.InitializerSpec] = None
+    ) -> None:
         """Registers a parameter to the link.
 
         Args:
@@ -348,8 +341,7 @@ class Link(device_resident.DeviceResident):
         with self.init_scope():
             setattr(self, name, param)
 
-    def add_persistent(self, name, value):
-        # type: (str, tp.Any) -> None
+    def add_persistent(self, name: str, value: tp.Any) -> None:
         """Registers a persistent value to the link.
 
         The registered value is saved and loaded on serialization and
@@ -370,8 +362,7 @@ class Link(device_resident.DeviceResident):
         self._params.discard(name)
         d[name] = value
 
-    def register_persistent(self, name):
-        # type: (str) -> None
+    def register_persistent(self, name: str) -> None:
         """Registers an attribute of a given name as a persistent value.
 
         This is a convenient method to register an existing attribute as a
@@ -390,8 +381,21 @@ class Link(device_resident.DeviceResident):
         self._persistent.add(name)
         self._params.discard(name)
 
-    def copy(self, mode='share'):
-        # type: (str) -> 'Link'
+    @classmethod
+    def from_params(cls, *args, **kwargs):
+        """Initialize link with given parameters.
+
+        This method initializes the link with given :ref:`ndarray`\\s.
+        Arguments includes
+
+        * some parameters for a specific link.
+        * constants such as stride width of a convolutional layer.
+
+        """
+        raise NotImplementedError(
+            'This link does not implement `from_params`.')
+
+    def copy(self, mode: str = 'share') -> 'Link':
         """Copies the link hierarchy to new one.
 
         The whole hierarchy rooted by this link is copied. There are three
@@ -454,8 +458,10 @@ class Link(device_resident.DeviceResident):
             if isinstance(x, chainer.get_array_types()):
                 d[name] = visitor.visit_array(x)
 
-    def params(self, include_uninit=True):
-        # type: (bool) -> tp.Iterator[chainer.Parameter]
+    def params(
+            self,
+            include_uninit: bool = True
+    ) -> tp.Iterator['chainer.Parameter']:
         """Returns a generator of all parameters under the link hierarchy.
 
         Args:
@@ -471,8 +477,10 @@ class Link(device_resident.DeviceResident):
             if include_uninit or d[name].data is not None:
                 yield d[name]
 
-    def namedparams(self, include_uninit=True):
-        # type: (bool) -> tp.Iterator[tp.Tuple[str, chainer.Parameter]]
+    def namedparams(
+            self,
+            include_uninit: bool = True
+    ) -> tp.Iterator[tp.Tuple[str, 'chainer.Parameter']]:
         """Returns a generator of all (path, param) pairs under the hierarchy.
 
         Args:
@@ -486,11 +494,10 @@ class Link(device_resident.DeviceResident):
         """
         d = self.__dict__  # type: tp.Dict[str, chainer.Parameter]
         for name in sorted(self._params):
-            if include_uninit or d[name].data is not None:
+            if include_uninit or d[name].is_initialized:
                 yield '/' + name, d[name]
 
-    def links(self, skipself=False):
-        # type: (bool) -> tp.Iterator['Link']
+    def links(self, skipself: bool = False) -> tp.Iterator['Link']:
         """Returns a generator of all links under the hierarchy.
 
         Args:
@@ -504,8 +511,10 @@ class Link(device_resident.DeviceResident):
         if not skipself:
             yield self
 
-    def namedlinks(self, skipself=False):
-        # type: (bool) -> tp.Iterator[tp.Tuple[str, 'Link']]
+    def namedlinks(
+            self,
+            skipself: bool = False
+    ) -> tp.Iterator[tp.Tuple[str, 'Link']]:
         """Returns a generator of all (path, link) pairs under the hierarchy.
 
         Args:
@@ -519,8 +528,7 @@ class Link(device_resident.DeviceResident):
         if not skipself:
             yield '/', self
 
-    def children(self):
-        # type: () -> tp.Iterator['Link']
+    def children(self) -> tp.Iterator['Link']:
         """Returns a generator of all child links.
 
         Returns:
@@ -530,8 +538,7 @@ class Link(device_resident.DeviceResident):
         if 0:
             yield
 
-    def copyparams(self, link, copy_persistent=True):
-        # type: ('Link', bool) -> None
+    def copyparams(self, link: 'Link', copy_persistent: bool = True) -> None:
         """Copies all parameters from given link.
 
         This method copies data arrays of all parameters in the hierarchy. The
@@ -564,8 +571,7 @@ class Link(device_resident.DeviceResident):
                 else:
                     dst[name] = copy.deepcopy(s)
 
-    def cleargrads(self):
-        # type: () -> None
+    def cleargrads(self) -> None:
         """Clears all gradient arrays.
 
         This method should be called before the backward computation at every
@@ -575,8 +581,7 @@ class Link(device_resident.DeviceResident):
         for param in self.params():
             param.cleargrad()
 
-    def zerograds(self):
-        # type: () -> None
+    def zerograds(self) -> None:
         """Initializes all gradient arrays by zero.
 
          .. deprecated:: v1.15
@@ -590,8 +595,7 @@ class Link(device_resident.DeviceResident):
         for param in self.params():
             param.zerograd()
 
-    def addgrads(self, link):
-        # type: ('Link') -> None
+    def addgrads(self, link: 'Link') -> None:
         """Accumulates gradient values from given link.
 
         This method adds each gradient array of the given link to corresponding
@@ -607,8 +611,7 @@ class Link(device_resident.DeviceResident):
         for name in self._params:
             dst[name].addgrad(src[name])
 
-    def enable_update(self):
-        # type: () -> None
+    def enable_update(self) -> None:
         """Enables update rules of all parameters under the link hierarchy.
 
         This method sets the :attr:`~chainer.UpdateRule.enabled` flag of the
@@ -620,8 +623,7 @@ class Link(device_resident.DeviceResident):
             if rule is not None:
                 rule.enabled = True
 
-    def disable_update(self):
-        # type: () -> None
+    def disable_update(self) -> None:
         """Disables update rules of all parameters under the link hierarchy.
 
         This method sets the :attr:`~chainer.UpdateRule.enabled` flag of the
@@ -634,8 +636,7 @@ class Link(device_resident.DeviceResident):
                 rule.enabled = False
 
     @property
-    def update_enabled(self):
-        # type: () -> bool
+    def update_enabled(self) -> bool:
         """``True`` if at least one parameter has an update rule enabled."""
         for param in self.params():
             rule = param.update_rule
@@ -643,8 +644,7 @@ class Link(device_resident.DeviceResident):
                 return True
         return False
 
-    def serialize(self, serializer):
-        # type: (chainer.AbstractSerializer) -> None
+    def serialize(self, serializer: 'chainer.AbstractSerializer') -> None:
         """Serializes the link object.
 
         Args:
@@ -663,8 +663,11 @@ class Link(device_resident.DeviceResident):
         for name in self._persistent:
             d[name] = serializer(name, d[name])
 
-    def repeat(self, n_repeat, mode='init'):
-        # type: (int, str) -> chainer.Sequential
+    def repeat(
+            self,
+            n_repeat: int,
+            mode: str = 'init'
+    ) -> 'chainer.Sequential':
         """Repeats this link multiple times to make a :class:`~chainer.Sequential`.
 
         This method returns a :class:`~chainer.Sequential` object which has
@@ -729,8 +732,7 @@ class Link(device_resident.DeviceResident):
             ret.append(link.copy(mode))
         return ret
 
-    def count_params(self):
-        # type: () -> int
+    def count_params(self) -> int:
         """Counts the total number of parameters.
 
         This method counts the total number of scalar values included in all
@@ -756,8 +758,11 @@ class Link(device_resident.DeviceResident):
             size += param.size
         return size
 
-    def add_hook(self, hook, name=None):
-        # type: (chainer.LinkHook, tp.Optional[str]) -> 'Link'
+    def add_hook(
+            self,
+            hook: 'chainer.LinkHook',
+            name: tp.Optional[str] = None
+    ) -> 'Link':
         """Registers a link hook.
 
         Args:
@@ -781,8 +786,7 @@ class Link(device_resident.DeviceResident):
         hook.added(self)
         return self
 
-    def delete_hook(self, name):
-        # type: (str) -> None
+    def delete_hook(self, name: str) -> None:
         """Unregisters the link hook.
 
         Args:
@@ -873,9 +877,7 @@ class Chain(Link):
 
     """
 
-    def __init__(self, **links):
-        # type: (**Link) -> None
-
+    def __init__(self, **links: 'Link') -> None:
         super(Chain, self).__init__()
         self._children = set()  # type: tp.Set[str]
 
@@ -899,14 +901,11 @@ class Chain(Link):
             cls=self.__class__.__name__, children=reps,
         )
 
-    def __getitem__(self, name):
-        # type: (str) -> tp.Any
+    def __getitem__(self, name: str) -> tp.Any:
         """Equivalent to getattr."""
         return getattr(self, name)
 
-    def __setattr__(self, name, value):
-        # type: (str, tp.Any) -> None
-
+    def __setattr__(self, name: str, value: tp.Any) -> None:
         if self.within_init_scope and isinstance(value, Link):
             if hasattr(self, name):
                 raise AttributeError(
@@ -915,14 +914,11 @@ class Chain(Link):
             self._children.add(name)
         super(Chain, self).__setattr__(name, value)
 
-    def __delattr__(self, name):
-        # type: (str) -> None
-
+    def __delattr__(self, name: str) -> None:
         self._children.discard(name)
         super(Chain, self).__delattr__(name)
 
-    def add_link(self, name, link):
-        # type: (str, Link) -> None
+    def add_link(self, name: str, link: 'Link') -> None:
         """Registers a child link to this chain.
 
         Args:
@@ -939,9 +935,7 @@ class Chain(Link):
         with self.init_scope():
             setattr(self, name, link)
 
-    def copy(self, mode='share'):
-        # type: (str) -> 'Chain'
-
+    def copy(self, mode: str = 'share') -> 'Chain':
         ret = super(Chain, self).copy(mode)  # type: ignore # should be Chain
         ret._children = set(ret._children)  # type: ignore
         d = ret.__dict__  # type: tp.Dict[str, Link]
@@ -958,8 +952,10 @@ class Chain(Link):
         for name in self._children:
             d[name].device_resident_accept(visitor)
 
-    def params(self, include_uninit=True):
-        # type: (bool) -> tp.Iterator[chainer.Parameter]
+    def params(
+            self,
+            include_uninit: bool = True
+    ) -> tp.Iterator['chainer.Parameter']:
 
         for param in super(Chain, self).params(include_uninit):
             yield param
@@ -968,8 +964,10 @@ class Chain(Link):
             for param in d[name].params(include_uninit):
                 yield param
 
-    def namedparams(self, include_uninit=True):
-        # type: (bool) -> tp.Iterator[tp.Tuple[str, chainer.Parameter]]
+    def namedparams(
+            self,
+            include_uninit: bool = True
+    ) -> tp.Iterator[tp.Tuple[str, 'chainer.Parameter']]:
 
         for ret in super(Chain, self).namedparams(include_uninit):
             yield ret
@@ -979,9 +977,7 @@ class Chain(Link):
             for path, param in d[name].namedparams(include_uninit):
                 yield prefix + path, param
 
-    def links(self, skipself=False):
-        # type: (bool) -> tp.Iterator[Link]
-
+    def links(self, skipself: bool = False) -> tp.Iterator[Link]:
         if not skipself:
             yield self
         d = self.__dict__  # type: tp.Dict[str, Link]
@@ -989,8 +985,10 @@ class Chain(Link):
             for link in d[name].links():
                 yield link
 
-    def namedlinks(self, skipself=False):
-        # type: (bool) -> tp.Iterator[tp.Tuple[str, Link]]
+    def namedlinks(
+            self,
+            skipself: bool = False
+    ) -> tp.Iterator[tp.Tuple[str, Link]]:
 
         if not skipself:
             yield '/', self
@@ -1002,34 +1000,26 @@ class Chain(Link):
             for path, link in d[name].namedlinks(True):
                 yield prefix + path, link
 
-    def children(self):
-        # type: () -> tp.Iterator[Link]
-
+    def children(self) -> tp.Iterator[Link]:
         d = self.__dict__  # type: tp.Dict[str, Link]
         for name in sorted(self._children):
             yield d[name]
 
-    def copyparams(self, link, copy_persistent=True):
-        # type: (Link, bool) -> None
-
+    def copyparams(self, link: Link, copy_persistent: bool = True) -> None:
         super(Chain, self).copyparams(link, copy_persistent)
         src = link.__dict__
         dst = self.__dict__
         for name in self._children:
             dst[name].copyparams(src[name], copy_persistent)
 
-    def addgrads(self, link):
-        # type: (Link) -> None
-
+    def addgrads(self, link: Link) -> None:
         super(Chain, self).addgrads(link)
         src = link.__dict__
         dst = self.__dict__
         for name in self._children:
             dst[name].addgrads(src[name])
 
-    def serialize(self, serializer):
-        # type: (chainer.AbstractSerializer) -> None
-
+    def serialize(self, serializer: 'chainer.AbstractSerializer') -> None:
         super(Chain, self).serialize(serializer)
         d = self.__dict__  # type: tp.Dict[str, Link]
         for name in self._children:
@@ -1056,9 +1046,7 @@ class ChainList(Link, collections_abc.MutableSequence):
 
     """
 
-    def __init__(self, *links):
-        # type: (*Link) -> None
-
+    def __init__(self, *links: Link) -> None:
         super(ChainList, self).__init__()
         self._children = []  # type: tp.List[Link]
 
@@ -1082,18 +1070,18 @@ class ChainList(Link, collections_abc.MutableSequence):
             cls=self.__class__.__name__, children=reps,
         )
 
-    def __setattr__(self, name, value):
-        # type: (str, tp.Any) -> None
-
+    def __setattr__(self, name: str, value: tp.Any) -> None:
         if self.within_init_scope and isinstance(value, Link):
             raise TypeError(
                 'cannot register a new link'
                 ' within a "with chainlist.init_scope():" block.')
         super(ChainList, self).__setattr__(name, value)
 
-    def __setitem__(self, index, value):
-        # type: (tp.Union[int, slice], tp.Union[Link, tp.Iterable[Link]]) -> None # NOQA
-
+    def __setitem__(
+            self,
+            index: tp.Union[int, slice],
+            value: tp.Union[Link, tp.Iterable[Link]]
+    ) -> None:
         if isinstance(index, int):
             link = value  # type: ignore # should be Link
             link.name = str(index)  # type: ignore
@@ -1119,15 +1107,12 @@ class ChainList(Link, collections_abc.MutableSequence):
         """
         return self._children[index]
 
-    def __delitem__(self, index):
-        # type: (tp.Union[int, slice]) -> None
-
+    def __delitem__(self, index: tp.Union[int, slice]) -> None:
         del self._children[index]
         for i, c in enumerate(self._children):
             c.name = str(i)
 
-    def insert(self, index, link):
-        # type: (int, Link) -> None
+    def insert(self, index: int, link: Link) -> None:
         """Insert a child link at the given index.
 
         Args:
@@ -1144,18 +1129,14 @@ class ChainList(Link, collections_abc.MutableSequence):
             for i, c in enumerate(self._children):
                 c.name = str(i)
 
-    def __iter__(self):
-        # type: () -> tp.Iterator[Link]
-
+    def __iter__(self) -> tp.Iterator[Link]:
         return iter(self._children)
 
-    def __len__(self):
-        # type: () -> int
+    def __len__(self) -> int:
         """Returns the number of children."""
         return len(self._children)
 
-    def add_link(self, link):
-        # type: (Link) -> None
+    def add_link(self, link: Link) -> None:
         """Registers a child link and adds it to the tail of the list.
 
         Args:
@@ -1164,8 +1145,7 @@ class ChainList(Link, collections_abc.MutableSequence):
         """
         self.append(link)
 
-    def copy(self, mode='share'):
-        # type: (str) -> 'ChainList'
+    def copy(self, mode: str = 'share') -> 'ChainList':
         """Returns a deep copy of the chainlist."""
         ret = super(ChainList, self).copy()  # type: ignore # should be ChainList # NOQA
         ret._children = list(ret._children)  # type: ignore # copy
@@ -1181,18 +1161,20 @@ class ChainList(Link, collections_abc.MutableSequence):
         for link in self._children:
             link.device_resident_accept(visitor)
 
-    def params(self, include_uninit=True):
-        # type: (bool) -> tp.Iterator[chainer.Parameter]
-
+    def params(
+            self,
+            include_uninit: bool = True
+    ) -> tp.Iterator['chainer.Parameter']:
         for param in super(ChainList, self).params(include_uninit):
             yield param
         for link in self._children:
             for param in link.params(include_uninit):
                 yield param
 
-    def namedparams(self, include_uninit=True):
-        # type: (bool) -> tp.Iterator[tp.Tuple[str, chainer.Parameter]]
-
+    def namedparams(
+            self,
+            include_uninit: bool = True
+    ) -> tp.Iterator[tp.Tuple[str, 'chainer.Parameter']]:
         for ret in super(ChainList, self).namedparams(include_uninit):
             yield ret
         for idx, link in enumerate(self._children):
@@ -1200,18 +1182,17 @@ class ChainList(Link, collections_abc.MutableSequence):
             for path, param in link.namedparams(include_uninit):
                 yield prefix + path, param
 
-    def links(self, skipself=False):
-        # type: (bool) -> tp.Iterator[Link]
-
+    def links(self, skipself: bool = False) -> tp.Iterator[Link]:
         if not skipself:
             yield self
         for child in self._children:
             for link in child.links():
                 yield link
 
-    def namedlinks(self, skipself=False):
-        # type: (bool) -> tp.Iterator[tp.Tuple[str, Link]]
-
+    def namedlinks(
+            self,
+            skipself: bool = False
+    ) -> tp.Iterator[tp.Tuple[str, Link]]:
         if not skipself:
             yield '/', self
         for idx, child in enumerate(self._children):
@@ -1220,29 +1201,25 @@ class ChainList(Link, collections_abc.MutableSequence):
             for path, link in child.namedlinks(True):
                 yield prefix + path, link
 
-    def children(self):
-        # type: () -> tp.Iterator[Link]
-
+    def children(self) -> tp.Iterator[Link]:
         for child in self._children:
             yield child
 
-    def copyparams(self, link, copy_persistent=True):
-        # type: (Link, bool) -> None # link is actually a ChainList
+    def copyparams(self, link: Link, copy_persistent: bool = True) -> None:
+        # link is actually a ChainList
 
         super(ChainList, self).copyparams(link, copy_persistent)
         for idx, child in enumerate(self._children):
             child.copyparams(link[idx], copy_persistent)  # type: ignore
 
-    def addgrads(self, link):
-        # type: (Link) -> None # link is actually a ChainList
+    def addgrads(self, link: Link) -> None:
+        # link is actually a ChainList
 
         super(ChainList, self).addgrads(link)
         for idx, child in enumerate(self._children):
             child.addgrads(link[idx])  # type: ignore
 
-    def serialize(self, serializer):
-        # type: (chainer.AbstractSerializer) -> None
-
+    def serialize(self, serializer: 'chainer.AbstractSerializer') -> None:
         super(ChainList, self).serialize(serializer)
         for idx, child in enumerate(self._children):
             child.serialize(serializer['%d' % idx])

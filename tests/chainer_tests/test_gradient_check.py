@@ -833,4 +833,45 @@ class TestCheckDoubleBackward(unittest.TestCase):
             f, x, gy, ggx, param, ggparam, atol=1e-3, rtol=1e-3)
 
 
+@testing.parameterize(*testing.product({
+    'size': [0, 1, 5, 64]
+}))
+@backend.inject_backend_tests(
+    None,
+    # CPU tests
+    [
+        {},
+    ]
+    # GPU tests
+    + testing.product({
+        'use_cuda': [True],
+        'cuda_device': [0, 1],
+    })
+    # ChainerX tests
+    + testing.product({
+        'use_chainerx': [True],
+        'chainerx_device': ['native:0', 'cuda:0', 'cuda:1'],
+    })
+)
+class TestSampleUnitVector(unittest.TestCase):
+
+    def test_sample_unit_vector(self, backend_config):
+        size = self.size
+        device = backend_config.device
+
+        # _sample_unit_vector uses the current device
+        with chainer.using_device(device):
+            y = gradient_check._CheckBackward._sample_unit_vector(
+                size, device.xp)
+        assert device.is_array_supported(y)
+        assert y.shape == (size,)
+
+        y_cpu = chainer.get_device('@numpy').send(y)
+        if size >= 1:
+            numpy.testing.assert_allclose(numpy.square(y_cpu).sum(), 1.0)
+            assert numpy.min(abs(y_cpu)) >= 0.1 / numpy.sqrt(size)
+        if size >= 64:
+            assert numpy.min(y_cpu) < 0 < numpy.max(y_cpu)
+
+
 testing.run_module(__name__, __file__)

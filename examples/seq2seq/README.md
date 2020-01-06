@@ -22,7 +22,7 @@ You need to prepare four files.
 
 1. Source language sentence file
 2. Source language vocabulary file
-3. Targe language sentence file
+3. Target language sentence file
 4. Target language vocabulary file
 
 In the sentence files, each line represents a sentence. In each line, each sentence needs to be separated into words by space characters.

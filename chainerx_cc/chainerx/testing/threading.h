@@ -89,7 +89,7 @@ void RunThreads(size_t thread_count, const Func& func) {
 }
 
 // TODO(sonots): Reconsider the function name.
-// TODO(sonots): Do single-shot and multi-threads tests in seperated test-cases.
+// TODO(sonots): Do single-shot and multi-threads tests in separated test-cases.
 // TODO(sonots): Make it possible to use different contexts and/or devices in different threads.
 template <typename Func>
 inline void RunTestWithThreads(const Func& func, size_t thread_count = 2) {

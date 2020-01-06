@@ -98,8 +98,7 @@ def _guess_device_from_array_module(xp):
         return _cpu.CpuDevice()
 
 
-def get_device(device_spec):
-    # type: (types.DeviceSpec) -> Device
+def get_device(device_spec: types.DeviceSpec) -> Device:
     """Returns a device object.
 
     Args:

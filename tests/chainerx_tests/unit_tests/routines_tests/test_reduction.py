@@ -321,12 +321,12 @@ class TestNansum(math_utils.UnaryMathTestBase, op_utils.NumpyOpTest):
         indices = numpy.asarray([i for i in numpy.ndindex(shape)])
         numpy.random.shuffle(indices)
         if len(indices) == 0:
-            num_nans = 0
+            n_nans = 0
         else:
-            num_nans = numpy.random.randint(len(indices))
-        if num_nans == 0:
+            n_nans = numpy.random.randint(len(indices))
+        if n_nans == 0:
             return a,
-        nan_indices = indices[:num_nans]
+        nan_indices = indices[:n_nans]
         for i in nan_indices:
             a[tuple(i)] = numpy.nan
         return a,

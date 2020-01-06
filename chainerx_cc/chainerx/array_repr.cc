@@ -130,7 +130,7 @@ public:
 
 private:
     // Returns the integral part and fractional part as integers.
-    // Note that the fractional part is prefixed by 1 so that the information of preceeding zeros is not missed.
+    // Note that the fractional part is prefixed by 1 so that the information of preceding zeros is not missed.
     static std::pair<int64_t, int64_t> IntFracPartsToPrint(double value) {
         double int_part;
         const double frac_part = std::modf(value, &int_part);

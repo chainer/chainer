@@ -9,6 +9,7 @@ from chainermn.functions import batch_normalization as \
     chainermn_batch_normalization
 
 import numpy
+import copy
 
 
 class MultiNodeBatchNormalization(link.Link):
@@ -130,14 +131,14 @@ class MultiNodeBatchNormalization(link.Link):
         """
         self.N = 0
 
-    def copy(self, mode='share'):
+    def __deepcopy__(self, memo):
         to_be_preserved = ['comm']
         preserved = {}
         for name in to_be_preserved:
             preserved[name] = getattr(self, name)
             setattr(self, name, None)
 
-        ret = super(MultiNodeBatchNormalization, self).copy(mode)
+        ret = copy.deepcopy(super(MultiNodeBatchNormalization, self))
 
         for name in to_be_preserved:
             setattr(self, name, preserved[name])

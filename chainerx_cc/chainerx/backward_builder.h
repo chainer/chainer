@@ -7,10 +7,10 @@
 #include <memory>
 #include <numeric>
 #include <set>
-#include <unordered_map>
 #include <utility>
 #include <vector>
 
+#include <absl/container/flat_hash_map.h>
 #include <gsl/gsl>
 
 #include "chainerx/array.h"
@@ -114,13 +114,13 @@ public:
 
         // Collect input ArrayNodes, grouped by graph considering IsBackpropRequired.
         // This functions is only called once in the constructor.
-        std::unordered_map<BackpropId, InputArrayNodes> CreateInputArrayNodesMap() const;
+        absl::flat_hash_map<BackpropId, InputArrayNodes> CreateInputArrayNodesMap() const;
 
         BackwardBuilder& builder_;
         std::vector<size_t> input_indices_;
 
         // TODO(hvy): Consider using linear search since elements are usually few.
-        std::unordered_map<BackpropId, InputArrayNodes> graph_to_input_array_nodes_;
+        absl::flat_hash_map<BackpropId, InputArrayNodes> graph_to_input_array_nodes_;
     };
 
     // TODO(niboshi): Add an overload to accept `const std::vector<Array>&` as `inputs` and `outputs`
@@ -222,7 +222,7 @@ private:
 
     // A collection of op nodes, each of which corresponds to a graph.
     // This record is increasingly populated as new graphs are encountered in multiple Define() calls.
-    std::unordered_map<BackpropId, std::shared_ptr<internal::OpNode>> op_node_map_;
+    absl::flat_hash_map<BackpropId, std::shared_ptr<internal::OpNode>> op_node_map_;
 
     backward_builder_detail::RetentionRecord input_retention_record_;
     backward_builder_detail::RetentionRecord output_retention_record_;

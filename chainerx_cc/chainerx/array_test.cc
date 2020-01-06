@@ -33,6 +33,7 @@
 #include "chainerx/indexable_array.h"
 #include "chainerx/indexer.h"
 #include "chainerx/op_node.h"
+#include "chainerx/routines/indexing.h"
 #include "chainerx/scalar.h"
 #include "chainerx/shape.h"
 #include "chainerx/slice.h"
@@ -1168,7 +1169,7 @@ TEST_P(ArrayTest, Take) {
     Shape output_shape{2, 2, 3};
     Array a = testing::BuildArray(input_shape).WithLinearData<T>().WithPadding(1);
     Array indices = testing::BuildArray(indices_shape).WithData<int64_t>({0, 14, 3, 1, -10, 1});
-    Array b = a.Take(indices, 1);
+    Array b = a.Take(indices, 1, IndexBoundsMode::kWrap);
 
     EXPECT_EQ(output_shape, b.shape());
     Array e = testing::BuildArray(output_shape).WithData<T>({0, 2, 3, 1, 2, 1, 4, 6, 7, 5, 6, 5});

@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -eu
 
+export CHAINER_CI=jenkins
+
 # Dump all the environment variables starting with CHAINERX_
 for var in ${!CHAINERX_@}; do
     echo "$var=${!var}"

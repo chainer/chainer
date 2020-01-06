@@ -3,9 +3,11 @@ import unittest
 import numpy
 
 import chainer
+from chainer.backends import cuda
 from chainer import functions
 from chainer import testing
 from chainer import utils
+from chainer.testing import attr
 from chainer.utils import type_check
 
 
@@ -81,6 +83,25 @@ class TestMeanAbsoluteErrorTypeCheck(unittest.TestCase):
             numpy.random.uniform(-1, 1, (4, 3)).astype(numpy.float16))
         with self.assertRaises(type_check.InvalidType):
             functions.mean_absolute_error(x0, x1)
+
+
+# See chainer#6702.
+class TestMeanAbsoluteErrorFP16Overflow(unittest.TestCase):
+
+    def check_fp16_overflow(self, xp):
+        x0 = chainer.Variable(xp.full(
+            shape=(64, 1, 16, 16), fill_value=2, dtype=xp.float16))
+        x1 = chainer.Variable(xp.full(
+            shape=(64, 1, 16, 16), fill_value=-2, dtype=xp.float16))
+        loss = functions.mean_absolute_error(x0, x1)
+        self.assertFalse(xp.isinf(loss.array))
+
+    def test_fp16_overflow_cpu(self):
+        self.check_fp16_overflow(numpy)
+
+    @attr.gpu
+    def test_fp16_overflow_gpu(self):
+        self.check_fp16_overflow(cuda.cupy)
 
 
 testing.run_module(__name__, __file__)
