@@ -26,7 +26,7 @@ Environment variable       Description
 Installing from source
 ----------------------
 
-Simply run ``pip install --pre chainer`` after configuring the above environment variables.
+Simply run ``pip install chainer`` after configuring the above environment variables.
 
 Example
 ~~~~~~~
@@ -37,7 +37,7 @@ For instance, to install ChainerX without CUDA support, run the following:
 
     $ export CHAINER_BUILD_CHAINERX=1
     $ export MAKEFLAGS=-j8  # Using 8 parallel jobs.
-    $ pip install --pre chainer
+    $ pip install chainer
 
 CUDA support
 ------------
@@ -57,5 +57,5 @@ To support the :ref:`NumPy/CuPy fallback <chainerx-tutorial-numpy-cupy-fallback>
     $ export CHAINERX_BUILD_CUDA=1
     $ export CUDNN_ROOT_DIR=path/to/cudnn
     $ export MAKEFLAGS=-j8  # Using 8 parallel jobs.
-    $ pip install --pre cupy
-    $ pip install --pre chainer
+    $ pip install cupy
+    $ pip install chainer
