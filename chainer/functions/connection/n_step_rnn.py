@@ -416,7 +416,7 @@ def n_step_rnn(
             ``ws[i]`` represents weights for i-th layer.
             Each ``ws[i]`` is a list containing two matrices.
             ``ws[i][j]`` is corresponding with ``W_j`` in the equation.
-            Only ``ws[0][j]`` where ``0 <= j < 1`` is ``(I, N)`` shape as they
+            Only ``ws[0][j]`` where ``0 <= j < 1`` is ``(N, I)`` shape as they
             are multiplied with input variables. All other matrices has
             ``(N, N)`` shape.
         bs (list of list of :class:`~chainer.Variable`): Bias vectors.
@@ -511,22 +511,24 @@ def n_step_birnn(
             dimension of hidden units. Because of bi-direction, the
             first dimension length is ``2S``.
         ws (list of list of :class:`~chainer.Variable`): Weight matrices.
-            ``ws[i + di]`` represents weights for i-th layer.
+            ``ws[2 * i + di]`` represents weights for i-th layer.
             Note that ``di = 0`` for forward-RNN and ``di = 1`` for
             backward-RNN.
-            Each ``ws[i + di]`` is a list containing two matrices.
-            ``ws[i + di][j]`` is corresponding with ``W^{f}_j`` if ``di = 0``
-            and corresponding with ``W^{b}_j`` if ``di = 1`` in the equation.
+            Each ``ws[2 * i + di]`` is a list containing two matrices.
+            ``ws[2 * i + di][j]`` is corresponding with ``W^{f}_j`` if
+            ``di = 0`` and corresponding with ``W^{b}_j`` if ``di = 1`` in
+            the equation.
             Only ``ws[0][j]`` and ``ws[1][j]`` where ``0 <= j < 1`` are
-            ``(I, N)`` shape as they are multiplied with input variables.
+            ``(N, I)`` shape as they are multiplied with input variables.
             All other matrices has ``(N, N)`` shape.
         bs (list of list of :class:`~chainer.Variable`): Bias vectors.
-            ``bs[i + di]`` represnents biases for i-th layer.
+            ``bs[2 * i + di]`` represnents biases for i-th layer.
             Note that ``di = 0`` for forward-RNN and ``di = 1`` for
             backward-RNN.
-            Each ``bs[i + di]`` is a list containing two vectors.
-            ``bs[i + di][j]`` is corresponding with ``b^{f}_j`` if ``di = 0``
-            and corresponding with ``b^{b}_j`` if ``di = 1`` in the equation.
+            Each ``bs[2 * i + di]`` is a list containing two vectors.
+            ``bs[2 * i + di][j]`` is corresponding with ``b^{f}_j`` if
+            ``di = 0`` and corresponding with ``b^{b}_j`` if ``di = 1`` in
+            the equation.
             Shape of each matrix is ``(N,)`` where ``N`` is dimension of
             hidden units.
         xs (list of :class:`~chainer.Variable`):
@@ -584,7 +586,7 @@ use_bi_direction)
             ``ws[i]`` represents weights for i-th layer.
             Each ``ws[i]`` is a list containing two matrices.
             ``ws[i][j]`` is corresponding with ``W_j`` in the equation.
-            Only ``ws[0][j]`` where ``0 <= j < 1`` is ``(I, N)`` shape as they
+            Only ``ws[0][j]`` where ``0 <= j < 1`` is ``(N, I)`` shape as they
             are multiplied with input variables. All other matrices has
             ``(N, N)`` shape.
         bs (list of list of :class:`~chainer.Variable`): Bias vectors.

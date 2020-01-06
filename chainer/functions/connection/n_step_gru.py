@@ -72,7 +72,7 @@ def n_step_gru(
             ``ws[i]`` represents weights for i-th layer.
             Each ``ws[i]`` is a list containing six matrices.
             ``ws[i][j]`` is corresponding with ``W_j`` in the equation.
-            Only ``ws[0][j]`` where ``0 <= j < 3`` is ``(I, N)`` shape as they
+            Only ``ws[0][j]`` where ``0 <= j < 3`` is ``(N, I)`` shape as they
             are multiplied with input variables. All other matrices has
             ``(N, N)`` shape.
         bs (list of list of :class:`~chainer.Variable`): Bias vectors.
@@ -167,7 +167,7 @@ def n_step_bigru(
             ``ws[i]`` represents weights for i-th layer.
             Each ``ws[i]`` is a list containing six matrices.
             ``ws[i][j]`` is corresponding with ``W_j`` in the equation.
-            Only ``ws[0][j]`` where ``0 <= j < 3`` is ``(I, N)`` shape as they
+            Only ``ws[0][j]`` where ``0 <= j < 3`` is ``(N, I)`` shape as they
             are multiplied with input variables. All other matrices has
             ``(N, N)`` shape.
         bs (list of list of :class:`~chainer.Variable`): Bias vectors.
@@ -232,7 +232,7 @@ use_bi_direction)
             ``ws[i]`` represents weights for i-th layer.
             Each ``ws[i]`` is a list containing six matrices.
             ``ws[i][j]`` is corresponding with ``W_j`` in the equation.
-            Only ``ws[0][j]`` where ``0 <= j < 3`` is ``(I, N)`` shape as they
+            Only ``ws[0][j]`` where ``0 <= j < 3`` is ``(N, I)`` shape as they
             are multiplied with input variables. All other matrices has
             ``(N, N)`` shape.
         bs (list of list of :class:`~chainer.Variable`): Bias vectors.
