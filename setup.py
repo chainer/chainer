@@ -194,6 +194,7 @@ setup_kwargs = dict(
     install_requires=install_requires,
     tests_require=tests_require,
     extras_require=extras_require,
+    python_requires='>=3.5.0',
 )
 
 
