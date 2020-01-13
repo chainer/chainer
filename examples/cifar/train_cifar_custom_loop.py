@@ -74,7 +74,6 @@ def main():
         train = train[:200]
         test = test[:200]
 
-    train_count = len(train)
     test_count = len(test)
 
     model = L.Classifier(models.VGG.VGG(class_labels))
@@ -99,6 +98,7 @@ def main():
     test_iter = chainer.iterators.SerialIterator(test, args.batchsize,
                                                  repeat=False, shuffle=False)
 
+    train_count = 0
     sum_acc = 0
     sum_loss = 0
 
@@ -111,6 +111,7 @@ def main():
 
         x, t = convert.concat_examples(batch, device)
         optimizer.update(model, x, t)
+        train_count += len(t)
         sum_loss += float(model.loss.array) * len(t)
         sum_acc += float(model.accuracy.array) * len(t)
 
@@ -118,6 +119,7 @@ def main():
             print('epoch: {}'.format(train_iter.epoch))
             print('train mean loss: {}, accuracy: {}'.format(
                 sum_loss / train_count, sum_acc / train_count))
+            train_count = 0
             sum_acc = 0
             sum_loss = 0
             # Enable evaluation mode.
