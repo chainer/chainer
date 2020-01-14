@@ -1,4 +1,7 @@
+**Chainer will go on to the maintainance phase, further development will be limited to bug-fixes and maintenance.**
+
 Thank you for creating a pull request!
+
 
 Please double-check the following.
 
