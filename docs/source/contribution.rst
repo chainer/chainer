@@ -5,7 +5,7 @@ Contribution Guide
 
 Important Announcement
 ----------------------
-As we [announced](https://chainer.org/announcement/2019/12/05/released-v7.html),
+As we `announced <https://chainer.org/announcement/2019/12/05/released-v7.html>`_,
 Chainer will go on to the maintenance phase and further development will be limited to bug-fixes and maintenance.
 
 Chainer is an `open source software hosted on GitHub <https://github.com/chainer/chainer>`_.
