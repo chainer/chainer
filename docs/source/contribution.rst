@@ -3,9 +3,12 @@
 Contribution Guide
 ==================
 
-Chainer is an `open source software hosted on GitHub <https://github.com/chainer/chainer>`_ and welcomes contributors to take part in the development of the framework.
-This is a document aimed towards such contributors.
-Anyone who for instance would like to file an issue or send a pull request (PR) is encouraged to go through it.
+Important Announcement
+----------------------
+As we [announced](https://chainer.org/announcement/2019/12/05/released-v7.html),
+Chainer will go on to the maintenance phase and further development will be limited to bug-fixes and maintenance.
+
+Chainer is an `open source software hosted on GitHub <https://github.com/chainer/chainer>`_.
 
 Issues and Pull Requests
 ------------------------
