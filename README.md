@@ -54,10 +54,10 @@ $ nvidia-docker run -it chainer/chainer /bin/bash
 ```
 
 
-## Contribution
+## Maintainance
 
-Any contributions to Chainer are welcome!
-If you want to file an issue or send a pull request, [please follow the contribution guide](https://docs.chainer.org/en/stable/contribution.html).
+As we [announced](https://chainer.org/announcement/2019/12/05/released-v7.html), Chainer  will go on to the maintainance phase.
+Chainer team will work only on bug-fixes and maintenance.
 
 
 ## ChainerX
