@@ -383,7 +383,7 @@ class _RetrieveAsCaffeModel(object):
                 for i in inputs[0].shape:
                     f.write(' dim: ' + str(i))
                 f.write(' } }\n'
-                        '} \n')
+                        '}\n')
             for i in dumped_list:
                 self.dump_function_object(i, f, net)
         finally:
