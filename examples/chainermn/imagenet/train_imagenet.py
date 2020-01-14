@@ -28,7 +28,7 @@ major, minor, _, _, _ = sys.version_info
 if major <= 2 or (major == 3 and minor < 4):
     sys.stderr.write('Error: ImageNet example uses '
                      'chainer.iterators.MultiprocessIterator, '
-                     'which works only with Python >= 3.4. \n'
+                     'which works only with Python >= 3.4.\n'
                      'For more details, see '
                      'http://chainermn.readthedocs.io/en/master/'
                      'tutorial/tips_faqs.html#using-multiprocessiterator\n')

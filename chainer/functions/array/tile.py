@@ -17,7 +17,7 @@ class Tile(function_node.FunctionNode):
                 isinstance(x, six.integer_types) for x in reps):
             self.reps = reps
         else:
-            msg = 'reps must be int or tuple of ints. \n' \
+            msg = 'reps must be int or tuple of ints.\n' \
                   'Actual: {0}'.format(type(reps))
             raise TypeError(msg)
 

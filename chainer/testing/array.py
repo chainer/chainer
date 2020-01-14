@@ -29,7 +29,7 @@ def assert_allclose(x, y, atol=1e-5, rtol=1e-4, verbose=True):
         f = six.StringIO()
         f.write(str(e) + '\n\n')
         f.write(
-            'assert_allclose failed: \n' +
+            'assert_allclose failed:\n' +
             '  shape: {} {}\n'.format(x.shape, y.shape) +
             '  dtype: {} {}\n'.format(x.dtype, y.dtype))
         if x.shape == y.shape:

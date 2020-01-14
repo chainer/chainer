@@ -473,7 +473,7 @@ Use apply() method instead.\
             if not all([x.layout == inputs[0].layout for x in inputs]):
                 raise RuntimeError(
                     'Inputs with mixed memory layouts were given to '
-                    'an elementwise function. \n'
+                    'an elementwise function.\n'
                     'Function: {}\n'
                     'Input layouts: {}\n'.format(
                         self.label,
