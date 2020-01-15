@@ -54,9 +54,9 @@ $ nvidia-docker run -it chainer/chainer /bin/bash
 ```
 
 
-## Maintainance
+## Maintenance
 
-As we [announced](https://chainer.org/announcement/2019/12/05/released-v7.html), Chainer  will go on to the maintainance phase.
+As we [announced](https://chainer.org/announcement/2019/12/05/released-v7.html), Chainer  will go on to the maintenance phase.
 Chainer team will work only on bug-fixes and maintenance.
 
 
