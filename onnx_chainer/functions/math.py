@@ -159,7 +159,7 @@ def convert_PowVarVar(
         return onnx_helper.make_node('Pow', input_names, output_names),
 
 
-@support((1, 6))
+@support((1, 6, 11))
 def convert_Clip(func, opset_version, input_names, output_names, context):
     if opset_version == 1:
         return onnx_helper.make_node(
@@ -174,6 +174,13 @@ def convert_Clip(func, opset_version, input_names, output_names, context):
             max=func.x_max,
             min=func.x_min,
         ),
+    elif opset_version == 11:
+        min_name = context.add_const(
+            np.array(func.x_min, dtype=np.float32), 'x_min')
+        max_name = context.add_const(
+            np.array(func.x_max, dtype=np.float32), 'x_max')
+        input_names.extend([min_name, max_name])
+        return onnx_helper.make_node('Clip', input_names, output_names),
 
 
 @support((7,))
@@ -387,3 +394,8 @@ def convert_ArgMax(func, opset_version, input_names, output_names, context):
 @support((6,))
 def convert_ArgMin(func, opset_version, input_names, output_names, context):
     return _argminmax_nodes('ArgMin', func, input_names, output_names, context)
+
+
+@support((9,))
+def convert_sign(func, opset_verseion, input_names, output_names, context):
+    return onnx_helper.make_node('Sign', input_names, output_names),

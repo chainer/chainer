@@ -64,6 +64,7 @@ from onnx_chainer_tests.helper import ONNXModelTest
     {'op_name': 'Tan', 'ops': 'chainer.functions.tan(a)'},
     {'op_name': 'BroadcastTo',
      'ops': 'chainer.functions.broadcast_to(a, (2,2,3))'},
+    {'op_name': 'Sign', 'ops': 'chainer.functions.sign(a)'},
 )
 class TestUnaryMathOperators(ONNXModelTest):
 
@@ -89,7 +90,8 @@ class TestUnaryMathOperators(ONNXModelTest):
         self.name = name
 
         skip_opset_version = []
-        if self.op_name == 'Cosh' or self.op_name == 'Sinh':
+        if self.op_name == 'Cosh' or self.op_name == 'Sinh' or\
+                self.op_name == 'Sign':
             skip_opset_version.append(7)
             skip_opset_version.append(8)
 

@@ -1,10 +1,10 @@
 import chainer
-from chainer.backends.cuda import cupy
 import chainer.testing
 import chainer.testing.attr
 import unittest
 
 import chainermn
+from chainermn.testing.device import get_device
 
 
 class ExampleModel(chainer.Chain):
@@ -20,7 +20,14 @@ class ExampleModel(chainer.Chain):
 
 class TestAllreducePersistent(unittest.TestCase):
 
-    def _test(self, comm, model):
+    def _test(self, comm, model, use_gpu, use_chx):
+        if use_gpu:
+            # Use CuPy's Device class to force call cudaSetDevice()
+            chainer.cuda.get_device_from_id(comm.intra_rank).use()
+
+        device = get_device(comm.intra_rank if use_gpu else None, use_chx)
+        model.to_device(device)
+
         rank = comm.rank
         model.bn1.avg_mean.fill(rank * 1)
         model.bn2.avg_mean.fill(rank * 2)
@@ -39,14 +46,13 @@ class TestAllreducePersistent(unittest.TestCase):
 
     def test_allreduce_persistent_cpu(self):
         comm = chainermn.create_communicator('naive')
-        self._test(comm, ExampleModel())
+        model = ExampleModel()
+        self._test(comm, model, False, False)  # CPU test (numpy)
+        self._test(comm, model, False, True)  # CPU test (ChainerX)
 
     @chainer.testing.attr.gpu
     def test_allreduce_persistent_gpu(self):
         comm = chainermn.create_communicator('flat')
-        device = comm.intra_rank
-        chainer.cuda.get_device_from_id(device).use()
-
         model = ExampleModel()
-        model.to_device(cupy.cuda.Device(device))
-        self._test(comm, model)
+        self._test(comm, model, True, False)  # GPU test (CuPy)
+        self._test(comm, model, True, True)  # GPU test (ChainerX)

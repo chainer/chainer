@@ -1,12 +1,12 @@
 # coding: utf-8
 
 import os
+import pytest
 import sys
 import tempfile
 import warnings
 
 import chainer
-from chainer.backends.cuda import cupy
 import chainer.functions as F
 import chainer.links as L
 import chainer.testing
@@ -14,6 +14,7 @@ from chainer import training
 from chainer.training import extensions
 
 import chainermn
+from chainermn.testing import get_device
 from chainermn.extensions.checkpoint import create_multi_node_checkpointer
 
 
@@ -31,23 +32,21 @@ class MLP(chainer.Chain):
         return self.l3(h2)
 
 
-def check_mnist(gpu, display_log=True):
+def check_mnist(use_gpu, use_chx, display_log=True):
     epoch = 5
     batchsize = 100
     n_units = 100
     warnings.filterwarnings(action='always', category=DeprecationWarning)
 
-    comm = chainermn.create_communicator('naive')
-    if gpu:
-        device = comm.intra_rank
-        chainer.cuda.get_device_from_id(device).use()
-    else:
-        device = -1
-
     model = L.Classifier(MLP(n_units, 10))
-    if gpu:
-        model.to_device(cupy.cuda.Device())
+    comm = chainermn.create_communicator('naive')
 
+    if use_gpu:
+        # Call CuPy's `Device.use()` to force cudaSetDevice()
+        chainer.cuda.get_device_from_id(comm.intra_rank).use()
+
+    device = get_device(comm.intra_rank if use_gpu else None, use_chx)
+    model.to_device(device)
     optimizer = chainermn.create_multi_node_optimizer(
         chainer.optimizers.Adam(), comm)
     optimizer.setup(model)
@@ -108,14 +107,16 @@ def check_mnist(gpu, display_log=True):
     os.removedirs(path)
 
 
+@pytest.mark.parametrize("use_chx", [True, False])
 @chainer.testing.attr.slow
-def test_mnist():
-    check_mnist(False)
+def test_mnist(use_chx):
+    check_mnist(False, use_chx)
 
 
+@pytest.mark.parametrize("use_chx", [True, False])
 @chainer.testing.attr.gpu
-def test_mnist_gpu():
-    check_mnist(True)
+def test_mnist_gpu(use_chx):
+    check_mnist(True, use_chx)
 
 
 if __name__ == '__main__':

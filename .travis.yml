@@ -27,16 +27,26 @@ matrix:
       env:
       - CHAINER_TRAVIS_TEST="chainer"
       - MATRIX_EVAL="CC=gcc-5 && CXX=g++-5"
+      - GOROOT=$HOME/go
       if: type in (pull_request)
+
+    - name: "Examples"
+      language: python
+      dist: xenial
+      python: "3.5"
+      env:
+      - CHAINER_TRAVIS_TEST="examples"
+      - GOROOT=$HOME/go
 
     - name: "macOS Py35 | chainer, chainermn, chainerx, docs"
       os: osx
       language: generic
       env:
       - CHAINER_TRAVIS_TEST="chainer"
-      - PYTHON_VERSION=3.5.1
+      - PYTHON_VERSION=3.5.2
       - PYENV_ROOT=~/.pyenv
       - PATH=$PYENV_ROOT/shims:$PATH:$PYENV_ROOT/bin
+      - GOROOT=/usr/local/opt/go/libexec
       if: (branch = master OR branch = v6) AND (NOT type in (pull_request))
 
 before_install:

@@ -15,6 +15,8 @@
 
 set -eux
 
+export CHAINER_CI=flexci
+
 cp -a /src /chainer
 cp /chainer/setup.cfg /
 cd /
@@ -57,7 +59,8 @@ test_py37() {
   #-----------------------------------------------------------------------------
   # Install Chainer
   #-----------------------------------------------------------------------------
-  CHAINER_BUILD_CHAINERX=1 CHAINERX_BUILD_CUDA=1 MAKEFLAGS="-j$(nproc)" \
+  CHAINER_BUILD_CHAINERX=1 CHAINERX_BUILD_CUDA=1 \
+  MAKEFLAGS="-j$(get_build_concurrency)" \
   CHAINERX_NVCC_GENERATE_CODE=arch=compute_70,code=sm_70 \
       python3.7 -m pip install /chainer[test] 2>&1 >/tmp/install.log &
   install_pid=$!
@@ -77,7 +80,7 @@ test_py37() {
       -DCHAINERX_WARNINGS_AS_ERRORS=ON \
       /chainer/chainerx_cc
   # NOTE: Use nice to prioritize pip install process.
-  nice -n 19 make "-j$(nproc)"
+  nice -n 19 make "-j$(get_build_concurrency)"
   ctest --output-on-failure "-j$(nproc)" && :
   cc_test_status=$?
   popd
@@ -98,6 +101,8 @@ test_py37() {
   if [ "${SPREADSHEET_ID:-}" != '' ]; then
     xpytest_args+=(--spreadsheet_id="${SPREADSHEET_ID}")
   fi
+  # TODO(niboshi): Allow option pass-through (https://github.com/chainer/xpytest/issues/14)
+  export PYTEST_ADDOPTS=-rfEX
   # TODO(imos): Enable xpytest to support python_files setting in setup.cfg.
   OMP_NUM_THREADS=1 xpytest "${xpytest_args[@]}" \
       '/chainer/tests/chainerx_tests/**/test_*.py' \
@@ -134,7 +139,8 @@ test_py27and35() {
   # Install Chainer
   #-----------------------------------------------------------------------------
   # Install Chainer for python3.5.
-  CHAINER_BUILD_CHAINERX=1 CHAINERX_BUILD_CUDA=1 MAKEFLAGS="-j$(nproc)" \
+  CHAINER_BUILD_CHAINERX=1 CHAINERX_BUILD_CUDA=1 \
+  MAKEFLAGS="-j$(get_build_concurrency)" \
   CHAINERX_NVCC_GENERATE_CODE=arch=compute_70,code=sm_70 \
       python3.5 -m pip install /chainer[test] 2>&1 >/tmp/install-py35.log &
   install_pid=$!
@@ -155,6 +161,8 @@ test_py27and35() {
   if [ "${SPREADSHEET_ID:-}" != '' ]; then
     xpytest_args+=(--spreadsheet_id="${SPREADSHEET_ID}")
   fi
+  # TODO(niboshi): Allow option pass-through (https://github.com/chainer/xpytest/issues/14)
+  export PYTEST_ADDOPTS=-rfEX
   # NOTE: PYTHONHASHSEED=0 is necessary to use pytest-xdist.
   OMP_NUM_THREADS=1 PYTHONHASHSEED=0 xpytest "${xpytest_args[@]}" \
       '/chainer/tests/chainer_tests/**/test_*.py' && :
@@ -202,7 +210,13 @@ test_chainermn_sub() {
   #-----------------------------------------------------------------------------
   # Install Chainer
   #-----------------------------------------------------------------------------
-  if ! python -m pip install /chainer[test] 2>&1 >/tmp/install-py3.log; then
+  CHAINER_BUILD_CHAINERX=1 CHAINERX_BUILD_CUDA=1 \
+  MAKEFLAGS="-j$(get_build_concurrency)" \
+  CHAINERX_NVCC_GENERATE_CODE=arch=compute_70,code=sm_70 \
+      python -m pip install /chainer[test] 2>&1 >/tmp/install-py3.log &
+  install_pid=$!
+
+  if ! wait $install_pid; then
     cat /tmp/install-py3.log
     exit 1
   fi
@@ -216,6 +230,18 @@ test_chainermn_sub() {
                    -x --capture=no \
                    -s -v -m "${marker}" \
 				   /chainer/tests/chainermn_tests
+}
+
+# get_build_concurrency determines the parallelism of the build process.
+# Currently maximum is set to 16 to avoid exhausting memory.
+get_build_concurrency() {
+    local num_cores="$(nproc)"
+    local num_cores_max="16"
+    if [ ${num_cores} -gt ${num_cores_max} ]; then
+        echo "${num_cores_max}"
+    else
+        echo "${num_cores}"
+    fi
 }
 
 # test_doctest is a test function for chainer.doctest.

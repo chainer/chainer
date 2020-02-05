@@ -5,12 +5,12 @@ import pytest
 import unittest
 
 import chainer
-from chainer.backends.cuda import cupy
 import chainer.initializers
 import chainer.links
 import chainer.testing
 import chainer.testing.attr
 import chainermn
+import chainerx
 from chainermn.communicators import _communication_utility
 from chainermn.communicators.flat_communicator \
     import FlatCommunicator
@@ -21,6 +21,7 @@ from chainermn.communicators.non_cuda_aware_communicator \
 from chainermn.communicators.pure_nccl_communicator \
     import PureNcclCommunicator
 from chainermn import nccl
+import chainermn.testing
 
 
 class ExampleModel(chainer.Chain):
@@ -176,7 +177,7 @@ for global_dtype in [np.float32, np.float16, chainer.mixed16, None]:
 mpi_comm = mpi4py.MPI.COMM_WORLD
 
 
-def create_communicator(param, use_gpu):
+def create_communicator(param, use_gpu, use_chx):
     if not param.multi_node:
         ranks = _communication_utility.init_ranks(mpi_comm)
         inter_size = ranks[4]
@@ -201,7 +202,7 @@ def create_communicator(param, use_gpu):
         assert param.allreduce_grad_dtype == value
 
     if use_gpu:
-        chainer.cuda.get_device_from_id(communicator.intra_rank).use()
+        chainermn.testing.get_device(communicator.intra_rank, use_chx).use()
 
     return communicator
 
@@ -318,8 +319,8 @@ def check_multi_node_mean_grad_empty_half(communicator, model):
                                         v * np.ones((5, )))
 
 
-def check_send_recv(param, use_gpu):
-    communicator = create_communicator(param, use_gpu)
+def check_send_recv(param, use_gpu, use_chx=False):
+    communicator = create_communicator(param, use_gpu, use_chx)
 
     assert mpi_comm.Get_rank() == communicator.rank
     assert mpi_comm.Get_size() == communicator.size
@@ -342,7 +343,7 @@ def check_send_recv(param, use_gpu):
     communicator.finalize()
 
 
-def check_multi_node_mean_grad_mixed_dtype(param, model, use_gpu):
+def check_multi_node_mean_grad_mixed_dtype(param, model, use_gpu, use_chx):
     # Checks the actual allreduce communication is performed
     # in the correct data type (FP16 or FP32)
     comm_class = param.communicator_class
@@ -385,7 +386,9 @@ def check_multi_node_mean_grad_mixed_dtype(param, model, use_gpu):
             answer_dtype = np.float16
 
     if use_gpu:
-        model.to_device(cupy.cuda.Device())
+        device = chainermn.testing.get_device(communicator.intra_rank,
+                                              use_chainerx=use_chx)
+        model.to_device(device)
 
     model.a.W.grad[:] = communicator.rank
     model.b.W.grad[:] = communicator.rank + 1
@@ -422,35 +425,34 @@ def check_multi_node_mean_grad_mixed_dtype(param, model, use_gpu):
     communicator.finalize()
 
 
-def check_collective_communication(param, use_gpu):
-    communicator = create_communicator(param, use_gpu)
+def check_collective_communication(param, use_gpu, use_chx):
+    communicator = create_communicator(param, use_gpu, use_chx)
     mpi_comm.barrier()
 
     model = ExampleModel(param.model_dtype)
     if use_gpu:
-        device = cupy.cuda.Device()
-        model.to_device(device)
+        device = chainermn.testing.get_device(communicator.intra_rank, use_chx)
+    else:
+        device = chainermn.testing.get_device(use_chainerx=use_chx)
+
+    model.to_device(device)
     check_bcast_data(communicator, model)
 
     model = ExampleModel(param.model_dtype)
-    if use_gpu:
-        model.to_device(device)
+    model.to_device(device)
     check_multi_node_mean_grad(communicator, model)
 
     model = ExampleModel(param.model_dtype)
-    if use_gpu:
-        model.to_device(device)
+    model.to_device(device)
     check_multi_node_mean_grad_empty(communicator, model)
+
     model = ExampleModel(param.model_dtype)
-    if use_gpu:
-        model.to_device(device)
+    model.to_device(device)
     check_multi_node_mean_grad_empty_half(communicator, model)
 
     # Check allreduce debug mode
     model = ExampleModel()
-    if use_gpu:
-        model.to_device(device)
-
+    model.to_device(device)
     # The example model includes some nan parameters so the debug mode
     # must detect it.
     chainer.set_debug(True)
@@ -466,24 +468,27 @@ def check_collective_communication(param, use_gpu):
 
 # chainer.testing.parameterize is not available at functions
 @pytest.mark.parametrize('param', cpu_params)
-def test_communicator_cpu(param):
-    check_send_recv(param, False)
-    check_collective_communication(param, False)
+@pytest.mark.parametrize('use_chx', [True, False])
+def test_communicator_cpu(param, use_chx):
+    check_send_recv(param, False, use_chx)
+    check_collective_communication(param, False, use_chx)
 
 
 @pytest.mark.parametrize('param', gpu_params)
+@pytest.mark.parametrize('use_chx', [True, False])
 @chainer.testing.attr.gpu
-def test_communicator_gpu(param):
+def test_communicator_gpu(param, use_chx):
     check_send_recv(param, True)
-    check_collective_communication(param, True)
+    check_collective_communication(param, True, use_chx)
 
 
 @pytest.mark.parametrize('param', gpu_mixed_dtype_params)
+@pytest.mark.parametrize('use_chx', [True, False])
 @chainer.testing.attr.gpu
-def test_mixed_dtype_communicator_gpu(param):
+def test_mixed_dtype_communicator_gpu(param, use_chx):
     model = ExampleMixedModel()
     with chainer.using_config('dtype', param.global_dtype):
-        check_multi_node_mean_grad_mixed_dtype(param, model, True)
+        check_multi_node_mean_grad_mixed_dtype(param, model, True, use_chx)
 
 
 class TestPureNcclCommunicator(unittest.TestCase):
@@ -910,6 +915,89 @@ class TestMpiCommunicatorBase(unittest.TestCase):
         self.check_send_recv_obj(3, use_status=True)
         self.check_send_recv_obj(4, tag=4, use_status=True)
         self.check_send_recv_obj(5, tag=5, use_any_recv=False, use_status=True)
+
+        self.teardown()
+
+    def test_send_recv_obj_chx_cpu(self):
+        self.setup()
+
+        with chainerx.using_device("native"):
+            chx_array = chainerx.array([0])
+            self.check_send_recv_obj(chx_array)
+
+            chx_array = chainerx.array([1])
+            self.check_send_recv_obj(chx_array, tag=1)
+
+            chx_array = chainerx.array([2])
+            self.check_send_recv_obj(chx_array, tag=2, use_any_recv=False)
+
+        self.teardown()
+
+    @chainer.testing.attr.gpu
+    def test_send_obj_chx_gpu(self):
+        self.setup()
+
+        rank_next = (self.communicator.rank + 1) % self.communicator.size
+        with chainerx.using_device("cuda"):
+            chx_array = chainerx.array([0])
+            with pytest.raises(ValueError):
+                self.communicator.send_obj(chx_array, dest=rank_next)
+
+            chx_array_list = [[0], chainerx.array([1])]
+            with pytest.raises(ValueError):
+                self.communicator.send_obj(chx_array_list, dest=rank_next)
+
+            chx_array_tuple = (0, chainerx.array([2]))
+            with pytest.raises(ValueError):
+                self.communicator.send_obj(chx_array_tuple, dest=rank_next)
+
+            chx_array_dict_value = {0: chainerx.array([2])}
+            with pytest.raises(ValueError):
+                self.communicator.send_obj(chx_array_dict_value,
+                                           dest=rank_next)
+
+            chx_array_dict_key = {chainerx.array([2]): 0}
+            with pytest.raises(ValueError):
+                self.communicator.send_obj(chx_array_dict_key, dest=rank_next)
+
+            chx_array_dict_set = {chainerx.array([2]), 0}
+            with pytest.raises(ValueError):
+                self.communicator.send_obj(chx_array_dict_set, dest=rank_next)
+
+        self.teardown()
+
+    @chainer.testing.attr.gpu
+    def test_collective_obj_chx_gpu(self):
+        self.setup()
+
+        test_function_list = [self.communicator.gather_obj,
+                              self.communicator.bcast_obj,
+                              self.communicator.allreduce_obj]
+        with chainerx.using_device("cuda"):
+            for func in test_function_list:
+                chx_array = chainerx.array([0])
+                with pytest.raises(ValueError):
+                    func(chx_array)
+
+                chx_array_list = [[0], chainerx.array([1])]
+                with pytest.raises(ValueError):
+                    func(chx_array_list)
+
+                chx_array_tuple = (0, chainerx.array([2]))
+                with pytest.raises(ValueError):
+                    func(chx_array_tuple)
+
+                chx_array_dict_value = {0: chainerx.array([2])}
+                with pytest.raises(ValueError):
+                    func(chx_array_dict_value)
+
+                chx_array_dict_key = {chainerx.array([2]): 0}
+                with pytest.raises(ValueError):
+                    func(chx_array_dict_key)
+
+                chx_array_dict_set = {chainerx.array([2]), 0}
+                with pytest.raises(ValueError):
+                    func(chx_array_dict_set)
 
         self.teardown()
 

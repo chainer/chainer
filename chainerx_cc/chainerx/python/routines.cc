@@ -1,3 +1,5 @@
+#include "chainerx/python/common_export.h"
+
 #include "chainerx/python/routines.h"
 
 #include <algorithm>
@@ -105,6 +107,24 @@ std::vector<Array> ArrayBodiesToArrays(std::vector<ArrayBodyPtr> array_bodies) {
     return arrays;
 }
 
+CastingMode ParseCastingMode(const std::string& casting) {
+    CastingMode mode{};
+    if (casting == "no") {
+        mode = CastingMode::kNo;
+    } else if (casting == "equiv") {
+        throw NotImplementedError{"'equiv' casting is not yet implemented."};
+    } else if (casting == "safe") {
+        throw NotImplementedError{"'safe' casting is not yet implemented."};
+    } else if (casting == "same_kind") {
+        throw NotImplementedError{"'same_kind' casting is not yet implemented."};
+    } else if (casting == "unsafe") {
+        throw NotImplementedError{"'unsafe' casting is not yet implemented."};
+    } else {
+        throw py::value_error{"Casting must be one of 'no', 'equiv', 'safe', 'same_kind', or 'unsafe'."};
+    }
+    return mode;
+}
+
 void InitChainerxCreation(pybind11::module& m) {
     // creation routines
     // TODO(niboshi): Accept CuPy ndarray in `array` and `asarray`. In principle it's CuPy's responsibility to provide some standard
@@ -126,13 +146,12 @@ void InitChainerxCreation(pybind11::module& m) {
           "dtype"_a = nullptr,
           "device"_a = nullptr);
     m.def("ascontiguousarray",
-          [](py::handle a, py::handle dtype, py::handle device) {
-              Array arr{MakeArray(a, dtype, false, device)};
-              return MoveArrayBody(AsContiguousArray(arr));
+          [](const ArrayBodyPtr& a, py::handle dtype) {
+              Array arr{a};
+              return MoveArrayBody(AsContiguousArray(arr, dtype.is_none() ? arr.dtype() : GetDtype(dtype)));
           },
           "a"_a,
-          "dtype"_a = nullptr,
-          "device"_a = nullptr);
+          "dtype"_a = nullptr);
     m.def("empty",
           [](py::handle shape, py::handle dtype, py::handle device) {
               return MoveArrayBody(Empty(ToShape(shape), dtype.is_none() ? Dtype::kFloat32 : GetDtype(dtype), GetDevice(device)));
@@ -200,8 +219,8 @@ void InitChainerxCreation(pybind11::module& m) {
           "device"_a = nullptr);
     m.def("arange",
           [](Scalar start_or_stop,
-             const absl::optional<Scalar>& maybe_stop,
-             const absl::optional<Scalar>& maybe_step,
+             absl::optional<Scalar> maybe_stop,
+             absl::optional<Scalar> maybe_step,
              py::handle dtype,
              py::handle device) {
               DtypeKind start_or_stop_dtype_kind = start_or_stop.kind();
@@ -318,7 +337,7 @@ void InitChainerxCreation(pybind11::module& m) {
 void InitChainerxEvaluation(pybind11::module& m) {
     // evaluation routines
     m.def("accuracy",
-          [](const ArrayBodyPtr& y, const ArrayBodyPtr& t, const absl::optional<int64_t>& ignore_label) {
+          [](const ArrayBodyPtr& y, const ArrayBodyPtr& t, absl::optional<int64_t> ignore_label) {
               return MoveArrayBody(Accuracy(Array{y}, Array{t}, ignore_label));
           },
           "y"_a,
@@ -329,7 +348,7 @@ void InitChainerxEvaluation(pybind11::module& m) {
 void InitChainerxIndexing(pybind11::module& m) {
     // indexing routines
     m.def("take",
-          [](const ArrayBodyPtr& a, py::handle indices, const absl::optional<int8_t>& axis, const absl::optional<std::string>& mode) {
+          [](const ArrayBodyPtr& a, py::handle indices, absl::optional<int8_t> axis, const absl::optional<std::string>& mode) {
               if (!axis.has_value()) {
                   throw NotImplementedError{"axis=None is not yet supported for chainerx.take."};
               }
@@ -819,6 +838,22 @@ void InitChainerxManipulation(pybind11::module& m) {
           "a"_a,
           "source"_a = nullptr,
           "destination"_a = nullptr);
+    m.def("copyto",
+          [](const ArrayBodyPtr& dst, const ArrayBodyPtr& src, const std::string& casting, Scalar where) {
+              CopyTo(Array{dst}, Array{src}, ParseCastingMode(casting), Full({}, where, Dtype::kBool));
+          },
+          "dst"_a,
+          "src"_a,
+          "casting"_a = "no",
+          "where"_a = true);
+    m.def("copyto",
+          [](const ArrayBodyPtr& dst, const ArrayBodyPtr& src, const std::string& casting, const ArrayBodyPtr& where) {
+              CopyTo(Array{dst}, Array{src}, ParseCastingMode(casting), Array{where});
+          },
+          "dst"_a,
+          "src"_a,
+          "casting"_a = "no",
+          "where"_a);
 }
 
 void InitChainerxActivation(pybind11::module& m) {
@@ -990,7 +1025,7 @@ void InitChainerxReduction(pybind11::module& m) {
           "x"_a,
           "axis"_a = nullptr);
     m.def("cumsum",
-          [](const ArrayBodyPtr& a, const absl::optional<int8_t>& axis) { return MoveArrayBody(Cumsum(Array{a}, axis)); },
+          [](const ArrayBodyPtr& a, absl::optional<int8_t> axis) { return MoveArrayBody(Cumsum(Array{a}, axis)); },
           "a"_a,
           "axis"_a = nullptr);
     m.def("nansum",
@@ -1040,11 +1075,11 @@ void InitChainerxTrigonometric(pybind11::module& m) {
 void InitChainerxSorting(pybind11::module& m) {
     // sorting routines
     m.def("argmax",
-          [](const ArrayBodyPtr& a, const absl::optional<int8_t>& axis) { return MoveArrayBody(ArgMax(Array{a}, ToAxes(axis))); },
+          [](const ArrayBodyPtr& a, absl::optional<int8_t> axis) { return MoveArrayBody(ArgMax(Array{a}, ToAxes(axis))); },
           "a"_a,
           "axis"_a = nullptr);
     m.def("argmin",
-          [](const ArrayBodyPtr& a, const absl::optional<int8_t>& axis) { return MoveArrayBody(ArgMin(Array{a}, ToAxes(axis))); },
+          [](const ArrayBodyPtr& a, absl::optional<int8_t> axis) { return MoveArrayBody(ArgMin(Array{a}, ToAxes(axis))); },
           "a"_a,
           "axis"_a = nullptr);
     m.def("count_nonzero",
@@ -1058,11 +1093,11 @@ void InitChainerxSorting(pybind11::module& m) {
           "a"_a,
           "axis"_a = nullptr);
     m.def("nanargmax",
-          [](const ArrayBodyPtr& a, const absl::optional<int8_t>& axis) { return MoveArrayBody(NanArgMax(Array{a}, ToAxes(axis))); },
+          [](const ArrayBodyPtr& a, absl::optional<int8_t> axis) { return MoveArrayBody(NanArgMax(Array{a}, ToAxes(axis))); },
           "a"_a,
           "axis"_a = nullptr);
     m.def("nanargmin",
-          [](const ArrayBodyPtr& a, const absl::optional<int8_t>& axis) { return MoveArrayBody(NanArgMin(Array{a}, ToAxes(axis))); },
+          [](const ArrayBodyPtr& a, absl::optional<int8_t> axis) { return MoveArrayBody(NanArgMin(Array{a}, ToAxes(axis))); },
           "a"_a,
           "axis"_a = nullptr);
 }
@@ -1304,6 +1339,10 @@ void InitChainerxLoss(pybind11::module& m) {
           "delta"_a);
     m.def("sigmoid_cross_entropy",
           [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return MoveArrayBody(SigmoidCrossEntropy(Array{x1}, Array{x2})); },
+          "x1"_a,
+          "x2"_a);
+    m.def("softmax_cross_entropy",
+          [](const ArrayBodyPtr& x1, const ArrayBodyPtr& x2) { return MoveArrayBody(SoftmaxCrossEntropy(Array{x1}, Array{x2})); },
           "x1"_a,
           "x2"_a);
     m.def("hinge",

@@ -24,11 +24,7 @@ set CHAINER_PYTHON_350_FORCE environment variable to 1."""
 requirements = {
     'install': [
         'setuptools',
-        # typing==3.7.4 causes error "TypeError: Instance and class checks can
-        # only be used with @runtime_checkable protocols" only with Python 2.
-        # https://github.com/chainer/chainer/pull/7562
-        'typing' + ('<=3.6.6' if sys.version_info[0] <= 2 else ''),
-        'typing_extensions' + ('<=3.6.6' if sys.version_info[0] <= 2 else ''),
+        'typing_extensions',
         'filelock',
         'numpy>=1.9.0',
         'protobuf>=3.0.0',
@@ -52,7 +48,7 @@ requirements = {
     'docs': [
         'sphinx==1.8.2',
         'sphinx_rtd_theme',
-        'onnx<1.6.0',
+        'onnx<1.7.0',
         'packaging',
     ],
     'appveyor': [
@@ -186,6 +182,7 @@ setup_kwargs = dict(
               'chainermn.functions',
               'chainermn.iterators',
               'chainermn.links',
+              'chainermn.testing',
               'onnx_chainer',
               'onnx_chainer.functions',
               'onnx_chainer.testing'],
@@ -197,6 +194,7 @@ setup_kwargs = dict(
     install_requires=install_requires,
     tests_require=tests_require,
     extras_require=extras_require,
+    python_requires='>=3.5.0',
 )
 
 

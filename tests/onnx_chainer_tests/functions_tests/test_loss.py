@@ -30,8 +30,5 @@ class TestSoftmaxCrossEntropy(ONNXModelTest):
                                    high=self.in_shape[1]).astype(np.int32)
 
     def test_output(self):
-        # Currently, onnxruntime does not support OneHot node,
-        # so skip output value check
-        self.check_out_values = None
         self.expect(self.model, [self.x, self.t], name=self.name,
                     skip_opset_version=[7, 8])

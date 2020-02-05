@@ -9,6 +9,7 @@ from chainer.backends import cuda
 from chainer import gradient_check
 from chainer import initializers
 from chainer import links
+from chainer import memory_layouts
 from chainer import testing
 from chainer.testing import attr
 from chainer.testing import condition
@@ -654,6 +655,120 @@ class TestLazyInitializationWithNonZeroCurrentCudaDevice(unittest.TestCase):
         assert bn.avg_var is not None
         assert backend.GpuDevice.from_array(bn.avg_mean) == device
         assert backend.GpuDevice.from_array(bn.avg_var) == device
+
+
+@testing.parameterize(*testing.product({
+    'x_shape,bn_kwargs': [
+        ((4, 3), {'axis': (0,)}),
+        ((4, 3), {'size': (3,)}),
+    ],
+}))
+class TestSerialize(unittest.TestCase):
+
+    def create_link(self):
+        return links.BatchNormalization(**self.bn_kwargs)
+
+    def train_link(self, bn):
+        x = numpy.random.rand(*self.x_shape).astype(numpy.float32)
+        bn(x)
+        x = numpy.random.rand(*self.x_shape).astype(numpy.float32)
+        bn(x, finetune=True)
+        # has non-trivial values to be stored
+        assert bn.avg_mean is not None
+        assert bn.N == 1
+
+    def create_serializer_pair(self):
+        target = {}
+        return (
+            chainer.serializers.DictionarySerializer(target),
+            chainer.serializers.NpzDeserializer(target),
+        )
+
+    def test_serialize(self):
+        ser, de = self.create_serializer_pair()
+
+        link1 = self.create_link()
+        self.train_link(link1)
+        link1.serialize(ser)
+
+        link2 = self.create_link()
+        link2.serialize(de)
+
+        testing.assert_allclose(link2.avg_mean, link1.avg_mean)
+        testing.assert_allclose(link2.avg_var, link1.avg_var)
+        testing.assert_allclose(link2.beta.array, link1.beta.array)
+        testing.assert_allclose(link2.gamma.array, link1.gamma.array)
+        assert link2.N == link1.N
+
+
+@testing.inject_backend_tests(
+    [
+        'test_param_layout_to_device',
+        'test_forward',
+    ],
+    # CPU tests
+    [{}]
+    # GPU tests
+    + testing.product({
+        'use_cuda': [True],
+        'use_cudnn': ['never', 'always'],
+    }))
+class TestBatchNormalizationMemoryLayouts(unittest.TestCase):
+    batch = 2
+    channels = 3
+    height = 13
+    width = 11
+    axis = None
+    dtype = numpy.float32
+
+    def create_link(self):
+        channel_dims = (self.channels,)
+        link = links.BatchNormalization(
+            channel_dims,
+            axis=self.axis)
+        return link
+
+    def create_input_array(self, xp):
+        x_shape = (self.batch, self.height, self.width, self.channels)
+        x = xp.ones(x_shape, self.dtype)
+        return x
+
+    def test_param_layout(self):
+        with chainer.using_config('compute_mode', 'cudnn_fast'):
+            link = self.create_link()
+        assert link.gamma.layout is None
+        assert link.beta.layout is None
+
+    def test_param_layout_to_device(self, backend_config):
+        with chainer.using_config('compute_mode', 'cudnn_fast'):
+            link = self.create_link()
+        assert link.gamma.device == chainer.get_device('@numpy')
+        assert link.beta.device == chainer.get_device('@numpy')
+        link.to_device(backend_config.device)
+        assert link.gamma.device == backend_config.device
+        assert link.beta.device == backend_config.device
+        assert link.gamma.layout is None
+        assert link.beta.layout is None
+
+    def test_forward(self, backend_config):
+        with chainer.using_config('compute_mode', 'cudnn_fast'):
+            link = self.create_link()
+        link.to_device(backend_config.device)
+
+        x = self.create_input_array(backend_config.xp)
+        x = chainer.Variable(x, layout=memory_layouts.CUDNN_CHANNEL_LAST_X)
+        x.to_device(backend_config.device)
+        with backend_config:
+            y = link(x)
+
+        assert link.gamma.device == backend_config.device
+        assert link.beta.device == backend_config.device
+        assert y.layout == memory_layouts.CUDNN_CHANNEL_LAST_X
+        assert y.shape == (
+            self.batch,
+            self.channels,
+            self.height,
+            self.width)
 
 
 testing.run_module(__name__, __file__)

@@ -59,16 +59,21 @@ def convert_AveragePoolingND(
         ),
 
 
-@support((1, 8))
+@support((1, 8, 11))
 def convert_MaxPooling2D(
         func, opset_version, input_names, output_names, context):
     pad = [func.ph, func.pw]
     stride = [func.sy, func.sx]
     ksize = [func.kh, func.kw]
+    attrs = {}
     if func.cover_all:
-        # Supports cover_all by setting extra padding
-        # NOTE: onnxruntime may not run when "k <= p + s - 1".
-        pad.extend([p + s - 1 for p, s in zip(pad, stride)])
+        if opset_version < 11:
+            # Supports cover_all by setting extra padding
+            # NOTE: onnxruntime may not run when "k <= p + s - 1".
+            pad.extend([p + s - 1 for p, s in zip(pad, func.stride)])
+        else:
+            pad = pad * 2
+            attrs['ceil_mode'] = 1
     else:
         pad = pad * 2
 
@@ -79,24 +84,30 @@ def convert_MaxPooling2D(
             pads=pad,
             strides=stride
         ),
-    elif opset_version == 8:
+    elif opset_version >= 8:
         return onnx_helper.make_node(
             'MaxPool', input_names, output_names,
             kernel_shape=ksize,
             pads=pad,
             strides=stride,
             storage_order=0,  # row major
+            **attrs,
         ),
 
 
-@support((1, 8))
+@support((1, 8, 11))
 def convert_MaxPoolingND(
         func, opset_version, input_names, output_names, context):
     pad = list(func.pad[:])
+    attrs = {}
     if func.cover_all:
-        # Supports cover_all by setting extra padding
-        # NOTE: onnxruntime may not run when "k <= p + s - 1".
-        pad.extend([p + s - 1 for p, s in zip(pad, func.stride)])
+        if opset_version < 11:
+            # Supports cover_all by setting extra padding
+            # NOTE: onnxruntime may not run when "k <= p + s - 1".
+            pad.extend([p + s - 1 for p, s in zip(pad, func.stride)])
+        else:
+            pad = pad * 2
+            attrs['ceil_mode'] = 1
     else:
         pad = pad * 2
 
@@ -107,13 +118,14 @@ def convert_MaxPoolingND(
             pads=pad,
             strides=func.stride
         ),
-    elif opset_version == 8:
+    elif opset_version >= 8:
         return onnx_helper.make_node(
             'MaxPool', input_names, output_names,
             kernel_shape=func.ksize,
             pads=pad,
             strides=func.stride,
             storage_order=0,  # row major
+            **attrs,
         ),
 
 
@@ -131,7 +143,7 @@ def convert_ROIPooling2D(
     ),
 
 
-@support((7, 9, 10))
+@support((7, 9, 10, 11))
 def convert_Unpooling2D(
         func, opset_version, input_names, output_names, context):
     pad = [func.ph, func.pw]
@@ -139,15 +151,12 @@ def convert_Unpooling2D(
     ksize = [func.kh, func.kw]
     outsize = [func.outh, func.outw]
     # TODO(hamaji): These could be implemented by `Slice` and `Pad`.
-    if func.cover_all:
-        raise RuntimeError('ONNX-chainer does not support `cover_all=True` '
-                           'for Unpooling2D')
     h, w = func.inputs[0].shape[2:]
     expected_outsize = [
         conv.get_deconv_outsize(
             h, func.kh, func.sy, func.ph, cover_all=func.cover_all),
         conv.get_deconv_outsize(
-            w, func.kh, func.sy, func.ph, cover_all=func.cover_all)
+            w, func.kw, func.sx, func.pw, cover_all=func.cover_all)
     ]
     if outsize != expected_outsize:
         raise RuntimeError('ONNX-chainer does not support `outsize!=None` '
@@ -161,13 +170,31 @@ def convert_Unpooling2D(
         raise RuntimeError('ONNX-chainer does not support `stride!=ksize` '
                            'for Unpooling2D: stride={} ksize={}'.format(
                                stride, ksize))
-    scales = [1.0, 1.0, float(func.kh), float(func.kw)]
+
+    if func.cover_all:
+        uncovered_outsize = [
+            conv.get_deconv_outsize(
+                h, func.kh, func.sy, func.ph, cover_all=False),
+            conv.get_deconv_outsize(
+                w, func.kw, func.sx, func.pw, cover_all=False)
+        ]
+        scales = [
+            1.0, 1.0,
+            func.kh * outsize[0] / uncovered_outsize[0],
+            func.kw * outsize[1] / uncovered_outsize[1],
+        ]
+    else:
+        scales = [1.0, 1.0, float(func.kh), float(func.kw)]
     if opset_version == 7:
         return onnx_helper.make_node('Upsample', input_names, output_names,
                                      scales=scales),
+    scales_name = context.add_const(
+        np.array(scales, dtype=np.float32), 'scales')
     if opset_version in [9, 10]:
-        scales_name = context.add_const(
-            np.array(scales, dtype=np.float32), 'scales')
         input_names.append(scales_name)
         op = 'Upsample' if opset_version == 9 else 'Resize'
         return onnx_helper.make_node(op, input_names, output_names),
+    if opset_version == 11:
+        roi_name = context.add_const(np.array([]), 'roi')
+        input_names.extend([roi_name, scales_name])
+        return onnx_helper.make_node('Resize', input_names, output_names),

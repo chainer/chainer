@@ -2,14 +2,15 @@ from __future__ import with_statement
 import itertools
 import unittest
 
-from chainer import testing
 import mpi4py.MPI
 import numpy as np
 import pytest
 
+from chainer import testing
 import chainermn
 from chainermn.communicators.flat_communicator import FlatCommunicator
 from chainermn.communicators.naive_communicator import NaiveCommunicator
+import chainerx as chx
 
 
 class TestDataset(unittest.TestCase):
@@ -39,6 +40,27 @@ class TestDataset(unittest.TestCase):
             # Test the content of scattered datasets
             joined_dataset = sum((sub_dataset[:]
                                   for sub_dataset in sub_datasets), [])
+
+            # NOTE: The values in `original_dataset` and
+            # `joined_dataset` must be casted to int to compare.
+            # There are 2 backgrounds on this issue.
+            #
+            # (1) numpy and cupy/chainerx have different behaviours on
+            # 1-element array. Numpy implicitly converts a 1-element array to
+            # a scalar value.
+            # type(numpy.array([1])[0])
+            # =>  <class 'numpy.int64'>  # Scalar
+            # type(chainerx.array([1])[0])
+            # => <class 'chainerx.ndarray'>  # array of one element
+            #
+            # (2) Two different ChainerX arrays are never identical in the
+            # context of `set()`.
+            # set([chainerx.array([0]), chainerx.array([0])])
+            # => {array([0], shape=(1,), dtype=int64, device='native:0'),
+            #     array([0], shape=(1,), dtype=int64, device='native:0')}
+
+            joined_dataset = [int(e) for e in joined_dataset]
+            original_dataset = [int(e) for e in original_dataset]
             self.assertEqual(set(joined_dataset), set(original_dataset))
 
     def test_scatter_dataset(self):
@@ -56,6 +78,12 @@ class TestDataset(unittest.TestCase):
                 self.check_scatter_dataset(np.array([0]), shuffle, root)
                 self.check_scatter_dataset(np.arange(n), shuffle, root)
                 self.check_scatter_dataset(np.arange(n * 5 - 1), shuffle, root)
+
+                self.check_scatter_dataset(chx.array([]), shuffle, root)
+                self.check_scatter_dataset(chx.array([0]), shuffle, root)
+                self.check_scatter_dataset(chx.arange(n), shuffle, root)
+                self.check_scatter_dataset(
+                    chx.arange(n * 5 - 1), shuffle, root)
 
 
 def scatter_large_data(communicator):

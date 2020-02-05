@@ -96,7 +96,7 @@ inline Array AsContiguous(const Array& a) { return AsContiguous(a, a.dtype()); }
 
 // Returns a C-contiguous array.
 // An input array with shape {} results in a new array with shape {1}.
-Array AsContiguousArray(const Array& a, const absl::optional<Dtype>& dtype = absl::nullopt);
+Array AsContiguousArray(const Array& a, absl::optional<Dtype> dtype = absl::nullopt);
 
 Array Diag(const Array& v, int64_t k = 0);
 
@@ -106,9 +106,9 @@ Array Diagflat(const Array& v, int64_t k = 0);
 Array Linspace(
         Scalar start,
         Scalar stop,
-        const absl::optional<int64_t>& num = absl::nullopt,
+        absl::optional<int64_t> num = absl::nullopt,
         bool endpoint = true,
-        const absl::optional<Dtype>& dtype = absl::nullopt,
+        absl::optional<Dtype> dtype = absl::nullopt,
         Device& device = GetDefaultDevice());
 
 enum class MeshgridIndexingMode { kCartesian, kMatrix };

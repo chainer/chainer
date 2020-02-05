@@ -9,6 +9,7 @@ from chainer import functions
 from chainer import testing
 from chainer.testing import attr
 from chainer.testing import backend
+from chainer_tests.functions_tests.pooling_tests import pooling_nd_helper
 
 
 _inject_backend_tests = backend.inject_backend_tests(
@@ -57,10 +58,7 @@ class TestMaxPooling2D(testing.FunctionTestCase):
                 'atol': 1e-4, 'rtol': 1e-3}
 
     def generate_inputs(self):
-        x = numpy.arange(2 * 3 * 4 * 3, dtype=self.dtype).reshape(2, 3, 4, 3)
-        numpy.random.shuffle(x)
-        x = 2 * x / x.size - 1
-        return x,
+        return pooling_nd_helper.shuffled_linspace((2, 3, 4, 3), self.dtype),
 
     def forward_expected(self, inputs):
         x, = inputs
@@ -136,9 +134,8 @@ class TestMaxPooling2DCudnnCall(unittest.TestCase):
 
 class TestMaxPooling2DIndices(unittest.TestCase):
     def setUp(self):
-        self.x = numpy.arange(
-            2 * 3 * 4 * 4, dtype=numpy.float32).reshape(2, 3, 4, 4)
-        numpy.random.shuffle(self.x)
+        self.x = pooling_nd_helper.shuffled_linspace(
+            (2, 3, 4, 4), numpy.float32)
 
     def _check(self, x):
         out, indices = functions.max_pooling_2d(

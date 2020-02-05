@@ -21,9 +21,12 @@ from onnx_chainer.functions.array import convert_GetItem  # NOQA
 from onnx_chainer.functions.array import convert_Hstack  # NOQA
 from onnx_chainer.functions.array import convert_Moveaxis  # NOQA
 from onnx_chainer.functions.array import convert_Pad  # NOQA
+from onnx_chainer.functions.array import convert_Permutate  # NOQA
 from onnx_chainer.functions.array import convert_Repeat  # NOQA
 from onnx_chainer.functions.array import convert_Reshape  # NOQA
 from onnx_chainer.functions.array import convert_ResizeImages  # NOQA
+from onnx_chainer.functions.array import convert_Rollaxis  # NOQA
+from onnx_chainer.functions.array import convert_SelectItem  # NOQA
 from onnx_chainer.functions.array import convert_Separate  # NOQA
 from onnx_chainer.functions.array import convert_Shape  # NOQA
 from onnx_chainer.functions.array import convert_Space2Depth  # NOQA
@@ -33,6 +36,7 @@ from onnx_chainer.functions.array import convert_Stack  # NOQA
 from onnx_chainer.functions.array import convert_Swapaxes  # NOQA
 from onnx_chainer.functions.array import convert_Tile  # NOQA
 from onnx_chainer.functions.array import convert_Transpose  # NOQA
+from onnx_chainer.functions.array import convert_TransposeSequence  # NOQA
 from onnx_chainer.functions.array import convert_Vstack  # NOQA
 from onnx_chainer.functions.array import convert_Where  # NOQA
 
@@ -78,6 +82,7 @@ from onnx_chainer.functions.math import convert_PowVarConst  # NOQA
 from onnx_chainer.functions.math import convert_PowVarVar  # NOQA
 from onnx_chainer.functions.math import convert_Prod  # NOQA
 from onnx_chainer.functions.math import convert_RsqrtGPU  # NOQA
+from onnx_chainer.functions.math import convert_sign  # NOQA
 from onnx_chainer.functions.math import convert_Sin  # NOQA
 from onnx_chainer.functions.math import convert_Sinh  # NOQA
 from onnx_chainer.functions.math import convert_Sqrt  # NOQA
@@ -101,3 +106,5 @@ from onnx_chainer.functions.pooling import convert_MaxPooling2D  # NOQA
 from onnx_chainer.functions.pooling import convert_MaxPoolingND  # NOQA
 from onnx_chainer.functions.pooling import convert_ROIPooling2D  # NOQA
 from onnx_chainer.functions.pooling import convert_Unpooling2D  # NOQA
+
+from onnx_chainer.functions.rnn import convert_n_step_gru  # NOQA

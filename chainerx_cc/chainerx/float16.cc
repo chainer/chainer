@@ -63,7 +63,9 @@ uint16_t FloatbitsToHalfbits(uint32_t f) {
         uint32_t f_sig = (0x00800000U + (f & 0x007fffffU)) >> (113 - f_exp);
 
         // Handle rounding by adding 1 to the bit beyond half precision
-        f_sig += 0x00001000U;
+        if (((f_sig & 0x00003fffU) != 0x00001000U) || ((f & 0x000007ffU) > 0)) {
+            f_sig += 0x00001000U;
+        }
         uint16_t h_sig = static_cast<uint16_t>(f_sig >> 13);
 
         // If the rounding causes a bit to spill into h_exp, it will increment h_exp from zero to one and h_sig will be zero. This is the
@@ -75,7 +77,10 @@ uint16_t FloatbitsToHalfbits(uint32_t f) {
     uint16_t h_exp = static_cast<uint16_t>((f_exp - 0x38000000U) >> 13);
 
     // Handle rounding by adding 1 to the bit beyond half precision
-    uint32_t f_sig = (f & 0x007fffffU) + 0x00001000U;
+    uint32_t f_sig = f & 0x007fffffU;
+    if ((f_sig & 0x00003fffU) != 0x00001000U) {
+        f_sig += 0x00001000U;
+    }
     uint16_t h_sig = static_cast<uint16_t>(f_sig >> 13);
 
     // If the rounding causes a bit to spill into h_exp, it will increment h_exp by one and h_sig will be zero. This is the correct result.
@@ -122,11 +127,13 @@ uint16_t DoublebitsToHalfbits(uint64_t d) {
 
         // Make the subnormal significand
         d_exp >>= 52;
-        uint64_t d_sig = (0x0010000000000000ULL + (d & 0x000fffffffffffffULL)) >> (1009 - d_exp);
-
+        uint64_t d_sig = (0x0010000000000000ULL + (d & 0x000fffffffffffffULL));
+        d_sig <<= (d_exp - 998);
         // Handle rounding by adding 1 to the bit beyond half precision
-        d_sig += 0x0000020000000000ULL;
-        uint16_t h_sig = static_cast<uint16_t>(d_sig >> 42);
+        if ((d_sig & 0x003fffffffffffffULL) != 0x0010000000000000ULL) {
+            d_sig += 0x0010000000000000ULL;
+        }
+        uint16_t h_sig = static_cast<uint16_t>(d_sig >> 53);
 
         // If the rounding causes a bit to spill into h_exp, it will increment h_exp from zero to one and h_sig will be zero. This is the
         // correct result.
@@ -137,7 +144,10 @@ uint16_t DoublebitsToHalfbits(uint64_t d) {
     uint16_t h_exp = static_cast<uint16_t>((d_exp - 0x3f00000000000000ULL) >> 42);
 
     // Handle rounding by adding 1 to the bit beyond half precision
-    uint64_t d_sig = (d & 0x000fffffffffffffULL) + 0x0000020000000000ULL;
+    uint64_t d_sig = d & 0x000fffffffffffffULL;
+    if ((d_sig & 0x000007ffffffffffULL) != 0x0000020000000000ULL) {
+        d_sig += 0x0000020000000000ULL;
+    }
     uint16_t h_sig = static_cast<uint16_t>(d_sig >> 42);
 
     // If the rounding causes a bit to spill into h_exp, it will increment h_exp by one and h_sig will be zero. This is the correct result.

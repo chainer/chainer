@@ -1,5 +1,14 @@
+import numpy
+
 import chainer
 from chainer import backend
+from chainer import cuda
+
+
+def _add_at(add_at, x, row, col, data):
+    assert data.size > 0
+    last_nz = data.size - (data != 0)[::-1].argmax()
+    add_at(x, (row[:last_nz], col[:last_nz]), data[:last_nz])
 
 
 class CooMatrix(object):
@@ -43,6 +52,7 @@ class CooMatrix(object):
             raise ValueError('numbers in shape must be greater than 0.')
         if order not in ('C', 'F', 'other', None):
             raise ValueError('order must be \'C\', \'F\', \'other\' or None.')
+
         self.data = chainer.Variable(data, requires_grad=requires_grad)
         self.row = row
         self.col = col
@@ -53,22 +63,34 @@ class CooMatrix(object):
 
     def to_dense(self):
         """Returns a dense matrix format of this sparse matrix."""
-        data = self.data.data
-        xp = backend.get_array_module(data)
+        data = self.data
         if data.ndim == 1:
-            x = xp.zeros(self.shape, dtype=data.dtype)
-            nnz = xp.count_nonzero(data)
-            x[self.row[:nnz], self.col[:nnz]] = data[:nnz]
-            return x
-        if data.ndim == 2:
-            nb = data.shape[0]
-            x = xp.zeros((nb, self.shape[0], self.shape[1]),
-                         dtype=data.dtype)
-            for i in range(nb):
-                nnz = xp.count_nonzero(data[i])
-                x[i, self.row[i, :nnz],
-                  self.col[i, :nnz]] = data[i, :nnz]
-            return x
+            shape = self.shape
+        elif data.ndim == 2:
+            shape = (data.shape[0], *self.shape)
+        else:
+            assert False
+
+        xp = data.xp
+        x = xp.zeros(shape, dtype=data.dtype)
+
+        if data.size > 0:
+            row = self.row
+            col = self.col
+            if xp is numpy:
+                add_at = numpy.add.at
+            elif xp is cuda.cupy:
+                add_at = cuda.cupyx.scatter_add
+
+            data = data.array
+            if data.ndim == 1:
+                _add_at(add_at, x, row, col, data)
+            elif data.ndim == 2:
+                for i in range(data.shape[0]):
+                    _add_at(add_at, x[i], row[i], col[i], data[i])
+            else:
+                assert False
+        return x
 
 
 def to_coo(x, ldnz=None, requires_grad=False):

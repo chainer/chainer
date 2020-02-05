@@ -138,7 +138,7 @@ class ONNXModelChecker(object):
                     array, input_data[i], rtol=1e-5, atol=1e-5)
 
             if custom_model_test_func is not None:
-                custom_model_test_func(onnx_model)
+                custom_model_test_func(onnx_model, test_path)
 
             if skip_outvalue_version is not None and\
                     opset_version in skip_outvalue_version:

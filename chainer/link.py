@@ -381,6 +381,20 @@ class Link(device_resident.DeviceResident):
         self._persistent.add(name)
         self._params.discard(name)
 
+    @classmethod
+    def from_params(cls, *args, **kwargs):
+        """Initialize link with given parameters.
+
+        This method initializes the link with given :ref:`ndarray`\\s.
+        Arguments includes
+
+        * some parameters for a specific link.
+        * constants such as stride width of a convolutional layer.
+
+        """
+        raise NotImplementedError(
+            'This link does not implement `from_params`.')
+
     def copy(self, mode: str = 'share') -> 'Link':
         """Copies the link hierarchy to new one.
 
@@ -480,7 +494,7 @@ class Link(device_resident.DeviceResident):
         """
         d = self.__dict__  # type: tp.Dict[str, chainer.Parameter]
         for name in sorted(self._params):
-            if include_uninit or d[name].data is not None:
+            if include_uninit or d[name].is_initialized:
                 yield '/' + name, d[name]
 
     def links(self, skipself: bool = False) -> tp.Iterator['Link']:

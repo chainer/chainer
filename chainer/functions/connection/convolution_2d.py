@@ -7,6 +7,7 @@ from chainer.backends import intel64
 from chainer import configuration
 from chainer import function_node
 import chainer.functions
+from chainer import memory_layouts
 from chainer.utils import argument
 from chainer.utils import conv
 from chainer.utils import type_check
@@ -37,8 +38,8 @@ class Convolution2DFunction(function_node.FunctionNode):
     _use_ideep = False
 
     def __init__(self, stride=1, pad=0, cover_all=False, **kwargs):
-        dilate, groups = argument.parse_kwargs(
-            kwargs, ('dilate', 1), ('groups', 1),
+        dilate, groups, cudnn_fast = argument.parse_kwargs(
+            kwargs, ('dilate', 1), ('groups', 1), ('cudnn_fast', False),
             deterministic='deterministic argument is not supported anymore. '
             'Use chainer.using_config(\'cudnn_deterministic\', value) context '
             'where value is either `True` or `False`.',
@@ -52,6 +53,7 @@ class Convolution2DFunction(function_node.FunctionNode):
         self.cover_all = cover_all
         self.dy, self.dx = _pair(dilate)
         self.groups = groups
+        self.cudnn_fast = cudnn_fast
 
         if self.dx < 1 or self.dy < 1:
             raise ValueError('Dilate should be positive, but {} is '
@@ -79,10 +81,26 @@ class Convolution2DFunction(function_node.FunctionNode):
                 b_type.shape[0] == w_type.shape[0],
             )
 
-    def _get_out_size(self, inputs):
-        x, W = inputs[:2]
-        _, _, kh, kw = W.shape
-        _, _, h, w = x.shape
+    def check_layout_forward(self, inputs):
+        input_layouts = self.input_layouts
+        n = len(inputs)
+
+        layouts = (
+            (memory_layouts.CUDNN_CHANNEL_FIRST_X,
+             memory_layouts.CUDNN_CHANNEL_LAST_X),
+            (memory_layouts.CUDNN_CHANNEL_FIRST_W,
+             memory_layouts.CUDNN_CHANNEL_LAST_W),
+            (None,))
+        for i, (input_layout, expected_layouts) in (
+                enumerate(zip(input_layouts, layouts[:n]))):
+            if input_layout not in expected_layouts:
+                raise RuntimeError(
+                    'Invalid layout for input {}: {}'.format(i, input_layout))
+
+    def _get_out_size(self, x_shape, w_shape):
+        _, _, kh, kw = w_shape
+        _, _, h, w = x_shape
+
         out_h = conv.get_conv_outsize(
             h, kh, self.sy, self.ph, cover_all=self.cover_all, d=self.dy)
         if out_h <= 0:
@@ -92,6 +110,14 @@ class Convolution2DFunction(function_node.FunctionNode):
         if out_w <= 0:
             raise RuntimeError('Width in the output should be positive.')
         return out_h, out_w
+
+    def _check_input_layouts_all_standard(self):
+        if not all([layout is None for layout in self.input_layouts]):
+            raise RuntimeError(
+                'Non-standard memory layouts are only supported with cupy '
+                'arrays in {}. Input layouts: {}'.format(
+                    self.label,
+                    self.input_layouts))
 
     def forward_chainerx(self, inputs):
         # TODO(hvy): Support mixed precision.
@@ -111,6 +137,12 @@ class Convolution2DFunction(function_node.FunctionNode):
             cover_all=self.cover_all),
 
     def forward_cpu(self, inputs):
+
+        if self.cudnn_fast:
+            raise RuntimeError(
+                '\'cudnn_fast\' can\'t be used in the CPU backend')
+
+        self._check_input_layouts_all_standard()
         self.retain_inputs((0, 1))  # retain only x and W
         if len(inputs) == 2:
             (x, W), b = inputs, None
@@ -145,7 +177,7 @@ class Convolution2DFunction(function_node.FunctionNode):
         out_c, input_c, kh, kw = W.shape
         n, c, h, w = x.shape
 
-        out_h, out_w = self._get_out_size((x, W))
+        out_h, out_w = self._get_out_size(x.shape, W.shape)
         pd = (self.sy * (out_h - 1)
               + (kh + (kh - 1) * (self.dy - 1)) - h - self.ph)
         pr = (self.sx * (out_w - 1)
@@ -167,14 +199,21 @@ class Convolution2DFunction(function_node.FunctionNode):
         self.retain_inputs((0, 1))  # retain only x and W
         if len(inputs) == 2:
             (x, W), b = inputs, None
+            x_layout, w_layout = self.input_layouts
         else:
             x, W, b = inputs
+            x_layout, w_layout, _ = self.input_layouts
 
-        out_c, _, kh, kw = W.shape
-        n, _, h, w = x.shape
+        x_shape = memory_layouts._transpose_shape(x.shape, x_layout, None)
+        w_shape = memory_layouts._transpose_shape(W.shape, w_layout, None)
 
-        out_h, out_w = self._get_out_size(inputs)
-        y = cuda.cupy.empty((n, out_c, out_h, out_w), dtype=x.dtype)
+        n, _, h, w = x_shape
+        out_c, _, kh, kw = w_shape
+        out_h, out_w = self._get_out_size(x_shape, w_shape)
+        y_raw_shape = memory_layouts._transpose_shape(
+            (n, out_c, out_h, out_w), None, x_layout)
+
+        y = cuda.cupy.empty(y_raw_shape, dtype=x.dtype)
 
         use_cudnn = (
             chainer.should_use_cudnn('>=auto')
@@ -184,9 +223,12 @@ class Convolution2DFunction(function_node.FunctionNode):
             and (self.groups <= 1 or _cudnn_version >= 7000)
         )
 
+        if self.cudnn_fast and not use_cudnn:
+            raise RuntimeError('\'cudnn_fast\' requires cuDNN to work')
+
         if use_cudnn:
             # cuDNN implementation
-            return self._forward_cudnn(x, W, b, y)
+            return self._forward_cudnn(x, W, b, y, (x_layout, w_layout))
 
         elif self.groups > 1:
             return self._forward_grouped_convolution(x, W, b)
@@ -239,34 +281,54 @@ class Convolution2DFunction(function_node.FunctionNode):
 
         return y,
 
-    def _forward_cudnn(self, x, W, b, y):
+    def _forward_cudnn(self, x, W, b, y, input_layouts):
+        x_layout, w_layout = input_layouts
+        self.output_layouts = (x_layout,)
         pad = (self.ph, self.pw)
         stride = (self.sy, self.sx)
         dilation = (self.dy, self.dx)
+
         auto_tune = configuration.config.autotune
         tensor_core = configuration.config.use_cudnn_tensor_core
+        cudnn_x_layout = cuda._get_cudnn_tensor_layout_x(x_layout)
+        cudnn_w_layout = cuda._get_cudnn_tensor_layout_w(w_layout)
         cuda.cudnn.convolution_forward(
             x, W, b, y, pad, stride, dilation, self.groups,
-            auto_tune=auto_tune, tensor_core=tensor_core)
+            auto_tune=auto_tune, tensor_core=tensor_core,
+            d_layout=cudnn_x_layout, w_layout=cudnn_w_layout)
+
         return y,
 
     def backward(self, indexes, grad_outputs):
         x, W = self.get_retained_inputs()
+        if len(self.input_layouts) == 2:
+            x_layout, _ = self.input_layouts
+        else:
+            x_layout, _, _ = self.input_layouts
         gy, = grad_outputs
 
         ret = []
         if 0 in indexes:
-            xh, xw = x.shape[2:]
+            _, _, xh, xw = x.shape
             gx = chainer.functions.deconvolution_2d(
                 gy, W, stride=(self.sy, self.sx), pad=(self.ph, self.pw),
                 outsize=(xh, xw), dilate=(self.dy, self.dx),
                 groups=self.groups)
+            assert gx.shape == x.shape
             ret.append(gx)
         if 1 in indexes:
-            gW, = Convolution2DGradW(self).apply((x, gy))
+            gW, = Convolution2DGradW(
+                self, W.shape, W.dtype, W.layout).apply((x, gy))
             ret.append(gW)
         if 2 in indexes:
-            gb = chainer.functions.sum(gy, axis=(0, 2, 3))
+            axis = (0, 2, 3)
+            inv_trans = memory_layouts._get_layout_transpose_axes(
+                gy.ndim, None, x_layout)
+            if inv_trans is None:
+                raw_axis = axis
+            else:
+                raw_axis = tuple([inv_trans[i] for i in axis])
+            gb = chainer.functions.sum(gy, axis=raw_axis)
             ret.append(gb)
 
         return ret
@@ -274,9 +336,8 @@ class Convolution2DFunction(function_node.FunctionNode):
 
 class Convolution2DGradW(function_node.FunctionNode):
 
-    def __init__(self, conv2d):
-        W_node = conv2d.inputs[1]
-        self.kh, self.kw = W_node.shape[2:]
+    def __init__(self, conv2d, w_shape, w_dtype, w_layout):
+        self.kh, self.kw = w_shape[2::]
         self.sy = conv2d.sy
         self.sx = conv2d.sx
         self.ph = conv2d.ph
@@ -284,9 +345,14 @@ class Convolution2DGradW(function_node.FunctionNode):
         self.dy = conv2d.dy
         self.dx = conv2d.dx
         self.cover_all = conv2d.cover_all
-        self.W_dtype = W_node.dtype
+        self.W_shape = w_shape
+        self.W_dtype = w_dtype
+        self.w_layout = w_layout
         self.groups = conv2d.groups
         self._use_ideep = conv2d._use_ideep
+
+    def check_layout_forward(self, inputs):
+        pass
 
     def forward_cpu(self, inputs):
         self.retain_inputs((0, 1))
@@ -401,23 +467,26 @@ class Convolution2DGradW(function_node.FunctionNode):
         return gW,
 
     def _forward_cudnn(self, x, gy):
-        _, out_c, out_h, out_w = gy.shape
-        n, c, h, w = x.shape
+        x_layout, gy_layout = self.input_layouts
+        w_layout = self.w_layout
 
-        iC = c
-        iCg = int(iC / self.groups)
-        gW = cuda.cupy.empty((out_c, iCg, self.kh, self.kw),
-                             dtype=self.W_dtype)
+        w_raw_shape = memory_layouts._transpose_shape(
+            self.W_shape, None, w_layout)
+
+        gW = cuda.cupy.empty(w_raw_shape, dtype=self.W_dtype)
         pad = (self.ph, self.pw)
         stride = (self.sy, self.sx)
         dilation = (self.dy, self.dx)
         deterministic = configuration.config.cudnn_deterministic
         auto_tune = configuration.config.autotune
         tensor_core = configuration.config.use_cudnn_tensor_core
+        cudnn_x_layout = cuda._get_cudnn_tensor_layout_x(x_layout)
+        cudnn_w_layout = cuda._get_cudnn_tensor_layout_w(w_layout)
         cuda.cudnn.convolution_backward_filter(
             x, gy, gW, pad, stride, dilation, self.groups,
             deterministic=deterministic, auto_tune=auto_tune,
-            tensor_core=tensor_core)
+            tensor_core=tensor_core,
+            d_layout=cudnn_x_layout, w_layout=cudnn_w_layout)
 
         return gW,
 
@@ -574,14 +643,14 @@ cover_all=True)
         True
 
     """
-    dilate, groups = argument.parse_kwargs(
-        kwargs, ('dilate', 1), ('groups', 1),
+    dilate, groups, cudnn_fast = argument.parse_kwargs(
+        kwargs, ('dilate', 1), ('groups', 1), ('cudnn_fast', False),
         deterministic='deterministic argument is not supported anymore. '
         'Use chainer.using_config(\'cudnn_deterministic\', value) '
         'context where value is either `True` or `False`.')
 
     fnode = Convolution2DFunction(stride, pad, cover_all, dilate=dilate,
-                                  groups=groups)
+                                  groups=groups, cudnn_fast=cudnn_fast)
     if b is None:
         args = x, W
     else:

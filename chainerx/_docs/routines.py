@@ -808,6 +808,17 @@ Returns:
     :class:`~chainerx.ndarray`: Output array. Cholesky factor of ``a``.
 
 Note:
+    The forward computation does not necessarily check if the input matrix is
+    symmetric (e.g. the native backend relying on LAPACK does not). However,
+    both the forward and the backward computations assume that it is and their
+    results are unspecified otherwise. The computed gradient is always a
+    symmetric matrix. More specifically, the gradient is computed as if the
+    function is restricted to a Riemannian submanifold of
+    :math:`R^{n \\times n}` consisting just of positive-definite symmetric
+    matrices and is faithful to the mathematical definition of the Cholesky
+    decomposition.
+
+Note:
     * GPU implementation of the Cholesky decomposition routine is based on
       cuSOLVER library. Older versions (<10.1) of it might not raise an error
       for some non positive-definite matrices.
@@ -833,6 +844,16 @@ Returns:
         Returns a tuple ``(w, v)``. ``w`` contains eigenvalues and
         ``v`` contains eigenvectors. ``v[:, i]`` is an eigenvector
         corresponding to an eigenvalue ``w[i]``.
+
+Note:
+    Although ``UPLO`` can be specified to ignore either the strictly lower or
+    upper part of the input matrix, the backward computation assumes that the
+    inputs is symmetric and the computed gradient is always a symmetric matrix
+    with respect to ``UPLO``. More specifically, the gradient is computed as if
+    the function is restricted to a Riemannian submanifold of
+    :math:`R^{n \\times n}` consisting just of symmetric matrices and is
+    faithful to the mathematical definition of the eigenvalue decomposition of
+    symmetric matrices.
 
 Note:
     The ``dtype`` must be ``float32`` or ``float64`` (``float16`` is not
@@ -1219,6 +1240,27 @@ Args:
         integer vector of ground truth labels 0 or 1. If ``x2[i, j] == -1``,
         corresponding ``x1[i, j]`` is ignored. Loss is zero if all ground truth
         labels are -1.
+
+Returns:
+    :class:`~chainerx.ndarray`: An array of the cross entropy.
+
+Note:
+    During backpropagation, this function propagates the gradient of the output
+    array to the input array ``x1`` only.
+""")
+
+    _docs.set_doc(
+        chainerx.softmax_cross_entropy,
+        """softmax_cross_entropy(x1, x2)
+
+Element-wise cross entropy loss for pre-softmax activations.
+
+Args:
+    x1 (~chainerx.ndarray): An array whose element indicates unnormalized log
+        probability: the first axis of the array represents the number of
+        samples, and the second axis represents the number of classes.
+    x2 (~chainerx.ndarray): A signed integer vector of ground truth labels. If
+        ``x2[i] == -1``, corresponding ``x1[i]`` is ignored.
 
 Returns:
     :class:`~chainerx.ndarray`: An array of the cross entropy.

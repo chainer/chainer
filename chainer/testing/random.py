@@ -147,11 +147,11 @@ def _fix_random(setup_method_name, teardown_method_name):
     return decorator
 
 
-def fix_random():
+def fix_random(*, setup_method='setUp', teardown_method='tearDown'):
     """Decorator that fixes random numbers in a test.
 
     This decorator can be applied to either a test case class or a test method.
     It should not be applied within ``condition.retry`` or
     ``condition.repeat``.
     """
-    return _fix_random('setUp', 'tearDown')
+    return _fix_random(setup_method, teardown_method)

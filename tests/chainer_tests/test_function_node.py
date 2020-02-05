@@ -424,14 +424,29 @@ Actual: 1 < 2"""
             f.apply((v,))
 
 
-class TestFunctionNodeInconsistentBackends(unittest.TestCase):
+class TestFunctionNodeForwardTypeCheck(unittest.TestCase):
 
     def setUp(self):
         self.x1 = numpy.random.rand(2, 3).astype(numpy.float32)
         self.x2 = numpy.random.rand(2, 3).astype(numpy.float32)
 
+    def test_invalid_output_type(self):
+        class FunctionNode(chainer.FunctionNode):
+
+            def forward(self, inputs):
+                return object(),
+
+        f = FunctionNode()
+        x1 = chainer.Variable(self.x1)
+
+        with six.assertRaisesRegex(
+                self,
+                TypeError,
+                'forward output must be a tuple of ndarrays'):
+            f.apply((x1,))
+
     @attr.gpu
-    def test_inconsistent_inputs(self):
+    def test_inconsistent_input_backends(self):
         class FunctionNode(chainer.FunctionNode):
 
             def forward(self, inputs):
@@ -449,7 +464,7 @@ class TestFunctionNodeInconsistentBackends(unittest.TestCase):
             f.apply((x1, x2))
 
     @attr.gpu
-    def test_inconsistent_outputs(self):
+    def test_inconsistent_output_backends(self):
         class FunctionNode(chainer.FunctionNode):
 
             def forward(self, inputs):

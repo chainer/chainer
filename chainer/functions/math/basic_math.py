@@ -71,6 +71,8 @@ def _preprocess_rhs(x, value):
 
 class Neg(function_node.FunctionNode):
 
+    is_elementwise = True
+
     @property
     def label(self):
         return '__neg__'
@@ -100,6 +102,8 @@ def neg(self):  # -x
 
 class Absolute(function_node.FunctionNode):
 
+    is_elementwise = True
+
     @property
     def label(self):
         return '|_|'
@@ -118,6 +122,8 @@ class Absolute(function_node.FunctionNode):
 
 
 class AbsoluteGrad(function_node.FunctionNode):
+
+    is_elementwise = True
 
     def __init__(self, x):
         super(AbsoluteGrad, self).__init__()
@@ -152,6 +158,8 @@ def absolute(self):
 
 class Add(function_node.FunctionNode):
 
+    is_elementwise = True
+
     @property
     def label(self):
         return '_ + _'
@@ -179,6 +187,8 @@ class Add(function_node.FunctionNode):
 
 class AddConstant(function_node.FunctionNode):
 
+    is_elementwise = True
+
     def __init__(self, value):
         self.value = value
 
@@ -204,6 +214,8 @@ class AddConstant(function_node.FunctionNode):
 
 
 class MultiAdd(function_node.FunctionNode):
+
+    is_elementwise = True
 
     def check_type_forward(self, in_types):
         for i, in_type in enumerate(in_types):
@@ -254,6 +266,8 @@ def add(*xs):  # lhs + rhs or add more than 2 variables
 
 class Sub(function_node.FunctionNode):
 
+    is_elementwise = True
+
     @property
     def label(self):
         return '_ - _'
@@ -294,6 +308,8 @@ def sub(self, rhs):  # lhs - rhs
 
 class SubFromConstant(function_node.FunctionNode):
 
+    is_elementwise = True
+
     def __init__(self, value):
         self.value = value
 
@@ -327,6 +343,8 @@ def rsub(self, rhs):  # rhs - lhs
 
 class Mul(function_node.FunctionNode):
 
+    is_elementwise = True
+
     @property
     def label(self):
         return '_ * _'
@@ -357,6 +375,8 @@ class Mul(function_node.FunctionNode):
 
 
 class MulConstant(function_node.FunctionNode):
+
+    is_elementwise = True
 
     def __init__(self, value):
         self.value = value
@@ -395,6 +415,8 @@ def mul(self, rhs):  # lhs * rhs
 
 class Div(function_node.FunctionNode):
 
+    is_elementwise = True
+
     @property
     def label(self):
         return '_ / _'
@@ -417,11 +439,16 @@ class Div(function_node.FunctionNode):
         return utils.force_array(x[0] / x[1]),
 
     def backward(self, indexes, grad_outputs):
-        x = self.get_retained_inputs()
-        return DivGrad().apply((x[0], x[1], grad_outputs[0]))
+        x0, x1 = self.get_retained_inputs()
+        is_grad_elementwise = x0.shape == x1.shape
+        divgrad = DivGrad(is_grad_elementwise)
+        return divgrad.apply((x0, x1, grad_outputs[0]))
 
 
 class DivGrad(function_node.FunctionNode):
+
+    def __init__(self, is_elementwise):
+        self.is_elementwise = is_elementwise
 
     def forward_cpu(self, inputs):
         self.retain_inputs((0, 1, 2))
@@ -493,6 +520,8 @@ def div(self, rhs):  # lhs / rhs
 
 # TODO(sonots): Support chainerx
 class DivFromConstant(function_node.FunctionNode):
+
+    is_elementwise = True
 
     def __init__(self, value):
         self.value = value
@@ -581,6 +610,8 @@ def rfloordiv(self, rhs):  # rhs // lhs
 
 class PowVarVar(function_node.FunctionNode):
 
+    is_elementwise = True
+
     @property
     def label(self):
         return '_ ** _'
@@ -601,13 +632,16 @@ class PowVarVar(function_node.FunctionNode):
         return utils.force_array(self.y),
 
     def backward(self, indexes, gy):
-        inputs = self.get_retained_inputs()
-        return PowVarVarGrad(self.y).apply((inputs[0], inputs[1], gy[0]))
+        x0, x1 = self.get_retained_inputs()
+        is_grad_elementwise = x0.shape == x1.shape
+        return PowVarVarGrad(
+            is_grad_elementwise, self.y).apply((x0, x1, gy[0]))
 
 
 class PowVarVarGrad(function_node.FunctionNode):
 
-    def __init__(self, y):
+    def __init__(self, is_elementwise, y):
+        self.is_elementwise = is_elementwise
         self.y = y
 
     def check_type_forward(self, in_types):
@@ -679,6 +713,8 @@ class PowVarVarGrad(function_node.FunctionNode):
 
 class PowVarConst(function_node.FunctionNode):
 
+    is_elementwise = True
+
     def __init__(self, value):
         self.value = value
 
@@ -701,6 +737,8 @@ class PowVarConst(function_node.FunctionNode):
 
 
 class PowVarConstGrad(function_node.FunctionNode):
+
+    is_elementwise = True
 
     def __init__(self, value):
         self.value = value
@@ -766,6 +804,8 @@ def pow(self, rhs):  # lhs ** rhs
 
 class PowConstVar(function_node.FunctionNode):
 
+    is_elementwise = True
+
     def __init__(self, value):
         self.value = value
 
@@ -789,6 +829,8 @@ class PowConstVar(function_node.FunctionNode):
 
 
 class PowConstVarGrad(function_node.FunctionNode):
+
+    is_elementwise = True
 
     def __init__(self, value):
         self.value = value

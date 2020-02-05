@@ -78,10 +78,13 @@ class TestCast(testing.FunctionTestCase):
             self.skip_backward_test = True
             self.skip_double_backward_test = True
 
-        self.check_backward_options = {
-            'eps': 2.0 ** -2, 'atol': 1e-2, 'rtol': 1e-3}
-        self.check_double_backward_options = {
-            'eps': 2.0 ** -2, 'atol': 1e-2, 'rtol': 1e-3}
+        if (numpy.dtype(self.in_type).kind == 'f'
+                and self.out_type == numpy.float16):
+            self.check_forward_options.update({'atol': 1e-3, 'rtol': 1e-3})
+        self.check_backward_options.update({
+            'eps': 2.0 ** -2, 'atol': 1e-2, 'rtol': 1e-3})
+        self.check_double_backward_options.update({
+            'eps': 2.0 ** -2, 'atol': 1e-2, 'rtol': 1e-3})
 
     def generate_inputs(self):
         x = numpy.asarray(numpy.random.randn(*self.shape)).astype(self.in_type)

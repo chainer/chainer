@@ -1,7 +1,6 @@
 import io
 import sys
 import tempfile
-import random
 
 import chainer
 import numpy
@@ -245,7 +244,7 @@ def test_array_from_chainerx_array_with_dtype_spec(
 
 
 @pytest.mark.parametrize('src_dtype', chainerx.testing.all_dtypes)
-@pytest.mark.parametrize('dst_dtype', chainerx.testing.all_dtypes)
+@pytest.mark.parametrize('dst_dtype', chainerx.testing.all_dtypes + (None, ))
 @pytest.mark.parametrize('copy', [True, False])
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
 @pytest.mark.parametrize(
@@ -259,10 +258,14 @@ def test_array_from_chainerx_array_with_device(
 
     dst_device = chainerx.get_device(dst_device_spec)
 
-    if not copy and src_dtype == dst_dtype and device is dst_device:
+    if (not copy
+            and (dst_dtype is None or src_dtype == dst_dtype)
+            and (dst_device_spec is None or device is dst_device)):
         assert t is a
     else:
         assert t is not a
+        if dst_dtype is None:
+            dst_dtype = t.dtype
         chainerx.testing.assert_array_equal_ex(
             a, t.to_device(dst_device).astype(dst_dtype))
         assert a.dtype == chainerx.dtype(dst_dtype)
@@ -339,39 +342,31 @@ def test_asarray_with_device(device):
     array_utils.check_device(a, device)
 
 
-@chainerx.testing.numpy_chainerx_array_equal()
-@pytest.mark.parametrize('padding', [False, True])
-def test_ascontiguousarray_from_numpy_array(xp, shape, dtype, padding):
-    obj = array_utils.create_dummy_ndarray(
-        numpy, shape, dtype, padding=padding)
-    a = xp.ascontiguousarray(obj)
-    if xp is chainerx:
-        assert a.is_contiguous
-    return a
-
-
-@chainerx.testing.numpy_chainerx_array_equal()
+@pytest.mark.parametrize('src_dtype', chainerx.testing.all_dtypes)
+@pytest.mark.parametrize('dst_dtype', chainerx.testing.all_dtypes + (None, ))
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
-@pytest.mark.parametrize('obj', _array_params(_array_params_list))
-@chainerx.testing.parametrize_dtype_specifier(
-    'dtype_spec', additional_args=(None, Unspecified))
-def test_ascontiguousarray_from_tuple_or_list(xp, device, obj, dtype_spec):
-    if xp is numpy and isinstance(dtype_spec, chainerx.dtype):
-        dtype_spec = dtype_spec.name
-    # Skip nan/inf -> integer conversion that would cause a cast error.
-    if (not _is_all_finite(obj)
-            and dtype_spec not in (None, Unspecified)
-            and chainerx.dtype(dtype_spec).kind not in ('f', 'c')):
-        return chainerx.testing.ignore()
+@pytest.mark.parametrize(
+    'dst_device_spec',
+    [None, 'native:1', chainerx.get_device('native:1'), 'native:0'])
+def test_asarray_from_chainerx_array_with_device(
+        src_dtype, dst_dtype, device, dst_device_spec):
+    t = array_utils.create_dummy_ndarray(
+        chainerx, (2,), src_dtype, device=device)
+    a = chainerx.asarray(t, dtype=dst_dtype, device=dst_device_spec)
 
-    if dtype_spec is Unspecified:
-        a = xp.ascontiguousarray(obj)
+    dst_device = chainerx.get_device(dst_device_spec)
+
+    if ((dst_dtype is None or src_dtype == dst_dtype)
+            and (dst_device_spec is None or device is dst_device)):
+        assert t is a
     else:
-        a = xp.ascontiguousarray(obj, dtype=dtype_spec)
-
-    if xp is chainerx:
-        assert a.is_contiguous
-    return a
+        assert t is not a
+        if dst_dtype is None:
+            dst_dtype = t.dtype
+        chainerx.testing.assert_array_equal_ex(
+            a, t.to_device(dst_device).astype(dst_dtype))
+        assert a.dtype == chainerx.dtype(dst_dtype)
+        assert a.device is dst_device
 
 
 @pytest.mark.parametrize_device(['native:0', 'cuda:0'])
@@ -383,10 +378,21 @@ def test_ascontiguousarray_from_chainerx_array(device, shape, dtype, padding):
     a = chainerx.ascontiguousarray(obj)
     if not padding and shape != ():  # () will be reshaped to (1,)
         assert a is obj
-    e = chainerx.ascontiguousarray(np_arr)
+    e = np_arr
     chainerx.testing.assert_array_equal_ex(e, a, strides_check=False)
     assert a.is_contiguous
     assert e.dtype.name == a.dtype.name
+
+
+def test_ascontiguousarray_from_chainerx_array_device():
+    with chainerx.using_device(chainerx.get_device('native:0')):
+        dev = chainerx.get_device('native:1')  # Non default one
+        assert chainerx.get_default_device() is not dev
+
+        a = chainerx.arange(10, device=dev)
+        b = chainerx.ascontiguousarray(a)
+        assert b.is_contiguous is True
+        assert b.device is dev
 
 
 @chainerx.testing.numpy_chainerx_array_equal()
@@ -401,19 +407,6 @@ def test_ascontiguousarray_with_dtype(xp, device, shape, padding, dtype_spec):
     if xp is chainerx:
         assert a.is_contiguous
     return a
-
-
-@pytest.mark.parametrize(
-    'device', [None, 'native:1', chainerx.get_device('native:1'), 'native:0'])
-@pytest.mark.parametrize('padding', [False, True])
-def test_ascontiguousarray_with_device(device, shape, padding, dtype):
-    obj = array_utils.create_dummy_ndarray(
-        chainerx, shape, dtype, padding=padding)
-    a = chainerx.ascontiguousarray(obj, device=device)
-    b = chainerx.ascontiguousarray(obj)
-    array_utils.check_device(a, device)
-    assert a.is_contiguous
-    chainerx.testing.assert_array_equal_ex(a, b)
 
 
 def test_asanyarray_from_python_tuple_or_list():
@@ -1089,6 +1082,11 @@ def test_frombuffer_with_device(device):
 @pytest.mark.parametrize('device', ['native:0', 'cuda:0'])
 @chainerx.testing.parametrize_dtype_specifier('dtype_spec')
 def test_fromfile(xp, count, sep, dtype_spec, device):
+    # Skip if bool_ dtype and text mode
+    if numpy.dtype(dtype_spec) == numpy.bool_ and sep == 'a':
+        pytest.skip(
+            'numpy.fromfile does not work with bool_ dtype and text mode')
+
     # Write array data to temporary file.
     if isinstance(dtype_spec, chainerx.dtype):
         numpy_dtype_spec = dtype_spec.name
@@ -1270,7 +1268,15 @@ class TestTrilTriu(op_utils.NumpyOpTest):
 
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize_pytest('indexing', ['xy', 'ij'])
-@chainer.testing.parameterize_pytest('input_arrs', [1, 2, 3, 4, 5, 6])
+@chainer.testing.parameterize_pytest('input_lens', [
+    # Test up to 4 inputs to check `indexing` behaviors
+    # 'xy': (1, 0, 2, ..., N-1)
+    # 'ij': (0, 1, 2, ..., N-1)
+    (7,),
+    (6, 4),
+    (2, 3, 5),
+    (4, 3, 2, 5),
+])
 class TestMeshgrid(op_utils.NumpyOpTest):
 
     check_numpy_strides_compliance = False
@@ -1285,13 +1291,13 @@ class TestMeshgrid(op_utils.NumpyOpTest):
             self.check_backward_options.update({'rtol': 1e-2, 'atol': 1e-2})
 
     def generate_inputs(self):
-        arrs = ()
-        for _ in range(self.input_arrs):
-            arrs += (numpy.linspace(random.randint(-10, 0),
-                                    random.randint(1, 10),
-                                    random.randint(3, 7)).astype(self.dtype),)
-
-        return arrs
+        return tuple(
+            numpy.linspace(
+                numpy.random.uniform(-5, -1),
+                numpy.random.uniform(1, 5),
+                size)
+            .astype(self.dtype)
+            for size in self.input_lens)
 
     def forward_xp(self, inputs, xp):
         return tuple(xp.meshgrid(*inputs, indexing=self.indexing))

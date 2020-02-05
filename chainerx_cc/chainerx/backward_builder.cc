@@ -6,7 +6,6 @@
 #include <iterator>
 #include <memory>
 #include <tuple>
-#include <unordered_map>
 #include <unordered_set>
 #include <utility>
 #include <vector>
@@ -39,8 +38,8 @@ BackwardBuilder::Target::Target(BackwardBuilder& builder, std::vector<size_t> in
     graph_to_input_array_nodes_ = CreateInputArrayNodesMap();
 }
 
-std::unordered_map<BackpropId, BackwardBuilder::Target::InputArrayNodes> BackwardBuilder::Target::CreateInputArrayNodesMap() const {
-    std::unordered_map<BackpropId, InputArrayNodes> graph_to_input_array_nodes{};
+absl::flat_hash_map<BackpropId, BackwardBuilder::Target::InputArrayNodes> BackwardBuilder::Target::CreateInputArrayNodesMap() const {
+    absl::flat_hash_map<BackpropId, InputArrayNodes> graph_to_input_array_nodes{};
 
     if (builder_.has_any_applicable_outputs_) {
         // At least one output arrays can have gradients.

@@ -3,6 +3,7 @@ import warnings
 
 import chainer
 import chainer.functions as F
+import chainer.links as L
 from chainer import testing
 import numpy as np
 import onnx
@@ -14,6 +15,7 @@ from onnx_chainer import onnx_helper
 from onnx_chainer.replace_func import as_funcnode
 from onnx_chainer.replace_func import fake_as_funcnode
 from onnx_chainer.testing import input_generator
+from onnx_chainer_tests.helper import ONNXModelChecker
 from onnx_chainer_tests.helper import ONNXModelTest
 
 
@@ -75,6 +77,135 @@ class TestReplaceNumpyFullToConstantOfShape(ONNXModelTest):
         self.expect(
             model, x, skip_opset_version=[7, 8],
             external_converters=addon_converters)
+
+
+class TestReplaceWithOutputGrad(ONNXModelChecker):
+
+    def get_model(self):
+        class Model(chainer.Chain):
+
+            def __init__(self):
+                super().__init__()
+                with self.init_scope():
+                    self.l = L.Linear(None, 2)
+
+            def half(self, xs, value=0.5):
+                return xs * value
+
+            def forward(self, xs):
+                h = self.l(xs)
+                h = self.half(h)
+                return F.sum(chainer.as_variable(h))
+
+        return Model()
+
+    def test_grad_error(self):
+        model = self.get_model()
+        # this alternative function does not return chainer.Variable
+        # backward propagation will fail
+        model.half = fake_as_funcnode(
+            lambda xs, value=0.5: xs.array * value, 'MulConstant')
+        x = input_generator.increasing(2, 5)
+
+        with pytest.raises(ValueError):
+            self.expect(model, x, output_grad=True)
+
+    def test_output(self, tmpdir):
+        # first, make expected gradients to temp directory
+        expected_result_path = str(tmpdir)
+
+        model = self.get_model()
+        x = input_generator.increasing(2, 5)
+        export_testcase(model, x, expected_result_path, output_grad=True)
+
+        data_set_name = 'test_data_set_0'
+        expected_gradients = [os.path.join(
+            expected_result_path, data_set_name, 'gradient_{}.pb').format(i)
+            for i in range(2)]
+        assert all([os.path.isfile(path) for path in expected_gradients])
+
+        # model.half returns chainer.Variable and enabled backward
+        # regardless using replacing
+        model.half = fake_as_funcnode(model.half, 'MulConstant')
+        x = input_generator.increasing(2, 5)
+
+        def gradient_check(model, path):
+            actual_gradients = [os.path.join(
+                path, data_set_name, 'gradient_{}.pb').format(i)
+                for i in range(2)]
+            assert all([os.path.isfile(path) for path in actual_gradients])
+
+            def load_tensor(path):
+                tensor = onnx.load_tensor(path)
+                return onnx.numpy_helper.to_array(tensor)
+
+            for e_path, a_path in zip(expected_gradients, actual_gradients):
+                expected = load_tensor(e_path)
+                actual = load_tensor(a_path)
+                np.testing.assert_allclose(expected, actual)
+
+        self.expect(
+            model, x, output_grad=True, custom_model_test_func=gradient_check)
+
+
+class TestReplaceFuncBackward(ONNXModelTest):
+
+    def _test_replace_func(self, fn, xs, set_grad=False):
+        def make_list(v):
+            if isinstance(v, (list, tuple)):
+                return list(v)
+            else:
+                return [v]
+
+        xvs = [x for x in xs if isinstance(x, chainer.Variable)]
+        rfn = as_funcnode('fn')(fn)
+        eys = make_list(fn(*xs))
+        egxs = chainer.grad(eys, xvs, set_grad=set_grad)
+        ays = make_list(rfn(*xs))
+        agxs = chainer.grad(ays, xvs, set_grad=set_grad)
+        assert len(eys) == len(ays)
+        for ay, ey in zip(ays, eys):
+            np.testing.assert_allclose(ay.array, ey.array)
+        assert len(egxs) == len(agxs)
+        for agx, egx in zip(agxs, egxs):
+            if egx is None:
+                assert egx is None
+            else:
+                np.testing.assert_allclose(agx.array, egx.array)
+
+    def test_backward_simple(self):
+        self._test_replace_func(lambda a, b: a * b,
+                                [chainer.Variable(np.array(2.3)),
+                                 chainer.Variable(np.array(4.2))])
+
+    def test_backward_partially_differentiable(self):
+        self._test_replace_func(lambda a, b: a * b.array,
+                                [chainer.Variable(np.array(2.3)),
+                                 chainer.Variable(np.array(4.2))])
+
+    def test_backward_multi_outputs(self):
+        self._test_replace_func(lambda a, b, c: (a * b, a / b, a * b * c),
+                                [chainer.Variable(np.array(2.3)),
+                                 chainer.Variable(np.array(4.2)),
+                                 5])
+
+    def test_backward_no_side_effect(self):
+        a = chainer.Variable(np.array(2.3))
+        b = chainer.Variable(np.array(4.2))
+        x0 = a * b
+        x1 = chainer.Variable(np.array(3.7))
+        self._test_replace_func(lambda a, b: a * b, [x0, x1])
+        # No side-effect to `grad`.
+        assert x0.grad is None
+        assert x1.grad is None
+        assert a.grad is None
+        assert b.grad is None
+        # Gradient computation must stop at `x0` and `x1`.
+        self._test_replace_func(lambda a, b: a * b, [x0, x1], set_grad=True)
+        assert x0.grad is not None
+        assert x1.grad is not None
+        assert a.grad is None
+        assert b.grad is None
 
 
 @testing.parameterize(
@@ -204,3 +335,43 @@ def test_replace_func_collection_return(tmpdir, return_type):
     assert len(output_names) == 5
     for i, name in enumerate(output_names):
         assert name == 'xTiledArray_0_{:d}'.format(i)
+
+
+def test_fake_as_funcnode_keep_structure(tmpdir):
+    path = str(tmpdir)
+
+    class Model(chainer.Chain):
+        def __init__(self):
+            super().__init__()
+
+        def f(self, x):
+            return {'a': (x, x+1), 'b': [x+2, x+3, x+4]}
+
+        def __call__(self, x):
+            ret = self.f(x)
+            return ret['a'][0] + ret['b'][1]
+
+    model = Model()
+    x = input_generator.increasing(2, 3)
+
+    with warnings.catch_warnings(record=True):
+        model.f = fake_as_funcnode(model.f, 'xF')
+
+    def f_converter(params):
+        return onnx_helper.make_node(
+            'xF', params.input_names, params.output_names),
+
+    addon_converters = {'xF': f_converter}
+
+    with testing.assert_warns(UserWarning):
+        export_testcase(model, x, path, external_converters=addon_converters)
+
+    model_filepath = os.path.join(path, 'model.onnx')
+    assert os.path.isfile(model_filepath)
+
+    onnx_model = onnx.load(model_filepath)
+    node_names = [n.name for n in onnx_model.graph.node]
+    assert len(node_names) == 2
+    assert node_names[0] == 'xF_0'
+    assert len(onnx_model.graph.node[0].output) == 5
+    assert len(onnx_model.graph.output) == 1

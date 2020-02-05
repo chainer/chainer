@@ -48,7 +48,7 @@ def create_multi_node_checkpointer(name, comm, cp_interval=5,
               set to the trainer.
 
     .. note:: The checkpointer is deprecated. Please use
-              :func:`chainermn.extension.multi_node_snapshot` instead.
+              :func:`chainermn.extensions.multi_node_snapshot` instead.
 
     After training finished without errors all those temporary
     checkpoints will be cleaned up at all nodes.

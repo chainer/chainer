@@ -141,6 +141,7 @@ step_cmake() {
         -DCMAKE_BUILD_TYPE=Debug \
         -DCHAINERX_BUILD_CUDA=ON \
         -DCHAINERX_BUILD_TEST=ON \
+        -DCHAINERX_BUILD_EXAMPLES=ON \
         -DCHAINERX_BUILD_PYTHON=OFF \
         -DCHAINERX_WARNINGS_AS_ERRORS=ON \
         -DCMAKE_INSTALL_PREFIX="$WORK_DIR"/install_target \
@@ -184,7 +185,7 @@ step_python_build() {
     CHAINER_BUILD_CHAINERX=1 \
     CHAINERX_BUILD_CUDA=ON \
     CHAINERX_BUILD_TYPE=Debug \
-    pip install "$REPO_DIR"[test]
+    pip install -v "$REPO_DIR"[test]
 }
 
 
@@ -195,6 +196,7 @@ step_python_test_chainerx() {
     COVERAGE_FILE="$WORK_DIR"/coverage-data \
     pytest \
         -rfEX \
+        -m 'not slow' \
         --showlocals \
         --cov=chainerx \
         --no-cov-on-fail \

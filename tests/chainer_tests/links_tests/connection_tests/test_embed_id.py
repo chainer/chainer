@@ -132,4 +132,16 @@ class TestEmbedIDUnpickleOldFile(unittest.TestCase):
         self.assertEqual(y.data.shape, (2, 4))
 
 
+class TestEmbedIDFromParams(unittest.TestCase):
+
+    def setUp(self):
+        self.in_size, self.out_size = 10, 5
+
+    def test_from_params(self):
+        link1 = links.EmbedID(self.in_size, self.out_size)
+        link2 = links.EmbedID.from_params(link1.W)
+
+        assert link2.W.shape == link1.W.shape
+
+
 testing.run_module(__name__, __file__)

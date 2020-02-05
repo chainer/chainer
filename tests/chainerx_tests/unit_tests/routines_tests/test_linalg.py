@@ -10,6 +10,12 @@ from chainerx_tests import dtype_utils
 from chainerx_tests import op_utils
 
 
+def _skip_if_native_and_lapack_unavailable(device):
+    if (device.backend.name == 'native'
+            and not chainerx.linalg._is_lapack_available()):
+        pytest.skip('LAPACK is not linked to ChainerX')
+
+
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize_pytest('a_shape,b_shape', [
     ((), ()),
@@ -112,10 +118,12 @@ class NumpyLinalgOpTest(op_utils.NumpyOpTest):
     dodge_nondifferentiable = True
 
     def setup(self):
+        super().setup()
         device = chainerx.get_default_device()
-        if (device.backend.name == 'native'
-                and not chainerx.linalg._is_lapack_available()):
-            pytest.skip('LAPACK is not linked to ChainerX')
+
+        _skip_if_native_and_lapack_unavailable(device)
+
+        self.check_forward_options.update({'rtol': 1e-4, 'atol': 1e-4})
         self.check_backward_options.update({'rtol': 5e-3})
         self.check_double_backward_options.update({'rtol': 5e-3})
 
@@ -131,7 +139,7 @@ _numpy_does_not_support_0d_input116 = \
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
     chainer.testing.product({
-        'shape': [(0, 0), (1, 1), (3, 3), (6, 6)],
+        'shape': [(0, 0), (1, 1), (3, 3)],
         'b_columns': [(), (1,), (3,), (4,)],
         'dtypes': [
             ('float32', 'float32'),
@@ -156,52 +164,31 @@ class TestSolve(NumpyLinalgOpTest):
         return out,
 
 
-@op_utils.op_test(['native:0', 'cuda:0'])
-@chainer.testing.parameterize(*(
-    chainer.testing.product({
-        'shape': [(2, 3), (3, 2)],
-        'dtype': ['float32', 'float64']
-    })
-))
-class TestSolveFailing(NumpyLinalgOpTest):
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('shape', [(2, 3), (3, 2)])
+def test_solve_invalid_shape(device, shape):
+    _skip_if_native_and_lapack_unavailable(device)
 
-    forward_accept_errors = (numpy.linalg.LinAlgError,
-                             chainerx.DimensionError)
-
-    def generate_inputs(self):
-        a = numpy.random.random(self.shape).astype(self.dtype)
-        b = numpy.random.random(self.shape).astype(self.dtype)
-        return a, b
-
-    def forward_xp(self, inputs, xp):
-        a, b = inputs
-        out = xp.linalg.solve(a, b)
-        return out,
+    a = array_utils.create_dummy_ndarray(chainerx, shape, 'float32')
+    b = array_utils.create_dummy_ndarray(chainerx, shape, 'float32')
+    with pytest.raises(chainerx.DimensionError):
+        chainerx.linalg.solve(a, b)
 
 
-@op_utils.op_test(['native:0', 'cuda:0'])
-@chainer.testing.parameterize_pytest('shape', [(3, 3)])
-@chainer.testing.parameterize_pytest('dtype', ['float16'])
-class TestSolveDtypeFailing(NumpyLinalgOpTest):
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_solve_invalid_dtype(device):
+    _skip_if_native_and_lapack_unavailable(device)
 
-    forward_accept_errors = (TypeError,
-                             chainerx.DtypeError)
-
-    def generate_inputs(self):
-        a = numpy.random.random(self.shape).astype(self.dtype)
-        b = numpy.random.random(self.shape).astype(self.dtype)
-        return a, b
-
-    def forward_xp(self, inputs, xp):
-        a, b = inputs
-        out = xp.linalg.solve(a, b)
-        return out,
+    a = array_utils.create_dummy_ndarray(chainerx, (3, 3), 'float16')
+    b = array_utils.create_dummy_ndarray(chainerx, (3, 3), 'float16')
+    with pytest.raises(chainerx.DtypeError):
+        chainerx.linalg.solve(a, b)
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
     chainer.testing.product({
-        'shape': [(0, 0), (1, 1), (3, 3), (6, 6)],
+        'shape': [(0, 0), (1, 1), (3, 3)],
         'dtype': ['float32', 'float64']
     })
 ))
@@ -221,55 +208,34 @@ class TestInverse(NumpyLinalgOpTest):
         return out,
 
 
-@op_utils.op_test(['native:0', 'cuda:0'])
-@chainer.testing.parameterize(*(
-    chainer.testing.product({
-        'shape': [(2, 3), (3, 2)],
-        'dtype': ['float32', 'float64']
-    })
-))
-class TestInverseFailing(NumpyLinalgOpTest):
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+@pytest.mark.parametrize('shape', [(2, 3), (3, 2)])
+def test_inv_invalid_shape(device, shape):
+    _skip_if_native_and_lapack_unavailable(device)
 
-    forward_accept_errors = (numpy.linalg.LinAlgError,
-                             chainerx.DimensionError)
-
-    def generate_inputs(self):
-        a = numpy.random.random(self.shape).astype(self.dtype)
-        return a,
-
-    def forward_xp(self, inputs, xp):
-        a, = inputs
-        out = xp.linalg.inv(a)
-        return out,
+    a = array_utils.create_dummy_ndarray(chainerx, shape, 'float32')
+    with pytest.raises(chainerx.DimensionError):
+        chainerx.linalg.inv(a)
 
 
-@op_utils.op_test(['native:0', 'cuda:0'])
-@chainer.testing.parameterize_pytest('shape', [(3, 3)])
-@chainer.testing.parameterize_pytest('dtype', ['float16'])
-class TestInverseDtypeFailing(NumpyLinalgOpTest):
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_inv_invalid_dtype(device):
+    _skip_if_native_and_lapack_unavailable(device)
 
-    forward_accept_errors = (TypeError,
-                             chainerx.DtypeError)
-
-    def generate_inputs(self):
-        a = numpy.random.random(self.shape).astype(self.dtype)
-        return a,
-
-    def forward_xp(self, inputs, xp):
-        a, = inputs
-        out = xp.linalg.inv(a)
-        return out,
+    a = array_utils.create_dummy_ndarray(chainerx, (3, 3), 'float16')
+    with pytest.raises(chainerx.DtypeError):
+        chainerx.linalg.inv(a)
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
     chainer.testing.product({
-        'shape': [(0, 0), (0, 3), (3, 0), (1, 1), (2, 3), (3, 2), (6, 6)],
+        'shape': [(0, 0), (0, 3), (3, 0), (1, 1), (2, 3), (3, 2), (3, 3)],
         'dtype': ['float32', 'float64'],
         'full_matrices': [False],
         'compute_uv': [True]
     }) + chainer.testing.product({
-        'shape': [(0, 0), (0, 3), (3, 0), (1, 1), (2, 3), (3, 2), (6, 6)],
+        'shape': [(0, 0), (0, 3), (3, 0), (1, 1), (2, 3), (3, 2), (3, 3)],
         'dtype': ['float32', 'float64'],
         'full_matrices': [True],
         'compute_uv': [False],
@@ -302,29 +268,28 @@ class TestSVD(NumpyLinalgOpTest):
             return s,
 
 
-@op_utils.op_test(['native:0', 'cuda:0'])
-@chainer.testing.parameterize_pytest('shape', [(2, 3)])
-@chainer.testing.parameterize_pytest('dtype', ['float16'])
-class TestSVDDtypeFailing(NumpyLinalgOpTest):
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_svd_invalid_shape(device):
+    _skip_if_native_and_lapack_unavailable(device)
 
-    forward_accept_errors = (TypeError,
-                             chainerx.DtypeError)
+    a = array_utils.create_dummy_ndarray(chainerx, (), 'float32')
+    with pytest.raises(chainerx.DimensionError):
+        chainerx.linalg.svd(a)
 
-    def generate_inputs(self):
-        a = numpy.random.random(self.shape).astype(self.dtype)
-        return a,
 
-    def forward_xp(self, inputs, xp):
-        a, = inputs
-        out = xp.linalg.svd(a)
-        u, s, v = out
-        return xp.abs(u), s, xp.abs(v)
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_svd_invalid_dtype(device):
+    _skip_if_native_and_lapack_unavailable(device)
+
+    a = array_utils.create_dummy_ndarray(chainerx, (2, 3), 'float16')
+    with pytest.raises(chainerx.DtypeError):
+        chainerx.linalg.svd(a)
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
     chainer.testing.product({
-        'shape': [(0, 0), (0, 3), (3, 0), (1, 1), (2, 3), (3, 2), (6, 6)],
+        'shape': [(0, 0), (0, 3), (3, 0), (1, 1), (2, 3), (3, 2), (3, 3)],
         'rcond': [1e-15, 0.3, 0.5, 0.6],
         'dtype': ['float32', 'float64']
     })
@@ -349,53 +314,29 @@ class TestPseudoInverse(NumpyLinalgOpTest):
         return out,
 
 
-@op_utils.op_test(['native:0', 'cuda:0'])
-@chainer.testing.parameterize(*(
-    chainer.testing.product({
-        'shape': [(), ],
-        'rcond': [1e-15, ],
-        'dtype': ['float32', 'float64']
-    })
-))
-class TestPseudoInverseFailing(NumpyLinalgOpTest):
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_pinv_invalid_shape(device):
+    _skip_if_native_and_lapack_unavailable(device)
 
-    forward_accept_errors = (numpy.linalg.LinAlgError,
-                             chainerx.ChainerxError,
-                             chainerx.DimensionError)
-
-    def generate_inputs(self):
-        a = numpy.random.random(self.shape).astype(self.dtype)
-        return a,
-
-    def forward_xp(self, inputs, xp):
-        a, = inputs
-        out = xp.linalg.pinv(a, rcond=self.rcond)
-        return out,
+    a = array_utils.create_dummy_ndarray(chainerx, (), 'float32')
+    with pytest.raises(chainerx.DimensionError):
+        chainerx.linalg.pinv(a)
 
 
-@op_utils.op_test(['native:0', 'cuda:0'])
-@chainer.testing.parameterize_pytest('shape', [(2, 3)])
-@chainer.testing.parameterize_pytest('dtype', ['float16'])
-class TestPseudoInverseDtypeFailing(NumpyLinalgOpTest):
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_pinv_invalid_dtype(device):
+    _skip_if_native_and_lapack_unavailable(device)
 
-    forward_accept_errors = (TypeError,
-                             chainerx.DtypeError)
-
-    def generate_inputs(self):
-        a = numpy.random.random(self.shape).astype(self.dtype)
-        return a,
-
-    def forward_xp(self, inputs, xp):
-        a, = inputs
-        out = xp.linalg.pinv(a)
-        return out,
+    a = array_utils.create_dummy_ndarray(chainerx, (2, 3), 'float16')
+    with pytest.raises(chainerx.DtypeError):
+        chainerx.linalg.pinv(a)
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
     # backward for 'r', 'raw' modes is not implemented
     chainer.testing.product({
-        'shape': [(0, 3), (3, 0), (1, 1), (2, 3), (3, 2), (6, 6)],
+        'shape': [(0, 3), (3, 0), (1, 1), (2, 3), (3, 2), (3, 3)],
         'in_dtypes': ['float32', 'float64'],
         'mode': ['r', 'raw'],
         'skip_backward_test': [True],
@@ -410,7 +351,7 @@ class TestPseudoInverseDtypeFailing(NumpyLinalgOpTest):
         'skip_double_backward_test': [True]
     }) +
     chainer.testing.product({
-        'shape': [(1, 1), (6, 6)],
+        'shape': [(1, 1), (3, 3)],
         'in_dtypes': ['float32', 'float64'],
         'mode': ['reduced', 'complete']
     }) + chainer.testing.product({
@@ -447,33 +388,37 @@ class TestQR(NumpyLinalgOpTest):
         return out
 
 
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_qr_invalid_mode(device):
+    _skip_if_native_and_lapack_unavailable(device)
+
+    a = array_utils.create_dummy_ndarray(chainerx, (), 'float32')
+    with pytest.raises(ValueError):
+        chainerx.linalg.qr(a, mode='bad_mode')
+
+
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_qr_invalid_shape(device):
+    _skip_if_native_and_lapack_unavailable(device)
+
+    a = array_utils.create_dummy_ndarray(chainerx, (), 'float32')
+    with pytest.raises(chainerx.DimensionError):
+        chainerx.linalg.qr(a)
+
+
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_qr_invalid_dtype(device):
+    _skip_if_native_and_lapack_unavailable(device)
+
+    a = array_utils.create_dummy_ndarray(chainerx, (2, 3), 'float16')
+    with pytest.raises(chainerx.DtypeError):
+        chainerx.linalg.qr(a)
+
+
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
     chainer.testing.product({
-        'shape': [(1, 1), (2, 3), (3, 2), (6, 6)],
-        'in_dtypes': ['float16'],
-        'mode': ['r', 'raw', 'reduced', 'complete']
-    })
-))
-class TestQRFailing(NumpyLinalgOpTest):
-
-    forward_accept_errors = (TypeError,
-                             chainerx.DtypeError)
-
-    def generate_inputs(self):
-        a = numpy.random.random(self.shape).astype(self.in_dtypes)
-        return a,
-
-    def forward_xp(self, inputs, xp):
-        a, = inputs
-        out = xp.linalg.qr(a, mode=self.mode)
-        return out
-
-
-@op_utils.op_test(['native:0', 'cuda:0'])
-@chainer.testing.parameterize(*(
-    chainer.testing.product({
-        'shape': [(0, 0), (1, 1), (3, 3), (6, 6)],
+        'shape': [(0, 0), (1, 1), (3, 3)],
         'in_dtypes': ['float32', 'float64']
     })
 ))
@@ -485,9 +430,9 @@ class TestCholesky(op_utils.NumpyOpTest):
 
     def setup(self):
         device = chainerx.get_default_device()
-        if (device.backend.name == 'native'
-                and not chainerx.linalg._is_lapack_available()):
-            pytest.skip('LAPACK is not linked to ChainerX')
+
+        _skip_if_native_and_lapack_unavailable(device)
+
         self.check_backward_options.update({
             'eps': 1e-5, 'rtol': 1e-4, 'atol': 1e-4})
         self.check_double_backward_options.update({
@@ -512,76 +457,52 @@ class TestCholesky(op_utils.NumpyOpTest):
         return L,
 
 
-@op_utils.op_test(['native:0', 'cuda:0'])
-@chainer.testing.parameterize(*(
-    chainer.testing.product({
-        'shape': [(), (2, 3), (3, 2), (6, 6)],
-        'in_dtypes': ['float32', 'float64'],
-    })
-))
-class TestCholeskyFailing(NumpyLinalgOpTest):
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_cholesky_invalid_not_positive_definite(device):
+    _skip_if_native_and_lapack_unavailable(device)
 
-    forward_accept_errors = (numpy.linalg.LinAlgError,
-                             chainerx.ChainerxError,
-                             chainerx.DimensionError)
-
-    def generate_inputs(self):
-        a = numpy.random.random(self.shape).astype(self.in_dtypes)
-        return a,
-
-    def forward_xp(self, inputs, xp):
-        a, = inputs
-        L = xp.linalg.cholesky(a)
-        return L,
+    while True:
+        a = numpy.random.random((3, 3)).astype('float32')
+        try:
+            numpy.linalg.cholesky(a)
+        except numpy.linalg.LinAlgError:
+            break
+    a = chainerx.array(a)
+    with pytest.raises(chainerx.ChainerxError):
+        chainerx.linalg.cholesky(a)
 
 
-@op_utils.op_test(['native:0', 'cuda:0'])
-@chainer.testing.parameterize(*(
-    chainer.testing.product({
-        'in_dtypes': ['float32', 'float64'],
-    })
-))
-class TestCholeskySemiDefiniteFailing(NumpyLinalgOpTest):
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_cholesky_invalid_semidefinite(device):
+    _skip_if_native_and_lapack_unavailable(device)
 
-    forward_accept_errors = (numpy.linalg.LinAlgError,
-                             chainerx.ChainerxError)
+    a = chainerx.array([[1, -2], [-2, 1]], dtype='float32')
+    with pytest.raises(chainerx.ChainerxError):
+        chainerx.linalg.cholesky(a)
 
-    def generate_inputs(self):
-        a = numpy.array([[1, -2], [-2, 1]]).astype(self.in_dtypes)
-        return a,
 
-    def forward_xp(self, inputs, xp):
-        a, = inputs
-        L = xp.linalg.cholesky(a)
-        return L,
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_cholesky_invalid_shape(device):
+    _skip_if_native_and_lapack_unavailable(device)
+
+    a = array_utils.create_dummy_ndarray(chainerx, (2, 3), 'float32')
+    with pytest.raises(chainerx.DimensionError):
+        chainerx.linalg.cholesky(a)
+
+
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_cholesky_invalid_dtype(device):
+    _skip_if_native_and_lapack_unavailable(device)
+
+    a = array_utils.create_dummy_ndarray(chainerx, (3, 3), 'float16')
+    with pytest.raises(chainerx.DtypeError):
+        chainerx.linalg.cholesky(a)
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
     chainer.testing.product({
-        'shape': [(6, 6)],
-        'in_dtypes': ['float16'],
-    })
-))
-class TestCholeskyDtypeFailing(NumpyLinalgOpTest):
-
-    forward_accept_errors = (TypeError,
-                             chainerx.DtypeError)
-
-    def generate_inputs(self):
-        a = numpy.random.random(self.shape).astype(self.in_dtypes)
-        return a,
-
-    def forward_xp(self, inputs, xp):
-        a, = inputs
-        L = xp.linalg.cholesky(a)
-        return L,
-
-
-@op_utils.op_test(['native:0', 'cuda:0'])
-@chainer.testing.parameterize(*(
-    chainer.testing.product({
-        'shape': [(0, 0), (1, 1), (3, 3), (6, 6)],
+        'shape': [(0, 0), (1, 1), (3, 3)],
         'in_dtypes': ['float32', 'float64'],
         'UPLO': ['u', 'L']
     })
@@ -590,9 +511,9 @@ class TestEigh(NumpyLinalgOpTest):
 
     def setup(self):
         device = chainerx.get_default_device()
-        if (device.backend.name == 'native'
-                and not chainerx.linalg._is_lapack_available()):
-            pytest.skip('LAPACK is not linked to ChainerX')
+
+        _skip_if_native_and_lapack_unavailable(device)
+
         self.check_backward_options.update({
             'eps': 1e-5, 'rtol': 1e-3, 'atol': 1e-3})
         self.check_double_backward_options.update({
@@ -618,60 +539,50 @@ class TestEigh(NumpyLinalgOpTest):
         return w, xp.abs(v)
 
 
-@op_utils.op_test(['native:0', 'cuda:0'])
-@chainer.testing.parameterize(*(
-    chainer.testing.product({
-        'shape': [(), (2, 3), (3, 2)],
-        'in_dtypes': ['float32', 'float64'],
-        'UPLO': [None, 'A', 'wrong']
-    })
-))
-class TestEighFailing(NumpyLinalgOpTest):
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_eigh_invalid_uplo_type(device):
+    _skip_if_native_and_lapack_unavailable(device)
 
-    forward_accept_errors = (numpy.linalg.LinAlgError,
-                             chainerx.DimensionError,
-                             ValueError,
-                             chainerx.ChainerxError,
-                             # for 'UPLO'=None
-                             AttributeError,
-                             TypeError)
-
-    def generate_inputs(self):
-        a = numpy.random.random(self.shape).astype(self.in_dtypes)
-        return a,
-
-    def forward_xp(self, inputs, xp):
-        a, = inputs
-        w, v = xp.linalg.eigh(a, UPLO=self.UPLO)
-        return w, v
+    a = array_utils.create_dummy_ndarray(chainerx, (3, 3), 'float32')
+    with pytest.raises(TypeError):
+        chainerx.linalg.eigh(a, UPLO=None)
 
 
-@op_utils.op_test(['native:0', 'cuda:0'])
-@chainer.testing.parameterize(*(
-    chainer.testing.product({
-        'shape': [(3, 3)],
-        'in_dtypes': ['float16']
-    })
-))
-class TestEighDtypeFailing(NumpyLinalgOpTest):
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_eigh_invalid_uplo_value(device):
+    _skip_if_native_and_lapack_unavailable(device)
 
-    forward_accept_errors = (TypeError,
-                             chainerx.DtypeError)
+    # TODO(hvy): Update the test when the error types are unified to either.
+    a = array_utils.create_dummy_ndarray(chainerx, (3, 3), 'float32')
+    with pytest.raises(ValueError):
+        chainerx.linalg.eigh(a, UPLO='bad_UPLO')
+    a = array_utils.create_dummy_ndarray(chainerx, (3, 3), 'float32')
+    with pytest.raises(chainerx.ChainerxError):
+        chainerx.linalg.eigh(a, UPLO='A')
 
-    def generate_inputs(self):
-        a = numpy.random.random(self.shape).astype(self.in_dtypes)
-        return a,
 
-    def forward_xp(self, inputs, xp):
-        a, = inputs
-        w, v = xp.linalg.eigh(a)
-        return w, v
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_eigh_invalid_shape(device):
+    _skip_if_native_and_lapack_unavailable(device)
+
+    a = array_utils.create_dummy_ndarray(chainerx, (2, 3), 'float32')
+    with pytest.raises(chainerx.DimensionError):
+        chainerx.linalg.eigh(a)
+
+
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_eigh_invalid_dtype(device):
+    _skip_if_native_and_lapack_unavailable(device)
+
+    a = array_utils.create_dummy_ndarray(chainerx, (3, 3), 'float16')
+    with pytest.raises(chainerx.DtypeError):
+        chainerx.linalg.eigh(a)
 
 
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize(*(
     chainer.testing.product({
-        'shape': [(0, 0), (1, 1), (3, 3), (6, 6)],
+        'shape': [(0, 0), (1, 1), (3, 3)],
         'in_dtypes': ['float32', 'float64'],
         'UPLO': ['u', 'L'],
         'skip_backward_test': [True],
@@ -694,51 +605,41 @@ class TestEigvalsh(NumpyLinalgOpTest):
         return w,
 
 
-@op_utils.op_test(['native:0', 'cuda:0'])
-@chainer.testing.parameterize(*(
-    chainer.testing.product({
-        'shape': [(), (2, 3), (3, 2)],
-        'in_dtypes': ['float32', 'float64'],
-        'UPLO': [None, 'A', 'wrong']
-    })
-))
-class TestEigvalshFailing(NumpyLinalgOpTest):
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_eigvalsh_invalid_uplo_type(device):
+    _skip_if_native_and_lapack_unavailable(device)
 
-    forward_accept_errors = (numpy.linalg.LinAlgError,
-                             chainerx.DimensionError,
-                             ValueError,
-                             chainerx.ChainerxError,
-                             # for 'UPLO'=None
-                             AttributeError,
-                             TypeError)
-
-    def generate_inputs(self):
-        a = numpy.random.random(self.shape).astype(self.in_dtypes)
-        return a,
-
-    def forward_xp(self, inputs, xp):
-        a, = inputs
-        w = xp.linalg.eigvalsh(a, UPLO=self.UPLO)
-        return w,
+    a = array_utils.create_dummy_ndarray(chainerx, (3, 3), 'float32')
+    with pytest.raises(TypeError):
+        chainerx.linalg.eigvalsh(a, UPLO=None)
 
 
-@op_utils.op_test(['native:0', 'cuda:0'])
-@chainer.testing.parameterize(*(
-    chainer.testing.product({
-        'shape': [(3, 3)],
-        'in_dtypes': ['float16']
-    })
-))
-class TestEigvalshDtypeFailing(NumpyLinalgOpTest):
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_eigvalsh_invalid_uplo_value(device):
+    _skip_if_native_and_lapack_unavailable(device)
 
-    forward_accept_errors = (TypeError,
-                             chainerx.DtypeError)
+    # TODO(hvy): Update the test when the error types are unified to either.
+    a = array_utils.create_dummy_ndarray(chainerx, (3, 3), 'float32')
+    with pytest.raises(ValueError):
+        chainerx.linalg.eigvalsh(a, UPLO='wrong')
+    a = array_utils.create_dummy_ndarray(chainerx, (3, 3), 'float32')
+    with pytest.raises(chainerx.ChainerxError):
+        chainerx.linalg.eigvalsh(a, UPLO='A')
 
-    def generate_inputs(self):
-        a = numpy.random.random(self.shape).astype(self.in_dtypes)
-        return a,
 
-    def forward_xp(self, inputs, xp):
-        a, = inputs
-        w = xp.linalg.eigvalsh(a)
-        return w,
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_eigvalsh_invalid_shape(device):
+    _skip_if_native_and_lapack_unavailable(device)
+
+    a = array_utils.create_dummy_ndarray(chainerx, (2, 3), 'float32')
+    with pytest.raises(chainerx.DimensionError):
+        chainerx.linalg.eigvalsh(a)
+
+
+@pytest.mark.parametrize_device(['native:0', 'cuda:0'])
+def test_eigvalsh_invalid_dtype(device):
+    _skip_if_native_and_lapack_unavailable(device)
+
+    a = array_utils.create_dummy_ndarray(chainerx, (3, 3), 'float16')
+    with pytest.raises(chainerx.DtypeError):
+        chainerx.linalg.eigvalsh(a)

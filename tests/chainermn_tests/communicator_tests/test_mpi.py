@@ -45,9 +45,9 @@ class _TimeoutThread(threading.Thread):
                       "One of the processes " \
                       "***** crashed or you encountered a known bug of " \
                       "Open MPI." \
-                      "***** The following Open MPI versions have a bug \n" \
+                      "***** The following Open MPI versions have a bug\n" \
                       "***** that cause MPI_Bcast() deadlock " \
-                      "when GPUDirect is used: \n" \
+                      "when GPUDirect is used:\n" \
                       "***** 3.0.0, 3.0.1, 3.0.2, 3.1.0, 3.1.1, 3.1.2\n" \
                       "***** Your Open MPI version: {}\n".format(version)
                 if self.rank == 1:

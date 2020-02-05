@@ -41,8 +41,6 @@ inline std::shared_ptr<ArrayBody>&& MoveArrayBody(Array&& array);
 
 }  // namespace internal
 
-enum class IndexBoundsMode;
-
 // The user interface of multi-dimensional arrays.
 //
 // This wraps an ArrayBody, providing accessors, an interface for graph operations and differentiable operations.
@@ -204,7 +202,7 @@ public:
     // TODO(niboshi): Support Scalar and StackVector as indices.
     // TODO(niboshi): Support axis=None behavior in NumPy.
     // TODO(niboshi): Support indices dtype other than int64.
-    Array Take(const Array& indices, int8_t axis, IndexBoundsMode mode) const;
+    Array Take(const Array& indices, int8_t axis, IndexBoundsMode mode = IndexBoundsMode::kDefault) const;
 
     // Creates a copy.
     // It will be connected to all the graphs.
@@ -237,7 +235,7 @@ public:
     // Creates a copy or a view. It will be disconnected from the specified graphs.
     // If `kind` is `CopyKind::kCopy`, the returned array will be always C-contiguous.
     Array AsGradStopped(absl::Span<const BackpropId> backprop_ids, CopyKind kind = CopyKind::kView) const;
-    Array AsGradStopped(std::initializer_list<const BackpropId> backprop_ids, CopyKind kind = CopyKind::kView) const {
+    Array AsGradStopped(std::initializer_list<BackpropId> backprop_ids, CopyKind kind = CopyKind::kView) const {
         return AsGradStopped(absl::MakeConstSpan(backprop_ids.begin(), backprop_ids.end()), kind);
     }
 

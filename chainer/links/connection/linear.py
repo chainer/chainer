@@ -126,6 +126,29 @@ class Linear(link.Link):
     def _initialize_params(self, in_size: int) -> None:
         self.W.initialize((self.out_size, in_size))  # type: ignore
 
+    @classmethod
+    def from_params(cls, W, b=None, nobias=False):
+        """Initialize a :class:`~chainer.links.Linear` with given parameters.
+
+        This method uses ``W`` and optional ``b`` to initialize a linear layer.
+
+        Args:
+            W (:class:`~chainer.Variable` or :ref:`ndarray`):
+                The weight parameter.
+            b (:class:`~chainer.Variable`, :ref:`ndarray`, or ``None``):
+                The bias parameter.
+            nobias (bool): If ``True``, the argument of ``b`` is ignored
+                in spite of whether it's given or not.
+        """
+        out_size, in_size = W.shape
+        if b is not None:
+            if out_size != b.size:
+                raise ValueError('`out_size` does not match the size of `b`')
+        link = cls(
+            in_size, out_size, nobias,
+            initialW=variable.as_array(W), initial_bias=variable.as_array(b))
+        return link
+
     @property
     def printable_specs(self):
         specs = [

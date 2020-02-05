@@ -10,7 +10,7 @@ Installation
 
 Install dependencies using ``pip`` via PyPI::
 
-  $ pip install 'onnx<1.6.0'
+  $ pip install 'onnx<1.7.0'
 
 
 Quick Start
@@ -34,6 +34,8 @@ First, install `ChainerCV <https://github.com/chainer/chainercv>`__ to get the p
   onnx_chainer.export(model, x, filename='vgg16.onnx')
 
 ``vgg16.onnx`` file will be exported.
+
+Other export examples are put on `onnx_chainer/examples <https://github.com/chainer/chainer/tree/master/onnx_chainer/examples>`__. Please check them.
 
 Supported Functions
 -------------------
@@ -65,6 +67,7 @@ Currently 82 Chainer Functions are supported to export in ONNX format.
 * GetItem
 * Hstack
 * Pad [#pad1]_ [#pad2]_
+* Permutate
 * Repeat
 * Reshape
 * ResizeImages
@@ -166,11 +169,10 @@ Tested Environments
     * Windows 10
 
 * Python 3.5.5, 3.6.7, 3.7.2
-* ONNX 1.4.1, 1.5.0
+* ONNX 1.4.1, 1.5.0, 1.6.0
 
-    * opset version 7, 8, 9, 10
+    * opset version 7, 8, 9, 10, 11
 
-* Chainer stable, preview
 * ONNX-Runtime 0.5.0
 
 
@@ -205,6 +207,6 @@ on GPU environment::
 Contribution
 ------------
 
-Any contribution to ONNX-Chainer is welcom!
+Any contribution to ONNX-Chainer is welcome!
 
-* Python codes follow `Chainer Coding Guidelines <ttps://docs.chainer.org/en/stable/contribution.html#coding-guidelines>`__
+* Python codes follow `Chainer Coding Guidelines <https://docs.chainer.org/en/stable/contribution.html#coding-guidelines>`__

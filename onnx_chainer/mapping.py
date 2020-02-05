@@ -1,5 +1,10 @@
+from contextlib import contextmanager
+
+import chainer.functions as F
+
 from onnx_chainer import functions
 from onnx_chainer.functions.converter import FunctionConverter
+from onnx_chainer.replace_func import fake_as_funcnode
 
 
 _supported_function_node_set = {
@@ -28,9 +33,12 @@ _supported_function_node_set = {
     'Hstack',
     'Moveaxis',
     'Pad',
+    'Permutate',
     'Repeat',
     'Reshape',
     'ResizeImages',
+    'Rollaxis',
+    'SelectItem',
     'Separate',
     'Shape',
     'Space2Depth',
@@ -40,6 +48,7 @@ _supported_function_node_set = {
     'Swapaxes',
     'Tile',
     'Transpose',
+    'TransposeSequence',
     'Vstack',
     'Where',
 
@@ -88,6 +97,7 @@ _supported_function_node_set = {
     'PowVarVar',
     'Prod',
     'RsqrtGPU',
+    'sign',
     'Sin',
     'Sinh',
     'Sqrt',
@@ -114,6 +124,9 @@ _supported_function_node_set = {
     'MaxPoolingND',
     'ROIPooling2D',
     'Unpooling2D',
+
+    # RNN
+    'n_step_gru',
 }
 
 _converters = None
@@ -132,3 +145,28 @@ def _get_converters():
 
 
 converters = _get_converters()
+
+
+_supported_function_set = {
+    # Math
+    (F, 'sign'),
+
+    # RNN
+    (F, 'n_step_gru'),
+    (F.rnn.n_step_gru, 'n_step_gru'),
+}
+
+
+@contextmanager
+def patch_functions():
+    org_funcs = {}
+    for mod, name in _supported_function_set:
+        org_func = getattr(mod, name)
+        org_funcs[(mod, name)] = org_func
+        setattr(mod, name, fake_as_funcnode(
+            org_func, name, experimental_warning=False))
+    try:
+        yield
+    finally:
+        for mod, name in _supported_function_set:
+            setattr(mod, name, org_funcs[(mod, name)])

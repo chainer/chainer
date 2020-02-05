@@ -11,7 +11,21 @@ try:
     import cupy as cp
     _cupy_avail = True
 except Exception:
+    cp = None
     _cupy_avail = False
+
+
+def _get_memory_pointer_from_chainerx(array):
+    # Currently, ChainerMN requires CuPy to support ChainerX.
+    # This is because ChainerX's backend does not provide a raw
+    # memory pointer class.
+    return cp.cuda.MemoryPointer(
+        cp.cuda.UnownedMemory(
+            array.data_ptr + array.offset,
+            array.data_size,
+            array,
+            array.device.index),
+        0)
 
 
 class ParamsData(object):
@@ -26,7 +40,17 @@ class ParamsData(object):
             if attr_name == 'grad' and v is None and zero_fill:
                 v = param.xp.zeros_like(param.data)
                 setattr(param, attr_name, v)
-            params_dptr[i] = v.data.ptr
+            xp = chainer.backend.get_array_module(v)
+
+            if xp == cp:
+                v_data = v.data
+            elif xp == chx:
+                v_data = _get_memory_pointer_from_chainerx(v)
+            else:
+                raise ValueError(
+                    '{} is from an unsupported array module'.format(type(v)))
+
+            params_dptr[i] = v_data.ptr
             if v.dtype not in [np.float16, np.float32, np.float64]:
                 raise ValueError('dtype must be float16, float32 or float64.')
             params_dtype[i] = _communication_utility._get_nccl_type_id(v.dtype)
@@ -82,25 +106,13 @@ class DeviceMemory(object):
             self.size = size
             self.memory = cp.cuda.alloc(size)
 
-    def _get_memory_pointer_from_chainerx(self, array):
-        # Currently, ChainerMN requires CuPy to support ChainerX.
-        # This is because ChainerX's backend does not provide a raw
-        # memory pointer class.
-        return cp.cuda.MemoryPointer(
-            cp.cuda.UnownedMemory(
-                array.data_ptr + array.offset,
-                array.data_size,
-                array,
-                array.device.index),
-            0)
-
     def from_device(self, src, size, offset=0, stream=None):
         dst = self.memory + offset
         xp = chainer.backend.get_array_module(src)
         if xp == cp:
             src_data = src.data
         elif xp == chx:
-            src_data = self._get_memory_pointer_from_chainerx(src)
+            src_data = _get_memory_pointer_from_chainerx(src)
         else:
             raise ValueError(
                 '{} is from an unsupported array module'.format(type(src)))
@@ -115,7 +127,7 @@ class DeviceMemory(object):
         if xp == cp:
             dst_data = dst.data
         elif xp == chx:
-            dst_data = self._get_memory_pointer_from_chainerx(dst)
+            dst_data = _get_memory_pointer_from_chainerx(dst)
         else:
             raise ValueError(
                 '{} is from an unsupported array module'.format(type(dst)))
@@ -200,7 +212,8 @@ def unpack_params(params, attr_name, buffer,
         buffer.to_device(v, size, offset, stream)
         offset += size
         if grad_dtype != transfer_dtype:
-            setattr(param, attr_name, v.astype(grad_dtype))
+            # avoid using setattr as ChainerX array cannot be directly updated
+            getattr(param, attr_name)[...] = v.astype(grad_dtype)
 
 
 def array_to_buffer_object(array, mpi_dtype=mpi4py.MPI.FLOAT):

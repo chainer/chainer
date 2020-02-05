@@ -1,6 +1,8 @@
+import chainer
 from chainer.functions.connection import convolution_2d
 from chainer import initializers
 from chainer import link
+from chainer import memory_layouts
 from chainer.utils import argument
 from chainer import variable
 
@@ -119,6 +121,14 @@ nobias=False, initialW=None, initial_bias=None, *, dilate=1, groups=1)
         if ksize is None:
             out_channels, ksize, in_channels = in_channels, out_channels, None
 
+        self.cudnn_fast = chainer.get_compute_mode() == 'cudnn_fast'
+        if self.cudnn_fast:
+            x_layout = memory_layouts.CUDNN_CHANNEL_LAST_X
+            w_layout = memory_layouts.CUDNN_CHANNEL_LAST_W
+        else:
+            x_layout = memory_layouts.CUDNN_CHANNEL_FIRST_X
+            w_layout = memory_layouts.CUDNN_CHANNEL_FIRST_W
+
         self.ksize = ksize
         self.stride = _pair(stride)
         self.pad = _pair(pad)
@@ -126,10 +136,11 @@ nobias=False, initialW=None, initial_bias=None, *, dilate=1, groups=1)
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.groups = int(groups)
+        self.x_layout = x_layout
 
         with self.init_scope():
             W_initializer = initializers._get_initializer(initialW)
-            self.W = variable.Parameter(W_initializer)
+            self.W = variable.Parameter(W_initializer, layout=w_layout)
             if in_channels is not None:
                 self._initialize_params(in_channels)
 
@@ -167,6 +178,56 @@ nobias=False, initialW=None, initial_bias=None, *, dilate=1, groups=1)
         W_shape = (self.out_channels, int(in_channels / self.groups), kh, kw)
         self.W.initialize(W_shape)
 
+    @classmethod
+    def from_params(cls, W, b=None, stride=1, pad=0, nobias=False, **kwargs):
+        """from_params(cls, W, b=None, stride=1, pad=0, \
+nobias=False, *, dilate=1, groups=1)
+
+        Initialize a :class:`~chainer.links.Convolution2D` with given
+        parameters.
+
+        This method uses ``W`` and optional ``b`` to initialize
+        a 2D convolution layer.
+
+        Args:
+            W (:class:`~chainer.Variable` or :ref:`ndarray`):
+                The weight parameter.
+            b (:class:`~chainer.Variable`, :ref:`ndarray`, or ``None``):
+                The bias parameter.
+            stride (int or pair of ints): Stride of filter applications.
+                ``stride=s`` and ``stride=(s, s)`` are equivalent.
+            pad (int or pair of ints): Spatial padding width for input arrays.
+                ``pad=p`` and ``pad=(p, p)`` are equivalent.
+            nobias (bool): If ``True``, then this link does not use
+                the bias term in spite of whether ``b`` is given or not.
+            dilate (int or pair of ints):
+                Dilation factor of filter applications.
+                ``dilate=d`` and ``dilate=(d, d)`` are equivalent.
+            groups (:class:`int`): Number of groups of channels. If the number
+                is greater than 1, input tensor :math:`W` is divided into some
+                blocks by this value channel-wise. For each tensor blocks,
+                convolution operation will be executed independently.
+                Input channel size ``in_channels`` and output channel size
+                ``out_channels`` must be exactly divisible by this value.
+        """
+        # TODO(crcrpar): Support the below conditions.
+        # - W (and b) of cupy on non-default GPUs like id=1.
+        # - W (and b) of chainerx on cuda.
+        dilate, groups = argument.parse_kwargs(
+            kwargs, ('dilate', 1), ('groups', 1))
+        out_channels, _in_channels, kw, kh = W.shape
+        in_channels = _in_channels * groups
+        if b is not None:
+            if out_channels != b.size:
+                raise ValueError(
+                    '`out_channels` does not match the size of `b`')
+
+        link = cls(
+            in_channels, out_channels, (kw, kh), stride, pad, nobias,
+            initialW=variable.as_array(W), initial_bias=variable.as_array(b),
+            dilate=dilate, groups=groups)
+        return link
+
     def forward(self, x):
         """Applies the convolution layer.
 
@@ -177,11 +238,17 @@ nobias=False, initialW=None, initial_bias=None, *, dilate=1, groups=1)
             ~chainer.Variable: Output of the convolution.
 
         """
-        if self.W.array is None:
-            self._initialize_params(x.shape[1])
+        x = chainer.as_variable(x)
+        assert x.layout == self.x_layout
+        # self.W can be a Variable instead of Parameter: #8462
+        # TODO(niboshi): Use Parameter.is_initialized.
+        if self.W.raw_array is None:
+            _, c, _, _ = memory_layouts.get_semantic_shape(
+                x, assumed_layout=self.x_layout)
+            self._initialize_params(c)
         return convolution_2d.convolution_2d(
             x, self.W, self.b, self.stride, self.pad, dilate=self.dilate,
-            groups=self.groups)
+            groups=self.groups, cudnn_fast=self.cudnn_fast)
 
 
 def _pair(x):

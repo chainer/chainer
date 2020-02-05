@@ -141,10 +141,17 @@ ArrayBodyPtr MakeArray(py::handle object, py::handle dtype, bool copy, py::handl
     absl::optional<Dtype> dtype_ = dtype.is_none() ? absl::nullopt : absl::optional<Dtype>(GetDtype(dtype));
     Device& dev = GetDevice(device);
 
+    if (!copy && py::isinstance<ArrayBody>(object)) {
+        ArrayBodyPtr body = py::cast<ArrayBodyPtr>(object);
+        if ((device.is_none() || &dev == &body->device()) && (dtype.is_none() || *dtype_ == body->dtype())) {
+            return body;
+        }
+    }
+
     return MakeArray(object, dtype_, copy, dev);
 }
 
-ArrayBodyPtr MakeArray(py::handle object, const absl::optional<Dtype>& dtype, bool copy, Device& device) {
+ArrayBodyPtr MakeArray(py::handle object, absl::optional<Dtype> dtype, bool copy, Device& device) {
     // object is chainerx.ndarray
     if (py::isinstance<ArrayBody>(object)) {
         Array a = Array{py::cast<ArrayBodyPtr>(object)};
@@ -240,7 +247,7 @@ void InitChainerxArrayConversion(pybind11::module& m, py::class_<ArrayBody, Arra
 
 void InitChainerxArrayManipulation(py::class_<ArrayBody, ArrayBodyPtr>& c) {
     c.def("take",
-          [](const ArrayBodyPtr& self, py::handle indices, const absl::optional<int8_t>& axis, absl::optional<std::string>& mode) {
+          [](const ArrayBodyPtr& self, py::handle indices, absl::optional<int8_t> axis, absl::optional<std::string>& mode) {
               if (!axis.has_value()) {
                   throw NotImplementedError{"axis=None is not yet supported for chainerx.ndarray.take."};
               }
@@ -592,10 +599,10 @@ void InitChainerxArrayCalculation(py::class_<ArrayBody, ArrayBodyPtr>& c) {
           "axis"_a = nullptr,
           "keepdims"_a = false);
     c.def("argmax",
-          [](const ArrayBodyPtr& self, const absl::optional<int8_t>& axis) { return MoveArrayBody(ArgMax(Array{self}, ToAxes(axis))); },
+          [](const ArrayBodyPtr& self, absl::optional<int8_t> axis) { return MoveArrayBody(ArgMax(Array{self}, ToAxes(axis))); },
           "axis"_a = nullptr);
     c.def("argmin",
-          [](const ArrayBodyPtr& self, const absl::optional<int8_t>& axis) { return MoveArrayBody(ArgMin(Array{self}, ToAxes(axis))); },
+          [](const ArrayBodyPtr& self, absl::optional<int8_t> axis) { return MoveArrayBody(ArgMin(Array{self}, ToAxes(axis))); },
           "axis"_a = nullptr);
 }
 
@@ -652,7 +659,7 @@ void InitChainerxArraySpecial(pybind11::module& m, py::class_<ArrayBody, ArrayBo
           [](const ArrayBodyPtr& self,
              const absl::optional<BackpropId>& backprop_id,
              bool enable_double_backprop,
-             const absl::optional<float>& loss_scale) {
+             absl::optional<float> loss_scale) {
               auto double_backprop = enable_double_backprop ? DoubleBackpropOption::kEnable : DoubleBackpropOption::kDisable;
               Backward(Array{self}, backprop_id, double_backprop, loss_scale);
           },

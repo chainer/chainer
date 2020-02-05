@@ -47,10 +47,7 @@ set_target_properties(${module_name}
     SKIP_BUILD_RPATH FALSE
     BUILD_WITH_INSTALL_RPATH TRUE)
 
-# Visibility (CXX_VISIBILITY_PRESET) must be set to "default" to register custom exceptions, overriding the visibility configured by pybind11_add_module.
-# Note however that this only seems to be an issue when building with libc++.
 set_target_properties(${module_name}
     PROPERTIES
     PREFIX "${PYTHON_MODULE_PREFIX}"
-    SUFFIX "${PYTHON_MODULE_SUFFIX}"
-    CXX_VISIBILITY_PRESET "default")
+    SUFFIX "${PYTHON_MODULE_SUFFIX}")

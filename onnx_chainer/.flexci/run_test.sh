@@ -18,9 +18,10 @@ set -eux
 
 if [[ "${INSTALL_CUPY}" == "on" ]]; then pip install --pre cupy-cuda101; fi
 pip install -e .[test]
-pip install 'onnx<1.6.0' onnxruntime
+pip install 'onnx<1.7.0' onnxruntime
 if [[ "${ONNX_VER}" != "" ]]; then pip install onnx==${ONNX_VER}; fi
 pip install pytest-cov
+pip list -v
 pytest -x -s -vvvs ${PYTEST_ARGS} tests/onnx_chainer_tests --cov onnx_chainer
 
 pip install chainercv

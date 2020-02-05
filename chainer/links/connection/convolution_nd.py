@@ -1,6 +1,7 @@
 from chainer.functions.connection import convolution_nd
 from chainer import initializers
 from chainer import link
+from chainer.utils import argument
 from chainer.utils import conv_nd
 from chainer import variable
 
@@ -144,6 +145,58 @@ class ConvolutionND(link.Link):
         W_shape = (
             self.out_channels, int(in_channels / self.groups)) + self.ksize
         self.W.initialize(W_shape)
+
+    @classmethod
+    def from_params(cls, W, b=None, stride=1, pad=0, nobias=False, **kwargs):
+        """from_params(cls, W, b=None, stride=1, pad=0, \
+nobias=False, *, cover_all=False, dilate=1, groups=1)
+
+        Initialize a :class:`~chainer.links.ConvolutionND` with given
+        parameters.
+
+        This method uses ``W`` and optional ``b`` to initialize an :math:`N` D
+        convolution layer.
+
+        Args:
+            W (:class:`~chainer.Variable` or :ref:`ndarray`):
+                The weight parameter.
+            b (:class:`~chainer.Variable`, :ref:`ndarray`, or None):
+                The weight parameter.
+            ksize (int or tuple of ints): Size of filters (a.k.a. kernels).
+                ``ksize=k`` and ``ksize=(k, k, ..., k)`` are equivalent.
+            stride (int or tuple of ints): Stride of filter application.
+                ``stride=s`` and ``stride=(s, s, ..., s)`` are equivalent.
+            pad (int or tuple of ints): Spatial padding width for input arrays.
+                ``pad=p`` and ``pad=(p, p, ..., p)`` are equivalent.
+            nobias (bool):
+                If ``True``, then this function does not use the bias.
+            cover_all (bool): If ``True``, all spatial locations are convoluted
+                into some output pixels. It may make the output size larger.
+                ``cover_all`` needs to be ``False`` if you want to use cuDNN.
+            dilate (:class:`int` or :class:`tuple` of :class:`int` s):
+                Dilation factor of filter applications.
+                ``dilate=d`` and ``dilate=(d, d, ..., d)`` are equivalent.
+            groups (:class:`int`):
+                The number of groups to use grouped convolution.
+                The default is one, where grouped convolution is not used.
+        """
+        # TODO(crcrpar): Support the below conditions.
+        # - W (and b) of cupy on non-default GPUs like id=1.
+        # - W (and b) of chainerx on cuda.
+        cover_all, dilate, groups = argument.parse_kwargs(
+            kwargs, ('cover_all', False), ('dilate', 1), ('groups', 1))
+        out_channels, _in_channels, *ksize = W.shape
+        in_channels = _in_channels * groups
+        if b is not None:
+            if out_channels != b.size:
+                raise ValueError(
+                    '`out_channels` does not match the size of `b`')
+
+        link = cls(
+            len(ksize), in_channels, out_channels, ksize, stride, pad, nobias,
+            initialW=variable.as_array(W), initial_bias=variable.as_array(b),
+            cover_all=cover_all, dilate=dilate, groups=groups)
+        return link
 
     def forward(self, x):
         """Applies N-dimensional convolution layer.
