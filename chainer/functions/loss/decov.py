@@ -69,7 +69,7 @@ def decov(h, reduce='half_squared_sum'):
         h (:class:`~chainer.Variable` or :ref:`ndarray`):
             Variable holding a matrix where the first dimension
             corresponds to the batches.
-        recude (str): Reduction option. Its value must be either
+        reduce (str): Reduction option. Its value must be either
             ``'half_squared_sum'`` or ``'no'``.
             Otherwise, :class:`ValueError` is raised.
 
