@@ -5,6 +5,7 @@ _optional_dependencies = [
     {
         'name': 'CuPy',
         'packages': [
+            'cupy-cuda102',
             'cupy-cuda101',
             'cupy-cuda100',
             'cupy-cuda92',
