@@ -43,7 +43,7 @@ void CheckBackward(
 // is correct; the numerical gradient assumes that the first-order gradient given
 // by the usual `Backward` is correct. The implementation of each differentiable
 // function should be tested by `CheckBackwardComputation` first, and then should be
-// tested by this function if neccessary.
+// tested by this function if necessary.
 void CheckDoubleBackwardComputation(
         const std::function<std::vector<Array>(const std::vector<Array>&)>& func,
         const std::vector<Array>& inputs,

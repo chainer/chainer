@@ -32,6 +32,11 @@ def pytest_generate_tests(metafunc):
         metafunc.parametrize(fixture_name, device_names, indirect=True)
 
 
+def pytest_collection_modifyitems(session, config, items):
+    # Make the order of tests deterministic
+    items[:] = sorted(items, key=lambda item: item.location)
+
+
 def _register_cuda_marker(config):
     config.addinivalue_line(
         'markers',

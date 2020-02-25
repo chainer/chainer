@@ -7,6 +7,7 @@ from chainer.backends import cuda
 from chainer import gradient_check
 from chainer import links
 from chainer import testing
+from chainer import initializers
 from chainer.testing import attr
 from chainer.testing import condition
 
@@ -67,7 +68,8 @@ class TestNStepRNN(unittest.TestCase):
             assert len(x) == len(y)
             assert y.shape[1] == self.out_size
 
-        self.rnn.to_cpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.rnn.to_cpu()
 
         for batch, seq in enumerate(self.xs):
             for layer in range(self.n_layers):
@@ -98,7 +100,8 @@ class TestNStepRNN(unittest.TestCase):
 
     @attr.gpu
     def test_forward_gpu_train(self):
-        self.rnn.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.rnn.to_gpu()
         with chainer.using_config('use_cudnn', 'always'), \
                 chainer.using_config('train', True):
             self.check_forward(
@@ -111,7 +114,8 @@ class TestNStepRNN(unittest.TestCase):
 
     @attr.gpu
     def test_forward_gpu_test(self):
-        self.rnn.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.rnn.to_gpu()
         with chainer.using_config('use_cudnn', 'always'), \
                 chainer.using_config('train', False):
             self.check_forward(
@@ -131,7 +135,8 @@ class TestNStepRNN(unittest.TestCase):
             else:
                 h = cuda.to_gpu(self.h)
             xs = [cuda.to_gpu(x) for x in self.xs]
-            rnn = rnn.to_gpu()
+            with testing.assert_warns(DeprecationWarning):
+                rnn = rnn.to_gpu()
         with cuda.get_device_from_id(0),\
                 chainer.using_config('train', train),\
                 chainer.using_config('use_cudnn', 'always'):
@@ -186,7 +191,8 @@ class TestNStepRNN(unittest.TestCase):
     @attr.gpu
     @condition.retry(3)
     def test_backward_gpu(self):
-        self.rnn.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.rnn.to_gpu()
         with chainer.using_config('use_cudnn', 'auto'):
             self.check_backward(
                 cuda.to_gpu(self.h),
@@ -250,7 +256,8 @@ class TestNStepBiRNN(unittest.TestCase):
             assert len(x) == len(y)
             assert y.shape[1] == self.out_size * 2
 
-        self.rnn.to_cpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.rnn.to_cpu()
 
         for batch, seq in enumerate(self.xs):
             for layer in range(self.n_layers):
@@ -303,7 +310,8 @@ class TestNStepBiRNN(unittest.TestCase):
 
     @attr.gpu
     def test_forward_gpu_train(self):
-        self.rnn.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.rnn.to_gpu()
         with chainer.using_config('use_cudnn', 'always'), \
                 chainer.using_config('train', True):
             self.check_forward(
@@ -316,7 +324,8 @@ class TestNStepBiRNN(unittest.TestCase):
 
     @attr.gpu
     def test_forward_gpu_test(self):
-        self.rnn.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.rnn.to_gpu()
         with chainer.using_config('use_cudnn', 'always'), \
                 chainer.using_config('train', False):
             self.check_forward(
@@ -336,7 +345,8 @@ class TestNStepBiRNN(unittest.TestCase):
             else:
                 h = cuda.to_gpu(self.h)
             xs = [cuda.to_gpu(x) for x in self.xs]
-            rnn = rnn.to_gpu()
+            with testing.assert_warns(DeprecationWarning):
+                rnn = rnn.to_gpu()
         with cuda.get_device_from_id(0),\
                 chainer.using_config('train', train),\
                 chainer.using_config('use_cudnn', 'always'):
@@ -391,7 +401,8 @@ class TestNStepBiRNN(unittest.TestCase):
     @attr.gpu
     @condition.retry(3)
     def test_backward_gpu(self):
-        self.rnn.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.rnn.to_gpu()
         with chainer.using_config('use_cudnn', 'auto'):
             self.check_backward(
                 cuda.to_gpu(self.h),
@@ -401,6 +412,84 @@ class TestNStepBiRNN(unittest.TestCase):
 
     def test_n_cells(self):
         assert self.rnn.n_cells == 1
+
+
+@testing.parameterize(
+    *testing.product(
+        {
+            'dtype': [numpy.float32, numpy.float64],
+            'initialW': ['zero', 'random'],
+            'initial_bias': ['zero', 'random'],
+            'activation_type': ['tanh', 'relu'],
+            'use_bi_direction': [True, False]
+        }
+    )
+)
+class TestInitialization(unittest.TestCase):
+
+    def get_initializers(self):
+        if self.initialW == 'zero':
+            weight_initializer = initializers.constant.Zero()
+        elif self.initialW == 'random':
+            weight_initializer = initializers.GlorotUniform(
+                rng=numpy.random.RandomState(seed=0))
+
+        if self.initial_bias == 'zero':
+            bias_initializer = initializers.constant.Zero()
+        elif self.initial_bias == 'random':
+            bias_initializer = initializers.Uniform(
+                rng=numpy.random.RandomState(seed=0))
+
+        return weight_initializer, bias_initializer
+
+    def setUp(self):
+        weight_initializer, bias_initializer = self.get_initializers()
+        with chainer.using_config('dtype', self.dtype):
+            if self.activation_type == 'tanh':
+                if self.use_bi_direction:
+                    link = links.NStepBiRNNTanh
+                else:
+                    link = links.NStepRNNTanh
+
+            elif self.activation_type == 'relu':
+                if self.use_bi_direction:
+                    link = links.NStepBiRNNReLU
+                else:
+                    link = links.NStepRNNReLU
+
+            self.link = link(
+                1, 10, 10, 0.0,
+                initialW=weight_initializer,
+                initial_bias=bias_initializer)
+
+    def check_param(self):
+        weight_initializer, bias_initializer = self.get_initializers()
+        link = self.link
+        xp = link.xp
+        dtype = self.dtype
+        for ws_i in link.ws:
+            for w in ws_i:
+                assert w.dtype == dtype
+                w_expected = xp.empty(w.shape, dtype)
+                weight_initializer(w_expected)
+                testing.assert_allclose(
+                    w.array, w_expected, atol=0, rtol=0)
+
+        for bs_i in link.bs:
+            for b in bs_i:
+                assert b.dtype == dtype
+                b_expected = xp.empty(b.shape, dtype)
+                bias_initializer(b_expected)
+                testing.assert_allclose(
+                    b.array, b_expected, atol=0, rtol=0)
+
+    def test_param_cpu(self):
+        self.check_param()
+
+    @attr.gpu
+    def test_param_gpu(self):
+        self.link.to_device('@cupy:0')
+        self.check_param()
 
 
 testing.run_module(__name__, __file__)

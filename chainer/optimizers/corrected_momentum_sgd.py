@@ -36,6 +36,7 @@ class CorrectedMomentumSGDRule(optimizer.UpdateRule):
         momentum (float): Exponential decay rate of the first order moment.
 
     """
+    is_elementwise = True
 
     def __init__(self, parent_hyperparam=None, lr=None, momentum=None):
         super(CorrectedMomentumSGDRule, self).__init__(

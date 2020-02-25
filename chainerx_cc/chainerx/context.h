@@ -69,7 +69,7 @@ public:
                 context_detail::BackendDeleter{[](gsl::owner<Backend*> ptr) { delete ptr; }}};
         auto pair = RegisterBackend(backend_name, std::move(backend));
         if (!pair.second) {
-            ContextError{"Backend is already registered: ", backend_name};
+            throw ContextError{"Backend is already registered: ", backend_name};
         }
         return pair.first;
     }
@@ -222,8 +222,12 @@ public:
     // Explicitly recovers the original context. It will invalidate the scope object so that dtor will do nothing.
     void Exit() {
         if (!exited_) {
-            SetDefaultContext(orig_ctx_);
-            SetDefaultDevice(orig_device_);
+            try {
+                SetDefaultContext(orig_ctx_);
+                SetDefaultDevice(orig_device_);
+            } catch (...) {
+                CHAINERX_NEVER_REACH();
+            }
             exited_ = true;
         }
     }

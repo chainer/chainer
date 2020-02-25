@@ -118,8 +118,20 @@ def _populate_module_functions():
         bcasted = backend.broadcast_arrays(*arrs)
         return [_to_chx(ret) for ret in bcasted]
 
+    def _copysign(*args):
+        xps, devs, arrs = zip(*(_from_chx(arr) for arr in args))
+        backend = xps[0]
+        if not all([xp is backend for xp in xps]):
+            raise TypeError(
+                'ChainerX function fallback using mixed NumPy/CuPy '
+                'arrays is not supported.')
+        with devs[0]:
+            y = backend.copysign(*arrs)
+        return _to_chx(y)
+
     chainerx.fix = _fix
     chainerx.broadcast_arrays = _broadcast_arrays
+    chainerx.copysign = _copysign
 
 
 def _populate_ndarray():

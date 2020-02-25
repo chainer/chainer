@@ -22,19 +22,6 @@ def _check_python_350():
             raise Exception(msg)
 
 
-def _check_python_2():
-    if sys.version_info[:1] == (2,):
-        warnings.warn('''
---------------------------------------------------------------------------------
-Chainer is going to stop supporting Python 2 in v7.x releases.
-
-Future releases of Chainer v7.x will not run on Python 2.
-If you need to continue using Python 2, consider using Chainer v6.x, which
-will be the last version that runs on Python 2.
---------------------------------------------------------------------------------
-''')  # NOQA
-
-
 def _check_osx_numpy_backend():
     if sys.platform != 'darwin':
         return
@@ -96,15 +83,16 @@ See the following page for more details:
 --------------------------------------------------------------------------------
 Multiple installations of {name} package has been detected.
 You should select only one package from from {pkgs}.
-Run `pip list` to see the list of packages currently installed, then
-`pip uninstall <package name>` to uninstall unnecessary package(s).
+Follow these steps to resolve this issue:
+  1. `pip list` to list {name} packages installed
+  2. `pip uninstall <package name>` to uninstall all {name} packages
+  3. `pip install <package name>` to install the proper one
 --------------------------------------------------------------------------------
 '''.format(name=name, pkgs=pkgs))
                 installed = True
 
 
 def check():
-    _check_python_2()
     _check_python_350()
     _check_osx_numpy_backend()
     _check_optional_dependencies()

@@ -1,9 +1,7 @@
 import numpy
 
 import chainer
-import chainerx
 from chainer import backend
-from chainer import variable
 from chainer.backends import cuda
 from chainer.functions.activation import sigmoid
 from chainer.functions.activation import tanh
@@ -12,6 +10,8 @@ from chainer.functions.array import split_axis
 from chainer.functions.connection import linear
 from chainer.functions.rnn import n_step_rnn
 from chainer.utils import argument
+from chainer import variable
+import chainerx
 
 
 if cuda.cudnn_enabled:
@@ -136,7 +136,7 @@ def n_step_gru(
             ``ws[i]`` represents weights for i-th layer.
             Each ``ws[i]`` is a list containing six matrices.
             ``ws[i][j]`` is corresponding with ``W_j`` in the equation.
-            Only ``ws[0][j]`` where ``0 <= j < 3`` is ``(I, N)`` shape as they
+            Only ``ws[0][j]`` where ``0 <= j < 3`` is ``(N, I)`` shape as they
             are multiplied with input variables. All other matrices has
             ``(N, N)`` shape.
         bs (list of list of :class:`~chainer.Variable`): Bias vectors.
@@ -159,7 +159,7 @@ def n_step_gru(
             ``xs[t].shape[0] >= xs[t + 1].shape[0]``.
 
     Returns:
-        tuple: This function returns a tuple containing three elements,
+        tuple: This function returns a tuple containing two elements,
         ``hy`` and ``ys``.
 
         - ``hy`` is an updated hidden states whose shape is same as ``hx``.
@@ -231,7 +231,7 @@ def n_step_bigru(
             ``ws[i]`` represents weights for i-th layer.
             Each ``ws[i]`` is a list containing six matrices.
             ``ws[i][j]`` is corresponding with ``W_j`` in the equation.
-            Only ``ws[0][j]`` where ``0 <= j < 3`` is ``(I, N)`` shape as they
+            Only ``ws[0][j]`` where ``0 <= j < 3`` is ``(N, I)`` shape as they
             are multiplied with input variables. All other matrices has
             ``(N, N)`` shape.
         bs (list of list of :class:`~chainer.Variable`): Bias vectors.
@@ -296,7 +296,7 @@ use_bi_direction)
             ``ws[i]`` represents weights for i-th layer.
             Each ``ws[i]`` is a list containing six matrices.
             ``ws[i][j]`` is corresponding with ``W_j`` in the equation.
-            Only ``ws[0][j]`` where ``0 <= j < 3`` is ``(I, N)`` shape as they
+            Only ``ws[0][j]`` where ``0 <= j < 3`` is ``(N, I)`` shape as they
             are multiplied with input variables. All other matrices has
             ``(N, N)`` shape.
         bs (list of list of :class:`~chainer.Variable`): Bias vectors.

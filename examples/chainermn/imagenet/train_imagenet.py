@@ -28,7 +28,7 @@ major, minor, _, _, _ = sys.version_info
 if major <= 2 or (major == 3 and minor < 4):
     sys.stderr.write('Error: ImageNet example uses '
                      'chainer.iterators.MultiprocessIterator, '
-                     'which works only with Python >= 3.4. \n'
+                     'which works only with Python >= 3.4.\n'
                      'For more details, see '
                      'http://chainermn.readthedocs.io/en/master/'
                      'tutorial/tips_faqs.html#using-multiprocessiterator\n')
@@ -198,14 +198,8 @@ def main():
     updater = training.StandardUpdater(train_iter, optimizer, device=device)
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), args.out)
 
-    checkpoint_interval = (10, 'iteration') if args.test else (1, 'epoch')
     val_interval = (10, 'iteration') if args.test else (1, 'epoch')
     log_interval = (10, 'iteration') if args.test else (1, 'epoch')
-
-    checkpointer = chainermn.create_multi_node_checkpointer(
-        name='imagenet-example', comm=comm)
-    checkpointer.maybe_load(trainer, optimizer)
-    trainer.extend(checkpointer, trigger=checkpoint_interval)
 
     # Create a multi node evaluator from an evaluator.
     evaluator = TestModeEvaluator(val_iter, model, device=device)

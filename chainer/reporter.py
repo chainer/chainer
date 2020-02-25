@@ -106,9 +106,11 @@ class Reporter(object):
         old = self.observation
         self.observation = observation
         self.__enter__()
-        yield
-        self.__exit__(None, None, None)
-        self.observation = old
+        try:
+            yield
+        finally:
+            self.__exit__(None, None, None)
+            self.observation = old
 
     def add_observer(self, name, observer):
         """Registers an observer of values.

@@ -9,7 +9,6 @@ ImageDataLayer).
 
 """
 import argparse
-import random
 
 import numpy as np
 
@@ -20,6 +19,7 @@ from chainer.training import extensions
 import chainerx
 
 import dali_util
+from dataset_util import PreprocessedDataset
 
 import alex
 import googlenet
@@ -27,47 +27,6 @@ import googlenetbn
 import nin
 import resnet50
 import resnext50
-
-
-class PreprocessedDataset(chainer.dataset.DatasetMixin):
-
-    def __init__(self, path, root, mean, crop_size, random=True):
-        self.base = chainer.datasets.LabeledImageDataset(path, root)
-        self.mean = mean.astype(chainer.get_dtype())
-        self.crop_size = crop_size
-        self.random = random
-
-    def __len__(self):
-        return len(self.base)
-
-    def get_example(self, i):
-        # It reads the i-th image/label pair and return a preprocessed image.
-        # It applies following preprocesses:
-        #     - Cropping (random or center rectangular)
-        #     - Random flip
-        #     - Scaling to [0, 1] value
-        crop_size = self.crop_size
-
-        image, label = self.base[i]
-        _, h, w = image.shape
-
-        if self.random:
-            # Randomly crop a region and flip the image
-            top = random.randint(0, h - crop_size - 1)
-            left = random.randint(0, w - crop_size - 1)
-            if random.randint(0, 1):
-                image = image[:, :, ::-1]
-        else:
-            # Crop the center
-            top = (h - crop_size) // 2
-            left = (w - crop_size) // 2
-        bottom = top + crop_size
-        right = left + crop_size
-
-        image = image[:, top:bottom, left:right]
-        image -= self.mean[:, top:bottom, left:right]
-        image *= (1.0 / 255.0)  # Scale to [0, 1]
-        return image, label
 
 
 def main():
@@ -78,6 +37,7 @@ def main():
         'nin': nin.NIN,
         'resnet50': resnet50.ResNet50,
         'resnext50': resnext50.ResNeXt50,
+        'resnet50_nhwc': resnet50.ResNet50_Nhwc,
     }
 
     dtypes = {
@@ -155,18 +115,18 @@ def main():
         if device.xp is not chainer.backend.cuda.cupy:
             raise RuntimeError('Using DALI requires GPU device. Please '
                                'specify it with --device option.')
-        num_threads = args.loaderjob
-        if num_threads is None or num_threads <= 0:
-            num_threads = 1
+        n_threads = args.loaderjob
+        if n_threads is None or n_threads <= 0:
+            n_threads = 1
         ch_mean = list(np.average(mean, axis=(1, 2)))
         ch_std = [255.0, 255.0, 255.0]
         # Setup DALI pipelines
         train_pipe = dali_util.DaliPipelineTrain(
             args.train, args.root, model.insize, args.batchsize,
-            num_threads, device.device.id, True, mean=ch_mean, std=ch_std)
+            n_threads, device.device.id, True, mean=ch_mean, std=ch_std)
         val_pipe = dali_util.DaliPipelineVal(
             args.val, args.root, model.insize, args.val_batchsize,
-            num_threads, device.device.id, False, mean=ch_mean, std=ch_std)
+            n_threads, device.device.id, False, mean=ch_mean, std=ch_std)
         train_iter = chainer.iterators.DaliIterator(train_pipe)
         val_iter = chainer.iterators.DaliIterator(val_pipe, repeat=False)
         # converter = dali_converter
@@ -193,8 +153,11 @@ def main():
         train_iter, optimizer, converter=converter, device=device)
     trainer = training.Trainer(updater, (args.epoch, 'epoch'), args.out)
 
-    val_interval = (1 if args.test else 100000), 'iteration'
-    log_interval = (1 if args.test else 1000), 'iteration'
+    val_interval = (100000, 'iteration')
+    log_interval = (1000, 'iteration')
+    if args.test:
+        val_interval = (1, 'iteration')
+        log_interval = (1, 'iteration')
 
     trainer.extend(extensions.Evaluator(val_iter, model, converter=converter,
                                         device=device), trigger=val_interval)

@@ -9,16 +9,11 @@ from chainer import functions
 from chainer import testing
 from chainer.testing import attr
 from chainer.testing import backend
+from chainer_tests.functions_tests.pooling_tests import pooling_nd_helper
 
 
-@testing.parameterize(*testing.product({
-    'cover_all': [True, False],
-    'dtype': [numpy.float16, numpy.float32, numpy.float64],
-    'contiguous': [None, 'C'],
-}))
-@backend.inject_backend_tests(
-    ['test_forward', 'test_backward', 'test_double_backward',
-     'test_forward_cpu_wide', 'test_forward_output_size_zero'],
+_inject_backend_tests = backend.inject_backend_tests(
+    None,
     # CPU tests
     testing.product({
         'use_cuda': [False],
@@ -35,6 +30,14 @@ from chainer.testing import backend
         'chainerx_device': ['native:0', 'cuda:0'],
     })
 )
+
+
+@_inject_backend_tests
+@testing.parameterize(*testing.product({
+    'cover_all': [True, False],
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'contiguous': [None, 'C'],
+}))
 class TestMaxPooling2D(testing.FunctionTestCase):
 
     def setUp(self):
@@ -55,10 +58,7 @@ class TestMaxPooling2D(testing.FunctionTestCase):
                 'atol': 1e-4, 'rtol': 1e-3}
 
     def generate_inputs(self):
-        x = numpy.arange(2 * 3 * 4 * 3, dtype=self.dtype).reshape(2, 3, 4, 3)
-        numpy.random.shuffle(x)
-        x = 2 * x / x.size - 1
-        return x,
+        return pooling_nd_helper.shuffled_linspace((2, 3, 4, 3), self.dtype),
 
     def forward_expected(self, inputs):
         x, = inputs
@@ -83,7 +83,14 @@ class TestMaxPooling2D(testing.FunctionTestCase):
                                      cover_all=self.cover_all)
         return y,
 
-    def test_forward_cpu_wide(self, backend_config):  # see #120
+
+@testing.parameterize(*testing.product({
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
+}))
+class TestMaxPooling2DForwardCpuWide(unittest.TestCase):
+    # see #120
+
+    def test_forward_cpu_wide(self):
         x_data = numpy.random.rand(2, 3, 15, 15).astype(self.dtype)
         x = chainer.Variable(x_data)
         functions.max_pooling_2d(x, 6, stride=6, pad=0)
@@ -127,9 +134,8 @@ class TestMaxPooling2DCudnnCall(unittest.TestCase):
 
 class TestMaxPooling2DIndices(unittest.TestCase):
     def setUp(self):
-        self.x = numpy.arange(
-            2 * 3 * 4 * 4, dtype=numpy.float32).reshape(2, 3, 4, 4)
-        numpy.random.shuffle(self.x)
+        self.x = pooling_nd_helper.shuffled_linspace(
+            (2, 3, 4, 4), numpy.float32)
 
     def _check(self, x):
         out, indices = functions.max_pooling_2d(

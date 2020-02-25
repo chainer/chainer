@@ -299,7 +299,8 @@ class TestLink(LinkTestBase, unittest.TestCase):
         l0 = self.link
         l1 = l0.copy()
         self.assertIs(l0.x.data, l1.x.data)
-        l1.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            l1.to_gpu()
         self.assertIsNot(l0.x.data, l1.x.data)
         self.assertIsInstance(l0.x.data, numpy.ndarray)
         self.assertIsInstance(l1.x.data, cupy.ndarray)
@@ -312,7 +313,8 @@ class TestLink(LinkTestBase, unittest.TestCase):
         self.assertIs(l0.device.xp, numpy)
         self.assertIsNone(l0.u.data)
         self.assertIsNone(l1.u.data)
-        l1.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            l1.to_gpu()
         self.assertIs(l0.device.xp, numpy)
         self.assertIsNone(l0.u.data)
         l1.u.initialize((2, 3))
@@ -328,9 +330,11 @@ class TestLink(LinkTestBase, unittest.TestCase):
         self.assertIsNone(l0.u.data)
         self.assertIsNone(l1.u.data)
         self.assertIsNone(l2.u.data)
-        l1.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            l1.to_gpu()
         l1.u.initialize((2, 3))
-        l2.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            l2.to_gpu()
         l2.u.initialize((2, 3))
         self.assertIsNone(l0.u.data)
         self.assertIsInstance(l1.u.data, cupy.ndarray)
@@ -364,7 +368,8 @@ class TestLink(LinkTestBase, unittest.TestCase):
     @attr.multi_gpu(2)
     def test_deepcopy_multi_device(self):
         device_id = 1
-        self.link.to_gpu(device_id)
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu(device_id)
         link = copy.deepcopy(self.link)
         self._check_deepcopy(link)
         self.assertEqual(link.device.device, cuda.Device(device_id))
@@ -377,7 +382,8 @@ class TestLink(LinkTestBase, unittest.TestCase):
         y = self.link.y.data
         gy = self.link.y.grad
         p = self.link.p
-        self.link.to_cpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_cpu()
         self.assertIs(self.link.x.data, x)
         self.assertIs(self.link.x.grad, gx)
         self.assertIs(self.link.y.data, y)
@@ -390,8 +396,10 @@ class TestLink(LinkTestBase, unittest.TestCase):
 
     @attr.gpu
     def test_to_cpu(self):
-        self.link.to_gpu()
-        self.link.to_cpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_cpu()
         self.link.v.initialize((2, 3))
         self.assertIs(self.link.xp, numpy)
         self.assertIsInstance(self.link.x.data, numpy.ndarray)
@@ -409,7 +417,8 @@ class TestLink(LinkTestBase, unittest.TestCase):
     @attr.gpu
     def test_to_gpu(self):
         cupy = cuda.cupy
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.link.v.initialize((2, 3))
         self.assertIs(self.link.xp, cupy)
         self.assertIsInstance(self.link.x.data, cupy.ndarray)
@@ -427,12 +436,14 @@ class TestLink(LinkTestBase, unittest.TestCase):
     @attr.multi_gpu(2)
     def test_to_gpu_different_current_device(self):
         cuda.Device(1).use()
-        self.link.to_gpu(0)
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu(0)
         self.assertEqual(self.link.device.device, cuda.Device(0))
 
     @attr.multi_gpu(2)
     def test_to_gpu_different_device(self):
-        self.link.to_gpu(0)
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu(0)
         self.assertEqual(self.link.device.device, cuda.Device(0))
         self.assertEqual(self.link.x.data.device, cuda.Device(0))
         self.assertEqual(self.link.x.grad.device, cuda.Device(0))
@@ -455,7 +466,8 @@ class TestLink(LinkTestBase, unittest.TestCase):
     @attr.multi_gpu(2)
     def test_to_gpu_current_device(self):
         cuda.Device(1).use()
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.assertEqual(self.link.device.device, cuda.Device(1))
 
     def test_params(self):
@@ -1036,6 +1048,7 @@ class ChainTestBase(object):
         #   - l1 (x: uninitialized with shape=(2, 3))
         #   - l2 (x: uninitialized with shape=2)
         # - l3   (x: uninitialized without shape)
+        # - (x: unitialized with shape=2)
 
         self.l1 = chainer.Link()
         with self.l1.init_scope():
@@ -1058,6 +1071,8 @@ class ChainTestBase(object):
         with self.c2.init_scope():
             self.c2.c1 = self.c1
             self.c2.l3 = self.l3
+            self.x = chainer.Parameter(shape=2)
+            self.c2.x = self.x
 
     def set_count_parameters(self):
         self.l1.x = CountParameter(self.l1.x)
@@ -1120,10 +1135,17 @@ Chain(
         self.l2.x.initializer = initializers.Normal(
             dtype=self.l2.x.initializer.dtype)
         self.l2.x.initialize(self.l2.x.shape)
+        self.x.initializer = initializers.Normal(
+            dtype=self.x.initializer.dtype)
+        self.x.initialize(self.x.shape)
 
         c2 = self.c2.copy(mode='share')
         self.assertIs(c2.name, None)
         self.assertIsInstance(c2._children, set)
+        self.assertTrue(hasattr(c2, 'x'))
+        self.assertIsNot(c2.x, self.x)
+        self.assertIs(c2.x.data, self.x.data)
+
         self.assertTrue(hasattr(c2, 'c1'))
         self.assertEqual(c2.c1.name, 'c1')
         self.assertIsInstance(c2.c1._children, set)
@@ -1155,10 +1177,18 @@ Chain(
         self.l2.x.initializer = initializers.Normal(
             dtype=self.l2.x.initializer.dtype)
         self.l2.x.initialize(self.l2.x.shape)
+        self.x.initializer = initializers.Normal(
+            dtype=self.x.initializer.dtype)
+        self.x.initialize(self.x.shape)
 
         c2 = self.c2.copy(mode='copy')
         self.assertIs(c2.name, None)
         self.assertIsInstance(c2._children, set)
+        self.assertTrue(hasattr(c2, 'x'))
+        self.assertIsNot(c2.x, self.x)
+        self.assertIsNot(c2.x.data, self.x.data)
+        self.assertTrue(numpy.array_equal(c2.x.data, self.x.data))
+
         self.assertTrue(hasattr(c2, 'c1'))
         self.assertEqual(c2.c1.name, 'c1')
         self.assertIsInstance(c2.c1._children, set)
@@ -1194,10 +1224,21 @@ Chain(
         self.l2.x.initializer = initializers.Normal(
             dtype=self.l2.x.initializer.dtype)
         self.l2.x.initialize(self.l2.x.shape)
+        self.x.initializer = initializers.Normal(
+            dtype=self.x.initializer.dtype)
+        self.c2.x.initialize(self.x.shape)
 
         c2 = self.c2.copy(mode='init')
         self.assertIs(c2.name, None)
         self.assertIsInstance(c2._children, set)
+        self.assertTrue(hasattr(c2, 'x'))
+        self.assertIsNot(c2.x, self.x)
+        self.assertIsNot(c2.x.data, self.x.data)
+        self.assertFalse(numpy.array_equal(c2.x.data, self.x.data))
+        # _grad_initializer attribute in a copied Parameter has constant.NaN
+        # after calling initilize() method
+        self.assertTrue(numpy.isnan(c2.x.grad).all())
+
         self.assertTrue(hasattr(c2, 'c1'))
         self.assertEqual(c2.c1.name, 'c1')
         self.assertIsInstance(c2.c1._children, set)
@@ -1238,7 +1279,8 @@ Chain(
         gx2 = self.l2.x.grad
         x3 = self.l3.x.data
 
-        self.c2.to_cpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.c2.to_cpu()
         self.assertIs(self.l1.x.data, x1)
         self.assertIs(self.l1.x.grad, gx1)
         self.assertIs(self.l2.x.data, x2)
@@ -1250,8 +1292,10 @@ Chain(
     @attr.gpu
     def test_to_cpu(self):
         self.set_count_parameters()
-        self.c2.to_gpu()
-        self.c2.to_cpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.c2.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.c2.to_cpu()
         self.assertIs(self.c2.xp, numpy)
         self.assertIs(self.c1.xp, numpy)
         self.assertIs(self.l1.xp, numpy)
@@ -1272,7 +1316,8 @@ Chain(
     def test_to_gpu(self):
         self.set_count_parameters()
         cupy = cuda.cupy
-        self.c2.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.c2.to_gpu()
         self.assertIs(self.c2.xp, cupy)
         self.assertIs(self.c1.xp, cupy)
         self.assertIs(self.l1.xp, cupy)
@@ -1311,24 +1356,27 @@ Chain(
     def test_params(self):
         params = list(self.c2.params())
         self.assertEqual([id(p) for p in params],
-                         [id(self.l1.x), id(self.l2.x), id(self.l3.x)])
+                         [id(self.x), id(self.l1.x),
+                          id(self.l2.x), id(self.l3.x)])
 
     def test_params_skip_uninit(self):
         params = list(self.c2.params(include_uninit=False))
         self.assertEqual([id(p) for p in params],
-                         [id(self.l1.x), id(self.l2.x)])
+                         [id(self.x), id(self.l1.x), id(self.l2.x)])
 
     def test_namedparams(self):
         namedparams = list(self.c2.namedparams())
         self.assertEqual([(name, id(p)) for name, p in namedparams],
-                         [('/c1/l1/x', id(self.l1.x)),
+                         [('/x', id(self.x)),
+                          ('/c1/l1/x', id(self.l1.x)),
                           ('/c1/l2/x', id(self.l2.x)),
                           ('/l3/x', id(self.l3.x))])
 
     def test_namedparams_skip_uninit(self):
         namedparams = list(self.c2.namedparams(include_uninit=False))
         self.assertEqual([(name, id(p)) for name, p in namedparams],
-                         [('/c1/l1/x', id(self.l1.x)),
+                         [('/x', id(self.x)),
+                          ('/c1/l1/x', id(self.l1.x)),
                           ('/c1/l2/x', id(self.l2.x))])
 
     def test_links(self):
@@ -1383,15 +1431,18 @@ Chain(
         with c2.init_scope():
             c2.c1 = c1
             c2.l3 = l3
+            c2.x = chainer.Parameter(shape=2)
         l1.x.data.fill(0)
         l2.x.data.fill(1)
         l3.x.data.fill(2)
+        c2.x.data.fill(3)
 
         self.c2.copyparams(c2)
 
         numpy.testing.assert_array_equal(self.l1.x.data, l1.x.data)
         numpy.testing.assert_array_equal(self.l2.x.data, l2.x.data)
         numpy.testing.assert_array_equal(self.l3.x.data, l3.x.data)
+        numpy.testing.assert_array_equal(self.c2.x.data, c2.x.data)
 
     def test_zerograds(self):
         self.set_count_parameters()
@@ -1424,18 +1475,22 @@ Chain(
         with c2.init_scope():
             c2.c1 = c1
             c2.l3 = l3
+            c2.x = chainer.Parameter(shape=2)
         l1.x.grad.fill(1)
         l2.x.grad.fill(2)
         l3.x.grad.fill(3)
+        c2.x.grad.fill(4)
 
         self.l1.x.grad.fill(-1)
         self.l2.x.grad.fill(-2)
+        self.c2.x.grad.fill(-3)
         self.l3.cleargrads()
 
         self.c2.addgrads(c2)
         numpy.testing.assert_array_equal(self.l1.x.grad, numpy.zeros((2, 3)))
         numpy.testing.assert_array_equal(self.l2.x.grad, numpy.zeros(2))
         numpy.testing.assert_array_equal(self.l3.x.grad, numpy.full(3, 3.))
+        numpy.testing.assert_array_equal(self.c2.x.grad, numpy.ones(2))
 
     def test_serialize(self):
         mocks = {'l1': mock.MagicMock(), 'l2': mock.MagicMock()}
@@ -1825,7 +1880,8 @@ ChainList(
     @attr.gpu
     def test_copy_and_send_to_gpu(self):
         c2 = self.c2.copy()
-        self.c2.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.c2.to_gpu()
         self.assertIsInstance(self.c2[0][0].x.data, cuda.cupy.ndarray)
         self.assertIsInstance(self.c2[0][1].x.data, cuda.cupy.ndarray)
         self.assertIsInstance(c2[0][0].x.data, numpy.ndarray)
@@ -1834,7 +1890,8 @@ ChainList(
     @attr.gpu
     def test_copy_and_send_to_gpu_2(self):
         c2 = self.c2.copy()
-        c2.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            c2.to_gpu()
         self.assertIsInstance(self.c2[0][0].x.data, numpy.ndarray)
         self.assertIsInstance(self.c2[0][1].x.data, numpy.ndarray)
         self.assertIsInstance(c2[0][0].x.data, cuda.cupy.ndarray)
@@ -1843,8 +1900,10 @@ ChainList(
     @attr.multi_gpu(2)
     def test_copy_and_send_to_gpu_multi(self):
         c2 = self.c2.copy()
-        self.c2.to_gpu(0)
-        c2.to_gpu(1)
+        with testing.assert_warns(DeprecationWarning):
+            self.c2.to_gpu(0)
+        with testing.assert_warns(DeprecationWarning):
+            c2.to_gpu(1)
         self.assertEqual(self.c2[0][0].x.data.device.id, 0)
         self.assertEqual(self.c2[0][1].x.data.device.id, 0)
         self.assertEqual(c2[0][0].x.data.device.id, 1)
@@ -1858,7 +1917,8 @@ ChainList(
         x3 = self.l3.x.data
         gx3 = self.l3.x.grad
 
-        self.c2.to_cpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.c2.to_cpu()
 
         self.assertIs(self.l1.x.data, x1)
         self.assertIs(self.l1.x.grad, gx1)
@@ -1869,8 +1929,10 @@ ChainList(
 
     @attr.gpu
     def test_to_cpu(self):
-        self.c2.to_gpu()
-        self.c2.to_cpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.c2.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.c2.to_cpu()
         self.assertIs(self.c2.xp, numpy)
         self.assertIs(self.c1.xp, numpy)
         self.assertIs(self.l1.xp, numpy)
@@ -1886,7 +1948,8 @@ ChainList(
     @attr.gpu
     def test_to_gpu(self):
         cupy = cuda.cupy
-        self.c2.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.c2.to_gpu()
         self.assertIs(self.c2.xp, cupy)
         self.assertIs(self.c1.xp, cupy)
         self.assertIs(self.l1.xp, cupy)
@@ -2230,7 +2293,8 @@ class TestIntel64(unittest.TestCase):
 
     def test_cpu_to_intel64(self):
         link = self.link
-        link.to_intel64()
+        with testing.assert_warns(DeprecationWarning):
+            link.to_intel64()
         assert isinstance(link.device, backend.Intel64Device)
 
         # Arrays should be converted to ideep.mdarray
@@ -2248,12 +2312,14 @@ class TestIntel64(unittest.TestCase):
 
     def test_intel64_to_intel64(self):
         link = self.link
-        link.to_intel64()
+        with testing.assert_warns(DeprecationWarning):
+            link.to_intel64()
         prev_y = link.y
         prev_v = link.v
         prev_pa = link.pa
         prev_ps = link.ps
-        link.to_intel64()
+        with testing.assert_warns(DeprecationWarning):
+            link.to_intel64()
         assert isinstance(link.device, backend.Intel64Device)
 
         # Everything should be left untouched
@@ -2270,9 +2336,11 @@ class TestIntel64(unittest.TestCase):
     @attr.gpu
     def test_gpu_to_intel64(self):
         link = self.link
-        link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            link.to_gpu()
         assert link.device.device == cuda.Device(0)
-        link.to_intel64()
+        with testing.assert_warns(DeprecationWarning):
+            link.to_intel64()
         assert isinstance(link.device, backend.Intel64Device)
 
         # Arrays should be converted to ideep.mdarray
@@ -2291,9 +2359,11 @@ class TestIntel64(unittest.TestCase):
     @attr.gpu
     def test_intel64_to_gpu(self):
         link = self.link
-        link.to_intel64()
+        with testing.assert_warns(DeprecationWarning):
+            link.to_intel64()
         assert isinstance(link.device, backend.Intel64Device)
-        link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            link.to_gpu()
         assert link.device.device == cuda.Device(0)
 
         # Arrays should be converted to cupy.ndarray
@@ -2311,9 +2381,11 @@ class TestIntel64(unittest.TestCase):
 
     def test_intel64_to_cpu(self):
         link = self.link
-        link.to_intel64()
+        with testing.assert_warns(DeprecationWarning):
+            link.to_intel64()
         assert isinstance(link.device, backend.Intel64Device)
-        link.to_cpu()
+        with testing.assert_warns(DeprecationWarning):
+            link.to_cpu()
         assert isinstance(link.device, backend.CpuDevice)
 
         # Arrays should be converted to numpy.ndarray
@@ -2334,7 +2406,8 @@ class TestIntel64(unittest.TestCase):
         with self.link.init_scope():
             self.link.no_ideep = numpy.ones((2, 2, 2), numpy.float32)
             self.link.register_persistent('no_ideep')
-        self.link.to_intel64()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_intel64()
         assert isinstance(self.link.no_ideep, numpy.ndarray)
 
     @attr.gpu
@@ -2343,7 +2416,8 @@ class TestIntel64(unittest.TestCase):
         with self.link.init_scope():
             self.link.no_ideep = cuda.cupy.ones((2, 2, 2), numpy.float32)
             self.link.register_persistent('no_ideep')
-        self.link.to_intel64()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_intel64()
         assert isinstance(self.link.no_ideep, numpy.ndarray)
 
 
@@ -2412,7 +2486,8 @@ class TestToChainerX(unittest.TestCase):
     @attr.gpu
     def test_gpu_to_chx(self):
         link = self.link
-        link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            link.to_gpu()
         assert link.device.device == cuda.Device(0)
         link.to_chx()
         assert link.device.device == chainerx.get_device('cuda:0')
@@ -2533,12 +2608,9 @@ class TestCallMethod(unittest.TestCase):
 
 
 class TestLinkOverrideToDeviceMethods(unittest.TestCase):
-    # Overriding to_cpu, to_gpu, to_intel64 is currently not deprecated.
-    # This test ensures DeprecationWarning is NOT emitted and the overridden
+    # Overriding to_cpu, to_gpu, to_intel64 is deprecated.
+    # This test ensures DeprecationWarning is emitted and the overridden
     # method is actually called.
-    #
-    # TODO(niboshi): Deprecate overriding these methods in a future release
-    # (such as v7).
 
     def create_link(self, method_name):
         class ChildLink(chainer.Link):
@@ -2560,18 +2632,21 @@ class TestLinkOverrideToDeviceMethods(unittest.TestCase):
 
             elif method_name == 'to_cpu':
                 def to_cpu(self):
-                    super(ChildLink, self).to_cpu()
+                    with testing.assert_warns(DeprecationWarning):
+                        super(ChildLink, self).to_cpu()
                     self.to_method_called += 1
 
             elif method_name == 'to_gpu':
                 def to_gpu(self, device=None):
                     assert isinstance(device, (cuda.Device, int))
-                    super(ChildLink, self).to_gpu(device)
+                    with testing.assert_warns(DeprecationWarning):
+                        super(ChildLink, self).to_gpu(device)
                     self.to_method_called += 1
 
             elif method_name == 'to_intel64':
                 def to_intel64(self):
-                    super(ChildLink, self).to_intel64()
+                    with testing.assert_warns(DeprecationWarning):
+                        super(ChildLink, self).to_intel64()
                     self.to_method_called += 1
 
             else:
@@ -2599,42 +2674,49 @@ class TestLinkOverrideToDeviceMethods(unittest.TestCase):
         with pytest.raises(TypeError):
             self.create_link('from_chx')
 
-    # Deprecation warning not emitted on class definition
+    # Deprecation warning is emitted on class definition
 
     def test_to_cpu_override(self):
-        self.create_link('to_cpu')
+        with testing.assert_warns(DeprecationWarning):
+            self.create_link('to_cpu')
 
     def test_to_gpu_override(self):
-        self.create_link('to_gpu')
+        with testing.assert_warns(DeprecationWarning):
+            self.create_link('to_gpu')
 
     def test_to_intel64_override(self):
-        self.create_link('to_intel64')
+        with testing.assert_warns(DeprecationWarning):
+            self.create_link('to_intel64')
 
     # Overridden methods are called on to_device()
 
     def test_to_device_cpu(self):
-        cls = self.create_link('to_cpu')
+        with testing.assert_warns(DeprecationWarning):
+            cls = self.create_link('to_cpu')
         l = cls()
         l.to_device('@numpy')
         assert l.child.to_method_called == 1
 
     @attr.gpu
     def test_to_device_gpu(self):
-        cls = self.create_link('to_gpu')
+        with testing.assert_warns(DeprecationWarning):
+            cls = self.create_link('to_gpu')
         l = cls()
         l.to_device('@cupy:0')
         assert l.child.to_method_called == 1
 
     @attr.multi_gpu(2)
     def test_to_device_multi_gpu(self):
-        cls = self.create_link('to_gpu')
+        with testing.assert_warns(DeprecationWarning):
+            cls = self.create_link('to_gpu')
         l = cls()
         l.to_device('@cupy:1')
         assert l.child.to_method_called == 1
 
     @attr.ideep
     def test_to_device_intel64(self):
-        cls = self.create_link('to_intel64')
+        with testing.assert_warns(DeprecationWarning):
+            cls = self.create_link('to_intel64')
         l = cls()
         l.to_device('@intel64')
         assert l.child.to_method_called == 1
@@ -2642,30 +2724,38 @@ class TestLinkOverrideToDeviceMethods(unittest.TestCase):
     # Overridden methods are called on to_cpu()/to_gpu()/to_intel()
 
     def test_to_cpu(self):
-        cls = self.create_link('to_cpu')
+        with testing.assert_warns(DeprecationWarning):
+            cls = self.create_link('to_cpu')
         l = cls()
-        l.to_cpu()
+        with testing.assert_warns(DeprecationWarning):
+            l.to_cpu()
         assert l.child.to_method_called == 1
 
     @attr.gpu
     def test_to_gpu_without_arg(self):
-        cls = self.create_link('to_gpu')
+        with testing.assert_warns(DeprecationWarning):
+            cls = self.create_link('to_gpu')
         l = cls()
-        l.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            l.to_gpu()
         assert l.child.to_method_called == 1
 
     @attr.gpu
     def test_to_gpu_with_arg(self):
-        cls = self.create_link('to_gpu')
+        with testing.assert_warns(DeprecationWarning):
+            cls = self.create_link('to_gpu')
         l = cls()
-        l.to_gpu(0)
+        with testing.assert_warns(DeprecationWarning):
+            l.to_gpu(0)
         assert l.child.to_method_called == 1
 
     @attr.ideep
     def test_to_intel64(self):
-        cls = self.create_link('to_intel64')
+        with testing.assert_warns(DeprecationWarning):
+            cls = self.create_link('to_intel64')
         l = cls()
-        l.to_intel64()
+        with testing.assert_warns(DeprecationWarning):
+            l.to_intel64()
         assert l.child.to_method_called == 1
 
 

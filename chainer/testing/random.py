@@ -4,7 +4,6 @@ import functools
 import os
 import random
 import types
-import unittest
 
 import numpy
 
@@ -90,14 +89,7 @@ def generate_seed():
     return numpy.random.randint(0xffffffff)
 
 
-def fix_random():
-    """Decorator that fixes random numbers in a test.
-
-    This decorator can be applied to either a test case class or a test method.
-    It should not be applied within ``condition.retry`` or
-    ``condition.repeat``.
-    """
-
+def _fix_random(setup_method_name, teardown_method_name):
     # TODO(niboshi): Prevent this decorator from being applied within
     #    condition.repeat or condition.retry decorators. That would repeat
     #    tests with the same random seeds. It's okay to apply this outside
@@ -118,39 +110,48 @@ def fix_random():
 
         if isinstance(impl, _bundle._ParameterizedTestCaseBundle):
             cases = impl
-        elif isinstance(impl, type) and issubclass(impl, unittest.TestCase):
+        else:
             tup = _bundle._TestCaseTuple(impl, None, None)
             cases = _bundle._ParameterizedTestCaseBundle([tup])
-        else:
-            raise ValueError('Can\'t apply fix_random to {}'.format(impl))
 
-        for case, _, _ in cases.cases:
+        for klass, _, _ in cases.cases:
             # Applied to test case class
-            klass = case
 
             def make_methods():
-                # make_methods is required to bind the variables setUp_ and
-                # tearDown_.
+                # make_methods is required to bind the variables prev_setup and
+                # prev_teardown.
+                prev_setup = getattr(klass, setup_method_name)
+                prev_teardown = getattr(klass, teardown_method_name)
 
-                setUp_ = klass.setUp
-                tearDown_ = klass.tearDown
-
-                @functools.wraps(setUp_)
-                def setUp(self):
+                @functools.wraps(prev_setup)
+                def new_setup(self):
                     _setup_random()
-                    setUp_(self)
+                    prev_setup(self)
 
-                @functools.wraps(tearDown_)
-                def tearDown(self):
+                @functools.wraps(prev_teardown)
+                def new_teardown(self):
                     try:
-                        tearDown_(self)
+                        prev_teardown(self)
                     finally:
                         _teardown_random()
 
-                return setUp, tearDown
+                return new_setup, new_teardown
 
-            klass.setUp, klass.tearDown = make_methods()
+            setup, teardown = make_methods()
+
+            setattr(klass, setup_method_name, setup)
+            setattr(klass, teardown_method_name, teardown)
 
         return cases
 
     return decorator
+
+
+def fix_random(*, setup_method='setUp', teardown_method='tearDown'):
+    """Decorator that fixes random numbers in a test.
+
+    This decorator can be applied to either a test case class or a test method.
+    It should not be applied within ``condition.retry`` or
+    ``condition.repeat``.
+    """
+    return _fix_random(setup_method, teardown_method)

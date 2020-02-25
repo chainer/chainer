@@ -1,10 +1,11 @@
 from __future__ import division
 
-import numpy as np
 import random
-import six
 import tempfile
 import unittest
+
+import numpy as np
+import six
 
 from chainer import serializers
 from chainer import testing

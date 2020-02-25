@@ -37,7 +37,7 @@ class TestModifiedXLogX(unittest.TestCase):
     def check_backward(self, x_data, y_grad):
         gradient_check.check_backward(
             distributions.utils._modified_xlogx,
-            x_data, y_grad, **self.backward_options)
+            x_data, y_grad, dtype=numpy.float64, **self.backward_options)
 
     def test_backward_cpu(self):
         self.check_backward(self.x, self.gy)

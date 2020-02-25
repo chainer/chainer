@@ -11,44 +11,13 @@
 #include "chainerx/constant.h"
 #include "chainerx/dtype.h"
 #include "chainerx/error.h"
+#include "chainerx/macro.h"
 #include "chainerx/scalar.h"
 #include "chainerx/shape.h"
 
 namespace chainerx {
 
 class Array;
-enum class AveragePoolPadMode;
-
-class MaxPoolForwardBackward {
-public:
-    MaxPoolForwardBackward() = default;
-
-    virtual ~MaxPoolForwardBackward() = default;
-
-    MaxPoolForwardBackward(const MaxPoolForwardBackward&) = default;
-    MaxPoolForwardBackward(MaxPoolForwardBackward&&) = default;
-    MaxPoolForwardBackward& operator=(const MaxPoolForwardBackward&) = default;
-    MaxPoolForwardBackward& operator=(MaxPoolForwardBackward&&) = default;
-
-    virtual Array Forward(const Array& x) = 0;
-    virtual Array Backward(const Array& gout) = 0;
-    virtual Array DoubleBackward(const Array& ggx) = 0;
-};
-
-class AveragePoolForwardBackward {
-public:
-    AveragePoolForwardBackward() = default;
-
-    virtual ~AveragePoolForwardBackward() = default;
-
-    AveragePoolForwardBackward(const AveragePoolForwardBackward&) = default;
-    AveragePoolForwardBackward(AveragePoolForwardBackward&&) = default;
-    AveragePoolForwardBackward& operator=(const AveragePoolForwardBackward&) = default;
-    AveragePoolForwardBackward& operator=(AveragePoolForwardBackward&&) = default;
-
-    virtual Array Forward(const Array& x) = 0;
-    virtual Array Backward(const Array& gout) = 0;
-};
 
 // Device base class.
 // Note that these member functions may be called from the framework or user code.
@@ -161,7 +130,11 @@ public:
     // Explicitly recovers the original device. It will invalidate the scope object so that dtor will do nothing.
     void Exit() {
         if (!exited_) {
-            SetDefaultDevice(orig_);
+            try {
+                SetDefaultDevice(orig_);
+            } catch (...) {
+                CHAINERX_NEVER_REACH();
+            }
             exited_ = true;
         }
     }

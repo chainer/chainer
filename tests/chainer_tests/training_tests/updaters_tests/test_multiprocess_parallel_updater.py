@@ -1,3 +1,4 @@
+import copy
 import os
 import subprocess
 import sys
@@ -13,8 +14,6 @@ import chainer.reporter
 from chainer import testing
 from chainer.testing import attr
 import chainer.training.updaters.multiprocess_parallel_updater as mpu
-
-import copy
 
 
 class SimpleNet(chainer.Chain):
@@ -57,8 +56,10 @@ class TestGatherScatter(unittest.TestCase):
         model0 = SimpleNet(dtype=self.dtype)
         model1 = copy.deepcopy(model0)
 
-        model0.to_gpu()
-        model1.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            model0.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            model1.to_gpu()
 
         optimizer0 = chainer.optimizers.SGD(lr=1.0)
         optimizer0.setup(model0)
@@ -109,8 +110,10 @@ class TestGatherScatter(unittest.TestCase):
         model0 = SimpleNet(dtype=self.dtype)
         model1 = SimpleNet(dtype=self.dtype)
 
-        model0.to_gpu()
-        model1.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            model0.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            model1.to_gpu()
 
         gp0 = mpu.gather_params(model0)
         mpu.scatter_params(model1, gp0)

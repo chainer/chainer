@@ -113,7 +113,12 @@ loss_func=None, loss_scale=None, auto_new_epoch=True, *, input_device=None)
                     try:
                         # Turn on GPU-to-GPU detection
                         thread_local.flag_gpu_to_gpu = False
-                        optimizer.target.to_gpu(device.device.id)
+                        with warnings.catch_warnings():
+                            warnings.filterwarnings(
+                                'ignore',
+                                message='to_gpu is deprecated.',
+                                category=DeprecationWarning)
+                            optimizer.target.to_gpu(device.device.id)
                         has_gpu_to_gpu = thread_local.flag_gpu_to_gpu
                     finally:
                         # Turn off GPU-to-GPU detection

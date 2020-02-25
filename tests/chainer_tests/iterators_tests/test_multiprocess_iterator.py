@@ -16,42 +16,9 @@ import numpy
 import six
 
 from chainer import iterators
-from chainer import serializer
+from chainer import serializers
 from chainer import testing
 from chainer.testing import attr
-
-
-class DummySerializer(serializer.Serializer):
-
-    def __init__(self, target):
-        super(DummySerializer, self).__init__()
-        self.target = target
-
-    def __getitem__(self, key):
-        raise NotImplementedError
-
-    def __call__(self, key, value):
-        self.target[key] = value
-        return self.target[key]
-
-
-class DummyDeserializer(serializer.Deserializer):
-
-    def __init__(self, target):
-        super(DummyDeserializer, self).__init__()
-        self.target = target
-
-    def __getitem__(self, key):
-        raise NotImplementedError
-
-    def __call__(self, key, value):
-        if value is None:
-            value = self.target[key]
-        elif isinstance(value, numpy.ndarray):
-            numpy.copyto(value, self.target[key])
-        else:
-            value = type(value)(numpy.asarray(self.target[key]))
-        return value
 
 
 class BaseTestMultiprocessIterator(object):
@@ -372,7 +339,7 @@ class TestMultiprocessIteratorSlow(
     pass
 
 
-# Pickle doesnt allow to use lambdas or pure functions
+# Pickle does not allow to use lambdas or pure functions
 # when serializing the iterator
 # work is needed to wrap samplers in classes instead of
 # anonymous functions
@@ -481,10 +448,10 @@ class TestMultiprocessIteratorSerialize(unittest.TestCase):
         self.assertAlmostEqual(it.previous_epoch_detail, 2 / 6)
 
         target = dict()
-        it.serialize(DummySerializer(target))
+        it.serialize(serializers.DictionarySerializer(target))
 
         it = iterators.MultiprocessIterator(dataset, 2, **self.options)
-        it.serialize(DummyDeserializer(target))
+        it.serialize(serializers.NpzDeserializer(target))
         self.assertFalse(it.is_new_epoch)
         self.assertAlmostEqual(it.epoch_detail, 4 / 6)
         self.assertAlmostEqual(it.previous_epoch_detail, 2 / 6)
@@ -518,12 +485,12 @@ class TestMultiprocessIteratorSerialize(unittest.TestCase):
         self.assertAlmostEqual(it.previous_epoch_detail, 2 / 6)
 
         target = dict()
-        it.serialize(DummySerializer(target))
+        it.serialize(serializers.DictionarySerializer(target))
         # older version does not have previous_epoch_detail
         del target['previous_epoch_detail']
 
         it = iterators.MultiprocessIterator(dataset, 2, **self.options)
-        it.serialize(DummyDeserializer(target))
+        it.serialize(serializers.NpzDeserializer(target))
         self.assertFalse(it.is_new_epoch)
         self.assertAlmostEqual(it.epoch_detail, 4 / 6)
         self.assertAlmostEqual(it.previous_epoch_detail, 2 / 6)

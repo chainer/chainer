@@ -81,23 +81,36 @@ class LightTypeInfoTuple(tuple):
         return len(self)
 
 
-def get_types(data, name, accept_none):
+def get_types(data, name, accept_none, *, shapes=None):
     assert isinstance(data, tuple)
 
+    if shapes is None:
+        shapes = tuple([x.shape for x in data])
+
     info = TypeInfoTuple(
-        _get_type(name, i, x, accept_none) for i, x in enumerate(data))
+        _get_type(name, i, x, accept_none, shape)
+        for i, (x, shape) in enumerate(zip(data, shapes)))
     # I don't know a method to set an attribute in an initializer of tuple.
     info.name = name
     return info
 
 
-def get_light_types(data):
+def get_light_types(data, *, shapes=None):
     assert(isinstance(data, tuple))
+    if shapes is None:
+        data_ = data
+    else:
+        # For non-default memory format (e.g. NHWC), shapes of data are
+        # different from the semantic shapes (e.g. NCHW). In such cases
+        # semantic shapes are explicitly given as `shapes` argument.
+        # If it is given, TypeInfos with modified shapes are wrapped.
+        data_ = tuple([
+            TypeInfo(shape, x.dtype) for x, shape in zip(data, shapes)])
 
-    return LightTypeInfoTuple(data)
+    return LightTypeInfoTuple(data_)
 
 
-def _get_type(name, index, array, accept_none):
+def _get_type(name, index, array, accept_none, shape):
     var = '{0}[{1}]'.format(name, index)
 
     if accept_none and array is None:
@@ -105,7 +118,7 @@ def _get_type(name, index, array, accept_none):
         return Variable(TypeInfo((), None), var)
 
     assert isinstance(array, chainer.get_array_types())
-    return Variable(TypeInfo(array.shape, array.dtype), var)
+    return Variable(TypeInfo(shape, array.dtype), var)
 
 
 def _make_un_operator(exp, priority, func):

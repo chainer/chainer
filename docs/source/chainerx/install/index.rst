@@ -1,7 +1,7 @@
+.. _chainerx_install:
+
 Installation
 ============
-
-.. _chainerx_install:
 
 ChainerX, or ``chainerx``, can be installed as a top level Python package along with Chainer by configuring the environment variables below.
 
@@ -21,11 +21,16 @@ Environment variable        Description
 ``CHAINER_BUILD_CHAINERX``  ``1`` to build the ``chainerx`` package along with ``chainer``. ``0`` to skip. Default is ``0``.
 ``CHAINERX_BUILD_CUDA``     ``1`` to build ``chainerx`` with CUDA support. ``0`` to skip. Default is ``0``.
                             See also :ref:`CUDA support <chainerx-install-cuda-support>` section below.
-``CHAINERX_ENABLE_BLAS``    ``1`` to make BLAS enabled. ``0`` to disabled. Default is ``1``.
+``CHAINERX_ENABLE_BLAS``    ``1`` to enable BLAS, ``0`` to disable it. Default is ``1``.
+                            If BLAS is enabled, it is searched for and used if found. If not found, ChainerX will behave as if BLAS
+                            was disabled and use a basic implementation instead.
+``CHAINERX_ENABLE_LAPACK``  ``1`` to enable LAPACK, ``0`` to disable it. Default is ``1``.
+                            If LAPACK is enabled, it is searched for and used if found. If not found, ChainerX will behave as if
+                            LAPACK was disabled and may cause runtime errors.
 =========================== ========================================================================================================
 
 
-Simply run ``pip install --pre chainer`` after configuring the above environment variables.
+Simply run ``pip install chainer`` after configuring the above environment variables.
 See :ref:`Examples <chainerx-install-cuda-support>` below.
 
 .. _chainerx-install-cuda-support:
@@ -68,19 +73,19 @@ Install ChainerX without CUDA support:
 
     $ export CHAINER_BUILD_CHAINERX=1
     $ export MAKEFLAGS=-j8  # Using 8 parallel jobs.
-    $ pip install --pre chainer
+    $ pip install chainer
 
 
 Install ChainerX depending on CuPy wheel distribution:
 
 .. code-block:: console
 
-    $ pip install --pre cupy_cuda101  # Note: Choose the proper CUDA SDK version number.
+    $ pip install cupy_cuda101  # Note: Choose the proper CUDA SDK version number.
     $ export CHAINER_BUILD_CHAINERX=1
     $ export CHAINERX_BUILD_CUDA=1
     $ export CHAINERX_CUDNN_USE_CUPY=1
     $ export MAKEFLAGS=-j8  # Using 8 parallel jobs.
-    $ pip install --pre chainer
+    $ pip install chainer
 
 
 Install ChainerX with CuPy built from source:
@@ -91,5 +96,5 @@ Install ChainerX with CuPy built from source:
     $ export CHAINERX_BUILD_CUDA=1
     $ export CUDNN_ROOT_DIR=path/to/cudnn
     $ export MAKEFLAGS=-j8  # Using 8 parallel jobs.
-    $ pip install --pre cupy
-    $ pip install --pre chainer
+    $ pip install cupy
+    $ pip install chainer

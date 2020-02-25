@@ -112,7 +112,6 @@ std::unordered_map<OpNode*, std::vector<uint8_t>> CreateSubgraph(
         // Initialize op node queue starting from outputs.
         for (const std::shared_ptr<ArrayNode>& array_node : output_array_nodes) {
             if (array_node != nullptr) {
-                forward_op_nodes.emplace(array_node.get(), nullptr);  // Outputs have no forward op nodes.
                 const std::shared_ptr<OpNode>& op_node = array_node->creator_op_node();
                 if (op_node != nullptr) {
                     PushNodeIfNotSeen(candidate_op_nodes, op_node.get(), seen_op_nodes);
@@ -156,47 +155,41 @@ std::unordered_map<OpNode*, std::vector<uint8_t>> CreateSubgraph(
         // "Forward" traverse array node queue towards outputs.
         while (!candidate_input_array_nodes.empty()) {
             ArrayNode* array_node = candidate_input_array_nodes.back();
+            candidate_input_array_nodes.pop_back();
 
             auto it_op_node = forward_op_nodes.find(array_node);
-            if (it_op_node == forward_op_nodes.end()) {
-                // Array node is not mapped. It could be an output of an op node that was not given as output.
-                candidate_input_array_nodes.pop_back();
-                continue;
-            }
-
-            OpNode* op_node = it_op_node->second;
-            if (op_node == nullptr) {
-                candidate_input_array_nodes.pop_back();
-                continue;  // Array node is an output.
-            }
-
-            std::vector<uint8_t>& flags = input_required_flags[op_node];
-            if (flags.empty()) {
-                flags.resize(op_node->input_array_node_count());
-            }
-
-            const std::vector<std::shared_ptr<ArrayNode>>& input_array_nodes = op_node->input_array_nodes();
-            for (size_t i_input = 0; i_input < op_node->input_array_node_count(); ++i_input) {
-                if (input_array_nodes[i_input].get() == array_node) {
-                    flags[i_input] = static_cast<int8_t>(true);
-                    // Cannot break since the same inputs may appear more than once in an op node.
+            // A single array node could have been an input to multiple op nodes.
+            while (it_op_node != forward_op_nodes.end()) {
+                OpNode* op_node = it_op_node->second;
+                std::vector<uint8_t>& flags = input_required_flags[op_node];
+                if (flags.empty()) {
+                    flags.resize(op_node->input_array_node_count());
                 }
-            }
 
-            for (const absl::optional<std::weak_ptr<ArrayNode>>& output_array_node : op_node->output_array_nodes()) {
-                if (output_array_node.has_value()) {
-                    if (std::shared_ptr<ArrayNode> out = output_array_node->lock()) {
-                        if (PushNodeIfNotSeen(candidate_input_array_nodes, out.get(), seen_array_nodes)) {
-                            candidate_input_array_nodes_keep_alive.emplace_back(std::move(out));
+                const std::vector<std::shared_ptr<ArrayNode>>& input_array_nodes = op_node->input_array_nodes();
+                for (size_t i_input = 0; i_input < op_node->input_array_node_count(); ++i_input) {
+                    if (input_array_nodes[i_input].get() == array_node) {
+                        flags[i_input] = static_cast<int8_t>(true);
+                        // Cannot break since the same inputs may appear more than once in an op node.
+                    }
+                }
+
+                for (const absl::optional<std::weak_ptr<ArrayNode>>& output_array_node : op_node->output_array_nodes()) {
+                    if (output_array_node.has_value()) {
+                        if (std::shared_ptr<ArrayNode> out = output_array_node->lock()) {
+                            if (PushNodeIfNotSeen(candidate_input_array_nodes, out.get(), seen_array_nodes)) {
+                                candidate_input_array_nodes_keep_alive.emplace_back(std::move(out));
+                            }
                         }
                     }
                 }
-            }
+                forward_op_nodes.erase(it_op_node);
 
-            forward_op_nodes.erase(it_op_node);
+                // Find the next op node that has this array node as input.
+                it_op_node = forward_op_nodes.find(array_node);
+            }
         }
     }
-
     return input_required_flags;
 }
 
@@ -208,13 +201,15 @@ public:
             const BackpropId& backprop_id,
             DoubleBackpropOption double_backprop,
             std::unordered_map<ArrayNode*, internal::GradRef> array_node_grad_map,
-            bool retain_grad)
+            bool retain_grad,
+            absl::optional<float> loss_scale)
         : inputs_{inputs},
           outputs_{outputs},
           backprop_id_{backprop_id},
           double_backprop_{double_backprop},
           array_node_grad_map_{std::move(array_node_grad_map)},
-          retain_grad_{retain_grad} {
+          retain_grad_{retain_grad},
+          loss_scale_{loss_scale} {
         if (!outputs_.empty()) {
             // Collect output array nodes (can be nullptr).
             output_array_nodes_.reserve(outputs.size());
@@ -244,12 +239,14 @@ public:
             const std::vector<ConstArrayRef>& inputs,
             const std::vector<ConstArrayRef>& outputs,
             const BackpropId& backprop_id,
-            DoubleBackpropOption double_backprop)
-        : BackwardImpl{inputs, outputs, backprop_id, double_backprop, {}, false} {}
+            DoubleBackpropOption double_backprop,
+            absl::optional<float> loss_scale)
+        : BackwardImpl{inputs, outputs, backprop_id, double_backprop, {}, false, loss_scale} {}
 
     void Run() {
         CHAINERX_ASSERT(output_array_nodes_.size() == outputs_.size());
 
+        float initial_out_value = loss_scale_.has_value() ? loss_scale_.value() : 1.0;
         // Push initial output array nodes
         for (size_t i = 0; i < outputs_.size(); ++i) {
             const Array& output = outputs_[i];
@@ -261,7 +258,7 @@ public:
 
                 // Set unset output gradients to the default value of one
                 if (!emplace_result.first->second.get().has_value()) {
-                    emplace_result.first->second.get() = OnesLike(output, output.device());
+                    emplace_result.first->second.get() = FullLike(output, initial_out_value, output.device());
                 }
 
                 PushCreatorOpNode(array_node);
@@ -304,6 +301,15 @@ public:
                 for (auto it = range.first; it != range.second; ++it) {
                     size_t n_removed = array_node_grad_map_.erase(it->second.get());
                     CHAINERX_ASSERT(n_removed > 0);
+                }
+            }
+        }
+
+        if (loss_scale_.has_value()) {
+            for (auto grad_ref : to_scale_back_nodes_) {
+                if (grad_ref->get().has_value()) {
+                    Array& grad = grad_ref->get().value();
+                    grad = grad / loss_scale_.value();
                 }
             }
         }
@@ -404,6 +410,10 @@ private:
                             body->ClearGrad(backprop_id_);
                         }
                     }
+                    if (loss_scale_.has_value() && body != nullptr && (body->IsGradRequired(backprop_id_) || retain_grad_)) {
+                        internal::GradRef& input_grad = array_node_grad_map_.at(output_array_node.get());
+                        to_scale_back_nodes_.insert(&input_grad);
+                    }
                 }
             }
         }
@@ -459,7 +469,11 @@ private:
                 const std::shared_ptr<ArrayNode>& input_array_node = gsl::at(op_node->input_array_nodes(), i_input_grad);
                 CHAINERX_ASSERT(input_array_node != nullptr);
                 absl::optional<Array>& input_grad = input_grads[i_input_grad];
-
+                if (loss_scale_.has_value() && input_array_node->creator_op_node() == nullptr) {
+                    // Scale gradient back for input nodes
+                    internal::GradRef& input_grad = array_node_grad_map_.at(input_array_node.get());
+                    to_scale_back_nodes_.insert(&input_grad);
+                }
                 try {
                     internal::SetGrad(
                             input_grad,
@@ -581,23 +595,35 @@ private:
 
     // To mark if grads of intermediate nodes in the graph should be kept
     bool retain_grad_;
+
+    // To apply the loss scale while going backward
+    absl::optional<float> loss_scale_;
+
+    std::unordered_set<internal::GradRef*> to_scale_back_nodes_;
 };
 
 }  // namespace
 
-void Backward(const Array& output, const absl::optional<BackpropId>& backprop_id, DoubleBackpropOption double_backprop) {
+void Backward(
+        const Array& output,
+        const absl::optional<BackpropId>& backprop_id,
+        DoubleBackpropOption double_backprop,
+        absl::optional<float> loss_scale) {
     BackpropId actual_backprop_id = internal::GetArrayBackpropId(output, backprop_id);
     std::vector<ConstArrayRef> outputs{output};  // Do not inline it; we need to guarantee that the vector is alive until Run() finishes.
-    BackwardImpl{{}, outputs, actual_backprop_id, double_backprop}.Run();
+    BackwardImpl{{}, outputs, actual_backprop_id, double_backprop, loss_scale}.Run();
 }
 
 void Backward(
-        const std::vector<ConstArrayRef>& outputs, const absl::optional<BackpropId>& backprop_id, DoubleBackpropOption double_backprop) {
+        const std::vector<ConstArrayRef>& outputs,
+        const absl::optional<BackpropId>& backprop_id,
+        DoubleBackpropOption double_backprop,
+        absl::optional<float> loss_scale) {
     if (outputs.empty()) {
         return;
     }
     BackpropId actual_backprop_id = internal::GetArrayBackpropId(outputs.front().get(), backprop_id);
-    BackwardImpl{{}, outputs, actual_backprop_id, double_backprop}.Run();
+    BackwardImpl{{}, outputs, actual_backprop_id, double_backprop, loss_scale}.Run();
 }
 
 std::vector<absl::optional<Array>> Grad(
@@ -607,7 +633,8 @@ std::vector<absl::optional<Array>> Grad(
         DoubleBackpropOption double_backprop,
         bool set_grad,
         bool retain_grad,
-        const std::vector<ConstArrayRef>& grad_outputs) {
+        const std::vector<ConstArrayRef>& grad_outputs,
+        absl::optional<float> loss_scale) {
     if (inputs.empty()) {
         return {};
     }
@@ -647,8 +674,7 @@ std::vector<absl::optional<Array>> Grad(
             array_node_grad_map.emplace(array_node.get(), internal::GradRef{&output_grads.back()});
         }
     }
-
-    BackwardImpl{inputs, outputs, actual_backprop_id, double_backprop, std::move(array_node_grad_map), retain_grad}.Run();
+    BackwardImpl{inputs, outputs, actual_backprop_id, double_backprop, std::move(array_node_grad_map), retain_grad, loss_scale}.Run();
 
     for (size_t i = 0; i < input_grads.size(); ++i) {
         absl::optional<Array>& grad = input_grads[i];

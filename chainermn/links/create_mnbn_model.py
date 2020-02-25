@@ -1,6 +1,7 @@
+import copy
+
 import chainer
 import chainermn
-import copy
 
 
 def create_mnbn_model(link, comm, communication_backend='auto'):

@@ -139,7 +139,8 @@ class TestSimpleChain(unittest.TestCase):
 
     @attr.gpu
     def test_forward_gpu(self):
-        self.chain.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.chain.to_gpu()
         self.check_forward(cuda.to_gpu(self.x))
 
     def check_backward(self, x_data, y_grad, chain):
@@ -355,6 +356,143 @@ class TestMultiLayerChain(unittest.TestCase):
         assert x_var_dyn.grad is not None
         assert x_var_static.grad is not None
         chainer.testing.assert_allclose(x_var_dyn.grad, x_var_static.grad)
+
+
+class StaticBN(chainer.Chain):
+
+    def __init__(self, in_size, dtype, use_gamma, use_beta):
+        super(StaticBN, self).__init__()
+        with self.init_scope():
+            self.l1 = links.BatchNormalization(
+                in_size,
+                dtype=dtype,
+                use_gamma=use_gamma,
+                use_beta=use_beta)
+
+    @static_graph(verbosity_level=2)
+    def __call__(self, x):
+        return F.relu(self.l1(x))
+
+
+class DynamicBN(chainer.Chain):
+
+    def __init__(self, in_size, dtype, use_gamma, use_beta):
+        super(DynamicBN, self).__init__()
+        with self.init_scope():
+            self.l1 = links.BatchNormalization(
+                in_size,
+                dtype=dtype,
+                use_gamma=use_gamma,
+                use_beta=use_beta)
+
+    def __call__(self, x):
+        return F.relu(self.l1(x))
+
+
+class BN(chainer.Chain):
+
+    def __init__(self, in_size, dtype, use_gamma, use_beta):
+        super(BN, self).__init__()
+        with self.init_scope():
+            self.l1 = links.BatchNormalization(
+                in_size,
+                dtype=dtype,
+                use_gamma=use_gamma,
+                use_beta=use_beta)
+
+        self.mode = 'static'
+
+    def __call__(self, x):
+        if self.mode == 'static':
+            return self.static_call(x)
+        else:
+            return self.dynamic_call(x)
+
+    def dynamic_call(self, x):
+        # Dynamic graph only.
+        return F.relu(self.l1(x))
+
+    @static_graph(verbosity_level=2)
+    def static_call(self, x):
+        # Static graph.
+        return F.relu(self.l1(x))
+
+
+@testing.parameterize(*testing.product({
+    'x_dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'use_static_graph': [True, False],
+    'use_gamma': [True, False],
+    'use_beta': [True, False],
+}))
+class TestBNChain(unittest.TestCase):
+
+    def setUp(self):
+        self.batch_size = 4
+        self.in_units = 5
+        self.out_units = 5
+        x_size = (self.batch_size, self.in_units)
+        self.x = numpy.random.uniform(size=x_size).astype(self.x_dtype)
+        gy_size = (self.batch_size, self.out_units)
+        self.gy = numpy.random.uniform(size=gy_size).astype(self.x_dtype)
+        self.chain = BN(
+            self.in_units,
+            self.x_dtype,
+            self.use_gamma,
+            self.use_beta)
+        self.chain.l1.cleargrads()
+        self.check_forward_options = {}
+        self.check_backward_options = {'atol': 1e-2, 'rtol': 5e-2}
+        self.dynamic_chain = DynamicBN(
+            self.in_units,
+            self.x_dtype,
+            self.use_gamma,
+            self.use_beta)
+        self.static_chain = StaticBN(
+            self.in_units,
+            self.x_dtype,
+            self.use_gamma,
+            self.use_beta)
+
+    def check_forward(self, x):
+        chain = self.chain
+        y_dyn = chain.dynamic_call(x)
+        use_static_graph = self.use_static_graph
+
+        with chainer.using_config('use_static_graph', use_static_graph), \
+                chainer.using_config('enable_backprop', False):
+            y_static = chain.static_call(x)
+            y_static = chain.static_call(x)
+            y_static = chain.static_call(x)
+
+        assert use_static_graph == hasattr(chain, 'schedule_manager')
+        assert use_static_graph == hasattr(chain, 'static_schedule')
+
+        chainer.testing.assert_allclose(y_dyn.data, y_static.data)
+
+    def test_forward_cpu(self):
+        self.check_forward(self.x)
+
+    @attr.gpu
+    def test_forward_gpu(self):
+        with testing.assert_warns(DeprecationWarning):
+            self.chain.to_gpu()
+        self.check_forward(cuda.to_gpu(self.x))
+
+    def check_backward(self, x_data, y_grad, chain):
+        to_check = tuple()
+        if self.use_gamma:
+            to_check += (chain.l1.gamma,)
+        if self.use_beta:
+            to_check += (chain.l1.beta,)
+        gradient_check.check_backward(
+            chain, x_data, y_grad, to_check,
+            dtype='f', **self.check_backward_options)
+
+    @condition.retry(3)
+    def test_backward_cpu(self):
+        chain = self.static_chain
+        with configuration.using_config('train', False):
+            self.check_backward(self.x, self.gy, chain)
 
 
 testing.run_module(__name__, __file__)

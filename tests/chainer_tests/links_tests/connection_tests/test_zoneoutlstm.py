@@ -94,7 +94,8 @@ class TestZoneoutlstm(unittest.TestCase):
 
     @attr.gpu
     def test_forward_gpu(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.check_forward(cuda.to_gpu(self.c),
                            cuda.to_gpu(self.h),
                            cuda.to_gpu(self.x))
@@ -102,7 +103,8 @@ class TestZoneoutlstm(unittest.TestCase):
     @attr.multi_gpu(2)
     def test_forward_gpu_multi(self):
         with cuda.get_device_from_id(0):
-            self.link.to_gpu()
+            with testing.assert_warns(DeprecationWarning):
+                self.link.to_gpu()
             c = cuda.to_gpu(self.c)
             h = cuda.to_gpu(self.h)
             x = cuda.to_gpu(self.x)
@@ -131,7 +133,8 @@ class TestZoneoutlstm(unittest.TestCase):
 
     @attr.gpu
     def test_backward_gpu(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.check_backward(cuda.to_gpu(self.c),
                             cuda.to_gpu(self.h),
                             cuda.to_gpu(self.x),
@@ -154,7 +157,8 @@ class TestZoneoutState(unittest.TestCase):
 
     @attr.gpu
     def test_reset_state_gpu(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.check_reset_state()
 
 
@@ -171,11 +175,13 @@ class TestZoneoutToCPUToGPU(unittest.TestCase):
     def check_to_cpu(self, c, h):
         self.link.c = c
         self.link.h = h
-        self.link.to_cpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_cpu()
         self.assertIs(self.link.xp, numpy)
         self.assertIsInstance(self.link.c.data, self.link.xp.ndarray)
         self.assertIsInstance(self.link.h.data, self.link.xp.ndarray)
-        self.link.to_cpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_cpu()
         self.assertIs(self.link.xp, numpy)
         self.assertIsInstance(self.link.c.data, self.link.xp.ndarray)
         self.assertIsInstance(self.link.h.data, self.link.xp.ndarray)
@@ -192,19 +198,23 @@ class TestZoneoutToCPUToGPU(unittest.TestCase):
     def check_to_cpu_to_gpu(self, c, h):
         self.link.c = c
         self.link.h = h
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.assertIs(self.link.xp, cuda.cupy)
         self.assertIsInstance(self.link.c.data, self.link.xp.ndarray)
         self.assertIsInstance(self.link.h.data, self.link.xp.ndarray)
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.assertIs(self.link.xp, cuda.cupy)
         self.assertIsInstance(self.link.c.data, self.link.xp.ndarray)
         self.assertIsInstance(self.link.h.data, self.link.xp.ndarray)
-        self.link.to_cpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_cpu()
         self.assertIs(self.link.xp, numpy)
         self.assertIsInstance(self.link.c.data, self.link.xp.ndarray)
         self.assertIsInstance(self.link.h.data, self.link.xp.ndarray)
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.assertIs(self.link.xp, cuda.cupy)
         self.assertIsInstance(self.link.c.data, self.link.xp.ndarray)
         self.assertIsInstance(self.link.h.data, self.link.xp.ndarray)

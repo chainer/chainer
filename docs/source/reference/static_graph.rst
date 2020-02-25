@@ -94,7 +94,7 @@ it is necessary to maintain distinct internal state for each call in order to co
 the gradients for the backward pass, which prevents us from reusing the same static schedule for each of
 the multiple calls of a static chain in an iteration.
 
-The current implementation handles this issues as follows. A cache of static schedules, which is intially
+The current implementation handles this issues as follows. A cache of static schedules, which is initially
 empty, is associated with each static chain. The size of this cache will be equal to the maximum number of
 times that the static chain has been called in any previous iteration, and the cache is reset whenever
 certain chain configuration flags change, such as training mode and backpropagation model. At the start

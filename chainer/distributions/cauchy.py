@@ -28,7 +28,7 @@ class Cauchy(distribution.Distribution):
 
     Args:
         loc(:class:`~chainer.Variable` or :ref:`ndarray`): Parameter of
-            distribution representing the location :math:`\\x_0`.
+            distribution representing the location :math:`x_0`.
         scale(:class:`~chainer.Variable` or :ref:`ndarray`): Parameter of
             distribution representing the scale :math:`\\gamma`.
     """

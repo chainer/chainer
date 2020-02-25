@@ -56,14 +56,14 @@ def main():
     # iteration, which will be used by the PrintReport extension below.
 
     dataset_info = {
-        'cifar10': {'num_class_labels': 10, 'load_func': get_cifar10},
-        'cifar100': {'num_class_labels': 100, 'load_func': get_cifar100},
+        'cifar10': {'n_class_labels': 10, 'load_func': get_cifar10},
+        'cifar100': {'n_class_labels': 100, 'load_func': get_cifar100},
     }
 
     if args.dataset not in dataset_info:
         raise RuntimeError('Invalid dataset choice.')
 
-    num_class_labels = dataset_info[args.dataset]['num_class_labels']
+    n_class_labels = dataset_info[args.dataset]['n_class_labels']
 
     if comm.rank == 0:
         train, test = dataset_info[args.dataset]['load_func']()
@@ -73,7 +73,7 @@ def main():
     train = chainermn.scatter_dataset(train, comm, shuffle=True)
     test = chainermn.scatter_dataset(test, comm, shuffle=True)
 
-    model = L.Classifier(models.VGG.VGG(num_class_labels))
+    model = L.Classifier(models.VGG.VGG(n_class_labels))
     if device >= 0:
         # Make a specified GPU current
         chainer.cuda.get_device_from_id(device).use()

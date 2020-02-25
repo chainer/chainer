@@ -24,6 +24,15 @@ Common algorithms
 
    chainer.utils.WalkerAlias
 
+Common utilities
+-----------------------------
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   chainer.print_runtime_info
+
 
 
 

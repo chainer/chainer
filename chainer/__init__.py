@@ -234,6 +234,7 @@ else:
                     'Only float16/32/64 are allowed.'.format(_chainer_dtype))
 global_config.in_recomputing = False
 global_config._will_recompute = False
+global_config.compute_mode = None
 
 
 def is_debug():
@@ -311,6 +312,10 @@ def get_dtype(dtype=None, map_mixed16=None):
     if dtype is mixed16 and map_mixed16 is not None:
         dtype = map_mixed16
     return numpy.dtype(dtype)
+
+
+def get_compute_mode():
+    return config.compute_mode
 
 
 basic_math.install_variable_arithmetics()

@@ -17,9 +17,7 @@ class ChainerxDevice(_backend.Device):
 
     __hash__ = _backend.Device.__hash__
 
-    def __init__(self, device):
-        # type: (chainerx.Device) -> None
-
+    def __init__(self, device: 'chainerx.Device') -> None:
         assert isinstance(device, chainerx.Device)
         super(ChainerxDevice, self).__init__()
         self.device = device  # type: chainerx.Device

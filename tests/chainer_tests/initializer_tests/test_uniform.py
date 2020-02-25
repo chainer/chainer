@@ -29,22 +29,21 @@ default_fan = {
 }
 
 
-@testing.parameterize(*testing.product_dict(
-    [
-        {'target': initializers.Uniform, 'fan_option': None},
-        {'target': initializers.LeCunUniform, 'fan_option': None},
-        {'target': initializers.GlorotUniform, 'fan_option': None},
-        {'target': initializers.HeUniform, 'fan_option': None},
+@testing.parameterize(*testing.product({
+    'target,fan_option': [
+        (initializers.Uniform, None),
+        (initializers.LeCunUniform, None),
+        (initializers.GlorotUniform, None),
+        (initializers.HeUniform, None),
     ],
-    [
-        {'shape': (2, 3), 'fans': (3, 2)},
-        {'shape': (2, 3, 4), 'fans': (12, 8)},
+    'shape,fans': [
+        ((2, 3), (3, 2)),
+        ((2, 3, 4), (12, 8)),
     ],
-    testing.product({
-        'scale': [None, 7.3],
-        'dtype': [numpy.float16, numpy.float32, numpy.float64],
-    })
-))
+    'scale': [None, 7.3],
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'rng_class': [None, numpy.random.RandomState],
+}))
 @testing.backend.inject_backend_tests(
     None,
     [
@@ -65,6 +64,8 @@ class TestUniform(unittest.TestCase):
             kwargs['scale'] = self.scale
         if self.fan_option is not None:
             kwargs['fan_option'] = self.fan_option
+        if self.rng_class is not None:
+            kwargs['rng'] = self.rng_class()
         self.target_kwargs = kwargs
 
     def check_initializer(self, w):

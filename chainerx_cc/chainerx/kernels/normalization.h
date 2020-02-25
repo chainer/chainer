@@ -23,10 +23,10 @@ public:
 
     virtual ~BatchNormGradState() = default;
 
-    BatchNormGradState(const BatchNormGradState&) = default;
-    BatchNormGradState(BatchNormGradState&&) = default;
-    BatchNormGradState& operator=(const BatchNormGradState&) = default;
-    BatchNormGradState& operator=(BatchNormGradState&&) = default;
+    BatchNormGradState(const BatchNormGradState&) = delete;
+    BatchNormGradState(BatchNormGradState&&) = delete;
+    BatchNormGradState& operator=(const BatchNormGradState&) = delete;
+    BatchNormGradState& operator=(BatchNormGradState&&) = delete;
 };
 
 class BatchNormKernel : public Kernel {

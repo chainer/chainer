@@ -84,14 +84,16 @@ class TestLSTM(unittest.TestCase):
 
     @attr.gpu
     def test_forward_gpu(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.check_forward(cuda.to_gpu(self.x1), cuda.to_gpu(self.x2),
                            cuda.to_gpu(self.x3))
 
     @attr.multi_gpu(2)
     def test_forward_gpu_multi(self):
         with cuda.get_device_from_id(0):
-            self.link.to_gpu()
+            with testing.assert_warns(DeprecationWarning):
+                self.link.to_gpu()
             x1 = cuda.to_gpu(self.x1)
             x2 = cuda.to_gpu(self.x2)
             x3 = cuda.to_gpu(self.x3)
@@ -122,7 +124,8 @@ class TestLSTMState(unittest.TestCase):
 
     @attr.gpu
     def test_state_gpu(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.x.to_gpu()
         self.check_state()
 
@@ -138,7 +141,8 @@ class TestLSTMState(unittest.TestCase):
 
     @attr.gpu
     def test_set_state_gpu(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.check_set_state(self.c, self.h)
 
     def check_reset_state(self):
@@ -152,7 +156,8 @@ class TestLSTMState(unittest.TestCase):
 
     @attr.gpu
     def test_reset_state_gpu(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.x.to_gpu()
         self.check_reset_state()
 
@@ -165,9 +170,11 @@ class TestLSTMToCPUToGPU(unittest.TestCase):
             numpy.random.uniform(-1, 1, (3, 5)).astype(numpy.float32))
 
     def check_to_cpu(self, s):
-        self.link.to_cpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_cpu()
         self.assertIsInstance(s.data, self.link.xp.ndarray)
-        self.link.to_cpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_cpu()
         self.assertIsInstance(s.data, self.link.xp.ndarray)
 
     def test_to_cpu_cpu(self):
@@ -177,20 +184,25 @@ class TestLSTMToCPUToGPU(unittest.TestCase):
 
     @attr.gpu
     def test_to_cpu_gpu(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.x.to_gpu()
         self.link(self.x)
         self.check_to_cpu(self.link.c)
         self.check_to_cpu(self.link.h)
 
     def check_to_cpu_to_gpu(self, s):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.assertIsInstance(s.data, self.link.xp.ndarray)
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.assertIsInstance(s.data, self.link.xp.ndarray)
-        self.link.to_cpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_cpu()
         self.assertIsInstance(s.data, self.link.xp.ndarray)
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.assertIsInstance(s.data, self.link.xp.ndarray)
 
     @attr.gpu
@@ -201,7 +213,8 @@ class TestLSTMToCPUToGPU(unittest.TestCase):
 
     @attr.gpu
     def test_to_cpu_to_gpu_gpu(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.x.to_gpu()
         self.link(self.x)
         self.check_to_cpu_to_gpu(self.link.c)
@@ -237,7 +250,8 @@ class TestLSTMInvalidSize(unittest.TestCase):
 
     @attr.gpu
     def test_forward_invalid_size_gpu(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.check_forward_invalid_size(cuda.to_gpu(self.x1),
                                         cuda.to_gpu(self.x2))
 
@@ -316,13 +330,15 @@ class TestStatelessLSTM(unittest.TestCase):
 
     @attr.gpu
     def test_forward_gpu(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.check_forward(cuda.to_gpu(self.x))
 
     @attr.multi_gpu(2)
     def test_forward_gpu_multi(self):
         with cuda.get_device_from_id(0):
-            self.link.to_gpu()
+            with testing.assert_warns(DeprecationWarning):
+                self.link.to_gpu()
             x = cuda.to_gpu(self.x)
         with cuda.get_device_from_id(1):
             self.check_forward(x)

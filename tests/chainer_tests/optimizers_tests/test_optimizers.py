@@ -1,8 +1,8 @@
+import pickle
 import unittest
 
-import six
-
 import numpy as np
+import six
 
 import chainer
 from chainer import functions as F
@@ -44,6 +44,20 @@ class SimpleChain(chainer.Chain):
 
     def __call__(self, x):
         return F.sum((x - self.w) ** 2)
+
+
+class TestAllOptimizersCoverage(unittest.TestCase):
+    # Checks _all_optimizers covers all the built-in optimizers.
+
+    def test_all_optimizers_coverage(self):
+        module = chainer.optimizers
+        module_optimizers = []
+        for name in dir(module):
+            obj = getattr(module, name)
+            if (isinstance(obj, type) and issubclass(obj, chainer.Optimizer)):
+                module_optimizers.append(name)
+
+        assert sorted(_all_optimizers) == sorted(module_optimizers)
 
 
 @testing.backend.inject_backend_tests(
@@ -197,6 +211,50 @@ class TestOptimizerHooks(unittest.TestCase):
         self.assertEqual(w_pre, h_pre.value)
         self.assertEqual(w_post, h_post.value)
         self.assertNotEqual(h_pre.value, h_post.value)
+
+
+@_parameterize_optimizers
+class TestOptimizerPickable(unittest.TestCase):
+
+    def setUp(self):
+        self.target = SimpleChain()
+
+    def create(self, *args, **kwargs):
+        self.optimizer = self.optimizer_impl(*args, **kwargs)
+        self.optimizer.setup(self.target)
+
+    def get_hyperparam(self, name):
+        return getattr(self.target.w.update_rule.hyperparam, name)
+
+    def test_new_pickle(self):
+        self.create()
+        pickled_opt = pickle.dumps(self.optimizer)
+
+        x = chainer.Variable(np.array(5., dtype=np.float32))
+        self.optimizer.update(self.target, x)
+        w_post = np.copy(self.target.w.data)
+        # Pickle has saved a copy of the target
+        opt = pickle.loads(pickled_opt)
+        opt.update(opt.target, x)
+        pickled_w_post = np.copy(opt.target.w.data)
+
+        self.assertEqual(w_post, pickled_w_post)
+
+    def test_updated_pickle(self):
+        self.create()
+
+        x = chainer.Variable(np.array(5., dtype=np.float32))
+        self.optimizer.update(self.target, x)
+        pickled_opt = pickle.dumps(self.optimizer)
+
+        self.optimizer.update(self.target, x)
+        w_post = np.copy(self.target.w.data)
+        # Pickle has saved a copy of the target
+        opt = pickle.loads(pickled_opt)
+        opt.update(opt.target, x)
+        pickled_w_post = np.copy(opt.target.w.data)
+
+        self.assertEqual(w_post, pickled_w_post)
 
 
 @_parameterize_optimizers

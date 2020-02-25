@@ -1,9 +1,12 @@
+import warnings
+
+from chainer.utils import argument
+
 from chainermn.communicators.communicator_base import CommunicatorBase  # NOQA
 
 
 def create_communicator(
-        communicator_name='pure_nccl', mpi_comm=None,
-        allreduce_grad_dtype=None, batched_copy=False):
+        communicator_name='pure_nccl', mpi_comm=None, **kwargs):
     """Create a ChainerMN communicator.
 
     Different communicators provide different approaches of communication, so
@@ -77,42 +80,53 @@ def create_communicator(
                               'and setup MPI and mpi4py.')
         mpi_comm = mpi4py.MPI.COMM_WORLD
 
+    allreduce_grad_dtype, batched_copy = argument.parse_kwargs(
+        kwargs, ('allreduce_grad_dtype', None), ('batched_copy', True))
+    argument.assert_kwargs_empty(kwargs)
+
+    if 'batched_copy' in kwargs:
+        warnings.warn("The option 'batched_copy' is enabled by default "
+                      "it is deprecated, and will be removed in next version",
+                      DeprecationWarning)
+
     if communicator_name != 'pure_nccl' and allreduce_grad_dtype is not None:
         raise ValueError(
             'allreduce_grad_dtype is only available '
             'at \'pure_nccl\' communicator.')
 
+    comm = None
+
     if communicator_name == 'naive':
         from chainermn.communicators.naive_communicator \
             import NaiveCommunicator
-        return NaiveCommunicator(mpi_comm=mpi_comm,
-                                 batched_copy=batched_copy)
+        comm = NaiveCommunicator(mpi_comm=mpi_comm)
 
     elif communicator_name == 'flat':
         from chainermn.communicators.flat_communicator \
             import FlatCommunicator
-        return FlatCommunicator(mpi_comm=mpi_comm,
-                                batched_copy=batched_copy)
+        comm = FlatCommunicator(mpi_comm=mpi_comm)
 
     elif communicator_name == 'non_cuda_aware':
         from chainermn.communicators.non_cuda_aware_communicator \
             import NonCudaAwareCommunicator
-        return NonCudaAwareCommunicator(mpi_comm=mpi_comm,
-                                        batched_copy=batched_copy)
+        comm = NonCudaAwareCommunicator(mpi_comm=mpi_comm)
 
     elif communicator_name == 'pure_nccl':
         from chainermn.communicators.pure_nccl_communicator \
             import PureNcclCommunicator
-        return PureNcclCommunicator(mpi_comm=mpi_comm,
-                                    allreduce_grad_dtype=allreduce_grad_dtype,
-                                    batched_copy=batched_copy)
+        comm = PureNcclCommunicator(mpi_comm=mpi_comm)
+        comm.set_config('allreduce_grad_dtype', allreduce_grad_dtype)
 
     elif communicator_name == 'dummy':
         from chainermn.communicators.dummy_communicator \
             import DummyCommunicator
-        return DummyCommunicator(mpi_comm=mpi_comm,
-                                 batched_copy=batched_copy)
+        comm = DummyCommunicator(mpi_comm=mpi_comm)
 
     else:
         raise ValueError(
             'Unrecognized communicator: "{}"'.format(communicator_name))
+
+    # As all currently supported communicators are all ancestor of
+    # MpiCommunicator, it is fine calling here for all descendants
+    comm.set_config('batched_copy', batched_copy)
+    return comm

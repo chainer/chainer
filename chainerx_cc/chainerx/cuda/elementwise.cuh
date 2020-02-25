@@ -22,7 +22,12 @@ namespace elementwise_detail {
 
 template <int8_t Ndim, typename Op, typename... Ts>
 __global__ void ElementwiseKernel(Op op, Indexer<Ndim> indexer, IndexableArray<Ts, Ndim>... args) {
-    for (auto it = indexer.It(blockIdx.x * blockDim.x + threadIdx.x, blockDim.x * gridDim.x); it; ++it) {
+    int64_t id = static_cast<int64_t>(blockIdx.x);
+    int64_t size = static_cast<int64_t>(gridDim.x);
+    int64_t block_dim = static_cast<int64_t>(blockDim.x);
+    id = id * block_dim + static_cast<int64_t>(threadIdx.x);
+    size *= block_dim;
+    for (auto it = indexer.It(id, size); it; ++it) {
         op(it.raw_index(), cuda_internal::StorageToDataType<Ts>(args[it])...);
     }
 }

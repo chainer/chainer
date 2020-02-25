@@ -24,18 +24,10 @@ set CHAINER_PYTHON_350_FORCE environment variable to 1."""
 requirements = {
     'install': [
         'setuptools',
-        # typing==3.7.4 causes error "TypeError: Instance and class checks can
-        # only be used with @runtime_checkable protocols" only with Python 2.
-        # https://github.com/chainer/chainer/pull/7562
-        'typing' + ('<=3.6.6' if sys.version_info[0] <= 2 else ''),
-        'typing_extensions' + ('<=3.6.6' if sys.version_info[0] <= 2 else ''),
+        'typing_extensions',
         'filelock',
         'numpy>=1.9.0',
-        # protobuf 3.8.0rc1 causes CI errors.
-        # TODO(niboshi): Probably we should always use pip in CIs for
-        # installing chainer. It avoids pre-release dependencies by default.
-        # See also: https://github.com/pypa/setuptools/issues/855
-        'protobuf>=3.0.0,<3.8.0rc1',
+        'protobuf>=3.0.0',
         'six>=1.9.0',
     ],
     'stylecheck': [
@@ -45,6 +37,7 @@ requirements = {
     ],
     'test': [
         'pytest<4.2.0',  # 4.2.0 is slow collecting tests and times out on CI.
+        'attrs<19.2.0',  # pytest 4.1.1 does not run with attrs==19.2.0
         'mock',
     ],
     'doctest': [
@@ -55,12 +48,24 @@ requirements = {
     'docs': [
         'sphinx==1.8.2',
         'sphinx_rtd_theme',
+        'onnx<1.7.0',
+        'packaging',
     ],
     'appveyor': [
         '-r test',
         # pytest-timeout>=1.3.0 requires pytest>=3.6.
         # TODO(niboshi): Consider upgrading pytest to >=3.6
         'pytest-timeout<1.3.0',
+    ],
+    'jenkins': [
+        '-r test',
+        # pytest-timeout>=1.3.0 requires pytest>=3.6.
+        # TODO(niboshi): Consider upgrading pytest to >=3.6
+        'pytest-timeout<1.3.0',
+        'pytest-cov',
+        'nose',
+        'coveralls',
+        'codecov',
     ],
 }
 
@@ -98,15 +103,17 @@ def find_any_distribution(pkgs):
     return None
 
 
-mn_pkg = find_any_distribution(['chainermn'])
-if mn_pkg is not None:
-    msg = """
-We detected that ChainerMN is installed in your environment.
-ChainerMN has been integrated to Chainer and no separate installation
-is necessary. Please uninstall the old ChainerMN in advance.
+for pkg_name in ('ChainerMN', 'ONNX-Chainer'):
+    distribution_name = pkg_name.lower().replace('-', '_')
+    found_error = find_any_distribution([distribution_name])
+    if found_error is not None:
+        msg = """
+We detected that {name} is installed in your environment.
+{name} has been integrated to Chainer and no separate installation
+is necessary. Please uninstall the old {name} in advance.
 """
-    print(msg)
-    exit(1)
+        print(msg.format(name=pkg_name))
+        exit(1)
 
 here = os.path.abspath(os.path.dirname(__file__))
 # Get __version__ variable
@@ -174,7 +181,11 @@ setup_kwargs = dict(
               'chainermn.extensions',
               'chainermn.functions',
               'chainermn.iterators',
-              'chainermn.links'],
+              'chainermn.links',
+              'chainermn.testing',
+              'onnx_chainer',
+              'onnx_chainer.functions',
+              'onnx_chainer.testing'],
     package_data={
         'chainer': ['py.typed'],
     },
@@ -183,14 +194,19 @@ setup_kwargs = dict(
     install_requires=install_requires,
     tests_require=tests_require,
     extras_require=extras_require,
+    python_requires='>=3.5.0',
 )
 
 
 build_chainerx = 0 != int(os.getenv('CHAINER_BUILD_CHAINERX', '0'))
 if (os.getenv('READTHEDOCS', None) == 'True'
         and os.getenv('READTHEDOCS_PROJECT', None) == 'chainer'):
-    os.environ['MAKEFLAGS'] = '-j2'
+    # ChainerX must be built in order to build the docs (on Read the Docs).
     build_chainerx = True
+
+    # Try to prevent Read the Docs build timeouts.
+    os.environ['MAKEFLAGS'] = '-j2'
+
 
 chainerx_build_helper.config_setup_kwargs(setup_kwargs, build_chainerx)
 

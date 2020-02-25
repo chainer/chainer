@@ -1,0 +1,4 @@
+# cupy directory may be made by script.sh in docker.* targets.
+# docker.* targets of script.sh create /cupy directory to pull the latest CuPy
+# repository to create the base image of Chainer CI.
+/cupy

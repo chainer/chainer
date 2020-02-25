@@ -53,7 +53,8 @@ class TestCupyMemoryProfileHookToLink(unittest.TestCase):
                       basic_math.Mul, int, int)
 
     def test_forward_gpu(self):
-        self.l.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.l.to_gpu()
         self.check_forward(cuda.to_gpu(self.x))
 
     def check_backward(self, x, gy):
@@ -71,7 +72,8 @@ class TestCupyMemoryProfileHookToLink(unittest.TestCase):
                           basic_math.Mul, int, int)
 
     def test_backward_gpu(self):
-        self.l.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.l.to_gpu()
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
 
 
@@ -159,15 +161,15 @@ class TestCupyMemoryProfileReportBase(unittest.TestCase):
     def setUp(self):
         cuda.memory_pool.free_all_blocks()
         self.h = function_hooks.CupyMemoryProfileHook()
-        self.f1 = functions.math.exponential.Exp()
-        self.f2 = functions.activation.relu.ReLU()
+        f1 = functions.exp
+        f2 = functions.relu
         self.x = numpy.random.uniform(-0.1, 0.1, (3, 5)).astype(numpy.float32)
         x = cuda.to_gpu(self.x)
         with self.h:
-            self.f1.apply((chainer.Variable(x),))
-            self.f1.apply((chainer.Variable(x),))
-            self.f2.apply((chainer.Variable(x),))
-            self.f2.apply((chainer.Variable(x),))
+            f1(chainer.Variable(x))
+            f1(chainer.Variable(x))
+            f2(chainer.Variable(x))
+            f2(chainer.Variable(x))
 
 
 class TestCupyMemoryProfilerStatistics(TestCupyMemoryProfileReportBase):

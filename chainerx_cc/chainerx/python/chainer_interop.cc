@@ -1,3 +1,5 @@
+#include "chainerx/python/common_export.h"
+
 #include "chainerx/python/chainer_interop.h"
 
 #include <algorithm>
@@ -174,7 +176,8 @@ void InitChainerxChainerInterop(pybind11::module& m) {
                       for (size_t j = 0; j < bctx.output_count(); ++j) {
                           if (auto& gy = bctx.output_grad(j)) {
                               size_t chainer_output_index = output_index_r2o_map[j];
-                              chainer_grad_outputs[chainer_output_index] = internal::GetArrayBody(*gy);
+                              ArrayBodyPtr gy_body = internal::GetArrayBody(*gy);
+                              chainer_grad_outputs[chainer_output_index] = std::move(gy_body);
                           }
                       }
 

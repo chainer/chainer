@@ -1,10 +1,11 @@
-__version__ = '7.0.0b3'
+__version__ = '7.2.0'
 
 
 _optional_dependencies = [
     {
         'name': 'CuPy',
         'packages': [
+            'cupy-cuda102',
             'cupy-cuda101',
             'cupy-cuda100',
             'cupy-cuda92',
@@ -13,7 +14,7 @@ _optional_dependencies = [
             'cupy-cuda80',
             'cupy',
         ],
-        'specifier': '==7.0.0b3',
+        'specifier': '>=7.2.0,<8.0.0',
         'help': 'https://docs-cupy.chainer.org/en/latest/install.html',
     },
     {

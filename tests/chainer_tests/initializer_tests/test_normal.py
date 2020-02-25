@@ -27,25 +27,21 @@ default_fan = {
 }
 
 
-@testing.parameterize(*testing.product_dict(
-    [
-        {'target': initializers.Normal, 'fan_option': None},
-        {'target': initializers.LeCunNormal, 'fan_option': None},
-        {'target': initializers.GlorotNormal, 'fan_option': None},
-        {'target': initializers.HeNormal, 'fan_option': 'fan_in'},
-        {'target': initializers.HeNormal, 'fan_option': 'fan_out'}
-    ],
-    [
-        {'shape': (2, 3), 'fans': (3, 2)},
-        {'shape': (2, 3, 4), 'fans': (12, 8)},
-    ],
-    testing.product({
-        'scale': [None, 7.3],
-        'dtype': [numpy.float16, numpy.float32, numpy.float64],
-    })
-))
 @testing.parameterize(*testing.product({
+    'target,fan_option': [
+        (initializers.Normal, None),
+        (initializers.LeCunNormal, None),
+        (initializers.GlorotNormal, None),
+        (initializers.HeNormal, 'fan_in'),
+        (initializers.HeNormal, 'fan_out'),
+    ],
+    'shape,fans': [
+        ((2, 3), (3, 2)),
+        ((2, 3, 4), (12, 8)),
+    ],
+    'scale': [None, 7.3],
     'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'rng_class': [None, numpy.random.RandomState],
 }))
 @testing.backend.inject_backend_tests(
     None,
@@ -59,7 +55,7 @@ default_fan = {
         {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
     ]
 )
-class NormalBase(unittest.TestCase):
+class TestNormal(unittest.TestCase):
 
     def setUp(self):
         kwargs = {}
@@ -67,6 +63,8 @@ class NormalBase(unittest.TestCase):
             kwargs['scale'] = self.scale
         if self.fan_option is not None:
             kwargs['fan_option'] = self.fan_option
+        if self.rng_class is not None:
+            kwargs['rng'] = self.rng_class()
         self.target_kwargs = kwargs
 
     def check_initializer(self, w):

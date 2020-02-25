@@ -12,8 +12,7 @@ import numpy as np
 
 class PureNcclCommunicator(mpi_communicator_base.MpiCommunicatorBase):
 
-    def __init__(self, mpi_comm, allreduce_grad_dtype=None,
-                 batched_copy=False):
+    def __init__(self, mpi_comm):
         super(PureNcclCommunicator, self).__init__(mpi_comm)
         if not nccl._available:
             raise RuntimeError(
@@ -38,16 +37,8 @@ class PureNcclCommunicator(mpi_communicator_base.MpiCommunicatorBase):
         self.gpu_buffer_a = _memory_utility.DeviceMemory()
         self.gpu_buffer_b = _memory_utility.DeviceMemory()
 
-        if allreduce_grad_dtype is not None:
-            self.allreduce_grad_dtype = np.dtype(allreduce_grad_dtype)
-            if self.allreduce_grad_dtype.kind != 'f':
-                raise ValueError(
-                    'allreduce_grad_dtype must be '
-                    'numpy.float16, numpy.float32, '
-                    'numpy.float64, or None.')
-        else:
+        with self.config_scope():
             self.allreduce_grad_dtype = None
-        self.batched_copy = batched_copy
         self.grad_dtype_to_allreduce_dtype_kernel = None
         self.allreduce_dtype_to_grad_dtype_kernel = None
         self.params_data = None
@@ -64,6 +55,29 @@ class PureNcclCommunicator(mpi_communicator_base.MpiCommunicatorBase):
         if self.nccl_comm is not None:
             return
         self.nccl_comm = _communication_utility.init_nccl_comm(self.mpi_comm)
+
+    def set_config(self, name, value=True, **kwargs):
+        if name == 'allreduce_grad_dtype':
+            if value is not None:
+                allreduce_grad_dtype = np.dtype(value)
+                if allreduce_grad_dtype.kind != 'f':
+                    raise ValueError(
+                        'allreduce_grad_dtype must be'
+                        'numpy.float16, numpy.float32,'
+                        'numpy.float64, or None.')
+            else:
+                allreduce_grad_dtype = None
+
+            with self.config_scope():
+                self.allreduce_grad_dtype = allreduce_grad_dtype
+        else:
+            super(PureNcclCommunicator, self).set_config(name, **kwargs)
+
+    def get_config(self, name=None):
+        if name == 'allreduce_grad_dtype':
+            return self.allreduce_grad_dtype
+        else:
+            return super(PureNcclCommunicator, self).get_config(name)
 
     def bcast_data(self, model):
         self._init_comms()
@@ -92,7 +106,7 @@ class PureNcclCommunicator(mpi_communicator_base.MpiCommunicatorBase):
         self._init_comms()
         params = _memory_utility.extract_params_set_grad(model, zero_fill)
 
-        # NOTE: we need to explicitly check `is None` , becuase
+        # NOTE: we need to explicitly check `is None` , because
         # numpy's dtype object is evaluated to False in numpy <= 1.12.1
         if self.allreduce_grad_dtype is not None:
             allreduce_grad_dtype = self.allreduce_grad_dtype

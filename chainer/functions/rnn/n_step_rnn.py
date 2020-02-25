@@ -151,6 +151,9 @@ class CudnnRNNWeightConcat(function.Function):
         in_size = w_types[0].shape[1]
         out_size = w_types[0].shape[0]
 
+        dtype = w_types[0].dtype
+        type_check.expect(dtype.kind == 'f')
+
         for layer in six.moves.range(self.n_layers):
             for di in six.moves.range(self.rnn_direction):
                 for i in six.moves.range(self.n_W):
@@ -173,12 +176,12 @@ class CudnnRNNWeightConcat(function.Function):
                             w_in = out_size
 
                     type_check.expect(
-                        w_type.dtype == numpy.float32,
+                        w_type.dtype == dtype,
                         w_type.ndim == 2,
                         w_type.shape[0] == out_size,
                         w_type.shape[1] == w_in,
 
-                        b_type.dtype == numpy.float32,
+                        b_type.dtype == dtype,
                         b_type.ndim == 1,
                         b_type.shape[0] == out_size,
                     )
@@ -190,20 +193,23 @@ class CudnnRNNWeightConcat(function.Function):
         bs = inputs[ws_size:]
         out_size = ws[0].shape[0]
         in_size = ws[0].shape[1]
+        dtype = ws[0].dtype
+        cudnn_data_type = cudnn.get_data_type(dtype)
 
         # TODO(unno): Make a wrapper method to avoid access _desc directly
         rnn_desc = cudnn.create_rnn_descriptor(
             out_size, self.n_layers, self.states._desc,
             libcudnn.CUDNN_LINEAR_INPUT, self.rnn_dir,
-            self.rnn_mode, libcudnn.CUDNN_DATA_FLOAT)
+            self.rnn_mode, cudnn_data_type)
         self.rnn_desc = rnn_desc
 
-        dummy_x = cuda.cupy.empty((1, in_size, 1), numpy.float32)
+        dummy_x = cuda.cupy.empty((1, in_size, 1), dtype=dtype)
         x_desc = cudnn.create_tensor_nd_descriptor(dummy_x)
 
         weights_size = libcudnn.getRNNParamsSize(
-            handle, rnn_desc.value, x_desc.value, libcudnn.CUDNN_DATA_FLOAT)
-        w = cuda.cupy.empty((weights_size // 4, 1, 1), dtype=numpy.float32)
+            handle, rnn_desc.value, x_desc.value, cudnn_data_type)
+        byte_size = dtype.itemsize
+        w = cuda.cupy.empty((weights_size // byte_size, 1, 1), dtype=dtype)
         w_desc = cudnn.create_filter_descriptor(w)
 
         for layer in six.moves.range(self.n_layers):
@@ -297,8 +303,8 @@ class BaseNStepRNN(function.Function):
             h_type, c_type, w_type, x_type = in_types
             h_size = self.n_layers * self.rnn_direction
             type_check.expect(
-                h_type.dtype == numpy.float32,
-                c_type.dtype == numpy.float32,
+                h_type.dtype == x_type.dtype,
+                c_type.dtype == x_type.dtype,
 
                 h_type.ndim == 3,
                 h_type.shape[0] == h_size,
@@ -317,14 +323,14 @@ class BaseNStepRNN(function.Function):
             h_type, w_type, x_type = in_types
             h_size = self.n_layers * self.rnn_direction
             type_check.expect(
-                h_type.dtype == numpy.float32,
+                h_type.dtype == x_type.dtype,
 
                 h_type.ndim == 3,
                 h_type.shape[0] == h_size,
             )
 
         type_check.expect(
-            x_type.dtype == numpy.float32,
+            x_type.dtype.kind == 'f',
             x_type.ndim == 2,
             x_type.shape[0] == self.sections[-1],
         )
@@ -479,7 +485,7 @@ def n_step_rnn(
             ``ws[i]`` represents weights for i-th layer.
             Each ``ws[i]`` is a list containing two matrices.
             ``ws[i][j]`` is corresponding with ``W_j`` in the equation.
-            Only ``ws[0][j]`` where ``0 <= j < 1`` is ``(I, N)`` shape as they
+            Only ``ws[0][j]`` where ``0 <= j < 1`` is ``(N, I)`` shape as they
             are multiplied with input variables. All other matrices has
             ``(N, N)`` shape.
         bs (list of list of :class:`~chainer.Variable`): Bias vectors.
@@ -504,7 +510,7 @@ def n_step_rnn(
             Please select ``tanh`` or ``relu``.
 
     Returns:
-        tuple: This function returns a tuple containing three elements,
+        tuple: This function returns a tuple containing two elements,
         ``hy`` and ``ys``.
 
         - ``hy`` is an updated hidden states whose shape is same as ``hx``.
@@ -574,22 +580,24 @@ def n_step_birnn(
             dimension of hidden units. Because of bi-direction, the
             first dimension length is ``2S``.
         ws (list of list of :class:`~chainer.Variable`): Weight matrices.
-            ``ws[i + di]`` represents weights for i-th layer.
+            ``ws[2 * i + di]`` represents weights for i-th layer.
             Note that ``di = 0`` for forward-RNN and ``di = 1`` for
             backward-RNN.
-            Each ``ws[i + di]`` is a list containing two matrices.
-            ``ws[i + di][j]`` is corresponding with ``W^{f}_j`` if ``di = 0``
-            and corresponding with ``W^{b}_j`` if ``di = 1`` in the equation.
+            Each ``ws[2 * i + di]`` is a list containing two matrices.
+            ``ws[2 * i + di][j]`` is corresponding with ``W^{f}_j`` if
+            ``di = 0`` and corresponding with ``W^{b}_j`` if ``di = 1`` in
+            the equation.
             Only ``ws[0][j]`` and ``ws[1][j]`` where ``0 <= j < 1`` are
-            ``(I, N)`` shape as they are multiplied with input variables.
+            ``(N, I)`` shape as they are multiplied with input variables.
             All other matrices has ``(N, N)`` shape.
         bs (list of list of :class:`~chainer.Variable`): Bias vectors.
-            ``bs[i + di]`` represnents biases for i-th layer.
+            ``bs[2 * i + di]`` represnents biases for i-th layer.
             Note that ``di = 0`` for forward-RNN and ``di = 1`` for
             backward-RNN.
-            Each ``bs[i + di]`` is a list containing two vectors.
-            ``bs[i + di][j]`` is corresponding with ``b^{f}_j`` if ``di = 0``
-            and corresponding with ``b^{b}_j`` if ``di = 1`` in the equation.
+            Each ``bs[2 * i + di]`` is a list containing two vectors.
+            ``bs[2 * i + di][j]`` is corresponding with ``b^{f}_j`` if
+            ``di = 0`` and corresponding with ``b^{b}_j`` if ``di = 1`` in
+            the equation.
             Shape of each matrix is ``(N,)`` where ``N`` is dimension of
             hidden units.
         xs (list of :class:`~chainer.Variable`):
@@ -647,7 +655,7 @@ use_bi_direction)
             ``ws[i]`` represents weights for i-th layer.
             Each ``ws[i]`` is a list containing two matrices.
             ``ws[i][j]`` is corresponding with ``W_j`` in the equation.
-            Only ``ws[0][j]`` where ``0 <= j < 1`` is ``(I, N)`` shape as they
+            Only ``ws[0][j]`` where ``0 <= j < 1`` is ``(N, I)`` shape as they
             are multiplied with input variables. All other matrices has
             ``(N, N)`` shape.
         bs (list of list of :class:`~chainer.Variable`): Bias vectors.

@@ -40,8 +40,9 @@ class TestHuberLoss(unittest.TestCase):
         self._config_user.__enter__()
 
         self.x = utils.force_array(
-            (numpy.random.random(self.shape) - 0.5) * 4, self.dtype)
-        self.t = utils.force_array(numpy.random.random(self.shape), self.dtype)
+            (numpy.random.random(self.shape) - 0.5) * 3, self.dtype)
+        self.t = utils.force_array(
+            (numpy.random.random(self.shape) - 0.5), self.dtype)
         if self.reduce == 'sum_along_second_axis':
             gy_shape = self.shape[:1] + self.shape[2:]
         else:

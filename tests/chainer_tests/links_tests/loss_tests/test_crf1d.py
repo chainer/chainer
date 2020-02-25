@@ -1,6 +1,6 @@
+import itertools
 import unittest
 
-import itertools
 import numpy
 from six import moves
 
@@ -87,7 +87,8 @@ class TestCRF1d(unittest.TestCase):
 
     @attr.gpu
     def test_forward_gpu(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.check_forward(cuda.to_gpu(self.xs), cuda.to_gpu(self.ys))
 
 
@@ -126,7 +127,8 @@ class TestInitialization(unittest.TestCase):
 
     @attr.gpu
     def test_param_gpu(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.check_param()
 
 

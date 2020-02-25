@@ -25,10 +25,10 @@ public:
 
     virtual ~RnnGradState() = default;
 
-    RnnGradState(const RnnGradState&) = default;
-    RnnGradState(RnnGradState&&) = default;
-    RnnGradState& operator=(const RnnGradState&) = default;
-    RnnGradState& operator=(RnnGradState&&) = default;
+    RnnGradState(const RnnGradState&) = delete;
+    RnnGradState(RnnGradState&&) = delete;
+    RnnGradState& operator=(const RnnGradState&) = delete;
+    RnnGradState& operator=(RnnGradState&&) = delete;
 };
 
 class RnnKernel : public Kernel {

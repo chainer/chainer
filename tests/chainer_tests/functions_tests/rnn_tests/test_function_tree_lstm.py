@@ -1,6 +1,5 @@
-import six
-
 import numpy
+import six
 
 from chainer import functions
 from chainer import testing

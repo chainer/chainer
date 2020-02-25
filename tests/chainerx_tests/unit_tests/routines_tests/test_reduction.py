@@ -47,6 +47,9 @@ _cumsum_params = [
     ((2, 3, 4), -2),
     ((2, 3, 4), -1),
     ((2, 3, 4), None),
+    ((100000, 2), None),
+    ((100000, 2), 0),
+    ((100000, 2), 1),
 ]
 
 
@@ -269,11 +272,10 @@ def test_log_softmax_invalid(device, a_shape, axis, dtype):
         return chainerx.log_softmax(a, axis=axis)
 
 
-@op_utils.op_test(['native:0'])
+@op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize_pytest(
     'in_dtypes,out_dtype', _in_out_dtypes_sum)
 @chainer.testing.parameterize_pytest('shape,axis', _cumsum_params)
-# TODO(aksub99): Add cuda device tests when cuda implementation is supported.
 class TestCumsum(math_utils.UnaryMathTestBase, op_utils.NumpyOpTest):
 
     input = 'random'
@@ -286,6 +288,10 @@ class TestCumsum(math_utils.UnaryMathTestBase, op_utils.NumpyOpTest):
             self.check_backward_options.update({'rtol': 1e-2, 'atol': 1e-2})
             self.check_double_backward_options.update(
                 {'rtol': 1e-2, 'atol': 1e-2})
+
+        if (numpy.dtype(in_dtype).kind in ('float16, float32')
+                and numpy.prod(self.shape) > 1000):
+            pytest.skip('Skip large tests for float16/float32 dtypes')
 
     def func(self, xp, a):
         return xp.cumsum(a, axis=self.axis)
@@ -315,12 +321,12 @@ class TestNansum(math_utils.UnaryMathTestBase, op_utils.NumpyOpTest):
         indices = numpy.asarray([i for i in numpy.ndindex(shape)])
         numpy.random.shuffle(indices)
         if len(indices) == 0:
-            num_nans = 0
+            n_nans = 0
         else:
-            num_nans = numpy.random.randint(len(indices))
-        if num_nans == 0:
+            n_nans = numpy.random.randint(len(indices))
+        if n_nans == 0:
             return a,
-        nan_indices = indices[:num_nans]
+        nan_indices = indices[:n_nans]
         for i in nan_indices:
             a[tuple(i)] = numpy.nan
         return a,

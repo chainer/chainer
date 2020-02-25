@@ -1,8 +1,8 @@
+import functools
+import operator
 import unittest
 
-import functools
 import numpy
-import operator
 import pytest
 import six
 

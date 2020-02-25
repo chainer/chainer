@@ -180,13 +180,15 @@ class TestTreeLSTM(unittest.TestCase):
     @attr.gpu
     @condition.retry(3)
     def test_forward_gpu(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.check_forward(*[cuda.to_gpu(v) for v in self.inputs])
 
     @attr.multi_gpu(2)
     def test_forward_gpu_multi(self):
         with cuda.get_device_from_id(0):
-            self.link.to_gpu()
+            with testing.assert_warns(DeprecationWarning):
+                self.link.to_gpu()
             inputs = [cuda.to_gpu(v) for v in self.inputs]
         with cuda.get_device_from_id(1):
             self.check_forward(*inputs)
@@ -230,7 +232,8 @@ class TestTreeLSTM(unittest.TestCase):
 
     @attr.gpu
     def test_forward_none_ch_gpu(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         inputs = [None] * len(self.c_prevs) + \
                  [None] * len(self.h_prevs) + \
                  [cuda.to_gpu(self.x)]
@@ -242,7 +245,8 @@ class TestTreeLSTM(unittest.TestCase):
 
     @attr.gpu
     def test_forward_none_x_gpu(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         inputs = [cuda.to_gpu(v) for v in self.c_prevs] + \
                  [cuda.to_gpu(v) for v in self.h_prevs] + [None]
         self.check_forward_valid_none(*inputs)
@@ -258,7 +262,8 @@ class TestTreeLSTM(unittest.TestCase):
 
     @attr.gpu
     def test_forward_none_chx_gpu(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         inputs = [None] * len(self.inputs)
         self.check_forward_invalid_none(*inputs)
 
@@ -284,21 +289,24 @@ class TestTreeLSTM(unittest.TestCase):
     @attr.gpu
     @condition.retry(3)
     def test_full_backward_gpu(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.check_backward(cuda.to_gpu(self.gc), cuda.to_gpu(self.gh),
                             *[cuda.to_gpu(v) for v in self.inputs])
 
     @attr.gpu
     @condition.retry(3)
     def test_no_gc_backward_gpu(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.check_backward(None, cuda.to_gpu(self.gh),
                             *[cuda.to_gpu(v) for v in self.inputs])
 
     @attr.gpu
     @condition.retry(3)
     def test_no_gh_backward_gpu(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.check_backward(cuda.to_gpu(self.gc), None,
                             *[cuda.to_gpu(v) for v in self.inputs])
 

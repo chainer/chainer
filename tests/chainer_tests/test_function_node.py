@@ -424,14 +424,29 @@ Actual: 1 < 2"""
             f.apply((v,))
 
 
-class TestFunctionNodeInconsistentBackends(unittest.TestCase):
+class TestFunctionNodeForwardTypeCheck(unittest.TestCase):
 
     def setUp(self):
         self.x1 = numpy.random.rand(2, 3).astype(numpy.float32)
         self.x2 = numpy.random.rand(2, 3).astype(numpy.float32)
 
+    def test_invalid_output_type(self):
+        class FunctionNode(chainer.FunctionNode):
+
+            def forward(self, inputs):
+                return object(),
+
+        f = FunctionNode()
+        x1 = chainer.Variable(self.x1)
+
+        with six.assertRaisesRegex(
+                self,
+                TypeError,
+                'forward output must be a tuple of ndarrays'):
+            f.apply((x1,))
+
     @attr.gpu
-    def test_inconsistent_inputs(self):
+    def test_inconsistent_input_backends(self):
         class FunctionNode(chainer.FunctionNode):
 
             def forward(self, inputs):
@@ -449,7 +464,7 @@ class TestFunctionNodeInconsistentBackends(unittest.TestCase):
             f.apply((x1, x2))
 
     @attr.gpu
-    def test_inconsistent_outputs(self):
+    def test_inconsistent_output_backends(self):
         class FunctionNode(chainer.FunctionNode):
 
             def forward(self, inputs):
@@ -964,8 +979,6 @@ class GradTestBase(object):
             raise
 
     def test_grad(self, backend_config):
-        if self.loss_scale and backend_config.xp is chainerx:
-            pytest.skip('chainerx.grad does not support loss_scale')
         self.use_device(backend_config.device)
         self.check_grad()
 
@@ -991,8 +1004,6 @@ class GradTestBase(object):
             raise
 
     def test_double_grad(self, backend_config):
-        if self.loss_scale and backend_config.xp is chainerx:
-            pytest.skip('chainerx.grad does not support loss_scale')
         self.use_device(backend_config.device)
         self.check_double_grad()
 
@@ -1007,9 +1018,6 @@ class GradTestBase(object):
         {'use_ideep': 'always'},
         {'use_cuda': True, 'cuda_device': 0},
         {'use_cuda': True, 'cuda_device': 1},
-        {'use_chainerx': True, 'chainerx_device': 'native:0'},
-        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
-        {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
     ]
 )
 class TestGradSimple(GradTestBase, unittest.TestCase):
@@ -1030,6 +1038,34 @@ class TestGradSimple(GradTestBase, unittest.TestCase):
         ggrad = 2 * self.gy
         if self.loss_scale is not None:
             ggrad *= self.loss_scale
+        return [ggrad]
+
+
+@testing.parameterize(*testing.product({
+    'loss_scale': [None, 1, 1.5, 2.5, 10],
+}))
+@testing.backend.inject_backend_tests(
+    None,
+    [
+        {'use_chainerx': True, 'chainerx_device': 'native:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:0'},
+        {'use_chainerx': True, 'chainerx_device': 'cuda:1'},
+    ]
+)
+class TestGradSimpleChainerX(GradTestBase, unittest.TestCase):
+
+    x_names = 'x',
+    y_names = 'y',
+
+    def forward(self):
+        self.y = self.x * self.x
+
+    def expected_grad(self):
+        grad = 2 * self.x * self.gy
+        return [grad]
+
+    def expected_double_grad(self):
+        ggrad = 2 * self.gy
         return [ggrad]
 
 

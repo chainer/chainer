@@ -474,7 +474,7 @@ class Conveyor(object):
         """Initiates asynchronous transfer of an array to a target device.
 
         This method assumes that the input array is a numpy array and
-        on host memory without page-locked. So, it first copys the data
+        on host memory without page-locked. So, it first copies the data
         to page-locked host memory (so called pinned memory), then initiates
         asynchronous data transfer to a target device.
 

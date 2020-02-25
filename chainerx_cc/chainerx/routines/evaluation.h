@@ -8,6 +8,6 @@
 
 namespace chainerx {
 
-Array Accuracy(const Array& y, const Array& t, const absl::optional<int64_t>& ignore_label);
+Array Accuracy(const Array& y, const Array& t, absl::optional<int64_t> ignore_label);
 
 }  // namespace chainerx

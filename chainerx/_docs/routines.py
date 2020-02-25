@@ -8,6 +8,7 @@ def set_docs():
     _docs_indexing()
     _docs_linalg()
     _docs_logic()
+    _docs_loss()
     _docs_manipulation()
     _docs_math()
     _docs_sorting()
@@ -480,6 +481,30 @@ Note:
 .. seealso:: :func:`numpy.diagflat`
 """)
 
+    _docs.set_doc(
+        chainerx.meshgrid,
+        """meshgrid(xi, indexing='xy')
+Returns coordinate matrices from coordinate vectors.
+
+Make N-D coordinate arrays for vectorized evaluations of N-D scalar/vector
+fields over N-D grids, given one-dimensional coordinate arrays x1, x2,…, xn.
+
+Args:
+    xi (sequence of :class:`~chainerx.ndarray`\\ s): 1-D arrays
+        representing the coordinates of a grid.
+    indexing (str): {‘xy’, ‘ij’}, optional
+        Cartesian (‘xy’, default) or matrix (‘ij’) indexing of output.
+
+Returns:
+    list of :class:`~chainerx.ndarray`\\ s: For vectors x1, x2,…, ‘xn’ with
+    lengths Ni=len(xi), return (N1, N2, N3,...Nn) shaped arrays if
+    indexing=’ij’ or (N2, N1, N3,...Nn) shaped arrays if indexing=’xy’
+    with the elements of xi repeated to fill the matrix along the first
+    dimension for x1, the second for x2 and so on.
+
+.. seealso:: :func:`numpy.meshgrid`
+""")
+
 
 def _docs_evaluation():
     _docs.set_doc(
@@ -542,6 +567,10 @@ Args:
         The indices of the values to extract. When indices are out of bounds,
         they are wrapped around.
     axis (int): The axis over which to select values.
+    mode (str): Specifies how out-of-bounds indices will behave.
+        'raise' - raise an error
+        'wrap' - wrap around
+        'clip' - clip to the range
 
 Returns:
     :func:`~chainerx.ndarray`: Output array.
@@ -552,6 +581,11 @@ Note:
 Note:
     During backpropagation, this function propagates the gradient of the
     output array to the input array ``a``.
+
+Note:
+   The default mode for the native backend is 'raise', while for the cuda
+   backend is 'wrap' in order to prevent device synchronization.
+   'raise' mode is currently not supported in the CUDA backend.
 
 .. seealso:: :func:`numpy.take`
 """)
@@ -576,6 +610,23 @@ Note:
     output array to the input array ``x`` and ``y``.
 
 .. seealso:: :func:`numpy.where`
+""")
+
+    _docs.set_doc(
+        chainerx.nonzero,
+        """nonzero(a)
+Return the indices of the elements that are non-zero.
+
+Args:
+    a (~chainerx.ndarray): Input array.
+
+Returns:
+    tuple of :func:`~chainerx.ndarray`: Indices of elements that are non-zero.
+
+Note:
+    During backpropagation, this function does not propagate gradients.
+
+.. seealso:: :func:`numpy.nonzero`
 """)
 
 
@@ -740,6 +791,101 @@ Note:
     * Backpropagation is not implemented for 'r' or 'raw' modes.
 
 .. seealso:: :func:`numpy.linalg.qr`
+""")
+
+    _docs.set_doc(
+        chainerx.linalg.cholesky,
+        """cholesky(a)
+Computes the Cholesky decomposition of a matrix.
+
+Returns the Cholesky decomposition, :math:`A = L L^T`,
+for the square matrix ``a``.
+
+Args:
+    a (~chainerx.ndarray): Symmetric positive-definite input matrix.
+
+Returns:
+    :class:`~chainerx.ndarray`: Output array. Cholesky factor of ``a``.
+
+Note:
+    The forward computation does not necessarily check if the input matrix is
+    symmetric (e.g. the native backend relying on LAPACK does not). However,
+    both the forward and the backward computations assume that it is and their
+    results are unspecified otherwise. The computed gradient is always a
+    symmetric matrix. More specifically, the gradient is computed as if the
+    function is restricted to a Riemannian submanifold of
+    :math:`R^{n \\times n}` consisting just of positive-definite symmetric
+    matrices and is faithful to the mathematical definition of the Cholesky
+    decomposition.
+
+Note:
+    * GPU implementation of the Cholesky decomposition routine is based on
+      cuSOLVER library. Older versions (<10.1) of it might not raise an error
+      for some non positive-definite matrices.
+    * The ``dtype`` must be ``float32`` or ``float64`` (``float16`` is not
+      supported yet.)
+
+.. seealso:: :func:`numpy.linalg.cholesky`
+""")
+
+    _docs.set_doc(
+        chainerx.linalg.eigh,
+        """eigh(a, UPLO='L')
+Compute the eigenvalues and eigenvectors of a real symmetric matrix.
+
+Args:
+    a (~chainerx.ndarray): Real symmetric matrix whose eigenvalues
+        and eigenvectors are to be computed.
+    UPLO (str): Specifies whether the calculation is done with the lower
+        triangular part of a ('L', default) or the upper triangular part ('U').
+
+Returns:
+    tuple of :class:`~chainerx.ndarray`:
+        Returns a tuple ``(w, v)``. ``w`` contains eigenvalues and
+        ``v`` contains eigenvectors. ``v[:, i]`` is an eigenvector
+        corresponding to an eigenvalue ``w[i]``.
+
+Note:
+    Although ``UPLO`` can be specified to ignore either the strictly lower or
+    upper part of the input matrix, the backward computation assumes that the
+    inputs is symmetric and the computed gradient is always a symmetric matrix
+    with respect to ``UPLO``. More specifically, the gradient is computed as if
+    the function is restricted to a Riemannian submanifold of
+    :math:`R^{n \\times n}` consisting just of symmetric matrices and is
+    faithful to the mathematical definition of the eigenvalue decomposition of
+    symmetric matrices.
+
+Note:
+    The ``dtype`` must be ``float32`` or ``float64`` (``float16`` is not
+    supported yet.)
+
+.. seealso:: :func:`numpy.linalg.eigh`
+""")
+
+    _docs.set_doc(
+        chainerx.linalg.eigvalsh,
+        """eigvalsh(a, UPLO='L')
+Compute the eigenvalues of a real symmetric matrix.
+
+Main difference from eigh: the eigenvectors are not computed.
+
+Args:
+    a (~chainerx.ndarray): Real symmetric matrix whose eigenvalues
+        and eigenvectors are to be computed.
+    UPLO (str): Specifies whether the calculation is done with the lower
+        triangular part of a (‘L’, default) or the upper triangular part (‘U’).
+        (optional).
+
+Returns:
+    :class:`~chainerx.ndarray`: Returns eigenvalues as a vector.
+
+Note:
+    * The ``dtype`` must be ``float32`` or ``float64`` (``float16`` is not
+      supported yet.)
+    * Backpropagation requires eigenvectors and, therefore, is not implemented
+      for this function. ``linalg.eigh`` should be used instead.
+
+.. seealso:: :func:`numpy.linalg.eigvalsh`
 """)
 
 
@@ -1081,6 +1227,49 @@ Returns:
 .. seealso:: :func:`chainer.functions.gaussian_kl_divergence`
 """)
 
+    _docs.set_doc(
+        chainerx.sigmoid_cross_entropy,
+        """sigmoid_cross_entropy(x1, x2)
+
+Element-wise cross entropy loss for pre-sigmoid activations.
+
+Args:
+    x1 (~chainerx.ndarray): An array whose (i, j)-th element indicates the
+        unnormalized log probability of the j-th unit at the i-th example.
+    x2 (~chainerx.ndarray): An array whose (i, j)-th element indicates a signed
+        integer vector of ground truth labels 0 or 1. If ``x2[i, j] == -1``,
+        corresponding ``x1[i, j]`` is ignored. Loss is zero if all ground truth
+        labels are -1.
+
+Returns:
+    :class:`~chainerx.ndarray`: An array of the cross entropy.
+
+Note:
+    During backpropagation, this function propagates the gradient of the output
+    array to the input array ``x1`` only.
+""")
+
+    _docs.set_doc(
+        chainerx.softmax_cross_entropy,
+        """softmax_cross_entropy(x1, x2)
+
+Element-wise cross entropy loss for pre-softmax activations.
+
+Args:
+    x1 (~chainerx.ndarray): An array whose element indicates unnormalized log
+        probability: the first axis of the array represents the number of
+        samples, and the second axis represents the number of classes.
+    x2 (~chainerx.ndarray): A signed integer vector of ground truth labels. If
+        ``x2[i] == -1``, corresponding ``x1[i]`` is ignored.
+
+Returns:
+    :class:`~chainerx.ndarray`: An array of the cross entropy.
+
+Note:
+    During backpropagation, this function propagates the gradient of the output
+    array to the input array ``x1`` only.
+""")
+
 
 def _docs_manipulation():
     _docs.set_doc(
@@ -1105,6 +1294,25 @@ Note:
     output array to the input array ``a``.
 
 .. seealso:: :func:`numpy.reshape`
+""")
+
+    _docs.set_doc(
+        chainerx.ravel,
+        """ravel(a)
+Returns a flattened array.
+
+Args:
+    a (~chainerx.ndarray): Array to be flattened.
+
+Returns:
+    :class:`~chainerx.ndarray`: A flattened view of ``a`` if possible,
+    otherwise a copy.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input array ``a``.
+
+.. seealso:: :func:`numpy.ravel`
 """)
 
     _docs.set_doc(
@@ -1351,6 +1559,54 @@ Note:
     output arrays to the input array ``ary``.
 
 .. seealso:: :func:`numpy.dsplit`
+""")
+
+    _docs.set_doc(
+        chainerx.vsplit,
+        """vsplit(ary, indices_or_sections)
+Splits an array into multiple sub-arrays vertically (row-wise).
+
+Args:
+    ary (~chainerx.ndarray): Array to split.
+    indices_or_sections (int or sequence of ints): A value indicating how to
+        divide the axis. If it is an integer, then is treated as the number of
+        sections, and the axis is evenly divided. Otherwise, the integers
+        indicate indices to split at. Note that a sequence on the device
+        memory is not allowed.
+
+Returns:
+    list of :class:`~chainerx.ndarray`\\ s: A list of sub arrays. Each array \
+is a partial view of the input array.
+
+Note:
+    During backpropagation, this function propagates the gradients of the
+    output arrays to the input array ``ary``.
+
+.. seealso:: :func:`numpy.vsplit`
+""")
+
+    _docs.set_doc(
+        chainerx.hsplit,
+        """hsplit(ary, indices_or_sections)
+Split an array into multiple sub-arrays horizontally (column-wise).
+
+Args:
+    ary (~chainerx.ndarray): Array to split.
+    indices_or_sections (int or sequence of ints): A value indicating how to
+        divide the axis. If it is an integer, then is treated as the number of
+        sections, and the axis is evenly divided. Otherwise, the integers
+        indicate indices to split at. Note that a sequence on the device
+        memory is not allowed.
+
+Returns:
+    list of :class:`~chainerx.ndarray`\\ s: A list of sub arrays. Each array \
+is a partial view of the input array.
+
+Note:
+    During backpropagation, this function propagates the gradients of the
+    output arrays to the input array ``ary``.
+
+.. seealso:: :func:`numpy.hsplit`
 """)
 
     _docs.set_doc(
@@ -1648,11 +1904,27 @@ Note:
     During backpropagation, this function propagates the gradient of the
     output array to the input arrays ``x1`` and ``x2``.
 
-Note:
-    maximum of :class:`~chainerx.ndarray` and :class:`~chainerx.ndarray` is
-    not supported yet.
-
 .. seealso:: :data:`numpy.maximum`
+""")
+
+    _docs.set_doc(
+        chainerx.minimum,
+        """minimum(x1, x2)
+Minimum arguments, element-wise.
+
+Args:
+    x1 (~chainerx.ndarray or scalar): Input array.
+    x2 (~chainerx.ndarray or scalar): Input array.
+
+Returns:
+    :class:`~chainerx.ndarray`:
+        Returned array: :math:`y = min(\\{x_1, x_2\\})`.
+
+Note:
+    During backpropagation, this function propagates the gradient of the
+    output array to the input arrays ``x1`` and ``x2``.
+
+.. seealso:: :data:`numpy.minimum`
 """)
 
     _docs.set_doc(
@@ -3413,7 +3685,7 @@ Args:
         ``xs[t].shape[0] >= xs[t + 1].shape[0]``.
 
 Returns:
-    tuple: This function returns a tuple containing three elements,
+    tuple: This function returns a tuple containing two elements,
     ``hy`` and ``ys``.
 
     - ``hy`` is an updated hidden states whose shape is same as ``hx``.
@@ -3496,7 +3768,7 @@ Args:
         ``xs[t].shape[0] >= xs[t + 1].shape[0]``.
 
 Returns:
-    tuple: This function returns a tuple containing three elements,
+    tuple: This function returns a tuple containing two elements,
     ``hy`` and ``ys``.
 
     - ``hy`` is an updated hidden states whose shape is same as ``hx``.
@@ -3571,7 +3843,7 @@ Args:
         Please select ``tanh`` or ``relu``.
 
 Returns:
-    tuple: This function returns a tuple containing three elements,
+    tuple: This function returns a tuple containing two elements,
     ``hy`` and ``ys``.
 
     - ``hy`` is an updated hidden states whose shape is same as ``hx``.
@@ -3661,7 +3933,7 @@ Args:
         Please select ``tanh`` or ``relu``.
 
 Returns:
-    tuple: This function returns a tuple containing three elements,
+    tuple: This function returns a tuple containing two elements,
     ``hy`` and ``ys``.
 
     - ``hy`` is an updated hidden states whose shape is same as ``hx``.

@@ -54,7 +54,8 @@ class _Constant(initializer.Initializer):
         # Calling copy to ensures that the fill_value array
         # is moved to the device where array resides
         if isinstance(self.fill_value, chainer.get_array_types()):
-            backend.copyto(array, self.fill_value)
+            backend.copyto(
+                array, self.fill_value.astype(array.dtype, copy=False))
         else:
             device = backend.get_device_from_array(array)
             array[...] = device.xp.asarray(self.fill_value)

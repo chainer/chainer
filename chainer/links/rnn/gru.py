@@ -250,7 +250,7 @@ class GRU(StatefulGRU):
         elif n_args == 2:
             msg += ('In Chainer v2, chainer.links.GRU is changed '
                     'from stateless to stateful. '
-                    'One possiblity is you assume GRU to be stateless. '
+                    'One possibility is you assume GRU to be stateless. '
                     'Use chainer.links.StatelessGRU instead.')
             raise ValueError(msg)
 

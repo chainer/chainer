@@ -199,12 +199,23 @@ class FunctionTestBase(object):
                 indices.append(i)
 
         if indices:
-            FunctionTestError.fail(
+            f = six.StringIO()
+            f.write(
                 'Input arrays have been modified during forward.\n'
                 'Indices of modified inputs: {}\n'
                 'Input array shapes and dtypes: {}\n'.format(
                     ', '.join(str(i) for i in indices),
                     utils._format_array_props(inputs)))
+            for i in indices:
+                f.write('\n')
+                f.write('Input[{}]:\n'.format(i))
+                f.write('Original:\n')
+                f.write(str(inputs_copied[i]))
+                f.write('\n')
+                f.write('After forward:\n')
+                f.write(str(inputs[i]))
+                f.write('\n')
+            FunctionTestError.fail(f.getvalue())
 
         self.check_forward_outputs(
             tuple([var.array for var in outputs]),

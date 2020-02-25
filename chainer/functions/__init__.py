@@ -118,6 +118,7 @@ from chainer.functions.math.basic_math import add  # NOQA
 from chainer.functions.math.batch_l2_norm_squared import batch_l2_norm_squared  # NOQA
 from chainer.functions.math.bias import bias  # NOQA
 from chainer.functions.math.ceil import ceil  # NOQA
+from chainer.functions.math.cholesky import cholesky  # NOQA
 from chainer.functions.math.clip import clip  # NOQA
 from chainer.functions.math.cumprod import cumprod  # NOQA
 from chainer.functions.math.cumsum import cumsum  # NOQA
@@ -178,6 +179,7 @@ from chainer.functions.math.trigonometric import arctan2  # NOQA
 from chainer.functions.math.trigonometric import cos  # NOQA
 from chainer.functions.math.trigonometric import sin  # NOQA
 from chainer.functions.math.trigonometric import tan  # NOQA
+from chainer.functions.math.zeta import zeta  # NOQA
 
 from chainer.functions.noise.dropout import dropout  # NOQA
 from chainer.functions.noise.gaussian import gaussian  # NOQA

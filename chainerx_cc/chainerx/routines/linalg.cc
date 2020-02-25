@@ -109,6 +109,13 @@ void CheckSquareMatrix(const Array& a) {
     }
 }
 
+void CheckUplo(char uplo) {
+    char uplo_uppercase = toupper(uplo);
+    if (uplo_uppercase != 'U' && uplo_uppercase != 'L') {
+        throw ChainerxError{"UPLO argument must be 'L' or 'U'."};
+    }
+}
+
 }  // namespace
 
 Array Solve(const Array& a, const Array& b) {
@@ -216,7 +223,7 @@ std::tuple<Array, Array, Array> Svd(const Array& a, bool full_matrices, bool com
 
     {
         NoBackpropModeScope scope{};
-        a.device().backend().CallKernel<SvdKernel>(a, u, s, vt, full_matrices);
+        a.device().backend().CallKernel<SvdKernel>(a, u, s, vt, full_matrices, compute_uv);
     }
 
     // Reference:
@@ -301,6 +308,13 @@ Array PseudoInverse(const Array& a, float rcond) {
     Array vt{};
 
     std::tie(u, s, vt) = Svd(a, /*full_matrices=*/false, /*compute_uv=*/true);
+
+    // Computing the maximum along zero-sized axis is not supported
+    // therefore return earlier
+    if (a.shape().GetTotalSize() == 0) {
+        // Copy instead of new empty array is used so that backward does not raise errors
+        return Copy(a.Transpose());
+    }
 
     Array cutoff = rcond * s.Max();
     Array cutoff_indices = s <= cutoff;
@@ -396,6 +410,104 @@ std::tuple<Array, Array> Qr(const Array& a, QrMode mode) {
         return std::make_tuple(std::move(r), std::move(tau));
     }
     return std::make_tuple(std::move(q), std::move(r));
+}
+
+Array Cholesky(const Array& a) {
+    CheckRankTwoArray(a);
+    CheckSquareMatrix(a);
+    Dtype dtype = internal::GetMathResultDtype(a.dtype());
+    Array out = Empty(a.shape(), dtype, a.device());
+
+    {
+        NoBackpropModeScope scope{};
+        a.device().backend().CallKernel<CholeskyKernel>(a, out);
+    }
+
+    // Reference:
+    // Differentiation of the Cholesky decomposition, Iain Murray https://arxiv.org/abs/1602.07527
+    {
+        BackwardBuilder bb{"cholesky", a, out};
+        if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+            bt.Define([out_tok = bb.RetainOutput(0), a_dtype = a.dtype(), &a_device = a.device()](BackwardContext& bctx) {
+                const Array& L = bctx.GetRetainedOutput(out_tok);
+                const Array& gL = *bctx.output_grad();
+
+                Array L_inv = Inverse(L);
+                Array phi = Dot(L.Transpose(), gL);
+                phi = Tril(phi, 0);
+                Array mask = Eye(phi.shape()[0], phi.shape()[1], 0, Dtype::kBool, a_device);
+                phi = Where(mask, 0.5 * Diag(phi), phi);
+
+                Array gin = Dot(Dot(L_inv.Transpose(), phi), L_inv);
+
+                bctx.input_grad() = (gin + gin.Transpose()) * 0.5;
+            });
+        }
+        bb.Finalize();
+    }
+
+    return out;
+}
+
+std::tuple<Array, Array> Eigh(const Array& a, char uplo) {
+    CheckRankTwoArray(a);
+    CheckSquareMatrix(a);
+    CheckUplo(uplo);
+
+    Array w = Empty(Shape{a.shape()[0]}, a.dtype(), a.device());
+    Array v = Empty(a.shape(), a.dtype(), a.device());
+
+    {
+        NoBackpropModeScope scope{};
+        a.device().backend().CallKernel<SyevdKernel>(a, w, v, uplo, /*compute_v=*/true);
+    }
+
+    // Reference:
+    // Section 3.1 https://people.maths.ox.ac.uk/gilesm/files/NA-08-01.pdf
+    {
+        BackwardBuilder bb{"eigh", a, {w, v}};
+        if (BackwardBuilder::Target bt = bb.CreateTarget(0)) {
+            bt.Define([w_tok = bb.RetainOutput(0), v_tok = bb.RetainOutput(1), a_dtype = a.dtype(), &a_device = a.device()](
+                              BackwardContext& bctx) {
+                const Array& w = bctx.GetRetainedOutput(w_tok);
+                const Array& v = bctx.GetRetainedOutput(v_tok);
+
+                const Array& gw = bctx.output_grad(0).has_value() ? *bctx.output_grad(0) : Zeros(w.shape(), a_dtype, a_device);
+                const Array& gv = bctx.output_grad(1).has_value() ? *bctx.output_grad(1) : Zeros(v.shape(), a_dtype, a_device);
+
+                Array vt = v.Transpose();
+
+                Array f = ExpandDims(w, 0) - ExpandDims(w, 1);
+                // Invert values of `f`, and fill the diagonal with 0s.
+                // `f` has 0s on the diagonal, therefore fill it first with infinity.
+                Array mask = Eye(f.shape()[0], f.shape()[1], 0, Dtype::kBool, a_device);
+                f = Where(mask, std::numeric_limits<float>::infinity(), f);
+                f = Reciprocal(f);
+
+                Array gin = Dot(Dot(v, f * Dot(vt, gv) + Diag(gw)), vt);
+                bctx.input_grad() = 0.5 * (gin + gin.Transpose());
+            });
+        }
+        bb.Finalize();
+    }
+
+    return std::make_tuple(std::move(w), std::move(v));
+}
+
+Array Eigvalsh(const Array& a, char uplo) {
+    CheckRankTwoArray(a);
+    CheckSquareMatrix(a);
+    CheckUplo(uplo);
+
+    Array w = Empty(Shape{a.shape()[0]}, a.dtype(), a.device());
+    Array v = Empty(a.shape(), a.dtype(), a.device());
+
+    {
+        NoBackpropModeScope scope{};
+        a.device().backend().CallKernel<SyevdKernel>(a, w, v, uplo, /*compute_v=*/false);
+    }
+
+    return w;
 }
 
 }  // namespace chainerx

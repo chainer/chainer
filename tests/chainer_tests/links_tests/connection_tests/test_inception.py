@@ -36,7 +36,8 @@ class TestInception(unittest.TestCase):
 
     @attr.gpu
     def test_backward_gpu(self):
-        self.l.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.l.to_gpu()
         self.check_backward(cuda.to_gpu(self.x), cuda.to_gpu(self.gy))
 
 

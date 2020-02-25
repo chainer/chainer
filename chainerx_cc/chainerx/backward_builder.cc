@@ -6,7 +6,6 @@
 #include <iterator>
 #include <memory>
 #include <tuple>
-#include <unordered_map>
 #include <unordered_set>
 #include <utility>
 #include <vector>
@@ -39,8 +38,8 @@ BackwardBuilder::Target::Target(BackwardBuilder& builder, std::vector<size_t> in
     graph_to_input_array_nodes_ = CreateInputArrayNodesMap();
 }
 
-std::unordered_map<BackpropId, BackwardBuilder::Target::InputArrayNodes> BackwardBuilder::Target::CreateInputArrayNodesMap() const {
-    std::unordered_map<BackpropId, InputArrayNodes> graph_to_input_array_nodes{};
+absl::flat_hash_map<BackpropId, BackwardBuilder::Target::InputArrayNodes> BackwardBuilder::Target::CreateInputArrayNodesMap() const {
+    absl::flat_hash_map<BackpropId, InputArrayNodes> graph_to_input_array_nodes{};
 
     if (builder_.has_any_applicable_outputs_) {
         // At least one output arrays can have gradients.
@@ -159,7 +158,7 @@ std::vector<RetainedInputToken> BackwardBuilder::RetainInput(std::vector<size_t>
     for (size_t i : indices) {
         CHAINERX_ASSERT(i < inputs_.size());
         input_retention_record_.Record(i);
-        token.emplace_back((RetainedInputToken){internal::GetArrayBody(gsl::at(inputs_, i))->GetParams(), i});
+        token.emplace_back(internal::GetArrayBody(gsl::at(inputs_, i))->GetParams(), i);
     }
     return token;
 }
@@ -175,7 +174,7 @@ std::vector<RetainedOutputToken> BackwardBuilder::RetainOutput(std::vector<size_
     for (size_t i : indices) {
         CHAINERX_ASSERT(i < outputs_.size());
         output_retention_record_.Record(i);
-        token.emplace_back((RetainedOutputToken){internal::GetArrayBody(gsl::at(outputs_, i))->GetParams(), i});
+        token.emplace_back(internal::GetArrayBody(gsl::at(outputs_, i))->GetParams(), i);
     }
     return token;
 }

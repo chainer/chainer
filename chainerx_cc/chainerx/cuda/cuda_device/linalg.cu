@@ -130,6 +130,53 @@ cusolverStatus_t Orgqr(
     throw DtypeError{"Only Arrays of float or double type are supported by orgqr (QR)"};
 }
 
+template <typename T>
+cusolverStatus_t PotrfBuffersize(
+        cusolverDnHandle_t /*handle*/, cublasFillMode_t /*uplo*/, int /*n*/, T* /*a*/, int /*lda*/, int* /*lwork*/) {
+    throw DtypeError{"Only Arrays of float or double type are supported by potrf (Cholesky)"};
+}
+
+template <typename T>
+cusolverStatus_t Potrf(
+        cusolverDnHandle_t /*handle*/,
+        cublasFillMode_t /*uplo*/,
+        int /*n*/,
+        T* /*a*/,
+        int /*lda*/,
+        T* /*workspace*/,
+        int /*lwork*/,
+        int* /*devinfo*/) {
+    throw DtypeError{"Only Arrays of float or double type are supported by potrf (Cholesky)"};
+}
+
+template <typename T>
+cusolverStatus_t SyevdBuffersize(
+        cusolverDnHandle_t /*handle*/,
+        cusolverEigMode_t /*jobz*/,
+        cublasFillMode_t /*uplo*/,
+        int /*n*/,
+        T* /*a*/,
+        int /*lda*/,
+        T* /*w*/,
+        int* /*lwork*/) {
+    throw DtypeError{"Only Arrays of float or double type are supported by syevd (Eigen)"};
+}
+
+template <typename T>
+cusolverStatus_t Syevd(
+        cusolverDnHandle_t /*handle*/,
+        cusolverEigMode_t /*jobz*/,
+        cublasFillMode_t /*uplo*/,
+        int /*n*/,
+        T* /*a*/,
+        int /*lda*/,
+        T* /*w*/,
+        T* /*work*/,
+        int /*lwork*/,
+        int* /*devinfo*/) {
+    throw DtypeError{"Only Arrays of float or double type are supported by syevd (Eigen)"};
+}
+
 template <>
 cusolverStatus_t GetrfBuffersize<double>(cusolverDnHandle_t handle, int m, int n, double* a, int lda, int* lwork) {
     return cusolverDnDgetrf_bufferSize(handle, m, n, a, lda, lwork);
@@ -276,6 +323,70 @@ cusolverStatus_t Orgqr<float>(
     return cusolverDnSorgqr(handle, m, n, k, a, lda, tau, work, lwork, devinfo);
 }
 
+template <>
+cusolverStatus_t PotrfBuffersize<double>(cusolverDnHandle_t handle, cublasFillMode_t uplo, int n, double* a, int lda, int* lwork) {
+    return cusolverDnDpotrf_bufferSize(handle, uplo, n, a, lda, lwork);
+}
+
+template <>
+cusolverStatus_t PotrfBuffersize<float>(cusolverDnHandle_t handle, cublasFillMode_t uplo, int n, float* a, int lda, int* lwork) {
+    return cusolverDnSpotrf_bufferSize(handle, uplo, n, a, lda, lwork);
+}
+
+template <>
+cusolverStatus_t Potrf<double>(
+        cusolverDnHandle_t handle, cublasFillMode_t uplo, int n, double* a, int lda, double* workspace, int lwork, int* devinfo) {
+    return cusolverDnDpotrf(handle, uplo, n, a, lda, workspace, lwork, devinfo);
+}
+
+template <>
+cusolverStatus_t Potrf<float>(
+        cusolverDnHandle_t handle, cublasFillMode_t uplo, int n, float* a, int lda, float* workspace, int lwork, int* devinfo) {
+    return cusolverDnSpotrf(handle, uplo, n, a, lda, workspace, lwork, devinfo);
+}
+
+template <>
+cusolverStatus_t SyevdBuffersize<double>(
+        cusolverDnHandle_t handle, cusolverEigMode_t jobz, cublasFillMode_t uplo, int n, double* a, int lda, double* w, int* lwork) {
+    return cusolverDnDsyevd_bufferSize(handle, jobz, uplo, n, a, lda, w, lwork);
+}
+
+template <>
+cusolverStatus_t SyevdBuffersize<float>(
+        cusolverDnHandle_t handle, cusolverEigMode_t jobz, cublasFillMode_t uplo, int n, float* a, int lda, float* w, int* lwork) {
+    return cusolverDnSsyevd_bufferSize(handle, jobz, uplo, n, a, lda, w, lwork);
+}
+
+template <>
+cusolverStatus_t Syevd<double>(
+        cusolverDnHandle_t handle,
+        cusolverEigMode_t jobz,
+        cublasFillMode_t uplo,
+        int n,
+        double* a,
+        int lda,
+        double* w,
+        double* work,
+        int lwork,
+        int* devinfo) {
+    return cusolverDnDsyevd(handle, jobz, uplo, n, a, lda, w, work, lwork, devinfo);
+}
+
+template <>
+cusolverStatus_t Syevd<float>(
+        cusolverDnHandle_t handle,
+        cusolverEigMode_t jobz,
+        cublasFillMode_t uplo,
+        int n,
+        float* a,
+        int lda,
+        float* w,
+        float* work,
+        int lwork,
+        int* devinfo) {
+    return cusolverDnSsyevd(handle, jobz, uplo, n, a, lda, w, work, lwork, devinfo);
+}
+
 template <typename T>
 void SolveImpl(const Array& a, const Array& b, const Array& out) {
     Device& device = a.device();
@@ -288,6 +399,7 @@ void SolveImpl(const Array& a, const Array& b, const Array& out) {
     auto lu_ptr = static_cast<T*>(internal::GetRawOffsetData(lu_matrix));
 
     int64_t m = a.shape()[0];
+    int64_t lda = std::max(int64_t{1}, m);
     int64_t nrhs = 1;
     if (b.ndim() == 2) {
         nrhs = b.shape()[1];
@@ -297,14 +409,14 @@ void SolveImpl(const Array& a, const Array& b, const Array& out) {
     auto ipiv_ptr = static_cast<int*>(internal::GetRawOffsetData(ipiv));
 
     int buffersize = 0;
-    device_internals.cusolverdn_handle().Call(GetrfBuffersize<T>, m, m, lu_ptr, m, &buffersize);
+    device_internals.cusolverdn_handle().Call(GetrfBuffersize<T>, m, m, lu_ptr, lda, &buffersize);
 
     Array work = Empty(Shape{buffersize}, dtype, device);
     auto work_ptr = static_cast<T*>(internal::GetRawOffsetData(work));
 
     std::shared_ptr<void> devinfo = device.Allocate(sizeof(int));
 
-    device_internals.cusolverdn_handle().Call(Getrf<T>, m, m, lu_ptr, m, work_ptr, ipiv_ptr, static_cast<int*>(devinfo.get()));
+    device_internals.cusolverdn_handle().Call(Getrf<T>, m, m, lu_ptr, lda, work_ptr, ipiv_ptr, static_cast<int*>(devinfo.get()));
 
     int devinfo_h = 0;
     Device& native_device = GetDefaultContext().GetDevice({"native", 0});
@@ -317,7 +429,7 @@ void SolveImpl(const Array& a, const Array& b, const Array& out) {
     auto out_ptr = static_cast<T*>(internal::GetRawOffsetData(out_transposed));
 
     device_internals.cusolverdn_handle().Call(
-            Getrs<T>, CUBLAS_OP_N, m, nrhs, lu_ptr, m, ipiv_ptr, out_ptr, m, static_cast<int*>(devinfo.get()));
+            Getrs<T>, CUBLAS_OP_N, m, nrhs, lu_ptr, lda, ipiv_ptr, out_ptr, lda, static_cast<int*>(devinfo.get()));
 
     device.MemoryCopyTo(&devinfo_h, devinfo.get(), sizeof(int), native_device);
     if (devinfo_h != 0) {
@@ -461,14 +573,21 @@ CHAINERX_CUDA_REGISTER_KERNEL(InverseKernel, CudaInverseKernel);
 
 class CudaSvdKernel : public SvdKernel {
 public:
-    void Call(const Array& a, const Array& u, const Array& s, const Array& vt, bool full_matrices) override {
+    void Call(const Array& a, const Array& u, const Array& s, const Array& vt, bool full_matrices, bool compute_uv) override {
         Device& device = a.device();
         Dtype dtype = a.dtype();
         CudaSetDeviceScope scope{device.index()};
 
         CHAINERX_ASSERT(a.ndim() == 2);
 
-        bool compute_uv = u.shape()[0] != 0 && vt.shape()[0] != 0;
+        if (a.shape().GetTotalSize() == 0) {
+            if (full_matrices && compute_uv) {
+                device.backend().CallKernel<IdentityKernel>(u);
+                device.backend().CallKernel<IdentityKernel>(vt);
+            }
+            // This kernel works correctly for zero-sized input also without early return
+            return;
+        }
 
         // cuSOLVER assumes arrays are in column-major order.
         // In order to avoid transposing the input matrix, matrix dimensions are swapped.
@@ -516,8 +635,9 @@ public:
             vt_temp = Empty(vt_shape, dtype, device);
         }
 
-        int64_t ldu = m;
-        int64_t ldvt = full_matrices ? n : k;
+        int64_t lda = std::max(int64_t{1}, m);
+        int64_t ldu = std::max(int64_t{1}, m);
+        int64_t ldvt = full_matrices ? std::max(int64_t{1}, n) : std::max(int64_t{1}, k);
 
         auto svd_impl = [&](auto pt) {
             using T = typename decltype(pt)::type;
@@ -555,7 +675,7 @@ public:
                     m,
                     n,
                     x_ptr,
-                    m,
+                    lda,
                     s_ptr,
                     vt_ptr,
                     ldu,
@@ -602,6 +722,132 @@ public:
 };
 
 CHAINERX_CUDA_REGISTER_KERNEL(QrKernel, CudaQrKernel);
+
+class CudaCholeskyKernel : public CholeskyKernel {
+public:
+    void Call(const Array& a, const Array& out) override {
+        Device& device = a.device();
+        device.CheckDevicesCompatible(a, out);
+        Dtype dtype = a.dtype();
+        CudaSetDeviceScope scope{device.index()};
+
+        CHAINERX_ASSERT(a.ndim() == 2);
+        CHAINERX_ASSERT(out.ndim() == 2);
+        CHAINERX_ASSERT(a.shape()[0] == a.shape()[1]);
+        CHAINERX_ASSERT(out.IsContiguous());
+        CHAINERX_ASSERT(a.dtype() == out.dtype());
+
+        // cuSOLVER might not work well with zero-sized arrays for older versions of cuSOLVER (<10.1)
+        // therefore it's better to return earlier
+        if (a.shape().GetTotalSize() == 0) {
+            return;
+        }
+
+        // potrf (cholesky) stores result in-place, therefore copy ``a`` to ``out`` and then pass ``out`` to the routine
+        device.backend().CallKernel<CopyKernel>(Tril(a, 0), out);
+
+        auto cholesky_impl = [&](auto pt) {
+            using T = typename decltype(pt)::type;
+
+            // Note that cuSOLVER uses Fortran order.
+            // To compute a lower triangular matrix L = cholesky(A), we use cuSOLVER to compute an upper triangular matrix U = cholesky(A).
+            cublasFillMode_t uplo = CUBLAS_FILL_MODE_UPPER;
+
+            cuda_internal::DeviceInternals& device_internals = cuda_internal::GetDeviceInternals(static_cast<CudaDevice&>(device));
+
+            // compute workspace size and prepare workspace
+            auto out_ptr = static_cast<T*>(internal::GetRawOffsetData(out));
+            int work_size = 0;
+            int64_t n = a.shape()[0];
+            device_internals.cusolverdn_handle().Call(PotrfBuffersize<T>, uplo, n, out_ptr, std::max(int64_t{1}, n), &work_size);
+
+            // POTRF execution
+            Array work = Empty(Shape{work_size}, dtype, device);
+            auto work_ptr = static_cast<T*>(internal::GetRawOffsetData(work));
+
+            std::shared_ptr<void> devinfo = device.Allocate(sizeof(int));
+            device_internals.cusolverdn_handle().Call(
+                    Potrf<T>, uplo, n, out_ptr, std::max(int64_t{1}, n), work_ptr, work_size, static_cast<int*>(devinfo.get()));
+
+            int devinfo_h = 0;
+            Device& native_device = GetDefaultContext().GetDevice({"native", 0});
+            device.MemoryCopyTo(&devinfo_h, devinfo.get(), sizeof(int), native_device);
+            if (devinfo_h != 0) {
+                throw ChainerxError{"Unsuccessful potrf (Cholesky) execution. Info = ", devinfo_h};
+            }
+        };
+
+        VisitFloatingPointDtype(dtype, cholesky_impl);
+    }
+};
+
+CHAINERX_CUDA_REGISTER_KERNEL(CholeskyKernel, CudaCholeskyKernel);
+
+class CudaSyevdKernel : public SyevdKernel {
+public:
+    void Call(const Array& a, const Array& w, const Array& v, char uplo, bool compute_v) override {
+        Device& device = a.device();
+        Dtype dtype = a.dtype();
+        CudaSetDeviceScope scope{device.index()};
+
+        CHAINERX_ASSERT(a.ndim() == 2);
+
+        device.backend().CallKernel<CopyKernel>(a, v);
+
+        int64_t m = a.shape()[0];
+        int64_t n = a.shape()[1];
+
+        auto syevd_impl = [&](auto pt) {
+            using T = typename decltype(pt)::type;
+            cuda_internal::DeviceInternals& device_internals = cuda_internal::GetDeviceInternals(static_cast<CudaDevice&>(device));
+
+            auto v_ptr = static_cast<T*>(internal::GetRawOffsetData(v));
+            auto w_ptr = static_cast<T*>(internal::GetRawOffsetData(w));
+
+            cusolverEigMode_t jobz = compute_v ? CUSOLVER_EIG_MODE_VECTOR : CUSOLVER_EIG_MODE_NOVECTOR;
+
+            // cuSOLVER assumes that arrays are stored in column-major order
+            // The uplo argument is swapped instead of transposing the input matrix
+            cublasFillMode_t uplo_cublas = toupper(uplo) == 'U' ? CUBLAS_FILL_MODE_LOWER : CUBLAS_FILL_MODE_UPPER;
+
+            int buffersize = 0;
+            // When calling Syevd matrix dimensions are swapped instead of transposing the input matrix
+            device_internals.cusolverdn_handle().Call(
+                    SyevdBuffersize<T>, jobz, uplo_cublas, n, v_ptr, std::max(int64_t{1}, m), w_ptr, &buffersize);
+
+            Array work = Empty(Shape{buffersize}, dtype, device);
+            auto work_ptr = static_cast<T*>(internal::GetRawOffsetData(work));
+
+            std::shared_ptr<void> devinfo = device.Allocate(sizeof(int));
+
+            device_internals.cusolverdn_handle().Call(
+                    Syevd<T>,
+                    jobz,
+                    uplo_cublas,
+                    n,
+                    v_ptr,
+                    std::max(int64_t{1}, m),
+                    w_ptr,
+                    work_ptr,
+                    buffersize,
+                    static_cast<int*>(devinfo.get()));
+
+            int devinfo_h = 0;
+            Device& native_device = GetDefaultContext().GetDevice({"native", 0});
+            device.MemoryCopyTo(&devinfo_h, devinfo.get(), sizeof(int), native_device);
+            if (devinfo_h != 0) {
+                throw ChainerxError{"Unsuccessful syevd (Eigen Decomposition) execution. Info = ", devinfo_h};
+            }
+
+            // v is stored now in column-major order, need to transform it to row-major
+            device.backend().CallKernel<CopyKernel>(v.Transpose(), v);
+        };
+
+        VisitFloatingPointDtype(dtype, syevd_impl);
+    }
+};
+
+CHAINERX_CUDA_REGISTER_KERNEL(SyevdKernel, CudaSyevdKernel);
 
 }  // namespace cuda
 }  // namespace chainerx

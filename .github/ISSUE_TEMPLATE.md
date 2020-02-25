@@ -23,4 +23,4 @@ python -c 'import chainer; chainer.print_runtime_info()'
 
 Thank you for your cooperation!
 
-Support is available on our [Slack Chat](https://bit.ly/join-chainer-slack).
+Support is available on our [Slack Chat](https://bit.ly/go-chainer-slack).

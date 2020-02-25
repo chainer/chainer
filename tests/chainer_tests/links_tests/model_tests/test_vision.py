@@ -67,7 +67,8 @@ class TestResNetLayers(unittest.TestCase):
 
     @attr.gpu
     def test_call_gpu(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.check_call()
 
     def test_prepare(self):
@@ -121,7 +122,8 @@ class TestResNetLayers(unittest.TestCase):
 
     @attr.gpu
     def test_extract_gpu(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.check_extract()
 
     def check_predict(self):
@@ -145,7 +147,8 @@ class TestResNetLayers(unittest.TestCase):
 
     @attr.gpu
     def test_predict_gpu(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.check_predict()
 
     def check_copy(self):
@@ -161,7 +164,8 @@ class TestResNetLayers(unittest.TestCase):
 
     @attr.gpu
     def test_copy_gpu(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.check_copy()
 
 
@@ -205,7 +209,8 @@ class TestVGGs(unittest.TestCase):
 
     @attr.gpu
     def test_call_gpu(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.check_call()
 
     def test_prepare(self):
@@ -255,7 +260,8 @@ class TestVGGs(unittest.TestCase):
 
     @attr.gpu
     def test_extract_gpu(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.check_extract()
 
     def check_predict(self):
@@ -275,7 +281,8 @@ class TestVGGs(unittest.TestCase):
 
     @attr.gpu
     def test_predict_gpu(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.check_predict()
 
     def check_copy(self):
@@ -288,7 +295,8 @@ class TestVGGs(unittest.TestCase):
 
     @attr.gpu
     def test_copy_gpu(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.check_copy()
 
 
@@ -343,7 +351,8 @@ class TestGoogLeNet(unittest.TestCase):
 
     @attr.gpu
     def test_call_gpu(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.check_call_prob()
         self.check_call_loss1_fc2()
         self.check_call_loss2_fc2()
@@ -398,7 +407,8 @@ class TestGoogLeNet(unittest.TestCase):
 
     @attr.gpu
     def test_extract_gpu(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.check_extract()
 
     def check_predict(self):
@@ -421,7 +431,8 @@ class TestGoogLeNet(unittest.TestCase):
 
     @attr.gpu
     def test_predict_gpu(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.check_predict()
 
     def check_copy(self):
@@ -434,7 +445,8 @@ class TestGoogLeNet(unittest.TestCase):
 
     @attr.gpu
     def test_copy_gpu(self):
-        self.link.to_gpu()
+        with testing.assert_warns(DeprecationWarning):
+            self.link.to_gpu()
         self.check_copy()
 
 

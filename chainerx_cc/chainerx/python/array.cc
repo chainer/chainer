@@ -71,7 +71,8 @@ py::tuple ToTuple(const std::vector<Array>& ary) {
 std::vector<ArrayBodyPtr> ToArrayBodyPtr(const std::vector<Array>& ary) {
     std::vector<ArrayBodyPtr> ret{ary.size()};
     for (size_t i = 0; i < ary.size(); i++) {
-        ret[i] = GetArrayBody(ary[i]);
+        ArrayBodyPtr array_body = GetArrayBody(ary[i]);
+        ret[i] = std::move(array_body);
     }
     return ret;
 }
@@ -140,10 +141,17 @@ ArrayBodyPtr MakeArray(py::handle object, py::handle dtype, bool copy, py::handl
     absl::optional<Dtype> dtype_ = dtype.is_none() ? absl::nullopt : absl::optional<Dtype>(GetDtype(dtype));
     Device& dev = GetDevice(device);
 
+    if (!copy && py::isinstance<ArrayBody>(object)) {
+        ArrayBodyPtr body = py::cast<ArrayBodyPtr>(object);
+        if ((device.is_none() || &dev == &body->device()) && (dtype.is_none() || *dtype_ == body->dtype())) {
+            return body;
+        }
+    }
+
     return MakeArray(object, dtype_, copy, dev);
 }
 
-ArrayBodyPtr MakeArray(py::handle object, const absl::optional<Dtype>& dtype, bool copy, Device& device) {
+ArrayBodyPtr MakeArray(py::handle object, absl::optional<Dtype> dtype, bool copy, Device& device) {
     // object is chainerx.ndarray
     if (py::isinstance<ArrayBody>(object)) {
         Array a = Array{py::cast<ArrayBodyPtr>(object)};
@@ -239,25 +247,41 @@ void InitChainerxArrayConversion(pybind11::module& m, py::class_<ArrayBody, Arra
 
 void InitChainerxArrayManipulation(py::class_<ArrayBody, ArrayBodyPtr>& c) {
     c.def("take",
-          [](const ArrayBodyPtr& self, py::handle indices, const absl::optional<int8_t>& axis) {
+          [](const ArrayBodyPtr& self, py::handle indices, absl::optional<int8_t> axis, absl::optional<std::string>& mode) {
               if (!axis.has_value()) {
                   throw NotImplementedError{"axis=None is not yet supported for chainerx.ndarray.take."};
               }
+              IndexBoundsMode tmode{};
+              if (!mode.has_value()) {
+                  tmode = IndexBoundsMode::kDefault;
+              } else {
+                  std::string& smode = mode.value();
+                  if (smode == "raise") {
+                      tmode = IndexBoundsMode::kRaise;
+                  } else if (smode == "wrap") {
+                      tmode = IndexBoundsMode::kWrap;
+                  } else if (smode == "clip") {
+                      tmode = IndexBoundsMode::kClip;
+                  } else {
+                      throw py::value_error{"mode must be 'raise', 'wrap', or 'clip'"};
+                  }
+              }
               if (py::isinstance<ArrayBody>(indices)) {
-                  return MoveArrayBody(Array{self}.Take(Array{py::cast<ArrayBodyPtr>(indices)}, axis.value()));
+                  return MoveArrayBody(Array{self}.Take(Array{py::cast<ArrayBodyPtr>(indices)}, axis.value(), tmode));
               }
               if (py::isinstance<py::sequence>(indices)) {
                   absl::optional<Dtype> dtype = Dtype::kInt64;
-                  return MoveArrayBody(Array{self}.Take(Array{MakeArray(indices, dtype, false, self->device())}, axis.value()));
+                  return MoveArrayBody(Array{self}.Take(Array{MakeArray(indices, dtype, false, self->device())}, axis.value(), tmode));
               }
               if (py::isinstance<py::array>(indices)) {
-                  return MoveArrayBody(
-                          Array{self}.Take(Array{MakeArrayFromNumpyArray(py::cast<py::array>(indices), self->device())}, axis.value()));
+                  return MoveArrayBody(Array{self}.Take(
+                          Array{MakeArrayFromNumpyArray(py::cast<py::array>(indices), self->device())}, axis.value(), tmode));
               }
               throw py::type_error{"only integers, slices (`:`), sequence, numpy.ndarray and chainerx.newaxis (`None`) are valid indices"};
           },
           "indices"_a,
-          "axis"_a = nullptr);
+          "axis"_a = nullptr,
+          "mode"_a = nullptr);
     c.def("transpose",
           [](const ArrayBodyPtr& self, const absl::optional<std::vector<int8_t>>& axes) {
               return MoveArrayBody(Array{self}.Transpose(ToAxes(axes)));
@@ -575,10 +599,10 @@ void InitChainerxArrayCalculation(py::class_<ArrayBody, ArrayBodyPtr>& c) {
           "axis"_a = nullptr,
           "keepdims"_a = false);
     c.def("argmax",
-          [](const ArrayBodyPtr& self, const absl::optional<int8_t>& axis) { return MoveArrayBody(ArgMax(Array{self}, ToAxes(axis))); },
+          [](const ArrayBodyPtr& self, absl::optional<int8_t> axis) { return MoveArrayBody(ArgMax(Array{self}, ToAxes(axis))); },
           "axis"_a = nullptr);
     c.def("argmin",
-          [](const ArrayBodyPtr& self, const absl::optional<int8_t>& axis) { return MoveArrayBody(ArgMin(Array{self}, ToAxes(axis))); },
+          [](const ArrayBodyPtr& self, absl::optional<int8_t> axis) { return MoveArrayBody(ArgMin(Array{self}, ToAxes(axis))); },
           "axis"_a = nullptr);
 }
 
@@ -632,12 +656,16 @@ void InitChainerxArraySpecial(pybind11::module& m, py::class_<ArrayBody, ArrayBo
           "grad"_a,
           "backprop_id"_a = nullptr);
     c.def("backward",
-          [](const ArrayBodyPtr& self, const absl::optional<BackpropId>& backprop_id, bool enable_double_backprop) {
+          [](const ArrayBodyPtr& self,
+             const absl::optional<BackpropId>& backprop_id,
+             bool enable_double_backprop,
+             absl::optional<float> loss_scale) {
               auto double_backprop = enable_double_backprop ? DoubleBackpropOption::kEnable : DoubleBackpropOption::kDisable;
-              Backward(Array{self}, backprop_id, double_backprop);
+              Backward(Array{self}, backprop_id, double_backprop, loss_scale);
           },
           "backprop_id"_a = nullptr,
-          "enable_double_backprop"_a = false);
+          "enable_double_backprop"_a = false,
+          "loss_scale"_a = nullptr);
     c.def("_debug_dump_computational_graph",
           [](const ArrayBodyPtr& self, const absl::optional<BackpropId>& backprop_id) {
               DebugDumpComputationalGraph(std::cout, Array{self}, backprop_id);

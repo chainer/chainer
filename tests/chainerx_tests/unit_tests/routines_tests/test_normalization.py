@@ -44,9 +44,11 @@ def _create_batch_norm_ndarray_args(
 
 
 # Note that CUDA (cuDNN) only supports batch normalization with 4 or
-# 5-dimenisional data.
+# 5-dimensional data. Arrays with smaller dimensions are supported by the
+# CUDA backend, while those with larger dimensions are not.
 # x_shape,reduced_shape,axis
 _batch_norm_params = [
+    ((3, 2), (2,), None),
     ((5, 4, 3, 2), (4, 3, 2), None),
     ((5, 4, 3, 2), (4, 3, 2), (0,)),
     ((5, 4, 3, 2), (4,), (0, 2, 3)),

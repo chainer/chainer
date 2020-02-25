@@ -8,8 +8,8 @@ class NStepGRUBase(n_step_rnn.NStepRNNBase):
 
     Base link class for Stacked GRU/BiGRU links.
 
-    This link is base link class for :func:`chainer.links.NStepRNN` and
-    :func:`chainer.links.NStepBiRNN`.
+    This link is base link class for :func:`chainer.links.NStepGRU` and
+    :func:`chainer.links.NStepBiGRU`.
     This link's behavior depends on argument, ``use_bi_direction``.
 
     Args:

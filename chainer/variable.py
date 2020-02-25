@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 import copy
+import threading
 import traceback
 import typing as tp  # NOQA
 import warnings
@@ -21,47 +22,10 @@ from chainer.utils import argument
 import chainerx
 
 
-def _check_grad_type(func, x, is_node_x, gx):
-    # TODO(niboshi): Write comment about is_node_x
-    assert gx is not None
+_thread_local = threading.local()
 
-    # TODO(kataoka): avoid `isinstance`
-    x_data = None if isinstance(x, _ChainerxVariableNodeProps) else x.data
 
-    # TODO(kataoka): Make _update_data_info store the array module.
-    # ``is_node_x and x_data is None`` implies that the data array is not
-    # retained.
-    # ``not is_node_x and x_data is None`` implies that grad of uninitialized
-    # variable is checked here.
-
-    if x_data is None and not is_node_x:
-        # TODO(kataoka): This should be an error.
-        return
-    if x.dtype is None or x.shape is None:
-        # unretained Variable(None)
-        # TODO(kataoka): This should be an error.
-        return
-
-    if not isinstance(gx, chainer.get_array_types()):
-        msg = ('Type of grad is invalid:\n'
-               + 'Expected: Any of {}\n'.format(chainer.get_array_types())
-               + 'Actual: {}'.format(type(gx)))
-        typ = TypeError
-    elif x_data is not None and not chainer.is_arrays_compatible((gx, x_data)):
-        msg = ('Type of data and grad mismatch\ngrad: %s != data: %s' %
-               (type(gx), type(x_data)))
-        typ = TypeError
-    elif gx.dtype != x.dtype:
-        msg = ('Dtype of data and grad mismatch\ngrad: %s != data: %s' %
-               (gx.dtype, x.dtype))
-        typ = TypeError
-    elif gx.shape != x.shape:
-        msg = ('Shape of data and grad mismatch\ngrad: %s != data: %s' %
-               (gx.shape, x.shape))
-        typ = ValueError
-    else:
-        return
-
+def _raise_grad_error(exc_type, func, msg):
     detail = ''
     if func:
         detail = 'Function `{0}` ({1}) has a bug.\n'.format(
@@ -77,7 +41,75 @@ the information of your environment, and your script:
 https://github.com/chainer/chainer/issues/new.
 '''
 
-    raise typ(detail + msg)
+    raise exc_type(detail + msg)
+
+
+def _check_grad_type(func, x, is_node_x, gx):
+    # is_node_x: equivalent to isinstance(x, VariableNode)
+
+    assert gx is not None
+
+    # x_shape is the raw shape
+
+    # TODO(kataoka): avoid `isinstance`
+    if isinstance(x, _ChainerxVariableNodeProps):
+        x_data = None
+        x_layout = None
+        x_shape = x.shape
+    elif is_node_x:
+        x_data = x._data
+        x_layout = x._layout
+        x_shape = x.shape
+        if x_layout is not None:
+            # to raw shape
+            x_shape = chainer.memory_layouts._transpose_shape(
+                x_shape, None, x_layout)
+    else:
+        # assert isinstance(x, Variable)
+        x_data = x._data[0]
+        x_layout = x._layout
+        x_shape = None if x_data is None else x_data.shape
+
+    # TODO(kataoka): Make _update_data_info store the array module.
+    # ``is_node_x and x_data is None`` implies that the data array is not
+    # retained.
+    # ``not is_node_x and x_data is None`` implies that grad of uninitialized
+    # variable is checked here.
+
+    if x_data is None and not is_node_x:
+        # TODO(kataoka): This should be an error.
+        return
+    if x_layout is None:
+        if x.dtype is None or x.shape is None:
+            # unretained Variable(None)
+            # TODO(kataoka): This should be an error.
+            return
+
+    if not isinstance(gx, chainer.get_array_types()):
+        _raise_grad_error(
+            TypeError,
+            func,
+            ('Type of grad is invalid:\n'
+             + 'Expected: Any of {}\n'.format(chainer.get_array_types())
+             + 'Actual: {}'.format(type(gx))))
+    elif x_data is not None and not chainer.is_arrays_compatible((gx, x_data)):
+        _raise_grad_error(
+            TypeError,
+            func,
+            ('Type of data and grad mismatch\ngrad: %s != data: %s' %
+             (type(gx), type(x_data))))
+    elif gx.dtype != x.dtype:
+        _raise_grad_error(
+            TypeError,
+            func,
+            ('Dtype of data and grad mismatch\ngrad: %s != data: %s' %
+             (gx.dtype, x.dtype)))
+    elif gx.shape != x_shape:  # comparing semantic shapes (not semantic)
+        _raise_grad_error(
+            ValueError,
+            func,
+            ('Shape of data and grad mismatch\ngrad: %s != data: %s' %
+             (gx.shape, x_shape)))
 
 
 def variable_repr(var):
@@ -171,16 +203,23 @@ class VariableNode(object):
 
     """
 
+    dtype = None
+    shape = None  # semantic shape
+
     _creator_node = None
     _data = None  # type: types.NdArray
     _rank = 0  # type: int
     # Name of the Function is assigned if this variable is a gradient generated
     # by an old-style Function
     _old_style_grad_generator = None  # type: str
+    _layout = None
 
-    def __init__(self, variable, name, **kwargs):
-        # type: (Variable, tp.Optional[str], **tp.Any) -> None
-
+    def __init__(
+            self,
+            variable: 'Variable',
+            name: tp.Optional[str],
+            **kwargs: tp.Any
+    ) -> None:
         if kwargs:
             argument.check_unexpected_kwargs(
                 kwargs,
@@ -190,8 +229,9 @@ class VariableNode(object):
         self._variable = weakref.ref(variable)
         self.name = name
         self._requires_grad = variable.requires_grad
+        self._layout = variable.layout
 
-        vdata = variable.data
+        vdata = variable.raw_array
         self._update_data_info(vdata)
 
     @property
@@ -347,7 +387,8 @@ class VariableNode(object):
             self.data,
             name=self.name,
             requires_grad=self.requires_grad,
-            node=self)
+            node=self,
+            layout=self._layout)
         return var
 
     def get_variable_or_none(self):
@@ -414,12 +455,18 @@ class VariableNode(object):
                                'been already released')
 
     def _update_data_info(self, d):
+        # d is a raw array (with raw shape)
         if d is None:
             self.dtype = None
             self.shape = None
         else:
             self.dtype = d.dtype
-            self.shape = d.shape
+
+            if self._layout is None:
+                self.shape = d.shape
+            else:
+                self.shape = chainer.memory_layouts._transpose_shape(
+                    d.shape, self._layout, None)
 
         # If the node has a reference to data, update it as well.
         if self._data is not None:
@@ -517,12 +564,24 @@ class Variable(object):
     # instance.
     _grad = None
 
-    def __init__(self, data=None, **kwargs):
-        # type: (tp.Optional[types.NdArray], **tp.Any) -> None
+    _layout = None
 
-        name, grad, requires_grad, grad_valid = argument.parse_kwargs(
+    def as_layout(self, layout):
+        src_layout = self._layout
+        if src_layout == layout:
+            return self
+
+        y, = chainer.memory_layouts.AsLayout(layout).apply((self,))
+        return y
+
+    def __init__(
+            self,
+            data: tp.Optional[types.NdArray] = None,
+            **kwargs: tp.Any
+    ) -> None:
+        name, grad, requires_grad, grad_valid, layout = argument.parse_kwargs(
             kwargs, ('name', None), ('grad', None), ('requires_grad', True),
-            ('_grad_valid', True),
+            ('_grad_valid', True), ('layout', None),
             volatile='volatile argument is not supported anymore. '
                      'Use chainer.using_config')
         # _grad_valid is for internal use, hence the prefix _.
@@ -537,12 +596,14 @@ class Variable(object):
                 raise TypeError(msg)
 
         self._init_impl(
-            data, None, name, grad, grad_valid, requires_grad, None, None)
+            data, None, name, grad, grad_valid, requires_grad, None, None,
+            layout)
 
     @staticmethod
     def _init_unchecked(
             data=None, device=None, name=None, grad=None, grad_valid=True,
-            requires_grad=True, is_chainerx_array=None, node=None):
+            requires_grad=True, is_chainerx_array=None, node=None,
+            layout=None):
         """Creates a new :class:`Variable` without the validations for
         optimizing performance.
         """
@@ -551,11 +612,11 @@ class Variable(object):
         var = Variable.__new__(Variable)
         var._init_impl(
             data, device, name, grad, grad_valid, requires_grad,
-            is_chainerx_array, node)
+            is_chainerx_array, node, layout)
         return var
 
     def _init_impl(self, data, device, name, grad, grad_valid, requires_grad,
-                   is_chainerx_array, node):
+                   is_chainerx_array, node, layout):
         # `device` must be of type chainer.backend.Device.
         # Check is skipped for performance.
 
@@ -571,6 +632,7 @@ class Variable(object):
         # Note that it won't be True by merely initializing an uninitialized
         # Parameter.
         self._grad_valid = grad_valid
+        self._layout = layout
 
         if is_chainerx_array is None:
             is_chainerx_array = isinstance(data, chainerx.ndarray)
@@ -644,15 +706,19 @@ class Variable(object):
                 if actual_grad is not old_grad:
                     self._grad_var = Variable(
                         actual_grad,
-                        requires_grad=actual_grad.is_backprop_required())
+                        requires_grad=actual_grad.is_backprop_required(),
+                        layout=self._layout)
             return
 
         if self._grad_var is None:
             if self._grad is not None:
-                self._grad_var = Variable(self._grad)
+                self._grad_var = Variable(self._grad, layout=self._layout)
 
-    def _set_chainerx_array(self, array, grad):
-        # type: (tp.Optional[chainerx.ndarray], tp.Optional[chainerx.ndarray]) -> None # NOQA
+    def _set_chainerx_array(
+            self,
+            array: tp.Optional['chainerx.ndarray'],
+            grad: tp.Optional['chainerx.ndarray']
+    ) -> None:
 
         # Sets chainerx array and grad.
         assert array is None or isinstance(array, chainerx.ndarray)
@@ -700,8 +766,7 @@ class Variable(object):
         return self._device
 
     @property
-    def xp(self):
-        # type: () -> tp.Optional[types.Xp]
+    def xp(self) -> tp.Optional[types.Xp]:
         """Array module for the data array of this variable."""
         if self._has_chainerx_array:
             return chainerx
@@ -848,13 +913,30 @@ class Variable(object):
         self._node.creator_node = func
 
     @property
-    def array(self):
-        # type: () -> tp.Optional[types.NdArray]
+    def array(self) -> tp.Optional[types.NdArray]:
         """The underlying data array.
 
         It is either :class:`numpy.ndarray` or :class:`cupy.ndarray` object,
         or ``None`` if the variable in in an uninitialized state.
 
+        """
+        return self._get_array()
+
+    def _get_array(self):
+        if (self._layout is not None
+                and not (
+                    _allow_array_access_with_nonstandard_layout())):
+            raise RuntimeError(
+                'Cannot directly retrieve the underlying array from a '
+                'variable with non-standard layout.')
+        return self.raw_array
+
+    @property
+    def raw_array(self):
+        """The underlying raw data array.
+
+        Its shape does not have to be the semantic shape, if the memory layout
+        is non-standard.
         """
         # For ChainerX, this property always returns a grad-stopped view.
         # The view is cached to reduce potential overhead.
@@ -868,9 +950,17 @@ class Variable(object):
         return self._data[0]
 
     @array.setter
-    def array(self, d):
-        # type: (tp.Optional[types.NdArray]) -> None
+    def array(self, d: tp.Optional[types.NdArray]) -> None:
+        self._set_array(d)
 
+    def _set_array(self, d, *, layout_check=True):
+        if (layout_check
+                and self._layout is not None
+                and not (
+                    _allow_array_access_with_nonstandard_layout())):
+            raise RuntimeError(
+                'Cannot directly set the underlying array of a variable with '
+                'non-standard layout.')
         if self._has_chainerx_array:
             d_old = self._data[0]
             if (d_old is not None
@@ -906,8 +996,7 @@ class Variable(object):
         return self._data[0].view()
 
     @property
-    def data(self):
-        # type: () -> tp.Optional[types.NdArray]
+    def data(self) -> tp.Optional[types.NdArray]:
         """The underlying data array (equivalent to :attr:`array`).
 
         Note that using this attribute directly is discouraged; use
@@ -920,10 +1009,12 @@ class Variable(object):
         return self.array
 
     @data.setter
-    def data(self, d):
-        # type: (types.NdArray) -> None
-
+    def data(self, d: types.NdArray) -> None:
         self.array = d
+
+    @property
+    def layout(self):
+        return self._layout
 
     def _set_chainerx_grad(self, g, from_grad_var):
         # Assigns chainerx.ndarray.grad.
@@ -965,8 +1056,7 @@ class Variable(object):
         self._grad_valid = True
 
     @property
-    def grad(self):
-        # type: () -> tp.Optional[types.NdArray]
+    def grad(self) -> tp.Optional[types.NdArray]:
         """Gradient array of this variable.
 
         Note that this property returns the underlying array of the gradient
@@ -978,6 +1068,15 @@ class Variable(object):
         and error.
 
         """
+        return self._get_grad()
+
+    def _get_grad(self):
+        if (self._layout is not None
+                and not (
+                    _thread_local.allow_array_access_with_nonstandard_layout)):
+            raise RuntimeError(
+                'Cannot directly retrieve the gradient array of a '
+                'variable with non-standard layout.')
         if not self._grad_valid:
             raise RuntimeError(
                 'Cannot retrieve Variable.grad. '
@@ -1014,8 +1113,17 @@ class Variable(object):
         return self._grad
 
     @grad.setter
-    def grad(self, g):
-        # type: (tp.Optional[types.NdArray]) -> None
+    def grad(self, g: tp.Optional[types.NdArray]) -> None:
+        self._set_grad(g)
+
+    def _set_grad(self, g, *, layout_check=True):
+        if (layout_check
+                and self._layout is not None
+                and not (
+                    _allow_array_access_with_nonstandard_layout())):
+            raise RuntimeError(
+                'Cannot directly set the gradient array of a '
+                'variable with non-standard layout.')
         if g is not None:
             _check_grad_type(None, self, False, g)
         self._set_grad_without_check(g)
@@ -1032,34 +1140,37 @@ class Variable(object):
         self._grad = None if gv is None else gv.array
 
     @property
-    def grad_var(self):
-        # type: () -> tp.Optional["Variable"]
+    def grad_var(self) -> tp.Optional['Variable']:
         """Gradient variable."""
         self._ensure_grad_var_up_to_date()
         return self._grad_var
 
     @grad_var.setter
-    def grad_var(self, g):
-        # type: (tp.Optional["Variable"]) -> None
+    def grad_var(self, g: tp.Optional['Variable']) -> None:
         if g is not None:
             _check_grad_type(None, self, False, g.array)
         self._set_grad_var_without_check(g)
 
     @property
     def shape(self):
-        return self.array.shape
+        raw_shape = self._data[0].shape
+        if self._layout is not None:
+            # Convert to semantic shape
+            return chainer.memory_layouts._transpose_shape(
+                raw_shape, self._layout, None)
+        return raw_shape
 
     @property
     def ndim(self):
-        return self.array.ndim
+        return self._data[0].ndim
 
     @property
     def size(self):
-        return self.array.size
+        return self._data[0].size
 
     @property
     def dtype(self):
-        return self.array.dtype
+        return self._data[0].dtype
 
     @property
     def rank(self):
@@ -1223,7 +1334,7 @@ class Variable(object):
             if grad_var is not None:
                 grad_var._to_device(device, allow_unchaining=allow_unchaining)
                 # _grad has been invalidated by the line above.
-                self._grad = grad_var.array
+                self._grad = grad_var.raw_array
 
         # ensure that the node tracks the device migration
         node = self._node
@@ -1419,7 +1530,7 @@ class Variable(object):
                 enabling it results in larger memory consumption needed to
                 store the gradients w.r.t intermediate variables that are
                 required for the second gradient computation.
-            loss_scale (float): Loss scaling factor. Loss scaling is a usefull
+            loss_scale (float): Loss scaling factor. Loss scaling is a useful
                 technique to mitigate vanishing gradient issue that tends to
                 happen when low precision data type like float16 is used during
                 training. If you set loss scaling factor, gradients of loss
@@ -1433,13 +1544,14 @@ class Variable(object):
             if retain_grad:
                 raise RuntimeError(
                     'retain_grad is not supported for ChainerX array.')
-            if loss_scale is not None:
-                raise RuntimeError(
-                    'loss_scale is not supported for ChainerX array.')
             arr = self._data[0]
             assert isinstance(arr, chainerx.ndarray)
+            # pybind has issues when converting int -> opt<float>
+            if loss_scale:
+                loss_scale = float(loss_scale)
             chainerx.backward(
-                arr, enable_double_backprop=enable_double_backprop)
+                arr, enable_double_backprop=enable_double_backprop,
+                loss_scale=loss_scale)
             return
 
         # Initialize error by 1, if this is a loss variable
@@ -1480,7 +1592,7 @@ class Variable(object):
         """
         return self.array.item()
 
-    def mean(self, axis=None, weights=None, keepdims=False):
+    def mean(self, axis=None, *, weights=None, keepdims=False):
         """Calculate weighted average of array elements over a given axis.
 
         .. seealso::
@@ -1660,9 +1772,14 @@ class Parameter(Variable):
     # TODO(okapies): fix the behavior when shape is None and remove NdArray
     _grad_initializer = None  # type: tp.Optional[types.AbstractInitializer]
 
-    def __init__(self, initializer=None, shape=None, name=None):
-        # type: (tp.Optional[types.InitializerSpec], tp.Optional[types.ShapeSpec], tp.Optional[str]) -> None # NOQA
-
+    def __init__(
+            self,
+            initializer: tp.Optional[types.InitializerSpec] = None,
+            shape: tp.Optional[types.ShapeSpec] = None,
+            name: tp.Optional[str] = None,
+            *,
+            layout=None
+    ) -> None:
         if initializer is None:
             initializer = constant.NaN()
         elif numpy.isscalar(initializer):
@@ -1670,10 +1787,12 @@ class Parameter(Variable):
         if shape is None:
             if isinstance(initializer, chainer.get_array_types()):
                 # parameter initialized by the initial array
-                super(Parameter, self).__init__(initializer, name=name)
+                super(Parameter, self).__init__(
+                    initializer, name=name, layout=layout)
             else:
                 # uninitialized parameter
-                super(Parameter, self).__init__(name=name, _grad_valid=False)
+                super(Parameter, self).__init__(
+                    name=name, _grad_valid=False, layout=layout)
                 dtype = getattr(initializer, 'dtype', None)
                 self._grad_initializer = constant.NaN(dtype)
         else:
@@ -1685,7 +1804,8 @@ class Parameter(Variable):
                 xp = numpy
             data = initializers.generate_array(initializer, shape, xp)  # type: ignore # NOQA
             grad = xp.full_like(data, numpy.nan)
-            super(Parameter, self).__init__(data, name=name, grad=grad)
+            super(Parameter, self).__init__(
+                data, name=name, grad=grad, layout=layout)
 
         self._initial_device = backend.CpuDevice()
         self.update_rule = None
@@ -1701,8 +1821,12 @@ class Parameter(Variable):
         return _recover_parameter, args
 
     @property
+    def is_initialized(self):
+        return self._data[0] is not None
+
+    @property
     def dtype(self):
-        array = self.array
+        array = self._data[0]
         if array is not None:
             return array.dtype
         # uninitialized
@@ -1762,7 +1886,7 @@ class Parameter(Variable):
 
     def to_device(self, device):
         device = chainer.get_device(device)
-        if self.data is None and self._initial_device != device:
+        if self._data[0] is None and self._initial_device != device:
             self._data = [None]  # Renew placeholder to break sharing
             self._has_chainerx_array = False
         self._initial_device = device
@@ -1770,12 +1894,12 @@ class Parameter(Variable):
 
     def cleargrad(self):
         super(Parameter, self).cleargrad()
-        if self.array is None:
+        if not self.is_initialized:
             self._grad_initializer = None
 
     def zerograd(self):
         super(Parameter, self).zerograd()
-        if self.array is None:
+        if not self.is_initialized:
             dtype = getattr(self.initializer, 'dtype', None)
             self._grad_initializer = initializers.Zero(dtype)
 
@@ -1796,12 +1920,18 @@ class Parameter(Variable):
 
         data = initializers.generate_array(
             self.initializer, shape, xp, device=device)
-        ginit = self._grad_initializer
-        grad = None if ginit is None else initializers.generate_array(
-            ginit, shape, xp, device=device)
+        data = chainer.memory_layouts._transpose_array(data, None, self.layout)
 
-        self.array = data
-        self.grad = grad
+        if self._grad_initializer is None:
+            grad = None
+        else:
+            grad = initializers.generate_array(
+                self._grad_initializer, shape, xp, device=device)
+            grad = chainer.memory_layouts._transpose_array(
+                grad, None, self.layout)
+
+        self._set_array(data, layout_check=False)
+        self._set_grad(grad, layout_check=False)
 
         # Convert the array for iDeep.
         # TODO(niboshi): This could be done in generate_array().
@@ -1815,6 +1945,12 @@ class Parameter(Variable):
 
         """
         if self.update_rule is not None:
+            if not self.update_rule.is_elementwise:
+                if self.layout is not None:
+                    raise RuntimeError(
+                        'Parameter with a non-standard layout cannot be '
+                        'updated with a non-elementwise update rule '
+                        '({}).'.format(self.update_rule))
             self.update_rule.update(self)
 
 
@@ -1896,3 +2032,24 @@ class _ChainerxVariableNodeProps(object):
     def __init__(self, x):
         self.shape = x.shape
         self.dtype = x.dtype
+
+
+class _AllowArrayAccessWithNonstandardLayout:
+    """Context manager within which access to Variable.array is allowed for \
+variables with a non-standard layout."""
+
+    def __enter__(self):
+        self._old = _allow_array_access_with_nonstandard_layout()
+        _thread_local.allow_array_access_with_nonstandard_layout = True
+
+    def __exit__(self, typ, value, traceback):
+        _thread_local.allow_array_access_with_nonstandard_layout = self._old
+
+
+def _allow_array_access_with_nonstandard_layout():
+    # Returns wether a thread-local variable
+    # `allow_array_access_with_nonstandard_layout` is set to True.
+    try:
+        return _thread_local.allow_array_access_with_nonstandard_layout
+    except AttributeError:
+        return False

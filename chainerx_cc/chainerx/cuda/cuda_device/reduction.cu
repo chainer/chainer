@@ -133,9 +133,19 @@ CHAINERX_CUDA_REGISTER_KERNEL(SumKernel, CudaSumKernel);
 
 class CudaCumsumKernel : public CumsumKernel {
 public:
-    void Call(const Array& /* a */, int8_t /* axis */, const Array& /* out */) override {
-        // TODO(aksub99): CUDA Implementation is to be suppported.
-        throw NotImplementedError{"CUDA Implementation is not yet supported."};
+    void Call(const Array& a, int8_t axis, const Array& out) override {
+        Device& device = a.device();
+        CHAINERX_ASSERT(a.shape() == out.shape());
+        device.CheckDevicesCompatible(a, out);
+        CudaSetDeviceScope scope{device.index()};
+
+        auto do_sum = [&a, &axis, &out](auto in_pt, auto out_pt) {
+            using In = typename decltype(in_pt)::type;
+            using Out = typename decltype(out_pt)::type;
+            Scan<In, Out>(a, axis, out, SumImpl<In, Out>{});
+        };
+
+        VisitDtype(out.dtype(), [a_dtype = a.dtype(), &do_sum](auto out_pt) { VisitDtype(a_dtype, do_sum, out_pt); });
     }
 };
 

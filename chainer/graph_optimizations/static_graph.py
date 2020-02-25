@@ -1131,7 +1131,7 @@ def static_graph(*args, **kwargs):
     `chain.schedule_manager.end_forward()`on the static chain each iteration.
     - Static graphs allow tradeoffs between computation and memory usage.
     For example, the `minimize_cache_size` argument will typically result in
-    higher memory useage when set to `False` because all cached schedules
+    higher memory usage when set to `False` because all cached schedules
     are retained.
     - When this feature is enabled, only the Chainer function and/or link
     calls inside the chain's `__call__()` method will be included in the

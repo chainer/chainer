@@ -51,7 +51,8 @@ class BaseTest(object):
     def check_weight_is_parameter(self, gpu):
         layer, hook = self._init_layer()
         if gpu:
-            layer = layer.to_gpu()
+            with testing.assert_warns(DeprecationWarning):
+                layer = layer.to_gpu()
         source_weight = getattr(layer, hook.weight_name)
         x = cuda.to_gpu(self.x) if gpu else self.x
         layer(x)
@@ -70,7 +71,8 @@ class BaseTest(object):
         layer, hook = self.layer, self.hook
         layer.add_hook(hook)
         if gpu:
-            layer = layer.to_gpu()
+            with testing.assert_warns(DeprecationWarning):
+                layer = layer.to_gpu()
         x = cuda.to_gpu(self.x) if gpu else self.x
 
         y1 = layer(x).array

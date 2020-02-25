@@ -37,6 +37,7 @@ Array creation routines
    chainerx.linspace
    chainerx.diag
    chainerx.diagflat
+   chainerx.meshgrid
    chainerx.tri
    chainerx.tril
    chainerx.triu
@@ -79,6 +80,8 @@ Array manipulation routines
    chainerx.atleast_3d
    chainerx.split
    chainerx.dsplit
+   chainerx.vsplit
+   chainerx.hsplit
    chainerx.swapaxes
    chainerx.repeat
    chainerx.expand_dims
@@ -105,6 +108,7 @@ Indexing routines
 
    chainerx.take
    chainerx.where
+   chainerx.nonzero
 
 Linear algebra
 --------------
@@ -115,8 +119,11 @@ Linear algebra
 
    chainerx.dot
 
+   chainerx.linalg.cholesky
    chainerx.linalg.qr
    chainerx.linalg.svd
+   chainerx.linalg.eigh
+   chainerx.linalg.eigvalsh
    chainerx.linalg.solve
    chainerx.linalg.inv
    chainerx.linalg.pinv
@@ -157,6 +164,8 @@ Loss functions
    chainerx.squared_error
    chainerx.huber_loss
    chainerx.gaussian_kl_divergence
+   chainerx.sigmoid_cross_entropy
+   chainerx.softmax_cross_entropy
 
 Mathematical functions
 ----------------------
@@ -174,6 +183,7 @@ Mathematical functions
    chainerx.remainder
    chainerx.sum
    chainerx.maximum
+   chainerx.minimum
    chainerx.exp
    chainerx.log
    chainerx.log10

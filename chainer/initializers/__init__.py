@@ -17,6 +17,8 @@ from chainer.initializers.normal import HeNormal  # NOQA
 from chainer.initializers.normal import LeCunNormal
 from chainer.initializers.normal import Normal  # NOQA
 from chainer.initializers.orthogonal import Orthogonal  # NOQA
+from chainer.initializers.sampling import DownsamplingConvFilter  # NOQA
+from chainer.initializers.sampling import UpsamplingDeconvFilter  # NOQA
 from chainer.initializers.uniform import GlorotUniform  # NOQA
 from chainer.initializers.uniform import HeUniform  # NOQA
 from chainer.initializers.uniform import LeCunUniform  # NOQA
@@ -24,8 +26,13 @@ from chainer.initializers.uniform import Uniform  # NOQA
 from chainer import types  # NOQA
 
 
-def generate_array(initializer, shape, xp, dtype=None, device=None):
-    # type: (types.AbstractInitializer, types.ShapeSpec, types.Xp, types.DTypeSpec, types.DeviceSpec) -> types.NdArray  # NOQA
+def generate_array(
+        initializer: types.AbstractInitializer,
+        shape: types.ShapeSpec,
+        xp: types.Xp,
+        dtype: tp.Optional[types.DTypeSpec] = None,
+        device: tp.Optional[types.DeviceSpec] = None
+) -> types.NdArray:
     """Return initialized array.
 
     The algorithms used to make the new values depend on the
@@ -68,9 +75,9 @@ def generate_array(initializer, shape, xp, dtype=None, device=None):
     return array
 
 
-def _get_initializer(initializer):
-    # type: (tp.Optional[types.InitializerSpec]) -> types.AbstractInitializer # NOQA
-
+def _get_initializer(
+        initializer: tp.Optional[types.InitializerSpec]
+) -> types.AbstractInitializer:
     if initializer is None:
         return LeCunNormal()
     if (isinstance(initializer, chainer.get_array_types())

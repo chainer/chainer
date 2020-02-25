@@ -44,9 +44,11 @@ def copyto(dst, src):
     another device.
 
     Args:
-        dst (`numpy.ndarray`, `cupy.ndarray` or `ideep4py.mdarray`):
+        dst (:class:`numpy.ndarray`, :class:`cupy.ndarray`, \
+        :class:`ideep4py.mdarray` or :class:`chainerx.ndarray`):
             Destination array.
-        src (`numpy.ndarray`, `cupy.ndarray` or `ideep4py.mdarray`):
+        src (:class:`numpy.ndarray`, :class:`cupy.ndarray`, \
+        :class:`ideep4py.mdarray` or :class:`chainerx.ndarray`):
             Source array.
 
     """
@@ -97,8 +99,7 @@ def _guess_device_from_array_module(xp):
         return _cpu.CpuDevice()
 
 
-def get_device(device_spec):
-    # type: (types.DeviceSpec) -> Device
+def get_device(device_spec: types.DeviceSpec) -> Device:
     """Returns a device object.
 
     Args:

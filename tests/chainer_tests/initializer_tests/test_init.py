@@ -1,14 +1,14 @@
 import os
 import unittest
 
+import numpy
+
 import chainer
 from chainer.backends import cuda
 from chainer import initializers
 from chainer import testing
 from chainer.testing import attr
 import chainerx
-
-import numpy
 
 
 class TestGenerateArray(unittest.TestCase):
