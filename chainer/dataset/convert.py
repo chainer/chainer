@@ -106,6 +106,14 @@ def converter():
     If the batch were requested to be converted to ChainerX with such
     converters, :class:`RuntimeError` will be raised.
 
+    .. note::
+
+        Converters using this decorator can't be pickled
+        causing :class:`chainer.training.updaters.MultiprocessParallelUpdater`
+        to fail when the multiprocessing start mode is set to `spawn` or
+        `forkserver`. Should you need to use such feature, please rely on
+        class style converters.
+
     """
 
     def wrap(func):
@@ -177,8 +185,7 @@ def _get_device(device_spec):
 
 
 # TODO(hvy): Write unit tests where batch elements contain Python lists.
-@converter()
-def concat_examples(batch, device=None, padding=None):
+def concat_examples_func(batch, device=None, padding=None):
     """Concatenates a list of examples into array(s).
 
     This function converts an "array of tuples" into a "tuple of arrays".
@@ -326,6 +333,9 @@ def _concat_arrays_with_padding(arrays, padding):
     return result
 
 
+concat_examples = _ArbitraryCallableConverter(concat_examples_func)
+
+
 class ConcatWithAsyncTransfer(object):
 
     """Interface to concatenate data and transfer them to GPU asynchronously.
@@ -362,7 +372,7 @@ class ConcatWithAsyncTransfer(object):
 
         self._device = None
         self._conveyor = collections.defaultdict(
-            lambda: Conveyor(self._device, self._stream))
+            self._get_conveyor)
         if compute_stream is not None:
             # * event1 prevents a CPU thread to update arrays that might be
             #   still being used by GPU kernels.
@@ -373,6 +383,9 @@ class ConcatWithAsyncTransfer(object):
             self._sync_get = False
         else:
             self._sync_get = True
+
+    def _get_conveyor(self):
+        return Conveyor(self._device, self._stream)
 
     def __call__(self, batch, device=None, padding=None):
         """Concatenate data and transfer them to GPU asynchronously.

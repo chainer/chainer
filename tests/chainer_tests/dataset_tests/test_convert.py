@@ -1,3 +1,4 @@
+import pickle
 import sys
 import unittest
 
@@ -46,6 +47,12 @@ class ConverterTestBase(object):
             numpy.testing.assert_array_equal(x, backend.CpuDevice().send(y))
 
     def test_concat_arrays(self, backend_config):
+        arrays = self.get_arrays_to_concat(backend_config)
+        self.check_concat_arrays(arrays, None, backend_config.device)
+
+    def test_concat_arrays_pickle(self, backend_config):
+        converter = pickle.dumps(self.converter)
+        self.converter = pickle.loads(converter)
         arrays = self.get_arrays_to_concat(backend_config)
         self.check_concat_arrays(arrays, None, backend_config.device)
 
