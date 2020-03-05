@@ -110,8 +110,8 @@ def converter():
 
         Converters using this decorator can't be pickled
         causing :class:`chainer.training.updaters.MultiprocessParallelUpdater`
-        to fail when the multiprocessing start mode is set to `spawn` or
-        `forkserver`. Should you need to use such feature, please rely on
+        to fail when the multiprocessing start mode is set to ``'spawn'`` or
+        ``'forkserver'``. Should you need to use such feature, please rely on
         class style converters.
 
     """
