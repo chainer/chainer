@@ -1,4 +1,3 @@
-import multiprocessing
 import sys
 
 import numpy
@@ -60,7 +59,6 @@ def test():
 
 
 if __name__ == '__main__':
-    multiprocessing.set_start_method('spawn')
     test()
 
 

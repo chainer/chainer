@@ -1,4 +1,3 @@
-import multiprocessing
 import sys
 
 import numpy
@@ -51,7 +50,6 @@ class SimpleNetChildReporter(chainer.Chain):
 
 
 if __name__ == '__main__':
-    multiprocessing.set_start_method('spawn')
     model = SimpleNetChildReporter()
     dataset = [(numpy.full((2, 5, 5), i, numpy.float32),
                 numpy.int32(0)) for i in range(100)]

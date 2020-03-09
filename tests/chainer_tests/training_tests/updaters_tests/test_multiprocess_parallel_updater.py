@@ -183,8 +183,29 @@ class TestCUDAContext(unittest.TestCase):
     @attr.gpu
     @unittest.skipUnless(mpu.MultiprocessParallelUpdater.available(),
                          'MultiprocessParallelUpdater is not available.')
-    def test_cuda_init(self):
-        ret, stdoutdata, stderrdata = _run_test_snippet('cuda_init.py')
+    def test_cuda_init_fork(self):
+        ret, stdoutdata, stderrdata = _run_test_snippet(
+            'cuda_init.py', '@cupy:0', 'fork')
+        assert ret == 0, (
+            '[stdout]:{!r}\n'
+            '[stderr]:{!r}'.format(stdoutdata, stderrdata))
+
+    @attr.gpu
+    @unittest.skipUnless(mpu.MultiprocessParallelUpdater.available(),
+                         'MultiprocessParallelUpdater is not available.')
+    def test_cuda_init_spawn(self):
+        ret, stdoutdata, stderrdata = _run_test_snippet(
+            'cuda_init.py', '@cupy:0', 'spawn')
+        assert ret == 0, (
+            '[stdout]:{!r}\n'
+            '[stderr]:{!r}'.format(stdoutdata, stderrdata))
+
+    @attr.gpu
+    @unittest.skipUnless(mpu.MultiprocessParallelUpdater.available(),
+                         'MultiprocessParallelUpdater is not available.')
+    def test_cuda_init_forkserver(self):
+        ret, stdoutdata, stderrdata = _run_test_snippet(
+            'cuda_init.py', '@cupy:0', 'forkserver')
         assert ret == 0, (
             '[stdout]:{!r}\n'
             '[stderr]:{!r}'.format(stdoutdata, stderrdata))

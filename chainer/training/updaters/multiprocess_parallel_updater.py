@@ -132,14 +132,15 @@ class MultiprocessParallelUpdater(standard_updater.StandardUpdater):
         except cuda.cupy.cuda.driver.CUDADriverError:
             # The context is not initialized, it will be fine.
             _cuda_initialized = False
-        if _cuda_initialized:
-            if multiprocessing.get_start_method() != 'spawn':
-                raise RuntimeError(
-                    'The CUDA context has been already initialized. '
-                    'MultiprocessParallelUpdater assumes the context is '
-                    'uninitialized. Please do not call CUDA API before '
-                    'MultiprocessParallelUpdater creates processes '
-                    'or use multiprocessing.set_start_method(spawn)')
+        if (_cuda_initialized and multiprocessing.get_start_method()
+                not in ('spawn', 'forkserver')):
+            raise RuntimeError(
+                'The CUDA context has been already initialized. '
+                'MultiprocessParallelUpdater assumes the context is '
+                'uninitialized. Please do not call CUDA API before '
+                'MultiprocessParallelUpdater creates processes '
+                'or use multiprocessing.set_start_method with '
+                '\'spawn\' or \'forkserver\' as arguments.')
 
         assert len(iterators) == len(devices)
         for iterator in iterators[1:]:
