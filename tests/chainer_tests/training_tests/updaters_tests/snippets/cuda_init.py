@@ -56,7 +56,7 @@ def test():
         iters, optimizer, devices=devices)
     trainer = chainer.training.Trainer(updater, (1, 'epoch'), '/tmp')
     trainer.run()
-    # assert False
+    assert sys.argv[2] != 'fork'
 
 
 if __name__ == '__main__':
