@@ -298,7 +298,7 @@ class UpdateRule(object):
         # Convert back to the original dtype
         if fp32_converted:
             if is_initialized:
-                param.array = fp32_param.array.astype(param.dtype)
+                param.array[:] = fp32_param.array.astype(param.dtype)
             fp32_param.grad = None
 
     def _create_uninitialized_parameter(self, dtype, name):
