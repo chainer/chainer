@@ -154,7 +154,7 @@ def local_convolution_2d(x, W, b=None, stride=1):
 
     Returns:
         ~chainer.Variable:
-            Output variable. Its shape is :math:`(n, c_I * c_O, h_O, w_O)`.
+            Output variable. Its shape is :math:`(n, c_O, h_O, w_O)`.
 
     Like ``Convolution2D``, ``LocalConvolution2D`` function computes
     correlations between filters and patches of size :math:`(k_H, k_W)` in
