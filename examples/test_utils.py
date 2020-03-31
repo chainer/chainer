@@ -1,13 +1,58 @@
 import contextlib
 import os
+import re
 import shutil
 import subprocess
 import sys
 import tempfile
 
 
-REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(
-    os.path.realpath(__file__))))
+class OutputEvaluator(object):
+    def check(self, outdata):
+        raise NotImplementedError()
+
+
+class TemplateOutputEvaluator(OutputEvaluator):
+
+    def __init__(self, template, **checks):
+        self.template = template
+        self.checks = checks
+
+    def check(self, outdata):
+        template = self.template
+        checks = self.checks
+
+        lines = outdata.split(b'\n')
+        tmpl_lines = template.split(b'\n')
+
+        # Collect placeholders included in the template
+        temps = {}
+        for iline, tmpl_line in enumerate(tmpl_lines):
+            for m in re.finditer(rb'{(?P<key>[_a-zA-Z0-9]+) *}', tmpl_line):
+                key = m.groupdict()['key'].decode('utf8')
+                assert key not in temps
+                temps[key] = (m, iline)
+
+        # Keys of the placeholders and the checks must match.
+        assert set(temps.keys()) == set(checks.keys())
+
+        # Evaluate the checks
+        for key, (m, iline) in temps.items():
+            line = lines[iline]
+            c = checks[key]
+            typ, checkfunc = c
+            i1, i2 = m.span()
+            i2 = min(i2, len(line))
+            s = line[i1:i2]
+            if typ is float:
+                value = float(s)
+                if not checkfunc(value):
+                    raise RuntimeError('Check fail: key={}'.format(key))
+            else:
+                raise TypeError('Invalid check type: {}'.format(typ))
+
+
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
 EXAMPLES_ROOT = os.path.join(REPO_ROOT, 'examples')
 
@@ -231,14 +276,16 @@ class ExampleRunner(object):
                 orig_path=orig_path,
                 replace_path=replace_path)
 
-    def run(self, script_name, args):
+    def run(self, script_name, args, *, output_evaluator=None):
         # Runs a command.
 
         assert self.contexts is not None, (
             '__enter__ has not been called on the example runner.')
         assert isinstance(script_name, str), type(script_name)
         assert isinstance(args, list), type(args)
-
+        assert (output_evaluator is None
+                or isinstance(output_evaluator, OutputEvaluator)), (
+                    type(output_evaluator))
         work_dir = self.work_dir
         script_path = os.path.join(work_dir, script_name)
         assert os.path.isfile(script_path), script_path
@@ -254,9 +301,9 @@ class ExampleRunner(object):
             stderr=subprocess.PIPE)
         stdoutdata, stderrdata = proc.communicate()
 
-        if proc.returncode != 0:
+        def fail(msg):
             err_fmt = '''\
-Script exited with {returncode}.
+{message}
 == command ==
 {command}
 == stdout ==
@@ -265,8 +312,19 @@ Script exited with {returncode}.
 {stderr}
 '''
             err = err_fmt.format(
-                returncode=proc.returncode,
+                message=msg,
                 command=' '.join(command),
                 stdout=stdoutdata.decode('utf8'),
                 stderr=stderrdata.decode('utf8'))
             raise RuntimeError(err)
+
+        if proc.returncode != 0:
+            fail('Script exited with {}.'.format(proc.returncode))
+
+        if output_evaluator is not None:
+            try:
+                output_evaluator.check(stdoutdata)
+            except RuntimeError as e:
+                fail(
+                    'Script output does not meet expectation:\n'
+                    '{}'.format(e))

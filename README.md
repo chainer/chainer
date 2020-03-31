@@ -7,12 +7,13 @@
 [![travis](https://img.shields.io/travis/chainer/chainer/master.svg)](https://travis-ci.org/chainer/chainer)
 [![coveralls](https://img.shields.io/coveralls/chainer/chainer.svg)](https://coveralls.io/github/chainer/chainer)
 [![Read the Docs](https://readthedocs.org/projects/chainer/badge/?version=stable)](https://docs.chainer.org/en/stable/?badge=stable)
+[![Optuna](https://img.shields.io/badge/Optuna-integrated-blue)](https://optuna.org)
 
 [**Website**](https://chainer.org/)
 | [**Docs**](https://docs.chainer.org/en/stable/)
 | [**Install Guide**](https://docs.chainer.org/en/stable/install.html)
 | **Tutorials** ([ja](https://tutorials.chainer.org/ja/))
-| **Examples** ([Official](https://github.com/chainer/chainer/tree/master/examples), [External](https://github.com/chainer-community/awesome-chainer))
+| **Examples** ([Official](examples), [External](https://github.com/chainer-community/awesome-chainer))
 | [**Concepts**](https://docs.chainer.org/en/stable/guides/)
 | [**ChainerX**](#chainerx)
 
@@ -24,10 +25,6 @@
 It provides automatic differentiation APIs based on the **define-by-run** approach (a.k.a. dynamic computational graphs) as well as object-oriented high-level APIs to build and train neural networks.
 It also supports CUDA/cuDNN using [CuPy](https://github.com/cupy/cupy) for high performance training and inference.
 For more details about Chainer, see the documents and resources listed above and join the community in Forum, Slack, and Twitter.
-
-## Stable version
-
-The stable version of current Chainer is separated in here: [v6](https://github.com/chainer/chainer/tree/v6).
 
 ## Installation
 

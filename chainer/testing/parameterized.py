@@ -14,6 +14,9 @@ from chainer import utils
 def _param_to_str(obj):
     if isinstance(obj, type):
         return obj.__name__
+    elif hasattr(obj, '__name__') and isinstance(obj.__name__, str):
+        # print __name__ attribute for classes, functions and modules
+        return obj.__name__
     return repr(obj)
 
 

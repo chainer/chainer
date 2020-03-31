@@ -13,20 +13,11 @@ RUN apt-get update -y && \
     rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 
 RUN python3.5 -m pip install --upgrade pip setuptools
-RUN python2.7 -m pip install --upgrade pip setuptools
 
 RUN python3.5 -m pip install \
     'cython>=0.28.0' 'ideep4py<2.1' 'pytest==4.1.1' 'pytest-xdist==1.26.1' \
     mock setuptools typing \
-    typing_extensions filelock numpy>=1.9.0 protobuf>=3.0.0 six>=1.9.0
-
-RUN python2.7 -m pip install \
-    'cython>=0.28.0' 'ideep4py<2.1' 'pytest==4.1.1' 'pytest-xdist==1.26.1' \
-    mock setuptools typing \
-    typing_extensions filelock protobuf>=3.0.0 six>=1.9.0
-
-# Newer versions of numpy and more-itertools no longer support python2.
-RUN python2.7 -m pip install 'numpy<=1.16.5' 'more-itertools<=5.0.0'
+    typing_extensions filelock 'numpy>=1.9.0' 'protobuf>=3.0.0' 'six>=1.9.0'
 
 COPY --from=xpytest /usr/local/bin/xpytest /usr/local/bin/xpytest
 
@@ -34,4 +25,4 @@ COPY . /cupy
 RUN cd /cupy && \
     echo 'install-%:\n\t$* -m pip install .\n' > /tmp/install.mk && \
     cat /tmp/install.mk && \
-    make -f /tmp/install.mk -j 2 install-python3.5 install-python2.7
+    make -f /tmp/install.mk -j 2 install-python3.5

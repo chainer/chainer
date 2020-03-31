@@ -335,3 +335,43 @@ def test_replace_func_collection_return(tmpdir, return_type):
     assert len(output_names) == 5
     for i, name in enumerate(output_names):
         assert name == 'xTiledArray_0_{:d}'.format(i)
+
+
+def test_fake_as_funcnode_keep_structure(tmpdir):
+    path = str(tmpdir)
+
+    class Model(chainer.Chain):
+        def __init__(self):
+            super().__init__()
+
+        def f(self, x):
+            return {'a': (x, x+1), 'b': [x+2, x+3, x+4]}
+
+        def __call__(self, x):
+            ret = self.f(x)
+            return ret['a'][0] + ret['b'][1]
+
+    model = Model()
+    x = input_generator.increasing(2, 3)
+
+    with warnings.catch_warnings(record=True):
+        model.f = fake_as_funcnode(model.f, 'xF')
+
+    def f_converter(params):
+        return onnx_helper.make_node(
+            'xF', params.input_names, params.output_names),
+
+    addon_converters = {'xF': f_converter}
+
+    with testing.assert_warns(UserWarning):
+        export_testcase(model, x, path, external_converters=addon_converters)
+
+    model_filepath = os.path.join(path, 'model.onnx')
+    assert os.path.isfile(model_filepath)
+
+    onnx_model = onnx.load(model_filepath)
+    node_names = [n.name for n in onnx_model.graph.node]
+    assert len(node_names) == 2
+    assert node_names[0] == 'xF_0'
+    assert len(onnx_model.graph.node[0].output) == 5
+    assert len(onnx_model.graph.output) == 1

@@ -9,6 +9,7 @@ from chainermn.communicators import _communication_utility
 from chainermn.communicators._communication_utility import chunked_bcast_obj
 from chainermn.communicators import _memory_utility
 from chainermn.communicators import communicator_base
+import chainerx
 
 
 _dtype_mpi_type = {
@@ -617,23 +618,77 @@ class MpiCommunicatorBase(communicator_base.CommunicatorBase):
                 root)
             return rbuf.reshape(shape)
 
+    def _check_obj_type_for_chainerx(self, obj):
+        # Do NOT support chainerx ndarray with CUDA
+        # for the following reason:
+        # (1) mpi4py.send pickles the object
+        # (2) chainerx.ndarray preserves CUDA
+        # device internally when pickled
+        # (3) An error will occur when an ndarray is unpickled in another
+        #     process
+        #
+        if None is obj:
+            return False
+
+        # check collections of list, tuple and set
+        elif type(obj) in [list, tuple, set]:
+            for item in obj:
+                xp = chainer.backend.get_array_module(item)
+                # DO NOT use device.backend.name as
+                # 'ChainerxDevice' object has no attribute 'backend'
+                if xp == chainerx and item.device.name.startswith('cuda'):
+                    return True
+
+        # check dict
+        elif type(obj) is dict:
+            for key, value in obj.items():
+                xp = chainer.backend.get_array_module(key)
+                if xp == chainerx and key.device.name.startswith('cuda'):
+                    return True
+
+                xp = chainer.backend.get_array_module(value)
+                if xp == chainerx and value.device.name.startswith('cuda'):
+                    return True
+        else:
+            xp = chainer.backend.get_array_module(obj)
+            if xp == chainerx and obj.device.name.startswith('cuda'):
+                return True
+
+        return False
+
     # Objects
     def send_obj(self, obj, dest, tag=0):
+        if self._check_obj_type_for_chainerx(obj):
+            raise ValueError(
+                'calling send_obj on chainerx \
+                with cuda is not supported')
         self.mpi_comm.send(obj, dest=dest, tag=tag)
 
     def recv_obj(self, source, status=None, tag=mpi4py.MPI.ANY_TAG):
         return self.mpi_comm.recv(source=source, status=status, tag=tag)
 
     def bcast_obj(self, obj, max_buf_len=256 * 1024 * 1024, root=0):
+        if self._check_obj_type_for_chainerx(obj):
+            raise ValueError(
+                'calling bcast_obj on chainerx \
+                with cuda is not supported')
         return chunked_bcast_obj(obj, self.mpi_comm,
                                  max_buf_len=max_buf_len,
                                  root=root)
 
     def gather_obj(self, obj, root=0):
+        if self._check_obj_type_for_chainerx(obj):
+            raise ValueError(
+                'calling gather_obj on chainerx \
+                with cuda is not supported')
         return self.mpi_comm.gather(obj, root=root)
 
     def allreduce_obj(self, obj):
         # Summation by default
+        if self._check_obj_type_for_chainerx(obj):
+            raise ValueError(
+                'calling allreduce_obj on chainerx \
+                with cuda is not supported')
         return self.mpi_comm.allreduce(obj)
 
     def bcast_data(self, model):

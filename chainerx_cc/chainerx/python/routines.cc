@@ -1,3 +1,5 @@
+#include "chainerx/python/common_export.h"
+
 #include "chainerx/python/routines.h"
 
 #include <algorithm>
@@ -217,8 +219,8 @@ void InitChainerxCreation(pybind11::module& m) {
           "device"_a = nullptr);
     m.def("arange",
           [](Scalar start_or_stop,
-             const absl::optional<Scalar>& maybe_stop,
-             const absl::optional<Scalar>& maybe_step,
+             absl::optional<Scalar> maybe_stop,
+             absl::optional<Scalar> maybe_step,
              py::handle dtype,
              py::handle device) {
               DtypeKind start_or_stop_dtype_kind = start_or_stop.kind();
@@ -335,7 +337,7 @@ void InitChainerxCreation(pybind11::module& m) {
 void InitChainerxEvaluation(pybind11::module& m) {
     // evaluation routines
     m.def("accuracy",
-          [](const ArrayBodyPtr& y, const ArrayBodyPtr& t, const absl::optional<int64_t>& ignore_label) {
+          [](const ArrayBodyPtr& y, const ArrayBodyPtr& t, absl::optional<int64_t> ignore_label) {
               return MoveArrayBody(Accuracy(Array{y}, Array{t}, ignore_label));
           },
           "y"_a,
@@ -346,7 +348,7 @@ void InitChainerxEvaluation(pybind11::module& m) {
 void InitChainerxIndexing(pybind11::module& m) {
     // indexing routines
     m.def("take",
-          [](const ArrayBodyPtr& a, py::handle indices, const absl::optional<int8_t>& axis, const absl::optional<std::string>& mode) {
+          [](const ArrayBodyPtr& a, py::handle indices, absl::optional<int8_t> axis, const absl::optional<std::string>& mode) {
               if (!axis.has_value()) {
                   throw NotImplementedError{"axis=None is not yet supported for chainerx.take."};
               }
@@ -1023,7 +1025,7 @@ void InitChainerxReduction(pybind11::module& m) {
           "x"_a,
           "axis"_a = nullptr);
     m.def("cumsum",
-          [](const ArrayBodyPtr& a, const absl::optional<int8_t>& axis) { return MoveArrayBody(Cumsum(Array{a}, axis)); },
+          [](const ArrayBodyPtr& a, absl::optional<int8_t> axis) { return MoveArrayBody(Cumsum(Array{a}, axis)); },
           "a"_a,
           "axis"_a = nullptr);
     m.def("nansum",
@@ -1073,11 +1075,11 @@ void InitChainerxTrigonometric(pybind11::module& m) {
 void InitChainerxSorting(pybind11::module& m) {
     // sorting routines
     m.def("argmax",
-          [](const ArrayBodyPtr& a, const absl::optional<int8_t>& axis) { return MoveArrayBody(ArgMax(Array{a}, ToAxes(axis))); },
+          [](const ArrayBodyPtr& a, absl::optional<int8_t> axis) { return MoveArrayBody(ArgMax(Array{a}, ToAxes(axis))); },
           "a"_a,
           "axis"_a = nullptr);
     m.def("argmin",
-          [](const ArrayBodyPtr& a, const absl::optional<int8_t>& axis) { return MoveArrayBody(ArgMin(Array{a}, ToAxes(axis))); },
+          [](const ArrayBodyPtr& a, absl::optional<int8_t> axis) { return MoveArrayBody(ArgMin(Array{a}, ToAxes(axis))); },
           "a"_a,
           "axis"_a = nullptr);
     m.def("count_nonzero",
@@ -1091,11 +1093,11 @@ void InitChainerxSorting(pybind11::module& m) {
           "a"_a,
           "axis"_a = nullptr);
     m.def("nanargmax",
-          [](const ArrayBodyPtr& a, const absl::optional<int8_t>& axis) { return MoveArrayBody(NanArgMax(Array{a}, ToAxes(axis))); },
+          [](const ArrayBodyPtr& a, absl::optional<int8_t> axis) { return MoveArrayBody(NanArgMax(Array{a}, ToAxes(axis))); },
           "a"_a,
           "axis"_a = nullptr);
     m.def("nanargmin",
-          [](const ArrayBodyPtr& a, const absl::optional<int8_t>& axis) { return MoveArrayBody(NanArgMin(Array{a}, ToAxes(axis))); },
+          [](const ArrayBodyPtr& a, absl::optional<int8_t> axis) { return MoveArrayBody(NanArgMin(Array{a}, ToAxes(axis))); },
           "a"_a,
           "axis"_a = nullptr);
 }

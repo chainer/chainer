@@ -225,7 +225,7 @@ def export(model, args, filename=None, export_params=True,
            graph_name='Graph', save_text=False, opset_version=None,
            input_names=None, output_names=None, train=False,
            return_named_inout=False, external_converters=None,
-           external_opset_imports=None, input_shapes=None):
+           external_opset_imports=None, input_shapes=None, no_testcase=False):
     """Export function for chainer.Chain in ONNX format.
 
     This function performs a forward computation of the given
@@ -306,6 +306,12 @@ def export(model, args, filename=None, export_params=True,
 
     _check_available()
 
+    if not no_testcase and filename is not None:
+        warnings.warn(
+            'Exporting ONNX without testcases is deprecated. '
+            'Use export_testcase instead',
+            DeprecationWarning)
+
     with chainer.using_config('train', train),\
             chainer.using_config('in_recomputing', True),\
             chainer.using_config('enable_backprop', True):
@@ -334,7 +340,7 @@ def _export(model, args, filename, export_params, graph_name, save_text,
         # if input shapes are invalid, raise exception before forwarding.
         input_shapes = format_customized_shapes(args, input_shapes)
 
-    with RetainInputHook():
+    with RetainInputHook(), mapping.patch_functions():
         # Forward computation
         context = Context(model)
         network_inputs = OrderedDict()

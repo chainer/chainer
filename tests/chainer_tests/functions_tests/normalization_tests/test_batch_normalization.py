@@ -437,7 +437,7 @@ class TestBatchNormalizationCudnnCall(unittest.TestCase):
     def test_call_cudnn_forward(self):
         with chainer.using_config('use_cudnn', self.use_cudnn):
             with testing.patch(
-                    'cupy.cudnn.batch_normalization_forward_training'
+                    'cupy.cudnn.batch_normalization_forward_training_ex'
             ) as func:
                 self.forward()
                 self.assertEqual(func.called, self.expect)

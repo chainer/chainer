@@ -37,6 +37,7 @@ def main():
         'nin': nin.NIN,
         'resnet50': resnet50.ResNet50,
         'resnext50': resnext50.ResNeXt50,
+        'resnet50_nhwc': resnet50.ResNet50_Nhwc,
     }
 
     dtypes = {

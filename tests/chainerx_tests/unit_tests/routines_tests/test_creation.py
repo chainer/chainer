@@ -1,7 +1,6 @@
 import io
 import sys
 import tempfile
-import random
 
 import chainer
 import numpy
@@ -1083,6 +1082,11 @@ def test_frombuffer_with_device(device):
 @pytest.mark.parametrize('device', ['native:0', 'cuda:0'])
 @chainerx.testing.parametrize_dtype_specifier('dtype_spec')
 def test_fromfile(xp, count, sep, dtype_spec, device):
+    # Skip if bool_ dtype and text mode
+    if numpy.dtype(dtype_spec) == numpy.bool_ and sep == 'a':
+        pytest.skip(
+            'numpy.fromfile does not work with bool_ dtype and text mode')
+
     # Write array data to temporary file.
     if isinstance(dtype_spec, chainerx.dtype):
         numpy_dtype_spec = dtype_spec.name
@@ -1264,7 +1268,15 @@ class TestTrilTriu(op_utils.NumpyOpTest):
 
 @op_utils.op_test(['native:0', 'cuda:0'])
 @chainer.testing.parameterize_pytest('indexing', ['xy', 'ij'])
-@chainer.testing.parameterize_pytest('input_arrs', [1, 2, 3, 4])
+@chainer.testing.parameterize_pytest('input_lens', [
+    # Test up to 4 inputs to check `indexing` behaviors
+    # 'xy': (1, 0, 2, ..., N-1)
+    # 'ij': (0, 1, 2, ..., N-1)
+    (7,),
+    (6, 4),
+    (2, 3, 5),
+    (4, 3, 2, 5),
+])
 class TestMeshgrid(op_utils.NumpyOpTest):
 
     check_numpy_strides_compliance = False
@@ -1279,13 +1291,13 @@ class TestMeshgrid(op_utils.NumpyOpTest):
             self.check_backward_options.update({'rtol': 1e-2, 'atol': 1e-2})
 
     def generate_inputs(self):
-        arrs = ()
-        for _ in range(self.input_arrs):
-            arrs += (numpy.linspace(random.randint(-10, 0),
-                                    random.randint(1, 10),
-                                    random.randint(3, 7)).astype(self.dtype),)
-
-        return arrs
+        return tuple(
+            numpy.linspace(
+                numpy.random.uniform(-5, -1),
+                numpy.random.uniform(1, 5),
+                size)
+            .astype(self.dtype)
+            for size in self.input_lens)
 
     def forward_xp(self, inputs, xp):
         return tuple(xp.meshgrid(*inputs, indexing=self.indexing))

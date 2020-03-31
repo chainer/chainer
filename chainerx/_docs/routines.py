@@ -814,7 +814,7 @@ Note:
     results are unspecified otherwise. The computed gradient is always a
     symmetric matrix. More specifically, the gradient is computed as if the
     function is restricted to a Riemannian submanifold of
-    :math:`R_{n \times n}` consisting just of positive-definite symmetric
+    :math:`R^{n \\times n}` consisting just of positive-definite symmetric
     matrices and is faithful to the mathematical definition of the Cholesky
     decomposition.
 
@@ -851,7 +851,7 @@ Note:
     inputs is symmetric and the computed gradient is always a symmetric matrix
     with respect to ``UPLO``. More specifically, the gradient is computed as if
     the function is restricted to a Riemannian submanifold of
-    :math:`R_{n \times n}` consisting just of symmetric matrices and is
+    :math:`R^{n \\times n}` consisting just of symmetric matrices and is
     faithful to the mathematical definition of the eigenvalue decomposition of
     symmetric matrices.
 

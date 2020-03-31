@@ -35,7 +35,7 @@ def export_testcase(model, args, out_dir, output_grad=False, **kwargs):
     model.cleargrads()
     onnx_model, inputs, outputs = export(
         model, args, filename=os.path.join(out_dir, 'model.onnx'),
-        return_named_inout=True, **kwargs)
+        return_named_inout=True, no_testcase=True, **kwargs)
 
     test_data_dir = os.path.join(out_dir, 'test_data_set_0')
     os.makedirs(test_data_dir, exist_ok=True)

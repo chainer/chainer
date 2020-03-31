@@ -56,6 +56,9 @@ std::string BuildErrorMessage(cusolverStatus_t error) {
         CHAINERX_MATCH_AND_RETURN_MSG(CUSOLVER_STATUS_INVALID_LICENSE);
 
 #undef CHAINERX_MATCH_AND_RETURN_MSG
+
+        default:
+            return "(UNKNOWN)";
     }
     CHAINERX_NEVER_REACH();
 }

@@ -65,6 +65,9 @@ try:
     from cupy.cuda import Event  # type: ignore # NOQA
     from cupy.cuda import Stream  # type: ignore # NOQA
 
+    # Alias for ignoring the warning in setup.cfg
+    from cupy.util import PerformanceWarning as _PerformanceWarning  # NOQA
+
     available = True
 except Exception as e:
     _resolution_error = e
@@ -106,6 +109,10 @@ except Exception as e:
 
     # for `xp is chainer.backends.cuda.cupy` to always work
     cupy = object()
+
+    # Dummy class for ignoring cupy.util.PerformanceWarning in setup.cfg.
+    class _PerformanceWarning(Warning):
+        pass
 
 
 if available:
@@ -793,3 +800,17 @@ def get_cudnn_dropout_states_core(thread_id):
 
     seed += numpy.uint64(states_id)
     return cudnn.DropoutStates(None, seed)
+
+
+def _get_cudnn_tensor_layout_x(x_layout):
+    if x_layout == chainer.memory_layouts.CUDNN_CHANNEL_FIRST_X:
+        return cuda.cudnn.CUDNN_TENSOR_NCHW
+    assert x_layout == chainer.memory_layouts.CUDNN_CHANNEL_LAST_X
+    return cuda.cudnn.CUDNN_TENSOR_NHWC
+
+
+def _get_cudnn_tensor_layout_w(w_layout):
+    if w_layout == chainer.memory_layouts.CUDNN_CHANNEL_FIRST_W:
+        return cuda.cudnn.CUDNN_TENSOR_NCHW
+    assert w_layout == chainer.memory_layouts.CUDNN_CHANNEL_LAST_W
+    return cuda.cudnn.CUDNN_TENSOR_NHWC

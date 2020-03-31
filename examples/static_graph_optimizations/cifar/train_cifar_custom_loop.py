@@ -29,10 +29,11 @@ import models.VGG
 
 
 def run_train_loop(
-        optimizer, train_iter, test_iter, train_count, test_count, epoch,
+        optimizer, train_iter, test_iter, test_count, epoch,
         device):
     model = optimizer.target
 
+    train_count = 0
     sum_accuracy = 0
     sum_loss = 0
     while train_iter.epoch < epoch:
@@ -46,6 +47,7 @@ def run_train_loop(
         x = chainer.Variable(x_array)
         t = chainer.Variable(t_array, requires_grad=False)
         optimizer.update(model, x, t)
+        train_count += len(t)
         sum_loss += float(model.loss.array) * len(t)
         sum_accuracy += float(model.accuracy.array) * len(t)
 
@@ -54,6 +56,7 @@ def run_train_loop(
             print('train mean loss: {}, accuracy: {}'.format(
                 sum_loss / train_count, sum_accuracy / train_count))
             # evaluation
+            train_count = 0
             sum_accuracy = 0
             sum_loss = 0
             model.predictor.train = False
@@ -134,7 +137,6 @@ def main():
         train = train[:200]
         test = test[:200]
 
-    train_count = len(train)
     test_count = len(test)
 
     model = L.Classifier(models.VGG.VGG(class_labels))
@@ -150,16 +152,15 @@ def main():
 
     if device.xp is not chainerx:
         run_train_loop(
-            optimizer, train_iter, test_iter, train_count, test_count,
-            args.epoch, device)
+            optimizer, train_iter, test_iter, test_count, args.epoch, device)
     else:
         warnings.warn(
             'Static subgraph optimization does not support ChainerX and will'
             ' be disabled.', UserWarning)
         with chainer.using_config('use_static_graph', False):
             run_train_loop(
-                optimizer, train_iter, test_iter, train_count, test_count,
-                args.epoch, device)
+                optimizer, train_iter, test_iter, test_count, args.epoch,
+                device)
 
     # Save the model and the optimizer
     print('save the model')

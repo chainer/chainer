@@ -5,7 +5,7 @@ import chainer
 from chainer.functions.array import permutate
 from chainer.functions.array import transpose_sequence
 from chainer.functions.rnn import n_step_rnn as rnn
-from chainer.initializers import normal
+from chainer import initializers
 from chainer import link
 from chainer.utils import argument
 from chainer import variable
@@ -27,7 +27,8 @@ def permutate_list(lst, indices, inv):
 
 
 class NStepRNNBase(link.ChainList):
-    """__init__(self, n_layers, in_size, out_size, dropout)
+    """__init__(self, n_layers, in_size, out_size, dropout, \
+*, initialW=None, initial_bias=None)
 
     Base link class for Stacked RNN/BiRNN links.
 
@@ -41,6 +42,14 @@ class NStepRNNBase(link.ChainList):
         in_size (int): Dimensionality of input vectors.
         out_size (int): Dimensionality of hidden states and output vectors.
         dropout (float): Dropout ratio.
+        initialW (:ref:`initializer <initializer>`): Initializer to initialize
+            the weight. When it is :class:`numpy.ndarray`,
+            its ``ndim`` should be 2. If ``initialW`` is ``None``, then the
+            weights are initialized with i.i.d. Gaussian samples, each of which
+            has zero mean and deviation :math:`\\sqrt{1/\\text{in_size}}`.
+        initial_bias (:ref:`initializer <initializer>`): Initializer to
+            initialize the bias. If ``None``, the bias will be initialized to
+            zero. When it is :class:`numpy.ndarray`, its ``ndim`` should be 1.
 
     .. seealso::
         :func:`chainer.links.NStepRNNReLU`
@@ -50,7 +59,8 @@ class NStepRNNBase(link.ChainList):
 
     """
 
-    def __init__(self, n_layers, in_size, out_size, dropout, **kwargs):
+    def __init__(self, n_layers, in_size, out_size, dropout,
+                 *, initialW=None, initial_bias=None, **kwargs):
         if kwargs:
             argument.check_unexpected_kwargs(
                 kwargs,
@@ -66,6 +76,11 @@ class NStepRNNBase(link.ChainList):
         else:
             direction = 1
 
+        W_initializer = initializers._get_initializer(initialW)
+        if initial_bias is None:
+            initial_bias = 0
+        bias_initializer = initializers._get_initializer(initial_bias)
+
         for i in six.moves.range(n_layers):
             for di in six.moves.range(direction):
                 weight = link.Link()
@@ -77,10 +92,8 @@ class NStepRNNBase(link.ChainList):
                             w_in = out_size * direction
                         else:
                             w_in = out_size
-                        w = variable.Parameter(
-                            normal.Normal(numpy.sqrt(1. / w_in)),
-                            (out_size, w_in))
-                        b = variable.Parameter(0, (out_size,))
+                        w = variable.Parameter(W_initializer, (out_size, w_in))
+                        b = variable.Parameter(bias_initializer, out_size)
                         setattr(weight, 'w%d' % j, w)
                         setattr(weight, 'b%d' % j, b)
                 weights.append(weight)
@@ -143,7 +156,7 @@ class NStepRNNBase(link.ChainList):
                 the hidden units.
             xs (list of :class:`~chainer.Variable`): List of input sequences.
                 Each element ``xs[i]`` is a :class:`chainer.Variable` holding
-                a sequence. Its shape is ``(L_i, I)``, where ``L_t`` is the
+                a sequence. Its shape is ``(L_i, I)``, where ``L_i`` is the
                 length of a sequence for batch ``i``, and ``I`` is the size of
                 the input and is equal to ``in_size``.
 
@@ -156,7 +169,7 @@ class NStepRNNBase(link.ChainList):
               ``ys[i]`` holds hidden states of the last layer corresponding
               to an input ``xs[i]``. Its shape is ``(L_i, N)`` for
               uni-directional RNN and ``(L_i, 2N)`` for bi-directional RNN
-              where ``L_t`` is the length of a sequence for batch ``i``,
+              where ``L_i`` is the length of a sequence for batch ``i``,
               and ``N`` is size of hidden units.
         """
         (hy,), ys = self._call([hx], xs, **kwargs)

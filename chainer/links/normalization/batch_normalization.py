@@ -6,6 +6,7 @@ from chainer import configuration
 from chainer import functions
 from chainer import initializers
 from chainer import link
+from chainer.graph_optimizations.static_graph_utilities import static_code
 from chainer.utils import argument
 from chainer import variable
 
@@ -190,8 +191,6 @@ class BatchNormalization(link.Link):
 
     gamma = None
     beta = None
-    avg_mean = None
-    avg_var = None
 
     def __init__(self, size=None, decay=0.9, eps=2e-5, dtype=None,
                  use_gamma=True, use_beta=True,
@@ -229,16 +228,19 @@ class BatchNormalization(link.Link):
                 beta_initializer.dtype = self._highprec_dtype
                 self.beta = variable.Parameter(beta_initializer)
 
-        if size is not None:
+        if size is None:
+            self.avg_mean = None
+            self.avg_var = None
+        else:
             self._initialize_params(size)
+        self.register_persistent('avg_mean')
+        self.register_persistent('avg_var')
 
     def _initialize_params(self, shape):
         self.avg_mean = self._init_array(self._initial_avg_mean, 0, shape)
         self._initial_avg_mean = None
-        self.register_persistent('avg_mean')
         self.avg_var = self._init_array(self._initial_avg_var, 1, shape)
         self._initial_avg_var = None
-        self.register_persistent('avg_var')
         if self.gamma is not None:
             self.gamma.initialize(shape)
         if self.beta is not None:
@@ -251,6 +253,20 @@ class BatchNormalization(link.Link):
         return initializers.generate_array(
             initializer, size, self.xp, dtype=self._highprec_dtype,
             device=self.device)
+
+    @static_code
+    def _get_gamma(self):
+        with chainer.using_device(self.device):
+            gamma = self.xp.ones(
+                self.avg_mean.shape, dtype=self._highprec_dtype)
+        return gamma,
+
+    @static_code
+    def _get_beta(self):
+        with chainer.using_device(self.device):
+            beta = self.xp.zeros(
+                self.avg_mean.shape, dtype=self._highprec_dtype)
+        return beta,
 
     @property
     def printable_specs(self):
@@ -295,17 +311,16 @@ class BatchNormalization(link.Link):
                 if i not in self.axis])
             self._initialize_params(param_shape)
 
+        # When using static_graph optimizations beta or gamma might not be
+        # initialized and is not retained by the function, so the
+        # static forward pass will get a None instead
         gamma = self.gamma
         if gamma is None:
-            with chainer.using_device(self.device):
-                gamma = self.xp.ones(
-                    self.avg_mean.shape, dtype=self._highprec_dtype)
+            gamma, = self._get_gamma()
 
         beta = self.beta
         if beta is None:
-            with chainer.using_device(self.device):
-                beta = self.xp.zeros(
-                    self.avg_mean.shape, dtype=self._highprec_dtype)
+            beta, = self._get_beta()
 
         if configuration.config.train:
             if finetune:

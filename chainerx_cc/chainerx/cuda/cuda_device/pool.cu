@@ -59,7 +59,12 @@ __global__ void MaxPoolDoubleBackwardKernel(
     auto it_kernel = kernel_indexer.It(kernel_indexer.total_size() - 1);
     auto it_x = x_indexer.It(0);
 
-    for (auto it_out = out_indexer.It(blockIdx.x * blockDim.x + threadIdx.x, blockDim.x * gridDim.x); it_out; ++it_out) {
+    int64_t id = static_cast<int64_t>(blockIdx.x);
+    int64_t size = static_cast<int64_t>(gridDim.x);
+    int64_t block_dim = static_cast<int64_t>(blockDim.x);
+    id = id * block_dim + static_cast<int64_t>(threadIdx.x);
+    size *= block_dim;
+    for (auto it_out = out_indexer.It(id, size); it_out; ++it_out) {
         it_x.index()[0] = it_out.index()[0];  // batch.
         it_x.index()[1] = it_out.index()[1];  // channel.
 

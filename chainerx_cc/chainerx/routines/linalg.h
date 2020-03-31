@@ -31,8 +31,10 @@ std::tuple<Array, Array> Qr(const Array& a, QrMode mode);
 
 Array Cholesky(const Array& a);
 
+// TODO(hvy): Define and use an enum for `uplo` to avoid invalid values.
 std::tuple<Array, Array> Eigh(const Array& a, char uplo);
 
+// TODO(hvy): Define and use an enum for `uplo` to avoid invalid values.
 Array Eigvalsh(const Array& a, char uplo);
 
 }  // namespace chainerx

@@ -14,7 +14,7 @@ from chainer import training
 from chainer.training import extensions
 
 import chainermn
-from chainermn import testing
+from chainermn.testing import get_device
 from chainermn.extensions.checkpoint import create_multi_node_checkpointer
 
 
@@ -32,7 +32,7 @@ class MLP(chainer.Chain):
         return self.l3(h2)
 
 
-def check_mnist(use_gpu, use_chainerx, display_log=True):
+def check_mnist(use_gpu, use_chx, display_log=True):
     epoch = 5
     batchsize = 100
     n_units = 100
@@ -40,13 +40,13 @@ def check_mnist(use_gpu, use_chainerx, display_log=True):
 
     model = L.Classifier(MLP(n_units, 10))
     comm = chainermn.create_communicator('naive')
-    if use_gpu:
-        device = testing.get_device(comm.intra_rank, use_chainerx)
-        device.use()
-        model.to_device(device)
-    else:
-        device = testing.get_device(use_chainerx=use_chainerx)
 
+    if use_gpu:
+        # Call CuPy's `Device.use()` to force cudaSetDevice()
+        chainer.cuda.get_device_from_id(comm.intra_rank).use()
+
+    device = get_device(comm.intra_rank if use_gpu else None, use_chx)
+    model.to_device(device)
     optimizer = chainermn.create_multi_node_optimizer(
         chainer.optimizers.Adam(), comm)
     optimizer.setup(model)
@@ -107,16 +107,16 @@ def check_mnist(use_gpu, use_chainerx, display_log=True):
     os.removedirs(path)
 
 
-@pytest.mark.parametrize("use_chainerx", [True, False])
+@pytest.mark.parametrize("use_chx", [True, False])
 @chainer.testing.attr.slow
-def test_mnist(use_chainerx):
-    check_mnist(False, use_chainerx)
+def test_mnist(use_chx):
+    check_mnist(False, use_chx)
 
 
-@pytest.mark.parametrize("use_chainerx", [True, False])
+@pytest.mark.parametrize("use_chx", [True, False])
 @chainer.testing.attr.gpu
-def test_mnist_gpu(use_chainerx):
-    check_mnist(True, use_chainerx)
+def test_mnist_gpu(use_chx):
+    check_mnist(True, use_chx)
 
 
 if __name__ == '__main__':

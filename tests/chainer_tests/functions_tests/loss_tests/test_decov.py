@@ -6,13 +6,12 @@ import six
 import chainer
 from chainer.backends import cuda
 from chainer import functions
-from chainer import gradient_check
 from chainer import testing
 from chainer.testing import attr
+from chainer.testing import backend
 
 
-def _deconv(h):
-    h = cuda.to_cpu(h)
+def _decov(h):
     h_mean = h.mean(axis=0)
     N, M = h.shape
     loss_expect = numpy.zeros((M, M), dtype=h.dtype)
@@ -25,85 +24,46 @@ def _deconv(h):
     return loss_expect / N
 
 
-@testing.parameterize(*testing.product_dict(
-    [{'dtype': numpy.float16,
-      'forward_options': {'rtol': 1e-2, 'atol': 1e-2},
-      'backward_options': {'atol': 3e-2}},
-     {'dtype': numpy.float32,
-      'forward_options': {'rtol': 1e-4, 'atol': 1e-4},
-      'backward_options': {'atol': 1e-3}},
-     {'dtype': numpy.float64,
-      'forward_options': {'rtol': 1e-4, 'atol': 1e-4},
-      'backward_options': {'atol': 1e-3}},
-     ],
-    [{'reduce': 'half_squared_sum'},
-     {'reduce': 'no'},
-     ],
-))
-class TestDeCov(unittest.TestCase):
+@testing.parameterize(*testing.product({
+    'dtype': [numpy.float16, numpy.float32, numpy.float64],
+    'reduce': ['half_squared_sum', 'no'],
+}))
+@backend.inject_backend_tests(
+    None,
+    # CPU tests
+    [{}]
+    # GPU tests
+    + [{
+        'use_cuda': True,
+    }]
+)
+class TestDeCov(testing.FunctionTestCase):
+
+    skip_double_backward_test = True
 
     def setUp(self):
-        self.h = numpy.random.uniform(-1, 1, (4, 3)).astype(self.dtype)
-        if self.reduce == 'half_squared_sum':
-            gloss_shape = ()
+        if self.dtype == numpy.float16:
+            self.check_forward_options.update({'rtol': 1e-2, 'atol': 1e-2})
+            self.check_backward_options.update({'atol': 3e-2, 'eps': 0.02})
         else:
-            gloss_shape = (3, 3)
-        self.gloss = numpy.random.uniform(
-            -1, 1, gloss_shape).astype(self.dtype)
+            self.check_forward_options.update({'rtol': 1e-4, 'atol': 1e-4})
+            self.check_backward_options.update({'atol': 1e-3, 'eps': 0.02})
 
-    def check_forward(self, h_data):
-        h = chainer.Variable(h_data)
-        loss = functions.decov(h, self.reduce)
-        self.assertEqual(loss.shape, self.gloss.shape)
-        self.assertEqual(loss.data.dtype, self.dtype)
-        loss_value = cuda.to_cpu(loss.data)
+    def generate_inputs(self):
+        h = numpy.random.uniform(-1, 1, (4, 3)).astype(self.dtype)
+        return h,
 
-        # Compute expected value
-        h_data = cuda.to_cpu(h_data)
-
-        loss_expect = _deconv(h_data)
+    def forward_expected(self, inputs):
+        h, = inputs
+        loss_expect = _decov(h)
         if self.reduce == 'half_squared_sum':
             loss_expect = (loss_expect ** 2).sum() * 0.5
+        return chainer.utils.force_array(loss_expect, self.dtype),
 
-        numpy.testing.assert_allclose(
-            loss_expect, loss_value, **self.forward_options)
-
-    def test_forward_cpu(self):
-        self.check_forward(self.h)
-
-    @attr.gpu
-    def test_forward_gpu(self):
-        self.check_forward(cuda.to_gpu(self.h))
-
-    def check_backward(self, h_data, gloss_data):
-        def f(h):
-            return functions.decov(h, self.reduce)
-
-        gradient_check.check_backward(
-            f, (h_data,), gloss_data, eps=0.02, **self.backward_options)
-
-    def check_type(self, h_data, gloss_data):
-        h = chainer.Variable(h_data)
+    def forward(self, inputs, device):
+        h, = inputs
         loss = functions.decov(h, self.reduce)
-        loss.grad = gloss_data
-        loss.backward()
-        self.assertEqual(h_data.dtype, h.grad.dtype)
-
-    def test_backward_cpu(self):
-        self.check_backward(self.h, self.gloss)
-
-    def test_backward_type_cpu(self):
-        self.check_type(self.h, self.gloss)
-
-    @attr.gpu
-    def test_backward_type_gpu(self):
-        self.check_type(cuda.to_gpu(self.h),
-                        cuda.to_gpu(self.gloss))
-
-    @attr.gpu
-    def test_backward_gpu(self):
-        self.check_backward(cuda.to_gpu(self.h),
-                            cuda.to_gpu(self.gloss))
+        return loss,
 
 
 class TestDeconvInvalidReductionOption(unittest.TestCase):

@@ -31,22 +31,6 @@ namespace chainerx {
 namespace cuda {
 namespace {
 
-// Makes axes for permutation that moves [first_axis, last_axis) to the head.
-Axes MakeRollingPermutation(int8_t first_axis, int8_t last_axis, int8_t ndim) {
-    CHAINERX_ASSERT(0 <= first_axis);
-    CHAINERX_ASSERT(first_axis < last_axis);
-    CHAINERX_ASSERT(last_axis <= ndim);
-
-    Axes permutation{};
-    permutation.resize(ndim);
-    auto head_end = permutation.begin() + (last_axis - first_axis);
-    auto last = permutation.begin() + last_axis;
-    std::iota(permutation.begin(), head_end, first_axis);
-    std::iota(head_end, last, int8_t{0});
-    std::iota(last, permutation.end(), last_axis);
-    return permutation;
-}
-
 template <typename T, typename TIndex, int8_t kNdim>
 __global__ void TakeCudaKernel(
         IndexableArray<const T, kNdim> a,
@@ -60,7 +44,11 @@ __global__ void TakeCudaKernel(
         TIndex right_dim,
         TIndex num_iters,
         IndexBoundsMode mode) {
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    int64_t idx = static_cast<int64_t>(blockIdx.x);
+    int64_t size = static_cast<int64_t>(gridDim.x);
+    int64_t block_dim = static_cast<int64_t>(blockDim.x);
+    idx = idx * block_dim + static_cast<int64_t>(threadIdx.x);
+    size *= block_dim;
     if (idx >= num_iters) return;
     TIndex left_idx = idx / (num_indices * right_dim);
     TIndex index_idx = idx % (num_indices * right_dim);
@@ -96,7 +84,11 @@ __global__ void AddAtCudaKernel(
         TIndex b_right_dim,
         TIndex num_iters,
         IndexBoundsMode mode) {
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    int64_t idx = static_cast<int64_t>(blockIdx.x);
+    int64_t size = static_cast<int64_t>(gridDim.x);
+    int64_t block_dim = static_cast<int64_t>(blockDim.x);
+    idx = idx * block_dim + static_cast<int64_t>(threadIdx.x);
+    size *= block_dim;
     if (idx >= num_iters) return;
     TIndex i = idx / (target_dim * right_dim);
     TIndex j = idx % (target_dim * right_dim);

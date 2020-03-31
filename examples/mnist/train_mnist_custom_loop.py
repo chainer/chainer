@@ -75,13 +75,13 @@ def main():
     # Load the MNIST dataset
     train, test = chainer.datasets.get_mnist()
 
-    train_count = len(train)
     test_count = len(test)
 
     train_iter = chainer.iterators.SerialIterator(train, args.batchsize)
     test_iter = chainer.iterators.SerialIterator(test, args.batchsize,
                                                  repeat=False, shuffle=False)
 
+    train_count = 0
     sum_accuracy = 0
     sum_loss = 0
 
@@ -89,6 +89,7 @@ def main():
         batch = train_iter.next()
         x, t = convert.concat_examples(batch, device)
         optimizer.update(model, x, t)
+        train_count += len(t)
         sum_loss += float(model.loss.array) * len(t)
         sum_accuracy += float(model.accuracy.array) * len(t)
 
@@ -97,6 +98,7 @@ def main():
             print('train mean loss: {}, accuracy: {}'.format(
                 sum_loss / train_count, sum_accuracy / train_count))
             # evaluation
+            train_count = 0
             sum_accuracy = 0
             sum_loss = 0
             # Enable evaluation mode.

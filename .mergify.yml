@@ -15,6 +15,15 @@ pull_request_rules:
       - status-success=pfn-public-ci/chainer.py3.cv
       - status-success=pfn-public-ci/chainer.py3.cv.examples
       - status-success=pfn-public-ci/chainer.py3.cv.gpu
+      - status-success=pfn-public-ci/chainermn.cpu
+      - status-success=pfn-public-ci/chainermn.gpu
+      - status-success=pfn-public-ci/onnxchainer.py35.cpu
+      - status-success=pfn-public-ci/onnxchainer.py36.cpu
+      - status-success=pfn-public-ci/onnxchainer.py36.cpu.onnx14
+      - status-success=pfn-public-ci/onnxchainer.py37.cpu
+      - status-success=pfn-public-ci/onnxchainer.py37.cpu.onnx15
+      - status-success=pfn-public-ci/onnxchainer.py37.gpu
+      - status-success=pfn-public-ci/onnxchainer.win.py37.gpu
     actions:
       merge:
         method: merge
