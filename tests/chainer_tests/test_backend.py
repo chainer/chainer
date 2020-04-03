@@ -65,15 +65,21 @@ class _TestCopyToBase(object):
         numpy.testing.assert_array_equal(self._to_cpu(dst), self.src_data)
 
 
+@testing.parameterize(*testing.product({
+    'dtype': [numpy.float16, numpy.float32],
+}))
 class TestCopyToCPU(_TestCopyToBase, unittest.TestCase):
     def _get_dst(self):
-        return self.dst_data
+        return self.dst_data.astype(self.dtype, copy=False)
 
 
+@testing.parameterize(*testing.product({
+    'dtype': [numpy.float16, numpy.float32],
+}))
 @attr.gpu
 class TestCopyToGPU(_TestCopyToBase, unittest.TestCase):
     def _get_dst(self):
-        return cuda.cupy.array(self.dst_data)
+        return cuda.cupy.array(self.dst_data, self.dtype)
 
     @attr.multi_gpu(2)
     def test_gpu_to_another_gpu(self):
@@ -92,17 +98,23 @@ class TestCopyToIDeep(_TestCopyToBase, unittest.TestCase):
         return dst
 
 
+@testing.parameterize(*testing.product({
+    'dtype': [numpy.float16, numpy.float32],
+}))
 @attr.chainerx
 class TestCopyToChxNative(_TestCopyToBase, unittest.TestCase):
     def _get_dst(self):
-        return chainerx.array(self.dst_data, device='native')
+        return chainerx.array(self.dst_data, dtype=self.dtype, device='native')
 
 
+@testing.parameterize(*testing.product({
+    'dtype': [numpy.float16, numpy.float32],
+}))
 @attr.chainerx
 @attr.gpu
 class TestCopyToChxCuda(_TestCopyToBase, unittest.TestCase):
     def _get_dst(self):
-        return chainerx.array(self.dst_data, device='cuda:0')
+        return chainerx.array(self.dst_data, dtype=self.dtype, device='cuda:0')
 
 
 class TestCopyToError(unittest.TestCase):

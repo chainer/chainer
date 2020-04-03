@@ -67,7 +67,8 @@ def copyto(dst, src):
     elif isinstance(dst, cuda.ndarray):
         if isinstance(src, chainer.get_cpu_array_types()):
             src = numpy.asarray(src)
-            if dst.flags.c_contiguous or dst.flags.f_contiguous:
+            if (src.dtype == dst.dtype
+                    and (dst.flags.c_contiguous or dst.flags.f_contiguous)):
                 dst.set(src)
             else:
                 cuda.cupy.copyto(dst, cuda.to_gpu(src, device=dst.device))
