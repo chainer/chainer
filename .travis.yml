@@ -47,7 +47,9 @@ matrix:
       - PYENV_ROOT=~/.pyenv
       - PATH=$PYENV_ROOT/shims:$PATH:$PYENV_ROOT/bin
       - GOROOT=/usr/local/opt/go/libexec
-      if: (branch = master OR branch = v6) AND (NOT type in (pull_request))
+      - CFLAGS="-I$(brew --prefix openssl)/include"
+      - LDFLAGS="-L$(brew --prefix openssl)/lib"
+      #if: (branch = master OR branch = v6) AND (NOT type in (pull_request))
 
 before_install:
   - bash scripts/ci/travis/run-tests.sh before_install
