@@ -47,8 +47,8 @@ matrix:
       - PYENV_ROOT=~/.pyenv
       - PATH=$PYENV_ROOT/shims:$PATH:$PYENV_ROOT/bin
       - GOROOT=/usr/local/opt/go/libexec
-      - CFLAGS="-I$(brew --prefix openssl)/include"
-      - LDFLAGS="-L$(brew --prefix openssl)/lib"
+      - LDFLAGS="-L/usr/local/opt/openssl@1.1/lib"
+      - CPPFLAGS="-I/usr/local/opt/openssl@1.1/include"
       #if: (branch = master OR branch = v6) AND (NOT type in (pull_request))
 
 before_install:
