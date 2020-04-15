@@ -660,7 +660,7 @@ First, we have to define a function on variables:
            return gx, gW, gb
 
    def linear(x, W, b):
-       return LinearFunction()(x, W, b)
+       return LinearFunction().apply((x, W, b))
 
 This function takes three arguments: input, weight, and bias.
 It can be used as a part of model definition, though is inconvenient since the user have to manage the weight and bias parameters directly.
