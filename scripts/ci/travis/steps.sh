@@ -62,15 +62,16 @@ step_before_install_chainer_test() {
             tar -C $HOME -xzf go1.13.3.linux-amd64.tar.gz
             ;;
         osx)
-            brew outdated pyenv || brew upgrade pyenv
+            # brew install foo returns 1 if foo is already installed but outdated
+            brew install pyenv || brew upgrade pyenv
 
             PYTHON_CONFIGURE_OPTS="--enable-unicode=ucs2" pyenv install -ks $PYTHON_VERSION
             pyenv global $PYTHON_VERSION
             python --version
 
-            brew install hdf5
+            brew install hdf5 || brew upgrade hdf5
 
-            brew outdated go || brew upgrade go
+            brew install go || brew upgrade go
             ;;
         *)
             false
