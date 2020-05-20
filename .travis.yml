@@ -43,7 +43,7 @@ matrix:
       language: generic
       env:
       - CHAINER_TRAVIS_TEST="chainer"
-      - PYTHON_VERSION=3.5.2
+      - PYTHON_VERSION=3.5.9
       - PYENV_ROOT=~/.pyenv
       - PATH=$PYENV_ROOT/shims:$PATH:$PYENV_ROOT/bin
       - GOROOT=/usr/local/opt/go/libexec
