@@ -56,12 +56,14 @@ class Reporter(object):
 
     There are also a global API to add values:
 
+    >>> reporter = Reporter()
     >>> observation = {}
-    >>> with report_scope(observation):
-    ...     report({'x': 1}, observer)
+    >>> with reporter:
+    ...     with report_scope(observation):
+    ...         report({'x': 1})
     ...
     >>> observation
-    {'my_observer/x': 1}
+    {'x': 1}
 
     The most important application of Reporter is to report observed values
     from each link or chain in the training and validation procedures.
