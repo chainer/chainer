@@ -8,7 +8,7 @@ set PATH=%CUDA_PATH%\bin;%CUDA_PATH%\libnvvp;%PY_PATH%;%PY_PATH%\Scripts\%PATH%
 
 pip install --pre cupy-cuda101
 pip install -e .[test]
-pip install "onnx<1.7.0" onnxruntime pytest-cov
+pip install "onnx<1.7.0" onnxruntime==1.2.0 pytest-cov
 pip list -v
 
 pytest -x -s -vvvs tests\onnx_chainer_tests --cov onnx_chainer
