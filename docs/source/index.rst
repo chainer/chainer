@@ -10,7 +10,7 @@ Chainer -- A flexible framework of neural networks
 
 .. note::
 
-   As `announced <https://chainer.org/announcement/2019/12/05/released-v7.html`_, Chainer is under the maintenance phase and further development will be limited to bug-fixes and maintenance only.
+   As `announced <https://chainer.org/announcement/2019/12/05/released-v7.html>`_, Chainer is under the maintenance phase and further development will be limited to bug-fixes and maintenance only.
 
 .. toctree::
    :maxdepth: 2

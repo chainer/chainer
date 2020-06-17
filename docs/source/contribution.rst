@@ -9,7 +9,7 @@ Anyone who for instance would like to file an issue or send a pull request (PR) 
 
 .. note::
 
-   As `announced <https://chainer.org/announcement/2019/12/05/released-v7.html`_, Chainer is under the maintenance phase and further development will be limited to bug-fixes and maintenance only.
+   As `announced <https://chainer.org/announcement/2019/12/05/released-v7.html>`_, Chainer is under the maintenance phase and further development will be limited to bug-fixes and maintenance only.
    Pull-requests for new features, enhancements, or backward-compatibility breaking changes will not be accepted.
 
 Issues and Pull Requests
