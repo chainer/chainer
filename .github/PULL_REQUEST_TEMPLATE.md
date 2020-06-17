@@ -1,5 +1,7 @@
 Thank you for creating a pull request!
 
+Please note that Chainer is under the maintenance phase and further development will be limited to bug-fixes and maintenance only.
+
 Please double-check the following.
 
 - Read [our contribution guide](https://docs.chainer.org/en/stable/contribution.html).
