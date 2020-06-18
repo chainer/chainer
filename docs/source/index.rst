@@ -8,6 +8,10 @@ Chainer -- A flexible framework of neural networks
 * Chainer supports various network architectures including feed-forward nets, convnets, recurrent nets and recursive nets. It also supports per-batch architectures.
 * Forward computation can include any control flow statements of Python without lacking the ability of backpropagation. It makes code intuitive and easy to debug.
 
+.. note::
+
+   As `announced <https://chainer.org/announcement/2019/12/05/released-v7.html>`_, Chainer is under the maintenance phase and further development will be limited to bug-fixes and maintenance only.
+
 .. toctree::
    :maxdepth: 2
    :caption: Tutorials

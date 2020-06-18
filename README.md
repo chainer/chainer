@@ -26,6 +26,8 @@ It provides automatic differentiation APIs based on the **define-by-run** approa
 It also supports CUDA/cuDNN using [CuPy](https://github.com/cupy/cupy) for high performance training and inference.
 For more details about Chainer, see the documents and resources listed above and join the community in Forum, Slack, and Twitter.
 
+***Notice: As [announced](https://chainer.org/announcement/2019/12/05/released-v7.html), Chainer is under the maintenance phase and further development will be limited to bug-fixes and maintenance only.***
+
 ## Installation
 
 *For more details, see the [installation guide](https://docs.chainer.org/en/stable/install.html).*
@@ -53,8 +55,7 @@ $ nvidia-docker run -it chainer/chainer /bin/bash
 
 ## Contribution
 
-Any contributions to Chainer are welcome!
-If you want to file an issue or send a pull request, [please follow the contribution guide](https://docs.chainer.org/en/stable/contribution.html).
+See the [contribution guide](https://docs.chainer.org/en/stable/contribution.html).
 
 
 ## ChainerX

@@ -7,6 +7,11 @@ Chainer is an `open source software hosted on GitHub <https://github.com/chainer
 This is a document aimed towards such contributors.
 Anyone who for instance would like to file an issue or send a pull request (PR) is encouraged to go through it.
 
+.. note::
+
+   As `announced <https://chainer.org/announcement/2019/12/05/released-v7.html>`_, Chainer is under the maintenance phase and further development will be limited to bug-fixes and maintenance only.
+   Pull-requests for new features, enhancements, or backward-compatibility breaking changes will not be accepted.
+
 Issues and Pull Requests
 ------------------------
 
@@ -328,34 +333,6 @@ For more on backward compatibility, please refer to the :ref:`compatibility`.
 Release Cycle
 ~~~~~~~~~~~~~
 
-Two tracks with different versions are developed in parallel.
-The first track is the **stable versions**, which is a series of minor (occasional revision) updates for the latest major version.
-The second track is the **development versions**, which is a series of pre-releases for the upcoming major version.
-
-If ``X.0.0`` is the latest major version, followed by ``Y.0.0`` and ``Z.0.0``,  a typical release cycle timeline would be as follows.
-
-========== =========== =========== ============
-   Date       ver X       ver Y       ver Z
-========== =========== =========== ============
-  0 weeks    X.0.0rc1    --         --
-  4 weeks    X.0.0       Y.0.0a1    --
-  8 weeks    X.1.0*      Y.0.0b1    --
- 12 weeks    X.2.0*      Y.0.0rc1   --
- 16 weeks    --          Y.0.0      Z.0.0a1
-========== =========== =========== ============
-
-(* These might be revision releases)
-
-The dates shown in the left-most column are relative to the release of ``X.0.0rc1``.
-In particular, each revision/minor release is made around four weeks after the previous one of the same major version, and the pre-release of the upcoming major version is made at the same time.
-Whether these releases are revision or minor is determined based on the contents of each update.
-
-Note that there are only three stable releases for the versions ``X.x.x`` in the example table above.
-The number of stable releases may vary depending the development status of the following in this case ``Y`` and its number of required beta versions (a ``b`` followed by a number).
-During the parallel development of ``Y.0.0`` and ``Z.0.0a1``, the version ``Y`` is treated as an **almost-stable version** and ``Z`` is treated as a development version.
-
-If there is a critical bug found in ``X.x.x`` after stopping the development of version ``X``, we may release a hot-fix for this version at any time.
-
 A `milestone for each upcoming release is published on GitHub <https://github.com/chainer/chainer/milestones>`_.
 The GitHub milestones are used to group issues and PRs belonging to a release.
 
@@ -364,38 +341,4 @@ The GitHub milestones are used to group issues and PRs belonging to a release.
 Git Branches
 ~~~~~~~~~~~~
 
-The ``master`` branch is used to develop pre-release versions.
-It means that **alpha, beta, and RC updates are developed at the** ``master`` **branch**.
-This branch contains the most up-to-date source tree that includes features newly added after the latest major version.
-
-The stable version is developed on the ``vN`` branch where "N" reflects the version number (*versioned branch*).
-For example, v3.0.0, v3.1.0, and v3.2.0 are developed on the ``v3`` branch.
-
-A PR from a contributor should in general be targeting the ``master`` branch.
-If the change can and should be applied to the stable version in addition, a member from the core team will make sure it is backported to be included in the next revision update.
-
-If the change is only applicable to the stable version and not to the ``master`` branch, please send it to the versioned branch.
-We basically only accept changes to the latest versioned branch (where the stable version is developed) unless the fix is critical.
-
-If you want to introduce a new feature in the ``master`` branch to the current stable version, please send a *backport PR* to the stable version (the latest ``vN`` branch).
-See the next section for details.
-
-*Note: a change that can be applied to both branches should be sent to the* ``master`` *branch.*
-
-Feature Backport Pull Requests
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-In general, new features in the development branch are not backported to the stable versions.
-If such backports can be motivated and are necessary however, they are welcomed.
-In such a case, a backport PR must be sent to the latest ``vN`` branch.
-**Note that we do not accept any feature backport PRs to older versions because we are not running quality assurance workflows (e.g. CI) for older versions which means that we cannot ensure that the PR is correctly ported.**
-
-There are some rules on sending backport PRs.
-
-* Prefix the PR title with **[backport]**.
-* Include the original PR number in the PR description, e.g. "This is a backport of #XXXX".
-* (Optional) Write in the PR description, the motivation behind the backport.
-
-There is a `backport tool <https://github.com/chainer/backport>`_ maintained by the core team that automates the process of creating backport PRs conforming to the rules above.
-
-Note: PRs that do not include any changes/additions to APIs (e.g. bug fixes, documentation improvements) are backported by the core team, but contributors are also welcome to do so for faster development.
+``master`` branch is used for Chainer v7.x development.
