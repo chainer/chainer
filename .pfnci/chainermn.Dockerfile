@@ -1,6 +1,6 @@
-ARG BASE_IMAGE
+ARG BASE_IMAGE=9.2-cudnn7-devel
 
-FROM nvidia/cuda:9.2-cudnn7-devel
+FROM nvidia/cuda:${BASE_IMAGE}
 
 RUN apt-get update -y && \
     apt-get install -y --no-install-recommends \
