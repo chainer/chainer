@@ -203,11 +203,6 @@ test_chainermn_sub() {
   fi
 
   #-----------------------------------------------------------------------------
-  # Install CuPy from wheel
-  #-----------------------------------------------------------------------------
-  pip install /cupy-wheel/cupy-*-cp${MAJOR_VERSION}*-cp${MAJOR_VERSION}*-linux_x86_64.whl
-
-  #-----------------------------------------------------------------------------
   # Install Chainer
   #-----------------------------------------------------------------------------
   CHAINER_BUILD_CHAINERX=1 CHAINERX_BUILD_CUDA=1 \
@@ -215,7 +210,6 @@ test_chainermn_sub() {
   CHAINERX_NVCC_GENERATE_CODE=arch=compute_70,code=sm_70 \
       python -m pip install /chainer[test] 2>&1 >/tmp/install-py3.log &
   install_pid=$!
-
   if ! wait $install_pid; then
     cat /tmp/install-py3.log
     exit 1

@@ -1,4 +1,4 @@
-ARG BASE_IMAGE
+ARG BASE_IMAGE=9.2-cudnn7-devel
 
 FROM nvidia/cuda:${BASE_IMAGE}
 
@@ -52,12 +52,12 @@ RUN touch $BASH_PROFILE && \
 
 
 # Python 3.6.8
-
 ENV PYTHON_VERSION 3.6.8
-
-RUN . $BASH_PROFILE && pyenv install $PYTHON_VERSION && \
+COPY . /cupy
+RUN . $BASH_PROFILE && cd /cupy && pyenv install $PYTHON_VERSION && \
 	pyenv shell ${PYTHON_VERSION} && \
 	pip install -U pip && \
 	pip install cython && \
 	pip install chainer pytest mock mpi4py && \
-	pip uninstall -y chainer
+	pip uninstall -y chainer && \
+        pip install .

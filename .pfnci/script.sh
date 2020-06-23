@@ -102,21 +102,15 @@ main() {
         run docker push "asia.gcr.io/pfn-public-ci/chainer-ci-prep.${target}:${base_branch}"
       fi
       ;;
-	'chainermn' )
+    'chainermn' )
       docker_args+=(
           --volume="$(cd "$(dirname "${BASH_SOURCE}")/.."; pwd):/src:ro")
       if [ "${GPU:-0}" != '0' ]; then
         docker_args+=(
             --ipc=host --privileged --env="GPU=${GPU}" --runtime=nvidia)
       fi
-      docker_args+=(--env="CUPY_VERSION=${CUPY_VERSION:-master}")
-      # prepare CuPy wheel
-      CUPY_MASTER=$(gsutil -q cp gs://tmp-asia-pfn-public-ci/cupy/wheel/master -)
-      mkdir /tmp/cupy-wheel
-      gsutil -q cp gs://tmp-asia-pfn-public-ci/cupy/wheel/${CUPY_MASTER}/cuda9.2/*.whl /tmp/cupy-wheel
-      docker_args+=(--volume="/tmp/cupy-wheel:/cupy-wheel:ro")
       run "${docker_args[@]}" \
-          "asia.gcr.io/pfn-public-ci/chainermn-ci-prep-${CUDATAG:-cuda92}" \
+          "asia.gcr.io/pfn-public-ci/chainer-ci-prep.${TARGET}:${base_branch}" \
           bash /src/.pfnci/run.sh "${TARGET}"
       ;;
     # Unsupported targets.

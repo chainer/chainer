@@ -97,7 +97,7 @@ configs {
     environment_variables { key: "GPU" value: "2" }
     # NOTE: If # of threads / # of GPUs exceeds 10, GPU tests may cause
     # cudaErrorLaunchFailure because of insufficient memory on GPU.
-    environment_variables { key: "XPYTEST_NUM_THREADS" value: "30" }
+    environment_variables { key: "XPYTEST_NUM_THREADS" value: "20" }
     environment_variables {
       key: "SPREADSHEET_ID"
       value: "1u5OYiPOL3XRppn73XBSgR-XyDuHKb_4Ilmx1kgJfa-k"
@@ -147,6 +147,22 @@ configs {
   }
 }
 configs {
+  key: "chainer.docker.chainermn.test"
+  value {
+    requirement {
+      cpu: 2
+      memory: 12
+    }
+    time_limit: {
+      seconds: 3600
+    }
+    checkout_strategy {
+      include_dot_git: true
+    }
+    command: "bash .pfnci/script.sh docker.chainermn.test"
+  }
+}
+configs {
   key: "chainer.docker.py37.push"
   value {
     requirement {
@@ -176,6 +192,22 @@ configs {
       include_dot_git: true
     }
     command: "bash .pfnci/script.sh docker.py27and35.push"
+  }
+}
+configs {
+  key: "chainer.docker.chainermn.push"
+  value {
+    requirement {
+      cpu: 2
+      memory: 12
+    }
+    time_limit: {
+      seconds: 3600
+    }
+    checkout_strategy {
+      include_dot_git: true
+    }
+    command: "bash .pfnci/script.sh docker.chainermn.push"
   }
 }
 

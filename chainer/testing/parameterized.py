@@ -92,7 +92,10 @@ def _parameterize_test_case(base, i, param):
                 s.write('Test parameters:\n')
                 for k, v in sorted(param.items()):
                     s.write('  {}: {}\n'.format(k, v))
-                utils._raise_from(e.__class__, s.getvalue(), e)
+                err_class = e.__class__
+                if err_class.__name__ == 'OutOfMemoryError':
+                    err_class = MemoryError
+                utils._raise_from(err_class, s.getvalue(), e)
         return new_method
 
     return (cls_name, mb, method_generator)
