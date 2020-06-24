@@ -40,28 +40,30 @@ class Reporter(object):
     prefix of the value name. The observer name should be registered
     beforehand.
 
-    See the following example::
+    See the following example:
 
-       >>> from chainer import Reporter, report, report_scope
-       >>>
-       >>> reporter = Reporter()
-       >>> observer = object()  # it can be an arbitrary (reference) object
-       >>> reporter.add_observer('my_observer', observer)
-       >>> observation = {}
-       >>> with reporter.scope(observation):
-       ...     reporter.report({'x': 1}, observer)
-       ...
-       >>> observation
-       {'my_observer/x': 1}
+    >>> from chainer import Reporter, report, report_scope
+    >>>
+    >>> reporter = Reporter()
+    >>> observer = object()  # it can be an arbitrary (reference) object
+    >>> reporter.add_observer('my_observer', observer)
+    >>> observation = {}
+    >>> with reporter.scope(observation):
+    ...     reporter.report({'x': 1}, observer)
+    ...
+    >>> observation
+    {'my_observer/x': 1}
 
-    There are also a global API to add values::
+    There are also a global API to add values:
 
-       >>> observation = {}
-       >>> with report_scope(observation):
-       ...     report({'x': 1}, observer)
-       ...
-       >>> observation
-       {'my_observer/x': 1}
+    >>> reporter = Reporter()
+    >>> observation = {}
+    >>> with reporter:
+    ...     with report_scope(observation):
+    ...         report({'x': 1})
+    ...
+    >>> observation
+    {'x': 1}
 
     The most important application of Reporter is to report observed values
     from each link or chain in the training and validation procedures.
