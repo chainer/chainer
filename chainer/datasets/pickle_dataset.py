@@ -96,7 +96,9 @@ class PickleDataset(dataset_mixin.DatasetMixin):
             self._positions.append(position)
 
         self._lock = threading.RLock()
+        self._register_hook()
 
+    def _register_hook(self):
         # TODO: Avoid using undocumented feature
         multiprocessing.util.register_after_fork(
             self, PickleDataset._after_fork)
@@ -104,6 +106,16 @@ class PickleDataset(dataset_mixin.DatasetMixin):
     def _after_fork(self):
         if callable(getattr(self._reader, 'after_fork', None)):
             self._reader.after_fork()
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        del state['_lock']
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self._lock = threading.RLock()
+        self._register_hook()
 
     def close(self):
         """Closes a file reader.
@@ -150,6 +162,15 @@ class _FileReader(io.RawIOBase):
     def after_fork(self):
         """Reopens the file to avoid race condition."""
         self.close()
+        self._open()
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        del state['_fp']
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
         self._open()
 
     # file-like interface
