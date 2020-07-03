@@ -19,7 +19,7 @@
 
 **Forum** ([en](https://groups.google.com/forum/#!forum/chainer), [ja](https://groups.google.com/forum/#!forum/chainer-jp))
 | **Slack invitation** ([en](https://bit.ly/go-chainer-slack), [ja](https://bit.ly/go-chainer-jp-slack))
-| **Twitter** ([en](https://twitter.com/ChainerOfficial), [ja](https://twitter.com/ChainerJP))
+| **Twitter** ([en](https://twitter.com/CuPy_Team), [ja](https://twitter.com/ChainerJP))
 
 *Chainer* is a Python-based deep learning framework aiming at flexibility.
 It provides automatic differentiation APIs based on the **define-by-run** approach (a.k.a. dynamic computational graphs) as well as object-oriented high-level APIs to build and train neural networks.
