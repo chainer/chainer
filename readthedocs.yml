@@ -5,5 +5,5 @@ requirements_file: docs/requirements.txt
 conda:
   file: docs/rtd_conda.yml
 python:
-  version: 3.5
+  version: 3.6
   setup_py_install: true
