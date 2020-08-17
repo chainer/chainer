@@ -43,7 +43,7 @@ Hardware Acceleration Support
 You can accelerate performance of Chainer by installing the following optional components.
 
 * NVIDIA CUDA / cuDNN
-    * `CuPy <https://cupy.chainer.org/>`_ 5.0+
+    * `CuPy <https://cupy.chainer.org/>`_ 7.7+
     * See `CuPy Installation Guide <https://docs-cupy.chainer.org/en/latest/install.html>`__ for instructions.
 
 * Intel CPU (experimental)
