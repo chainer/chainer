@@ -68,7 +68,7 @@ try:
     # Alias for ignoring the warning in setup.cfg
     try:
         from cupy._util import PerformanceWarning as _PerformanceWarning  # NOQA
-    except Exception as e:
+    except ImportError:
         from cupy.util import PerformanceWarning as _PerformanceWarning  # NOQA
 
     available = True
