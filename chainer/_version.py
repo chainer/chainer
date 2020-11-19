@@ -5,6 +5,7 @@ _optional_dependencies = [
     {
         'name': 'CuPy',
         'packages': [
+            'cupy-cuda111',
             'cupy-cuda110',
             'cupy-cuda102',
             'cupy-cuda101',
@@ -16,7 +17,7 @@ _optional_dependencies = [
             'cupy',
         ],
         'specifier': '>=7.7.0,<8.0.0',
-        'help': 'https://docs-cupy.chainer.org/en/latest/install.html',
+        'help': 'https://docs.cupy.dev/en/latest/install.html',
     },
     {
         'name': 'iDeep',

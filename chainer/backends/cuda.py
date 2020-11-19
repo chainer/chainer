@@ -66,7 +66,10 @@ try:
     from cupy.cuda import Stream  # type: ignore # NOQA
 
     # Alias for ignoring the warning in setup.cfg
-    from cupy.util import PerformanceWarning as _PerformanceWarning  # NOQA
+    try:
+        from cupy._util import PerformanceWarning as _PerformanceWarning  # NOQA
+    except ImportError:
+        from cupy.util import PerformanceWarning as _PerformanceWarning  # NOQA
 
     available = True
 except Exception as e:

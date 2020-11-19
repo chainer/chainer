@@ -19,7 +19,7 @@ set -eux
 
 if [[ "${INSTALL_CUPY}" == "on" ]]; then pip install --pre 'cupy-cuda101<8.0.0'; fi
 pip install -e .[test]
-pip install 'onnx<1.7.0' onnxruntime
+pip install 'onnx<1.7.0' 'onnxruntime<1.5.0'
 if [[ "${ONNX_VER}" != "" ]]; then pip install onnx==${ONNX_VER}; fi
 pip install pytest-cov
 pip list -v
