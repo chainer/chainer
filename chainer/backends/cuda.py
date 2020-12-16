@@ -51,6 +51,8 @@ import chainerx
 available = False  # type: bool
 cudnn_enabled = False  # type: bool
 
+_cupy_major = 0  # type: bool
+
 try:
     import cupy
     from cupy import cuda  # NOQA
@@ -119,10 +121,13 @@ except Exception as e:
 
 
 if available:
+    _cupy_major = numpy.lib.NumpyVersion(cupy.__version__).major
     _cudnn_disabled_by_user = int(os.environ.get('CHAINER_CUDNN', '1')) == 0
     try:
         import cupy.cudnn
         cudnn = cupy.cudnn  # type: tp.Optional[types.ModuleType]
+        if 7 < _cupy_major:
+            import cupy.cuda.cudnn
         libcudnn = cupy.cuda.cudnn  # type: tp.Any # NOQA
         cudnn_enabled = not _cudnn_disabled_by_user
     except Exception as e:
