@@ -17,7 +17,7 @@ if [ -z "${ONNX_VER+x}" ]; then export ONNX_VER=""; fi
 cat <<EOM >test_script.sh
 set -eux
 
-if [[ "${INSTALL_CUPY}" == "on" ]]; then pip install --pre 'cupy-cuda101<8.0.0'; fi
+if [[ "${INSTALL_CUPY}" == "on" ]]; then pip install 'cupy-cuda101<8.0.0'; fi
 pip install -e .[test]
 pip install 'onnx<1.7.0' 'onnxruntime<1.5.0'
 if [[ "${ONNX_VER}" != "" ]]; then pip install onnx==${ONNX_VER}; fi
