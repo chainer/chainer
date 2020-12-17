@@ -48,6 +48,7 @@ build_script:
 
 test_script:
   # Run the project tests
+  - "%CMD_IN_ENV% python -m pip install -U pip"
   - "%CMD_IN_ENV% pip install -U -e .[appveyor]"
   # Avoid interuption confirmation of cmd.exe
   - "echo python -m pytest -rfEX --timeout=60 -m \"not gpu and not cudnn and not ideep and not slow\" tests/chainer_tests > tmp.bat"
