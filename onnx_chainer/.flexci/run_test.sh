@@ -37,5 +37,5 @@ EOM
 
 docker run ${DOCKER_RUNTIME_ARG} -i --rm \
     -v $(pwd):/root/chainer --workdir /root/chainer \
-    disktnk/onnx-chainer:ci-py${PYTHON_VER} \
+    kmaehashi/onnx-chainer:ci-py${PYTHON_VER} \
     /bin/bash /root/chainer/test_script.sh
