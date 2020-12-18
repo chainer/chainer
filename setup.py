@@ -62,10 +62,11 @@ requirements = {
         # pytest-timeout>=1.3.0 requires pytest>=3.6.
         # TODO(niboshi): Consider upgrading pytest to >=3.6
         'pytest-timeout<1.3.0',
-        'pytest-cov',
+        'pytest-cov<2.10',  # pytest-cov 2.10 requires pytest>=4.6
         'nose',
         'coveralls',
         'codecov',
+        'coverage<5',  # Otherwise, Python must be built with sqlite
     ],
 }
 
