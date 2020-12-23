@@ -576,7 +576,7 @@ class FuncGradWithContiguousnessCheck(chainer.FunctionNode):
 @testing.parameterize(*testing.product({
     'shape': [(3, 2), (2,), (1, 2)],
     'contiguous': [None, 'C'],
-    'check_on': [  # Check points in which cotiguousness is probed.
+    'check_on': [  # Check points in which contiguousness is probed.
         'forward_input',
         # TODO(niboshi): As gradient_check.check_backward currently copies the
         # grads without preserving strides, they cannot be non-contiguous.
@@ -883,7 +883,7 @@ class TestLinkIncorrectInitializers(
 
 @testing.parameterize(*testing.product({
     'contiguous': [None, 'C'],
-    'check_on': [  # Check points in which cotiguousness is probed.
+    'check_on': [  # Check points in which contiguousness is probed.
         'forward_input',
         # TODO(hvy): As gradient_check.check_backward currently copies the
         # grads without preserving strides, they cannot be non-contiguous.
