@@ -50,7 +50,9 @@ def _check_optional_dependencies():
         installed = False
         for pkg in pkgs:
             found = False
-            requirement = '{}{}'.format(pkg, spec)
+            requirement = pkg
+            if os.environ.get('CHAINER_WARN_VERSION_MISMATCH', '1') == '1':
+                requirement = '{}{}'.format(pkg, spec)
             try:
                 pkg_resources.require(requirement)
                 found = True
