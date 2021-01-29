@@ -51,4 +51,4 @@ More examples can be found in [Awesome Chainer](https://github.com/chainer-commu
 
 ### <a name="optuna"></a> Hyperparameter Optimization with [Optuna](https://optuna.org)
 
-* [Optuna](https://optuna.org)
+* [Optuna](https://github.com/chainer/chainer/tree/master/examples/optuna)
