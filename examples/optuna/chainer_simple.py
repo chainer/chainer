@@ -28,9 +28,9 @@ import pkg_resources
 import optuna
 from optuna.integration import ChainerPruningExtension
 
-if pkg_resources.parse_version(chainer.__version__) < pkg_resources.parse_version(
-    "4.0.0"
-):
+if pkg_resources.parse_version(
+    chainer.__version__
+) < pkg_resources.parse_version("4.0.0"):
     raise RuntimeError("Chainer>=4.0.0 is required for this example.")
 
 N_TRAIN_EXAMPLES = 3000
@@ -45,7 +45,9 @@ def create_model(trial):
 
     layers = []
     for i in range(n_layers):
-        n_units = int(trial.suggest_loguniform("n_units_l{}".format(i), 4, 128))
+        n_units = int(
+            trial.suggest_loguniform("n_units_l{}".format(i), 4, 128)
+        )
         layers.append(L.Linear(None, n_units))
         layers.append(F.relu)
     layers.append(L.Linear(None, 10))
@@ -55,12 +57,16 @@ def create_model(trial):
 
 def create_optimizer(trial, model):
     # We optimize the choice of optimizers as well as their parameters.
-    optimizer_name = trial.suggest_categorical("optimizer", ["Adam", "MomentumSGD"])
+    optimizer_name = trial.suggest_categorical(
+        "optimizer", ["Adam", "MomentumSGD"]
+    )
     if optimizer_name == "Adam":
         adam_alpha = trial.suggest_loguniform("adam_alpha", 1e-5, 1e-1)
         optimizer = chainer.optimizers.Adam(alpha=adam_alpha)
     else:
-        momentum_sgd_lr = trial.suggest_loguniform("momentum_sgd_lr", 1e-5, 1e-1)
+        momentum_sgd_lr = trial.suggest_loguniform(
+            "momentum_sgd_lr", 1e-5, 1e-1
+        )
         optimizer = chainer.optimizers.MomentumSGD(lr=momentum_sgd_lr)
 
     weight_decay = trial.suggest_loguniform("weight_decay", 1e-10, 1e-3)
@@ -109,7 +115,9 @@ def objective(trial):
     trainer.extend(log_report_extension)
 
     trainer.extend(
-        ChainerPruningExtension(trial, "validation/main/accuracy", (1, "epoch"))
+        ChainerPruningExtension(
+            trial, "validation/main/accuracy", (1, "epoch")
+        )
     )
 
     # Run!

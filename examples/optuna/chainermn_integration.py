@@ -36,7 +36,9 @@ def create_model(trial):
 
     layers = []
     for i in range(n_layers):
-        n_units = int(trial.suggest_loguniform("n_units_l{}".format(i), 4, 128))
+        n_units = int(
+            trial.suggest_loguniform("n_units_l{}".format(i), 4, 128)
+        )
         layers.append(L.Linear(None, n_units))
         layers.append(F.relu)
     layers.append(L.Linear(None, 10))
@@ -70,7 +72,9 @@ def objective(trial, comm):
     train = chainermn.scatter_dataset(train, comm, shuffle=True)
     test = chainermn.scatter_dataset(test, comm)
 
-    train_iter = chainer.iterators.SerialIterator(train, BATCHSIZE, shuffle=True)
+    train_iter = chainer.iterators.SerialIterator(
+        train, BATCHSIZE, shuffle=True
+    )
     test_iter = chainer.iterators.SerialIterator(
         test, BATCHSIZE, repeat=False, shuffle=False
     )
@@ -127,10 +131,14 @@ if __name__ == "__main__":
 
     if comm.rank == 0:
         pruned_trials = [
-            t for t in study.trials if t.state == optuna.structs.TrialState.PRUNED
+            t
+            for t in study.trials
+            if t.state == optuna.structs.TrialState.PRUNED
         ]
         complete_trials = [
-            t for t in study.trials if t.state == optuna.structs.TrialState.COMPLETE
+            t
+            for t in study.trials
+            if t.state == optuna.structs.TrialState.COMPLETE
         ]
         print("Study statistics: ")
         print("  Number of finished trials: ", len(study.trials))

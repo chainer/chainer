@@ -19,9 +19,9 @@ import pkg_resources
 
 import optuna
 
-if pkg_resources.parse_version(chainer.__version__) < pkg_resources.parse_version(
-    "4.0.0"
-):
+if pkg_resources.parse_version(
+    chainer.__version__
+) < pkg_resources.parse_version("4.0.0"):
     raise RuntimeError("Chainer>=4.0.0 is required for this example.")
 
 N_TRAIN_EXAMPLES = 3000
@@ -37,7 +37,9 @@ def create_model(trial):
 
     layers = []
     for i in range(n_layers):
-        n_units = int(trial.suggest_loguniform("n_units_l{}".format(i), 32, 256))
+        n_units = int(
+            trial.suggest_loguniform("n_units_l{}".format(i), 32, 256)
+        )
         layers.append(L.Linear(None, n_units))
         layers.append(F.relu)
     layers.append(L.Linear(None, 10))
@@ -114,7 +116,9 @@ if __name__ == "__main__":
         t for t in study.trials if t.state == optuna.structs.TrialState.PRUNED
     ]
     complete_trials = [
-        t for t in study.trials if t.state == optuna.structs.TrialState.COMPLETE
+        t
+        for t in study.trials
+        if t.state == optuna.structs.TrialState.COMPLETE
     ]
     print("Study statistics: ")
     print("  Number of finished trials: ", len(study.trials))
