@@ -25,7 +25,7 @@ digit recognition in terms of validation loss. The network is implemented by Cha
 evaluated by MNIST dataset. Throughout the training of neural networks, a pruner observes
 intermediate results and stops unpromising trials.
 
-chainermn_integration.py
+[chainermn_integration.py](https://github.com/optuna/optuna/blob/master/examples/pruning/chainermn_integration.py)
 Optuna example that demonstrates a pruner for ChainerMN.
 In this example, we optimize the validation accuracy of hand-written digit recognition using
 ChainerMN and MNIST, where architecture of neural network is optimized. Throughout the training of
