@@ -13,7 +13,7 @@ Chainer and MNIST. We optimize the neural network architecture as well as the op
 configuration. As it is too time consuming to use the whole MNIST dataset, we here use a small
 subset of it.
 
-chainermn_simple.py
+[chainermn_simple.py](https://github.com/optuna/optuna/blob/master/examples/chainermn_simple.py)
 Optuna example that optimizes multi-layer perceptrons using ChainerMN.
 In this example, we optimize the validation accuracy of hand-written digit recognition using
 ChainerMN and MNIST, where architecture of neural network is optimized.
