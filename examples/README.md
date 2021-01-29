@@ -49,6 +49,6 @@ More examples can be found in [Awesome Chainer](https://github.com/chainer-commu
 * [DDPG on continuous-action tasks](https://github.com/chainer/chainer/tree/master/examples/reinforcement_learning)
 * [ChainerRL examples: more examples for OpenAI Gym and Arcade Learning environments](https://github.com/chainer/chainerrl/tree/master/examples)
 
-### <a name="optuna"></a> Hyperparameter Optimization with Optuna
+### <a name="optuna"></a> Hyperparameter Optimization with [Optuna](https://optuna.org)
 
 * [Optuna](https://optuna.org)
