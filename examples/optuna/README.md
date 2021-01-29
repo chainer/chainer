@@ -18,7 +18,7 @@ Optuna example that optimizes multi-layer perceptrons using ChainerMN.
 In this example, we optimize the validation accuracy of hand-written digit recognition using
 ChainerMN and MNIST, where architecture of neural network is optimized.
 
-chainer_integration.py
+[chainer_integration.py](https://github.com/optuna/optuna/blob/master/examples/pruning/chainer_integration.py)
 Optuna example that demonstrates a pruner for Chainer.
 In this example, we optimize the hyperparameters of a neural network for hand-written
 digit recognition in terms of validation loss. The network is implemented by Chainer and
