@@ -1,10 +1,11 @@
 """
 Optuna example that demonstrates a pruner for Chainer.
 
-In this example, we optimize the hyperparameters of a neural network for hand-written
-digit recognition in terms of validation loss. The network is implemented by Chainer and
-evaluated by MNIST dataset. Throughout the training of neural networks, a pruner observes
-intermediate results and stops unpromising trials.
+In this example, we optimize the hyperparameters of a neural network for
+hand-written digit recognition in terms of validation loss. The network is
+implemented by Chainer and evaluated by MNIST dataset. Throughout the training
+of neural networks, a pruner observes intermediate results and stops
+unpromising trials.
 
 You can run this example as follows:
     $ python chainer_integration.py
@@ -94,9 +95,10 @@ def objective(trial):
     trainer.extend(log_report_extension)
 
     # Run training.
-    # Please set show_loop_exception_msg False to inhibit messages about TrialPruned exception.
-    # ChainerPruningExtension raises TrialPruned exception to stop training, and
-    # trainer shows some messages every time it receive TrialPruned.
+    # Please set show_loop_exception_msg False to inhibit messages about
+    # TrialPruned exception. ChainerPruningExtension raises TrialPruned
+    # exception to stop training, and trainer shows some messages every time
+    # it receives TrialPruned.
     trainer.run(show_loop_exception_msg=False)
 
     # Save loss and accuracy to user attributes.

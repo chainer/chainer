@@ -1,10 +1,10 @@
 """
 Optuna example that optimizes multi-layer perceptrons using Chainer.
 
-In this example, we optimize the validation accuracy of hand-written digit recognition using
-Chainer and MNIST. We optimize the neural network architecture as well as the optimizer
-configuration. As it is too time consuming to use the whole MNIST dataset, we here use a small
-subset of it.
+In this example, we optimize the validation accuracy of hand-written digit
+recognition using Chainer and MNIST. We optimize the neural network
+architecture as well as the optimizer configuration. As it is too time
+consuming to use the whole MNIST dataset, we here use a small subset of it.
 
 We have the following two ways to execute this example:
 
@@ -13,9 +13,10 @@ We have the following two ways to execute this example:
 
 
 (2) Execute through CLI.
-    $ STUDY_NAME=`optuna create-study --direction maximize --storage sqlite:///example.db`
-    $ optuna study optimize chainer_simple.py objective --n-trials=100 --study $STUDY_NAME \
-      --storage sqlite:///example.db
+    $ STUDY_NAME=`optuna create-study --direction maximize \
+            --storage sqlite:///example.db`
+    $ optuna study optimize chainer_simple.py objective --n-trials=100 \
+      --study $STUDY_NAME --storage sqlite:///example.db
 
 """
 
@@ -123,7 +124,8 @@ def objective(trial):
     # Run!
     trainer.run(show_loop_exception_msg=False)
 
-    # Set the user attributes such as loss and accuracy for train and validation sets
+    # Set the user attributes such as loss and accuracy for train and
+    # validation sets
     log_last = log_report_extension.log[-1]
     for key, value in log_last.items():
         trial.set_user_attr(key, value)

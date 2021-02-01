@@ -1,13 +1,15 @@
 """
 Optuna example that optimizes multi-layer perceptrons using ChainerMN.
 
-In this example, we optimize the validation accuracy of hand-written digit recognition using
-ChainerMN and MNIST, where architecture of neural network is optimized.
+In this example, we optimize the validation accuracy of hand-written digit
+recognition using ChainerMN and MNIST, where architecture of neural network is
+optimized.
 
-ChainerMN and it's Optuna integration are supposed to be invoked via MPI. You can run this example
-as follows:
+ChainerMN and it's Optuna integration are supposed to be invoked via MPI. You
+can run this example as follows:
     $ STORAGE_URL=sqlite:///example.db
-    $ STUDY_NAME=`optuna create-study --direction maximize --storage $STORAGE_URL`
+    $ STUDY_NAME=`optuna create-study --direction maximize \
+            --storage $STORAGE_URL`
     $ mpirun -n 2 -- python chainermn_simple.py $STUDY_NAME $STORAGE_URL
 
 """
