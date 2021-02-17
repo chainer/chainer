@@ -38,17 +38,6 @@ matrix:
       - CHAINER_TRAVIS_TEST="examples"
       - GOROOT=$HOME/go
 
-    - name: "macOS Py35 | chainer, chainermn, chainerx, docs"
-      os: osx
-      language: generic
-      env:
-      - CHAINER_TRAVIS_TEST="chainer"
-      - PYTHON_VERSION=3.5.9
-      - PYENV_ROOT=~/.pyenv
-      - PATH=$PYENV_ROOT/shims:$PATH:$PYENV_ROOT/bin
-      - GOROOT=/usr/local/opt/go/libexec
-      if: (branch = master OR branch = v6) AND (NOT type in (pull_request))
-
 before_install:
   - bash scripts/ci/travis/run-tests.sh before_install
 
