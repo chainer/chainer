@@ -124,10 +124,10 @@ if available:
     _cupy_major = numpy.lib.NumpyVersion(cupy.__version__).major
     _cudnn_disabled_by_user = int(os.environ.get('CHAINER_CUDNN', '1')) == 0
     try:
-        import cupy.cudnn
-        cudnn = cupy.cudnn  # type: tp.Optional[types.ModuleType]
         if 7 < _cupy_major:
             import cupy.cuda.cudnn
+        import cupy.cudnn
+        cudnn = cupy.cudnn  # type: tp.Optional[types.ModuleType]
         libcudnn = cupy.cuda.cudnn  # type: tp.Any # NOQA
         cudnn_enabled = not _cudnn_disabled_by_user
     except Exception as e:
