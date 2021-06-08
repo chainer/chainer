@@ -50,6 +50,10 @@ You can accelerate performance of Chainer by installing the following optional c
     * `iDeep <https://github.com/intel/ideep>`_ 2.0.0.post3+
     * See :doc:`tips` for instructions.
 
+.. note::
+
+   CuPy v7.8.0 is the recommended version for Chainer v7 series.
+
 Optional Features
 ~~~~~~~~~~~~~~~~~
 
