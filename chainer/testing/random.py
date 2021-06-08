@@ -35,16 +35,24 @@ def _numpy_do_teardown():
     _old_numpy_random_state = None
 
 
+
+def _cupy_testing_random():
+    testing = cuda.cupy.testing
+    if hasattr(testing, 'random'):
+        return testing.random
+    return testing._random
+
+
 def do_setup(deterministic=True):
     if cuda.available:
-        cuda.cupy.testing.random.do_setup(deterministic)
+        _cupy_testing_random().do_setup(deterministic)
     else:
         _numpy_do_setup(deterministic)
 
 
 def do_teardown():
     if cuda.available:
-        cuda.cupy.testing.random.do_teardown()
+        _cupy_testing_random().do_teardown()
     else:
         _numpy_do_teardown()
 
