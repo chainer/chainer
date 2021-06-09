@@ -63,14 +63,14 @@ input data
 input data
 <variable at 0x[0-9a-f]+>
 - device: <CUDA Device 0>
-- backend: <(type|class) 'cupy.core.core.ndarray'>
+- backend: <(type|class) 'cupy._?core.core.ndarray'>
 - shape: \(3L?, 5L?\)
 - dtype: float32
 - statistics: mean=[0-9.\-e]+, std=[0-9.\-e]+
 - grad: None
 <variable at 0x[0-9a-f]+>
 - device: <CUDA Device 0>
-- backend: <(type|class) 'cupy.core.core.ndarray'>
+- backend: <(type|class) 'cupy._?core.core.ndarray'>
 - shape: \(3L?, 5L?\)
 - dtype: float32
 - statistics: mean=[0-9.\-e]+, std=[0-9.\-e]+
@@ -117,7 +117,7 @@ output gradient
 input data
 <variable at 0x[0-9a-f]+>
 - device: <CUDA Device 0>
-- backend: <(type|class) 'cupy.core.core.ndarray'>
+- backend: <(type|class) 'cupy._?core.core.ndarray'>
 - shape: \(3L?, 5L?\)
 - dtype: float32
 - statistics: mean=[0-9.\-e]+, std=[0-9.\-e]+
@@ -126,7 +126,7 @@ input data
 output gradient
 <variable at 0x[0-9a-f]+>
 - device: <CUDA Device 0>
-- backend: <(type|class) 'cupy.core.core.ndarray'>
+- backend: <(type|class) 'cupy._?core.core.ndarray'>
 - shape: \(3L?, 5L?\)
 - dtype: float32
 - statistics: mean=[0-9.\-e]+, std=[0-9.\-e]+

@@ -2028,7 +2028,8 @@ class TestDebugPrint(unittest.TestCase):
 
         result = v.debug_print()
         assert 'device: <CUDA Device 0>' in result
-        assert 'cupy.core.core.ndarray' in result
+        assert 'cupy' in result
+        assert 'ndarray' in result
 
         self.check_debug_print(v, mean=float(cuda.cupy.mean(v.data)),
                                std=float(cuda.cupy.std(v.data)))
