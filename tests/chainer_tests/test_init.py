@@ -24,7 +24,7 @@ class TestUseCuDNN(unittest.TestCase):
             self.assertFalse(chainer.should_use_cudnn('==always'))
             self.assertFalse(chainer.should_use_cudnn('>=auto'))
 
-    @unittest.skip(not cuda.cudnn_enabled)
+    @unittest.skipIf(cuda.cudnn_enabled, 'cudnn unavailable')
     def test_no_cudnn_available(self):
         with chainer.using_config('use_cudnn', 'always'):
             self.assertFalse(chainer.should_use_cudnn('==always'))
