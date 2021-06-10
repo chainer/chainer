@@ -1,8 +1,13 @@
 import functools
 import unittest
 
-import _pytest.outcomes
 import six
+
+try:
+    import _pytest.outcomes
+    _error = None
+except ImportError as e:
+    _error = e
 
 
 class QuietTestRunner(object):
