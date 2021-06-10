@@ -10,7 +10,6 @@ except ImportError as e:
     _error = e
 
 
-
 class QuietTestRunner(object):
 
     def run(self, suite):
