@@ -35,7 +35,6 @@ def _numpy_do_teardown():
     _old_numpy_random_state = None
 
 
-
 def _cupy_testing_random():
     testing = cuda.cupy.testing
     if hasattr(testing, 'random'):
