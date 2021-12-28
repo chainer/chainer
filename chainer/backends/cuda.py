@@ -32,6 +32,7 @@ import binascii
 import functools
 import itertools
 import os
+import packaging
 import threading
 import time
 import typing as tp  # NOQA
@@ -121,7 +122,7 @@ except Exception as e:
 
 
 if available:
-    _cupy_major = numpy.lib.NumpyVersion(cupy.__version__).major
+    _cupy_major = packaging.version.Version(cupy.__version__).major
     _cudnn_disabled_by_user = int(os.environ.get('CHAINER_CUDNN', '1')) == 0
     try:
         if 7 < _cupy_major:
