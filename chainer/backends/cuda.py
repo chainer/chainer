@@ -32,7 +32,6 @@ import binascii
 import functools
 import itertools
 import os
-import packaging
 import threading
 import time
 import typing as tp  # NOQA
