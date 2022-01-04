@@ -121,7 +121,7 @@ except Exception as e:
 
 
 if available:
-    _cupy_major = numpy.lib.NumpyVersion(cupy.__version__).major
+    _cupy_major = int(cupy.__version__.split('.')[0])
     _cudnn_disabled_by_user = int(os.environ.get('CHAINER_CUDNN', '1')) == 0
     try:
         if 7 < _cupy_major:
