@@ -1,4 +1,4 @@
-__version__ = '7.8.0'
+__version__ = '7.8.1'
 
 
 _optional_dependencies = [
@@ -6,6 +6,8 @@ _optional_dependencies = [
         'name': 'CuPy',
         'packages': [
             'cupy-cuda120',
+            'cupy-cuda116',
+            'cupy-cuda115',
             'cupy-cuda114',
             'cupy-cuda113',
             'cupy-cuda112',
