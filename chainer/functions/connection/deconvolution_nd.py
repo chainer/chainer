@@ -98,7 +98,7 @@ class DeconvolutionND(function_node.FunctionNode):
         xCg = xC // G
         k_size = W.shape[2:]
         dims = len(k_size)
-        if xC % G != 0:
+        if xC % G:
             raise TypeError('The number of groups must be '
                             'a divisor of that of input channels')
 
