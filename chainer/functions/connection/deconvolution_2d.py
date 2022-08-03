@@ -337,7 +337,7 @@ class Deconvolution2DFunction(function_node.FunctionNode):
             ret.append(gx)
         if 1 in indexes:
             if self.cover_all is None:
-                self._set_cover_all(x, W)
+                self._set_cover_all(x.shape, W.shape)
             gW, = convolution_2d.Convolution2DGradW(
                 self, W.shape, W.dtype, w_layout).apply((gy, x))
             ret.append(gW)
