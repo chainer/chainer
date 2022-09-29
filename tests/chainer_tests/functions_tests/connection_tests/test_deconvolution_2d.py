@@ -336,4 +336,32 @@ class TestDeconvolution2DInvalidDilation(unittest.TestCase):
                 self.check_invalid_dilation(x, w)
 
 
+@testing.parameterize(*(testing.product({
+    'n_batches': [2, 3],
+    'requires_x_grad': [True, False],
+    'requires_w_grad': [True, False],
+    'requires_b_grad': [True, False],
+})))
+class TestDeconvolution2DVariousGradTargets(unittest.TestCase):
+
+    in_channels = 3
+    out_channels = 2
+
+    def check_backward_succeed(self, x_data, w_data, b_data):
+        x = chainer.Variable(x_data, requires_grad=self.requires_x_grad)
+        w = chainer.Variable(w_data, requires_grad=self.requires_w_grad)
+        b = chainer.Variable(b_data, requires_grad=self.requires_b_grad)
+        y = F.deconvolution_2d(x, w, b)
+        F.sum(y).backward()
+
+    def test_backward_cpu(self):
+        x_shape = (self.n_batches, self.in_channels, 10, 10)
+        w_shape = (self.in_channels, self.out_channels, 5, 5)
+        x = numpy.ones(x_shape, numpy.float32)
+        w = numpy.ones(w_shape, numpy.float32)
+        b = numpy.ones(self.out_channels, numpy.float32)
+        with chainer.using_config('use_ideep', 'never'):
+            self.check_backward_succeed(x, w, b)
+
+
 testing.run_module(__name__, __file__)
