@@ -65,7 +65,7 @@ See the [ChainerX documentation](https://docs.chainer.org/en/stable/chainerx/ind
 
 ## License
 
-MIT License (see `LICENSE` file).
+MIT License (see [`LICENSE` file](/LICENSE)).
 
 
 ## More information
