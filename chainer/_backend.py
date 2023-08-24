@@ -84,8 +84,7 @@ class Device(object):
         pass
 
     def __eq__(self, other):
-        raise NotImplementedError(
-            'Device implementation must override this method.')
+        return NotImplemented
 
     def __ne__(self, other):
         return not (self == other)
