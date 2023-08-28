@@ -30,8 +30,8 @@ class MLP(chainer.Chain):
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Chainer example: MNIST')
-    parser.add_argument('--batchsize', '-b', type=int, default=100,
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--batchsize', default=100, type=int, help='batch size' )
                         help='Number of images in each mini-batch')
     parser.add_argument('--epoch', '-e', type=int, default=20,
                         help='Number of sweeps over the dataset to train')
